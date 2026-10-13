@@ -1,0 +1,11 @@
+{
+  "library": "BasicNewKeynesianModel",
+  "modules": [
+    "BasicNewKeynesianModel/PriceDuration.lean"
+  ],
+  "theorem_counts": {
+    "BasicNewKeynesianModel/PriceDuration.lean": 5
+  },
+  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 3: The Basic New Keynesian Model. Calvo price durations; the remaining chapter content is built in phase 1.",
+  "source": "Jordi Galí, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 3, pp. 52-97."
+}

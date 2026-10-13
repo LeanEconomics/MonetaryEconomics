@@ -1,0 +1,142 @@
+{
+  "checked_at_utc": "2026-10-13T20:49:00.087943+00:00",
+  "theorems": 5,
+  "module_theorems": {
+    "BasicNewKeynesianModel/PriceDuration.lean": 5
+  },
+  "audited_declarations": 11,
+  "declarations": [
+    {
+      "name": "Gali.BasicNewKeynesianModel.durationProb",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.durationProb_nonneg",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.survival_sum",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.tail_sum",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.mean_duration",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.CalvoParam",
+      "kind": "structure",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.CalvoParam.mk",
+      "kind": "constructor",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.CalvoParam.\u03b8",
+      "kind": "projection",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.CalvoParam.nonneg",
+      "kind": "projection",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.CalvoParam.lt_one",
+      "kind": "projection",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.CalvoParam.mean_duration",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/PriceDuration.lean"
+    }
+  ],
+  "full_build": "passed",
+  "fresh_source_compilation": "passed",
+  "fresh_source_lint_options": [
+    "-Dlinter.mathlibStandardSet=true",
+    "-Dlinter.style.header=false"
+  ],
+  "axioms": {
+    "Gali.BasicNewKeynesianModel.durationProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.durationProb_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.survival_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.tail_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.mean_duration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.CalvoParam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.CalvoParam.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.CalvoParam.\u03b8": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.CalvoParam.nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.CalvoParam.lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.CalvoParam.mean_duration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "BasicNewKeynesianModel/PriceDuration.lean": "537c369099f20e3f0f7ea0a2adf1c96e30858982fdc6bd81de6c0edf0bd4877f",
+    "BasicNewKeynesianModel.lean": "1b4164035cf9edd6867195faf76b75798e8fe053685c5ee6cbebffdc57222047",
+    "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
+    "lakefile.toml": "5896f300394fcf40f9ba5ec9f406b9c9f055777029706b933e8bbf8f2383362a",
+    "lake-manifest.json": "01e977c42d929d6be4e133806f74b0c68ce46464eb166470217c3d6faaa8828c",
+    "proof-manifest.json": "49257d6fdacd62575b566050bfffb24dbcb55952f23ffbb917dfceea4c97f5d7",
+    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "fresh_audit_sha256": "a3c284237195c0264444af11421c38f8f99232923dac9f4b284b874a91c2eefa",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "scope": "Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 3: The Basic New Keynesian Model. Calvo price durations; the remaining chapter content is built in phase 1.",
+  "source": "Jordi Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 3, pp. 52-97."
+}
