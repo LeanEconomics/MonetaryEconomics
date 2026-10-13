@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [Gali/BasicNewKeynesianModel]
+        project: [Gali/ClassicalMonetaryModel, Gali/BasicNewKeynesianModel]
     defaults:
       run:
         working-directory: ${{ matrix.project }}
