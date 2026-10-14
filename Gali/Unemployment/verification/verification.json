@@ -1,0 +1,6186 @@
+{
+  "checked_at_utc": "2026-10-14T04:00:42.451615+00:00",
+  "theorems": 412,
+  "module_theorems": {
+    "Unemployment/Determinacy.lean": 23,
+    "Unemployment/Expectations.lean": 20,
+    "Unemployment/ExpectationsFiniteTree.lean": 21,
+    "Unemployment/Determinacy4.lean": 128,
+    "Unemployment/IndivisibleLabor.lean": 15,
+    "Unemployment/UnemploymentDef.lean": 25,
+    "Unemployment/Equilibrium.lean": 9,
+    "Unemployment/Policy.lean": 53,
+    "Unemployment/Ex7_1.lean": 86,
+    "Unemployment/Ex7_2.lean": 13,
+    "Unemployment/Ex7_3.lean": 19
+  },
+  "audited_declarations": 615,
+  "declarations": [
+    {
+      "name": "Gali.Unemployment.SchurStable",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.disc",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.root\u2081",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.root\u2082",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.root_sum",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.root_prod",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.root_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.normSq_root_of_neg",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.norm_root_of_nonneg",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.schurStable_iff_roots",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.chSeq",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.convSeq",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.convSeq_rec",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.chSeq_eq_convSeq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.norm_convSeq_le",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.abs_chSeq_le",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.tendsto_chSeq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.tr2",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.det2",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.tr2_eq_trace",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.det2_eq_det",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.sq_eq_cayleyHamilton",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.pow_succ_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.abs_pow_entry_le",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.tendsto_pow_entry",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.BoundedSeq",
+      "kind": "def",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.homogeneous_iterate",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.homogeneous_eq_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.eq_root_of_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.exists_eigenvector",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.exists_bounded_homogeneous",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem",
+      "kind": "structure",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.E",
+      "kind": "projection",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.const",
+      "kind": "projection",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.mono",
+      "kind": "projection",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.tower",
+      "kind": "projection",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.known",
+      "kind": "projection",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.perfectForesight",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.BoundedProc",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.BoundedVec",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.Adapted",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.IsAR1",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.E_neg",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.bounded_E",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.ar1_iterate",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forward_iterate",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forward_ar1_solves",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.E_tsum",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forwardSeries",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forwardSeries_summable",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forwardSeries_solves",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forwardSeries_bounded",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.eq_forwardSeries",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.forwardSeries_adapted",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.PullOut",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.Solves",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.AdaptedVec",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.system_iterate",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.system_unique",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.system_not_unique",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.Determinate",
+      "kind": "def",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationSystem.determinate_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.perfectForesight_pullOut",
+      "kind": "theorem",
+      "module": "Unemployment/Expectations.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree",
+      "kind": "structure",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mk",
+      "kind": "constructor",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.prob",
+      "kind": "projection",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.prob_pos",
+      "kind": "projection",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.prob_sum",
+      "kind": "projection",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.info",
+      "kind": "projection",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.refines",
+      "kind": "projection",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mass",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.num",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mass_pos",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mass_congr",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.num_congr",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_congr",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_add",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_smul",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condELin",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_const",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_mono",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_known",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_tower",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.toExpectationSystem",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_of_trivial",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinObs",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinTree",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinSystem",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.firstHeads",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinSystem_E0_firstHeads",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinSystem_not_perfectForesight",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinShock",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinAR1",
+      "kind": "def",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinShock_measurable",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinAR1_measurable",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinShock_mean_zero",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinAR1_isAR1",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.coinAR1_nondegenerate",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.ExpectationsFiniteTree.finiteTree_pullOut",
+      "kind": "theorem",
+      "module": "Unemployment/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.inCount",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.circleIntegral_sub_inv",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.argument_principle",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.quart",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.eval_quart",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.eval_derivative_quart",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.inCount_path",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par",
+      "kind": "structure",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.mk",
+      "kind": "constructor",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03b2",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03c3",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03bap",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03baw",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.lamP",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.lamW",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03c6p",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03c6w",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03c6y",
+      "kind": "projection",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03a8",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.c0",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.c1",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.c2",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.c3",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.c4",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.circle_cert",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qv",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qC",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Qv",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.QC",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_qC",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_QC",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_QC_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_qC_ofReal",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_qC_conj",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_qC_mk",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Adm",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_neg_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.\u03a8_nonneg",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_neg_one_neg",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.c0_neg",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.c4_neg",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_one_neg_of_root",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qC_ne_zero_of_norm_eq_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.QC_ne_zero_of_norm_eq_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.coeff_quart_four",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.quart_ne_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.mix",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.mix_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.mix_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.adm_mix",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.continuous_Qv_mix",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.inCount_QC_mix",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Pref",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.QC_ref",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.inCount_ref",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.adm_ref",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.endpt",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.inCount_QC",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.natDegree_quart",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.card_roots_quart",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.outCount",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.inCount_add_outCount",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.QC_ne_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.card_roots_QC",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.outCount_QC",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.dqr",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_derivative_QC",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.continuous_qr",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qC_eval_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.inv_mem_out",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.stable_root",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.pow_entry_bound",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.rvMul",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.rvMul_rvMul",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.rvMul_add",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.rvMul_sub",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.rvMul_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.rvMul_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.rvMul_apply",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.E_rvMul",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.FSolves",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.VAdapted",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.VBounded",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.fsolves_iterate",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.abs_rvMul_pow_le",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.fsolves_unique",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Fwd.fsolves_exists",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.A0",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.A1",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_A0_sub_A1",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_A0_sub_A1_real",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.B0",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Dr",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Brr",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Hr",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_factor",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.dqr_factor",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.StableVec",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.stableVec_of_hom",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.exists_stableVec",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Cm",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Dm",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Vm",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_Cm_sub_mul",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.rr",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qC_eq_mul_rr",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.rr_self",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.continuous_rr",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_Cm_sub",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.rr_ne_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Km",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Fm",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_Cm_ne_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Km_eigen",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.IsSol",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.Determinate",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.toS",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.transform",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.eq_iff_fwd",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.toS_adapted",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.toS_bounded",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.mseq",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.ofS",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.toS_ofS",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.mseq_adapted",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.mseq_bounded",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.determinate_of_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_A0",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_A1",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eval_derivative_qC",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.sum_smul_rvMul",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.rvMul_const",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.multiple_solutions_of_mode",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_mode",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.map_ofReal_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.no_bounded_solution_of_no_root",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_no_root",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.closedRoots",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.qC_ne_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.mem_closedRoots",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.sr",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.qr_eq_sr",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.sr_self",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.closedRoots_card_ne_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.exists_real_eigvec",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.geom_mode",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.abs_pow_le_one",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_complex_root",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.exists_mode_of_two_real_roots",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_two_real_roots",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_double_root",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_neg",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_le",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.determinate_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Aw",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.det_A0_mul_det_charmat",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.charpoly_Aw",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.eigen_count_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Dyn.eq24_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.Lhs",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_one_eq_mul",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.qr_one_pos_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.bookPar",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.bookPar_adm",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.bookPar_\u03a8",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.bookPar_Lhs",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.determinacy_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.eigenvalues_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.determinacy_iff_phiY_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.inCount_QC_four",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.Par.no_root_of_inCount_four",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exNE",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exNE_coeffs",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exNE_adm",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exNE_lhs",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exNE_circle",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exNE_no_root",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exNE_no_bounded_solution",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.baseline_lambdas",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exBase",
+      "kind": "def",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exBase_signs",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exBase_two_roots",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Determinacy4.exBase_multiplicity",
+      "kind": "theorem",
+      "module": "Unemployment/Determinacy4.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.integral_disutility",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.crra",
+      "kind": "def",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.householdUtility",
+      "kind": "def",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.ch6Utility",
+      "kind": "def",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.householdUtility_eq_ch6",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.hasDerivAt_disutility",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.hasDerivAt_crra",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.marginal_value",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.participates_iff",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.laborForce",
+      "kind": "def",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.laborForce_nonneg",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.laborForce_rpow",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.eq5_iff",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.participation_set_eq",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.participation_set_unit",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.marginal_indifferent",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.inframarginal_strict",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.supramarginal_refuses",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.IndivisibleLabor.laborForce_le_one_iff",
+      "kind": "theorem",
+      "module": "Unemployment/IndivisibleLabor.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.eq6_type",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.eq6_integrated",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.cesIndex",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.laborForceAgg",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.integrable_exp_mul",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.integrable_of_bound",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.hasDerivAt_cgf_mul",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.log_cesIndex_family",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.log_laborForce_family",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.wageIndex_first_order",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.laborForce_first_order",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.eq6_residual_eq",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.eq6_first_order",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.unemploymentRate_eq",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.rate_le_u",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.exp_neg_le_quadratic",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.abs_rate_sub_u_le",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.abs_rate_sub_u_bound_fails_neg",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.wageMarkup",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.eq8_iff",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.natRate",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.natRate_eq",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.natRate_pos",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.markupGap_eq",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.WageNKPC",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.WagePhillips",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.wageNKPC_iff_eq11",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.ResetRule",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.IndexLaw",
+      "kind": "def",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.flexible_iff",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.flexible_unemployment_constant",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.fluctuations_require_rigidity",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.UnemploymentDef.sticky_unemployment_gap_consistent",
+      "kind": "theorem",
+      "module": "Unemployment/UnemploymentDef.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.eq16_levels",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.DISGap",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.PriceGapNKPC",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.WageGapNKPC",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.WageUnempNKPC",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.WageGapLaw",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.UnempGapEq",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.eq14_iff_eq20",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.Ch6Equilibrium",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.Ch7Equilibrium",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.ch7_iff_ch6",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.IsSol7",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.uhatOf",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.isSol7_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.uhatOf_bounded",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.Determinate7",
+      "kind": "def",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.determinate_iff_ch6",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.determinacy_ch7_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.determinacy_ch7_iff_phiY_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Equilibrium.rule17_determinate",
+      "kind": "theorem",
+      "module": "Unemployment/Equilibrium.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef",
+      "kind": "structure",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.mk",
+      "kind": "constructor",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.\u03b2",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.kapP",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.kapW",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.lamP",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.lamW",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.ay",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.ap",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Coef.aw",
+      "kind": "projection",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.bookCoef",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.prev",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.prev_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.prev_succ",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.lagrangian_alg",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.hasSum_of_telescope",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.tendsto_disc_abs",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.tendsto_disc_partial",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.summable_sub_sq",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.Feasible",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.FOC",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.BoundedMult",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.lossTerm",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.FiniteLoss",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.loss",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.IsOptimal",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.summable_sq",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.prev_sub_eq_sum",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.loss_sub_hasSum",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.isOptimal_of_foc",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.eq_of_loss_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.isOptimal_iff_foc",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.existsUnique_optimal",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Det.demand_zero_optimal",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.markup_eq_exp",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.epsW_markup_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.exp_quarter_bounds",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.calibration_epsW",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.calibration_markup",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.calibration_book_epsW",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.laborForce",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.laborForce_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.hasDerivAt_laborForce",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.laborForce_strictAnti",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.marginalParticipant",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.marginalParticipant_eq5",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.log_marginalParticipant",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.hasDerivAt_log_marginalParticipant",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.WagePC",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.abs_unemp_le",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.lamWOf",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.tendsto_lamWOf_atTop",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.unemployment_vanishes",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.unemployment_volatility_vanishes",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.unemployment_need_not_vanish",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.flexible_wages_no_unemployment_gap",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Feasible7",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.fn8_wage_pc",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.feasible7_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.IsOptimal7",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.isOptimal7_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.FOC7",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.foc7_iff_ch6",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.bookCoef_weights_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.isOptimal7_iff_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.existsUnique_optimal7",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.isOptimal7_iff_foc",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.psiYA",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.psiWA",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.psiYA_sigma_one",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.psiWA_sigma_one",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.outputDev",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.employmentDev",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.unempGap",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.laborForceDev",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.realWageDev",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.participation_consistent",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.efficient_technology_sigma_one",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.efficient_employment_zero_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.demand_shock_optimal_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.demand_shock_labour_market",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.Rule22Level",
+      "kind": "def",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.rule22_level_iff_gap",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.rule22_book_intercept",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.rule22_level_not_steady",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.rule22_gap_steady",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Policy.rule22_deviation",
+      "kind": "theorem",
+      "module": "Unemployment/Policy.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.profit",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.bernoulli_key",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.profit_lt_opt",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.profit_isMaxOn_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.subsidy_offsets",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.flexPrice_eq_wage",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.inflOf",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.infl_eq_of_realWage_const",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.markup_eq_phi_u",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.ex7_1a",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.ex7_1a_from_primitives",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.lambdaP",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.ch6PeriodLoss",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.flexLoss",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.ch6PeriodLoss_alpha_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.priceWeight_tendsto_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.ch6PeriodLoss_tendsto_flex",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.efficient_output_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.phi_u_eq_gap",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.alphaU",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.alphaU_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.flexLoss_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.welfare_tsum_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.welfare_hasSum_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.expected_welfare_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.printed_sum_not_summable",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.correct_sum_hasSum",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.distortion_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.distortion_calibration",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.periodObj",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.periodObj_sub",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.periodObj_isMinOn_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.period_problem_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.NKPCu",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.DiscretionEq",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.TargetingRule",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.discretionEq_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.aDisc",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.aDisc_mem",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.inflation_forward_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.piStar",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.uStar",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.den_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.uStar_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.piStar_nkpc",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.discretion_const_isEq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.discretionEq_iff_const",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.inflationBias_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.expected_inflation_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.uStar_lt_un",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.piStar_primitives",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.uStar_primitives",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.inflationBias_zero_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.wageSubsidy_markup_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.inflationBias_strictMonoOn",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.tendsto_inflationBias_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.DIS",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.rateOf",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.dis_gap_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.NKPCx",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.stack",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.boundedVec_stack",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.adaptedVec_stack",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.AT",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.wT",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.rule_iff_solves",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.tr2_AT",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.det2_AT",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.AT_schurStable_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.RuleD",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.dev_iff_solves",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.rule_implements",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.rule_indeterminate",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.gam",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.del",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.gam_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.gam_mul_denom",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.gam_mul_le",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.gam_mul_lt_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.four_beta_gam_sq_lt_one",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.sqrt_sq_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.sqrt_lt_one",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.del_mul",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.del_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.del_quad",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.del_lt_one_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.kappa_sq_del",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.lag",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.lag_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.lag_succ",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.priceGap",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.hasSum_of_telescope",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.Feasible",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.lossTerm",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.FiniteLoss",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.loss",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.IsOptimal",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.FOC",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.foc_iff_targeting",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.tendsto_disc_sq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.loss_sub_hasSum",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.isOptimal_of_foc",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.eq_of_loss_eq",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.finiteLoss_of_bounded",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.pbar",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.commInfl",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.commU",
+      "kind": "def",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.priceGap_commInfl",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.comm_feasible",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.comm_foc",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.del_mem",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.comm_finiteLoss",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.isOptimal_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.isOptimal_iff_targeting",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.commitment_tendsto",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.commitment_monotone",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.commInfl_lt_piStar",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.disc_feasible",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_1.Commit.commitment_beats_discretion",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_1.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.markupGap",
+      "kind": "def",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.eq13",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.lambdaW",
+      "kind": "def",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.wageInfl",
+      "kind": "def",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.eq15_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.lambdaW_pos",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.markupGapTV",
+      "kind": "def",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.eq13_timeVarying",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.ErrorForm",
+      "kind": "def",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.wageEq_iff_errorForm",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.ex7_2a",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.errorForm_hat",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.errorForm_depends_on_sum",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.errorForm_shift_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.not_identified",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.participation_log",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.UnempForm",
+      "kind": "def",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.ex7_2b",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_2.identified",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_2.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.memberU",
+      "kind": "def",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.disutility_intervalIntegrable",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.integral_disutility",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.member_integral",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.theta",
+      "kind": "def",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.household_utility",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.works_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.participants_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.participation_log",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.z_log",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.zPath",
+      "kind": "def",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.zPath_one",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.zPath_zero",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.participation_upsilon_one",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.zPath_add",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.zPath_permanent",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.zPath_pulse",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.labourForce",
+      "kind": "def",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.labourForce_iff",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.labourForce_response",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.dampening_strictMonoOn",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.labourForce_dampening",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    },
+    {
+      "name": "Gali.Unemployment.Ex7_3.lagged_pulse_not_monotone",
+      "kind": "theorem",
+      "module": "Unemployment/Ex7_3.lean"
+    }
+  ],
+  "full_build": "passed",
+  "fresh_source_compilation": "passed",
+  "fresh_source_lint_options": [
+    "-Dlinter.mathlibStandardSet=true",
+    "-Dlinter.style.header=false"
+  ],
+  "axioms": {
+    "Gali.Unemployment.SchurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.root\u2081": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.root\u2082": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.root_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.root_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.root_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.normSq_root_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.norm_root_of_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.schurStable_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.convSeq_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.chSeq_eq_convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.norm_convSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.abs_chSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.tendsto_chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.tr2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.det2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.tr2_eq_trace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.det2_eq_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.sq_eq_cayleyHamilton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.pow_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.abs_pow_entry_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.tendsto_pow_entry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.BoundedSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.homogeneous_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.homogeneous_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.eq_root_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.exists_eigenvector": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.exists_bounded_homogeneous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.BoundedProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.BoundedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.Adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.IsAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.E_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.bounded_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.ar1_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forward_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forward_ar1_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.E_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forwardSeries_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forwardSeries_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forwardSeries_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.eq_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.forwardSeries_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.PullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.AdaptedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.system_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.system_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.system_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationSystem.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.perfectForesight_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.prob_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.prob_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.info": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.refines": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mass": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.num": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mass_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.mass_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.num_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.FiniteTree.condE_of_trivial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinObs": [],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinSystem_E0_firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinSystem_not_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinShock_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinAR1_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinShock_mean_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinAR1_isAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.coinAR1_nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.ExpectationsFiniteTree.finiteTree_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.inCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.circleIntegral_sub_inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.argument_principle": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.quart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.eval_quart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.eval_derivative_quart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.inCount_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03b2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03c3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03bap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03baw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.lamP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.lamW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03c6p": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03c6w": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03c6y": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03a8": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.c0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.c1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.c2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.c3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.c4": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.circle_cert": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Qv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.QC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_qC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_QC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_QC_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_qC_ofReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_qC_conj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_qC_mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Adm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_neg_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.\u03a8_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_neg_one_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.c0_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.c4_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_one_neg_of_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qC_ne_zero_of_norm_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.QC_ne_zero_of_norm_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.coeff_quart_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.quart_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.mix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.mix_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.mix_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.adm_mix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.continuous_Qv_mix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.inCount_QC_mix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Pref": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.QC_ref": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.inCount_ref": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.adm_ref": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.endpt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.inCount_QC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.natDegree_quart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.card_roots_quart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.outCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.inCount_add_outCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.QC_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.card_roots_QC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.outCount_QC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.dqr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_derivative_QC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.continuous_qr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qC_eval_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.inv_mem_out": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.stable_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.pow_entry_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.rvMul_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.rvMul_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.rvMul_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.rvMul_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.rvMul_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.rvMul_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.E_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.FSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.VAdapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.VBounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.fsolves_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.abs_rvMul_pow_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.fsolves_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Fwd.fsolves_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.A0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.A1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_A0_sub_A1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_A0_sub_A1_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.B0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Dr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Brr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Hr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.dqr_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.StableVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.stableVec_of_hom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.exists_stableVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Cm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Dm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Vm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_Cm_sub_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.rr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qC_eq_mul_rr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.rr_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.continuous_rr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_Cm_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.rr_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Km": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Fm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_Cm_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Km_eigen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.IsSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.toS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.transform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.eq_iff_fwd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.toS_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.toS_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.mseq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.ofS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.toS_ofS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.mseq_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.mseq_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.determinate_of_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_A0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_A1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eval_derivative_qC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.sum_smul_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.rvMul_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.multiple_solutions_of_mode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_mode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.map_ofReal_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.no_bounded_solution_of_no_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_no_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.closedRoots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.qC_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.mem_closedRoots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.sr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.qr_eq_sr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.sr_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.closedRoots_card_ne_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.exists_real_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.geom_mode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.abs_pow_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_complex_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.exists_mode_of_two_real_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_two_real_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_double_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.not_determinate_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Aw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.det_A0_mul_det_charmat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.charpoly_Aw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.eigen_count_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Dyn.eq24_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.Lhs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_one_eq_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.qr_one_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.bookPar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.bookPar_adm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.bookPar_\u03a8": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.bookPar_Lhs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.determinacy_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.eigenvalues_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.determinacy_iff_phiY_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.inCount_QC_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.Par.no_root_of_inCount_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exNE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exNE_coeffs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exNE_adm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exNE_lhs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exNE_circle": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exNE_no_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exNE_no_bounded_solution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.baseline_lambdas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exBase": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exBase_signs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exBase_two_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Determinacy4.exBase_multiplicity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.integral_disutility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.crra": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.householdUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.ch6Utility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.householdUtility_eq_ch6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.hasDerivAt_disutility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.hasDerivAt_crra": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.marginal_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.participates_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.laborForce": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.laborForce_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.laborForce_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.eq5_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.participation_set_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.participation_set_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.marginal_indifferent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.inframarginal_strict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.supramarginal_refuses": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.IndivisibleLabor.laborForce_le_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.eq6_type": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.eq6_integrated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.cesIndex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.laborForceAgg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.integrable_exp_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.integrable_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.hasDerivAt_cgf_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.log_cesIndex_family": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.log_laborForce_family": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.wageIndex_first_order": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.laborForce_first_order": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.eq6_residual_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.eq6_first_order": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.unemploymentRate_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.rate_le_u": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.exp_neg_le_quadratic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.abs_rate_sub_u_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.abs_rate_sub_u_bound_fails_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.wageMarkup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.eq8_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.natRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.natRate_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.natRate_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.markupGap_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.WageNKPC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.WagePhillips": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.wageNKPC_iff_eq11": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.ResetRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.IndexLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.flexible_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.flexible_unemployment_constant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.fluctuations_require_rigidity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.UnemploymentDef.sticky_unemployment_gap_consistent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.eq16_levels": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.DISGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.PriceGapNKPC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.WageGapNKPC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.WageUnempNKPC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.WageGapLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.UnempGapEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.eq14_iff_eq20": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.Ch6Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.Ch7Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.ch7_iff_ch6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.IsSol7": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.uhatOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.isSol7_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.uhatOf_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.Determinate7": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.determinate_iff_ch6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.determinacy_ch7_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.determinacy_ch7_iff_phiY_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Equilibrium.rule17_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.\u03b2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.kapP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.kapW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.lamP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.lamW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.ay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.ap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Coef.aw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.bookCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.prev": [],
+    "Gali.Unemployment.Policy.prev_zero": [],
+    "Gali.Unemployment.Policy.prev_succ": [],
+    "Gali.Unemployment.Policy.lagrangian_alg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.hasSum_of_telescope": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.tendsto_disc_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.tendsto_disc_partial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.summable_sub_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.Feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.FOC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.BoundedMult": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.lossTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.FiniteLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.loss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.IsOptimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.summable_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.prev_sub_eq_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.loss_sub_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.isOptimal_of_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.eq_of_loss_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.isOptimal_iff_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.existsUnique_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Det.demand_zero_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.markup_eq_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.epsW_markup_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.exp_quarter_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.calibration_epsW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.calibration_markup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.calibration_book_epsW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.laborForce": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.laborForce_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.hasDerivAt_laborForce": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.laborForce_strictAnti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.marginalParticipant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.marginalParticipant_eq5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.log_marginalParticipant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.hasDerivAt_log_marginalParticipant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.WagePC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.abs_unemp_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.lamWOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.tendsto_lamWOf_atTop": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.unemployment_vanishes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.unemployment_volatility_vanishes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.unemployment_need_not_vanish": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.flexible_wages_no_unemployment_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Feasible7": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.fn8_wage_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.feasible7_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.IsOptimal7": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.isOptimal7_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.FOC7": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.foc7_iff_ch6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.bookCoef_weights_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.isOptimal7_iff_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.existsUnique_optimal7": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.isOptimal7_iff_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.psiYA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.psiWA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.psiYA_sigma_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.psiWA_sigma_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.outputDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.employmentDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.unempGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.laborForceDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.realWageDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.participation_consistent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.efficient_technology_sigma_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.efficient_employment_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.demand_shock_optimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.demand_shock_labour_market": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.Rule22Level": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.rule22_level_iff_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.rule22_book_intercept": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.rule22_level_not_steady": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.rule22_gap_steady": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Policy.rule22_deviation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.profit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.bernoulli_key": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.profit_lt_opt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.profit_isMaxOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.subsidy_offsets": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.flexPrice_eq_wage": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.inflOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.infl_eq_of_realWage_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.markup_eq_phi_u": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.ex7_1a": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.ex7_1a_from_primitives": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.lambdaP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.ch6PeriodLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.flexLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.ch6PeriodLoss_alpha_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.priceWeight_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.ch6PeriodLoss_tendsto_flex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.efficient_output_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.phi_u_eq_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.alphaU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.alphaU_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.flexLoss_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.welfare_tsum_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.welfare_hasSum_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.expected_welfare_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.printed_sum_not_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.correct_sum_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.distortion_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.distortion_calibration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.periodObj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.periodObj_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.periodObj_isMinOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.period_problem_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.NKPCu": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.DiscretionEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.TargetingRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.discretionEq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.aDisc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.aDisc_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.inflation_forward_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.piStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.uStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.den_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.uStar_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.piStar_nkpc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.discretion_const_isEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.discretionEq_iff_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.inflationBias_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.expected_inflation_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.uStar_lt_un": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.piStar_primitives": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.uStar_primitives": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.inflationBias_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.wageSubsidy_markup_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.inflationBias_strictMonoOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.tendsto_inflationBias_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.DIS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.rateOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.dis_gap_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.NKPCx": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.stack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.boundedVec_stack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.adaptedVec_stack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.AT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.wT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.rule_iff_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.tr2_AT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.det2_AT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.AT_schurStable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.RuleD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.dev_iff_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.rule_implements": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.rule_indeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.gam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.del": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.gam_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.gam_mul_denom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.gam_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.gam_mul_lt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.four_beta_gam_sq_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.sqrt_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.sqrt_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.del_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.del_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.del_quad": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.del_lt_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.kappa_sq_del": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.lag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.lag_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.lag_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.priceGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.hasSum_of_telescope": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.Feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.lossTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.FiniteLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.loss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.IsOptimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.FOC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.foc_iff_targeting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.tendsto_disc_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.loss_sub_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.isOptimal_of_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.eq_of_loss_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.finiteLoss_of_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.pbar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.commInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.commU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.priceGap_commInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.comm_feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.comm_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.del_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.comm_finiteLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.isOptimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.isOptimal_iff_targeting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.commitment_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.commitment_monotone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.commInfl_lt_piStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.disc_feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_1.Commit.commitment_beats_discretion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.markupGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.eq13": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.lambdaW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.wageInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.eq15_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.lambdaW_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.markupGapTV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.eq13_timeVarying": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.ErrorForm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.wageEq_iff_errorForm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.ex7_2a": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.errorForm_hat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.errorForm_depends_on_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.errorForm_shift_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.not_identified": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.participation_log": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.UnempForm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.ex7_2b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_2.identified": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.memberU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.disutility_intervalIntegrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.integral_disutility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.member_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.theta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.household_utility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.works_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.participants_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.participation_log": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.z_log": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.zPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.zPath_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.zPath_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.participation_upsilon_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.zPath_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.zPath_permanent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.zPath_pulse": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.labourForce": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.labourForce_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.labourForce_response": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.dampening_strictMonoOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.labourForce_dampening": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.Unemployment.Ex7_3.lagged_pulse_not_monotone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "Unemployment/Determinacy.lean": "cb69be5182e9b06ee3d4ad9012e271c5c58f120d4a973a7d5a9ddfc632a5ade7",
+    "Unemployment/Expectations.lean": "997b4ad1f2e1d3fffbde6d6c637be2f1c06ba770ab828578bb76b65386f057ac",
+    "Unemployment/ExpectationsFiniteTree.lean": "7bcced3000e7da2e6fddb4d277d0b74b9ab7df22590753df270da40a8363c07f",
+    "Unemployment/Determinacy4.lean": "f91ebda4e9f78c0d2d3815e21ccebd081f49b6797751a386b4c66e0d0372b70e",
+    "Unemployment/IndivisibleLabor.lean": "05a554a20f8d7a5b3b4545eb1a2ebfecf4fe0dfe9e1925fe9f78977637978b6a",
+    "Unemployment/UnemploymentDef.lean": "c2c1e6f1a98729b26e573bde3850a8737a7daa84620dd8b42e987591cba4882d",
+    "Unemployment/Equilibrium.lean": "63fa023b8eb3f901be8beb931c2712926a143d166c40ab0b425a3ed4501a5ef9",
+    "Unemployment/Policy.lean": "251b953ba7c7f5da2f19b93a811372e01415db6753d2d9db2dceae3abe8e06e7",
+    "Unemployment/Ex7_1.lean": "4209ecd2fbd677651c745e413dfc48f5c676e37399877ca9e437c8cc986603b6",
+    "Unemployment/Ex7_2.lean": "f048209551092f7dbefeeb01db9e337123fdd194b261fc8910ff00b1247e546c",
+    "Unemployment/Ex7_3.lean": "af693a367077c56b5ebbea236a6a86a0d5f5a0f66280de202b64f49018a0c230",
+    "Unemployment.lean": "083abf0907c6b0bfb5e338c3493297bbf63cb94512687e1b07f92a395cf0acfb",
+    "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
+    "lakefile.toml": "2af0f2fc70be3e684659b10eb9340bfecb74f0c454b5fb8fcbd93b10169e2e43",
+    "lake-manifest.json": "a0a03a3590c9d3b3ca62092b8d41ebe9577852f1a9e0e3d166483937721ffba2",
+    "proof-manifest.json": "27c14c30f6d8cf71b450bb649b12841e264d283d74b2f16a6c08c60ca5f357e5",
+    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "fresh_audit_sha256": "f24275f06a721f5b3f171c7996d3bf7b74bf5fcfd1205ad830104418a8657e3f",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "scope": "Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 7: Unemployment in the New Keynesian Model, with Exercises 7.1-7.3. Indivisible labour and participation; the unemployment rate and the New Keynesian wage Phillips curve in unemployment; the equilibrium as the Chapter 6 system plus a static equation, with determinacy (the Chapter 6 four-variable theorem, restated); calibration, the labour-force wealth effect, unemployment fluctuations and wage rigidity; optimal policy; and the exercises.",
+  "source": "Jordi Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 7, pp. 199-222."
+}

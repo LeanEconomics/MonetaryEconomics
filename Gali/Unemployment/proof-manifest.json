@@ -1,0 +1,31 @@
+{
+  "library": "Unemployment",
+  "modules": [
+    "Unemployment/Determinacy.lean",
+    "Unemployment/Expectations.lean",
+    "Unemployment/ExpectationsFiniteTree.lean",
+    "Unemployment/Determinacy4.lean",
+    "Unemployment/IndivisibleLabor.lean",
+    "Unemployment/UnemploymentDef.lean",
+    "Unemployment/Equilibrium.lean",
+    "Unemployment/Policy.lean",
+    "Unemployment/Ex7_1.lean",
+    "Unemployment/Ex7_2.lean",
+    "Unemployment/Ex7_3.lean"
+  ],
+  "theorem_counts": {
+    "Unemployment/Determinacy.lean": 23,
+    "Unemployment/Expectations.lean": 20,
+    "Unemployment/ExpectationsFiniteTree.lean": 21,
+    "Unemployment/Determinacy4.lean": 128,
+    "Unemployment/IndivisibleLabor.lean": 15,
+    "Unemployment/UnemploymentDef.lean": 25,
+    "Unemployment/Equilibrium.lean": 9,
+    "Unemployment/Policy.lean": 53,
+    "Unemployment/Ex7_1.lean": 86,
+    "Unemployment/Ex7_2.lean": 13,
+    "Unemployment/Ex7_3.lean": 19
+  },
+  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 7: Unemployment in the New Keynesian Model, with Exercises 7.1-7.3. Indivisible labour and participation; the unemployment rate and the New Keynesian wage Phillips curve in unemployment; the equilibrium as the Chapter 6 system plus a static equation, with determinacy (the Chapter 6 four-variable theorem, restated); calibration, the labour-force wealth effect, unemployment fluctuations and wage rigidity; optimal policy; and the exercises.",
+  "source": "Jordi Galí, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 7, pp. 199-222."
+}
