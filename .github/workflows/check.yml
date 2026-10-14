@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [Gali/ClassicalMonetaryModel, Gali/BasicNewKeynesianModel, Gali/MonetaryPolicyDesign, Gali/DiscretionCommitment]
+        project: [Gali/ClassicalMonetaryModel, Gali/BasicNewKeynesianModel, Gali/MonetaryPolicyDesign, Gali/DiscretionCommitment, Gali/StickyWagesPrices]
     defaults:
       run:
         working-directory: ${{ matrix.project }}
