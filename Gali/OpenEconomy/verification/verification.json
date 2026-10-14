@@ -1,0 +1,6296 @@
+{
+  "checked_at_utc": "2026-10-14T05:31:52.713774+00:00",
+  "theorems": 464,
+  "module_theorems": {
+    "OpenEconomy/Determinacy.lean": 23,
+    "OpenEconomy/Expectations.lean": 20,
+    "OpenEconomy/ExpectationsFiniteTree.lean": 21,
+    "OpenEconomy/Preferences.lean": 53,
+    "OpenEconomy/Identities.lean": 14,
+    "OpenEconomy/RiskSharing.lean": 17,
+    "OpenEconomy/UIP.lean": 12,
+    "OpenEconomy/AggregateDemand.lean": 40,
+    "OpenEconomy/Supply.lean": 40,
+    "OpenEconomy/TaylorRule.lean": 50,
+    "OpenEconomy/OptimalPolicy.lean": 53,
+    "OpenEconomy/Welfare.lean": 40,
+    "OpenEconomy/SimpleRules.lean": 21,
+    "OpenEconomy/Ex8_1.lean": 32,
+    "OpenEconomy/Ex8_2.lean": 28
+  },
+  "audited_declarations": 624,
+  "declarations": [
+    {
+      "name": "Gali.OpenEconomy.SchurStable",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.disc",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.root\u2081",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.root\u2082",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.root_sum",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.root_prod",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.root_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.normSq_root_of_neg",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.norm_root_of_nonneg",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.schurStable_iff_roots",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.chSeq",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.convSeq",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.convSeq_rec",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.chSeq_eq_convSeq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.norm_convSeq_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.abs_chSeq_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.tendsto_chSeq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.tr2",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.det2",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.tr2_eq_trace",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.det2_eq_det",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.sq_eq_cayleyHamilton",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.pow_succ_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.abs_pow_entry_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.tendsto_pow_entry",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.BoundedSeq",
+      "kind": "def",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.homogeneous_iterate",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.homogeneous_eq_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.eq_root_of_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.exists_eigenvector",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.exists_bounded_homogeneous",
+      "kind": "theorem",
+      "module": "OpenEconomy/Determinacy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem",
+      "kind": "structure",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.E",
+      "kind": "projection",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.const",
+      "kind": "projection",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.mono",
+      "kind": "projection",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.tower",
+      "kind": "projection",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.known",
+      "kind": "projection",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.perfectForesight",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.BoundedProc",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.BoundedVec",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.Adapted",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.IsAR1",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.E_neg",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.bounded_E",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.ar1_iterate",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forward_iterate",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forward_ar1_solves",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.E_tsum",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forwardSeries",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forwardSeries_summable",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forwardSeries_solves",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forwardSeries_bounded",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.eq_forwardSeries",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.forwardSeries_adapted",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.PullOut",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.Solves",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.AdaptedVec",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.system_iterate",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.system_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.system_not_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.Determinate",
+      "kind": "def",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationSystem.determinate_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.perfectForesight_pullOut",
+      "kind": "theorem",
+      "module": "OpenEconomy/Expectations.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree",
+      "kind": "structure",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mk",
+      "kind": "constructor",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.prob",
+      "kind": "projection",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.prob_pos",
+      "kind": "projection",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.prob_sum",
+      "kind": "projection",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.info",
+      "kind": "projection",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.refines",
+      "kind": "projection",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mass",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.num",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mass_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mass_congr",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.num_congr",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_congr",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_add",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_smul",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condELin",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_const",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_mono",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_known",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_tower",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.toExpectationSystem",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_of_trivial",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinObs",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinTree",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinSystem",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.firstHeads",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinSystem_E0_firstHeads",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinSystem_not_perfectForesight",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinShock",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1",
+      "kind": "def",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinShock_measurable",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1_measurable",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinShock_mean_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1_isAR1",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1_nondegenerate",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.ExpectationsFiniteTree.finiteTree_pullOut",
+      "kind": "theorem",
+      "module": "OpenEconomy/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.rpow_tangent_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.rpow_tangent_eq_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.weighted_tangent",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndex",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndexCD",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cpi",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cpiCD",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.homeDemand",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.foreignDemand",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cpi_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cpi_rpow",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.shares_sum",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.demand_term",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.spend_term",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditure_demand",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndex_rpow",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndex_demand",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndex_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditure_core",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditure_ge",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditure_eq_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndex_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditure_ge_of_one_lt",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditure_eq_iff_of_one_lt",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.demands_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cpi_isLeast",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndex_le_of_spend",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.importShare",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.importShare_of_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.powerMean_tendsto",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndex_tendsto_cd",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cpi_tendsto_cd",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cesIndexCD_demand",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditureCD_demand",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.cpiCD_mul_cesIndexCD",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditureCD_ge",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.expenditureCD_eq_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.priceIndex",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.cesAgg",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.demand",
+      "kind": "def",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.r_add_inv",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.young_key",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.young_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.young_eq_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.priceIndex_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.priceIndex_rpow",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.integral_relPrice_rpow",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.integrable_relPrice_rpow",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.cesAgg_demand",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.price_mul_demand",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.spend_demand",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.cesAgg_nonneg",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.cesAgg_rpow",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.integrated_young",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.spend_ge",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.spend_eq_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.cesAgg_le_of_spend",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.cesAgg_eq_iff_of_spend",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.integral_pos_of_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.unitInterval_ne_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.unitInterval_expenditure_minimisation",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Preferences.Variety.two_stage_expenditure",
+      "kind": "theorem",
+      "module": "OpenEconomy/Preferences.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.cpi_homog",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.cpiGap",
+      "kind": "def",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.log_cpi_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.cpiGap_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.cpiGap_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.hasDerivAt_cpiGap",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.hasFDerivAt_logCPI",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.log_cpiCD_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.cpi_inflation",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.hasFDerivAt_inflationGap",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.cpi_inflation_cd",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.tot_lop",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.rerGap",
+      "kind": "def",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.rer_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.hasDerivAt_rerGap",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Identities.rer_cd",
+      "kind": "theorem",
+      "module": "OpenEconomy/Identities.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.periodUtility",
+      "kind": "def",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.hasDerivAt_periodUtility",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.periodUtility_tangent",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.nodeObjective",
+      "kind": "def",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.NodeFeasible",
+      "kind": "def",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.ArrowFOC",
+      "kind": "def",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.arrow_foc_of_optimal",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.optimal_of_arrow_foc",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.arrow_optimal_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.arrow_sdf_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.portfolio_price",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.bond_price",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.bond_price_expectation",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.foreign_optimal_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.foreign_sdf_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.rsRatio",
+      "kind": "def",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.riskSharing_ratio_const",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.vartheta",
+      "kind": "def",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.riskSharing",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.vartheta_eq_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.riskSharing_log",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.riskSharing_log_tot",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.RiskSharing.riskSharing_log_cd",
+      "kind": "theorem",
+      "module": "OpenEconomy/RiskSharing.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.uip_exact",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.uipGap",
+      "kind": "def",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.uip_node_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.uipGap_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.uipGap_const",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.expectDe",
+      "kind": "def",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.expectDe_apply",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.hasFDerivAt_uipGap",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.tot_difference",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.forward_partial",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.forward_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.tot_forward",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.forward_counterexample",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.UIP.tot_difference_of_eulers",
+      "kind": "theorem",
+      "module": "OpenEconomy/UIP.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.varpi",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.Phi",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.sigmaU",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.varpi_sub_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.one_add_mul_varpi",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.one_add_mul_varpi_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.Phi_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.sigmaU_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.sigmaU_mul",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.one_lt_varpi",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.sigmaU_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.sigmaU_of_sigma_mul_eta",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.sigmaU_strictAntiOn",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.convex_comb_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.cpi_self",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.cpiCD_self",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.exports_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.trade_balanced_ss",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.netExports_ss",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq24",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.logOutput",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.log_eq24",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq25Map",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq25Map_apply",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.logOutput_ss",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq25",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq25_ces",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq25_cd",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq27",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxCoef",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq31",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.netExports",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.netExports_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxMap",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxMap_apply",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.hasFDerivAt_netExports",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxCoef_eq_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq31_unit",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxCoef_one_nonpos",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxCoef_counterexample",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.not_large_openness_improves",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxCoef_eventually_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.nxCoef_pos_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq26",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq27_proc",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.key_eq26_eq28",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq26_iff_eq28",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.natRate",
+      "kind": "def",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.AggregateDemand.eq28_iff_eq29",
+      "kind": "theorem",
+      "module": "OpenEconomy/AggregateDemand.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.dispersion",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.bigTheta",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.crossVar",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.employment_level",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.employment_identity",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.integrable_exp_mul",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.interior_integrableExpSet",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.cgf_taylor",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.cgf_taylor_comp",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.priceIndex_family",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.dispersion_family_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.crossVar_family",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.dispersion_second_order",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.dispersion_family_isBigO_sq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.dispersion_family_first_order",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq32_exact",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq32",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq33",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.kappa",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq34",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.natDen",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaA",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaStar",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaZ",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.natDen_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaA_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.sigma_sub_eq_sigmaU",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.mul_GammaA",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.mul_GammaStar",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.mul_GammaZ",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.markup_natural",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq35_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaStar_unit",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaZ_unit_neg",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaZ_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.GammaStar_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.sgap_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq36",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.kappaU",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq37",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.kappaU_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.kappaU_unit",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.kappaU_strictAntiOn",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.PsiStar",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.PsiZ",
+      "kind": "def",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.eq38",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.PsiStar_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.PsiZ_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.continuousAt_sigmaU",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.tendsto_PsiStar",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Supply.tendsto_PsiZ",
+      "kind": "theorem",
+      "module": "OpenEconomy/Supply.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.kappaU_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.kappaU_of_mul_eq_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.realRate",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.NKPC",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.DISGap",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.InterestRule",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.InterestRuleGap",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.taylorRule_iff_gap",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.shockU",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.Equilibrium",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.Structural",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.omegaU",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.AU",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.BU",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.stack",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.forcing",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.nk_iff_structural",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.structural_iff_solves",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.equilibrium_iff_solves",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.tr2_AU",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.det2_AU",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.schurStable_AU_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.determinate_iff_41",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.determinate_iff_41_primitives",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.boundedVec_stack",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.adaptedVec_stack",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.equilibrium_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.equilibrium_not_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvDen",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvLambda",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvPsiY",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvPsiPi",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvDen_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvDen_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvLambda_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.isAR1_smul",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.boundedProc_smul",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msv_structural",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msv_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.equilibrium_iff_msv",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monYgapCoef",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monInflCoef",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monRealCoef",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monNomCoef",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monRealCoef_eq_book",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monNomCoef_eq_book",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monRealCoef_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monetary_shock",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monetary_signs",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monetary_tot",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.monetary_exchangeRate",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.priceLevel_sum",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.expected_priceLevel",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.expected_inflation_hasSum",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.expected_inflation_tsum",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.priceLevel_longRun",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.eImpact",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.eLongRun",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.exchangeRate_impact",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.exchangeRate_longRun_change",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.overshoot_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.overshoot_iff_nominal_rises",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.lambdaV",
+      "kind": "def",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.msvDen_affine",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.lambdaV_lt_of_slope_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.lambdaV_strictMonoOn",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.lambdaV_lt_of_slope_neg",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.counterexample_sigmaU_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.counterexample_strictAntiOn",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.counterexample_values",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.printed_monotonicity_false",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.closed_economy_equivalence",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.closed_economy_responses",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.TaylorRule.sigma_eta_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/TaylorRule.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.tot",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.relPrices_cpi",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.consumption_possibilities",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.log_consumption",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.frontierC",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.plannerWelfare",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optEmployment",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.log_frontierC",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.frontierC_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.hasDerivAt_frontier",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.hasDerivAt_plannerWelfare",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optEmployment_rpow",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optEmployment_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.foc_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.plannerWelfare_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.planner_optimal_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.planner_existsUnique",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.markupH",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.printedFirstLine",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.markup_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.printedFirstLine_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.printedFirstLine_eq_markup_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.desiredMarkup",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.one_lt_desiredMarkup",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.flexEmployment_eq_opt_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.flex_optimal",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optSubsidy",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.subsidy_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optSubsidy_lt_closed",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optSubsidy_neg_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optSubsidy_calibration",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.DIS",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.Equilibrium",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.zero_equilibrium_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.inflH_zero_of_gap_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.gap_zero_of_inflH_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.divine_coincidence",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.pathLoss",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.pathLoss_summable",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.pathLoss_nonneg",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.pathLoss_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.pathLoss_eq_zero_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.optimal_policy",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.TaylorRule",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.nk_iff_solves",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.equilibrium_iff_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.rule42_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.rule42_not_determinate",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.AO",
+      "kind": "def",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.nk_iff_solves_exog",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.not_schurStable_AO",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.exogRule_not_determinate",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.exogRule_not_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.one_add_mul_varpi_pos_of_lt_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.Phi_pos_of_lt_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.sigmaU_pos_of_lt_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.natDen_pos_of_lt_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.inv_Phi_sub_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.markup_eq33",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.natural_output_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.GammaA_pos_of_lt_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.natural_tot_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.tot_tech_coeff_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.tot_pref_coeff_neg",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.special_case",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.OptimalPolicy.dit_exchange_rate_cpi",
+      "kind": "theorem",
+      "module": "OpenEconomy/OptimalPolicy.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.logPriceIndex_second_order",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.bigO_mul",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.bigO_weaken",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.tendsto_zero_of_bigO",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.taylor_two",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.exp_taylor_two",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.exp_sub_one_bigO",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.GoodDist",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.crossMean",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.crossVarDist",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.calvoMix",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.integral_calvoMix",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.crossVarDist_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.calvoMix_good",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.calvoMix_mean",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.calvoMix_var",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.calvoMix_var_meanChange",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.calvo_good",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.calvo_var_recursion",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lemma2_partial",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lemma2_nonneg",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lemma2_hasSum",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lemma2",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lemma2_calvo_inherited",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lemma2_calvo",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.inflation_sub_meanChange",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.inflation_sq_sub_meanChange_sq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lambdaH",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.periodUtility",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.marginal_utilities",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.efficiency_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.utility_exact",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.consumption_logdev",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.secondOrder_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.gap_form",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.period_utility_second_order",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.welfare_sign",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.appendix_sign_error",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.lemma2_printed_fails",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.periodLoss43",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.loss43",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.inflWeight_of_dispersion",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.welfare_eq_loss43",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.loss43_weights_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.loss43_eq_pathLoss",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.avgLoss44",
+      "kind": "def",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.welfare_stationary44",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.closed_economy_weights",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Welfare.gap_eq_employment",
+      "kind": "theorem",
+      "module": "OpenEconomy/Welfare.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.SDIT",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.SCIT",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.PEG",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.TaylorType",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.FDIT",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.FCIT",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.UIP",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.peg_rate",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.lambda_calibration",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.tableLoss",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.tableLoss_eq_avgLoss44",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.tableLoss_values",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.tableLoss_consistent",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.tableLossNoTheta",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.tableLoss_noTheta_inconsistent",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.tot_eq_output",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.sdInflH",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.sdGap",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.peg_not_most_volatile_inflation",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.peg_most_volatile_strict",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.peg_most_volatile_gap",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.world_output_effects",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.exchange_rate_identity",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.sdit_meanReverting",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.scit_meanReverting",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.peg_meanReverting",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.natRate",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.bigLambda",
+      "kind": "def",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.fdit_solution",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.fdit_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.fdit_coeff_neg",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.fdit_unit_root",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.fdit_permanent_shift",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.SimpleRules.fcit_cumulative",
+      "kind": "theorem",
+      "module": "OpenEconomy/SimpleRules.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.profit",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.firm_optimum_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.profit_zero",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.firm_log_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.disutilN",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.periodUtility",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.hasDerivAt_disutilN",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.le_tangent",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.disutilN_tangent_le",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.static_foc_necessary",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.static_isLocalMax_of_optimal",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.static_foc_sufficient",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.household_optimum_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.labour_supply_log_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.budget_tradeBalance",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.tradeBalance_log_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.tot_of_marketClearing",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.tot_log_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.micro_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.tradeBalance_log",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.StaticEq",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.denom",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.outputSol",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.denom_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.consumption_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.staticEq_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.staticEq_existsUnique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.outputSol_sigma_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.outputSol_indep_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.outputSol_ystar_slope",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.outputSol_a_slope_pos",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.money_neutral_real",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.exchangeRate_one_for_one",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.Equilibrium",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.equilibrium_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.peg_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.peg_existsUnique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.peg_same_real_allocation",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_1.pegEquilibrium_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_1.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.lagP",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.natRate",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.Block",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.TaylorEq",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.PegEq",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.known_pm1",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.cumsum_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.shock",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.nk_iff_structural",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_determinate_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_exists",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.lambda_mul_den",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_closed_forms_38",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_signs_38",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_irf_38",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.taylor_irf_tendsto",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.charQ",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.exists_root",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.root_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.other_root",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.peg_nkpc_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.wseq",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegShock",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegTheta",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegTheta_eq",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegP",
+      "kind": "def",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegP_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegP_closed",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegP_adapted",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegP_bounded",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.theta_solves",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.peg_iff",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.peg_exists",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.peg_unique",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.peg_rate_38",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.pegTheta_neg",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    },
+    {
+      "name": "Gali.OpenEconomy.Ex8_2.peg_irf_signs",
+      "kind": "theorem",
+      "module": "OpenEconomy/Ex8_2.lean"
+    }
+  ],
+  "full_build": "passed",
+  "fresh_source_compilation": "passed",
+  "fresh_source_lint_options": [
+    "-Dlinter.mathlibStandardSet=true",
+    "-Dlinter.style.header=false"
+  ],
+  "axioms": {
+    "Gali.OpenEconomy.SchurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.root\u2081": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.root\u2082": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.root_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.root_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.root_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.normSq_root_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.norm_root_of_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.schurStable_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.convSeq_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.chSeq_eq_convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.norm_convSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.abs_chSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.tendsto_chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.tr2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.det2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.tr2_eq_trace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.det2_eq_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.sq_eq_cayleyHamilton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.pow_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.abs_pow_entry_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.tendsto_pow_entry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.BoundedSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.homogeneous_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.homogeneous_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.eq_root_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.exists_eigenvector": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.exists_bounded_homogeneous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.BoundedProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.BoundedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.Adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.IsAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.E_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.bounded_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.ar1_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forward_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forward_ar1_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.E_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forwardSeries_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forwardSeries_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forwardSeries_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.eq_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.forwardSeries_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.PullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.AdaptedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.system_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.system_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.system_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationSystem.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.perfectForesight_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.prob_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.prob_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.info": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.refines": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mass": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.num": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mass_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.mass_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.num_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.FiniteTree.condE_of_trivial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinObs": [],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinSystem_E0_firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinSystem_not_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinShock_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinShock_mean_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1_isAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.coinAR1_nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.ExpectationsFiniteTree.finiteTree_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.rpow_tangent_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.rpow_tangent_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.weighted_tangent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndexCD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cpi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cpiCD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.homeDemand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.foreignDemand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cpi_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cpi_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.shares_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.demand_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.spend_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditure_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndex_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndex_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndex_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditure_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditure_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditure_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndex_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditure_ge_of_one_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditure_eq_iff_of_one_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.demands_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cpi_isLeast": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndex_le_of_spend": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.importShare": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.importShare_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.powerMean_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndex_tendsto_cd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cpi_tendsto_cd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cesIndexCD_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditureCD_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.cpiCD_mul_cesIndexCD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditureCD_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.expenditureCD_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.priceIndex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.cesAgg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.r_add_inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.young_key": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.young_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.young_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.priceIndex_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.priceIndex_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.integral_relPrice_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.integrable_relPrice_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.cesAgg_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.price_mul_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.spend_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.cesAgg_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.cesAgg_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.integrated_young": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.spend_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.spend_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.cesAgg_le_of_spend": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.cesAgg_eq_iff_of_spend": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.integral_pos_of_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.unitInterval_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.unitInterval_expenditure_minimisation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Preferences.Variety.two_stage_expenditure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.cpi_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.cpiGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.log_cpi_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.cpiGap_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.cpiGap_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.hasDerivAt_cpiGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.hasFDerivAt_logCPI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.log_cpiCD_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.cpi_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.hasFDerivAt_inflationGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.cpi_inflation_cd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.tot_lop": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.rerGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.rer_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.hasDerivAt_rerGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Identities.rer_cd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.periodUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.hasDerivAt_periodUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.periodUtility_tangent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.nodeObjective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.NodeFeasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.ArrowFOC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.arrow_foc_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.optimal_of_arrow_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.arrow_optimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.arrow_sdf_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.portfolio_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.bond_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.bond_price_expectation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.foreign_optimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.foreign_sdf_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.rsRatio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.riskSharing_ratio_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.vartheta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.riskSharing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.vartheta_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.riskSharing_log": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.riskSharing_log_tot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.RiskSharing.riskSharing_log_cd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.uip_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.uipGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.uip_node_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.uipGap_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.uipGap_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.expectDe": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.expectDe_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.hasFDerivAt_uipGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.tot_difference": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.forward_partial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.forward_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.tot_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.forward_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.UIP.tot_difference_of_eulers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.varpi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.Phi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.sigmaU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.varpi_sub_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.one_add_mul_varpi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.one_add_mul_varpi_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.Phi_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.sigmaU_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.sigmaU_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.one_lt_varpi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.sigmaU_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.sigmaU_of_sigma_mul_eta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.sigmaU_strictAntiOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.convex_comb_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.cpi_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.cpiCD_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.exports_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.trade_balanced_ss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.netExports_ss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq24": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.logOutput": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.log_eq24": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq25Map": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq25Map_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.logOutput_ss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq25": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq25_ces": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq25_cd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq27": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq31": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.netExports": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.netExports_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxMap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxMap_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.hasFDerivAt_netExports": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxCoef_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq31_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxCoef_one_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxCoef_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.not_large_openness_improves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxCoef_eventually_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.nxCoef_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq26": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq27_proc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.key_eq26_eq28": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq26_iff_eq28": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.natRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.AggregateDemand.eq28_iff_eq29": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.dispersion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.bigTheta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.crossVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.employment_level": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.employment_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.integrable_exp_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.interior_integrableExpSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.cgf_taylor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.cgf_taylor_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.priceIndex_family": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.dispersion_family_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.crossVar_family": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.dispersion_second_order": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.dispersion_family_isBigO_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.dispersion_family_first_order": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq32_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq32": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq33": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.kappa": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.natDen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.natDen_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaA_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.sigma_sub_eq_sigmaU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.mul_GammaA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.mul_GammaStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.mul_GammaZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.markup_natural": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq35_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaStar_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaZ_unit_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaZ_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.GammaStar_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.sgap_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq36": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.kappaU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq37": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.kappaU_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.kappaU_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.kappaU_strictAntiOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.PsiStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.PsiZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.eq38": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.PsiStar_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.PsiZ_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.continuousAt_sigmaU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.tendsto_PsiStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Supply.tendsto_PsiZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.kappaU_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.kappaU_of_mul_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.realRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.NKPC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.DISGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.InterestRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.InterestRuleGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.taylorRule_iff_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.shockU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.Structural": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.omegaU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.AU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.BU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.stack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.forcing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.nk_iff_structural": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.structural_iff_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.equilibrium_iff_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.tr2_AU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.det2_AU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.schurStable_AU_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.determinate_iff_41": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.determinate_iff_41_primitives": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.boundedVec_stack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.adaptedVec_stack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.equilibrium_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.equilibrium_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvDen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvLambda": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvPsiY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvPsiPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvDen_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvDen_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvLambda_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.isAR1_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.boundedProc_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msv_structural": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msv_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.equilibrium_iff_msv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monYgapCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monInflCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monRealCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monNomCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monRealCoef_eq_book": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monNomCoef_eq_book": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monRealCoef_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monetary_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monetary_signs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monetary_tot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.monetary_exchangeRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.priceLevel_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.expected_priceLevel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.expected_inflation_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.expected_inflation_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.priceLevel_longRun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.eImpact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.eLongRun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.exchangeRate_impact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.exchangeRate_longRun_change": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.overshoot_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.overshoot_iff_nominal_rises": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.lambdaV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.msvDen_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.lambdaV_lt_of_slope_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.lambdaV_strictMonoOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.lambdaV_lt_of_slope_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.counterexample_sigmaU_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.counterexample_strictAntiOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.counterexample_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.printed_monotonicity_false": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.closed_economy_equivalence": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.closed_economy_responses": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.TaylorRule.sigma_eta_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.tot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.relPrices_cpi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.consumption_possibilities": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.log_consumption": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.frontierC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.plannerWelfare": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optEmployment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.log_frontierC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.frontierC_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.hasDerivAt_frontier": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.hasDerivAt_plannerWelfare": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optEmployment_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optEmployment_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.foc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.plannerWelfare_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.planner_optimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.planner_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.markupH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.printedFirstLine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.markup_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.printedFirstLine_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.printedFirstLine_eq_markup_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.desiredMarkup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.one_lt_desiredMarkup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.flexEmployment_eq_opt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.flex_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optSubsidy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.subsidy_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optSubsidy_lt_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optSubsidy_neg_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optSubsidy_calibration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.DIS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.zero_equilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.inflH_zero_of_gap_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.gap_zero_of_inflH_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.divine_coincidence": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.pathLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.pathLoss_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.pathLoss_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.pathLoss_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.pathLoss_eq_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.optimal_policy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.TaylorRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.nk_iff_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.equilibrium_iff_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.rule42_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.rule42_not_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.AO": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.nk_iff_solves_exog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.not_schurStable_AO": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.exogRule_not_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.exogRule_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.one_add_mul_varpi_pos_of_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.Phi_pos_of_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.sigmaU_pos_of_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.natDen_pos_of_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.inv_Phi_sub_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.markup_eq33": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.natural_output_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.GammaA_pos_of_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.natural_tot_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.tot_tech_coeff_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.tot_pref_coeff_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.special_case": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.OptimalPolicy.dit_exchange_rate_cpi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.logPriceIndex_second_order": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.bigO_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.bigO_weaken": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.tendsto_zero_of_bigO": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.taylor_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.exp_taylor_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.exp_sub_one_bigO": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.GoodDist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.crossMean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.crossVarDist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.calvoMix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.integral_calvoMix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.crossVarDist_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.calvoMix_good": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.calvoMix_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.calvoMix_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.calvoMix_var_meanChange": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.calvo_good": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.calvo_var_recursion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lemma2_partial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lemma2_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lemma2_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lemma2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lemma2_calvo_inherited": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lemma2_calvo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.inflation_sub_meanChange": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.inflation_sq_sub_meanChange_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lambdaH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.periodUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.marginal_utilities": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.efficiency_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.utility_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.consumption_logdev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.secondOrder_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.gap_form": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.period_utility_second_order": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.welfare_sign": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.appendix_sign_error": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.lemma2_printed_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.periodLoss43": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.loss43": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.inflWeight_of_dispersion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.welfare_eq_loss43": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.loss43_weights_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.loss43_eq_pathLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.avgLoss44": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.welfare_stationary44": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.closed_economy_weights": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Welfare.gap_eq_employment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.SDIT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.SCIT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.PEG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.TaylorType": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.FDIT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.FCIT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.UIP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.peg_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.lambda_calibration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.tableLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.tableLoss_eq_avgLoss44": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.tableLoss_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.tableLoss_consistent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.tableLossNoTheta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.tableLoss_noTheta_inconsistent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.tot_eq_output": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.sdInflH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.sdGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.peg_not_most_volatile_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.peg_most_volatile_strict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.peg_most_volatile_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.world_output_effects": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.exchange_rate_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.sdit_meanReverting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.scit_meanReverting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.peg_meanReverting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.natRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.bigLambda": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.fdit_solution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.fdit_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.fdit_coeff_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.fdit_unit_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.fdit_permanent_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.SimpleRules.fcit_cumulative": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.profit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.firm_optimum_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.profit_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.firm_log_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.disutilN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.periodUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.hasDerivAt_disutilN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.le_tangent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.disutilN_tangent_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.static_foc_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.static_isLocalMax_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.static_foc_sufficient": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.household_optimum_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.labour_supply_log_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.budget_tradeBalance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.tradeBalance_log_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.tot_of_marketClearing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.tot_log_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.micro_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.tradeBalance_log": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.StaticEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.denom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.outputSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.denom_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.consumption_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.staticEq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.staticEq_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.outputSol_sigma_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.outputSol_indep_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.outputSol_ystar_slope": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.outputSol_a_slope_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.money_neutral_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.exchangeRate_one_for_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.equilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.peg_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.peg_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.peg_same_real_allocation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_1.pegEquilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.lagP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.natRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.Block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.TaylorEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.PegEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.known_pm1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.cumsum_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.nk_iff_structural": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.lambda_mul_den": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_closed_forms_38": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_signs_38": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_irf_38": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.taylor_irf_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.charQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.exists_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.root_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.other_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.peg_nkpc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.wseq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegTheta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegTheta_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegP_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegP_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegP_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegP_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.theta_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.peg_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.peg_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.peg_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.peg_rate_38": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.pegTheta_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.OpenEconomy.Ex8_2.peg_irf_signs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "OpenEconomy/Determinacy.lean": "bfc77fefecdc420eb3b44f2c6c8d402a9520d7fdc39a3d705cbe852e0c9fd13f",
+    "OpenEconomy/Expectations.lean": "68830d480f22153dfdd7361d850596bd2fa166383f50b59390c2e010a601619c",
+    "OpenEconomy/ExpectationsFiniteTree.lean": "7d901d2f7702748fcbb260bd225e1e5aa3402f94d1d72340fda8ccfab9836820",
+    "OpenEconomy/Preferences.lean": "b76e6cf2a4e456025ba84c5c6ce37ee1e63fd6ed9ec0c8849b5c93c85b3f3982",
+    "OpenEconomy/Identities.lean": "fa0255744d78d4174a9b0826896440a518c2ef902a5ce78fc9eb0743c769bd25",
+    "OpenEconomy/RiskSharing.lean": "dc85993eb3f5ceef56c5a0177c1242ff20bdf39f2961d5d2c6d495bfe5a88e09",
+    "OpenEconomy/UIP.lean": "57afae793b032130f57f36e636aeba4fe9d9cb77c339a67b465cb5790013a2e8",
+    "OpenEconomy/AggregateDemand.lean": "9dc05bcf52e8afe7a0fdd2c946691b425b69d02143b7b91a9d45e0dfab007ed4",
+    "OpenEconomy/Supply.lean": "372642dc3a720e6862c293c6eb655c1f323c9d102bd8d9b751438c126ae33330",
+    "OpenEconomy/TaylorRule.lean": "1ac21bbac08d8818b9202676b5cf2a2fc4c1915ff37e373503ae3e8b1bd084fa",
+    "OpenEconomy/OptimalPolicy.lean": "f9783e4db0efe77ca96649877e9d883c7b9b40de2ad85232b53e8b3f0a1fb2ea",
+    "OpenEconomy/Welfare.lean": "9f3a6ea23e9ba37989a88a29016439ffd3910f6f0dfaefca5a4701be032e6957",
+    "OpenEconomy/SimpleRules.lean": "a6f67daa2b748be29e5c9ebec21cbbd970c3672493f42ae978a72a15bebbfd39",
+    "OpenEconomy/Ex8_1.lean": "266cf7863e0965f0be9f8cbc08e949406e7b823e6027ea70b8ab6ce2a13f94b8",
+    "OpenEconomy/Ex8_2.lean": "b7c078085bb9a1eae6574a7cf8e5f71055541769c588cd0fdfe69a8ff7abb2a2",
+    "OpenEconomy.lean": "1080e092b5917ab55da16f9c90f3ebf57f0231a1f54c583dcf80710ce7878c62",
+    "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
+    "lakefile.toml": "ca005051c6d4f6049fe91d101147c9b31e2b40861e12589aa557897a562c121b",
+    "lake-manifest.json": "26fbf7cfba8185e3ecbbe2a5cc71f5822973c9fa97d82fbcdf74e5635f9f9f5e",
+    "proof-manifest.json": "591362e494acfcf2eb2e410226b858ba15472f4db13f41f63716e276848869c3",
+    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "fresh_audit_sha256": "d0f73f1b0522538f9541f5365978310a5b4fd3a6c7c106278a3462572cadbc22",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "scope": "Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 8: Monetary Policy in the Open Economy, with Appendix 8.1 and Exercises 8.1-8.2. Home-bias CES preferences and their Cobb-Douglas limit; price and exchange-rate identities; complete-markets risk sharing on an event tree; uncovered interest parity; aggregate demand and supply of the small open economy; the open-economy Taylor rule, determinacy and monetary-shock responses; optimal policy in the special case (strict domestic inflation targeting) with the second-order welfare criterion; simple rules; and the exercises.",
+  "source": "Jordi Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 8, pp. 223-260."
+}
