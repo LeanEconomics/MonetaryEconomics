@@ -1,0 +1,21 @@
+{
+  "library": "ReturnOfMonetaryRules",
+  "modules": [
+    "ReturnOfMonetaryRules/Determinacy.lean",
+    "ReturnOfMonetaryRules/Expectations.lean",
+    "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean",
+    "ReturnOfMonetaryRules/ChannelSystem.lean",
+    "ReturnOfMonetaryRules/InterestRateRules.lean",
+    "ReturnOfMonetaryRules/NeoWicksellian.lean"
+  ],
+  "theorem_counts": {
+    "ReturnOfMonetaryRules/Determinacy.lean": 23,
+    "ReturnOfMonetaryRules/Expectations.lean": 20,
+    "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean": 21,
+    "ReturnOfMonetaryRules/ChannelSystem.lean": 20,
+    "ReturnOfMonetaryRules/InterestRateRules.lean": 18,
+    "ReturnOfMonetaryRules/NeoWicksellian.lean": 25
+  },
+  "scope": "Woodford, Interest and Prices, Chapter 1: The Return of Monetary Rules. The channel system for the overnight rate with a genuine CDF and the target supply; the Wicksell rule and its difference form; Taylor-rule arithmetic, the Taylor principle and partial-adjustment rules; the neo-Wicksellian price-level model, its unique bounded solution and the exact determinacy region.",
+  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 1, pp. 1-60."
+}

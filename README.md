@@ -7,7 +7,8 @@ Framework and Its Applications* (2nd ed., 2015), and Michael Woodford,
 folder is an independent Lean/Mathlib project for one chapter, with precise
 statements, a source map to the book's equations, propositions and pages, a
 record of where the printed text had to be corrected, and reproducible proof
-checks. Galí projects live under `Gali/`, Woodford projects under `Woodford/`.
+checks. Galí projects live under `Gali/`, Woodford projects under `Woodford/`. Galí's
+Chapters 1 and 9 are discursive and have no formal content, so they have no project.
 
 | Project | Chapter | Checked results | Start here |
 | --- | --- | --- | --- |
@@ -18,6 +19,7 @@ checks. Galí projects live under `Gali/`, Woodford projects under `Woodford/`.
 | [Gali/StickyWagesPrices](Gali/StickyWagesPrices/README.md) | Galí 6 A Model with Sticky Wages and Prices | 720 theorems: the p. 174 determinacy theorem proved in full (stated without proof in the book) via an argument principle for polynomials and a homotopy root count, with both failure modes of Fig. 6.1 exhibited; union wage setting over an infinite horizon and the wage NKPC; wage and price dispersion and the exact wage Lemma 2; efficiency and the second-order welfare criterion; optimal commitment and the optimality of composite inflation targeting by a separation argument; all four exercises | [Chapter overview](Gali/StickyWagesPrices/README.md) |
 | [Gali/Unemployment](Gali/Unemployment/README.md) | Galí 7 Unemployment in the New Keynesian Model | 412 theorems (with the restated Chapter 6 determinacy theorem): participation and the unemployment rate, the wage Phillips curve in unemployment, unemployment fluctuations need wage rigidity, determinacy iff the p. 174 condition, optimal policy as Chapter 6's with full labour-market insulation under demand shocks, the labour-force wealth effect, all three exercises | [Chapter overview](Gali/Unemployment/README.md) |
 | [Gali/OpenEconomy](Gali/OpenEconomy/README.md) | Galí 8 Monetary Policy in the Open Economy | 464 theorems: home-bias CES demand with its Cobb–Douglas limit, risk sharing on an event tree, UIP as an exact derivative, the open-economy DIS and NKPC, determinacy and overshooting under a Taylor rule, optimality of strict domestic inflation targeting with the second-order welfare criterion, simple rules and exchange-rate unit roots, both exercises; the p. 236 trade-balance and p. 241 openness claims refuted | [Chapter overview](Gali/OpenEconomy/README.md) |
+| [Woodford/ReturnOfMonetaryRules](Woodford/ReturnOfMonetaryRules/README.md) | Woodford 1 The Return of Monetary Rules | 127 theorems (with the shared core): the channel system for the overnight rate with a genuine CDF and a unique target supply, the Wicksell rule and its difference form, the Taylor principle and partial-adjustment rules, the neo-Wicksellian price level as the unique bounded equilibrium with the exact determinacy region `φ > 0` or `φ < −2` | [Chapter overview](Woodford/ReturnOfMonetaryRules/README.md) |
 
 Every project builds and audits with `python scripts/verify.py` from its own
 directory; GitHub Actions runs all of them.

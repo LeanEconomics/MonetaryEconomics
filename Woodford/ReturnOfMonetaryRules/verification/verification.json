@@ -1,0 +1,1898 @@
+{
+  "checked_at_utc": "2026-10-14T19:17:45.268386+00:00",
+  "theorems": 127,
+  "module_theorems": {
+    "ReturnOfMonetaryRules/Determinacy.lean": 23,
+    "ReturnOfMonetaryRules/Expectations.lean": 20,
+    "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean": 21,
+    "ReturnOfMonetaryRules/ChannelSystem.lean": 20,
+    "ReturnOfMonetaryRules/InterestRateRules.lean": 18,
+    "ReturnOfMonetaryRules/NeoWicksellian.lean": 25
+  },
+  "audited_declarations": 186,
+  "declarations": [
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.SchurStable",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.disc",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.root\u2081",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.root\u2082",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.root_sum",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.root_prod",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.root_eq",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.normSq_root_of_neg",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.norm_root_of_nonneg",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.schurStable_iff_roots",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.chSeq",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.convSeq",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.convSeq_rec",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.chSeq_eq_convSeq",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.norm_convSeq_le",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.abs_chSeq_le",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.tendsto_chSeq",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.tr2",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.det2",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.tr2_eq_trace",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.det2_eq_det",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.sq_eq_cayleyHamilton",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.pow_succ_eq",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.abs_pow_entry_le",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.tendsto_pow_entry",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.BoundedSeq",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.homogeneous_iterate",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.homogeneous_eq_zero",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.eq_root_of_eq",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.exists_eigenvector",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.exists_bounded_homogeneous",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Determinacy.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem",
+      "kind": "structure",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.const",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.mono",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.tower",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.known",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.perfectForesight",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.BoundedProc",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.BoundedVec",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.Adapted",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.IsAR1",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_neg",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.bounded_E",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.ar1_iterate",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forward_iterate",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forward_ar1_solves",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_tsum",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_summable",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_solves",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_bounded",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.eq_forwardSeries",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_adapted",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.PullOut",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.Solves",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.AdaptedVec",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.system_iterate",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.system_unique",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.system_not_unique",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.Determinate",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationSystem.determinate_iff",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.perfectForesight_pullOut",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/Expectations.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree",
+      "kind": "structure",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mk",
+      "kind": "constructor",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.prob",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.prob_pos",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.prob_sum",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.info",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.refines",
+      "kind": "projection",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mass",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.num",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mass_pos",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mass_congr",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.num_congr",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_congr",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_add",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_smul",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condELin",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_const",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_mono",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_known",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_tower",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.toExpectationSystem",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_of_trivial",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinObs",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinTree",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinSystem",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.firstHeads",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinSystem_E0_firstHeads",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinSystem_not_perfectForesight",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinShock",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinShock_measurable",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1_measurable",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinShock_mean_zero",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1_isAR1",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1_nondegenerate",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.finiteTree_pullOut",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.IsCDF",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.IsCDF.nonneg",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.IsCDF.le_one",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.isCDF_cdf",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.exists_measure_of_isCDF",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_mem_channel",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_antitone",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_strictAnti",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.cdf_rate_mem_channel",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.cdf_rate_antitone",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_channel",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_eq_target_iff",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.exists_eq_half",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.target_supply_iff",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.existsUnique_target_supply",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.target_supply_set_indep",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.target_supply_symmetric",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_shift_channel",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.cdf_dirac_zero_of_neg",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_noClearing",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_noClearing_indep",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/ChannelSystem.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.WicksellRule",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.DifferenceRule",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.difference_iff_wicksell",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.wicksell_intercept_eq",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.wicksell_imp_difference",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.wicksell_violates_zlb",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.reactionFn",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_eq_reactionFn",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_at_target",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_real_rate_at_target",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorPrinciple_iff",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_real_rate_rises",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.goodhartRule_eq_reactionFn",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.table11_taylor_principle",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.PartialAdjustment",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.DesiredRate",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.recursion_eq_chSeq",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.partialAdjustment_tendsto",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.partialAdjustment_longRun",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.partialAdjustment_const_iff",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.judd_rudebusch_stable",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.ForecastDesiredRate",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.TargetCriterion",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.targetCriterion_perfectForesight",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.InterestRateRules.targetCriterion_tradeoff",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/InterestRateRules.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.Fisher",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.Equilibrium",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.Reduced",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.alpha_mem",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.equilibrium_iff_reduced",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel_eq_forwardSeries",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forcing_bounded",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forcing_adapted",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel_equilibrium",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.eq_priceLevel",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.existsUnique_priceLevel",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.abs_le_of_forward",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.deviation_reduced",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.abs_sub_longRun_le",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel_const",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.longRun_equilibrium",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.tendsto_longRun",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.nonneg_of_forward",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.equilibrium_mono",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.weights_pos",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.homog",
+      "kind": "def",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.homog_equilibrium",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.equilibrium_add_homog",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.homog_bounded",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.not_unique_of_mem_Icc",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.peg_no_bounded",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forwardSeries_solves_abs",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forwardSeries_bounded_abs",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    },
+    {
+      "name": "Woodford.ReturnOfMonetaryRules.NeoWicksellian.existsUnique_iff",
+      "kind": "theorem",
+      "module": "ReturnOfMonetaryRules/NeoWicksellian.lean"
+    }
+  ],
+  "full_build": "passed",
+  "fresh_source_compilation": "passed",
+  "fresh_source_lint_options": [
+    "-Dlinter.mathlibStandardSet=true",
+    "-Dlinter.style.header=false"
+  ],
+  "axioms": {
+    "Woodford.ReturnOfMonetaryRules.SchurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.root\u2081": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.root\u2082": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.root_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.root_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.root_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.normSq_root_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.norm_root_of_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.schurStable_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.convSeq_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.chSeq_eq_convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.norm_convSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.abs_chSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.tendsto_chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.tr2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.det2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.tr2_eq_trace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.det2_eq_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.sq_eq_cayleyHamilton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.pow_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.abs_pow_entry_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.tendsto_pow_entry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.BoundedSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.homogeneous_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.homogeneous_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.eq_root_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.exists_eigenvector": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.exists_bounded_homogeneous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.BoundedProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.BoundedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.Adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.IsAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.bounded_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.ar1_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forward_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forward_ar1_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.E_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.eq_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.forwardSeries_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.PullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.AdaptedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.system_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.system_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.system_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationSystem.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.perfectForesight_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.prob_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.prob_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.info": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.refines": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mass": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.num": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mass_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.mass_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.num_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.FiniteTree.condE_of_trivial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinObs": [],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinSystem_E0_firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinSystem_not_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinShock_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinShock_mean_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1_isAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.coinAR1_nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ExpectationsFiniteTree.finiteTree_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.IsCDF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.IsCDF.nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.IsCDF.le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.isCDF_cdf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.exists_measure_of_isCDF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_mem_channel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_antitone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_strictAnti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.cdf_rate_mem_channel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.cdf_rate_antitone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_channel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_eq_target_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.exists_eq_half": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.target_supply_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.existsUnique_target_supply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.target_supply_set_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.target_supply_symmetric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_shift_channel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.cdf_dirac_zero_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_noClearing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.ChannelSystem.rate_noClearing_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.WicksellRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.DifferenceRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.difference_iff_wicksell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.wicksell_intercept_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.wicksell_imp_difference": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.wicksell_violates_zlb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.reactionFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_eq_reactionFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_at_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_real_rate_at_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorPrinciple_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.taylorRule_real_rate_rises": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.goodhartRule_eq_reactionFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.table11_taylor_principle": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.PartialAdjustment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.DesiredRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.recursion_eq_chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.partialAdjustment_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.partialAdjustment_longRun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.partialAdjustment_const_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.judd_rudebusch_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.ForecastDesiredRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.TargetCriterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.targetCriterion_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.InterestRateRules.targetCriterion_tradeoff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.Fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.Reduced": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.alpha_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.equilibrium_iff_reduced": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel_eq_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forcing_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forcing_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.eq_priceLevel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.existsUnique_priceLevel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.abs_le_of_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.deviation_reduced": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.abs_sub_longRun_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.priceLevel_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.longRun_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.tendsto_longRun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.nonneg_of_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.equilibrium_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.weights_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.homog_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.equilibrium_add_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.homog_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.not_unique_of_mem_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.peg_no_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forwardSeries_solves_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.forwardSeries_bounded_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.ReturnOfMonetaryRules.NeoWicksellian.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "ReturnOfMonetaryRules/Determinacy.lean": "03e11833c8bd0c30b38b53366576d3aec962170126ead435ac86eccdda004150",
+    "ReturnOfMonetaryRules/Expectations.lean": "295d726a544e74da4bf5e450c90361b015251216dcbc4ad66ce15e52cf921834",
+    "ReturnOfMonetaryRules/ExpectationsFiniteTree.lean": "017e7602b8043316f0165eca2bbdef06bc163e7db31833e2bd61ab2e254df79c",
+    "ReturnOfMonetaryRules/ChannelSystem.lean": "b3567ab591859a847d20205c39ea2e23645e76b7962ce58c7669bed40ad25c62",
+    "ReturnOfMonetaryRules/InterestRateRules.lean": "5a782eef0a45ed718def03b5fe2500c37441dc7fadc49b0c19a88ffaf5906f0e",
+    "ReturnOfMonetaryRules/NeoWicksellian.lean": "52376eacd732c5fc269984e77ee82ab6d07ddb2fe2d2f19bb61b032939b60704",
+    "ReturnOfMonetaryRules.lean": "d237d9cab3e0664f440001bcebf4a9dda5519be2cf83fee43472e190c8f47754",
+    "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
+    "lakefile.toml": "2c363a27f28e5e22f09afb26946f8fb92523135e1b994d1ec662e6623d559062",
+    "lake-manifest.json": "f1ec8a3b13f5e8c97c29f54c93ce4d57e74e0172ca6f31875c560649c7693cc4",
+    "proof-manifest.json": "db72c8bdd4e52c90e138ff9d3f540c9313d9f12c1a74b1a268b6084fbe805710",
+    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "fresh_audit_sha256": "53b469d2b25d1f2951bca20a1a65ca7e5c40bf2176a60cada96f7a1f7e31d4e5",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "scope": "Woodford, Interest and Prices, Chapter 1: The Return of Monetary Rules. The channel system for the overnight rate with a genuine CDF and the target supply; the Wicksell rule and its difference form; Taylor-rule arithmetic, the Taylor principle and partial-adjustment rules; the neo-Wicksellian price-level model, its unique bounded solution and the exact determinacy region.",
+  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 1, pp. 1-60."
+}
