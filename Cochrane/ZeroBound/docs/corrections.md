@@ -1,0 +1,84 @@
+# Corrections to the source
+
+This file lists places where a claim in Chapters 20–21 of Cochrane (2023), *The Fiscal Theory of
+the Price Level*, or in the future-selection passage of Chapter 24, is false, imprecise, or
+relies on an unstated hypothesis, and where the Lean statement departs from the printed one. In
+each case the Lean statement proves the stated version and cites the original.
+
+Codes E1–E11 and E20 are the Chapter 20–21 items of the survey of Chapters 20–25
+(`notes/survey_cochrane_ch20-25.md`). Each was confirmed or refuted by formalisation before being
+recorded here, and an entry is revised if formalisation shows the finding itself to be wrong.
+The survey had E9 as suspected; formalisation confirmed it as a missing qualifier. Several
+claims that the book asserts without proof, including one it marks "not shown", turned out to be
+correct; they are listed in the last section.
+
+Out of scope are the empirical and discursive passages: the U.S. and Japanese experience and the
+QE operations (§20.1), the Occam discussion and the list of patches (§§20.1.1, 20.2.6), the 2020
+FOMC strategy, the interpretation of multipliers, secular stagnation, and the Covid narrative
+(Chapter 21) beyond its model claims and arithmetic. Lean names are relative to the namespace
+`Cochrane.ZeroBound`.
+
+## Claims that are false as printed
+
+| Where | Book says | Finding |
+| --- | --- | --- |
+| (20.3)–(20.4), p. 472 (E1) | (20.3) applies "when `π_t < π* + (φ − 1)`" and (20.4) otherwise. | The kink is where `π* + φ(π − π*) = 0`, at `π = π*(φ − 1)/φ`; the zero-bound branch applies iff `π ≤ π*(φ − 1)/φ` (`ZLBRule.kink_iff`, `ZLBRule.eq20_3`, `ZLBRule.eq20_4`). At the Figure 20.3 values (`φ = 2`, `π* = 2`) the kink is `1`, not `3` (`ZLBRule.kink_fig203`). At `π = 3/2 < 3` the true `E_tπ_{t+1}` is `4/3`, while the printed (20.3) gives `1` (`ZLBRule.e1_printed_threshold_false`). |
+| p. 472 (E2) | With a negative natural rate there is "a stable steady state at `π = −u_{r,t}`" and an unstable one at `π = π* + u_{r,t}/(φ − 1)`; the shock "pushes the steady states in". | These are steady states iff `−u ≤ π*(φ − 1)/φ`, and then both are (`ZLBRule.steady_exists_iff`, `ZLBRule.fixed_iff`); they are then pushed in (`ZLBRule.steady_states_pushed_in`). At the Figure 20.3 calibration (`σ = 1`, `κ = 1/2`, `φ = 2`, `π* = 2`, `u = −2`) the condition fails: there is no steady state during the shock, and `f_u(π) − π ≥ 1/3` for every `π` (`ZLBRule.fig203_no_steady_state`). The printed values `2` and `0` are not fixed points (`ZLBRule.fig203_printed_steady_states_false`). |
+| p. 472 (E3) | "Before `t = T`, while the nominal rate remains stuck at zero …" | On the selected path of Figure 20.3 the rate lifts off two periods before `T = 10`: `i₉ = 1`, `i₈ = 1/4`, and only `i₇ = i₆ = 0` (`ZLBRule.fig203_early_liftoff`). The path itself is `π₉ = 3/2`, `π₈ = 9/8`, `π₇ = 11/16`, `π₆ = 1/32` (`ZLBRule.fig203_selection`). The bottom panel of Figure 20.3 shows the rise. |
+| p. 483 (E8) | In Gabaix's model "one needs `M` less than a half, together with … `σκ` less than about a half". | The exact condition, for `0 ≤ M, M^f ≤ 1`, `0 < β < 1`, `σκ ≥ 0`, is `(1 − M)(1 − βM^f) > σκ` (`Gabaix.gabaix_determinate_iff`, `Gabaix.gabaix_schur_iff`, `Gabaix.gabaix_roots_iff`). "`M < 1/2`" is not necessary: `M = M^f = 3/5`, `β = 0.99`, `σκ = 1/10` is determinate (`Gabaix.e8_half_not_necessary`), and so is `M = 0.9`, `M^f = 1/2`, `σκ = 0.05` (`Gabaix.e8_half_not_necessary'`). The pair is not sufficient: `M = M^f = 2/5`, `β = 0.99`, `σκ = 2/5` is indeterminate (`Gabaix.e8_not_sufficient`). |
+| pp. 484–485 (E9) | "The zero-bound left equilibrium `Π_L` … has greater welfare than … `Π*`. Less inflation means that firms are closer to their optimal prices." | A qualifier is missing. `Π_L = β` is deflation at the real rate (`ZLBWelfare.zlb_steady_state`), and exact Calvo dispersion `απ²/(1 − α)²` is symmetric in `π` (`ZLBWelfare.dispersion_eq`, `ZLBWelfare.dispersion_lt_iff`). With `0 < β ≤ 1` and `Π* ≥ 1`, `Π_L` is better iff `1 < βΠ*`, i.e. the real rate is below the target inflation rate, both for dispersion and for the steady-state quadratic loss (`ZLBWelfare.zlb_better_iff`, `ZLBWelfare.zlb_welfare_better_iff`); it is worse iff `βΠ* < 1` (`ZLBWelfare.zlb_worse_iff`). With `β = 0.95` and `Π* = 1.02`, `Π_L` is worse for every Calvo parameter (`ZLBWelfare.e9_counterexample`). The book's own numbers (`r = 1%`, a 2% target) satisfy the condition (`ZLBWelfare.book_calibration`). |
+| p. 488 (E10) | "If people expect two thirds of the debt to be repaid, inflation stops at a cumulative 10% and the real value of debt rises 20%." | With 30% new debt, two thirds of it backed, the price level rises by `13/12`, i.e. 8.33%; the +20% real value is exact (`Covid.partial_backing`, `Covid.partial_backing_example`). The printed pair is inconsistent with 30% more nominal debt, since `1.1 × 1.2 ≠ 1.3` (`Covid.e10_printed_pair_inconsistent`). 10% is the first-order term `(1 − f)Δ` (`Covid.hasDerivAt_priceRatio`, `Covid.first_order_example`), with exact remainder `−f(1 − f)Δ²/(1 + fΔ)` (`Covid.priceRatio_remainder`). |
+| p. 493 (E11) | A 15.84% yield with 3.9% inflation gave bondholders "a 12% annual real return". | The real return `1.1584/1.039 − 1` lies between 11.49% and 11.5%; 12% is the approximation `15.84 − 3.9 = 11.94` (`Covid.windfall_real_return`). |
+| p. 481 (E20) | "Multipliers are large and substantially greater than one." | False for short traps. The time-0 standard multiplier is `m_0 = h(T) − 1` (`Multipliers.multNK0_eq`), and for every `κ, σ > 0` it lies in `(0, 1)` for all small `T` (`Multipliers.multNK0_lt_one_short`). At `κ = σ = 1`, `ρ = 0.05` and `T = 1`, `0 < m_0 < 1`; numerically it is about 0.53 (`Multipliers.e20_counterexample`). The claim holds for long traps: `m_0` is strictly increasing and unbounded in `T`, and exceeds one eventually (`Multipliers.multNK0_strictMonoOn_T`, `Multipliers.multNK0_tendsto_T`, `Multipliers.multNK0_gt_one_eventually`), as at the book's `T = 5`. |
+
+## Claims that need a changed statement
+
+| Where | Book says | Finding |
+| --- | --- | --- |
+| (20.9), p. 475; (20.8), p. 474 (E6) | `z_t ≡ κσ(i_t − r_t) + κ dg_t/dt`, and (20.8)/(20.10) give the equilibria. | In (20.9) `r_t` is the natural rate `u_{r,t}` of (20.5) (`WerningModel.zForce`). For continuous forcing on the whole line, (20.8) and (20.10) are exactly the forward-stable solutions, in bijection with the constant `C` (`WerningModel.eq20_8_iff`, `WerningModel.family_equiv`). For the experiment, `g` is piecewise constant, so `dg/dt` is the measure `g(δ_0 − δ_T)`. Read this way, with the atoms at or before `t` on the backward side, the formulas are correct at every `t ≥ 0`, including `t = T`, and the bounded paths are exactly the book's formulas for some `C` (`WerningModel.book_form`, `WerningModel.experiment_eq20_8`). Solved piecewise instead, `x` and `π` are continuous at `T`, and the derivatives jump: `π̇(T⁺) − π̇(T⁻) = κg`, `ẋ(T⁺) − ẋ(T⁻) = σu` (`WerningModel.jump_pi`, `WerningModel.jump_x`). |
+| p. 479 | Woodford and Werning's "policy that commits to delaying an interest-rate rise" has the same effect as promising time-`T` inflation. | In the book's experiment `i = u_r = 0` after `T`, so the rate never rises and a delay has no content. The claim needs a positive post-trap natural rate `u₂`. With it and lift-off at `T + τ`, the `π_{T+τ} = 0` equilibrium is unique (`ForwardGuidance.delay_unique`), `π_0 = −u(1 − h(T)) + u₂(h(T + τ) − h(T))` (`ForwardGuidance.delay_pi0`), and `π_0` is strictly increasing and unbounded in the delay `τ` (`ForwardGuidance.delay_pi0_strictMono`, `ForwardGuidance.delay_pi0_tendsto`). |
+| Figure 20.3, pp. 472–473 | The natural rate is `−2%` until `T`, after which the active rule selects `π_t = π*`. | The figure is consistent only if `u_r = −2` for `t < T` and `0` from `T` on. If the shock were also in effect at `T`, `π_t = π*` for `t ≥ T` would not solve the model. This reading is the definition `ZLBRule.uFig` used in `ZLBRule.fig203_selection`. |
+| p. 473 | "`π_t = π*` is the only locally bounded equilibrium", but not the only globally bounded one. | Proved under perfect foresight with `u = 0`: the bounded orbits are exactly those with `π₀ ≤ π*`, a continuum, and every one below `π*` converges to zero inflation with the rate eventually at zero (`ZLBRule.bounded_orbits_eq`, `ZLBRule.orbit_below_tendsto_zero`, `ZLBRule.orbit_below_rate_zero`). Local uniqueness holds within `π* − π*(φ − 1)/φ` of `π*` (`ZLBRule.locally_bounded_unique`), and also under any `ExpectationSystem` (`ZLBRule.locally_bounded_unique_E`). |
+| p. 467 | At a peg the new-Keynesian model is "stable" and "indeterminate". | Stated as: the roots straddle the unit circle and the system is not determinate (`ZLBPeg.pegMatrix_roots`, `ZLBPeg.peg_not_determinate`); every bounded equilibrium has `E_sπ_{s+k} → ī` (`ZLBPeg.peg_expected_converges`); the bounded equilibria are exactly the sunspot recursions `p_t = λ₁E_tp_{t+1}` (`ZLBPeg.peg_equilibrium_char`), an uncountable set (`ZLBPeg.peg_continuum`), with a genuinely random member on the coin-flip tree (`ZLBPeg.coin_sunspot_equilibrium`). |
+| p. 469 | Active fiscal policy makes inflation "stable, determinate, and quiet" at the zero bound. | Proved with the linearised valuation equation (5.13) at a constant rate and one-period debt, starting from the steady state at date `−1`: exactly one bounded adapted equilibrium for every bounded fiscal-news process and `0 ≤ ρ ≤ 1` (`ZLBPeg.fiscal_selects`); unexpected inflation is `−(1 − ρ/λ₁)` times the fiscal news (`ZLBPeg.fiscal_unexpected_inflation`); it is stable and quiet (`ZLBPeg.fiscal_stable`, `ZLBPeg.fiscal_quiet`); a date-0 deflation happens iff the news is a contraction (`ZLBPeg.deflation_iff_fiscal_contraction`). |
+| p. 476 | "The deflation jump … must correspond to a large fiscal contraction." | Stated as an exact identity across equilibria with the same predetermined debt: `π_0 − π_0' = −(r + λ^b)` times the difference in the present values of surpluses (`ZLBSelection.jump_eq_fiscal`). The `π_T = 0` equilibrium needs a contraction relative to the no-jump one (`ZLBSelection.nk_fiscal_contraction`), unbounded as `κ → ∞` (`ZLBSelection.fiscalContraction_tendsto`). |
+| p. 478 | In the no-jump equilibria "ε price stickiness implies δ deviation" from the square wave. | Proved as convergence to the frictionless values `−u` on `(0, T)` and `0` after `T` as `κ → ∞`, pointwise and uniformly on compacts away from `0` and `T` (`ZLBSelection.nj_limit_trap`, `ZLBSelection.nj_uniform_trap`, `ZLBSelection.nj_limit_after`, `ZLBSelection.nj_uniform_after`). Convergence cannot be uniform up to `t = 0`, since `π_0 = 0` for every `κ`. |
+| p. 480 | The multiplier is `∂x_t/∂g`. | Output is affine in `g` in both selections, so the multipliers are exact derivatives at every `g`, not only at `g = 0` (`Multipliers.xNK_affine`, `Multipliers.hasDerivAt_xNK`, `Multipliers.xNJ_affine`, `Multipliers.hasDerivAt_xNJ`). |
+| p. 488 | 10% is the cumulative inflation under partial backing. | 10% is the first-order term; see E10 above. |
+
+## Hypotheses the book leaves implicit
+
+| Where | Implicit hypothesis | How it is stated |
+| --- | --- | --- |
+| §20.2.1, p. 472 | Future selection needs a nonzero rule coefficient before the switch. With a pure peg at date 0, the future active rule does not pin `π₀` | `φ_t ≠ 0` is a hypothesis of `FutureSelection.future_selection`; shown necessary by `FutureSelection.zero_coefficient_not_unique` |
+| Ch. 24, p. 523 | The fiscal switch needs `\|ρ\| < 1`, so that boundedness implies the transversality condition, and passive fiscal policy `γ_t ≠ 1` before the switch | Hypotheses of `FutureSelection.fiscal_switch_selects`; boundedness is the equilibrium criterion |
+| p. 469 | The economy is at the steady state before date 0 (`E_{−1}π_j = ī`), and the rate is constant | Built into `ZLBPeg.Valuation` |
+| §20.2.1 | `σκ > 0`, `φ > 1`, `π* > 0`; for the slopes, `φ ≥ 0` | Hypotheses of the `ZLBRule` theorems |
+| §§20.2.2–20.2.5 | `σ, κ > 0`, a negative natural rate `u < 0` during the trap, `T > 0`; `ρ ≥ 0` for every monotonicity and limit in `κ` | Hypotheses of the `ZLBSelection`, `ForwardGuidance` and `Multipliers` theorems |
+| (20.8), p. 474 | Bounded, continuous forcing for the whole-line statement; integrable discounted surpluses for the fiscal reading | Hypotheses of `WerningModel.eq20_8_iff` and `ZLBSelection.jump_eq_fiscal` |
+| §20.2.6 | `0 ≤ M, M^f ≤ 1`, `0 < β < 1`, `σκ ≥ 0` | Hypotheses of `Gabaix.gabaix_determinate_iff` |
+| §20.3 | `0 < β ≤ 1` and `Π* ≥ 1`; the welfare loss is the second-order Calvo dispersion or the steady-state quadratic loss | Hypotheses of `ZLBWelfare.zlb_better_iff`; `ZLBWelfare.dispersion`, `ZLBWelfare.ssLoss` |
+
+## Cosmetic errors (no Lean statement)
+
+| Where | Book says | Finding |
+| --- | --- | --- |
+| p. 475 (E4) | "From (17.2), then, the output gap follows" | (17.2) is the discrete old-Keynesian Phillips curve; the derivation uses (20.6), and (20.10) is derived from (20.6) in `WerningModel.eq20_8_iff`. |
+| p. 474 (E5) | "We solve the model as in Section 1.12." | The reference is to Online Appendix A1, §1.12, not to Chapter 1. |
+| pp. 478, 481 (E7) | Captions of Figures 20.5 and 20.6: "thin dashed lines"; "is increases". | Per the survey's reading of the figures, the thin lines are solid grey; "is increases" is a typo. |
+
+## Claims confirmed correct
+
+| Where | Claim | Lean |
+| --- | --- | --- |
+| p. 477 ("(not shown) output gaps become larger as price stickiness is reduced") | In the `π_T = 0` equilibrium the output gap is strictly decreasing in `κ` at every date of the trap (`ρ ≥ 0`); from `T` on it is zero for every `κ` | `ZLBSelection.nk_x_strictAnti_kappa`, `ZLBSelection.x0NK_strictAnti_kappa`, `ZLBSelection.nk_after` |
+| pp. 476–477 | Deflation throughout the trap, steadily improving; a negative, rising output gap; `π_0 → −∞` as `T → ∞` and as `κ → ∞`; the deflation is strictly larger as `κ` rises | `ZLBSelection.nk_pi_neg`, `ZLBSelection.nk_pi_strictMonoOn`, `ZLBSelection.nk_x_neg`, `ZLBSelection.nk_x_strictMonoOn`, `ZLBSelection.pi0NK_tendsto_T`, `ZLBSelection.nk_tendsto_kappa`, `ZLBSelection.nk_strictAnti_kappa` |
+| pp. 477–478 | The frictionless model has a unique solution, and the `π_T = 0` limit differs from it | `ZLBSelection.frictionless_iff`, `ZLBSelection.nk_discontinuity` |
+| p. 476 | The no-jump equilibrium has a slight inflation rise; the survey's `0 < π_t < −u` on `(0, T)` holds at every `t > 0` | `ZLBSelection.nj_pos`, `ZLBSelection.nj_lt` |
+| pp. 474–475 | The bounded equilibria form a one-parameter family; (20.7) selects | `WerningModel.bdd_path_iff`, `WerningModel.eq20_7_selects` |
+| p. 479 | `π_0` is sensitive to `π_T` with factor `e^{λ^b T}`, increasing in `T` and `κ`; no effect at the limit point | `ForwardGuidance.dpi0_dpiT`, `ForwardGuidance.sensitivity_strictMono_T`, `ForwardGuidance.sensitivity_strictMono_kappa`, `ForwardGuidance.frictionless_unique` |
+| p. 481 | Standard multipliers increase in `κ` to infinity; the limit point has multiplier `−1`; no-jump multipliers lie in `(−1, 0)` and tend to `−1`; future spending is exponentially more effective | `Multipliers.multNK_strictMono_kappa`, `Multipliers.multNK_tendsto_kappa`, `Multipliers.frictionless_multiplier`, `Multipliers.multNJ_bounds`, `Multipliers.multNJ_tendsto_kappa`, `Multipliers.windowMult_strictMono`, `Multipliers.windowMult_tendsto` |
+| p. 483 | Gabaix's determinacy is bounded away from rationality and from the frictionless limit | `Gabaix.rational_IS_indeterminate`, `Gabaix.frictionless_limit_indeterminate`, `Gabaix.determinate_bounded_away` |
+| p. 472; Ch. 24, p. 523 | Expected future policy, monetary or fiscal, selects equilibria; fiscal shocks then move inflation even while money is active | `FutureSelection.future_selection`, `FutureSelection.fiscal_switch_selects`, `FutureSelection.fiscal_switch_unexpected_inflation`, `FutureSelection.fiscal_switch_example` |
+| pp. 487, 490–493 | The helicopter drop; more backing, less inflation; fiscal news moves only unexpected inflation; inflation returns under a peg; Phillips-curve disinflation; "four times larger" interest costs | `Covid.helicopter_exact`, `Covid.priceRatio_strictAnti`, `Covid.fiscal_news_only_unexpected`, `Covid.peg_inflation_returns`, `Covid.joint_less_painful`, `Covid.interest_cost_four_times` |
+| pp. 486, 488 | The CPI arithmetic, Table 21.1 and "nearly 30%" | `Covid.cpi_rise`, `Covid.table_21_1`, `Covid.debt_increase_nearly_30` |
