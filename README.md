@@ -1,14 +1,18 @@
 # Monetary Economics in Lean
 
-Checked monetary economics, following two textbooks: Jordi Galí, *Monetary
+Checked monetary economics, following three textbooks: Jordi Galí, *Monetary
 Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian
-Framework and Its Applications* (2nd ed., 2015), and Michael Woodford,
-*Interest and Prices: Foundations of a Theory of Monetary Policy* (2003). Each
-folder is an independent Lean/Mathlib project for one chapter, with precise
-statements, a source map to the book's equations, propositions and pages, a
-record of where the printed text had to be corrected, and reproducible proof
-checks. Galí projects live under `Gali/`, Woodford projects under `Woodford/`. Galí's
-Chapters 1 and 9 are discursive and have no formal content, so they have no project.
+Framework and Its Applications* (2nd ed., 2015); Michael Woodford, *Interest and
+Prices: Foundations of a Theory of Monetary Policy* (2003); and John H. Cochrane,
+*The Fiscal Theory of the Price Level* (Princeton University Press). Each folder is
+an independent Lean/Mathlib project for one chapter (or a small group of chapters),
+with precise statements, a source map to the book's equations, propositions and
+pages, a record of where the printed text had to be corrected, and reproducible
+proof checks. Galí projects live under `Gali/`, Woodford projects under `Woodford/`,
+Cochrane projects under `Cochrane/`. Galí's Chapters 1 and 9 are discursive and have
+no formal content, so they have no project; Cochrane's discursive chapters have no
+project of their own, and their precise claims are formalised in the project that
+owns the relevant model.
 
 | Project | Chapter | Checked results | Start here |
 | --- | --- | --- | --- |
@@ -27,6 +31,7 @@ Chapters 1 and 9 are discursive and have no formal content, so they have no proj
 | [Woodford/StabilizationWelfare](Woodford/StabilizationWelfare/README.md) | Woodford 6 Inflation Stabilization and Welfare | 1069 theorems (with the shared core): second-order welfare approximations stated as exact polynomial identities with explicit terms independent of policy and third-order remainders, plus a Taylor bridge from actual expected utility with O(ε³) remainders and welfare rankings; the approximation theory of §1 corrected (C³ needed, (1.3) and fn 7 fixed); Props 6.1–6.5 with exact Calvo dispersion identities; Prop 6.6 with its inconsistent weights corrected; the case for price stability; transactions frictions and the zero lower bound with a proved two-constraint KKT theorem; asymmetric disturbances and sticky wages; large distortions with (5.1) corrected and the second-order AS (5.4) derived from the Calvo model | [Chapter overview](Woodford/StabilizationWelfare/README.md) |
 | [Woodford/GainsFromCommitment](Woodford/GainsFromCommitment/README.md) | Woodford 7 Gains from Commitment | 946 theorems (with the shared core): the second-order rational-expectations workhorse and Lagrangian sufficiency for LQ problems; the inflation bias of discretion, date-0 and timelessly optimal commitment (Props 7.1–7.3); monetary frictions and indexation; discretion versus optimal commitment under cost-push and natural-rate disturbances with impulse responses and variance frontiers (Props 7.4–7.10, missing hypothesis in Props 7.9–7.10 supplied); optimal noninertial plans, the optimal Taylor rule (false p. 515 claim refuted, fn 32 and F.4 long-run values corrected) and indeterminacy of forecast-based rules (Props 7.11–7.13); the instrument path with (4.2) corrected and stochastic sunspot equilibria under an exogenous path (Prop 7.14); the targeting rule and its implementation (Props 7.15–7.17) | [Chapter overview](Woodford/GainsFromCommitment/README.md) |
 | [Woodford/OptimalPolicyRules](Woodford/OptimalPolicyRules/README.md) | Woodford 8 Optimal Policy Rules | 1827 theorems (with the shared core): the general LQ setup, first-order conditions and target-criterion construction, with Props 8.1–8.4 proved in general (the Giannoni–Woodford theory the book does not prove; Prop 8.1 corrected, repeated roots and a normalisation-free case (ii); Prop 8.2 without a multiplier-stability hypothesis; Prop 8.3 with the no-circle hypothesis it needs; Prop 8.4 unconditional) and worked for the basic and inflation-inertia models (the latter with Assumption 8.1 and Prop 8.2 at every calibration); optimal inflation targeting under inflation inertia, sticky wages (exact determinacy region for κw ≠ κp, with a counterexample), habit persistence, predetermined pricing, the Giannoni–Woodford model and imperfect information; optimal interest-rate rules with Prop 8.5 determinacy for every admissible parameter and Prop 8.6; the inflation-inertia model: Prop 8.7 root structure, Lemmas G.1–G.2, Prop 8.8 Rules I–III over ℂ with determinacy of the rule system, Props 8.9–8.11 unconditional with their limits, and the Figs 8.3–8.5 numbers (Fig 8.4 .39 enclosed); p. 591 φx corrected | [Chapter overview](Woodford/OptimalPolicyRules/README.md) |
+| [Cochrane/TwoPeriodModel](Cochrane/TwoPeriodModel/README.md) | Cochrane 1 A Two-Period Model | 238 theorems (with the shared core): the two-period fiscal-theory equilibrium (the price level exists and is unique given surpluses, for any expectation system); share splits, interest-rate targets and the Fisherian response; the expected/unexpected inflation decomposition; debt sales and Table 1.1 with the borrowing condition corrected; a price-level target rule; active versus passive policy with the gamma-rule condition corrected, non-identification and observational equivalence; links to Woodford's locally Ricardian policy | [Chapter overview](Cochrane/TwoPeriodModel/README.md) |
 
 Every project builds and audits with `python scripts/verify.py` from its own
 directory; GitHub Actions runs all of them.

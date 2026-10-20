@@ -1,0 +1,29 @@
+{
+  "library": "TwoPeriodModel",
+  "modules": [
+    "TwoPeriodModel/Determinacy.lean",
+    "TwoPeriodModel/Expectations.lean",
+    "TwoPeriodModel/ExpectationsFiniteTree.lean",
+    "TwoPeriodModel/ForwardSolution.lean",
+    "TwoPeriodModel/TwoPeriod.lean",
+    "TwoPeriodModel/MonetaryFiscal.lean",
+    "TwoPeriodModel/DebtSales.lean",
+    "TwoPeriodModel/PriceLevelTarget.lean",
+    "TwoPeriodModel/ActivePassive.lean",
+    "TwoPeriodModel/Links.lean"
+  ],
+  "theorem_counts": {
+    "TwoPeriodModel/Determinacy.lean": 23,
+    "TwoPeriodModel/Expectations.lean": 20,
+    "TwoPeriodModel/ExpectationsFiniteTree.lean": 21,
+    "TwoPeriodModel/ForwardSolution.lean": 44,
+    "TwoPeriodModel/TwoPeriod.lean": 34,
+    "TwoPeriodModel/MonetaryFiscal.lean": 16,
+    "TwoPeriodModel/DebtSales.lean": 19,
+    "TwoPeriodModel/PriceLevelTarget.lean": 17,
+    "TwoPeriodModel/ActivePassive.lean": 25,
+    "TwoPeriodModel/Links.lean": 19
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 1: A two-period model. The last day and the two-period fiscal-theory equilibrium (existence and uniqueness of the price level given surpluses, for any expectation system); monetary and fiscal policy: share splits, interest-rate targets and the Fisherian response, the expected/unexpected inflation decomposition; debt sales and Table 1.1 (borrow, inflate, AR(1), s-shaped surpluses) with the borrowing condition corrected; a price-level target rule; active versus passive policy, the gamma-rule determinacy condition corrected, non-identification and observational equivalence; links to Woodford's locally Ricardian policy and Ricardian transversality results.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 1, pp. 4-19."
+}
