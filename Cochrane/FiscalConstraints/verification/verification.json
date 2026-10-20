@@ -1,0 +1,4933 @@
+{
+  "checked_at_utc": "2026-10-20T09:32:09.451313+00:00",
+  "theorems": 393,
+  "module_theorems": {
+    "FiscalConstraints/Determinacy.lean": 23,
+    "FiscalConstraints/Expectations.lean": 20,
+    "FiscalConstraints/ExpectationsFiniteTree.lean": 21,
+    "FiscalConstraints/ForwardSolution.lean": 44,
+    "FiscalConstraints/ExpIntegrals.lean": 17,
+    "FiscalConstraints/Laffer.lean": 14,
+    "FiscalConstraints/DiscountGrowth.lean": 14,
+    "FiscalConstraints/Crash.lean": 28,
+    "FiscalConstraints/LinearODE.lean": 12,
+    "FiscalConstraints/RvsG.lean": 69,
+    "FiscalConstraints/DebtLimitStochastic.lean": 20,
+    "FiscalConstraints/GrowthTheoryTVC.lean": 18,
+    "FiscalConstraints/MoneyLiquidity.lean": 17,
+    "FiscalConstraints/ReturnDiscounting.lean": 8,
+    "FiscalConstraints/AggregateUncertainty.lean": 52,
+    "FiscalConstraints/Links.lean": 16
+  },
+  "audited_declarations": 488,
+  "declarations": [
+    {
+      "name": "Cochrane.FiscalConstraints.SchurStable",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.disc",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.root\u2081",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.root\u2082",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.root_sum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.root_prod",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.root_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.normSq_root_of_neg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.norm_root_of_nonneg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.schurStable_iff_roots",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.chSeq",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.convSeq",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.convSeq_rec",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.chSeq_eq_convSeq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.norm_convSeq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.abs_chSeq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.tendsto_chSeq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.tr2",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.det2",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.tr2_eq_trace",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.det2_eq_det",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.sq_eq_cayleyHamilton",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.pow_succ_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.abs_pow_entry_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.tendsto_pow_entry",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.BoundedSeq",
+      "kind": "def",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.homogeneous_iterate",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.homogeneous_eq_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.eq_root_of_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.exists_eigenvector",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.exists_bounded_homogeneous",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem",
+      "kind": "structure",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.E",
+      "kind": "projection",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.const",
+      "kind": "projection",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.mono",
+      "kind": "projection",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.tower",
+      "kind": "projection",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.known",
+      "kind": "projection",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.perfectForesight",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.BoundedProc",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.BoundedVec",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.Adapted",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.IsAR1",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.E_neg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.bounded_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.ar1_iterate",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forward_iterate",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forward_ar1_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.E_tsum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_summable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_bounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.eq_forwardSeries",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.PullOut",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.Solves",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.AdaptedVec",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.system_iterate",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.system_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.system_not_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.Determinate",
+      "kind": "def",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationSystem.determinate_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.perfectForesight_pullOut",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree",
+      "kind": "structure",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mk",
+      "kind": "constructor",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.prob",
+      "kind": "projection",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.prob_pos",
+      "kind": "projection",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.prob_sum",
+      "kind": "projection",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.info",
+      "kind": "projection",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.refines",
+      "kind": "projection",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mass",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.num",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mass_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mass_congr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.num_congr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_congr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_smul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condELin",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_mono",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_known",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_tower",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.toExpectationSystem",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_of_trivial",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinObs",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinTree",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinSystem",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.firstHeads",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinSystem_E0_firstHeads",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinSystem_not_perfectForesight",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinShock",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinShock_measurable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1_measurable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinShock_mean_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1_isAR1",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1_nondegenerate",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsFiniteTree.finiteTree_pullOut",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.Solves",
+      "kind": "def",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.E_of_known",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.solves_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.iterate_A15",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.tendsto_partial_A16",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.summable_A16",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.eq_forwardSeries_abs",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_solves_abs",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_bounded_abs",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_adapted_abs",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.existsUnique_bounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.ScalarEq",
+      "kind": "def",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.scalarEq_one_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.scalarSol",
+      "kind": "def",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.scalarSol_apply",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.scalarEq_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.scalar_existsUnique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.scalar_homog",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.scalar_determinate_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily",
+      "kind": "def",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_bounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.eq_sunspotFamily",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.homog_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.solves_add_homog",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.bounded_solutions_not_countable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.exists_bounded_of_one_lt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.existsUnique_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.printed_A17_one_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.printed_A17_fails_neg_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.unit_sunspot_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.unit_sunspot_bounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_solves_of_decay",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.ar1_decay",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.no_bounded_solution_unit",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.solves_iff_forwardSeries",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.predetermined_restriction",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.hasSum_geometric_ratio",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.tsum_geometric_ratio",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.summable_geom_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.abel_tsum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.sum_weights_by_parts",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.tsum_weights_by_parts",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.abs_lt_abs_of_sub_pos_add_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.abs_lt_abs_iff_of_add_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ForwardSolution.E_tsum_dom",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integrableOn_exp_neg_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_neg_mul_Ioi",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_neg_mul_Ioi_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.not_integrableOn_exp_neg_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.exp_growth_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integrableOn_exp_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.not_integrableOn_exp_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integrableOn_exp_mul_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.abs_integral_exp_mul_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integral_Ioi_comp_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.integral_Ioi_sub_interval",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.intervalIntegral_exp_neg_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.tendsto_const_mul_exp_zero_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.tendsto_const_mul_exp_atTop",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpIntegrals.tvc_of_bounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpIntegrals.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.pv_tax_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.pv_tax_not_integrable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.output_elasticity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.static_elasticity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.pv_elasticity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.pv_integral_elasticity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.pv_elasticity_zero_of",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.pv_elasticity_nonpos_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.book_top_of_curve",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.log_pv_hasDerivAt_g",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.log_pv_hasDerivAt_r",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.semi_elasticity_strictAntiOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.log_tax_ratio_bounds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Laffer.book_growth_reduction_bounds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Laffer.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.euler_discrete_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.marginalValue",
+      "kind": "def",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.marginalValue_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.euler_continuous_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.euler_exponential_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.value_of_debt_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.value_of_debt_not_integrable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.valueOfDebt",
+      "kind": "def",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.value_indep_of_g",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.value_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.value_strictAntiOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.value_strictMonoOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.log_value_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.percapita_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.euler_population_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DiscountGrowth.r_lt_g_population_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DiscountGrowth.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.surplus1",
+      "kind": "def",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.IsEquilibrium",
+      "kind": "def",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.one_add_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.fisher",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.valuation",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.isEquilibrium_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.unconstrained_regime",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.constrained_regime",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.boundary_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.boundary_iff_debt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price0",
+      "kind": "def",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price1",
+      "kind": "def",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price0_eq_left",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price0_eq_right",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.eq_price0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.isEquilibrium_price0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.exists_equilibrium_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price0_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.degenerate_equilibrium",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.degenerate_price0_ne",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price0_antitoneOn_s0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price0_antitoneOn_i0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price0_monotone_debt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.price1_monotoneOn_i0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.continuousOn_price0_s0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.continuousOn_price0_i0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_s0_unconstrained",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_i0_unconstrained",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.hasDerivAt_price1_i0_unconstrained",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_s0_constrained",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_i0_constrained",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Crash.hasDerivAt_price1_i0_constrained",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Crash.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.debt_gdp_ode",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.debt_gdp_discrete",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.vocFrom",
+      "kind": "def",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.vocFrom_self",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.vocFrom_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.eq_vocFrom",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.solution_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.corrected_6_5",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.printed65",
+      "kind": "def",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.printed_6_5_wrong_exponent",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.printed_6_5_wrong_sign",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.finite_horizon_identity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.vocFrom_eq_of_global",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LinearODE.forward_present_value",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LinearODE.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.SolvesOn",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.BddOn",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pv",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.solvesOn_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.vocFrom_solvesOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.vocFrom_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pv_eq_voc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.abs_pv_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pv_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pv_solvesOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pv_bddOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pv_const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pv_const_not_integrable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.sub_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tendsto_abs_of_ne",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.bddOn_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.eq_pv_of_bddOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.existsUnique_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tvc_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tvc_levels_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.nominal_determinacy",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.abs_le_of_neg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.bddOn_of_neg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tendsto_sub_of_neg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.nominal_indeterminacy",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tvc_fails_of_neg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.eq_of_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.bddOn_iff_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.not_bddOn_zero_const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.SolvesStep",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.stepPV0",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pvStep",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.stepSol",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.vocFrom_sub_from",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.vocFrom_stepPV0",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.step_after",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.step_before",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.step_sub_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.step_tendsto_abs_of_ne",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.step_bddOn_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.vocFrom_stepPV0_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.stepSol_eq_pvStep",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.stepSol_solvesStep",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.step_existsUnique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.book_twenty_year_formula",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.printed20",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pastOnly",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.printed20_wrong",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.SolvesD",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.BddD",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pvD",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.iterD",
+      "kind": "def",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.gamma_gt_one_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.iterD_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.solvesD_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.abs_pvD_term_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.summable_pvD",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.abs_pvD_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pvD_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.pvD_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tendsto_abs_of_ne_D",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.bddD_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.eq_pvD_of_bddD",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tvcD_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.abs_le_of_lt_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.tendsto_sub_D",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.eq_of_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.bddD_iff_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.nominal_determinacy_D",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.nominal_indeterminacy_D",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.steady_state_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.steady_surplus_continuous",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.steady_state_iff_D",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.book_flow_basis_point",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.book_one_percent_deficit",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.zero_surplus_path",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.book_growth_out_of_debt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.log_three_bounds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.book_years_bounds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.book_450_bounds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.twenty_years_zero_surplus",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.RvsG.exp_neg_two_tenths_bounds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/RvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath",
+      "kind": "def",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_lower",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_run",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.exists_run_length",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.badBlock",
+      "kind": "def",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.measurableSet_badBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.block_index_injOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.biInter_badBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.measure_biInter_badBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.iIndepSet_badBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.tsum_badBlock_eq_top",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.frequently_exceeds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.unbounded_of_unbounded_deficits",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.iid_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.gaussian_deficit_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.gaussian_iid_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_le_of_bounded_deficits",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.bounded_support_counterexample",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.managedPath",
+      "kind": "def",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.managedPath_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochastic.managedPath_eq_of_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.consumption",
+      "kind": "def",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.marginalUtility",
+      "kind": "def",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate",
+      "kind": "def",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.consumption_rpow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.log_marginalUtility",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.hasDerivAt_log_marginalUtility",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.marginalUtility_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.marginalUtility_ratio",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_gt_growth_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_lt_growth_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_gt_growth_of_standard",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_lt_growth_possible",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_term_identity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_term_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_delta_zero_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_diverges_of_lt_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_population",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_population_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.population_allows_r_lt_g",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_population_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/GrowthTheoryTVC.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.money_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.steady_state_deficit",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.middle_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.seigniorage_exceeds_deficit",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.money_return_lt_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.hasDerivAt_moneyRatio",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.hasDerivAt_moneyRatio_rf",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.hasDerivAt_liabilityRatio",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.eq_6_12",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.eq_6_13",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.eq_6_9",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.present_value_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.steady_6_12_explodes",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.steady_6_13_converges",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.tvc_mrs_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.mrs_eq_riskfree",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.MoneyLiquidity.return_discounted_terminal_explodes",
+      "kind": "theorem",
+      "module": "FiscalConstraints/MoneyLiquidity.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.grossReturn",
+      "kind": "def",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.returnDiscount",
+      "kind": "def",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.returnPV",
+      "kind": "def",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.one_eq_E_inv_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.returnDiscount_succ_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.eq_6_14_pathwise",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.eq_6_14",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.sdf_finite_horizon",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.sdf_finite_horizon_div",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.return_pv_iff_terminal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ReturnDiscounting.linear_discount_factor_prices",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ReturnDiscounting.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.KnownPowers",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.growth",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.IIDGrowth",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.ratio",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.pvDisc",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.riskFreeGross",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.known_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.growth_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_rpow_known",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.E_growth_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.E_ratio_pow_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.riskFree_prices",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.pvTerm",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.correct_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.incorrect_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.incorrect_ratio_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.summable_geom_succ_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.correct_pv_summable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.incorrect_pv_summable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.correct_finite_incorrect_explodes",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.lognormalMoment",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.lognormalMoment_eq_integral",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.lognormal_correct",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.lognormal_incorrect",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.printed_incorrect_wrong",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.correctExponent",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.incorrectExponent",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.printedExponent",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.region_nonempty_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.printed_region_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.region_pos_delta",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.log_riskFree_lognormal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.log_riskFree_mean_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.printed_bohn_rate_wrong",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.riskFree_lt_growth_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_region",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.rollover_step",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_17",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.terminal_c",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.pv_term_c",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.terminal_tendsto_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_pv_hasSum_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_grossReturn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_18_pathwise",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_18",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_18_diverges",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.coinObsH",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.coinObsH_eq_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnTree",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem_pullOut",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.info_flip",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnTree_condE_coin",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnGrowth",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnGrowth_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnC",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnC_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnC_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem_knownPowers",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnMom",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem_iid",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohnMom_values",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_numbers",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_witness_6_17",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_witness_6_18",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_witness_terms",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertainty.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.forward_integral_eq_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.forward_present_value_eq_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.valueOfDebt_eq_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.marginalValue_consumption",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.euler_iff_rate",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.rate_population_lt_growth_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.growth_tvc_term_eq_levels",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.growth_tvc_iff_levels_tvc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.steady_debt_is_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.growth_tvc_from_rvsg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.debt_gdp_solvesD",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.debtPath_solvesD",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.debtPath_abs_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.gaussian_not_bddD",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.deterministic_rf_lt_g_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.Links.rf_lt_g_pv_finite_needs_risk",
+      "kind": "theorem",
+      "module": "FiscalConstraints/Links.lean"
+    }
+  ],
+  "full_build": "passed",
+  "fresh_source_compilation": "passed",
+  "fresh_source_lint_options": [
+    "-Dlinter.mathlibStandardSet=true",
+    "-Dlinter.style.header=false"
+  ],
+  "axioms": {
+    "Cochrane.FiscalConstraints.SchurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.root\u2081": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.root\u2082": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.root_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.root_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.root_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.normSq_root_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.norm_root_of_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.schurStable_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.convSeq_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.chSeq_eq_convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.norm_convSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.abs_chSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.tendsto_chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.tr2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.det2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.tr2_eq_trace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.det2_eq_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.sq_eq_cayleyHamilton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.pow_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.abs_pow_entry_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.tendsto_pow_entry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.BoundedSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.homogeneous_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.homogeneous_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.eq_root_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.exists_eigenvector": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.exists_bounded_homogeneous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.BoundedProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.BoundedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.Adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.IsAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.E_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.bounded_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.ar1_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forward_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forward_ar1_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.E_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.eq_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.forwardSeries_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.PullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.AdaptedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.system_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.system_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.system_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationSystem.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.perfectForesight_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.prob_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.prob_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.info": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.refines": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mass": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.num": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mass_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.mass_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.num_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.FiniteTree.condE_of_trivial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinObs": [],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinSystem_E0_firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinSystem_not_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinShock_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinShock_mean_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1_isAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.coinAR1_nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsFiniteTree.finiteTree_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.E_of_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.solves_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.iterate_A15": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.tendsto_partial_A16": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.summable_A16": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.eq_forwardSeries_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_solves_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_bounded_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_adapted_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.existsUnique_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.ScalarEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.scalarEq_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.scalarSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.scalarSol_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.scalarEq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.scalar_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.scalar_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.scalar_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.sunspotFamily_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.eq_sunspotFamily": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.homog_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.solves_add_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.bounded_solutions_not_countable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.exists_bounded_of_one_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.printed_A17_one_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.printed_A17_fails_neg_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.unit_sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.unit_sunspot_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.forwardSeries_solves_of_decay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.ar1_decay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.no_bounded_solution_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.solves_iff_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.predetermined_restriction": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.hasSum_geometric_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.tsum_geometric_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.abel_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.sum_weights_by_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.tsum_weights_by_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.abs_lt_abs_of_sub_pos_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.abs_lt_abs_iff_of_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ForwardSolution.E_tsum_dom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integrableOn_exp_neg_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_neg_mul_Ioi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_neg_mul_Ioi_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.not_integrableOn_exp_neg_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.exp_growth_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integrableOn_exp_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.not_integrableOn_exp_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integrableOn_exp_mul_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.abs_integral_exp_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integral_Ioi_comp_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integral_exp_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.integral_Ioi_sub_interval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.intervalIntegral_exp_neg_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.tendsto_const_mul_exp_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.tendsto_const_mul_exp_atTop": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpIntegrals.tvc_of_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.pv_tax_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.pv_tax_not_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.output_elasticity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.static_elasticity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.pv_elasticity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.pv_integral_elasticity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.pv_elasticity_zero_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.pv_elasticity_nonpos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.book_top_of_curve": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.log_pv_hasDerivAt_g": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.log_pv_hasDerivAt_r": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.semi_elasticity_strictAntiOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.log_tax_ratio_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Laffer.book_growth_reduction_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.euler_discrete_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.marginalValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.marginalValue_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.euler_continuous_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.euler_exponential_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.value_of_debt_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.value_of_debt_not_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.valueOfDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.value_indep_of_g": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.value_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.value_strictAntiOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.value_strictMonoOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.log_value_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.percapita_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.euler_population_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DiscountGrowth.r_lt_g_population_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.surplus1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.IsEquilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.one_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.isEquilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.unconstrained_regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.constrained_regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.boundary_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.boundary_iff_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price0_eq_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price0_eq_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.eq_price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.isEquilibrium_price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.exists_equilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price0_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.degenerate_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.degenerate_price0_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price0_antitoneOn_s0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price0_antitoneOn_i0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price0_monotone_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.price1_monotoneOn_i0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.continuousOn_price0_s0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.continuousOn_price0_i0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_s0_unconstrained": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_i0_unconstrained": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.hasDerivAt_price1_i0_unconstrained": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_s0_constrained": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.hasDerivAt_price0_i0_constrained": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Crash.hasDerivAt_price1_i0_constrained": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.debt_gdp_ode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.debt_gdp_discrete": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.vocFrom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.vocFrom_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.vocFrom_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.eq_vocFrom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.solution_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.corrected_6_5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.printed65": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.printed_6_5_wrong_exponent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.printed_6_5_wrong_sign": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.finite_horizon_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.vocFrom_eq_of_global": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LinearODE.forward_present_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.SolvesOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.BddOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.solvesOn_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.vocFrom_solvesOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.vocFrom_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pv_eq_voc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.abs_pv_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pv_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pv_solvesOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pv_bddOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pv_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pv_const_not_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.sub_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tendsto_abs_of_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.bddOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.eq_pv_of_bddOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.existsUnique_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tvc_levels_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.nominal_determinacy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.abs_le_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.bddOn_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tendsto_sub_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.nominal_indeterminacy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tvc_fails_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.eq_of_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.bddOn_iff_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.not_bddOn_zero_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.SolvesStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.stepPV0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pvStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.stepSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.vocFrom_sub_from": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.vocFrom_stepPV0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.step_after": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.step_before": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.step_sub_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.step_tendsto_abs_of_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.step_bddOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.vocFrom_stepPV0_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.stepSol_eq_pvStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.stepSol_solvesStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.step_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.book_twenty_year_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.printed20": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pastOnly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.printed20_wrong": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.SolvesD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.BddD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pvD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.iterD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.gamma_gt_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.iterD_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.solvesD_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.abs_pvD_term_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.summable_pvD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.abs_pvD_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pvD_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.pvD_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tendsto_abs_of_ne_D": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.bddD_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.eq_pvD_of_bddD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tvcD_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.abs_le_of_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.tendsto_sub_D": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.eq_of_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.bddD_iff_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.nominal_determinacy_D": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.nominal_indeterminacy_D": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.steady_state_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.steady_surplus_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.steady_state_iff_D": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.book_flow_basis_point": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.book_one_percent_deficit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.zero_surplus_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.book_growth_out_of_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.log_three_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.book_years_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.book_450_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.twenty_years_zero_surplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.RvsG.exp_neg_two_tenths_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_lower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_run": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.exists_run_length": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.badBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.measurableSet_badBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.block_index_injOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.biInter_badBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.measure_biInter_badBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.iIndepSet_badBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.tsum_badBlock_eq_top": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.frequently_exceeds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.unbounded_of_unbounded_deficits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.iid_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.gaussian_deficit_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.gaussian_iid_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.debtPath_le_of_bounded_deficits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.bounded_support_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.managedPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.managedPath_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochastic.managedPath_eq_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.consumption": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.marginalUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.consumption_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.log_marginalUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.hasDerivAt_log_marginalUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.marginalUtility_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.marginalUtility_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_gt_growth_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_lt_growth_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_gt_growth_of_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_lt_growth_possible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_term_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_term_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_delta_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_diverges_of_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_population": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.tvc_population_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.population_allows_r_lt_g": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.GrowthTheoryTVC.rate_population_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.money_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.steady_state_deficit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.middle_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.seigniorage_exceeds_deficit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.money_return_lt_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.hasDerivAt_moneyRatio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.hasDerivAt_moneyRatio_rf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.hasDerivAt_liabilityRatio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.eq_6_12": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.eq_6_13": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.eq_6_9": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.present_value_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.steady_6_12_explodes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.steady_6_13_converges": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.tvc_mrs_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.mrs_eq_riskfree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.MoneyLiquidity.return_discounted_terminal_explodes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.grossReturn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.returnDiscount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.returnPV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.one_eq_E_inv_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.returnDiscount_succ_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.eq_6_14_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.eq_6_14": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.sdf_finite_horizon": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.sdf_finite_horizon_div": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.return_pv_iff_terminal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ReturnDiscounting.linear_discount_factor_prices": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.KnownPowers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.IIDGrowth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.pvDisc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.riskFreeGross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.known_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.growth_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.ratio_rpow_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.E_growth_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.E_ratio_pow_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.riskFree_prices": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.pvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.correct_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.incorrect_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.incorrect_ratio_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.summable_geom_succ_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.correct_pv_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.incorrect_pv_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.correct_finite_incorrect_explodes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.lognormalMoment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.lognormalMoment_eq_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.lognormal_correct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.lognormal_incorrect": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.printed_incorrect_wrong": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.correctExponent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.incorrectExponent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.printedExponent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.region_nonempty_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.printed_region_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.region_pos_delta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.log_riskFree_lognormal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.log_riskFree_mean_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.printed_bohn_rate_wrong": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.riskFree_lt_growth_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.rollover_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_17": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.terminal_c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.pv_term_c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.terminal_tendsto_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_pv_hasSum_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_grossReturn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_18_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_18": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.eq_6_18_diverges": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.coinObsH": [],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.coinObsH_eq_iff": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.info_flip": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnTree_condE_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnGrowth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnGrowth_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnC_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnC_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem_knownPowers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnMom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnSystem_iid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohnMom_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_numbers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_witness_6_17": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_witness_6_18": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertainty.bohn_witness_terms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.forward_integral_eq_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.forward_present_value_eq_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.valueOfDebt_eq_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.marginalValue_consumption": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.euler_iff_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.rate_population_lt_growth_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.growth_tvc_term_eq_levels": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.growth_tvc_iff_levels_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.steady_debt_is_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.growth_tvc_from_rvsg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.debt_gdp_solvesD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.debtPath_solvesD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.debtPath_abs_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.gaussian_not_bddD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.deterministic_rf_lt_g_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.Links.rf_lt_g_pv_finite_needs_risk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "FiscalConstraints/Determinacy.lean": "a214883763018ff992645b4d9a016b74a86d62e99ca3aa5f7a6918f4953f4cff",
+    "FiscalConstraints/Expectations.lean": "9202948ef23bc01db18bdf907354506a429768e2d100ff101d574442a4cc4ee2",
+    "FiscalConstraints/ExpectationsFiniteTree.lean": "5d795b2c564ea844b39ffae0e2f7be55ed6be101fb52047b67f44cc2ebeda6ad",
+    "FiscalConstraints/ForwardSolution.lean": "709bdb6133a6310db7fb4f167168579b66240204467fa0e9371d22af7418df93",
+    "FiscalConstraints/ExpIntegrals.lean": "a26181fc7cc0703f8bb7d5e5a2bccdb8908bc863d256156a87dd758c90e150c5",
+    "FiscalConstraints/Laffer.lean": "94fb71ff7ef8e02600ce83a73a7bd0bb365a4a4473520812b924f2d6411f59be",
+    "FiscalConstraints/DiscountGrowth.lean": "a4fd93e8079fd2e28a3854f98115554c1d56a1e55960487385be4a3d293b0de1",
+    "FiscalConstraints/Crash.lean": "a41ec0f116769b506e1e8fc77cbebeb03141cbd35a5e5da1860663d86e81662d",
+    "FiscalConstraints/LinearODE.lean": "cc72cff8c848c7293d42dfaf12c1a1e6b11464aa016b2fbe76d521a13f5ea317",
+    "FiscalConstraints/RvsG.lean": "17af015e2a733043e2a5db977ab317461d1325882f4985961a0f367956f43058",
+    "FiscalConstraints/DebtLimitStochastic.lean": "0d53fee7e01a84b2b481e9537592f6c81ab26e8686c8af14c73f923bff715a84",
+    "FiscalConstraints/GrowthTheoryTVC.lean": "df2accfc345a004b097a07268cc49185dcc3244aae020abe3f2c7342acedc57f",
+    "FiscalConstraints/MoneyLiquidity.lean": "e5ec74bb02b0df201196a3c979e5060dc5bc334da4d8df1274118f8b3ecdbb8d",
+    "FiscalConstraints/ReturnDiscounting.lean": "9e2698f2d19031ec2a6f703962ec89f1d7053190b31c53da24c804b53845021e",
+    "FiscalConstraints/AggregateUncertainty.lean": "95d4b12ee3a420ff0379cab9cf762c9ed575a822ad8a24fce9afa2fb11684a7f",
+    "FiscalConstraints/Links.lean": "7b3eab121f0f95822edae71608f4f905296540dfe1d2fc58660b44ba778c0519",
+    "FiscalConstraints.lean": "bcc06c1be5b0c211c60ddc72bfbdfdac8f93d74dcf89283217b0c4135e2b9762",
+    "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
+    "lakefile.toml": "2316afb07e737873c291196c3982b4bdd8780e7da7c3353143daebcc265883ed",
+    "lake-manifest.json": "471395732f51621c043128672558300d914c17f1f7b01d12949738d21f9aac5f",
+    "proof-manifest.json": "e391951ff5e4abd4edb5305c5825488d14658b235d60b3306bb17e5020d90970",
+    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "fresh_audit_sha256": "1e92e18aaa052d437f5ed8a1dcc2eca9bcc3f0cea7d7cd6efaa15c6880d77e14",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."
+}
