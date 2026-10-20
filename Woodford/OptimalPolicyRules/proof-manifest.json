@@ -48,7 +48,14 @@
     "OptimalPolicyRules/InertiaRuleIII.lean",
     "OptimalPolicyRules/NKAssumption81.lean",
     "OptimalPolicyRules/InertiaProp8182.lean",
-    "OptimalPolicyRules/GeneralTheoryLinks.lean"
+    "OptimalPolicyRules/GeneralTheoryLinks.lean",
+    "OptimalPolicyRules/BKInvariantSplit.lean",
+    "OptimalPolicyRules/BKForward.lean",
+    "OptimalPolicyRules/GeneralBKCopy.lean",
+    "OptimalPolicyRules/InertiaFOCRoots.lean",
+    "OptimalPolicyRules/InertiaFOCSystem.lean",
+    "OptimalPolicyRules/InertiaAssumption81.lean",
+    "OptimalPolicyRules/InertiaProp82Complex.lean"
   ],
   "theorem_counts": {
     "OptimalPolicyRules/Determinacy.lean": 23,
@@ -98,8 +105,15 @@
     "OptimalPolicyRules/InertiaRuleIII.lean": 5,
     "OptimalPolicyRules/NKAssumption81.lean": 23,
     "OptimalPolicyRules/InertiaProp8182.lean": 13,
-    "OptimalPolicyRules/GeneralTheoryLinks.lean": 29
+    "OptimalPolicyRules/GeneralTheoryLinks.lean": 29,
+    "OptimalPolicyRules/BKInvariantSplit.lean": 52,
+    "OptimalPolicyRules/BKForward.lean": 17,
+    "OptimalPolicyRules/GeneralBKCopy.lean": 21,
+    "OptimalPolicyRules/InertiaFOCRoots.lean": 10,
+    "OptimalPolicyRules/InertiaFOCSystem.lean": 19,
+    "OptimalPolicyRules/InertiaAssumption81.lean": 22,
+    "OptimalPolicyRules/InertiaProp82Complex.lean": 7
   },
-  "scope": "Woodford, Interest and Prices, Chapter 8: Optimal Policy Rules, with Appendix G. The general LQ setup and first-order conditions with the target-criterion construction via adjugates; Propositions 8.1-8.4 proved in general (Giannoni-Woodford theory the book does not prove): Prop 8.1 from Assumptions 8.2-8.4 via deflating subspaces of the pencil (1.15), corrected so multipliers are known at their date, with repeated roots and a normalisation-free case (ii); Prop 8.2 without a multiplier-stability hypothesis (Assumption 8.5 suffices) and with Assumption 8.1 corrected, robust optimality; Prop 8.3 superinertia with the no-circle hypothesis it needs (counterexample otherwise); Prop 8.4 unconditional; worked instances for the basic and inflation-inertia models. Optimal inflation targeting under inflation inertia, sticky wages (exact determinacy region for kappa_w /= kappa_p, with a counterexample), habit persistence, predetermined pricing, the Giannoni-Woodford model and imperfect information; Prop 8.5 determinacy for every admissible parameter and Prop 8.6; the inflation-inertia model: Prop 8.7 roots, Lemmas G.1-G.2, Prop 8.8 Rules I-III over the complex numbers with determinacy of the rule system, Props 8.9-8.11 unconditional with their limits, Figs 8.3-8.5 numbers (Fig 8.4 .39 enclosed). Book misprints and false claims are corrected with Lean counterexamples.",
+  "scope": "Woodford, Interest and Prices, Chapter 8: Optimal Policy Rules, with Appendix G. The general LQ setup and first-order conditions with the target-criterion construction via adjugates; Propositions 8.1-8.4 proved in general (Giannoni-Woodford theory the book does not prove): Prop 8.1 from Assumptions 8.2-8.4 via deflating subspaces of the pencil (1.15), corrected so multipliers are known at their date, with repeated roots and a normalisation-free case (ii); Prop 8.2 without a multiplier-stability hypothesis (Assumption 8.5 suffices) and with Assumption 8.1 corrected, robust optimality; Prop 8.3 superinertia with the no-circle hypothesis it needs (counterexample otherwise); Prop 8.4 unconditional; worked instances for the basic and inflation-inertia models (the latter with Assumption 8.1 and Prop 8.2 at every admissible calibration, via a copy of the general Blanchard-Kahn theorem and a root count for the degree-6 FOC polynomial). Optimal inflation targeting under inflation inertia, sticky wages (exact determinacy region for kappa_w /= kappa_p, with a counterexample), habit persistence, predetermined pricing, the Giannoni-Woodford model and imperfect information; Prop 8.5 determinacy for every admissible parameter and Prop 8.6; the inflation-inertia model: Prop 8.7 roots, Lemmas G.1-G.2, Prop 8.8 Rules I-III over the complex numbers with determinacy of the rule system, Props 8.9-8.11 unconditional with their limits, Figs 8.3-8.5 numbers (Fig 8.4 .39 enclosed). Book misprints and false claims are corrected with Lean counterexamples.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 8, pp. 534-623, and Appendix G, pp. 716-745; Giannoni and Woodford (2002a)."
 }

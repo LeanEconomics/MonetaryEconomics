@@ -81,7 +81,7 @@ elsewhere `t₀ = 0` with the pre-sample values given at date 0.
 | Woodford p. 558 | `E_tγ̃₁(L⁻¹)aᵢ(L)x_{t−m} = γ₂(L)x_t`, with `γ₂` unique when `γ̃₁` is invertible | `TargetCriterion.lagOp`, `TargetCriterion.lagOp_adapted`, `TargetCriterion.fwdOp_lagOp`, `TargetCriterion.fwdOp_pow_lagOp_pow`, `TargetCriterion.aeval_fwdOp_reverse_lag`, `TargetCriterion.aeval_lagOp_adapted`, `TargetCriterion.p558_identity`, `TargetCriterion.boundedProc_lagOp`, `TargetCriterion.boundedProc_aeval_lagOp`, `TargetCriterion.roots_reverse_outside`, `TargetCriterion.map_reverse_ofReal`, `TargetCriterion.p558_unique` |
 | Prop 8.4, p. 558 | (1.28) ⇔ (1.32), given the factorisation `α = α₁α₂` and the bounded forward inverse | `TargetCriterion.prop84_conditional` |
 
-## General theory (Props 8.1–8.4), App. G.1–G.2 (PencilSplit … GeneralTheoryLinks)
+## General theory (Props 8.1–8.4), App. G.1–G.2 (PencilSplit … InertiaProp82Complex)
 
 The general proofs, in corrected form where the printed statement fails (see the corrections),
 followed by their specialisation to the basic model of §3.1 and the inflation-inertia model of
@@ -171,7 +171,21 @@ followed by their specialisation to the basic model of §3.1 and the inflation-i
 | Ass. 8.2(ii), 8.4(ii), §3.2 complex case | hold: `\|Re μ₂⁻¹\| = βS/2 > β` and `det K = γ / Re μ₂ ≠ 0` | `InertiaProp8182.inU`, `InertiaProp8182.in_eigvec`, `InertiaProp8182.mu2_facts`, `InertiaProp8182.in_assumption82II`, `InertiaProp8182.in_Kdet_gen`, `InertiaProp8182.in_assumption84II` |
 | Prop 8.1, §3.2 | complex case; every calibration | `InertiaProp8182.in_prop81_complex`, `InertiaProp8182.in_prop81_all` |
 | Props 8.1 + 8.3, §3.2 | every calibration | `GeneralTheoryLinks.Inertia.in_props_81_83_all` |
-| Assumption 8.5, Prop 8.2, §3.2 | Assumption 8.5 for the `Λ` of every real split; Prop 8.2 in the real case given the corrected Assumption 8.1 | `InertiaProp8182.in_assumption85`, `InertiaProp8182.in_prop82_real` |
+| Assumption 8.5, Prop 8.2, §3.2 | Assumption 8.5 for the `Λ` of every real split; Prop 8.2 in the real case given the corrected Assumption 8.1 (discharged below) | `InertiaProp8182.in_assumption85`, `InertiaProp8182.in_prop82_real` |
+| App. C.1, p. 670 | Blanchard–Kahn sufficiency for any expectation system, with a random bounded predetermined initial vector known at date 0 (restated tools from the Chapter 4 project) | `BKInvariantSplit.boundedOrbits`, `BKInvariantSplit.GenericX`, `BKForward.FSolves`, `BKForward.fsolves_unique`, `BKForward.fsolves_exists`, `GeneralBKCopy.Solves`, `GeneralBKCopy.Equil`, `GeneralBKCopy.Determinate`, `GeneralBKCopy.determinate_of` |
+| p. 593, App. G.4 (G.13), §3.2 | the degree-6 FOC polynomial D has no root in `1 ≤ \|μ\| ≤ β⁻¹`, at every calibration | `InertiaFOCRoots.Sab`, `InertiaFOCRoots.charD_eq_S`, `InertiaFOCRoots.S_ne_zero`, `InertiaFOCRoots.charD_ne_zero_of_annulus` |
+| p. 593, §3.2 | D has exactly 3 roots inside the unit circle and none on it | `InertiaFOCRoots.charD_split`, `InertiaFOCRoots.charD_inside_three` |
+| (1.1) + (1.9), §3.2 | the FOC system is equivalent to the Blanchard–Kahn system `Abk`, with regular pencil (`det P = −β²γ/λₓ`) and its roots | `InertiaFOCSystem.Abk`, `InertiaFOCSystem.det_Pm`, `InertiaFOCSystem.rows_iff`, `InertiaFOCSystem.solves_bk_iff`, `InertiaFOCSystem.det_pencil`, `InertiaFOCSystem.bk_roots`, `InertiaAssumption81.equil_of_foc`, `InertiaAssumption81.foc_of_equil` |
+| App. C.1 fn 2, §3.2 | genericity of the predetermined block, by strict convexity | `InertiaAssumption81.genericX_Abk`, `InertiaAssumption81.determinate_Abk` |
+| Ass. 8.1, p. 541, §3.2 | uniqueness, for any expectation system and any `t₀` | `InertiaAssumption81.in_focUnique` |
+| Ass. 8.1, p. 541, §3.2 | the corrected form, with bounded `Z_{t₀}` and `M_{t₀−1}`, holds at every calibration; existence of the bounded optimal plan | `InertiaAssumption81.FOCSolvableMB`, `InertiaAssumption81.Assumption81MB`, `InertiaAssumption81.Assumption81MB.of_assumption81M`, `InertiaAssumption81.in_focSolvableMB`, `InertiaAssumption81.in_assumption81MB` |
+| Ass. 8.1, p. 541, §3.2 | `Prop82General.Assumption81M` on a finite sample space; the original Assumption 8.1 under perfect foresight | `InertiaAssumption81.in_assumption81M_of_finite`, `InertiaAssumption81.in_assumption81_perfectForesight` |
+| Ass. 8.1, p. 541, §3.2 | with unbounded `Z_{t₀}` (complete information on ℕ) the unbounded-condition forms fail, and no rule is robustly optimal | `InertiaAssumption81.fullInfo`, `InertiaAssumption81.not_in_focSolvableM`, `InertiaAssumption81.not_in_assumption81M`, `InertiaAssumption81.not_robustlyOptimal` |
+| Prop 8.2, p. 555 (general) | robust optimality with bounded initial conditions | `InertiaAssumption81.RobustlyOptimalB`, `InertiaAssumption81.RobustlyOptimal.toB`, `InertiaAssumption81.prop82M_robustlyOptimalB` |
+| Prop 8.2, §3.2, real case | unconditional | `InertiaAssumption81.in_prop82_real_B`, `InertiaAssumption81.in_prop82_real_finite` |
+| Ass. 8.5, App. G.2, §3.2 | holds for the `Λ` of every `J` with `K` invertible, including the case-(ii) `Λ` | `InertiaProp82Complex.in_assumption85_gen`, `InertiaProp82Complex.in_assumption85_complex`, `InertiaProp82Complex.in_rank_Λ` |
+| Prop 8.2, §3.2, complex case | unconditional | `InertiaProp82Complex.in_prop82_complex_B`, `InertiaProp82Complex.in_prop82_complex_finite` |
+| Prop 8.2, §3.2 | every admissible calibration (`0 < γ ≤ 1`) | `InertiaProp82Complex.in_prop82_all_B`, `InertiaProp82Complex.in_prop82_all_finite` |
 | p. 596, Prop 8.9 | `ρ₁ > 1` from the general Prop 8.3 | `InertiaSplit.one_lt_trace_sub_det`, `InertiaSplit.prop_8_9_rho1_from_general` |
 | p. 601, Prop 8.10 | via Prop 8.4 (real case) | `InertiaProp810.fwd_Kker_sub`, `InertiaProp810.ruleI_iff_targetRule`, `InertiaProp810.prop_8_10_via_prop84` |
 

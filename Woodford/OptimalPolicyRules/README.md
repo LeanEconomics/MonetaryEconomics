@@ -12,7 +12,7 @@ sums over bounded plans. Every optimality claim is proved as optimality: a feasi
 the first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Optimal from a timeless perspective" and
 "robustly optimal" are given precise definitions and proved. "Unique equilibrium" means unique
-among bounded adapted processes. The library contains **1679 theorems**, including the shared
+among bounded adapted processes. The library contains **1827 theorems**, including the shared
 core.
 
 The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4), which the book states
@@ -76,8 +76,8 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
 
 ## Propositions 8.1–8.4 in general
 
-Twenty-four modules (499 theorems, from `PencilSplit` to `GeneralTheoryLinks` in the library map)
-prove the general theory of §§1.4–1.5 and Appendix G.1–G.2, which the book takes from Giannoni and
+Thirty-one modules (647 theorems, from `PencilSplit` to `InertiaProp82Complex` in the library
+map) prove the general theory of §§1.4–1.5 and Appendix G.1–G.2, which the book takes from Giannoni and
 Woodford (2002a) without proof.
 
 * **Proposition 8.1 from Assumptions 8.2–8.4**, through a real deflating pair `A J = Î J Ψ` of the
@@ -149,8 +149,28 @@ Woodford (2002a) without proof.
   * Rule III is not of the form (1.28) for any deflating split (`InertiaSplit.split_classify`,
     `InertiaSplit.split_not_ruleIII`). It is compatible with the homogeneous content of
     Proposition 8.1 (`InertiaRuleIII.ruleIII_homEquiv`).
-  * Proposition 8.2 holds in the real case, given the corrected Assumption 8.1
-    (`InertiaProp8182.in_prop82_real`).
+  * Assumption 8.1 holds at every admissible calibration, for any expectation system, in its
+    bounded-initial-condition form (`InertiaAssumption81.Assumption81MB`,
+    `InertiaAssumption81.in_assumption81MB`); `Prop82General.Assumption81M` holds on a finite
+    sample space (`InertiaAssumption81.in_assumption81M_of_finite`), and the original Assumption
+    8.1 under perfect foresight (`InertiaAssumption81.in_assumption81_perfectForesight`). With a
+    predetermined variable the initial condition `Z_{t₀}` must be bounded: on an infinite sample
+    space with unbounded `Z_{t₀}` the unbounded-condition forms fail
+    (`InertiaAssumption81.not_in_assumption81M`). The proof goes through a copy of the general
+    Blanchard–Kahn theorem with a random bounded predetermined initial vector
+    (`GeneralBKCopy.determinate_of`) applied to the FOC system (`InertiaFOCSystem.solves_bk_iff`).
+  * Proposition 8.2 holds at every admissible calibration, real and complex roots alike
+    (`InertiaProp82Complex.in_prop82_all_B`, `InertiaProp82Complex.in_prop82_all_finite`). The
+    real case is `InertiaAssumption81.in_prop82_real_B`; the complex case is
+    `InertiaProp82Complex.in_prop82_complex_B`, through Assumption 8.5 for the `Λ` of the
+    case-(ii) construction (`InertiaProp82Complex.in_assumption85_complex`). Robust optimality is
+    in the bounded-initial-condition sense `InertiaAssumption81.RobustlyOptimalB`.
+  * The bounded optimal plan that p. 593 assumes exists, at every calibration
+    (`InertiaAssumption81.in_focSolvableMB`): the degree-6 characteristic polynomial of the FOC
+    system has no root in `1 ≤ |μ| ≤ β⁻¹` (`InertiaFOCRoots.charD_ne_zero_of_annulus`) and exactly
+    three inside the unit circle (`InertiaFOCRoots.charD_inside_three`).
+  * Scope: `γ = 0` is excluded. These results take `0 < γ ≤ 1`; the leading matrix of the FOC
+    system is singular at `γ = 0`.
   * Proposition 8.9's `ρ₁ > 1` and Proposition 8.10 follow from the general theory
     (`InertiaSplit.prop_8_9_rho1_from_general`, `InertiaProp810.prop_8_10_via_prop84`).
 
@@ -175,17 +195,18 @@ the printed text precise. The main corrections and results:
 * in the general theory: Proposition 8.3 needs no root of (1.15) on `|λ| = β⁻¹`, and so does the
   remark of p. 553; Assumption 8.4(ii) is normalisation-dependent in case (ii) and is replaced;
   Assumption 8.3 is sufficient but not necessary; the `MultStable` hypothesis is unnecessary.
-  Separately, two hypothesis structures of the earlier formalisation (the original Proposition
+  Assumption 8.1 with a predetermined variable needs a bounded initial condition `Z_{t₀}`
+  (counterexample on an infinite sample space); the bounded optimal plan that p. 593 assumes
+  exists at every calibration, by a root count for the degree-6 FOC polynomial, not the
+  Proposition 8.7 cubic. Separately, two hypothesis structures of the earlier formalisation (the original Proposition
   8.1 conclusion and Assumption 8.1) were found unsatisfiable under uncertainty and corrected;
   these are formalisation errors, not the book's.
 
 Not formalised:
 * in the general theory:
-  * Assumption 8.1 for the inflation-inertia model, so its Proposition 8.2
-    (`InertiaProp8182.in_prop82_real`) keeps the corrected assumption as a hypothesis. It would
-    need a third-order Blanchard–Kahn theorem with two initial conditions;
-  * Proposition 8.2 for the inflation-inertia model in its complex case, which needs Assumption
-    8.5 for the `Λ` of the case-(ii) construction;
+  * the inflation-inertia results at `γ = 0` (Assumption 8.1 and Proposition 8.2 there), where the
+    FOC system's leading matrix is singular; and the original-sense Assumption 8.1 and robust
+    optimality on an infinite sample space, which are false there (counterexamples above);
   * Rule III at the full stochastic level. Only the homogeneous level (`Prop83.HomEquiv`), which is
     all Proposition 8.3 uses, is proved;
   * the claim of Proposition 8.2 that the equilibrium has the linear form (1.5) in `(Z̄_t, s_t)`.
@@ -207,9 +228,11 @@ Not formalised:
   also asserts without proof; consequently the direction "original ⇒ restated" of (1.11)–(1.12)
   is conditional (`GeneralFOC.LQ.timeless_restated`), and the necessity of the (2.5) criterion is
   proved under perfect foresight only (`InflTargetInertia.timeless_criterion_pf`);
-* existence of a bounded solution of the p. 593 rule system for every disturbance and history
-  beyond `γ = 0`: uniqueness is proved for all parameters, existence is assumed as in
-  Proposition 8.5's hypothesis, and supplied at `γ = 0` by `Links.inertia_system_gamma_zero`;
+* existence of a bounded solution of the p. 593 rule system (3.16) itself for every disturbance and
+  history beyond `γ = 0`: uniqueness is proved for all parameters, and at `γ = 0` existence is
+  supplied by `Links.inertia_system_gamma_zero`. The bounded optimal plan that p. 593 assumes is
+  supplied for `0 < γ ≤ 1` by `InertiaAssumption81.in_focSolvableMB`, but it is not linked to the
+  `InflationInertiaRules` formulation of the rule system;
 * the parity remark of p. 727 ("one or three roots" of `Δ` in `(0, 1)`), which nothing uses;
   a root in `(0, 1)` and one in `(1, ∞)` are proved, and at the calibration the root in `(0, 1)` is
   unique;
@@ -281,6 +304,13 @@ Not formalised:
 | [NKAssumption81](OptimalPolicyRules/NKAssumption81.lean) | 23 | Assumption 8.1 for the basic model (corrected form, any expectation system); the original formalisation fails under uncertainty |
 | [InertiaProp8182](OptimalPolicyRules/InertiaProp8182.lean) | 13 | The inflation-inertia model: Assumption 8.5, Prop 8.2 in the real case, Assumptions 8.2(ii) and 8.4(ii) and Prop 8.1 in the complex case |
 | [GeneralTheoryLinks](OptimalPolicyRules/GeneralTheoryLinks.lean) | 29 | Links: the bounded-orbit subspace; Props 8.1–8.3 at the double root and at every calibration of the inflation-inertia model; Assumptions 8.2–8.5 and Props 8.1–8.3 for the basic model; old vs corrected structures |
+| [BKInvariantSplit](OptimalPolicyRules/BKInvariantSplit.lean) | 52 | The bounded-orbit invariant subspace and its graph form (restated from the Chapter 4 project) |
+| [BKForward](OptimalPolicyRules/BKForward.lean) | 17 | The vector forward solution under an expectation system (restated from the Chapter 4 project) |
+| [GeneralBKCopy](OptimalPolicyRules/GeneralBKCopy.lean) | 21 | Blanchard–Kahn sufficiency (App. C.1) for any expectation system, with a random bounded predetermined initial vector known at date 0 |
+| [InertiaFOCRoots](OptimalPolicyRules/InertiaFOCRoots.lean) | 10 | The degree-6 FOC polynomial of the inflation-inertia model: no root in `1 ≤ \|μ\| ≤ β⁻¹`, exactly three inside the unit circle |
+| [InertiaFOCSystem](OptimalPolicyRules/InertiaFOCSystem.lean) | 19 | The inflation-inertia FOC system (1.1) + (1.9) as a Blanchard–Kahn system: regular pencil, roots, and the equivalence of solutions |
+| [InertiaAssumption81](OptimalPolicyRules/InertiaAssumption81.lean) | 22 | Assumption 8.1 for the inflation-inertia model at every calibration (bounded initial conditions; finite `Ω`; perfect foresight), the unbounded counterexample, Prop 8.2 in the real case |
+| [InertiaProp82Complex](OptimalPolicyRules/InertiaProp82Complex.lean) | 7 | Assumption 8.5 for the case-(ii) `Λ`; Prop 8.2 for the inflation-inertia model in the complex case and at every calibration |
 
 ## Modelling conventions
 
