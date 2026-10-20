@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T02:03:16.509185+00:00",
-  "theorems": 1108,
+  "checked_at_utc": "2026-10-20T08:36:27.164981+00:00",
+  "theorems": 1255,
   "module_theorems": {
     "NeoWicksellianFramework/Determinacy.lean": 23,
     "NeoWicksellianFramework/Expectations.lean": 20,
@@ -16,6 +16,10 @@
     "NeoWicksellianFramework/KroneckerSpectrum.lean": 16,
     "NeoWicksellianFramework/Determinacy2Learning.lean": 47,
     "NeoWicksellianFramework/Learning.lean": 90,
+    "NeoWicksellianFramework/PrestonLearning.lean": 33,
+    "NeoWicksellianFramework/Prop410.lean": 59,
+    "NeoWicksellianFramework/Prop410Complex.lean": 25,
+    "NeoWicksellianFramework/Prop410REE.lean": 10,
     "NeoWicksellianFramework/Money.lean": 62,
     "NeoWicksellianFramework/Fiscal.lean": 47,
     "NeoWicksellianFramework/InflationDeterminants.lean": 110,
@@ -26,9 +30,10 @@
     "NeoWicksellianFramework/GeneralBK.lean": 39,
     "NeoWicksellianFramework/GeneralBKPencil.lean": 7,
     "NeoWicksellianFramework/GeneralBKSingular.lean": 49,
-    "NeoWicksellianFramework/GeneralBKLinks.lean": 27
+    "NeoWicksellianFramework/GeneralBKLinks.lean": 27,
+    "NeoWicksellianFramework/Prop46Sufficiency.lean": 20
   },
-  "audited_declarations": 1465,
+  "audited_declarations": 1656,
   "declarations": [
     {
       "name": "Woodford.NeoWicksellianFramework.SchurStable",
@@ -4366,6 +4371,861 @@
       "module": "NeoWicksellianFramework/Learning.lean"
     },
     {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.demandW",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.supplyW",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.colS",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.colD",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.eI",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.matS",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.matD",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.tempEqm_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_pow_of_bound",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.pow_bound_of_isEig",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_smul_pow",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_dotProduct_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.sv",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.fcast",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.rnfc",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.subj",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.IS229",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.AS230",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.TaylorRule",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.sumS",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.sumD",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.sumR",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_fcast",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_rnfc",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_subj",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.taylorConst",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.tempSol",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.decisionRules_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.interceptP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.slopeP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.vecMulVec_mulVec'",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.tempSol_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.tMapP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.E_succ_eq_tMapP",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.aInt",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.hMat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.dTP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.interceptP_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.slopeP_mul_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.IdxP",
+      "kind": "abbrev",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.vecP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.unvecP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.vecP_unvecP",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.unvecP_vecP",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.tVecP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.tVecP_inr",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.tVecP_inl_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.const",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.add",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.sub",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.mul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.det",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.inv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.differentiableAt_tVecP",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.isEig_fromBlocks_zero_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.eStable_fromBlocks_zero_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.toMatrix_fderiv_of_block",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.eStableAt_iff_of_block",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.unvecP_snd_of_fixed",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.eStableAt_tVecP_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.PrestonLearning.eStable_dTP_of_eStableAt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/PrestonLearning.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.isEig_of_isEig_smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.norm_lt_one_of_isEig_smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.det_one_sub_smul_ne_zero",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.restr",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.det_restr",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.isEig_three_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.restr_map",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_three_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.gMat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.aInt_eq_gMat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.colS_two",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.colD_two",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.gMat_row",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.bTil",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_gMat_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.nPoly",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.trPoly",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.bTil_det_identity",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.bTil_tr_identity",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.nPoly_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.nPoly_one",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.trPoly_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.nPoly_pos",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.trPoly_pos",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_gMat_of_taylor",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.taylor_of_eStable_aInt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_aInt_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.exists_isEig_of_isEig_kronSum",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.one_sub_smul_mul_inv_mul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.commute_inv_mul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.map_one_sub_smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.map_ofReal_mul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.isEig_hMat_sub",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.gMat_map",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_hMat_of_taylor",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_dTP_iff_and",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.taylor_of_eStable_dTP",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_dTP_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.prop_4_10",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.taylor_of_eStableAt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.kP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.tVecP_fixed_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.fixed_existsUnique_of_det",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.fixed_existsUnique_of_taylor",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.prop_4_10_existsUnique",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.same_eStability_region",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.same_eStability_region_at",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_bTil_iff_eStable_taylorB",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.bTil_ne_taylorB",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.isEig_jacobian_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.isEig_dTP_of_isEig_aInt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_dTP_of_eStable_aInt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.interceptP_two",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.embedT",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.tHat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.interceptP_embedT",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.tHat_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.tHat_eq_Tmap",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.isEig_aInt_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.eStable_bTil_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.fixed_infinite_iff_det",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.det_one_sub_bTil_eq_zero_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.steadyStates_infinite_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.same_critical_values",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.loci_coincide_iff_det",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.loci_coincide_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410.bTil_not_inverse",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.hurwitz_of_roots",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.isEig_two_iff_complex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.hurwitzVal",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.exists_isEig_re_ge_one",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.isEig_kronSum_of",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.row_two_complex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.isEig_hMat_of",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.cexC",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_isEig_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_eig_cases",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_stationary",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_not_real",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_left_eig",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.restr_pq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.restrS_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.restrD_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.p_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.q_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.p_cex'",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.q_cex'",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.xCex",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.yCex",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.rCex",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.hurwitz_fails_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.one_sub_tr_add_det_ne_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.restr_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.restr_cex'",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.not_eStable_hMat_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.not_isEig_one_dTP_cex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410Complex.prop_4_10_needs_real_eigenvalues",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410Complex.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.E_affRV_iter",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.z_eq_affRV",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.fcast_eq_E",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.rnfc_eq_E",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.subj_eq_E",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.rnP",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.z_bounded",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.rnP_bounded",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.prestonIS_of_fixed",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.prestonAS_of_fixed",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop410REE.fixed_isREE",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop410REE.lean"
+    },
+    {
       "name": "Woodford.NeoWicksellianFramework.Money.MoneyFOC",
       "kind": "def",
       "module": "NeoWicksellianFramework/Money.lean"
@@ -7354,6 +8214,106 @@
       "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.prop44_determinate3_iff",
       "kind": "theorem",
       "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.C15_A46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.C15_A46_pos",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.caseII_A46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.oneInTwoOut_of_abs_A0",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.oneInTwoOut_A46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.cases_A46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.caseII_not_necessary_46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.mulVec_A46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.generic_A46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_sufficiency",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.response_of_determinate46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_of_response",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_printed_false",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_bk_conditions",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_determinate3",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_determinate3_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate3",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate44",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
     }
   ],
   "full_build": "passed",
@@ -11694,6 +12654,856 @@
       "Classical.choice",
       "Quot.sound"
     ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.demandW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.supplyW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.colS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.colD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.eI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.matS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.matD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.tempEqm_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_pow_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.pow_bound_of_isEig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_smul_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_dotProduct_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.sv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.fcast": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.rnfc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.subj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.IS229": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.AS230": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.TaylorRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.sumS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.sumD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.sumR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_fcast": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_rnfc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.hasSum_subj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.taylorConst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.tempSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.decisionRules_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.interceptP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.slopeP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.vecMulVec_mulVec'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.tempSol_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.tMapP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.E_succ_eq_tMapP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.aInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.hMat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.dTP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.interceptP_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.slopeP_mul_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.IdxP": [],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.vecP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.unvecP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.vecP_unvecP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.unvecP_vecP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.tVecP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.tVecP_inr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.tVecP_inl_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.DiffEnt.inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.differentiableAt_tVecP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.isEig_fromBlocks_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.eStable_fromBlocks_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.toMatrix_fderiv_of_block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.eStableAt_iff_of_block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.unvecP_snd_of_fixed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.eStableAt_tVecP_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.PrestonLearning.eStable_dTP_of_eStableAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.isEig_of_isEig_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.norm_lt_one_of_isEig_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.det_one_sub_smul_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.restr": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.det_restr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.isEig_three_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.restr_map": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_three_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.gMat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.aInt_eq_gMat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.colS_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.colD_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.gMat_row": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.bTil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_gMat_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.nPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.trPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.bTil_det_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.bTil_tr_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.nPoly_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.nPoly_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.trPoly_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.nPoly_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.trPoly_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_gMat_of_taylor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.taylor_of_eStable_aInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_aInt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.exists_isEig_of_isEig_kronSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.one_sub_smul_mul_inv_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.commute_inv_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.map_one_sub_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.map_ofReal_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.isEig_hMat_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.gMat_map": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_hMat_of_taylor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_dTP_iff_and": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.taylor_of_eStable_dTP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_dTP_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.prop_4_10": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.taylor_of_eStableAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.kP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.tVecP_fixed_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.fixed_existsUnique_of_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.fixed_existsUnique_of_taylor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.prop_4_10_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.same_eStability_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.same_eStability_region_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_bTil_iff_eStable_taylorB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.bTil_ne_taylorB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.isEig_jacobian_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.isEig_dTP_of_isEig_aInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_dTP_of_eStable_aInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.interceptP_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.embedT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.tHat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.interceptP_embedT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.tHat_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.tHat_eq_Tmap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.isEig_aInt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.eStable_bTil_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.fixed_infinite_iff_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.det_one_sub_bTil_eq_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.steadyStates_infinite_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.same_critical_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.loci_coincide_iff_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.loci_coincide_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410.bTil_not_inverse": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.hurwitz_of_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.isEig_two_iff_complex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.hurwitzVal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.exists_isEig_re_ge_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.isEig_kronSum_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.row_two_complex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.isEig_hMat_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.cexC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_isEig_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_eig_cases": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_stationary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_not_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.cexC_left_eig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.restr_pq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.restrS_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.restrD_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.p_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.q_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.p_cex'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.q_cex'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.xCex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.yCex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.rCex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.hurwitz_fails_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.one_sub_tr_add_det_ne_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.restr_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.restr_cex'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.not_eStable_hMat_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.not_isEig_one_dTP_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410Complex.prop_4_10_needs_real_eigenvalues": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.E_affRV_iter": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.z_eq_affRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.fcast_eq_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.rnfc_eq_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.subj_eq_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.rnP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.z_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.rnP_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.prestonIS_of_fixed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.prestonAS_of_fixed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop410REE.fixed_isREE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
     "Woodford.NeoWicksellianFramework.Money.MoneyFOC": [
       "propext",
       "Classical.choice",
@@ -14673,6 +16483,106 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.C15_A46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.C15_A46_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.caseII_A46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.oneInTwoOut_of_abs_A0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.oneInTwoOut_A46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.cases_A46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.caseII_not_necessary_46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.mulVec_A46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.generic_A46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_sufficiency": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.response_of_determinate46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_of_response": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_printed_false": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_bk_conditions": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_determinate3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.prop46_determinate3_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate44": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -14690,6 +16600,10 @@
     "NeoWicksellianFramework/KroneckerSpectrum.lean": "ddbcf906c0da39e679928f119bb46c77afd1a91d6a6e5154d067eaa534647595",
     "NeoWicksellianFramework/Determinacy2Learning.lean": "5996ff3d5aa93c99ac53bceb9705f26e31c8c717c13cdd0610013efb88b934e7",
     "NeoWicksellianFramework/Learning.lean": "ddb3d017a5c0dfe2b9290bf07fc25f1b1e17ad78b943c892bbf26b1741896cd5",
+    "NeoWicksellianFramework/PrestonLearning.lean": "21dfee8a3715d7a42f1cc8dd1a773a4fcdfbbae7a14ca6730320b98b7d0ddefc",
+    "NeoWicksellianFramework/Prop410.lean": "1dc305667a9d5ea56d8341f1805a1004f4f545a37b29ac0238759d690d88bd4d",
+    "NeoWicksellianFramework/Prop410Complex.lean": "d60a480fe521f3e8dcd19807d0d1e0bdd73ee29ca9581bc0037f7bdb79ca821c",
+    "NeoWicksellianFramework/Prop410REE.lean": "8716746189e08b48d6488b96e7317b9760e2c060c7f91b69d285abc7236a3fd8",
     "NeoWicksellianFramework/Money.lean": "51bb827cfd5beeabd8be290d2ba46a6ec6c0cef098f7154e9716507b2a87ed67",
     "NeoWicksellianFramework/Fiscal.lean": "20ebd4a179cb4d5da8f20cc17179dbf2080f3ebdcbf1aa219a6eaf5764dfa20b",
     "NeoWicksellianFramework/InflationDeterminants.lean": "3473da2196bc84a60cf10084488fb5c1a26e97228de0e2be97302f8d65a5b275",
@@ -14701,16 +16615,17 @@
     "NeoWicksellianFramework/GeneralBKPencil.lean": "3466e79b571d97cecf22f50390267cdfcb4c521740566ec49fc074c5c5f34ea0",
     "NeoWicksellianFramework/GeneralBKSingular.lean": "85ecc6d79e5c96f8a2068bca2a24e7f2004241c3717b87ad3b16ea83446559a8",
     "NeoWicksellianFramework/GeneralBKLinks.lean": "6954f7cb3a61181d16d53f1f92d2c8f003f18e4ae2253dff99f3af558136d6f8",
-    "NeoWicksellianFramework.lean": "2c34a22bdfeeefb091ae061128fc4dc7437a621390d40d83aeb0b13679fadf65",
+    "NeoWicksellianFramework/Prop46Sufficiency.lean": "6f2136b00b88a4c9055d88ba425a38c0fc97744847970477a8808527382df7a9",
+    "NeoWicksellianFramework.lean": "ef7fe36d158c7aee54a3669c9580c48c4ec4051f86817db886ce67b40512a9b9",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "0ed812018f1f963607b665f199d9e8f98170bdb6aa76ff7e2e97e3098a59f6b7",
     "lake-manifest.json": "f5b6732ad0236d4b73ec7de0913c83bbe1ea87d5215892f2c2f59287533a0749",
-    "proof-manifest.json": "cd035761f0be433b2945ab0eb84990a3e6bd89f12de1468597d7b88dbf2444f6",
+    "proof-manifest.json": "737236eb2a1b5d8bc3684f8d32cfc20e47e8dc7685c3fe898bbc5e9a4bd4fe8c",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "2db310c805615e0b15547fb075f890fd19d538a28a1a35be4020fd60d44e71be",
+  "fresh_audit_sha256": "5ea04998e659e970dbb6e2bee6b5d8d3477a0c246d6899660ccec5df6e30de72",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Woodford, Interest and Prices, Chapter 4: A Neo-Wicksellian Framework for the Analysis of Monetary Policy, with Appendix C. The basic model as exact derivatives and the natural rate of interest (Prop 4.1); Schur-Cohn root-location criteria for quadratics and cubics (Props C.1, C.2) and a proved Blanchard-Kahn theory for 2x2 forward systems and 3x3 systems with one predetermined variable (with the genericity condition the book omits), plus the general Blanchard-Kahn theorem the book assumes: for any number of variables and predetermined variables and any expectation system, determinacy iff no unit-circle eigenvalue, stable dimension equal to the number of predetermined variables, and genericity, with the pencil form including singular A0 (King-Watson/Klein); determinacy under exogenous, Taylor, inertial, forward-looking and price-level rules (Props 4.2-4.7; Prop 4.4 corrected; Prop 4.6 necessity); E-stability under sample-mean and regression learning with a Kronecker spectrum theorem (Props 4.8, 4.9) and Preston's long-horizon forms; determinants of inflation, targeting rules and the zero lower bound; money with non-separable utility; fiscal requirements and Prop 4.11 (with its non-degeneracy condition).",
-  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 4, pp. 237-319, and Appendix C, pp. 670-686; Blanchard and Kahn (1980); King and Watson (1998); Klein (2000)."
+  "scope": "Woodford, Interest and Prices, Chapter 4: A Neo-Wicksellian Framework for the Analysis of Monetary Policy, with Appendix C. The basic model as exact derivatives and the natural rate of interest (Prop 4.1); Schur-Cohn root-location criteria for quadratics and cubics (Props C.1, C.2) and a proved Blanchard-Kahn theory for 2x2 forward systems and 3x3 systems with one predetermined variable (with the genericity condition the book omits), plus the general Blanchard-Kahn theorem the book assumes: for any number of variables and predetermined variables and any expectation system, determinacy iff no unit-circle eigenvalue, stable dimension equal to the number of predetermined variables, and genericity, with the pencil form including singular A0 (King-Watson/Klein); determinacy under exogenous, Taylor, inertial, forward-looking and price-level rules (Props 4.2-4.7; Prop 4.4 corrected; Prop 4.6 as an exact iff (with a response condition)); E-stability under sample-mean and regression learning with a Kronecker spectrum theorem (Props 4.8, 4.9) and Preston's long-horizon forms and Prop 4.10 (E-stability of Preston's learning iff the Taylor principle, with the real-eigenvalue hypothesis shown necessary); determinants of inflation, targeting rules and the zero lower bound; money with non-separable utility; fiscal requirements and Prop 4.11 (with its non-degeneracy condition).",
+  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 4, pp. 237-319, and Appendix C, pp. 670-686; Blanchard and Kahn (1980); King and Watson (1998); Klein (2000).; Preston (2005), International Journal of Central Banking 1(2)."
 }

@@ -10,7 +10,7 @@ Appendix C (pp. 670–686). Model equations hold for an arbitrary expectation op
 cover perfect foresight and genuine uncertainty; log-linear equations are exact derivatives of the
 nonlinear model, and determinacy means existence and uniqueness of a bounded adapted equilibrium
 for every bounded forcing, proved rather than assumed from a root count. The library contains
-**1108 theorems**, including the shared core.
+**1255 theorems**, including the shared core.
 
 Headline results, in the namespace `Woodford.NeoWicksellianFramework`:
 * **The basic model and the natural rate.** The IS relation and the Phillips curve as exact
@@ -39,10 +39,34 @@ Headline results, in the namespace `Woodford.NeoWicksellianFramework`:
   (`ThreeByThree.prop44`, `ThreeByThree.prop44_printed_false`), Propositions 4.5 and 4.7
   (`Determinacy2Forward.prop_4_5`, `ThreeByThree.prop47`) and necessity in Proposition 4.6
   (`ThreeByThree.prop46_necessity`).
+* **Proposition 4.6 corrected, sufficiency included.** The book proves only necessity. Here
+  equilibrium under (2.12) is determinate iff (2.9) ∧ (2.13) ∧ (`φ_π > 0 ∨ φ_x > 0`)
+  (`Prop46Sufficiency.prop46`). As printed the iff is false: with `φ_π = φ_x = 0` and `ρ > 1`,
+  (2.9) and (2.13) hold but the rule makes the interest rate exogenous and equilibrium is not
+  determinate (`Prop46Sufficiency.prop46_printed_false`), the same failure as Proposition 4.4.
+  Case II of Proposition C.2 alone does not cover the region; for `ρ ≥ β` Case III′ is needed
+  (`Prop46Sufficiency.caseII_not_necessary_46`, `Prop46Sufficiency.cases_A46`), via a new
+  criterion `|A₀| ≥ 1` (`Prop46Sufficiency.oneInTwoOut_of_abs_A0`). Through the general
+  Blanchard–Kahn theorem the same iff holds for every bounded adapted forcing
+  (`Prop46Sufficiency.prop46_determinate3_iff`), and the later Clarida–Galí–Gertler rule of
+  p. 260 is proved determinate for all admissible `β`, `κ`, `σ`
+  (`Prop46Sufficiency.clarida_later_determinate`,
+  `Prop46Sufficiency.clarida_later_determinate3`).
 * **Learning.** E-stability under sample-mean and regression learning, Propositions 4.8 and 4.9
   (`Determinacy2Learning.prop_4_8`, `Learning.BullardMitra.prop_4_9`), with every eigenvalue of a
   Kronecker product a product of eigenvalues (`KroneckerSpectrum.isEig_kronecker_iff`), and
   Preston's long-horizon forms with the exact condition for (2.29) (`Learning.Preston.gapIS_iff`).
+* **Proposition 4.10 (Preston's long-horizon learning).** With every eigenvalue of `C` real and
+  inside the unit circle, the r.e.e. is E-stable under Preston's scheme iff (2.7)
+  (`Prop410.prop_4_10`, `Prop410.prop_4_10_existsUnique`); necessity holds for every `C`
+  (`Prop410.taylor_of_eStableAt`). The real-eigenvalue hypothesis cannot be dropped: with
+  complex stationary eigenvalues, (2.7) can hold with the Bullard–Mitra r.e.e. E-stable but
+  Preston's not (`Prop410Complex.prop_4_10_needs_real_eigenvalues`). The fixed point is an r.e.e.,
+  as the book claims (`Prop410REE.fixed_isREE`). For real `C` the E-stability region is the same
+  as for Proposition 4.9 (`Prop410.same_eStability_region`), though the learning dynamics differ
+  (`Prop410.bTil_ne_taylorB`), and the intuition of p. 275 is formalised
+  (`Prop410.isEig_jacobian_iff`, `Prop410.tHat_eq_Tmap`, `Prop410.eStable_bTil_iff`,
+  `Prop410.loci_coincide_iff`).
 * **Determinants of inflation and targeting rules.** The forward solution (2.34) with its sign
   corrected (`InflationDeterminants.forwardSys_eq_formula`), unique equilibria under inertial
   rules and inflation inertia, with an exact determinacy condition for the latter
@@ -59,12 +83,14 @@ See the [source map](docs/source-map.md) for the correspondence with the book an
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: sufficiency in Proposition 4.6, which the book omits, and Proposition 4.10 (Preston)
-are deferred to a later project on the general theory; the convergence of the E-stability
-differential equation and the stochastic-approximation results of pp. 265–266, cited from Evans
-and Honkapohja, are not formalised, and E-stability is defined through the eigenvalues of
-`DT − I`; the numerical impulse responses and phase diagrams in the figures are not formalised,
-only the claims the text makes about them.
+Not covered: the convergence of the E-stability differential equation and the
+stochastic-approximation results of pp. 265–266, cited from Evans and Honkapohja, are not
+formalised, and E-stability is defined through the eigenvalues of `DT − I` (this applies to
+Propositions 4.8–4.10 alike); for Proposition 4.10, the spectral-radius condition on `βĈ` is
+proved sufficient for the forecast sums to converge but not necessary, the E-stability region for
+complex eigenvalues of `C` is not characterised beyond the counterexample, and Preston's other
+information sets and policy rules are outside the book's claim; the numerical impulse responses
+and phase diagrams in the figures are not formalised, only the claims the text makes about them.
 
 ## Library map
 
@@ -84,6 +110,10 @@ only the claims the text makes about them.
 | [KroneckerSpectrum](NeoWicksellianFramework/KroneckerSpectrum.lean) | 16 | C.7: the spectrum of Kronecker products and block-diagonal matrices, (C.29) |
 | [Determinacy2Learning](NeoWicksellianFramework/Determinacy2Learning.lean) | 47 | §2.3: temporary equilibrium (2.16)–(2.18), the sample-mean T-map (2.19)–(2.23), Proposition 4.8, iterative E-stability |
 | [Learning](NeoWicksellianFramework/Learning.lean) | 90 | §2.3, C.7: phase diagrams (nn. 38–39), regression learning (2.24)–(2.27), Proposition 4.9, Preston's (2.28)–(2.30) |
+| [PrestonLearning](NeoWicksellianFramework/PrestonLearning.lean) | 33 | §2.3, pp. 273–274: Preston's (2.29)–(2.30) with estimated-model forecasts, the forecast sums, the actual law of motion, the T-map and its block Jacobian |
+| [Prop410](NeoWicksellianFramework/Prop410.lean) | 59 | §2.3, p. 275: Proposition 4.10 for real eigenvalues of `C`, the fixed point, the comparison with Proposition 4.9, the p. 275 intuition |
+| [Prop410Complex](NeoWicksellianFramework/Prop410Complex.lean) | 25 | §2.3: the real-eigenvalue hypothesis of Proposition 4.10 is necessary (a complex-`C` counterexample) |
+| [Prop410REE](NeoWicksellianFramework/Prop410REE.lean) | 10 | §2.3, p. 274: the fixed point of Preston's T-map is an r.e.e. |
 | [Money](NeoWicksellianFramework/Money.lean) | 62 | §3: the LM curve (3.1)–(3.3), (3.4)–(3.14) with real-balance effects, nn. 62, 70, 71 |
 | [Fiscal](NeoWicksellianFramework/Fiscal.lean) | 47 | §4, C.8: (4.1)–(4.5), locally Ricardian rules, the stacked system, Proposition 4.11 corrected |
 | [InflationDeterminants](NeoWicksellianFramework/InflationDeterminants.lean) | 110 | §2.4–2.5: (2.31)–(2.35) with (2.34) corrected, inertial rules, inflation inertia (2.36)–(2.39), n. 47, pp. 287–288 |
@@ -95,6 +125,7 @@ only the claims the text makes about them.
 | [GeneralBKPencil](NeoWicksellianFramework/GeneralBKPencil.lean) | 7 | C.1: the pencil form `A₀ E_t y_{t+1} = A₁ y_t + w_t` with invertible `A₀` |
 | [GeneralBKSingular](NeoWicksellianFramework/GeneralBKSingular.lean) | 49 | C.1: singular `A₀` (King–Watson, Klein): regularity, the Fitting split, infinite eigenvalues counted as unstable |
 | [GeneralBKLinks](NeoWicksellianFramework/GeneralBKLinks.lean) | 27 | C.1, C.3: any index type; Propositions C.1 and C.2 recovered; the Proposition 4.4 model determinate for every forcing vector |
+| [Prop46Sufficiency](NeoWicksellianFramework/Prop46Sufficiency.lean) | 20 | §2.2, C.5: Proposition 4.6 corrected (sufficiency and the iff, also for every forcing), the later Clarida–Galí–Gertler rule determinate |
 
 ## Build and verify
 
