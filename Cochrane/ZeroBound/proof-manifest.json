@@ -17,7 +17,9 @@
     "ZeroBound/ForwardGuidance.lean",
     "ZeroBound/Multipliers.lean",
     "ZeroBound/ZLBWelfare.lean",
-    "ZeroBound/Links.lean"
+    "ZeroBound/Links.lean",
+    "ZeroBound/LinksGaliWoodford.lean",
+    "ZeroBound/LinksGaliWoodfordLimit.lean"
   ],
   "theorem_counts": {
     "ZeroBound/Determinacy.lean": 23,
@@ -36,8 +38,10 @@
     "ZeroBound/ForwardGuidance.lean": 19,
     "ZeroBound/Multipliers.lean": 32,
     "ZeroBound/ZLBWelfare.lean": 21,
-    "ZeroBound/Links.lean": 20
+    "ZeroBound/Links.lean": 20,
+    "ZeroBound/LinksGaliWoodford.lean": 123,
+    "ZeroBound/LinksGaliWoodfordLimit.lean": 19
   },
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models. Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models; links to Gali (optimal commitment at the zero bound as delayed lift-off, the discretionary path as the end-of-shock lift-off, the commitment path strictly above both, the sign condition behind Gali (42)-(43) characterised and shown to fail at an exact optimum, discrete trap paths converging to the continuous Werning paths) and to Woodford (his interest-rate-variance constraint and the pathwise zero bound: neither implies the other; the zero-bound steady state under Woodford welfare). Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 20, pp. 465-485, Chapter 21, pp. 486-494, and Chapter 24, pp. 522-524."
 }

@@ -7,8 +7,8 @@ listed with its Lean name, relative to the namespace `Cochrane.ZeroBound`. Page 
 pages. The book has no labelled propositions, so rows are keyed by equation number, figure,
 table or page. Rows follow the book section by section, and each heading names the modules that
 formalise the section: §20.1, §20.2.1 with the Chapter 24 claims, §§20.2.2–20.2.6, §20.3,
-Chapter 21, then the links between the modules, the restated Woodford block and the shared
-tools.
+Chapter 21, then the links between the modules, the links with Galí (2015) and Woodford (2003),
+the restated Woodford block and the shared tools.
 
 The discrete-time results (§20.1, §20.2.1, §20.2.6, Chapter 24) hold for an arbitrary
 `ExpectationSystem`, so under perfect foresight and under uncertainty, except where a row says
@@ -187,6 +187,78 @@ project, with the namespace adapted.
 | Cochrane (20.11)–(20.12), p. 482, vs (5.1)–(5.2) and p. 467 | at `M = M^f = 1` the Gabaix matrix and model are the peg ones; the condition fails and the roots straddle the unit circle | `Links.gabaix_rational_eq_peg`, `Links.gabaixEq_rational_iff`, `Links.gabaix_rational_straddle` |
 | Cochrane (16.28), p. 379; p. 484 | `β` is a fixed point of the Chapter 16 map iff `φ(β) = 0`; a fixed point at the bound is `Π_L = β` | `Links.map46_fixed_beta_iff`, `Links.zlb_fixed_point_eq_beta` |
 | Cochrane p. 472 and p. 484 | with natural rate `u = −log β` the zero-bound steady state of the (20.2) map is `π = log β`, the rule is at the bound there, and `e^{log β} = β = Π_L` | `Links.zlb_steady_log` |
+
+## Links with Galí and Woodford: commitment, forward guidance and the moment constraint (LinksGaliWoodford)
+
+This module compares Chapter 20 with two other treatments of the bound: Galí (2015), §5.4
+(pp. 144–152), the `DiscretionCommitment` project (`ZLBCommitment`), and Woodford (2003),
+Chapter 6, §4.2 (pp. 427–435) and Proposition 6.3, the `StabilizationWelfare` project
+(`ZLB.lean`). Nothing is imported from those projects: the Galí definitions are restated with
+docstrings "restated from the Galí Chapter 5 project", the Woodford ones with "restated from the
+Woodford Chapter 6 project", and all are re-proved here. Galí's model is
+`π_t = βπ_{t+1} + κx_t`, `x_t = x_{t+1} − σ⁻¹(i_t − π_{t+1} − rⁿ_t)`, with natural rate `−η` on
+`[0, t_Z]` and `ρ` after; his IS slope `σ⁻¹` is Cochrane's `σ`. The commitment theorems take the
+form of the path delivered by Galí's algorithm (the zero-rate recursion (48)–(49) on
+`[0, t_C]`, the FOC (36) and the Phillips curve at `t_C + 1`, the closed form (42)–(43) after),
+with `t_C ≥ t_Z` as an explicit hypothesis; see [corrections](corrections.md).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Galí (2015), p. 145, (29)–(30); Cochrane (5.1)–(5.2), p. 118, and p. 474 (restated) | the natural rate of the trap, the Phillips curve, the implied rate and `υ₁,t`, the rate at which the bound binds | `LinksGaliWoodford.natRate`, `LinksGaliWoodford.natRate_of_le`, `LinksGaliWoodford.natRate_of_lt`, `LinksGaliWoodford.NKPC`, `LinksGaliWoodford.impliedRate`, `LinksGaliWoodford.ups1`, `LinksGaliWoodford.impliedRate_eq` |
+| Galí (2015) (34), p. 147; Cochrane p. 475 (restated) | the backward step at a binding bound, `n` steps, the path solved backward on `[0, t_Z]`; the discretionary equilibrium | `LinksGaliWoodford.backStep`, `LinksGaliWoodford.backState`, `LinksGaliWoodford.zlbPath`, `LinksGaliWoodford.zlbPath_of_le`, `LinksGaliWoodford.zlbPath_of_lt`, `LinksGaliWoodford.discX`, `LinksGaliWoodford.discPi` |
+| Galí (2015) pp. 148–149; Cochrane p. 479, p. 485 (restated) | the commitment problem: feasibility, period loss and loss, optimality, the lag, the FOCs (35)–(36) and the KKT system | `LinksGaliWoodford.Feasible`, `LinksGaliWoodford.lossTerm`, `LinksGaliWoodford.loss`, `LinksGaliWoodford.Optimal`, `LinksGaliWoodford.lag`, `LinksGaliWoodford.lag_succ`, `LinksGaliWoodford.lag_zero`, `LinksGaliWoodford.FOC35`, `LinksGaliWoodford.FOC36`, `LinksGaliWoodford.KKT` |
+| Galí (2015) (14)–(15), pp. 135–136, p. 143 (restated) | the coefficients `γ` and `δ`, their bounds, `δ < 1` iff `κ ≠ 0`, the quadratic for `δ` and the key identity `κ²δ/ϑ = (1 − δ)(1 − βδ)` | `LinksGaliWoodford.gam`, `LinksGaliWoodford.del`, `LinksGaliWoodford.gam_pos`, `LinksGaliWoodford.gam_mul_le`, `LinksGaliWoodford.gam_mul_lt_iff`, `LinksGaliWoodford.sqrt_lt_one`, `LinksGaliWoodford.del_pos`, `LinksGaliWoodford.del_lt_one_iff`, `LinksGaliWoodford.gam_mul_denom`, `LinksGaliWoodford.four_beta_gam_sq_lt_one`, `LinksGaliWoodford.sqrt_sq_eq`, `LinksGaliWoodford.del_mul`, `LinksGaliWoodford.del_quad`, `LinksGaliWoodford.kappa_sq_del` |
+| Galí (2015) (37)–(43), pp. 149–150, p. 152 (restated) | the path after lift-off: `x`, `π` and `ξ₁` in closed form, (37)–(39) hold, positive for `ξ > 0`; the post-lift-off rate and its single nonnegativity condition | `LinksGaliWoodford.postX`, `LinksGaliWoodford.postPi`, `LinksGaliWoodford.postXi`, `LinksGaliWoodford.post_eq37`, `LinksGaliWoodford.post_eq38`, `LinksGaliWoodford.post_eq39`, `LinksGaliWoodford.post_eq42_pos`, `LinksGaliWoodford.post_eq43_pos`, `LinksGaliWoodford.post_rate`, `LinksGaliWoodford.post_rate_nonneg` |
+| Galí (2015) p. 149, p. 152 (restated, proofs copied) | the Lagrangian identity; KKT sufficiency, optimality and uniqueness; strict convexity; the backward step gives `i = 0`; the verification theorem of the algorithm | `LinksGaliWoodford.lagrangian_identity`, `LinksGaliWoodford.tendsto_pow_mul_abs`, `LinksGaliWoodford.eq_zero_of_tsum_nonpos`, `LinksGaliWoodford.sq_terms_zero`, `LinksGaliWoodford.kkt_sufficient`, `LinksGaliWoodford.kkt_optimal`, `LinksGaliWoodford.kkt_unique`, `LinksGaliWoodford.optimal_unique`, `LinksGaliWoodford.backStep_nkpc_rate`, `LinksGaliWoodford.algorithm_verification` |
+| Galí (2015) (29)–(30), (34); Cochrane p. 475 | a backward step at rate `i_t = rⁿ_t + e` is the Phillips curve with that rate, and conversely; feasibility from the Phillips curve and `i ≥ 0` | `LinksGaliWoodford.backStep_rate`, `LinksGaliWoodford.backStep_of_rate`, `LinksGaliWoodford.feasible_of_rate` |
+| Cochrane §20.2.4, p. 479; Galí p. 147 | zero-rate dynamics are a monotone backward map: a weakly higher later state, strictly higher in one component, gives a strictly higher state at every earlier date of the spell, by at least `m` in output and `κm` in inflation; a spell is pinned by its end state | `LinksGaliWoodford.down_ind`, `LinksGaliWoodford.backStep_sub_fst`, `LinksGaliWoodford.backStep_sub_snd`, `LinksGaliWoodford.backStep_lt`, `LinksGaliWoodford.backStep_le`, `LinksGaliWoodford.zr_strict`, `LinksGaliWoodford.zr_le`, `LinksGaliWoodford.zr_eq`, `LinksGaliWoodford.zr_lower` |
+| Cochrane p. 479 (`ForwardGuidance.delay_isPath`), in Galí's model | discrete delayed lift-off: rate `0` before `L`, the natural rate and `x = π = 0` from `L` on; it satisfies the Phillips curve and is feasible for `ρ ≥ 0` | `LinksGaliWoodford.zrAux`, `LinksGaliWoodford.zrPath`, `LinksGaliWoodford.zrPath_of_lt`, `LinksGaliWoodford.zrPath_of_ge`, `LinksGaliWoodford.delayPath`, `LinksGaliWoodford.delay_step`, `LinksGaliWoodford.delay_after`, `LinksGaliWoodford.delay_isPath`, `LinksGaliWoodford.delay_feasible` |
+| Galí p. 147; Cochrane p. 479 | lift-off at `t_Z + 1` is Galí's discretionary path | `LinksGaliWoodford.delay_eq_disc` |
+| Cochrane p. 479 (`ForwardGuidance.delay_pi0_strictMono`) | `x_t` and `π_t` are strictly increasing in the lift-off date at every date before the later lift-off | `LinksGaliWoodford.delay_succ`, `LinksGaliWoodford.delay_le_of_le`, `LinksGaliWoodford.delay_lt_of_lt` |
+| Cochrane p. 479 (`ForwardGuidance.delay_pi0_tendsto`) | output grows at least `(L − t)ρ/σ` before lift-off; `π₀ ≥ π₀^disc + κ(L − t_Z − 1)ρ/σ`, so `π₀ → ∞` as `L → ∞` (`ρ > 0`) | `LinksGaliWoodford.delay_growth`, `LinksGaliWoodford.delay_lower`, `LinksGaliWoodford.delay_pi0_tendsto` |
+| Galí (48)–(49), p. 151; (36), (29), (43) | on `[0, t_C]` commitment obeys the zero-rate recursion of the delayed-lift-off family; at lift-off `t_C + 1`, with `ξ₁,t_C+1 > 0`, `x` and `π` are strictly positive | `LinksGaliWoodford.comm_step`, `LinksGaliWoodford.comm_liftoff_pos` |
+| Galí §5.4.2 vs Cochrane §20.2.4, p. 479 | commitment = delayed lift-off plus a promise: strictly above the delayed-lift-off path with the same lift-off date on `[0, t_C + 1]`, hence strictly above discretion at every date (`ξ₁,t_C+1 > 0`, `t_C ≥ t_Z`) | `LinksGaliWoodford.comm_gt_delay`, `LinksGaliWoodford.comm_gt_disc` |
+| same, without the sign of `ξ` | with a weakly positive, nonzero lift-off state, commitment is strictly above delayed lift-off and discretion on `[0, t_C]` | `LinksGaliWoodford.comm_gt_delay_of_state`, `LinksGaliWoodford.comm_gt_disc_of_state` |
+| Galí pp. 151–152 | commitment keeps `i = 0` on `[0, t_C]`, below the natural rate on `(t_Z, t_C]`; discretion has `i = ρ` after `t_Z` | `LinksGaliWoodford.comm_rates` |
+| Galí p. 152 | discretion is feasible with finite loss, and has strictly larger loss than commitment, given optimality or from the algorithm's conditions alone | `LinksGaliWoodford.disc_feasible_summable`, `LinksGaliWoodford.comm_loss_lt`, `LinksGaliWoodford.comm_loss_lt_alg` |
+| Cochrane (5.6), p. 119, p. 467, for Galí's model | the peg roots `λ₁ > 1`, `λ₂`, the slope `v_x = (1 − λ₂)/κ` of a bounded peg path; the backward map at the natural rate multiplies `(v_x, 1)` by `λ₁` | `LinksGaliWoodford.l1`, `LinksGaliWoodford.l2`, `LinksGaliWoodford.vx`, `LinksGaliWoodford.one_lt_l1`, `LinksGaliWoodford.l1_vx`, `LinksGaliWoodford.kappa_vx`, `LinksGaliWoodford.backStep_eigen` |
+| Cochrane p. 475 (`WerningModel.wPath_isPath`, `WerningModel.wPath_bdd`), discrete | the Werning family `wState c`: `i = 0` in the trap, `i = rⁿ` after, bounded peg continuation from `π_{t_Z+1} = c`; each member is a bounded path | `LinksGaliWoodford.wState`, `LinksGaliWoodford.w_post`, `LinksGaliWoodford.w_end`, `LinksGaliWoodford.w_trap`, `LinksGaliWoodford.w_after`, `LinksGaliWoodford.w_isPath`, `LinksGaliWoodford.w_bdd` |
+| Cochrane p. 475 (`WerningModel.bdd_path_iff`), discrete | every bounded path with this rate path is the member `c = π_{t_Z+1}`: a one-parameter family | `LinksGaliWoodford.w_unique`, `LinksGaliWoodford.w_family_iff` |
+| Cochrane p. 475 (selection `π_T = 0`); Galí p. 147 | `c = 0` is Galí's discretionary path | `LinksGaliWoodford.w_zero` |
+| Cochrane p. 479 (`ForwardGuidance.dpi_dpiT`, `ForwardGuidance.dpi0_dpiT`) | `π_t(c) − π_t(c') = λ₁^{t_Z+1−t}(c − c')` | `LinksGaliWoodford.w_sub`, `LinksGaliWoodford.w_pi0_sub` |
+| Cochrane p. 479 (`ForwardGuidance.sensitivity_strictMono_T`) | the sensitivity `λ₁ⁿ` is strictly increasing and unbounded in the trap length | `LinksGaliWoodford.w_sensitivity_strictMono`, `LinksGaliWoodford.w_sensitivity_tendsto` |
+| Cochrane §5.7.1, p. 165, and p. 479 | with period `t/n`, `λ₁ⁿ → e^{λ^b t}`, Werning's sensitivity | `LinksGaliWoodford.sensitivity_tendsto_exp` |
+| Cochrane p. 479 (`ForwardGuidance.glide_path`); Galí §5.4.2 | commitment's `π₀` equals that of exactly one family member, and its promise `c` is strictly positive | `LinksGaliWoodford.comm_promise` |
+| Cochrane p. 479 | if `t_C > t_Z`, the commitment path is not a member of the Werning family | `LinksGaliWoodford.comm_not_member` |
+| Galí (35), p. 149; (41), p. 150 | `ξ₁,N = (βσ)⁻¹∑_{s<N}ξ₂,s − p_N`; `ξ₁,t_C+1 > 0` iff the price level at lift-off is below `(βσ)⁻¹∑_{s≤t_C}ξ₂,s`, its long-run level | `LinksGaliWoodford.xi1_eq`, `LinksGaliWoodford.xi_pos_iff`, `LinksGaliWoodford.longrun_price` |
+| Galí (42)–(43), p. 150, corrected | with `ξ₁,t_C+1 < 0`, `x` and `π` are strictly negative at every date after lift-off | `LinksGaliWoodford.post_neg` |
+| Galí p. 152, at an exact point | at `β = 9/10`, `κ = 1/10`, `ϑ = 1/819`, `σ = 1`, `ρ = 1/10`, `η = 1/100`, `t_Z = 0`: `δ = 1/10`; the exact path and multipliers pass the algorithm and are the unique optimum; lift-off at `t_C = t_Z = 0`; `ξ₁,1 < 0`, output and inflation negative from date 2, yet above discretion at date 0 | `LinksGaliWoodford.del_cex`, `LinksGaliWoodford.cexXi`, `LinksGaliWoodford.cexX`, `LinksGaliWoodford.cexPi`, `LinksGaliWoodford.cexXi1`, `LinksGaliWoodford.cexXi2`, `LinksGaliWoodford.cexXi1_one`, `LinksGaliWoodford.cex_optimal`, `LinksGaliWoodford.cex_liftoff_at_shock_end`, `LinksGaliWoodford.cex_xi_neg` |
+| Woodford (2003) (4.18)–(4.20), p. 428, (2.21), p. 400 (restated) | the discounted average `Ê`, its linearity, constants and monotonicity; `K = 1 + k⁻²`; Woodford's moment form of the bound | `LinksGaliWoodford.Moments.dAvg`, `LinksGaliWoodford.Moments.summable_disc`, `LinksGaliWoodford.Moments.dAvg_lincomb`, `LinksGaliWoodford.Moments.dAvg_const`, `LinksGaliWoodford.Moments.dAvg_mono`, `LinksGaliWoodford.Moments.bigK`, `LinksGaliWoodford.Moments.MomentFeasible` |
+| Cochrane §20.1, p. 465 | the pathwise bound `i_t ≥ 0` at every date and state; under perfect foresight `Ê` is the plain discounted average | `LinksGaliWoodford.Moments.PathwiseZLB`, `LinksGaliWoodford.Moments.dAvg_pf` |
+| Woodford (4.18) vs Cochrane p. 465 | pathwise `i ≥ 0` implies `Ê[i] ≥ 0`; a band `a ≤ i ≤ b` with `(b − a)² ≤ 4(K − 1)a²` implies Woodford's constraint | `LinksGaliWoodford.Moments.pathwise_mean_nonneg`, `LinksGaliWoodford.Moments.band_moment_feasible` |
+| Woodford p. 428 | with `Ê[i] > 0`, Woodford's constraint bounds the discounted frequency of `i < 0` by `(K − 1)/K = 1/(1 + k²)` (Cantelli); pathwise it is `0` | `LinksGaliWoodford.Moments.violation_freq_le`, `LinksGaliWoodford.Moments.pathwise_violation_freq` |
+| Woodford Prop. 6.9, p. 428, vs Cochrane p. 465 | neither constraint implies the other: the spike `1, 0, 0, …` is pathwise feasible but not moment feasible, and `−1, 9, 9, …` the reverse, with discounted violation frequency `1/10` (`β = 9/10`, `K = 1 + 2.26⁻²`) | `LinksGaliWoodford.Moments.spike`, `LinksGaliWoodford.Moments.dip`, `LinksGaliWoodford.Moments.spike_moments`, `LinksGaliWoodford.Moments.dip_moments`, `LinksGaliWoodford.Moments.pathwise_not_moment`, `LinksGaliWoodford.Moments.moment_not_pathwise`, `LinksGaliWoodford.Moments.neither_implies` |
+| Woodford (2.20), p. 399, App. E.3 (restated), vs Cochrane p. 485 | Woodford's dispersion recursion; at constant `π` it converges to `ZLBWelfare.dispersion`, its fixed point | `LinksGaliWoodford.lagS`, `LinksGaliWoodford.DispRec`, `LinksGaliWoodford.disp_const_closed`, `LinksGaliWoodford.disp_const_tendsto`, `LinksGaliWoodford.disp_const_stationary` |
+| Woodford Prop. 6.3, p. 400 | discounted dispersion at constant `π` is `απ²/((1 − α)(1 − αβ))` plus a term not depending on `π` | `LinksGaliWoodford.disp_const_discounted`, `LinksGaliWoodford.disp_const_avg` |
+| Cochrane §20.3 (E9) in Woodford's criterion | `Π_L = β` has strictly lower Woodford discounted dispersion than `Π*` iff `1 < βΠ*` | `LinksGaliWoodford.woodford_zlb_better_iff` |
+| Woodford (2.24), p. 402 | the steady-state quadratic loss is `ZLBWelfare.ssLoss` | `LinksGaliWoodford.quadLoss_steady` |
+| Galí p. 146 vs Cochrane p. 484 | Galí's deflationary steady state `π = −ρ`, `i = 0`, with `ρ = −log β`, is `Π_L = β`, with the same output gap | `LinksGaliWoodford.deflGap`, `LinksGaliWoodford.gali_deflation_steady` |
+| same, pp. 484–485 | it is strictly worse than Galí's target `π = 0` in dispersion, Woodford's discounted dispersion and the quadratic loss | `LinksGaliWoodford.gali_deflation_worse` |
+
+## Discrete Werning trap paths converge to the continuous ones (LinksGaliWoodfordLimit)
+
+Galí's model with period length `h` (`β = 1 − ρh`, IS slope `σ⁻¹ = σh`, Phillips-curve slope
+`κh`) during a trap with natural rate `u = −η`, solved backward from the end-of-trap state of a
+member of the discrete Werning family.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §5.7.1, p. 165 | if `g_n → L` then `(1 + τg_n/(n + 1))^{n+1} → e^{τL}` | `LinksGaliWoodfordLimit.tendsto_one_add_pow` |
+| Galí (34), p. 147; Cochrane p. 475 | the backward map acts on two modes around the trap steady state by `λ₁`, `λ₂`, so the trap path is `s̄ + λ₁ᵐav₁ + λ₂ᵐbv₂` exactly | `LinksGaliWoodfordLimit.backStep_modes`, `LinksGaliWoodfordLimit.backState_modes` |
+| Cochrane §5.7.1, p. 165 | the scaled roots `(λ_i − 1)/h` solve `g² + (ρ − σκh)g − σκ = 0`, differ by `S(h) > 0`, are continuous and equal `λ^b`, `−λ^f` at `h = 0` | `LinksGaliWoodfordLimit.sqS`, `LinksGaliWoodfordLimit.sr1`, `LinksGaliWoodfordLimit.sr2`, `LinksGaliWoodfordLimit.sr_root`, `LinksGaliWoodfordLimit.sr_sub_pos`, `LinksGaliWoodfordLimit.sr_zero`, `LinksGaliWoodfordLimit.sr_continuous`, `LinksGaliWoodfordLimit.char_of_scaled` |
+| Cochrane p. 475 | the exact closed form of the discrete trap path at period length `h`; it is the trap part of the family member `LinksGaliWoodford.wState` | `LinksGaliWoodfordLimit.trapDisc`, `LinksGaliWoodfordLimit.coefA`, `LinksGaliWoodfordLimit.coefB`, `LinksGaliWoodfordLimit.closed_generic`, `LinksGaliWoodfordLimit.trapDisc_closed`, `LinksGaliWoodfordLimit.trapDisc_eq_wState` |
+| Cochrane (20.8)–(20.10), p. 475 | `WerningModel.wPi` in two modes; the algebra of the limit with `λ^fλ^b = κσ`, `λ^f − λ^b = ρ` | `LinksGaliWoodfordLimit.wPi_modes`, `LinksGaliWoodfordLimit.algA`, `LinksGaliWoodfordLimit.algB`, `LinksGaliWoodfordLimit.algX` |
+| Cochrane §20.2.2, p. 475, and §5.7.1 | cutting `T − t` into `n + 1` periods, the discrete trap path converges in `x` and `π` to the continuous Werning path `(wX, wPi)` with `π_T = c` at time `t`, for every member of the family | `LinksGaliWoodfordLimit.trap_tendsto`, `LinksGaliWoodfordLimit.trap_pi_tendsto`, `LinksGaliWoodfordLimit.trap_x_tendsto`, `LinksGaliWoodfordLimit.wState_tendsto` |
 
 ## Restated Woodford block (GlobalDynamics)
 

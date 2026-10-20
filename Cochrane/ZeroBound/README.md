@@ -15,9 +15,10 @@ every equation holds state by state. The continuous-time Werning model of §§20
 deterministic paths `ℝ → ℝ`, exact derivatives off a countable set of dates, and genuine
 improper integrals. In both, an equilibrium is a solution of the model equations, "determinate"
 means exactly one bounded solution, and the fiscal theory selects instead through the valuation
-equation. The library contains **520 theorems**, including the shared core; 412 of them are in
-the thirteen chapter modules, 49 of these in a verbatim copy of Woodford Chapter 2 results
-(`GlobalDynamics`).
+equation. The library contains **662 theorems**, including the shared core; 554 of them are in
+the fifteen chapter modules, 49 of these in a verbatim copy of Woodford Chapter 2 results
+(`GlobalDynamics`), and 142 in the two modules linking Chapter 20 to Galí's and Woodford's
+treatments of the bound (`LinksGaliWoodford`, `LinksGaliWoodfordLimit`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E1–E11 and E20 refer to
@@ -98,6 +99,15 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   `Links.peg_paths_converge`). Gabaix's model at `M = M^f = 1` is the peg
   (`Links.gabaix_rational_eq_peg`, `Links.gabaix_rational_straddle`). A steady state of the
   Chapter 16 map at the bound is `Π_L = β` (`Links.zlb_fixed_point_eq_beta`).
+* **Galí's commitment and Woodford's moment constraint.** Galí's optimal commitment at the bound
+  is delayed lift-off plus a positive promise: given `t_C ≥ t_Z` and Galí's sign condition, it
+  lies strictly above delayed lift-off at its own lift-off date, which lies above discretion, and
+  discretion has strictly larger loss (`LinksGaliWoodford.comm_gt_delay`,
+  `LinksGaliWoodford.comm_gt_disc`, `LinksGaliWoodford.comm_loss_lt`). The sign condition fails at
+  an exact optimum (`LinksGaliWoodford.cex_xi_neg`). Discrete trap paths converge to Werning's
+  continuous ones (`LinksGaliWoodfordLimit.trap_tendsto`). Neither Woodford's moment constraint
+  nor the pathwise bound implies the other (`LinksGaliWoodford.Moments.neither_implies`). See
+  the relation to the Woodford and Galí projects below.
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -114,7 +124,10 @@ the printed text precise. The main corrections are the confirmed errors of the c
 In addition, the formalisation reads (20.9) with `r_t` the natural rate and `dg/dt` a measure
 (E6), corrects the cross-reference "(17.2)" to (20.6) (E4), makes explicit the hypothesis
 `φ_t ≠ 0` of future selection and the timing of the natural rate in Figure 20.3, and gives
-delayed lift-off the positive post-trap natural rate it needs.
+delayed lift-off the positive post-trap natural rate it needs. The links with Galí (2015) correct
+two features of his commitment solution: the positivity of (42)–(43), p. 150, needs
+`ξ₁,t_C+1 > 0`, which fails at an exact optimum (`LinksGaliWoodford.cex_xi_neg`), and strictly
+later lift-off is not a property of every optimum (`LinksGaliWoodford.cex_liftoff_at_shock_end`).
 
 Not formalised:
 * the empirical and narrative parts of Chapters 20–21: the U.S. and Japanese experience, QE, the
@@ -138,6 +151,11 @@ Not formalised:
   delayed lift-off, whose models and parameters do not match, and between the nonlinear Covid
   helicopter `P = B/S` and the linearised valuation equations, beyond the frictionless limit of
   the impact coefficient (`Links.fiscal_impact_frictionless`);
+* the inequality `t_C ≥ t_Z` for Galí's commitment optimum (the bound binds throughout the
+  trap), which is a hypothesis of the commitment theorems of `LinksGaliWoodford` (see the
+  relation to the Woodford and Galí projects below);
+* a structural link with Woodford's Proposition 6.9, which shares no model equations with
+  Chapter 20; the link is at the level of the constraint;
 * stochastic versions of the continuous-time results, and of the global orbit results of
   §20.2.1, which are under perfect foresight as in the book; local uniqueness and the Figure
   20.3 selection hold for any expectation operator.
@@ -163,6 +181,8 @@ Not formalised:
 | [Multipliers](ZeroBound/Multipliers.lean) | 32 | §20.2.5: the IS curve solved forward, standard and no-jump multipliers, E20, future spending |
 | [ZLBWelfare](ZeroBound/ZLBWelfare.lean) | 21 | §20.3: exact Calvo dispersion, `Π_L = β`, better than `Π*` iff `βΠ* > 1` (E9) |
 | [Links](ZeroBound/Links.lean) | 20 | Discrete-to-continuous convergence of roots, paths and impact coefficients; Gabaix at `M = M^f = 1`; `Π_L = β` in the Chapter 16 map and in the rule of §20.2.1 |
+| [LinksGaliWoodford](ZeroBound/LinksGaliWoodford.lean) | 123 | Galí's commitment as delayed lift-off plus a promise, the discrete Werning family, the sign of `ξ₁,t_C+1` and an exact optimum; Woodford's moment constraint against the pathwise bound; Woodford's dispersion and `Π_L = β` (Galí and Woodford definitions restated) |
+| [LinksGaliWoodfordLimit](ZeroBound/LinksGaliWoodfordLimit.lean) | 19 | Exact two-mode closed form of the discrete trap path; convergence of whole trap paths to the continuous-time Werning paths |
 
 ## Modelling conventions
 
@@ -203,7 +223,9 @@ Not formalised:
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem:
   `φ_t ≠ 0` before a monetary switch, `|ρ| < 1` and `γ_t ≠ 1` for the fiscal switch,
   `σκ > 0` and `φ > 1` for the rule, `u < 0`, `T > 0` and `ρ ≥ 0` for the limits and
-  monotonicity in `κ`, and `0 < β ≤ 1`, `Π* ≥ 1` for the welfare comparison.
+  monotonicity in `κ`, and `0 < β ≤ 1`, `Π* ≥ 1` for the welfare comparison. The commitment
+  theorems of `LinksGaliWoodford` take the form of the path from Galí's algorithm, with
+  `t_C ≥ t_Z` and, where positivity after lift-off is used, `ξ₁,t_C+1 > 0` as hypotheses.
 
 ## Relation to the Woodford and Galí projects
 
@@ -217,18 +239,69 @@ lemmas (`ZLBRule.lower_attracting`, `ZLBRule.upper_repelling`), and `Links` uses
 `GlobalDynamics.map46`, which is Cochrane's (16.28), to identify the steady state at the bound
 with `Π_L = β` (`Links.map46_fixed_beta_iff`, `Links.zlb_fixed_point_eq_beta`).
 
-Two other projects treat the zero bound differently, and no theorem links them to this one:
-* Galí (2015), §5.4.2, in the `DiscretionCommitment` project (`ZLBCommitment`): the optimal
-  commitment policy of a central bank facing the bound, with the bound as an inequality
-  constraint, Kuhn–Tucker conditions and an announced lift-off date, after which inflation and
-  the output gap are positive. Commitment to a later lift-off and to inflation after the trap is
-  the content of the delayed lift-off and the glide path of §20.2.4
-  (`ForwardGuidance.delay_pi0`, `ForwardGuidance.glide_path`), here studied as equilibrium
-  selection rather than as an optimum.
-* Woodford (2003), Chapter 6, §4.2, in the `StabilizationWelfare` project (`ZLB.lean`):
-  Proposition 6.9, optimal stabilisation when the bound is replaced by a constraint on the mean
-  and variance of the interest rate. It is a stochastic, second-moment treatment, while
-  Chapter 20 is about the equilibria of a deterministic trap.
+`LinksGaliWoodford` and `LinksGaliWoodfordLimit` link Chapter 20 to two other treatments of the
+bound. The definitions they need are restated, with docstrings "restated from the Galí Chapter 5
+project" or "restated from the Woodford Chapter 6 project", and every result is proved here.
+
+**Galí (2015), §5.4.2, in the `DiscretionCommitment` project (`ZLBCommitment`).** Galí solves
+for the optimal commitment policy of a central bank facing the bound, with Kuhn–Tucker conditions
+and a lift-off date `t_C + 1`, in the discrete model `π_t = βπ_{t+1} + κx_t`,
+`x_t = x_{t+1} − σ⁻¹(i_t − π_{t+1} − rⁿ_t)` with natural rate `−η` on `[0, t_Z]` and `ρ` after.
+* *Commitment is delayed lift-off with a positive promise.* At a zero rate the model is a
+  monotone backward map (`LinksGaliWoodford.zr_strict`, `LinksGaliWoodford.zr_lower`). In the
+  discrete delayed-lift-off family, lift-off at `t_Z + 1` is Galí's discretion, and `x_t`, `π_t`
+  are strictly increasing and unbounded in the lift-off date (`LinksGaliWoodford.delay_eq_disc`,
+  `LinksGaliWoodford.delay_lt_of_lt`, `LinksGaliWoodford.delay_pi0_tendsto`). Commitment obeys the
+  same recursion on `[0, t_C]` and differs only by a strictly positive promised state at lift-off
+  (`LinksGaliWoodford.comm_liftoff_pos`), so commitment > delay(`t_C + 1`) ≥ delay(`t_Z + 1`) =
+  discretion (`LinksGaliWoodford.comm_gt_delay`, `LinksGaliWoodford.comm_gt_disc`), with
+  `i = 0 < rⁿ` on `(t_Z, t_C]` (`LinksGaliWoodford.comm_rates`). Discretion has strictly larger
+  loss (`LinksGaliWoodford.comm_loss_lt`, and from the conditions of Galí's algorithm alone,
+  `LinksGaliWoodford.comm_loss_lt_alg`, via the restated
+  `LinksGaliWoodford.algorithm_verification`).
+* *The Werning family.* The bounded paths with `i = 0` in the trap and `i = rⁿ` after are exactly
+  a one-parameter family indexed by `c = π_{t_Z+1}`, the discrete counterpart of
+  `WerningModel.bdd_path_iff` (`LinksGaliWoodford.w_family_iff`); `c = 0` is discretion
+  (`LinksGaliWoodford.w_zero`), and `π₀` moves by `λ₁^{t_Z+1}` per unit of `c`, a sensitivity that
+  tends to `e^{λ^b t}` (`LinksGaliWoodford.w_pi0_sub`, `LinksGaliWoodford.sensitivity_tendsto_exp`).
+  The commitment path's `π₀` equals that of exactly one member, whose promise `c` is strictly
+  positive (`LinksGaliWoodford.comm_promise`); but if `t_C > t_Z` the commitment path is not
+  itself a member (`LinksGaliWoodford.comm_not_member`). Cutting the time to the end of the trap
+  into `n + 1` periods, every member's trap path converges to the continuous Werning path with
+  `π_T = c` (`LinksGaliWoodfordLimit.trap_tendsto`).
+* *Galí's sign condition, p. 150.* The positivity of (42)–(43) after lift-off needs
+  `ξ₁,t_C+1 > 0`. This holds iff the price level at lift-off is below its long-run level
+  (`LinksGaliWoodford.xi_pos_iff`, `LinksGaliWoodford.longrun_price`), and fails at an exact,
+  verified optimum (`β = 9/10`, `κ = 1/10`, `ϑ = 1/819`, `σ = 1`, `ρ = 1/10`, `η = 1/100`,
+  `t_Z = 0`), where output and inflation are negative from date 2 on and lift-off is at the end of
+  the shock, `t_C = t_Z` (`LinksGaliWoodford.cex_optimal`, `LinksGaliWoodford.cex_xi_neg`,
+  `LinksGaliWoodford.cex_liftoff_at_shock_end`). Commitment still lies above discretion on the
+  zero-rate spell (`LinksGaliWoodford.comm_gt_disc_of_state`).
+* *What is not proved.* `t_C ≥ t_Z`, that the bound binds on all of `[0, t_Z]` at the optimum, is
+  a hypothesis of the commitment theorems, as it is a guess of Galí's algorithm. It held in every
+  numerical check, but it is not derived from optimality: the restated Galí results give KKT
+  sufficiency, not necessity, and even granting necessity the response of the rate gap to the
+  bound multipliers has positive entries two or more periods apart, so a sign argument does not
+  exclude a slack date in the trap.
+
+**Woodford (2003), Chapter 6, §4.2, in the `StabilizationWelfare` project (`ZLB.lean`).**
+Proposition 6.9 replaces the bound by a constraint on the discounted mean and second moment of
+the interest rate, `Ê[i] ≥ 0` and `Ê[i²] ≤ K(Ê[i])²`. In `ZLB.lean` it is stated over an abstract
+convex policy set, so it shares no IS or Phillips-curve equations with Chapter 20, and the link
+is at the level of the constraint.
+* Neither constraint implies the other (`LinksGaliWoodford.Moments.neither_implies`). The
+  pathwise bound gives `Ê[i] ≥ 0` (`LinksGaliWoodford.Moments.pathwise_mean_nonneg`), and gives
+  Woodford's constraint under a band condition (`LinksGaliWoodford.Moments.band_moment_feasible`).
+  Conversely, Woodford's constraint bounds the discounted frequency of `i < 0` by
+  `1/(1 + k²)`, a Cantelli bound, where the pathwise bound requires `0`
+  (`LinksGaliWoodford.Moments.violation_freq_le`,
+  `LinksGaliWoodford.Moments.pathwise_violation_freq`).
+* Welfare. At constant inflation Woodford's dispersion recursion (2.20) converges to Cochrane's
+  stationary dispersion (`LinksGaliWoodford.disp_const_tendsto`), and under Woodford's discounted
+  criterion `Π_L = β` is better than `Π*` iff `1 < βΠ*`, as in E9
+  (`LinksGaliWoodford.woodford_zlb_better_iff`). Galí's deflationary steady state `π = −ρ`, `i = 0`
+  is `Π_L = β`, and it is strictly worse than his zero-inflation target in all three measures
+  (`LinksGaliWoodford.gali_deflation_steady`, `LinksGaliWoodford.gali_deflation_worse`).
 
 ## Relation to other Cochrane projects
 

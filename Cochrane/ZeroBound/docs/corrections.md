@@ -16,7 +16,9 @@ Out of scope are the empirical and discursive passages: the U.S. and Japanese ex
 QE operations (§20.1), the Occam discussion and the list of patches (§§20.1.1, 20.2.6), the 2020
 FOMC strategy, the interpretation of multipliers, secular stagnation, and the Covid narrative
 (Chapter 21) beyond its model claims and arithmetic. Lean names are relative to the namespace
-`Cochrane.ZeroBound`.
+`Cochrane.ZeroBound`. The comparison with Galí (2015) and Woodford (2003) in `LinksGaliWoodford`
+also gives two corrections to Galí's treatment of commitment at the bound, listed in their own
+section.
 
 ## Claims that are false as printed
 
@@ -58,6 +60,18 @@ FOMC strategy, the interpretation of multipliers, secular stagnation, and the Co
 | (20.8), p. 474 | Bounded, continuous forcing for the whole-line statement; integrable discounted surpluses for the fiscal reading | Hypotheses of `WerningModel.eq20_8_iff` and `ZLBSelection.jump_eq_fiscal` |
 | §20.2.6 | `0 ≤ M, M^f ≤ 1`, `0 < β < 1`, `σκ ≥ 0` | Hypotheses of `Gabaix.gabaix_determinate_iff` |
 | §20.3 | `0 < β ≤ 1` and `Π* ≥ 1`; the welfare loss is the second-order Calvo dispersion or the steady-state quadratic loss | Hypotheses of `ZLBWelfare.zlb_better_iff`; `ZLBWelfare.dispersion`, `ZLBWelfare.ssLoss` |
+
+## Claims of Galí (2015) refined by the links
+
+The module `LinksGaliWoodford` restates Galí's (2015) optimal commitment policy at the zero bound
+(§5.4.2, pp. 148–152) to compare it with Cochrane's forward guidance. Two features of Galí's
+solution are not properties of every commitment optimum. Galí's `ϑ` is the weight on the output
+gap, and `ξ₁`, `ξ₂` are the multipliers of the Phillips curve and of the bound.
+
+| Where | Book says | Finding |
+| --- | --- | --- |
+| Galí (2015) (42)–(43), p. 150 | After lift-off at `t_C + 1` the output gap and inflation follow (42)–(43), positive under the assumption `ξ₁,t_C+1 > 0`. | Positivity holds iff `ξ₁,t_C+1 > 0` (`LinksGaliWoodford.post_eq42_pos`, `LinksGaliWoodford.post_eq43_pos`, `LinksGaliWoodford.post_neg`), and the assumption is a condition on the optimum, not a property of it: `ξ₁,t_C+1 > 0` iff the price level at lift-off is below its long-run level `(βσ)⁻¹∑_{s≤t_C}ξ₂,s` (`LinksGaliWoodford.xi1_eq`, `LinksGaliWoodford.xi_pos_iff`, `LinksGaliWoodford.longrun_price`). It can fail at the optimum: at `β = 9/10`, `κ = 1/10`, `ϑ = 1/819`, `σ = 1`, `ρ = 1/10`, `η = 1/100`, `t_Z = 0` the verified, unique optimum has `ξ₁,1 < 0`, and output and inflation are strictly negative at every date from 2 on (`LinksGaliWoodford.cex_optimal`, `LinksGaliWoodford.cex_xi_neg`). Commitment still lies strictly above discretion on the zero-rate spell whenever the lift-off state is weakly positive and nonzero (`LinksGaliWoodford.comm_gt_disc_of_state`); dominance at every date, `LinksGaliWoodford.comm_gt_disc`, needs `ξ₁,t_C+1 > 0`. |
+| Galí (2015) pp. 151–152 | Under commitment the rate is kept at zero beyond the end of the shock; the algorithm guesses a lift-off date `t_C ≥ t_Z`. | Strictly later lift-off, `t_C > t_Z`, is not a property of every optimum: at the same exact point the optimum lifts off at the end of the shock, `t_C = t_Z = 0`, with `i₀ = 0` and `i_t > 0` for every `t ≥ 1` (`LinksGaliWoodford.cex_liftoff_at_shock_end`). The weak inequality `t_C ≥ t_Z` (the bound binds on all of `[0, t_Z]`) is not derived from optimality: it is a hypothesis of the commitment theorems (`LinksGaliWoodford.algorithm_verification`, `LinksGaliWoodford.comm_gt_disc`, `LinksGaliWoodford.comm_loss_lt`, `LinksGaliWoodford.comm_promise`). It held in every numerical check, but a proof needs the necessity of the KKT conditions, and even then the response of the rate gap to the bound multipliers has positive entries two or more periods apart, so a sign argument does not exclude a slack date in the trap. |
 
 ## Cosmetic errors (no Lean statement)
 
