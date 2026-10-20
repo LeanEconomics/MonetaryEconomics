@@ -10,7 +10,7 @@ Appendix C (pp. 670–686). Model equations hold for an arbitrary expectation op
 cover perfect foresight and genuine uncertainty; log-linear equations are exact derivatives of the
 nonlinear model, and determinacy means existence and uniqueness of a bounded adapted equilibrium
 for every bounded forcing, proved rather than assumed from a root count. The library contains
-**917 theorems**, including the shared core.
+**1108 theorems**, including the shared core.
 
 Headline results, in the namespace `Woodford.NeoWicksellianFramework`:
 * **The basic model and the natural rate.** The IS relation and the Phillips curve as exact
@@ -23,6 +23,17 @@ Headline results, in the namespace `Woodford.NeoWicksellianFramework`:
   determinacy theory: for 2×2 forward systems (`BlanchardKahn.fwdDeterminate_iff`) and for 3×3
   systems with one predetermined variable, where the root count needs a genericity condition the
   book omits (`BlanchardKahn.determinate3_iff`, `BlanchardKahn.diagEx_not_determinate`).
+* **General Blanchard–Kahn theorem.** The counting rule the appendix assumes, proved for any
+  number of non-predetermined and predetermined variables and any `ExpectationSystem`: determinate
+  iff no eigenvalue on the unit circle, a stable subspace of dimension equal to the number of
+  predetermined variables, and genericity (`GeneralBK.determinate_iff`,
+  `GeneralBK.determinate_iff_count`, `GeneralBKLinks.determinateOn_iff`). The pencil form
+  `A₀ E_t y_{t+1} = A₁ y_t + w_t` is covered, including singular `A₀` as in King–Watson and
+  Klein (`GeneralBKPencil.determinatePencil_iff_count`,
+  `GeneralBKSingular.determinatePencil_iff_general`); the 2×2 and 3×3 theorems are recovered
+  from it (`GeneralBKLinks.determinate2_iff_recovered`,
+  `GeneralBKLinks.determinate3_iff_recovered`), and the Proposition 4.4 model is determinate for
+  every bounded adapted forcing vector (`GeneralBKLinks.prop44_determinate3_iff`).
 * **Determinacy under interest-rate rules.** Propositions 4.2 and 4.3 (`Determinacy2.prop_4_2`,
   `Determinacy2.prop_4_3`), Proposition 4.4 corrected: false without feedback
   (`ThreeByThree.prop44`, `ThreeByThree.prop44_printed_false`), Propositions 4.5 and 4.7
@@ -78,6 +89,12 @@ only the claims the text makes about them.
 | [InflationDeterminants](NeoWicksellianFramework/InflationDeterminants.lean) | 110 | §2.4–2.5: (2.31)–(2.35) with (2.34) corrected, inertial rules, inflation inertia (2.36)–(2.39), n. 47, pp. 287–288 |
 | [TargetingRules](NeoWicksellianFramework/TargetingRules.lean) | 34 | §2.6: (2.40)–(2.44), strict and forecast targeting, the zero lower bound |
 | [Links](NeoWicksellianFramework/Links.lean) | 11 | §2–§3: the determinacy, learning, inertial-rule, Preston and money modules linked to each other and to the basic model |
+| [InvariantSplit](NeoWicksellianFramework/InvariantSplit.lean) | 52 | C.1: eigenvalues with multiplicity, the stable invariant subspace (dimension = stable count), its graph and the block-triangular split |
+| [GeneralBKForward](NeoWicksellianFramework/GeneralBKForward.lean) | 17 | C.1: forward systems over any finite index type (restated from `BlanchardKahn`) |
+| [GeneralBK](NeoWicksellianFramework/GeneralBK.lean) | 39 | C.1: the general Blanchard–Kahn theorem for any `ExpectationSystem`: sufficiency, and necessity by resonance, multiplicity and non-existence |
+| [GeneralBKPencil](NeoWicksellianFramework/GeneralBKPencil.lean) | 7 | C.1: the pencil form `A₀ E_t y_{t+1} = A₁ y_t + w_t` with invertible `A₀` |
+| [GeneralBKSingular](NeoWicksellianFramework/GeneralBKSingular.lean) | 49 | C.1: singular `A₀` (King–Watson, Klein): regularity, the Fitting split, infinite eigenvalues counted as unstable |
+| [GeneralBKLinks](NeoWicksellianFramework/GeneralBKLinks.lean) | 27 | C.1, C.3: any index type; Propositions C.1 and C.2 recovered; the Proposition 4.4 model determinate for every forcing vector |
 
 ## Build and verify
 

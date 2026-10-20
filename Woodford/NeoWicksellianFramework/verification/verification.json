@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-15T21:31:48.046548+00:00",
-  "theorems": 917,
+  "checked_at_utc": "2026-10-20T02:03:16.509185+00:00",
+  "theorems": 1108,
   "module_theorems": {
     "NeoWicksellianFramework/Determinacy.lean": 23,
     "NeoWicksellianFramework/Expectations.lean": 20,
@@ -20,9 +20,15 @@
     "NeoWicksellianFramework/Fiscal.lean": 47,
     "NeoWicksellianFramework/InflationDeterminants.lean": 110,
     "NeoWicksellianFramework/TargetingRules.lean": 34,
-    "NeoWicksellianFramework/Links.lean": 11
+    "NeoWicksellianFramework/Links.lean": 11,
+    "NeoWicksellianFramework/InvariantSplit.lean": 52,
+    "NeoWicksellianFramework/GeneralBKForward.lean": 17,
+    "NeoWicksellianFramework/GeneralBK.lean": 39,
+    "NeoWicksellianFramework/GeneralBKPencil.lean": 7,
+    "NeoWicksellianFramework/GeneralBKSingular.lean": 49,
+    "NeoWicksellianFramework/GeneralBKLinks.lean": 27
   },
-  "audited_declarations": 1236,
+  "audited_declarations": 1465,
   "declarations": [
     {
       "name": "Woodford.NeoWicksellianFramework.SchurStable",
@@ -6203,6 +6209,1151 @@
       "name": "Woodford.NeoWicksellianFramework.Links.gapIS_of_rational_rnHat",
       "kind": "theorem",
       "module": "NeoWicksellianFramework/Links.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.eigs",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.NoUnit",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.mem_eigs_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.exists_eigvec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.exists_left_eigvec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.mem_eigs_of_eigvec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.pow_mulVec_eigvec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.map_ofReal_pow",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.card_eigs",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.pow_entry_bound",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.norm_le_one_of_pow_bounded",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.boundedOrbits",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.mulVec_mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.mem_boundedOrbits_of_orbit",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.re_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.im_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.boundedOrbitsC",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.maxGenEigenspace_le_boundedOrbitsC",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_boundedOrbitsC_le",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_finset_sup",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.card_filter_eq_sum",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount_le_finrank",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.unstableCount",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount_add_unstableCount",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.restrict_block",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.norm_le_one_of_bounded_pow_mul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.exists_restrict_stable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_le_stableCount",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.tendsto_of_mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_eq_stableCount",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.boundedOrbits_eq_bot_of_unstable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.abs_entry_le_sum",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.rec_closed",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.rec_bounded",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.xrecV",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.GenericX",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.projX",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.graphV",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.IsGraph",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.matrix_eq_of_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.mulVec_sumElim",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.exists_graph",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.lam",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.cmat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.graph_invariant",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.graph_invariant_vec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.lam_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.mulVec_graphV",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.pow_mulVec_graphV",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.lam_pow_bounded",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.fromBlocks_shear_mul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.charpoly_split",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.charpoly_map_ofReal",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.eigs_split",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.lam_stable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.zero_of_cmat_orbit",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.cmat_unstable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount_eq_card",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_le_of_genericX",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.not_genericX_of_lt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.exists_unreached_of_lt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_eq_iff_stableCount_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/InvariantSplit.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_apply",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_apply_sum",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_add",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_sub",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.add_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.sub_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_one",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_zero",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_neg",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.E_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.AdaptedV",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.BoundedV",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.FSolves",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.boundedV_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.adaptedV_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.fsolves_iterate",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.abs_mv_le",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.fsolves_unique",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKForward.fsolves_exists",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKForward.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.map_ofReal_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.det_ne_zero_of_unstable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.inv_stable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.boundedV_add",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.boundedV_sub",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.boundedV_neg",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.adaptedV_add",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.adaptedV_sub",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.adaptedV_neg",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.Solves",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.Equil",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.Determinate",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.eval_split",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.mv_inl",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.mv_inr",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.zx_block_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.identity_zhat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.identity_x",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.identity_exist",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.identity_exist_x",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.xrecR",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.xrecR_bounded",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.xrecR_known",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.fsolves_iff_cform",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.determinate_of",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.sum_q_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.false_of_linear_growth",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.no_bounded_resonance",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.exists_left_eigvec_unit",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.nonexist_of_unit",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_unit",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.mult_of_not_genericX",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_not_genericX",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.nonexist_of_lt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_lt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_gt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff_count",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff_unstableCount",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff_perfectForesight",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.mem_boundedOrbits_of_tendsto",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBK.mem_boundedOrbits_iff_tendsto",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBK.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.SolvesPencil",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.EquilPencil",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.DeterminatePencil",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.solvesPencil_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.equilPencil_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.determinatePencil_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.pencilPoly",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.pencilPoly_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.eigs_pencil",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.mem_eigs_pencil_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKPencil.determinatePencil_iff_count",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKPencil.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.pow_mulVec_eq",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.exists_fitting",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.Fitting",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.Fitting.basic",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.pow_bound_of_pow_eq_zero",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat_proj",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.split_ahat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.split_pencil",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.adaptedV_Enext",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.boundedV_Enext",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.boundedV_smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.adaptedV_smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.Enext_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.smul_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.mv_smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.mv_smul_one",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.twoBlock_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.twoBlock_existsUnique",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.rmat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.kmat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.commute_rmat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.kmat_pow",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.zero_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.neg_mv",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.nil_facts",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencilV_step",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencilV_existsUnique",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencil_reduce",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencil_iff_ahat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.mvQ_idem",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencil_Vpart",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat_Vpart",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.determinatePencil_iff_ahat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.factor_idem",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.det_one_add_smul_nilpotent",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.fpoly",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.gpoly",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_det_mapMatrix",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_fpoly",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_gpoly",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_pencilPoly",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat_comm",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.scalar_eq_smul_one",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.poly_relations",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.det_NPQ_ne_zero",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.gpoly_roots",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.eigs_ahat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.noUnit_ahat_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.stableCount_ahat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.PencilBounded",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.mem_boundedOrbits_ahat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.nonexist_of_not_regular",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.GenericPencil",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.exists_regular_point",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.determinatePencil_iff_general",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKSingular.unstable_add_infinite",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKSingular.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.EquilOn",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.DeterminateOn",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.GenericOn",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.mv_reindex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.equilOn_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinateOn_iff_determinate",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.reindex_pow",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.mem_boundedOrbits_reindex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.eigs_reindex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.genericX_reindex_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinateOn_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinateOn_iff_finrank",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.e2",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.equilOn_e2_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate2_iff_on",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.mem_eigs_two",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.unstable_iff_bothOutside",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate2_iff_eigs",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate2_iff_recovered",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.e3",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.e3_symm_inr",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.equilOn_e3_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate3_iff_on",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.genericOn_e3_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.eval_charpoly_three",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.eigs_of_factors",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.oneInTwoOut_iff_count",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.generic_iff_genericOn",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate3_iff_recovered",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.prop44_bk_conditions",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.prop44_determinate3",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.GeneralBKLinks.prop44_determinate3_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/GeneralBKLinks.lean"
     }
   ],
   "full_build": "passed",
@@ -12387,6 +13538,1141 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.eigs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.NoUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.mem_eigs_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.exists_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.exists_left_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.mem_eigs_of_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.pow_mulVec_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.map_ofReal_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.card_eigs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.pow_entry_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.norm_le_one_of_pow_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.mulVec_mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.mem_boundedOrbits_of_orbit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.re_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.im_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.boundedOrbitsC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.maxGenEigenspace_le_boundedOrbitsC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_boundedOrbitsC_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_finset_sup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.card_filter_eq_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount_le_finrank": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount_add_unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.restrict_block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.norm_le_one_of_bounded_pow_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.exists_restrict_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_le_stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.tendsto_of_mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_eq_stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.boundedOrbits_eq_bot_of_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.abs_entry_le_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.rec_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.rec_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.xrecV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.GenericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.projX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.IsGraph": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.matrix_eq_of_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.mulVec_sumElim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.exists_graph": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.cmat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.graph_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.graph_invariant_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.lam_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.mulVec_graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.pow_mulVec_graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.lam_pow_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.fromBlocks_shear_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.charpoly_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.charpoly_map_ofReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.eigs_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.lam_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.zero_of_cmat_orbit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.cmat_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.stableCount_eq_card": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_le_of_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.not_genericX_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.exists_unreached_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.InvariantSplit.finrank_eq_iff_stableCount_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_apply_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.add_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.sub_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.mv_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.E_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.AdaptedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.BoundedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.FSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.boundedV_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.adaptedV_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.fsolves_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.abs_mv_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.fsolves_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKForward.fsolves_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.map_ofReal_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.det_ne_zero_of_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.inv_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.boundedV_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.boundedV_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.boundedV_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.adaptedV_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.adaptedV_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.adaptedV_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.Equil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.eval_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.mv_inl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.mv_inr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.zx_block_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.identity_zhat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.identity_x": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.identity_exist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.identity_exist_x": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.xrecR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.xrecR_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.xrecR_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.fsolves_iff_cform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.determinate_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.sum_q_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.false_of_linear_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.no_bounded_resonance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.exists_left_eigvec_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.nonexist_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.mult_of_not_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_not_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.nonexist_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.not_determinate_of_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff_count": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff_unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.determinate_iff_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.mem_boundedOrbits_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBK.mem_boundedOrbits_iff_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.SolvesPencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.EquilPencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.DeterminatePencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.solvesPencil_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.equilPencil_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.determinatePencil_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.pencilPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.pencilPoly_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.eigs_pencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.mem_eigs_pencil_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKPencil.determinatePencil_iff_count": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.pow_mulVec_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.exists_fitting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.Fitting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.Fitting.basic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.pow_bound_of_pow_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat_proj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.split_ahat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.split_pencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.adaptedV_Enext": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.boundedV_Enext": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.boundedV_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.adaptedV_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.Enext_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.smul_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.mv_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.mv_smul_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.twoBlock_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.twoBlock_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.rmat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.kmat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.commute_rmat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.kmat_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.zero_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.neg_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.nil_facts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencilV_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencilV_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencil_reduce": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencil_iff_ahat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.mvQ_idem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.pencil_Vpart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat_Vpart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.determinatePencil_iff_ahat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.factor_idem": [],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.det_one_add_smul_nilpotent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.fpoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.gpoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_det_mapMatrix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_fpoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_gpoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.eval_pencilPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.ahat_comm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.scalar_eq_smul_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.poly_relations": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.det_NPQ_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.gpoly_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.eigs_ahat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.noUnit_ahat_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.stableCount_ahat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.PencilBounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.mem_boundedOrbits_ahat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.nonexist_of_not_regular": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.GenericPencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.exists_regular_point": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.determinatePencil_iff_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKSingular.unstable_add_infinite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.EquilOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.DeterminateOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.GenericOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.mv_reindex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.equilOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinateOn_iff_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.reindex_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.mem_boundedOrbits_reindex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.eigs_reindex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.genericX_reindex_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinateOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinateOn_iff_finrank": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.e2": [],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.equilOn_e2_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate2_iff_on": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.mem_eigs_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.unstable_iff_bothOutside": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate2_iff_eigs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate2_iff_recovered": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.e3": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.e3_symm_inr": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.equilOn_e3_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate3_iff_on": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.genericOn_e3_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.eval_charpoly_three": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.eigs_of_factors": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.oneInTwoOut_iff_count": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.generic_iff_genericOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.determinate3_iff_recovered": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.prop44_bk_conditions": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.prop44_determinate3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.GeneralBKLinks.prop44_determinate3_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -12409,16 +14695,22 @@
     "NeoWicksellianFramework/InflationDeterminants.lean": "3473da2196bc84a60cf10084488fb5c1a26e97228de0e2be97302f8d65a5b275",
     "NeoWicksellianFramework/TargetingRules.lean": "670be29f7f372d6a77d3c87603e57be5d4b09ae78263b2ccc8b850b4389c2c5e",
     "NeoWicksellianFramework/Links.lean": "71e7c652d0339420c9b46e0fcc71ecb5ceb3b856ca42da43827434d62076a51f",
-    "NeoWicksellianFramework.lean": "522cda606a664906e240e1c3ef89b5918d47cef8eff49ee4b8c93e37eba3d6b4",
+    "NeoWicksellianFramework/InvariantSplit.lean": "577e2adc4844c9fa62fa3c854204676043c4f2284dd82c1217eeb20bbe3feda3",
+    "NeoWicksellianFramework/GeneralBKForward.lean": "f6b90345f10abcf4b9772b79eb2421b3ccacb636ac45dada9356b18f2553b7c8",
+    "NeoWicksellianFramework/GeneralBK.lean": "5d77f831f7f1b2eee469a82423e4e7790e0406bde07d1d79cd18f442707ad710",
+    "NeoWicksellianFramework/GeneralBKPencil.lean": "3466e79b571d97cecf22f50390267cdfcb4c521740566ec49fc074c5c5f34ea0",
+    "NeoWicksellianFramework/GeneralBKSingular.lean": "85ecc6d79e5c96f8a2068bca2a24e7f2004241c3717b87ad3b16ea83446559a8",
+    "NeoWicksellianFramework/GeneralBKLinks.lean": "6954f7cb3a61181d16d53f1f92d2c8f003f18e4ae2253dff99f3af558136d6f8",
+    "NeoWicksellianFramework.lean": "2c34a22bdfeeefb091ae061128fc4dc7437a621390d40d83aeb0b13679fadf65",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "0ed812018f1f963607b665f199d9e8f98170bdb6aa76ff7e2e97e3098a59f6b7",
     "lake-manifest.json": "f5b6732ad0236d4b73ec7de0913c83bbe1ea87d5215892f2c2f59287533a0749",
-    "proof-manifest.json": "502fa9ef92f37f1f06448840ff4b722806933c8e77325dbe5046a2d8f3d6bdaa",
+    "proof-manifest.json": "cd035761f0be433b2945ab0eb84990a3e6bd89f12de1468597d7b88dbf2444f6",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "6870fc96ec3e50da1b50cb0037b7828436b32fb8610e605a9c2a1a8c7054c931",
+  "fresh_audit_sha256": "2db310c805615e0b15547fb075f890fd19d538a28a1a35be4020fd60d44e71be",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Woodford, Interest and Prices, Chapter 4: A Neo-Wicksellian Framework for the Analysis of Monetary Policy, with Appendix C. The basic model as exact derivatives and the natural rate of interest (Prop 4.1); Schur-Cohn root-location criteria for quadratics and cubics (Props C.1, C.2) and a proved Blanchard-Kahn theory for 2x2 forward systems and 3x3 systems with one predetermined variable (with the genericity condition the book omits); determinacy under exogenous, Taylor, inertial, forward-looking and price-level rules (Props 4.2-4.7; Prop 4.4 corrected; Prop 4.6 necessity); E-stability under sample-mean and regression learning with a Kronecker spectrum theorem (Props 4.8, 4.9) and Preston's long-horizon forms; determinants of inflation, targeting rules and the zero lower bound; money with non-separable utility; fiscal requirements and Prop 4.11 (with its non-degeneracy condition).",
-  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 4, pp. 237-319, and Appendix C, pp. 670-686."
+  "scope": "Woodford, Interest and Prices, Chapter 4: A Neo-Wicksellian Framework for the Analysis of Monetary Policy, with Appendix C. The basic model as exact derivatives and the natural rate of interest (Prop 4.1); Schur-Cohn root-location criteria for quadratics and cubics (Props C.1, C.2) and a proved Blanchard-Kahn theory for 2x2 forward systems and 3x3 systems with one predetermined variable (with the genericity condition the book omits), plus the general Blanchard-Kahn theorem the book assumes: for any number of variables and predetermined variables and any expectation system, determinacy iff no unit-circle eigenvalue, stable dimension equal to the number of predetermined variables, and genericity, with the pencil form including singular A0 (King-Watson/Klein); determinacy under exogenous, Taylor, inertial, forward-looking and price-level rules (Props 4.2-4.7; Prop 4.4 corrected; Prop 4.6 necessity); E-stability under sample-mean and regression learning with a Kronecker spectrum theorem (Props 4.8, 4.9) and Preston's long-horizon forms; determinants of inflation, targeting rules and the zero lower bound; money with non-separable utility; fiscal requirements and Prop 4.11 (with its non-degeneracy condition).",
+  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 4, pp. 237-319, and Appendix C, pp. 670-686; Blanchard and Kahn (1980); King and Watson (1998); Klein (2000)."
 }

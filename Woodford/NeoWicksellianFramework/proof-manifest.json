@@ -19,7 +19,13 @@
     "NeoWicksellianFramework/Fiscal.lean",
     "NeoWicksellianFramework/InflationDeterminants.lean",
     "NeoWicksellianFramework/TargetingRules.lean",
-    "NeoWicksellianFramework/Links.lean"
+    "NeoWicksellianFramework/Links.lean",
+    "NeoWicksellianFramework/InvariantSplit.lean",
+    "NeoWicksellianFramework/GeneralBKForward.lean",
+    "NeoWicksellianFramework/GeneralBK.lean",
+    "NeoWicksellianFramework/GeneralBKPencil.lean",
+    "NeoWicksellianFramework/GeneralBKSingular.lean",
+    "NeoWicksellianFramework/GeneralBKLinks.lean"
   ],
   "theorem_counts": {
     "NeoWicksellianFramework/Determinacy.lean": 23,
@@ -40,8 +46,14 @@
     "NeoWicksellianFramework/Fiscal.lean": 47,
     "NeoWicksellianFramework/InflationDeterminants.lean": 110,
     "NeoWicksellianFramework/TargetingRules.lean": 34,
-    "NeoWicksellianFramework/Links.lean": 11
+    "NeoWicksellianFramework/Links.lean": 11,
+    "NeoWicksellianFramework/InvariantSplit.lean": 52,
+    "NeoWicksellianFramework/GeneralBKForward.lean": 17,
+    "NeoWicksellianFramework/GeneralBK.lean": 39,
+    "NeoWicksellianFramework/GeneralBKPencil.lean": 7,
+    "NeoWicksellianFramework/GeneralBKSingular.lean": 49,
+    "NeoWicksellianFramework/GeneralBKLinks.lean": 27
   },
-  "scope": "Woodford, Interest and Prices, Chapter 4: A Neo-Wicksellian Framework for the Analysis of Monetary Policy, with Appendix C. The basic model as exact derivatives and the natural rate of interest (Prop 4.1); Schur-Cohn root-location criteria for quadratics and cubics (Props C.1, C.2) and a proved Blanchard-Kahn theory for 2x2 forward systems and 3x3 systems with one predetermined variable (with the genericity condition the book omits); determinacy under exogenous, Taylor, inertial, forward-looking and price-level rules (Props 4.2-4.7; Prop 4.4 corrected; Prop 4.6 necessity); E-stability under sample-mean and regression learning with a Kronecker spectrum theorem (Props 4.8, 4.9) and Preston's long-horizon forms; determinants of inflation, targeting rules and the zero lower bound; money with non-separable utility; fiscal requirements and Prop 4.11 (with its non-degeneracy condition).",
-  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 4, pp. 237-319, and Appendix C, pp. 670-686."
+  "scope": "Woodford, Interest and Prices, Chapter 4: A Neo-Wicksellian Framework for the Analysis of Monetary Policy, with Appendix C. The basic model as exact derivatives and the natural rate of interest (Prop 4.1); Schur-Cohn root-location criteria for quadratics and cubics (Props C.1, C.2) and a proved Blanchard-Kahn theory for 2x2 forward systems and 3x3 systems with one predetermined variable (with the genericity condition the book omits), plus the general Blanchard-Kahn theorem the book assumes: for any number of variables and predetermined variables and any expectation system, determinacy iff no unit-circle eigenvalue, stable dimension equal to the number of predetermined variables, and genericity, with the pencil form including singular A0 (King-Watson/Klein); determinacy under exogenous, Taylor, inertial, forward-looking and price-level rules (Props 4.2-4.7; Prop 4.4 corrected; Prop 4.6 necessity); E-stability under sample-mean and regression learning with a Kronecker spectrum theorem (Props 4.8, 4.9) and Preston's long-horizon forms; determinants of inflation, targeting rules and the zero lower bound; money with non-separable utility; fiscal requirements and Prop 4.11 (with its non-degeneracy condition).",
+  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 4, pp. 237-319, and Appendix C, pp. 670-686; Blanchard and Kahn (1980); King and Watson (1998); Klein (2000)."
 }
