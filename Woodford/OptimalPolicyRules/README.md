@@ -12,14 +12,14 @@ sums over bounded plans. Every optimality claim is proved as optimality: a feasi
 the first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Optimal from a timeless perspective" and
 "robustly optimal" are given precise definitions and proved. "Unique equilibrium" means unique
-among bounded adapted processes. The library contains **1180 theorems**, including the shared
+among bounded adapted processes. The library contains **1679 theorems**, including the shared
 core.
 
-The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4) is deferred until both
-books are finished, by the author's decision. Proposition 8.1's conclusion is a hypothesis
-structure and Proposition 8.3 a stated claim, and everything the chapter derives from them is
-proved. All the concrete results (§§2–4, Propositions 8.5–8.11, Appendix G.2–G.10) are proved
-in full.
+The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4), which the book states
+without proof, is proved in general, in corrected form where the printed statement fails (see
+[Propositions 8.1–8.4 in general](#propositions-8184-in-general)). All the concrete results
+(§§2–4, Propositions 8.5–8.11, Appendix G.2–G.10) are proved in full, and the general theory is
+specialised to the basic and inflation-inertia models.
 
 Headline results, in the namespace `Woodford.OptimalPolicyRules`:
 * **The general framework.** Lagrangian sufficiency for the general LQ problem (1.1)–(1.4) under
@@ -74,6 +74,86 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
   equilibrium is the unique solution of the p. 593 rule system (`Links.inertia_system_gamma_zero`);
   the model equations of the sections agree (`Links.asInd_iff`).
 
+## Propositions 8.1–8.4 in general
+
+Twenty-four modules (499 theorems, from `PencilSplit` to `GeneralTheoryLinks` in the library map)
+prove the general theory of §§1.4–1.5 and Appendix G.1–G.2, which the book takes from Giannoni and
+Woodford (2002a) without proof.
+
+* **Proposition 8.1 from Assumptions 8.2–8.4**, through a real deflating pair `A J = Î J Ψ` of the
+  pencil (1.15) (App. G.1), for any expectation system. Three corrections:
+  * *Multipliers known at their date.* The statement needs `M_t` known at `t` (as p. 540 says) and
+    adapted plans (`Prop81General.Prop81ConclusionM`, `Prop81General.prop81`,
+    `PencilAssumptions.prop81_of_assumptions`). Without this it is false under uncertainty
+    (`Prop81General.not_prop81Equiv_coin`); under perfect foresight the original holds
+    (`Prop81General.prop81_perfectForesight`).
+  * *Repeated roots.* The distinct-root clause of Assumption 8.3 is replaced by selecting whole
+    root classes, through generalised eigenspaces (`PencilRepeated.SelWhole`,
+    `PencilRepeated.prop81_of_assumptions_general`).
+  * *Case (ii) of Assumption 8.2* (one unpaired complex root). The book's Assumption 8.4(ii)
+    depends on how the eigenvector is scaled (`Prop81Unique.re_det_rescale_zero`,
+    `CaseIIInstance.book_condition_depends_on_scaling`). It is replaced by a normalisation-free
+    condition (`CaseIIBasis.Assumption84II`, basis-invariant by `CaseIIBasis.basis_invariance`),
+    under which Proposition 8.1 holds (`CaseIIBasis.prop81_caseII`). An explicit system shows the
+    condition is not vacuous (`CaseIIInstance.ex82`, `CaseIIInstance.ex84`,
+    `CaseIIInstance.ex_prop81`).
+
+  The uniqueness remark of p. 553 holds when no root lies on `|μ| = β⁻¹`
+  (`Prop81Unique.remark_p553`), and `deg α = rank Λ = rank Ẽ` (E18) under the assumptions
+  (`PencilAssumptions.natDegree_alpha_eq_rank`).
+* **Proposition 8.2 without the stability hypothesis**, and with Assumption 8.1 corrected.
+  * `TargetCriterion.Recursion.MultStable` fails whenever Assumption 8.7 holds
+    (`PencilAssumptions.not_multStable_of_unselected`). Assumption 8.5 is what keeps the
+    multipliers bounded (`Prop82General.KrylovBound.boundedV_of_krylov`).
+  * The earlier formalisation of Assumption 8.1 cannot hold under uncertainty
+    (`NKAssumption81.not_assumption81_coin`). The corrected one takes a bounded initial
+    multiplier known at `t₀ − 1` (`Prop82General.Assumption81M`).
+  * Proved: existence, uniqueness, optimality subject to (1.27), and the time-invariant multiplier
+    rule (1.17) (`Prop82General.Prop82M.prop82M_determinate`,
+    `Prop82General.Prop82M.prop82M_optimal`, `Prop82General.Prop82M.prop82M_multiplier_rule`);
+    the `d = min(k, n_z − 1)` lags of (1.24) suffice (`MultiplierLags.rule_lags_lt`,
+    `MultiplierLags.rule_lags_full`).
+  * Robust optimality: `Prop82General.Prop82M.prop82M_robustlyOptimal`, and from the assumptions
+    `PencilAssumptions.prop82_of_assumptions`, `PencilRepeated.prop82_of_assumptions_general`,
+    `CaseIIBasis.prop82_caseII`.
+* **Proposition 8.3 with the no-circle hypothesis.** For every representation of Proposition 8.1,
+  `α(L)` has exactly `m` zeros inside the unit circle when no root of (1.15) has `|λ| = β⁻¹`
+  (`Prop83.prop83`, `Prop83Links.prop83M`, `Prop83Links.prop83M_const`). Without that hypothesis
+  only the bounds hold (`Prop83.prop83_bounds`), and the exact count fails
+  (`Prop83.circle_counterexample`). Assumption 8.1 does not exclude roots on the circle
+  (`Circle81.assumption81_not_exclude_circle`).
+* **Proposition 8.4, unconditional.**
+  * The bounded forward inverse exists and is unique exactly when every root is outside the unit
+    circle (`Prop84General.forward_inverse_existsUnique`, `Prop84General.forward_inverse_iff`).
+  * The factorisation `α = α₁α₂` (`Prop84General.alpha_factorization`).
+  * (1.28) ⇔ (1.32) (`Prop84General.prop84`, `Prop84General.prop84_criterion`,
+    `Prop83Links.prop84M`). Every hypothesis of the earlier conditional theorem is discharged
+    (`GeneralTheoryLinks.Old.prop84_conditional_discharged`).
+* **Worked instance: the basic model (§3.1).**
+  * Assumptions 8.1–8.5 hold (`NKAssumption81.NK.nk_assumption81M`,
+    `GeneralTheoryLinks.NK.nk_assumption82`, `GeneralLinks.nk_assumption83`,
+    `GeneralTheoryLinks.NK.nk_assumption84`, `GeneralTheoryLinks.NK.nk_assumption85`).
+  * Propositions 8.1 and 8.3 are fully unconditional (`GeneralTheoryLinks.NK.nk_prop81_prop83`).
+  * Proposition 8.2 needs only pull-out (`GeneralTheoryLinks.NK.nk_prop82`).
+  * The general criterion is the rule (3.7) (`GeneralLinks.nk_crit_iff_rule`), and Propositions
+    8.5 (superinertia) and 8.6 follow from the general theory (`GeneralLinks.nk_zerosInside`,
+    `GeneralLinks.prop_8_6_from_general`).
+* **Worked instance: the inflation-inertia model (§3.2).**
+  * Propositions 8.1 and 8.3 hold at every admissible calibration
+    (`GeneralTheoryLinks.Inertia.in_props_81_83_all`). This covers the complex case, through the
+    corrected Assumption 8.4(ii) (`InertiaProp8182.in_assumption84II`,
+    `InertiaProp8182.in_prop81_complex`), and the double root, where Assumption 8.3 fails
+    (`GeneralTheoryLinks.Inertia.in_double_props_81_83`).
+  * Rules I and II are exactly the general criterion (1.23) for the two deflating splits
+    (`InertiaCriterion.crit_iff_ruleI`, `InertiaCriterion.crit_iff_ruleII`).
+  * Rule III is not of the form (1.28) for any deflating split (`InertiaSplit.split_classify`,
+    `InertiaSplit.split_not_ruleIII`). It is compatible with the homogeneous content of
+    Proposition 8.1 (`InertiaRuleIII.ruleIII_homEquiv`).
+  * Proposition 8.2 holds in the real case, given the corrected Assumption 8.1
+    (`InertiaProp8182.in_prop82_real`).
+  * Proposition 8.9's `ρ₁ > 1` and Proposition 8.10 follow from the general theory
+    (`InertiaSplit.prop_8_9_rho1_from_general`, `InertiaProp810.prop_8_10_via_prop84`).
+
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise. The main corrections and results:
@@ -91,20 +171,38 @@ the printed text precise. The main corrections and results:
   and 8.11, closed;
 * the printed `φ_x = .15` of pp. 590–591 is `.164` (S2), and `φ_x = .33` of p. 586 is `.3226`;
   `λ_x = .0026` of p. 574 is `.0027`;
-* the Fig. 8.4 ratio `.39` confirmed by the enclosure `(.386, .389)`.
+* the Fig. 8.4 ratio `.39` confirmed by the enclosure `(.386, .389)`;
+* in the general theory: Proposition 8.3 needs no root of (1.15) on `|λ| = β⁻¹`, and so does the
+  remark of p. 553; Assumption 8.4(ii) is normalisation-dependent in case (ii) and is replaced;
+  Assumption 8.3 is sufficient but not necessary; the `MultStable` hypothesis is unnecessary.
+  Separately, two hypothesis structures of the earlier formalisation (the original Proposition
+  8.1 conclusion and Assumption 8.1) were found unsatisfiable under uncertainty and corrected;
+  these are formalisation errors, not the book's.
 
 Not formalised:
-* the general theory of §§1.4–1.5: Propositions 8.1–8.4 are present only as hypothesis structures
-  and conditional theorems (`TargetCriterion.Prop81.Prop81Conclusion`,
-  `TargetCriterion.Prop83Claim`, `TargetCriterion.prop84_conditional`), deferred until both books
-  are finished (author's decision); with them Assumptions 8.3–8.4 (App. G.1), the claim of
-  Proposition 8.2 that the equilibrium has the form (1.5) with (1.24) (so `GeneralSetup.RobustlyOptimal`
-  is not instantiated in the general setting), the existence of the bounded forward inverse in
-  Proposition 8.4, a general "exactly half" root count for fn 8, and the exogenous-instrument
-  determinacy claim of p. 546;
-* the specialisation of the general target-criterion machinery of §1 to the concrete models of
-  §§2–3, deferred with Propositions 8.1–8.4: the concrete sections prove their own optimality
-  directly, and only the faithfulness hypothesis is shared;
+* in the general theory:
+  * Assumption 8.1 for the inflation-inertia model, so its Proposition 8.2
+    (`InertiaProp8182.in_prop82_real`) keeps the corrected assumption as a hypothesis. It would
+    need a third-order Blanchard–Kahn theorem with two initial conditions;
+  * Proposition 8.2 for the inflation-inertia model in its complex case, which needs Assumption
+    8.5 for the `Λ` of the case-(ii) construction;
+  * Rule III at the full stochastic level. Only the homogeneous level (`Prop83.HomEquiv`), which is
+    all Proposition 8.3 uses, is proved;
+  * the claim of Proposition 8.2 that the equilibrium has the linear form (1.5) in `(Z̄_t, s_t)`.
+    This needs a finite-dimensional exogenous state and a time-invariant expectation system,
+    neither of which is in the framework;
+  * repeated roots when the selection takes only part of a root class (`PencilRepeated.SelWhole`
+    fails);
+  * ∃ ⇒ ∀ for `CaseIIBasis.Assumption84II` when the zero root is not semisimple. It is proved when
+    the zero root is semisimple (`CaseIIBasis.all_of_ex_semisimple`);
+  * uniqueness of `Λ` and `Υ` in the remark of p. 553 when a root lies on `|μ| = β⁻¹`. Only the
+    failure of existence is shown (`Prop81Unique.circle_counterexample`);
+  * a counterexample to Proposition 8.3 that satisfies the full Assumption 8.1. The circle
+    counterexample is at the level of `Prop83.HomEquiv`;
+  * Proposition 8.2 for the case-(ii) example system (`CaseIIInstance.exProblem`), whose
+    Assumptions 8.1 and 8.5 are not checked;
+* in §1: a general "exactly half" root count for fn 8, and the exogenous-instrument determinacy
+  claim of p. 546;
 * necessity of the first-order conditions (that every optimum satisfies them), which the book
   also asserts without proof; consequently the direction "original ⇒ restated" of (1.11)–(1.12)
   is conditional (`GeneralFOC.LQ.timeless_restated`), and the necessity of the (2.5) criterion is
@@ -159,6 +257,30 @@ Not formalised:
 | [ImperfectInfo](OptimalPolicyRules/ImperfectInfo.lean) | 9 | §3.4: (3.32)–(3.35) |
 | [InflationInertiaRepresentations](OptimalPolicyRules/InflationInertiaRepresentations.lean) | 140 | §3.2, App. G.8–G.10: Propositions 8.9–8.11, Lemma G.2, Figures 8.3–8.5 |
 | [Links](OptimalPolicyRules/Links.lean) | 59 | Proofs that the different formalisations of the same book objects agree |
+| [PencilSplit](OptimalPolicyRules/PencilSplit.lean) | 27 | App. G.1: vector forward solutions (Gelfand decay), the deflating pair `A J = Î J Ψ` (`DeflatingSplit`), the matrices `Λ`, `Υ`, `K` of (1.20)–(1.21) |
+| [Prop81General](OptimalPolicyRules/Prop81General.lean) | 17 | Prop 8.1 from any deflating split, corrected so multipliers are known at their date (`Prop81ConclusionM`); the original fails under uncertainty (coin-flip counterexample); rank `Λ` = rank `Ẽ` |
+| [Prop82General](OptimalPolicyRules/Prop82General.lean) | 18 | Prop 8.2 without `MultStable`: Assumption 8.5 bounds the multipliers; the multiplier rule (1.17); robust optimality; the corrected Assumption 8.1 (`Assumption81M`) |
+| [PencilEigen](OptimalPolicyRules/PencilEigen.lean) | 31 | Assumptions 8.2 and 8.3 as stated; a real deflating pair from eigenvectors, (G.1)–(G.4); the kernel clauses of Assumption 8.3 always hold |
+| [PencilAssumptions](OptimalPolicyRules/PencilAssumptions.lean) | 24 | Assumptions 8.4–8.5, (G.6)–(G.7); Props 8.1 and 8.2 from Assumptions 8.1–8.5; `deg α = rank Λ = rank Ẽ` (E18); `MultStable` fails under Assumption 8.7 |
+| [Prop81Unique](OptimalPolicyRules/Prop81Unique.lean) | 17 | The remark of p. 553 (unique `Λ`, `Υ`, `Q`, `R` and multipliers) with no root on the circle, and its counterexample; no real split carries an unpaired complex root |
+| [PencilRepeated](OptimalPolicyRules/PencilRepeated.lean) | 33 | Prop 8.1 and 8.2 with repeated roots: generalised eigenspaces of the shifted pencil and real descent, for selections of whole root classes |
+| [Prop81CaseII](OptimalPolicyRules/Prop81CaseII.lean) | 14 | Props 8.1 and 8.2 in case (ii) of Assumption 8.2 (`QuasiSplit`, residual root `h`), under the basis-universal Assumption 8.4(ii) |
+| [MultiplierLags](OptimalPolicyRules/MultiplierLags.lean) | 6 | (1.24): `d = min(k, n_z − 1)` lags of `q` suffice for the multiplier rule; the role of the first part of Assumption 8.5 |
+| [CaseIIBasis](OptimalPolicyRules/CaseIIBasis.lean) | 19 | The corrected Assumption 8.4(ii) is basis-invariant; the existential form, ∃ ⇔ ∀ when the zero root is semisimple; Props 8.1 and 8.2 in case (ii) |
+| [CaseIIInstance](OptimalPolicyRules/CaseIIInstance.lean) | 20 | Case (ii) with `n_Z = 1`: the residual root as a function of the eigenvector's scaling, the book's normalisation, and a system satisfying Assumptions 8.2(ii) and 8.4(ii) |
+| [Prop83](OptimalPolicyRules/Prop83.lean) | 56 | Prop 8.3 for every representation, with no root on `\|λ\| = β⁻¹`; the bounds without it; the Jordan-block counterexample; nonempty sample space needed |
+| [Prop84General](OptimalPolicyRules/Prop84General.lean) | 21 | Prop 8.4 unconditional: the bounded forward inverse (exact root condition), the factorisation `α = α₁α₂`, (1.28) ⇔ (1.32) from any date |
+| [GeneralLinks](OptimalPolicyRules/GeneralLinks.lean) | 31 | The basic model (§3.1) as a general problem: (1.1), (1.9), `Λ`, `α`, the criterion is the rule (3.7); Props 8.5 and 8.6 from the general theory |
+| [GeneralLinksInertia](OptimalPolicyRules/GeneralLinksInertia.lean) | 11 | The inflation-inertia model (§3.2) as a general problem: (1.1), (1.9); Prop 8.10 from the (1.30) ⇔ (1.31) lemma |
+| [Prop83Links](OptimalPolicyRules/Prop83Links.lean) | 7 | Props 8.3 and 8.4 for the corrected representation of Prop 8.1; Prop 8.3 without Assumption 8.1 |
+| [Circle81](OptimalPolicyRules/Circle81.lean) | 5 | Assumption 8.1 does not exclude roots of (1.15) on `\|μ\| = β⁻¹` |
+| [InertiaSplit](OptimalPolicyRules/InertiaSplit.lean) | 54 | The inflation-inertia model: its pencil, every deflating split classified, Prop 8.3 for every representation, Rule III not a split's rule, Prop 8.9's `ρ₁ > 1` |
+| [InertiaProp810](OptimalPolicyRules/InertiaProp810.lean) | 5 | Prop 8.10 from the general Prop 8.4 (real case) |
+| [InertiaCriterion](OptimalPolicyRules/InertiaCriterion.lean) | 13 | The general criterion (1.23) of the inflation-inertia model is Rule I or Rule II |
+| [InertiaRuleIII](OptimalPolicyRules/InertiaRuleIII.lean) | 5 | `Λ` is not pinned down by the homogeneous content of Prop 8.1; Rule III is compatible with it |
+| [NKAssumption81](OptimalPolicyRules/NKAssumption81.lean) | 23 | Assumption 8.1 for the basic model (corrected form, any expectation system); the original formalisation fails under uncertainty |
+| [InertiaProp8182](OptimalPolicyRules/InertiaProp8182.lean) | 13 | The inflation-inertia model: Assumption 8.5, Prop 8.2 in the real case, Assumptions 8.2(ii) and 8.4(ii) and Prop 8.1 in the complex case |
+| [GeneralTheoryLinks](OptimalPolicyRules/GeneralTheoryLinks.lean) | 29 | Links: the bounded-orbit subspace; Props 8.1–8.3 at the double root and at every calibration of the inflation-inertia model; Assumptions 8.2–8.5 and Props 8.1–8.3 for the basic model; old vs corrected structures |
 
 ## Modelling conventions
 
@@ -180,9 +302,11 @@ Not formalised:
   (`ExpectationTools.Faithful`, true for perfect foresight); without it the optimum is unique in
   conditional mean square (`InflTargetPredetermined.welfare_eq_imp`). Parameter restrictions the
   book leaves implicit (`0 < β < 1`, `κ, σ, λ > 0`, `0 ≤ γ ≤ 1`, `0 ≤ δ < 1`) are hypotheses.
-* **Deferred and supplied results as hypotheses.** Proposition 8.1's conclusion is the structure
-  `TargetCriterion.Prop81.Prop81Conclusion`. Proposition 8.7's conclusions enter Propositions
-  8.9–8.11 as the structure `InflationInertiaRepresentations.InertiaRoots`, which
+* **Supplied results as hypotheses.** The chapter's derivations from Proposition 8.1 take its
+  conclusion as the structure `TargetCriterion.Prop81.Prop81Conclusion`. The general theory proves
+  the corrected structure `Prop81General.Prop81ConclusionM`, and the original implies it
+  (`GeneralTheoryLinks.Old.conclusionM_of_conclusion`). Proposition 8.7's conclusions enter
+  Propositions 8.9–8.11 as the structure `InflationInertiaRepresentations.InertiaRoots`, which
   `Links.inertiaRoots_of_standing` discharges, so the Links versions are unconditional.
 * **Timeless and robust optimality** are given a precise definition in each setting
   (`GeneralSetup.LQProblem.TimelesslyOptimalPlan`, `GeneralSetup.RobustlyOptimal`,

@@ -36,6 +36,15 @@ import Mathlib.Analysis.Normed.Algebra.GelfandFormula
 import Mathlib.Analysis.Matrix.Normed
 import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
 import Mathlib.Tactic.LinearCombination
+import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+import Mathlib.Algebra.Order.Star.Real
+import Mathlib.LinearAlgebra.Eigenspace.Basic
+import Mathlib.LinearAlgebra.Matrix.ToLin
+import Mathlib.FieldTheory.IsAlgClosed.Spectrum
+import Mathlib.LinearAlgebra.Eigenspace.Zero
+import Mathlib.LinearAlgebra.Charpoly.ToMatrix
+import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+import Mathlib.LinearAlgebra.LinearIndependent.BaseChange
 set_option autoImplicit false
 
 /-
@@ -27848,6 +27857,14275 @@ theorem as_predetermined_zero_iff (κ β γ : ℝ) (t0 : ℕ) {u π x : ℕ → 
 
 end Woodford.OptimalPolicyRules.Links
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Stable/unstable splitting of the multiplier system
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Section 1.4 (pp. 552–553) and Appendix G.1
+(pp. 716–718, (G.1)–(G.9)).
+
+Proposition 8.1 rewrites the first-order conditions (1.18) for the multipliers
+`φ_t = (ξ_t, M_{t-1})` in the recursive form (1.20)–(1.21). This module supplies the two tools:
+
+* **Vector forward solutions.** For a square matrix `G` whose powers decay geometrically
+  (`PowDecay`; by Gelfand's formula this holds when every complex eigenvalue lies in the open
+  unit disc, `powDecay_of_eig`), the equation `w_t = G E_t w_{t+1} + f_t` has, for bounded
+  `f`, the bounded solution `fwdSum` `= ∑_k G^k E_t f_{t+k}` (`fwdSum_spec`), and it is the only
+  bounded solution from any date `t₀` on (`eq_fwdSum`). Everything holds for an arbitrary
+  `ExpectationSystem`.
+* **The deflating (invariant) subspace.** A real `n × n_Z` matrix `J` and an `n_Z × n_Z`
+  matrix `Ψ` with `A J = Î J Ψ` (Woodford's (G.4)) span the right deflating subspace of the
+  pencil `(A, Î)` belonging to `n_Z` roots of (1.15). The structure `DeflatingSplit` records
+  such a pair with all eigenvalues of `Ψ` in `|μ| < β⁻¹`, the top block `J₁` invertible and the
+  matrix `K = A₂₂' + A₁₂' Υ` invertible. No diagonalisability is assumed: this is the
+  invariant-subspace route, which avoids the eigenvector basis of Assumption 8.3.
+  `eig_isRoot` shows that the eigenvalues of `Ψ` are roots of (1.15) (so `J` really selects
+  `n_Z` roots with `|μ| < β⁻¹`), and `powDecay_G` gives the decay of `(β Ψ')^k`.
+
+The vector forward solution is restated from the Woodford Chapter 5 project
+(`ForwardSystems.pow_entry_bound`, `fwdVec_spec`, `fsolves_unique`), generalised from `Fin n` to
+any finite index type and to equations holding only from a date `t₀` on.
+-/
+
+namespace Woodford.OptimalPolicyRules.PencilSplit
+
+open Matrix Filter Topology GeneralSetup
+
+variable {Ω : Type*}
+
+/-! ### Componentwise expectations of random vectors -/
+
+/-- Woodford (2003), p. 540: `E_t` of a sum of random vectors. -/
+theorem EV_add (𝔼 : ExpectationSystem Ω) {ι : Type*} (t : ℕ) (x y : Ω → ι → ℝ) :
+    EV 𝔼 t (fun ω => x ω + y ω) = fun ω => EV 𝔼 t x ω + EV 𝔼 t y ω := by
+  funext ω i
+  change 𝔼.E t (fun ω' => x ω' i + y ω' i) ω =
+    𝔼.E t (fun ω' => x ω' i) ω + 𝔼.E t (fun ω' => y ω' i) ω
+  rw [show (fun ω' => x ω' i + y ω' i) = (fun ω' => x ω' i) + fun ω' => y ω' i from rfl,
+    map_add]
+  rfl
+
+/-- Woodford (2003), p. 540: `E_t` of a difference of random vectors. -/
+theorem EV_sub (𝔼 : ExpectationSystem Ω) {ι : Type*} (t : ℕ) (x y : Ω → ι → ℝ) :
+    EV 𝔼 t (fun ω => x ω - y ω) = fun ω => EV 𝔼 t x ω - EV 𝔼 t y ω := by
+  funext ω i
+  change 𝔼.E t (fun ω' => x ω' i - y ω' i) ω =
+    𝔼.E t (fun ω' => x ω' i) ω - 𝔼.E t (fun ω' => y ω' i) ω
+  rw [show (fun ω' => x ω' i - y ω' i) = (fun ω' => x ω' i) - fun ω' => y ω' i from rfl,
+    map_sub]
+  rfl
+
+/-- Woodford (2003), p. 540: `E_t` of a scalar multiple of a random vector. -/
+theorem EV_smul (𝔼 : ExpectationSystem Ω) {ι : Type*} (t : ℕ) (c : ℝ) (x : Ω → ι → ℝ) :
+    EV 𝔼 t (fun ω => c • x ω) = fun ω => c • EV 𝔼 t x ω := by
+  funext ω i
+  change 𝔼.E t (fun ω' => c * x ω' i) ω = c * 𝔼.E t (fun ω' => x ω' i) ω
+  rw [show (fun ω' => c * x ω' i) = c • fun ω' => x ω' i from rfl, map_smul]
+  rfl
+
+/-- Woodford (2003), p. 540: a constant vector is its own conditional expectation. -/
+theorem EV_const (𝔼 : ExpectationSystem Ω) {ι : Type*} (t : ℕ) (v : ι → ℝ) :
+    EV 𝔼 t (fun _ => v) = fun _ => v := by
+  funext ω i
+  exact congrFun (𝔼.const t (v i)) ω
+
+/-- Woodford (2003), p. 540: the law of iterated expectations for random vectors,
+`E_s E_t x = E_s x` for `s ≤ t`. -/
+theorem EV_tower (𝔼 : ExpectationSystem Ω) {ι : Type*} {s t : ℕ} (h : s ≤ t)
+    (x : Ω → ι → ℝ) : EV 𝔼 s (EV 𝔼 t x) = EV 𝔼 s x := by
+  funext ω i
+  exact congrFun (𝔼.tower h (fun ω' => x ω' i)) ω
+
+/-- Woodford (2003), p. 540: `E_t x` is known at `t`. -/
+theorem knownV_EV (𝔼 : ExpectationSystem Ω) {ι : Type*} (t : ℕ) (x : Ω → ι → ℝ) :
+    KnownV 𝔼 t (EV 𝔼 t x) := fun i => 𝔼.tower le_rfl (fun ω' => x ω' i)
+
+/-- Woodford (2003), p. 540: a constant matrix applied to a known vector, plus a known vector,
+is known. -/
+theorem knownV_mulVec_add (𝔼 : ExpectationSystem Ω) {ι κ : Type*} [Fintype ι] {t : ℕ}
+    (A : Matrix κ ι ℝ) {a : Ω → ι → ℝ} {b : Ω → κ → ℝ} (ha : KnownV 𝔼 t a)
+    (hb : KnownV 𝔼 t b) : KnownV 𝔼 t (fun ω => A *ᵥ a ω + b ω) := by
+  intro i
+  have hA := EV_mulVec 𝔼 t A a
+  rw [EV_of_known 𝔼 ha] at hA
+  have h := EV_add 𝔼 t (fun ω => A *ᵥ a ω) b
+  rw [hA, EV_of_known 𝔼 hb] at h
+  funext ω
+  exact congrFun (congrFun h ω) i
+
+/-- Woodford (2003), p. 540: a constant matrix applied to a known vector is known. -/
+theorem knownV_mulVec (𝔼 : ExpectationSystem Ω) {ι κ : Type*} [Fintype ι] {t : ℕ}
+    (A : Matrix κ ι ℝ) {a : Ω → ι → ℝ} (ha : KnownV 𝔼 t a) :
+    KnownV 𝔼 t (fun ω => A *ᵥ a ω) := by
+  intro i
+  have hA := EV_mulVec 𝔼 t A a
+  rw [EV_of_known 𝔼 ha] at hA
+  funext ω
+  exact congrFun (congrFun hA ω) i
+
+/-- Woodford (2003), p. 540: `E_t (x + c) = E_t x + c` for a constant vector `c`. -/
+theorem EV_add_const (𝔼 : ExpectationSystem Ω) {κ : Type*} (t : ℕ) (x : Ω → κ → ℝ)
+    (c : κ → ℝ) : EV 𝔼 t (fun ω => x ω + c) = fun ω => EV 𝔼 t x ω + c := by
+  rw [EV_add 𝔼 t x (fun _ => c), EV_const]
+
+/-- Woodford (2003), p. 540: the sum of two known random vectors is known. -/
+theorem knownV_add (𝔼 : ExpectationSystem Ω) {ι : Type*} {t : ℕ} {a b : Ω → ι → ℝ}
+    (ha : KnownV 𝔼 t a) (hb : KnownV 𝔼 t b) : KnownV 𝔼 t (fun ω => a ω + b ω) := by
+  intro i
+  have h := EV_add 𝔼 t a b
+  rw [EV_of_known 𝔼 ha, EV_of_known 𝔼 hb] at h
+  funext ω
+  exact congrFun (congrFun h ω) i
+
+/-- Woodford (2003), p. 556: `∑_{j < n} B_j q_{t−j}` is known at `t` for adapted `q`. -/
+theorem knownV_sum_mulVec (𝔼 : ExpectationSystem Ω) {ι : Type*} [Fintype ι]
+    (B : ℕ → Matrix ι ι ℝ) {q : ℕ → Ω → ι → ℝ} (hq : AdaptedV 𝔼 q) (t : ℕ) :
+    ∀ n, KnownV 𝔼 t (fun ω => ∑ j ∈ Finset.range n, B j *ᵥ q (t - j) ω) := by
+  intro n
+  induction n with
+  | zero =>
+    intro r
+    simpa using 𝔼.const t 0
+  | succ n ih =>
+    have e : (fun ω => ∑ j ∈ Finset.range (n + 1), B j *ᵥ q (t - j) ω) =
+        fun ω => B n *ᵥ q (t - n) ω + ∑ j ∈ Finset.range n, B j *ᵥ q (t - j) ω := by
+      funext ω
+      rw [Finset.sum_range_succ, add_comm]
+    rw [e]
+    exact knownV_mulVec_add 𝔼 (B n) (KnownV.mono 𝔼 (Nat.sub_le t n) (hq (t - n))) ih
+
+/-- Woodford (2003), fn 6, p. 539: a constant matrix maps bounded vector processes to bounded
+vector processes. -/
+theorem boundedV_mulVec {ι κ : Type*} [Fintype ι] [Finite κ] (A : Matrix κ ι ℝ)
+    {x : ℕ → Ω → ι → ℝ} (hx : BoundedV x) : BoundedV (fun t ω => A *ᵥ x t ω) := by
+  obtain ⟨M, hM⟩ := hx
+  obtain ⟨K, hK⟩ := GeneralFOC.exists_bound_mulVec A M
+  exact ⟨K, fun t ω i => hK _ (hM t ω) i⟩
+
+/-- Woodford (2003), fn 6, p. 539: sums of bounded vector processes are bounded. -/
+theorem boundedV_add {ι : Type*} {x y : ℕ → Ω → ι → ℝ} (hx : BoundedV x) (hy : BoundedV y) :
+    BoundedV (fun t ω => x t ω + y t ω) := by
+  obtain ⟨M, hM⟩ := hx
+  obtain ⟨N, hN⟩ := hy
+  exact ⟨M + N, fun t ω i => (abs_add_le _ _).trans (add_le_add (hM t ω i) (hN t ω i))⟩
+
+/-- Woodford (2003), fn 6, p. 539: the conditional expectation of a bounded vector process is
+bounded by the same bound. -/
+theorem abs_EV_le (𝔼 : ExpectationSystem Ω) {ι : Type*} {x : Ω → ι → ℝ} {M : ℝ}
+    (hx : ∀ ω i, |x ω i| ≤ M) (t : ℕ) (ω : Ω) (i : ι) : |EV 𝔼 t x ω i| ≤ M :=
+  𝔼.abs_E_le (fun ω' => hx ω' i) t ω
+
+/-! ### Geometric decay of matrix powers -/
+
+/-- Woodford (2003), App. G.1, p. 717 (`|μᵢ| < β⁻¹` for the eigenvalues of `Ψ`, (G.4)–(G.5)):
+the powers of `G` decay geometrically, `|(Gᵏ)ᵢⱼ| ≤ C rᵏ` with `0 ≤ r < 1`. -/
+def PowDecay {ι : Type*} [Fintype ι] [DecidableEq ι] (G : Matrix ι ι ℝ) : Prop :=
+  ∃ C r : ℝ, 0 ≤ r ∧ r < 1 ∧ ∀ k i j, |(G ^ k) i j| ≤ C * r ^ k
+
+/-- Woodford (2003), App. G.1, p. 717 (restated from the Woodford Chapter 5 project,
+`ForwardSystems.pow_entry_bound`, for any finite index type): if every complex eigenvalue of a
+real square matrix lies in the open unit disc, its powers decay geometrically (Gelfand's
+spectral radius formula). -/
+theorem powDecay_of_eig {ι : Type*} [Fintype ι] [DecidableEq ι] (K : Matrix ι ι ℝ)
+    (h : ∀ w : ℂ, (Matrix.scalar ι w - K.map Complex.ofReal).det = 0 → ‖w‖ < 1) :
+    PowDecay K := by
+  have hpow : ∀ k, ((K ^ k).map Complex.ofReal) = (K.map Complex.ofReal) ^ k := fun k =>
+    (Complex.ofRealHom.mapMatrix.map_pow K k)
+  let _ : NormedRing (Matrix ι ι ℂ) := Matrix.linftyOpNormedRing
+  let _ : NormedAlgebra ℂ (Matrix ι ι ℂ) := Matrix.linftyOpNormedAlgebra
+  set A : Matrix ι ι ℂ := K.map Complex.ofReal with hA
+  have hspec : ∀ w ∈ spectrum ℂ A, w ∈ A.charpoly.roots.toFinset ∧ ‖w‖ < 1 := by
+    intro w hw
+    rw [Matrix.mem_spectrum_iff_isRoot_charpoly] at hw
+    refine ⟨?_, h w ?_⟩
+    · rw [Multiset.mem_toFinset, Polynomial.mem_roots (Matrix.charpoly_monic A).ne_zero]
+      exact hw
+    · rw [← Matrix.eval_charpoly]; exact hw
+  set ρ0 : NNReal := A.charpoly.roots.toFinset.sup (fun w => ‖w‖₊) with hρ0
+  have hρ0lt : ρ0 < 1 := by
+    rw [hρ0, Finset.sup_lt_iff (by norm_num)]
+    intro w hw
+    have hw' : w ∈ spectrum ℂ A := by
+      rw [Matrix.mem_spectrum_iff_isRoot_charpoly]
+      rw [Multiset.mem_toFinset, Polynomial.mem_roots (Matrix.charpoly_monic A).ne_zero] at hw
+      exact hw
+    have := (hspec w hw').2
+    rw [← NNReal.coe_lt_coe, coe_nnnorm]
+    simpa using this
+  have hsr : spectralRadius ℂ A ≤ (ρ0 : ENNReal) := by
+    refine iSup₂_le fun w hw => ?_
+    rw [quasispectrum_eq_spectrum_union_zero] at hw
+    rcases hw with hw | hw
+    · exact ENNReal.coe_le_coe.mpr (Finset.le_sup (f := fun w => ‖w‖₊) (hspec w hw).1)
+    · rw [Set.mem_singleton_iff] at hw
+      subst hw
+      simp
+  set r : ℝ := ((ρ0 : ℝ) + 1) / 2 with hr
+  have hρ0r : (ρ0 : ℝ) < r := by
+    have : (ρ0 : ℝ) < 1 := by exact_mod_cast hρ0lt
+    rw [hr]; linarith
+  have hr1 : r < 1 := by
+    have : (ρ0 : ℝ) < 1 := by exact_mod_cast hρ0lt
+    rw [hr]; linarith
+  have hr0 : 0 < r := lt_of_le_of_lt ρ0.coe_nonneg hρ0r
+  have hlt : spectralRadius ℂ A < ENNReal.ofReal r := by
+    refine lt_of_le_of_lt hsr ?_
+    rw [← ENNReal.ofReal_coe_nnreal]
+    exact (ENNReal.ofReal_lt_ofReal_iff hr0).mpr hρ0r
+  have hev := (spectrum.pow_norm_pow_one_div_tendsto_nhds_spectralRadius A).eventually_lt_const
+    hlt
+  obtain ⟨N, hN⟩ := eventually_atTop.mp hev
+  have hbig : ∀ k ≥ N + 1, ‖A ^ k‖ ≤ r ^ k := by
+    intro k hk
+    have h1 := hN k (by omega)
+    rw [ENNReal.ofReal_lt_ofReal_iff hr0] at h1
+    have hk0 : k ≠ 0 := by omega
+    have h2 : (‖A ^ k‖ ^ (1 / k : ℝ)) ^ k = ‖A ^ k‖ := by
+      rw [one_div]; exact Real.rpow_inv_natCast_pow (norm_nonneg _) hk0
+    rw [← h2]
+    exact (pow_lt_pow_left₀ h1 (Real.rpow_nonneg (norm_nonneg _) _) hk0).le
+  set Cb : ℝ := 1 + ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k with hCb
+  have hall : ∀ k, ‖A ^ k‖ ≤ Cb * r ^ k := by
+    intro k
+    by_cases hk : k ≤ N
+    · have hmem : k ∈ Finset.range (N + 1) := Finset.mem_range.mpr (by omega)
+      have hle : ‖A ^ k‖ / r ^ k ≤ ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k :=
+        Finset.single_le_sum (f := fun k => ‖A ^ k‖ / r ^ k)
+          (fun k _ => div_nonneg (norm_nonneg _) (pow_nonneg hr0.le _)) hmem
+      have hrk : 0 < r ^ k := pow_pos hr0 k
+      have : ‖A ^ k‖ = ‖A ^ k‖ / r ^ k * r ^ k := by field_simp
+      rw [this]
+      exact mul_le_mul_of_nonneg_right (by linarith) hrk.le
+    · have := hbig k (by omega)
+      have hrk : 0 ≤ r ^ k := pow_nonneg hr0.le k
+      have hs : 0 ≤ ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k :=
+        Finset.sum_nonneg fun k _ => div_nonneg (norm_nonneg _) (pow_nonneg hr0.le _)
+      nlinarith
+  refine ⟨Cb, r, hr0.le, hr1, fun k i j => ?_⟩
+  have hentry : |(K ^ k) i j| = ‖(A ^ k) i j‖ := by
+    have e : (A ^ k) i j = ((K ^ k) i j : ℂ) := by
+      have := congrFun (congrFun (hpow k) i) j
+      exact this.symm
+    rw [e, Complex.norm_real, Real.norm_eq_abs]
+  rw [hentry]
+  refine le_trans ?_ (hall k)
+  rw [Matrix.linfty_opNorm_def]
+  have h1 : ‖(A ^ k) i j‖₊ ≤ ∑ j, ‖(A ^ k) i j‖₊ :=
+    Finset.single_le_sum (f := fun j => ‖(A ^ k) i j‖₊) (fun _ _ => by positivity)
+      (Finset.mem_univ j)
+  have h2 : ∑ j, ‖(A ^ k) i j‖₊ ≤ Finset.univ.sup fun i => ∑ j, ‖(A ^ k) i j‖₊ :=
+    Finset.le_sup (f := fun i => ∑ j, ‖(A ^ k) i j‖₊) (Finset.mem_univ i)
+  have := h1.trans h2
+  rw [← coe_nnnorm]
+  exact_mod_cast this
+
+/-- Woodford (2003), App. G.1, p. 717: the bound for `Gᵏ` acting on a bounded vector,
+`|(Gᵏ v)ᵢ| ≤ n C rᵏ M`. -/
+theorem abs_mulVec_pow_le {ι : Type*} [Fintype ι] [DecidableEq ι] {G : Matrix ι ι ℝ}
+    {C r : ℝ} (hG : ∀ k i j, |(G ^ k) i j| ≤ C * r ^ k) (k : ℕ) {v : ι → ℝ} {M : ℝ}
+    (hv : ∀ j, |v j| ≤ M) (i : ι) : |(G ^ k *ᵥ v) i| ≤ Fintype.card ι * (C * r ^ k * M) := by
+  calc |(G ^ k *ᵥ v) i| = |∑ j, (G ^ k) i j * v j| := rfl
+    _ ≤ ∑ j, |(G ^ k) i j * v j| := Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ _j : ι, C * r ^ k * M := by
+        refine Finset.sum_le_sum fun j _ => ?_
+        rw [abs_mul]
+        exact mul_le_mul (hG k i j) (hv j) (abs_nonneg _) ((abs_nonneg _).trans (hG k i j))
+    _ = Fintype.card ι * (C * r ^ k * M) := by simp
+
+/-! ### Vector forward solutions `w_t = G E_t w_{t+1} + f_t` -/
+
+/-- Woodford (2003), p. 553 (the operators `E_t Q(L⁻¹)`, `E_t R(L⁻¹)` of Proposition 8.1) and
+App. G.1: the forward series `∑_{k ≥ 0} Gᵏ E_t f_{t+k}`. -/
+noncomputable def fwdSum (𝔼 : ExpectationSystem Ω) {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (G : Matrix ι ι ℝ) (f : ℕ → Ω → ι → ℝ) (t : ℕ) : Ω → ι → ℝ :=
+  fun ω i => ∑' k, (G ^ k *ᵥ EV 𝔼 t (f (t + k)) ω) i
+
+/-- Woodford (2003), p. 553 and App. G.1 (restated from the Woodford Chapter 5 project,
+`ForwardSystems.fwdVec_spec`): if the powers of `G` decay geometrically and `f` is bounded,
+the forward series is a bounded adapted solution of `w_t = G E_t w_{t+1} + E_t f_t`. -/
+theorem fwdSum_spec (𝔼 : ExpectationSystem Ω) {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {G : Matrix ι ι ℝ} (hG : PowDecay G) {f : ℕ → Ω → ι → ℝ} (hf : BoundedV f) :
+    (∀ t ω, fwdSum 𝔼 G f t ω = G *ᵥ EV 𝔼 t (fwdSum 𝔼 G f (t + 1)) ω + EV 𝔼 t (f t) ω) ∧
+      AdaptedV 𝔼 (fwdSum 𝔼 G f) ∧ BoundedV (fwdSum 𝔼 G f) := by
+  obtain ⟨C, r, hr0, hr1, hGb⟩ := hG
+  obtain ⟨Mf, hMf⟩ := hf
+  set Mb : ℝ := Fintype.card ι * C * Mf with hMb
+  set B : ℕ → ℕ → ι → Ω → ℝ := fun k t i ω => (G ^ k *ᵥ EV 𝔼 t (f (t + k)) ω) i with hB
+  have hT : ∀ k t t' i ω, |(G ^ k *ᵥ EV 𝔼 t (f t') ω) i| ≤ r ^ k * Mb := by
+    intro k t t' i ω
+    have := abs_mulVec_pow_le hGb k (fun j => abs_EV_le 𝔼 (hMf t') t ω j) i
+    calc _ ≤ Fintype.card ι * (C * r ^ k * Mf) := this
+      _ = r ^ k * Mb := by rw [hMb]; ring
+  have hTs : ∀ (t t' : ℕ → ℕ) i ω,
+      Summable fun k => (G ^ k *ᵥ EV 𝔼 (t k) (f (t' k)) ω) i := fun t t' i ω =>
+    Summable.of_norm_bounded ((summable_geometric_of_lt_one hr0 hr1).mul_right Mb)
+      (fun k => by rw [Real.norm_eq_abs]; exact hT k (t k) (t' k) i ω)
+  have hBb : ∀ k t i ω, |B k t i ω| ≤ r ^ k * Mb := fun k t i ω => hT k t (t + k) i ω
+  have hsum : ∀ t i ω, Summable fun k => B k t i ω := fun t i ω =>
+    hTs (fun _ => t) (fun k => t + k) i ω
+  have hEB : ∀ k t i, 𝔼.E t (B k (t + 1) i) =
+      fun ω => (G ^ k *ᵥ EV 𝔼 t (f (t + 1 + k)) ω) i := by
+    intro k t i
+    funext ω
+    change EV 𝔼 t (fun ω' => G ^ k *ᵥ EV 𝔼 (t + 1) (f (t + 1 + k)) ω') ω i = _
+    rw [EV_mulVec, EV_tower 𝔼 (Nat.le_succ t)]
+  have hEs : ∀ t i ω, EV 𝔼 t (fwdSum 𝔼 G f (t + 1)) ω i =
+      ∑' k, (G ^ k *ᵥ EV 𝔼 t (f (t + 1 + k)) ω) i := by
+    intro t i ω
+    have := 𝔼.E_tsum hr0 hr1 (f := fun k => B k (t + 1) i) (fun k ω => hBb k (t + 1) i ω) t ω
+    change 𝔼.E t (fun ω' => ∑' k, B k (t + 1) i ω') ω = _
+    rw [this]
+    exact tsum_congr fun k => by rw [hEB]
+  refine ⟨?_, ?_, ?_⟩
+  · intro t ω
+    funext i
+    have hB0 : B 0 t i ω = EV 𝔼 t (f t) ω i := by
+      simp only [hB, pow_zero, add_zero, one_mulVec]
+    have hshift : ∀ k, B (k + 1) t i ω =
+        ∑ l, G i l * (G ^ k *ᵥ EV 𝔼 t (f (t + 1 + k)) ω) l := by
+      intro k
+      simp only [hB]
+      rw [pow_succ', ← mulVec_mulVec, show t + (k + 1) = t + 1 + k by omega]
+      rfl
+    have hR : (G *ᵥ EV 𝔼 t (fwdSum 𝔼 G f (t + 1)) ω + EV 𝔼 t (f t) ω) i =
+        (∑' k, B (k + 1) t i ω) + EV 𝔼 t (f t) ω i := by
+      rw [Pi.add_apply]
+      congr 1
+      change ∑ l, G i l * EV 𝔼 t (fwdSum 𝔼 G f (t + 1)) ω l = _
+      simp only [hEs, ← tsum_mul_left]
+      rw [← Summable.tsum_finsetSum (fun l _ =>
+        (hTs (fun _ => t) (fun k => t + 1 + k) l ω).mul_left (G i l))]
+      exact tsum_congr fun k => (hshift k).symm
+    rw [hR, show fwdSum 𝔼 G f t ω i = ∑' k, B k t i ω from rfl, (hsum t i ω).tsum_eq_zero_add,
+      hB0]
+    ring
+  · intro t i
+    funext ω
+    have := 𝔼.E_tsum hr0 hr1 (f := fun k => B k t i) (fun k ω => hBb k t i ω) t ω
+    change 𝔼.E t (fun ω' => ∑' k, B k t i ω') ω = ∑' k, B k t i ω
+    rw [this]
+    refine tsum_congr fun k => ?_
+    change EV 𝔼 t (fun ω' => G ^ k *ᵥ EV 𝔼 t (f (t + k)) ω') ω i = _
+    rw [EV_mulVec, EV_tower 𝔼 le_rfl]
+  · refine ⟨Mb / (1 - r), fun t ω i => ?_⟩
+    have hg : HasSum (fun k : ℕ => r ^ k * Mb) (Mb / (1 - r)) := by
+      have := (hasSum_geometric_of_lt_one hr0 hr1).mul_right Mb
+      rwa [← div_eq_inv_mul] at this
+    have := tsum_of_norm_bounded hg (f := fun k => B k t i ω)
+      (fun k => by rw [Real.norm_eq_abs]; exact hBb k t i ω)
+    rw [Real.norm_eq_abs] at this
+    exact this
+
+/-- Woodford (2003), p. 553 and App. G.1 (restated from the Woodford Chapter 5 project,
+`ForwardSystems.fsolves_unique`, from a date `t₀` on): if the powers of `G` decay
+geometrically, `f` is bounded and known at each date, and the bounded process `w` satisfies
+`w_t = G E_t w_{t+1} + f_t` for all `t ≥ t₀`, then `w_t` is the forward series for every
+`t ≥ t₀`. (`w` itself need not be adapted.) -/
+theorem eq_fwdSum (𝔼 : ExpectationSystem Ω) {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {G : Matrix ι ι ℝ} (hG : PowDecay G) {f w : ℕ → Ω → ι → ℝ} (hf : BoundedV f)
+    (hw : BoundedV w) {t0 : ℕ} (hfk : ∀ t, t0 ≤ t → KnownV 𝔼 t (f t))
+    (heq : ∀ t, t0 ≤ t → ∀ ω, w t ω = G *ᵥ EV 𝔼 t (w (t + 1)) ω + f t ω) :
+    ∀ t, t0 ≤ t → w t = fwdSum 𝔼 G f t := by
+  obtain ⟨hF, -, hFb⟩ := fwdSum_spec 𝔼 hG hf
+  obtain ⟨C, r, hr0, hr1, hGb⟩ := hG
+  set F := fwdSum 𝔼 G f with hFdef
+  set d : ℕ → Ω → ι → ℝ := fun t ω => w t ω - F t ω with hd
+  have hdrec : ∀ t, t0 ≤ t → ∀ ω, d t ω = G *ᵥ EV 𝔼 t (d (t + 1)) ω := by
+    intro t ht ω
+    simp only [hd]
+    rw [EV_sub, heq t ht ω, hF t ω, EV_of_known 𝔼 (hfk t ht), mulVec_sub]
+    abel
+  have hiter : ∀ k t, t0 ≤ t → ∀ ω, d t ω = G ^ (k + 1) *ᵥ EV 𝔼 t (d (t + k + 1)) ω := by
+    intro k
+    induction k with
+    | zero =>
+      intro t ht ω
+      rw [zero_add, pow_one, add_zero]
+      exact hdrec t ht ω
+    | succ k ih =>
+      intro t ht ω
+      rw [ih t ht ω]
+      have hfun : d (t + k + 1) = fun ω' => G *ᵥ EV 𝔼 (t + k + 1) (d (t + k + 1 + 1)) ω' :=
+        funext fun ω' => hdrec (t + k + 1) (by omega) ω'
+      rw [hfun, EV_mulVec, EV_tower 𝔼 (by omega), mulVec_mulVec, ← pow_succ,
+        show t + k + 1 + 1 = t + (k + 1) + 1 by omega]
+  obtain ⟨Mw, hMw⟩ := hw
+  obtain ⟨MF, hMF⟩ := hFb
+  have hdb : ∀ t ω i, |d t ω i| ≤ Mw + MF := fun t ω i =>
+    (abs_sub _ _).trans (add_le_add (hMw t ω i) (hMF t ω i))
+  intro t ht
+  funext ω i
+  have hle : ∀ k, |d t ω i| ≤ Fintype.card ι * (C * r ^ (k + 1) * (Mw + MF)) := by
+    intro k
+    rw [hiter k t ht ω]
+    exact abs_mulVec_pow_le hGb (k + 1) (fun j => abs_EV_le 𝔼 (hdb (t + k + 1)) t ω j) i
+  have hlim : Tendsto (fun k : ℕ => (Fintype.card ι : ℝ) * (C * r ^ (k + 1) * (Mw + MF)))
+      atTop (𝓝 0) := by
+    have h1 : Tendsto (fun k : ℕ => r ^ (k + 1)) atTop (𝓝 0) :=
+      (tendsto_pow_atTop_nhds_zero_of_lt_one hr0 hr1).comp (tendsto_add_atTop_nat 1)
+    have := ((h1.const_mul C).mul_const (Mw + MF)).const_mul (Fintype.card ι : ℝ)
+    simpa using this
+  have h0 : |d t ω i| ≤ 0 := ge_of_tendsto' hlim hle
+  have : d t ω i = 0 := abs_nonpos_iff.mp h0
+  simp only [hd, Pi.sub_apply] at this
+  linarith
+
+/-! ### The deflating subspace (G.4) and the matrices of Proposition 8.1 -/
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-- Woodford (2003), App. G.1, p. 718 (Assumption 8.4 (ii)): the top block `J₁` of `J` (the rows
+belonging to the predetermined variables `Z`); `n_Z × n_Z` for the `J` of (G.4), and for any
+column type (the `J⁺` of case (ii)). -/
+def J1 {ιc : Type*} (J : Matrix (ιZ ⊕ ιz) ιc ℝ) : Matrix ιZ ιc ℝ := J.submatrix Sum.inl id
+
+/-- Woodford (2003), App. G.1, p. 718: the bottom block `J₂` of `J` (the rows belonging to the
+forward-looking variables `z`), for any column type. -/
+def J2 {ιc : Type*} (J : Matrix (ιZ ⊕ ιz) ιc ℝ) : Matrix ιz ιc ℝ := J.submatrix Sum.inr id
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1, p. 718: `J₁(JP) = J₁(J)P` (a change of basis acts on the blocks). -/
+theorem J1_mul {ιc κ : Type*} [Fintype ιc] (J : Matrix (ιZ ⊕ ιz) ιc ℝ) (P : Matrix ιc κ ℝ) :
+    J1 (J * P) = J1 J * P := by
+  ext a b
+  simp [J1, mul_apply]
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1, p. 718: `J₂(JP) = J₂(J)P`. -/
+theorem J2_mul {ιc κ : Type*} [Fintype ιc] (J : Matrix (ιZ ⊕ ιz) ιc ℝ) (P : Matrix ιc κ ℝ) :
+    J2 (J * P) = J2 J * P := by
+  ext a b
+  simp [J2, mul_apply]
+
+/-- Woodford (2003), eq. (1.21), p. 553: the matrix `Υ = −(J₁')⁻¹ J₂' Ẽ'`, so that
+`J' Î' φ_t = J₁' ξ_t + J₂' Ẽ' M_{t-1}` determines `ξ_t = Υ M_{t-1} + r_t`. -/
+noncomputable def Υmat (S : LinearRESystem ιZ ιz) (J : Matrix (ιZ ⊕ ιz) ιZ ℝ) :
+    Matrix ιZ ιz ℝ :=
+  -(((J1 J)ᵀ)⁻¹ * (J2 J)ᵀ * S.Etᵀ)
+
+/-- Woodford (2003), eq. (1.20), p. 553: the matrix `K = A₂₂' + A₁₂' Υ` multiplying `M_t` in the
+`z`-rows of (1.18) once `ξ_{t+1}` is replaced by (1.21). -/
+noncomputable def Kmat (S : LinearRESystem ιZ ιz) (J : Matrix (ιZ ⊕ ιz) ιZ ℝ) :
+    Matrix ιz ιz ℝ :=
+  S.A22ᵀ + S.A12ᵀ * Υmat S J
+
+/-- Woodford (2003), eq. (1.20), p. 553: the matrix `Λ = β⁻¹ K⁻¹ Ẽ'` of the multiplier recursion
+`M_t = Λ M_{t-1} + q_t`. -/
+noncomputable def Λmat (S : LinearRESystem ιZ ιz) (β : ℝ) (J : Matrix (ιZ ⊕ ιz) ιZ ℝ) :
+    Matrix ιz ιz ℝ :=
+  β⁻¹ • ((Kmat S J)⁻¹ * S.Etᵀ)
+
+/-- Woodford (2003), App. G.1, pp. 717–718, (G.4) with Assumptions 8.2 and 8.4: a real
+right deflating subspace for `n_Z` roots of (1.15) inside `|μ| < β⁻¹`. The columns of the
+`n × n_Z` matrix `J` span a subspace with `A J = Î J Ψ`; every eigenvalue of `Ψ` satisfies
+`|μ| < β⁻¹`; the block `J₁` is invertible (the role of Assumption 8.4 (ii)); and
+`K = A₂₂' + A₁₂' Υ` is invertible (the role of Assumption 8.4 (i)). No diagonalisability is
+required. -/
+structure DeflatingSplit (S : LinearRESystem ιZ ιz) (β : ℝ) where
+  J : Matrix (ιZ ⊕ ιz) ιZ ℝ
+  Ψ : Matrix ιZ ιZ ℝ
+  deflate : S.Ahat * J = S.Ihat * J * Ψ
+  eig_lt : ∀ μ : ℂ, (Matrix.scalar ιZ μ - Ψ.map Complex.ofReal).det = 0 → ‖μ‖ < β⁻¹
+  J1_det : (J1 J).det ≠ 0
+  K_det : (Kmat S J).det ≠ 0
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), (1.18), p. 552: block form of `A' v`. -/
+theorem Ahat_transpose_mulVec (S : LinearRESystem ιZ ιz) (v : ιZ ⊕ ιz → ℝ) :
+    S.Ahatᵀ *ᵥ v = Sum.elim (S.A11ᵀ *ᵥ (v ∘ Sum.inl) + S.A21ᵀ *ᵥ (v ∘ Sum.inr))
+      (S.A12ᵀ *ᵥ (v ∘ Sum.inl) + S.A22ᵀ *ᵥ (v ∘ Sum.inr)) := by
+  rw [LinearRESystem.Ahat, fromBlocks_transpose, fromBlocks_mulVec]
+
+/-- Woodford (2003), (1.18), p. 552: block form of `Î' v`. -/
+theorem Ihat_transpose_mulVec (S : LinearRESystem ιZ ιz) (v : ιZ ⊕ ιz → ℝ) :
+    S.Ihatᵀ *ᵥ v = Sum.elim (v ∘ Sum.inl) (S.Etᵀ *ᵥ (v ∘ Sum.inr)) := by
+  rw [LinearRESystem.Ihat, fromBlocks_transpose, fromBlocks_mulVec]
+  simp
+
+omit [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1: block form of `J' v = J₁' v_Z + J₂' v_z` (any column type). -/
+theorem J_transpose_mulVec {ιc : Type*} (J : Matrix (ιZ ⊕ ιz) ιc ℝ) [Fintype ιz]
+    (v : ιZ ⊕ ιz → ℝ) :
+    Jᵀ *ᵥ v = (J1 J)ᵀ *ᵥ (v ∘ Sum.inl) + (J2 J)ᵀ *ᵥ (v ∘ Sum.inr) := by
+  funext j
+  simp [mulVec, dotProduct, Fintype.sum_sum_type, J1, J2]
+
+/-- Woodford (2003), (G.4) transposed: `J' A' v = Ψ' J' Î' v`. -/
+theorem deflate_transpose {S : LinearRESystem ιZ ιz} {J : Matrix (ιZ ⊕ ιz) ιZ ℝ}
+    {Ψ : Matrix ιZ ιZ ℝ} (h : S.Ahat * J = S.Ihat * J * Ψ) (v : ιZ ⊕ ιz → ℝ) :
+    Jᵀ *ᵥ (S.Ahatᵀ *ᵥ v) = Ψᵀ *ᵥ (Jᵀ *ᵥ (S.Ihatᵀ *ᵥ v)) := by
+  have ht : Jᵀ * S.Ahatᵀ = Ψᵀ * (Jᵀ * S.Ihatᵀ) := by
+    rw [← transpose_mul, h, transpose_mul, transpose_mul]
+  rw [mulVec_mulVec, ht, ← mulVec_mulVec, ← mulVec_mulVec]
+
+/-- Woodford (2003), eq. (1.15), p. 546: the characteristic polynomial evaluated at `μ` is
+`det (A − μ Î)` (over `ℂ`). -/
+theorem pencilPoly_eval (S : LinearRESystem ιZ ιz) (μ : ℂ) :
+    S.pencilPoly.eval μ =
+      (S.Ahat.map Complex.ofReal - μ • S.Ihat.map Complex.ofReal).det := by
+  rw [LinearRESystem.pencilPoly, ← Polynomial.coe_evalRingHom, RingHom.map_det]
+  congr 1
+  ext a b
+  simp only [RingHom.mapMatrix_apply, Matrix.map_apply, Matrix.sub_apply, Matrix.smul_apply,
+    Polynomial.coe_evalRingHom, Polynomial.eval_sub, Polynomial.eval_C, smul_eq_mul,
+    Polynomial.eval_mul, Polynomial.eval_X]
+
+/-- Woodford (2003), App. G.1, p. 717 ((G.4): "the eigenvalues of `Ψ` are the associated
+eigenvalues"): every eigenvalue of `Ψ` is a root of the characteristic polynomial (1.15), so a
+`DeflatingSplit` selects `n_Z` roots of (1.15), all with `|μ| < β⁻¹`. -/
+theorem DeflatingSplit.eig_isRoot {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit S β) {μ : ℂ}
+    (h : (Matrix.scalar ιZ μ - D.Ψ.map Complex.ofReal).det = 0) : S.pencilPoly.eval μ = 0 := by
+  obtain ⟨v, hv0, hv⟩ := exists_mulVec_eq_zero_iff.mpr h
+  set X := D.Ψ.map Complex.ofReal with hX
+  set Jc := D.J.map Complex.ofReal with hJc
+  have hXv : X *ᵥ v = μ • v := by
+    rw [sub_mulVec, sub_eq_zero] at hv
+    rw [← hv]
+    funext i
+    simp [Matrix.scalar_apply, mulVec_diagonal]
+  have hAJ : S.Ahat.map Complex.ofReal * Jc = S.Ihat.map Complex.ofReal * Jc * X := by
+    ext i j
+    have e := congrArg (fun M : Matrix (ιZ ⊕ ιz) ιZ ℝ => ((M i j : ℝ) : ℂ)) D.deflate
+    simp only [Matrix.mul_apply, Complex.ofReal_sum, Complex.ofReal_mul] at e
+    simp only [hJc, hX, Matrix.mul_apply, Matrix.map_apply]
+    exact e
+  rw [pencilPoly_eval]
+  refine exists_mulVec_eq_zero_iff.mp ⟨Jc *ᵥ v, fun h0 => hv0 ?_, ?_⟩
+  · have hJ1 : (J1 D.J).map Complex.ofReal *ᵥ v = 0 := by
+      funext i
+      have := congrFun h0 (Sum.inl i)
+      simpa [mulVec, dotProduct, J1, hJc] using this
+    have hdet : ((J1 D.J).map Complex.ofReal).det ≠ 0 := by
+      have e := Complex.ofRealHom.map_det (J1 D.J)
+      rw [RingHom.mapMatrix_apply] at e
+      change ((J1 D.J).det : ℂ) = ((J1 D.J).map Complex.ofReal).det at e
+      rw [← e]
+      exact_mod_cast D.J1_det
+    exact eq_zero_of_mulVec_eq_zero hdet hJ1
+  · rw [sub_mulVec, mulVec_mulVec, hAJ, ← mulVec_mulVec, hXv, smul_mulVec, mulVec_smul,
+      mulVec_mulVec, sub_self]
+
+/-- Woodford (2003), App. G.1, p. 717 and (1.20)–(1.21): the powers of `β Ψ'` decay
+geometrically, since every eigenvalue of `Ψ` has `|μ| < β⁻¹` (`β > 0`). -/
+theorem DeflatingSplit.powDecay_G {S : LinearRESystem ιZ ιz} {β : ℝ} (D : DeflatingSplit S β)
+    (hβ : 0 < β) : PowDecay (β • D.Ψᵀ) := by
+  refine powDecay_of_eig _ fun w hw => ?_
+  set X := D.Ψ.map Complex.ofReal with hX
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ.ne'
+  have hmap : (β • D.Ψᵀ).map Complex.ofReal = (β : ℂ) • Xᵀ := by
+    ext i j
+    simp [hX]
+  have hsc : Matrix.scalar ιZ w - (β : ℂ) • Xᵀ =
+      ((β : ℂ) • (Matrix.scalar ιZ (w / β) - X))ᵀ := by
+    ext i j
+    by_cases hij : i = j
+    · subst hij
+      simp [Matrix.scalar_apply]
+      field_simp
+    · simp [Matrix.scalar_apply, hij, Ne.symm hij]
+  rw [hmap, hsc, det_transpose, det_smul] at hw
+  have hd : (Matrix.scalar ιZ (w / β) - X).det = 0 := by
+    rcases mul_eq_zero.mp hw with h | h
+    · exact absurd h (pow_ne_zero _ hβc)
+    · exact h
+  have hlt := D.eig_lt (w / β) hd
+  rw [norm_div, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hβ] at hlt
+  rw [div_lt_iff₀ hβ, inv_mul_cancel₀ hβ.ne'] at hlt
+  exact hlt
+
+end Woodford.OptimalPolicyRules.PencilSplit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.1 in general
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Section 1.4, Proposition 8.1 (pp. 552–553,
+(1.18)–(1.21)) with Appendix G.1 (pp. 716–718).
+
+Proposition 8.1 asserts matrices `Λ`, `Υ` and operators `Q(L⁻¹)`, `R(L⁻¹)` such that bounded
+multipliers `φ_t = (ξ_t, M_{t-1})` and targets satisfy (1.18) for all `t ≥ t₀` if and only if
+`M_t = Λ M_{t-1} + E_t Q(L⁻¹) T̃'W(τ_t − τ*)` (1.20) and
+`ξ_t = Υ M_{t-1} + E_t R(L⁻¹) T̃'W(τ_t − τ*)` (1.21).
+
+## The construction (invariant-subspace route)
+
+From a real deflating pair `A J = Î J Ψ` (`PencilSplit.DeflatingSplit`; all eigenvalues of `Ψ`
+in `|μ| < β⁻¹`, `J₁` and `K` invertible):
+
+* `J'` applied to (1.18) gives, for `w_t = J' Î' φ_t`, the forward equation
+  `w_t = β Ψ' E_t w_{t+1} + β J' x_t` with `x_t = T̃'W(τ_t − τ*)`. Its unique bounded solution is
+  the forward series `F_t = ∑_k (βΨ')^k E_t β J' x_{t+k}` (`PencilSplit.eq_fwdSum`).
+* Since `w_t = J₁' ξ_t + J₂' Ẽ' M_{t-1}`, this is (1.21) with `Υ = −(J₁')⁻¹ J₂' Ẽ'` and
+  `R(L⁻¹)x = (J₁')⁻¹ F`.
+* The `z`-rows of (1.18), with `ξ_{t+1}` from (1.21), are (1.20) with `Λ = β⁻¹ K⁻¹ Ẽ'`,
+  `K = A₂₂' + A₁₂' Υ`.
+
+No diagonalisability (Assumption 8.3) is used; the eigenvector apparatus of App. G.1 is needed
+only to produce the deflating pair (module `PencilExistence`).
+
+## A correction
+
+The multipliers `M_t` are known at `t` (p. 540), and the equivalence holds only for multiplier
+processes with that property (and adapted plans). Without it the statement is false under
+uncertainty: `not_prop81Equiv_coin` shows that on the coin-flip tree no `Λ, Υ, Q, R` whatsoever
+satisfy the equivalence as formalised in `TargetCriterion.Prop81.Prop81Equiv` (a mean-zero
+multiplier innovation `M_{t₀}` preserves (1.18), which constrains only `E_{t₀} M_{t₀}`, but not
+(1.20)). The corrected statement `Prop81EquivM` adds `M_t` known at `t` and is proved in general
+(`prop81`); under perfect foresight both coincide and the original hypothesis structure
+`Prop81Conclusion` is inhabited (`prop81_perfectForesight`).
+
+## Main results
+
+* `prop81`: Proposition 8.1 (corrected), from a `DeflatingSplit`, for any expectation system.
+* `prop81_perfectForesight`: an inhabitant of the original `Prop81Conclusion` (deterministic).
+* `not_prop81Equiv_coin`, `prop81Conclusion_coin_isEmpty`, `prop81M_coin`: the counterexample.
+* `rank_Λmat`: `rank Λ = rank Ẽ` (fn 15, p. 554), hence `deg α ≤ rank Ẽ` (`natDegree_alpha_le`).
+-/
+
+namespace Woodford.OptimalPolicyRules.Prop81General
+
+open Matrix GeneralSetup GeneralFOC.LQ PencilSplit TargetCriterion.Prop81 Adjugate
+
+variable {Ω : Type*} {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+/-! ### The corrected statement of Proposition 8.1 -/
+
+/-- Woodford (2003), p. 540: the multipliers `M_t` (the `z`-block of `φ_{t+1}`) are known at
+date `t`, for all `t ≥ t₀`. -/
+def MultKnown (𝔼 : ExpectationSystem Ω) (t0 : ℕ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) : Prop :=
+  ∀ t, t0 ≤ t → KnownV 𝔼 t (fun ω => Mpart (φ (t + 1) ω))
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (corrected): bounded adapted plans and bounded
+multipliers with `M_t` known at `t` satisfy (1.18) for all `t ≥ t₀` iff they satisfy (1.20) and
+(1.21), with `q = Qop(T̃'W(τ − τ*))`, `r = Rop(T̃'W(τ − τ*))`. -/
+def Prop81EquivM (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    (Λ : Matrix ιz ιz ℝ) (Υ : Matrix ιZ ιz ℝ)
+    (Qop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ)
+    (Rop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιZ → ℝ) : Prop :=
+  ∀ y φ, BoundedV y → AdaptedV 𝔼 y → BoundedV φ → MultKnown 𝔼 t0 φ →
+    (Eq118 P 𝔼 t0 y φ ↔ Eq120 t0 Λ (Qop (xproc P y)) φ ∧ Eq121 t0 Υ (Rop (xproc P y)) φ)
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (corrected): matrices `Λ`, `Υ` and operators
+`Q(L⁻¹)`, `R(L⁻¹)` (mapping bounded processes to bounded adapted processes) with the
+equivalence `Prop81EquivM`. -/
+structure Prop81ConclusionM (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) where
+  Λ : Matrix ιz ιz ℝ
+  Υ : Matrix ιZ ιz ℝ
+  Qop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ
+  Rop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιZ → ℝ
+  equiv : Prop81EquivM P 𝔼 t0 Λ Υ Qop Rop
+  Qbounded : ∀ x, BoundedV x → BoundedV (Qop x)
+  Rbounded : ∀ x, BoundedV x → BoundedV (Rop x)
+  Qadapted : ∀ x, AdaptedV 𝔼 (Qop x)
+  Radapted : ∀ x, BoundedV x → AdaptedV 𝔼 (Rop x)
+
+/-! ### The operators `Q(L⁻¹)` and `R(L⁻¹)` -/
+
+/-- Woodford (2003), App. G.1: the forcing `β J' x_t` of the forward equation for
+`w_t = J' Î' φ_t`. -/
+def fpart (β : ℝ) (J : Matrix (ιZ ⊕ ιz) ιZ ℝ) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιZ → ℝ :=
+  fun t ω => (β • Jᵀ) *ᵥ x t ω
+
+/-- Woodford (2003), App. G.1: the forward solution
+`F_t = ∑_{k ≥ 0} (βΨ')^k E_t β J' x_{t+k}` of `w_t = βΨ' E_t w_{t+1} + β J' x_t`. -/
+noncomputable def Fw (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit S β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιZ → ℝ :=
+  fwdSum 𝔼 (β • D.Ψᵀ) (fpart β D.J x)
+
+/-- Woodford (2003), eq. (1.21), p. 553: the operator `E_t R(L⁻¹)`,
+`r_t = (J₁')⁻¹ ∑_{k ≥ 0} (βΨ')^k E_t β J' x_{t+k}`. -/
+noncomputable def Rop (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit S β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιZ → ℝ :=
+  fun t ω => ((J1 D.J)ᵀ)⁻¹ *ᵥ Fw 𝔼 D x t ω
+
+/-- Woodford (2003), eq. (1.20), p. 553: the operator `E_t Q(L⁻¹)`,
+`q_t = −K⁻¹ (E_t x^z_t + A₁₂' E_t r_{t+1})`. -/
+noncomputable def Qop (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit S β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιz → ℝ :=
+  fun t ω => -((Kmat S D.J)⁻¹ *ᵥ (EV 𝔼 t (fun ω' => Mpart (x t ω')) ω +
+    S.A12ᵀ *ᵥ EV 𝔼 t (Rop 𝔼 D x (t + 1)) ω))
+
+/-! ### Auxiliary facts -/
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), p. 553: `T̃'W(τ_t − τ*)` is adapted for adapted plans. -/
+theorem adaptedV_xproc (P : LQProblem ιZ ιz ιτ) {𝔼 : ExpectationSystem Ω}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : AdaptedV 𝔼 y) : AdaptedV 𝔼 (xproc P y) := by
+  intro t
+  have h : (fun ω => xproc P y t ω) = fun ω => (P.Ttilᵀ * (P.W * P.T)) *ᵥ y t ω +
+      -(P.Ttilᵀ *ᵥ (P.W *ᵥ P.τstar)) := by
+    funext ω
+    simp only [xproc, mulVec_mulVec, sub_eq_add_neg, mulVec_add, mulVec_neg]
+  have hc : KnownV 𝔼 t (fun _ : Ω => -(P.Ttilᵀ *ᵥ (P.W *ᵥ P.τstar))) := fun i => 𝔼.const t _
+  have := knownV_mulVec_add 𝔼 (P.Ttilᵀ * (P.W * P.T)) (hy t) hc
+  rw [← h] at this
+  exact this
+
+/-- Woodford (2003), eq. (1.18), p. 552: the left side of (1.18) at date `t`. -/
+noncomputable def lhs118 (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω)
+    (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) (t : ℕ) (ω : Ω) :
+    ιZ ⊕ ιz → ℝ :=
+  P.sys.Ahatᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω + xproc P y t ω - P.β⁻¹ • (P.sys.Ihatᵀ *ᵥ φ t ω)
+
+/-- Woodford (2003), (1.18) and App. G.1: the `z`-rows of (1.18),
+`A₁₂' E_t ξ_{t+1} + A₂₂' E_t M_t + x^z_t − β⁻¹ Ẽ' M_{t-1}`. -/
+theorem Mpart_lhs118 (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω)
+    (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) (t : ℕ) (ω : Ω) :
+    Mpart (lhs118 P 𝔼 y φ t ω) =
+      P.sys.A12ᵀ *ᵥ EV 𝔼 t (fun ω' => ξpart (φ (t + 1) ω')) ω +
+        P.sys.A22ᵀ *ᵥ EV 𝔼 t (fun ω' => Mpart (φ (t + 1) ω')) ω + Mpart (xproc P y t ω) -
+        P.β⁻¹ • (P.sys.Etᵀ *ᵥ Mpart (φ t ω)) := by
+  unfold lhs118
+  rw [Ahat_transpose_mulVec, Ihat_transpose_mulVec]
+  rfl
+
+/-- Woodford (2003), (1.18) and (G.4): `J'` times the left side of (1.18) is
+`Ψ' E_t w_{t+1} + J' x_t − β⁻¹ w_t` with `w_t = J' Î' φ_t`. -/
+theorem J_lhs118 (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω)
+    (D : DeflatingSplit P.sys P.β) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ)
+    (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) (t : ℕ) (ω : Ω) :
+    D.Jᵀ *ᵥ lhs118 P 𝔼 y φ t ω =
+      D.Ψᵀ *ᵥ EV 𝔼 t (fun ω' => (D.Jᵀ * P.sys.Ihatᵀ) *ᵥ φ (t + 1) ω') ω +
+        D.Jᵀ *ᵥ xproc P y t ω - P.β⁻¹ • ((D.Jᵀ * P.sys.Ihatᵀ) *ᵥ φ t ω) := by
+  unfold lhs118
+  have h1 := deflate_transpose D.deflate (EV 𝔼 t (φ (t + 1)) ω)
+  have h2 : EV 𝔼 t (fun ω' => (D.Jᵀ * P.sys.Ihatᵀ) *ᵥ φ (t + 1) ω') ω =
+      (D.Jᵀ * P.sys.Ihatᵀ) *ᵥ EV 𝔼 t (φ (t + 1)) ω := by rw [EV_mulVec]
+  rw [h2, mulVec_sub, mulVec_add, h1, mulVec_smul, ← mulVec_mulVec, ← mulVec_mulVec]
+
+/-- Woodford (2003), App. G.1: `w_t = J' Î' φ_t = J₁' ξ_t + J₂' Ẽ' M_{t-1}`. -/
+theorem w_split (S : LinearRESystem ιZ ιz) (J : Matrix (ιZ ⊕ ιz) ιZ ℝ) (v : ιZ ⊕ ιz → ℝ) :
+    (Jᵀ * S.Ihatᵀ) *ᵥ v = (J1 J)ᵀ *ᵥ ξpart v + (J2 J)ᵀ *ᵥ (S.Etᵀ *ᵥ Mpart v) := by
+  rw [← mulVec_mulVec, Ihat_transpose_mulVec, J_transpose_mulVec]
+  rfl
+
+/-- Woodford (2003), eq. (1.21): with `J₁` invertible, `ξ = Υ M + (J₁')⁻¹ F` iff
+`J₁' ξ + J₂' Ẽ' M = F`. -/
+theorem eq121_iff (S : LinearRESystem ιZ ιz) {J : Matrix (ιZ ⊕ ιz) ιZ ℝ}
+    (hJ1 : (J1 J).det ≠ 0) (ξ F : ιZ → ℝ) (M : ιz → ℝ) :
+    ξ = Υmat S J *ᵥ M + ((J1 J)ᵀ)⁻¹ *ᵥ F ↔ (J1 J)ᵀ *ᵥ ξ + (J2 J)ᵀ *ᵥ (S.Etᵀ *ᵥ M) = F := by
+  have hu : IsUnit ((J1 J)ᵀ).det := by rw [det_transpose]; exact Ne.isUnit hJ1
+  have h1 := nonsing_inv_mul _ hu
+  have h2 := mul_nonsing_inv _ hu
+  have hrhs : Υmat S J *ᵥ M + ((J1 J)ᵀ)⁻¹ *ᵥ F =
+      ((J1 J)ᵀ)⁻¹ *ᵥ (F - (J2 J)ᵀ *ᵥ (S.Etᵀ *ᵥ M)) := by
+    rw [Υmat, neg_mulVec, mulVec_sub, ← mulVec_mulVec, ← mulVec_mulVec]
+    abel
+  rw [hrhs]
+  constructor
+  · intro h
+    rw [h, mulVec_mulVec, h2, one_mulVec]
+    abel
+  · intro h
+    rw [← h, add_sub_cancel_right, mulVec_mulVec, h1, one_mulVec]
+
+/-- Woodford (2003), eq. (1.20): with `K` invertible,
+`M' = Λ M + q` (with `q = −K⁻¹(e + A₁₂' ρ)`) iff `K M' + A₁₂' ρ + e − β⁻¹ Ẽ' M = 0`. -/
+theorem eq120_iff (S : LinearRESystem ιZ ιz) (β : ℝ) {J : Matrix (ιZ ⊕ ιz) ιZ ℝ}
+    (hK : (Kmat S J).det ≠ 0) (M' M e : ιz → ℝ) (ρ : ιZ → ℝ) :
+    M' = Λmat S β J *ᵥ M + -((Kmat S J)⁻¹ *ᵥ (e + S.A12ᵀ *ᵥ ρ)) ↔
+      Kmat S J *ᵥ M' + S.A12ᵀ *ᵥ ρ + e - β⁻¹ • (S.Etᵀ *ᵥ M) = 0 := by
+  have hu : IsUnit (Kmat S J).det := Ne.isUnit hK
+  have h1 := nonsing_inv_mul _ hu
+  have h2 := mul_nonsing_inv _ hu
+  have hrhs : Λmat S β J *ᵥ M + -((Kmat S J)⁻¹ *ᵥ (e + S.A12ᵀ *ᵥ ρ)) =
+      (Kmat S J)⁻¹ *ᵥ (β⁻¹ • (S.Etᵀ *ᵥ M) - (S.A12ᵀ *ᵥ ρ + e)) := by
+    rw [Λmat, smul_mulVec, ← mulVec_mulVec, mulVec_sub, ← mulVec_smul, add_comm e]
+    abel
+  rw [hrhs]
+  constructor
+  · intro h
+    rw [h, mulVec_mulVec, h2, one_mulVec]
+    abel
+  · intro h
+    have : β⁻¹ • (S.Etᵀ *ᵥ M) - (S.A12ᵀ *ᵥ ρ + e) = Kmat S J *ᵥ M' := by
+      rw [← sub_eq_zero, ← neg_eq_zero, ← h]
+      abel
+    rw [this, mulVec_mulVec, h1, one_mulVec]
+
+/-! ### Proposition 8.1 -/
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (the equivalence, corrected): for a real deflating
+pair (`DeflatingSplit`), bounded adapted plans and bounded multipliers with `M_t` known at `t`
+satisfy (1.18) for all `t ≥ t₀` iff they satisfy (1.20) with `Λ = β⁻¹ K⁻¹ Ẽ'` and (1.21) with
+`Υ = −(J₁')⁻¹ J₂' Ẽ'`, for any expectation system. -/
+theorem prop81_equiv (P : LQProblem ιZ ιz ιτ) (D : DeflatingSplit P.sys P.β)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Prop81EquivM P 𝔼 t0 (Λmat P.sys P.β D.J) (Υmat P.sys D.J) (Qop 𝔼 D) (Rop 𝔼 D) := by
+  intro y φ hyb hya hφb hmk
+  set x := xproc P y with hx
+  have hxb : BoundedV x := boundedV_xproc hyb
+  have hxa : AdaptedV 𝔼 x := adaptedV_xproc P hya
+  have hG : PowDecay (P.β • D.Ψᵀ) := D.powDecay_G P.β_pos
+  have hfb : BoundedV (fpart P.β D.J x) := boundedV_mulVec _ hxb
+  have hfk : ∀ t, KnownV 𝔼 t (fpart P.β D.J x t) := fun t => knownV_mulVec 𝔼 _ (hxa t)
+  obtain ⟨hF, -, -⟩ := fwdSum_spec 𝔼 hG hfb
+  have hβ : P.β ≠ 0 := P.β_pos.ne'
+  -- the recursion of the forward solution, rescaled
+  have hFrec : ∀ t ω, P.β⁻¹ • Fw 𝔼 D x t ω =
+      D.Ψᵀ *ᵥ EV 𝔼 t (Fw 𝔼 D x (t + 1)) ω + D.Jᵀ *ᵥ x t ω := by
+    intro t ω
+    have h := hF t ω
+    rw [EV_of_known 𝔼 (hfk t)] at h
+    change Fw 𝔼 D x t ω = (P.β • D.Ψᵀ) *ᵥ EV 𝔼 t (Fw 𝔼 D x (t + 1)) ω +
+      (P.β • D.Jᵀ) *ᵥ x t ω at h
+    rw [h, smul_mulVec, smul_mulVec, ← smul_add, smul_smul, inv_mul_cancel₀ hβ, one_smul]
+  set w : ℕ → Ω → ιZ → ℝ := fun t ω => (D.Jᵀ * P.sys.Ihatᵀ) *ᵥ φ t ω with hw
+  -- the `z`-rows once (1.21) holds at `t + 1`
+  have hMrows : ∀ t, t0 ≤ t → Eq121 t0 (Υmat P.sys D.J) (Rop 𝔼 D x) φ → ∀ ω,
+      Mpart (lhs118 P 𝔼 y φ t ω) = Kmat P.sys D.J *ᵥ Mpart (φ (t + 1) ω) +
+        P.sys.A12ᵀ *ᵥ EV 𝔼 t (Rop 𝔼 D x (t + 1)) ω +
+        EV 𝔼 t (fun ω' => Mpart (x t ω')) ω - P.β⁻¹ • (P.sys.Etᵀ *ᵥ Mpart (φ t ω)) := by
+    intro t ht h121 ω
+    have hξ : (fun ω' => ξpart (φ (t + 1) ω')) =
+        fun ω' => Υmat P.sys D.J *ᵥ Mpart (φ (t + 1) ω') + Rop 𝔼 D x (t + 1) ω' :=
+      funext fun ω' => h121 (t + 1) (by omega) ω'
+    have hM : EV 𝔼 t (fun ω' => Mpart (φ (t + 1) ω')) = fun ω' => Mpart (φ (t + 1) ω') :=
+      EV_of_known 𝔼 (hmk t ht)
+    have hxz : EV 𝔼 t (fun ω' => Mpart (x t ω')) = fun ω' => Mpart (x t ω') := by
+      funext ω' r
+      exact congrFun (hxa t (Sum.inr r)) ω'
+    rw [Mpart_lhs118, hξ, EV_add, EV_mulVec, hM, hxz, Kmat, add_mulVec, mulVec_add,
+      ← mulVec_mulVec]
+    abel
+  constructor
+  · intro h118
+    have hwb : BoundedV w := boundedV_mulVec _ hφb
+    have hweq : ∀ t, t0 ≤ t → ∀ ω,
+        w t ω = (P.β • D.Ψᵀ) *ᵥ EV 𝔼 t (w (t + 1)) ω + fpart P.β D.J x t ω := by
+      intro t ht ω
+      have h0 := congrArg (D.Jᵀ *ᵥ ·) (h118 t ht ω)
+      change D.Jᵀ *ᵥ lhs118 P 𝔼 y φ t ω = D.Jᵀ *ᵥ 0 at h0
+      rw [J_lhs118, mulVec_zero, sub_eq_zero] at h0
+      change D.Ψᵀ *ᵥ EV 𝔼 t (w (t + 1)) ω + D.Jᵀ *ᵥ x t ω = P.β⁻¹ • w t ω at h0
+      rw [fpart, smul_mulVec, smul_mulVec, ← smul_add, h0, smul_smul, mul_inv_cancel₀ hβ,
+        one_smul]
+    have hwF := eq_fwdSum 𝔼 hG hfb hwb (fun t _ => hfk t) hweq
+    have h121 : Eq121 t0 (Υmat P.sys D.J) (Rop 𝔼 D x) φ := by
+      intro t ht ω
+      refine (eq121_iff P.sys D.J1_det _ _ _).mpr ?_
+      rw [← w_split]
+      exact congrFun (hwF t ht) ω
+    refine ⟨fun t ht ω => ?_, h121⟩
+    refine (eq120_iff P.sys P.β D.K_det _ _ _ _).mpr ?_
+    rw [← hMrows t ht h121 ω]
+    exact congrArg Mpart (h118 t ht ω)
+  · rintro ⟨h120, h121⟩ t ht ω
+    have hz : Mpart (lhs118 P 𝔼 y φ t ω) = 0 := by
+      rw [hMrows t ht h121 ω]
+      exact (eq120_iff P.sys P.β D.K_det _ _ _ _).mp (h120 t ht ω)
+    have hwF : ∀ s, t0 ≤ s → w s = Fw 𝔼 D x s := by
+      intro s hs
+      funext ω'
+      have := (eq121_iff P.sys D.J1_det _ _ _).mp (h121 s hs ω')
+      rw [← w_split] at this
+      exact this
+    have hJ : D.Jᵀ *ᵥ lhs118 P 𝔼 y φ t ω = 0 := by
+      rw [J_lhs118]
+      change D.Ψᵀ *ᵥ EV 𝔼 t (w (t + 1)) ω + D.Jᵀ *ᵥ x t ω - P.β⁻¹ • w t ω = 0
+      rw [hwF (t + 1) (by omega), hwF t ht, hFrec, sub_self]
+    rw [J_transpose_mulVec] at hJ
+    change (J1 D.J)ᵀ *ᵥ ξpart (lhs118 P 𝔼 y φ t ω) + (J2 D.J)ᵀ *ᵥ Mpart (lhs118 P 𝔼 y φ t ω) =
+      0 at hJ
+    rw [hz, mulVec_zero, add_zero] at hJ
+    have hdet : ((J1 D.J)ᵀ).det ≠ 0 := by rw [det_transpose]; exact D.J1_det
+    have hZ := eq_zero_of_mulVec_eq_zero hdet hJ
+    funext a
+    rcases a with i | r
+    · exact congrFun hZ i
+    · exact congrFun hz r
+
+/-- Woodford (2003), Proposition 8.1, p. 553: the operators `Q(L⁻¹)`, `R(L⁻¹)` map bounded
+processes to bounded processes, and `E_t Q(L⁻¹)`, `E_t R(L⁻¹)` are known at `t`. -/
+theorem fw_spec (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ} (hβ : 0 < β)
+    (D : DeflatingSplit S β) {x : ℕ → Ω → ιZ ⊕ ιz → ℝ} (hx : BoundedV x) :
+    BoundedV (Rop 𝔼 D x) ∧ AdaptedV 𝔼 (Rop 𝔼 D x) ∧ BoundedV (Qop 𝔼 D x) := by
+  obtain ⟨-, hFa, hFb⟩ := fwdSum_spec 𝔼 (D.powDecay_G hβ) (boundedV_mulVec (β • D.Jᵀ) hx)
+  have hRb : BoundedV (Rop 𝔼 D x) := boundedV_mulVec _ hFb
+  refine ⟨hRb, fun t => knownV_mulVec 𝔼 _ (hFa t), ?_⟩
+  obtain ⟨Mx, hMx⟩ := hx
+  obtain ⟨MR, hMR⟩ := hRb
+  have h1 : BoundedV (fun t ω => EV 𝔼 t (fun ω' => Mpart (x t ω')) ω +
+      S.A12ᵀ *ᵥ EV 𝔼 t (Rop 𝔼 D x (t + 1)) ω) := by
+    refine boundedV_add ⟨Mx, fun t ω r => abs_EV_le 𝔼 (fun ω' r' => hMx t ω' (Sum.inr r')) t ω r⟩
+      (boundedV_mulVec (x := fun t ω => EV 𝔼 t (Rop 𝔼 D x (t + 1)) ω) _
+        ⟨MR, fun t ω i => abs_EV_le 𝔼 (hMR (t + 1)) t ω i⟩)
+  obtain ⟨K, hK⟩ := boundedV_mulVec (Kmat S D.J)⁻¹ h1
+  exact ⟨K, fun t ω r => by
+    change |(-((Kmat S D.J)⁻¹ *ᵥ _)) r| ≤ K
+    rw [Pi.neg_apply, abs_neg]
+    exact hK t ω r⟩
+
+/-- Woodford (2003), Proposition 8.1, p. 553: `E_t Q(L⁻¹) x` is known at `t` for every `x`. -/
+theorem qop_adapted (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit S β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : AdaptedV 𝔼 (Qop 𝔼 D x) := by
+  intro t
+  have h1 := knownV_add 𝔼 (knownV_EV 𝔼 t (fun ω' => Mpart (x t ω')))
+    (knownV_mulVec 𝔼 S.A12ᵀ (knownV_EV 𝔼 t (Rop 𝔼 D x (t + 1))))
+  have h2 := knownV_mulVec 𝔼 (-(Kmat S D.J)⁻¹) h1
+  have h3 : (fun ω => (-(Kmat S D.J)⁻¹) *ᵥ (EV 𝔼 t (fun ω' => Mpart (x t ω')) ω +
+      S.A12ᵀ *ᵥ EV 𝔼 t (Rop 𝔼 D x (t + 1)) ω)) = Qop 𝔼 D x t := by
+    funext ω
+    rw [neg_mulVec]
+    rfl
+  rw [← h3]
+  exact h2
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553 (corrected, proved in general): a real
+deflating pair for `n_Z` roots of (1.15) inside `|μ| < β⁻¹` (`DeflatingSplit`) yields `Λ`, `Υ`,
+`Q(L⁻¹)`, `R(L⁻¹)` with bounded `(φ, τ)` (`M_t` known at `t`, adapted plans) satisfying (1.18)
+for `t ≥ t₀` iff they satisfy (1.20)–(1.21); the operators preserve boundedness and are
+adapted. Any expectation system. -/
+noncomputable def prop81 (P : LQProblem ιZ ιz ιτ) (D : DeflatingSplit P.sys P.β)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) : Prop81ConclusionM P 𝔼 t0 where
+  Λ := Λmat P.sys P.β D.J
+  Υ := Υmat P.sys D.J
+  Qop := Qop 𝔼 D
+  Rop := Rop 𝔼 D
+  equiv := prop81_equiv P D 𝔼 t0
+  Qbounded := fun _ hx => (fw_spec 𝔼 P.β_pos D hx).2.2
+  Rbounded := fun _ hx => (fw_spec 𝔼 P.β_pos D hx).1
+  Qadapted := qop_adapted 𝔼 D
+  Radapted := fun _ hx => (fw_spec 𝔼 P.β_pos D hx).2.1
+
+/-- Woodford (2003), Proposition 8.1, p. 553: the matrices of `prop81` are the explicit
+`Λ = β⁻¹ K⁻¹ Ẽ'` and `Υ = −(J₁')⁻¹ J₂' Ẽ'`. -/
+theorem prop81_matrices (P : LQProblem ιZ ιz ιτ) (D : DeflatingSplit P.sys P.β)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    (prop81 P D 𝔼 t0).Λ = Λmat P.sys P.β D.J ∧ (prop81 P D 𝔼 t0).Υ = Υmat P.sys D.J :=
+  ⟨rfl, rfl⟩
+
+/-! ### Perfect foresight: the original hypothesis structure is inhabited -/
+
+/-- Woodford (2003), Proposition 8.1, p. 553, deterministic case: under perfect foresight every
+plan is adapted and every multiplier is known, so the corrected statement is the original
+`Prop81Equiv`; the hypothesis structure `TargetCriterion.Prop81.Prop81Conclusion` is inhabited. -/
+noncomputable def prop81_perfectForesight (P : LQProblem ιZ ιz ιτ)
+    (D : DeflatingSplit P.sys P.β) (t0 : ℕ) : Prop81Conclusion P perfectForesight t0 where
+  Λ := Λmat P.sys P.β D.J
+  Υ := Υmat P.sys D.J
+  Qop := Qop perfectForesight D
+  Rop := Rop perfectForesight D
+  equiv := fun y φ hy hφ =>
+    prop81_equiv P D perfectForesight t0 y φ hy (fun _ _ => rfl) hφ (fun _ _ _ => rfl)
+  Qbounded := fun _ hx => (fw_spec perfectForesight P.β_pos D hx).2.2
+  Rbounded := fun _ hx => (fw_spec perfectForesight P.β_pos D hx).1
+  Qadapted := fun _ _ _ => rfl
+
+/-! ### `rank Λ = rank Ẽ` (fn 15) and the degree of `α(L)` (E18) -/
+
+/-- Woodford (2003), p. 553 and fn 15, p. 554: `rank Λ = rank Ẽ` for `Λ = β⁻¹ K⁻¹ Ẽ'`
+(`β ≠ 0`, `K` invertible). -/
+theorem rank_Λmat (S : LinearRESystem ιZ ιz) {β : ℝ} (hβ : β ≠ 0) {J : Matrix (ιZ ⊕ ιz) ιZ ℝ}
+    (hK : (Kmat S J).det ≠ 0) : (Λmat S β J).rank = S.Et.rank := by
+  have hs : Λmat S β J = (β⁻¹ • (Kmat S J)⁻¹) * S.Etᵀ := by
+    rw [Λmat, Matrix.smul_mul]
+  have hu : IsUnit (β⁻¹ • (Kmat S J)⁻¹).det := by
+    rw [det_smul, det_nonsing_inv]
+    refine (IsUnit.mul (IsUnit.pow _ (Ne.isUnit (inv_ne_zero hβ))) ?_)
+    exact (Ne.isUnit hK).ringInverse
+  rw [hs, rank_mul_eq_right_of_isUnit_det _ _ hu, rank_transpose]
+
+/-- Woodford (2003), p. 553 (E18, corrected and made precise): for the `Λ` of Proposition 8.1,
+`deg α ≤ rank Ẽ`, where `α(L) = det(I − ΛL)`; `deg B ≤ rank Ẽ` likewise. -/
+theorem natDegree_alpha_le (S : LinearRESystem ιZ ιz) {β : ℝ} (hβ : β ≠ 0)
+    {J : Matrix (ιZ ⊕ ιz) ιZ ℝ} (hK : (Kmat S J).det ≠ 0) :
+    (alpha (Λmat S β J)).natDegree ≤ S.Et.rank ∧
+      ∀ i j, (Bpoly (Λmat S β J) i j).natDegree ≤ S.Et.rank := by
+  rw [← rank_Λmat S hβ hK]
+  exact ⟨natDegree_alpha_le_rank _, natDegree_Bpoly_le_rank _⟩
+
+/-! ### The uncorrected statement fails under uncertainty -/
+
+/-- Woodford (2003), (1.1) (a minimal instance for the counterexample to the uncorrected
+Proposition 8.1, and for the one to the remark on p. 553 in `Prop81Unique`): no predetermined
+variable, one forward-looking variable, `E_t z_{t+1} = 2 z_t + i_t + c_t`. -/
+noncomputable def coinSys : LinearRESystem Empty Unit where
+  A11 := 0
+  A12 := 0
+  A21 := 0
+  A22 := Matrix.of fun _ _ => 2
+  Et := Matrix.of fun _ _ => 1
+  B2 := fun _ => 1
+  A22_isUnit := by
+    rw [Matrix.det_unique]
+    exact isUnit_iff_ne_zero.mpr (by norm_num)
+  B2_ne_zero := fun h => by simpa using congrFun h ()
+
+/-- Woodford (2003), (1.2)–(1.4) (the counterexample): `β = 1/2`, the only target is the
+instrument, `W = 1`, `τ* = 0`. -/
+noncomputable def coinProblem : LQProblem Empty Unit Unit where
+  sys := coinSys
+  β := 1 / 2
+  β_pos := by norm_num
+  β_lt_one := by norm_num
+  Ttil := 0
+  Ti := fun _ => 1
+  W := 1
+  τstar := 0
+  W_posDef := Matrix.PosDef.one
+
+/-- Woodford (2003), p. 540 (the counterexample): a multiplier path with `M_{t₀-1} = 0` and
+`M_t = ε₁` (the first coin flip, mean zero given date-0 information) for `t ≥ t₀ = 0`. Here
+`M_0` is *not* known at date 0. -/
+noncomputable def coinMult (t : ℕ) (ω : Bool × Bool) : Empty ⊕ Unit → ℝ :=
+  fun _ => if 1 ≤ t then ExpectationsFiniteTree.coinShock 1 ω else 0
+
+/-- Woodford (2003), (1.18) for the counterexample: with no predetermined variables, zero
+targets (`y = 0`) and `β = 1/2`, (1.18) reads `2 E_t M_t − 2 M_{t-1} = 0`. -/
+theorem coin_lhs118 (φ : ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) (t : ℕ) (ω : Bool × Bool) :
+    lhs118 coinProblem ExpectationsFiniteTree.coinSystem 0 φ t ω (Sum.inr ()) =
+      2 * ExpectationsFiniteTree.coinSystem.E t (fun ω' => φ (t + 1) ω' (Sum.inr ())) ω -
+        2 * φ t ω (Sum.inr ()) := by
+  simp [lhs118, coinProblem, coinSys, xproc, LinearRESystem.Ahat, LinearRESystem.Ihat, EV,
+    mulVec, dotProduct, fromBlocks]
+
+/-- Woodford (2003), (1.18) for the counterexample: both the zero multiplier path and
+`coinMult` satisfy (1.18) at every date. -/
+theorem coin_eq118 (φ : ℕ → Bool × Bool → Empty ⊕ Unit → ℝ)
+    (hφ : ∀ t, ExpectationsFiniteTree.coinSystem.E t (fun ω' => φ (t + 1) ω' (Sum.inr ())) =
+      fun ω => φ t ω (Sum.inr ())) :
+    Eq118 coinProblem ExpectationsFiniteTree.coinSystem 0 0 φ := by
+  intro t _ ω
+  change lhs118 coinProblem ExpectationsFiniteTree.coinSystem 0 φ t ω = 0
+  funext a
+  rcases a with e | u
+  · exact e.elim
+  · rw [coin_lhs118, hφ t]
+    simp
+
+/-- Woodford (2003), p. 540 (the counterexample): `E_t M_t = M_{t-1}` for `coinMult`: at
+`t = 0`, `E_0 ε₁ = 0`; for `t ≥ 1`, `ε₁` is known. -/
+theorem coinMult_E (t : ℕ) :
+    ExpectationsFiniteTree.coinSystem.E t (fun ω' => coinMult (t + 1) ω' (Sum.inr ())) =
+      fun ω => coinMult t ω (Sum.inr ()) := by
+  have h1 : (fun ω' => coinMult (t + 1) ω' (Sum.inr ())) =
+      ExpectationsFiniteTree.coinShock 1 := by
+    funext ω'
+    simp [coinMult]
+  rw [h1]
+  rcases Nat.eq_zero_or_pos t with h | h
+  · subst h
+    have := ExpectationsFiniteTree.coinShock_mean_zero 0
+    rw [this]
+    funext ω
+    simp [coinMult]
+  · funext ω
+    rw [ExpectationsFiniteTree.coinSystem,
+      ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E]
+    simp only [coinMult, show 1 ≤ t by omega, ↓reduceIte]
+    exact ExpectationsFiniteTree.coinTree.condE_of_const_on_cell fun ω' hω' =>
+      ExpectationsFiniteTree.coinShock_measurable 1
+        (ExpectationsFiniteTree.coinTree.refines (show 1 ≤ t by omega) ω' ω hω')
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (**the uncorrected equivalence is false under
+uncertainty**): on the coin-flip tree, for the problem `coinProblem`, there are no `Λ`, `Υ`,
+`Q`, `R` whatsoever such that all bounded `(φ, τ)` satisfy (1.18) iff (1.20)–(1.21). The zero
+multipliers and `coinMult` (whose `M_0 = ε₁` is not known at date 0) both satisfy (1.18) with
+the same targets, but (1.20) at `t = 0` would force `ε₁ = q_0 = 0`. -/
+theorem not_prop81Equiv_coin (Λ : Matrix Unit Unit ℝ) (Υ : Matrix Empty Unit ℝ)
+    (Qop : (ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) → ℕ → Bool × Bool → Unit → ℝ)
+    (Rop : (ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) → ℕ → Bool × Bool → Empty → ℝ) :
+    ¬ Prop81Equiv coinProblem ExpectationsFiniteTree.coinSystem 0 Λ Υ Qop Rop := by
+  intro h
+  have hy : BoundedV (0 : ℕ → Bool × Bool → (Empty ⊕ Unit) ⊕ Unit → ℝ) := ⟨0, by simp⟩
+  have hb0 : BoundedV (0 : ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) := ⟨0, by simp⟩
+  have hb1 : BoundedV coinMult := by
+    refine ⟨1, fun t ω a => ?_⟩
+    simp only [coinMult, ExpectationsFiniteTree.coinShock]
+    split_ifs <;> norm_num
+  have hz : ∀ t, ExpectationsFiniteTree.coinSystem.E t
+      (fun ω' => (0 : ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) (t + 1) ω' (Sum.inr ())) =
+      fun ω => (0 : ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) t ω (Sum.inr ()) :=
+    fun t => ExpectationsFiniteTree.coinSystem.const t 0
+  have h0 := ((h 0 0 hy hb0).mp (coin_eq118 0 hz)).1 0 le_rfl (true, true)
+  have h1 := ((h 0 coinMult hy hb1).mp (coin_eq118 coinMult coinMult_E)).1 0 le_rfl (true, true)
+  have hm0 : Mpart (coinMult 0 (true, true)) = 0 := by
+    funext r
+    simp [Mpart, coinMult]
+  have hm00 : Mpart ((0 : ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) 0 (true, true)) = 0 := rfl
+  have hm01 : Mpart ((0 : ℕ → Bool × Bool → Empty ⊕ Unit → ℝ) (0 + 1) (true, true)) = 0 := rfl
+  have hm1 : Mpart (coinMult (0 + 1) (true, true)) = fun _ => 1 := by
+    funext r
+    simp [Mpart, coinMult, ExpectationsFiniteTree.coinShock]
+  rw [hm00, hm01, mulVec_zero, zero_add] at h0
+  rw [hm0, hm1, mulVec_zero, zero_add, ← h0] at h1
+  have := congrFun h1 ()
+  norm_num at this
+
+/-- Woodford (2003), Proposition 8.1 (the hypothesis structure of `TargetCriterion`): on the
+coin-flip tree it is uninhabited for `coinProblem`. -/
+theorem prop81Conclusion_coin_isEmpty :
+    IsEmpty (Prop81Conclusion coinProblem ExpectationsFiniteTree.coinSystem 0) :=
+  ⟨fun H => not_prop81Equiv_coin H.Λ H.Υ H.Qop H.Rop H.equiv⟩
+
+/-- Woodford (2003), App. G.1 (the counterexample has `n_Z = 0`): the empty deflating pair. -/
+noncomputable def coinSplit : DeflatingSplit coinProblem.sys coinProblem.β where
+  J := 0
+  Ψ := 0
+  deflate := by
+    ext i j
+    exact j.elim
+  eig_lt := fun μ h => by simp at h
+  J1_det := by simp
+  K_det := by
+    change (Kmat coinSys 0).det ≠ 0
+    rw [Matrix.det_unique]
+    simp [Kmat, coinSys]
+
+/-- Woodford (2003), Proposition 8.1 (corrected): for the same problem on the same tree the
+corrected statement (multipliers `M_t` known at `t`) holds. -/
+noncomputable def prop81M_coin :
+    Prop81ConclusionM coinProblem ExpectationsFiniteTree.coinSystem 0 :=
+  prop81 coinProblem coinSplit ExpectationsFiniteTree.coinSystem 0
+
+end Woodford.OptimalPolicyRules.Prop81General
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.2 without the stability hypothesis
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Section 1.4, Proposition 8.2 (pp. 554–555,
+(1.23)–(1.27)), with Assumption 8.5 (App. G.2, p. 719).
+
+`TargetCriterion.Prop82` proved Proposition 8.2 conditional on Proposition 8.1 *and* on an
+extra hypothesis `MultStable` (the multiplier recursion (1.20) maps bounded forcing to bounded
+paths), which fails in the book's own examples: when (1.15) has more than `n_Z` roots with
+`|μ| < β⁻¹` (Assumption 8.7, implied by the Sargent–Wallace property) `Λ` has an eigenvalue
+outside the unit circle (`PencilAssumptions.not_multStable_of_unselected`). This module removes
+it. The multiplier path built from
+(1.20) also satisfies (1.19), `B₂' M_t = −v_t`, and Assumption 8.5 (the vectors `B₂'Λʲ`,
+`j = 1, …, k`, are independent, so they span the row space of `Λ`) makes `Λ M_t` a fixed linear
+function of `B₂' M_{t+1}, …, B₂' M_{t+k}` and the `q`'s, all bounded (`boundedV_of_krylov`). So
+Assumption 8.5 — which Proposition 8.2 assumes anyway — is what keeps the multipliers bounded.
+
+## Main results
+
+* `krylov_factor`, `boundedV_of_krylov`: observability of `(Λ, B₂')` under Assumption 8.5.
+* `focSystem_of_criterionM`: a bounded feasible plan satisfying (1.23) from `t₀` on solves
+  (1.1) + (1.9) with the initial multipliers recovered from the history.
+* `FOCSolvableM`, `Assumption81M`, `Assumption81M.of_assumption81`: Assumption 8.1 with the
+  initial multiplier `M_{t₀−1}` bounded and known at `t₀ − 1` (implied by
+  `GeneralFOC.LQ.Assumption81`, which can fail under uncertainty for every problem,
+  `NKAssumption81.not_assumption81_coin`).
+* `prop82M_exists`, `prop82M_unique`, `prop82M_determinate`, `prop82M_optimal`: Proposition 8.2
+  from the corrected Proposition 8.1 (`Prop81General.Prop81ConclusionM`) and Assumptions 8.1
+  (corrected, `Assumption81M`) and 8.5 only.
+* `gRule`, `multiplier_rule`, `prop82M_multiplier_rule`: the initial-multiplier rule (1.17) is
+  an explicit time-invariant linear function `g` of the predetermined state (1.24)
+  (`q_{t-1}, …, q_{t-D}, v_{t-1}, …, v_{t-D}`), and in the equilibrium `M_{t-1} = g(Z̄_t)` holds at
+  every date `t ≥ t₀`, not only at `t₀`: the self-consistency that makes the plan optimal from a
+  timeless perspective.
+* `prop82M_robustlyOptimal`: commitment to (1.23) is robustly optimal in the sense of
+  `GeneralSetup.RobustlyOptimal` (every bounded adapted disturbance process and every initial
+  condition).
+* `prop82_of_split`: everything for the explicit `Λ` of `Prop81General.prop81`.
+-/
+
+namespace Woodford.OptimalPolicyRules.Prop82General
+
+open Matrix GeneralSetup GeneralFOC GeneralFOC.LQ PencilSplit Prop81General Adjugate
+open TargetCriterion.Lag TargetCriterion.Crit TargetCriterion.Krylov TargetCriterion.Recursion
+  TargetCriterion.Prop81 TargetCriterion.Prop82
+
+variable {Ω : Type*}
+
+/-! ### Observability of `(Λ, B₂')` under Assumption 8.5 -/
+
+namespace KrylovBound
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-- Woodford (2003), Assumption 8.5 (App. G.2, p. 719): the vectors `B₂'Λʲ`, `j = 1, …, k`,
+span the row space of `Λ` (`k = rank Λ`), so `Λ w = C (B₂'Λ w, …, B₂'Λᵏ w)` for a fixed
+matrix `C`. -/
+theorem krylov_factor {Λ : Matrix ι ι ℝ} {B2 : ι → ℝ} (h85 : Assumption85b Λ B2) :
+    ∃ C : Matrix ι (Fin Λ.rank) ℝ,
+      ∀ w, Λ *ᵥ w = C *ᵥ fun j => (B2 ᵥ* Λ ^ (j.val + 1)) ⬝ᵥ w := by
+  set R := LinearMap.range Λᵀ.mulVecLin with hR
+  set S := Submodule.span ℝ (Set.range (fun j : Fin Λ.rank => B2 ᵥ* Λ ^ (j.val + 1))) with hS
+  have hSR : S ≤ R := by
+    rw [hS, Submodule.span_le]
+    rintro _ ⟨j, rfl⟩
+    refine ⟨B2 ᵥ* Λ ^ j.val, ?_⟩
+    rw [mulVecLin_apply, mulVec_transpose, vecMul_vecMul, ← pow_succ]
+  have hrank : Module.finrank ℝ R = Λ.rank := by
+    rw [hR]
+    exact rank_transpose Λ
+  have hSfin : Module.finrank ℝ S = Λ.rank := by
+    rw [hS, finrank_span_eq_card h85, Fintype.card_fin]
+  have hSeq : S = R := Submodule.eq_of_le_of_finrank_eq hSR (by rw [hSfin, hrank])
+  have hrow : ∀ i, Λ i ∈ S := by
+    intro i
+    rw [hSeq]
+    refine ⟨Pi.single i 1, ?_⟩
+    rw [mulVecLin_apply, mulVec_single_one]
+    rfl
+  choose c hc using fun i => (Submodule.mem_span_range_iff_exists_fun ℝ).mp (hrow i)
+  refine ⟨Matrix.of fun i j => c i j, fun w => ?_⟩
+  funext i
+  change Λ i ⬝ᵥ w = ∑ j, c i j * ((B2 ᵥ* Λ ^ (j.val + 1)) ⬝ᵥ w)
+  rw [← hc i, dotProduct_comm, dotProduct_sum]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [dotProduct_smul, smul_eq_mul, dotProduct_comm]
+
+/-- Woodford (2003), eq. (1.20): iterating `m_s = Λ m_{s-1} + q_s` over `t + 1, …, t + n`,
+`m_{t+n} = Λⁿ m_t + ∑_{i<n} Λ^{n-1-i} q_{t+1+i}`. -/
+theorem iterate_rec {Λ : Matrix ι ι ℝ} {m q : ℕ → ι → ℝ} {t n : ℕ}
+    (h : ∀ j, 1 ≤ j → j ≤ n → m (t + j) = Λ *ᵥ m (t + j - 1) + q (t + j)) :
+    m (t + n) = Λ ^ n *ᵥ m t + ∑ i ∈ Finset.range n, Λ ^ (n - 1 - i) *ᵥ q (t + 1 + i) := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [h (n + 1) (by omega) le_rfl, show t + (n + 1) - 1 = t + n by omega,
+      ih fun j hj1 hjn => h j hj1 (by omega), Finset.sum_range_succ, mulVec_add, mulVec_sum,
+      mulVec_mulVec, ← pow_succ']
+    have hs : ∑ i ∈ Finset.range n, Λ *ᵥ (Λ ^ (n - 1 - i) *ᵥ q (t + 1 + i)) =
+        ∑ i ∈ Finset.range n, Λ ^ (n + 1 - 1 - i) *ᵥ q (t + 1 + i) := by
+      refine Finset.sum_congr rfl fun i hi => ?_
+      have hi' := Finset.mem_range.mp hi
+      rw [mulVec_mulVec, ← pow_succ', show n - 1 - i + 1 = n + 1 - 1 - i by omega]
+    rw [hs, show n + 1 - 1 - n = 0 by omega, pow_zero, one_mulVec,
+      show t + (n + 1) = t + 1 + n by omega]
+    abel
+
+/-- Woodford (2003), App. G.2: a uniform bound for `B₂' Λᵐ u`, `m ≤ N`, over bounded `u`. -/
+theorem exists_bound_dot_pow (Λ : Matrix ι ι ℝ) (B2 : ι → ℝ) (N : ℕ) (K : ℝ) :
+    ∃ c, 0 ≤ c ∧ ∀ m ≤ N, ∀ u : ι → ℝ, (∀ i, |u i| ≤ K) → |B2 ⬝ᵥ (Λ ^ m *ᵥ u)| ≤ c := by
+  have hm : ∀ m, ∃ Km, ∀ u : ι → ℝ, (∀ i, |u i| ≤ K) → |B2 ⬝ᵥ (Λ ^ m *ᵥ u)| ≤ Km := by
+    intro m
+    obtain ⟨Km, hKm⟩ := exists_bound_mulVec (Matrix.of fun (_ : Unit) l => (B2 ᵥ* Λ ^ m) l) K
+    exact ⟨Km, fun u hu => by rw [dotProduct_mulVec]; exact hKm u hu ()⟩
+  choose Km hKm using hm
+  refine ⟨∑ m ∈ Finset.range (N + 1), |Km m|, Finset.sum_nonneg fun _ _ => abs_nonneg _,
+    fun m hm u hu => ?_⟩
+  refine (hKm m u hu).trans ((le_abs_self _).trans ?_)
+  exact Finset.single_le_sum (f := fun m => |Km m|) (fun _ _ => abs_nonneg _)
+    (Finset.mem_range.mpr (by omega))
+
+/-- Woodford (2003), p. 555 and Assumption 8.5 (App. G.2): **observability makes the multipliers
+bounded.** If `M_s = Λ M_{s-1} + q_s` and `B₂' M_s + v_s = 0` for all `s > s₀`, with `q`, `v`
+bounded and `M` bounded up to `s₀`, then `M` is bounded — whatever the eigenvalues of `Λ`. -/
+theorem boundedV_of_krylov {Λ : Matrix ι ι ℝ} {B2 : ι → ℝ} (h85 : Assumption85b Λ B2)
+    {M q : ℕ → Ω → ι → ℝ} {v : ℕ → Ω → ℝ} {s0 : ℕ} (hq : BoundedV q)
+    (hv : ∃ K, ∀ t ω, |v t ω| ≤ K)
+    (h120 : ∀ s, s0 < s → ∀ ω, M s ω = Λ *ᵥ M (s - 1) ω + q s ω)
+    (h119 : ∀ s, s0 < s → ∀ ω, B2 ⬝ᵥ M s ω + v s ω = 0)
+    (hM0 : ∃ K, ∀ s, s ≤ s0 → ∀ ω i, |M s ω i| ≤ K) : BoundedV M := by
+  obtain ⟨C, hC⟩ := krylov_factor h85
+  obtain ⟨Kq, hKq⟩ := hq
+  obtain ⟨Kv, hKv⟩ := hv
+  obtain ⟨K0, hK0⟩ := hM0
+  obtain ⟨c, hc0, hc⟩ := exists_bound_dot_pow Λ B2 Λ.rank Kq
+  have hb : ∀ t, s0 ≤ t → ∀ ω (j : Fin Λ.rank),
+      |(B2 ᵥ* Λ ^ (j.val + 1)) ⬝ᵥ M t ω| ≤ Kv + (Λ.rank + 1) * c := by
+    intro t ht ω j
+    have hit := iterate_rec (Λ := Λ) (m := fun s => M s ω) (q := fun s => q s ω) (t := t)
+      (n := j.val + 1) (fun i hi1 _ => h120 (t + i) (by omega) ω)
+    have h19 := h119 (t + (j.val + 1)) (by omega) ω
+    rw [hit, dotProduct_add, dotProduct_sum] at h19
+    rw [← dotProduct_mulVec]
+    have heq : B2 ⬝ᵥ (Λ ^ (j.val + 1) *ᵥ M t ω) = -v (t + (j.val + 1)) ω -
+        ∑ i ∈ Finset.range (j.val + 1), B2 ⬝ᵥ (Λ ^ (j.val + 1 - 1 - i) *ᵥ q (t + 1 + i) ω) := by
+      linarith
+    rw [heq]
+    have hsum : |∑ i ∈ Finset.range (j.val + 1), B2 ⬝ᵥ (Λ ^ (j.val + 1 - 1 - i) *ᵥ
+        q (t + 1 + i) ω)| ≤ (j.val + 1) * c := by
+      refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+      have := Finset.sum_le_card_nsmul (Finset.range (j.val + 1))
+        (fun i => |B2 ⬝ᵥ (Λ ^ (j.val + 1 - 1 - i) *ᵥ q (t + 1 + i) ω)|) c
+        (fun i _ => hc _ (by omega) _ (hKq _ ω))
+      simpa using this
+    have hj : ((j.val : ℝ) + 1) * c ≤ (Λ.rank + 1) * c := by
+      have : (j.val : ℝ) ≤ Λ.rank := by exact_mod_cast j.isLt.le
+      nlinarith
+    calc |-v (t + (j.val + 1)) ω - ∑ i ∈ Finset.range (j.val + 1),
+          B2 ⬝ᵥ (Λ ^ (j.val + 1 - 1 - i) *ᵥ q (t + 1 + i) ω)|
+        ≤ |v (t + (j.val + 1)) ω| + |∑ i ∈ Finset.range (j.val + 1),
+          B2 ⬝ᵥ (Λ ^ (j.val + 1 - 1 - i) *ᵥ q (t + 1 + i) ω)| := by
+          rw [sub_eq_add_neg, ← neg_add]
+          rw [abs_neg]
+          exact abs_add_le _ _
+      _ ≤ Kv + (Λ.rank + 1) * c := add_le_add (hKv _ _) (hsum.trans hj)
+  obtain ⟨KC, hKC⟩ := exists_bound_mulVec C (Kv + (Λ.rank + 1) * c)
+  refine ⟨max K0 (KC + Kq), fun s ω i => ?_⟩
+  by_cases hs : s ≤ s0
+  · exact (hK0 s hs ω i).trans (le_max_left _ _)
+  · rw [h120 s (by omega) ω, hC]
+    refine (abs_add_le _ _).trans ((add_le_add (hKC _ (fun j => hb (s - 1) (by omega) ω j) i)
+      (hKq s ω i)).trans (le_max_right _ _))
+
+/-- Woodford (2003), eq. (1.17), p. 551 with (1.24), p. 554: the time-invariant initial-multiplier
+rule. From a window of `K` periods of `q` and `v` (`qs i = q_{s₀+1+i}`, `vs i = v_{s₀+1+i}`) it
+returns `Λ^{K-1} C b + ∑_{i<K} Λ^{K-1-i} q_{s₀+1+i}`, where
+`b_j = −v_{s₀+1+j} − ∑_{i ≤ j} B₂' Λ^{j-i} q_{s₀+1+i}` recovers `B₂' Λ^{j+1} M_{s₀}`. -/
+noncomputable def gRule (Λ : Matrix ι ι ℝ) (B2 : ι → ℝ) (C : Matrix ι (Fin Λ.rank) ℝ) (K : ℕ)
+    (qs : ℕ → ι → ℝ) (vs : ℕ → ℝ) : ι → ℝ :=
+  Λ ^ (K - 1) *ᵥ (C *ᵥ fun j => -vs j.val -
+      ∑ i ∈ Finset.range (j.val + 1), B2 ⬝ᵥ (Λ ^ (j.val - i) *ᵥ qs i)) +
+    ∑ i ∈ Finset.range K, Λ ^ (K - 1 - i) *ᵥ qs i
+
+/-- Woodford (2003), (1.17) and Assumption 8.5 (App. G.2): if (1.20) and (1.19) hold on a window
+of `K ≥ max(1, rank Λ)` periods `s₀ + 1, …, s₀ + K`, the multiplier at its end is given by the
+time-invariant linear rule `gRule` of the window's `q` and `v` (an explicit form of
+`TargetCriterion.Krylov.initial_multiplier_unique`). -/
+theorem multiplier_rule {Λ : Matrix ι ι ℝ} {B2 : ι → ℝ} {C : Matrix ι (Fin Λ.rank) ℝ}
+    (hC : ∀ w, Λ *ᵥ w = C *ᵥ fun j => (B2 ᵥ* Λ ^ (j.val + 1)) ⬝ᵥ w) {K s0 : ℕ} (hK1 : 1 ≤ K)
+    (hKk : Λ.rank ≤ K) {m q : ℕ → ι → ℝ} {v : ℕ → ℝ}
+    (h120 : ∀ j, 1 ≤ j → j ≤ K → m (s0 + j) = Λ *ᵥ m (s0 + j - 1) + q (s0 + j))
+    (h119 : ∀ j, 1 ≤ j → j ≤ K → B2 ⬝ᵥ m (s0 + j) + v (s0 + j) = 0) :
+    m (s0 + K) = gRule Λ B2 C K (fun i => q (s0 + 1 + i)) (fun i => v (s0 + 1 + i)) := by
+  rw [iterate_rec h120, gRule]
+  congr 1
+  obtain ⟨K', rfl⟩ := Nat.exists_eq_add_of_le hK1
+  rw [show 1 + K' - 1 = K' by omega, add_comm 1 K', pow_succ, ← mulVec_mulVec, hC]
+  congr 2
+  funext j
+  have hit := iterate_rec (Λ := Λ) (m := m) (q := q) (t := s0) (n := j.val + 1)
+    (fun i hi1 hi2 => h120 i hi1 (by have := j.isLt; omega))
+  have h19 := h119 (j.val + 1) (by omega) (by have := j.isLt; omega)
+  rw [hit, dotProduct_add, dotProduct_sum] at h19
+  rw [← dotProduct_mulVec]
+  have hs : ∑ i ∈ Finset.range (j.val + 1), B2 ⬝ᵥ (Λ ^ (j.val + 1 - 1 - i) *ᵥ q (s0 + 1 + i)) =
+      ∑ i ∈ Finset.range (j.val + 1), B2 ⬝ᵥ (Λ ^ (j.val - i) *ᵥ q (s0 + 1 + i)) :=
+    Finset.sum_congr rfl fun i _ => by rw [show j.val + 1 - 1 - i = j.val - i by omega]
+  rw [hs, show s0 + (j.val + 1) = s0 + 1 + j.val by omega] at h19
+  linarith
+
+end KrylovBound
+
+open KrylovBound
+
+/-! ### Assumption 8.1 with measurable, bounded initial conditions -/
+
+variable {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+/-- Woodford (2003), Assumption 8.1, p. 541 (existence half), **corrected**: (1.1) + (1.9) has a
+bounded solution for every bounded adapted disturbance, every `Z_{t₀}` known at `t₀` and every
+**bounded** initial multiplier `M_{t₀−1}` **known at `t₀ − 1`**. (`GeneralFOC.LQ.FOCSolvable`
+asks for every `M_{t₀−1}` known at `t₀`; since a solution has `M_t` known at `t` and bounded,
+that version can fail for every problem, `NKAssumption81.not_assumption81_coin`.) -/
+def FOCSolvableM (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) : Prop :=
+  ∀ (c : ℕ → Ω → ιz → ℝ) (Z0 : Ω → ιZ → ℝ) (M0 : Ω → ιz → ℝ), BoundedV c → AdaptedV 𝔼 c →
+    KnownV 𝔼 t0 Z0 → (∃ K, ∀ ω r, |M0 ω r| ≤ K) → KnownV 𝔼 (t0 - 1) M0 →
+      ∃ y φ, FOCSystem P 𝔼 c t0 Z0 M0 y φ
+
+variable (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+
+/-- Woodford (2003), Assumption 8.1, p. 541, **corrected**: existence for bounded initial
+multipliers known at `t₀ − 1` (`FOCSolvableM`) and uniqueness (`GeneralFOC.LQ.FOCUnique`). -/
+structure Assumption81M where
+  solvable : FOCSolvableM P 𝔼 t0
+  unique : FOCUnique P 𝔼 t0
+
+variable {P 𝔼 t0}
+
+/-- Woodford (2003), Assumption 8.1, p. 541: the formalisation `GeneralFOC.LQ.Assumption81`
+implies the corrected one. -/
+theorem Assumption81M.of_assumption81 (hA : Assumption81 P 𝔼 t0) : Assumption81M P 𝔼 t0 :=
+  ⟨fun c Z0 M0 hbc hac hZ0 _ hM0 =>
+    hA.solvable c Z0 M0 hbc hac hZ0 (KnownV.mono 𝔼 (Nat.sub_le t0 1) hM0), hA.unique⟩
+
+/-! ### Proposition 8.2 from the corrected Proposition 8.1 -/
+
+namespace Prop82M
+
+variable {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+
+/-- Woodford (2003), eq. (1.23), p. 554: commitment to the target criterion at all `t ≥ t₀`
+(`α = det(I − ΛL)`, `B = adj(I − ΛL)`, historical `q`, `v` before `t₀`), for the matrices of the
+corrected Proposition 8.1. -/
+def CriterionM (H : Prop81ConclusionM P 𝔼 t0) (D : ℕ) (qh : ℕ → Ω → ιz → ℝ) (vh : ℕ → Ω → ℝ)
+    (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) : Prop :=
+  ∀ t, t0 ≤ t → ∀ ω, crit (alpha H.Λ) (Bpoly H.Λ) D P.sys.B2 (splice t0 vh (vproc P y))
+    (splice t0 qh (H.Qop (xproc P y))) t ω = 0
+
+/-- Woodford (2003), p. 555: the multipliers implied by a plan under the criterion: `M_t` from
+(1.20) with the history before `t₀`, `ξ_t` from (1.21), `φ_t = (ξ_t, M_{t-1})`. -/
+def φconM (H : Prop81ConclusionM P 𝔼 t0) (Mh : ℕ → Ω → ιz → ℝ)
+    (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) : ℕ → Ω → ιZ ⊕ ιz → ℝ :=
+  fun s ω => Sum.elim
+    (if t0 ≤ s then H.Υ *ᵥ Mseq H.Λ Mh t0 (H.Qop (xproc P y)) (s - 1) ω +
+      H.Rop (xproc P y) s ω else 0)
+    (Mseq H.Λ Mh t0 (H.Qop (xproc P y)) (s - 1) ω)
+
+/-- Woodford (2003), p. 540: the constructed `M_t` is known at `t` (restated from
+`TargetCriterion.Prop82.known_Mseq` for the corrected Proposition 8.1). -/
+theorem known_MseqM (H : Prop81ConclusionM P 𝔼 t0) (ht0 : 1 ≤ t0) {Mh : ℕ → Ω → ιz → ℝ}
+    (hMhk : AdaptedV 𝔼 Mh) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) :
+    ∀ s, KnownV 𝔼 s (Mseq H.Λ Mh t0 (H.Qop x) s) := by
+  intro s
+  by_cases hs : s < t0
+  · simp only [Mseq, hs, ↓reduceIte]
+    exact hMhk s
+  · push Not at hs
+    obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hs
+    simp only [Mseq, show ¬ t0 + k < t0 by omega, ↓reduceIte, Nat.add_sub_cancel_left]
+    induction k with
+    | zero =>
+      exact KnownV.mulVec_add H.Λ (KnownV.mono 𝔼 (by omega) (hMhk (t0 - 1)))
+        (H.Qadapted x (t0 + 0))
+    | succ k ih =>
+      exact KnownV.mulVec_add H.Λ (KnownV.mono 𝔼 (by omega) (ih (by omega)))
+        (H.Qadapted x (t0 + (k + 1)))
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), eq. (1.26), p. 554: `v_t = T_i'W(τ_t − τ*)` is bounded for bounded plans. -/
+theorem bounded_vproc {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : BoundedV y) :
+    ∃ K, ∀ t ω, |vproc P y t ω| ≤ K := by
+  obtain ⟨M, hM⟩ := hy
+  obtain ⟨K1, hK1⟩ := exists_bound_mulVec P.T M
+  obtain ⟨K2, hK2⟩ := exists_bound_mulVec (Matrix.of fun (_ : Unit) a => (P.Ti ᵥ* P.W) a)
+    (K1 + ∑ b, |P.τstar b|)
+  refine ⟨K2, fun t ω => ?_⟩
+  have hb : ∀ b, |(P.T *ᵥ y t ω - P.τstar) b| ≤ K1 + ∑ b, |P.τstar b| := fun b => by
+    have h2 : |P.τstar b| ≤ ∑ b, |P.τstar b| :=
+      Finset.single_le_sum (f := fun b => |P.τstar b|) (fun b _ => abs_nonneg _)
+        (Finset.mem_univ b)
+    simp only [Pi.sub_apply]
+    exact (abs_sub _ _).trans (add_le_add (hK1 _ (hM t ω) b) h2)
+  have := hK2 _ hb ()
+  rw [vproc, dotProduct_mulVec]
+  exact this
+
+/-- Woodford (2003), p. 555: splicing two bounded processes gives a bounded process. -/
+theorem boundedV_splice {ι : Type*} {h x : ℕ → Ω → ι → ℝ} (hh : BoundedV h) (hx : BoundedV x)
+    : BoundedV (splice t0 h x) := by
+  obtain ⟨K1, hK1⟩ := hh
+  obtain ⟨K2, hK2⟩ := hx
+  refine ⟨max K1 K2, fun s ω i => ?_⟩
+  unfold splice
+  split_ifs
+  · exact (hK1 s ω i).trans (le_max_left _ _)
+  · exact (hK2 s ω i).trans (le_max_right _ _)
+
+/-- Woodford (2003), p. 555 (Proposition 8.2, the key step): a bounded feasible plan satisfying
+the target criterion (1.23) at all `t ≥ t₀`, given a consistent bounded history, solves
+(1.1) + (1.9) with initial multipliers `M_{t₀-1} = Mh_{t₀-1}`. Unlike
+`TargetCriterion.Prop82.focSystem_of_criterion`, no stability of `Λ` is assumed: the multipliers
+are bounded by Assumption 8.5 (`boundedV_of_krylov`). -/
+theorem focSystem_of_criterionM (H : Prop81ConclusionM P 𝔼 t0)
+    (h85 : Assumption85b H.Λ P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D) (hα : (alpha H.Λ).natDegree ≤ D)
+    {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ} (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : P.Feasible 𝔼 c t0 Z0 y)
+    (hcrit : CriterionM H D qh vh y) :
+    FOCSystem P 𝔼 c t0 Z0 (Mh (t0 - 1)) y (φconM H Mh y) := by
+  set x := xproc P y with hx
+  set Ms := Mseq H.Λ Mh t0 (H.Qop x) with hMs
+  have hxb : BoundedV x := boundedV_xproc hy.2.2.1
+  have hMpart : ∀ s ω, Mpart (φconM H Mh y s ω) = Ms (s - 1) ω := fun _ _ => rfl
+  have hξ : ∀ s, t0 ≤ s → ∀ ω, ξpart (φconM H Mh y s ω) = H.Υ *ᵥ Ms (s - 1) ω + H.Rop x s ω := by
+    intro s hs ω
+    funext r
+    simp [φconM, ξpart, hs, hMs, hx]
+  -- (1.20) and (1.19) for the spliced processes, from `t₀ − D` on
+  have h120' : ∀ s, t0 - D ≤ s → ∀ ω,
+      Ms s ω = H.Λ *ᵥ Ms (s - 1) ω + splice t0 qh (H.Qop x) s ω := by
+    intro s hs ω
+    by_cases hlt : s < t0
+    · simp only [hMs, Mseq, splice, hlt, ↓reduceIte, show s - 1 < t0 by omega]
+      exact hhist.1 s hs hlt ω
+    · simp only [splice, hlt, ↓reduceIte]
+      exact Mseq_rec (by omega) s (by omega) ω
+  have h119' : ∀ s, t0 - D ≤ s → s < t0 → ∀ ω,
+      P.sys.B2 ⬝ᵥ Ms s ω + splice t0 vh (vproc P y) s ω = 0 := by
+    intro s hs hlt ω
+    simp only [hMs, Mseq, splice, hlt, ↓reduceIte]
+    exact hhist.2 s hs hlt ω
+  have h119 := eq119_of_criterion (eq122 H.Λ) (alpha_coeff_zero H.Λ) hB hα P.sys.B2
+    (show t0 - D + D ≤ t0 by omega) h120' h119' hcrit
+  -- the multipliers are bounded (Assumption 8.5)
+  have hMsb : BoundedV Ms := by
+    obtain ⟨K1, hK1⟩ := hMhb
+    refine boundedV_of_krylov h85 (s0 := t0 - D - 1)
+      (boundedV_splice hqhb (H.Qbounded x hxb)) ?_
+      (fun s hs ω => h120' s (by omega) ω) (fun s hs ω => h119 s (by omega) ω)
+      ⟨K1, fun s hs ω i => ?_⟩
+    · obtain ⟨Kv1, hKv1⟩ := hvhb
+      obtain ⟨Kv2, hKv2⟩ := bounded_vproc (P := P) hy.2.2.1
+      refine ⟨max Kv1 Kv2, fun s ω => ?_⟩
+      unfold splice
+      split_ifs
+      · exact (hKv1 s ω).trans (le_max_left _ _)
+      · exact (hKv2 s ω).trans (le_max_right _ _)
+    · simp only [hMs, Mseq, show s < t0 by omega, ↓reduceIte]
+      exact hK1 s ω i
+  have hφb : BoundedV (φconM H Mh y) := by
+    obtain ⟨K1, hK1⟩ := hMsb
+    obtain ⟨KR, hKR⟩ := H.Rbounded x hxb
+    obtain ⟨KΥ, hKΥ⟩ := exists_bound_mulVec H.Υ K1
+    refine ⟨max (max (KΥ + KR) K1) 0, fun s ω i => ?_⟩
+    rcases i with r | r
+    · by_cases hs : t0 ≤ s
+      · have := congrFun (hξ s hs ω) r
+        simp only [ξpart, Pi.add_apply] at this
+        rw [this]
+        exact (abs_add_le _ _).trans ((add_le_add (hKΥ _ (hK1 _ ω) r) (hKR s ω r)).trans
+          ((le_max_left _ _).trans (le_max_left _ _)))
+      · simp only [φconM, hs, ↓reduceIte, Sum.elim_inl, Pi.zero_apply, abs_zero]
+        exact le_max_right _ _
+    · exact (hK1 _ ω r).trans ((le_max_right _ _).trans (le_max_left _ _))
+  have hmeas : MultiplierMeas 𝔼 (φconM H Mh y) := by
+    intro t r
+    have := known_MseqM H (by omega) hMhk x t r
+    simpa [φconM, hMs] using this
+  have h120 : Eq120 t0 H.Λ (H.Qop x) (φconM H Mh y) := by
+    intro t ht ω
+    rw [hMpart, hMpart, Nat.add_sub_cancel]
+    exact Mseq_rec (by omega) t ht ω
+  have h121 : Eq121 t0 H.Υ (H.Rop x) (φconM H Mh y) := by
+    intro t ht ω
+    rw [hξ t ht ω, hMpart]
+  have h118 := (H.equiv y (φconM H Mh y) hy.2.2.1 hy.2.2.2 hφb
+    (fun t _ r => hmeas t r)).mpr ⟨h120, h121⟩
+  refine ⟨hy, hφb, hmeas, fun ω => ?_, fun t ht ω => ?_⟩
+  · rw [hMpart]
+    simp only [hMs, Mseq, show t0 - 1 < t0 by omega, ↓reduceIte]
+  · refine (foc_iff_split P hmeas y t ω).mpr ⟨h118 t ht ω, ?_⟩
+    have := h119 t (by omega) ω
+    simp only [splice, show ¬ t < t0 by omega, ↓reduceIte] at this
+    rw [hMpart, Nat.add_sub_cancel]
+    exact this
+
+/-- Woodford (2003), **Proposition 8.2** (second part), p. 555: the plan determined by
+commitment to (1.23) minimises (1.2) among bounded feasible plans subject to the initial
+constraint (1.27) `Ẽ z_{t₀} = ē` (any expectation system with pull-out; no stability
+hypothesis on `Λ`). -/
+theorem prop82M_optimal (hpull : 𝔼.PullOut) (H : Prop81ConclusionM P 𝔼 t0)
+    (h85 : Assumption85b H.Λ P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D) (hα : (alpha H.Λ).natDegree ≤ D)
+    {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ} (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : P.Feasible 𝔼 c t0 Z0 y)
+    (hcrit : CriterionM H D qh vh y) :
+    P.OptimalSubjectTo 𝔼 c t0 Z0 (fun ω => P.sys.Et *ᵥ zpart (y t0 ω)) y :=
+  optimalSubjectTo_of_focSystem P hpull
+    (focSystem_of_criterionM H h85 hD hB hα hhist hMhb hMhk hqhb hvhb hy hcrit)
+
+/-- Woodford (2003), **Proposition 8.2** (determinacy, uniqueness), p. 555: under Assumptions
+8.1 and 8.5 two bounded feasible plans satisfying (1.23) at all `t ≥ t₀` (same history)
+coincide from `t₀` on. -/
+theorem prop82M_unique (hA : Assumption81M P 𝔼 t0) (H : Prop81ConclusionM P 𝔼 t0)
+    (h85 : Assumption85b H.Λ P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D) (hα : (alpha H.Λ).natDegree ≤ D)
+    {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ} (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y y' : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : P.Feasible 𝔼 c t0 Z0 y)
+    (hy' : P.Feasible 𝔼 c t0 Z0 y') (hcrit : CriterionM H D qh vh y)
+    (hcrit' : CriterionM H D qh vh y') : ∀ t, t0 ≤ t → y t = y' t := fun t ht =>
+  (hA.unique c Z0 (Mh (t0 - 1)) y y' _ _
+    (focSystem_of_criterionM H h85 hD hB hα hhist hMhb hMhk hqhb hvhb hy hcrit)
+    (focSystem_of_criterionM H h85 hD hB hα hhist hMhb hMhk hqhb hvhb hy' hcrit') t ht).1
+
+/-- Woodford (2003), the Mseq-type history used by `prop82M_exists` and
+`prop82M_multiplier_rule`: the history `Mh` before `t₀`, then the multipliers `M_s` of a FOC
+solution (`φ_{s+1} = (ξ_{s+1}, M_s)`). -/
+def histThen (t0 : ℕ) (Mh : ℕ → Ω → ιz → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιz → ℝ :=
+  fun s => if s < t0 then Mh s else fun ω => Mpart (φ (s + 1) ω)
+
+/-- Woodford (2003), p. 555 and fn 14: along a FOC solution with `M_{t₀-1} = Mh_{t₀-1}` and a
+consistent history, the spliced multipliers satisfy (1.20) and (1.19) from `t₀ − D` on. -/
+theorem histThen_rec (H : Prop81ConclusionM P 𝔼 t0) {D : ℕ} (hD : D + 1 ≤ t0)
+    {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ} (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh)
+    {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ} {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ} (hs : FOCSystem P 𝔼 c t0 Z0 (Mh (t0 - 1)) y φ) :
+    (∀ s, t0 - D ≤ s → ∀ ω, histThen t0 Mh φ s ω =
+      H.Λ *ᵥ histThen t0 Mh φ (s - 1) ω + splice t0 qh (H.Qop (xproc P y)) s ω) ∧
+    ∀ s, t0 - D ≤ s → ∀ ω,
+      P.sys.B2 ⬝ᵥ histThen t0 Mh φ s ω + splice t0 vh (vproc P y) s ω = 0 := by
+  obtain ⟨hfe, hbφ, hmφ, hM, hfoc⟩ := hs
+  have hsplit := fun t (ht : t0 ≤ t) ω => (foc_iff_split P hmφ y t ω).mp (hfoc t ht ω)
+  have h120 := ((H.equiv y φ hfe.2.2.1 hfe.2.2.2 hbφ (fun t _ r => hmφ t r)).mp
+    fun t ht ω => (hsplit t ht ω).1).1
+  refine ⟨fun s hs ω => ?_, fun s hs ω => ?_⟩
+  · by_cases hlt : s < t0
+    · simp only [histThen, splice, hlt, ↓reduceIte, show s - 1 < t0 by omega]
+      exact hhist.1 s hs hlt ω
+    · simp only [histThen, splice, hlt, ↓reduceIte]
+      rw [h120 s (by omega) ω]
+      congr 2
+      by_cases heq : s = t0
+      · subst heq
+        simp only [show s - 1 < s by omega, ↓reduceIte]
+        exact hM ω
+      · simp only [show ¬ s - 1 < t0 by omega, ↓reduceIte, show s - 1 + 1 = s by omega]
+  · by_cases hlt : s < t0
+    · simp only [histThen, splice, hlt, ↓reduceIte]
+      exact hhist.2 s hs hlt ω
+    · simp only [histThen, splice, hlt, ↓reduceIte, vproc]
+      exact (hsplit s (by omega) ω).2
+
+/-- Woodford (2003), **Proposition 8.2** (determinacy, existence), p. 555: under Assumption 8.1
+the bounded solution of (1.1) + (1.9) with initial multipliers `M_{t₀-1} = Mh_{t₀-1}` satisfies
+the criterion (1.23) at every `t ≥ t₀` (fn 14). -/
+theorem prop82M_exists (hA : Assumption81M P 𝔼 t0) (H : Prop81ConclusionM P 𝔼 t0) {D : ℕ}
+    (hD : D + 1 ≤ t0) (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D)
+    (hα : (alpha H.Λ).natDegree ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh) (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh)
+    {c : ℕ → Ω → ιz → ℝ} (hbc : BoundedV c) (hac : AdaptedV 𝔼 c) {Z0 : Ω → ιZ → ℝ}
+    (hZ0 : KnownV 𝔼 t0 Z0) :
+    ∃ y, P.Feasible 𝔼 c t0 Z0 y ∧ CriterionM H D qh vh y := by
+  have hMb : ∃ K, ∀ ω r, |Mh (t0 - 1) ω r| ≤ K := by
+    obtain ⟨K, hK⟩ := hMhb
+    exact ⟨K, fun ω r => hK (t0 - 1) ω r⟩
+  obtain ⟨y, φ, hs⟩ := hA.solvable c Z0 (Mh (t0 - 1)) hbc hac hZ0 hMb (hMhk (t0 - 1))
+  refine ⟨y, hs.1, ?_⟩
+  obtain ⟨h120', h119'⟩ := histThen_rec H hD hhist hs
+  have hc := eq123_of_eq119_eq120 (eq122 H.Λ) hB hα P.sys.B2 h119' h120'
+  intro t ht ω
+  exact hc t (by omega) ω
+
+/-- Woodford (2003), **Proposition 8.2**, p. 555: commitment to (1.23) at all `t ≥ t₀` results
+in a determinate equilibrium: there is exactly one bounded feasible plan (from `t₀` on) that
+satisfies the criterion, for every bounded adapted disturbance process and every initial
+condition known at `t₀`. -/
+theorem prop82M_determinate (hA : Assumption81M P 𝔼 t0) (H : Prop81ConclusionM P 𝔼 t0)
+    (h85 : Assumption85b H.Λ P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D) (hα : (alpha H.Λ).natDegree ≤ D)
+    {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ} (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) {c : ℕ → Ω → ιz → ℝ} (hbc : BoundedV c)
+    (hac : AdaptedV 𝔼 c) {Z0 : Ω → ιZ → ℝ} (hZ0 : KnownV 𝔼 t0 Z0) :
+    ∃ y, (P.Feasible 𝔼 c t0 Z0 y ∧ CriterionM H D qh vh y) ∧
+      ∀ y', P.Feasible 𝔼 c t0 Z0 y' → CriterionM H D qh vh y' → ∀ t, t0 ≤ t → y' t = y t := by
+  obtain ⟨y, hy, hcrit⟩ := prop82M_exists hA H hD hB hα hhist hMhb hMhk hbc hac hZ0
+  exact ⟨y, ⟨hy, hcrit⟩, fun y' hy' hcrit' t ht =>
+    prop82M_unique hA H h85 hD hB hα hhist hMhb hMhk hqhb hvhb hy' hy hcrit' hcrit t ht⟩
+
+/-- Woodford (2003), eqs. (1.17) and (1.24), pp. 551–554 (the self-consistency behind
+Proposition 8.2): along a solution of (1.1) + (1.9) with initial multipliers
+`M_{t₀-1} = Mh_{t₀-1}` and a consistent history, there is one fixed matrix `C` such that at every
+date `t ≥ t₀` the multipliers are the same time-invariant linear function `gRule` of the
+predetermined state `Z̄_t = (q_{t-1}, …, q_{t-D}, v_{t-1}, …, v_{t-D})` (1.24): `M_{t-1} = g(Z̄_t)`.
+At `t = t₀` this is the initial-multiplier rule (1.11); at later dates it is (1.17), which is
+what makes the equilibrium optimal from a timeless perspective. -/
+theorem prop82M_multiplier_rule (H : Prop81ConclusionM P 𝔼 t0)
+    (h85 : Assumption85b H.Λ P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0) (hD1 : 1 ≤ D)
+    (hDk : H.Λ.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh) {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (hs : FOCSystem P 𝔼 c t0 Z0 (Mh (t0 - 1)) y φ) :
+    ∃ C : Matrix ιz (Fin H.Λ.rank) ℝ, ∀ t, t0 ≤ t → ∀ ω,
+      Mpart (φ t ω) = gRule H.Λ P.sys.B2 C D
+        (fun i => splice t0 qh (H.Qop (xproc P y)) (t - D + i) ω)
+        (fun i => splice t0 vh (vproc P y) (t - D + i) ω) := by
+  obtain ⟨C, hC⟩ := krylov_factor h85
+  obtain ⟨h120, h119⟩ := histThen_rec H hD hhist hs
+  refine ⟨C, fun t ht ω => ?_⟩
+  have hrule := multiplier_rule hC hD1 hDk (s0 := t - 1 - D)
+    (m := fun s => histThen t0 Mh φ s ω) (q := fun s => splice t0 qh (H.Qop (xproc P y)) s ω)
+    (v := fun s => splice t0 vh (vproc P y) s ω)
+    (fun j hj1 hjK => h120 (t - 1 - D + j) (by omega) ω)
+    (fun j hj1 hjK => h119 (t - 1 - D + j) (by omega) ω)
+  rw [show t - 1 - D + D = t - 1 by omega] at hrule
+  have hidx : ∀ i, t - 1 - D + 1 + i = t - D + i := fun i => by omega
+  simp only [hidx] at hrule
+  rw [← hrule]
+  by_cases hlt : t - 1 < t0
+  · have ht0 : t = t0 := by omega
+    subst ht0
+    simp only [histThen, hlt, ↓reduceIte]
+    exact hs.2.2.2.1 ω
+  · simp only [histThen, hlt, ↓reduceIte, show t - 1 + 1 = t by omega]
+
+/-- Woodford (2003), Definition, pp. 549–550 and Proposition 8.2, p. 555: **commitment to the
+target criterion (1.23) is robustly optimal** — for every bounded adapted disturbance process
+and every initial condition it determines a unique bounded equilibrium, and that equilibrium is
+optimal from a timeless perspective (`GeneralSetup.RobustlyOptimal`). The rule's coefficients
+depend only on the first-order conditions, not on the disturbance process. (The definition
+`TimelesslyOptimalPlan` allows `X̄_t = z_t`, which is the instance used; the substantive
+time-invariance of the initial-multiplier rule is `prop82M_multiplier_rule`.) -/
+theorem prop82M_robustlyOptimal (hpull : 𝔼.PullOut) (hA : Assumption81M P 𝔼 t0)
+    (H : Prop81ConclusionM P 𝔼 t0) (h85 : Assumption85b H.Λ P.sys.B2) {D : ℕ}
+    (hD : D + 1 ≤ t0) (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D)
+    (hα : (alpha H.Λ).natDegree ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh) (hMhb : BoundedV Mh)
+    (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh) (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := ιz) P 𝔼 t0 (fun _ y => CriterionM H D qh vh y)
+      (fun _ y t ω => zpart (y t ω)) := by
+  intro c Z0 hbc hac hZ0
+  obtain ⟨y, ⟨hy, hcrit⟩, huniq⟩ :=
+    prop82M_determinate hA H h85 hD hB hα hhist hMhb hMhk hqhb hvhb hbc hac hZ0
+  refine ⟨y, hy, hcrit, huniq, 0, 1, fun t _ ω => by simp, ?_⟩
+  have hopt := prop82M_optimal hpull H h85 hD hB hα hhist hMhb hMhk hqhb hvhb hy hcrit
+  have he : (fun ω => P.sys.Et *ᵥ ((0 : ιz → ℝ) + (1 : Matrix ιz ιz ℝ) *ᵥ zpart (y t0 ω))) =
+      fun ω => P.sys.Et *ᵥ zpart (y t0 ω) := by
+    funext ω
+    simp
+  rw [he]
+  exact hopt
+
+end Prop82M
+
+open Prop82M
+
+/-! ### Proposition 8.2 for the explicit `Λ` of Proposition 8.1 -/
+
+/-- Woodford (2003), **Proposition 8.2**, p. 555, for the matrices of Proposition 8.1 built from
+a deflating pair (`Prop81General.prop81`, `Λ = β⁻¹ K⁻¹ Ẽ'`): under Assumption 8.1, Assumption 8.5
+for this `Λ`, a lag length `D ≥ max(1, rank Ẽ)` and a consistent bounded history, commitment to
+(1.23) determines a unique bounded equilibrium for every bounded adapted disturbance process,
+optimal subject to its initial constraint (1.27) and hence robustly optimal. -/
+theorem prop82_of_split {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ]
+    [DecidableEq ιZ] [DecidableEq ιz] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (hpull : 𝔼.PullOut) (hA : Assumption81M P 𝔼 t0) (Dsp : DeflatingSplit P.sys P.β)
+    (h85 : Assumption85b (Λmat P.sys P.β Dsp.J) P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hDk : P.sys.Et.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : HistoryOK (Λmat P.sys P.β Dsp.J) P.sys.B2 t0 D Mh qh vh) (hMhb : BoundedV Mh)
+    (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh) (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := ιz) P 𝔼 t0
+      (fun _ y => CriterionM (prop81 P Dsp 𝔼 t0) D qh vh y) (fun _ y t ω => zpart (y t ω)) := by
+  have hrk : (Λmat P.sys P.β Dsp.J).rank ≤ D := by
+    rw [rank_Λmat P.sys P.β_pos.ne' Dsp.K_det]
+    exact hDk
+  exact prop82M_robustlyOptimal hpull hA (prop81 P Dsp 𝔼 t0) h85 hD
+    (fun i c => (natDegree_Bpoly_le_rank _ i c).trans hrk)
+    ((natDegree_alpha_le_rank _).trans hrk) hhist hMhb hMhk hqhb hvhb
+
+end Woodford.OptimalPolicyRules.Prop82General
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The eigenvector apparatus of Appendix G.1: Assumptions 8.2 and 8.3
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumption 8.2 (p. 552) and Appendix G.1,
+Assumption 8.3 and (G.1)–(G.4) (pp. 716–718).
+
+* `Assumption82`, `Assumption83`: the two assumptions as stated in the book. Assumption 8.2
+  selects `n_Z` roots of (1.15) with `|μ| < β⁻¹`, including the zero root counted `n − rank A`
+  times, either closed under conjugation (case (i)) or with one unpaired complex root (case
+  (ii)). Assumption 8.3: distinct nonzero roots, `rank Ẽ + rank A − n_z` of them, and the
+  kernel vectors of `A`, `A'`, `Î'`, `Î`. The polynomial (1.15) is taken to be nonzero, as the
+  book's root count presupposes.
+* `RealSelection`: a real `n × n_Z` matrix `J` with independent columns and `Ψ` with
+  `A J = Î J Ψ` (G.4) whose eigenvalues are the selected roots or zero.
+* `exists_realSelection`: under Assumption 8.2 case (i) and Assumption 8.3 such a pair exists.
+  Its columns are the real eigenvectors of the real selected roots, the real and imaginary parts
+  of eigenvectors of the selected complex pairs (fn 2, p. 717), and a basis of `ker A`; `Ψ` is
+  block diagonal with blocks `μ`, `[[Re μ, Im μ], [−Im μ, Re μ]]` and `0`. Linear independence
+  comes from a shift `s` (not a root): `A u = μ Î u` iff `u` is an eigenvector of
+  `N = (A − sÎ)⁻¹ Î` for `(μ − s)⁻¹`, so eigenvectors of distinct roots are independent.
+-/
+
+namespace Woodford.OptimalPolicyRules.PencilEigen
+
+open Matrix GeneralSetup PencilSplit GeneralFOC.Selection
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-! ### The assumptions -/
+
+/-- Woodford (2003), Assumption 8.2, p. 552 (the selection condition): (i) the selected roots are
+closed under conjugation, or (ii) exactly one selected complex root `μ` has its conjugate
+unselected, and `|Re μ⁻¹| > β`. -/
+def SelCases (sel : Multiset ℂ) (β : ℝ) : Prop :=
+  ConjClosed sel ∨ ∃ μ ∈ sel, starRingEnd ℂ μ ∉ sel ∧ ConjClosed (sel.erase μ) ∧ β < |(μ⁻¹).re|
+
+/-- Woodford (2003), Assumption 8.2, p. 552: (1.15) has at least `n_Z` roots with `|μ| < β⁻¹`
+(zero counted `n − rank A` times), and one can select exactly `n_Z` of them, including the
+`n − rank A` zeros — `sel` is the multiset of the selected *nonzero* roots — such that either
+(i) the selection is closed under complex conjugation, or (ii) it contains a single complex root
+`μ` whose conjugate is not selected, with `|Re μ⁻¹| > β`. -/
+structure Assumption82 (S : LinearRESystem ιZ ιz) (β : ℝ) where
+  count : S.Assumption82Count β
+  sel : Multiset ℂ
+  sel_le : sel ≤ S.pencilPoly.roots.filter (fun μ => μ ≠ 0 ∧ ‖μ‖ < β⁻¹)
+  sel_card : Multiset.card sel + (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) = Fintype.card ιZ
+  cases : SelCases sel β
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716: the nonzero roots of (1.15). -/
+noncomputable def nonzeroRoots (S : LinearRESystem ιZ ιz) : Multiset ℂ :=
+  S.pencilPoly.roots.filter (fun μ => μ ≠ 0)
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716: `n − rank A` independent vectors `uᵢ`
+with `A uᵢ = 0`. -/
+def KerA (S : LinearRESystem ιZ ιz) : Prop :=
+  ∃ u : Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) → ιZ ⊕ ιz → ℝ,
+    LinearIndependent ℝ u ∧ ∀ i, S.Ahat *ᵥ u i = 0
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716: `n − rank A` independent vectors `fᵢ`
+with `fᵢ' A = 0`. -/
+def KerALeft (S : LinearRESystem ιZ ιz) : Prop :=
+  ∃ f : Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) → ιZ ⊕ ιz → ℝ,
+    LinearIndependent ℝ f ∧ ∀ i, f i ᵥ* S.Ahat = 0
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716: `n_z − rank Ẽ` independent vectors `eⱼ`
+with `eⱼ' Î = 0`. -/
+def KerILeft (S : LinearRESystem ιZ ιz) : Prop :=
+  ∃ e : Fin (Fintype.card ιz - S.Et.rank) → ιZ ⊕ ιz → ℝ,
+    LinearIndependent ℝ e ∧ ∀ j, e j ᵥ* S.Ihat = 0
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716: `n_z − rank Ẽ` independent vectors `hⱼ`
+with `Î hⱼ = 0`. -/
+def KerI (S : LinearRESystem ιZ ιz) : Prop :=
+  ∃ h : Fin (Fintype.card ιz - S.Et.rank) → ιZ ⊕ ιz → ℝ,
+    LinearIndependent ℝ h ∧ ∀ j, S.Ihat *ᵥ h j = 0
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716: (1.15) — a nonzero polynomial, as its
+root count presupposes — has `rank Ẽ + rank A − n_z` distinct nonzero roots; there are
+`n − rank A` independent `uᵢ` with `A uᵢ = 0` and as many `fᵢ` with `fᵢ' A = 0`; there are
+`n_z − rank Ẽ` independent `eⱼ` with `eⱼ' Î = 0` and as many `hⱼ` with `Î hⱼ = 0`. -/
+structure Assumption83 (S : LinearRESystem ιZ ιz) where
+  regular : S.pencilPoly ≠ 0
+  nodup : (nonzeroRoots S).Nodup
+  card_nonzero : Multiset.card (nonzeroRoots S) = S.Et.rank + S.Ahat.rank - Fintype.card ιz
+  kerA : KerA S
+  kerA_left : KerALeft S
+  kerI_left : KerILeft S
+  kerI : KerI S
+
+/-- Woodford (2003), App. G.1, (G.4) and fn 2, p. 717: a real selection — `J` (`n × n_Z`, real,
+independent columns) and `Ψ` with `A J = Î J Ψ`, every eigenvalue of `Ψ` being `0` or a selected
+root. -/
+structure RealSelection (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) where
+  J : Matrix (ιZ ⊕ ιz) ιZ ℝ
+  Ψ : Matrix ιZ ιZ ℝ
+  deflate : S.Ahat * J = S.Ihat * J * Ψ
+  indep : LinearIndependent ℝ Jᵀ
+  eig : ∀ μ : ℂ, (Matrix.scalar ιZ μ - Ψ.map Complex.ofReal).det = 0 → μ = 0 ∨ μ ∈ sel
+
+/-! ### Elementary facts -/
+
+/-- Woodford (2003), App. G.1: an eigenvalue of a complex matrix has an eigenvector. -/
+theorem exists_eigvec {κ : Type*} [Fintype κ] [DecidableEq κ] {Q : Matrix κ κ ℂ} {μ : ℂ}
+    (h : (Matrix.scalar κ μ - Q).det = 0) : ∃ z, z ≠ 0 ∧ Q *ᵥ z = μ • z := by
+  obtain ⟨z, hz0, hz⟩ := exists_mulVec_eq_zero_iff.mpr h
+  refine ⟨z, hz0, ?_⟩
+  rw [sub_mulVec, sub_eq_zero] at hz
+  rw [← hz]
+  funext i
+  simp [Matrix.scalar_apply, mulVec_diagonal]
+
+/-- Woodford (2003), App. G.1: real matrices act on complexified vectors componentwise,
+`A (ofReal ∘ v) = ofReal ∘ (A v)`. -/
+theorem map_mulVec_ofReal {m n : Type*} [Fintype n] (A : Matrix m n ℝ) (v : n → ℝ) :
+    A.map Complex.ofReal *ᵥ (fun i => (v i : ℂ)) = fun i => ((A *ᵥ v) i : ℂ) := by
+  funext i
+  simp [mulVec, dotProduct]
+
+/-- Woodford (2003), App. G.1 (complex eigenvectors come in conjugate pairs): for real matrices,
+`A (conj w) = conj (A w)`. -/
+theorem map_mulVec_conj {m n : Type*} [Fintype n] (A : Matrix m n ℝ) (w : n → ℂ) :
+    A.map Complex.ofReal *ᵥ (fun i => starRingEnd ℂ (w i)) =
+      fun i => starRingEnd ℂ ((A.map Complex.ofReal *ᵥ w) i) := by
+  funext i
+  simp [mulVec, dotProduct, map_sum]
+
+/-- Woodford (2003), App. G.1: real vectors that are linearly independent over `ℝ` stay
+independent over `ℂ`. -/
+theorem linearIndependent_ofReal {κ n : Type*} [Finite κ] {v : κ → n → ℝ}
+    (hv : LinearIndependent ℝ v) : LinearIndependent ℂ (fun k i => (v k i : ℂ)) := by
+  cases nonempty_fintype κ
+  rw [Fintype.linearIndependent_iff] at hv ⊢
+  intro g hg k
+  have hre : ∑ k, (g k).re • v k = 0 := by
+    funext i
+    have := congrArg Complex.re (congrFun hg i)
+    simpa [Finset.sum_apply, Complex.re_sum] using this
+  have him : ∑ k, (g k).im • v k = 0 := by
+    funext i
+    have := congrArg Complex.im (congrFun hg i)
+    simpa [Finset.sum_apply, Complex.im_sum] using this
+  exact Complex.ext (by simpa using hv _ hre k) (by simpa using hv _ him k)
+
+/-- Woodford (2003), App. G.1: real parts of a complex vector under a real matrix. -/
+theorem re_mulVec_map {m n : Type*} [Fintype n] (M : Matrix m n ℝ) (z : n → ℂ) (i : m) :
+    ((M.map Complex.ofReal *ᵥ z) i).re = (M *ᵥ fun k => (z k).re) i := by
+  simp [mulVec, dotProduct, Complex.re_sum]
+
+/-- Woodford (2003), App. G.1: imaginary parts of a complex vector under a real matrix. -/
+theorem im_mulVec_map {m n : Type*} [Fintype n] (M : Matrix m n ℝ) (z : n → ℂ) (i : m) :
+    ((M.map Complex.ofReal *ᵥ z) i).im = (M *ᵥ fun k => (z k).im) i := by
+  simp [mulVec, dotProduct, Complex.im_sum]
+
+/-- Woodford (2003), App. G.1 (restated from the Woodford Chapter 4 project,
+`InvariantSplit.finrank_finset_sup`): the dimension of the span of finitely many independent
+subspaces is the sum of their dimensions. -/
+theorem finrank_finset_sup {V : Type*} [AddCommGroup V] [Module ℂ V] [FiniteDimensional ℂ V]
+    {W : ℂ → Submodule ℂ V} (hW : iSupIndep W) (s : Finset ℂ) :
+    Module.finrank ℂ (s.sup W : Submodule ℂ V) = ∑ μ ∈ s, Module.finrank ℂ (W μ) := by
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s ha ih =>
+    rw [Finset.sup_insert, Finset.sum_insert ha, ← ih]
+    have hd : Disjoint (W a) (s.sup W) := by
+      rw [Finset.sup_eq_iSup]
+      have := hW.disjoint_biSup (x := a) (y := (s : Set ℂ)) (by simpa using ha)
+      simpa using this
+    have h := Submodule.finrank_sup_add_finrank_inf_eq (W a) (s.sup W)
+    rw [disjoint_iff.mp hd, finrank_bot, add_zero] at h
+    exact h
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), Assumption 8.3 with (1.1): `rank A ≥ n_z`, since `A₂₂` is invertible. -/
+theorem card_le_rank_Ahat (S : LinearRESystem ιZ ιz) : Fintype.card ιz ≤ S.Ahat.rank := by
+  have h1 : S.A22.rank = Fintype.card ιz :=
+    rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr S.A22_isUnit)
+  have h2 : S.Ahat.submatrix Sum.inr Sum.inr = S.A22 := by
+    ext i j
+    rfl
+  rw [← h1, ← h2]
+  exact rank_submatrix_le _ _ _
+
+/-- Woodford (2003), (1.15): the determinant of the complexified pencil at a real point is the
+real determinant. -/
+theorem det_pencil_ofReal (S : LinearRESystem ιZ ιz) (x : ℝ) :
+    (S.Ahat.map Complex.ofReal - (x : ℂ) • S.Ihat.map Complex.ofReal).det =
+      ((S.Ahat - x • S.Ihat).det : ℂ) := by
+  have e := Complex.ofRealHom.map_det (S.Ahat - x • S.Ihat)
+  rw [RingHom.mapMatrix_apply] at e
+  change ((S.Ahat - x • S.Ihat).det : ℂ) = ((S.Ahat - x • S.Ihat).map Complex.ofReal).det at e
+  rw [e]
+  congr 1
+  ext a b
+  simp
+
+/-- Woodford (2003), App. G.1, (G.1): a root `μ` of (1.15) has a complex eigenvector,
+`A u = μ Î u`, `u ≠ 0`. -/
+theorem exists_pencil_eigvec (S : LinearRESystem ιZ ιz) {μ : ℂ} (h : S.pencilPoly.eval μ = 0) :
+    ∃ w : ιZ ⊕ ιz → ℂ, w ≠ 0 ∧
+      S.Ahat.map Complex.ofReal *ᵥ w = μ • (S.Ihat.map Complex.ofReal *ᵥ w) := by
+  rw [pencilPoly_eval] at h
+  obtain ⟨w, hw0, hw⟩ := exists_mulVec_eq_zero_iff.mpr h
+  refine ⟨w, hw0, ?_⟩
+  rw [sub_mulVec, sub_eq_zero, smul_mulVec] at hw
+  exact hw
+
+/-- Woodford (2003), App. G.1, (G.1) and fn 2: a real root of (1.15) has a real eigenvector. -/
+theorem exists_pencil_eigvec_real (S : LinearRESystem ιZ ιz) {x : ℝ}
+    (h : S.pencilPoly.eval (x : ℂ) = 0) :
+    ∃ v : ιZ ⊕ ιz → ℝ, v ≠ 0 ∧ S.Ahat *ᵥ v = x • (S.Ihat *ᵥ v) := by
+  rw [pencilPoly_eval, det_pencil_ofReal] at h
+  obtain ⟨v, hv0, hv⟩ := exists_mulVec_eq_zero_iff.mpr (Complex.ofReal_eq_zero.mp h)
+  refine ⟨v, hv0, ?_⟩
+  rw [sub_mulVec, sub_eq_zero, smul_mulVec] at hv
+  exact hv
+
+/-- Woodford (2003), App. G.1 (the shift that turns the pencil into an ordinary eigenproblem):
+if `det(A − sÎ) ≠ 0`, `μ ≠ s` and `A u = μ Î u`, then `u` is an eigenvector of
+`N = (A − sÎ)⁻¹ Î` with eigenvalue `(μ − s)⁻¹`. -/
+theorem shift_eigvec {κ : Type*} [Fintype κ] [DecidableEq κ] {A I : Matrix κ κ ℂ} {s μ : ℂ}
+    (hs : (A - s • I).det ≠ 0) (hμ : μ ≠ s) {u : κ → ℂ} (hu : A *ᵥ u = μ • (I *ᵥ u)) :
+    ((A - s • I)⁻¹ * I) *ᵥ u = (μ - s)⁻¹ • u := by
+  have hu' : (A - s • I) *ᵥ u = (μ - s) • (I *ᵥ u) := by
+    rw [sub_mulVec, hu, smul_mulVec, sub_smul]
+  have hI : I *ᵥ u = (μ - s)⁻¹ • ((A - s • I) *ᵥ u) := by
+    rw [hu', smul_smul, inv_mul_cancel₀ (sub_ne_zero.mpr hμ), one_smul]
+  rw [← mulVec_mulVec, hI, mulVec_smul, mulVec_mulVec, nonsing_inv_mul _ (Ne.isUnit hs),
+    one_mulVec]
+
+/-- Woodford (2003), App. G.1: a matrix with columns `col c` satisfies `A J = Î J Ψ` when each
+column satisfies `A col_c = Î ∑_{c'} Ψ_{c'c} col_{c'}`. -/
+theorem deflate_of_cols {n κ : Type*} [Fintype n] [Fintype κ] (A I : Matrix n n ℝ)
+    (col : κ → n → ℝ) (Ψ : Matrix κ κ ℝ)
+    (h : ∀ c, A *ᵥ col c = I *ᵥ ∑ c', Ψ c' c • col c') :
+    A * Matrix.of (fun a c => col c a) = I * Matrix.of (fun a c => col c a) * Ψ := by
+  ext a c
+  have h1 := congrFun (h c) a
+  have lhs : (A * Matrix.of (fun a c => col c a)) a c = (A *ᵥ col c) a := by
+    simp [mul_apply, mulVec, dotProduct]
+  have rhs : (I * Matrix.of (fun a c => col c a) * Ψ) a c =
+      (I *ᵥ ∑ c', Ψ c' c • col c') a := by
+    simp only [mul_apply, of_apply, mulVec, dotProduct, Finset.sum_apply, Pi.smul_apply,
+      smul_eq_mul, Finset.mul_sum, Finset.sum_mul]
+    rw [Finset.sum_comm]
+    exact Finset.sum_congr rfl fun b _ => Finset.sum_congr rfl fun c' _ => by ring
+  rw [lhs, rhs, h1]
+
+/-! ### The construction -/
+
+namespace Construction
+
+/-- Woodford (2003), Assumption 8.2 (i): the selected real nonzero roots. -/
+noncomputable def RS (sel : Multiset ℂ) : Finset ℂ := sel.toFinset.filter (fun μ => μ.im = 0)
+
+/-- Woodford (2003), Assumption 8.2 (i): one representative (positive imaginary part) of each
+selected complex-conjugate pair. -/
+noncomputable def US (sel : Multiset ℂ) : Finset ℂ := sel.toFinset.filter (fun μ => 0 < μ.im)
+
+/-- Woodford (2003), Assumption 8.2 (i): a conjugation-closed selection without repetitions has
+`#real + 2 · #pairs` elements. -/
+theorem card_sel {sel : Multiset ℂ} (hnd : sel.Nodup) (hc : ConjClosed sel) :
+    Multiset.card sel = (RS sel).card + 2 * (US sel).card := by
+  rw [← Multiset.toFinset_card_of_nodup hnd,
+    ← Finset.card_filter_add_card_filter_not (s := sel.toFinset) (fun μ : ℂ => μ.im = 0)]
+  rw [← Finset.card_filter_add_card_filter_not (s := sel.toFinset.filter
+    (fun μ : ℂ => ¬ μ.im = 0)) (fun μ : ℂ => 0 < μ.im), Finset.filter_filter,
+    Finset.filter_filter]
+  have h1 : sel.toFinset.filter (fun μ : ℂ => ¬ μ.im = 0 ∧ 0 < μ.im) = US sel := by
+    unfold US
+    congr 1
+    funext μ
+    apply propext
+    constructor
+    · exact fun h => h.2
+    · exact fun h => ⟨h.ne', h⟩
+  have h2 : (sel.toFinset.filter (fun μ : ℂ => ¬ μ.im = 0 ∧ ¬ 0 < μ.im)).card =
+      (US sel).card := by
+    refine Finset.card_bij' (fun a _ => starRingEnd ℂ a) (fun a _ => starRingEnd ℂ a)
+      ?_ ?_ ?_ ?_
+    · intro a ha
+      simp only [Finset.mem_filter, Multiset.mem_toFinset] at ha
+      simp only [US, Finset.mem_filter, Multiset.mem_toFinset, Complex.conj_im]
+      refine ⟨hc.conj_mem ha.1, ?_⟩
+      have := ha.2.1
+      have := ha.2.2
+      push Not at *
+      exact neg_pos.mpr (lt_of_le_of_ne (by assumption) (by assumption))
+    · intro a ha
+      simp only [US, Finset.mem_filter, Multiset.mem_toFinset] at ha
+      simp only [Finset.mem_filter, Multiset.mem_toFinset, Complex.conj_im]
+      refine ⟨hc.conj_mem ha.1, by linarith [ha.2], by linarith [ha.2]⟩
+    · intro a _
+      simp
+    · intro a _
+      simp
+  rw [h1, h2, RS]
+  ring
+
+/-- Woodford (2003), App. G.1 (G.1): the chosen eigenvectors — real eigenvectors of the real
+selected roots, complex eigenvectors of one root of each selected pair, and a basis of `ker A`
+(the zero root, `n − rank A` times). -/
+structure EigenData (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) where
+  vR : RS sel → ιZ ⊕ ιz → ℝ
+  vR_ne : ∀ r, vR r ≠ 0
+  vR_eig : ∀ r, S.Ahat *ᵥ vR r = (r : ℂ).re • (S.Ihat *ᵥ vR r)
+  wU : US sel → ιZ ⊕ ιz → ℂ
+  wU_ne : ∀ u, wU u ≠ 0
+  wU_eig : ∀ u, S.Ahat.map Complex.ofReal *ᵥ wU u = (u : ℂ) • (S.Ihat.map Complex.ofReal *ᵥ wU u)
+  kv : Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) → ιZ ⊕ ιz → ℝ
+  kv_ind : LinearIndependent ℝ kv
+  kv_ker : ∀ i, S.Ahat *ᵥ kv i = 0
+
+/-- Woodford (2003), App. G.1: the eigenvectors exist when every selected root is a root of
+(1.15) and Assumption 8.3 supplies the kernel basis. -/
+theorem exists_eigenData {S : LinearRESystem ιZ ιz} {sel : Multiset ℂ}
+    (hroot : ∀ μ ∈ sel, S.pencilPoly.eval μ = 0) (h83 : Assumption83 S) :
+    Nonempty (EigenData S sel) := by
+  have hR : ∀ r : RS sel, ∃ v : ιZ ⊕ ιz → ℝ, v ≠ 0 ∧
+      S.Ahat *ᵥ v = (r : ℂ).re • (S.Ihat *ᵥ v) := by
+    intro r
+    have hr := r.2
+    simp only [RS, Finset.mem_filter, Multiset.mem_toFinset] at hr
+    have he : ((r : ℂ).re : ℂ) = r := Complex.ext (by simp) (by simp [hr.2])
+    exact exists_pencil_eigvec_real S (by rw [he]; exact hroot _ hr.1)
+  have hU : ∀ u : US sel, ∃ w : ιZ ⊕ ιz → ℂ, w ≠ 0 ∧
+      S.Ahat.map Complex.ofReal *ᵥ w = (u : ℂ) • (S.Ihat.map Complex.ofReal *ᵥ w) := by
+    intro u
+    have hu := u.2
+    simp only [US, Finset.mem_filter, Multiset.mem_toFinset] at hu
+    exact exists_pencil_eigvec S (hroot _ hu.1)
+  choose vR hvR0 hvR using hR
+  choose wU hwU0 hwU using hU
+  obtain ⟨kv, hkv, hker⟩ := h83.kerA
+  exact ⟨⟨vR, hvR0, hvR, wU, hwU0, hwU, kv, hkv, hker⟩⟩
+
+variable {S : LinearRESystem ιZ ιz} {sel : Multiset ℂ}
+
+/-- Woodford (2003), App. G.1: the index set of the columns of `J`: real roots, the real and
+imaginary parts of each selected complex pair, and the kernel of `A`. -/
+abbrev Col (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) : Type :=
+  RS sel ⊕ (Fin 2 × US sel) ⊕ Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank)
+
+/-- Woodford (2003), App. G.1 and fn 2, p. 717: the real columns of `J`. -/
+noncomputable def col (E : EigenData S sel) : Col S sel → ιZ ⊕ ιz → ℝ
+  | Sum.inl r => E.vR r
+  | Sum.inr (Sum.inl (i, u)) =>
+    if i = 0 then fun a => (E.wU u a).re else fun a => (E.wU u a).im
+  | Sum.inr (Sum.inr j) => E.kv j
+
+/-- Woodford (2003), fn 2, p. 717: the real `2 × 2` block of a complex pair `μ = a + ib`. -/
+noncomputable def rot (μ : ℂ) : Matrix (Fin 2) (Fin 2) ℝ := !![μ.re, μ.im; -μ.im, μ.re]
+
+/-- Woodford (2003), App. G.1, (G.4): the block-diagonal `Ψ`. -/
+noncomputable def PsiC (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) :
+    Matrix (Col S sel) (Col S sel) ℝ :=
+  fromBlocks (diagonal fun r : RS sel => (r : ℂ).re) 0 0
+    (fromBlocks (blockDiagonal fun u : US sel => rot (u : ℂ)) 0 0 0)
+
+/-- Woodford (2003), App. G.1: the real and imaginary parts of a complex eigenvector,
+`A x = Î (a x − b y)`, `A y = Î (b x + a y)` for `A w = μ Î w`, `w = x + iy`, `μ = a + ib`. -/
+theorem reim_eig {μ : ℂ} {w : ιZ ⊕ ιz → ℂ}
+    (h : S.Ahat.map Complex.ofReal *ᵥ w = μ • (S.Ihat.map Complex.ofReal *ᵥ w)) :
+    S.Ahat *ᵥ (fun a => (w a).re) =
+        S.Ihat *ᵥ (μ.re • (fun a => (w a).re) - μ.im • (fun a => (w a).im)) ∧
+      S.Ahat *ᵥ (fun a => (w a).im) =
+        S.Ihat *ᵥ (μ.im • (fun a => (w a).re) + μ.re • (fun a => (w a).im)) := by
+  have hre : ∀ i, (S.Ahat *ᵥ fun a => (w a).re) i =
+      μ.re * (S.Ihat *ᵥ fun a => (w a).re) i - μ.im * (S.Ihat *ᵥ fun a => (w a).im) i := by
+    intro i
+    have h1 := congrArg Complex.re (congrFun h i)
+    simpa [mulVec, dotProduct, Complex.re_sum, Complex.im_sum, Complex.mul_re,
+      Complex.mul_im] using h1
+  have him : ∀ i, (S.Ahat *ᵥ fun a => (w a).im) i =
+      μ.im * (S.Ihat *ᵥ fun a => (w a).re) i + μ.re * (S.Ihat *ᵥ fun a => (w a).im) i := by
+    intro i
+    have h1 := congrArg Complex.im (congrFun h i)
+    simp [mulVec, dotProduct, Complex.re_sum, Complex.im_sum, Complex.mul_re,
+      Complex.mul_im] at h1 ⊢
+    linarith
+  refine ⟨funext fun i => ?_, funext fun i => ?_⟩
+  · rw [mulVec_sub, mulVec_smul, mulVec_smul, Pi.sub_apply, Pi.smul_apply, Pi.smul_apply,
+      smul_eq_mul, smul_eq_mul]
+    exact hre i
+  · rw [mulVec_add, mulVec_smul, mulVec_smul, Pi.add_apply, Pi.smul_apply, Pi.smul_apply,
+      smul_eq_mul, smul_eq_mul]
+    exact him i
+
+/-- Woodford (2003), (G.4): column `r` (a real root) of `J Ψ` is `μ_r` times column `r`. -/
+theorem sum_PsiC_inl (E : EigenData S sel) (r : RS sel) :
+    ∑ c', PsiC S sel c' (Sum.inl r) • col E c' = (r : ℂ).re • col E (Sum.inl r) := by
+  simp [PsiC, Fintype.sum_sum_type, diagonal_apply, ite_smul]
+
+/-- Woodford (2003), (G.4) and fn 2: the columns of `J Ψ` for a complex pair are
+`rot_{0i} x + rot_{1i} y`. -/
+theorem sum_PsiC_pair (E : EigenData S sel) (i : Fin 2) (u : US sel) :
+    ∑ c', PsiC S sel c' (Sum.inr (Sum.inl (i, u))) • col E c' =
+      rot (u : ℂ) 0 i • col E (Sum.inr (Sum.inl (0, u))) +
+        rot (u : ℂ) 1 i • col E (Sum.inr (Sum.inl (1, u))) := by
+  simp [PsiC, Fintype.sum_sum_type, Fintype.sum_prod_type, blockDiagonal_apply, ite_smul,
+    Fin.sum_univ_two]
+
+/-- Woodford (2003), (G.4): the kernel columns of `J Ψ` vanish. -/
+theorem sum_PsiC_ker (E : EigenData S sel)
+    (j : Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank)) :
+    ∑ c', PsiC S sel c' (Sum.inr (Sum.inr j)) • col E c' = 0 := by
+  simp [PsiC, Fintype.sum_sum_type]
+
+/-- Woodford (2003), App. G.1, (G.4): `A J = Î J Ψ` for the constructed real `J`, `Ψ`. -/
+theorem deflate_C (E : EigenData S sel) :
+    S.Ahat * Matrix.of (fun a c => col E c a) =
+      S.Ihat * Matrix.of (fun a c => col E c a) * PsiC S sel := by
+  refine deflate_of_cols _ _ _ _ fun c => ?_
+  rcases c with r | ⟨i, u⟩ | j
+  · rw [sum_PsiC_inl, mulVec_smul]
+    exact E.vR_eig r
+  · rw [sum_PsiC_pair]
+    obtain ⟨h1, h2⟩ := reim_eig (E.wU_eig u)
+    fin_cases i
+    · simp only [col, rot, Fin.zero_eta, Fin.isValue, ↓reduceIte, one_ne_zero,
+        of_apply, cons_val', cons_val_zero, cons_val_fin_one, cons_val_one, neg_smul]
+      rw [h1, sub_eq_add_neg]
+    · simp only [col, rot, Fin.mk_one, Fin.isValue, ↓reduceIte, one_ne_zero,
+        of_apply, cons_val', cons_val_zero, cons_val_fin_one, cons_val_one]
+      exact h2
+  · rw [sum_PsiC_ker, mulVec_zero]
+    exact E.kv_ker j
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), (G.4): the rows of the complexified `Ψ` acting on a vector. -/
+theorem mulVec_PsiC (z : Col S sel → ℂ) :
+    ((PsiC S sel).map Complex.ofReal *ᵥ z) =
+      Sum.elim (fun r : RS sel => ((r : ℂ).re : ℂ) * z (Sum.inl r))
+        (Sum.elim (fun p : Fin 2 × US sel =>
+          (rot (p.2 : ℂ) p.1 0 : ℂ) * z (Sum.inr (Sum.inl (0, p.2))) +
+          (rot (p.2 : ℂ) p.1 1 : ℂ) * z (Sum.inr (Sum.inl (1, p.2)))) 0) := by
+  funext c
+  rcases c with r | ⟨i, u⟩ | j
+  · simp only [Sum.elim_inl]
+    change ∑ c', ((PsiC S sel (Sum.inl r) c' : ℝ) : ℂ) * z c' = _
+    rw [Fintype.sum_eq_single (Sum.inl r)]
+    · simp [PsiC]
+    · intro c' hc'
+      rcases c' with b | b
+      · have hb : r ≠ b := fun h => hc' (h ▸ rfl)
+        simp [PsiC, diagonal_apply_ne _ hb]
+      · simp [PsiC]
+  · simp only [Sum.elim_inr, Sum.elim_inl]
+    change ∑ c', ((PsiC S sel (Sum.inr (Sum.inl (i, u))) c' : ℝ) : ℂ) * z c' = _
+    rw [Fintype.sum_sum_type, Fintype.sum_sum_type, Fintype.sum_prod_type]
+    simp only [PsiC, fromBlocks_apply₂₁, fromBlocks_apply₂₂, fromBlocks_apply₁₁,
+      fromBlocks_apply₁₂, Matrix.zero_apply, Complex.ofReal_zero, zero_mul,
+      Finset.sum_const_zero, zero_add, add_zero, Fin.sum_univ_two]
+    rw [Fintype.sum_eq_single u, Fintype.sum_eq_single u]
+    · simp [blockDiagonal_apply_eq]
+    · intro u' hu'
+      simp [blockDiagonal_apply_ne _ _ _ (Ne.symm hu')]
+    · intro u' hu'
+      simp [blockDiagonal_apply_ne _ _ _ (Ne.symm hu')]
+  · simp only [Sum.elim_inr, Pi.zero_apply]
+    change ∑ c', ((PsiC S sel (Sum.inr (Sum.inr j)) c' : ℝ) : ℂ) * z c' = 0
+    simp [PsiC, Fintype.sum_sum_type]
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), App. G.1, (G.4): every eigenvalue of the constructed `Ψ` is zero or a
+selected root (for a conjugation-closed selection). -/
+theorem PsiC_eig (hc : ConjClosed sel) {μ : ℂ}
+    (h : (Matrix.scalar (Col S sel) μ - (PsiC S sel).map Complex.ofReal).det = 0) :
+    μ = 0 ∨ μ ∈ sel := by
+  obtain ⟨z, hz0, hz⟩ := exists_eigvec h
+  rw [mulVec_PsiC] at hz
+  obtain ⟨c, hc0⟩ := Function.ne_iff.mp hz0
+  rcases c with r | ⟨i, u⟩ | j
+  · have e := congrFun hz (Sum.inl r)
+    simp only [Sum.elim_inl, Pi.smul_apply, smul_eq_mul] at e
+    have hμ : μ = ((r : ℂ).re : ℂ) := by
+      have := mul_right_cancel₀ hc0 e
+      exact this.symm
+    have hr := r.2
+    simp only [RS, Finset.mem_filter, Multiset.mem_toFinset] at hr
+    right
+    rw [hμ, show ((r : ℂ).re : ℂ) = (r : ℂ) from Complex.ext (by simp) (by simp [hr.2])]
+    exact hr.1
+  · have e0 := congrFun hz (Sum.inr (Sum.inl (0, u)))
+    have e1 := congrFun hz (Sum.inr (Sum.inl (1, u)))
+    simp only [Sum.elim_inr, Sum.elim_inl, Pi.smul_apply, smul_eq_mul, rot, of_apply,
+      cons_val', cons_val_zero, cons_val_fin_one, cons_val_one, Fin.isValue,
+      Complex.ofReal_neg] at e0 e1
+    set a : ℂ := ((u : ℂ).re : ℂ)
+    set b : ℂ := ((u : ℂ).im : ℂ)
+    set z0 := z (Sum.inr (Sum.inl (0, u)))
+    set z1 := z (Sum.inr (Sum.inl (1, u)))
+    have k0 : ((μ - a) ^ 2 + b ^ 2) * z0 = 0 := by linear_combination (-(μ - a)) * e0 - b * e1
+    have k1 : ((μ - a) ^ 2 + b ^ 2) * z1 = 0 := by linear_combination b * e0 - (μ - a) * e1
+    have hq : (μ - a) ^ 2 + b ^ 2 = 0 := by
+      fin_cases i
+      · exact (mul_eq_zero.mp k0).resolve_right hc0
+      · exact (mul_eq_zero.mp k1).resolve_right hc0
+    have hfac : (μ - (u : ℂ)) * (μ - starRingEnd ℂ (u : ℂ)) = (μ - a) ^ 2 + b ^ 2 := by
+      have hu : (u : ℂ) = a + b * Complex.I := (Complex.re_add_im _).symm
+      have hcu : starRingEnd ℂ (u : ℂ) = a - b * Complex.I := by
+        apply Complex.ext <;> simp [a, b]
+      rw [hcu, hu]
+      ring_nf
+      rw [Complex.I_sq]
+      ring
+    have hu := u.2
+    simp only [US, Finset.mem_filter, Multiset.mem_toFinset] at hu
+    right
+    rcases mul_eq_zero.mp (hfac.trans hq) with h1 | h1
+    · rw [sub_eq_zero.mp h1]
+      exact hu.1
+    · rw [sub_eq_zero.mp h1]
+      exact hc.conj_mem hu.1
+  · have e := congrFun hz (Sum.inr (Sum.inr j))
+    simp only [Sum.elim_inr, Pi.zero_apply, Pi.smul_apply, smul_eq_mul] at e
+    left
+    exact (mul_eq_zero.mp e.symm).resolve_right hc0
+
+/-- Woodford (2003), App. G.1: a real shift `s ≠ 0` that is not a root of (1.15) (the
+polynomial is nonzero, so it has finitely many roots). -/
+theorem exists_shift (hreg : S.pencilPoly ≠ 0) :
+    ∃ s : ℝ, s ≠ 0 ∧ S.pencilPoly.eval (s : ℂ) ≠ 0 := by
+  obtain ⟨s, hs⟩ := Infinite.exists_notMem_finset
+    (S.pencilPoly.roots.toFinset.image Complex.re ∪ {0})
+  refine ⟨s, fun h => hs (by simp [h]), fun h => hs ?_⟩
+  have hm : (s : ℂ) ∈ S.pencilPoly.roots := (Polynomial.mem_roots hreg).mpr h
+  exact Finset.mem_union_left _
+    (Finset.mem_image.mpr ⟨(s : ℂ), Multiset.mem_toFinset.mpr hm, by simp⟩)
+
+/-- Woodford (2003), App. G.1: the selected root behind each complex eigenvector of the
+construction (a real root, a root `u` of a pair, or its conjugate). -/
+noncomputable def μf : RS sel ⊕ (US sel × Bool) → ℂ
+  | Sum.inl r => (r : ℂ)
+  | Sum.inr (u, false) => (u : ℂ)
+  | Sum.inr (u, true) => starRingEnd ℂ (u : ℂ)
+
+/-- Woodford (2003), App. G.1, (G.1): the complex eigenvectors of the construction. -/
+noncomputable def famE (E : EigenData S sel) : RS sel ⊕ (US sel × Bool) → ιZ ⊕ ιz → ℂ
+  | Sum.inl r => fun a => (E.vR r a : ℂ)
+  | Sum.inr (u, false) => E.wU u
+  | Sum.inr (u, true) => fun a => starRingEnd ℂ (E.wU u a)
+
+omit [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1: the roots behind distinct eigenvectors are distinct. -/
+theorem μf_injective : Function.Injective (μf (sel := sel)) := by
+  have hR : ∀ r : RS sel, (r : ℂ).im = 0 := fun r => by
+    have hr := r.2
+    simp only [RS, Finset.mem_filter] at hr
+    exact hr.2
+  have hU : ∀ u : US sel, 0 < (u : ℂ).im := fun u => by
+    have hu := u.2
+    simp only [US, Finset.mem_filter] at hu
+    exact hu.2
+  intro p q h
+  have him := congrArg Complex.im h
+  rcases p with r | ⟨u, _ | _⟩ <;> rcases q with r' | ⟨u', _ | _⟩ <;>
+    simp only [μf, Complex.conj_im] at h him
+  · exact congrArg Sum.inl (Subtype.ext h)
+  · linarith [hR r, hU u']
+  · linarith [hR r, hU u']
+  · linarith [hU u, hR r']
+  · exact congrArg (fun x => Sum.inr (x, false)) (Subtype.ext h)
+  · linarith [hU u, hU u']
+  · linarith [hR r', hU u]
+  · linarith [hU u, hU u']
+  · exact congrArg (fun x => Sum.inr (x, true)) (Subtype.ext ((starRingEnd ℂ).injective h))
+
+/-- Woodford (2003), App. G.1: the complex eigenvectors are nonzero and satisfy
+`A u = μ Î u` for their root `μ` (real roots, `u`, and `ū` with the conjugate eigenvector). -/
+theorem famE_eig (E : EigenData S sel) (p : RS sel ⊕ (US sel × Bool)) :
+    famE E p ≠ 0 ∧ S.Ahat.map Complex.ofReal *ᵥ famE E p =
+      μf p • (S.Ihat.map Complex.ofReal *ᵥ famE E p) := by
+  rcases p with r | ⟨u, _ | _⟩
+  · refine ⟨fun h0 => E.vR_ne r (funext fun a => ?_), ?_⟩
+    · have := congrFun h0 a
+      simp only [famE, Pi.zero_apply, Complex.ofReal_eq_zero] at this
+      exact this
+    have hr := r.2
+    simp only [RS, Finset.mem_filter] at hr
+    have hre : ((r : ℂ).re : ℂ) = (r : ℂ) := Complex.ext (by simp) (by simp [hr.2])
+    simp only [famE, μf]
+    rw [map_mulVec_ofReal, map_mulVec_ofReal, E.vR_eig r]
+    funext a
+    simp only [Pi.smul_apply, smul_eq_mul, Complex.ofReal_mul, hre]
+  · exact ⟨E.wU_ne u, E.wU_eig u⟩
+  · refine ⟨fun h0 => E.wU_ne u (funext fun a => ?_), ?_⟩
+    · have := congrFun h0 a
+      simp only [famE, Pi.zero_apply, map_eq_zero] at this
+      exact this
+    · simp only [famE, μf]
+      rw [map_mulVec_conj, map_mulVec_conj, E.wU_eig u]
+      funext a
+      simp [map_mul]
+
+/-- Woodford (2003), fn 2, p. 717: real coefficients of `Re w`, `Im w` in terms of complex
+coefficients of `w`, `w̄`. -/
+theorem pair_combo (g0 g1 : ℝ) (w : ℂ) :
+    ((g0 : ℂ) + Complex.I * g1) / 2 * starRingEnd ℂ w + ((g0 : ℂ) - Complex.I * g1) / 2 * w =
+      ((g0 * w.re + g1 * w.im : ℝ) : ℂ) := by
+  apply Complex.ext <;> simp <;> ring
+
+/-- Woodford (2003), App. G.1, p. 716–717 (Assumption 8.3 "implies ... linearly independent
+vectors"): the real columns of `J` — real eigenvectors, real and imaginary parts of complex
+eigenvectors, and the kernel basis — are linearly independent. Proof: they are real
+combinations of eigenvectors of `N = (A − sÎ)⁻¹ Î` for distinct eigenvalues `(μ − s)⁻¹`, the
+kernel vectors all belonging to `(0 − s)⁻¹`. -/
+theorem col_indep (hc : ConjClosed sel) (hsel : ∀ μ ∈ sel, μ ≠ 0 ∧ S.pencilPoly.eval μ = 0)
+    (hreg : S.pencilPoly ≠ 0) (E : EigenData S sel) : LinearIndependent ℝ (col E) := by
+  obtain ⟨s, hs0, hs⟩ := exists_shift hreg
+  have hdet : (S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal).det ≠ 0 := by
+    rw [← pencilPoly_eval]
+    exact hs
+  set f := Matrix.toLin' ((S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal)⁻¹ *
+    S.Ihat.map Complex.ofReal) with hf
+  have hmem : ∀ p : RS sel ⊕ (US sel × Bool), μf p ∈ sel := by
+    intro p
+    rcases p with r | ⟨u, _ | _⟩
+    · have hr := r.2
+      simp only [RS, Finset.mem_filter, Multiset.mem_toFinset] at hr
+      exact hr.1
+    · have hu := u.2
+      simp only [US, Finset.mem_filter, Multiset.mem_toFinset] at hu
+      exact hu.1
+    · have hu := u.2
+      simp only [US, Finset.mem_filter, Multiset.mem_toFinset] at hu
+      exact hc.conj_mem hu.1
+  have hEv : ∀ p : RS sel ⊕ (US sel × Bool), f (famE E p) = (μf p - s)⁻¹ • famE E p := by
+    intro p
+    rw [hf, Matrix.toLin'_apply]
+    refine shift_eigvec hdet (fun h => hs ?_) (famE_eig E p).2
+    rw [← h]
+    exact (hsel _ (hmem p)).2
+  have hinj : Function.Injective fun p => (μf (sel := sel) p - s)⁻¹ := by
+    intro p q h
+    exact μf_injective (sub_left_injective (inv_injective h))
+  have hE : LinearIndependent ℂ (famE E) :=
+    Module.End.eigenvectors_linearIndependent' f _ hinj (famE E) fun p =>
+      Module.End.hasEigenvector_iff.mpr
+        ⟨Module.End.mem_eigenspace_iff.mpr (hEv p), (famE_eig E p).1⟩
+  set famK : Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) → ιZ ⊕ ιz → ℂ :=
+    fun j a => (E.kv j a : ℂ) with hfamK
+  have hK : LinearIndependent ℂ famK := linearIndependent_ofReal E.kv_ind
+  have hs0c : (0 : ℂ) ≠ (s : ℂ) := fun h => hs0 (Complex.ofReal_eq_zero.mp h.symm)
+  have hKv : ∀ j, f (famK j) = ((0 : ℂ) - s)⁻¹ • famK j := by
+    intro j
+    rw [hf, Matrix.toLin'_apply]
+    refine shift_eigvec hdet hs0c ?_
+    rw [hfamK, map_mulVec_ofReal, E.kv_ker j, zero_smul]
+    funext a
+    simp
+  set ν0 : ℂ := ((0 : ℂ) - s)⁻¹ with hν0
+  have hspanK : Submodule.span ℂ (Set.range famK) ≤ Module.End.eigenspace f ν0 := by
+    rw [Submodule.span_le]
+    rintro _ ⟨j, rfl⟩
+    exact Module.End.mem_eigenspace_iff.mpr (hKv j)
+  have hspanE : Submodule.span ℂ (Set.range (famE E)) ≤
+      ⨆ (ν : ℂ) (_ : ν ≠ ν0), Module.End.eigenspace f ν := by
+    rw [Submodule.span_le]
+    rintro _ ⟨p, rfl⟩
+    have hne : (μf p - s)⁻¹ ≠ ν0 := fun h =>
+      (hsel _ (hmem p)).1 (sub_left_injective (inv_injective h))
+    exact (le_iSup₂_of_le ((μf p - s)⁻¹) hne le_rfl :
+      Module.End.eigenspace f ((μf p - s)⁻¹) ≤ _) (Module.End.mem_eigenspace_iff.mpr (hEv p))
+  have hdisj := (Module.End.eigenspaces_iSupIndep f) ν0
+  have hfam : LinearIndependent ℂ (Sum.elim (famE E) famK) :=
+    hE.sum_type hK (Disjoint.mono hspanE hspanK hdisj.symm)
+  rw [Fintype.linearIndependent_iff]
+  intro g hg c
+  set h : (RS sel ⊕ (US sel × Bool)) ⊕ Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) → ℂ :=
+    Sum.elim (Sum.elim (fun r => (g (Sum.inl r) : ℂ)) (fun q => if q.2 then
+      ((g (Sum.inr (Sum.inl (0, q.1))) : ℂ) + Complex.I * g (Sum.inr (Sum.inl (1, q.1)))) / 2
+      else ((g (Sum.inr (Sum.inl (0, q.1))) : ℂ) -
+        Complex.I * g (Sum.inr (Sum.inl (1, q.1)))) / 2))
+      (fun j => (g (Sum.inr (Sum.inr j)) : ℂ)) with hh
+  have hsum : ∑ x, h x • Sum.elim (famE E) famK x = 0 := by
+    funext a
+    have hga := congrFun hg a
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at hga ⊢
+    rw [Fintype.sum_sum_type, Fintype.sum_sum_type, Fintype.sum_prod_type] at hga ⊢
+    simp only [Fin.sum_univ_two, Fintype.sum_bool] at hga ⊢
+    have hpair : ∀ u : US sel,
+        h (Sum.inl (Sum.inr (u, true))) * Sum.elim (famE E) famK (Sum.inl (Sum.inr (u, true))) a +
+          h (Sum.inl (Sum.inr (u, false))) *
+            Sum.elim (famE E) famK (Sum.inl (Sum.inr (u, false))) a =
+        ((g (Sum.inr (Sum.inl (0, u))) * col E (Sum.inr (Sum.inl (0, u))) a +
+          g (Sum.inr (Sum.inl (1, u))) * col E (Sum.inr (Sum.inl (1, u))) a : ℝ) : ℂ) := by
+      intro u
+      simp only [hh, Sum.elim_inl, Sum.elim_inr, ↓reduceIte, Bool.false_eq_true, famE, col,
+        Fin.isValue, one_ne_zero]
+      exact pair_combo _ _ _
+    simp only [hpair]
+    have hcast : ((∑ x : RS sel, g (Sum.inl x) * col E (Sum.inl x) a +
+        ((∑ y : US sel, g (Sum.inr (Sum.inl (0, y))) * col E (Sum.inr (Sum.inl (0, y))) a) +
+          ∑ y : US sel, g (Sum.inr (Sum.inl (1, y))) * col E (Sum.inr (Sum.inl (1, y))) a) +
+        ∑ j, g (Sum.inr (Sum.inr j)) * col E (Sum.inr (Sum.inr j)) a : ℝ) : ℂ) = 0 := by
+      rw [add_assoc, hga]
+      simp
+    rw [← hcast]
+    push_cast
+    simp only [hh, Sum.elim_inl, Sum.elim_inr, famE, col, hfamK, Finset.sum_add_distrib]
+  have h0 := Fintype.linearIndependent_iff.mp hfam h hsum
+  rcases c with r | ⟨i, u⟩ | j
+  · have := h0 (Sum.inl (Sum.inl r))
+    simpa [hh] using this
+  · have hf0 := h0 (Sum.inl (Sum.inr (u, false)))
+    have ht0 := h0 (Sum.inl (Sum.inr (u, true)))
+    simp only [hh, Sum.elim_inl, Sum.elim_inr, ↓reduceIte, Bool.false_eq_true] at hf0 ht0
+    have hg0 : (g (Sum.inr (Sum.inl (0, u))) : ℂ) = 0 := by linear_combination hf0 + ht0
+    have hg1 : Complex.I * (g (Sum.inr (Sum.inl (1, u))) : ℂ) = 0 := by
+      linear_combination ht0 - hf0
+    fin_cases i
+    · exact_mod_cast hg0
+    · have := (mul_eq_zero.mp hg1).resolve_left Complex.I_ne_zero
+      exact_mod_cast this
+  · have := h0 (Sum.inr j)
+    simpa [hh] using this
+
+end Construction
+
+open Construction
+
+/-- Woodford (2003), App. G.1, pp. 716–718 (from Assumption 8.2 to (G.4)): **under Assumption
+8.2 with a conjugation-closed selection (case (i)) and Assumption 8.3 there is a real
+`n × n_Z` matrix `J` with independent columns and `Ψ` with `A J = Î J Ψ`, every eigenvalue of
+`Ψ` being zero or a selected root.** (The columns are the real eigenvectors, the real and
+imaginary parts of complex eigenvectors, fn 2, and a basis of `ker A`.) -/
+theorem exists_realSelection {S : LinearRESystem ιZ ιz} {β : ℝ} (h82 : Assumption82 S β)
+    (hi : ConjClosed h82.sel) (h83 : Assumption83 S) : Nonempty (RealSelection S h82.sel) := by
+  set sel := h82.sel with hsel_def
+  have hsel : ∀ μ ∈ sel, μ ≠ 0 ∧ S.pencilPoly.eval μ = 0 := by
+    intro μ hμ
+    have := Multiset.mem_of_le h82.sel_le hμ
+    rw [Multiset.mem_filter, Polynomial.mem_roots h83.regular] at this
+    exact ⟨this.2.1, this.1⟩
+  have hnd : sel.Nodup := by
+    refine Multiset.nodup_of_le (h82.sel_le.trans ?_) h83.nodup
+    exact Multiset.monotone_filter_right _ fun μ h => h.1
+  obtain ⟨E⟩ := exists_eigenData (fun μ hμ => (hsel μ hμ).2) h83 (sel := sel)
+  have hcard : Fintype.card (Col S sel) = Fintype.card ιZ := by
+    change Fintype.card (RS sel ⊕ (Fin 2 × US sel) ⊕
+      Fin (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank)) = _
+    rw [Fintype.card_sum (α := RS sel), Fintype.card_sum (α := Fin 2 × US sel),
+      Fintype.card_prod, Fintype.card_fin, Fintype.card_fin, Fintype.card_coe, Fintype.card_coe,
+      ← h82.sel_card, card_sel hnd hi]
+    ring
+  let e : Col S sel ≃ ιZ := Fintype.equivOfCardEq hcard
+  set Jc : Matrix (ιZ ⊕ ιz) (Col S sel) ℝ := Matrix.of fun a c => col E c a with hJc
+  refine ⟨⟨Jc.submatrix id e.symm, (PsiC S sel).submatrix e.symm e.symm, ?_, ?_, ?_⟩⟩
+  · have h1 : S.Ahat * Jc.submatrix id e.symm = (S.Ahat * Jc).submatrix id e.symm := by
+      rw [← submatrix_mul_equiv (e₂ := Equiv.refl _), Equiv.coe_refl, submatrix_id_id]
+    have h2 : S.Ihat * Jc.submatrix id e.symm * (PsiC S sel).submatrix e.symm e.symm =
+        (S.Ihat * Jc * PsiC S sel).submatrix id e.symm := by
+      rw [← submatrix_mul_equiv (e₂ := e.symm), ← submatrix_mul_equiv (e₂ := Equiv.refl _),
+        Equiv.coe_refl, submatrix_id_id]
+    rw [h1, h2, hJc, deflate_C E]
+  · have : (Jc.submatrix id e.symm)ᵀ = col E ∘ e.symm := by
+      funext i a
+      rfl
+    rw [this]
+    exact (col_indep hi hsel h83.regular E).comp _ e.symm.injective
+  · intro μ hμ
+    have heq : Matrix.scalar ιZ μ - ((PsiC S sel).submatrix e.symm e.symm).map Complex.ofReal =
+        (Matrix.scalar (Col S sel) μ - (PsiC S sel).map Complex.ofReal).submatrix e.symm
+          e.symm := by
+      ext i j
+      by_cases hij : i = j
+      · subst hij
+        simp [Matrix.scalar_apply]
+      · have : e.symm i ≠ e.symm j := fun h => hij (e.symm.injective h)
+        simp [Matrix.scalar_apply, diagonal_apply_ne _ hij, diagonal_apply_ne _ this]
+    rw [heq, det_submatrix_equiv_self] at hμ
+    exact PsiC_eig hi hμ
+
+/-! ### The kernel clauses of Assumption 8.3 are automatic -/
+
+/-- Woodford (2003), App. G.1 (rank–nullity): every real matrix has `#columns − rank`
+independent vectors in its kernel. -/
+theorem exists_ker_basis {m n : Type*} [Fintype n] (M : Matrix m n ℝ) {k : ℕ}
+    (hk : Fintype.card n - M.rank = k) :
+    ∃ u : Fin k → n → ℝ, LinearIndependent ℝ u ∧ ∀ i, M *ᵥ u i = 0 := by
+  subst hk
+  set K := LinearMap.ker M.mulVecLin with hK
+  have hdim : Module.finrank ℝ K = Fintype.card n - M.rank := by
+    have := LinearMap.finrank_range_add_finrank_ker M.mulVecLin
+    rw [Module.finrank_fintype_fun_eq_card] at this
+    change M.rank + Module.finrank ℝ K = _ at this
+    omega
+  let b := Module.finBasisOfFinrankEq ℝ K hdim
+  refine ⟨fun i => (b i : n → ℝ), ?_, fun i => (b i).2⟩
+  exact b.linearIndependent.map' K.subtype (Submodule.ker_subtype K)
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716: the four kernel clauses (`n − rank A`
+independent `uᵢ` with `A uᵢ = 0` and `fᵢ` with `fᵢ' A = 0`; `n_z − rank Ẽ` independent `eⱼ` with
+`eⱼ' Î = 0` and `hⱼ` with `Î hⱼ = 0`) **hold for every system** (rank–nullity); only the root
+clauses of Assumption 8.3 restrict the model. -/
+theorem assumption83_kernels (S : LinearRESystem ιZ ιz) :
+    KerA S ∧ KerALeft S ∧ KerILeft S ∧ KerI S := by
+  have hlift : ∀ {k : ℕ} (v : Fin k → ιz → ℝ), LinearIndependent ℝ v →
+      LinearIndependent ℝ (fun j => (Sum.elim 0 (v j) : ιZ ⊕ ιz → ℝ)) := by
+    intro k v hv
+    rw [Fintype.linearIndependent_iff] at hv ⊢
+    intro g hg j
+    refine hv g (funext fun r => ?_) j
+    have := congrFun hg (Sum.inr r)
+    simpa [Finset.sum_apply] using this
+  refine ⟨exists_ker_basis S.Ahat rfl, ?_, ?_, ?_⟩
+  · obtain ⟨f, hf, hf0⟩ := exists_ker_basis S.Ahatᵀ (by rw [rank_transpose])
+    exact ⟨f, hf, fun i => by rw [← mulVec_transpose]; exact hf0 i⟩
+  · obtain ⟨v, hv, hv0⟩ := exists_ker_basis S.Etᵀ (by rw [rank_transpose])
+    refine ⟨fun j => Sum.elim 0 (v j), hlift v hv, fun j => ?_⟩
+    rw [← mulVec_transpose, LinearRESystem.Ihat, fromBlocks_transpose, fromBlocks_mulVec]
+    funext a
+    rcases a with i | r
+    · simp
+    · have := congrFun (hv0 j) r
+      simpa using this
+  · obtain ⟨v, hv, hv0⟩ := exists_ker_basis S.Et rfl
+    refine ⟨fun j => Sum.elim 0 (v j), hlift v hv, fun j => ?_⟩
+    rw [LinearRESystem.Ihat, fromBlocks_mulVec]
+    funext a
+    rcases a with i | r
+    · simp
+    · have := congrFun (hv0 j) r
+      simpa using this
+
+/-- Woodford (2003), Assumption 8.3: it is equivalent to its root clauses (a nonzero
+polynomial (1.15) with `rank Ẽ + rank A − n_z` distinct nonzero roots). -/
+theorem Assumption83.ofRoots (S : LinearRESystem ιZ ιz) (hreg : S.pencilPoly ≠ 0)
+    (hnd : (nonzeroRoots S).Nodup)
+    (hcard : Multiset.card (nonzeroRoots S) = S.Et.rank + S.Ahat.rank - Fintype.card ιz) :
+    Nonempty (Assumption83 S) :=
+  ⟨⟨hreg, hnd, hcard, (assumption83_kernels S).1, (assumption83_kernels S).2.1,
+    (assumption83_kernels S).2.2.1, (assumption83_kernels S).2.2.2⟩⟩
+
+end Woodford.OptimalPolicyRules.PencilEigen
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Propositions 8.1 and 8.2 under Assumptions 8.1–8.5
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Propositions 8.1 (p. 553) and 8.2 (p. 555),
+with Appendix G.1–G.2 (pp. 716–719): Assumptions 8.4 and 8.5, (G.6)–(G.7).
+
+* `Assumption84`: the matrix `Γ` of left (generalised) eigenvectors for the roots *not*
+  selected (G.6): `W Γ' A = Γ' Î`, the eigenvalues of `W` being zero or reciprocals of unselected
+  roots; (i) `A'Γ` has full rank `n_z`; (ii) `det Γ₂ ≠ 0`. `Γ` is taken real (real and imaginary
+  parts of conjugate pairs, as for `J`, fn 2), so the book's `det[Re Γ₂] ≠ 0` is `det Γ₂ ≠ 0`.
+* `sylvester_zero`: if `W Y Ψ = Y` and no eigenvalue product `θμ` equals `1`, then `Y = 0`.
+  Hence (G.7), `Γ' Î J = Γ' A J = 0` (`G7`).
+* `J1_det_ne_zero`, `K_det_ne_zero`: Assumption 8.4 makes `J₁` and `K = A₂₂' + A₁₂'Υ`
+  invertible (using `rank Î J = n_Z`, from a shift `s` that is not a root).
+* `deflatingSplit_of_assumptions`: Assumptions 8.2 (case (i)), 8.3 and 8.4 give a
+  `PencilSplit.DeflatingSplit`.
+* `prop81_of_assumptions`: **Proposition 8.1 under Assumptions 8.2–8.4** (corrected form, any
+  expectation system); `prop81_of_assumptions_perfectForesight`: the original statement under
+  perfect foresight.
+* `Assumption85`, `prop82_of_assumptions`: **Proposition 8.2 under Assumptions 8.1–8.5**:
+  commitment to (1.23) determines a unique bounded equilibrium for every bounded disturbance
+  process, optimal subject to (1.27), robustly optimal, with the time-invariant multiplier rule
+  (1.17).
+* `natDegree_alpha_eq_rank`: under Assumptions 8.2 (i)–8.4, `deg α = rank Λ = rank Ẽ` (the
+  book's claim on p. 553 holds under its assumptions; E18 is the general correction).
+-/
+
+namespace Woodford.OptimalPolicyRules.PencilAssumptions
+
+open Matrix Polynomial GeneralSetup PencilSplit PencilEigen GeneralFOC.Selection
+
+/-! ### A Sylvester-type uniqueness lemma -/
+
+/-- Woodford (2003), App. G.1, (G.7) ("follows from (G.3)"): if `W Y Ψ = Y` and no eigenvalue
+`θ` of `W` and `μ` of `Ψ` have `θ μ = 1`, then `Y = 0`. Proof: `r(W) Y = 0` for the reversed
+characteristic polynomial `r(w) = ∑ pⱼ w^{d−j}` of `Ψ`, and `r(W)` is invertible by the spectral
+mapping theorem. -/
+theorem sylvester_zero {m n : Type*} [Fintype m] [Fintype n] [DecidableEq m] [DecidableEq n]
+    {W : Matrix m m ℂ} {Ψ : Matrix n n ℂ} {Y : Matrix m n ℂ} (hY : W * Y * Ψ = Y)
+    (hdisj : ∀ θ μ : ℂ, (Matrix.scalar m θ - W).det = 0 → (Matrix.scalar n μ - Ψ).det = 0 →
+      θ * μ ≠ 1) : Y = 0 := by
+  rcases isEmpty_or_nonempty m with hm | hm
+  · ext i j
+    exact isEmptyElim i
+  set p := Ψ.charpoly with hp
+  set d := Fintype.card n with hd
+  have hpd : p.natDegree = d := charpoly_natDegree_eq_dim Ψ
+  have hpow : ∀ k : ℕ, W ^ k * Y * Ψ ^ k = Y := by
+    intro k
+    induction k with
+    | zero => simp
+    | succ k ih =>
+      calc W ^ (k + 1) * Y * Ψ ^ (k + 1) = W ^ k * (W * Y * Ψ) * Ψ ^ k := by
+            rw [pow_succ, pow_succ']
+            simp only [Matrix.mul_assoc]
+        _ = Y := by rw [hY, ih]
+  set r : ℂ[X] := ∑ j ∈ Finset.range (d + 1), C (p.coeff j) * X ^ (d - j) with hr
+  have hrW : aeval W r = ∑ j ∈ Finset.range (d + 1), p.coeff j • W ^ (d - j) := by
+    simp [hr, map_sum, Algebra.smul_def]
+  have hkill : aeval W r * Y = 0 := by
+    rw [hrW, Matrix.sum_mul]
+    have hterm : ∀ j ∈ Finset.range (d + 1),
+        p.coeff j • W ^ (d - j) * Y = W ^ d * Y * (p.coeff j • Ψ ^ j) := by
+      intro j hj
+      have hj' : j ≤ d := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+      calc p.coeff j • W ^ (d - j) * Y = p.coeff j • (W ^ (d - j) * (W ^ j * Y * Ψ ^ j)) := by
+            rw [hpow j, Matrix.smul_mul]
+        _ = p.coeff j • (W ^ d * Y * Ψ ^ j) := by
+            rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, ← pow_add, Nat.sub_add_cancel hj']
+        _ = W ^ d * Y * (p.coeff j • Ψ ^ j) := by rw [Matrix.mul_smul]
+    rw [Finset.sum_congr rfl hterm, ← Matrix.mul_sum]
+    have hcay : ∑ j ∈ Finset.range (d + 1), p.coeff j • Ψ ^ j = 0 := by
+      rw [← hpd, ← aeval_eq_sum_range, hp, aeval_self_charpoly]
+    rw [hcay, Matrix.mul_zero]
+  have hunit : IsUnit (aeval W r) := by
+    by_contra hnu
+    have h0 : (0 : ℂ) ∈ spectrum ℂ (aeval W r) := spectrum.zero_mem_iff ℂ |>.mpr hnu
+    rw [spectrum.map_polynomial_aeval_of_nonempty W r
+      (spectrum.nonempty_of_isAlgClosed_of_finiteDimensional ℂ W)] at h0
+    obtain ⟨θ, hθ, hθr⟩ := h0
+    simp only at hθr
+    have hθW : (Matrix.scalar m θ - W).det = 0 := by
+      rw [← eval_charpoly]
+      exact Matrix.mem_spectrum_iff_isRoot_charpoly.mp hθ
+    have heval : r.eval θ = ∑ j ∈ Finset.range (d + 1), p.coeff j * θ ^ (d - j) := by
+      simp [hr, eval_finsetSum]
+    rw [heval] at hθr
+    by_cases hθ0 : θ = 0
+    · subst hθ0
+      rw [Finset.sum_eq_single d] at hθr
+      · have hmon : p.coeff d = 1 := by
+          rw [← hpd]
+          exact (charpoly_monic Ψ).coeff_natDegree
+        simp [hmon] at hθr
+      · intro j hj hjd
+        have hj' : j < d := lt_of_le_of_ne (Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)) hjd
+        rw [zero_pow (by omega), mul_zero]
+      · intro hd'
+        exact absurd (Finset.mem_range.mpr (Nat.lt_succ_self d)) hd'
+    · have hμ : p.eval θ⁻¹ = 0 := by
+        have hsum : ∑ j ∈ Finset.range (d + 1), p.coeff j * θ ^ (d - j) =
+            θ ^ d * p.eval θ⁻¹ := by
+          rw [eval_eq_sum_range, hpd, Finset.mul_sum]
+          refine Finset.sum_congr rfl fun j hj => ?_
+          have hj' : j ≤ d := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+          rw [pow_sub₀ θ hθ0 hj', inv_pow]
+          ring
+        rw [hsum] at hθr
+        exact (mul_eq_zero.mp hθr).resolve_left (pow_ne_zero _ hθ0)
+      have hμΨ : (Matrix.scalar n θ⁻¹ - Ψ).det = 0 := by
+        rw [← eval_charpoly]
+        exact hμ
+      exact hdisj θ θ⁻¹ hθW hμΨ (mul_inv_cancel₀ hθ0)
+  calc Y = (aeval W r)⁻¹ * (aeval W r * Y) := by
+        rw [← Matrix.mul_assoc,
+          Matrix.nonsing_inv_mul _ ((Matrix.isUnit_iff_isUnit_det _).mp hunit), Matrix.one_mul]
+    _ = 0 := by rw [hkill, Matrix.mul_zero]
+
+/-! ### Ranks and kernels -/
+
+/-- Woodford (2003), App. G.1: independent columns make `M v = 0` force `v = 0`. -/
+theorem eq_zero_of_indep {l k : Type*} [Fintype k] {M : Matrix l k ℝ}
+    (h : LinearIndependent ℝ Mᵀ) {v : k → ℝ} (hv : M *ᵥ v = 0) : v = 0 := by
+  have hsum : ∑ j, v j • Mᵀ j = 0 := by
+    funext a
+    have := congrFun hv a
+    simpa [mulVec, dotProduct, Finset.sum_apply, mul_comm] using this
+  funext j
+  exact Fintype.linearIndependent_iff.mp h v hsum j
+
+/-- Woodford (2003), App. G.1: a matrix whose kernel is zero has rank equal to its number of
+columns. -/
+theorem rank_eq_of_injective {l k : Type*} [Fintype k] {M : Matrix l k ℝ}
+    (h : ∀ v, M *ᵥ v = 0 → v = 0) : M.rank = Fintype.card k := by
+  have hker : LinearMap.ker M.mulVecLin = ⊥ := by
+    rw [eq_bot_iff]
+    intro v hv
+    exact h v hv
+  have := LinearMap.finrank_range_add_finrank_ker M.mulVecLin
+  rw [hker, finrank_bot, add_zero, Module.finrank_fintype_fun_eq_card] at this
+  exact this
+
+/-- Woodford (2003), App. G.1 (the columns of `Γ` and `Ω` form a basis, p. 718): if `N M = 0`
+and `rank M + rank N` is the dimension of the middle space, then the kernel of `N` is the range
+of `M`. -/
+theorem exists_of_mulVec_eq_zero {l k m : Type*} [Fintype l] [Fintype k]
+    (M : Matrix l k ℝ) (N : Matrix m l ℝ) (hNM : N * M = 0)
+    (hdim : M.rank + N.rank = Fintype.card l) {p : l → ℝ} (hp : N *ᵥ p = 0) :
+    ∃ a, M *ᵥ a = p := by
+  have hle : LinearMap.range M.mulVecLin ≤ LinearMap.ker N.mulVecLin := by
+    rintro _ ⟨a, rfl⟩
+    change N *ᵥ (M *ᵥ a) = 0
+    rw [mulVec_mulVec, hNM, zero_mulVec]
+  have hker : Module.finrank ℝ (LinearMap.range M.mulVecLin) =
+      Module.finrank ℝ (LinearMap.ker N.mulVecLin) := by
+    have := LinearMap.finrank_range_add_finrank_ker N.mulVecLin
+    rw [Module.finrank_fintype_fun_eq_card] at this
+    change N.rank + _ = _ at this
+    change M.rank = _
+    omega
+  have heq := Submodule.eq_of_le_of_finrank_eq hle hker
+  have hp' : p ∈ LinearMap.ker N.mulVecLin := hp
+  rw [← heq] at hp'
+  obtain ⟨a, ha⟩ := hp'
+  exact ⟨a, ha⟩
+
+/-- Woodford (2003), App. G.1: complexification commutes with matrix products. -/
+theorem map_ofReal_mul {l m n : Type*} [Fintype m] (A : Matrix l m ℝ) (B : Matrix m n ℝ) :
+    (A * B).map Complex.ofReal = A.map Complex.ofReal * B.map Complex.ofReal := by
+  ext i j
+  simp [Matrix.mul_apply]
+
+/-! ### Assumption 8.4 and (G.7) -/
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-- Woodford (2003), (G.6), App. G.1, p. 718: every eigenvalue of `W` is zero or the reciprocal
+of a nonzero root of (1.15) that is not selected. -/
+def WEig (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) (W : Matrix ιz ιz ℝ) : Prop :=
+  ∀ θ : ℂ, (Matrix.scalar ιz θ - W.map Complex.ofReal).det = 0 →
+    θ = 0 ∨ ∃ μ : ℂ, S.pencilPoly.eval μ = 0 ∧ μ ≠ 0 ∧ μ ∉ sel ∧ θ = μ⁻¹
+
+/-- Woodford (2003), Assumption 8.4, App. G.1, p. 718, with (G.6): the `n × n_z` matrix `Γ`
+whose columns combine the left eigenvectors with eigenvalue zero or the reciprocal of a root of
+(1.15) *not* selected (`W Γ' A = Γ' Î`, every eigenvalue of `W` zero or `μ⁻¹` for an
+unselected nonzero root `μ`) satisfies (i) `A'Γ` has full rank `n_z` and (ii) `det Γ₂ ≠ 0`
+(`Γ₂` the rows belonging to `z`). `Γ` is real (fn 2), so `Re Γ₂ = Γ₂`. -/
+structure Assumption84 (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) where
+  Γ : Matrix (ιZ ⊕ ιz) ιz ℝ
+  W : Matrix ιz ιz ℝ
+  G6 : W * Γᵀ * S.Ahat = Γᵀ * S.Ihat
+  W_eig : WEig S sel W
+  full_rank : (S.Ahatᵀ * Γ).rank = Fintype.card ιz
+  det_Γ2 : (Γ.submatrix Sum.inr id).det ≠ 0
+
+variable {S : LinearRESystem ιZ ιz} {sel : Multiset ℂ}
+
+/-- Woodford (2003), App. G.1, (G.7), p. 718: `Γ' Î J = Γ' A J = 0` (the left eigenvectors of
+the unselected roots annihilate the selected deflating subspace). -/
+theorem G7 (R : RealSelection S sel) (h84 : Assumption84 S sel) :
+    h84.Γᵀ * S.Ihat * R.J = 0 ∧ h84.Γᵀ * S.Ahat * R.J = 0 := by
+  set Y := h84.Γᵀ * S.Ihat * R.J with hY
+  have hWY : h84.W * Y * R.Ψ = Y := by
+    calc h84.W * Y * R.Ψ = h84.W * h84.Γᵀ * (S.Ihat * R.J * R.Ψ) := by
+          simp only [hY, Matrix.mul_assoc]
+      _ = h84.W * h84.Γᵀ * S.Ahat * R.J := by
+          rw [← R.deflate, Matrix.mul_assoc (h84.W * h84.Γᵀ) S.Ahat R.J]
+      _ = Y := by rw [h84.G6, hY]
+  have hWYc : h84.W.map Complex.ofReal * Y.map Complex.ofReal * R.Ψ.map Complex.ofReal =
+      Y.map Complex.ofReal := by
+    rw [← map_ofReal_mul, ← map_ofReal_mul, hWY]
+  have hYc := sylvester_zero hWYc fun θ μ hθ hμ hθμ => by
+    rcases R.eig μ hμ with h0 | hs
+    · rw [h0, mul_zero] at hθμ
+      exact zero_ne_one hθμ
+    · rcases h84.W_eig θ hθ with h0 | ⟨μ', -, hμ'0, hμ's, hθe⟩
+      · rw [h0, zero_mul] at hθμ
+        exact zero_ne_one hθμ
+      · rw [hθe, inv_mul_eq_one₀ hμ'0] at hθμ
+        exact hμ's (hθμ ▸ hs)
+  have hY0 : Y = 0 := by
+    ext i j
+    have := congrFun (congrFun hYc i) j
+    simpa using this
+  refine ⟨hY0, ?_⟩
+  rw [Matrix.mul_assoc, R.deflate, ← Matrix.mul_assoc, ← Matrix.mul_assoc,
+    show h84.Γᵀ * S.Ihat * R.J = Y from rfl, hY0, Matrix.zero_mul]
+
+/-- Woodford (2003), App. G.1: `Î J` has full column rank `n_Z` (with `(A − sÎ) J = Î J (Ψ − s)`
+for a real `s ≠ 0` that is not a root, so `A − sÎ` and `Ψ − s` are invertible). -/
+theorem IJ_injective (R : RealSelection S sel) (hsel : ∀ μ ∈ sel, S.pencilPoly.eval μ = 0)
+    (hreg : S.pencilPoly ≠ 0) {v : ιZ → ℝ} (hv : (S.Ihat * R.J) *ᵥ v = 0) : v = 0 := by
+  obtain ⟨s, hs0, hs⟩ := PencilEigen.Construction.exists_shift hreg
+  have hA : (S.Ahat - s • S.Ihat).det ≠ 0 := by
+    intro h
+    apply hs
+    rw [pencilPoly_eval, det_pencil_ofReal, h, Complex.ofReal_zero]
+  set N' := R.Ψ - s • (1 : Matrix ιZ ιZ ℝ) with hN'
+  have hN : N'.det ≠ 0 := by
+    intro h
+    have hc : (Matrix.scalar ιZ (s : ℂ) - R.Ψ.map Complex.ofReal).det = 0 := by
+      have e1 : Matrix.scalar ιZ (s : ℂ) - R.Ψ.map Complex.ofReal = -(N'.map Complex.ofReal) := by
+        ext i j
+        by_cases hij : i = j
+        · subst hij
+          simp [hN', Matrix.scalar_apply]
+        · simp [hN', Matrix.scalar_apply, hij, Matrix.one_apply_ne hij]
+      have e2 := Complex.ofRealHom.map_det N'
+      rw [RingHom.mapMatrix_apply] at e2
+      change (N'.det : ℂ) = (N'.map Complex.ofReal).det at e2
+      rw [e1, det_neg, ← e2, h, Complex.ofReal_zero, mul_zero]
+    rcases R.eig _ hc with h0 | hm
+    · exact hs0 (Complex.ofReal_eq_zero.mp h0)
+    · exact hs (hsel _ hm)
+  have hkey : (S.Ahat - s • S.Ihat) * R.J = S.Ihat * R.J * N' := by
+    rw [Matrix.sub_mul, R.deflate, hN', Matrix.mul_sub, Matrix.smul_mul, Matrix.mul_smul,
+      Matrix.mul_one]
+  have hIJ : S.Ihat * R.J = (S.Ahat - s • S.Ihat) * R.J * N'⁻¹ := by
+    rw [hkey, Matrix.mul_assoc, mul_nonsing_inv _ (Ne.isUnit hN), Matrix.mul_one]
+  rw [hIJ, ← mulVec_mulVec, ← mulVec_mulVec] at hv
+  have h1 := eq_zero_of_mulVec_eq_zero hA hv
+  have h2 := eq_zero_of_indep R.indep h1
+  calc v = N' *ᵥ (N'⁻¹ *ᵥ v) := by
+        rw [mulVec_mulVec, mul_nonsing_inv _ (Ne.isUnit hN), one_mulVec]
+    _ = 0 := by rw [h2, mulVec_zero]
+
+/-- Woodford (2003), Assumption 8.4 (ii), App. G.1, p. 718: `det Γ₂ ≠ 0` makes `J₁` invertible
+(the role it plays in (1.21)): if `J₁' ξ = 0` then `(ξ, 0)` lies in the kernel of `(Î J)'`, which
+is the range of `Γ` by (G.7) and a dimension count, and `Γ₂` is invertible. -/
+theorem J1_det_ne_zero (R : RealSelection S sel) (h84 : Assumption84 S sel)
+    (hIJ : ∀ v, (S.Ihat * R.J) *ᵥ v = 0 → v = 0) : (J1 R.J).det ≠ 0 := by
+  intro hdet
+  have hdetT : ((J1 R.J)ᵀ).det = 0 := by rw [det_transpose]; exact hdet
+  obtain ⟨ξ, hξ0, hξ⟩ := exists_mulVec_eq_zero_iff.mpr hdetT
+  set p : ιZ ⊕ ιz → ℝ := Sum.elim ξ 0 with hpdef
+  have hp : (S.Ihat * R.J)ᵀ *ᵥ p = 0 := by
+    rw [transpose_mul, ← mulVec_mulVec, Ihat_transpose_mulVec, J_transpose_mulVec]
+    have h1 : (Sum.elim (p ∘ Sum.inl) (S.Etᵀ *ᵥ (p ∘ Sum.inr)) : ιZ ⊕ ιz → ℝ) ∘ Sum.inl = ξ :=
+      rfl
+    have h2 : (Sum.elim (p ∘ Sum.inl) (S.Etᵀ *ᵥ (p ∘ Sum.inr)) : ιZ ⊕ ιz → ℝ) ∘ Sum.inr = 0 := by
+      funext r
+      simp [hpdef]
+    rw [h1, h2, hξ, mulVec_zero, add_zero]
+  have hNM : (S.Ihat * R.J)ᵀ * h84.Γ = 0 := by
+    have := (G7 R h84).1
+    rw [← transpose_transpose h84.Γ, ← transpose_mul, ← Matrix.mul_assoc, this,
+      transpose_zero]
+  have hrΓ : h84.Γ.rank = Fintype.card ιz :=
+    le_antisymm (rank_le_card_width _) (h84.full_rank ▸ rank_mul_le_right _ _)
+  have hrIJ : (S.Ihat * R.J)ᵀ.rank = Fintype.card ιZ := by
+    rw [rank_transpose]
+    exact rank_eq_of_injective hIJ
+  have hdim : h84.Γ.rank + (S.Ihat * R.J)ᵀ.rank = Fintype.card (ιZ ⊕ ιz) := by
+    rw [hrΓ, hrIJ, Fintype.card_sum, add_comm]
+  obtain ⟨a, ha⟩ := exists_of_mulVec_eq_zero h84.Γ _ hNM hdim hp
+  have ha2 : (h84.Γ.submatrix Sum.inr id) *ᵥ a = 0 := by
+    funext r
+    have := congrFun ha (Sum.inr r)
+    change (h84.Γ *ᵥ a) (Sum.inr r) = 0
+    rw [this, hpdef]
+    rfl
+  have ha0 := eq_zero_of_mulVec_eq_zero h84.det_Γ2 ha2
+  have hp0 : p = 0 := by rw [← ha, ha0, mulVec_zero]
+  exact hξ0 (funext fun i => by simpa [hpdef] using congrFun hp0 (Sum.inl i))
+
+/-- Woodford (2003), Assumption 8.4 (i), App. G.1, p. 718: `A'Γ` of full rank makes
+`K = A₂₂' + A₁₂' Υ` invertible (the role it plays in (1.20)): if `K' u = 0`, `(0, u)` lies in the
+kernel of `Γ' A`, which is the range of `J` by (G.7) and a dimension count, and `J₁` is
+invertible. -/
+theorem K_det_ne_zero (R : RealSelection S sel) (h84 : Assumption84 S sel)
+    (hJ1 : (J1 R.J).det ≠ 0) : (Kmat S R.J).det ≠ 0 := by
+  intro hdet
+  have hdetT : ((Kmat S R.J)ᵀ).det = 0 := by rw [det_transpose]; exact hdet
+  obtain ⟨u, hu0, hu⟩ := exists_mulVec_eq_zero_iff.mpr hdetT
+  have hKT : (Kmat S R.J)ᵀ = S.A22 - S.Et * J2 R.J * (J1 R.J)⁻¹ * S.A12 := by
+    simp only [Kmat, Υmat, transpose_add, transpose_mul, transpose_neg, transpose_transpose,
+      transpose_nonsing_inv, Matrix.mul_neg, sub_eq_add_neg, Matrix.mul_assoc]
+  rw [hKT, sub_mulVec, sub_eq_zero] at hu
+  have hJ1u : IsUnit (J1 R.J).det := Ne.isUnit hJ1
+  set v := (J1 R.J)⁻¹ *ᵥ (S.A12 *ᵥ u) with hv
+  set p : ιZ ⊕ ιz → ℝ := Sum.elim 0 u with hpdef
+  have hAp : S.Ahat *ᵥ p = S.Ihat *ᵥ (R.J *ᵥ v) := by
+    have hJv1 : (R.J *ᵥ v) ∘ Sum.inl = J1 R.J *ᵥ v := rfl
+    have hJv2 : (R.J *ᵥ v) ∘ Sum.inr = J2 R.J *ᵥ v := rfl
+    rw [LinearRESystem.Ahat, LinearRESystem.Ihat, fromBlocks_mulVec, fromBlocks_mulVec, hJv1,
+      hJv2]
+    have hp1 : p ∘ Sum.inl = 0 := rfl
+    have hp2 : p ∘ Sum.inr = u := rfl
+    rw [hp1, hp2]
+    simp only [one_mulVec, zero_mulVec, mulVec_zero, zero_add, add_zero]
+    congr 1
+    · rw [hv, mulVec_mulVec, mul_nonsing_inv _ hJ1u, one_mulVec]
+    · rw [hu, hv]
+      simp only [mulVec_mulVec, Matrix.mul_assoc]
+  have hΓAp : (h84.Γᵀ * S.Ahat) *ᵥ p = 0 := by
+    rw [← mulVec_mulVec, hAp, mulVec_mulVec, mulVec_mulVec, (G7 R h84).1, zero_mulVec]
+  have hNM : (h84.Γᵀ * S.Ahat) * R.J = 0 := (G7 R h84).2
+  have hrJ : R.J.rank = Fintype.card ιZ :=
+    rank_eq_of_injective fun w hw => eq_zero_of_indep R.indep hw
+  have hrΓA : (h84.Γᵀ * S.Ahat).rank = Fintype.card ιz := by
+    rw [← rank_transpose, transpose_mul, transpose_transpose]
+    exact h84.full_rank
+  have hdim : R.J.rank + (h84.Γᵀ * S.Ahat).rank = Fintype.card (ιZ ⊕ ιz) := by
+    rw [hrJ, hrΓA, Fintype.card_sum]
+  obtain ⟨w, hw⟩ := exists_of_mulVec_eq_zero R.J _ hNM hdim hΓAp
+  have hw1 : J1 R.J *ᵥ w = 0 := by
+    funext i
+    have := congrFun hw (Sum.inl i)
+    simpa [hpdef, mulVec, dotProduct, J1] using this
+  have hw0 := eq_zero_of_mulVec_eq_zero hJ1 hw1
+  have hp0 : p = 0 := by rw [← hw, hw0, mulVec_zero]
+  exact hu0 (funext fun r => by simpa [hpdef] using congrFun hp0 (Sum.inr r))
+
+/-! ### Proposition 8.1 under Assumptions 8.2–8.4 -/
+
+/-- Woodford (2003), Assumptions 8.2–8.4 (App. G.1): a real selection (from Assumptions 8.2 (i)
+and 8.3) together with Assumption 8.4 is a deflating pair with all eigenvalues of `Ψ` in
+`|μ| < β⁻¹` and `J₁`, `K` invertible (`β > 0`). -/
+noncomputable def splitOfSel {β : ℝ} (hβ : 0 < β) (h82 : Assumption82 S β)
+    (R : RealSelection S h82.sel) (h83 : Assumption83 S) (h84 : Assumption84 S h82.sel) :
+    DeflatingSplit S β where
+  J := R.J
+  Ψ := R.Ψ
+  deflate := R.deflate
+  eig_lt := fun μ hμ => by
+    rcases R.eig μ hμ with h0 | hm
+    · rw [h0, norm_zero]
+      exact inv_pos.mpr hβ
+    · have := Multiset.mem_of_le h82.sel_le hm
+      rw [Multiset.mem_filter] at this
+      exact this.2.2
+  J1_det := J1_det_ne_zero R h84 fun _ hv => IJ_injective R (fun μ hμ => by
+      have := Multiset.mem_of_le h82.sel_le hμ
+      rw [Multiset.mem_filter, Polynomial.mem_roots h83.regular] at this
+      exact this.1) h83.regular hv
+  K_det := K_det_ne_zero R h84 (J1_det_ne_zero R h84 fun _ hv => IJ_injective R (fun μ hμ => by
+      have := Multiset.mem_of_le h82.sel_le hμ
+      rw [Multiset.mem_filter, Polynomial.mem_roots h83.regular] at this
+      exact this.1) h83.regular hv)
+
+/-- Woodford (2003), Assumptions 8.2–8.4 (App. G.1): with case (i) of Assumption 8.2 (a selection
+closed under conjugation) and `β > 0`, there is a real deflating pair `A J = Î J Ψ` with all
+eigenvalues of `Ψ` in `|μ| < β⁻¹` and `J₁`, `K` invertible. -/
+theorem nonempty_deflatingSplit {β : ℝ} (hβ : 0 < β) (h82 : Assumption82 S β)
+    (hi : ConjClosed h82.sel) (h83 : Assumption83 S) (h84 : Assumption84 S h82.sel) :
+    Nonempty (DeflatingSplit S β) :=
+  ⟨splitOfSel hβ h82 (exists_realSelection h82 hi h83).some h83 h84⟩
+
+/-- Woodford (2003), App. G.1: the deflating pair chosen from Assumptions 8.2 (i), 8.3, 8.4. -/
+noncomputable def splitOf {ιτ : Type*} [Fintype ιτ] (P : LQProblem ιZ ιz ιτ)
+    (h82 : Assumption82 P.sys P.β) (hi : ConjClosed h82.sel) (h83 : Assumption83 P.sys)
+    (h84 : Assumption84 P.sys h82.sel) : DeflatingSplit P.sys P.β :=
+  splitOfSel P.β_pos h82 (exists_realSelection h82 hi h83).some h83 h84
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553, **proved under Assumptions 8.2 (case (i)),
+8.3 and 8.4**: there exist real `Λ`, `Υ` and operators `Q(L⁻¹)`, `R(L⁻¹)` (mapping bounded
+processes to bounded adapted processes) such that bounded `(φ, τ)` — adapted plans, multipliers
+`M_t` known at `t` (p. 540) — satisfy (1.18) for all `t ≥ t₀` iff they satisfy (1.20)–(1.21).
+Any expectation system. -/
+theorem prop81_of_assumptions {Ω ιτ : Type*} [Fintype ιτ] (P : LQProblem ιZ ιz ιτ)
+    (h82 : Assumption82 P.sys P.β) (hi : ConjClosed h82.sel) (h83 : Assumption83 P.sys)
+    (h84 : Assumption84 P.sys h82.sel) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Nonempty (Prop81General.Prop81ConclusionM P 𝔼 t0) :=
+  ⟨Prop81General.prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0⟩
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553, deterministic case, exactly as stated (the
+hypothesis structure `TargetCriterion.Prop81.Prop81Conclusion`), under Assumptions 8.2 (i),
+8.3 and 8.4. -/
+theorem prop81_of_assumptions_perfectForesight {ιτ : Type*} [Fintype ιτ]
+    (P : LQProblem ιZ ιz ιτ) (h82 : Assumption82 P.sys P.β) (hi : ConjClosed h82.sel)
+    (h83 : Assumption83 P.sys) (h84 : Assumption84 P.sys h82.sel) (t0 : ℕ) :
+    Nonempty (TargetCriterion.Prop81.Prop81Conclusion P perfectForesight t0) :=
+  ⟨Prop81General.prop81_perfectForesight P (splitOf P h82 hi h83 h84) t0⟩
+
+/-! ### Proposition 8.2 under Assumptions 8.1–8.5 -/
+
+/-- Woodford (2003), Assumption 8.5, App. G.2, p. 719: `B₂'` and `B₂'Λʲ`, `j = 1, …, k − 1`, are
+linearly independent, and so are `B₂'Λʲ`, `j = 1, …, k` (`k = rank Λ`). -/
+def Assumption85 {ι : Type*} [Fintype ι] [DecidableEq ι] (Λ : Matrix ι ι ℝ) (B2 : ι → ℝ) :
+    Prop :=
+  LinearIndependent ℝ (fun j : Fin Λ.rank => B2 ᵥ* Λ ^ j.val) ∧
+    TargetCriterion.Krylov.Assumption85b Λ B2
+
+/-- Woodford (2003), **Proposition 8.2**, p. 555, **under Assumptions 8.1–8.5** (Assumption 8.2
+in case (i)), with the matrices of Proposition 8.1 built in `prop81_of_assumptions`: for a lag
+length `D ≥ max(1, rank Ẽ)` with `D < t₀` and a bounded history consistent with an optimal
+commitment chosen in the past, commitment to the target criterion (1.23) at all `t ≥ t₀`
+determines, for every bounded adapted disturbance process and initial condition, a unique
+bounded equilibrium; it is optimal subject to the initial constraint (1.27) `Ẽ z_{t₀} = ē`, i.e.
+the rule is robustly optimal (any expectation system with pull-out). -/
+theorem prop82_of_assumptions {Ω ιτ : Type*} [Fintype ιτ] {P : LQProblem ιZ ιz ιτ}
+    {𝔼 : ExpectationSystem Ω} {t0 : ℕ} (hpull : 𝔼.PullOut) (hA : Prop82General.Assumption81M P 𝔼 t0)
+    (h82 : Assumption82 P.sys P.β) (hi : ConjClosed h82.sel) (h83 : Assumption83 P.sys)
+    (h84 : Assumption84 P.sys h82.sel)
+    (h85 : Assumption85 (Λmat P.sys P.β (splitOf P h82 hi h83 h84).J) P.sys.B2) {D : ℕ}
+    (hD : D + 1 ≤ t0) (hDk : P.sys.Et.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK (Λmat P.sys P.β (splitOf P h82 hi h83 h84).J)
+      P.sys.B2 t0 D Mh qh vh) (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := ιz) P 𝔼 t0
+      (fun _ y => Prop82General.Prop82M.CriterionM
+        (Prop81General.prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0) D qh vh y)
+      (fun _ y t ω => zpart (y t ω)) :=
+  Prop82General.prop82_of_split hpull hA _ h85.2 hD hDk hhist hMhb hMhk hqhb hvhb
+
+/-- Woodford (2003), Proposition 8.2, p. 555, and (1.17), (1.24) **under Assumptions 8.1–8.5**:
+in the equilibrium (the FOC solution with the recovered initial multipliers), there is one
+matrix `C` such that at every date `t ≥ t₀` the multipliers `M_{t-1}` are the time-invariant
+linear rule `gRule` of the predetermined state (1.24) (lags `1, …, D` of `q` and `v`). -/
+theorem prop82_multiplier_rule_of_assumptions {Ω ιτ : Type*} [Fintype ιτ]
+    {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (h82 : Assumption82 P.sys P.β) (hi : ConjClosed h82.sel) (h83 : Assumption83 P.sys)
+    (h84 : Assumption84 P.sys h82.sel)
+    (h85 : Assumption85 (Λmat P.sys P.β (splitOf P h82 hi h83 h84).J) P.sys.B2) {D : ℕ}
+    (hD : D + 1 ≤ t0) (hD1 : 1 ≤ D) (hDk : P.sys.Et.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ}
+    {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK (Λmat P.sys P.β (splitOf P h82 hi h83 h84).J)
+      P.sys.B2 t0 D Mh qh vh) {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (hs : GeneralFOC.LQ.FOCSystem P 𝔼 c t0 Z0 (Mh (t0 - 1)) y φ) :
+    ∃ C : Matrix ιz (Fin (Λmat P.sys P.β (splitOf P h82 hi h83 h84).J).rank) ℝ,
+      ∀ t, t0 ≤ t → ∀ ω, GeneralFOC.LQ.Mpart (φ t ω) =
+        Prop82General.KrylovBound.gRule (Λmat P.sys P.β (splitOf P h82 hi h83 h84).J)
+          P.sys.B2 C D
+          (fun i => TargetCriterion.Recursion.splice t0 qh
+            (Prop81General.Qop 𝔼 (splitOf P h82 hi h83 h84) (TargetCriterion.Prop81.xproc P y))
+            (t - D + i) ω)
+          (fun i => TargetCriterion.Recursion.splice t0 vh (TargetCriterion.Prop81.vproc P y)
+            (t - D + i) ω) := by
+  have hrk : (Λmat P.sys P.β (splitOf P h82 hi h83 h84).J).rank ≤ D := by
+    rw [Prop81General.rank_Λmat P.sys P.β_pos.ne' (splitOf P h82 hi h83 h84).K_det]
+    exact hDk
+  exact Prop82General.Prop82M.prop82M_multiplier_rule
+    (Prop81General.prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0) h85.2 hD hD1 hrk hhist hs
+
+/-! ### The degree of `α(L)` (E18 made precise) -/
+
+omit [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1: block form of `J' v` over `ℂ`. -/
+theorem J_transpose_mulVec_C (J : Matrix (ιZ ⊕ ιz) ιZ ℝ) (v : ιZ ⊕ ιz → ℂ) :
+    (J.map Complex.ofReal)ᵀ *ᵥ v = ((J1 J).map Complex.ofReal)ᵀ *ᵥ (v ∘ Sum.inl) +
+      ((J2 J).map Complex.ofReal)ᵀ *ᵥ (v ∘ Sum.inr) := by
+  funext j
+  simp [mulVec, dotProduct, Fintype.sum_sum_type, J1, J2]
+
+/-- Woodford (2003), App. G.1 and p. 553: every nonzero root `μ` of (1.15) that is **not**
+selected gives the eigenvalue `(βμ)⁻¹` of `Λ = β⁻¹ K⁻¹ Ẽ'`. (Its left eigenvector `e`,
+`A'e = μ Î'e`, has `J'Î'e = 0` because `μ` is not an eigenvalue of `Ψ`, so `e_Z = Υ e_z`, and
+the `z`-rows give `K e_z = μ Ẽ' e_z`.) -/
+theorem unselected_eig (R : RealSelection S sel) (hJ1 : (J1 R.J).det ≠ 0)
+    (hK : (Kmat S R.J).det ≠ 0) {β : ℝ} (hβ : β ≠ 0) {μ : ℂ} (hroot : S.pencilPoly.eval μ = 0)
+    (hμ0 : μ ≠ 0) (hμs : μ ∉ sel) :
+    (Matrix.scalar ιz ((β : ℂ) * μ)⁻¹ - (Λmat S β R.J).map Complex.ofReal).det = 0 := by
+  have hdetT : ((S.Ahat.map Complex.ofReal - μ • S.Ihat.map Complex.ofReal)ᵀ).det = 0 := by
+    rw [det_transpose, ← pencilPoly_eval]
+    exact hroot
+  obtain ⟨e, he0, he⟩ := exists_mulVec_eq_zero_iff.mpr hdetT
+  have hAe : (S.Ahat.map Complex.ofReal)ᵀ *ᵥ e = μ • ((S.Ihat.map Complex.ofReal)ᵀ *ᵥ e) := by
+    rw [transpose_sub, transpose_smul, sub_mulVec, sub_eq_zero, smul_mulVec] at he
+    exact he
+  set eZ : ιZ → ℂ := e ∘ Sum.inl with heZ
+  set ez : ιz → ℂ := e ∘ Sum.inr with hez
+  have hAblock : (S.Ahat.map Complex.ofReal)ᵀ *ᵥ e =
+      Sum.elim ((S.A11.map Complex.ofReal)ᵀ *ᵥ eZ + (S.A21.map Complex.ofReal)ᵀ *ᵥ ez)
+        ((S.A12.map Complex.ofReal)ᵀ *ᵥ eZ + (S.A22.map Complex.ofReal)ᵀ *ᵥ ez) := by
+    rw [LinearRESystem.Ahat, fromBlocks_map, fromBlocks_transpose, fromBlocks_mulVec]
+  have hIblock : (S.Ihat.map Complex.ofReal)ᵀ *ᵥ e =
+      Sum.elim eZ ((S.Et.map Complex.ofReal)ᵀ *ᵥ ez) := by
+    rw [LinearRESystem.Ihat, fromBlocks_map, fromBlocks_transpose, fromBlocks_mulVec]
+    simp [heZ, hez]
+  -- `w = J'Î'e = 0`
+  have hw : (R.J.map Complex.ofReal)ᵀ *ᵥ ((S.Ihat.map Complex.ofReal)ᵀ *ᵥ e) = 0 := by
+    have hdefT : (R.J.map Complex.ofReal)ᵀ * (S.Ahat.map Complex.ofReal)ᵀ =
+        (R.Ψ.map Complex.ofReal)ᵀ * ((R.J.map Complex.ofReal)ᵀ *
+          (S.Ihat.map Complex.ofReal)ᵀ) := by
+      rw [← transpose_mul, ← map_ofReal_mul, R.deflate, map_ofReal_mul, map_ofReal_mul,
+        transpose_mul, transpose_mul]
+    have h1 := congrArg (· *ᵥ e) hdefT
+    rw [← mulVec_mulVec, hAe, mulVec_smul, ← mulVec_mulVec, ← mulVec_mulVec] at h1
+    by_contra hw0
+    have hdet0 : (Matrix.scalar ιZ μ - R.Ψ.map Complex.ofReal).det = 0 := by
+      rw [← det_transpose]
+      set w := (R.J.map Complex.ofReal)ᵀ *ᵥ ((S.Ihat.map Complex.ofReal)ᵀ *ᵥ e) with hwdef
+      refine exists_mulVec_eq_zero_iff.mp ⟨w, hw0, ?_⟩
+      have hsc : (Matrix.scalar ιZ μ)ᵀ *ᵥ w = μ • w := by
+        funext i
+        simp [Matrix.scalar_apply, mulVec_diagonal]
+      rw [transpose_sub, sub_mulVec, hsc, h1, sub_self]
+    rcases R.eig μ hdet0 with h | h
+    · exact hμ0 h
+    · exact hμs h
+  rw [hIblock, J_transpose_mulVec_C] at hw
+  simp only [Sum.elim_comp_inl, Sum.elim_comp_inr] at hw
+  -- `e_Z = Υ e_z`
+  have hJΥ : (J1 R.J)ᵀ * Υmat S R.J = -((J2 R.J)ᵀ * S.Etᵀ) := by
+    have hu : IsUnit ((J1 R.J)ᵀ).det := by rw [det_transpose]; exact Ne.isUnit hJ1
+    rw [Υmat, Matrix.mul_neg, ← Matrix.mul_assoc, ← Matrix.mul_assoc, mul_nonsing_inv _ hu,
+      Matrix.one_mul]
+  have hJΥc : ((J1 R.J).map Complex.ofReal)ᵀ * (Υmat S R.J).map Complex.ofReal =
+      -(((J2 R.J).map Complex.ofReal)ᵀ * (S.Et.map Complex.ofReal)ᵀ) := by
+    rw [← transpose_map, ← map_ofReal_mul, hJΥ, ← transpose_map, ← transpose_map,
+      ← map_ofReal_mul]
+    ext i j
+    simp
+  have hEZ : eZ = (Υmat S R.J).map Complex.ofReal *ᵥ ez := by
+    have hd : (((J1 R.J).map Complex.ofReal)ᵀ).det ≠ 0 := by
+      have e2 := Complex.ofRealHom.map_det (J1 R.J)
+      rw [RingHom.mapMatrix_apply] at e2
+      change ((J1 R.J).det : ℂ) = ((J1 R.J).map Complex.ofReal).det at e2
+      rw [det_transpose, ← e2]
+      exact_mod_cast hJ1
+    have : ((J1 R.J).map Complex.ofReal)ᵀ *ᵥ (eZ - (Υmat S R.J).map Complex.ofReal *ᵥ ez) =
+        0 := by
+      rw [mulVec_sub, mulVec_mulVec, hJΥc, neg_mulVec, sub_neg_eq_add, ← mulVec_mulVec]
+      exact hw
+    exact sub_eq_zero.mp (eq_zero_of_mulVec_eq_zero hd this)
+  -- the `z`-rows: `K e_z = μ Ẽ' e_z`
+  have hz := congrArg (· ∘ Sum.inr) hAe
+  simp only [hAblock, hIblock, Sum.elim_comp_inr] at hz
+  have hz' : (S.A12.map Complex.ofReal)ᵀ *ᵥ eZ + (S.A22.map Complex.ofReal)ᵀ *ᵥ ez =
+      μ • ((S.Et.map Complex.ofReal)ᵀ *ᵥ ez) := by
+    funext r
+    have := congrFun hz r
+    simpa using this
+  have hKe : (Kmat S R.J).map Complex.ofReal *ᵥ ez = μ • ((S.Et.map Complex.ofReal)ᵀ *ᵥ ez) := by
+    rw [← hz', hEZ, Kmat]
+    have hm : (S.A22ᵀ + S.A12ᵀ * Υmat S R.J).map Complex.ofReal =
+        (S.A22.map Complex.ofReal)ᵀ + (S.A12.map Complex.ofReal)ᵀ *
+          (Υmat S R.J).map Complex.ofReal := by
+      rw [Matrix.map_add _ Complex.ofReal_add, map_ofReal_mul, transpose_map, transpose_map]
+    rw [hm, add_mulVec, ← mulVec_mulVec]
+    abel
+  -- `K Λ = β⁻¹ Ẽ'`
+  have hKΛ : Kmat S R.J * Λmat S β R.J = β⁻¹ • S.Etᵀ := by
+    rw [Λmat, Matrix.mul_smul, ← Matrix.mul_assoc, mul_nonsing_inv _ (Ne.isUnit hK),
+      Matrix.one_mul]
+  have hKΛc : (Kmat S R.J).map Complex.ofReal * (Λmat S β R.J).map Complex.ofReal =
+      (β : ℂ)⁻¹ • (S.Et.map Complex.ofReal)ᵀ := by
+    rw [← map_ofReal_mul, hKΛ]
+    ext i j
+    simp
+  have hKc : ((Kmat S R.J).map Complex.ofReal).det ≠ 0 := by
+    have e2 := Complex.ofRealHom.map_det (Kmat S R.J)
+    rw [RingHom.mapMatrix_apply] at e2
+    change ((Kmat S R.J).det : ℂ) = ((Kmat S R.J).map Complex.ofReal).det at e2
+    rw [← e2]
+    exact_mod_cast hK
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ
+  have hΛ : (Λmat S β R.J).map Complex.ofReal *ᵥ ez = ((β : ℂ) * μ)⁻¹ • ez := by
+    have h1 : (Kmat S R.J).map Complex.ofReal *ᵥ
+        ((Λmat S β R.J).map Complex.ofReal *ᵥ ez - ((β : ℂ) * μ)⁻¹ • ez) = 0 := by
+      rw [mulVec_sub, mulVec_mulVec, hKΛc, mulVec_smul, hKe, smul_mulVec, smul_smul,
+        sub_eq_zero]
+      congr 1
+      field_simp
+    exact sub_eq_zero.mp (eq_zero_of_mulVec_eq_zero hKc h1)
+  have hez0 : ez ≠ 0 := by
+    intro h0
+    apply he0
+    funext a
+    rcases a with i | r
+    · have := congrFun hEZ i
+      rw [h0, mulVec_zero] at this
+      exact this
+    · exact congrFun h0 r
+  refine exists_mulVec_eq_zero_iff.mp ⟨ez, hez0, ?_⟩
+  rw [sub_mulVec, hΛ, sub_eq_zero]
+  funext r
+  simp [Matrix.scalar_apply, mulVec_diagonal]
+
+/-- Woodford (2003), (1.22): `α(L) = det(I − ΛL)` commutes with complexification. -/
+theorem alpha_map_ofReal (Λ : Matrix ιz ιz ℝ) :
+    (Adjugate.alpha Λ).map Complex.ofRealHom = Adjugate.alpha (Λ.map Complex.ofReal) := by
+  have e := (Polynomial.mapRingHom Complex.ofRealHom).map_det (Adjugate.lagMat Λ)
+  rw [Adjugate.alpha, Adjugate.alpha, ← Polynomial.coe_mapRingHom, e]
+  congr 1
+  ext i j
+  by_cases hij : i = j
+  · subst hij
+    simp [Adjugate.lagMat, RingHom.mapMatrix_apply]
+  · simp [Adjugate.lagMat, RingHom.mapMatrix_apply, Matrix.one_apply_ne hij]
+
+/-- Woodford (2003), Assumptions 8.2–8.3: the nonzero roots of (1.15) that are not selected. -/
+noncomputable def unselected (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) : Multiset ℂ :=
+  nonzeroRoots S - sel
+
+/-- Woodford (2003), Assumptions 8.2–8.3 (p. 552, App. G.1): there are exactly `rank Ẽ`
+unselected nonzero roots, all distinct; each is a root, nonzero and not selected. -/
+theorem unselected_spec {β : ℝ} (h82 : Assumption82 S β) (h83 : Assumption83 S) :
+    (unselected S h82.sel).Nodup ∧ Multiset.card (unselected S h82.sel) = S.Et.rank ∧
+      ∀ μ ∈ unselected S h82.sel, S.pencilPoly.eval μ = 0 ∧ μ ≠ 0 ∧ μ ∉ h82.sel := by
+  have hsel_le : h82.sel ≤ nonzeroRoots S :=
+    h82.sel_le.trans (Multiset.monotone_filter_right _ fun μ h => h.1)
+  refine ⟨Multiset.nodup_of_le (Multiset.sub_le_self _ _) h83.nodup, ?_, ?_⟩
+  · rw [unselected, Multiset.card_sub hsel_le, h83.card_nonzero]
+    have h1 := h82.sel_card
+    have h2 := card_le_rank_Ahat S
+    have h3 : Fintype.card (ιZ ⊕ ιz) = Fintype.card ιZ + Fintype.card ιz := Fintype.card_sum
+    have h4 : S.Ahat.rank ≤ Fintype.card (ιZ ⊕ ιz) := rank_le_card_width _
+    omega
+  · intro μ hμ
+    rw [unselected, Multiset.mem_sub_of_nodup h83.nodup] at hμ
+    obtain ⟨h1, h2⟩ := hμ
+    simp only [nonzeroRoots, Multiset.mem_filter, Polynomial.mem_roots h83.regular] at h1
+    exact ⟨h1.1, h1.2, h2⟩
+
+/-- Woodford (2003), p. 553: the eigenvalues `(βμ)⁻¹` of `Λ` from the unselected roots form a
+sub-multiset of the nonzero roots of the characteristic polynomial of `Λ` (over `ℂ`). -/
+theorem unselected_map_le {β : ℝ} (hβ : 0 < β) (h82 : Assumption82 S β)
+    (R : RealSelection S h82.sel) (h83 : Assumption83 S) (h84 : Assumption84 S h82.sel) :
+    (unselected S h82.sel).map (fun μ => ((β : ℂ) * μ)⁻¹) ≤
+      ((Λmat S β (splitOfSel hβ h82 R h83 h84).J).map Complex.ofReal).charpoly.roots.filter
+        (fun x => x ≠ 0) := by
+  set D := splitOfSel hβ h82 R h83 h84 with hD
+  obtain ⟨hUnd, -, hmemU⟩ := unselected_spec h82 h83
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ.ne'
+  have hinj : ∀ μ ∈ unselected S h82.sel, ∀ ν ∈ unselected S h82.sel,
+      ((β : ℂ) * μ)⁻¹ = ((β : ℂ) * ν)⁻¹ → μ = ν := by
+    intro μ _ ν _ h
+    exact mul_left_cancel₀ hβc (inv_injective h)
+  rw [Multiset.le_iff_subset (Multiset.Nodup.map_on hinj hUnd)]
+  intro x hx
+  obtain ⟨μ, hμ, rfl⟩ := Multiset.mem_map.mp hx
+  obtain ⟨hr, h0, hs⟩ := hmemU μ hμ
+  rw [Multiset.mem_filter, Polynomial.mem_roots (charpoly_monic _).ne_zero, IsRoot,
+    eval_charpoly]
+  exact ⟨unselected_eig R D.J1_det D.K_det hβ.ne' hr h0 hs, inv_ne_zero (mul_ne_zero hβc h0)⟩
+
+/-- Woodford (2003), p. 553 and fn 15 (**E18 made precise; the book's claim holds under its
+assumptions**): under Assumptions 8.2 (case (i)), 8.3 and 8.4, the matrix `Λ` of Proposition 8.1
+has `rank Λ = rank Ẽ` and `deg α(L) = rank Ẽ`, `α(L) = det(I − ΛL)`. The `rank Ẽ` nonzero roots
+of (1.15) not selected give `rank Ẽ` distinct nonzero eigenvalues `(βμ)⁻¹` of `Λ`
+(`unselected_eig`), and `deg α ≤ rank Λ` always. (Without the assumptions only
+`deg α ≤ rank Λ` holds: `Adjugate.nilpotent_counterexample`.) -/
+theorem natDegree_alpha_eq_rank {β : ℝ} (hβ : 0 < β) (h82 : Assumption82 S β)
+    (R : RealSelection S h82.sel) (h83 : Assumption83 S) (h84 : Assumption84 S h82.sel) :
+    (Adjugate.alpha (Λmat S β (splitOfSel hβ h82 R h83 h84).J)).natDegree = S.Et.rank ∧
+      (Λmat S β (splitOfSel hβ h82 R h83 h84).J).rank = S.Et.rank := by
+  set D := splitOfSel hβ h82 R h83 h84 with hD
+  have hrank := Prop81General.rank_Λmat S hβ.ne' D.K_det
+  refine ⟨le_antisymm ((Adjugate.natDegree_alpha_le_rank _).trans hrank.le) ?_, hrank⟩
+  have hle := Multiset.card_le_card (unselected_map_le hβ h82 R h83 h84)
+  rw [Multiset.card_map, (unselected_spec h82 h83).2.1,
+    ← Adjugate.natDegree_alpha_eq_card_nonzero_roots, ← alpha_map_ofReal,
+    natDegree_map_eq_of_injective Complex.ofRealHom.injective] at hle
+  exact hle
+
+/-- Woodford (2003), p. 553: under Assumptions 8.2 (i)–8.4 the nonzero eigenvalues of `Λ` are
+exactly the `(βμ)⁻¹` for the unselected nonzero roots `μ` (as multisets). -/
+theorem nonzero_eig_eq {β : ℝ} (hβ : 0 < β) (h82 : Assumption82 S β)
+    (R : RealSelection S h82.sel) (h83 : Assumption83 S) (h84 : Assumption84 S h82.sel) :
+    (unselected S h82.sel).map (fun μ => ((β : ℂ) * μ)⁻¹) =
+      ((Λmat S β (splitOfSel hβ h82 R h83 h84).J).map Complex.ofReal).charpoly.roots.filter
+        (fun x => x ≠ 0) := by
+  refine Multiset.eq_of_le_of_card_le (unselected_map_le hβ h82 R h83 h84) ?_
+  rw [Multiset.card_map, (unselected_spec h82 h83).2.1,
+    ← Adjugate.natDegree_alpha_eq_card_nonzero_roots, ← alpha_map_ofReal,
+    natDegree_map_eq_of_injective Complex.ofRealHom.injective]
+  exact (natDegree_alpha_eq_rank hβ h82 R h83 h84).1.le
+
+/-! ### The stability hypothesis `MultStable` of `TargetCriterion` fails under Assumption 8.7 -/
+
+/-- Woodford (2003), (1.20): with zero forcing the multiplier recursion is `m_k = Λ^{k+1} m₀`. -/
+theorem mrec_zero {Ω' ι : Type*} [Fintype ι] [DecidableEq ι] (Λ : Matrix ι ι ℝ)
+    (m0 : Ω' → ι → ℝ) (k : ℕ) (ω : Ω') :
+    TargetCriterion.Recursion.mrec Λ m0 (fun _ _ _ => 0) k ω = (Λ ^ (k + 1)) *ᵥ m0 ω := by
+  induction k with
+  | zero =>
+    funext i
+    simp [TargetCriterion.Recursion.mrec]
+  | succ k ih =>
+    have e : TargetCriterion.Recursion.mrec Λ m0 (fun _ _ _ => 0) (k + 1) ω =
+        Λ *ᵥ TargetCriterion.Recursion.mrec Λ m0 (fun _ _ _ => 0) k ω + fun _ => 0 := rfl
+    rw [e, ih, mulVec_mulVec, ← pow_succ']
+    funext i
+    simp
+
+/-- Woodford (2003), (1.20): a real matrix with a complex eigenvalue of modulus `> 1` is not
+`MultStable` (the hypothesis of `TargetCriterion.Prop82`): the recursion from the real or the
+imaginary part of an eigenvector explodes. -/
+theorem not_multStable_of_eig {Ω' ι : Type*} [Nonempty Ω'] [Fintype ι] [DecidableEq ι]
+    {Λ : Matrix ι ι ℝ} {θ : ℂ} (hθ : 1 < ‖θ‖)
+    (h : (Matrix.scalar ι θ - Λ.map Complex.ofReal).det = 0) :
+    ¬ TargetCriterion.Recursion.MultStable Ω' Λ := by
+  intro hst
+  obtain ⟨v, hv0, hv⟩ := exists_eigvec h
+  have hpow : ∀ k, (Λ.map Complex.ofReal) ^ k *ᵥ v = θ ^ k • v := by
+    intro k
+    induction k with
+    | zero => simp
+    | succ k ih =>
+      rw [pow_succ', ← mulVec_mulVec, ih, mulVec_smul, hv, smul_smul, pow_succ, mul_comm]
+  have hmapk : ∀ k, (Λ ^ k).map Complex.ofReal = (Λ.map Complex.ofReal) ^ k := fun k =>
+    Complex.ofRealHom.mapMatrix.map_pow Λ k
+  have hre : ∀ k i, ((Λ ^ k) *ᵥ fun a => (v a).re) i = ((θ ^ k • v) i).re := by
+    intro k i
+    rw [← hpow k, ← hmapk k]
+    simp [mulVec, dotProduct, Complex.re_sum]
+  have him : ∀ k i, ((Λ ^ k) *ᵥ fun a => (v a).im) i = ((θ ^ k • v) i).im := by
+    intro k i
+    rw [← hpow k, ← hmapk k]
+    simp [mulVec, dotProduct, Complex.im_sum]
+  obtain ⟨K1, hK1⟩ := hst (fun _ a => (v a).re) (fun _ _ _ => 0) ⟨∑ a, |(v a).re|,
+    fun _ i => Finset.single_le_sum (f := fun a => |(v a).re|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ i)⟩ ⟨0, fun _ _ _ => by simp⟩
+  obtain ⟨K2, hK2⟩ := hst (fun _ a => (v a).im) (fun _ _ _ => 0) ⟨∑ a, |(v a).im|,
+    fun _ i => Finset.single_le_sum (f := fun a => |(v a).im|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ i)⟩ ⟨0, fun _ _ _ => by simp⟩
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp hv0
+  have hvi : 0 < ‖v i‖ := norm_pos_iff.mpr hi
+  have ω0 : Ω' := Classical.arbitrary Ω'
+  have hbound : ∀ k : ℕ, ‖θ‖ ^ (k + 1) * ‖v i‖ ≤ K1 + K2 := by
+    intro k
+    have h1 := hK1 k ω0 i
+    have h2 := hK2 k ω0 i
+    rw [mrec_zero, hre] at h1
+    rw [mrec_zero, him] at h2
+    calc ‖θ‖ ^ (k + 1) * ‖v i‖ = ‖(θ ^ (k + 1) • v) i‖ := by
+          rw [Pi.smul_apply, smul_eq_mul, norm_mul, norm_pow]
+      _ ≤ |((θ ^ (k + 1) • v) i).re| + |((θ ^ (k + 1) • v) i).im| :=
+          Complex.norm_le_abs_re_add_abs_im _
+      _ ≤ K1 + K2 := add_le_add h1 h2
+  have htend : Filter.Tendsto (fun k : ℕ => ‖θ‖ ^ (k + 1) * ‖v i‖) Filter.atTop
+      Filter.atTop :=
+    ((tendsto_pow_atTop_atTop_of_one_lt hθ).comp (Filter.tendsto_add_atTop_nat 1)).atTop_mul_const
+      hvi
+  obtain ⟨k, hk⟩ := (htend.eventually_gt_atTop (K1 + K2)).exists
+  exact absurd (hbound k) (not_le.mpr hk)
+
+/-- Woodford (2003), Assumption 8.7 (p. 556) vs the hypothesis `MultStable` of
+`TargetCriterion.Prop82`: under Assumptions 8.2 (i)–8.4, if some nonzero root `μ` of (1.15)
+with `|μ| < β⁻¹` is **not** selected — which happens exactly when (1.15) has more than `n_Z`
+roots with `|μ| < β⁻¹`, Assumption 8.7, true under the Sargent–Wallace property in all the book's
+examples — then `Λ` has the eigenvalue `(βμ)⁻¹` of modulus `> 1` and `MultStable` fails. So the
+earlier conditional Proposition 8.2 was vacuous in the book's applications;
+`Prop82General` removes the hypothesis. -/
+theorem not_multStable_of_unselected {Ω' : Type*} [Nonempty Ω'] {β : ℝ} (hβ : 0 < β)
+    (h82 : Assumption82 S β) (R : RealSelection S h82.sel) (h83 : Assumption83 S)
+    (h84 : Assumption84 S h82.sel) {μ : ℂ} (hroot : S.pencilPoly.eval μ = 0) (hμ0 : μ ≠ 0)
+    (hμs : μ ∉ h82.sel) (hin : ‖μ‖ < β⁻¹) :
+    ¬ TargetCriterion.Recursion.MultStable Ω' (Λmat S β (splitOfSel hβ h82 R h83 h84).J) := by
+  set D := splitOfSel hβ h82 R h83 h84
+  refine not_multStable_of_eig ?_ (unselected_eig R D.J1_det D.K_det hβ.ne' hroot hμ0 hμs)
+  rw [norm_inv, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hβ]
+  have h1 : β * ‖μ‖ < 1 := by
+    have := mul_lt_mul_of_pos_left hin hβ
+    rwa [mul_inv_cancel₀ hβ.ne'] at this
+  have h2 : 0 < β * ‖μ‖ := mul_pos hβ (norm_pos_iff.mpr hμ0)
+  exact one_lt_inv₀ h2 |>.mpr h1
+
+end Woodford.OptimalPolicyRules.PencilAssumptions
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Uniqueness in Proposition 8.1 and the remark on p. 553
+
+Woodford (2003), *Interest and Prices*, Chapter 8, p. 553 (the paragraph after Proposition 8.1):
+"In the case that there are exactly `n_Z` roots of (1.15) such that `|μᵢ| < β⁻¹`, the matrices
+`Λ, Υ, Q`, and `R` are uniquely defined, and there is a unique solution to (1.18) for the
+evolution of the multipliers given a process for the target variables and an initial condition
+`M_{t₀−1}`."
+
+* `boundedV_mrec_of_powDecay`: a stable `Λ` keeps the recursion (1.20) bounded.
+* `prop81M_solution`: for stable `Λ`, given a bounded adapted plan and a bounded `M_{t₀−1}` known
+  at `t₀`, (1.18) has exactly one bounded multiplier solution with `M_t` known at `t`.
+* `prop81M_unique`: for stable `Λ`, any two representations of Proposition 8.1 have the same
+  `Λ`, `Υ`, and the same `Q(L⁻¹)`, `R(L⁻¹)` on bounded adapted plans.
+* `powDecay_Λ_of_outside`: under Assumptions 8.2 (i)–8.4, if every unselected nonzero root has
+  `|μ| > β⁻¹` (exactly `n_Z` roots inside and **none on** `|μ| = β⁻¹`), `Λ` is stable; so the
+  remark holds with that proviso (`remark_p553`).
+* `circle_counterexample`: the proviso is needed. With one root exactly on `|μ| = β⁻¹` (and
+  `n_Z = 0` roots inside, so "exactly `n_Z`" holds), (1.18) has **no** bounded solution for a
+  bounded plan.
+* `eig_conj`, `realSelection_misses_unpaired`: in case (ii) of Assumption 8.2 no real deflating
+  pair can carry the unpaired complex root (a real `Ψ` has a spectrum closed under conjugation),
+  which is why the invariant-subspace construction covers case (i) only.
+-/
+
+namespace Woodford.OptimalPolicyRules.Prop81Unique
+
+open Matrix GeneralSetup PencilSplit PencilEigen PencilAssumptions Prop81General
+open TargetCriterion.Prop81 TargetCriterion.Recursion GeneralFOC.LQ GeneralFOC.Selection
+
+variable {Ω : Type*}
+
+/-! ### Stable recursions -/
+
+/-- Woodford (2003), eq. (1.20): `m_k = Λ^{k+1} m₀ + ∑_{j ≤ k} Λ^{k−j} u_j`. -/
+theorem mrec_formula {ι : Type*} [Fintype ι] [DecidableEq ι] (Λ : Matrix ι ι ℝ)
+    (m0 : Ω → ι → ℝ) (u : ℕ → Ω → ι → ℝ) (k : ℕ) (ω : Ω) :
+    mrec Λ m0 u k ω =
+      Λ ^ (k + 1) *ᵥ m0 ω + ∑ j ∈ Finset.range (k + 1), Λ ^ (k - j) *ᵥ u j ω := by
+  induction k with
+  | zero => simp [mrec]
+  | succ k ih =>
+    change Λ *ᵥ mrec Λ m0 u k ω + u (k + 1) ω = _
+    rw [ih, mulVec_add, mulVec_mulVec, ← pow_succ', mulVec_sum, Finset.sum_range_succ _ (k + 1),
+      Nat.sub_self, pow_zero, one_mulVec, add_assoc]
+    congr 2
+    refine Finset.sum_congr rfl fun j hj => ?_
+    have hj' : j ≤ k := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+    rw [mulVec_mulVec, ← pow_succ', show k - j + 1 = k + 1 - j by omega]
+
+/-- Woodford (2003), eq. (1.20), p. 553: if the powers of `Λ` decay geometrically, bounded
+forcing and a bounded start give a bounded multiplier path (`MultStable`). -/
+theorem boundedV_mrec_of_powDecay {ι : Type*} [Fintype ι] [DecidableEq ι] {Λ : Matrix ι ι ℝ}
+    (hΛ : PowDecay Λ) {m0 : Ω → ι → ℝ} (hm0 : ∃ K, ∀ ω i, |m0 ω i| ≤ K)
+    {u : ℕ → Ω → ι → ℝ} (hu : BoundedV u) : BoundedV (mrec Λ m0 u) := by
+  obtain ⟨C, r, hr0, hr1, hG⟩ := hΛ
+  obtain ⟨K0, hK0⟩ := hm0
+  obtain ⟨Ku, hKu⟩ := hu
+  have hpowle : ∀ k : ℕ, C * r ^ k ≤ |C| := fun k =>
+    calc C * r ^ k ≤ |C| * r ^ k := mul_le_mul_of_nonneg_right (le_abs_self C) (pow_nonneg hr0 k)
+      _ ≤ |C| * 1 := mul_le_mul_of_nonneg_left (pow_le_one₀ hr0 hr1.le) (abs_nonneg C)
+      _ = |C| := mul_one _
+  have hgeo : ∀ k : ℕ, ∑ j ∈ Finset.range (k + 1), r ^ (k - j) ≤ (1 - r)⁻¹ := by
+    intro k
+    have hre : ∑ j ∈ Finset.range (k + 1), r ^ (k - j) = ∑ j ∈ Finset.range (k + 1), r ^ j := by
+      rw [← Finset.sum_range_reflect]
+      refine Finset.sum_congr rfl fun j hj => ?_
+      have := Finset.mem_range.mp hj
+      congr 1
+      omega
+    rw [hre, ← tsum_geometric_of_lt_one hr0 hr1]
+    exact Summable.sum_le_tsum _ (fun i _ => pow_nonneg hr0 i)
+      (summable_geometric_of_lt_one hr0 hr1)
+  have hn : (0 : ℝ) ≤ Fintype.card ι := Nat.cast_nonneg _
+  refine ⟨(Fintype.card ι : ℝ) * (|C| * |K0|) +
+    (Fintype.card ι : ℝ) * (|C| * |Ku|) * (1 - r)⁻¹, fun k ω i => ?_⟩
+  rw [mrec_formula, Pi.add_apply, Finset.sum_apply]
+  have h1 : |(Λ ^ (k + 1) *ᵥ m0 ω) i| ≤ (Fintype.card ι : ℝ) * (|C| * |K0|) := by
+    refine (abs_mulVec_pow_le hG (k + 1) (fun j => (hK0 ω j).trans (le_abs_self K0)) i).trans ?_
+    exact mul_le_mul_of_nonneg_left
+      (mul_le_mul_of_nonneg_right (hpowle (k + 1)) (abs_nonneg K0)) hn
+  have h2 : |∑ j ∈ Finset.range (k + 1), (Λ ^ (k - j) *ᵥ u j ω) i| ≤
+      (Fintype.card ι : ℝ) * (|C| * |Ku|) * (1 - r)⁻¹ := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    have hterm : ∀ j ∈ Finset.range (k + 1), |(Λ ^ (k - j) *ᵥ u j ω) i| ≤
+        (Fintype.card ι : ℝ) * (|C| * |Ku|) * r ^ (k - j) := by
+      intro j _
+      refine (abs_mulVec_pow_le hG (k - j) (fun l => (hKu j ω l).trans (le_abs_self Ku)) i).trans
+        ?_
+      have hc : C * r ^ (k - j) * |Ku| ≤ |C| * |Ku| * r ^ (k - j) := by
+        have := mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_right (le_abs_self C) (pow_nonneg hr0 (k - j))) (abs_nonneg Ku)
+        linarith [this]
+      calc (Fintype.card ι : ℝ) * (C * r ^ (k - j) * |Ku|)
+          ≤ (Fintype.card ι : ℝ) * (|C| * |Ku| * r ^ (k - j)) := mul_le_mul_of_nonneg_left hc hn
+        _ = _ := by ring
+    refine (Finset.sum_le_sum hterm).trans ?_
+    rw [← Finset.mul_sum]
+    exact mul_le_mul_of_nonneg_left (hgeo k) (by positivity)
+  exact (abs_add_le _ _).trans (add_le_add h1 h2)
+
+/-! ### The multiplier solution given `M_{t₀−1}`, and uniqueness of the representation -/
+
+variable {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+/-- Woodford (2003), eq. (1.20): the multipliers `M_{s−1}` generated by (1.20) from `M_{t₀−1} = m₀`
+(the value at `s` is `M_{s−1}`). -/
+noncomputable def Mrep (Λ : Matrix ιz ιz ℝ) (m0 : Ω → ιz → ℝ) (q : ℕ → Ω → ιz → ℝ) (t0 s : ℕ) :
+    Ω → ιz → ℝ :=
+  if s ≤ t0 then m0 else mrec Λ m0 (fun k => q (t0 + k)) (s - t0 - 1)
+
+/-- Woodford (2003), eqs. (1.20)–(1.21): the multipliers `φ_s = (ξ_s, M_{s−1})` generated from
+`M_{t₀−1} = m₀` by a representation `H` of Proposition 8.1 and a plan `y`. -/
+noncomputable def φrep {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) (m0 : Ω → ιz → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) :
+    ℕ → Ω → ιZ ⊕ ιz → ℝ :=
+  fun s ω => Sum.elim
+    (if t0 ≤ s then H.Υ *ᵥ Mrep H.Λ m0 (H.Qop (xproc P y)) t0 s ω + H.Rop (xproc P y) s ω
+      else 0)
+    (Mrep H.Λ m0 (H.Qop (xproc P y)) t0 s ω)
+
+omit [DecidableEq ιz] in
+/-- Woodford (2003), eq. (1.20): `Mrep` satisfies `M_t = Λ M_{t−1} + q_t` for `t ≥ t₀`. -/
+theorem Mrep_rec (Λ : Matrix ιz ιz ℝ) (m0 : Ω → ιz → ℝ) (q : ℕ → Ω → ιz → ℝ) {t0 t : ℕ}
+    (ht : t0 ≤ t) (ω : Ω) : Mrep Λ m0 q t0 (t + 1) ω = Λ *ᵥ Mrep Λ m0 q t0 t ω + q t ω := by
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le ht
+  cases k with
+  | zero =>
+    simp [Mrep, mrec]
+  | succ k =>
+    simp only [Mrep, show ¬ t0 + (k + 1) + 1 ≤ t0 by omega, ↓reduceIte,
+      show ¬ t0 + (k + 1) ≤ t0 by omega, show t0 + (k + 1) + 1 - t0 - 1 = k + 1 by omega,
+      show t0 + (k + 1) - t0 - 1 = k by omega]
+    rfl
+
+omit [DecidableEq ιz] in
+/-- Woodford (2003), p. 540: `Mrep` at `t + 1` (that is, `M_t`) is known at `t` (`m₀` known at
+`t₀`, `q` adapted). -/
+theorem Mrep_known {𝔼 : ExpectationSystem Ω}
+    (Λ : Matrix ιz ιz ℝ) {m0 : Ω → ιz → ℝ} {q : ℕ → Ω → ιz → ℝ} {t0 : ℕ}
+    (hm0 : KnownV 𝔼 t0 m0) (hq : AdaptedV 𝔼 q) :
+    ∀ t, t0 ≤ t → KnownV 𝔼 t (Mrep Λ m0 q t0 (t + 1)) := by
+  intro t ht
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le ht
+  simp only [Mrep, show ¬ t0 + k + 1 ≤ t0 by omega, ↓reduceIte,
+    show t0 + k + 1 - t0 - 1 = k by omega]
+  induction k with
+  | zero =>
+    exact knownV_mulVec_add 𝔼 Λ hm0 (hq (t0 + 0))
+  | succ k ih =>
+    exact knownV_mulVec_add 𝔼 Λ (KnownV.mono 𝔼 (by omega) (ih (by omega))) (hq (t0 + (k + 1)))
+
+/-- Woodford (2003), p. 553: with a stable `Λ`, `Mrep` is bounded for a bounded start and
+bounded forcing. -/
+theorem Mrep_bounded {Λ : Matrix ιz ιz ℝ} (hΛ : PowDecay Λ) {m0 : Ω → ιz → ℝ}
+    (hm0 : ∃ K, ∀ ω i, |m0 ω i| ≤ K) {q : ℕ → Ω → ιz → ℝ} (hq : BoundedV q) (t0 : ℕ) :
+    BoundedV (Mrep Λ m0 q t0) := by
+  obtain ⟨K1, hK1⟩ := hm0
+  obtain ⟨K2, hK2⟩ := boundedV_mrec_of_powDecay hΛ ⟨K1, hK1⟩
+    (u := fun k => q (t0 + k)) (by obtain ⟨Kq, hKq⟩ := hq; exact ⟨Kq, fun k => hKq (t0 + k)⟩)
+  refine ⟨max K1 K2, fun s ω i => ?_⟩
+  unfold Mrep
+  split_ifs
+  · exact (hK1 ω i).trans (le_max_left _ _)
+  · exact (hK2 _ ω i).trans (le_max_right _ _)
+
+/-- Woodford (2003), p. 553: the generated multipliers satisfy (1.20)–(1.21) for `H`, have
+`M_{t₀−1} = m₀`, `M_t` known at `t`, and (for stable `Λ`) are bounded. -/
+theorem φrep_spec {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) (hΛ : PowDecay H.Λ) {m0 : Ω → ιz → ℝ}
+    (hm0b : ∃ K, ∀ ω i, |m0 ω i| ≤ K) (hm0k : KnownV 𝔼 t0 m0)
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hyb : BoundedV y) :
+    Eq120 t0 H.Λ (H.Qop (xproc P y)) (φrep H m0 y) ∧
+      Eq121 t0 H.Υ (H.Rop (xproc P y)) (φrep H m0 y) ∧ BoundedV (φrep H m0 y) ∧
+      MultKnown 𝔼 t0 (φrep H m0 y) ∧ (∀ ω, Mpart (φrep H m0 y t0 ω) = m0 ω) := by
+  have hxb := boundedV_xproc (P := P) hyb
+  have hMb := Mrep_bounded hΛ hm0b (H.Qbounded _ hxb) t0
+  refine ⟨fun t ht ω => Mrep_rec _ _ _ ht ω, fun t ht ω => ?_, ?_,
+    fun t ht => Mrep_known H.Λ hm0k (H.Qadapted _) t ht, fun ω => ?_⟩
+  · simp only [φrep, ht, ↓reduceIte]
+    rfl
+  · obtain ⟨K1, hK1⟩ := hMb
+    obtain ⟨KR, hKR⟩ := H.Rbounded _ hxb
+    obtain ⟨KΥ, hKΥ⟩ := GeneralFOC.exists_bound_mulVec H.Υ K1
+    refine ⟨max (max (KΥ + KR) K1) 0, fun s ω a => ?_⟩
+    rcases a with i | r
+    · by_cases hs : t0 ≤ s
+      · simp only [φrep, hs, ↓reduceIte, Sum.elim_inl, Pi.add_apply]
+        exact (abs_add_le _ _).trans ((add_le_add (hKΥ _ (hK1 s ω) i) (hKR s ω i)).trans
+          ((le_max_left _ _).trans (le_max_left _ _)))
+      · simp only [φrep, hs, ↓reduceIte, Sum.elim_inl, Pi.zero_apply, abs_zero]
+        exact le_max_right _ _
+    · exact (hK1 s ω r).trans ((le_max_right _ _).trans (le_max_left _ _))
+  · change Mrep H.Λ m0 (H.Qop (xproc P y)) t0 t0 ω = m0 ω
+    simp [Mrep]
+
+/-- Woodford (2003), p. 553 (the remark after Proposition 8.1, existence and uniqueness of the
+multiplier path): for a representation `H` with stable `Λ`, a bounded adapted plan and a bounded
+initial `M_{t₀−1} = m₀` known at `t₀`, (1.18) has a bounded solution `φ` (with `M_t` known at
+`t`) with that initial condition, and any two such solutions agree from `t₀` on. -/
+theorem prop81M_solution {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) (hΛ : PowDecay H.Λ) {m0 : Ω → ιz → ℝ}
+    (hm0b : ∃ K, ∀ ω i, |m0 ω i| ≤ K) (hm0k : KnownV 𝔼 t0 m0)
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hyb : BoundedV y) (hya : AdaptedV 𝔼 y) :
+    (∃ φ, BoundedV φ ∧ MultKnown 𝔼 t0 φ ∧ (∀ ω, Mpart (φ t0 ω) = m0 ω) ∧ Eq118 P 𝔼 t0 y φ) ∧
+      ∀ φ φ', BoundedV φ → MultKnown 𝔼 t0 φ → (∀ ω, Mpart (φ t0 ω) = m0 ω) →
+        Eq118 P 𝔼 t0 y φ → BoundedV φ' → MultKnown 𝔼 t0 φ' →
+        (∀ ω, Mpart (φ' t0 ω) = m0 ω) → Eq118 P 𝔼 t0 y φ' → ∀ t, t0 ≤ t → φ t = φ' t := by
+  obtain ⟨h120, h121, hb, hk, hinit⟩ := φrep_spec H hΛ hm0b hm0k hyb
+  refine ⟨⟨φrep H m0 y, hb, hk, hinit, (H.equiv y _ hyb hya hb hk).mpr ⟨h120, h121⟩⟩, ?_⟩
+  intro φ φ' hφb hφk hφ0 hφ hφ'b hφ'k hφ'0 hφ'
+  obtain ⟨e120, e121⟩ := (H.equiv y φ hyb hya hφb hφk).mp hφ
+  obtain ⟨e120', e121'⟩ := (H.equiv y φ' hyb hya hφ'b hφ'k).mp hφ'
+  have hM : ∀ t, t0 ≤ t → Mpart ∘ φ t = Mpart ∘ φ' t := by
+    intro t ht
+    induction t, ht using Nat.le_induction with
+    | base => exact funext fun ω => (hφ0 ω).trans (hφ'0 ω).symm
+    | succ t ht ih =>
+      funext ω
+      have h1 := e120 t ht ω
+      have h2 := e120' t ht ω
+      have h3 := congrFun ih ω
+      simp only [Function.comp] at h3 ⊢
+      rw [h1, h2, h3]
+  intro t ht
+  funext ω a
+  have hMt := congrFun (hM t ht) ω
+  simp only [Function.comp] at hMt
+  rcases a with i | r
+  · have hξ : ξpart (φ t ω) = ξpart (φ' t ω) := by rw [e121 t ht ω, e121' t ht ω, hMt]
+    exact congrFun hξ i
+  · exact congrFun hMt r
+
+/-- Woodford (2003), p. 553 (the remark after Proposition 8.1, uniqueness of `Λ, Υ, Q, R`): any
+two representations `H`, `H'` of Proposition 8.1 (corrected form), the first with stable `Λ`,
+have the same `Λ` and `Υ`, and the same operators `E_t Q(L⁻¹)`, `E_t R(L⁻¹)` on (the
+`T̃'W(τ − τ*)` of) every bounded adapted plan, from `t₀` on. -/
+theorem prop81M_unique [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H H' : Prop81ConclusionM P 𝔼 t0) (hΛ : PowDecay H.Λ) :
+    H.Λ = H'.Λ ∧ H.Υ = H'.Υ ∧ ∀ y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ, BoundedV y → AdaptedV 𝔼 y →
+      ∀ t, t0 ≤ t → H.Qop (xproc P y) t = H'.Qop (xproc P y) t ∧
+        H.Rop (xproc P y) t = H'.Rop (xproc P y) t := by
+  -- the generated multipliers satisfy the primed representation too
+  have hboth : ∀ (m : ιz → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ), BoundedV y → AdaptedV 𝔼 y →
+      Eq120 t0 H'.Λ (H'.Qop (xproc P y)) (φrep H (fun _ => m) y) ∧
+        Eq121 t0 H'.Υ (H'.Rop (xproc P y)) (φrep H (fun _ => m) y) := by
+    intro m y hyb hya
+    have hm0k : KnownV 𝔼 t0 (fun _ : Ω => m) := fun i => 𝔼.const t0 (m i)
+    obtain ⟨h120, h121, hb, hk, -⟩ :=
+      φrep_spec H hΛ ⟨∑ i, |m i|, fun _ i => Finset.single_le_sum (f := fun i => |m i|)
+        (fun _ _ => abs_nonneg _) (Finset.mem_univ i)⟩ hm0k hyb
+    have h118 := (H.equiv y _ hyb hya hb hk).mpr ⟨h120, h121⟩
+    exact (H'.equiv y _ hyb hya hb hk).mp h118
+  have hy0b : BoundedV (0 : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) := ⟨0, by simp⟩
+  have hy0a : AdaptedV 𝔼 (0 : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) := fun t i => 𝔼.const t 0
+  obtain ω0 : Ω := Classical.arbitrary Ω
+  have hMt0 : ∀ m : ιz → ℝ, ∀ y, Mrep H.Λ (fun _ => m) (H.Qop (xproc P y)) t0 t0 ω0 = m :=
+    fun m y => by simp [Mrep]
+  -- the comparison at `t₀`
+  have key : ∀ (m : ιz → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ), BoundedV y → AdaptedV 𝔼 y →
+      H.Λ *ᵥ m + H.Qop (xproc P y) t0 ω0 = H'.Λ *ᵥ m + H'.Qop (xproc P y) t0 ω0 ∧
+      H.Υ *ᵥ m + H.Rop (xproc P y) t0 ω0 = H'.Υ *ᵥ m + H'.Rop (xproc P y) t0 ω0 := by
+    intro m y hyb hya
+    obtain ⟨h2, h3⟩ := hboth m y hyb hya
+    have hA : Mrep H.Λ (fun _ => m) (H.Qop (xproc P y)) t0 (t0 + 1) ω0 =
+        H'.Λ *ᵥ Mrep H.Λ (fun _ => m) (H.Qop (xproc P y)) t0 t0 ω0 +
+          H'.Qop (xproc P y) t0 ω0 := h2 t0 le_rfl ω0
+    rw [Mrep_rec _ _ _ (le_refl t0), hMt0] at hA
+    have hB := h3 t0 le_rfl ω0
+    simp only [φrep, le_refl, ↓reduceIte] at hB
+    change H.Υ *ᵥ Mrep H.Λ (fun _ => m) (H.Qop (xproc P y)) t0 t0 ω0 +
+        H.Rop (xproc P y) t0 ω0 =
+      H'.Υ *ᵥ Mrep H.Λ (fun _ => m) (H.Qop (xproc P y)) t0 t0 ω0 +
+        H'.Rop (xproc P y) t0 ω0 at hB
+    rw [hMt0] at hB
+    exact ⟨hA, hB⟩
+  have hmat : ∀ (A A' : Matrix ιz ιz ℝ) (c c' : ιz → ℝ), (∀ m, A *ᵥ m + c = A' *ᵥ m + c') →
+      A = A' := by
+    intro A A' c c' h
+    have k0 := h 0
+    simp only [mulVec_zero, zero_add] at k0
+    ext i j
+    have := congrFun (h (Pi.single j 1)) i
+    rw [Pi.add_apply, Pi.add_apply, k0, add_left_inj, mulVec_single_one, mulVec_single_one]
+      at this
+    exact this
+  have hmat' : ∀ (A A' : Matrix ιZ ιz ℝ) (c c' : ιZ → ℝ), (∀ m, A *ᵥ m + c = A' *ᵥ m + c') →
+      A = A' := by
+    intro A A' c c' h
+    have k0 := h 0
+    simp only [mulVec_zero, zero_add] at k0
+    ext i j
+    have := congrFun (h (Pi.single j 1)) i
+    rw [Pi.add_apply, Pi.add_apply, k0, add_left_inj, mulVec_single_one, mulVec_single_one]
+      at this
+    exact this
+  have hΛeq : H.Λ = H'.Λ := hmat _ _ _ _ fun m => (key m 0 hy0b hy0a).1
+  have hΥeq : H.Υ = H'.Υ := hmat' _ _ _ _ fun m => (key m 0 hy0b hy0a).2
+  refine ⟨hΛeq, hΥeq, fun y hyb hya t ht => ⟨?_, ?_⟩⟩
+  · funext ω
+    obtain ⟨h2, -⟩ := hboth 0 y hyb hya
+    have hA : Mrep H.Λ (fun _ => 0) (H.Qop (xproc P y)) t0 (t + 1) ω =
+        H'.Λ *ᵥ Mrep H.Λ (fun _ => 0) (H.Qop (xproc P y)) t0 t ω + H'.Qop (xproc P y) t ω :=
+      h2 t ht ω
+    rw [Mrep_rec _ _ _ ht, hΛeq, add_right_inj] at hA
+    exact hA
+  · funext ω
+    obtain ⟨-, h3⟩ := hboth 0 y hyb hya
+    have hB := h3 t ht ω
+    simp only [φrep, ht, ↓reduceIte] at hB
+    change H.Υ *ᵥ Mrep H.Λ (fun _ => 0) (H.Qop (xproc P y)) t0 t ω + H.Rop (xproc P y) t ω =
+      H'.Υ *ᵥ Mrep H.Λ (fun _ => 0) (H.Qop (xproc P y)) t0 t ω + H'.Rop (xproc P y) t ω at hB
+    rw [hΥeq, add_right_inj] at hB
+    exact hB
+
+/-! ### When is `Λ` stable? -/
+
+/-- Woodford (2003), p. 553: under Assumptions 8.2 (i)–8.4, if every unselected nonzero root of
+(1.15) has `|μ| > β⁻¹` — exactly `n_Z` roots with `|μ| < β⁻¹` and none on `|μ| = β⁻¹` — then
+`Λ` is stable: its nonzero eigenvalues are the `(βμ)⁻¹` (`nonzero_eig_eq`), of modulus `< 1`. -/
+theorem powDecay_Λ_of_outside {S : LinearRESystem ιZ ιz} {β : ℝ} (hβ : 0 < β)
+    (h82 : Assumption82 S β) (R : RealSelection S h82.sel) (h83 : Assumption83 S)
+    (h84 : Assumption84 S h82.sel) (hout : ∀ μ ∈ unselected S h82.sel, β⁻¹ < ‖μ‖) :
+    PowDecay (Λmat S β (splitOfSel hβ h82 R h83 h84).J) := by
+  refine powDecay_of_eig _ fun w hw => ?_
+  by_cases hw0 : w = 0
+  · rw [hw0, norm_zero]
+    exact one_pos
+  have hroot : w ∈ ((Λmat S β (splitOfSel hβ h82 R h83 h84).J).map
+      Complex.ofReal).charpoly.roots.filter (fun x => x ≠ 0) := by
+    rw [Multiset.mem_filter, Polynomial.mem_roots (charpoly_monic _).ne_zero, Polynomial.IsRoot,
+      eval_charpoly]
+    exact ⟨hw, hw0⟩
+  rw [← nonzero_eig_eq hβ h82 R h83 h84] at hroot
+  obtain ⟨μ, hμ, rfl⟩ := Multiset.mem_map.mp hroot
+  have hμ' := hout μ hμ
+  have hpos : 0 < ‖μ‖ := lt_trans (inv_pos.mpr hβ) hμ'
+  rw [norm_inv, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hβ]
+  have h1 : 1 < β * ‖μ‖ := by
+    have := mul_lt_mul_of_pos_left hμ' hβ
+    rwa [mul_inv_cancel₀ hβ.ne'] at this
+  exact inv_lt_one_of_one_lt₀ h1
+
+/-- Woodford (2003), p. 553, **the remark after Proposition 8.1, corrected**: under Assumptions
+8.2 (i)–8.4, if exactly `n_Z` roots of (1.15) satisfy `|μ| < β⁻¹` **and no root lies on
+`|μ| = β⁻¹`** (every unselected nonzero root has `|μ| > β⁻¹`), then `Λ` is stable, the matrices
+`Λ`, `Υ` and the operators `Q(L⁻¹)`, `R(L⁻¹)` (on bounded adapted plans) are uniquely
+determined, and for every bounded adapted plan and bounded `M_{t₀−1}` known at `t₀` there is
+exactly one bounded multiplier solution of (1.18). -/
+theorem remark_p553 [Nonempty Ω] (P : LQProblem ιZ ιz ιτ) (h82 : Assumption82 P.sys P.β)
+    (hi : ConjClosed h82.sel) (h83 : Assumption83 P.sys) (h84 : Assumption84 P.sys h82.sel)
+    (hout : ∀ μ ∈ unselected P.sys h82.sel, P.β⁻¹ < ‖μ‖) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    PowDecay (prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0).Λ ∧
+      ∀ H' : Prop81ConclusionM P 𝔼 t0, (prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0).Λ = H'.Λ ∧
+        (prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0).Υ = H'.Υ ∧
+        ∀ y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ, BoundedV y → AdaptedV 𝔼 y → ∀ t, t0 ≤ t →
+          (prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0).Qop (xproc P y) t = H'.Qop (xproc P y) t ∧
+          (prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0).Rop (xproc P y) t = H'.Rop (xproc P y) t := by
+  have hst : PowDecay (prop81 P (splitOf P h82 hi h83 h84) 𝔼 t0).Λ :=
+    powDecay_Λ_of_outside P.β_pos h82 _ h83 h84 hout
+  exact ⟨hst, fun H' => prop81M_unique _ H' hst⟩
+
+/-! ### A root on `|μ| = β⁻¹`: the remark fails without the proviso -/
+
+/-- Woodford (2003), (1.1)–(1.4) (the counterexample to the remark on p. 553): the system
+`Prop81General.coinSys`, `E_t z_{t+1} = 2 z_t + i_t + c_t` (no predetermined variable; (1.15) is
+`2 − μ`, its only root on `|μ| = β⁻¹`), with `β = 1/2`, target `τ = z`, `τ* = 1`, `W = 1`. -/
+noncomputable def circleProblem : LQProblem Empty Unit Unit where
+  sys := coinSys
+  β := 1 / 2
+  β_pos := by norm_num
+  β_lt_one := by norm_num
+  Ttil := Matrix.of fun _ _ => 1
+  Ti := fun _ => 0
+  W := 1
+  τstar := fun _ => 1
+  W_posDef := Matrix.PosDef.one
+
+/-- Woodford (2003), (1.15) for the counterexample: `det(A − μÎ) = 2 − μ`. -/
+theorem circle_pencil (μ : ℂ) : coinSys.pencilPoly.eval μ = 2 - μ := by
+  rw [pencilPoly_eval]
+  have he : coinSys.Ahat.map Complex.ofReal - μ • coinSys.Ihat.map Complex.ofReal =
+      fromBlocks (-(μ • (1 : Matrix Empty Empty ℂ))) 0 0 (Matrix.of fun _ _ => 2 - μ) := by
+    ext a b
+    rcases a with e | u
+    · exact e.elim
+    · rcases b with e | v
+      · exact e.elim
+      · simp [coinSys, LinearRESystem.Ahat, LinearRESystem.Ihat]
+  rw [he, det_fromBlocks_zero₂₁, Matrix.det_isEmpty, one_mul, Matrix.det_unique]
+  rfl
+
+/-- Woodford (2003), p. 553 (the counterexample): (1.15) has the single root `μ = 2 = β⁻¹`, so
+it has exactly `n_Z = 0` roots with `|μ| < β⁻¹` (`stableCount β⁻¹ = 0`), and one root on
+`|μ| = β⁻¹`. -/
+theorem circle_roots : (∀ μ, coinSys.pencilPoly.eval μ = 0 ↔ μ = 2) ∧
+    coinSys.stableCount (1 / 2 : ℝ)⁻¹ = 0 := by
+  have hroot : ∀ μ, coinSys.pencilPoly.eval μ = 0 ↔ μ = 2 := fun μ => by
+    rw [circle_pencil, sub_eq_zero, eq_comm]
+  refine ⟨hroot, ?_⟩
+  have hne : coinSys.pencilPoly ≠ 0 := fun h => by
+    have := hroot 0
+    rw [h, Polynomial.eval_zero] at this
+    norm_num at this
+  have hrank : coinSys.Ahat.rank = Fintype.card (Empty ⊕ Unit) := by
+    refine rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)
+    have hd : coinSys.Ahat = fromBlocks 0 0 0 (Matrix.of fun _ _ => (2 : ℝ)) := by
+      ext a b
+      rcases a with e | u
+      · exact e.elim
+      · rcases b with e | v
+        · exact e.elim
+        · rfl
+    rw [hd, det_fromBlocks_zero₂₁, Matrix.det_isEmpty, one_mul, Matrix.det_unique]
+    exact isUnit_iff_ne_zero.mpr (by norm_num)
+  unfold LinearRESystem.stableCount
+  rw [hrank, Nat.sub_self, zero_add, Multiset.card_eq_zero, Multiset.filter_eq_nil]
+  intro μ hμ hμ'
+  rw [Polynomial.mem_roots hne, Polynomial.IsRoot, hroot] at hμ
+  rw [hμ] at hμ'
+  norm_num at hμ'
+
+/-- Woodford (2003), (1.18) for the counterexample with the plan `y = 0` (bounded, adapted):
+`2 M_t − 1 − 2 M_{t−1} = 0` (perfect foresight). -/
+theorem circle_lhs118 (φ : ℕ → Unit → Empty ⊕ Unit → ℝ) (t : ℕ) :
+    lhs118 circleProblem perfectForesight 0 φ t () (Sum.inr ()) =
+      2 * φ (t + 1) () (Sum.inr ()) - 1 - 2 * φ t () (Sum.inr ()) := by
+  simp [lhs118, circleProblem, coinSys, xproc, LinearRESystem.Ahat, LinearRESystem.Ihat, EV,
+    mulVec, dotProduct, fromBlocks, perfectForesight, LQProblem.T]
+  ring
+
+/-- Woodford (2003), p. 553 (**the remark fails when a root lies on `|μ| = β⁻¹`**): in
+`circleProblem` there are exactly `n_Z = 0` roots with `|μ| < β⁻¹` (`circle_roots`), yet for
+the bounded plan `y = 0` **no** bounded multiplier process satisfies (1.18) (deterministic
+case): (1.18) forces `M_t = M_{t−1} + 1/2`. -/
+theorem circle_counterexample (φ : ℕ → Unit → Empty ⊕ Unit → ℝ)
+    (h : Eq118 circleProblem perfectForesight 0 0 φ) : ¬ BoundedV φ := by
+  have hstep : ∀ t, φ (t + 1) () (Sum.inr ()) = φ t () (Sum.inr ()) + 1 / 2 := by
+    intro t
+    have := congrFun (h t (Nat.zero_le t) ()) (Sum.inr ())
+    change lhs118 circleProblem perfectForesight 0 φ t () (Sum.inr ()) = 0 at this
+    rw [circle_lhs118] at this
+    linarith
+  have hlin : ∀ t : ℕ, φ t () (Sum.inr ()) = φ 0 () (Sum.inr ()) + t / 2 := by
+    intro t
+    induction t with
+    | zero => simp
+    | succ t ih =>
+      rw [hstep, ih]
+      push_cast
+      ring
+  rintro ⟨K, hK⟩
+  obtain ⟨t, ht⟩ := exists_nat_gt (2 * (K + |φ 0 () (Sum.inr ())|))
+  have h1 := hK t () (Sum.inr ())
+  rw [hlin] at h1
+  have h2 := le_abs_self (φ 0 () (Sum.inr ()) + t / 2)
+  have h3 := neg_abs_le (φ 0 () (Sum.inr ()))
+  linarith
+
+/-! ### Case (ii) of Assumption 8.2 -/
+
+/-- Woodford (2003), App. G.1 (complex roots come in conjugate pairs, p. 716): the eigenvalues
+of a real matrix are closed under conjugation. -/
+theorem eig_conj {ι : Type*} [Fintype ι] [DecidableEq ι] (Ψ : Matrix ι ι ℝ) {μ : ℂ}
+    (h : (Matrix.scalar ι μ - Ψ.map Complex.ofReal).det = 0) :
+    (Matrix.scalar ι (starRingEnd ℂ μ) - Ψ.map Complex.ofReal).det = 0 := by
+  have e := (starRingEnd ℂ).map_det (Matrix.scalar ι μ - Ψ.map Complex.ofReal)
+  rw [h, map_zero, RingHom.mapMatrix_apply] at e
+  have hm : (Matrix.scalar ι μ - Ψ.map Complex.ofReal).map (starRingEnd ℂ) =
+      Matrix.scalar ι (starRingEnd ℂ μ) - Ψ.map Complex.ofReal := by
+    ext i j
+    by_cases hij : i = j
+    · subst hij
+      simp [Matrix.scalar_apply]
+    · simp [Matrix.scalar_apply, hij]
+  rw [hm] at e
+  exact e.symm
+
+/-- Woodford (2003), Assumption 8.2 (ii), p. 552: in case (ii) — a selected complex root `μ` whose
+conjugate is not selected — `μ` is never an eigenvalue of the `Ψ` of a real deflating pair whose
+eigenvalues are selected roots or zero (`RealSelection`). So no real invariant subspace carries
+the unpaired root: the construction of `PencilEigen`/`Prop81General` covers case (i) only, and
+case (ii) needs the different (real-part) construction of Giannoni–Woodford (2002a). -/
+theorem realSelection_misses_unpaired {S : LinearRESystem ιZ ιz} {sel : Multiset ℂ}
+    (R : RealSelection S sel) {μ : ℂ} (hμ0 : μ ≠ 0) (hconj : starRingEnd ℂ μ ∉ sel) :
+    (Matrix.scalar ιZ μ - R.Ψ.map Complex.ofReal).det ≠ 0 := by
+  intro h
+  rcases R.eig _ (eig_conj R.Ψ h) with h0 | hm
+  · exact hμ0 (by simpa using h0)
+  · exact hconj hm
+
+/-- Woodford (2003), Assumption 8.4 (ii), App. G.1, p. 718 (**not invariant for complex `Γ`**):
+rescaling a complex left eigenvector by `c ≠ 0` preserves (G.6) and (i), but `det[Re Γ₂]` can be
+made zero: for a nonzero `1 × 1` block `Γ₂ = γ`, `c = i γ̄` gives `Re(cγ) = 0`. In case (ii) of
+Assumption 8.2, where `Γ` is necessarily complex, the condition is therefore not well-posed
+without the (unstated) normalisation of Giannoni–Woodford (2002a). -/
+theorem re_det_rescale_zero {ι : Type*} [Unique ι] (γ : Matrix ι ι ℂ) (hγ : γ.det ≠ 0) :
+    ∃ c : ℂ, c ≠ 0 ∧ ((c • γ).map Complex.re).det = 0 ∧
+      ((starRingEnd ℂ (γ default default) • γ).map Complex.re).det ≠ 0 := by
+  rw [Matrix.det_unique] at hγ
+  refine ⟨Complex.I * starRingEnd ℂ (γ default default),
+    mul_ne_zero Complex.I_ne_zero ((map_ne_zero _).mpr hγ), ?_, ?_⟩
+  · rw [Matrix.det_unique]
+    simp [Complex.mul_re, Complex.mul_im]
+    ring
+  · rw [Matrix.det_unique]
+    simp only [Matrix.map_apply, Matrix.smul_apply, smul_eq_mul, Complex.mul_re,
+      Complex.conj_re, Complex.conj_im]
+    have : (γ default default).re * (γ default default).re +
+        (γ default default).im * (γ default default).im ≠ 0 := by
+      intro h0
+      apply hγ
+      apply Complex.ext <;> simp <;> nlinarith [sq_nonneg (γ default default).re,
+        sq_nonneg (γ default default).im]
+    intro h
+    apply this
+    linarith
+
+end Woodford.OptimalPolicyRules.Prop81Unique
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.1 with repeated roots: generalised eigenspaces of the pencil
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumption 8.2 (p. 552) and Appendix G.1
+(pp. 716–718), without the distinct-root condition of Assumption 8.3.
+
+The real deflating pair `A J = Î J Ψ` of (G.4) is built from **generalised** eigenvectors, so no
+diagonalisability is needed. With a real shift `s ≠ 0` that is not a root of (1.15) and the real
+matrix `N = (A − sÎ)⁻¹ Î`:
+
+* `pencil_roots_eq`: the roots of (1.15) are exactly `s + ν⁻¹` for the nonzero eigenvalues `ν`
+  of `N`, with multiplicity (`det(A − μÎ) = det(A − sÎ) · det(I − (μ − s)N)`); so a root `μ` has
+  the multiplicity of the eigenvalue `(μ − s)⁻¹` of `N` (`count_pencil_roots`).
+* `W`: the complex `N`-invariant subspace spanned by the eigenvectors of `−1/s` (that is,
+  `ker A`, the zero roots counted `n − rank A` times) and the generalised eigenspaces of
+  `(μ − s)⁻¹` for the selected nonzero roots `μ`; it is closed under conjugation, so its real
+  part `realPart W` has the same dimension (`finrank_realPart`, real descent).
+* `exists_deflating_cols`: the same for any number of columns
+  (`#κ = (n − rank A) + #sel`), used for case (ii) in `Prop81CaseII`.
+* `exists_realSelection_general`: under Assumption 8.2 with a conjugation-closed selection that
+  takes **whole root classes** (`SelWhole`: each selected root with its full multiplicity) and a
+  nonzero (1.15), a real deflating pair exists; `selWhole_of_assumption83` shows that distinct
+  roots (Assumption 8.3) give `SelWhole`, so `PencilEigen.exists_realSelection` is the special
+  case.
+* `prop81_of_assumptions_general`, `prop82_of_assumptions_general`: Propositions 8.1 and 8.2
+  under Assumptions 8.1, 8.2 (case (i), whole classes), 8.4, 8.5 and a nonzero (1.15), with no
+  distinctness assumption (`PencilAssumptions.prop81_of_assumptions` is the distinct-root case,
+  via `selWhole_of_assumption83`).
+
+The dimension count of a finite sum of independent subspaces (`PencilEigen.finrank_finset_sup`)
+and the real-descent pattern are restated from the Woodford Chapter 4 project
+(`InvariantSplit.finrank_finset_sup`, `finrank_boundedOrbitsC_le`).
+-/
+
+namespace Woodford.OptimalPolicyRules.PencilRepeated
+
+open Matrix Polynomial GeneralSetup PencilSplit PencilEigen PencilAssumptions
+  GeneralFOC.Selection
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-! ### The shifted matrix `N = (A − sÎ)⁻¹ Î` -/
+
+/-- Woodford (2003), App. G.1 (the shift): `N = (A − sÎ)⁻¹ Î` (real). -/
+noncomputable def Nr (S : LinearRESystem ιZ ιz) (s : ℝ) : Matrix (ιZ ⊕ ιz) (ιZ ⊕ ιz) ℝ :=
+  (S.Ahat - s • S.Ihat)⁻¹ * S.Ihat
+
+/-- Woodford (2003), App. G.1: `(A − sÎ) N = Î` when `A − sÎ` is invertible. -/
+theorem shift_mul_Nr (S : LinearRESystem ιZ ιz) {s : ℝ} (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    (S.Ahat - s • S.Ihat) * Nr S s = S.Ihat := by
+  rw [Nr, ← Matrix.mul_assoc, mul_nonsing_inv _ (Ne.isUnit hs), Matrix.one_mul]
+
+/-- Woodford (2003), App. G.1: the complexified identity `(A − sÎ) N = Î`. -/
+theorem shift_mul_Nc (S : LinearRESystem ιZ ιz) {s : ℝ} (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    (S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal) *
+      (Nr S s).map Complex.ofReal = S.Ihat.map Complex.ofReal := by
+  have e : S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal =
+      (S.Ahat - s • S.Ihat).map Complex.ofReal := by
+    ext a b
+    simp
+  rw [e, ← map_ofReal_mul, shift_mul_Nr S hs]
+
+/-- Woodford (2003), App. G.1: the complexified `A − sÎ` is invertible. -/
+theorem det_shift_C (S : LinearRESystem ιZ ιz) {s : ℝ} (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    (S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal).det ≠ 0 := by
+  rw [det_pencil_ofReal]
+  exact_mod_cast hs
+
+/-- Woodford (2003), App. G.1: `A u = μ Î u` with `μ ≠ s` iff `N u = (μ − s)⁻¹ u` (one
+direction). -/
+theorem eig_to_N (S : LinearRESystem ιZ ιz) {s : ℝ} (hs : (S.Ahat - s • S.Ihat).det ≠ 0)
+    {μ : ℂ} (hμ : μ ≠ s) {u : ιZ ⊕ ιz → ℂ}
+    (hu : S.Ahat.map Complex.ofReal *ᵥ u = μ • (S.Ihat.map Complex.ofReal *ᵥ u)) :
+    (Nr S s).map Complex.ofReal *ᵥ u = (μ - s)⁻¹ • u := by
+  set M0 := S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal with hM0
+  have h1 : M0 *ᵥ u = (μ - s) • (M0 *ᵥ ((Nr S s).map Complex.ofReal *ᵥ u)) := by
+    rw [mulVec_mulVec, shift_mul_Nc S hs, hM0, sub_mulVec, hu, smul_mulVec, sub_smul]
+  have h2 : M0 *ᵥ (u - (μ - s) • ((Nr S s).map Complex.ofReal *ᵥ u)) = 0 := by
+    rw [mulVec_sub, mulVec_smul, h1, sub_self]
+  have h3 := sub_eq_zero.mp (eq_zero_of_mulVec_eq_zero (det_shift_C S hs) h2)
+  have hne : μ - (s : ℂ) ≠ 0 := sub_ne_zero.mpr hμ
+  calc (Nr S s).map Complex.ofReal *ᵥ u =
+      (μ - s)⁻¹ • ((μ - s) • ((Nr S s).map Complex.ofReal *ᵥ u)) := by
+        rw [smul_smul, inv_mul_cancel₀ hne, one_smul]
+    _ = (μ - s)⁻¹ • u := by rw [← h3]
+
+/-- Woodford (2003), App. G.1: `N u = ν u` with `ν ≠ 0` gives `A u = (s + ν⁻¹) Î u`. -/
+theorem N_to_eig (S : LinearRESystem ιZ ιz) {s : ℝ} (hs : (S.Ahat - s • S.Ihat).det ≠ 0)
+    {ν : ℂ} (hν : ν ≠ 0) {u : ιZ ⊕ ιz → ℂ} (hu : (Nr S s).map Complex.ofReal *ᵥ u = ν • u) :
+    S.Ahat.map Complex.ofReal *ᵥ u = ((s : ℂ) + ν⁻¹) • (S.Ihat.map Complex.ofReal *ᵥ u) := by
+  have h0 := congrArg (· *ᵥ u) (shift_mul_Nc S hs)
+  rw [← mulVec_mulVec, hu, mulVec_smul, sub_mulVec, smul_mulVec] at h0
+  set a := S.Ahat.map Complex.ofReal *ᵥ u
+  set b := S.Ihat.map Complex.ofReal *ᵥ u
+  have h2 : ν⁻¹ • b = a - (s : ℂ) • b := by
+    conv_lhs => rw [← h0]
+    rw [smul_smul, inv_mul_cancel₀ hν, one_smul]
+  rw [add_smul, h2]
+  abel
+
+/-! ### The roots of (1.15) and the eigenvalues of `N` -/
+
+/-- Woodford (2003), App. G.1: `det(I − xN) = ∏ (1 − x νᵢ)` over the eigenvalues of `N`. -/
+theorem det_one_sub_smul {κ : Type*} [Fintype κ] [DecidableEq κ] (M : Matrix κ κ ℂ) (x : ℂ) :
+    (1 - x • M).det = (M.charpoly.roots.map fun ν => 1 - x * ν).prod := by
+  have hsplit : (M.charpoly.roots.map fun ν => X - C ν).prod = M.charpoly :=
+    prod_multiset_X_sub_C_of_monic_of_roots_card_eq (charpoly_monic M)
+      (IsAlgClosed.card_roots_eq_natDegree)
+  have hcard : Multiset.card M.charpoly.roots = Fintype.card κ := by
+    rw [IsAlgClosed.card_roots_eq_natDegree, charpoly_natDegree_eq_dim]
+  by_cases hx : x = 0
+  · subst hx
+    simp
+  · have e : 1 - x • M = x • (Matrix.scalar κ x⁻¹ - M) := by
+      ext i j
+      by_cases hij : i = j
+      · subst hij
+        simp [Matrix.scalar_apply]
+        field_simp
+      · simp [Matrix.scalar_apply, hij, Matrix.one_apply_ne hij]
+    rw [e, det_smul, ← eval_charpoly]
+    conv_lhs => rw [← hsplit]
+    rw [eval_multiset_prod, Multiset.map_map, ← hcard]
+    have hfac : ∀ ν ∈ M.charpoly.roots, 1 - x * ν = x * (eval x⁻¹ ∘ fun ν => X - C ν) ν := by
+      intro ν _
+      simp only [Function.comp_apply, eval_sub, eval_X, eval_C]
+      field_simp
+    rw [Multiset.map_congr rfl hfac, Multiset.prod_map_mul, Multiset.map_const',
+      Multiset.prod_replicate]
+
+/-- Woodford (2003), (1.15) and App. G.1: `A − μÎ = (A − sÎ)(I − (μ − s)N)`. -/
+theorem pencil_factor (S : LinearRESystem ιZ ιz) {s : ℝ} (hs : (S.Ahat - s • S.Ihat).det ≠ 0)
+    (μ : ℂ) :
+    S.Ahat.map Complex.ofReal - μ • S.Ihat.map Complex.ofReal =
+      (S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal) *
+        (1 - (μ - s) • (Nr S s).map Complex.ofReal) := by
+  rw [Matrix.mul_sub, Matrix.mul_one, Matrix.mul_smul, shift_mul_Nc S hs, sub_smul]
+  abel
+
+/-- Woodford (2003), (1.15) and App. G.1: **the roots of (1.15) are `s + ν⁻¹` for the nonzero
+eigenvalues `ν` of `N`, with multiplicity.** -/
+theorem pencil_roots_eq (S : LinearRESystem ιZ ιz) {s : ℝ}
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    S.pencilPoly.roots = (((Nr S s).map Complex.ofReal).charpoly.roots.filter
+      (fun ν => ν ≠ 0)).map (fun ν => (s : ℂ) + ν⁻¹) := by
+  set R := ((Nr S s).map Complex.ofReal).charpoly.roots with hR
+  set F := R.filter (fun ν => ν ≠ 0) with hF
+  set κ : ℂ := (S.Ahat.map Complex.ofReal - (s : ℂ) • S.Ihat.map Complex.ofReal).det *
+    (F.map fun ν => -ν).prod with hκ
+  have hκ0 : κ ≠ 0 := by
+    refine mul_ne_zero (det_shift_C S hs) (Multiset.prod_ne_zero ?_)
+    intro h0
+    obtain ⟨ν, hν, h⟩ := Multiset.mem_map.mp h0
+    rw [hF, Multiset.mem_filter] at hν
+    exact hν.2 (neg_eq_zero.mp h)
+  have hpoly : S.pencilPoly =
+      C κ * ((F.map fun ν => (s : ℂ) + ν⁻¹).map fun r => X - C r).prod := by
+    refine Polynomial.funext fun μ => ?_
+    rw [pencilPoly_eval, pencil_factor S hs μ, det_mul, det_one_sub_smul, eval_mul, eval_C,
+      eval_multiset_prod, Multiset.map_map, Multiset.map_map, hκ, mul_assoc]
+    congr 1
+    rw [← Multiset.filter_add_not (fun ν : ℂ => ν ≠ 0)
+      (((Nr S s).map Complex.ofReal).charpoly.roots), Multiset.map_add, Multiset.prod_add]
+    have hz : ((((Nr S s).map Complex.ofReal).charpoly.roots.filter fun ν => ¬ ν ≠ 0).map
+        fun ν => 1 - (μ - s) * ν).prod = 1 := by
+      refine Multiset.prod_eq_one fun a ha => ?_
+      obtain ⟨ν, hν, rfl⟩ := Multiset.mem_map.mp ha
+      rw [Multiset.mem_filter, not_not] at hν
+      rw [hν.2, mul_zero, sub_zero]
+    rw [hz, mul_one, ← hF, ← Multiset.prod_map_mul]
+    refine congrArg Multiset.prod (Multiset.map_congr rfl fun ν hν => ?_)
+    rw [hF, Multiset.mem_filter] at hν
+    have hν0 := hν.2
+    simp only [Function.comp_apply, eval_sub, eval_X, eval_C]
+    field_simp
+    ring
+  rw [hpoly, roots_C_mul _ hκ0, roots_multiset_prod_X_sub_C]
+
+/-- Woodford (2003), App. G.1: for `μ ≠ s`, the multiplicity of the root `μ` of (1.15) is the
+multiplicity of the eigenvalue `(μ − s)⁻¹` of `N`. -/
+theorem count_pencil_roots (S : LinearRESystem ιZ ιz) {s : ℝ}
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) {μ : ℂ} (hμ : μ ≠ s) :
+    S.pencilPoly.roots.count μ =
+      ((Nr S s).map Complex.ofReal).charpoly.roots.count (μ - s)⁻¹ := by
+  have hinj : Function.Injective fun ν : ℂ => (s : ℂ) + ν⁻¹ :=
+    fun a b h => inv_injective (add_left_cancel h)
+  have hμe : μ = (fun ν : ℂ => (s : ℂ) + ν⁻¹) ((μ - s)⁻¹) := by
+    simp only [inv_inv]
+    ring
+  have hne : (μ - (s : ℂ))⁻¹ ≠ 0 := inv_ne_zero (sub_ne_zero.mpr hμ)
+  rw [pencil_roots_eq S hs]
+  conv_lhs => rw [hμe]
+  rw [Multiset.count_map_eq_count' _ _ hinj,
+    Multiset.count_filter_of_pos (p := fun ν : ℂ => ν ≠ 0) hne]
+
+/-! ### Real descent -/
+
+/-- Woodford (2003), App. G.1, fn 2 (real combinations of complex eigenvectors): the real
+vectors whose complexification lies in a complex subspace `W`. -/
+def realPart {κ : Type*} (W : Submodule ℂ (κ → ℂ)) : Submodule ℝ (κ → ℝ) where
+  carrier := {v | (fun i => (v i : ℂ)) ∈ W}
+  add_mem' := by
+    intro a b ha hb
+    have := W.add_mem ha hb
+    simp only [Set.mem_ofPred_eq, Pi.add_apply, Complex.ofReal_add]
+    exact this
+  zero_mem' := by
+    simp only [Set.mem_ofPred_eq, Pi.zero_apply, Complex.ofReal_zero]
+    exact W.zero_mem
+  smul_mem' := by
+    intro c v hv
+    have := W.smul_mem (c : ℂ) hv
+    simp only [Set.mem_ofPred_eq, Pi.smul_apply, smul_eq_mul, Complex.ofReal_mul]
+    exact this
+
+/-- Woodford (2003), App. G.1, p. 716 (complex roots come in conjugate pairs): a complex subspace
+closed under componentwise conjugation. -/
+def ConjStable {κ : Type*} (W : Submodule ℂ (κ → ℂ)) : Prop :=
+  ∀ w ∈ W, (fun i => starRingEnd ℂ (w i)) ∈ W
+
+/-- Woodford (2003), App. G.1, fn 2 (**real descent**): a conjugation-closed complex subspace
+has a real part of the same dimension (restated pattern from the Woodford Chapter 4 project,
+`InvariantSplit.finrank_boundedOrbitsC_le`). -/
+theorem finrank_realPart {κ : Type*} [Finite κ] (W : Submodule ℂ (κ → ℂ)) (hW : ConjStable W) :
+    Module.finrank ℝ (realPart W) = Module.finrank ℂ W := by
+  set b := Module.finBasis ℝ (realPart W) with hb
+  set f : Fin (Module.finrank ℝ (realPart W)) → (κ → ℂ) :=
+    fun k i => (((b k : realPart W) : κ → ℝ) i : ℂ) with hf
+  have hfW : ∀ k, f k ∈ W := fun k => (b k).2
+  have hind : LinearIndependent ℂ f :=
+    linearIndependent_ofReal (b.linearIndependent.map' (realPart W).subtype
+      (Submodule.ker_subtype _))
+  have hspan : Submodule.span ℂ (Set.range f) ≤ W := by
+    rw [Submodule.span_le]
+    rintro _ ⟨k, rfl⟩
+    exact hfW k
+  have hreal : ∀ v ∈ realPart W,
+      (fun i => (v i : ℂ)) ∈ Submodule.span ℂ (Set.range f) := by
+    intro v hv
+    have hsum := b.sum_repr ⟨v, hv⟩
+    have e : (fun i => (v i : ℂ)) = ∑ k, ((b.repr ⟨v, hv⟩ k : ℝ) : ℂ) • f k := by
+      funext i
+      have := congrArg (fun z : realPart W => (z : κ → ℝ) i) hsum
+      simp only [Submodule.coe_sum, Submodule.coe_smul, Finset.sum_apply, Pi.smul_apply,
+        smul_eq_mul] at this
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, hf, ← this, Complex.ofReal_sum,
+        Complex.ofReal_mul]
+    rw [e]
+    exact Submodule.sum_mem _ fun k _ =>
+      Submodule.smul_mem _ _ (Submodule.subset_span (Set.mem_range_self k))
+  have hle : W ≤ Submodule.span ℂ (Set.range f) := by
+    intro w hw
+    have hc := hW w hw
+    have hre : (fun i => (w i).re) ∈ realPart W := by
+      change (fun i => (((w i).re : ℝ) : ℂ)) ∈ W
+      have e : (fun i => (((w i).re : ℝ) : ℂ)) =
+          (2⁻¹ : ℂ) • (w + fun i => starRingEnd ℂ (w i)) := by
+        funext i
+        apply Complex.ext
+        · simp
+          ring
+        · simp
+      rw [e]
+      exact W.smul_mem _ (W.add_mem hw hc)
+    have him : (fun i => (w i).im) ∈ realPart W := by
+      change (fun i => (((w i).im : ℝ) : ℂ)) ∈ W
+      have e : (fun i => (((w i).im : ℝ) : ℂ)) =
+          (-Complex.I / 2) • (w - fun i => starRingEnd ℂ (w i)) := by
+        funext i
+        apply Complex.ext
+        · simp
+          ring
+        · simp
+      rw [e]
+      exact W.smul_mem _ (W.sub_mem hw hc)
+    have e : w = (fun i => ((w i).re : ℂ)) + Complex.I • fun i => ((w i).im : ℂ) := by
+      funext i
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rw [mul_comm]
+      exact (Complex.re_add_im (w i)).symm
+    rw [e]
+    exact Submodule.add_mem _ (hreal _ hre) (Submodule.smul_mem _ _ (hreal _ him))
+  have h1 := finrank_span_eq_card hind
+  rw [Fintype.card_fin] at h1
+  apply le_antisymm
+  · calc Module.finrank ℝ (realPart W) = Module.finrank ℂ (Submodule.span ℂ (Set.range f)) :=
+          h1.symm
+      _ ≤ Module.finrank ℂ W := Submodule.finrank_mono hspan
+  · calc Module.finrank ℂ W ≤ Module.finrank ℂ (Submodule.span ℂ (Set.range f)) :=
+          Submodule.finrank_mono hle
+      _ = Module.finrank ℝ (realPart W) := h1
+
+/-! ### Generalised eigenspaces of a real matrix and conjugation -/
+
+/-- Woodford (2003), App. G.1: `((f − ν)^k) w` for `f = toLin' M` is `(M − ν)^k w`. -/
+theorem toLin'_sub_pow_apply {κ : Type*} [Fintype κ] [DecidableEq κ] (M : Matrix κ κ ℂ)
+    (ν : ℂ) (k : ℕ) (w : κ → ℂ) :
+    ((Matrix.toLin' M - ν • 1) ^ k) w = ((M - ν • (1 : Matrix κ κ ℂ)) ^ k) *ᵥ w := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    rw [pow_succ', Module.End.mul_apply, ih, pow_succ', ← mulVec_mulVec, LinearMap.sub_apply,
+      LinearMap.smul_apply, Module.End.one_apply, Matrix.toLin'_apply, sub_mulVec, smul_mulVec,
+      one_mulVec]
+
+/-- Woodford (2003), App. G.1, p. 716: conjugation maps the generalised eigenspace of `ν` of a
+real matrix onto that of `ν̄`. -/
+theorem conj_mem_maxGen {κ : Type*} [Fintype κ] [DecidableEq κ] (Nr : Matrix κ κ ℝ) {ν : ℂ}
+    {w : κ → ℂ} (hw : w ∈ Module.End.maxGenEigenspace (Matrix.toLin' (Nr.map Complex.ofReal)) ν) :
+    (fun i => starRingEnd ℂ (w i)) ∈
+      Module.End.maxGenEigenspace (Matrix.toLin' (Nr.map Complex.ofReal)) (starRingEnd ℂ ν) := by
+  rw [Module.End.mem_maxGenEigenspace] at hw ⊢
+  obtain ⟨k, hk⟩ := hw
+  refine ⟨k, ?_⟩
+  rw [toLin'_sub_pow_apply] at hk ⊢
+  have hm : ((Nr.map Complex.ofReal - ν • (1 : Matrix κ κ ℂ)) ^ k).map (starRingEnd ℂ) =
+      (Nr.map Complex.ofReal - starRingEnd ℂ ν • (1 : Matrix κ κ ℂ)) ^ k := by
+    rw [← RingHom.mapMatrix_apply, map_pow, RingHom.mapMatrix_apply]
+    congr 1
+    ext i j
+    by_cases hij : i = j
+    · subst hij
+      simp
+    · simp [Matrix.one_apply_ne hij]
+  rw [← hm]
+  funext i
+  have := congrFun hk i
+  simp only [Pi.zero_apply] at this ⊢
+  have h2 := congrArg (starRingEnd ℂ) this
+  rw [map_zero] at h2
+  rw [← h2]
+  simp [mulVec, dotProduct, map_sum]
+
+/-- Woodford (2003), App. G.1: conjugation maps the eigenspace of a real eigenvalue of a real
+matrix into itself. -/
+theorem conj_mem_eigenspace {κ : Type*} [Fintype κ] [DecidableEq κ] (Nr : Matrix κ κ ℝ)
+    (r : ℝ) {w : κ → ℂ}
+    (hw : w ∈ Module.End.eigenspace (Matrix.toLin' (Nr.map Complex.ofReal)) (r : ℂ)) :
+    (fun i => starRingEnd ℂ (w i)) ∈
+      Module.End.eigenspace (Matrix.toLin' (Nr.map Complex.ofReal)) (r : ℂ) := by
+  rw [Module.End.mem_eigenspace_iff, Matrix.toLin'_apply] at hw ⊢
+  funext i
+  have := congrArg (starRingEnd ℂ) (congrFun hw i)
+  simp only [Pi.smul_apply, smul_eq_mul, map_mul, Complex.conj_ofReal] at this
+  have e : (Nr.map Complex.ofReal *ᵥ fun i => starRingEnd ℂ (w i)) i =
+      starRingEnd ℂ ((Nr.map Complex.ofReal *ᵥ w) i) := by
+    simp [mulVec, dotProduct, map_sum]
+  rw [e, this]
+  simp
+
+/-! ### The selected subspace `W` -/
+
+/-- Woodford (2003), Assumption 8.2: the selection takes whole root classes — each selected
+nonzero root with its full multiplicity as a root of (1.15). -/
+def SelWhole (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) : Prop :=
+  ∀ μ ∈ sel, sel.count μ = S.pencilPoly.roots.count μ
+
+/-- Woodford (2003), App. G.1: `N` as a complex linear map. -/
+noncomputable def φN (S : LinearRESystem ιZ ιz) (s : ℝ) : Module.End ℂ (ιZ ⊕ ιz → ℂ) :=
+  Matrix.toLin' ((Nr S s).map Complex.ofReal)
+
+/-- Woodford (2003), App. G.1: the eigenvalue `(0 − s)⁻¹` of `N` belonging to the zero root. -/
+noncomputable def ν0 (s : ℝ) : ℂ := ((0 : ℂ) - s)⁻¹
+
+/-- Woodford (2003), App. G.1: the eigenspace of `ν₀` (that is, `ker A`) and the generalised
+eigenspaces of the other values. -/
+noncomputable def Wfam (S : LinearRESystem ιZ ιz) (s : ℝ) (ν : ℂ) :
+    Submodule ℂ (ιZ ⊕ ιz → ℂ) :=
+  if ν = ν0 s then (φN S s).eigenspace ν else (φN S s).maxGenEigenspace ν
+
+/-- Woodford (2003), App. G.1: the eigenvalues of `N` used: `ν₀` and `(μ − s)⁻¹` for the
+selected nonzero roots `μ`. -/
+noncomputable def Tset (sel : Multiset ℂ) (s : ℝ) : Finset ℂ :=
+  insert (ν0 s) (sel.toFinset.image fun μ => (μ - s)⁻¹)
+
+/-- Woodford (2003), App. G.1, (G.4): the complex selected subspace. -/
+noncomputable def Wsub (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) (s : ℝ) :
+    Submodule ℂ (ιZ ⊕ ιz → ℂ) :=
+  (Tset sel s).sup (Wfam S s)
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1: the conjugation preimage of a complex subspace. -/
+def conjPre {κ : Type*} (W : Submodule ℂ (κ → ℂ)) : Submodule ℂ (κ → ℂ) where
+  carrier := {w | (fun i => starRingEnd ℂ (w i)) ∈ W}
+  add_mem' := by
+    intro a b ha hb
+    have := W.add_mem ha hb
+    simp only [Set.mem_ofPred_eq, Pi.add_apply, map_add]
+    exact this
+  zero_mem' := by
+    simp only [Set.mem_ofPred_eq, Pi.zero_apply, map_zero]
+    exact W.zero_mem
+  smul_mem' := by
+    intro c v hv
+    have := W.smul_mem (starRingEnd ℂ c) hv
+    simp only [Set.mem_ofPred_eq, Pi.smul_apply, smul_eq_mul, map_mul]
+    exact this
+
+/-- Woodford (2003), App. G.1: `Wfam ν₀` is the eigenspace of `ν₀`. -/
+theorem Wfam_ν0 (S : LinearRESystem ιZ ιz) (s : ℝ) :
+    Wfam S s (ν0 s) = (φN S s).eigenspace (ν0 s) := by
+  simp [Wfam]
+
+/-- Woodford (2003), App. G.1: `Wfam ν` is the generalised eigenspace of `ν ≠ ν₀`. -/
+theorem Wfam_ne (S : LinearRESystem ιZ ιz) (s : ℝ) {ν : ℂ} (h : ν ≠ ν0 s) :
+    Wfam S s ν = (φN S s).maxGenEigenspace ν := by
+  simp [Wfam, h]
+
+/-- Woodford (2003), App. G.1: `Wfam ν ≤` generalised eigenspace. -/
+theorem Wfam_le (S : LinearRESystem ιZ ιz) (s : ℝ) (ν : ℂ) :
+    Wfam S s ν ≤ (φN S s).maxGenEigenspace ν := by
+  unfold Wfam
+  split_ifs
+  · exact Module.End.eigenspace_le_maxGenEigenspace
+  · exact le_rfl
+
+/-- Woodford (2003), App. G.1: the family `Wfam` is independent. -/
+theorem Wfam_indep (S : LinearRESystem ιZ ιz) (s : ℝ) : iSupIndep (Wfam S s) :=
+  (Module.End.independent_maxGenEigenspace _).mono (Wfam_le S s)
+
+/-- Woodford (2003), App. G.1: `ν₀ = −1/s` is real. -/
+theorem ν0_eq (s : ℝ) : ν0 s = ((-s⁻¹ : ℝ) : ℂ) := by
+  simp [ν0]
+
+/-- Woodford (2003), App. G.1: `ν₀ ≠ 0` for `s ≠ 0`. -/
+theorem ν0_ne_zero {s : ℝ} (hs0 : s ≠ 0) : ν0 s ≠ 0 := by
+  rw [ν0_eq]
+  exact_mod_cast neg_ne_zero.mpr (inv_ne_zero hs0)
+
+/-- Woodford (2003), App. G.1: `(μ − s)⁻¹ ≠ ν₀` for `μ ≠ 0`. -/
+theorem inv_sub_ne_ν0 {s : ℝ} {μ : ℂ} (hμ : μ ≠ 0) : (μ - s)⁻¹ ≠ ν0 s := by
+  intro h
+  apply hμ
+  have := sub_left_injective (inv_injective h)
+  simpa using this
+
+/-- Woodford (2003), App. G.1, p. 716: `W` is closed under conjugation (the selection is closed
+under conjugation and `s` is real). -/
+theorem Wsub_conj (S : LinearRESystem ιZ ιz) {sel : Multiset ℂ} (hc : ConjClosed sel)
+    (hsel0 : ∀ μ ∈ sel, μ ≠ 0) (s : ℝ) : ConjStable (Wsub S sel s) := by
+  intro w hw
+  have hle : Wsub S sel s ≤ conjPre (Wsub S sel s) := by
+    refine Finset.sup_le fun ν hν => ?_
+    intro v hv
+    change (fun i => starRingEnd ℂ (v i)) ∈ Wsub S sel s
+    by_cases h0 : ν = ν0 s
+    · subst h0
+      simp only [Wfam, ↓reduceIte] at hv
+      have hv' := conj_mem_eigenspace (Nr S s) (-s⁻¹) (by rw [← ν0_eq]; exact hv)
+      rw [← ν0_eq] at hv'
+      have : Wfam S s (ν0 s) ≤ Wsub S sel s := Finset.le_sup (Finset.mem_insert_self _ _)
+      exact this (by simp only [Wfam, ↓reduceIte]; exact hv')
+    · simp only [Wfam, h0, ↓reduceIte] at hv
+      have hv' := conj_mem_maxGen (Nr S s) hv
+      rw [Tset, Finset.mem_insert] at hν
+      rcases hν with hν | hν
+      · exact absurd hν h0
+      obtain ⟨μ, hμ, rfl⟩ := Finset.mem_image.mp hν
+      rw [Multiset.mem_toFinset] at hμ
+      have hcμ : starRingEnd ℂ ((μ - s)⁻¹) = (starRingEnd ℂ μ - s)⁻¹ := by
+        simp [map_inv₀, map_sub]
+      rw [hcμ] at hv'
+      have hmem : (starRingEnd ℂ μ - s)⁻¹ ∈ Tset sel s :=
+        Finset.mem_insert_of_mem (Finset.mem_image.mpr
+          ⟨starRingEnd ℂ μ, Multiset.mem_toFinset.mpr (hc.conj_mem hμ), rfl⟩)
+      have hne : (starRingEnd ℂ μ - s)⁻¹ ≠ ν0 s :=
+        inv_sub_ne_ν0 ((_root_.map_ne_zero _).mpr (hsel0 μ hμ))
+      have : Wfam S s ((starRingEnd ℂ μ - s)⁻¹) ≤ Wsub S sel s := Finset.le_sup hmem
+      exact this (by simp only [Wfam, hne, ↓reduceIte]; exact hv')
+  exact hle hw
+
+/-- Woodford (2003), App. G.1: `W` is invariant under `N`. -/
+theorem Wsub_invariant (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) (s : ℝ) {w : ιZ ⊕ ιz → ℂ}
+    (hw : w ∈ Wsub S sel s) : φN S s w ∈ Wsub S sel s := by
+  have hle : Wsub S sel s ≤ (Wsub S sel s).comap (φN S s) := by
+    refine Finset.sup_le fun ν hν v hv => ?_
+    rw [Submodule.mem_comap]
+    have hsup : Wfam S s ν ≤ Wsub S sel s := Finset.le_sup hν
+    apply hsup
+    unfold Wfam at hv ⊢
+    split_ifs at hv ⊢
+    · rw [Module.End.mem_eigenspace_iff] at hv ⊢
+      rw [hv, map_smul, hv]
+    · exact Module.End.mapsTo_maxGenEigenspace_of_comm (Commute.refl _) ν hv
+  exact hle hw
+
+/-- Woodford (2003), App. G.1: an eigenvector of `N` in `W` has its eigenvalue in `Tset`. -/
+theorem mem_Tset_of_eig (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) (s : ℝ) {lam : ℂ}
+    {u : ιZ ⊕ ιz → ℂ} (hu0 : u ≠ 0) (huW : u ∈ Wsub S sel s) (hu : φN S s u = lam • u) :
+    lam ∈ Tset sel s := by
+  by_contra hnl
+  have h1 : u ∈ (φN S s).maxGenEigenspace lam :=
+    Module.End.eigenspace_le_maxGenEigenspace (Module.End.mem_eigenspace_iff.mpr hu)
+  have h2 : u ∈ ⨆ ν, ⨆ (_ : ν ≠ lam), (φN S s).maxGenEigenspace ν := by
+    have hle : Wsub S sel s ≤ ⨆ ν, ⨆ (_ : ν ≠ lam), (φN S s).maxGenEigenspace ν := by
+      refine Finset.sup_le fun ν hν => ?_
+      have hne : ν ≠ lam := fun h => hnl (h ▸ hν)
+      exact (Wfam_le S s ν).trans (le_iSup₂_of_le ν hne le_rfl)
+    exact hle huW
+  have hd := (Module.End.independent_maxGenEigenspace (φN S s)) lam
+  exact hu0 ((Submodule.disjoint_def.mp hd) u h1 h2)
+
+/-- Woodford (2003), App. G.1 (the zero root): the real part of the eigenspace of `ν₀` is
+`ker A`. -/
+theorem realPart_eigenspace_ν0 (S : LinearRESystem ιZ ιz) {s : ℝ} (hs0 : s ≠ 0)
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    realPart ((φN S s).eigenspace (ν0 s)) = LinearMap.ker S.Ahat.mulVecLin := by
+  ext v
+  change (fun i => (v i : ℂ)) ∈ (φN S s).eigenspace (ν0 s) ↔ S.Ahat *ᵥ v = 0
+  rw [Module.End.mem_eigenspace_iff, φN, Matrix.toLin'_apply]
+  constructor
+  · intro h
+    have h1 := N_to_eig S hs (ν0_ne_zero hs0) h
+    have hz : (s : ℂ) + (ν0 s)⁻¹ = 0 := by simp [ν0]
+    rw [hz, zero_smul, map_mulVec_ofReal] at h1
+    funext i
+    have := congrFun h1 i
+    simpa using this
+  · intro h
+    have h1 : S.Ahat.map Complex.ofReal *ᵥ (fun i => (v i : ℂ)) =
+        (0 : ℂ) • (S.Ihat.map Complex.ofReal *ᵥ fun i => (v i : ℂ)) := by
+      rw [map_mulVec_ofReal, h, zero_smul]
+      funext i
+      simp
+    have h2 := eig_to_N S hs (μ := 0) (by exact_mod_cast hs0.symm) h1
+    rw [h2]
+    rfl
+
+/-- Woodford (2003), App. G.1: `dim_ℂ (eigenspace of ν₀) = n − rank A`. -/
+theorem finrank_eigenspace_ν0 (S : LinearRESystem ιZ ιz) {s : ℝ} (hs0 : s ≠ 0)
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    Module.finrank ℂ ((φN S s).eigenspace (ν0 s)) = Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank := by
+  have hcs : ConjStable ((φN S s).eigenspace (ν0 s)) := fun w hw => by
+    have := conj_mem_eigenspace (Nr S s) (-s⁻¹) (by rw [← ν0_eq]; exact hw)
+    rw [← ν0_eq] at this
+    exact this
+  rw [← finrank_realPart _ hcs, realPart_eigenspace_ν0 S hs0 hs]
+  have := LinearMap.finrank_range_add_finrank_ker S.Ahat.mulVecLin
+  rw [Module.finrank_fintype_fun_eq_card] at this
+  change S.Ahat.rank + _ = _ at this
+  omega
+
+/-- Woodford (2003), Assumption 8.2 and App. G.1: **`dim W = (n − rank A) + #sel`** (with
+`SelWhole`, every selected root carried with its full multiplicity). -/
+theorem finrank_Wsub (S : LinearRESystem ιZ ιz) {sel : Multiset ℂ} {s : ℝ} (hs0 : s ≠ 0)
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) (hsel : ∀ μ ∈ sel, μ ≠ 0 ∧ S.pencilPoly.eval μ = 0)
+    (hw : SelWhole S sel) :
+    Module.finrank ℂ (Wsub S sel s) =
+      (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) + Multiset.card sel := by
+  have hnot : ν0 s ∉ sel.toFinset.image fun μ : ℂ => (μ - s)⁻¹ := by
+    intro h
+    obtain ⟨μ, hμ, he⟩ := Finset.mem_image.mp h
+    exact inv_sub_ne_ν0 (hsel μ (Multiset.mem_toFinset.mp hμ)).1 he
+  have hinj : Set.InjOn (fun μ : ℂ => (μ - s)⁻¹) (sel.toFinset : Set ℂ) :=
+    fun a _ b _ h => sub_left_injective (inv_injective h)
+  rw [Wsub, finrank_finset_sup (Wfam_indep S s), Tset, Finset.sum_insert hnot,
+    Finset.sum_image hinj]
+  congr 1
+  · rw [Wfam_ν0]
+    exact finrank_eigenspace_ν0 S hs0 hs
+  · rw [← Multiset.toFinset_sum_count_eq]
+    refine Finset.sum_congr rfl fun μ hμ => ?_
+    rw [Multiset.mem_toFinset] at hμ
+    have hne := inv_sub_ne_ν0 (s := s) (hsel μ hμ).1
+    change Module.finrank ℂ (Wfam S s ((μ - s)⁻¹)) = _
+    rw [Wfam_ne S s hne, LinearMap.finrank_maxGenEigenspace_eq, φN, Matrix.charpoly_toLin',
+      ← count_roots, hw μ hμ]
+    have hμs : μ ≠ (s : ℂ) := by
+      intro h
+      apply hs
+      have := (hsel μ hμ).2
+      rw [h, pencilPoly_eval, det_pencil_ofReal] at this
+      exact_mod_cast this
+    exact (count_pencil_roots S hs hμs).symm
+
+/-! ### The real deflating pair -/
+
+/-- Woodford (2003), App. G.1, fn 2: the real selected subspace (real part of `W`). -/
+noncomputable def Ureal (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) (s : ℝ) :
+    Submodule ℝ (ιZ ⊕ ιz → ℝ) :=
+  realPart (Wsub S sel s)
+
+/-- Woodford (2003), App. G.1: the real selected subspace is invariant under `N`. -/
+theorem Nr_mem_Ureal (S : LinearRESystem ιZ ιz) (sel : Multiset ℂ) (s : ℝ)
+    {v : ιZ ⊕ ιz → ℝ} (hv : v ∈ Ureal S sel s) : Nr S s *ᵥ v ∈ Ureal S sel s := by
+  change (fun i => ((Nr S s *ᵥ v) i : ℂ)) ∈ Wsub S sel s
+  rw [← map_mulVec_ofReal]
+  have := Wsub_invariant S sel s (w := fun i => (v i : ℂ)) hv
+  rw [φN, Matrix.toLin'_apply] at this
+  exact this
+
+/-- Woodford (2003), App. G.1: `N` is injective on the selected subspace (`0` is not among the
+selected eigenvalues of `N`). -/
+theorem Nr_inj_Ureal (S : LinearRESystem ιZ ιz) {sel : Multiset ℂ} {s : ℝ} (hs0 : s ≠ 0)
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) (hsel : ∀ μ ∈ sel, μ ≠ 0 ∧ S.pencilPoly.eval μ = 0)
+    {v : ιZ ⊕ ιz → ℝ} (hv : v ∈ Ureal S sel s) (h0 : Nr S s *ᵥ v = 0) : v = 0 := by
+  by_contra hne
+  have hvc : (fun i => (v i : ℂ)) ≠ 0 := fun h => hne (funext fun i => by
+    have := congrFun h i
+    simpa using this)
+  have heig : φN S s (fun i => (v i : ℂ)) = (0 : ℂ) • fun i => (v i : ℂ) := by
+    rw [φN, Matrix.toLin'_apply, map_mulVec_ofReal, h0, zero_smul]
+    funext i
+    simp
+  have hT := mem_Tset_of_eig S sel s hvc hv heig
+  rw [Tset, Finset.mem_insert] at hT
+  rcases hT with h | h
+  · exact ν0_ne_zero hs0 h.symm
+  · obtain ⟨μ, hμ, he⟩ := Finset.mem_image.mp h
+    rw [Multiset.mem_toFinset] at hμ
+    have hμs : μ = s := sub_eq_zero.mp (inv_eq_zero.mp he)
+    apply hs
+    have := (hsel μ hμ).2
+    rw [hμs, pencilPoly_eval, det_pencil_ofReal] at this
+    exact_mod_cast this
+
+/-- Woodford (2003), App. G.1, (G.4) and fn 2 (**repeated roots allowed**), for any number of
+columns: a conjugation-closed multiset `sel` of nonzero roots of a nonzero (1.15), each taken with
+its full multiplicity, gives a real `n × κ` matrix `J` with independent columns,
+`#κ = (n − rank A) + #sel`, and `Ψ` with `A J = Î J Ψ`, every eigenvalue of `Ψ` zero or in
+`sel`. -/
+theorem exists_deflating_cols (S : LinearRESystem ιZ ιz) {κ : Type*} [Fintype κ]
+    [DecidableEq κ] {sel : Multiset ℂ} (hi : ConjClosed sel)
+    (hsel : ∀ μ ∈ sel, μ ≠ 0 ∧ S.pencilPoly.eval μ = 0) (hreg : S.pencilPoly ≠ 0)
+    (hw : SelWhole S sel)
+    (hcard : (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) + Multiset.card sel = Fintype.card κ) :
+    ∃ (J : Matrix (ιZ ⊕ ιz) κ ℝ) (Ψ : Matrix κ κ ℝ), S.Ahat * J = S.Ihat * J * Ψ ∧
+      LinearIndependent ℝ Jᵀ ∧
+      ∀ μ : ℂ, (Matrix.scalar κ μ - Ψ.map Complex.ofReal).det = 0 → μ = 0 ∨ μ ∈ sel := by
+  obtain ⟨s, hs0, hsev⟩ := PencilEigen.Construction.exists_shift hreg
+  have hs : (S.Ahat - s • S.Ihat).det ≠ 0 := by
+    intro h
+    apply hsev
+    rw [pencilPoly_eval, det_pencil_ofReal, h, Complex.ofReal_zero]
+  have hdim : Module.finrank ℝ (Ureal S sel s) = Fintype.card κ := by
+    rw [Ureal, finrank_realPart _ (Wsub_conj S hi (fun μ hμ => (hsel μ hμ).1) s),
+      finrank_Wsub S hs0 hs hsel hw, hcard]
+  let U := Ureal S sel s
+  let b := Module.finBasisOfFinrankEq ℝ U hdim
+  let e : κ ≃ Fin (Fintype.card κ) := Fintype.equivFin κ
+  let col : κ → ιZ ⊕ ιz → ℝ := fun c => (b (e c) : ιZ ⊕ ιz → ℝ)
+  have hcolU : ∀ c, col c ∈ U := fun c => (b (e c)).2
+  let T : U →ₗ[ℝ] U := (Nr S s).mulVecLin.restrict (fun v hv => Nr_mem_Ureal S sel s hv)
+  have hTinj : Function.Injective T := by
+    rw [← LinearMap.ker_eq_bot, eq_bot_iff]
+    intro x hx
+    rw [LinearMap.mem_ker] at hx
+    rw [Submodule.mem_bot]
+    have h0 : Nr S s *ᵥ (x : ιZ ⊕ ιz → ℝ) = 0 := by
+      have := congrArg Subtype.val hx
+      exact this
+    exact Subtype.ext (Nr_inj_Ureal S hs0 hs hsel x.2 h0)
+  have hTsurj := LinearMap.injective_iff_surjective.mp hTinj
+  choose pre hpre using fun c => hTsurj ⟨col c, hcolU c⟩
+  let x : κ → U := fun c => pre c + s • ⟨col c, hcolU c⟩
+  let Ψ : Matrix κ κ ℝ := Matrix.of fun c' c => b.repr (x c) (e c')
+  have hsum : ∀ c, ∑ c', Ψ c' c • col c' = (x c : ιZ ⊕ ιz → ℝ) := by
+    intro c
+    have h1 := b.sum_repr (x c)
+    have h2 : ∑ c', Ψ c' c • col c' = ∑ i, b.repr (x c) i • (b i : ιZ ⊕ ιz → ℝ) :=
+      Equiv.sum_comp e (fun i => b.repr (x c) i • (b i : ιZ ⊕ ιz → ℝ))
+    rw [h2]
+    have := congrArg Subtype.val h1
+    rw [Submodule.coe_sum] at this
+    simpa using this
+  have hcolA : ∀ c, S.Ahat *ᵥ col c = S.Ihat *ᵥ (x c : ιZ ⊕ ιz → ℝ) := by
+    intro c
+    have hp : Nr S s *ᵥ (pre c : ιZ ⊕ ιz → ℝ) = col c := by
+      have := congrArg Subtype.val (hpre c)
+      exact this
+    have h1 : (S.Ahat - s • S.Ihat) *ᵥ col c = S.Ihat *ᵥ (pre c : ιZ ⊕ ιz → ℝ) := by
+      rw [← hp, mulVec_mulVec, shift_mul_Nr S hs]
+    rw [sub_mulVec, smul_mulVec] at h1
+    change S.Ahat *ᵥ col c = S.Ihat *ᵥ ((pre c : ιZ ⊕ ιz → ℝ) + s • col c)
+    rw [mulVec_add, mulVec_smul, ← h1]
+    abel
+  have hdefl : S.Ahat * Matrix.of (fun a c => col c a) =
+      S.Ihat * Matrix.of (fun a c => col c a) * Ψ :=
+    deflate_of_cols _ _ _ _ fun c => by rw [hsum c]; exact hcolA c
+  have hind : LinearIndependent ℝ col :=
+    (b.linearIndependent.comp e e.injective).map' U.subtype (Submodule.ker_subtype _)
+  refine ⟨Matrix.of fun a c => col c a, Ψ, hdefl, hind, fun μ hμ => ?_⟩
+  obtain ⟨z, hz0, hz⟩ := exists_eigvec hμ
+  set Jc : Matrix (ιZ ⊕ ιz) κ ℂ := (Matrix.of fun a c => col c a).map Complex.ofReal with hJc
+  set u := Jc *ᵥ z with hu
+  have hcolC : LinearIndependent ℂ (fun c i => (col c i : ℂ)) := linearIndependent_ofReal hind
+  have hJsum : u = ∑ c, z c • fun i => (col c i : ℂ) := by
+    funext i
+    simp [hu, hJc, mulVec, dotProduct, Finset.sum_apply, mul_comm]
+  have hu0 : u ≠ 0 := by
+    intro h0
+    rw [hJsum] at h0
+    exact hz0 (funext fun c => Fintype.linearIndependent_iff.mp hcolC z h0 c)
+  have huW : u ∈ Wsub S sel s := by
+    rw [hJsum]
+    exact Submodule.sum_mem _ fun c _ => Submodule.smul_mem _ _ (hcolU c)
+  have hAu : S.Ahat.map Complex.ofReal *ᵥ u = μ • (S.Ihat.map Complex.ofReal *ᵥ u) := by
+    have hdc : S.Ahat.map Complex.ofReal * Jc = S.Ihat.map Complex.ofReal * Jc *
+        Ψ.map Complex.ofReal := by
+      rw [hJc, ← map_ofReal_mul, ← map_ofReal_mul, ← map_ofReal_mul, hdefl]
+    rw [hu, mulVec_mulVec, hdc, ← mulVec_mulVec, hz, mulVec_smul, mulVec_mulVec]
+  have hμs : μ ≠ s := by
+    intro h
+    apply det_shift_C S hs
+    refine exists_mulVec_eq_zero_iff.mp ⟨u, hu0, ?_⟩
+    rw [sub_mulVec, hAu, smul_mulVec, h, sub_self]
+  have hN := eig_to_N S hs hμs hAu
+  have hT := mem_Tset_of_eig S sel s hu0 huW (by rw [φN, Matrix.toLin'_apply]; exact hN)
+  rw [Tset, Finset.mem_insert] at hT
+  rcases hT with h | h
+  · left
+    have h' : μ - s = 0 - s := inv_injective h
+    simpa using h'
+  · right
+    obtain ⟨μ', hμ', he⟩ := Finset.mem_image.mp h
+    have : μ' = μ := sub_left_injective (inv_injective he)
+    rw [← this]
+    exact Multiset.mem_toFinset.mp hμ'
+
+/-- Woodford (2003), Assumption 8.2 and App. G.1, (G.4) and fn 2 (**repeated roots allowed**):
+under Assumption 8.2 with a conjugation-closed selection that takes whole root classes, and a
+nonzero (1.15), there is a real `n × n_Z` matrix `J` with independent columns and `Ψ` with
+`A J = Î J Ψ`, every eigenvalue of `Ψ` zero or selected. -/
+theorem exists_realSelection_general {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (h82 : Assumption82 S β) (hi : ConjClosed h82.sel) (hreg : S.pencilPoly ≠ 0)
+    (hw : SelWhole S h82.sel) : Nonempty (RealSelection S h82.sel) := by
+  have hsel : ∀ μ ∈ h82.sel, μ ≠ 0 ∧ S.pencilPoly.eval μ = 0 := by
+    intro μ hμ
+    have := Multiset.mem_of_le h82.sel_le hμ
+    rw [Multiset.mem_filter, Polynomial.mem_roots hreg] at this
+    exact ⟨this.2.1, this.1⟩
+  obtain ⟨J, Ψ, hd, hind, heig⟩ := exists_deflating_cols S (κ := ιZ) hi hsel hreg hw
+    (by rw [add_comm]; exact h82.sel_card)
+  exact ⟨⟨J, Ψ, hd, hind, heig⟩⟩
+
+/-- Woodford (2003), Assumption 8.3: with distinct nonzero roots every selection takes whole
+root classes, so `PencilEigen.exists_realSelection` is the special case of
+`exists_realSelection_general`. -/
+theorem selWhole_of_assumption83 {S : LinearRESystem ιZ ιz} {β : ℝ} (h82 : Assumption82 S β)
+    (h83 : Assumption83 S) : SelWhole S h82.sel := by
+  intro μ hμ
+  have hle : h82.sel ≤ nonzeroRoots S :=
+    h82.sel_le.trans (Multiset.monotone_filter_right _ fun ν h => h.1)
+  have hnd : h82.sel.Nodup := Multiset.nodup_of_le hle h83.nodup
+  have hμn : μ ∈ nonzeroRoots S := Multiset.mem_of_le hle hμ
+  have hμ0 : μ ≠ 0 := (Multiset.mem_filter.mp hμn).2
+  rw [Multiset.count_eq_one_of_mem hnd hμ,
+    ← Multiset.count_filter_of_pos (p := fun ν : ℂ => ν ≠ 0) hμ0]
+  exact (Multiset.count_eq_one_of_mem h83.nodup hμn).symm
+
+/-- Woodford (2003), Assumptions 8.2 (case (i), whole classes) and 8.4, App. G.1: the deflating
+pair, now with only a nonzero (1.15) in place of Assumption 8.3. -/
+noncomputable def splitGen {β : ℝ} {S : LinearRESystem ιZ ιz} (hβ : 0 < β)
+    (h82 : Assumption82 S β) (R : RealSelection S h82.sel) (hreg : S.pencilPoly ≠ 0)
+    (h84 : Assumption84 S h82.sel) : DeflatingSplit S β where
+  J := R.J
+  Ψ := R.Ψ
+  deflate := R.deflate
+  eig_lt := fun μ hμ => by
+    rcases R.eig μ hμ with h0 | hm
+    · rw [h0, norm_zero]
+      exact inv_pos.mpr hβ
+    · have := Multiset.mem_of_le h82.sel_le hm
+      rw [Multiset.mem_filter] at this
+      exact this.2.2
+  J1_det := J1_det_ne_zero R h84 fun _ hv => IJ_injective R (fun μ hμ => by
+      have := Multiset.mem_of_le h82.sel_le hμ
+      rw [Multiset.mem_filter, Polynomial.mem_roots hreg] at this
+      exact this.1) hreg hv
+  K_det := K_det_ne_zero R h84 (J1_det_ne_zero R h84 fun _ hv => IJ_injective R (fun μ hμ => by
+      have := Multiset.mem_of_le h82.sel_le hμ
+      rw [Multiset.mem_filter, Polynomial.mem_roots hreg] at this
+      exact this.1) hreg hv)
+
+/-- Woodford (2003), App. G.1: the deflating pair chosen from Assumptions 8.2 (i, whole classes)
+and 8.4 with (1.15) nonzero (no distinctness). -/
+noncomputable def splitOfGen {ιτ : Type*} [Fintype ιτ] (P : LQProblem ιZ ιz ιτ)
+    (h82 : Assumption82 P.sys P.β) (hi : ConjClosed h82.sel) (hreg : P.sys.pencilPoly ≠ 0)
+    (hw : SelWhole P.sys h82.sel) (h84 : Assumption84 P.sys h82.sel) :
+    DeflatingSplit P.sys P.β :=
+  splitGen P.β_pos h82 (exists_realSelection_general h82 hi hreg hw).some hreg h84
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553, **with repeated roots allowed**: under
+Assumption 8.2 (case (i), whole root classes), Assumption 8.4 and a nonzero (1.15) — no
+distinctness — the corrected Proposition 8.1 holds for any expectation system. -/
+theorem prop81_of_assumptions_general {Ω ιτ : Type*} [Fintype ιτ] (P : LQProblem ιZ ιz ιτ)
+    (h82 : Assumption82 P.sys P.β) (hi : ConjClosed h82.sel) (hreg : P.sys.pencilPoly ≠ 0)
+    (hw : SelWhole P.sys h82.sel) (h84 : Assumption84 P.sys h82.sel)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Nonempty (Prop81General.Prop81ConclusionM P 𝔼 t0) :=
+  ⟨Prop81General.prop81 P (splitOfGen P h82 hi hreg hw h84) 𝔼 t0⟩
+
+/-- Woodford (2003), **Proposition 8.2**, p. 555, **with repeated roots allowed**: under
+Assumptions 8.1, 8.2 (case (i), whole classes), 8.4, 8.5 and a nonzero (1.15), commitment to
+(1.23) is robustly optimal (unique bounded equilibrium for every bounded disturbance process,
+optimal subject to (1.27)). -/
+theorem prop82_of_assumptions_general {Ω ιτ : Type*} [Fintype ιτ] {P : LQProblem ιZ ιz ιτ}
+    {𝔼 : ExpectationSystem Ω} {t0 : ℕ} (hpull : 𝔼.PullOut)
+    (hA : Prop82General.Assumption81M P 𝔼 t0) (h82 : Assumption82 P.sys P.β)
+    (hi : ConjClosed h82.sel) (hreg : P.sys.pencilPoly ≠ 0) (hw : SelWhole P.sys h82.sel)
+    (h84 : Assumption84 P.sys h82.sel)
+    (h85 : Assumption85 (Λmat P.sys P.β (splitOfGen P h82 hi hreg hw h84).J) P.sys.B2)
+    {D : ℕ} (hD : D + 1 ≤ t0) (hDk : P.sys.Et.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ}
+    {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK
+      (Λmat P.sys P.β (splitOfGen P h82 hi hreg hw h84).J) P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := ιz) P 𝔼 t0
+      (fun _ y => Prop82General.Prop82M.CriterionM
+        (Prop81General.prop81 P (splitOfGen P h82 hi hreg hw h84) 𝔼 t0) D qh vh y)
+      (fun _ y t ω => zpart (y t ω)) :=
+  Prop82General.prop82_of_split hpull hA _ h85.2 hD hDk hhist hMhb hMhk hqhb hvhb
+
+end Woodford.OptimalPolicyRules.PencilRepeated
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Propositions 8.1 and 8.2 in case (ii) of Assumption 8.2
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumption 8.2 (ii) (p. 552), Propositions 8.1
+(p. 553) and 8.2 (p. 555), Assumption 8.4 (ii) and Appendix G.1 (pp. 716–718).
+
+In case (ii) the selection contains one complex root `μ` whose conjugate is not selected. A real
+`Ψ` has a conjugation-closed spectrum, so no real deflating pair `A J = Î J Ψ` with `n_Z`
+columns carries that selection (`Prop81Unique.realSelection_misses_unpaired`), and the book's
+Assumption 8.4 (ii), `det[Re Γ₂] ≠ 0`, depends on how the complex eigenvector is scaled
+(`Prop81Unique.re_det_rescale_zero`).
+
+## The corrected construction
+
+* Take the real invariant subspace for the selection **plus** `conj μ` (`selPlus`): a real pair
+  `A J⁺ = Î J⁺ Ψ⁺` with `n_Z + 1` columns, all eigenvalues of `Ψ⁺` in `|ν| < β⁻¹` (since
+  `|conj μ| = |μ|`). It exists with repeated roots allowed (`PencilRepeated.exists_deflating_cols`).
+* Choose an `(n_Z + 1) × n_Z` real `P` and use `J = J⁺P` in (1.20)–(1.21):
+  `Υ = −(J₁')⁻¹ J₂' Ẽ'`, `Λ = β⁻¹ K⁻¹ Ẽ'`, `K = A₂₂' + A₁₂' Υ`, and
+  `R(L⁻¹)x = (J₁')⁻¹ P' ∑_k (βΨ⁺')^k E_t β J⁺' x_{t+k}`.
+* `J⁺'` applied to (1.18) is a stable forward equation, so (1.18) ⇒ (1.20)–(1.21). For the
+  converse, `D_t = w⁺_t − F⁺_t` lies in `ker P'`, and the remaining ξ-rows of (1.18) give
+  `D_t = β H E_t D_{t+1}` with `H` the **residual root** on `ker P'`:
+  `(I − J⁺₁'(J₁')⁻¹P') Ψ⁺' v = h v` for `P' v = 0`. Bounded `D` must vanish iff `|βh| < 1`.
+
+## The normalisation-free replacement for Assumption 8.4 (ii)
+
+`Assumption84IIall` (universal form): for **every** real basis `(J⁺, Ψ⁺)` of the invariant subspace
+of the selection plus `conj μ`, some real `P` makes `J₁ = (J⁺P)₁` and `K` invertible and has
+residual root `h` with `|βh| < 1`. It involves no eigenvector scaling. The existential form, its
+basis invariance, a worked example and the `n_Z = 1` link to the book's `|Re μ⁻¹| > β` are in
+`CaseIIBasis`.
+
+## Main results
+
+* `QuasiSplit`, `prop81II`, `prop81_equivII`: Proposition 8.1 from the corrected construction, for
+  any expectation system (`DeflatingSplit` is the special case `quasiOfDeflating`).
+* `prop82_of_quasiSplit`: Proposition 8.2 from it.
+* `prop81_caseII_all`, `prop82_caseII_all`: Propositions 8.1 and 8.2 under Assumption 8.2
+  (case (ii)), `Assumption84IIall` and a nonzero (1.15), with repeated roots allowed (`SelWhole`);
+  distinct roots give `SelWhole` (`selWhole_selPlus_of_83`).
+-/
+
+namespace Woodford.OptimalPolicyRules.Prop81CaseII
+
+open Matrix GeneralSetup GeneralFOC.LQ PencilSplit Prop81General TargetCriterion.Prop81
+  PencilEigen PencilAssumptions PencilRepeated GeneralFOC.Selection Adjugate
+
+variable {Ω : Type*} {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+variable {ιc : Type*} [Fintype ιc] [DecidableEq ιc]
+
+/-! ### The quasi-split -/
+
+/-- Woodford (2003), App. G.1, case (ii): the projection `I − J⁺₁'(J₁')⁻¹P'` (with `J = J⁺P`)
+that defines the residual root. -/
+noncomputable def residProj (J : Matrix (ιZ ⊕ ιz) ιc ℝ) (P : Matrix ιc ιZ ℝ) : Matrix ιc ιc ℝ :=
+  1 - (J1 J)ᵀ * ((J1 (J * P))ᵀ)⁻¹ * Pᵀ
+
+set_option linter.style.longLine false in
+/-- Woodford (2003), Proposition 8.1 and App. G.1, case (ii) of Assumption 8.2 (corrected): a real
+deflating pair `A J⁺ = Î J⁺ Ψ⁺` with all eigenvalues of `Ψ⁺` in `|ν| < β⁻¹`, a real `P` with
+`J₁ = (J⁺P)₁` and `K` invertible, and a residual map `H` on `ker P'` whose powers `(βH)^k`
+decay. -/
+structure QuasiSplit (S : LinearRESystem ιZ ιz) (β : ℝ) (ιc : Type*) [Fintype ιc] [DecidableEq ιc] where
+  Jp : Matrix (ιZ ⊕ ιz) ιc ℝ
+  Ψp : Matrix ιc ιc ℝ
+  deflate : S.Ahat * Jp = S.Ihat * Jp * Ψp
+  eig_lt : ∀ μ : ℂ, (Matrix.scalar ιc μ - Ψp.map Complex.ofReal).det = 0 → ‖μ‖ < β⁻¹
+  P : Matrix ιc ιZ ℝ
+  J1_det : (J1 (Jp * P)).det ≠ 0
+  K_det : (Kmat S (Jp * P)).det ≠ 0
+  H : Matrix ιc ιc ℝ
+  resid : ∀ v, Pᵀ *ᵥ v = 0 → (residProj Jp P * Ψpᵀ) *ᵥ v = H *ᵥ v
+  decay : PowDecay (β • H)
+
+/-- Woodford (2003), App. G.1, p. 717: the powers of `β Ψ⁺'` decay geometrically (`β > 0`). -/
+theorem QuasiSplit.powDecay_Gp {S : LinearRESystem ιZ ιz} {β : ℝ} (Q : QuasiSplit S β ιc)
+    (hβ : 0 < β) : PowDecay (β • Q.Ψpᵀ) := by
+  refine powDecay_of_eig _ fun w hw => ?_
+  set X := Q.Ψp.map Complex.ofReal with hX
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ.ne'
+  have hmap : (β • Q.Ψpᵀ).map Complex.ofReal = (β : ℂ) • Xᵀ := by
+    ext i j
+    simp [hX]
+  have hsc : Matrix.scalar ιc w - (β : ℂ) • Xᵀ =
+      ((β : ℂ) • (Matrix.scalar ιc (w / β) - X))ᵀ := by
+    ext i j
+    by_cases hij : i = j
+    · subst hij
+      simp [Matrix.scalar_apply]
+      field_simp
+    · simp [Matrix.scalar_apply, hij, Ne.symm hij]
+  rw [hmap, hsc, det_transpose, det_smul] at hw
+  have hd : (Matrix.scalar ιc (w / β) - X).det = 0 := by
+    rcases mul_eq_zero.mp hw with h | h
+    · exact absurd h (pow_ne_zero _ hβc)
+    · exact h
+  have hlt := Q.eig_lt (w / β) hd
+  rw [norm_div, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hβ] at hlt
+  rw [div_lt_iff₀ hβ, inv_mul_cancel₀ hβ.ne'] at hlt
+  exact hlt
+
+omit [DecidableEq ιc] in
+/-- Woodford (2003), App. G.1: `P' w⁺ = J' Î' φ` for `J = J⁺P`. -/
+theorem wp_P (S : LinearRESystem ιZ ιz) (J : Matrix (ιZ ⊕ ιz) ιc ℝ) (P : Matrix ιc ιZ ℝ)
+    (v : ιZ ⊕ ιz → ℝ) : Pᵀ *ᵥ ((Jᵀ * S.Ihatᵀ) *ᵥ v) = ((J * P)ᵀ * S.Ihatᵀ) *ᵥ v := by
+  rw [mulVec_mulVec, transpose_mul, Matrix.mul_assoc]
+
+/-- Woodford (2003), (1.18) and (G.4): `J⁺'` times the left side of (1.18) is
+`Ψ⁺' E_t w⁺_{t+1} + J⁺' x_t − β⁻¹ w⁺_t` with `w⁺_t = J⁺' Î' φ_t`. -/
+theorem Jp_lhs118 (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω)
+    (Q : QuasiSplit P.sys P.β ιc) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ)
+    (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) (t : ℕ) (ω : Ω) :
+    Q.Jpᵀ *ᵥ lhs118 P 𝔼 y φ t ω =
+      Q.Ψpᵀ *ᵥ EV 𝔼 t (fun ω' => (Q.Jpᵀ * P.sys.Ihatᵀ) *ᵥ φ (t + 1) ω') ω +
+        Q.Jpᵀ *ᵥ xproc P y t ω - P.β⁻¹ • ((Q.Jpᵀ * P.sys.Ihatᵀ) *ᵥ φ t ω) := by
+  unfold lhs118
+  have ht : Q.Jpᵀ * P.sys.Ahatᵀ = Q.Ψpᵀ * (Q.Jpᵀ * P.sys.Ihatᵀ) := by
+    rw [← transpose_mul, Q.deflate, transpose_mul, transpose_mul]
+  have h1 : Q.Jpᵀ *ᵥ (P.sys.Ahatᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω) =
+      Q.Ψpᵀ *ᵥ (Q.Jpᵀ *ᵥ (P.sys.Ihatᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω)) := by
+    rw [mulVec_mulVec, ht, ← mulVec_mulVec, ← mulVec_mulVec]
+  have h2 : EV 𝔼 t (fun ω' => (Q.Jpᵀ * P.sys.Ihatᵀ) *ᵥ φ (t + 1) ω') ω =
+      (Q.Jpᵀ * P.sys.Ihatᵀ) *ᵥ EV 𝔼 t (φ (t + 1)) ω := by rw [EV_mulVec]
+  rw [h2, mulVec_sub, mulVec_add, h1, mulVec_smul, ← mulVec_mulVec, ← mulVec_mulVec]
+
+/-! ### The operators -/
+
+/-- Woodford (2003), App. G.1, case (ii): the forward solution
+`F⁺_t = ∑_{k ≥ 0} (βΨ⁺')^k E_t β J⁺' x_{t+k}`. -/
+noncomputable def Fp (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (Q : QuasiSplit S β ιc) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιc → ℝ :=
+  fwdSum 𝔼 (β • Q.Ψpᵀ) (fun t ω => (β • Q.Jpᵀ) *ᵥ x t ω)
+
+/-- Woodford (2003), eq. (1.21), case (ii): `r_t = (J₁')⁻¹ P' F⁺_t`. -/
+noncomputable def RopII (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (Q : QuasiSplit S β ιc) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιZ → ℝ :=
+  fun t ω => ((J1 (Q.Jp * Q.P))ᵀ)⁻¹ *ᵥ (Q.Pᵀ *ᵥ Fp 𝔼 Q x t ω)
+
+/-- Woodford (2003), eq. (1.20), case (ii): `q_t = −K⁻¹ (E_t x^z_t + A₁₂' E_t r_{t+1})`. -/
+noncomputable def QopII (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (Q : QuasiSplit S β ιc) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιz → ℝ :=
+  fun t ω => -((Kmat S (Q.Jp * Q.P))⁻¹ *ᵥ (EV 𝔼 t (fun ω' => Mpart (x t ω')) ω +
+    S.A12ᵀ *ᵥ EV 𝔼 t (RopII 𝔼 Q x (t + 1)) ω))
+
+/-! ### Proposition 8.1 from a quasi-split -/
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (the equivalence, corrected, case (ii)): for a
+`QuasiSplit`, bounded adapted plans and bounded multipliers with `M_t` known at `t` satisfy (1.18)
+for all `t ≥ t₀` iff they satisfy (1.20)–(1.21) with `J = J⁺P`, for any expectation system. -/
+theorem prop81_equivII (P : LQProblem ιZ ιz ιτ) (Q : QuasiSplit P.sys P.β ιc)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Prop81EquivM P 𝔼 t0 (Λmat P.sys P.β (Q.Jp * Q.P)) (Υmat P.sys (Q.Jp * Q.P)) (QopII 𝔼 Q)
+      (RopII 𝔼 Q) := by
+  intro y φ hyb hya hφb hmk
+  set x := xproc P y with hx
+  have hxb : BoundedV x := boundedV_xproc hyb
+  have hxa : AdaptedV 𝔼 x := adaptedV_xproc P hya
+  have hG : PowDecay (P.β • Q.Ψpᵀ) := Q.powDecay_Gp P.β_pos
+  have hfb : BoundedV (fun t ω => (P.β • Q.Jpᵀ) *ᵥ x t ω) := boundedV_mulVec _ hxb
+  have hfk : ∀ t, KnownV 𝔼 t (fun ω => (P.β • Q.Jpᵀ) *ᵥ x t ω) :=
+    fun t => knownV_mulVec 𝔼 _ (hxa t)
+  obtain ⟨hF, -, hFb⟩ := fwdSum_spec 𝔼 hG hfb
+  have hβ : P.β ≠ 0 := P.β_pos.ne'
+  have hFrec : ∀ t ω, P.β⁻¹ • Fp 𝔼 Q x t ω =
+      Q.Ψpᵀ *ᵥ EV 𝔼 t (Fp 𝔼 Q x (t + 1)) ω + Q.Jpᵀ *ᵥ x t ω := by
+    intro t ω
+    have h := hF t ω
+    rw [EV_of_known 𝔼 (hfk t)] at h
+    change Fp 𝔼 Q x t ω = (P.β • Q.Ψpᵀ) *ᵥ EV 𝔼 t (Fp 𝔼 Q x (t + 1)) ω +
+      (P.β • Q.Jpᵀ) *ᵥ x t ω at h
+    rw [h, smul_mulVec, smul_mulVec, ← smul_add, smul_smul, inv_mul_cancel₀ hβ, one_smul]
+  set wp : ℕ → Ω → ιc → ℝ := fun t ω => (Q.Jpᵀ * P.sys.Ihatᵀ) *ᵥ φ t ω with hwp
+  have hwJ : ∀ t ω, (J1 (Q.Jp * Q.P))ᵀ *ᵥ ξpart (φ t ω) +
+      (J2 (Q.Jp * Q.P))ᵀ *ᵥ (P.sys.Etᵀ *ᵥ Mpart (φ t ω)) = Q.Pᵀ *ᵥ wp t ω := by
+    intro t ω
+    rw [← w_split, hwp, wp_P]
+  -- the `z`-rows once (1.21) holds at `t + 1`
+  have hMrows : ∀ t, t0 ≤ t → Eq121 t0 (Υmat P.sys (Q.Jp * Q.P)) (RopII 𝔼 Q x) φ → ∀ ω,
+      Mpart (lhs118 P 𝔼 y φ t ω) = Kmat P.sys (Q.Jp * Q.P) *ᵥ Mpart (φ (t + 1) ω) +
+        P.sys.A12ᵀ *ᵥ EV 𝔼 t (RopII 𝔼 Q x (t + 1)) ω +
+        EV 𝔼 t (fun ω' => Mpart (x t ω')) ω - P.β⁻¹ • (P.sys.Etᵀ *ᵥ Mpart (φ t ω)) := by
+    intro t ht h121 ω
+    have hξ : (fun ω' => ξpart (φ (t + 1) ω')) =
+        fun ω' => Υmat P.sys (Q.Jp * Q.P) *ᵥ Mpart (φ (t + 1) ω') + RopII 𝔼 Q x (t + 1) ω' :=
+      funext fun ω' => h121 (t + 1) (by omega) ω'
+    have hM : EV 𝔼 t (fun ω' => Mpart (φ (t + 1) ω')) = fun ω' => Mpart (φ (t + 1) ω') :=
+      EV_of_known 𝔼 (hmk t ht)
+    have hxz : EV 𝔼 t (fun ω' => Mpart (x t ω')) = fun ω' => Mpart (x t ω') := by
+      funext ω' r
+      exact congrFun (hxa t (Sum.inr r)) ω'
+    rw [Mpart_lhs118, hξ, EV_add, EV_mulVec, hM, hxz, Kmat, add_mulVec, mulVec_add,
+      ← mulVec_mulVec]
+    abel
+  have hwb : BoundedV wp := boundedV_mulVec _ hφb
+  constructor
+  · intro h118
+    have hweq : ∀ t, t0 ≤ t → ∀ ω,
+        wp t ω = (P.β • Q.Ψpᵀ) *ᵥ EV 𝔼 t (wp (t + 1)) ω + (P.β • Q.Jpᵀ) *ᵥ x t ω := by
+      intro t ht ω
+      have h0 := congrArg (Q.Jpᵀ *ᵥ ·) (h118 t ht ω)
+      change Q.Jpᵀ *ᵥ lhs118 P 𝔼 y φ t ω = Q.Jpᵀ *ᵥ 0 at h0
+      rw [Jp_lhs118, mulVec_zero, sub_eq_zero] at h0
+      change Q.Ψpᵀ *ᵥ EV 𝔼 t (wp (t + 1)) ω + Q.Jpᵀ *ᵥ x t ω = P.β⁻¹ • wp t ω at h0
+      rw [smul_mulVec, smul_mulVec, ← smul_add, h0, smul_smul, mul_inv_cancel₀ hβ, one_smul]
+    have hwF := eq_fwdSum 𝔼 hG hfb hwb (fun t _ => hfk t) hweq
+    have h121 : Eq121 t0 (Υmat P.sys (Q.Jp * Q.P)) (RopII 𝔼 Q x) φ := by
+      intro t ht ω
+      refine (eq121_iff P.sys Q.J1_det _ (Q.Pᵀ *ᵥ Fp 𝔼 Q x t ω) _).mpr ?_
+      rw [hwJ, hwF t ht]
+      rfl
+    refine ⟨fun t ht ω => ?_, h121⟩
+    refine (eq120_iff P.sys P.β Q.K_det _ _ _ _).mpr ?_
+    rw [← hMrows t ht h121 ω]
+    exact congrArg Mpart (h118 t ht ω)
+  · rintro ⟨h120, h121⟩
+    have hz : ∀ t, t0 ≤ t → ∀ ω, Mpart (lhs118 P 𝔼 y φ t ω) = 0 := fun t ht ω => by
+      rw [hMrows t ht h121 ω]
+      exact (eq120_iff P.sys P.β Q.K_det _ _ _ _).mp (h120 t ht ω)
+    set Dp : ℕ → Ω → ιc → ℝ := fun s ω => wp s ω - Fp 𝔼 Q x s ω with hDp
+    have hPD : ∀ s, t0 ≤ s → ∀ ω, Q.Pᵀ *ᵥ Dp s ω = 0 := by
+      intro s hs ω
+      have h := (eq121_iff P.sys Q.J1_det _ (Q.Pᵀ *ᵥ Fp 𝔼 Q x s ω) _).mp (h121 s hs ω)
+      rw [hwJ] at h
+      rw [hDp, mulVec_sub]
+      exact sub_eq_zero.mpr h
+    have hEsub : ∀ s ω, EV 𝔼 s (Dp (s + 1)) ω =
+        EV 𝔼 s (wp (s + 1)) ω - EV 𝔼 s (Fp 𝔼 Q x (s + 1)) ω :=
+      fun s ω => congrFun (EV_sub 𝔼 s (wp (s + 1)) (Fp 𝔼 Q x (s + 1))) ω
+    -- `J⁺'` applied to (1.18), with the `z`-rows already zero
+    have hkey : ∀ s, t0 ≤ s → ∀ ω, (J1 Q.Jp)ᵀ *ᵥ ξpart (lhs118 P 𝔼 y φ s ω) =
+        Q.Ψpᵀ *ᵥ EV 𝔼 s (Dp (s + 1)) ω - P.β⁻¹ • Dp s ω := by
+      intro s hs ω
+      have h1 := Jp_lhs118 P 𝔼 Q y φ s ω
+      rw [J_transpose_mulVec] at h1
+      change (J1 Q.Jp)ᵀ *ᵥ ξpart (lhs118 P 𝔼 y φ s ω) +
+        (J2 Q.Jp)ᵀ *ᵥ Mpart (lhs118 P 𝔼 y φ s ω) =
+        Q.Ψpᵀ *ᵥ EV 𝔼 s (wp (s + 1)) ω + Q.Jpᵀ *ᵥ x s ω - P.β⁻¹ • wp s ω at h1
+      rw [hz s hs ω, mulVec_zero, add_zero] at h1
+      rw [h1, hEsub, hDp, mulVec_sub, smul_sub, hFrec s ω]
+      abel
+    have hu : IsUnit ((J1 (Q.Jp * Q.P))ᵀ).det := by
+      rw [det_transpose]
+      exact Ne.isUnit Q.J1_det
+    have hJ1T : (J1 (Q.Jp * Q.P))ᵀ = Q.Pᵀ * (J1 Q.Jp)ᵀ := by
+      rw [J1_mul, transpose_mul]
+    have hξ : ∀ s, t0 ≤ s → ∀ ω, ξpart (lhs118 P 𝔼 y φ s ω) =
+        ((J1 (Q.Jp * Q.P))ᵀ)⁻¹ *ᵥ (Q.Pᵀ *ᵥ (Q.Ψpᵀ *ᵥ EV 𝔼 s (Dp (s + 1)) ω)) := by
+      intro s hs ω
+      have h2 := congrArg (Q.Pᵀ *ᵥ ·) (hkey s hs ω)
+      rw [mulVec_mulVec, ← hJ1T, mulVec_sub, mulVec_smul, hPD s hs ω, smul_zero,
+        sub_zero] at h2
+      rw [← h2, mulVec_mulVec, nonsing_inv_mul _ hu, one_mulVec]
+    have hEPD : ∀ s, t0 ≤ s → ∀ ω, Q.Pᵀ *ᵥ EV 𝔼 s (Dp (s + 1)) ω = 0 := by
+      intro s hs ω
+      have h3 := congrFun (EV_mulVec 𝔼 s Q.Pᵀ (Dp (s + 1))) ω
+      have h0 : (fun ω' => Q.Pᵀ *ᵥ Dp (s + 1) ω') = fun _ => (0 : ιZ → ℝ) :=
+        funext fun ω' => hPD (s + 1) (by omega) ω'
+      rw [← h3, h0, EV_const]
+    have hdrec : ∀ s, t0 ≤ s → ∀ ω, Dp s ω =
+        (P.β • Q.H) *ᵥ EV 𝔼 s (Dp (s + 1)) ω + (fun _ _ _ => (0 : ℝ)) s ω := by
+      intro s hs ω
+      have h1 := hkey s hs ω
+      rw [hξ s hs ω] at h1
+      have h3 : (residProj Q.Jp Q.P * Q.Ψpᵀ) *ᵥ EV 𝔼 s (Dp (s + 1)) ω = P.β⁻¹ • Dp s ω := by
+        rw [residProj, Matrix.sub_mul, Matrix.one_mul, sub_mulVec, ← mulVec_mulVec,
+          ← mulVec_mulVec, ← mulVec_mulVec, h1]
+        abel
+      rw [Q.resid _ (hEPD s hs ω)] at h3
+      change Dp s ω = (P.β • Q.H) *ᵥ EV 𝔼 s (Dp (s + 1)) ω + 0
+      rw [add_zero, smul_mulVec, h3, smul_smul, mul_inv_cancel₀ hβ, one_smul]
+    have hDb : BoundedV Dp := by
+      obtain ⟨M1, h1⟩ := hwb
+      obtain ⟨M2, h2⟩ := hFb
+      refine ⟨M1 + M2, fun t ω i => ?_⟩
+      exact (abs_sub _ _).trans (add_le_add (h1 t ω i) (h2 t ω i))
+    have hzero : BoundedV (fun (_ : ℕ) (_ : Ω) (_ : ιc) => (0 : ℝ)) :=
+      ⟨0, fun _ _ _ => by simp⟩
+    have hd0 := eq_fwdSum 𝔼 Q.decay hzero hDb (fun t _ i => 𝔼.const t 0) hdrec
+    have hE0 : ∀ t, EV 𝔼 t (fun (_ : Ω) (_ : ιc) => (0 : ℝ)) = fun _ _ => 0 :=
+      fun t => EV_const 𝔼 t 0
+    have hfz : ∀ t, fwdSum 𝔼 (P.β • Q.H) (fun _ _ _ => (0 : ℝ)) t = fun _ _ => 0 := by
+      intro t
+      funext ω i
+      have hz0 : ∀ M : Matrix ιc ιc ℝ, (M *ᵥ fun _ => (0 : ℝ)) = 0 := fun M => mulVec_zero M
+      simp [fwdSum, hE0, hz0]
+    intro t ht ω
+    have hD1 : Dp (t + 1) = fun _ _ => 0 := by
+      rw [hd0 (t + 1) (by omega), hfz]
+    have hξ0 : ξpart (lhs118 P 𝔼 y φ t ω) = 0 := by
+      rw [hξ t ht ω, hD1, hE0]
+      change ((J1 (Q.Jp * Q.P))ᵀ)⁻¹ *ᵥ (Q.Pᵀ *ᵥ (Q.Ψpᵀ *ᵥ (0 : ιc → ℝ))) = 0
+      rw [mulVec_zero, mulVec_zero, mulVec_zero]
+    funext a
+    rcases a with i | r
+    · exact congrFun hξ0 i
+    · exact congrFun (hz t ht ω) r
+
+
+/-- Woodford (2003), Proposition 8.1, p. 553, case (ii): `Q(L⁻¹)`, `R(L⁻¹)` map bounded processes
+to bounded processes and `E_t R(L⁻¹)` is known at `t`. -/
+theorem fwII_spec (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ} (hβ : 0 < β)
+    (Q : QuasiSplit S β ιc) {x : ℕ → Ω → ιZ ⊕ ιz → ℝ} (hx : BoundedV x) :
+    BoundedV (RopII 𝔼 Q x) ∧ AdaptedV 𝔼 (RopII 𝔼 Q x) ∧ BoundedV (QopII 𝔼 Q x) := by
+  obtain ⟨-, hFa, hFb⟩ := fwdSum_spec 𝔼 (Q.powDecay_Gp hβ) (boundedV_mulVec (β • Q.Jpᵀ) hx)
+  have hRb : BoundedV (RopII 𝔼 Q x) := boundedV_mulVec _ (boundedV_mulVec Q.Pᵀ hFb)
+  refine ⟨hRb, fun t => knownV_mulVec 𝔼 _ (knownV_mulVec 𝔼 _ (hFa t)), ?_⟩
+  obtain ⟨Mx, hMx⟩ := hx
+  obtain ⟨MR, hMR⟩ := hRb
+  have h1 : BoundedV (fun t ω => EV 𝔼 t (fun ω' => Mpart (x t ω')) ω +
+      S.A12ᵀ *ᵥ EV 𝔼 t (RopII 𝔼 Q x (t + 1)) ω) := by
+    refine boundedV_add ⟨Mx, fun t ω r => abs_EV_le 𝔼 (fun ω' r' => hMx t ω' (Sum.inr r')) t ω r⟩
+      (boundedV_mulVec (x := fun t ω => EV 𝔼 t (RopII 𝔼 Q x (t + 1)) ω) _
+        ⟨MR, fun t ω i => abs_EV_le 𝔼 (hMR (t + 1)) t ω i⟩)
+  obtain ⟨K, hK⟩ := boundedV_mulVec (Kmat S (Q.Jp * Q.P))⁻¹ h1
+  exact ⟨K, fun t ω r => by
+    change |(-((Kmat S (Q.Jp * Q.P))⁻¹ *ᵥ _)) r| ≤ K
+    rw [Pi.neg_apply, abs_neg]
+    exact hK t ω r⟩
+
+/-- Woodford (2003), Proposition 8.1, p. 553, case (ii): `E_t Q(L⁻¹) x` is known at `t`. -/
+theorem qopII_adapted (𝔼 : ExpectationSystem Ω) {S : LinearRESystem ιZ ιz} {β : ℝ}
+    (Q : QuasiSplit S β ιc) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : AdaptedV 𝔼 (QopII 𝔼 Q x) := by
+  intro t
+  have h1 := knownV_add 𝔼 (knownV_EV 𝔼 t (fun ω' => Mpart (x t ω')))
+    (knownV_mulVec 𝔼 S.A12ᵀ (knownV_EV 𝔼 t (RopII 𝔼 Q x (t + 1))))
+  have h2 := knownV_mulVec 𝔼 (-(Kmat S (Q.Jp * Q.P))⁻¹) h1
+  have h3 : (fun ω => (-(Kmat S (Q.Jp * Q.P))⁻¹) *ᵥ (EV 𝔼 t (fun ω' => Mpart (x t ω')) ω +
+      S.A12ᵀ *ᵥ EV 𝔼 t (RopII 𝔼 Q x (t + 1)) ω)) = QopII 𝔼 Q x t := by
+    funext ω
+    rw [neg_mulVec]
+    rfl
+  rw [← h3]
+  exact h2
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553 (corrected), from a `QuasiSplit` (case (ii) of
+Assumption 8.2): `Λ = β⁻¹ K⁻¹ Ẽ'`, `Υ = −(J₁')⁻¹ J₂' Ẽ'` with `J = J⁺P`, and `Q(L⁻¹)`,
+`R(L⁻¹)`; bounded `(φ, τ)` (`M_t` known at `t`, adapted plans) satisfy (1.18) for `t ≥ t₀` iff
+they satisfy (1.20)–(1.21). Any expectation system. -/
+noncomputable def prop81II (P : LQProblem ιZ ιz ιτ) (Q : QuasiSplit P.sys P.β ιc)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) : Prop81ConclusionM P 𝔼 t0 where
+  Λ := Λmat P.sys P.β (Q.Jp * Q.P)
+  Υ := Υmat P.sys (Q.Jp * Q.P)
+  Qop := QopII 𝔼 Q
+  Rop := RopII 𝔼 Q
+  equiv := prop81_equivII P Q 𝔼 t0
+  Qbounded := fun _ hx => (fwII_spec 𝔼 P.β_pos Q hx).2.2
+  Rbounded := fun _ hx => (fwII_spec 𝔼 P.β_pos Q hx).1
+  Qadapted := qopII_adapted 𝔼 Q
+  Radapted := fun _ hx => (fwII_spec 𝔼 P.β_pos Q hx).2.1
+
+/-- Woodford (2003), App. G.1: `|c| < 1` makes the powers of `c I` decay. -/
+theorem powDecay_smul_one {ι : Type*} [Fintype ι] [DecidableEq ι] {c : ℝ} (hc : |c| < 1) :
+    PowDecay (c • (1 : Matrix ι ι ℝ)) := by
+  refine ⟨1, |c|, abs_nonneg c, hc, fun k i j => ?_⟩
+  rw [smul_pow, one_pow, Matrix.smul_apply, Matrix.one_apply, smul_eq_mul, abs_mul, abs_pow,
+    one_mul]
+  by_cases h : i = j
+  · simp [h]
+  · simp [h, pow_nonneg (abs_nonneg c)]
+
+/-- Woodford (2003), Proposition 8.1: a `DeflatingSplit` (case (i)) is the quasi-split with
+`J⁺ = J`, `P = I` and no residual root. -/
+noncomputable def quasiOfDeflating {S : LinearRESystem ιZ ιz} {β : ℝ} (D : DeflatingSplit S β) :
+    QuasiSplit S β ιZ where
+  Jp := D.J
+  Ψp := D.Ψ
+  deflate := D.deflate
+  eig_lt := D.eig_lt
+  P := 1
+  J1_det := by rw [Matrix.mul_one]; exact D.J1_det
+  K_det := by rw [Matrix.mul_one]; exact D.K_det
+  H := (0 : ℝ) • 1
+  resid := fun v hv => by
+    rw [transpose_one, one_mulVec] at hv
+    rw [hv, mulVec_zero, mulVec_zero]
+  decay := by
+    rw [smul_smul]
+    exact powDecay_smul_one (by simp)
+
+/-! ### Proposition 8.2 from a quasi-split -/
+
+/-- Woodford (2003), **Proposition 8.2**, p. 555, for the matrices of `prop81II` (case (ii)):
+under Assumption 8.1, Assumption 8.5 for `Λ = β⁻¹ K⁻¹ Ẽ'` (`J = J⁺P`), a lag length
+`D ≥ max(1, rank Ẽ)` and a consistent bounded history, commitment to (1.23) is robustly
+optimal. -/
+theorem prop82_of_quasiSplit {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (hpull : 𝔼.PullOut) (hA : Prop82General.Assumption81M P 𝔼 t0) (Q : QuasiSplit P.sys P.β ιc)
+    (h85 : TargetCriterion.Krylov.Assumption85b (Λmat P.sys P.β (Q.Jp * Q.P)) P.sys.B2)
+    {D : ℕ} (hD : D + 1 ≤ t0) (hDk : P.sys.Et.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ}
+    {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK (Λmat P.sys P.β (Q.Jp * Q.P)) P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := ιz) P 𝔼 t0
+      (fun _ y => Prop82General.Prop82M.CriterionM (prop81II P Q 𝔼 t0) D qh vh y)
+      (fun _ y t ω => zpart (y t ω)) := by
+  have hrk : (Λmat P.sys P.β (Q.Jp * Q.P)).rank ≤ D := by
+    rw [rank_Λmat P.sys P.β_pos.ne' Q.K_det]
+    exact hDk
+  exact Prop82General.Prop82M.prop82M_robustlyOptimal hpull hA (prop81II P Q 𝔼 t0) h85 hD
+    (fun i c => (natDegree_Bpoly_le_rank _ i c).trans hrk)
+    ((natDegree_alpha_le_rank _).trans hrk) hhist hMhb hMhk hqhb hvhb
+
+/-! ### Case (ii) of Assumption 8.2 and the corrected Assumption 8.4 (ii) -/
+
+/-- Woodford (2003), Assumption 8.2 (ii): the selection with the conjugate of the unpaired root
+added. -/
+noncomputable def selPlus (sel : Multiset ℂ) (μ : ℂ) : Multiset ℂ := starRingEnd ℂ μ ::ₘ sel
+
+/-- Woodford (2003), Assumption 8.2 (ii): adding `conj μ` closes the selection under
+conjugation. -/
+theorem conjClosed_selPlus {sel : Multiset ℂ} {μ : ℂ} (hμ : μ ∈ sel)
+    (hc : ConjClosed (sel.erase μ)) : ConjClosed (selPlus sel μ) := by
+  unfold ConjClosed selPlus at *
+  rw [← Multiset.cons_erase hμ, Multiset.map_cons, Multiset.map_cons, hc, Complex.conj_conj,
+    Multiset.cons_swap]
+
+/-- Woodford (2003), (1.15): the roots of the real pencil come in conjugate pairs. -/
+theorem pencil_eval_conj (S : LinearRESystem ιZ ιz) {μ : ℂ} (h : S.pencilPoly.eval μ = 0) :
+    S.pencilPoly.eval (starRingEnd ℂ μ) = 0 := by
+  obtain ⟨w, hw0, hw⟩ := exists_pencil_eigvec S h
+  rw [pencilPoly_eval]
+  refine exists_mulVec_eq_zero_iff.mp ⟨fun i => starRingEnd ℂ (w i), ?_, ?_⟩
+  · intro h0
+    apply hw0
+    funext i
+    have := congrFun h0 i
+    simpa using this
+  · rw [sub_mulVec, map_mulVec_conj, smul_mulVec, map_mulVec_conj, hw]
+    funext i
+    simp
+
+/-- Woodford (2003), **Assumption 8.4 (ii), corrected for case (ii) of Assumption 8.2
+(normalisation-free)**: for every real basis `J⁺` (with `A J⁺ = Î J⁺ Ψ⁺`) of the invariant
+subspace of the selection `sel'` (the selection plus `conj μ`, `n_Z + 1` columns), there is a real
+`(n_Z + 1) × n_Z` matrix `P` with `J₁ = (J⁺P)₁` and `K = A₂₂' + A₁₂' Υ` invertible whose residual
+root `h` — `(I − J⁺₁'(J₁')⁻¹P') Ψ⁺' v = h v` on `ker P'` — satisfies `|βh| < 1`. No eigenvector
+is scaled. -/
+def Assumption84IIall (S : LinearRESystem ιZ ιz) (β : ℝ) (sel' : Multiset ℂ) : Prop :=
+  ∀ (Jp : Matrix (ιZ ⊕ ιz) (Option ιZ) ℝ) (Ψp : Matrix (Option ιZ) (Option ιZ) ℝ),
+    S.Ahat * Jp = S.Ihat * Jp * Ψp → LinearIndependent ℝ Jpᵀ →
+    (∀ ν : ℂ, (Matrix.scalar (Option ιZ) ν - Ψp.map Complex.ofReal).det = 0 → ν = 0 ∨ ν ∈ sel') →
+    ∃ (P : Matrix (Option ιZ) ιZ ℝ) (h : ℝ), (J1 (Jp * P)).det ≠ 0 ∧
+      (Kmat S (Jp * P)).det ≠ 0 ∧ |β * h| < 1 ∧
+      ∀ v, Pᵀ *ᵥ v = 0 → (residProj Jp P * Ψpᵀ) *ᵥ v = h • v
+
+/-- Woodford (2003), Assumptions 8.2 (ii) and 8.4 (ii) (corrected), App. G.1: a selection with one
+unpaired root `μ` (`sel.erase μ` closed under conjugation), whole root classes for the selection
+plus `conj μ`, a nonzero (1.15) and `Assumption84IIall` give a quasi-split. -/
+theorem nonempty_quasiSplit {S : LinearRESystem ιZ ιz} {β : ℝ} (hβ : 0 < β)
+    (h82 : Assumption82 S β) {μ : ℂ} (hμ : μ ∈ h82.sel) (hc : ConjClosed (h82.sel.erase μ))
+    (hreg : S.pencilPoly ≠ 0) (hw : SelWhole S (selPlus h82.sel μ))
+    (h84 : Assumption84IIall S β (selPlus h82.sel μ)) : Nonempty (QuasiSplit S β (Option ιZ)) := by
+  have hsel : ∀ ν ∈ h82.sel, ν ≠ 0 ∧ S.pencilPoly.eval ν = 0 ∧ ‖ν‖ < β⁻¹ := by
+    intro ν hν
+    have := Multiset.mem_of_le h82.sel_le hν
+    rw [Multiset.mem_filter, Polynomial.mem_roots hreg] at this
+    exact ⟨this.2.1, this.1, this.2.2⟩
+  have hsel' : ∀ ν ∈ selPlus h82.sel μ, ν ≠ 0 ∧ S.pencilPoly.eval ν = 0 ∧ ‖ν‖ < β⁻¹ := by
+    intro ν hν
+    rw [selPlus, Multiset.mem_cons] at hν
+    rcases hν with rfl | hν
+    · obtain ⟨h0, hr, hn⟩ := hsel μ hμ
+      exact ⟨by rwa [ne_eq, map_eq_zero], pencil_eval_conj S hr, by rwa [Complex.norm_conj]⟩
+    · exact hsel ν hν
+  obtain ⟨Jp, Ψp, hd, hind, heig⟩ := exists_deflating_cols S (κ := Option ιZ)
+    (conjClosed_selPlus hμ hc) (fun ν hν => ⟨(hsel' ν hν).1, (hsel' ν hν).2.1⟩) hreg hw (by
+      rw [selPlus, Multiset.card_cons, Fintype.card_option]
+      have := h82.sel_card
+      omega)
+  obtain ⟨P, h, hJ1, hK, hh, hres⟩ := h84 Jp Ψp hd hind heig
+  refine ⟨⟨Jp, Ψp, hd, fun ν hν => ?_, P, hJ1, hK, h • 1,
+    fun v hv => by rw [hres v hv, smul_mulVec, one_mulVec],
+    by rw [smul_smul]; exact powDecay_smul_one hh⟩⟩
+  rcases heig ν hν with h0 | hm
+  · rw [h0, norm_zero]
+    exact inv_pos.mpr hβ
+  · exact (hsel' ν hm).2.2
+
+/-- Woodford (2003), Assumption 8.3: with distinct nonzero roots, the selection plus `conj μ`
+takes whole root classes (`conj μ` unselected, as in case (ii)). -/
+theorem selWhole_selPlus_of_83 {S : LinearRESystem ιZ ιz} {β : ℝ} (h82 : Assumption82 S β)
+    (h83 : Assumption83 S) {μ : ℂ} (hμ : μ ∈ h82.sel) (hnot : starRingEnd ℂ μ ∉ h82.sel) :
+    SelWhole S (selPlus h82.sel μ) := by
+  have hle : h82.sel ≤ nonzeroRoots S :=
+    h82.sel_le.trans (Multiset.monotone_filter_right _ fun ν h => h.1)
+  have hnd : h82.sel.Nodup := Multiset.nodup_of_le hle h83.nodup
+  have hndp : (selPlus h82.sel μ).Nodup := Multiset.nodup_cons.mpr ⟨hnot, hnd⟩
+  have hμn : μ ∈ nonzeroRoots S := Multiset.mem_of_le hle hμ
+  intro ν hν
+  have hνn : ν ∈ nonzeroRoots S := by
+    rw [selPlus, Multiset.mem_cons] at hν
+    rcases hν with rfl | hν
+    · obtain ⟨hr, h0⟩ := Multiset.mem_filter.mp hμn
+      rw [nonzeroRoots, Multiset.mem_filter, Polynomial.mem_roots h83.regular]
+      exact ⟨pencil_eval_conj S ((Polynomial.mem_roots h83.regular).mp hr),
+        by rwa [ne_eq, map_eq_zero]⟩
+    · exact Multiset.mem_of_le hle hν
+  have hν0 : ν ≠ 0 := (Multiset.mem_filter.mp hνn).2
+  rw [Multiset.count_eq_one_of_mem hndp hν,
+    ← Multiset.count_filter_of_pos (p := fun ν : ℂ => ν ≠ 0) hν0]
+  exact (Multiset.count_eq_one_of_mem h83.nodup hνn).symm
+
+/-- Woodford (2003), App. G.1: the quasi-split chosen from Assumptions 8.2 (ii) and 8.4 (ii)
+(corrected). -/
+noncomputable def quasiSplitOf (P : LQProblem ιZ ιz ιτ) (h82 : Assumption82 P.sys P.β) {μ : ℂ}
+    (hμ : μ ∈ h82.sel) (hc : ConjClosed (h82.sel.erase μ)) (hreg : P.sys.pencilPoly ≠ 0)
+    (hw : SelWhole P.sys (selPlus h82.sel μ))
+    (h84 : Assumption84IIall P.sys P.β (selPlus h82.sel μ)) :
+    QuasiSplit P.sys P.β (Option ιZ) :=
+  (nonempty_quasiSplit P.β_pos h82 hμ hc hreg hw h84).some
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553, **in case (ii) of Assumption 8.2**: one selected
+complex root `μ` with its conjugate unselected, the corrected (normalisation-free) Assumption 8.4
+(ii), a nonzero (1.15) and whole root classes (repeated roots allowed): the corrected Proposition
+8.1 holds for any expectation system. -/
+theorem prop81_caseII_all (P : LQProblem ιZ ιz ιτ) (h82 : Assumption82 P.sys P.β) {μ : ℂ}
+    (hμ : μ ∈ h82.sel) (hc : ConjClosed (h82.sel.erase μ)) (hreg : P.sys.pencilPoly ≠ 0)
+    (hw : SelWhole P.sys (selPlus h82.sel μ))
+    (h84 : Assumption84IIall P.sys P.β (selPlus h82.sel μ))
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) : Nonempty (Prop81ConclusionM P 𝔼 t0) :=
+  ⟨prop81II P (quasiSplitOf P h82 hμ hc hreg hw h84) 𝔼 t0⟩
+
+/-- Woodford (2003), **Proposition 8.2**, p. 555, **in case (ii) of Assumption 8.2**: under
+Assumptions 8.1, 8.2 (ii), the corrected 8.4 (ii), 8.5 and a nonzero (1.15), commitment to (1.23)
+is robustly optimal. -/
+theorem prop82_caseII_all {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (hpull : 𝔼.PullOut) (hA : Prop82General.Assumption81M P 𝔼 t0)
+    (h82 : Assumption82 P.sys P.β) {μ : ℂ} (hμ : μ ∈ h82.sel) (hc : ConjClosed (h82.sel.erase μ))
+    (hreg : P.sys.pencilPoly ≠ 0) (hw : SelWhole P.sys (selPlus h82.sel μ))
+    (h84 : Assumption84IIall P.sys P.β (selPlus h82.sel μ))
+    (h85 : Assumption85 (Λmat P.sys P.β ((quasiSplitOf P h82 hμ hc hreg hw h84).Jp *
+      (quasiSplitOf P h82 hμ hc hreg hw h84).P)) P.sys.B2)
+    {D : ℕ} (hD : D + 1 ≤ t0) (hDk : P.sys.Et.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ}
+    {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK (Λmat P.sys P.β
+      ((quasiSplitOf P h82 hμ hc hreg hw h84).Jp * (quasiSplitOf P h82 hμ hc hreg hw h84).P))
+      P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := ιz) P 𝔼 t0
+      (fun _ y => Prop82General.Prop82M.CriterionM
+        (prop81II P (quasiSplitOf P h82 hμ hc hreg hw h84) 𝔼 t0) D qh vh y)
+      (fun _ y t ω => zpart (y t ω)) :=
+  prop82_of_quasiSplit hpull hA _ h85.2 hD hDk hhist hMhb hMhk hqhb hvhb
+
+end Woodford.OptimalPolicyRules.Prop81CaseII
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# How many lags of `q` the multiplier rule needs ((1.24), p. 554)
+
+Woodford (2003), *Interest and Prices*, Chapter 8, eq. (1.24), p. 554, with (1.17), p. 551, and
+Assumption 8.5 (App. G.2, p. 719).
+
+The state (1.24) is `Z̄_t = (Z_t, q_{t−1}, …, q_{t−d}, v_{t−1}, …, v_{t−k})` with `k = rank Λ` and
+`d = min(k, n_z − 1)`. The question is whether `d` lags of `q` (with `k` lags of `v`) suffice to
+recover the multipliers `M_{t−1}` time-invariantly (the rule (1.17)). They do, for `k ≥ 1`:
+
+* `k < n_z` (so `d = k`): the rule of `Prop82General.KrylovBound.gRule` with window `k` uses
+  exactly `k` lags of `q` and of `v` (second part of Assumption 8.5); `rule_lags_lt`.
+* `k = n_z` (so `d = k − 1`): the **first** part of Assumption 8.5 (`B₂', B₂'Λ, …, B₂'Λ^{k−1}`
+  independent, hence a basis) recovers `M_{t−k}` from `v_{t−k}, …, v_{t−1}` and
+  `q_{t−k+1}, …, q_{t−1}`, and then `M_{t−1}`: `gRule1`, `multiplier_rule1`, `rule_lags_full`.
+  This is what the first part of Assumption 8.5 is for.
+* `k = 0`: `Λ = 0` and `Ẽ = 0` (`rank Λ = rank Ẽ`), so `M_{t−1} = q_{t−1}` needs one lag of `q`
+  although `d = 0` (`rule_lags_zero`); but then the constraint (1.27) `Ẽ z_{t₀} = ē` is vacuous and
+  the initial multipliers do not affect optimality, so nothing is lost.
+-/
+
+namespace Woodford.OptimalPolicyRules.MultiplierLags
+
+open Matrix GeneralSetup PencilSplit Prop81General Prop82General.KrylovBound
+  Prop82General.Prop82M TargetCriterion.Recursion TargetCriterion.Prop81 TargetCriterion.Prop82
+  GeneralFOC.LQ
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-- Woodford (2003), Assumption 8.5 (first part), App. G.2: the observation map
+`m ↦ (B₂' m, B₂'Λ m, …, B₂'Λ^{k−1} m)`. -/
+def obsMap (Λ : Matrix ι ι ℝ) (B2 : ι → ℝ) (k : ℕ) : (ι → ℝ) →ₗ[ℝ] (Fin k → ℝ) :=
+  (Matrix.of fun (j : Fin k) i => (B2 ᵥ* Λ ^ (j : ℕ)) i).mulVecLin
+
+/-- Woodford (2003), Assumption 8.5 (first part) with `k = n_z`: the `k` vectors `B₂'Λʲ`,
+`j < k`, form a basis, so the observation map is injective. -/
+theorem obsMap_injective {Λ : Matrix ι ι ℝ} {B2 : ι → ℝ} {k : ℕ}
+    (h : LinearIndependent ℝ (fun j : Fin k => B2 ᵥ* Λ ^ (j : ℕ))) (hk : k = Fintype.card ι) :
+    Function.Injective (obsMap Λ B2 k) := by
+  rw [← LinearMap.ker_eq_bot, eq_bot_iff]
+  intro m hm
+  rw [LinearMap.mem_ker] at hm
+  rw [Submodule.mem_bot]
+  rcases isEmpty_or_nonempty (Fin k) with hke | hkn
+  · have : IsEmpty ι := by
+      rw [← Fintype.card_eq_zero_iff, ← hk]
+      simpa using hke
+    funext i
+    exact isEmptyElim i
+  have htop := h.span_eq_top_of_card_eq_finrank (by simp [hk])
+  have hmem : m ∈ Submodule.span ℝ (Set.range fun j : Fin k => B2 ᵥ* Λ ^ (j : ℕ)) := by
+    rw [htop]
+    exact Submodule.mem_top
+  obtain ⟨c, hc⟩ := (Submodule.mem_span_range_iff_exists_fun ℝ).mp hmem
+  have hdot : ∀ j : Fin k, (B2 ᵥ* Λ ^ (j : ℕ)) ⬝ᵥ m = 0 := fun j => by
+    have := congrFun hm j
+    simpa [obsMap, mulVec, dotProduct] using this
+  have hmm : m ⬝ᵥ m = 0 := by
+    calc m ⬝ᵥ m = (∑ j, c j • (B2 ᵥ* Λ ^ (j : ℕ))) ⬝ᵥ m := by rw [hc]
+      _ = 0 := by
+        rw [sum_dotProduct]
+        exact Finset.sum_eq_zero fun j _ => by rw [smul_dotProduct, hdot j, smul_zero]
+  exact dotProduct_self_eq_zero.mp hmm
+
+/-- Woodford (2003), Assumption 8.5 (first part), `k = n_z`: the inverse of the observation map. -/
+noncomputable def obsEquiv {Λ : Matrix ι ι ℝ} {B2 : ι → ℝ} {k : ℕ}
+    (h : LinearIndependent ℝ (fun j : Fin k => B2 ᵥ* Λ ^ (j : ℕ))) (hk : k = Fintype.card ι) :
+    (ι → ℝ) ≃ₗ[ℝ] (Fin k → ℝ) :=
+  LinearMap.linearEquivOfInjective (obsMap Λ B2 k) (obsMap_injective h hk) (by simp [hk])
+
+/-- Woodford (2003), (1.17) with (1.24) for `k = n_z`: the rule using `v_{s₀}, …, v_{s₀+k−1}`
+(`vs j = v_{s₀+j}`) and only `q_{s₀+1}, …, q_{s₀+k−1}` (`qs i = q_{s₀+1+i}`, `k − 1 = d` lags). -/
+noncomputable def gRule1 (Λ : Matrix ι ι ℝ) (B2 : ι → ℝ) {k : ℕ}
+    (E : (ι → ℝ) ≃ₗ[ℝ] (Fin k → ℝ)) (qs : ℕ → ι → ℝ) (vs : ℕ → ℝ) : ι → ℝ :=
+  Λ ^ (k - 1) *ᵥ E.symm (fun j => -vs j -
+      ∑ i ∈ Finset.range (j : ℕ), B2 ⬝ᵥ (Λ ^ ((j : ℕ) - 1 - i) *ᵥ qs i)) +
+    ∑ i ∈ Finset.range (k - 1), Λ ^ (k - 1 - 1 - i) *ᵥ qs i
+
+/-- Woodford (2003), (1.17), (1.24) and Assumption 8.5 (first part), `k = n_z ≥ 1`: if (1.20)
+holds on `s₀ + 1, …, s₀ + k − 1` and (1.19) on `s₀, …, s₀ + k − 1`, the multiplier `M_{s₀+k−1}` is
+`gRule1` of `v_{s₀..s₀+k−1}` and `q_{s₀+1..s₀+k−1}`. -/
+theorem multiplier_rule1 {Λ : Matrix ι ι ℝ} {B2 : ι → ℝ} {k : ℕ}
+    (h : LinearIndependent ℝ (fun j : Fin k => B2 ᵥ* Λ ^ (j : ℕ))) (hk : k = Fintype.card ι)
+    (hk1 : 1 ≤ k) {s0 : ℕ} {m q : ℕ → ι → ℝ} {v : ℕ → ℝ}
+    (h120 : ∀ j, 1 ≤ j → j ≤ k - 1 → m (s0 + j) = Λ *ᵥ m (s0 + j - 1) + q (s0 + j))
+    (h119 : ∀ j, j ≤ k - 1 → B2 ⬝ᵥ m (s0 + j) + v (s0 + j) = 0) :
+    m (s0 + (k - 1)) =
+      gRule1 Λ B2 (obsEquiv h hk) (fun i => q (s0 + 1 + i)) (fun j => v (s0 + j)) := by
+  have hobs : obsEquiv h hk (m s0) = fun j : Fin k => -v (s0 + (j : ℕ)) -
+      ∑ i ∈ Finset.range (j : ℕ), B2 ⬝ᵥ (Λ ^ ((j : ℕ) - 1 - i) *ᵥ q (s0 + 1 + i)) := by
+    funext j
+    have hit := iterate_rec (Λ := Λ) (m := m) (q := q) (t := s0) (n := (j : ℕ))
+      (fun i hi1 hi2 => h120 i hi1 (by have := j.isLt; omega))
+    have h19 := h119 (j : ℕ) (by have := j.isLt; omega)
+    rw [hit, dotProduct_add, dotProduct_sum] at h19
+    change (obsMap Λ B2 k) (m s0) j = _
+    simp only [obsMap, mulVecLin_apply]
+    change (B2 ᵥ* Λ ^ (j : ℕ)) ⬝ᵥ m s0 = _
+    rw [← dotProduct_mulVec]
+    linarith
+  have hm0 : m s0 = (obsEquiv h hk).symm (fun j : Fin k => -v (s0 + (j : ℕ)) -
+      ∑ i ∈ Finset.range (j : ℕ), B2 ⬝ᵥ (Λ ^ ((j : ℕ) - 1 - i) *ᵥ q (s0 + 1 + i))) := by
+    rw [← hobs, LinearEquiv.symm_apply_apply]
+  rw [iterate_rec (fun i hi1 hi2 => h120 i hi1 hi2), gRule1, ← hm0]
+
+/-- Woodford (2003), (1.17), (1.24), Proposition 8.2 and Assumption 8.5, **`k = n_z`**: along a
+solution of (1.1) + (1.9) with the recovered initial multipliers, one fixed rule gives
+`M_{t−1} = gRule1(q_{t−1}, …, q_{t−k+1}; v_{t−1}, …, v_{t−k})` at every `t ≥ t₀` — `d = k − 1`
+lags of `q` suffice. -/
+theorem rule_lags_full {Ω ιZ ιτ : Type*} [Fintype ιZ] [DecidableEq ιZ] [Fintype ιτ]
+    {P : LQProblem ιZ ι ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0)
+    (h85a : LinearIndependent ℝ (fun j : Fin H.Λ.rank => P.sys.B2 ᵥ* H.Λ ^ (j : ℕ)))
+    (hfull : H.Λ.rank = Fintype.card ι) (hk1 : 1 ≤ H.Λ.rank) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hDk : H.Λ.rank ≤ D) {Mh qh : ℕ → Ω → ι → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh) {c : ℕ → Ω → ι → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ι) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ι → ℝ}
+    (hs : FOCSystem P 𝔼 c t0 Z0 (Mh (t0 - 1)) y φ) :
+    ∀ t, t0 ≤ t → ∀ ω, Mpart (φ t ω) =
+      gRule1 H.Λ P.sys.B2 (obsEquiv h85a hfull)
+        (fun i => splice t0 qh (H.Qop (xproc P y)) (t - H.Λ.rank + 1 + i) ω)
+        (fun j => splice t0 vh (vproc P y) (t - H.Λ.rank + j) ω) := by
+  obtain ⟨h120, h119⟩ := histThen_rec H hD hhist hs
+  intro t ht ω
+  set k := H.Λ.rank with hkdef
+  have hrule := multiplier_rule1 h85a hfull hk1 (s0 := t - k)
+    (m := fun s => histThen t0 Mh φ s ω) (q := fun s => splice t0 qh (H.Qop (xproc P y)) s ω)
+    (v := fun s => splice t0 vh (vproc P y) s ω)
+    (fun j hj1 hjK => h120 (t - k + j) (by omega) ω)
+    (fun j hjK => h119 (t - k + j) (by omega) ω)
+  rw [show t - k + (k - 1) = t - 1 by omega] at hrule
+  rw [← hrule]
+  by_cases hlt : t - 1 < t0
+  · have ht0 : t = t0 := by omega
+    subst ht0
+    simp only [histThen, hlt, ↓reduceIte]
+    exact hs.2.2.2.1 ω
+  · simp only [histThen, hlt, ↓reduceIte, show t - 1 + 1 = t by omega]
+
+/-- Woodford (2003), (1.17), (1.24), **`1 ≤ k < n_z`** (`d = k`): the rule `gRule` with window
+`k` uses `k = d` lags of `q` and of `v` (`Prop82General.Prop82M.prop82M_multiplier_rule` with
+`D = k`). -/
+theorem rule_lags_lt {Ω ιZ ιτ : Type*} [Fintype ιZ] [DecidableEq ιZ] [Fintype ιτ]
+    {P : LQProblem ιZ ι ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) (h85 : TargetCriterion.Krylov.Assumption85b H.Λ P.sys.B2)
+    (hk1 : 1 ≤ H.Λ.rank) (hD : H.Λ.rank + 1 ≤ t0) {Mh qh : ℕ → Ω → ι → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : HistoryOK H.Λ P.sys.B2 t0 H.Λ.rank Mh qh vh) {c : ℕ → Ω → ι → ℝ}
+    {Z0 : Ω → ιZ → ℝ} {y : ℕ → Ω → (ιZ ⊕ ι) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ι → ℝ}
+    (hs : FOCSystem P 𝔼 c t0 Z0 (Mh (t0 - 1)) y φ) :
+    ∃ C : Matrix ι (Fin H.Λ.rank) ℝ, ∀ t, t0 ≤ t → ∀ ω,
+      Mpart (φ t ω) = gRule H.Λ P.sys.B2 C H.Λ.rank
+        (fun i => splice t0 qh (H.Qop (xproc P y)) (t - H.Λ.rank + i) ω)
+        (fun i => splice t0 vh (vproc P y) (t - H.Λ.rank + i) ω) :=
+  prop82M_multiplier_rule H h85 hD hk1 le_rfl hhist hs
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (1.24) (tool): a real matrix of rank zero is zero. -/
+theorem eq_zero_of_rank_zero {m : Type*} {M : Matrix m ι ℝ} (h : M.rank = 0) : M = 0 := by
+  have hr : LinearMap.range M.mulVecLin = ⊥ := Submodule.finrank_eq_zero.mp h
+  ext i j
+  classical
+  have : M *ᵥ Pi.single j 1 ∈ LinearMap.range M.mulVecLin := ⟨_, rfl⟩
+  rw [hr, Submodule.mem_bot] at this
+  have := congrFun this i
+  simpa [mulVec_single_one] using this
+
+/-- Woodford (2003), (1.24) with `k = 0`: then `Λ = 0`, so (1.20) is `M_t = q_t` and the rule is
+`M_{t−1} = q_{t−1}` — one lag of `q` although `d = 0`; and `Ẽ = 0` (`rank Λ = rank Ẽ`), so the
+initial constraint (1.27) is vacuous. -/
+theorem rule_lags_zero {Ω ιZ : Type*} [Fintype ιZ] [DecidableEq ιZ] {S : LinearRESystem ιZ ι}
+    {β : ℝ} (hβ : β ≠ 0) {J : Matrix (ιZ ⊕ ι) ιZ ℝ} (hK : (Kmat S J).det ≠ 0)
+    (hk : (Λmat S β J).rank = 0) {M q : ℕ → Ω → ι → ℝ} {t0 : ℕ}
+    (h120 : ∀ t, t0 ≤ t → ∀ ω, M t ω = Λmat S β J *ᵥ M (t - 1) ω + q t ω) :
+    S.Et = 0 ∧ Λmat S β J = 0 ∧ ∀ t, t0 ≤ t → M t = q t := by
+  have hΛ : Λmat S β J = 0 := eq_zero_of_rank_zero hk
+  have hE : S.Et.rank = 0 := by rw [← rank_Λmat S hβ hK]; exact hk
+  refine ⟨eq_zero_of_rank_zero hE, hΛ, fun t ht => funext fun ω => ?_⟩
+  rw [h120 t ht ω, hΛ, zero_mulVec, zero_add]
+
+end Woodford.OptimalPolicyRules.MultiplierLags
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The corrected Assumption 8.4 (ii) does not depend on the basis
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumption 8.2 (ii) (p. 552), Assumption 8.4
+(ii) and Appendix G.1 (pp. 716–718), Propositions 8.1 and 8.2.
+
+In case (ii) of Assumption 8.2 the construction of `Prop81CaseII` uses a real basis `J⁺` of the
+`(n_Z + 1)`-dimensional invariant subspace of the selection plus `conj μ`, a real `P` and the
+residual root `h` (`CondII`). This module shows that the condition is a property of the subspace,
+not of the basis:
+
+* `cond_change`: `(J⁺, Ψ⁺, P, h) ↦ (J⁺T, T⁻¹Ψ⁺T, T⁻¹P, h)` preserves `CondII` for invertible `T`;
+* `exists_T_of_span`, `Ψ_eq_of_basis`: every other basis of the same subspace (with its own `Ψ`) is
+  of this form (`Î J⁺` is injective, `IJ_inj_cols`);
+* `basis_invariance`: so if `CondII` holds for one basis it holds for every basis of the same
+  subspace, with the same `h`.
+
+Hence the corrected Assumption 8.4 (ii) is stated existentially (`Assumption84II`: some admissible
+basis satisfies `CondII`), and Propositions 8.1 and 8.2 hold under it (`prop81_caseII`,
+`prop82_caseII`). The universal form `Prop81CaseII.Assumption84IIall` implies it
+(`ex_of_all`), and conversely it implies the universal form whenever all admissible bases span
+the same subspace (`all_of_ex`). They do when the zero root of (1.15) is semisimple — the book's
+convention that it counts `n − rank A` times (`ZeroSemisimple`): every column of an admissible
+basis lies in the selected subspace (`col_mem_Wsub`), so all admissible bases span it
+(`sameSubspace_of_semisimple`, `all_of_ex_semisimple`). They also do when the subspace is the
+whole space (`sameSubspace_of_card`).
+-/
+
+namespace Woodford.OptimalPolicyRules.CaseIIBasis
+
+open Matrix GeneralSetup GeneralFOC.LQ PencilSplit Prop81General PencilEigen PencilAssumptions
+  PencilRepeated GeneralFOC.Selection Prop81CaseII
+
+variable {Ω : Type*} {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+variable {ιc : Type*} [Fintype ιc] [DecidableEq ιc]
+
+/-! ### The condition and admissible bases -/
+
+/-- Woodford (2003), Assumption 8.4 (ii), corrected for case (ii): with `J = J⁺P`, `J₁` and
+`K = A₂₂' + A₁₂' Υ` are invertible and the residual root `h` on `ker P'` has `|βh| < 1`. -/
+def CondII (S : LinearRESystem ιZ ιz) (β : ℝ) (Jp : Matrix (ιZ ⊕ ιz) ιc ℝ) (Ψp : Matrix ιc ιc ℝ)
+    (P : Matrix ιc ιZ ℝ) (h : ℝ) : Prop :=
+  (J1 (Jp * P)).det ≠ 0 ∧ (Kmat S (Jp * P)).det ≠ 0 ∧ |β * h| < 1 ∧
+    ∀ v, Pᵀ *ᵥ v = 0 → (residProj Jp P * Ψpᵀ) *ᵥ v = h • v
+
+/-- Woodford (2003), App. G.1, (G.4): `(J⁺, Ψ⁺)` is an admissible real basis of an invariant
+subspace for the roots `sel'`: `A J⁺ = Î J⁺ Ψ⁺`, independent columns, and every eigenvalue of
+`Ψ⁺` zero or in `sel'`. -/
+def Admissible (S : LinearRESystem ιZ ιz) (sel' : Multiset ℂ) (Jp : Matrix (ιZ ⊕ ιz) ιc ℝ)
+    (Ψp : Matrix ιc ιc ℝ) : Prop :=
+  S.Ahat * Jp = S.Ihat * Jp * Ψp ∧ LinearIndependent ℝ Jpᵀ ∧
+    ∀ ν : ℂ, (Matrix.scalar ιc ν - Ψp.map Complex.ofReal).det = 0 → ν = 0 ∨ ν ∈ sel'
+
+/-- Woodford (2003), **Assumption 8.4 (ii), corrected for case (ii) of Assumption 8.2
+(existential, normalisation-free)**: some admissible real basis `J⁺` (`n_Z + 1` columns) of an
+invariant subspace of the selection plus `conj μ` has a real `P` and a residual root `h` with
+`CondII`. By `basis_invariance` the choice of basis does not matter. -/
+def Assumption84II (S : LinearRESystem ιZ ιz) (β : ℝ) (sel' : Multiset ℂ) : Prop :=
+  ∃ (Jp : Matrix (ιZ ⊕ ιz) (Option ιZ) ℝ) (Ψp : Matrix (Option ιZ) (Option ιZ) ℝ),
+    Admissible S sel' Jp Ψp ∧ ∃ (P : Matrix (Option ιZ) ιZ ℝ) (h : ℝ), CondII S β Jp Ψp P h
+
+/-! ### Change of basis -/
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1: the residual projection transforms by conjugation,
+`I − (J⁺T)₁'(J₁')⁻¹(T⁻¹P)' = T' (I − J⁺₁'(J₁')⁻¹P') T'⁻¹`. -/
+theorem residProj_change {J : Matrix (ιZ ⊕ ιz) ιc ℝ} {P : Matrix ιc ιZ ℝ} {T : Matrix ιc ιc ℝ}
+    (hT : IsUnit T.det) : residProj (J * T) (T⁻¹ * P) = Tᵀ * residProj J P * (T⁻¹)ᵀ := by
+  have hJP : J * T * (T⁻¹ * P) = J * P := by
+    rw [Matrix.mul_assoc, ← Matrix.mul_assoc T, mul_nonsing_inv _ hT, Matrix.one_mul]
+  have hTT : Tᵀ * (T⁻¹)ᵀ = 1 := by rw [← transpose_mul, nonsing_inv_mul _ hT, transpose_one]
+  rw [residProj, residProj, hJP, J1_mul, transpose_mul, transpose_mul, Matrix.mul_sub,
+    Matrix.sub_mul, Matrix.mul_one, hTT]
+  simp only [Matrix.mul_assoc]
+
+/-- Woodford (2003), App. G.1: **`CondII` is invariant under a change of basis**
+`(J⁺, Ψ⁺, P, h) ↦ (J⁺T, T⁻¹Ψ⁺T, T⁻¹P, h)` (`T` invertible), with the same residual root. -/
+theorem cond_change {S : LinearRESystem ιZ ιz} {β : ℝ} {J : Matrix (ιZ ⊕ ιz) ιc ℝ}
+    {Ψ : Matrix ιc ιc ℝ} {P : Matrix ιc ιZ ℝ} {h : ℝ} {T : Matrix ιc ιc ℝ} (hT : IsUnit T.det)
+    (hc : CondII S β J Ψ P h) : CondII S β (J * T) (T⁻¹ * Ψ * T) (T⁻¹ * P) h := by
+  obtain ⟨h1, h2, h3, h4⟩ := hc
+  have hJP : J * T * (T⁻¹ * P) = J * P := by
+    rw [Matrix.mul_assoc, ← Matrix.mul_assoc T, mul_nonsing_inv _ hT, Matrix.one_mul]
+  refine ⟨by rw [hJP]; exact h1, by rw [hJP]; exact h2, h3, fun v hv => ?_⟩
+  have hTT : Tᵀ * (T⁻¹)ᵀ = 1 := by rw [← transpose_mul, nonsing_inv_mul _ hT, transpose_one]
+  have hTT' : (T⁻¹)ᵀ * Tᵀ = 1 := by rw [← transpose_mul, mul_nonsing_inv _ hT, transpose_one]
+  have hw : Pᵀ *ᵥ ((T⁻¹)ᵀ *ᵥ v) = 0 := by
+    rw [mulVec_mulVec, ← transpose_mul]
+    exact hv
+  have e : Tᵀ * residProj J P * (T⁻¹)ᵀ * (T⁻¹ * Ψ * T)ᵀ =
+      Tᵀ * (residProj J P * Ψᵀ) * (T⁻¹)ᵀ := by
+    rw [transpose_mul, transpose_mul]
+    simp only [Matrix.mul_assoc]
+    rw [← Matrix.mul_assoc (T⁻¹)ᵀ Tᵀ, hTT', Matrix.one_mul]
+  rw [residProj_change hT, e, ← mulVec_mulVec, ← mulVec_mulVec, h4 _ hw, mulVec_smul,
+    mulVec_mulVec, hTT, one_mulVec]
+
+/-- Woodford (2003), (G.4): `A J⁺ = Î J⁺ Ψ⁺` gives `A (J⁺T) = Î (J⁺T)(T⁻¹Ψ⁺T)`. -/
+theorem deflate_change {S : LinearRESystem ιZ ιz} {J : Matrix (ιZ ⊕ ιz) ιc ℝ}
+    {Ψ T : Matrix ιc ιc ℝ} (hT : IsUnit T.det) (hd : S.Ahat * J = S.Ihat * J * Ψ) :
+    S.Ahat * (J * T) = S.Ihat * (J * T) * (T⁻¹ * Ψ * T) := by
+  rw [← Matrix.mul_assoc, hd]
+  simp only [Matrix.mul_assoc]
+  rw [← Matrix.mul_assoc T T⁻¹, mul_nonsing_inv _ hT, Matrix.one_mul]
+
+/-- Woodford (2003), App. G.1: two bases with independent columns spanning the same subspace
+differ by an invertible `T`: `J' = J T`. -/
+theorem exists_T_of_span {n : Type*} {J J' : Matrix n ιc ℝ} (hJ' : LinearIndependent ℝ J'ᵀ)
+    (hspan : ∀ c, J'ᵀ c ∈ Submodule.span ℝ (Set.range Jᵀ)) :
+    ∃ T : Matrix ιc ιc ℝ, IsUnit T.det ∧ J' = J * T := by
+  classical
+  choose g hg using fun c => (Submodule.mem_span_range_iff_exists_fun ℝ).mp (hspan c)
+  set T : Matrix ιc ιc ℝ := Matrix.of fun c' c => g c c' with hTdef
+  have heq : J' = J * T := by
+    ext a c
+    have := congrFun (hg c) a
+    simp only [Finset.sum_apply, Pi.smul_apply, transpose_apply, smul_eq_mul] at this
+    rw [← this, Matrix.mul_apply]
+    exact Finset.sum_congr rfl fun c' _ => by rw [hTdef, of_apply, mul_comm]
+  refine ⟨T, ?_, heq⟩
+  rw [isUnit_iff_ne_zero]
+  intro h0
+  obtain ⟨z, hz0, hz⟩ := exists_mulVec_eq_zero_iff.mpr h0
+  apply hz0
+  exact eq_zero_of_indep hJ' (by rw [heq, ← mulVec_mulVec, hz, mulVec_zero])
+
+/-- Woodford (2003), App. G.1: for an admissible basis, `Î J⁺` is injective (a real `s ≠ 0` that
+is not a root makes `A − sÎ` and `Ψ⁺ − s` invertible). -/
+theorem IJ_inj_cols {S : LinearRESystem ιZ ιz} {sel' : Multiset ℂ} {Jp : Matrix (ιZ ⊕ ιz) ιc ℝ}
+    {Ψp : Matrix ιc ιc ℝ} (hA : Admissible S sel' Jp Ψp)
+    (hsel : ∀ μ ∈ sel', S.pencilPoly.eval μ = 0) (hreg : S.pencilPoly ≠ 0) {v : ιc → ℝ}
+    (hv : (S.Ihat * Jp) *ᵥ v = 0) : v = 0 := by
+  obtain ⟨hd, hind, heig⟩ := hA
+  obtain ⟨s, hs0, hs⟩ := PencilEigen.Construction.exists_shift hreg
+  have hAs : (S.Ahat - s • S.Ihat).det ≠ 0 := by
+    intro h
+    apply hs
+    rw [pencilPoly_eval, det_pencil_ofReal, h, Complex.ofReal_zero]
+  set N' := Ψp - s • (1 : Matrix ιc ιc ℝ) with hN'
+  have hN : N'.det ≠ 0 := by
+    intro h
+    have hc : (Matrix.scalar ιc (s : ℂ) - Ψp.map Complex.ofReal).det = 0 := by
+      have e1 : Matrix.scalar ιc (s : ℂ) - Ψp.map Complex.ofReal = -(N'.map Complex.ofReal) := by
+        ext i j
+        by_cases hij : i = j
+        · subst hij
+          simp [hN', Matrix.scalar_apply]
+        · simp [hN', Matrix.scalar_apply, hij, Matrix.one_apply_ne hij]
+      have e2 := Complex.ofRealHom.map_det N'
+      rw [RingHom.mapMatrix_apply] at e2
+      change (N'.det : ℂ) = (N'.map Complex.ofReal).det at e2
+      rw [e1, det_neg, ← e2, h, Complex.ofReal_zero, mul_zero]
+    rcases heig _ hc with h0 | hm
+    · exact hs0 (Complex.ofReal_eq_zero.mp h0)
+    · exact hs (hsel _ hm)
+  have hkey : (S.Ahat - s • S.Ihat) * Jp = S.Ihat * Jp * N' := by
+    rw [Matrix.sub_mul, hd, hN', Matrix.mul_sub, Matrix.smul_mul, Matrix.mul_smul,
+      Matrix.mul_one]
+  have hIJ : S.Ihat * Jp = (S.Ahat - s • S.Ihat) * Jp * N'⁻¹ := by
+    rw [hkey, Matrix.mul_assoc, mul_nonsing_inv _ (Ne.isUnit hN), Matrix.mul_one]
+  rw [hIJ, ← mulVec_mulVec, ← mulVec_mulVec] at hv
+  have h1 := eq_zero_of_mulVec_eq_zero hAs hv
+  have h2 := eq_zero_of_indep hind h1
+  calc v = N' *ᵥ (N'⁻¹ *ᵥ v) := by
+        rw [mulVec_mulVec, mul_nonsing_inv _ (Ne.isUnit hN), one_mulVec]
+    _ = 0 := by rw [h2, mulVec_zero]
+
+/-- Woodford (2003), App. G.1: on a basis `J' = J T` of the same subspace, `Ψ'` is forced to be
+`T⁻¹ Ψ T` (because `Î J'` is injective). -/
+theorem Ψ_eq_of_basis {S : LinearRESystem ιZ ιz} {J J' : Matrix (ιZ ⊕ ιz) ιc ℝ}
+    {Ψ Ψ' T : Matrix ιc ιc ℝ} (hT : IsUnit T.det) (hJ' : J' = J * T)
+    (hd : S.Ahat * J = S.Ihat * J * Ψ) (hd' : S.Ahat * J' = S.Ihat * J' * Ψ')
+    (hinj : ∀ v, (S.Ihat * J') *ᵥ v = 0 → v = 0) : Ψ' = T⁻¹ * Ψ * T := by
+  have hD : S.Ihat * J' * (Ψ' - T⁻¹ * Ψ * T) = 0 := by
+    rw [Matrix.mul_sub, ← hd', hJ', ← Matrix.mul_assoc, hd]
+    simp only [Matrix.mul_assoc]
+    rw [← Matrix.mul_assoc T T⁻¹, mul_nonsing_inv _ hT, Matrix.one_mul, sub_self]
+  ext i j
+  have hcol := hinj (fun k => (Ψ' - T⁻¹ * Ψ * T) k j) (by
+    funext a
+    exact congrFun (congrFun hD a) j)
+  have := congrFun hcol i
+  rw [Matrix.sub_apply] at this
+  exact sub_eq_zero.mp this
+
+/-- Woodford (2003), App. G.1: if `CondII` holds for one basis `J` it holds, with the same
+residual root `h`, for every basis `J'` (with its `Ψ'`) of the same subspace, provided `Î J'` is
+injective. -/
+theorem cond_of_sameSpan {S : LinearRESystem ιZ ιz} {β : ℝ} {J J' : Matrix (ιZ ⊕ ιz) ιc ℝ}
+    {Ψ Ψ' : Matrix ιc ιc ℝ} {P : Matrix ιc ιZ ℝ} {h : ℝ} (hc : CondII S β J Ψ P h)
+    (hd : S.Ahat * J = S.Ihat * J * Ψ) (hd' : S.Ahat * J' = S.Ihat * J' * Ψ')
+    (hJ' : LinearIndependent ℝ J'ᵀ) (hspan : ∀ c, J'ᵀ c ∈ Submodule.span ℝ (Set.range Jᵀ))
+    (hinj : ∀ v, (S.Ihat * J') *ᵥ v = 0 → v = 0) : ∃ P', CondII S β J' Ψ' P' h := by
+  obtain ⟨T, hT, hJT⟩ := exists_T_of_span hJ' hspan
+  have hΨ := Ψ_eq_of_basis hT hJT hd hd' hinj
+  refine ⟨T⁻¹ * P, ?_⟩
+  rw [hJT, hΨ]
+  exact cond_change hT hc
+
+/-- Woodford (2003), Assumption 8.4 (ii) corrected, App. G.1: **basis invariance** — for two
+admissible bases of the same subspace (roots of a nonzero (1.15)), `CondII` for one gives
+`CondII` for the other with the same residual root. -/
+theorem basis_invariance {S : LinearRESystem ιZ ιz} {β : ℝ} {sel' : Multiset ℂ}
+    (hreg : S.pencilPoly ≠ 0) (hsel : ∀ μ ∈ sel', S.pencilPoly.eval μ = 0)
+    {J J' : Matrix (ιZ ⊕ ιz) ιc ℝ} {Ψ Ψ' : Matrix ιc ιc ℝ} (hA : Admissible S sel' J Ψ)
+    (hA' : Admissible S sel' J' Ψ') (hspan : ∀ c, J'ᵀ c ∈ Submodule.span ℝ (Set.range Jᵀ))
+    {P : Matrix ιc ιZ ℝ} {h : ℝ} (hc : CondII S β J Ψ P h) : ∃ P', CondII S β J' Ψ' P' h :=
+  cond_of_sameSpan hc hA.1 hA'.1 hA'.2.1 hspan fun _ hv => IJ_inj_cols hA' hsel hreg hv
+
+/-! ### The existential and universal forms -/
+
+/-- Woodford (2003), App. G.1: all admissible bases (for `sel'`, `n_Z + 1` columns) span the same
+subspace. -/
+def SameSubspace (S : LinearRESystem ιZ ιz) (sel' : Multiset ℂ) : Prop :=
+  ∀ (J J' : Matrix (ιZ ⊕ ιz) (Option ιZ) ℝ) (Ψ Ψ' : Matrix (Option ιZ) (Option ιZ) ℝ),
+    Admissible S sel' J Ψ → Admissible S sel' J' Ψ' →
+      ∀ c, J'ᵀ c ∈ Submodule.span ℝ (Set.range Jᵀ)
+
+/-- Woodford (2003), App. G.1: when `n_Z + 1 = n`, every admissible basis spans the whole space,
+so all admissible bases span the same subspace. -/
+theorem sameSubspace_of_card {S : LinearRESystem ιZ ιz} {sel' : Multiset ℂ}
+    (hcard : Fintype.card (Option ιZ) = Fintype.card (ιZ ⊕ ιz)) : SameSubspace S sel' := by
+  intro J J' Ψ Ψ' hA _ c
+  rw [hA.2.1.span_eq_top_of_card_eq_finrank' (by
+    rw [Module.finrank_fintype_fun_eq_card]
+    exact hcard)]
+  exact Submodule.mem_top
+
+/-- Woodford (2003), Assumption 8.4 (ii) corrected: the existential form implies the universal
+form `Prop81CaseII.Assumption84IIall` when all admissible bases span the same subspace. -/
+theorem all_of_ex {S : LinearRESystem ιZ ιz} {β : ℝ} {sel' : Multiset ℂ}
+    (hreg : S.pencilPoly ≠ 0) (hsel : ∀ μ ∈ sel', S.pencilPoly.eval μ = 0)
+    (hsame : SameSubspace S sel') (h84 : Assumption84II S β sel') :
+    Assumption84IIall S β sel' := by
+  obtain ⟨J, Ψ, hA, P, h, hc⟩ := h84
+  intro J' Ψ' hd' hind' heig'
+  have hA' : Admissible S sel' J' Ψ' := ⟨hd', hind', heig'⟩
+  obtain ⟨P', hc'⟩ := basis_invariance hreg hsel hA hA' (hsame J J' Ψ Ψ' hA hA') hc
+  exact ⟨P', h, hc'⟩
+
+/-- Woodford (2003), Assumption 8.4 (ii) corrected: the universal form implies the existential
+form, since an admissible basis exists (`PencilRepeated.exists_deflating_cols`; Assumption 8.2
+(ii) with whole root classes and a nonzero (1.15)). -/
+theorem ex_of_all {S : LinearRESystem ιZ ιz} {β : ℝ} (h82 : Assumption82 S β) {μ : ℂ}
+    (hμ : μ ∈ h82.sel) (hc : ConjClosed (h82.sel.erase μ)) (hreg : S.pencilPoly ≠ 0)
+    (hw : SelWhole S (selPlus h82.sel μ)) (hall : Assumption84IIall S β (selPlus h82.sel μ)) :
+    Assumption84II S β (selPlus h82.sel μ) := by
+  have hsel : ∀ ν ∈ h82.sel, ν ≠ 0 ∧ S.pencilPoly.eval ν = 0 := by
+    intro ν hν
+    have := Multiset.mem_of_le h82.sel_le hν
+    rw [Multiset.mem_filter, Polynomial.mem_roots hreg] at this
+    exact ⟨this.2.1, this.1⟩
+  have hsel' : ∀ ν ∈ selPlus h82.sel μ, ν ≠ 0 ∧ S.pencilPoly.eval ν = 0 := by
+    intro ν hν
+    rw [selPlus, Multiset.mem_cons] at hν
+    rcases hν with rfl | hν
+    · obtain ⟨h0, hr⟩ := hsel μ hμ
+      exact ⟨by rwa [ne_eq, map_eq_zero], pencil_eval_conj S hr⟩
+    · exact hsel ν hν
+  obtain ⟨Jp, Ψp, hd, hind, heig⟩ := exists_deflating_cols S (κ := Option ιZ)
+    (conjClosed_selPlus hμ hc) hsel' hreg hw (by
+      rw [selPlus, Multiset.card_cons, Fintype.card_option]
+      have := h82.sel_card
+      omega)
+  obtain ⟨P, h, hJ1, hK, hh, hres⟩ := hall Jp Ψp hd hind heig
+  exact ⟨Jp, Ψp, ⟨hd, hind, heig⟩, P, h, hJ1, hK, hh, hres⟩
+
+/-! ### Propositions 8.1 and 8.2 under the existential form -/
+
+/-- Woodford (2003), App. G.1: Assumption 8.2 and the existential Assumption 8.4 (ii) give a
+quasi-split (`Prop81CaseII.QuasiSplit`). -/
+theorem nonempty_quasiSplit_ex {S : LinearRESystem ιZ ιz} {β : ℝ} (hβ : 0 < β)
+    (h82 : Assumption82 S β) {μ : ℂ} (hμ : μ ∈ h82.sel)
+    (h84 : Assumption84II S β (selPlus h82.sel μ)) : Nonempty (QuasiSplit S β (Option ιZ)) := by
+  have hnorm : ∀ ν ∈ selPlus h82.sel μ, ‖ν‖ < β⁻¹ := by
+    intro ν hν
+    rw [selPlus, Multiset.mem_cons] at hν
+    rcases hν with rfl | hν
+    · have := Multiset.mem_of_le h82.sel_le hμ
+      rw [Multiset.mem_filter] at this
+      rw [Complex.norm_conj]
+      exact this.2.2
+    · have := Multiset.mem_of_le h82.sel_le hν
+      rw [Multiset.mem_filter] at this
+      exact this.2.2
+  obtain ⟨Jp, Ψp, ⟨hd, -, heig⟩, P, h, hJ1, hK, hh, hres⟩ := h84
+  refine ⟨⟨Jp, Ψp, hd, fun ν hν => ?_, P, hJ1, hK, h • 1,
+    fun v hv => by rw [hres v hv, smul_mulVec, one_mulVec],
+    by rw [smul_smul]; exact powDecay_smul_one hh⟩⟩
+  rcases heig ν hν with h0 | hm
+  · rw [h0, norm_zero]
+    exact inv_pos.mpr hβ
+  · exact hnorm ν hm
+
+/-- Woodford (2003), App. G.1: the quasi-split chosen from Assumption 8.2 (ii) and the
+existential Assumption 8.4 (ii). -/
+noncomputable def quasiSplitOfEx (P : LQProblem ιZ ιz ιτ) (h82 : Assumption82 P.sys P.β) {μ : ℂ}
+    (hμ : μ ∈ h82.sel) (h84 : Assumption84II P.sys P.β (selPlus h82.sel μ)) :
+    QuasiSplit P.sys P.β (Option ιZ) :=
+  (nonempty_quasiSplit_ex P.β_pos h82 hμ h84).some
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553, **in case (ii) of Assumption 8.2**, under the
+existential (basis-free, normalisation-free) Assumption 8.4 (ii): the corrected Proposition 8.1
+holds for any expectation system. -/
+theorem prop81_caseII (P : LQProblem ιZ ιz ιτ) (h82 : Assumption82 P.sys P.β) {μ : ℂ}
+    (hμ : μ ∈ h82.sel) (h84 : Assumption84II P.sys P.β (selPlus h82.sel μ))
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) : Nonempty (Prop81ConclusionM P 𝔼 t0) :=
+  ⟨prop81II P (quasiSplitOfEx P h82 hμ h84) 𝔼 t0⟩
+
+/-- Woodford (2003), **Proposition 8.2**, p. 555, **in case (ii) of Assumption 8.2**, under
+Assumptions 8.1, 8.2 (ii), the existential 8.4 (ii) and 8.5: commitment to (1.23) is robustly
+optimal. -/
+theorem prop82_caseII {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (hpull : 𝔼.PullOut) (hA : Prop82General.Assumption81M P 𝔼 t0)
+    (h82 : Assumption82 P.sys P.β) {μ : ℂ} (hμ : μ ∈ h82.sel)
+    (h84 : Assumption84II P.sys P.β (selPlus h82.sel μ))
+    (h85 : Assumption85 (Λmat P.sys P.β ((quasiSplitOfEx P h82 hμ h84).Jp *
+      (quasiSplitOfEx P h82 hμ h84).P)) P.sys.B2)
+    {D : ℕ} (hD : D + 1 ≤ t0) (hDk : P.sys.Et.rank ≤ D) {Mh qh : ℕ → Ω → ιz → ℝ}
+    {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK (Λmat P.sys P.β
+      ((quasiSplitOfEx P h82 hμ h84).Jp * (quasiSplitOfEx P h82 hμ h84).P))
+      P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := ιz) P 𝔼 t0
+      (fun _ y => Prop82General.Prop82M.CriterionM
+        (prop81II P (quasiSplitOfEx P h82 hμ h84) 𝔼 t0) D qh vh y)
+      (fun _ y t ω => zpart (y t ω)) :=
+  prop82_of_quasiSplit hpull hA _ h85.2 hD hDk hhist hMhb hMhk hqhb hvhb
+
+
+/-! ### All admissible bases span the same subspace (zero root semisimple) -/
+
+/-- Woodford (2003), p. 547 (the convention that the zero root of (1.15) counts `n − rank A`
+times): the zero root has multiplicity exactly `n − rank A`, i.e. it is semisimple. -/
+def ZeroSemisimple (S : LinearRESystem ιZ ιz) : Prop :=
+  S.pencilPoly.roots.count 0 = Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank
+
+/-- Woodford (2003), App. G.1: with a semisimple zero root the generalised eigenspace of
+`ν₀ = −1/s` is the eigenspace (`ker A`). -/
+theorem maxGen_ν0_eq (S : LinearRESystem ιZ ιz) {s : ℝ} (hs0 : s ≠ 0)
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) (hz : ZeroSemisimple S) :
+    (φN S s).maxGenEigenspace (ν0 s) = (φN S s).eigenspace (ν0 s) := by
+  symm
+  refine Submodule.eq_of_le_of_finrank_eq (Module.End.eigenspace_le_maxGenEigenspace) ?_
+  rw [finrank_eigenspace_ν0 S hs0 hs, LinearMap.finrank_maxGenEigenspace_eq, φN,
+    Matrix.charpoly_toLin', ← Polynomial.count_roots, ν0,
+    ← count_pencil_roots S hs (μ := 0) (by exact_mod_cast hs0.symm)]
+  exact hz.symm
+
+/-- Woodford (2003), App. G.1: a real matrix injective on real vectors is injective on complex
+vectors. -/
+theorem injC_of_injR {m n : Type*} [Fintype n] {M : Matrix m n ℝ}
+    (h : ∀ v, M *ᵥ v = 0 → v = 0) (z : n → ℂ) (hz : M.map Complex.ofReal *ᵥ z = 0) : z = 0 := by
+  have hre := h _ (funext fun i => by rw [← re_mulVec_map, hz]; rfl)
+  have him := h _ (funext fun i => by rw [← im_mulVec_map, hz]; rfl)
+  funext k
+  exact Complex.ext (congrFun hre k) (congrFun him k)
+
+/-- Woodford (2003), App. G.1: **every column of an admissible basis lies in the selected
+subspace `W`** (with a semisimple zero root): the span `V` of the columns is `N`-invariant, every
+eigenvalue of `N` on `V` is `ν₀` or `(μ − s)⁻¹` with `μ` selected, and `V` is the sum of the
+generalised eigenspaces of `N` on `V`. -/
+theorem col_mem_Wsub {S : LinearRESystem ιZ ιz} {sel' : Multiset ℂ} {s : ℝ} (hs0 : s ≠ 0)
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) (hsel : ∀ μ ∈ sel', μ ≠ 0 ∧ S.pencilPoly.eval μ = 0)
+    (hreg : S.pencilPoly ≠ 0) (hz : ZeroSemisimple S) {J : Matrix (ιZ ⊕ ιz) ιc ℝ}
+    {Ψ : Matrix ιc ιc ℝ} (hA : Admissible S sel' J Ψ) (c : ιc) :
+    (fun i => (J i c : ℂ)) ∈ Wsub S sel' s := by
+  have hinjR : ∀ v, (S.Ihat * J) *ᵥ v = 0 → v = 0 :=
+    fun _ hv => IJ_inj_cols hA (fun μ h => (hsel μ h).2) hreg hv
+  obtain ⟨hd, hind, heig⟩ := hA
+  set col : ιc → (ιZ ⊕ ιz → ℂ) := fun c i => (J i c : ℂ) with hcol
+  set Jc : Matrix (ιZ ⊕ ιz) ιc ℂ := J.map Complex.ofReal with hJc
+  have hcolJ : ∀ z : ιc → ℂ, ∑ c, z c • col c = Jc *ᵥ z := by
+    intro z
+    funext i
+    simp [hcol, hJc, mulVec, dotProduct, Finset.sum_apply, mul_comm]
+  -- `Ψ − s` is invertible
+  set N' := Ψ - s • (1 : Matrix ιc ιc ℝ) with hN'
+  have hN : N'.det ≠ 0 := by
+    intro h
+    have hc : (Matrix.scalar ιc (s : ℂ) - Ψ.map Complex.ofReal).det = 0 := by
+      have e1 : Matrix.scalar ιc (s : ℂ) - Ψ.map Complex.ofReal = -(N'.map Complex.ofReal) := by
+        ext i j
+        by_cases hij : i = j
+        · subst hij
+          simp [hN', Matrix.scalar_apply]
+        · simp [hN', Matrix.scalar_apply, hij, Matrix.one_apply_ne hij]
+      have e2 := Complex.ofRealHom.map_det N'
+      rw [RingHom.mapMatrix_apply] at e2
+      change (N'.det : ℂ) = (N'.map Complex.ofReal).det at e2
+      rw [e1, det_neg, ← e2, h, Complex.ofReal_zero, mul_zero]
+    rcases heig _ hc with h0 | hm
+    · exact hs0 (Complex.ofReal_eq_zero.mp h0)
+    · apply hs
+      have := (hsel _ hm).2
+      rw [pencilPoly_eval, det_pencil_ofReal] at this
+      exact_mod_cast this
+  -- `N J = J (Ψ − s)⁻¹`
+  have hkey : (S.Ahat - s • S.Ihat) * J = S.Ihat * J * N' := by
+    rw [Matrix.sub_mul, hd, hN', Matrix.mul_sub, Matrix.smul_mul, Matrix.mul_smul,
+      Matrix.mul_one]
+  have hNJ : Nr S s * J = J * N'⁻¹ := by
+    have hIJ : S.Ihat * J = (S.Ahat - s • S.Ihat) * J * N'⁻¹ := by
+      rw [hkey, Matrix.mul_assoc, mul_nonsing_inv _ (Ne.isUnit hN), Matrix.mul_one]
+    rw [Nr, Matrix.mul_assoc, hIJ, ← Matrix.mul_assoc, ← Matrix.mul_assoc,
+      nonsing_inv_mul _ (Ne.isUnit hs), Matrix.one_mul]
+  -- the complex span of the columns is `N`-invariant
+  set V : Submodule ℂ (ιZ ⊕ ιz → ℂ) := Submodule.span ℂ (Set.range col) with hV
+  have hgen : ∀ c, φN S s (col c) ∈ V := by
+    intro c
+    have e : φN S s (col c) = ∑ c', ((N'⁻¹ c' c : ℝ) : ℂ) • col c' := by
+      rw [φN, Matrix.toLin'_apply, hcol, map_mulVec_ofReal]
+      funext i
+      have := congrFun (congrFun hNJ i) c
+      simp only [Matrix.mul_apply] at this
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      change ((∑ b, Nr S s i b * J b c : ℝ) : ℂ) = _
+      rw [this]
+      push_cast
+      exact Finset.sum_congr rfl fun c' _ => mul_comm _ _
+    rw [e]
+    exact Submodule.sum_mem _ fun c' _ => Submodule.smul_mem _ _ (Submodule.subset_span ⟨c', rfl⟩)
+  have hVinv : ∀ x ∈ V, φN S s x ∈ V := by
+    have hle : V ≤ V.comap (φN S s) := by
+      rw [hV, Submodule.span_le]
+      rintro _ ⟨c, rfl⟩
+      exact hgen c
+    exact fun x hx => hle hx
+  -- every eigenvalue of `N` on `V` lies in `Tset`
+  have hTs : ∀ x ∈ V, x ≠ 0 → ∀ lam : ℂ, φN S s x = lam • x → lam ∈ Tset sel' s := by
+    intro x hxV hx0 lam hx
+    obtain ⟨z, hzx⟩ := (Submodule.mem_span_range_iff_exists_fun ℂ).mp hxV
+    rw [hcolJ] at hzx
+    subst hzx
+    have hIc : S.Ihat.map Complex.ofReal * Jc = (S.Ihat * J).map Complex.ofReal := by
+      rw [hJc, map_ofReal_mul]
+    have hlam0 : lam ≠ 0 := by
+      rintro rfl
+      apply hx0
+      have h1 : (Nr S s).map Complex.ofReal *ᵥ (Jc *ᵥ z) = 0 := by
+        rw [← Matrix.toLin'_apply, ← φN, hx, zero_smul]
+      have h2 : S.Ihat.map Complex.ofReal *ᵥ (Jc *ᵥ z) = 0 := by
+        have := congrArg (· *ᵥ (Jc *ᵥ z)) (shift_mul_Nc S hs)
+        rw [← this, ← mulVec_mulVec, h1, mulVec_zero]
+      rw [mulVec_mulVec, hIc] at h2
+      rw [injC_of_injR hinjR z h2, mulVec_zero]
+    have hNx : (Nr S s).map Complex.ofReal *ᵥ (Jc *ᵥ z) = lam • (Jc *ᵥ z) := by
+      rw [← Matrix.toLin'_apply, ← φN, hx]
+    have hAx := N_to_eig S hs hlam0 hNx
+    have hdc : S.Ahat.map Complex.ofReal * Jc =
+        S.Ihat.map Complex.ofReal * Jc * Ψ.map Complex.ofReal := by
+      rw [hJc, ← map_ofReal_mul, ← map_ofReal_mul, ← map_ofReal_mul, hd]
+    have hΨz : Ψ.map Complex.ofReal *ᵥ z = ((s : ℂ) + lam⁻¹) • z := by
+      have h3 : (S.Ihat.map Complex.ofReal * Jc) *ᵥ
+          (Ψ.map Complex.ofReal *ᵥ z - ((s : ℂ) + lam⁻¹) • z) = 0 := by
+        rw [mulVec_sub, mulVec_mulVec, ← hdc, ← mulVec_mulVec, hAx, mulVec_smul, mulVec_mulVec,
+          sub_self]
+      rw [hIc] at h3
+      exact sub_eq_zero.mp (injC_of_injR hinjR _ h3)
+    have hz0 : z ≠ 0 := by
+      rintro rfl
+      exact hx0 (mulVec_zero _)
+    have hdet : (Matrix.scalar ιc ((s : ℂ) + lam⁻¹) - Ψ.map Complex.ofReal).det = 0 := by
+      refine exists_mulVec_eq_zero_iff.mp ⟨z, hz0, ?_⟩
+      rw [sub_mulVec, hΨz]
+      funext i
+      simp [Matrix.scalar_apply]
+    rw [Tset, Finset.mem_insert]
+    rcases heig _ hdet with h0 | hm
+    · left
+      rw [ν0]
+      have : lam⁻¹ = -(s : ℂ) := by linear_combination h0
+      rw [zero_sub, ← this, inv_inv]
+    · right
+      refine Finset.mem_image.mpr ⟨_, Multiset.mem_toFinset.mpr hm, ?_⟩
+      simp
+  -- `V` is the sum of the generalised eigenspaces of `N` on `V`
+  set T : Module.End ℂ V := (φN S s).restrict hVinv with hT
+  have hle : ∀ lam : ℂ, T.maxGenEigenspace lam ≤ (Wsub S sel' s).comap V.subtype := by
+    intro lam
+    by_cases hl : lam ∈ Tset sel' s
+    · change (Module.End.genEigenspace ((φN S s).restrict hVinv) lam) ⊤ ≤ _
+      rw [Module.End.genEigenspace_restrict]
+      refine Submodule.comap_mono ?_
+      have hW : (φN S s).maxGenEigenspace lam = Wfam S s lam := by
+        by_cases h : lam = ν0 s
+        · rw [h, Wfam_ν0, maxGen_ν0_eq S hs0 hs hz]
+        · rw [Wfam_ne S s h]
+      change (φN S s).maxGenEigenspace lam ≤ _
+      rw [hW]
+      exact Finset.le_sup (f := Wfam S s) hl
+    · have hbot : T.maxGenEigenspace lam = ⊥ := by
+        by_contra hne
+        have hev : T.HasEigenvalue lam :=
+          (Module.End.hasUnifEigenvalue_iff_hasUnifEigenvalue_one (by simp)).mp hne
+        obtain ⟨x, hx⟩ := hev.exists_hasEigenvector
+        have hxe := Module.End.mem_eigenspace_iff.mp hx.1
+        have hx0 : (x : ιZ ⊕ ιz → ℂ) ≠ 0 := fun h => hx.2 (Subtype.ext h)
+        exact hl (hTs x x.2 hx0 lam (congrArg Subtype.val hxe))
+      rw [hbot]
+      exact bot_le
+  have htop := Module.End.iSup_maxGenEigenspace_eq_top T
+  have hmem : (⟨col c, Submodule.subset_span ⟨c, rfl⟩⟩ : V) ∈ ⨆ lam, T.maxGenEigenspace lam := by
+    rw [htop]
+    exact Submodule.mem_top
+  exact (iSup_le hle) hmem
+
+/-- Woodford (2003), App. G.1: **with a semisimple zero root, every admissible basis spans the
+same subspace** (the real selected subspace `Ureal`), for a conjugation-closed selection of
+nonzero roots taken in whole classes, `#κ = (n − rank A) + #sel'` columns and a nonzero (1.15). -/
+theorem sameSubspace_of_semisimple {S : LinearRESystem ιZ ιz} {sel' : Multiset ℂ}
+    (hi : ConjClosed sel') (hsel : ∀ μ ∈ sel', μ ≠ 0 ∧ S.pencilPoly.eval μ = 0)
+    (hreg : S.pencilPoly ≠ 0) (hw : SelWhole S sel') (hz : ZeroSemisimple S)
+    (hcard : (Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank) + Multiset.card sel' =
+      Fintype.card (Option ιZ)) : SameSubspace S sel' := by
+  obtain ⟨s, hs0, hsev⟩ := PencilEigen.Construction.exists_shift hreg
+  have hs : (S.Ahat - s • S.Ihat).det ≠ 0 := by
+    intro h
+    apply hsev
+    rw [pencilPoly_eval, det_pencil_ofReal, h, Complex.ofReal_zero]
+  have hsub : ∀ (J : Matrix (ιZ ⊕ ιz) (Option ιZ) ℝ) (Ψ : Matrix (Option ιZ) (Option ιZ) ℝ),
+      Admissible S sel' J Ψ → Submodule.span ℝ (Set.range Jᵀ) ≤ Ureal S sel' s := by
+    intro J Ψ hA
+    rw [Submodule.span_le]
+    rintro _ ⟨c, rfl⟩
+    exact col_mem_Wsub hs0 hs hsel hreg hz hA c
+  have hdimU : Module.finrank ℝ (Ureal S sel' s) = Fintype.card (Option ιZ) := by
+    rw [Ureal, finrank_realPart _ (Wsub_conj S hi (fun μ hμ => (hsel μ hμ).1) s),
+      finrank_Wsub S hs0 hs hsel hw, hcard]
+  have heq : ∀ (J : Matrix (ιZ ⊕ ιz) (Option ιZ) ℝ) (Ψ : Matrix (Option ιZ) (Option ιZ) ℝ),
+      Admissible S sel' J Ψ → Submodule.span ℝ (Set.range Jᵀ) = Ureal S sel' s := by
+    intro J Ψ hA
+    refine Submodule.eq_of_le_of_finrank_eq (hsub J Ψ hA) ?_
+    rw [finrank_span_eq_card hA.2.1, hdimU]
+  intro J J' Ψ Ψ' hA hA' c
+  rw [heq J Ψ hA, ← heq J' Ψ' hA']
+  exact Submodule.subset_span ⟨c, rfl⟩
+
+/-- Woodford (2003), **Assumption 8.4 (ii), corrected: the universal form is a theorem** — under
+Assumption 8.2 (ii) with whole root classes, a nonzero (1.15) and a semisimple zero root (the
+book's counting convention), the existential form `Assumption84II` implies
+`Prop81CaseII.Assumption84IIall` (and conversely, `ex_of_all`). -/
+theorem all_of_ex_semisimple {S : LinearRESystem ιZ ιz} {β : ℝ} (h82 : Assumption82 S β) {μ : ℂ}
+    (hμ : μ ∈ h82.sel) (hc : ConjClosed (h82.sel.erase μ)) (hreg : S.pencilPoly ≠ 0)
+    (hw : SelWhole S (selPlus h82.sel μ)) (hz : ZeroSemisimple S)
+    (h84 : Assumption84II S β (selPlus h82.sel μ)) :
+    Assumption84IIall S β (selPlus h82.sel μ) := by
+  have hsel : ∀ ν ∈ h82.sel, ν ≠ 0 ∧ S.pencilPoly.eval ν = 0 := by
+    intro ν hν
+    have := Multiset.mem_of_le h82.sel_le hν
+    rw [Multiset.mem_filter, Polynomial.mem_roots hreg] at this
+    exact ⟨this.2.1, this.1⟩
+  have hsel' : ∀ ν ∈ selPlus h82.sel μ, ν ≠ 0 ∧ S.pencilPoly.eval ν = 0 := by
+    intro ν hν
+    rw [selPlus, Multiset.mem_cons] at hν
+    rcases hν with rfl | hν
+    · obtain ⟨h0, hr⟩ := hsel μ hμ
+      exact ⟨by rwa [ne_eq, map_eq_zero], pencil_eval_conj S hr⟩
+    · exact hsel ν hν
+  refine all_of_ex hreg (fun ν hν => (hsel' ν hν).2)
+    (sameSubspace_of_semisimple (conjClosed_selPlus hμ hc) hsel' hreg hw hz ?_) h84
+  rw [selPlus, Multiset.card_cons, Fintype.card_option]
+  have := h82.sel_card
+  omega
+
+end Woodford.OptimalPolicyRules.CaseIIBasis
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Case (ii) with `n_Z = 1`: the residual root, the book's normalisation, and an example
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumption 8.2 (ii) (p. 552), Assumption 8.4
+(ii) (App. G.1, p. 718), Propositions 8.1 and 8.2.
+
+## The residual root as a function of the eigenvector's scaling (`n_Z = 1`)
+
+Let `A u = μ Î u` with `μ = ρ + iσ`. The real and imaginary parts `(a, b)` of `u` span a real
+invariant plane with `A a = Î(ρa − σb)`, `A b = Î(σa + ρb)` (`deflate_pair`). Taking `J = a`
+(`P = selA`), the residual root of `Prop81CaseII` is `h = ρ + σ b₁/a₁`, where `a₁ + i b₁ = u_ξ`
+(`resid_pair`). Rescaling `u` by `c ∈ ℂ` gives `h = hOf ρ σ (c u_ξ)` (`resid_of_eigvec`), which
+depends only on the phase of `c` (`hOf_real_mul`).
+
+* `hOf_book`, `book_iff`: at the scaling `c u_ξ ∈ ℝ μ` (the book's normalisation),
+  `h⁻¹ = Re μ⁻¹`, so `|βh| < 1 ↔ β < |Re μ⁻¹|` — the book's condition in Assumption 8.2 (ii).
+* `hOf_surj`, `book_condition_depends_on_scaling`: for `σ ≠ 0`, every real `h` is attained by some
+  scaling, so `|βh| < 1` holds for some scalings and fails for others: the book's condition is
+  tied to one normalisation.
+
+## A concrete case-(ii) system (`exSys`, `exProblem`)
+
+`n_Z = n_z = 1`, `A = [[1, 1], [−1, 1]]`, `Î = I`, `β = 1/4`. The roots of (1.15) are `1 ± i`
+(`|1 ± i| = √2 < 4`, `Re (1 + i)⁻¹ = 1/2 > 1/4`). Selecting `μ = 1 + i` alone is case (ii) of
+Assumption 8.2 (`ex82`). With `J⁺ = I`, `P = e₁`, the residual root is `h = 1` and `|βh| = 1/4`, so
+the corrected Assumption 8.4 (ii) holds (`ex84`, and its universal form `ex84all`); hence
+`ex_prop81` (Proposition 8.1 for this system, any expectation system) is a genuine instance of
+`CaseIIBasis.prop81_caseII`.
+-/
+
+namespace Woodford.OptimalPolicyRules.CaseIIInstance
+
+open Matrix GeneralSetup GeneralFOC.LQ PencilSplit Prop81General PencilEigen PencilAssumptions
+  PencilRepeated GeneralFOC.Selection Prop81CaseII CaseIIBasis Complex
+
+variable {ιz : Type*} [Fintype ιz] [DecidableEq ιz]
+variable {ιZ : Type*} [Fintype ιZ] [DecidableEq ιZ] [Unique ιZ]
+
+/-! ### The residual root for `n_Z = 1` -/
+
+/-- Woodford (2003), App. G.1, case (ii), `n_Z = 1`: the residual root `ρ + σ b₁/a₁` for the
+`ξ`-component `w = a₁ + i b₁` of the (scaled) eigenvector of `μ = ρ + iσ`. -/
+noncomputable def hOf (ρ σ : ℝ) (w : ℂ) : ℝ := ρ + σ * w.im / w.re
+
+/-- Woodford (2003), App. G.1: the real `2 × 2` block of `μ = ρ + iσ` acting on `(a, b)`
+(`none` = real part, `some 0` = imaginary part). -/
+def rotΨ (ρ σ : ℝ) : Matrix (Option ιZ) (Option ιZ) ℝ :=
+  Matrix.of fun c' c => Option.elim c (Option.elim c' ρ fun _ => -σ) fun _ =>
+    Option.elim c' σ fun _ => ρ
+
+/-- Woodford (2003), App. G.1, case (ii): `P` selecting the real part `a` (`J = J⁺P = a`). -/
+def selA : Matrix (Option ιZ) ιZ ℝ := Matrix.of fun c _ => Option.elim c 1 fun _ => 0
+
+/-- Woodford (2003), App. G.1: the real basis `(Re u, Im u)` of the plane of a complex
+eigenvector `u`. -/
+def pairJ (u : ιZ ⊕ ιz → ℂ) : Matrix (ιZ ⊕ ιz) (Option ιZ) ℝ :=
+  Matrix.of fun a c => Option.elim c (u a).re fun _ => (u a).im
+
+/-- Woodford (2003), App. G.1, (G.1) and fn 2: for `A u = μ Î u`, the real and imaginary parts
+satisfy `A (a, b) = Î (a, b) [[ρ, σ], [−σ, ρ]]`. -/
+theorem deflate_pair (S : LinearRESystem ιZ ιz) {μ : ℂ} {u : ιZ ⊕ ιz → ℂ}
+    (hu : S.Ahat.map Complex.ofReal *ᵥ u = μ • (S.Ihat.map Complex.ofReal *ᵥ u)) :
+    S.Ahat * pairJ u = S.Ihat * pairJ u * rotΨ μ.re μ.im := by
+  ext a c
+  have e := congrFun hu a
+  have hre := congrArg Complex.re e
+  have him := congrArg Complex.im e
+  simp only [mulVec, dotProduct, Matrix.map_apply, Pi.smul_apply, smul_eq_mul, Complex.re_sum,
+    Complex.im_sum, Complex.mul_re,
+    Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero, add_zero] at hre him
+  rcases c with _ | c
+  · simp only [Matrix.mul_apply, pairJ, rotΨ, of_apply, Option.elim, Fintype.sum_option,
+      Finset.univ_unique, Finset.sum_singleton]
+    linear_combination hre
+  · simp only [Matrix.mul_apply, pairJ, rotΨ, of_apply, Option.elim, Fintype.sum_option,
+      Finset.univ_unique, Finset.sum_singleton]
+    linear_combination him
+
+/-- Woodford (2003), App. G.1: the inverse of a nonzero `1 × 1` matrix. -/
+theorem inv_fin_one {M : Matrix ιZ ιZ ℝ} (h : M default default ≠ 0) :
+    M⁻¹ = Matrix.of fun _ _ => (M default default)⁻¹ := by
+  refine Matrix.inv_eq_right_inv ?_
+  ext i j
+  rw [Subsingleton.elim i default, Subsingleton.elim j default]
+  simp [Matrix.mul_apply, h]
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1, case (ii), `n_Z = 1`: with `J = a` (`P = selA`), the residual
+root on `ker P'` is `hOf ρ σ (a₁ + i b₁) = ρ + σ b₁/a₁`, for any real basis `(a, b)` with
+`a₁ ≠ 0`. -/
+theorem resid_pair (Jp : Matrix (ιZ ⊕ ιz) (Option ιZ) ℝ) (ρ σ : ℝ)
+    (ha : Jp (Sum.inl default) none ≠ 0) (v : Option ιZ → ℝ) (hv : selAᵀ *ᵥ v = 0) :
+    (residProj Jp selA * (rotΨ ρ σ)ᵀ) *ᵥ v =
+      hOf ρ σ ⟨Jp (Sum.inl default) none, Jp (Sum.inl default) (some default)⟩ • v := by
+  have hv0 : v none = 0 := by
+    have := congrFun hv default
+    simpa [mulVec, dotProduct, selA, Fintype.sum_option] using this
+  have hJ1 : (J1 (Jp * selA))ᵀ default default = Jp (Sum.inl default) none := by
+    simp [J1, Matrix.mul_apply, selA, Fintype.sum_option]
+  rw [residProj, inv_fin_one (by rw [hJ1]; exact ha), hJ1]
+  funext c
+  rcases c with _ | c
+  · simp [mulVec, dotProduct, Matrix.mul_apply, Fintype.sum_option, selA, rotΨ, J1,
+      Matrix.sub_apply, Matrix.one_apply, hv0, hOf, mul_inv_cancel₀ ha]
+  · rw [Subsingleton.elim c default]
+    simp only [mulVec, dotProduct, J1, transpose_submatrix, selA, rotΨ,
+      Matrix.mul_apply, Matrix.sub_apply, Matrix.one_apply, Finset.univ_unique,
+      submatrix_apply, id_eq, transpose_apply, of_apply, Finset.sum_singleton, Finset.sum_const,
+      Finset.card_singleton, one_smul, Fintype.sum_option, reduceCtorEq, ↓reduceIte,
+      Option.elim_none, mul_one, zero_sub, neg_mul, Option.some.injEq, Option.elim_some, mul_zero,
+      sub_zero, ite_mul, one_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_singleton, hv0, mul_neg,
+      neg_neg, zero_add, hOf, Pi.smul_apply, smul_eq_mul, mul_eq_mul_right_iff]
+    left
+    field_simp
+    ring
+
+/-- Woodford (2003), App. G.1, case (ii), `n_Z = 1`: **the residual root as a function of the
+eigenvector's scaling** — for `A u = μ Î u` and any `c ∈ ℂ` with `Re(c u_ξ) ≠ 0`, the basis
+`(Re(cu), Im(cu))` is a deflating pair for `[[ρ, σ], [−σ, ρ]]`, and with `J = Re(cu)` the residual
+root is `hOf ρ σ (c u_ξ)`. -/
+theorem resid_of_eigvec (S : LinearRESystem ιZ ιz) {μ : ℂ} {u : ιZ ⊕ ιz → ℂ}
+    (hu : S.Ahat.map Complex.ofReal *ᵥ u = μ • (S.Ihat.map Complex.ofReal *ᵥ u)) (c : ℂ)
+    (ha : (c * u (Sum.inl default)).re ≠ 0) :
+    S.Ahat * pairJ (c • u) = S.Ihat * pairJ (c • u) * rotΨ μ.re μ.im ∧
+      ∀ v, selAᵀ *ᵥ v = 0 → (residProj (pairJ (c • u)) selA * (rotΨ μ.re μ.im)ᵀ) *ᵥ v =
+        hOf μ.re μ.im (c * u (Sum.inl default)) • v := by
+  have hcu : S.Ahat.map Complex.ofReal *ᵥ (c • u) = μ • (S.Ihat.map Complex.ofReal *ᵥ (c • u)) := by
+    rw [mulVec_smul, hu, mulVec_smul, smul_comm]
+  refine ⟨deflate_pair S hcu, fun v hv => ?_⟩
+  rw [resid_pair _ _ _ ha v hv]
+  rfl
+
+/-- Woodford (2003), App. G.1: the residual root depends only on the phase of the scaling. -/
+theorem hOf_real_mul (ρ σ : ℝ) (w : ℂ) {r : ℝ} (hr : r ≠ 0) :
+    hOf ρ σ ((r : ℂ) * w) = hOf ρ σ w := by
+  unfold hOf
+  simp only [Complex.re_ofReal_mul, Complex.im_ofReal_mul]
+  by_cases hw : w.re = 0
+  · simp [hw]
+  · field_simp
+
+/-- Woodford (2003), Assumption 8.2 (ii) and 8.4 (ii): **at the book's normalisation** (the
+`ξ`-component of the eigenvector a real multiple of `μ`), the residual root satisfies
+`h⁻¹ = Re μ⁻¹`. -/
+theorem hOf_book {μ : ℂ} (hρ : μ.re ≠ 0) {r : ℝ} (hr : r ≠ 0) :
+    (hOf μ.re μ.im ((r : ℂ) * μ))⁻¹ = (μ⁻¹).re := by
+  rw [hOf_real_mul _ _ _ hr, hOf, Complex.inv_re, Complex.normSq_apply]
+  have h2 : μ.re * μ.re + μ.im * μ.im ≠ 0 :=
+    (by nlinarith [mul_self_pos.mpr hρ, mul_self_nonneg μ.im] : 0 < μ.re * μ.re + μ.im * μ.im).ne'
+  field_simp
+
+/-- Woodford (2003), Assumption 8.2 (ii), p. 552: at the book's normalisation, **`|βh| < 1` is
+exactly the book's condition `β < |Re μ⁻¹|`**. -/
+theorem book_iff {μ : ℂ} (hρ : μ.re ≠ 0) {r : ℝ} (hr : r ≠ 0) {β : ℝ} (hβ : 0 < β) :
+    |β * hOf μ.re μ.im ((r : ℂ) * μ)| < 1 ↔ β < |(μ⁻¹).re| := by
+  rw [← hOf_book hρ hr]
+  set h := hOf μ.re μ.im ((r : ℂ) * μ) with hh
+  have hne : h ≠ 0 := by
+    intro h0
+    have := hOf_book hρ hr
+    rw [← hh, h0, _root_.inv_zero, Complex.inv_re] at this
+    have hμ : μ ≠ 0 := fun h0 => hρ (by rw [h0]; simp)
+    exact div_ne_zero hρ (Complex.normSq_pos.mpr hμ).ne' this.symm
+  have habs : 0 < |h| := abs_pos.mpr hne
+  rw [abs_mul, abs_of_pos hβ, abs_inv, ← one_div, lt_div_iff₀ habs]
+
+/-- Woodford (2003), App. G.1: for `σ ≠ 0`, **every real number is the residual root at some
+scaling** of the eigenvector (`u_ξ ≠ 0`). -/
+theorem hOf_surj (ρ : ℝ) {σ : ℝ} (hσ : σ ≠ 0) {u1 : ℂ} (hu1 : u1 ≠ 0) (h' : ℝ) :
+    ∃ c : ℂ, c ≠ 0 ∧ (c * u1).re ≠ 0 ∧ hOf ρ σ (c * u1) = h' := by
+  set t : ℝ := (h' - ρ) / σ with ht
+  have hz : (1 + (t : ℂ) * Complex.I) ≠ 0 := by
+    intro h0
+    have := congrArg Complex.re h0
+    simp at this
+  refine ⟨(1 + (t : ℂ) * Complex.I) / u1, div_ne_zero hz hu1, ?_, ?_⟩
+  · rw [div_mul_cancel₀ _ hu1]
+    simp
+  · rw [div_mul_cancel₀ _ hu1, hOf]
+    simp [ht]
+    field_simp
+    ring
+
+/-- Woodford (2003), Assumption 8.2 (ii) and 8.4 (ii): **the condition `|βh| < 1` depends on the
+eigenvector's normalisation** — for `σ ≠ 0` some scalings satisfy it and others do not. So the
+book's `|Re μ⁻¹| > β`, which is `|βh| < 1` at one scaling (`book_iff`), is normalisation-specific,
+and the normalisation-free replacement is `CaseIIBasis.Assumption84II`. -/
+theorem book_condition_depends_on_scaling (ρ : ℝ) {σ : ℝ} (hσ : σ ≠ 0) {u1 : ℂ} (hu1 : u1 ≠ 0)
+    {β : ℝ} (hβ : 0 < β) :
+    (∃ c : ℂ, c ≠ 0 ∧ (c * u1).re ≠ 0 ∧ |β * hOf ρ σ (c * u1)| < 1) ∧
+      ∃ c : ℂ, c ≠ 0 ∧ (c * u1).re ≠ 0 ∧ ¬ |β * hOf ρ σ (c * u1)| < 1 := by
+  obtain ⟨c0, hc0, hr0, he0⟩ := hOf_surj ρ hσ hu1 0
+  obtain ⟨c1, hc1, hr1, he1⟩ := hOf_surj ρ hσ hu1 β⁻¹
+  refine ⟨⟨c0, hc0, hr0, by rw [he0]; simp⟩, c1, hc1, hr1, ?_⟩
+  rw [he1, mul_inv_cancel₀ hβ.ne', abs_one]
+  exact lt_irrefl 1
+
+
+/-! ### A concrete system in case (ii) -/
+
+/-- Woodford (2003), (1.1), p. 537, a concrete instance: `n_Z = n_z = 1`, `A = [[1, 1], [−1, 1]]`,
+`Ẽ = 1` (so `Î = I`), `B₂ = 1`. -/
+noncomputable def exSys : LinearRESystem (Fin 1) (Fin 1) where
+  A11 := !![1]
+  A12 := !![1]
+  A21 := !![-1]
+  A22 := !![1]
+  Et := !![1]
+  B2 := ![1]
+  A22_isUnit := by simp
+  B2_ne_zero := by
+    intro h
+    have := congrFun h 0
+    simp at this
+
+/-- Woodford (2003), (1.1)–(1.4), p. 537: `exSys` with `β = 1/4` and `W = I` as an LQ problem. -/
+noncomputable def exProblem : LQProblem (Fin 1) (Fin 1) (Fin 1) where
+  sys := exSys
+  β := 1 / 4
+  β_pos := by norm_num
+  β_lt_one := by norm_num
+  Ttil := 0
+  Ti := 0
+  W := 1
+  τstar := 0
+  W_posDef := Matrix.PosDef.one
+
+/-- Woodford (2003), (1.15) for `exSys`: the selected root `μ = 1 + i`. -/
+noncomputable def μ0 : ℂ := 1 + Complex.I
+
+/-- Woodford (2003), (G.1) for `exSys`: the eigenvector `u = (1, i)` of `μ = 1 + i`. -/
+noncomputable def u0 : Fin 1 ⊕ Fin 1 → ℂ := Sum.elim (fun _ => 1) fun _ => Complex.I
+
+/-- Woodford (2003), (G.1): `A u = μ Î u` for `exSys`. -/
+theorem ex_eig : exSys.Ahat.map Complex.ofReal *ᵥ u0 =
+    μ0 • (exSys.Ihat.map Complex.ofReal *ᵥ u0) := by
+  funext a
+  rcases a with a | a <;> rw [Fin.fin_one_eq_zero a] <;> apply Complex.ext <;>
+    simp [mulVec, dotProduct, Fintype.sum_sum_type, LinearRESystem.Ahat, LinearRESystem.Ihat,
+      exSys, u0, μ0]
+
+/-- Woodford (2003), (1.15) for `exSys`: `1 + i` is a root. -/
+theorem ex_root : exSys.pencilPoly.eval μ0 = 0 := by
+  rw [pencilPoly_eval]
+  refine exists_mulVec_eq_zero_iff.mp ⟨u0, ?_, ?_⟩
+  · intro h
+    have := congrFun h (Sum.inl 0)
+    simp [u0] at this
+  · rw [sub_mulVec, ex_eig, smul_mulVec, sub_self]
+
+/-- Woodford (2003), (1.1) for `exSys`: `A` is invertible (`A⁻¹ = ½ [[1, −1], [1, 1]]`). -/
+theorem ex_det : IsUnit exSys.Ahat.det := by
+  refine Matrix.isUnit_det_of_right_inverse
+    (B := fromBlocks !![1 / 2] !![-1 / 2] !![1 / 2] !![1 / 2]) ?_
+  rw [LinearRESystem.Ahat, fromBlocks_multiply, ← fromBlocks_one]
+  congr 1 <;> ext i j <;> rw [Fin.fin_one_eq_zero i, Fin.fin_one_eq_zero j] <;>
+    simp [exSys] <;> norm_num
+
+/-- Woodford (2003), (1.15) for `exSys`: the polynomial is nonzero (its value at `0` is
+`det A ≠ 0`). -/
+theorem ex_reg : exSys.pencilPoly ≠ 0 := by
+  intro h
+  have e := det_pencil_ofReal exSys 0
+  rw [← pencilPoly_eval, h, Polynomial.eval_zero, zero_smul, sub_zero] at e
+  exact ex_det.ne_zero (Complex.ofReal_eq_zero.mp e.symm)
+
+/-- Woodford (2003), p. 547 for `exSys`: `rank A = 2`. -/
+theorem ex_rank : exSys.Ahat.rank = 2 := by
+  rw [Matrix.rank_of_isUnit _ ((Matrix.isUnit_iff_isUnit_det _).mpr ex_det)]
+  simp
+
+/-- Woodford (2003), Assumption 8.2 for `exSys`: `1 + i` is a nonzero root with
+`|1 + i| = √2 < β⁻¹ = 4`. -/
+theorem ex_mem : μ0 ∈ exSys.pencilPoly.roots.filter
+    (fun μ => μ ≠ 0 ∧ ‖μ‖ < ((1 : ℝ) / 4)⁻¹) := by
+  refine Multiset.mem_filter.mpr ⟨(Polynomial.mem_roots ex_reg).mpr ex_root, ?_, ?_⟩
+  · intro h
+    have := congrArg Complex.re h
+    simp [μ0] at this
+  · refine (Complex.norm_le_abs_re_add_abs_im μ0).trans_lt ?_
+    simp [μ0]
+    norm_num
+
+/-- Woodford (2003), **Assumption 8.2, case (ii)**, for `exProblem`: select the single root
+`1 + i` (`n_Z = 1`, `n − rank A = 0`); its conjugate is unselected and
+`Re (1 + i)⁻¹ = 1/2 > β = 1/4`. -/
+noncomputable def ex82 : Assumption82 exProblem.sys exProblem.β where
+  count := by
+    change Fintype.card (Fin 1) ≤ exSys.stableCount ((1 : ℝ) / 4)⁻¹
+    unfold LinearRESystem.stableCount
+    rw [ex_rank]
+    have := Multiset.card_pos_iff_exists_mem.mpr ⟨μ0, ex_mem⟩
+    simp only [Fintype.card_fin, Fintype.card_sum]
+    omega
+  sel := {μ0}
+  sel_le := Multiset.singleton_le.mpr ex_mem
+  sel_card := by
+    change Multiset.card {μ0} + (Fintype.card (Fin 1 ⊕ Fin 1) - exSys.Ahat.rank) =
+      Fintype.card (Fin 1)
+    rw [ex_rank]
+    simp
+  cases := by
+    refine Or.inr ⟨μ0, Multiset.mem_singleton_self _, ?_, ?_, ?_⟩
+    · rw [Multiset.mem_singleton]
+      intro h
+      have := congrArg Complex.im h
+      simp [μ0] at this
+      norm_num at this
+    · rw [Multiset.erase_singleton]
+      simp [ConjClosed]
+    · change (1 : ℝ) / 4 < |(μ0⁻¹).re|
+      rw [Complex.inv_re, Complex.normSq_apply]
+      simp [μ0]
+      norm_num
+
+/-- Woodford (2003), Assumption 8.2 for `exProblem`: the selection is **not** closed under
+conjugation, so this is case (ii), not case (i). -/
+theorem ex_not_caseI : ¬ ConjClosed ex82.sel := by
+  intro h
+  have hm : starRingEnd ℂ μ0 ∈ ex82.sel := h.conj_mem (Multiset.mem_singleton_self μ0)
+  change starRingEnd ℂ μ0 ∈ ({μ0} : Multiset ℂ) at hm
+  rw [Multiset.mem_singleton] at hm
+  have := congrArg Complex.im hm
+  simp [μ0] at this
+  norm_num at this
+
+/-- Woodford (2003), App. G.1, for `exSys`: `(Re u, Im u)` with `[[1, 1], [−1, 1]]` is an
+admissible basis of the invariant subspace of `{1 − i, 1 + i}`. -/
+theorem ex_admissible : Admissible exSys (selPlus ex82.sel μ0) (pairJ u0) (rotΨ 1 1) := by
+  have hre : μ0.re = 1 := by simp [μ0]
+  have him : μ0.im = 1 := by simp [μ0]
+  refine ⟨?_, ?_, fun ν hν => ?_⟩
+  · have hd := deflate_pair exSys ex_eig
+    rw [hre, him] at hd
+    exact hd
+  · refine Fintype.linearIndependent_iff.mpr fun g hg c => ?_
+    have h1 : g none = 0 := by
+      simpa [Fintype.sum_option, pairJ, u0] using congrFun hg (Sum.inl 0)
+    have h2 : g (some 0) = 0 := by
+      simpa [Fintype.sum_option, pairJ, u0] using congrFun hg (Sum.inr 0)
+    rcases c with _ | c
+    · exact h1
+    · rw [Fin.fin_one_eq_zero c]
+      exact h2
+  · right
+    obtain ⟨z, hz0, hz⟩ := exists_eigvec hν
+    have e1 : z none + z (some 0) = ν * z none := by
+      simpa [mulVec, dotProduct, Fintype.sum_option, rotΨ] using congrFun hz none
+    have e2 : -z none + z (some 0) = ν * z (some 0) := by
+      simpa [mulVec, dotProduct, Fintype.sum_option, rotΨ] using congrFun hz (some 0)
+    have hzn : z none ≠ 0 := by
+      intro h0
+      apply hz0
+      funext c
+      rcases c with _ | c
+      · exact h0
+      · rw [Fin.fin_one_eq_zero c]
+        rw [h0] at e1
+        simpa using e1
+    have hq : ((ν - 1) ^ 2 + 1) * z none = 0 := by
+      linear_combination (1 - ν) * e1 - e2
+    have hq2 : (ν - (1 + Complex.I)) * (ν - (1 - Complex.I)) = 0 := by
+      linear_combination (mul_eq_zero.mp hq).resolve_right hzn - Complex.I_sq
+    rcases mul_eq_zero.mp hq2 with h | h
+    · rw [sub_eq_zero.mp h]
+      exact Multiset.mem_cons_of_mem (Multiset.mem_singleton_self _)
+    · rw [sub_eq_zero.mp h]
+      have : starRingEnd ℂ μ0 = 1 - Complex.I := by
+        apply Complex.ext <;> simp [μ0]
+      rw [← this]
+      exact Multiset.mem_cons_self _ _
+
+/-- Woodford (2003), **Assumption 8.4 (ii), corrected, holds for `exProblem`**: with `J = Re u`
+(`P = selA`), `J₁ = 1`, `K = 1` and the residual root is `h = 1`, `|βh| = 1/4 < 1`. -/
+theorem ex84 : Assumption84II exProblem.sys exProblem.β (selPlus ex82.sel μ0) := by
+  have ha : pairJ u0 (Sum.inl 0) none ≠ 0 := by simp [pairJ, u0]
+  refine ⟨pairJ u0, rotΨ 1 1, ex_admissible, selA,
+    hOf 1 1 ⟨pairJ u0 (Sum.inl 0) none, pairJ u0 (Sum.inl 0) (some 0)⟩, ?_, ?_, ?_,
+    fun v hv => resid_pair (pairJ u0) 1 1 ha v hv⟩
+  · rw [Matrix.det_unique]
+    simp [J1, Matrix.mul_apply, Fintype.sum_option, pairJ, selA, u0]
+  · have hJ2 : J2 (pairJ u0 * selA) = 0 := by
+      ext i j
+      simp [J2, Matrix.mul_apply, Fintype.sum_option, pairJ, selA, u0]
+    change (Kmat exSys (pairJ u0 * selA)).det ≠ 0
+    rw [Kmat, Υmat, hJ2]
+    simp [exSys]
+  · change |(1 : ℝ) / 4 * hOf 1 1 ⟨pairJ u0 (Sum.inl 0) none, pairJ u0 (Sum.inl 0) (some 0)⟩| < 1
+    simp [hOf, pairJ, u0]
+    norm_num
+
+/-- Woodford (2003), Assumption 8.4 (ii) corrected, universal form, for `exProblem` (every
+admissible basis spans the whole plane, `sameSubspace_of_card`). -/
+theorem ex84all : Assumption84IIall exProblem.sys exProblem.β (selPlus ex82.sel μ0) := by
+  refine all_of_ex ex_reg (fun ν hν => ?_) (sameSubspace_of_card (by simp)) ex84
+  change ν ∈ starRingEnd ℂ μ0 ::ₘ ({μ0} : Multiset ℂ) at hν
+  rw [Multiset.mem_cons, Multiset.mem_singleton] at hν
+  rcases hν with rfl | rfl
+  · exact pencil_eval_conj exSys ex_root
+  · exact ex_root
+
+/-- Woodford (2003), **Proposition 8.1 in case (ii) is not vacuous**: `exProblem` satisfies
+Assumption 8.2 (case (ii), `ex82`, `ex_not_caseI`) and the corrected Assumption 8.4 (ii) (`ex84`),
+so `CaseIIBasis.prop81_caseII` gives the corrected Proposition 8.1 for it, for any expectation
+system. -/
+theorem ex_prop81 {Ω : Type*} (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Nonempty (Prop81ConclusionM exProblem 𝔼 t0) :=
+  prop81_caseII exProblem ex82 (μ := μ0) (Multiset.mem_singleton_self μ0) ex84 𝔼 t0
+
+end Woodford.OptimalPolicyRules.CaseIIInstance
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.3 (superinertia) in general
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §1.5, pp. 556–557: Assumption 8.7 and
+Proposition 8.3, with Assumption 8.3 of Appendix G.1, p. 716.
+
+Proposition 8.3 says that when (1.15) has `n_Z + m` roots with `|μ| < β⁻¹` (Assumption 8.7), the
+lag polynomial `α(L) = det(I − ΛL)` of the optimal instrument rule (1.28) has `m` zeros inside
+the unit circle. The book gives no proof (Giannoni and Woodford 2002a).
+
+## What is proved
+
+The matrix `Λ` is *any* matrix delivered by Proposition 8.1 (`Prop81Conclusion`): the claim is
+proved for every representation (1.20)–(1.21) of the bounded solutions of (1.18), not only for
+the one Giannoni and Woodford construct from eigenvectors. The proof is a dimension count.
+
+* Perturbing a bounded solution of (1.18) by a deterministic bounded process `h` shows that
+  bounded `h` solve the homogeneous (1.18) iff they solve the homogeneous (1.20)–(1.21)
+  (`homEquiv_of_prop81`).
+* **Upper bound.** Every nonzero root `λ` of (1.15) with `|λ| ≥ β⁻¹` gives a bounded homogeneous
+  solution `(βλ)^{-t} w` of (1.18), hence an eigenvalue `(βλ)⁻¹` of `Λ` in the closed unit disc
+  (`charpoly_root_of_pencil_root`); `Λ` kills `ker Ẽ'` (`mulVec_eq_zero_of_ker`). With
+  Assumption 8.3 this leaves at most `m` eigenvalues outside the closed disc.
+* **Lower bound.** Every vector `v` whose orbit `Λᵗ v` is bounded generates a bounded homogeneous
+  solution of (1.18), which must satisfy the `n_Z + m` independent constraints `(Îu)'φ_t = 0`
+  coming from the roots `|λ| < β⁻¹` (`constraint_of_orbitBdd`, `finrank_orbitBdd_le`).
+  The generalised eigenspaces of `Λ` for `|μ| < 1` lie in that space, so `Λ` has at most
+  `n_z − m` eigenvalues in the open disc (`card_inside_le`).
+* An eigenvalue of `Λ` on the unit circle forces a root of (1.15) on `|λ| = β⁻¹`
+  (`pencil_root_of_circle_eigenvalue`).
+
+Since the zeros of `α` are the reciprocals of the nonzero eigenvalues of `Λ`
+(`zerosInside_alpha`, `zerosOnCircle_alpha`):
+
+* `prop83_bounds`: `zerosInside α ≤ m ≤ zerosInside α + zerosOnCircle α`, under Assumptions 8.1
+  (only its existence half is used), 8.3 and 8.7 — no other hypothesis.
+* `prop83`: **Proposition 8.3**: `zerosInside α = m` when, in addition, (1.15) has no root with
+  `|λ| = β⁻¹` (`prop83Claim_holds`: the statement `TargetCriterion.Prop83Claim`);
+  `prop83_superinertial`: with `m ≥ 1`, `α` has a zero inside the unit circle.
+* `prop83_of_perturbation`: the same for any representation of Proposition 8.1 that is only
+  known to be valid for deterministic perturbations of one bounded solution of (1.18) — e.g. a
+  version restricted to multipliers with `M_t` known at `t`, the form that holds under
+  uncertainty (`TargetCriterion.Prop81.Prop81Equiv` itself quantifies over all bounded
+  multipliers).
+
+Assumptions 8.2, 8.4, 8.5, 8.6 and `λ_i > 0` are not needed: `α` does not depend on the instrument
+weight. The sample space must be nonempty (`Nonempty Ω`): on an empty sample space every matrix
+satisfies the conclusion of Proposition 8.1 vacuously (`prop81Conclusion_of_isEmpty`).
+
+## Corrections
+
+* The hypothesis "no root of (1.15) on `|λ| = β⁻¹`" cannot be dropped from the dimension-count
+  argument: `circle_counterexample` gives a system satisfying Assumptions 8.3 and 8.7 (`m = 1`)
+  with a root on `|λ| = β⁻¹` and a matrix `Λ'` (a Jordan block) that represents the bounded
+  homogeneous solutions of (1.18) exactly as Proposition 8.1 requires (`HomEquiv`), but whose
+  `α(L) = (1 − L)²` has no zero inside the unit circle. (Whether such a `Λ'` can also be completed
+  to a full `Prop81Conclusion` for a problem satisfying Assumption 8.1 is not settled here.)
+* The sample space must be nonempty (`prop83_needs_nonempty`).
+-/
+
+namespace Woodford.OptimalPolicyRules.Prop83
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ Adjugate
+open TargetCriterion (zerosInside map_reverse_ofReal)
+open TargetCriterion.Prop81
+open PencilSplit (pencilPoly_eval EV_add_const)
+open PencilEigen (Assumption83 nonzeroRoots card_le_rank_Ahat finrank_finset_sup map_mulVec_ofReal
+  re_mulVec_map im_mulVec_map)
+
+/-! ### Roots of a reversed polynomial -/
+
+/-- Woodford (2003), p. 557 (tool): the roots of `1 − aX` are `{a⁻¹}` (none if `a = 0`). -/
+theorem roots_one_sub_C_mul_X (a : ℂ) :
+    (1 - C a * X : ℂ[X]).roots = if a = 0 then 0 else {a⁻¹} := by
+  by_cases ha : a = 0
+  · simp [ha]
+  · have h : (1 - C a * X : ℂ[X]) = C (-a) * (X - C a⁻¹) := by
+      rw [mul_sub, ← C_mul, neg_mul, mul_inv_cancel₀ ha, C_neg, C_neg, C_1]
+      ring
+    rw [h, roots_C_mul _ (neg_ne_zero.mpr ha), roots_X_sub_C]
+    simp [ha]
+
+/-- Woodford (2003), p. 557 (tool): `1 − aX ≠ 0`. -/
+theorem one_sub_C_mul_X_ne_zero (a : ℂ) : (1 - C a * X : ℂ[X]) ≠ 0 := by
+  intro h
+  have := congrArg (fun p => p.coeff 0) h
+  simp at this
+
+/-- Woodford (2003), p. 557 (tool): the roots of `∏ (1 − a X)` are the inverses of the nonzero
+`a`. -/
+theorem roots_prod_one_sub (s : Multiset ℂ) :
+    ((s.map fun a => (1 - C a * X : ℂ[X])).prod).roots = (s.filter (· ≠ 0)).map (·⁻¹) := by
+  induction s using Multiset.induction_on with
+  | empty => simp
+  | cons a s ih =>
+    have hprod : (s.map fun a => (1 - C a * X : ℂ[X])).prod ≠ 0 := by
+      refine Multiset.prod_ne_zero fun h => ?_
+      obtain ⟨b, -, hb⟩ := Multiset.mem_map.mp h
+      exact one_sub_C_mul_X_ne_zero b hb
+    rw [Multiset.map_cons, Multiset.prod_cons,
+      roots_mul (mul_ne_zero (one_sub_C_mul_X_ne_zero a) hprod), ih, roots_one_sub_C_mul_X,
+      Multiset.filter_cons]
+    by_cases ha : a = 0 <;> simp [ha]
+
+/-- Woodford (2003), p. 557 (tool): the reverse of a product is the product of the reverses. -/
+theorem reverse_multiset_prod (s : Multiset ℂ[X]) : s.prod.reverse = (s.map reverse).prod := by
+  induction s using Multiset.induction_on with
+  | empty => simpa using reverse_C (1 : ℂ)
+  | cons p s ih =>
+    rw [Multiset.prod_cons, reverse_mul_of_domain, ih, Multiset.map_cons, Multiset.prod_cons]
+
+/-- Woodford (2003), pp. 557–558 (tool): `reverse (X − a) = 1 − aX` (over any nontrivial
+commutative ring; used over `ℂ` and `ℝ`). -/
+theorem reverse_X_sub_C {R : Type*} [CommRing R] [Nontrivial R] (a : R) :
+    (X - C a : R[X]).reverse = 1 - C a * X := by
+  have hX : (X : R[X]).reverse = 1 := by
+    have := reverse_mul_X (1 : R[X])
+    rw [one_mul] at this
+    rw [this]
+    simpa using reverse_C (1 : R)
+  rw [sub_eq_add_neg, ← C_neg, reverse_add_C, hX, natDegree_X, pow_one, C_neg]
+  ring
+
+/-- Woodford (2003), p. 557: over `ℂ` the roots of the reverse of `p ≠ 0` are the inverses of the
+nonzero roots of `p`, with multiplicity. -/
+theorem roots_reverse {p : ℂ[X]} (hp : p ≠ 0) :
+    p.reverse.roots = (p.roots.filter (· ≠ 0)).map (·⁻¹) := by
+  have hcard : Multiset.card p.roots = p.natDegree :=
+    (splits_iff_card_roots).mp (IsAlgClosed.splits p)
+  have hfac := C_leadingCoeff_mul_prod_multiset_X_sub_C hcard
+  have hlc : p.leadingCoeff ≠ 0 := leadingCoeff_ne_zero.mpr hp
+  conv_lhs => rw [← hfac]
+  rw [reverse_mul_of_domain, reverse_C, reverse_multiset_prod, Multiset.map_map]
+  have : (reverse ∘ fun a => X - C a) = fun a : ℂ => (1 - C a * X : ℂ[X]) :=
+    funext reverse_X_sub_C
+  rw [this, roots_C_mul _ hlc, roots_prod_one_sub]
+
+/-! ### The zeros of `α(L)` and the eigenvalues of `Λ` -/
+
+/-- Woodford (2003), p. 557: the number of zeros of a lag polynomial on the unit circle (with
+multiplicity). -/
+noncomputable def zerosOnCircle (α : ℝ[X]) : ℕ :=
+  Multiset.card ((α.map Complex.ofRealHom).roots.filter (fun z => ‖z‖ = 1))
+
+/-- Woodford (2003), p. 557 (tool): a real matrix viewed as a complex matrix. -/
+abbrev cmat {a b : Type*} (M : Matrix a b ℝ) : Matrix a b ℂ := M.map Complex.ofReal
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-- Woodford (2003), p. 553: complexified, `α(L) = det(I − ΛL)` is the reversed characteristic
+polynomial of `Λ`. -/
+theorem alpha_map_ofReal (Λ : Matrix ι ι ℝ) :
+    (alpha Λ).map Complex.ofRealHom = (cmat Λ).charpoly.reverse := by
+  rw [alpha_eq_reverse_charpoly, map_reverse_ofReal, ← charpoly_map]
+  rfl
+
+/-- Woodford (2003), pp. 556–557: the zeros of `α(L) = det(I − ΛL)` inside the unit circle are the
+reciprocals of the eigenvalues of `Λ` outside it. -/
+theorem zerosInside_alpha (Λ : Matrix ι ι ℝ) :
+    zerosInside (alpha Λ) = Multiset.card ((cmat Λ).charpoly.roots.filter (fun μ => 1 < ‖μ‖)) := by
+  unfold zerosInside
+  rw [alpha_map_ofReal, roots_reverse (charpoly_monic _).ne_zero, Multiset.filter_map,
+    Multiset.card_map, Multiset.filter_filter]
+  congr 1
+  refine Multiset.filter_congr fun μ _ => ?_
+  simp only [Function.comp, norm_inv]
+  constructor
+  · rintro ⟨h1, h0⟩
+    exact (inv_lt_one₀ (norm_pos_iff.mpr h0)).mp h1
+  · intro h
+    have h0 : μ ≠ 0 := fun h0 => by simp [h0] at h; linarith
+    exact ⟨(inv_lt_one₀ (norm_pos_iff.mpr h0)).mpr h, h0⟩
+
+/-- Woodford (2003), p. 557: the zeros of `α(L)` on the unit circle are the reciprocals of the
+eigenvalues of `Λ` on it. -/
+theorem zerosOnCircle_alpha (Λ : Matrix ι ι ℝ) :
+    zerosOnCircle (alpha Λ) =
+      Multiset.card ((cmat Λ).charpoly.roots.filter (fun μ => ‖μ‖ = 1)) := by
+  unfold zerosOnCircle
+  rw [alpha_map_ofReal, roots_reverse (charpoly_monic _).ne_zero, Multiset.filter_map,
+    Multiset.card_map, Multiset.filter_filter]
+  congr 1
+  refine Multiset.filter_congr fun μ _ => ?_
+  simp only [Function.comp, norm_inv]
+  constructor
+  · rintro ⟨h1, -⟩
+    exact inv_eq_one.mp h1
+  · intro h
+    have h0 : μ ≠ 0 := fun h0 => by simp [h0] at h
+    exact ⟨by rw [h, inv_one], h0⟩
+
+/-! ### Complex matrices and vectors: real and imaginary parts -/
+
+/-- Woodford (2003), p. 557 (tool): `‖(M v)_i‖ ≤ (∑ |M|) C` when every `‖v_j‖ ≤ C`, `C ≥ 0`. -/
+theorem norm_mulVec_le {a b : Type*} [Fintype a] [Fintype b] (M : Matrix a b ℂ) {w : b → ℂ}
+    {C : ℝ} (hC0 : 0 ≤ C) (hw : ∀ j, ‖w j‖ ≤ C) (i : a) :
+    ‖(M *ᵥ w) i‖ ≤ (∑ i', ∑ j, ‖M i' j‖) * C := by
+  calc ‖(M *ᵥ w) i‖ = ‖∑ j, M i j * w j‖ := rfl
+    _ ≤ ∑ j, ‖M i j * w j‖ := norm_sum_le _ _
+    _ ≤ ∑ j, ‖M i j‖ * C := Finset.sum_le_sum fun j _ => by
+        rw [norm_mul]
+        exact mul_le_mul_of_nonneg_left (hw j) (norm_nonneg _)
+    _ = (∑ j, ‖M i j‖) * C := by rw [Finset.sum_mul]
+    _ ≤ (∑ i', ∑ j, ‖M i' j‖) * C := by
+        refine mul_le_mul_of_nonneg_right ?_ hC0
+        exact Finset.single_le_sum (f := fun i' => ∑ j, ‖M i' j‖)
+          (fun i' _ => Finset.sum_nonneg fun j _ => norm_nonneg _) (Finset.mem_univ i)
+
+/-! ### The homogeneous equations (1.18) and (1.20)–(1.21) -/
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-- Woodford (2003), fn 6, p. 539: a bounded deterministic vector sequence. -/
+def BddSeq {κ R : Type*} [Norm R] (h : ℕ → κ → R) : Prop := ∃ C, ∀ t i, ‖h t i‖ ≤ C
+
+/-- Woodford (2003), eq. (1.18), p. 552, homogeneous and deterministic (dates shifted to start
+at `0`): `A' φ_{t+1} = β⁻¹ Î' φ_t`. -/
+def HomSol (S : LinearRESystem ιZ ιz) (β : ℝ) (h : ℕ → ιZ ⊕ ιz → ℝ) : Prop :=
+  ∀ t, S.Ahatᵀ *ᵥ h (t + 1) = β⁻¹ • (S.Ihatᵀ *ᵥ h t)
+
+/-- Woodford (2003), eqs. (1.20)–(1.21), p. 553, homogeneous: `M_t = Λ M_{t−1}` and
+`ξ_t = Υ M_{t−1}`, with `φ_t = (ξ_t, M_{t−1})`. -/
+def RepSol (Λ : Matrix ιz ιz ℝ) (Υ : Matrix ιZ ιz ℝ) (h : ℕ → ιZ ⊕ ιz → ℝ) : Prop :=
+  ∀ t, Mpart (h (t + 1)) = Λ *ᵥ Mpart (h t) ∧ ξpart (h t) = Υ *ᵥ Mpart (h t)
+
+/-- Woodford (2003), Proposition 8.1, p. 553, for deterministic bounded perturbations: a bounded
+`h` solves the homogeneous (1.18) iff it solves the homogeneous (1.20)–(1.21). -/
+def HomEquiv (S : LinearRESystem ιZ ιz) (β : ℝ) (Λ : Matrix ιz ιz ℝ) (Υ : Matrix ιZ ιz ℝ) :
+    Prop :=
+  ∀ h, BddSeq h → (HomSol S β h ↔ RepSol Λ Υ h)
+
+/-- Woodford (2003), eq. (1.18), homogeneous, for complex sequences. -/
+def HomSolC (S : LinearRESystem ιZ ιz) (β : ℝ) (h : ℕ → ιZ ⊕ ιz → ℂ) : Prop :=
+  ∀ t, cmat (S.Ahatᵀ) *ᵥ h (t + 1) = (β : ℂ)⁻¹ • (cmat (S.Ihatᵀ) *ᵥ h t)
+
+/-- Woodford (2003), eqs. (1.20)–(1.21), homogeneous, for complex sequences. -/
+def RepSolC (Λ : Matrix ιz ιz ℝ) (Υ : Matrix ιZ ιz ℝ) (h : ℕ → ιZ ⊕ ιz → ℂ) : Prop :=
+  ∀ t, (fun r => h (t + 1) (Sum.inr r)) = cmat Λ *ᵥ (fun r => h t (Sum.inr r)) ∧
+    (fun r => h t (Sum.inl r)) = cmat Υ *ᵥ (fun r => h t (Sum.inr r))
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): `M_{t−1}` is the `z`-block of `φ_t = (ξ_t, M_{t−1})`. -/
+theorem Mpart_eq (v : ιZ ⊕ ιz → ℝ) : Mpart v = fun r => v (Sum.inr r) := rfl
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): `ξ_t` is the `Z`-block of `φ_t = (ξ_t, M_{t−1})`. -/
+theorem ξpart_eq (v : ιZ ⊕ ιz → ℝ) : ξpart v = fun r => v (Sum.inl r) := rfl
+
+variable {S : LinearRESystem ιZ ιz} {β : ℝ} {Λ : Matrix ιz ιz ℝ} {Υ : Matrix ιZ ιz ℝ}
+
+/-- Woodford (2003), p. 553 (tool): a bounded complex solution of the homogeneous (1.18) solves
+the homogeneous (1.20)–(1.21) (apply the real equivalence to real and imaginary parts). -/
+theorem repSolC_of_homSolC (hE : HomEquiv S β Λ Υ) {h : ℕ → ιZ ⊕ ιz → ℂ} (hb : BddSeq h)
+    (hs : HomSolC S β h) : RepSolC Λ Υ h := by
+  obtain ⟨C, hC⟩ := hb
+  have hre : RepSol Λ Υ (fun t i => (h t i).re) := by
+    refine (hE _ ⟨C, fun t i => ?_⟩).mp fun t => ?_
+    · rw [Real.norm_eq_abs]
+      exact (Complex.abs_re_le_norm _).trans (hC t i)
+    · funext i
+      have := congrArg (fun v => (v i).re) (hs t)
+      simp only [re_mulVec_map, Pi.smul_apply, smul_eq_mul, ← Complex.ofReal_inv,
+        Complex.re_ofReal_mul] at this
+      simpa using this
+  have him : RepSol Λ Υ (fun t i => (h t i).im) := by
+    refine (hE _ ⟨C, fun t i => ?_⟩).mp fun t => ?_
+    · rw [Real.norm_eq_abs]
+      exact (Complex.abs_im_le_norm _).trans (hC t i)
+    · funext i
+      have := congrArg (fun v => (v i).im) (hs t)
+      simp only [im_mulVec_map, Pi.smul_apply, smul_eq_mul, ← Complex.ofReal_inv,
+        Complex.im_ofReal_mul] at this
+      simpa using this
+  intro t
+  refine ⟨funext fun r => Complex.ext ?_ ?_, funext fun r => Complex.ext ?_ ?_⟩
+  · have := congrFun (hre t).1 r
+    simpa [Mpart_eq, re_mulVec_map] using this
+  · have := congrFun (him t).1 r
+    simpa [Mpart_eq, im_mulVec_map] using this
+  · have := congrFun (hre t).2 r
+    simpa [Mpart_eq, ξpart_eq, re_mulVec_map] using this
+  · have := congrFun (him t).2 r
+    simpa [Mpart_eq, ξpart_eq, im_mulVec_map] using this
+
+/-- Woodford (2003), p. 553 (tool): a bounded complex solution of the homogeneous (1.20)–(1.21)
+solves the homogeneous (1.18). -/
+theorem homSolC_of_repSolC (hE : HomEquiv S β Λ Υ) {h : ℕ → ιZ ⊕ ιz → ℂ} (hb : BddSeq h)
+    (hs : RepSolC Λ Υ h) : HomSolC S β h := by
+  obtain ⟨C, hC⟩ := hb
+  have hre : HomSol S β (fun t i => (h t i).re) := by
+    refine (hE _ ⟨C, fun t i => ?_⟩).mpr fun t => ⟨funext fun r => ?_, funext fun r => ?_⟩
+    · rw [Real.norm_eq_abs]
+      exact (Complex.abs_re_le_norm _).trans (hC t i)
+    · have := congrArg (fun v => (v r).re) (hs t).1
+      simpa [Mpart_eq, re_mulVec_map] using this
+    · have := congrArg (fun v => (v r).re) (hs t).2
+      simpa [Mpart_eq, ξpart_eq, re_mulVec_map] using this
+  have him : HomSol S β (fun t i => (h t i).im) := by
+    refine (hE _ ⟨C, fun t i => ?_⟩).mpr fun t => ⟨funext fun r => ?_, funext fun r => ?_⟩
+    · rw [Real.norm_eq_abs]
+      exact (Complex.abs_im_le_norm _).trans (hC t i)
+    · have := congrArg (fun v => (v r).im) (hs t).1
+      simpa [Mpart_eq, im_mulVec_map] using this
+    · have := congrArg (fun v => (v r).im) (hs t).2
+      simpa [Mpart_eq, ξpart_eq, im_mulVec_map] using this
+  intro t
+  funext i
+  refine Complex.ext ?_ ?_
+  · have := congrFun (hre t) i
+    simp only [Pi.smul_apply, smul_eq_mul] at this
+    simp [re_mulVec_map, ← Complex.ofReal_inv, this]
+  · have := congrFun (him t) i
+    simp only [Pi.smul_apply, smul_eq_mul] at this
+    simp [im_mulVec_map, ← Complex.ofReal_inv, this]
+
+/-! ### The upper bound: eigenvalues of `Λ` in the closed unit disc -/
+
+/-- Woodford (2003), p. 557 (tool): `cmat (Mᵀ) = (cmat M)ᵀ`. -/
+theorem cmat_transpose {a b : Type*} (M : Matrix a b ℝ) : cmat (Mᵀ) = (cmat M)ᵀ := rfl
+
+/-- Woodford (2003), pp. 553, 557: **a root `λ ≠ 0` of (1.15) with `|λ| ≥ β⁻¹` gives the
+eigenvalue `(βλ)⁻¹` of `Λ`.** A left null vector `w` of `A − λÎ` makes `φ_t = (βλ)^{-t} w` a
+bounded solution of the homogeneous (1.18); by Proposition 8.1 its `M`-block obeys
+`M_t = Λ M_{t−1}`, and it is nonzero because `ξ_t = Υ M_{t−1}`. -/
+theorem charpoly_root_of_pencil_root (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) {l : ℂ}
+    (hl0 : l ≠ 0) (hdet : (cmat S.Ahat - l • cmat S.Ihat).det = 0) (hl : β⁻¹ ≤ ‖l‖) :
+    (cmat Λ).charpoly.eval ((β : ℂ) * l)⁻¹ = 0 := by
+  obtain ⟨w, hw0, hw⟩ := exists_vecMul_eq_zero_iff.mpr hdet
+  have hA : cmat (S.Ahatᵀ) *ᵥ w = l • (cmat (S.Ihatᵀ) *ᵥ w) := by
+    rw [← mulVec_transpose, transpose_sub, transpose_smul, sub_mulVec, smul_mulVec,
+      sub_eq_zero] at hw
+    rw [cmat_transpose, cmat_transpose, hw]
+  set μ : ℂ := ((β : ℂ) * l)⁻¹ with hμdef
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ.ne'
+  have hμl : μ * l = (β : ℂ)⁻¹ := by
+    rw [hμdef]
+    field_simp
+  have hμn : ‖μ‖ ≤ 1 := by
+    have h1 : 1 ≤ β * ‖l‖ := by
+      have := mul_le_mul_of_nonneg_left hl hβ.le
+      rwa [mul_inv_cancel₀ hβ.ne'] at this
+    rw [hμdef, norm_inv, norm_mul, Complex.norm_real, Real.norm_of_nonneg hβ.le]
+    exact inv_le_one_of_one_le₀ h1
+  let h : ℕ → ιZ ⊕ ιz → ℂ := fun t => μ ^ t • w
+  have hs : HomSolC S β h := by
+    intro t
+    simp only [h]
+    rw [mulVec_smul, mulVec_smul, hA, smul_smul, smul_smul, pow_succ, mul_assoc, hμl,
+      mul_comm]
+  have hb : BddSeq h := by
+    refine ⟨∑ i, ‖w i‖, fun t i => ?_⟩
+    simp only [h, Pi.smul_apply, smul_eq_mul, norm_mul, norm_pow]
+    calc ‖μ‖ ^ t * ‖w i‖ ≤ 1 * ‖w i‖ :=
+          mul_le_mul_of_nonneg_right (pow_le_one₀ (norm_nonneg _) hμn) (norm_nonneg _)
+      _ ≤ ∑ i, ‖w i‖ := by
+          rw [one_mul]
+          exact Finset.single_le_sum (fun j _ => norm_nonneg (w j)) (Finset.mem_univ i)
+  have hr := repSolC_of_homSolC hE hb hs 0
+  simp only [h, zero_add, pow_one, pow_zero, one_smul, Pi.smul_apply] at hr
+  set wM : ιz → ℂ := fun r => w (Sum.inr r) with hwMdef
+  have hwM : wM ≠ 0 := by
+    intro h0
+    apply hw0
+    funext r
+    rcases r with r | r
+    · have := congrFun hr.2 r
+      rw [h0, mulVec_zero] at this
+      simpa using this
+    · exact congrFun h0 r
+  rw [eval_charpoly]
+  refine exists_mulVec_eq_zero_iff.mp ⟨wM, hwM, ?_⟩
+  have hsc : (scalar ιz μ : Matrix ιz ιz ℂ) *ᵥ wM = μ • wM := by
+    funext r
+    simp [scalar_apply, mulVec_diagonal]
+  rw [sub_mulVec, hsc, ← hr.1]
+  exact sub_eq_zero.mpr rfl
+
+/-- Woodford (2003), p. 553 and App. G.2, p. 719: **`Λ` annihilates `ker Ẽ'`.** For `Ẽ'v = 0`
+the impulse `φ_0 = (0, v)`, `φ_t = 0` (`t ≥ 1`) solves the homogeneous (1.18), so
+`Λ v = M_0 = 0`. -/
+theorem mulVec_eq_zero_of_ker (hE : HomEquiv S β Λ Υ) {v : ιz → ℝ} (hv : S.Etᵀ *ᵥ v = 0) :
+    Λ *ᵥ v = 0 := by
+  let h : ℕ → ιZ ⊕ ιz → ℝ := fun t => if t = 0 then Sum.elim 0 v else 0
+  have hI : S.Ihatᵀ *ᵥ (Sum.elim 0 v : ιZ ⊕ ιz → ℝ) = 0 := by
+    funext r
+    rcases r with r | r
+    · simp [LinearRESystem.Ihat, fromBlocks_transpose, fromBlocks_mulVec]
+    · have := congrFun hv r
+      simp [LinearRESystem.Ihat, fromBlocks_transpose, fromBlocks_mulVec, this]
+  have hs : HomSol S β h := by
+    intro t
+    cases t with
+    | zero => simp [h, hI]
+    | succ t => simp [h]
+  have hsum : ∀ r, |v r| ≤ ∑ i, |v i| := fun r =>
+    Finset.single_le_sum (fun i _ => abs_nonneg (v i)) (Finset.mem_univ r)
+  have hsum0 : 0 ≤ ∑ i, |v i| := Finset.sum_nonneg fun i _ => abs_nonneg (v i)
+  have hb : BddSeq h := by
+    refine ⟨∑ i, |v i|, fun t i => ?_⟩
+    rw [Real.norm_eq_abs]
+    by_cases ht : t = 0
+    · rcases i with i | i
+      · simp [h, ht, hsum0]
+      · simpa [h, ht] using hsum i
+    · simp [h, ht, hsum0]
+  have := ((hE h hb).mp hs 0).1
+  simp only [h, Mpart_eq] at this
+  exact this.symm
+
+/-- Woodford (2003), App. G.2, p. 719: the eigenvalue `0` of `Λ` has algebraic multiplicity at
+least `n_z − rank Ẽ`. -/
+theorem card_sub_rank_le_rootMultiplicity (hE : HomEquiv S β Λ Υ) :
+    Fintype.card ιz - S.Et.rank ≤ (cmat Λ).charpoly.rootMultiplicity 0 := by
+  have hK : Module.finrank ℝ (LinearMap.ker (S.Etᵀ.mulVecLin)) =
+      Fintype.card ιz - S.Et.rank := by
+    have h1 := LinearMap.finrank_range_add_finrank_ker (S.Etᵀ.mulVecLin)
+    have h2 : Module.finrank ℝ (LinearMap.range S.Etᵀ.mulVecLin) = S.Et.rank := by
+      rw [← rank_transpose]
+      rfl
+    rw [Module.finrank_fintype_fun_eq_card, h2] at h1
+    omega
+  let K := LinearMap.ker (S.Etᵀ.mulVecLin)
+  let b := Module.finBasis ℝ K
+  let v : Fin (Module.finrank ℝ K) → ιz → ℝ := fun i => (b i : ιz → ℝ)
+  have hv : LinearIndependent ℝ v :=
+    b.linearIndependent.map' K.subtype (Submodule.ker_subtype K)
+  have hvc : LinearIndependent ℂ (fun i => (algebraMap ℝ ℂ) ∘ v i) :=
+    linearIndependent_algebraMap_comp_iff.mpr hv
+  have hmem : ∀ i, (algebraMap ℝ ℂ) ∘ v i ∈ Module.End.eigenspace (toLin' (cmat Λ)) 0 := by
+    intro i
+    rw [Module.End.mem_eigenspace_iff, zero_smul, toLin'_apply]
+    have hker : S.Etᵀ *ᵥ v i = 0 := LinearMap.mem_ker.mp (b i).2
+    have h0 := mulVec_eq_zero_of_ker hE hker
+    have e : (algebraMap ℝ ℂ ∘ v i) = fun j => (v i j : ℂ) := rfl
+    rw [e, map_mulVec_ofReal, h0]
+    funext j
+    simp
+  have hle := Submodule.finrank_mono (Submodule.span_le.mpr (Set.range_subset_iff.mpr hmem))
+  rw [finrank_span_eq_card hvc, Fintype.card_fin, hK] at hle
+  calc _ ≤ _ := hle
+    _ ≤ _ := LinearMap.finrank_eigenspace_le _ _
+    _ = _ := by rw [charpoly_toLin']
+
+/-- Woodford (2003), p. 557 (tool): the roots of the characteristic polynomial of a complex
+`n × n` matrix number `n`. -/
+theorem card_charpoly_roots (M : Matrix ι ι ℂ) :
+    Multiset.card M.charpoly.roots = Fintype.card ι := by
+  rw [(splits_iff_card_roots).mp (IsAlgClosed.splits _), charpoly_natDegree_eq_dim]
+
+/-- Woodford (2003), Proposition 8.3, p. 556, **upper half**: under Assumptions 8.3 and 8.7
+(`n_Z + m` roots of (1.15) with `|μ| < β⁻¹`), `Λ` has at most `m` eigenvalues outside the
+closed unit disc. -/
+theorem card_outside_le (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) (h83 : Assumption83 S) {m : ℕ}
+    (h87 : S.stableCount β⁻¹ = Fintype.card ιZ + m) :
+    Multiset.card ((cmat Λ).charpoly.roots.filter (fun μ => 1 < ‖μ‖)) ≤ m := by
+  set R := (cmat Λ).charpoly.roots with hRdef
+  have hR : Multiset.card R = Fintype.card ιz := card_charpoly_roots _
+  have hp1 := congrArg Multiset.card (Multiset.filter_add_not (fun μ : ℂ => μ = 0) R)
+  have hp2 := congrArg Multiset.card (Multiset.filter_add_not (fun μ : ℂ => ‖μ‖ ≤ 1)
+    (R.filter (fun μ => ¬ μ = 0)))
+  rw [Multiset.card_add] at hp1 hp2
+  have hout : (R.filter (fun μ => ¬ μ = 0)).filter (fun μ => ¬ ‖μ‖ ≤ 1) =
+      R.filter (fun μ => 1 < ‖μ‖) := by
+    rw [Multiset.filter_filter]
+    refine Multiset.filter_congr fun μ _ => ?_
+    constructor
+    · rintro ⟨h1, -⟩
+      exact not_le.mp h1
+    · intro h1
+      refine ⟨not_le.mpr h1, fun h0 => ?_⟩
+      rw [h0, norm_zero] at h1
+      linarith
+  rw [hout] at hp2
+  have hzero : Multiset.card (R.filter (fun μ : ℂ => μ = 0)) =
+      (cmat Λ).charpoly.rootMultiplicity 0 := by
+    rw [Multiset.filter_eq', Multiset.card_replicate, count_roots]
+  have hz := card_sub_rank_le_rootMultiplicity hE (S := S)
+  -- the eigenvalues coming from the roots of (1.15) with `|λ| ≥ β⁻¹`
+  set ST := (nonzeroRoots S).filter (fun l => β⁻¹ ≤ ‖l‖) with hST
+  set f : ℂ → ℂ := fun l => ((β : ℂ) * l)⁻¹ with hf
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ.ne'
+  have hmemST : ∀ l ∈ ST, l ∈ S.pencilPoly.roots ∧ l ≠ 0 ∧ β⁻¹ ≤ ‖l‖ := by
+    intro l hl
+    rw [hST, nonzeroRoots, Multiset.mem_filter, Multiset.mem_filter] at hl
+    exact ⟨hl.1.1, hl.1.2, hl.2⟩
+  have hnd : (ST.map f).Nodup := by
+    refine Multiset.Nodup.map_on (fun x hx y hy hxy => ?_) (h83.nodup.filter _)
+    have hx0 := (hmemST x hx).2.1
+    have hy0 := (hmemST y hy).2.1
+    simp only [hf, _root_.inv_inj] at hxy
+    exact mul_left_cancel₀ hβc hxy
+  have hsub : ST.map f ⊆ (R.filter (fun μ => ¬ μ = 0)).filter (fun μ => ‖μ‖ ≤ 1) := by
+    intro x hx
+    obtain ⟨l, hl, rfl⟩ := Multiset.mem_map.mp hx
+    obtain ⟨hlr, hl0, hln⟩ := hmemST l hl
+    have hdet : (cmat S.Ahat - l • cmat S.Ihat).det = 0 := by
+      rw [← pencilPoly_eval]
+      exact (mem_roots h83.regular).mp hlr
+    have hroot := charpoly_root_of_pencil_root hE hβ hl0 hdet hln
+    refine Multiset.mem_filter.mpr ⟨Multiset.mem_filter.mpr ⟨?_, ?_⟩, ?_⟩
+    · exact (mem_roots (charpoly_monic _).ne_zero).mpr hroot
+    · simp only [hf]
+      exact inv_ne_zero (mul_ne_zero hβc hl0)
+    · simp only [hf]
+      have h1 : 1 ≤ β * ‖l‖ := by
+        have := mul_le_mul_of_nonneg_left hln hβ.le
+        rwa [mul_inv_cancel₀ hβ.ne'] at this
+      rw [norm_inv, norm_mul, Complex.norm_real, Real.norm_of_nonneg hβ.le]
+      exact inv_le_one_of_one_le₀ h1
+  have hmid := Multiset.card_le_card ((Multiset.le_iff_subset hnd).mpr hsub)
+  rw [Multiset.card_map] at hmid
+  -- counting the roots of (1.15)
+  have hsplit := congrArg Multiset.card
+    (Multiset.filter_add_not (fun l : ℂ => ‖l‖ < β⁻¹) (nonzeroRoots S))
+  rw [Multiset.card_add] at hsplit
+  have hnot : (nonzeroRoots S).filter (fun l => ¬ ‖l‖ < β⁻¹) = ST := by
+    rw [hST]
+    exact Multiset.filter_congr fun l _ => not_lt
+  rw [hnot] at hsplit
+  have hless : S.pencilPoly.roots.filter (fun μ => μ ≠ 0 ∧ ‖μ‖ < β⁻¹) =
+      (nonzeroRoots S).filter (fun l => ‖l‖ < β⁻¹) := by
+    rw [nonzeroRoots, Multiset.filter_filter]
+    exact Multiset.filter_congr fun l _ => and_comm
+  have h87' := h87
+  unfold LinearRESystem.stableCount at h87'
+  rw [hless, Fintype.card_sum] at h87'
+  have hrA := rank_le_card_width S.Ahat
+  have hrE := rank_le_card_width S.Et
+  rw [Fintype.card_sum] at hrA
+  have hc := h83.card_nonzero
+  have hAr := card_le_rank_Ahat S
+  omega
+
+/-! ### The lower bound: eigenvalues of `Λ` in the open unit disc -/
+
+/-- Woodford (2003), p. 557: the vectors `v` whose orbit `Λᵗ v` is bounded (a subspace). -/
+def orbitBdd (M : Matrix ιz ιz ℂ) : Submodule ℂ (ιz → ℂ) where
+  carrier := {v | ∃ C, ∀ k i, ‖((M ^ k) *ᵥ v) i‖ ≤ C}
+  add_mem' := by
+    rintro v w ⟨C, hC⟩ ⟨D, hD⟩
+    refine ⟨C + D, fun k i => ?_⟩
+    rw [mulVec_add, Pi.add_apply]
+    exact (norm_add_le _ _).trans (add_le_add (hC k i) (hD k i))
+  zero_mem' := ⟨0, fun k i => by simp⟩
+  smul_mem' := by
+    rintro c v ⟨C, hC⟩
+    refine ⟨‖c‖ * C, fun k i => ?_⟩
+    rw [mulVec_smul, Pi.smul_apply, smul_eq_mul, norm_mul]
+    exact mul_le_mul_of_nonneg_left (hC k i) (norm_nonneg c)
+
+/-- Woodford (2003), p. 557: the bounded-orbit subspace is invariant under `Λ`. -/
+theorem pow_mulVec_mem_orbitBdd {M : Matrix ιz ιz ℂ} {v : ιz → ℂ} (hv : v ∈ orbitBdd M)
+    (j : ℕ) : (M ^ j) *ᵥ v ∈ orbitBdd M := by
+  obtain ⟨C, hC⟩ := hv
+  exact ⟨C, fun k i => by rw [mulVec_mulVec, ← pow_add]; exact hC (k + j) i⟩
+
+/-- Woodford (2003), p. 557: generalised eigenvectors of `Λ` for an eigenvalue `|μ| < 1` have
+bounded orbits (induction on the height `k` of `(Λ − μ)^k v = 0`). -/
+theorem mem_orbitBdd_of_pow (M : Matrix ιz ιz ℂ) {μ : ℂ} (hμ : ‖μ‖ < 1) :
+    ∀ (k : ℕ) (v : ιz → ℂ), ((M - μ • 1) ^ k) *ᵥ v = 0 → v ∈ orbitBdd M := by
+  intro k
+  induction k with
+  | zero =>
+    intro v hv
+    rw [pow_zero, one_mulVec] at hv
+    rw [hv]
+    exact (orbitBdd M).zero_mem
+  | succ k ih =>
+    intro v hv
+    set w := (M - μ • 1) *ᵥ v with hw
+    have hw0 : ((M - μ • 1) ^ k) *ᵥ w = 0 := by
+      rw [hw, mulVec_mulVec, ← pow_succ]
+      exact hv
+    obtain ⟨C, hC⟩ := ih w hw0
+    have hMv : M *ᵥ v = w + μ • v := by
+      rw [hw, sub_mulVec, smul_mulVec, one_mulVec]
+      abel
+    have hstep : ∀ t, (M ^ (t + 1)) *ᵥ v = (M ^ t) *ᵥ w + μ • ((M ^ t) *ᵥ v) := by
+      intro t
+      rw [pow_succ, ← mulVec_mulVec, hMv, mulVec_add, mulVec_smul]
+    have h1 : 0 < 1 - ‖μ‖ := by linarith
+    set B := max (∑ i, ‖v i‖) (C / (1 - ‖μ‖)) with hB
+    have hCB : C ≤ (1 - ‖μ‖) * B := by
+      have := le_max_right (∑ i, ‖v i‖) (C / (1 - ‖μ‖))
+      rw [← hB, div_le_iff₀ h1] at this
+      linarith
+    refine ⟨B, fun t => ?_⟩
+    induction t with
+    | zero =>
+      intro i
+      rw [pow_zero, one_mulVec]
+      exact (Finset.single_le_sum (fun j _ => norm_nonneg (v j)) (Finset.mem_univ i)).trans
+        (le_max_left _ _)
+    | succ t iht =>
+      intro i
+      rw [hstep, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      calc ‖((M ^ t) *ᵥ w) i + μ * ((M ^ t) *ᵥ v) i‖ ≤ C + ‖μ‖ * B := by
+            refine (norm_add_le _ _).trans (add_le_add (hC t i) ?_)
+            rw [norm_mul]
+            exact mul_le_mul_of_nonneg_left (iht i) (norm_nonneg _)
+        _ ≤ B := by linarith
+
+/-- Woodford (2003), p. 557: the generalised eigenspace of `Λ` for `|μ| < 1` consists of vectors
+with bounded orbits. -/
+theorem maxGenEigenspace_le_orbitBdd (M : Matrix ιz ιz ℂ) {μ : ℂ} (hμ : ‖μ‖ < 1) :
+    Module.End.maxGenEigenspace (toLin' M) μ ≤ orbitBdd M := by
+  intro v hv
+  obtain ⟨k, hk⟩ := (Module.End.mem_maxGenEigenspace _ _ _).mp hv
+  have e : toLin' (M - μ • 1) = toLin' M - μ • 1 := by
+    rw [map_sub, map_smul, toLin'_one]
+    rfl
+  rw [← e, ← toLin'_pow, toLin'_apply] at hk
+  exact mem_orbitBdd_of_pow M hμ k v hk
+
+/-- Woodford (2003), p. 557 (tool): the number of roots of `p` satisfying `q` is the sum of their
+multiplicities. -/
+theorem card_filter_roots_eq_sum (p : ℂ[X]) (q : ℂ → Prop) [DecidablePred q] :
+    Multiset.card (p.roots.filter q) =
+      ∑ μ ∈ (p.roots.filter q).toFinset, p.rootMultiplicity μ := by
+  rw [← Multiset.toFinset_sum_count_eq]
+  refine Finset.sum_congr rfl fun μ hμ => ?_
+  rw [Multiset.mem_toFinset, Multiset.mem_filter] at hμ
+  rw [Multiset.count_filter_of_pos hμ.2, count_roots]
+
+/-- Woodford (2003), p. 557: the number of eigenvalues of `Λ` in the open unit disc (with
+algebraic multiplicity) is at most the dimension of the bounded-orbit subspace. -/
+theorem card_inside_le_finrank (M : Matrix ιz ιz ℂ) :
+    Multiset.card (M.charpoly.roots.filter (fun μ => ‖μ‖ < 1)) ≤
+      Module.finrank ℂ (orbitBdd M) := by
+  rw [card_filter_roots_eq_sum]
+  have h1 : ∀ μ, M.charpoly.rootMultiplicity μ =
+      Module.finrank ℂ (Module.End.maxGenEigenspace (toLin' M) μ) := by
+    intro μ
+    rw [LinearMap.finrank_maxGenEigenspace_eq, charpoly_toLin']
+  simp_rw [h1]
+  rw [← finrank_finset_sup (Module.End.independent_maxGenEigenspace _)]
+  refine Submodule.finrank_mono (Finset.sup_le fun μ hμ => maxGenEigenspace_le_orbitBdd M ?_)
+  exact (Multiset.mem_filter.mp (Multiset.mem_toFinset.mp hμ)).2
+
+/-- Woodford (2003), p. 540: the multiplier vector `φ = (Υ M, M)` built from `M` by (1.21). -/
+def Gmap (Υc : Matrix ιZ ιz ℂ) : (ιz → ℂ) →ₗ[ℂ] (ιZ ⊕ ιz → ℂ) where
+  toFun w := Sum.elim (Υc *ᵥ w) w
+  map_add' w w' := by
+    funext r
+    rcases r with r | r <;> simp [mulVec_add]
+  map_smul' c w := by
+    funext r
+    rcases r with r | r <;> simp [mulVec_smul]
+
+omit [Fintype ιZ] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540: `M ↦ (Υ M, M)` is injective. -/
+theorem Gmap_injective (Υc : Matrix ιZ ιz ℂ) : Function.Injective (Gmap Υc) :=
+  fun _ _ h => funext fun r => congrFun h (Sum.inr r)
+
+omit [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 557 (tool): a bound on `φ = (Υ M, M)` from a bound on `M`. -/
+theorem norm_Gmap_le (Υc : Matrix ιZ ιz ℂ) {w : ιz → ℂ} {C : ℝ} (hC0 : 0 ≤ C)
+    (hw : ∀ j, ‖w j‖ ≤ C) (i : ιZ ⊕ ιz) :
+    ‖Gmap Υc w i‖ ≤ (∑ i', ∑ j, ‖Υc i' j‖) * C + C := by
+  have hK0 : 0 ≤ (∑ i', ∑ j, ‖Υc i' j‖) * C :=
+    mul_nonneg (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => norm_nonneg _) hC0
+  rcases i with i | i
+  · have := norm_mulVec_le Υc hC0 hw i
+    change ‖(Υc *ᵥ w) i‖ ≤ _
+    linarith
+  · change ‖w i‖ ≤ _
+    linarith [hw i]
+
+/-- Woodford (2003), p. 557 (tool): `‖x · y‖ ≤ (∑ ‖x_i‖) B` when every `‖y_i‖ ≤ B`. -/
+theorem norm_dotProduct_le {κ : Type*} [Fintype κ] (x : κ → ℂ) {y : κ → ℂ} {B : ℝ}
+    (hy : ∀ i, ‖y i‖ ≤ B) : ‖x ⬝ᵥ y‖ ≤ (∑ i, ‖x i‖) * B := by
+  calc ‖x ⬝ᵥ y‖ = ‖∑ i, x i * y i‖ := rfl
+    _ ≤ ∑ i, ‖x i * y i‖ := norm_sum_le _ _
+    _ ≤ ∑ i, ‖x i‖ * B := Finset.sum_le_sum fun i _ => by
+        rw [norm_mul]
+        exact mul_le_mul_of_nonneg_left (hy i) (norm_nonneg _)
+    _ = (∑ i, ‖x i‖) * B := by rw [Finset.sum_mul]
+
+/-- Woodford (2003), pp. 553, 557: **the homogeneous (1.18) on the bounded-orbit subspace.** For
+`v` with bounded orbit, `φ_t = (Υ Λᵗ v, Λᵗ v)` is a bounded solution of the homogeneous
+(1.20)–(1.21), hence of (1.18): `A' φ(Λ v) = β⁻¹ Î' φ(v)`. -/
+theorem star_of_orbitBdd (hE : HomEquiv S β Λ Υ) {v : ιz → ℂ} (hv : v ∈ orbitBdd (cmat Λ)) :
+    cmat (S.Ahatᵀ) *ᵥ Gmap (cmat Υ) (cmat Λ *ᵥ v) =
+      (β : ℂ)⁻¹ • (cmat (S.Ihatᵀ) *ᵥ Gmap (cmat Υ) v) := by
+  obtain ⟨C, hC⟩ := hv
+  set h : ℕ → ιZ ⊕ ιz → ℂ := fun t => Gmap (cmat Υ) ((cmat Λ ^ t) *ᵥ v) with hh
+  have hrep : RepSolC Λ Υ h := by
+    intro t
+    refine ⟨funext fun r => ?_, funext fun r => ?_⟩
+    · change ((cmat Λ ^ (t + 1)) *ᵥ v) r = (cmat Λ *ᵥ ((cmat Λ ^ t) *ᵥ v)) r
+      rw [pow_succ', mulVec_mulVec]
+    · rfl
+  have hb : BddSeq h := by
+    refine ⟨(∑ i', ∑ j, ‖cmat Υ i' j‖) * max C 0 + max C 0, fun t i => ?_⟩
+    exact norm_Gmap_le (cmat Υ) (le_max_right C 0) (fun j => (hC t j).trans (le_max_left _ _)) i
+  have := homSolC_of_repSolC hE hb hrep 0
+  simp only [hh, zero_add, pow_one, pow_zero, one_mulVec] at this
+  exact this
+
+/-- Woodford (2003), pp. 553, 557: **the constraints from the roots `|λ| < β⁻¹`.** If
+`A u = λ Î u` with `|λ| < β⁻¹` (including `λ = 0`, `A u = 0`), then every `φ(v) = (Υ v, v)` with
+`v` of bounded orbit satisfies `(Î u) · φ(v) = 0`: along the solution the scalar
+`s_t = (Îu)·φ_t` obeys `λ s_{t+1} = β⁻¹ s_t`, which is explosive unless `s ≡ 0`. -/
+theorem constraint_of_orbitBdd (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) {u : ιZ ⊕ ιz → ℂ} {l : ℂ}
+    (hu : cmat S.Ahat *ᵥ u = l • (cmat S.Ihat *ᵥ u)) (hl : ‖l‖ < β⁻¹) {v : ιz → ℂ}
+    (hv : v ∈ orbitBdd (cmat Λ)) : (cmat S.Ihat *ᵥ u) ⬝ᵥ Gmap (cmat Υ) v = 0 := by
+  set s : ℕ → ℂ := fun k => (cmat S.Ihat *ᵥ u) ⬝ᵥ Gmap (cmat Υ) ((cmat Λ ^ k) *ᵥ v) with hs
+  have hdot : ∀ (A : Matrix (ιZ ⊕ ιz) (ιZ ⊕ ιz) ℝ) (x : ιZ ⊕ ιz → ℂ),
+      (cmat A *ᵥ u) ⬝ᵥ x = u ⬝ᵥ (cmat (Aᵀ) *ᵥ x) := by
+    intro A x
+    rw [cmat_transpose, dotProduct_mulVec, vecMul_transpose]
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ.ne'
+  have hrel : ∀ k, l * s (k + 1) = (β : ℂ)⁻¹ * s k := by
+    intro k
+    have hst := star_of_orbitBdd hE (pow_mulVec_mem_orbitBdd hv k)
+    have e : (cmat Λ ^ (k + 1)) *ᵥ v = cmat Λ *ᵥ ((cmat Λ ^ k) *ᵥ v) := by
+      rw [pow_succ', mulVec_mulVec]
+    calc l * s (k + 1) = (l • (cmat S.Ihat *ᵥ u)) ⬝ᵥ
+          Gmap (cmat Υ) (cmat Λ *ᵥ ((cmat Λ ^ k) *ᵥ v)) := by
+          rw [smul_dotProduct, smul_eq_mul, hs]
+          simp only
+          rw [e]
+      _ = u ⬝ᵥ (cmat (S.Ahatᵀ) *ᵥ Gmap (cmat Υ) (cmat Λ *ᵥ ((cmat Λ ^ k) *ᵥ v))) := by
+          rw [← hu, hdot]
+      _ = (β : ℂ)⁻¹ * s k := by
+          rw [hst, dotProduct_smul, ← hdot, smul_eq_mul]
+  obtain ⟨C, hC⟩ := hv
+  have hbd : ∀ k, ‖s k‖ ≤ (∑ i, ‖(cmat S.Ihat *ᵥ u) i‖) *
+      ((∑ i', ∑ j, ‖cmat Υ i' j‖) * max C 0 + max C 0) := by
+    intro k
+    refine norm_dotProduct_le _ fun i => ?_
+    exact norm_Gmap_le (cmat Υ) (le_max_right C 0) (fun j => (hC k j).trans (le_max_left _ _)) i
+  have hs0 : s 0 = (cmat S.Ihat *ᵥ u) ⬝ᵥ Gmap (cmat Υ) v := by
+    simp only [hs, pow_zero, one_mulVec]
+  rw [← hs0]
+  by_cases hl0 : l = 0
+  · have := hrel 0
+    rw [hl0, zero_mul] at this
+    exact (mul_eq_zero.mp this.symm).resolve_left (inv_ne_zero hβc)
+  · set ρ : ℂ := (β : ℂ)⁻¹ / l with hρ
+    have hρn : 1 < ‖ρ‖ := by
+      rw [hρ, norm_div, norm_inv, Complex.norm_real, Real.norm_of_nonneg hβ.le]
+      rw [one_lt_div (norm_pos_iff.mpr hl0)]
+      exact hl
+    have hpow : ∀ k, s k = ρ ^ k * s 0 := by
+      intro k
+      induction k with
+      | zero => simp
+      | succ k ih =>
+        have h1 := hrel k
+        have h2 : s (k + 1) = ρ * s k := by
+          rw [hρ, div_mul_eq_mul_div, eq_div_iff hl0]
+          linear_combination h1
+        rw [h2, ih, pow_succ]
+        ring
+    by_contra h0
+    set D := (∑ i, ‖(cmat S.Ihat *ᵥ u) i‖) * ((∑ i', ∑ j, ‖cmat Υ i' j‖) * max C 0 + max C 0)
+    obtain ⟨k, hk⟩ := pow_unbounded_of_one_lt (D / ‖s 0‖) hρn
+    have h3 := hbd k
+    rw [hpow, norm_mul, norm_pow] at h3
+    have h4 := (div_lt_iff₀ (norm_pos_iff.mpr h0)).mp hk
+    linarith
+
+/-- Woodford (2003), Proposition 8.3, p. 556, **the dimension count**: under Assumptions 8.3 and
+8.7 the bounded-orbit subspace of `Λ` has dimension at most `n_z − m`. The `n − rank A` null
+vectors of `A` and one eigenvector of the pencil for each nonzero root `|λ| < β⁻¹` give `n_Z + m`
+constraints `(Î u)·φ = 0` (`constraint_of_orbitBdd`); they are linearly independent because the
+`Î u` are eigenvectors of `Î (A − μ₀ Î)⁻¹` (`μ₀` a regular point) for the distinct eigenvalues
+`(λ − μ₀)⁻¹`. -/
+theorem finrank_orbitBdd_le (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) (h83 : Assumption83 S)
+    {m : ℕ} (h87 : S.stableCount β⁻¹ = Fintype.card ιZ + m) :
+    Module.finrank ℂ (orbitBdd (cmat Λ)) + m ≤ Fintype.card ιz := by
+  classical
+  set Ac := cmat S.Ahat with hAc
+  set Ic := cmat S.Ihat with hIc
+  -- a regular point `μ₀ ≠ 0` of the pencil
+  obtain ⟨μ0, hμ0⟩ := Infinite.exists_notMem_finset (insert (0 : ℂ) S.pencilPoly.roots.toFinset)
+  have hμ00 : μ0 ≠ 0 := fun h => hμ0 (by simp [h])
+  have hroot_ne : ∀ l ∈ S.pencilPoly.roots, l ≠ μ0 := fun l hl h =>
+    hμ0 (by rw [Finset.mem_insert, Multiset.mem_toFinset]; right; rw [← h]; exact hl)
+  have hdet0 : (Ac - μ0 • Ic).det ≠ 0 := by
+    intro h
+    refine hroot_ne μ0 ((mem_roots h83.regular).mpr ?_) rfl
+    rw [IsRoot, pencilPoly_eval]
+    exact h
+  set N := Ac - μ0 • Ic with hN
+  have hRN : N⁻¹ * N = 1 := nonsing_inv_mul N (isUnit_iff_ne_zero.mpr hdet0)
+  set K := Ic * N⁻¹ with hK
+  have hkey : ∀ (u : ιZ ⊕ ιz → ℂ) (l : ℂ), Ac *ᵥ u = l • (Ic *ᵥ u) → l ≠ μ0 →
+      K *ᵥ (Ic *ᵥ u) = (l - μ0)⁻¹ • (Ic *ᵥ u) := by
+    intro u l hu hl
+    have hNu : N *ᵥ u = (l - μ0) • (Ic *ᵥ u) := by
+      rw [hN, sub_mulVec, smul_mulVec, hu, sub_smul]
+    have hl' : l - μ0 ≠ 0 := sub_ne_zero.mpr hl
+    have hRu : N⁻¹ *ᵥ (Ic *ᵥ u) = (l - μ0)⁻¹ • u := by
+      have h1 : u = N⁻¹ *ᵥ (N *ᵥ u) := by rw [mulVec_mulVec, hRN, one_mulVec]
+      rw [hNu, mulVec_smul] at h1
+      conv_rhs => rw [h1]
+      rw [smul_smul, inv_mul_cancel₀ hl', one_smul]
+    rw [hK, ← mulVec_mulVec, hRu, mulVec_smul]
+  have hinj : ∀ x, Ac *ᵥ x = 0 → Ic *ᵥ x = 0 → x = 0 := by
+    intro x h1 h2
+    have h3 : N *ᵥ x = 0 := by rw [hN, sub_mulVec, smul_mulVec, h1, h2, smul_zero, sub_zero]
+    rw [← one_mulVec x, ← hRN, ← mulVec_mulVec, h3, mulVec_zero]
+  -- the null vectors of `A`
+  let KA := LinearMap.ker (S.Ahat.mulVecLin)
+  let bA := Module.finBasis ℝ KA
+  have hr0' : Module.finrank ℝ (LinearMap.ker (S.Ahat.mulVecLin)) + S.Ahat.rank =
+      Fintype.card (ιZ ⊕ ιz) := by
+    have h1 := LinearMap.finrank_range_add_finrank_ker (S.Ahat.mulVecLin)
+    rw [Module.finrank_fintype_fun_eq_card] at h1
+    have h2 : Module.finrank ℝ (LinearMap.range S.Ahat.mulVecLin) = S.Ahat.rank := rfl
+    omega
+  have hr0 : Module.finrank ℝ KA + S.Ahat.rank = Fintype.card (ιZ ⊕ ιz) := hr0'
+  let kv : Fin (Module.finrank ℝ KA) → ιZ ⊕ ιz → ℂ :=
+    fun i => (algebraMap ℝ ℂ) ∘ (bA i : ιZ ⊕ ιz → ℝ)
+  have hkvA : ∀ i, Ac *ᵥ kv i = 0 := by
+    intro i
+    have hker : S.Ahat *ᵥ (bA i : ιZ ⊕ ιz → ℝ) = 0 := LinearMap.mem_ker.mp (bA i).2
+    have e : kv i = fun j => ((bA i : ιZ ⊕ ιz → ℝ) j : ℂ) := rfl
+    rw [hAc, e, map_mulVec_ofReal, hker]
+    funext j
+    simp
+  have hkv : LinearIndependent ℂ kv :=
+    linearIndependent_algebraMap_comp_iff.mpr
+      (bA.linearIndependent.map' KA.subtype (Submodule.ker_subtype KA))
+  let c1 : Fin (Module.finrank ℝ KA) → ιZ ⊕ ιz → ℂ := fun i => Ic *ᵥ kv i
+  have hspanA : Submodule.span ℂ (Set.range kv) ≤ LinearMap.ker (toLin' Ac) :=
+    Submodule.span_le.mpr (Set.range_subset_iff.mpr fun i => by
+      rw [SetLike.mem_coe, LinearMap.mem_ker, toLin'_apply]
+      exact hkvA i)
+  have hc1 : LinearIndependent ℂ c1 := by
+    refine hkv.map (f := toLin' Ic) ?_
+    rw [disjoint_iff]
+    refine (Submodule.eq_bot_iff _).mpr fun x hx => ?_
+    obtain ⟨hxs, hxk⟩ := Submodule.mem_inf.mp hx
+    have hA : Ac *ᵥ x = 0 := by
+      have := hspanA hxs
+      rwa [LinearMap.mem_ker, toLin'_apply] at this
+    rw [LinearMap.mem_ker, toLin'_apply] at hxk
+    exact hinj x hA hxk
+  -- one eigenvector of the pencil for each nonzero root `|λ| < β⁻¹`
+  set T := (S.pencilPoly.roots.filter (fun l => l ≠ 0 ∧ ‖l‖ < β⁻¹)).toFinset with hT
+  have hTmem : ∀ l ∈ T, l ∈ S.pencilPoly.roots ∧ l ≠ 0 ∧ ‖l‖ < β⁻¹ := by
+    intro l hl
+    rw [hT, Multiset.mem_toFinset, Multiset.mem_filter] at hl
+    exact ⟨hl.1, hl.2.1, hl.2.2⟩
+  have hex : ∀ l : T, ∃ u : ιZ ⊕ ιz → ℂ, u ≠ 0 ∧ (Ac - (l : ℂ) • Ic) *ᵥ u = 0 := by
+    intro l
+    have hdet : (Ac - (l : ℂ) • Ic).det = 0 := by
+      rw [hAc, hIc, ← pencilPoly_eval]
+      exact (mem_roots h83.regular).mp (hTmem l l.2).1
+    exact exists_mulVec_eq_zero_iff.mpr hdet
+  choose U hU0 hU using hex
+  have hUA : ∀ l : T, Ac *ᵥ U l = (l : ℂ) • (Ic *ᵥ U l) := by
+    intro l
+    have := hU l
+    rw [sub_mulVec, smul_mulVec, sub_eq_zero] at this
+    exact this
+  let c2 : T → ιZ ⊕ ιz → ℂ := fun l => Ic *ᵥ U l
+  let e : T → ℂ := fun l => ((l : ℂ) - μ0)⁻¹
+  have heig : ∀ l : T, Module.End.HasEigenvector (toLin' K) (e l) (c2 l) := by
+    intro l
+    refine Module.End.hasEigenvector_iff.mpr ⟨Module.End.mem_eigenspace_iff.mpr ?_, ?_⟩
+    · rw [toLin'_apply]
+      exact hkey (U l) l (hUA l) (hroot_ne l (hTmem l l.2).1)
+    · intro h0
+      refine hU0 l (hinj _ ?_ h0)
+      rw [hUA l]
+      change (l : ℂ) • c2 l = 0
+      rw [h0, smul_zero]
+  have he : Function.Injective e := by
+    intro a b hab
+    simp only [e, _root_.inv_inj, sub_left_inj] at hab
+    exact Subtype.ext hab
+  have hc2 : LinearIndependent ℂ c2 :=
+    Module.End.eigenvectors_linearIndependent' (toLin' K) e he c2 heig
+  -- the two blocks lie in different eigenspaces of `Î (A − μ₀ Î)⁻¹`
+  have he0 : ((0 : ℂ) - μ0)⁻¹ ∉ Set.range e := by
+    rintro ⟨l, hl⟩
+    simp only [e, _root_.inv_inj, sub_left_inj] at hl
+    exact (hTmem l l.2).2.1 hl
+  have hspan1 : Submodule.span ℂ (Set.range c1) ≤
+      Module.End.eigenspace (toLin' K) ((0 : ℂ) - μ0)⁻¹ := by
+    refine Submodule.span_le.mpr (Set.range_subset_iff.mpr fun i => ?_)
+    rw [SetLike.mem_coe, Module.End.mem_eigenspace_iff, toLin'_apply]
+    exact hkey (kv i) 0 (by rw [hkvA i, zero_smul]) (Ne.symm hμ00)
+  have hspan2 : Submodule.span ℂ (Set.range c2) ≤
+      ⨆ x ∈ Set.range e, Module.End.eigenspace (toLin' K) x := by
+    refine Submodule.span_le.mpr (Set.range_subset_iff.mpr fun l => ?_)
+    have h1 : c2 l ∈ Module.End.eigenspace (toLin' K) (e l) :=
+      (Module.End.hasEigenvector_iff.mp (heig l)).1
+    exact (le_biSup (fun x => Module.End.eigenspace (toLin' K) x) (Set.mem_range_self l)) h1
+  have hdis : Disjoint (Submodule.span ℂ (Set.range c1)) (Submodule.span ℂ (Set.range c2)) :=
+    ((Module.End.eigenspaces_iSupIndep (toLin' K)).disjoint_biSup he0).mono hspan1 hspan2
+  have hc : LinearIndependent ℂ (Sum.elim c1 c2) := hc1.sum_type hc2 hdis
+  -- every constraint annihilates `φ(v)` for `v` of bounded orbit
+  have hconstr : ∀ j, ∀ v ∈ orbitBdd (cmat Λ), Sum.elim c1 c2 j ⬝ᵥ Gmap (cmat Υ) v = 0 := by
+    intro j v hv
+    rcases j with i | l
+    · exact constraint_of_orbitBdd hE hβ (u := kv i) (l := 0) (by rw [hkvA i, zero_smul])
+        (by simpa using hβ) hv
+    · exact constraint_of_orbitBdd hE hβ (hUA l) (hTmem l l.2).2.2 hv
+  -- the dimension count
+  let Cm : Matrix (Fin (Module.finrank ℝ KA) ⊕ T) (ιZ ⊕ ιz) ℂ := Matrix.of (Sum.elim c1 c2)
+  have hrank : Cm.rank = Fintype.card (Fin (Module.finrank ℝ KA) ⊕ T) := by
+    rw [rank_eq_finrank_span_row]
+    exact finrank_span_eq_card hc
+  have hker := LinearMap.finrank_range_add_finrank_ker Cm.mulVecLin
+  rw [Module.finrank_fintype_fun_eq_card] at hker
+  have hrk : Module.finrank ℂ (LinearMap.range Cm.mulVecLin) = Cm.rank := rfl
+  have hmap : (orbitBdd (cmat Λ)).map (Gmap (cmat Υ)) ≤ LinearMap.ker Cm.mulVecLin := by
+    rintro x ⟨v, hv, rfl⟩
+    rw [LinearMap.mem_ker, mulVecLin_apply]
+    funext j
+    exact hconstr j v hv
+  have hfin := Submodule.finrank_mono hmap
+  rw [← (Submodule.equivMapOfInjective _ (Gmap_injective (cmat Υ)) _).finrank_eq] at hfin
+  -- the number of constraints is `n_Z + m`
+  have hnd : (S.pencilPoly.roots.filter (fun l => l ≠ 0 ∧ ‖l‖ < β⁻¹)).Nodup := by
+    refine Multiset.nodup_of_le ?_ h83.nodup
+    exact Multiset.monotone_filter_right _ fun l hl => hl.1
+  have hcardT : T.card = Multiset.card
+      (S.pencilPoly.roots.filter (fun l => l ≠ 0 ∧ ‖l‖ < β⁻¹)) :=
+    Multiset.toFinset_card_of_nodup hnd
+  have h87' := h87
+  unfold LinearRESystem.stableCount at h87'
+  rw [Fintype.card_sum] at h87' hr0 hker
+  rw [hrank, Fintype.card_sum, Fintype.card_fin, Fintype.card_coe, hcardT] at hrk
+  have hrA := rank_le_card_width S.Ahat
+  rw [Fintype.card_sum] at hrA
+  omega
+
+/-- Woodford (2003), Proposition 8.3, p. 556, **lower half**: under Assumptions 8.3 and 8.7,
+`Λ` has at most `n_z − m` eigenvalues in the open unit disc. -/
+theorem card_inside_le (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) (h83 : Assumption83 S) {m : ℕ}
+    (h87 : S.stableCount β⁻¹ = Fintype.card ιZ + m) :
+    Multiset.card ((cmat Λ).charpoly.roots.filter (fun μ => ‖μ‖ < 1)) + m ≤
+      Fintype.card ιz :=
+  (Nat.add_le_add_right (card_inside_le_finrank _) m).trans (finrank_orbitBdd_le hE hβ h83 h87)
+
+/-- Woodford (2003), pp. 553, 557: **an eigenvalue of `Λ` on the unit circle forces a root of
+(1.15) on `|λ| = β⁻¹`.** An eigenvector `v`, `|μ| = 1`, has a bounded orbit, so
+`A' φ(v) μ = β⁻¹ Î' φ(v)`, i.e. `(A − (βμ)⁻¹ Î)' φ(v) = 0` with `φ(v) ≠ 0`. -/
+theorem pencil_root_of_circle_eigenvalue (hE : HomEquiv S β Λ Υ) (hβ : 0 < β)
+    (hreg : S.pencilPoly ≠ 0) {μ : ℂ} (hμ : ‖μ‖ = 1) (hroot : (cmat Λ).charpoly.eval μ = 0) :
+    ∃ l ∈ S.pencilPoly.roots, ‖l‖ = β⁻¹ := by
+  rw [eval_charpoly] at hroot
+  obtain ⟨v, hv0, hv⟩ := exists_mulVec_eq_zero_iff.mpr hroot
+  have hΛv : cmat Λ *ᵥ v = μ • v := by
+    rw [sub_mulVec, sub_eq_zero] at hv
+    rw [← hv]
+    funext r
+    simp [scalar_apply, mulVec_diagonal]
+  have hpow : ∀ k, (cmat Λ ^ k) *ᵥ v = μ ^ k • v := by
+    intro k
+    induction k with
+    | zero => simp
+    | succ k ih =>
+      rw [pow_succ', ← mulVec_mulVec, ih, mulVec_smul, hΛv, smul_smul]
+      congr 1
+  have hvb : v ∈ orbitBdd (cmat Λ) := by
+    refine ⟨∑ i, ‖v i‖, fun k i => ?_⟩
+    rw [hpow, Pi.smul_apply, smul_eq_mul, norm_mul, norm_pow, hμ, one_pow, one_mul]
+    exact Finset.single_le_sum (fun j _ => norm_nonneg (v j)) (Finset.mem_univ i)
+  have hst := star_of_orbitBdd hE hvb
+  rw [hΛv, map_smul, mulVec_smul] at hst
+  have hμ0 : μ ≠ 0 := by
+    rintro rfl
+    simp at hμ
+  have hβc : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ.ne'
+  set l : ℂ := ((β : ℂ) * μ)⁻¹ with hl
+  have hAG : cmat (S.Ahatᵀ) *ᵥ Gmap (cmat Υ) v = l • (cmat (S.Ihatᵀ) *ᵥ Gmap (cmat Υ) v) := by
+    have h2 := congrArg (fun x => μ⁻¹ • x) hst
+    simp only [smul_smul, inv_mul_cancel₀ hμ0, one_smul] at h2
+    rw [h2, hl, mul_inv, mul_comm]
+  have hgv : (cmat S.Ahat - l • cmat S.Ihat)ᵀ *ᵥ Gmap (cmat Υ) v = 0 := by
+    rw [transpose_sub, transpose_smul, sub_mulVec, smul_mulVec, ← cmat_transpose,
+      ← cmat_transpose, hAG, sub_self]
+  have hGv0 : Gmap (cmat Υ) v ≠ 0 := fun h =>
+    hv0 (Gmap_injective (cmat Υ) (by rw [h, map_zero]))
+  have hdet : (cmat S.Ahat - l • cmat S.Ihat).det = 0 := by
+    rw [← det_transpose]
+    exact exists_mulVec_eq_zero_iff.mp ⟨_, hGv0, hgv⟩
+  refine ⟨l, (mem_roots hreg).mpr (by rw [IsRoot, pencilPoly_eval]; exact hdet), ?_⟩
+  rw [hl, norm_inv, norm_mul, hμ, mul_one, Complex.norm_real, Real.norm_of_nonneg hβ.le]
+
+/-- Woodford (2003), Proposition 8.3, pp. 556–557, for any `Λ` representing the bounded
+solutions of the homogeneous (1.18) as in Proposition 8.1: `Λ` has at most `m` eigenvalues
+outside the closed unit disc and at least `m` outside the open one. -/
+theorem bounds_of_homEquiv (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) (h83 : Assumption83 S)
+    {m : ℕ} (h87 : S.stableCount β⁻¹ = Fintype.card ιZ + m) :
+    zerosInside (alpha Λ) ≤ m ∧ m ≤ zerosInside (alpha Λ) + zerosOnCircle (alpha Λ) := by
+  rw [zerosInside_alpha, zerosOnCircle_alpha]
+  refine ⟨card_outside_le hE hβ h83 h87, ?_⟩
+  have hin := card_inside_le hE hβ h83 h87
+  have hR : Multiset.card (cmat Λ).charpoly.roots = Fintype.card ιz := card_charpoly_roots _
+  set R := (cmat Λ).charpoly.roots
+  have hp1 := congrArg Multiset.card (Multiset.filter_add_not (fun μ : ℂ => ‖μ‖ < 1) R)
+  have hp2 := congrArg Multiset.card (Multiset.filter_add_not (fun μ : ℂ => 1 < ‖μ‖)
+    (R.filter (fun μ => ¬ ‖μ‖ < 1)))
+  rw [Multiset.card_add] at hp1 hp2
+  have e1 : (R.filter (fun μ => ¬ ‖μ‖ < 1)).filter (fun μ => 1 < ‖μ‖) =
+      R.filter (fun μ => 1 < ‖μ‖) := by
+    rw [Multiset.filter_filter]
+    exact Multiset.filter_congr fun μ _ => ⟨fun h => h.1, fun h => ⟨h, by linarith⟩⟩
+  have e2 : (R.filter (fun μ => ¬ ‖μ‖ < 1)).filter (fun μ => ¬ 1 < ‖μ‖) =
+      R.filter (fun μ => ‖μ‖ = 1) := by
+    rw [Multiset.filter_filter]
+    refine Multiset.filter_congr fun μ _ => ⟨fun h => ?_, fun h => ⟨?_, ?_⟩⟩
+    · exact le_antisymm (not_lt.mp h.1) (not_lt.mp h.2)
+    · rw [h]
+      exact lt_irrefl 1
+    · rw [h]
+      exact lt_irrefl 1
+  rw [e1, e2] at hp2
+  omega
+
+/-- Woodford (2003), pp. 557–558: if (1.15) has no root with `|λ| = β⁻¹`, `α(L) = det(I − ΛL)`
+has no zero on the unit circle. -/
+theorem zerosOnCircle_eq_zero (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) (hreg : S.pencilPoly ≠ 0)
+    (hcirc : ∀ l ∈ S.pencilPoly.roots, ‖l‖ ≠ β⁻¹) : zerosOnCircle (alpha Λ) = 0 := by
+  rw [zerosOnCircle_alpha, Multiset.card_eq_zero, Multiset.filter_eq_nil]
+  intro μ hμ h1
+  obtain ⟨l, hl, hln⟩ := pencil_root_of_circle_eigenvalue hE hβ hreg h1
+    ((mem_roots (charpoly_monic _).ne_zero).mp hμ)
+  exact hcirc l hl hln
+
+/-- Woodford (2003), Proposition 8.3, pp. 556–557, for any `Λ` representing the bounded
+solutions of the homogeneous (1.18): if (1.15) has no root with `|λ| = β⁻¹`, `α(L) = det(I − ΛL)`
+has exactly `m` zeros inside the unit circle. -/
+theorem eq_of_homEquiv (hE : HomEquiv S β Λ Υ) (hβ : 0 < β) (h83 : Assumption83 S) {m : ℕ}
+    (h87 : S.stableCount β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ S.pencilPoly.roots, ‖l‖ ≠ β⁻¹) : zerosInside (alpha Λ) = m := by
+  have h0 := zerosOnCircle_eq_zero hE hβ h83.regular hcirc
+  have := bounds_of_homEquiv hE hβ h83 h87
+  omega
+
+/-! ### From Proposition 8.1 to the homogeneous equivalence -/
+
+variable {Ω : Type*} {ιτ : Type*} [Fintype ιτ]
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): the `M`-block is additive. -/
+theorem Mpart_add (a b : ιZ ⊕ ιz → ℝ) : Mpart (a + b) = Mpart a + Mpart b := rfl
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): the `ξ`-block is additive. -/
+theorem ξpart_add (a b : ιZ ⊕ ιz → ℝ) : ξpart (a + b) = ξpart a + ξpart b := rfl
+
+/-- Woodford (2003), Proposition 8.1, p. 553: **the representation restricted to deterministic
+perturbations.** Let `(y₀, φ₀)` solve (1.18), and suppose that for every bounded deterministic
+`h` the perturbed multipliers `φ₀ + h` (dates shifted by `t₀`) solve (1.18) iff they solve
+(1.20)–(1.21) with the forcing `q`, `r` of `y₀`. Then bounded `h` solve the homogeneous (1.18)
+iff they solve the homogeneous (1.20)–(1.21). The sample space must be nonempty. (This is the
+only consequence of Proposition 8.1 the dimension count uses; it holds for the original
+`Prop81Conclusion` and for any version of Proposition 8.1 restricted to multipliers with `M_t`
+known at `t`, since deterministic perturbations preserve that property.) -/
+theorem homEquiv_of_perturbation [Nonempty Ω] {P : LQProblem ιZ ιz ιτ}
+    {𝔼 : ExpectationSystem Ω} {t0 : ℕ} {Λ : Matrix ιz ιz ℝ} {Υ : Matrix ιZ ιz ℝ}
+    {q : ℕ → Ω → ιz → ℝ} {r : ℕ → Ω → ιZ → ℝ} {y0 : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ0 : ℕ → Ω → ιZ ⊕ ιz → ℝ} (h118 : Eq118 P 𝔼 t0 y0 φ0)
+    (hequiv : ∀ h : ℕ → ιZ ⊕ ιz → ℝ, BddSeq h →
+      (Eq118 P 𝔼 t0 y0 (fun t ω => φ0 t ω + h (t - t0)) ↔
+        Eq120 t0 Λ q (fun t ω => φ0 t ω + h (t - t0)) ∧
+          Eq121 t0 Υ r (fun t ω => φ0 t ω + h (t - t0)))) :
+    HomEquiv P.sys P.β Λ Υ := by
+  obtain ⟨h120, h121⟩ : Eq120 t0 Λ q φ0 ∧ Eq121 t0 Υ r φ0 := by
+    have h0 := hequiv 0 ⟨0, fun t i => by simp⟩
+    simp only [Pi.zero_apply, add_zero] at h0
+    exact h0.mp h118
+  intro h hb
+  obtain ⟨ω0⟩ := ‹Nonempty Ω›
+  set φ' : ℕ → Ω → ιZ ⊕ ιz → ℝ := fun t ω => φ0 t ω + h (t - t0) with hφ'
+  have e118 : ∀ t, t0 ≤ t → ∀ ω,
+      P.sys.Ahatᵀ *ᵥ EV 𝔼 t (φ' (t + 1)) ω + P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ y0 t ω - P.τstar)) -
+        P.β⁻¹ • (P.sys.Ihatᵀ *ᵥ φ' t ω) =
+      P.sys.Ahatᵀ *ᵥ h (t - t0 + 1) - P.β⁻¹ • (P.sys.Ihatᵀ *ᵥ h (t - t0)) := by
+    intro t ht ω
+    have h0 := h118 t ht ω
+    have e : t + 1 - t0 = t - t0 + 1 := by omega
+    simp only [hφ', EV_add_const, mulVec_add, smul_add, e]
+    linear_combination (norm := module) h0
+  have e120 : ∀ t, t0 ≤ t → ∀ ω,
+      (Mpart (φ' (t + 1) ω) = Λ *ᵥ Mpart (φ' t ω) + q t ω ↔
+        Mpart (h (t - t0 + 1)) = Λ *ᵥ Mpart (h (t - t0))) := by
+    intro t ht ω
+    have h0 := h120 t ht ω
+    have e : t + 1 - t0 = t - t0 + 1 := by omega
+    simp only [hφ', e, Mpart_add, mulVec_add]
+    constructor
+    · intro h1
+      linear_combination (norm := module) h1 - h0
+    · intro h1
+      linear_combination (norm := module) h1 + h0
+  have e121 : ∀ t, t0 ≤ t → ∀ ω,
+      (ξpart (φ' t ω) = Υ *ᵥ Mpart (φ' t ω) + r t ω ↔
+        ξpart (h (t - t0)) = Υ *ᵥ Mpart (h (t - t0))) := by
+    intro t ht ω
+    have h0 := h121 t ht ω
+    simp only [hφ', Mpart_add, ξpart_add, mulVec_add]
+    constructor
+    · intro h1
+      linear_combination (norm := module) h1 - h0
+    · intro h1
+      linear_combination (norm := module) h1 + h0
+  constructor
+  · intro hs
+    have h118' : Eq118 P 𝔼 t0 y0 φ' := fun t ht ω => by
+      rw [e118 t ht ω, hs (t - t0), sub_self]
+    obtain ⟨h120', h121'⟩ := (hequiv h hb).mp h118'
+    intro s
+    have hts : t0 ≤ s + t0 := by omega
+    have es : s + t0 - t0 = s := by omega
+    refine ⟨?_, ?_⟩
+    · have := (e120 (s + t0) hts ω0).mp (h120' (s + t0) hts ω0)
+      rwa [es] at this
+    · have := (e121 (s + t0) hts ω0).mp (h121' (s + t0) hts ω0)
+      rwa [es] at this
+  · intro hr
+    have h120' : Eq120 t0 Λ q φ' := fun t ht ω => (e120 t ht ω).mpr (hr (t - t0)).1
+    have h121' : Eq121 t0 Υ r φ' := fun t ht ω => (e121 t ht ω).mpr (hr (t - t0)).2
+    have h118' := (hequiv h hb).mpr ⟨h120', h121'⟩
+    intro s
+    have := e118 (s + t0) (by omega) ω0
+    rw [h118' (s + t0) (by omega) ω0, show s + t0 - t0 = s by omega] at this
+    exact sub_eq_zero.mp this.symm
+
+/-- Woodford (2003), Proposition 8.1, p. 553: **the representation of Proposition 8.1 restricted
+to deterministic perturbations.** Given one bounded solution `(y₀, φ₀)` of (1.18), a bounded
+deterministic `h` solves the homogeneous (1.18) iff it solves the homogeneous (1.20)–(1.21):
+apply the equivalence of Proposition 8.1 to `(y₀, φ₀ + h)` (dates shifted by `t₀`). The sample
+space must be nonempty. -/
+theorem homEquiv_of_prop81 [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81Conclusion P 𝔼 t0) {y0 : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ0 : ℕ → Ω → ιZ ⊕ ιz → ℝ} (hy0 : BoundedV y0) (hφ0 : BoundedV φ0)
+    (h118 : Eq118 P 𝔼 t0 y0 φ0) : HomEquiv P.sys P.β H.Λ H.Υ := by
+  refine homEquiv_of_perturbation h118 fun h hb => H.equiv y0 _ hy0 ?_
+  obtain ⟨M, hM⟩ := hφ0
+  obtain ⟨C, hC⟩ := hb
+  refine ⟨M + C, fun t ω i => (abs_add_le _ _).trans (add_le_add (hM t ω i) ?_)⟩
+  have := hC (t - t0) i
+  rwa [Real.norm_eq_abs] at this
+
+/-- Woodford (2003), Assumption 8.1, p. 541 (existence half): a bounded solution of the
+first-order conditions is a bounded adapted plan with bounded multipliers, `M_t` known at `t`
+(`Prop81General.MultKnown`), solving (1.18) (`foc_iff_split`). -/
+theorem exists_base_of_assumption81 {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (hA : Assumption81 P 𝔼 t0) :
+    ∃ y φ, BoundedV y ∧ AdaptedV 𝔼 y ∧ BoundedV φ ∧ Prop81General.MultKnown 𝔼 t0 φ ∧
+      Eq118 P 𝔼 t0 y φ := by
+  obtain ⟨y, φ, hsys⟩ := hA.solvable (fun _ _ _ => 0) (fun _ _ => 0) (fun _ _ => 0)
+    ⟨0, fun _ _ _ => by simp⟩ (fun t _ => 𝔼.const t 0) (fun _ => 𝔼.const t0 0)
+    (fun _ => 𝔼.const t0 0)
+  exact ⟨y, φ, hsys.1.2.2.1, hsys.1.2.2.2, hsys.2.1, fun t _ r => hsys.2.2.1 t r,
+    fun t ht ω => ((foc_iff_split P hsys.2.2.1 y t ω).mp (hsys.2.2.2.2 t ht ω)).1⟩
+
+/-! ### Proposition 8.3 -/
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557, the two-sided general form.** For a
+linear-quadratic problem satisfying Assumption 8.1 (only the existence of a bounded solution is
+used), Assumption 8.3 and Assumption 8.7 (`n_Z + m` roots of (1.15) with `|μ| < β⁻¹`, the zero
+root counted `n − rank A` times), and for **every** matrix `Λ` delivered by Proposition 8.1, the
+lag polynomial `α(L) = det(I − ΛL)` of the optimal instrument rule (1.28) has at most `m` zeros
+inside the unit circle, and at least `m` zeros in the closed unit disc. -/
+theorem prop83_bounds [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : Assumption83 P.sys) {m : ℕ} (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m) :
+    zerosInside (alpha H.Λ) ≤ m ∧
+      m ≤ zerosInside (alpha H.Λ) + zerosOnCircle (alpha H.Λ) := by
+  obtain ⟨y, φ, hy, -, hφ, -, h118⟩ := exists_base_of_assumption81 hA
+  exact bounds_of_homEquiv (homEquiv_of_prop81 H hy hφ h118) P.β_pos h83 h87
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557 (superinertia).** Under Assumptions 8.1,
+8.3 and 8.7 (`n_Z + m` roots of (1.15) with `|μ| < β⁻¹`), if no root of (1.15) lies on
+`|μ| = β⁻¹`, then for every matrix `Λ` delivered by Proposition 8.1 the lag polynomial
+`α(L) = 1 − γ(L)L = det(I − ΛL)` of the optimal instrument rule (1.28) has exactly `m` zeros
+inside the unit circle. (`λ_i > 0` and Assumptions 8.2, 8.4–8.6 are not needed: `α` does not
+involve the loss weights.) -/
+theorem prop83 [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0) (h83 : Assumption83 P.sys)
+    {m : ℕ} (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) : zerosInside (alpha H.Λ) = m := by
+  obtain ⟨y, φ, hy, -, hφ, -, h118⟩ := exists_base_of_assumption81 hA
+  exact eq_of_homEquiv (homEquiv_of_prop81 H hy hφ h118) P.β_pos h83 h87 hcirc
+
+/-- **Woodford (2003), Proposition 8.3, for any representation that is valid for deterministic
+perturbations of one bounded solution of (1.18)** (`homEquiv_of_perturbation`; this covers a
+version of Proposition 8.1 restricted to multipliers with `M_t` known at `t`, which is the one
+that holds under uncertainty): under Assumptions 8.3 and 8.7 and with no root of (1.15) on
+`|λ| = β⁻¹`, `α(L) = det(I − ΛL)` has exactly `m` zeros inside the unit circle. -/
+theorem prop83_of_perturbation [Nonempty Ω] {P : LQProblem ιZ ιz ιτ}
+    {𝔼 : ExpectationSystem Ω} {t0 : ℕ} {Λ : Matrix ιz ιz ℝ} {Υ : Matrix ιZ ιz ℝ}
+    {q : ℕ → Ω → ιz → ℝ} {r : ℕ → Ω → ιZ → ℝ} {y0 : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ0 : ℕ → Ω → ιZ ⊕ ιz → ℝ} (h118 : Eq118 P 𝔼 t0 y0 φ0)
+    (hequiv : ∀ h : ℕ → ιZ ⊕ ιz → ℝ, BddSeq h →
+      (Eq118 P 𝔼 t0 y0 (fun t ω => φ0 t ω + h (t - t0)) ↔
+        Eq120 t0 Λ q (fun t ω => φ0 t ω + h (t - t0)) ∧
+          Eq121 t0 Υ r (fun t ω => φ0 t ω + h (t - t0))))
+    (h83 : Assumption83 P.sys) {m : ℕ} (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) : zerosInside (alpha Λ) = m :=
+  eq_of_homEquiv (homEquiv_of_perturbation h118 hequiv) P.β_pos h83 h87 hcirc
+
+/-- Woodford (2003), pp. 557–558: under Assumption 8.1 and a regular pencil with no root on
+`|λ| = β⁻¹`, the `α(L)` of every `Λ` delivered by Proposition 8.1 has no zero on the unit
+circle (so in Proposition 8.4 the factor `α₂` has all its zeros strictly outside it). -/
+theorem prop83_noCircle [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (hreg : P.sys.pencilPoly ≠ 0) (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    zerosOnCircle (alpha H.Λ) = 0 := by
+  obtain ⟨y, φ, hy, -, hφ, -, h118⟩ := exists_base_of_assumption81 hA
+  exact zerosOnCircle_eq_zero (homEquiv_of_prop81 H hy hφ h118) P.β_pos hreg hcirc
+
+/-- Woodford (2003), Proposition 8.3 with Assumption 8.7 as stated (`m ≥ 1`), pp. 556–557:
+`α(L)` has a zero inside the unit circle, so the instrument dynamics implied by (1.28) for an
+arbitrary path of the other targets are explosive (superinertia). -/
+theorem prop83_superinertial [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : Assumption83 P.sys) (h87 : P.sys.Assumption87 P.β)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    ∃ z ∈ ((alpha H.Λ).map Complex.ofRealHom).roots, ‖z‖ < 1 := by
+  obtain ⟨m, hm1, hm⟩ := h87
+  have h := prop83 H hA h83 hm hcirc
+  unfold zerosInside at h
+  have hpos : 0 < Multiset.card (((alpha H.Λ).map Complex.ofRealHom).roots.filter
+      (fun z => ‖z‖ < 1)) := by omega
+  obtain ⟨z, hz⟩ := Multiset.card_pos_iff_exists_mem.mp hpos
+  exact ⟨z, (Multiset.mem_filter.mp hz).1, (Multiset.mem_filter.mp hz).2⟩
+
+/-- Woodford (2003), Proposition 8.3, pp. 556–557: the statement `TargetCriterion.Prop83Claim`
+(for the given representation `H`) holds under Assumptions 8.1 and 8.3, a nonempty sample space
+and no root of (1.15) on `|λ| = β⁻¹`. -/
+theorem prop83Claim_holds [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : Assumption83 P.sys) (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    TargetCriterion.Prop83Claim P 𝔼 t0 H :=
+  fun _ h87 _ => prop83 H hA h83 h87 hcirc
+
+/-! ### The sample space must be nonempty -/
+
+/-- Woodford (2003), Proposition 8.1, p. 553: on an empty sample space every matrix `Λ` is
+delivered by Proposition 8.1 (all its conditions are vacuous). -/
+theorem prop81Conclusion_of_isEmpty [IsEmpty Ω] (P : LQProblem ιZ ιz ιτ)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) (Λ : Matrix ιz ιz ℝ) :
+    ∃ H : Prop81Conclusion P 𝔼 t0, H.Λ = Λ :=
+  ⟨⟨Λ, 0, fun _ _ _ _ => 0, fun _ _ _ _ => 0,
+    fun _ _ _ _ => ⟨fun _ => ⟨fun _ _ ω => isEmptyElim ω, fun _ _ ω => isEmptyElim ω⟩,
+      fun _ _ _ ω => isEmptyElim ω⟩,
+    fun _ _ => ⟨0, fun _ ω => isEmptyElim ω⟩, fun _ _ => ⟨0, fun _ ω => isEmptyElim ω⟩,
+    fun _ _ _ => funext fun ω => isEmptyElim ω⟩, rfl⟩
+
+/-- Woodford (2003), Assumption 8.1, p. 541: on an empty sample space Assumption 8.1 holds
+vacuously. -/
+theorem assumption81_of_isEmpty [IsEmpty Ω] (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω)
+    (t0 : ℕ) : Assumption81 P 𝔼 t0 :=
+  ⟨fun _ _ _ _ _ _ _ => ⟨fun _ ω => isEmptyElim ω, fun _ ω => isEmptyElim ω,
+      ⟨⟨fun _ _ ω => isEmptyElim ω, fun ω => isEmptyElim ω, ⟨0, fun _ ω => isEmptyElim ω⟩,
+        fun _ _ => funext fun ω => isEmptyElim ω⟩,
+      ⟨0, fun _ ω => isEmptyElim ω⟩, fun _ _ => funext fun ω => isEmptyElim ω,
+      fun ω => isEmptyElim ω, fun _ _ ω => isEmptyElim ω⟩⟩,
+    fun _ _ _ _ _ _ _ _ _ _ _ => ⟨funext fun ω => isEmptyElim ω,
+      funext fun ω => isEmptyElim ω⟩⟩
+
+/-- Woodford (2003), Proposition 8.3: **the sample space must be nonempty.** On an empty sample
+space Assumption 8.1 holds and Proposition 8.1 delivers `Λ = 0`, whose `α(L) = 1` has no zero
+inside the unit circle, whatever `m`. -/
+theorem prop83_needs_nonempty [IsEmpty Ω] (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω)
+    (t0 : ℕ) :
+    Assumption81 P 𝔼 t0 ∧ ∃ H : Prop81Conclusion P 𝔼 t0, zerosInside (alpha H.Λ) = 0 := by
+  refine ⟨assumption81_of_isEmpty P 𝔼 t0, ?_⟩
+  obtain ⟨H, hH⟩ := prop81Conclusion_of_isEmpty P 𝔼 t0 0
+  refine ⟨H, ?_⟩
+  rw [hH, zerosInside_alpha]
+  simp [cmat, charpoly_zero]
+
+/-! ### Counterexample: a root of (1.15) on `|λ| = β⁻¹` -/
+
+/-- Woodford (2003), eq. (1.1), p. 537 (counterexample to Prop. 8.3 without the circle
+hypothesis): `n_Z = 0`, `n_z = 2`, `E_t z_{1,t+1} = z_{1t} + i_t + c_{1t}`,
+`E_t z_{2,t+1} = β⁻¹ z_{2t} + i_t + c_{2t}`; (1.15) has the roots `1` and `β⁻¹`. -/
+noncomputable def circSys (β : ℝ) (hβ : β ≠ 0) : LinearRESystem Empty (Fin 2) where
+  A11 := 0
+  A12 := 0
+  A21 := 0
+  A22 := !![1, 0; 0, β⁻¹]
+  Et := 1
+  B2 := ![1, 1]
+  A22_isUnit := by
+    rw [isUnit_iff_ne_zero, det_fin_two_of]
+    simpa using hβ
+  B2_ne_zero := by
+    intro h
+    have := congrFun h 0
+    simp at this
+
+/-- Woodford (2003), p. 553 (counterexample): a Jordan block at the eigenvalue `1`. -/
+noncomputable def jordanΛ : Matrix (Fin 2) (Fin 2) ℝ := !![1, 0; 1, 1]
+
+/-- Woodford (2003), p. 557 (tool): the determinant of a matrix indexed by `Empty ⊕ ι` is that of
+its `ι`-block. -/
+theorem det_empty_sum {R : Type*} [CommRing R] {κ : Type*} [Fintype κ] [DecidableEq κ]
+    (M : Matrix (Empty ⊕ κ) (Empty ⊕ κ) R) : M.det = M.toBlocks₂₂.det := by
+  rw [← fromBlocks_toBlocks M]
+  have h21 : M.toBlocks₂₁ = 0 := by
+    ext i j
+    exact j.elim
+  rw [h21, det_fromBlocks_zero₂₁, det_isEmpty, one_mul]
+  rfl
+
+/-- Woodford (2003), eq. (1.15) (counterexample): `det(A − μÎ) = (μ − 1)(μ − β⁻¹)`. -/
+theorem circSys_pencilPoly {β : ℝ} (hβ : β ≠ 0) :
+    (circSys β hβ).pencilPoly = (X - C 1) * (X - C ((β : ℂ)⁻¹)) := by
+  unfold LinearRESystem.pencilPoly
+  rw [det_empty_sum, det_fin_two]
+  simp [toBlocks₂₂, LinearRESystem.Ahat, LinearRESystem.Ihat, circSys]
+  ring
+
+/-- Woodford (2003), App. G.1 and Assumption 8.7 (counterexample): the roots of (1.15) are
+`1` and `β⁻¹`. -/
+theorem circSys_roots {β : ℝ} (hβ : β ≠ 0) :
+    (circSys β hβ).pencilPoly.roots = {1, (β : ℂ)⁻¹} := by
+  rw [circSys_pencilPoly, roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)),
+    roots_X_sub_C, roots_X_sub_C]
+  rfl
+
+/-- Woodford (2003), p. 553 (counterexample): the homogeneous (1.18) of `circSys` is
+`φ₁(t+1) = β⁻¹ φ₁(t)`, `φ₂(t+1) = φ₂(t)`; its bounded solutions (`φ₁ = 0`, `φ₂` constant) are
+exactly the bounded solutions of `M_t = Λ' M_{t−1}` with the Jordan block `Λ'`. -/
+theorem circSys_homEquiv {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) :
+    HomEquiv (circSys β hβ0.ne') β jordanΛ 0 := by
+  have hb1 : 1 < β⁻¹ := one_lt_inv₀ hβ0 |>.mpr hβ1
+  have hbne : β⁻¹ ≠ 0 := inv_ne_zero hβ0.ne'
+  intro h hb
+  obtain ⟨C, hC⟩ := hb
+  have hCa : ∀ t, |h t (Sum.inr 0)| ≤ C := fun t => by
+    have := hC t (Sum.inr 0)
+    rwa [Real.norm_eq_abs] at this
+  have hCb : ∀ t, |h t (Sum.inr 1)| ≤ C := fun t => by
+    have := hC t (Sum.inr 1)
+    rwa [Real.norm_eq_abs] at this
+  have hsol : HomSol (circSys β hβ0.ne') β h ↔
+      ∀ t, h (t + 1) (Sum.inr 0) = β⁻¹ * h t (Sum.inr 0) ∧
+        h (t + 1) (Sum.inr 1) = h t (Sum.inr 1) := by
+    refine forall_congr' fun t => ?_
+    rw [funext_iff]
+    constructor
+    · intro H
+      refine ⟨?_, ?_⟩
+      · simpa [LinearRESystem.Ahat, LinearRESystem.Ihat, circSys, mulVec, dotProduct,
+          Fin.sum_univ_two] using H (Sum.inr 0)
+      · simpa [LinearRESystem.Ahat, LinearRESystem.Ihat, circSys, mulVec, dotProduct,
+          Fin.sum_univ_two, hβ0.ne'] using H (Sum.inr 1)
+    · rintro ⟨h0, h1⟩ r
+      rcases r with r | r
+      · exact r.elim
+      · fin_cases r <;>
+          simp [LinearRESystem.Ahat, LinearRESystem.Ihat, circSys, mulVec, dotProduct,
+            Fin.sum_univ_two, h0, h1]
+  have hrep : RepSol jordanΛ (0 : Matrix Empty (Fin 2) ℝ) h ↔
+      ∀ t, h (t + 1) (Sum.inr 0) = h t (Sum.inr 0) ∧
+        h (t + 1) (Sum.inr 1) = h t (Sum.inr 0) + h t (Sum.inr 1) := by
+    refine forall_congr' fun t => ?_
+    constructor
+    · rintro ⟨h1, -⟩
+      exact ⟨by simpa [Mpart_eq, jordanΛ, mulVec, dotProduct, Fin.sum_univ_two] using
+          congrFun h1 0,
+        by simpa [Mpart_eq, jordanΛ, mulVec, dotProduct, Fin.sum_univ_two] using congrFun h1 1⟩
+    · rintro ⟨h0, h1⟩
+      refine ⟨funext fun r => ?_, funext fun r => r.elim⟩
+      fin_cases r <;> simp [Mpart_eq, jordanΛ, mulVec, dotProduct, Fin.sum_univ_two, h0, h1]
+  rw [hsol, hrep]
+  constructor
+  · intro H
+    -- the first component is explosive, hence zero
+    have ha : ∀ t, h t (Sum.inr 0) = (β⁻¹) ^ t * h 0 (Sum.inr 0) := by
+      intro t
+      induction t with
+      | zero => simp
+      | succ t ih => rw [(H t).1, ih, pow_succ]; ring
+    have ha0 : h 0 (Sum.inr 0) = 0 := by
+      by_contra h0
+      have hpos : 0 < |h 0 (Sum.inr 0)| := abs_pos.mpr h0
+      obtain ⟨k, hk⟩ := pow_unbounded_of_one_lt (C / |h 0 (Sum.inr 0)|) hb1
+      have := hCa k
+      rw [ha k, abs_mul, abs_of_pos (pow_pos (inv_pos.mpr hβ0) k)] at this
+      have := (div_lt_iff₀ hpos).mp hk
+      linarith
+    intro t
+    have hat : ∀ s, h s (Sum.inr 0) = 0 := fun s => by rw [ha s, ha0, mul_zero]
+    exact ⟨by rw [hat, hat], by rw [(H t).2, hat, zero_add]⟩
+  · intro H
+    have ha : ∀ t, h t (Sum.inr 0) = h 0 (Sum.inr 0) := by
+      intro t
+      induction t with
+      | zero => rfl
+      | succ t ih => rw [(H t).1, ih]
+    have hbt : ∀ t, h t (Sum.inr 1) = h 0 (Sum.inr 1) + t * h 0 (Sum.inr 0) := by
+      intro t
+      induction t with
+      | zero => simp
+      | succ t ih => rw [(H t).2, ih, ha t]; push_cast; ring
+    have ha0 : h 0 (Sum.inr 0) = 0 := by
+      by_contra h0
+      have hpos : 0 < |h 0 (Sum.inr 0)| := abs_pos.mpr h0
+      obtain ⟨k, hk⟩ := exists_nat_gt (2 * C / |h 0 (Sum.inr 0)|)
+      have h1 := hCb k
+      have h2 := hCb 0
+      rw [hbt k] at h1
+      have h3 : (k : ℝ) * |h 0 (Sum.inr 0)| ≤ 2 * C := by
+        have h4 := (abs_sub (h 0 (Sum.inr 1) + k * h 0 (Sum.inr 0)) (h 0 (Sum.inr 1))).trans
+          (add_le_add h1 h2)
+        rw [add_sub_cancel_left, abs_mul, Nat.abs_cast] at h4
+        linarith
+      have := (div_lt_iff₀ hpos).mp hk
+      linarith
+    intro t
+    have hat : ∀ s, h s (Sum.inr 0) = 0 := fun s => by rw [ha s, ha0]
+    exact ⟨by rw [hat, hat, mul_zero], by rw [(H t).2, hat, zero_add]⟩
+
+/-- Woodford (2003), p. 557 (counterexample): `α(L) = det(I − Λ'L)` has no zero inside the unit
+circle and a double zero at `1`. -/
+theorem jordanΛ_zeros : zerosInside (alpha jordanΛ) = 0 ∧ zerosOnCircle (alpha jordanΛ) = 2 := by
+  have hcp : (cmat jordanΛ).charpoly = (X - C 1) * (X - C 1) := by
+    rw [charpoly, det_fin_two]
+    simp [cmat, jordanΛ]
+  have hroots : (cmat jordanΛ).charpoly.roots = {1, 1} := by
+    rw [hcp, roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)), roots_X_sub_C]
+    rfl
+  rw [zerosInside_alpha, zerosOnCircle_alpha, hroots]
+  simp [Multiset.filter_singleton]
+
+/-- **Woodford (2003), Proposition 8.3 — counterexample without the circle hypothesis.** For
+`0 < β < 1` the system `circSys` satisfies Assumption 8.3 and Assumption 8.7 with `m = 1`, and
+the Jordan block `Λ'` represents the bounded solutions of the homogeneous (1.18) as Proposition
+8.1 requires (`HomEquiv`), but (1.15) has the root `β⁻¹` on `|λ| = β⁻¹` and `α(L) = (1 − L)²`
+has no zero inside the unit circle. So the conclusion of `eq_of_homEquiv` (and of Proposition
+8.3 for an arbitrary representation) needs the hypothesis that no root lies on `|λ| = β⁻¹`;
+`bounds_of_homEquiv` still holds (`0 ≤ 1 ≤ 0 + 2`). -/
+theorem circle_counterexample {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) :
+    HomEquiv (circSys β hβ0.ne') β jordanΛ 0 ∧ Assumption83 (circSys β hβ0.ne') ∧
+      (circSys β hβ0.ne').stableCount β⁻¹ = Fintype.card Empty + 1 ∧
+      ((β : ℂ)⁻¹ ∈ (circSys β hβ0.ne').pencilPoly.roots ∧ ‖((β : ℂ)⁻¹)‖ = β⁻¹) ∧
+      zerosInside (alpha jordanΛ) = 0 := by
+  have hb1 : 1 < β⁻¹ := one_lt_inv₀ hβ0 |>.mpr hβ1
+  have hbc : (β : ℂ)⁻¹ ≠ 1 := by
+    intro h
+    have := congrArg Complex.re h
+    simp only [← Complex.ofReal_inv, Complex.ofReal_re, Complex.one_re] at this
+    linarith
+  have hbc0 : (β : ℂ)⁻¹ ≠ 0 := inv_ne_zero (Complex.ofReal_ne_zero.mpr hβ0.ne')
+  have hnorm : ‖((β : ℂ)⁻¹)‖ = β⁻¹ := by
+    rw [norm_inv, Complex.norm_real, Real.norm_of_nonneg hβ0.le]
+  have hnz : nonzeroRoots (circSys β hβ0.ne') = {1, (β : ℂ)⁻¹} := by
+    rw [nonzeroRoots, circSys_roots]
+    simp [hbc0]
+  have hdetA : IsUnit (circSys β hβ0.ne').Ahat.det := by
+    rw [det_empty_sum]
+    exact (circSys β hβ0.ne').A22_isUnit
+  have hrankA : (circSys β hβ0.ne').Ahat.rank = 2 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr hdetA)]
+    simp
+  have hrankE : (circSys β hβ0.ne').Et.rank = 2 := by
+    change (1 : Matrix (Fin 2) (Fin 2) ℝ).rank = 2
+    rw [rank_one]
+    simp
+  refine ⟨circSys_homEquiv hβ0 hβ1, (Assumption83.ofRoots _ ?_ ?_ ?_).elim id, ?_, ⟨?_, hnorm⟩,
+    jordanΛ_zeros.1⟩
+  · rw [circSys_pencilPoly]
+    exact mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)
+  · rw [hnz]
+    simpa using hbc.symm
+  · rw [hnz, hrankA, hrankE]
+    simp
+  · unfold LinearRESystem.stableCount
+    rw [circSys_roots, hrankA]
+    simp [hbc0, hnorm, hb1]
+  · rw [circSys_roots]
+    simp
+
+end Woodford.OptimalPolicyRules.Prop83
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.4 in general
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §1.5, pp. 557–559: the lemma (1.30)–(1.31),
+the factorisation `α(L) = α₁(L) α₂(L)` and Proposition 8.4 ((1.28) ⟺ (1.32)).
+
+`TargetCriterion.prop84_conditional` proved the equivalence (1.28) ⟺ (1.32) *given* the
+factorisation and *given* the bounded forward inverse `g = α̃₁(L⁻¹)⁻¹ w`. Both are proved here.
+
+## Main results
+
+* **The forward inverse.** `forward_inverse_existsUnique`: for a nonzero real polynomial `φ`
+  all of whose complex roots satisfy `|μ| > 1`, and every bounded adapted `w`, there is exactly
+  one bounded adapted `g` with `E_t φ(L⁻¹) g_t = w_t` for all `t` (existence by factoring `φ`
+  over `ℂ` and solving one first-order forward equation per root, `exists_aeval_fwdC_eq`; the
+  real solution is the real part). `forward_inverse_iff`: this is **exactly** the right root
+  condition — if some root has `|μ| ≤ 1`, uniqueness fails (`not_unique_of_root_in_disc`).
+* **The factorisation.** `exists_inside_factorization`: every nonzero real polynomial is
+  `p = p₁ p₂` with `p₁` real and monic, the complex roots of `p₁` exactly the roots of `p` inside
+  the unit circle (with multiplicity, `deg p₁ = zerosInside p`), and every root of `p₂` of
+  modulus `≥ 1` (`> 1` when `p` has no zero on the circle). The real coefficients come from the
+  conjugation-invariance of the roots of a real polynomial (`insideRoots_conj`).
+* **Proposition 8.4.** `prop84`: under the hypotheses of `Prop83.prop83` (Assumptions 8.1, 8.3,
+  8.7, no root of (1.15) on `|λ| = β⁻¹`) the `α(L) = det(I − ΛL)` of every representation of
+  Proposition 8.1 factors as `α₁ α₂` with `deg α₁ = m`, all zeros of `α₁` inside and all zeros
+  of `α₂` outside the unit circle; for every bounded adapted `w` the bounded forward inverse `g`
+  exists and is unique, and for every bounded adapted instrument path (1.28) ⟺ (1.32).
+  `prop84_from`: the same equivalence for rules imposed from any date `T` on; `prop84_criterion`:
+  the version stated with the target criterion (1.23) itself (`TargetCriterion.Crit.crit`) and
+  `v_t = λ_i (i_t − i*)` (Assumption 8.6), for all `t ≥ T ≥ D`.
+-/
+
+namespace Woodford.OptimalPolicyRules.Prop84General
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ Adjugate
+open TargetCriterion (zerosInside fwdOp lagOp eq_zero_of_aeval_fwdOp_eq_zero prop84_conditional
+  roots_reverse_outside map_reverse_ofReal aeval_fwdOp_apply p558_identity
+  boundedProc_aeval_lagOp aeval_lagOp_adapted lagOp_adapted)
+open TargetCriterion.Prop81
+open ExpectationTools (EC EC_smul EC_add norm_EC_le BoundedC AdaptedC EC_ofReal)
+open Prop83 (zerosOnCircle)
+open PencilEigen (Assumption83)
+
+variable {Ω : Type*}
+
+/-! ### The bounded forward inverse of a polynomial in `L⁻¹` -/
+
+/-- Woodford (2003), p. 558: a first-order forward equation `E_t v_{t+1} − z v_t = w_t` with
+`|z| > 1` has a bounded adapted solution, the forward series
+`v_t = −∑_k z^{−k−1} E_t w_{t+k}`. -/
+theorem exists_fwdC_sub_eq (𝔼 : ExpectationSystem Ω) {z : ℂ} (hz : 1 < ‖z‖)
+    {w : ℕ → Ω → ℂ} (hwb : BoundedC w) (hwa : AdaptedC 𝔼 w) :
+    ∃ v, BoundedC v ∧ AdaptedC 𝔼 v ∧ TargetCriterion.fwdC 𝔼 v - z • v = w := by
+  obtain ⟨M, hM⟩ := hwb
+  have hz0 : z ≠ 0 := fun h => by rw [h, norm_zero] at hz; linarith
+  have ha : ‖z⁻¹‖ < 1 := by
+    rw [norm_inv]
+    exact inv_lt_one_of_one_lt₀ hz
+  set u : ℕ → Ω → ℂ := fun t => (-z⁻¹) • w t with hu
+  have huM : ∀ t ω, ‖u t ω‖ ≤ ‖z⁻¹‖ * M := fun t ω => by
+    simp only [hu, Pi.smul_apply, smul_eq_mul, norm_mul, norm_neg]
+    exact mul_le_mul_of_nonneg_left (hM t ω) (norm_nonneg _)
+  have hua : AdaptedC 𝔼 u := fun t => by
+    simp only [hu]
+    rw [EC_smul, hwa t]
+  refine ⟨ExpectationTools.fwdC 𝔼 z⁻¹ u, ⟨_, ExpectationTools.fwdC_bounded 𝔼 ha huM⟩,
+    ExpectationTools.fwdC_adapted 𝔼 ha huM, ?_⟩
+  funext t
+  have hs := ExpectationTools.fwdC_solves 𝔼 ha huM hua t
+  change EC 𝔼 t (ExpectationTools.fwdC 𝔼 z⁻¹ u (t + 1)) - z • ExpectationTools.fwdC 𝔼 z⁻¹ u t =
+    w t
+  have hzu : z • u t = -w t := by
+    simp only [hu]
+    rw [smul_smul, mul_neg, mul_inv_cancel₀ hz0, neg_one_smul]
+  rw [hs, smul_add, smul_smul, mul_inv_cancel₀ hz0, one_smul, hzu]
+  abel
+
+/-- Woodford (2003), p. 558: **existence of the forward inverse over `ℂ`.** If every root of the
+nonzero complex polynomial `p` satisfies `|μ| > 1`, then `p(F) u = w` (`F u_t = E_t u_{t+1}`)
+has a bounded adapted solution for every bounded adapted `w`. -/
+theorem exists_aeval_fwdC_eq (𝔼 : ExpectationSystem Ω) :
+    ∀ (n : ℕ) (p : ℂ[X]), p.natDegree = n → p ≠ 0 → (∀ z ∈ p.roots, 1 < ‖z‖) →
+      ∀ w, BoundedC w → AdaptedC 𝔼 w →
+        ∃ u, BoundedC u ∧ AdaptedC 𝔼 u ∧ (aeval (TargetCriterion.fwdC 𝔼) p) u = w := by
+  intro n
+  induction n with
+  | zero =>
+    intro p hn hp _ w hwb hwa
+    have hc : p.coeff 0 ≠ 0 := fun h0 =>
+      hp (by rw [eq_C_of_natDegree_eq_zero hn, h0, map_zero])
+    refine ⟨(p.coeff 0)⁻¹ • w, ?_, fun t => ?_, ?_⟩
+    · obtain ⟨M, hM⟩ := hwb
+      refine ⟨‖(p.coeff 0)⁻¹‖ * M, fun t ω => ?_⟩
+      simp only [Pi.smul_apply, smul_eq_mul, norm_mul]
+      exact mul_le_mul_of_nonneg_left (hM t ω) (norm_nonneg _)
+    · change EC 𝔼 t ((p.coeff 0)⁻¹ • w t) = (p.coeff 0)⁻¹ • w t
+      rw [EC_smul, hwa t]
+    · nth_rewrite 1 [eq_C_of_natDegree_eq_zero hn]
+      rw [aeval_C, Module.algebraMap_end_apply, smul_smul, mul_inv_cancel₀ hc, one_smul]
+  | succ n ih =>
+    intro p hn hp hroots w hwb hwa
+    obtain ⟨z, hz⟩ := Complex.exists_root (f := p) (by
+      rw [degree_eq_natDegree hp, hn]
+      exact_mod_cast Nat.succ_pos n)
+    set q := p /ₘ (X - C z) with hq
+    have hfac : (X - C z) * q = p := mul_divByMonic_eq_iff_isRoot.mpr hz
+    have hq0 : q ≠ 0 := by
+      intro h0
+      rw [h0, mul_zero] at hfac
+      exact hp hfac.symm
+    have hqdeg : q.natDegree = n := by
+      have := congrArg natDegree hfac
+      rw [natDegree_mul (X_sub_C_ne_zero z) hq0, natDegree_X_sub_C, hn] at this
+      omega
+    have hqroots : ∀ y ∈ q.roots, 1 < ‖y‖ := by
+      intro y hy
+      apply hroots
+      rw [← hfac, roots_mul (by rw [hfac]; exact hp), roots_X_sub_C]
+      exact Multiset.mem_add.mpr (Or.inr hy)
+    have hzroot : 1 < ‖z‖ := hroots z ((mem_roots hp).mpr hz)
+    obtain ⟨v, hvb, hva, hv⟩ := exists_fwdC_sub_eq 𝔼 hzroot hwb hwa
+    obtain ⟨u, hub, hua, hu⟩ := ih q hqdeg hq0 hqroots v hvb hva
+    refine ⟨u, hub, hua, ?_⟩
+    rw [← hfac, map_mul, Module.End.mul_apply, hu, map_sub, aeval_X, aeval_C,
+      LinearMap.sub_apply, Module.algebraMap_end_apply]
+    exact hv
+
+/-- Woodford (2003), p. 557 (tool): the real part commutes with the forward operator. -/
+theorem fwdOp_re (𝔼 : ExpectationSystem Ω) (u : ℕ → Ω → ℂ) :
+    fwdOp 𝔼 (fun t ω => (u t ω).re) = fun t ω => ((TargetCriterion.fwdC 𝔼 u) t ω).re := rfl
+
+/-- Woodford (2003), p. 557 (tool): the real part commutes with real forward lag polynomials. -/
+theorem aeval_fwdOp_re (𝔼 : ExpectationSystem Ω) (φ : ℝ[X]) (u : ℕ → Ω → ℂ) :
+    (aeval (fwdOp 𝔼) φ) (fun t ω => (u t ω).re) =
+      fun t ω => ((aeval (TargetCriterion.fwdC 𝔼) (φ.map Complex.ofRealHom)) u t ω).re := by
+  have hpow : ∀ j (u : ℕ → Ω → ℂ), ((fwdOp 𝔼) ^ j) (fun t ω => (u t ω).re) =
+      fun t ω => ((((TargetCriterion.fwdC 𝔼) ^ j) u) t ω).re := by
+    intro j
+    induction j with
+    | zero => intro u; rfl
+    | succ j ih =>
+      intro u
+      rw [pow_succ, Module.End.mul_apply, fwdOp_re, ih, pow_succ, Module.End.mul_apply]
+  rw [aeval_eq_sum_range, aeval_eq_sum_range,
+    natDegree_map_eq_of_injective Complex.ofRealHom.injective]
+  funext t ω
+  simp only [LinearMap.sum_apply, Finset.sum_apply, LinearMap.smul_apply, hpow,
+    Pi.smul_apply, coeff_map, smul_eq_mul, Complex.ofRealHom_eq_coe, Complex.re_sum,
+    Complex.re_ofReal_mul]
+
+/-- **Woodford (2003), p. 558: the bounded forward inverse `φ(L⁻¹)⁻¹`, existence and
+uniqueness.** If `φ ≠ 0` is a real polynomial all of whose complex roots satisfy `|μ| > 1`, then
+for every bounded adapted `w` there is exactly one bounded adapted `g` with
+`E_t φ(L⁻¹) g_t = w_t` for all `t`. -/
+theorem forward_inverse_existsUnique {𝔼 : ExpectationSystem Ω} {φ : ℝ[X]} (hφ : φ ≠ 0)
+    (hroots : ∀ z ∈ (φ.map Complex.ofRealHom).roots, 1 < ‖z‖) {w : ℕ → Ω → ℝ}
+    (hwb : BoundedProc w) (hwa : 𝔼.Adapted w) :
+    ∃! g, BoundedProc g ∧ 𝔼.Adapted g ∧ (aeval (fwdOp 𝔼) φ) g = w := by
+  have hφc : φ.map Complex.ofRealHom ≠ 0 :=
+    (Polynomial.map_ne_zero_iff Complex.ofRealHom.injective).mpr hφ
+  obtain ⟨M, hM⟩ := hwb
+  have hwcb : BoundedC (fun t ω => (w t ω : ℂ)) :=
+    ⟨M, fun t ω => by rw [Complex.norm_real, Real.norm_eq_abs]; exact hM t ω⟩
+  have hwca : AdaptedC 𝔼 (fun t ω => (w t ω : ℂ)) := fun t => by
+    change EC 𝔼 t (fun ω => (w t ω : ℂ)) = fun ω => (w t ω : ℂ)
+    rw [EC_ofReal, hwa t]
+  obtain ⟨u, hub, hua, hu⟩ := exists_aeval_fwdC_eq 𝔼 _ _ rfl hφc hroots _ hwcb hwca
+  have hreb : BoundedProc (fun t ω => (u t ω).re) := by
+    obtain ⟨K, hK⟩ := hub
+    exact ⟨K, fun t ω => (Complex.abs_re_le_norm _).trans (hK t ω)⟩
+  have hsol : (aeval (fwdOp 𝔼) φ) (fun t ω => (u t ω).re) = w := by
+    rw [aeval_fwdOp_re, hu]
+    rfl
+  refine ⟨fun t ω => (u t ω).re, ⟨hreb, fun t => ?_, hsol⟩, ?_⟩
+  · funext ω
+    exact congrArg Complex.re (congrFun (hua t) ω)
+  · rintro g ⟨hgb, -, hg⟩
+    have hdiff : (aeval (fwdOp 𝔼) φ) (g - fun t ω => (u t ω).re) = 0 := by
+      rw [map_sub, hg, hsol, sub_self]
+    have hb : BoundedProc (g - fun t ω => (u t ω).re) := by
+      obtain ⟨M1, h1⟩ := hgb
+      obtain ⟨M2, h2⟩ := hreb
+      exact ⟨M1 + M2, fun t ω => (abs_sub _ _).trans (add_le_add (h1 t ω) (h2 t ω))⟩
+    exact sub_eq_zero.mp (eq_zero_of_aeval_fwdOp_eq_zero hφ hroots hb hdiff)
+
+/-- Woodford (2003), p. 558: **the root condition cannot be weakened.** If the real polynomial
+`φ` has a complex root `r` with `|r| ≤ 1`, the deterministic bounded process `g_t = Re(rᵗ)`
+(`g_0 = 1`) solves `E_t φ(L⁻¹) g_t = 0`, so bounded solutions of `E_t φ(L⁻¹) g_t = w_t` are never
+unique. -/
+theorem not_unique_of_root_in_disc [Nonempty Ω] (𝔼 : ExpectationSystem Ω) {φ : ℝ[X]} {r : ℂ}
+    (hr : r ∈ (φ.map Complex.ofRealHom).roots) (hr1 : ‖r‖ ≤ 1) :
+    ∃ g : ℕ → Ω → ℝ, g ≠ 0 ∧ BoundedProc g ∧ 𝔼.Adapted g ∧ (aeval (fwdOp 𝔼) φ) g = 0 := by
+  obtain ⟨ω0⟩ := ‹Nonempty Ω›
+  have hφc : φ.map Complex.ofRealHom ≠ 0 := ne_zero_of_mem_roots hr
+  have heval : (φ.map Complex.ofRealHom).eval r = 0 := (mem_roots hφc).mp hr
+  set g : ℕ → Ω → ℝ := fun t _ => (r ^ t).re with hg
+  have hga : 𝔼.Adapted g := fun t => 𝔼.const t _
+  refine ⟨g, fun h => ?_, ⟨1, fun t ω => ?_⟩, hga, ?_⟩
+  · have := congrFun (congrFun h 0) ω0
+    simp [hg] at this
+  · simp only [hg]
+    refine (Complex.abs_re_le_norm _).trans ?_
+    rw [norm_pow]
+    exact pow_le_one₀ (norm_nonneg r) hr1
+  · funext t ω
+    rw [aeval_fwdOp_apply 𝔼 hga]
+    simp only [hg, 𝔼.const, Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    rw [eval_eq_sum_range, natDegree_map_eq_of_injective Complex.ofRealHom.injective] at heval
+    have h1 : ∑ j ∈ Finset.range (φ.natDegree + 1), φ.coeff j * (r ^ (t + j)).re =
+        (r ^ t * ∑ j ∈ Finset.range (φ.natDegree + 1),
+          (φ.map Complex.ofRealHom).coeff j * r ^ j).re := by
+      rw [Finset.mul_sum, Complex.re_sum]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [coeff_map, Complex.ofRealHom_eq_coe, pow_add]
+      rw [show r ^ t * (↑(φ.coeff j) * r ^ j) = ↑(φ.coeff j) * (r ^ t * r ^ j) by ring,
+        Complex.re_ofReal_mul]
+    rw [h1, heval, mul_zero, Complex.zero_re]
+
+/-- **Woodford (2003), p. 558: the correct root condition.** For a nonzero real polynomial `φ`
+(and a nonempty sample space), `E_t φ(L⁻¹) g_t = w_t` has a unique bounded adapted solution for
+every bounded adapted `w` iff every complex root of `φ` satisfies `|μ| > 1`. -/
+theorem forward_inverse_iff [Nonempty Ω] (𝔼 : ExpectationSystem Ω) {φ : ℝ[X]} (hφ : φ ≠ 0) :
+    (∀ w, BoundedProc w → 𝔼.Adapted w →
+      ∃! g, BoundedProc g ∧ 𝔼.Adapted g ∧ (aeval (fwdOp 𝔼) φ) g = w) ↔
+    ∀ z ∈ (φ.map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+  constructor
+  · intro H z hz
+    by_contra hz1
+    obtain ⟨g, hg0, hgb, hga, hg⟩ := not_unique_of_root_in_disc 𝔼 hz (not_lt.mp hz1)
+    have h0b : BoundedProc (0 : ℕ → Ω → ℝ) := ⟨0, fun t ω => by simp⟩
+    have h0a : 𝔼.Adapted (0 : ℕ → Ω → ℝ) := fun t => map_zero _
+    obtain ⟨g', -, hu⟩ := H 0 h0b h0a
+    have e1 := hu g ⟨hgb, hga, hg⟩
+    have e2 := hu 0 ⟨h0b, h0a, map_zero _⟩
+    exact hg0 (e1.trans e2.symm)
+  · intro hroots w hwb hwa
+    exact forward_inverse_existsUnique hφ hroots hwb hwa
+
+/-! ### The factorisation `α = α₁ α₂` -/
+
+/-- Woodford (2003), p. 558: the zeros of a real lag polynomial inside the unit circle, with
+multiplicity. -/
+noncomputable def insideRoots (p : ℝ[X]) : Multiset ℂ :=
+  (p.map Complex.ofRealHom).roots.filter (fun z => ‖z‖ < 1)
+
+/-- Woodford (2003), p. 552 and p. 558: the complex roots of a real polynomial come in conjugate
+pairs (with multiplicity); in particular the zeros inside the unit circle do. -/
+theorem insideRoots_conj (p : ℝ[X]) :
+    (insideRoots p).map (starRingEnd ℂ) = insideRoots p := by
+  unfold insideRoots
+  set P := p.map Complex.ofRealHom with hP
+  have hcard : Multiset.card P.roots = P.natDegree :=
+    (splits_iff_card_roots).mp (IsAlgClosed.splits P)
+  have hconj : P.map (starRingEnd ℂ) = P := by
+    rw [hP, Polynomial.map_map]
+    congr 1
+    ext x
+    simp
+  have hroots : P.roots.map (starRingEnd ℂ) = P.roots := by
+    rw [roots_map_of_injective_of_card_eq_natDegree (starRingEnd ℂ).injective hcard, hconj]
+  calc (P.roots.filter (fun z => ‖z‖ < 1)).map (starRingEnd ℂ) =
+        (P.roots.filter ((fun z => ‖z‖ < 1) ∘ starRingEnd ℂ)).map (starRingEnd ℂ) := by
+        congr 1
+        exact Multiset.filter_congr fun z _ => by simp
+    _ = (P.roots.map (starRingEnd ℂ)).filter (fun z => ‖z‖ < 1) :=
+        (Multiset.filter_map _ _ _).symm
+    _ = P.roots.filter (fun z => ‖z‖ < 1) := by rw [hroots]
+
+/-- **Woodford (2003), p. 558: the factorisation `α(L) = α₁(L) α₂(L)`.** Every nonzero real
+polynomial `p` factors as `p = p₁ p₂` with `p₁` real and monic, the complex roots of `p₁` exactly
+the roots of `p` inside the unit circle (with multiplicity), `deg p₁ = zerosInside p`, and every
+complex root of `p₂` of modulus at least `1`. -/
+theorem exists_inside_factorization (p : ℝ[X]) (hp : p ≠ 0) :
+    ∃ p1 p2 : ℝ[X], p = p1 * p2 ∧ p1.Monic ∧ (p1.map Complex.ofRealHom).roots = insideRoots p ∧
+      p1.natDegree = zerosInside p ∧ ∀ z ∈ (p2.map Complex.ofRealHom).roots, 1 ≤ ‖z‖ := by
+  set P := p.map Complex.ofRealHom with hP
+  have hP0 : P ≠ 0 := (Polynomial.map_ne_zero_iff Complex.ofRealHom.injective).mpr hp
+  set QC : ℂ[X] := ((insideRoots p).map fun a => X - C a).prod with hQC
+  have hQmonic : QC.Monic := monic_multiset_prod_of_monic _ _ fun a _ => monic_X_sub_C a
+  have hQconj : QC.map (starRingEnd ℂ) = QC := by
+    rw [hQC, Polynomial.map_multiset_prod, Multiset.map_map]
+    conv_rhs => rw [← insideRoots_conj p, Multiset.map_map]
+    congr 1
+    refine Multiset.map_congr rfl fun a _ => ?_
+    simp
+  have hlift : QC ∈ lifts Complex.ofRealHom := by
+    rw [lifts_iff_coeff_lifts]
+    intro n
+    have h1 := congrArg (fun q => q.coeff n) hQconj
+    simp only [coeff_map] at h1
+    exact ⟨(QC.coeff n).re, Complex.conj_eq_iff_re.mp h1⟩
+  obtain ⟨p1, hp1map, hp1deg, hp1monic⟩ := lifts_and_natDegree_eq_and_monic hlift hQmonic
+  have hcard : Multiset.card P.roots = P.natDegree :=
+    (splits_iff_card_roots).mp (IsAlgClosed.splits P)
+  have hdvdC : QC ∣ P := by
+    rw [← C_leadingCoeff_mul_prod_multiset_X_sub_C hcard]
+    refine Dvd.dvd.mul_left (Multiset.prod_dvd_prod_of_le
+      (Multiset.map_le_map (Multiset.filter_le _ _))) _
+  have hdvd : p1 ∣ p :=
+    (map_dvd_map Complex.ofRealHom Complex.ofRealHom.injective hp1monic).mp
+      (by rw [hp1map]; exact hdvdC)
+  obtain ⟨p2, hp2⟩ := hdvd
+  have hroots1 : (p1.map Complex.ofRealHom).roots = insideRoots p := by
+    rw [hp1map, hQC, roots_multiset_prod_X_sub_C]
+  refine ⟨p1, p2, hp2, hp1monic, hroots1, ?_, ?_⟩
+  · rw [hp1deg, hQC, natDegree_multiset_prod_X_sub_C_eq_card]
+    rfl
+  · intro z hz
+    by_contra hlt
+    push Not at hlt
+    have hPfac : P = p1.map Complex.ofRealHom * p2.map Complex.ofRealHom := by
+      rw [hP, hp2, Polynomial.map_mul]
+    have hsum : P.roots = insideRoots p + (p2.map Complex.ofRealHom).roots := by
+      rw [hPfac, roots_mul (by rw [← hPfac]; exact hP0), hroots1]
+    have hc := congrArg (Multiset.count z) hsum
+    rw [Multiset.count_add] at hc
+    have hin : Multiset.count z (insideRoots p) = Multiset.count z P.roots := by
+      unfold insideRoots
+      rw [← hP]
+      exact Multiset.count_filter_of_pos hlt
+    have hpos := Multiset.count_pos.mpr hz
+    omega
+
+/-- Woodford (2003), p. 558: when `p` has no zero on the unit circle, the cofactor `p₂` of the
+factorisation has all its zeros strictly outside the unit circle. -/
+theorem roots_cofactor_outside {p p1 p2 : ℝ[X]} (hp : p ≠ 0) (hfac : p = p1 * p2)
+    (h1 : ∀ z ∈ (p2.map Complex.ofRealHom).roots, 1 ≤ ‖z‖) (hcirc : zerosOnCircle p = 0) :
+    ∀ z ∈ (p2.map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+  intro z hz
+  refine lt_of_le_of_ne (h1 z hz) fun h => ?_
+  have hP0 : p.map Complex.ofRealHom ≠ 0 :=
+    (Polynomial.map_ne_zero_iff Complex.ofRealHom.injective).mpr hp
+  have hzp : z ∈ (p.map Complex.ofRealHom).roots := by
+    rw [hfac, Polynomial.map_mul, roots_mul (by rw [← Polynomial.map_mul, ← hfac]; exact hP0)]
+    exact Multiset.mem_add.mpr (Or.inr hz)
+  unfold zerosOnCircle at hcirc
+  rw [Multiset.card_eq_zero, Multiset.filter_eq_nil] at hcirc
+  exact hcirc z hzp h.symm
+
+/-! ### Proposition 8.4 -/
+
+/-- Woodford (2003), p. 558 (tool): the expectation system seen from date `T` on,
+`E'_s = E_{s+T}`. -/
+def shiftES (𝔼 : ExpectationSystem Ω) (T : ℕ) : ExpectationSystem Ω where
+  E s := 𝔼.E (s + T)
+  const s c := 𝔼.const (s + T) c
+  mono s _ _ h := 𝔼.mono (s + T) h
+  tower h x := 𝔼.tower (Nat.add_le_add_right h T) x
+  known h x := 𝔼.known (Nat.add_le_add_right h T) x
+
+/-- Woodford (2003), p. 558 (tool): forward lag polynomials commute with the shift of dates. -/
+theorem aeval_fwdOp_shift (𝔼 : ExpectationSystem Ω) (T : ℕ) (φ : ℝ[X]) {x : ℕ → Ω → ℝ}
+    (hx : 𝔼.Adapted x) (s : ℕ) :
+    (aeval (fwdOp (shiftES 𝔼 T)) φ) (fun s => x (s + T)) s = (aeval (fwdOp 𝔼) φ) x (s + T) := by
+  have hx' : (shiftES 𝔼 T).Adapted (fun s => x (s + T)) := fun s => hx (s + T)
+  rw [aeval_fwdOp_apply _ hx', aeval_fwdOp_apply _ hx]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [show s + j + T = s + T + j by omega]
+  rfl
+
+/-- **Woodford (2003), pp. 557–558: the lemma (1.30) ⟺ (1.31) from a date `T` on.** If `φ ≠ 0`
+has all its complex roots outside the unit circle and `u` is bounded and adapted, then
+`E_t φ(L⁻¹) u_t = 0` for all `t ≥ T` iff `u_t = 0` for all `t ≥ T`. -/
+theorem forward_eq_zero_from_iff {𝔼 : ExpectationSystem Ω} {φ : ℝ[X]} (hφ : φ ≠ 0)
+    (hroots : ∀ z ∈ (φ.map Complex.ofRealHom).roots, 1 < ‖z‖) {u : ℕ → Ω → ℝ}
+    (hub : BoundedProc u) (hua : 𝔼.Adapted u) (T : ℕ) :
+    (∀ t, T ≤ t → (aeval (fwdOp 𝔼) φ) u t = 0) ↔ (∀ t, T ≤ t → u t = 0) := by
+  constructor
+  · intro he
+    set u' : ℕ → Ω → ℝ := fun s => u (s + T) with hu'
+    have hu'b : BoundedProc u' := by
+      obtain ⟨M, hM⟩ := hub
+      exact ⟨M, fun s ω => hM (s + T) ω⟩
+    have hz : (aeval (fwdOp (shiftES 𝔼 T)) φ) u' = 0 := by
+      funext s
+      rw [hu', aeval_fwdOp_shift 𝔼 T _ hua]
+      exact he (s + T) (by omega)
+    have h0 := eq_zero_of_aeval_fwdOp_eq_zero hφ hroots hu'b hz
+    intro t ht
+    have := congrFun h0 (t - T)
+    simp only [hu', Pi.zero_apply] at this
+    rwa [show t - T + T = t by omega] at this
+  · intro hu0 t ht
+    rw [aeval_fwdOp_apply 𝔼 hua]
+    refine Finset.sum_eq_zero fun j _ => ?_
+    rw [hu0 (t + j) (by omega), map_zero, smul_zero]
+
+/-- Woodford (2003), p. 558: `x_t − i*` is bounded and adapted when `i` is. -/
+theorem gap_bounded_adapted {𝔼 : ExpectationSystem Ω} {i : ℕ → Ω → ℝ} (istar : ℝ)
+    (hib : BoundedProc i) (hia : 𝔼.Adapted i) :
+    BoundedProc (fun t ω => i t ω - istar) ∧ 𝔼.Adapted (fun t ω => i t ω - istar) := by
+  refine ⟨?_, fun t => ?_⟩
+  · obtain ⟨M, hM⟩ := hib
+    exact ⟨M + |istar|, fun t ω => (abs_sub _ _).trans (add_le_add (hM t ω) le_rfl)⟩
+  · have e : (fun ω => i t ω - istar) = i t - fun _ => istar := rfl
+    change 𝔼.E t (fun ω => i t ω - istar) = fun ω => i t ω - istar
+    rw [e, map_sub, hia t, 𝔼.const]
+
+/-- **Woodford (2003), Proposition 8.4, p. 558, for rules imposed from date `T` on.** With
+`α = α₁ α₂`, `deg α₁ = m`, `α̃₁(L⁻¹) = α₁(L) L^{-m}` invertible, and `g` a bounded adapted solution
+of `E_t α̃₁(L⁻¹) g_t = w_t`: for a bounded adapted instrument path, the instrument rule (1.28)
+`λ_i α(L)(i_t − i*) + w_t = 0` holds for all `t ≥ T` iff the targeting rule (1.32)
+`g_t + λ_i α₂(L)(i_{t−m} − i*) = 0` holds for all `t ≥ T`. -/
+theorem prop84_from {𝔼 : ExpectationSystem Ω} {α1 α2 : ℝ[X]} {m : ℕ} (hm : α1.natDegree = m)
+    (hα1 : α1 ≠ 0) (hroots : ∀ z ∈ (α1.reverse.map Complex.ofRealHom).roots, 1 < ‖z‖)
+    {lam istar : ℝ} {i w g : ℕ → Ω → ℝ} (hib : BoundedProc i) (hia : 𝔼.Adapted i)
+    (hgb : BoundedProc g) (hga : 𝔼.Adapted g) (hg : (aeval (fwdOp 𝔼) α1.reverse) g = w)
+    (T : ℕ) :
+    (∀ t, T ≤ t → (lam • (aeval (lagOp (Ω := Ω)) (α1 * α2)) (fun t ω => i t ω - istar) + w) t =
+      0) ↔
+    (∀ t, T ≤ t → (g + lam • ((lagOp (Ω := Ω)) ^ m)
+      ((aeval (lagOp (Ω := Ω)) α2) (fun t ω => i t ω - istar))) t = 0) := by
+  have hrev : α1.reverse ≠ 0 := fun h => hα1 (reverse_eq_zero.mp h)
+  obtain ⟨hxb, hxa⟩ := gap_bounded_adapted istar hib hia
+  set x : ℕ → Ω → ℝ := fun t ω => i t ω - istar with hx
+  set u := g + lam • ((lagOp (Ω := Ω)) ^ m) ((aeval (lagOp (Ω := Ω)) α2) x) with hu
+  have hlagA : 𝔼.Adapted (((lagOp (Ω := Ω)) ^ m) ((aeval (lagOp (Ω := Ω)) α2) x)) := by
+    have := aeval_lagOp_adapted (X ^ m) (aeval_lagOp_adapted α2 hxa)
+    rwa [map_pow, aeval_X] at this
+  have hua : 𝔼.Adapted u := fun t => by
+    simp only [hu, Pi.add_apply, Pi.smul_apply]
+    rw [map_add, map_smul, hga t, hlagA t]
+  have hub : BoundedProc u := by
+    have := boundedProc_aeval_lagOp (X ^ m) _ (boundedProc_aeval_lagOp α2 _ hxb)
+    rw [map_pow, aeval_X] at this
+    obtain ⟨M, hM⟩ := this
+    obtain ⟨Mg, hMg⟩ := hgb
+    refine ⟨Mg + |lam| * M, fun t ω => ?_⟩
+    simp only [hu, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    refine (abs_add_le _ _).trans (add_le_add (hMg t ω) ?_)
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hM t ω) (abs_nonneg lam)
+  have key : (aeval (fwdOp 𝔼) α1.reverse) u =
+      lam • (aeval (lagOp (Ω := Ω)) (α1 * α2)) x + w := by
+    rw [hu, map_add, hg, map_smul, p558_identity hm hxa, add_comm]
+  rw [← forward_eq_zero_from_iff hrev hroots hub hua T, key]
+
+variable {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+/-- **Woodford (2003), Propositions 8.3–8.4, p. 558: the factorisation of `α(L)`.** Under the
+hypotheses of Proposition 8.3, the `α(L) = det(I − ΛL)` of every representation of Proposition
+8.1 factors as `α₁(L) α₂(L)` with `α₁` monic of degree `m`, all zeros of `α₁` inside and all
+zeros of `α₂` outside the unit circle; `α̃₁(L⁻¹) = α₁(L) L^{-m}` then has all its zeros outside
+the unit circle (so it is invertible on bounded processes). -/
+theorem alpha_factorization [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : Assumption83 P.sys) {m : ℕ} (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    ∃ α1 α2 : ℝ[X], alpha H.Λ = α1 * α2 ∧ α1.Monic ∧ α1.natDegree = m ∧
+      (∀ z ∈ (α1.map Complex.ofRealHom).roots, ‖z‖ < 1) ∧
+      (∀ z ∈ (α2.map Complex.ofRealHom).roots, 1 < ‖z‖) ∧
+      (∀ z ∈ (α1.reverse.map Complex.ofRealHom).roots, 1 < ‖z‖) := by
+  obtain ⟨α1, α2, hfac, hmon, hroots1, hdeg, hroots2⟩ :=
+    exists_inside_factorization (alpha H.Λ) (alpha_ne_zero _)
+  have hm := Prop83.prop83 H hA h83 h87 hcirc
+  have hc := Prop83.prop83_noCircle H hA h83.regular hcirc
+  have hin : ∀ z ∈ (α1.map Complex.ofRealHom).roots, ‖z‖ < 1 := by
+    intro z hz
+    rw [hroots1] at hz
+    exact (Multiset.mem_filter.mp hz).2
+  refine ⟨α1, α2, hfac, hmon, hdeg.trans hm, hin,
+    roots_cofactor_outside (alpha_ne_zero _) hfac hroots2 hc, ?_⟩
+  rw [map_reverse_ofReal]
+  exact roots_reverse_outside hin
+
+/-- **Woodford (2003), Proposition 8.4, p. 558.** For a linear-quadratic problem satisfying
+Assumptions 8.1, 8.3 and 8.7 (`n_Z + m` roots of (1.15) with `|μ| < β⁻¹`), with no root of (1.15)
+on `|μ| = β⁻¹`, and for every matrix `Λ` delivered by Proposition 8.1: `α(L) = α₁(L) α₂(L)` with
+`deg α₁ = m`, all zeros of `α₁` inside and of `α₂` outside the unit circle; for every bounded
+adapted `w_t` (Woodford's `B₂'B(L)E_tQ(L⁻¹)T̂'Ŵ(τ̂_t − τ̂*)`) the bounded process
+`g = α̃₁(L⁻¹)⁻¹ w` exists and is unique; and for every bounded adapted instrument path the
+implicit instrument rule (1.28), `λ_i α(L)(i_t − i*) + w_t = 0` for all `t`, holds iff the pure
+targeting rule (1.32), `g_t + λ_i α₂(L)(i_{t−m} − i*) = 0` for all `t`, holds. -/
+theorem prop84 [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0) (h83 : Assumption83 P.sys)
+    {m : ℕ} (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    ∃ α1 α2 : ℝ[X], alpha H.Λ = α1 * α2 ∧ α1.natDegree = m ∧
+      (∀ z ∈ (α1.map Complex.ofRealHom).roots, ‖z‖ < 1) ∧
+      (∀ z ∈ (α2.map Complex.ofRealHom).roots, 1 < ‖z‖) ∧
+      ∀ (lam istar : ℝ) (i w : ℕ → Ω → ℝ), BoundedProc i → 𝔼.Adapted i → BoundedProc w →
+        𝔼.Adapted w →
+        (∃! g, BoundedProc g ∧ 𝔼.Adapted g ∧ (aeval (fwdOp 𝔼) α1.reverse) g = w) ∧
+        ∀ g, BoundedProc g → (aeval (fwdOp 𝔼) α1.reverse) g = w →
+          (lam • (aeval (lagOp (Ω := Ω)) (alpha H.Λ)) (fun t ω => i t ω - istar) + w = 0 ↔
+            g + lam • ((lagOp (Ω := Ω)) ^ m)
+              ((aeval (lagOp (Ω := Ω)) α2) (fun t ω => i t ω - istar)) = 0) := by
+  obtain ⟨α1, α2, hfac, hmon, hdeg, hin, hout, hrev⟩ := alpha_factorization H hA h83 h87 hcirc
+  have hrev0 : α1.reverse ≠ 0 := fun h => hmon.ne_zero (reverse_eq_zero.mp h)
+  refine ⟨α1, α2, hfac, hdeg, hin, hout, fun lam istar i w hib hia hwb hwa => ⟨?_, ?_⟩⟩
+  · exact forward_inverse_existsUnique hrev0 hrev hwb hwa
+  · intro g hgb hg
+    rw [hfac]
+    exact prop84_conditional hdeg hmon.ne_zero hrev hib hia hgb hg
+
+/-! ### Proposition 8.4 stated with the target criterion (1.23) -/
+
+/-- Woodford (2003), p. 558 (tool): `(Lʲ x)_t = x_{t−j}` for `j ≤ t`. -/
+theorem lagOp_pow_apply {j t : ℕ} (hj : j ≤ t) (x : ℕ → Ω → ℝ) :
+    ((lagOp (Ω := Ω)) ^ j) x t = x (t - j) := by
+  induction j generalizing t with
+  | zero => rfl
+  | succ j ih =>
+    obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
+    rw [pow_succ', Module.End.mul_apply]
+    change (((lagOp (Ω := Ω)) ^ j) x) s = x (s + 1 - (j + 1))
+    rw [ih (by omega), show s + 1 - (j + 1) = s - j by omega]
+
+/-- Woodford (2003), p. 556 (tool): for `t ≥ D ≥ deg p`, `(p(L) x)_t = ∑_{j ≤ D} p_j x_{t−j}`
+(no pre-sample value is involved). -/
+theorem aeval_lagOp_apply_of_le (p : ℝ[X]) {D t : ℕ} (hD : p.natDegree ≤ D) (ht : D ≤ t)
+    (x : ℕ → Ω → ℝ) (ω : Ω) :
+    (aeval (lagOp (Ω := Ω)) p) x t ω = ∑ j ∈ Finset.range (D + 1), p.coeff j * x (t - j) ω := by
+  rw [aeval_eq_sum_range' (n := D + 1) (by omega)]
+  simp only [LinearMap.sum_apply, Finset.sum_apply, LinearMap.smul_apply, Pi.smul_apply,
+    smul_eq_mul]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  have := Finset.mem_range.mp hj
+  rw [lagOp_pow_apply (by omega)]
+
+/-- Woodford (2003), eq. (1.28), p. 556: the forward-looking part of the criterion,
+`w_t = B₂' B(L) q_t = B₂' ∑_{j ≤ D} B_j q_{t−j}`. -/
+noncomputable def wproc {ι : Type*} [Fintype ι] (B : Matrix ι ι ℝ[X]) (D : ℕ) (B2 : ι → ℝ)
+    (q : ℕ → Ω → ι → ℝ) : ℕ → Ω → ℝ :=
+  fun t ω => B2 ⬝ᵥ ∑ j ∈ Finset.range (D + 1), TargetCriterion.Lag.Bc B j *ᵥ q (t - j) ω
+
+/-- Woodford (2003), eqs. (1.23) and (1.28), p. 556: with `v_t = λ_i (i_t − i*)`, the target
+criterion (1.23) at a date `t ≥ D` is `λ_i α(L)(i_t − i*) + w_t`. -/
+theorem crit_eq_rule {ι : Type*} [Fintype ι] (α : ℝ[X]) (B : Matrix ι ι ℝ[X])
+    {D : ℕ} (hα : α.natDegree ≤ D) (B2 : ι → ℝ) (lam istar : ℝ) (i : ℕ → Ω → ℝ)
+    (q : ℕ → Ω → ι → ℝ) {t : ℕ} (ht : D ≤ t) (ω : Ω) :
+    TargetCriterion.Crit.crit α B D B2 (fun s ω => lam * (i s ω - istar)) q t ω =
+      (lam • (aeval (lagOp (Ω := Ω)) α) (fun s ω => i s ω - istar) + wproc B D B2 q) t ω := by
+  unfold TargetCriterion.Crit.crit wproc
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+  rw [aeval_lagOp_apply_of_le α hα ht, Finset.mul_sum]
+  congr 1
+  exact Finset.sum_congr rfl fun j _ => by ring
+
+/-- Woodford (2003), eq. (1.28), p. 556: `w_t = B₂'B(L)q_t` is bounded and adapted when `q` is. -/
+theorem wproc_bounded_adapted {𝔼 : ExpectationSystem Ω} {ι : Type*} [Fintype ι]
+    (B : Matrix ι ι ℝ[X]) (D : ℕ) (B2 : ι → ℝ) {q : ℕ → Ω → ι → ℝ} (hqb : BoundedV q)
+    (hqa : AdaptedV 𝔼 q) : BoundedProc (wproc B D B2 q) ∧ 𝔼.Adapted (wproc B D B2 q) := by
+  refine ⟨?_, fun t => ?_⟩
+  · obtain ⟨M, hM⟩ := hqb
+    choose K hK using fun j => exists_bound_mulVec (TargetCriterion.Lag.Bc B j) M
+    refine ⟨Fintype.card ι * ((∑ r, |B2 r|) * ∑ j ∈ Finset.range (D + 1), K j),
+      fun t ω => ?_⟩
+    refine abs_dotProduct_le (fun r => Finset.single_le_sum (f := fun r => |B2 r|)
+      (fun _ _ => abs_nonneg _) (Finset.mem_univ r)) fun r => ?_
+    rw [Finset.sum_apply]
+    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun j _ => ?_)
+    exact hK j _ (fun c => hM _ ω c) r
+  · have hk := PencilSplit.knownV_sum_mulVec 𝔼 (TargetCriterion.Lag.Bc B) hqa t (D + 1)
+    unfold wproc
+    have := E_sum_mul 𝔼 t B2 (fun r ω =>
+      (∑ j ∈ Finset.range (D + 1), TargetCriterion.Lag.Bc B j *ᵥ q (t - j) ω) r)
+    simp only [dotProduct]
+    rw [this]
+    funext ω
+    refine Finset.sum_congr rfl fun r _ => ?_
+    rw [hk r]
+
+/-- **Woodford (2003), Proposition 8.4, p. 558, stated with the target criterion (1.23).**
+Under the hypotheses of Proposition 8.3, let `Λ` be delivered by Proposition 8.1, `α`, `B` its
+`det(I − ΛL)` and `adj(I − ΛL)`, `D ≥ deg α` (e.g. `D = rank Λ`), `q` the bounded
+adapted forcing (1.25) and `v_t = λ_i(i_t − i*)` (Assumption 8.6). Then `α = α₁α₂` as in
+`alpha_factorization`, the bounded forward inverse `g = α̃₁(L⁻¹)⁻¹ B₂'B(L)q` exists and is unique,
+and for every `T ≥ D` and every bounded adapted instrument path the criterion (1.23) — which is
+the implicit instrument rule (1.28), `TargetCriterion.Rule128.eq128_iff` — holds at all dates
+`t ≥ T` iff the targeting rule (1.32) `g_t + λ_i α₂(L)(i_{t−m} − i*) = 0` holds at all `t ≥ T`. -/
+theorem prop84_criterion [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81Conclusion P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : Assumption83 P.sys) {m : ℕ} (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) {D : ℕ}
+    (hD : (alpha H.Λ).natDegree ≤ D) :
+    ∃ α1 α2 : ℝ[X], alpha H.Λ = α1 * α2 ∧ α1.natDegree = m ∧
+      (∀ z ∈ (α1.map Complex.ofRealHom).roots, ‖z‖ < 1) ∧
+      (∀ z ∈ (α2.map Complex.ofRealHom).roots, 1 < ‖z‖) ∧
+      ∀ (lam istar : ℝ) (i : ℕ → Ω → ℝ) (q : ℕ → Ω → ιz → ℝ), BoundedProc i → 𝔼.Adapted i →
+        BoundedV q → AdaptedV 𝔼 q →
+        (∃! g, BoundedProc g ∧ 𝔼.Adapted g ∧
+          (aeval (fwdOp 𝔼) α1.reverse) g = wproc (Bpoly H.Λ) D P.sys.B2 q) ∧
+        ∀ g, BoundedProc g → 𝔼.Adapted g →
+          (aeval (fwdOp 𝔼) α1.reverse) g = wproc (Bpoly H.Λ) D P.sys.B2 q → ∀ T, D ≤ T →
+          ((∀ t, T ≤ t → ∀ ω, TargetCriterion.Crit.crit (alpha H.Λ) (Bpoly H.Λ) D P.sys.B2
+              (fun s ω => lam * (i s ω - istar)) q t ω = 0) ↔
+            (∀ t, T ≤ t → (g + lam • ((lagOp (Ω := Ω)) ^ m)
+              ((aeval (lagOp (Ω := Ω)) α2) (fun t ω => i t ω - istar))) t = 0)) := by
+  obtain ⟨α1, α2, hfac, hmon, hdeg, hin, hout, hrev⟩ := alpha_factorization H hA h83 h87 hcirc
+  have hrev0 : α1.reverse ≠ 0 := fun h => hmon.ne_zero (reverse_eq_zero.mp h)
+  refine ⟨α1, α2, hfac, hdeg, hin, hout, fun lam istar i q hib hia hqb hqa => ⟨?_, ?_⟩⟩
+  · obtain ⟨hwb, hwa⟩ := wproc_bounded_adapted (Bpoly H.Λ) D P.sys.B2 hqb hqa (𝔼 := 𝔼)
+    exact forward_inverse_existsUnique hrev0 hrev hwb hwa
+  · intro g hgb hga hg T hT
+    rw [← prop84_from (α2 := α2) (lam := lam) (istar := istar) hdeg hmon.ne_zero hrev hib hia
+      hgb hga hg T]
+    refine forall_congr' fun t => imp_congr_right fun ht => ?_
+    rw [← hfac, funext_iff]
+    exact forall_congr' fun ω => by rw [crit_eq_rule _ _ hD _ _ _ _ _ (hT.trans ht)]; rfl
+
+end Woodford.OptimalPolicyRules.Prop84General
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The general target-criterion machinery specialised to the basic model
+
+Woodford (2003), *Interest and Prices*, Chapter 8: the general framework of §1 (pp. 536–559)
+applied to the basic neo-Wicksellian model of §3.1 (pp. 582–591), as the book says it can be
+("the examples considered here belong" to the general class, p. 560).
+
+## Main results
+
+* **The model as a general problem.** `nkSys`, `nkProblem`: the aggregate-supply relation (2.1)
+  and the IS relation (3.1) are the structural equations (1.1) with `n_Z = 0`,
+  `z = (π, x)`, `A₂₂ = [1 −κ; 0 1]` (invertible), `Ẽ = [β 0; σ 1]`, `B₂ = (0, σ)`; the loss (3.2)
+  is (1.3) with `τ = (π, x, i)` and `W = diag(1, λₓ, λᵢ) ≻ 0`. `nk_structural_iff`: (1.1) in
+  block form is exactly (2.1) and (3.1). `nk_foc_iff`: the general first-order conditions (1.9)
+  are exactly (3.3)–(3.5), the multiplier on (2.1) being `φ₂` and the one on (3.1) `φ₁`.
+* **Proposition 8.1 for the model.** `nkΛ = [1 σ/β; κ (1+κσ)/β]`, `nkQ = −(A₂₂')⁻¹`:
+  `nk_eq120_of_foc` ((1.18) gives (1.20) with these), `nk_homEquiv` (the homogeneous (1.18) and
+  (1.20) agree).
+* **The criterion (1.23) is the rule (3.7).** `nk_alpha`: `α(L) = det(I − ΛL) =
+  1 − (ρ₁ + ρ₂)L + ρ₂L²` with (3.8)'s `ρ₁ = 1 + κσ/β`, `ρ₂ = β⁻¹`; `nk_crit_iff_rule`: the
+  general target criterion (1.23) with `α`, `B(L) = adj(I − ΛL)`, `q = Q T̃'W(τ − τ*)` and
+  `v = λᵢ(i − i*)` holds at a date `t ≥ 2` iff the instrument rule (3.7) with the coefficients
+  (3.8)–(3.9) does; `nk_rule_of_foc`: the general derivation (1.19)–(1.20) ⇒ (1.23) yields (3.7)
+  for every solution of the first-order conditions.
+* **Proposition 8.3 for the model (Proposition 8.5's superinertia).** `nk_pencilPoly`,
+  `nk_assumption83`, `nk_stableCount` (`m = 1`), `nk_no_circle` and `nk_zerosInside`: the general
+  Proposition 8.3 gives exactly one zero of `α(L)` inside the unit circle — the root `λ₂ > 1` of
+  footnote 35 (`IRuleBasic.fn35_one_root_gt_one`).
+* **Proposition 8.4 for the model (Proposition 8.6).** `prop_8_6_from_general`: the general
+  Proposition 8.4 (`Prop84General.prop84_from`) with `α₁ = L − λ₂⁻¹`, `α₂ = −λ₂(1 − λ₁L)` gives
+  the equivalence of (3.10) and the forward-integrated rule (3.12) from any date `T ≥ 2` on
+  (`IRuleForwardIntegrated.G14`, `G15`; the chain-specific `prop_8_6` also covers the initial
+  dates with pre-sample values).
+* `prop83Claim_false_empty`: the statement `TargetCriterion.Prop83Claim` fails for the basic
+  model on the empty sample space (so `Prop83.prop83` needs `Nonempty Ω`).
+-/
+
+namespace Woodford.OptimalPolicyRules.GeneralLinks
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ Adjugate
+open TargetCriterion (zerosInside fwdOp lagOp)
+open TargetCriterion.Prop81
+open IRuleBasic (Calib rho1 rho2 phiPi phiX)
+
+variable {Ω : Type*}
+
+/-! ### The basic model as a general linear-quadratic problem -/
+
+/-- Woodford (2003), (2.1) and (3.1) as (1.1), p. 537: `n_Z = 0`, `z = (π, x)`; row `0` is
+`β E_tπ_{t+1} = π_t − κx_t − u_t`, row `1` is `σE_tπ_{t+1} + E_tx_{t+1} = x_t + σi_t − σrⁿ_t`. -/
+noncomputable def nkSys (c : Calib) (hσ : c.σ ≠ 0) : LinearRESystem Empty (Fin 2) where
+  A11 := 0
+  A12 := 0
+  A21 := 0
+  A22 := !![1, -c.κ; 0, 1]
+  Et := !![c.β, 0; c.σ, 1]
+  B2 := ![0, c.σ]
+  A22_isUnit := by simp [det_fin_two]
+  B2_ne_zero := by
+    intro h
+    have := congrFun h 1
+    simp only [Matrix.cons_val_one, Matrix.cons_val_zero, Pi.zero_apply] at this
+    exact hσ this
+
+/-- Woodford (2003), (3.2) as (1.3)–(1.4), p. 537: the targets `τ = (π, x, i)`. -/
+def nkTtil : Matrix (Fin 3) (Empty ⊕ Fin 2) ℝ :=
+  Matrix.of fun a col => Sum.elim (fun e => e.elim) (fun j : Fin 2 => if (a : ℕ) = j then 1 else 0)
+    col
+
+/-- Woodford (2003), (3.2) as (1.2)–(1.4), p. 537: the basic model's linear-quadratic problem,
+`W = diag(1, λₓ, λᵢ) ≻ 0`, `τ* = (0, x*, i*)`. -/
+noncomputable def nkProblem (c : Calib) (hc : c.Adm) : LQProblem Empty (Fin 2) (Fin 3) where
+  sys := nkSys c hc.2.2.1.ne'
+  β := c.β
+  β_pos := hc.1
+  β_lt_one := hc.2.1
+  Ttil := nkTtil
+  Ti := ![0, 0, 1]
+  W := diagonal ![1, c.lx, c.li]
+  τstar := ![0, c.xstar, c.istar]
+  W_posDef := PosDef.diagonal fun i => by
+    fin_cases i
+    · simp
+    · simpa using hc.2.2.2.2.1
+    · simpa using hc.2.2.2.2.2
+
+/-- Woodford (2003), p. 538: inflation in a plan `y = (Z, z, i)` with `z = (π, x)` (any
+predetermined block `Z`: `n_Z = 0` here, `Z = π_{t−1}` in `GeneralLinksInertia`). -/
+def piOf {ιZ : Type*} (y : ℕ → Ω → (ιZ ⊕ Fin 2) ⊕ Unit → ℝ) : ℕ → Ω → ℝ :=
+  fun t ω => y t ω (Sum.inl (Sum.inr 0))
+
+/-- Woodford (2003), p. 538: the output gap in a plan. -/
+def xOf {ιZ : Type*} (y : ℕ → Ω → (ιZ ⊕ Fin 2) ⊕ Unit → ℝ) : ℕ → Ω → ℝ :=
+  fun t ω => y t ω (Sum.inl (Sum.inr 1))
+
+/-- Woodford (2003), p. 538: the interest rate in a plan. -/
+def iOf {ιZ : Type*} (y : ℕ → Ω → (ιZ ⊕ Fin 2) ⊕ Unit → ℝ) : ℕ → Ω → ℝ :=
+  fun t ω => y t ω (Sum.inr ())
+
+/-- Woodford (2003), p. 538: inflation at date `t` as a random variable. -/
+theorem piOf_eq {ιZ : Type*} (y : ℕ → Ω → (ιZ ⊕ Fin 2) ⊕ Unit → ℝ) (t : ℕ) :
+    piOf y t = fun ω => y t ω (Sum.inl (Sum.inr 0)) := rfl
+
+/-- Woodford (2003), p. 538: the output gap at date `t` as a random variable. -/
+theorem xOf_eq {ιZ : Type*} (y : ℕ → Ω → (ιZ ⊕ Fin 2) ⊕ Unit → ℝ) (t : ℕ) :
+    xOf y t = fun ω => y t ω (Sum.inl (Sum.inr 1)) := rfl
+
+/-- Woodford (2003), p. 537: the disturbance `c_t = C₂s_t = (−u_t, −σrⁿ_t)` of the basic model. -/
+def cNK (c : Calib) (u rn : ℕ → Ω → ℝ) : ℕ → Ω → Fin 2 → ℝ :=
+  fun t ω => ![-u t ω, -(c.σ * rn t ω)]
+
+/-- **Woodford (2003), (1.1) for the basic model, p. 537.** The structural equations (1.1) of
+`nkSys` are exactly the aggregate-supply relation (2.1) and the IS relation (3.1). -/
+theorem nk_structural_iff (c : Calib) (hσ : c.σ ≠ 0) (𝔼 : ExpectationSystem Ω)
+    (u rn : ℕ → Ω → ℝ) (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ) :
+    (nkSys c hσ).Structural 𝔼 (cNK c u rn) 0 y ↔
+      ∀ t, IRuleBasic.AS 𝔼 c u (piOf y) (xOf y) t ∧
+        IRuleBasic.IS 𝔼 c rn (piOf y) (xOf y) (iOf y) t := by
+  have key : ∀ t ω, ((nkSys c hσ).Et *ᵥ EV 𝔼 t (fun ω' => zpart (y (t + 1) ω')) ω =
+      (nkSys c hσ).A21 *ᵥ Zpart (y t ω) + (nkSys c hσ).A22 *ᵥ zpart (y t ω) +
+        ipart (y t ω) • (nkSys c hσ).B2 + cNK c u rn t ω) ↔
+      (piOf y t ω = c.κ * xOf y t ω + c.β * 𝔼.E t (piOf y (t + 1)) ω + u t ω ∧
+        xOf y t ω = 𝔼.E t (xOf y (t + 1)) ω -
+          c.σ * (iOf y t ω - 𝔼.E t (piOf y (t + 1)) ω - rn t ω)) := by
+    intro t ω
+    rw [funext_iff, Fin.forall_fin_two]
+    simp only [nkSys, cNK, mulVec, dotProduct, Fin.sum_univ_two, EV, zpart, Zpart, ipart,
+      piOf_eq, xOf_eq, piOf, xOf, iOf, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+      Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.empty_val', Matrix.cons_val_fin_one, Finset.univ_eq_empty, Finset.sum_empty,
+      Matrix.zero_apply]
+    constructor
+    · rintro ⟨h0, h1⟩
+      constructor <;> linarith
+    · rintro ⟨h0, h1⟩
+      constructor <;> linarith
+  constructor
+  · intro h t
+    refine ⟨funext fun ω => ?_, funext fun ω => ?_⟩
+    · have := ((key t ω).mp (h t (Nat.zero_le t) ω).2).1
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      exact this
+    · have := ((key t ω).mp (h t (Nat.zero_le t) ω).2).2
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      exact this
+  · intro h t _ ω
+    refine ⟨funext fun e => e.elim, (key t ω).mpr ⟨?_, ?_⟩⟩
+    · have := congrFun (h t).1 ω
+      simpa only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] using this
+    · have := congrFun (h t).2 ω
+      simpa only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] using this
+
+/-! ### The first-order conditions (1.9) are (3.3)–(3.5) -/
+
+variable (c : Calib) (hc : c.Adm)
+
+/-- Woodford (2003), p. 552: `A'` for the basic model, by blocks. -/
+theorem nk_Ahat_transpose_mulVec (hσ : c.σ ≠ 0) (v : Empty ⊕ Fin 2 → ℝ) :
+    (nkSys c hσ).Ahatᵀ *ᵥ v =
+      Sum.elim (fun e => e.elim) ![v (Sum.inr 0), -c.κ * v (Sum.inr 0) + v (Sum.inr 1)] := by
+  funext r
+  rcases r with e | j
+  · exact e.elim
+  · fin_cases j <;>
+      simp [nkSys, LinearRESystem.Ahat, mulVec, dotProduct, Fin.sum_univ_two]
+
+/-- Woodford (2003), p. 552: `Î'` for the basic model, by blocks. -/
+theorem nk_Ihat_transpose_mulVec (hσ : c.σ ≠ 0) (v : Empty ⊕ Fin 2 → ℝ) :
+    (nkSys c hσ).Ihatᵀ *ᵥ v =
+      Sum.elim (fun e => e.elim) ![c.β * v (Sum.inr 0) + c.σ * v (Sum.inr 1), v (Sum.inr 1)] := by
+  funext r
+  rcases r with e | j
+  · exact e.elim
+  · fin_cases j <;>
+      simp [nkSys, LinearRESystem.Ihat, mulVec, dotProduct, Fin.sum_univ_two]
+
+/-- Woodford (2003), p. 553: `T̃'W(τ − τ*) = (π, λₓ(x − x*))` for the basic model. -/
+theorem nk_xvec (v : (Empty ⊕ Fin 2) ⊕ Unit → ℝ) :
+    (nkProblem c hc).Ttilᵀ *ᵥ ((nkProblem c hc).W *ᵥ ((nkProblem c hc).T *ᵥ v -
+      (nkProblem c hc).τstar)) =
+      Sum.elim (fun e => e.elim)
+        ![v (Sum.inl (Sum.inr 0)), c.lx * (v (Sum.inl (Sum.inr 1)) - c.xstar)] := by
+  funext r
+  rcases r with e | j
+  · exact e.elim
+  · fin_cases j <;>
+      simp [nkProblem, nkTtil, LQProblem.T, mulVec, dotProduct, Fin.sum_univ_three,
+        Fintype.sum_sum_type, diagonal_apply]
+
+/-- Woodford (2003), p. 553: `T_i'W(τ − τ*) = λᵢ(i − i*)` for the basic model. -/
+theorem nk_vvec (v : (Empty ⊕ Fin 2) ⊕ Unit → ℝ) :
+    (nkProblem c hc).Ti ⬝ᵥ ((nkProblem c hc).W *ᵥ ((nkProblem c hc).T *ᵥ v -
+      (nkProblem c hc).τstar)) = c.li * (v (Sum.inr ()) - c.istar) := by
+  simp [nkProblem, nkTtil, LQProblem.T, mulVec, dotProduct, Fin.sum_univ_three,
+    Fintype.sum_sum_type, diagonal_apply]
+
+/-- Woodford (2003), p. 584: the multiplier `φ₁` on the IS relation (3.1), `M_t`'s second entry. -/
+def nkPhi1 (φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ) : ℕ → Ω → ℝ := fun t ω => φ (t + 1) ω (Sum.inr 1)
+
+/-- Woodford (2003), p. 584: the multiplier `φ₂` on the AS relation (2.1), `M_t`'s first
+entry. -/
+def nkPhi2 (φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ) : ℕ → Ω → ℝ := fun t ω => φ (t + 1) ω (Sum.inr 0)
+
+/-- Woodford (2003), p. 584 (tool): with the pre-sample multipliers `φ_{t₀−1}` given, the lagged
+multiplier is the `M_{t−1}`-block of `φ_t`. -/
+theorem lag_nkPhi {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} {j : Fin 2} {h : ℝ}
+    (hinit : ∀ ω, φ 0 ω (Sum.inr j) = h) (t : ℕ) (ω : Ω) :
+    IRuleBasic.lag h (fun s ω => φ (s + 1) ω (Sum.inr j)) t ω = φ t ω (Sum.inr j) := by
+  cases t with
+  | zero => exact (hinit ω).symm
+  | succ t => rfl
+
+/-- Woodford (2003), p. 584 (tool): `φ₁_{t−1}` is the second entry of `M_{t−1}`. -/
+theorem lag_nkPhi1 {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} {h : ℝ}
+    (hinit : ∀ ω, φ 0 ω (Sum.inr 1) = h) (t : ℕ) (ω : Ω) :
+    IRuleBasic.lag h (nkPhi1 φ) t ω = φ t ω (Sum.inr 1) :=
+  lag_nkPhi hinit t ω
+
+/-- Woodford (2003), p. 584 (tool): `φ₂_{t−1}` is the first entry of `M_{t−1}`. -/
+theorem lag_nkPhi2 {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} {h : ℝ}
+    (hinit : ∀ ω, φ 0 ω (Sum.inr 0) = h) (t : ℕ) (ω : Ω) :
+    IRuleBasic.lag h (nkPhi2 φ) t ω = φ t ω (Sum.inr 0) :=
+  lag_nkPhi hinit t ω
+
+/-- Woodford (2003), (1.9) at one date for the basic model, pp. 541, 552 and 584: with `M_t`
+known at `t`, the general first-order conditions at `(t, ω)` are the three scalar equations
+(3.3)–(3.5) in `φ_t = M_{t−1}` and `φ_{t+1} = M_t`. -/
+theorem nk_foc_at_iff (𝔼 : ExpectationSystem Ω) (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ)
+    {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} (hmφ : MultiplierMeas 𝔼 φ) (t : ℕ) (ω : Ω) :
+    ((nkProblem c hc).sys.Atilᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω +
+      (nkProblem c hc).Tᵀ *ᵥ ((nkProblem c hc).W *ᵥ ((nkProblem c hc).T *ᵥ y t ω -
+        (nkProblem c hc).τstar)) - (nkProblem c hc).β⁻¹ •
+          ((nkProblem c hc).sys.Itilᵀ *ᵥ φ t ω) = 0) ↔
+      (piOf y t ω - c.σ / c.β * φ t ω (Sum.inr 1) + nkPhi2 φ t ω - φ t ω (Sum.inr 0) = 0 ∧
+        c.lx * (xOf y t ω - c.xstar) + nkPhi1 φ t ω - c.β⁻¹ * φ t ω (Sum.inr 1) -
+          c.κ * nkPhi2 φ t ω = 0 ∧
+        c.li * (iOf y t ω - c.istar) + c.σ * nkPhi1 φ t ω = 0) := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hE : ∀ t j ω, EV 𝔼 t (φ (t + 1)) ω (Sum.inr j) = φ (t + 1) ω (Sum.inr j) :=
+    fun t j ω => congrFun (hmφ t j) ω
+  rw [foc_iff_split _ hmφ y t ω, funext_iff, Sum.forall, Fin.forall_fin_two]
+  have hA := nk_Ahat_transpose_mulVec c hc.2.2.1.ne' (EV 𝔼 t (φ (t + 1)) ω)
+  have hI := nk_Ihat_transpose_mulVec c hc.2.2.1.ne' (φ t ω)
+  have hx := nk_xvec c hc (y t ω)
+  have hv := nk_vvec c hc (y t ω)
+  simp only [nkProblem] at hA hI hx hv ⊢
+  rw [hA, hI, hx, hv]
+  simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Sum.elim_inr,
+    Matrix.cons_val_zero, Matrix.cons_val_one, Pi.zero_apply, hE, nkPhi1, nkPhi2, piOf, xOf,
+    iOf, Mpart, nkSys, dotProduct, Fin.sum_univ_two, Matrix.cons_val_fin_one]
+  constructor
+  · rintro ⟨⟨-, h0, h1⟩, h2⟩
+    refine ⟨?_, ?_, ?_⟩
+    · field_simp at h0 ⊢
+      linarith
+    · linarith
+    · linarith
+  · rintro ⟨h0, h1, h2⟩
+    refine ⟨⟨fun e => e.elim, ?_, ?_⟩, ?_⟩
+    · field_simp at h0 ⊢
+      linarith
+    · linarith
+    · linarith
+
+/-- **Woodford (2003), (1.9) for the basic model, p. 541 and p. 584.** For multipliers with
+`M_t` known at `t` and given pre-sample multipliers, the general first-order conditions (1.9) of
+`nkProblem` hold at every date iff (3.3), (3.4) and (3.5) do, with `φ₁` the multiplier on (3.1)
+and `φ₂` the one on (2.1). -/
+theorem nk_foc_iff (𝔼 : ExpectationSystem Ω) (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ)
+    {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} (hmφ : MultiplierMeas 𝔼 φ) {φ1h φ2h : ℝ}
+    (h1 : ∀ ω, φ 0 ω (Sum.inr 1) = φ1h) (h2 : ∀ ω, φ 0 ω (Sum.inr 0) = φ2h) :
+    PFOC (nkProblem c hc) 𝔼 0 y φ ↔
+      ∀ t, IRuleBasic.FOC3 c (piOf y) (nkPhi1 φ) (nkPhi2 φ) φ1h φ2h t ∧
+        IRuleBasic.FOC4 c (xOf y) (nkPhi1 φ) (nkPhi2 φ) φ1h t ∧
+        IRuleBasic.FOC5 c (iOf y) (nkPhi1 φ) t := by
+  have key := nk_foc_at_iff c hc 𝔼 y hmφ
+  constructor
+  · intro H t
+    have hk := fun ω => (key t ω).mp (H t (Nat.zero_le t) ω)
+    refine ⟨funext fun ω => ?_, funext fun ω => ?_, funext fun ω => ?_⟩
+    · simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+      rw [lag_nkPhi1 h1, lag_nkPhi2 h2]
+      exact (hk ω).1
+    · simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+      rw [lag_nkPhi1 h1]
+      exact (hk ω).2.1
+    · simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+      exact (hk ω).2.2
+  · intro H t _ ω
+    refine (key t ω).mpr ⟨?_, ?_, ?_⟩
+    · have := congrFun (H t).1 ω
+      simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+      rw [lag_nkPhi1 h1, lag_nkPhi2 h2] at this
+      exact this
+    · have := congrFun (H t).2.1 ω
+      simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+      rw [lag_nkPhi1 h1] at this
+      exact this
+    · have := congrFun (H t).2.2 ω
+      simpa only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+        Pi.zero_apply] using this
+
+/-! ### Proposition 8.1 for the basic model -/
+
+/-- Woodford (2003), (1.20), p. 553, for the basic model: `Λ = β⁻¹(A₂₂')⁻¹Ẽ' =
+[1 σ/β; κ (1+κσ)/β]` (multipliers ordered `(φ₂, φ₁)`: AS, IS). -/
+noncomputable def nkΛ : Matrix (Fin 2) (Fin 2) ℝ := !![1, c.σ / c.β; c.κ, (1 + c.κ * c.σ) / c.β]
+
+/-- Woodford (2003), (1.20), p. 553, for the basic model: `Q(L⁻¹) = −(A₂₂')⁻¹` (no leads). -/
+def nkQ : Matrix (Fin 2) (Fin 2) ℝ := !![-1, 0; -c.κ, -1]
+
+/-- Woodford (2003), p. 553: the forcing `T̃'W(τ_t − τ*) = (π_t, λₓ(x_t − x*))` of the basic
+model. -/
+def nkX (π x : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) : Fin 2 → ℝ := ![π t ω, c.lx * (x t ω - c.xstar)]
+
+/-- Woodford (2003), p. 553: `Q = −(A₂₂')⁻¹` for the basic model. -/
+theorem nkQ_eq (hσ : c.σ ≠ 0) : nkQ c = -((nkSys c hσ).A22ᵀ)⁻¹ := by
+  rw [eq_comm, neg_eq_iff_eq_neg, inv_eq_left_inv]
+  ext i j
+  fin_cases i <;> fin_cases j <;> simp [nkQ, nkSys, Matrix.mul_apply, Fin.sum_univ_two]
+
+/-- **Woodford (2003), (1.18) ⟹ (1.20), p. 553, for the basic model.** Along any solution of the
+first-order conditions (with `M_t` known at `t`) the multipliers obey
+`M_t = Λ M_{t−1} + Q T̃'W(τ_t − τ*)` with `Λ = nkΛ`, `Q = nkQ`. -/
+theorem nk_eq120_of_foc (𝔼 : ExpectationSystem Ω) (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ)
+    {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} (hmφ : MultiplierMeas 𝔼 φ)
+    (H : PFOC (nkProblem c hc) 𝔼 0 y φ) (t : ℕ) (ω : Ω) :
+    Mpart (φ (t + 1) ω) = nkΛ c *ᵥ Mpart (φ t ω) + nkQ c *ᵥ nkX c (piOf y) (xOf y) t ω := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  obtain ⟨h0, h1, -⟩ := (nk_foc_at_iff c hc 𝔼 y hmφ t ω).mp (H t (Nat.zero_le t) ω)
+  simp only [nkPhi1, nkPhi2] at h0 h1
+  funext r
+  fin_cases r
+  · simp [Mpart, nkΛ, nkQ, nkX, dotProduct, Fin.sum_univ_two]
+    field_simp at h0 ⊢
+    linarith
+  · simp [Mpart, nkΛ, nkQ, nkX, dotProduct, Fin.sum_univ_two]
+    field_simp at h0 h1 ⊢
+    linear_combination h1 + c.κ * h0
+
+/-- **Woodford (2003), Proposition 8.1 for the basic model (homogeneous part).** A sequence solves
+the homogeneous (1.18) of `nkSys` iff it solves the homogeneous (1.20) with `Λ = nkΛ` (there is no
+predetermined block, so (1.21) is empty). -/
+theorem nk_homEquiv (hσ : c.σ ≠ 0) (hβ : c.β ≠ 0) :
+    Prop83.HomEquiv (nkSys c hσ) c.β (nkΛ c) 0 := by
+  intro h _
+  refine forall_congr' fun t => ?_
+  rw [nk_Ahat_transpose_mulVec, nk_Ihat_transpose_mulVec, funext_iff, Sum.forall,
+    Fin.forall_fin_two, funext_iff, Fin.forall_fin_two]
+  simp only [Sum.elim_inr, Pi.smul_apply, smul_eq_mul, Matrix.cons_val_zero,
+    Matrix.cons_val_one, Matrix.cons_val_fin_one, Mpart, nkΛ, mulVec, dotProduct,
+    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.empty_val']
+  constructor
+  · rintro ⟨-, h0, h1⟩
+    refine ⟨⟨?_, ?_⟩, funext fun e => e.elim⟩
+    · field_simp at h0 ⊢
+      linarith
+    · field_simp at h0 h1 ⊢
+      linear_combination h1 + c.κ * h0
+  · rintro ⟨⟨h0, h1⟩, -⟩
+    refine ⟨fun e => e.elim, ?_, ?_⟩
+    · field_simp at h0 ⊢
+      linarith
+    · field_simp at h0 h1 ⊢
+      linear_combination h1 - c.κ * h0
+/-! ### The target criterion (1.23) is the instrument rule (3.7) -/
+
+/-- **Woodford (2003), p. 553 and (3.8), p. 584: `α(L) = det(I − ΛL) = 1 − (ρ₁ + ρ₂)L + ρ₂L²`**
+for the basic model, with `ρ₁ = 1 + κσ/β`, `ρ₂ = β⁻¹`. -/
+theorem nk_alpha (hβ : c.β ≠ 0) :
+    alpha (nkΛ c) = 1 - C (rho1 c.β c.σ c.κ + rho2 c.β) * X + C (rho2 c.β) * X ^ 2 := by
+  have e1 : rho1 c.β c.σ c.κ + rho2 c.β = 1 + (1 + c.κ * c.σ) / c.β := by
+    unfold rho1 rho2
+    field_simp
+    ring
+  have e2 : rho2 c.β = 1 * ((1 + c.κ * c.σ) / c.β) - c.σ / c.β * c.κ := by
+    unfold rho2
+    field_simp
+    ring
+  rw [e1, e2, alpha, lagMat, det_fin_two]
+  simp only [nkΛ, Matrix.sub_apply, Matrix.smul_apply, Matrix.map_apply, Matrix.one_apply,
+    Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+    Matrix.empty_val', Matrix.cons_val_fin_one, smul_eq_mul]
+  simp only [Fin.isValue, ↓reduceIte, Fin.zero_eq_one_iff, OfNat.ofNat_ne_one, one_ne_zero,
+    C_sub, C_mul, C_add, map_one]
+  norm_num
+  ring
+
+/-- Woodford (2003), p. 553 and fn 16, p. 555: the coefficient matrices of
+`B(L) = adj(I − ΛL)` for the basic model: `B₀ = I`, `B₁ = [−(1+κσ)/β σ/β; κ −1]`, `B₂ = 0`. -/
+theorem nk_Bc :
+    TargetCriterion.Lag.Bc (Bpoly (nkΛ c)) 0 = 1 ∧
+      TargetCriterion.Lag.Bc (Bpoly (nkΛ c)) 1 =
+        !![-((1 + c.κ * c.σ) / c.β), c.σ / c.β; c.κ, -1] ∧
+      TargetCriterion.Lag.Bc (Bpoly (nkΛ c)) 2 = 0 := by
+  refine ⟨?_, ?_, ?_⟩ <;>
+  · ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp [TargetCriterion.Lag.Bc, Bpoly, adjugate_fin_two, lagMat, nkΛ, coeff_one, coeff_X,
+        coeff_C]
+
+/-- Woodford (2003), p. 553 (tool): a `2 × 2` matrix times a vector. -/
+theorem mulVec_two (a b d e : ℝ) (v : Fin 2 → ℝ) :
+    !![a, b; d, e] *ᵥ v = ![a * v 0 + b * v 1, d * v 0 + e * v 1] := by
+  funext r
+  fin_cases r <;> simp [mulVec, dotProduct, Fin.sum_univ_two]
+
+/-- Woodford (2003), p. 553 (tool): `Q v = (−v₀, −κv₀ − v₁)`. -/
+theorem nkQ_mulVec (v : Fin 2 → ℝ) : nkQ c *ᵥ v = ![-v 0, -c.κ * v 0 - v 1] := by
+  rw [nkQ, mulVec_two]
+  congr 1
+  · ring
+  · congr 1
+    ring
+
+/-- Woodford (2003), (1.23), p. 554, for the basic model at a date `t` (with `t − j` truncated
+at `0`, as in `TargetCriterion.Crit.crit`): with
+`v_t = λᵢ(i_t − i*)` and `q_t = Q T̃'W(τ_t − τ*)`, the criterion is
+`λᵢ[(i_t − i*) − (ρ₁+ρ₂)(i_{t−1} − i*) + ρ₂(i_{t−2} − i*)] − κσπ_t − σλₓ(x_t − x_{t−1})`. -/
+theorem nk_crit_eq (hσ : c.σ ≠ 0) (hβ : c.β ≠ 0) (π x i : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    TargetCriterion.Crit.crit (alpha (nkΛ c)) (Bpoly (nkΛ c)) 2 (nkSys c hσ).B2
+        (fun s ω => c.li * (i s ω - c.istar)) (fun s ω => nkQ c *ᵥ nkX c π x s ω) t ω =
+      c.li * ((i t ω - c.istar) - (rho1 c.β c.σ c.κ + rho2 c.β) * (i (t - 1) ω - c.istar) +
+        rho2 c.β * (i (t - 2) ω - c.istar)) - c.κ * c.σ * π t ω -
+        c.σ * c.lx * (x t ω - x (t - 1) ω) := by
+  obtain ⟨hB0, hB1, hB2⟩ := nk_Bc c
+  unfold TargetCriterion.Crit.crit
+  rw [Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_one, Finset.sum_range_succ,
+    Finset.sum_range_succ, Finset.sum_range_one, hB0, hB1, hB2, nk_alpha c hβ]
+  simp only [coeff_add, coeff_sub, coeff_one, coeff_C_mul, coeff_X_pow, coeff_X,
+    Nat.sub_zero, nkQ_mulVec, mulVec_two]
+  simp [nkSys, nkX, dotProduct, Fin.sum_univ_two]
+  ring
+
+/-- Woodford (2003), (3.6)–(3.7), p. 584 (tool): after the first date the lag is the previous
+value. -/
+theorem lag_of_pos {z0 : ℝ} {z : ℕ → Ω → ℝ} {t : ℕ} (ht : 1 ≤ t) :
+    IRuleBasic.lag z0 z t = z (t - 1) := by
+  obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
+  rfl
+
+/-- **Woodford (2003), (1.23) ⟺ (3.7), pp. 554 and 584: the general target criterion is the
+optimal instrument rule of the basic model.** At every date `t ≥ 2` (so that no pre-sample value
+enters), the criterion (1.23) built from `Λ = nkΛ` (`α = det(I − ΛL)`, `B = adj(I − ΛL)`), the
+forcing `q_t = Q T̃'W(τ_t − τ*)` and `v_t = λᵢ(i_t − i*)` holds iff the instrument rule (3.7)
+holds with the coefficients (3.8)–(3.9). -/
+theorem nk_crit_iff_rule (hc : c.Adm) (xm1 im1 im2 : ℝ) (π x i : ℕ → Ω → ℝ) {t : ℕ}
+    (ht : 2 ≤ t) :
+    (∀ ω, TargetCriterion.Crit.crit (alpha (nkΛ c)) (Bpoly (nkΛ c)) 2 (nkSys c hc.2.2.1.ne').B2
+        (fun s ω => c.li * (i s ω - c.istar)) (fun s ω => nkQ c *ᵥ nkX c π x s ω) t ω = 0) ↔
+      IRuleBasic.Rule c xm1 im1 im2 π x i t := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  unfold IRuleBasic.Rule
+  rw [funext_iff]
+  refine forall_congr' fun ω => ?_
+  rw [nk_crit_eq c hc.2.2.1.ne' hβ π x i t ω]
+  have h1 : IRuleBasic.lag im1 i t = i (t - 1) := lag_of_pos (by omega)
+  have h2 : IRuleBasic.lag im2 (IRuleBasic.lag im1 i) t = i (t - 2) := by
+    rw [lag_of_pos (by omega), lag_of_pos (by omega), show t - 1 - 1 = t - 2 by omega]
+  have h3 : IRuleBasic.lag xm1 x t = x (t - 1) := lag_of_pos (by omega)
+  simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, h1, h2, h3]
+  have key : c.li * ((i t ω - c.istar) - (rho1 c.β c.σ c.κ + rho2 c.β) * (i (t - 1) ω - c.istar)
+      + rho2 c.β * (i (t - 2) ω - c.istar)) - c.κ * c.σ * π t ω -
+      c.σ * c.lx * (x t ω - x (t - 1) ω) =
+      c.li * (i t ω - ((1 - rho1 c.β c.σ c.κ) * c.istar + rho1 c.β c.σ c.κ * i (t - 1) ω +
+        rho2 c.β * (i (t - 1) ω - i (t - 2) ω) + phiPi c.σ c.κ c.li * π t ω +
+        phiX c.σ c.lx c.li / 4 * (x t ω - x (t - 1) ω))) := by
+    unfold phiPi phiX
+    field_simp
+    ring
+  rw [key]
+  constructor
+  · intro h
+    have := (mul_eq_zero.mp h).resolve_left hli
+    linarith
+  · intro h
+    rw [h]
+    ring
+
+/-- **Woodford (2003), pp. 553–554 and 584: the general derivation yields (3.7).** Along every
+solution of the general first-order conditions (1.9) of `nkProblem` (with `M_t` known at `t`),
+the general argument — (1.19), (1.20) with `Λ = nkΛ`, and premultiplication by `B₂'adj(I − ΛL)`
+(`TargetCriterion.Crit.eq123_of_eq119_eq120`) — gives the instrument rule (3.7) at every date
+`t ≥ 3`, whatever the pre-sample history. -/
+theorem nk_rule_of_foc (𝔼 : ExpectationSystem Ω) (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ)
+    {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} (hmφ : MultiplierMeas 𝔼 φ)
+    (H : PFOC (nkProblem c hc) 𝔼 0 y φ) (xm1 im1 im2 : ℝ) {t : ℕ} (ht : 3 ≤ t) :
+    IRuleBasic.Rule c xm1 im1 im2 (piOf y) (xOf y) (iOf y) t := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  set M : ℕ → Ω → Fin 2 → ℝ := fun s ω => Mpart (φ (s + 1) ω) with hM
+  have h119 : ∀ s, 1 ≤ s → ∀ ω, (nkSys c hc.2.2.1.ne').B2 ⬝ᵥ M s ω +
+      c.li * (iOf y s ω - c.istar) = 0 := by
+    intro s _ ω
+    obtain ⟨-, -, h5⟩ := (nk_foc_at_iff c hc 𝔼 y hmφ s ω).mp (H s (Nat.zero_le s) ω)
+    simp only [nkPhi1] at h5
+    simp [hM, Mpart, nkSys, dotProduct, Fin.sum_univ_two]
+    linarith
+  have h120 : ∀ s, 1 ≤ s → ∀ ω, M s ω = nkΛ c *ᵥ M (s - 1) ω +
+      nkQ c *ᵥ nkX c (piOf y) (xOf y) s ω := by
+    intro s hs ω
+    have := nk_eq120_of_foc c hc 𝔼 y hmφ H s ω
+    simp only [hM]
+    rw [show s - 1 + 1 = s by omega]
+    exact this
+  have hcrit := TargetCriterion.Crit.eq123_of_eq119_eq120 (D := 2) (eq122 (nkΛ c))
+    (fun i j => (natDegree_Bpoly_le_card_sub_one (nkΛ c) i j).trans (by simp))
+    ((natDegree_alpha_le_rank _).trans ((rank_le_card_width _).trans (by simp)))
+    (nkSys c hc.2.2.1.ne').B2 h119 h120
+  exact (nk_crit_iff_rule c hc xm1 im1 im2 (piOf y) (xOf y) (iOf y) (by omega)).mp
+    fun ω => hcrit t (by omega) ω
+
+/-! ### Proposition 8.3 for the basic model: Proposition 8.5's superinertia -/
+
+/-- Woodford (2003), (1.15), p. 546, for the basic model:
+`det(A − μÎ) = (1 − βμ)(1 − μ) − κσμ = β(μ − λ₁)(μ − λ₂)`, with `λ₁ < 1 < β⁻¹ < λ₂` the roots of
+Chapter 3's `βμ² − (1 + β + κσ)μ + 1` (`QuadraticRoots.lam1`, `lam2`). -/
+theorem nk_pencilPoly (hc : c.Adm) :
+    (nkSys c hc.2.2.1.ne').pencilPoly =
+      C (c.β : ℂ) * (X - C (QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℂ)) *
+        (X - C (QuadraticRoots.lam2 c.β (c.κ * c.σ) : ℂ)) := by
+  have hβ := hc.1
+  have hκσ : 0 < c.κ * c.σ := mul_pos hc.2.2.2.1 hc.2.2.1
+  have hs : (c.β : ℂ) * ((QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℂ) +
+      QuadraticRoots.lam2 c.β (c.κ * c.σ)) = 1 + c.β + c.κ * c.σ := by
+    exact_mod_cast QuadraticRoots.beta_mul_sum hβ
+  have hp : (c.β : ℂ) * ((QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℂ) *
+      QuadraticRoots.lam2 c.β (c.κ * c.σ)) = 1 := by
+    exact_mod_cast QuadraticRoots.beta_mul_prod hβ hκσ
+  refine Polynomial.funext fun z => ?_
+  rw [PencilSplit.pencilPoly_eval, Prop83.det_empty_sum, det_fin_two]
+  simp [toBlocks₂₂, LinearRESystem.Ahat, LinearRESystem.Ihat, nkSys]
+  linear_combination z * hs - hp
+
+/-- Woodford (2003), App. G.1, p. 716 (Assumption 8.3) for the basic model: (1.15) is a nonzero
+polynomial with the two distinct nonzero roots `λ₁, λ₂`, and
+`2 = rank Ẽ + rank A − n_z`. -/
+theorem nk_assumption83 (hc : c.Adm) : PencilEigen.Assumption83 (nkSys c hc.2.2.1.ne') := by
+  have hβ := hc.1
+  have hκσ : 0 < c.κ * c.σ := mul_pos hc.2.2.2.1 hc.2.2.1
+  have h1 := QuadraticRoots.lam1_pos hβ hκσ
+  have h12 := QuadraticRoots.lam1_lt_lam2 hβ hκσ
+  have hroots : (nkSys c hc.2.2.1.ne').pencilPoly.roots =
+      {(QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℂ), (QuadraticRoots.lam2 c.β (c.κ * c.σ) : ℂ)} := by
+    rw [nk_pencilPoly c hc, mul_assoc, roots_C_mul _ (by exact_mod_cast hβ.ne'),
+      roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)), roots_X_sub_C,
+      roots_X_sub_C]
+    rfl
+  have hnz : PencilEigen.nonzeroRoots (nkSys c hc.2.2.1.ne') =
+      {(QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℂ), (QuadraticRoots.lam2 c.β (c.κ * c.σ) : ℂ)} := by
+    rw [PencilEigen.nonzeroRoots, hroots]
+    simp only [Multiset.insert_eq_cons, Multiset.filter_cons, Multiset.filter_singleton]
+    simp [h1.ne', (h1.trans h12).ne']
+  refine (PencilEigen.Assumption83.ofRoots _ ?_ ?_ ?_).elim id
+  · rw [nk_pencilPoly c hc]
+    exact mul_ne_zero (mul_ne_zero (C_ne_zero.mpr (by exact_mod_cast hβ.ne'))
+      (X_sub_C_ne_zero _)) (X_sub_C_ne_zero _)
+  · rw [hnz]
+    simpa using h12.ne
+  · rw [hnz]
+    have hE : (nkSys c hc.2.2.1.ne').Et.rank = 2 := by
+      rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+      · simp
+      · simp [nkSys, det_fin_two, hβ.ne']
+    have hA : (nkSys c hc.2.2.1.ne').Ahat.rank = 2 := by
+      rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+      · simp
+      · rw [Prop83.det_empty_sum]
+        exact (nkSys c hc.2.2.1.ne').A22_isUnit
+    rw [hE, hA]
+    simp
+
+/-- Woodford (2003), Assumption 8.7, p. 556, for the basic model: exactly `n_Z + 1 = 1` root of
+(1.15) has `|μ| < β⁻¹` (the zero root does not occur, `A` is invertible): `m = 1`. -/
+theorem nk_stableCount (hc : c.Adm) :
+    (nkSys c hc.2.2.1.ne').stableCount c.β⁻¹ = Fintype.card Empty + 1 := by
+  have hβ := hc.1
+  have hκσ : 0 < c.κ * c.σ := mul_pos hc.2.2.2.1 hc.2.2.1
+  have h1 := QuadraticRoots.lam1_pos hβ hκσ
+  have hl1 := QuadraticRoots.lam1_lt_one hβ hκσ
+  have hb1 : 1 < c.β⁻¹ := one_lt_inv₀ hβ |>.mpr hc.2.1
+  have hl2 : c.β⁻¹ < QuadraticRoots.lam2 c.β (c.κ * c.σ) := by
+    refine (QuadraticRoots.between_roots_of_neg hβ hκσ ?_).2
+    unfold QuadraticRoots.charPoly
+    field_simp
+    nlinarith
+  have hA : (nkSys c hc.2.2.1.ne').Ahat.rank = 2 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+    · simp
+    · rw [Prop83.det_empty_sum]
+      exact (nkSys c hc.2.2.1.ne').A22_isUnit
+  unfold LinearRESystem.stableCount
+  rw [nk_pencilPoly c hc, mul_assoc, roots_C_mul _ (by exact_mod_cast hβ.ne'),
+    roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)), roots_X_sub_C,
+    roots_X_sub_C, hA]
+  have n1 : ‖((QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℝ) : ℂ)‖ < c.β⁻¹ := by
+    rw [Complex.norm_real, Real.norm_of_nonneg h1.le]
+    linarith
+  have n2 : ¬ ‖((QuadraticRoots.lam2 c.β (c.κ * c.σ) : ℝ) : ℂ)‖ < c.β⁻¹ := by
+    rw [Complex.norm_real, Real.norm_of_nonneg (by linarith)]
+    linarith
+  have hne1 : ((QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℝ) : ℂ) ≠ 0 := by exact_mod_cast h1.ne'
+  have c1 : ¬ ((QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℝ) : ℂ) = 0 ∧
+      ‖((QuadraticRoots.lam1 c.β (c.κ * c.σ) : ℝ) : ℂ)‖ < c.β⁻¹ := ⟨hne1, n1⟩
+  have c2 : ¬ (¬ ((QuadraticRoots.lam2 c.β (c.κ * c.σ) : ℝ) : ℂ) = 0 ∧
+      ‖((QuadraticRoots.lam2 c.β (c.κ * c.σ) : ℝ) : ℂ)‖ < c.β⁻¹) := fun h => n2 h.2
+  rw [Multiset.filter_add]
+  simp only [Multiset.filter_singleton, c1, c2, ↓reduceIte]
+  simp [hne1]
+
+/-- Woodford (2003), pp. 556–558, for the basic model: no root of (1.15) lies on
+`|μ| = β⁻¹`. -/
+theorem nk_no_circle (hc : c.Adm) :
+    ∀ l ∈ (nkSys c hc.2.2.1.ne').pencilPoly.roots, ‖l‖ ≠ c.β⁻¹ := by
+  have hβ := hc.1
+  have hκσ : 0 < c.κ * c.σ := mul_pos hc.2.2.2.1 hc.2.2.1
+  have h1 := QuadraticRoots.lam1_pos hβ hκσ
+  have hl1 := QuadraticRoots.lam1_lt_one hβ hκσ
+  have hb1 : 1 < c.β⁻¹ := one_lt_inv₀ hβ |>.mpr hc.2.1
+  have hl2 : c.β⁻¹ < QuadraticRoots.lam2 c.β (c.κ * c.σ) := by
+    refine (QuadraticRoots.between_roots_of_neg hβ hκσ ?_).2
+    unfold QuadraticRoots.charPoly
+    field_simp
+    nlinarith
+  intro l hl
+  rw [nk_pencilPoly c hc, mul_assoc, roots_C_mul _ (by exact_mod_cast hβ.ne'),
+    roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)), roots_X_sub_C,
+    roots_X_sub_C] at hl
+  rcases Multiset.mem_add.mp hl with h | h <;> rw [Multiset.mem_singleton] at h <;> subst h <;>
+    rw [Complex.norm_real, Real.norm_of_nonneg (by linarith)] <;> intro h <;> linarith
+
+/-- Woodford (2003), fn 35, p. 586: the characteristic polynomial of `Λ` is
+`z² − (ρ₁ + ρ₂)z + ρ₂`, the polynomial of footnote 35. -/
+theorem nk_charpoly (hβ : c.β ≠ 0) :
+    (nkΛ c).charpoly = X ^ 2 - C (rho1 c.β c.σ c.κ + rho2 c.β) * X + C (rho2 c.β) := by
+  rw [charpoly_fin_two]
+  congr 3
+  · simp only [trace, Fin.sum_univ_two, diag, nkΛ, Matrix.of_apply, Matrix.cons_val',
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one]
+    unfold rho1 rho2
+    field_simp
+    ring_nf
+  · rw [det_fin_two]
+    simp only [nkΛ, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.empty_val', Matrix.cons_val_fin_one]
+    unfold rho2
+    field_simp
+    ring
+
+/-- **Woodford (2003), Proposition 8.3 specialised: Proposition 8.5's superinertia.** For the
+basic model the general Proposition 8.3 (with `Λ = nkΛ`, the representation of Proposition 8.1,
+`m = 1`) gives exactly one zero of the lag polynomial `α(L) = 1 − (ρ₁+ρ₂)L + ρ₂L²` of the rule
+(3.7) inside the unit circle: the reciprocal of the root `λ₂ > 1` of footnote 35's
+`z² − (ρ₁+ρ₂)z + ρ₂` (`IRuleBasic.fn35_one_root_gt_one`), which is `(nkΛ c).charpoly`. -/
+theorem nk_zerosInside (hc : c.Adm) :
+    zerosInside (alpha (nkΛ c)) = 1 ∧
+      (nkΛ c).charpoly = X ^ 2 - C (rho1 c.β c.σ c.κ + rho2 c.β) * X + C (rho2 c.β) :=
+  ⟨Prop83.eq_of_homEquiv (nk_homEquiv c hc.2.2.1.ne' hc.1.ne') hc.1 (nk_assumption83 c hc)
+    (nk_stableCount c hc) (nk_no_circle c hc), nk_charpoly c hc.1.ne'⟩
+
+/-! ### Proposition 8.4 for the basic model: Proposition 8.6 -/
+
+omit c in
+/-- **Woodford (2003), Proposition 8.6, p. 588, from the general Proposition 8.4.** With
+`α(L) = (1 − λ₁L)(1 − λ₂L) = α₁(L)α₂(L)`, `α₁ = L − λ₂⁻¹` (its zero `λ₂⁻¹` inside the unit
+circle), `α₂ = −λ₂(1 − λ₁L)`, `w = −q̂` and `g = α̃₁(L⁻¹)⁻¹ w = −∑ λ₂^{−j}E_t q̂_{t+j}`, the general
+`Prop84General.prop84_from` says that (3.10) holds at all dates `t ≥ T` iff the forward-integrated
+rule (3.12) does, for every `T ≥ 2` and all bounded adapted `î, q̂` (`λ₂ > 1`). -/
+theorem prop_8_6_from_general (𝔼 : ExpectationSystem Ω) {l1 l2 : ℝ} (hl2 : 1 < l2)
+    {ih q : ℕ → Ω → ℝ} {h1 h2 : ℝ} (hib : BoundedProc ih) (hia : 𝔼.Adapted ih)
+    (hqb : BoundedProc q) (hqa : 𝔼.Adapted q) {T : ℕ} (hT : 2 ≤ T) :
+    (∀ t, T ≤ t → IRuleForwardIntegrated.G14 l1 l2 ih q h1 h2 t) ↔
+      (∀ t, T ≤ t → IRuleForwardIntegrated.G15 𝔼 l1 l2 ih q h1 h2 t) := by
+  have hl0 : l2 ≠ 0 := by linarith
+  have ha0 : 0 ≤ l2⁻¹ := inv_nonneg.mpr (by linarith)
+  have ha1 : l2⁻¹ < 1 := inv_lt_one_of_one_lt₀ hl2
+  obtain ⟨Mq, hMq⟩ := hqb
+  set α1 : ℝ[X] := X - C l2⁻¹ with hα1
+  set α2 : ℝ[X] := C (-l2) * (1 - C l1 * X) with hα2
+  have hm : α1.natDegree = 1 := natDegree_X_sub_C _
+  have hα10 : α1 ≠ 0 := X_sub_C_ne_zero _
+  have hroots : ∀ z ∈ (α1.reverse.map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+    intro z hz
+    rw [hα1, Prop83.reverse_X_sub_C, Polynomial.map_sub, Polynomial.map_one, Polynomial.map_mul,
+      map_C, map_X, Complex.ofRealHom_eq_coe, Prop83.roots_one_sub_C_mul_X] at hz
+    have hne : ((l2⁻¹ : ℝ) : ℂ) ≠ 0 := by exact_mod_cast inv_ne_zero hl0
+    simp only [hne, ↓reduceIte, Multiset.mem_singleton] at hz
+    rw [hz, ← Complex.ofReal_inv, inv_inv, Complex.norm_real, Real.norm_of_nonneg (by linarith)]
+    exact hl2
+  set g : ℕ → Ω → ℝ := -(𝔼.forwardSeries l2⁻¹ q) with hg
+  have hgb : BoundedProc g := by
+    obtain ⟨K, hK⟩ := 𝔼.forwardSeries_bounded ha0 ha1 hMq
+    exact ⟨K, fun t ω => by simp only [hg, Pi.neg_apply, abs_neg]; exact hK t ω⟩
+  have hga : 𝔼.Adapted g := fun t => by
+    simp only [hg, Pi.neg_apply]
+    rw [map_neg, 𝔼.forwardSeries_adapted ha0 ha1 hMq t]
+  have hgsol : (aeval (fwdOp 𝔼) α1.reverse) g = -q := by
+    rw [hα1, Prop83.reverse_X_sub_C]
+    funext t
+    have hs := 𝔼.forwardSeries_solves ha0 ha1 hMq hqa t
+    simp only [map_sub, map_one, map_mul, aeval_C, aeval_X, LinearMap.sub_apply,
+      Module.End.one_apply, Module.End.mul_apply, Module.algebraMap_end_apply]
+    change g t - l2⁻¹ • 𝔼.E t (g (t + 1)) = -q t
+    simp only [hg, Pi.neg_apply, map_neg]
+    rw [hs]
+    module
+  have key := Prop84General.prop84_from (α2 := α2) (lam := 1) (istar := 0) hm hα10 hroots hib
+    hia hgb hga hgsol T
+  have hprod : α1 * α2 = C 1 - C (l1 + l2) * X + C (l1 * l2) * X ^ 2 := by
+    refine Polynomial.funext fun x => ?_
+    simp only [hα1, hα2, eval_mul, eval_sub, eval_X, eval_C, eval_one, eval_add, eval_pow]
+    field_simp
+    ring
+  rw [hprod] at key
+  have hα2deg : α2.natDegree ≤ 1 := by
+    rw [hα2]
+    compute_degree!
+  have hpdeg : (C 1 - C (l1 + l2) * X + C (l1 * l2) * X ^ 2 : ℝ[X]).natDegree ≤ 2 := by
+    compute_degree!
+  refine (forall_congr' fun t => imp_congr_right fun ht => ?_).trans
+    (key.trans (forall_congr' fun t => imp_congr_right fun ht => ?_))
+  · have hlag1 : IRuleBasic.lag h1 ih t = ih (t - 1) := lag_of_pos (by omega)
+    have hlag2 : IRuleBasic.lag h2 (IRuleBasic.lag h1 ih) t = ih (t - 2) := by
+      rw [lag_of_pos (by omega), lag_of_pos (by omega), show t - 1 - 1 = t - 2 by omega]
+    unfold IRuleForwardIntegrated.G14
+    rw [hlag1, hlag2, funext_iff, funext_iff]
+    refine forall_congr' fun ω => ?_
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, Pi.neg_apply, Pi.zero_apply,
+      one_smul, smul_eq_mul, sub_zero]
+    rw [Prop84General.aeval_lagOp_apply_of_le _ hpdeg (by omega)]
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, coeff_add, coeff_sub,
+      coeff_C, coeff_C_mul, coeff_X, coeff_X_pow, Nat.sub_zero]
+    norm_num
+    constructor <;> intro h <;> linarith
+  · have hlag1 : IRuleBasic.lag h1 ih t = ih (t - 1) := lag_of_pos (by omega)
+    have hlag2 : IRuleBasic.lag h2 (IRuleBasic.lag h1 ih) t = ih (t - 2) := by
+      rw [lag_of_pos (by omega), lag_of_pos (by omega), show t - 1 - 1 = t - 2 by omega]
+    unfold IRuleForwardIntegrated.G15 IRuleForwardIntegrated.wLag
+    rw [hlag1, hlag2, funext_iff, funext_iff]
+    refine forall_congr' fun ω => ?_
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, Pi.neg_apply, Pi.zero_apply,
+      one_smul, smul_eq_mul, sub_zero, hg]
+    rw [Prop84General.lagOp_pow_apply (by omega),
+      Prop84General.aeval_lagOp_apply_of_le _ hα2deg (by omega)]
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, hα2, coeff_C_mul,
+      coeff_sub, coeff_one, Nat.sub_zero, show t - 1 - 1 = t - 2 by omega]
+    norm_num
+    have hinv : l2 * l2⁻¹ = 1 := mul_inv_cancel₀ hl0
+    constructor
+    · intro h
+      linear_combination (-l2⁻¹) * h - (ih (t - 1) ω - l1 * ih (t - 2) ω) * hinv
+    · intro h
+      linear_combination (-l2) * h + 𝔼.forwardSeries l2⁻¹ q t ω * hinv
+
+/-! ### `Prop83Claim` needs a nonempty sample space -/
+
+/-- Woodford (2003), p. 540 (tool): the (trivial) expectation system on the empty sample
+space. -/
+def emptyES : ExpectationSystem Empty where
+  E := fun _ => LinearMap.id
+  const := fun _ _ => rfl
+  mono := fun _ _ _ h => h
+  tower := fun _ _ => rfl
+  known := fun _ _ => rfl
+
+/-- **Woodford (2003), Proposition 8.3 — the statement `TargetCriterion.Prop83Claim` is false in
+general.** For the basic model (`m = 1`, `nk_stableCount`) on the empty sample space, Assumption
+8.1 holds and Proposition 8.1 is satisfied by `Λ = 0`, whose `α(L) = 1` has no zero inside the
+unit circle; so the claim needs `Nonempty Ω` (as in `Prop83.prop83`). -/
+theorem prop83Claim_false_empty (hc : c.Adm) (t0 : ℕ) :
+    Assumption81 (nkProblem c hc) emptyES t0 ∧
+      ∃ H : Prop81Conclusion (nkProblem c hc) emptyES t0,
+        ¬ TargetCriterion.Prop83Claim (nkProblem c hc) emptyES t0 H := by
+  obtain ⟨hA, H, hH⟩ := Prop83.prop83_needs_nonempty (nkProblem c hc) emptyES t0
+  refine ⟨hA, H, fun hcl => ?_⟩
+  have := hcl 1 (nk_stableCount c hc) le_rfl
+  omega
+
+end Woodford.OptimalPolicyRules.GeneralLinks
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The general machinery specialised to the inflation-inertia model
+
+Woodford (2003), *Interest and Prices*, Chapter 8: the general framework of §1 (pp. 536–559)
+applied to the model with inflation inertia of §3.2 (pp. 592–604).
+
+## Main results
+
+* **The model as a general problem.** `inSys`, `inProblem`: the aggregate-supply relation with
+  indexation (2.6) (in its corrected form, Chapter 3 (3.6)) and the IS relation (3.1) are the
+  structural equations (1.1) with one predetermined variable `Z_t = π_{t−1}` (`n_Z = 1`),
+  `z = (π, x)`, `A₂₂ = [1+βγ −κ; 0 1]` (invertible), `Ẽ = [β 0; σ 1]`, `B₂ = (0, σ)`; the loss
+  (3.14) is (1.3) with `τ = (π − γZ, x, i)` and `W = diag(1, λₓ, λᵢ) ≻ 0`.
+  `in_structural_iff`: (1.1) is exactly `Z_{t+1} = π_t`, (2.6) and (3.1).
+  `in_foc_iff`: the general first-order conditions (1.9) are exactly the multiplier formula for
+  the predetermined block, `ξ_t = −βγ(Ξ₂ₜ + π_t − γπ_{t−1})`, together with (3.15), (3.4) and
+  (3.5) (`InflationInertiaRules.FOC315`, `FOC34`, `FOC35`).
+* **Proposition 8.10 from the general lemma (1.30) ⟺ (1.31).** `prop_8_10_from_general`: the
+  Euler equation (3.21) holds from a date `t₀ ≥ 2` on iff the pure targeting rule (3.26) does,
+  obtained from `Prop84General.forward_eq_zero_from_iff` applied to the invertible
+  `φ(L⁻¹) = 1 − (s/p)L⁻¹ + p⁻¹L⁻²` whose roots are `λ₂, λ₃` (real or a complex pair).
+-/
+
+namespace Woodford.OptimalPolicyRules.GeneralLinksInertia
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ
+open TargetCriterion (fwdOp aeval_fwdOp_apply)
+open InflationInertiaRepresentations (InertiaRoots sR pR Kker fwd Euler TargetRule)
+open IRuleBasic (Calib)
+open GeneralLinks (piOf xOf iOf piOf_eq xOf_eq cNK)
+
+variable {Ω : Type*}
+
+/-! ### Proposition 8.10 from the general lemma -/
+
+/-- Woodford (2003), (3.26), p. 601: the invertible forward polynomial
+`φ(L⁻¹) = 1 − (s/p)L⁻¹ + p⁻¹L⁻²`, `s = λ₂ + λ₃`, `p = λ₂λ₃`. -/
+noncomputable def phi310 (s p : ℝ) : ℝ[X] := C 1 - C (s / p) * X + C p⁻¹ * X ^ 2
+
+/-- Woodford (2003), App. G.9, p. 738: `φ(μ) = p⁻¹(μ − λ₂)(μ − λ₃)` over `ℂ`, so the roots of
+`φ` are `λ₂` and `λ₃`, both outside the unit circle. -/
+theorem phi310_roots {β γ κ σ l1 : ℝ} {l2 l3 : ℂ} (h : InertiaRoots β γ κ σ l1 l2 l3) :
+    ∀ z ∈ ((phi310 (sR l2 l3) (pR l2 l3)).map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+  have hp0 : (pR l2 l3 : ℂ) ≠ 0 := by
+    have := h.one_lt_p
+    exact_mod_cast (show pR l2 l3 ≠ 0 by linarith)
+  have hfac : (phi310 (sR l2 l3) (pR l2 l3)).map Complex.ofRealHom =
+      C ((pR l2 l3 : ℂ)⁻¹) * ((X - C l2) * (X - C l3)) := by
+    refine Polynomial.funext fun z => ?_
+    have hs := h.coe_s
+    have hp := h.coe_p
+    have hl2 := h.l2_ne_zero
+    have hl3 := h.l3_ne_zero
+    simp only [phi310, Polynomial.map_add, Polynomial.map_sub, Polynomial.map_mul, map_C,
+      map_X, Polynomial.map_pow, eval_add, eval_sub, eval_mul, eval_C, eval_X, eval_pow,
+      Complex.ofRealHom_eq_coe, Complex.ofReal_div, Complex.ofReal_inv, Complex.ofReal_one]
+    rw [hs, hp]
+    field_simp
+    ring
+  intro z hz
+  rw [hfac, roots_C_mul _ (inv_ne_zero hp0),
+    roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)), roots_X_sub_C,
+    roots_X_sub_C] at hz
+  rcases Multiset.mem_add.mp hz with hz | hz <;> rw [Multiset.mem_singleton] at hz <;>
+    rw [hz]
+  · exact h.one_lt_norm_l2
+  · exact h.one_lt_norm_l3
+
+/-- **Woodford (2003), Proposition 8.10, p. 601, from the general lemma behind Proposition 8.4.**
+Under the assumptions of Proposition 8.7 (`InertiaRoots`), bounded adapted `ı̂, f̂` satisfy the
+Euler equation (3.21) at all dates `t ≥ t₀` iff they satisfy the pure targeting rule (3.26) at all
+those dates (`t₀ ≥ 2`). Here this is derived from `Prop84General.forward_eq_zero_from_iff`: with
+`u_t = (1 − λ₁L)ı̂_{t−1} + (βγp)⁻¹ ∑ K_j E_t f̂_{t+j}`, (3.21) at `t` is `E_t φ(L⁻¹)u_t = 0` and
+(3.26) at `t` is `u_t = 0`, and `φ` is invertible. -/
+theorem prop_8_10_from_general (𝔼 : ExpectationSystem Ω) {β γ κ σ l1 : ℝ} {l2 l3 : ℂ}
+    (hβ : 0 < β) (hγ : 0 < γ) (h : InertiaRoots β γ κ σ l1 l2 l3) {i f : ℕ → Ω → ℝ}
+    (hib : BoundedProc i) (hia : 𝔼.Adapted i) (hfb : BoundedProc f) (hfa : 𝔼.Adapted f)
+    {t0 : ℕ} (ht0 : 2 ≤ t0) :
+    (∀ t, t0 ≤ t → Euler 𝔼 β γ κ σ i f t) ↔
+      (∀ t, t0 ≤ t → TargetRule 𝔼 β γ l1 (sR l2 l3) (pR l2 l3) i f t) := by
+  set s := sR l2 l3 with hs
+  set p := pR l2 l3 with hp'
+  have hp : p ≠ 0 := by linarith [h.one_lt_p]
+  have hβγ : β * γ ≠ 0 := (mul_pos hβ hγ).ne'
+  obtain ⟨Mf, hMf⟩ := hfb
+  obtain ⟨Mi, hMi⟩ := hib
+  set c := (β * γ * p)⁻¹ with hc
+  set Φ := fwd 𝔼 (Kker s p) f with hΦ
+  have hΦb : BoundedProc Φ := InflationInertiaRepresentations.fwd_bounded 𝔼 h.summable_abs_Kker
+    ⟨Mf, hMf⟩
+  have hΦa : 𝔼.Adapted Φ := fun t =>
+    InflationInertiaRepresentations.E_fwd_self 𝔼 h.summable_abs_Kker hMf t
+  have hrec : ∀ t, Φ t = f t + (s / p) • 𝔼.E t (Φ (t + 1)) + (-1 / p) • 𝔼.E t (Φ (t + 2)) :=
+    fun t => h.fwd_Kker_rec 𝔼 hMf hfa t
+  set u : ℕ → Ω → ℝ := fun t => (i (t - 1) - l1 • i (t - 2)) + c • Φ t with hu
+  have hua : 𝔼.Adapted u := fun t => by
+    simp only [hu]
+    rw [map_add, map_sub, map_smul, map_smul, hΦa t,
+      ForwardSolution.E_of_known 𝔼 (Nat.sub_le t 1) (hia _),
+      ForwardSolution.E_of_known 𝔼 (Nat.sub_le t 2) (hia _)]
+  have hub : BoundedProc u := by
+    obtain ⟨MΦ, hMΦ⟩ := hΦb
+    refine ⟨Mi + |l1| * Mi + |c| * MΦ, fun t ω => ?_⟩
+    simp only [hu, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    have h1 := hMi (t - 1) ω
+    have h2 := mul_le_mul_of_nonneg_left (hMi (t - 2) ω) (abs_nonneg l1)
+    have h3 := mul_le_mul_of_nonneg_left (hMΦ t ω) (abs_nonneg c)
+    have e1 := abs_add_le (i (t - 1) ω - l1 * i (t - 2) ω) (c * Φ t ω)
+    have e2 := abs_sub (i (t - 1) ω) (l1 * i (t - 2) ω)
+    rw [abs_mul] at e1 e2
+    linarith
+  have hφ0 : phi310 s p ≠ 0 := by
+    intro h0
+    have := congrArg (fun q => q.coeff 0) h0
+    simp [phi310] at this
+  have hdeg : (phi310 s p).natDegree = 2 := by
+    unfold phi310
+    compute_degree!
+  have key := Prop84General.forward_eq_zero_from_iff hφ0 (phi310_roots h) hub hua t0
+  -- (3.21) at `t` is `E_t φ(L⁻¹) u_t = 0`
+  have hA : ∀ t, 2 ≤ t → (Euler 𝔼 β γ κ σ i f t ↔ (aeval (fwdOp 𝔼) (phi310 s p)) u t = 0) := by
+    intro t ht
+    have hEu1 : 𝔼.E t (u (t + 1)) =
+        fun ω => (i t ω - l1 * i (t - 1) ω) + c * 𝔼.E t (Φ (t + 1)) ω := by
+      simp only [hu, show t + 1 - 1 = t by omega, show t + 1 - 2 = t - 1 by omega]
+      rw [map_add, map_sub, map_smul, map_smul, hia t,
+        ForwardSolution.E_of_known 𝔼 (Nat.sub_le t 1) (hia _)]
+      rfl
+    have hEu2 : 𝔼.E t (u (t + 2)) =
+        fun ω => (𝔼.E t (i (t + 1)) ω - l1 * i t ω) + c * 𝔼.E t (Φ (t + 2)) ω := by
+      simp only [hu, show t + 2 - 1 = t + 1 by omega, show t + 2 - 2 = t by omega]
+      rw [map_add, map_sub, map_smul, map_smul, hia t]
+      rfl
+    have hc0 : c ≠ 0 := inv_ne_zero (mul_ne_zero hβγ hp)
+    have hcoef0 : (phi310 s p).coeff 0 = 1 := by simp [phi310]
+    have hcoef1 : (phi310 s p).coeff 1 = -(s / p) := by simp [phi310, coeff_one]
+    have hcoef2 : (phi310 s p).coeff 2 = p⁻¹ := by simp [phi310, coeff_one]
+    have hval : (aeval (fwdOp 𝔼) (phi310 s p)) u t = fun ω => c * (β * γ * 𝔼.E t (i (t + 1)) ω -
+        (1 + γ + β * γ) * i t ω + (1 + γ + (1 + κ * σ) / β) * i (t - 1) ω -
+        β⁻¹ * i (t - 2) ω + f t ω) := by
+      rw [aeval_fwdOp_apply 𝔼 hua, hdeg]
+      funext ω
+      have hr := congrFun (hrec t) ω
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at hr
+      have hfac := h.euler_lhs_factored (i (t - 2) ω) (i (t - 1) ω) (i t ω)
+        (𝔼.E t (i (t + 1)) ω)
+      rw [← hs, ← hp'] at hfac
+      rw [Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_one, hcoef0, hcoef1,
+        hcoef2, add_zero, hua t, hEu1, hEu2]
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, hu, Pi.sub_apply]
+      rw [hfac, hr, hc]
+      field_simp
+      ring
+    rw [hval]
+    unfold Euler
+    rw [funext_iff, funext_iff]
+    refine forall_congr' fun ω => ?_
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, Pi.neg_apply, Pi.zero_apply,
+      smul_eq_mul]
+    constructor
+    · intro hE
+      rw [hE]
+      ring
+    · intro hZ
+      have := (mul_eq_zero.mp hZ).resolve_left hc0
+      linarith
+  -- (3.26) at `t` is `u_t = 0`
+  have hB : ∀ t, 2 ≤ t → (TargetRule 𝔼 β γ l1 s p i f t ↔ u t = 0) := by
+    intro t _
+    unfold TargetRule
+    rw [funext_iff, funext_iff]
+    refine forall_congr' fun ω => ?_
+    simp only [hu, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply, hΦ,
+      hc, neg_mul]
+    constructor <;> intro h0 <;> linarith
+  calc (∀ t, t0 ≤ t → Euler 𝔼 β γ κ σ i f t) ↔
+        (∀ t, t0 ≤ t → (aeval (fwdOp 𝔼) (phi310 s p)) u t = 0) :=
+        forall_congr' fun t => imp_congr_right fun ht => hA t (by omega)
+    _ ↔ (∀ t, t0 ≤ t → u t = 0) := key
+    _ ↔ _ := forall_congr' fun t => imp_congr_right fun ht => (hB t (by omega)).symm
+
+/-! ### The inflation-inertia model as a general linear-quadratic problem -/
+
+variable (c : Calib) (γ : ℝ)
+
+/-- Woodford (2003), (2.6), p. 562: `A₂₂ = [1+βγ −κ; 0 1]` is invertible, `det A₂₂ = 1 + βγ > 0`. -/
+theorem in_det_ne (hc : c.Adm) (hγ : 0 ≤ γ) : 1 + c.β * γ ≠ 0 := by
+  have := mul_nonneg hc.1.le hγ
+  exact (by linarith : (0 : ℝ) < 1 + c.β * γ).ne'
+
+/-- Woodford (2003), (2.6) (corrected) and (3.1) as (1.1), p. 537: `Z_t = π_{t−1}`,
+`z = (π, x)`; `Z_{t+1} = π_t`, row `0`: `βE_tπ_{t+1} = −γZ_t + (1+βγ)π_t − κx_t − u_t`, row `1`:
+`σE_tπ_{t+1} + E_tx_{t+1} = x_t + σi_t − σrⁿ_t`. -/
+noncomputable def inSys (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) : LinearRESystem Unit (Fin 2) where
+  A11 := 0
+  A12 := Matrix.of fun _ j => if j = 0 then 1 else 0
+  A21 := Matrix.of fun j _ => if j = 0 then -γ else 0
+  A22 := !![1 + c.β * γ, -c.κ; 0, 1]
+  Et := !![c.β, 0; c.σ, 1]
+  B2 := ![0, c.σ]
+  A22_isUnit := by
+    rw [isUnit_iff_ne_zero, det_fin_two_of]
+    simpa using hd
+  B2_ne_zero := by
+    intro h
+    have := congrFun h 1
+    simp only [Matrix.cons_val_one, Matrix.cons_val_zero, Pi.zero_apply] at this
+    exact hσ this
+
+/-- Woodford (2003), (3.14) as (1.4), p. 537: the targets `τ = (π − γZ, x, i)`. -/
+def inTtil : Matrix (Fin 3) (Unit ⊕ Fin 2) ℝ :=
+  Matrix.of fun a col => Sum.elim (fun _ => if a = 0 then -γ else 0)
+    (fun j : Fin 2 => if (a : ℕ) = j then 1 else 0) col
+
+/-- Woodford (2003), (3.14) as (1.2)–(1.4), p. 537: the inflation-inertia problem,
+`W = diag(1, λₓ, λᵢ) ≻ 0`, `τ* = (0, x*, i*)`. -/
+noncomputable def inProblem (hc : c.Adm) (hγ : 0 ≤ γ) : LQProblem Unit (Fin 2) (Fin 3) where
+  sys := inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)
+  β := c.β
+  β_pos := hc.1
+  β_lt_one := hc.2.1
+  Ttil := inTtil γ
+  Ti := ![0, 0, 1]
+  W := diagonal ![1, c.lx, c.li]
+  τstar := ![0, c.xstar, c.istar]
+  W_posDef := PosDef.diagonal fun i => by
+    fin_cases i
+    · simp
+    · simpa using hc.2.2.2.2.1
+    · simpa using hc.2.2.2.2.2
+
+/-- Woodford (2003), p. 538: the predetermined `Z_t = π_{t−1}` in a plan. -/
+def Zof (y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ) : ℕ → Ω → ℝ :=
+  fun t ω => y t ω (Sum.inl (Sum.inl ()))
+
+/-- Woodford (2003), (2.6) (tool): `E_t[π_{t+1} − γπ_t] = E_tπ_{t+1} − γπ_t` for adapted `π`. -/
+theorem E_quasi_diff (𝔼 : ExpectationSystem Ω) {π : ℕ → Ω → ℝ} (hπ : 𝔼.Adapted π) (t : ℕ)
+    (ω : Ω) : 𝔼.E t (fun ω' => π (t + 1) ω' - γ * π t ω') ω =
+      𝔼.E t (π (t + 1)) ω - γ * π t ω := by
+  rw [ExpectationTools.E_fun_sub, ExpectationTools.E_fun_mul, hπ t]
+
+/-- **Woodford (2003), (1.1) for the inflation-inertia model, p. 537.** For an adapted plan
+with `Z₁ = π₀`, the structural equations (1.1) of `inSys` from date `1` on are exactly
+`Z_{t+1} = π_t`, the indexation Phillips curve (2.6) (corrected) and the IS relation (3.1). -/
+theorem in_structural_iff (hc : c.Adm) (hγ : 0 ≤ γ) (𝔼 : ExpectationSystem Ω)
+    (u rn : ℕ → Ω → ℝ) (y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ) (hya : AdaptedV 𝔼 y)
+    (hZ1 : ∀ ω, Zof y 1 ω = piOf y 0 ω) :
+    (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)).Structural 𝔼 (cNK c u rn) 1 y ↔
+      ∀ t, 1 ≤ t → (∀ ω, Zof y (t + 1) ω = piOf y t ω) ∧
+        InflationInertiaRules.AS 𝔼 c.β γ c.κ u (piOf y) (xOf y) t ∧
+        InflationInertiaRules.IS 𝔼 c.σ rn (piOf y) (xOf y) (iOf y) t := by
+  have hπa : 𝔼.Adapted (piOf y) := fun t => hya t (Sum.inl (Sum.inr 0))
+  have hZt : (∀ t, 1 ≤ t → ∀ ω, Zof y (t + 1) ω = piOf y t ω) →
+      ∀ t, 1 ≤ t → ∀ ω, Zof y t ω = piOf y (t - 1) ω := by
+    intro hz t ht ω
+    rcases Nat.lt_or_ge t 2 with h2 | h2
+    · obtain rfl : t = 1 := by omega
+      exact hZ1 ω
+    · have := hz (t - 1) (by omega) ω
+      rwa [show t - 1 + 1 = t by omega] at this
+  have key : ∀ t ω, (Zpart (y (t + 1) ω) =
+      (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)).A11 *ᵥ Zpart (y t ω) +
+        (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)).A12 *ᵥ zpart (y t ω) ∧
+      (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)).Et *ᵥ
+          EV 𝔼 t (fun ω' => zpart (y (t + 1) ω')) ω =
+        (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)).A21 *ᵥ Zpart (y t ω) +
+          (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)).A22 *ᵥ zpart (y t ω) +
+          ipart (y t ω) • (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)).B2 + cNK c u rn t ω) ↔
+      (Zof y (t + 1) ω = piOf y t ω ∧
+        piOf y t ω - γ * Zof y t ω = c.κ * xOf y t ω +
+          c.β * (𝔼.E t (piOf y (t + 1)) ω - γ * piOf y t ω) + u t ω ∧
+        xOf y t ω = 𝔼.E t (xOf y (t + 1)) ω -
+          c.σ * (iOf y t ω - 𝔼.E t (piOf y (t + 1)) ω - rn t ω)) := by
+    intro t ω
+    rw [funext_iff, funext_iff, Fin.forall_fin_two]
+    simp only [inSys, cNK, mulVec, dotProduct, Fin.sum_univ_two, EV, zpart, Zpart, ipart,
+      piOf_eq, xOf_eq, Zof, piOf, xOf, iOf, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+      Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.empty_val', Matrix.cons_val_fin_one, Matrix.zero_apply, Fintype.univ_punit,
+      Finset.sum_singleton, Fin.isValue, ↓reduceIte, one_ne_zero]
+    constructor
+    · rintro ⟨h0, h1, h2⟩
+      have h0' := h0 ()
+      refine ⟨by linarith, by linarith, by linarith⟩
+    · rintro ⟨h0, h1, h2⟩
+      refine ⟨fun _ => by linarith, by linarith, by linarith⟩
+  constructor
+  · intro H
+    have hz : ∀ t, 1 ≤ t → ∀ ω, Zof y (t + 1) ω = piOf y t ω := fun t ht ω =>
+      ((key t ω).mp ⟨(H t ht ω).1, (H t ht ω).2⟩).1
+    have hZ := hZt hz
+    intro t ht
+    refine ⟨hz t ht, fun ω => ?_, fun ω => ?_⟩
+    · have := ((key t ω).mp ⟨(H t ht ω).1, (H t ht ω).2⟩).2.1
+      rw [hZ t ht ω] at this
+      rw [E_quasi_diff γ 𝔼 hπa]
+      exact this
+    · exact ((key t ω).mp ⟨(H t ht ω).1, (H t ht ω).2⟩).2.2
+  · intro H t ht ω
+    have hz : ∀ t, 1 ≤ t → ∀ ω, Zof y (t + 1) ω = piOf y t ω := fun t ht ω => (H t ht).1 ω
+    have hZ := hZt hz
+    refine (key t ω).mpr ⟨hz t ht ω, ?_, (H t ht).2.2 ω⟩
+    have := (H t ht).2.1 ω
+    rw [E_quasi_diff γ 𝔼 hπa] at this
+    rw [hZ t ht ω]
+    exact this
+
+/-! ### The first-order conditions (1.9) are (3.15), (3.4), (3.5) -/
+
+/-- Woodford (2003), p. 552: `A'` for the inertia model, by blocks. -/
+theorem in_Ahat_transpose_mulVec (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0)
+    (v : Unit ⊕ Fin 2 → ℝ) :
+    (inSys c γ hσ hd).Ahatᵀ *ᵥ v = Sum.elim (fun _ => -γ * v (Sum.inr 0))
+      ![v (Sum.inl ()) + (1 + c.β * γ) * v (Sum.inr 0), -c.κ * v (Sum.inr 0) + v (Sum.inr 1)] := by
+  funext r
+  rcases r with r | j
+  · simp [inSys, LinearRESystem.Ahat, mulVec, dotProduct]
+  · fin_cases j <;> simp [inSys, LinearRESystem.Ahat, mulVec, dotProduct, Fin.sum_univ_two]
+
+/-- Woodford (2003), p. 552: `Î'` for the inertia model, by blocks. -/
+theorem in_Ihat_transpose_mulVec (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0)
+    (v : Unit ⊕ Fin 2 → ℝ) :
+    (inSys c γ hσ hd).Ihatᵀ *ᵥ v = Sum.elim (fun _ => v (Sum.inl ()))
+      ![c.β * v (Sum.inr 0) + c.σ * v (Sum.inr 1), v (Sum.inr 1)] := by
+  funext r
+  rcases r with r | j
+  · simp [inSys, LinearRESystem.Ihat, mulVec, dotProduct]
+  · fin_cases j <;> simp [inSys, LinearRESystem.Ihat, mulVec, dotProduct, Fin.sum_univ_two]
+
+/-- Woodford (2003), p. 553: `T̃'W(τ − τ*) = (−γ(π − γZ), π − γZ, λₓ(x − x*))` for the inertia
+model. -/
+theorem in_xvec (hc : c.Adm) (hγ : 0 ≤ γ) (v : (Unit ⊕ Fin 2) ⊕ Unit → ℝ) :
+    (inProblem c γ hc hγ).Ttilᵀ *ᵥ ((inProblem c γ hc hγ).W *ᵥ
+      ((inProblem c γ hc hγ).T *ᵥ v - (inProblem c γ hc hγ).τstar)) =
+      Sum.elim (fun _ => -γ * (v (Sum.inl (Sum.inr 0)) - γ * v (Sum.inl (Sum.inl ()))))
+        ![v (Sum.inl (Sum.inr 0)) - γ * v (Sum.inl (Sum.inl ())),
+          c.lx * (v (Sum.inl (Sum.inr 1)) - c.xstar)] := by
+  have e : -(γ * v (Sum.inl (Sum.inl ()))) + v (Sum.inl (Sum.inr 0)) =
+      v (Sum.inl (Sum.inr 0)) - γ * v (Sum.inl (Sum.inl ())) := by ring
+  funext r
+  rcases r with r | j
+  · simp [inProblem, inTtil, LQProblem.T, mulVec, dotProduct, Fintype.sum_sum_type,
+      diagonal_apply, e]
+  · fin_cases j
+    · simp [inProblem, inTtil, LQProblem.T, mulVec, dotProduct, Fintype.sum_sum_type,
+        diagonal_apply, e]
+    · simp [inProblem, inTtil, LQProblem.T, mulVec, dotProduct, Fin.sum_univ_three,
+        Fintype.sum_sum_type, diagonal_apply]
+
+/-- Woodford (2003), p. 553: `T_i'W(τ − τ*) = λᵢ(i − i*)` for the inertia model. -/
+theorem in_vvec (hc : c.Adm) (hγ : 0 ≤ γ) (v : (Unit ⊕ Fin 2) ⊕ Unit → ℝ) :
+    (inProblem c γ hc hγ).Ti ⬝ᵥ ((inProblem c γ hc hγ).W *ᵥ
+      ((inProblem c γ hc hγ).T *ᵥ v - (inProblem c γ hc hγ).τstar)) =
+      c.li * (v (Sum.inr ()) - c.istar) := by
+  simp [inProblem, inTtil, LQProblem.T, mulVec, dotProduct, Fin.sum_univ_three,
+    Fintype.sum_sum_type, diagonal_apply]
+
+/-- Woodford (2003), p. 592: the multiplier `Ξ₁` on the IS relation, `M_t`'s second entry. -/
+def Xi1 (φ : ℕ → Ω → Unit ⊕ Fin 2 → ℝ) : ℕ → Ω → ℝ := fun k ω => φ (k + 1) ω (Sum.inr 1)
+
+/-- Woodford (2003), p. 592: the multiplier `Ξ₂` on the AS relation, `M_t`'s first entry. -/
+def Xi2 (φ : ℕ → Ω → Unit ⊕ Fin 2 → ℝ) : ℕ → Ω → ℝ := fun k ω => φ (k + 1) ω (Sum.inr 0)
+
+/-- Woodford (2003), (1.9) at one date for the inertia model, pp. 541, 552 and 592: with `M_t`
+known at `t`, the general first-order conditions at `(t, ω)` are four scalar equations: the
+row of the predetermined `Z` (the multiplier `ξ_t`), and the rows of `π`, `x` and `i`. -/
+theorem in_foc_at_iff (hc : c.Adm) (hγ : 0 ≤ γ) (𝔼 : ExpectationSystem Ω)
+    (y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ) {φ : ℕ → Ω → Unit ⊕ Fin 2 → ℝ}
+    (hmφ : MultiplierMeas 𝔼 φ) (t : ℕ) (ω : Ω) :
+    ((inProblem c γ hc hγ).sys.Atilᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω +
+      (inProblem c γ hc hγ).Tᵀ *ᵥ ((inProblem c γ hc hγ).W *ᵥ ((inProblem c γ hc hγ).T *ᵥ y t ω -
+        (inProblem c γ hc hγ).τstar)) - (inProblem c γ hc hγ).β⁻¹ •
+          ((inProblem c γ hc hγ).sys.Itilᵀ *ᵥ φ t ω) = 0) ↔
+      (-γ * Xi2 φ t ω - γ * (piOf y t ω - γ * Zof y t ω) - c.β⁻¹ * φ t ω (Sum.inl ()) = 0 ∧
+        𝔼.E t (fun ω' => φ (t + 1) ω' (Sum.inl ())) ω + (1 + c.β * γ) * Xi2 φ t ω +
+          (piOf y t ω - γ * Zof y t ω) - c.β⁻¹ * (c.β * φ t ω (Sum.inr 0) +
+            c.σ * φ t ω (Sum.inr 1)) = 0 ∧
+        -c.κ * Xi2 φ t ω + Xi1 φ t ω + c.lx * (xOf y t ω - c.xstar) -
+          c.β⁻¹ * φ t ω (Sum.inr 1) = 0 ∧
+        c.σ * Xi1 φ t ω + c.li * (iOf y t ω - c.istar) = 0) := by
+  have hE : ∀ j, 𝔼.E t (fun ω' => φ (t + 1) ω' (Sum.inr j)) ω = φ (t + 1) ω (Sum.inr j) :=
+    fun j => congrFun (hmφ t j) ω
+  rw [foc_iff_split _ hmφ y t ω, funext_iff, Sum.forall, Fin.forall_fin_two]
+  have hA := in_Ahat_transpose_mulVec c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ)
+    (EV 𝔼 t (φ (t + 1)) ω)
+  have hI := in_Ihat_transpose_mulVec c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ) (φ t ω)
+  have hx := in_xvec c γ hc hγ (y t ω)
+  have hv := in_vvec c γ hc hγ (y t ω)
+  simp only [inProblem] at hA hI hx hv ⊢
+  rw [hA, hI, hx, hv]
+  simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Sum.elim_inl, Sum.elim_inr,
+    Matrix.cons_val_zero, Matrix.cons_val_one, Pi.zero_apply, Xi1, Xi2, piOf, xOf, iOf, Zof,
+    Mpart, inSys, dotProduct, Fin.sum_univ_two, Matrix.cons_val_fin_one, EV, hE]
+  constructor
+  · rintro ⟨⟨h0, h1, h2⟩, h3⟩
+    exact ⟨by linarith [h0 ()], by linarith, by linarith, by linarith⟩
+  · rintro ⟨h0, h1, h2, h3⟩
+    exact ⟨⟨fun _ => by linarith, by linarith, by linarith⟩, by linarith⟩
+
+/-- **Woodford (2003), (1.9) for the inflation-inertia model, pp. 541 and 592.** For an adapted
+plan with `Z_t = π_{t−1}` and multipliers with `M_t` known at `t`, the general first-order
+conditions (1.9) of `inProblem` hold at every date `t ≥ 1` iff the multiplier on the
+predetermined block is `ξ_t = −βγ(Ξ₂ₜ + π_t − γπ_{t−1})` and (3.15), (3.4), (3.5) hold at every
+date `t ≥ 1` — the lead `E_tΞ₂,t+1` and `E_t[π_{t+1} − γπ_t]` of (3.15) come from `E_tξ_{t+1}`. -/
+theorem in_foc_iff (hc : c.Adm) (hγ : 0 ≤ γ) (𝔼 : ExpectationSystem Ω)
+    (y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ) {φ : ℕ → Ω → Unit ⊕ Fin 2 → ℝ}
+    (hmφ : MultiplierMeas 𝔼 φ) (hZ : ∀ t, 1 ≤ t → ∀ ω, Zof y t ω = piOf y (t - 1) ω) :
+    PFOC (inProblem c γ hc hγ) 𝔼 1 y φ ↔
+      (∀ t, 1 ≤ t → ∀ ω, φ t ω (Sum.inl ()) =
+        -(c.β * γ) * (Xi2 φ t ω + (piOf y t ω - γ * piOf y (t - 1) ω))) ∧
+      ∀ t, 1 ≤ t → InflationInertiaRules.FOC315 𝔼 c.β γ c.σ (piOf y) (Xi1 φ) (Xi2 φ) t ∧
+        InflationInertiaRules.FOC34 c.β c.κ c.lx c.xstar (xOf y) (Xi1 φ) (Xi2 φ) t ∧
+        InflationInertiaRules.FOC35 c.σ c.li c.istar (iOf y) (Xi1 φ) t := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hXi : ∀ t, 1 ≤ t → ∀ ω, Xi1 φ (t - 1) ω = φ t ω (Sum.inr 1) ∧
+      Xi2 φ (t - 1) ω = φ t ω (Sum.inr 0) := by
+    intro t ht ω
+    have e : t - 1 + 1 = t := by omega
+    exact ⟨by simp only [Xi1, e], by simp only [Xi2, e]⟩
+  have hEξ : ∀ t, (∀ ω, φ (t + 1) ω (Sum.inl ()) =
+      -(c.β * γ) * (Xi2 φ (t + 1) ω + (piOf y (t + 1) ω - γ * piOf y t ω))) → ∀ ω,
+      𝔼.E t (fun ω' => φ (t + 1) ω' (Sum.inl ())) ω = -(c.β * γ) * (𝔼.E t (Xi2 φ (t + 1)) ω +
+        𝔼.E t (fun ω' => piOf y (t + 1) ω' - γ * piOf y t ω') ω) := by
+    intro t hξ ω
+    have e : (fun ω' => φ (t + 1) ω' (Sum.inl ())) = fun ω' =>
+        -(c.β * γ) * (Xi2 φ (t + 1) ω' + (piOf y (t + 1) ω' - γ * piOf y t ω')) :=
+      funext hξ
+    rw [e, ExpectationTools.E_fun_mul, ExpectationTools.E_fun_add]
+  have hb : ∀ a b : ℝ, c.β⁻¹ * (c.β * a + c.σ * b) = a + c.β⁻¹ * c.σ * b := by
+    intro a b
+    field_simp
+  constructor
+  · intro H
+    have hk := fun t ht ω => (in_foc_at_iff c γ hc hγ 𝔼 y hmφ t ω).mp (H t ht ω)
+    have hξ : ∀ t, 1 ≤ t → ∀ ω, φ t ω (Sum.inl ()) =
+        -(c.β * γ) * (Xi2 φ t ω + (piOf y t ω - γ * piOf y (t - 1) ω)) := by
+      intro t ht ω
+      have h0 := (hk t ht ω).1
+      rw [hZ t ht ω] at h0
+      field_simp at h0
+      linear_combination -h0
+    refine ⟨hξ, fun t ht => ⟨fun ω => ?_, fun ω => ?_, fun ω => ?_⟩⟩
+    · have h1 := (hk t ht ω).2.1
+      rw [hEξ t (fun ω' => by
+          have := hξ (t + 1) (by omega) ω'
+          rwa [show t + 1 - 1 = t by omega] at this) ω, hZ t ht ω, hb] at h1
+      rw [(hXi t ht ω).1, (hXi t ht ω).2]
+      linear_combination h1
+    · have h2 := (hk t ht ω).2.2.1
+      rw [(hXi t ht ω).1]
+      linear_combination h2
+    · linarith [(hk t ht ω).2.2.2]
+  · rintro ⟨hξ, hF⟩ t ht ω
+    refine (in_foc_at_iff c γ hc hγ 𝔼 y hmφ t ω).mpr ⟨?_, ?_, ?_, ?_⟩
+    · rw [hZ t ht ω, hξ t ht ω]
+      field_simp
+      ring
+    · rw [hEξ t (fun ω' => by
+          have := hξ (t + 1) (by omega) ω'
+          rwa [show t + 1 - 1 = t by omega] at this) ω, hZ t ht ω, hb]
+      have h1 := (hF t ht).1 ω
+      rw [(hXi t ht ω).1, (hXi t ht ω).2] at h1
+      linear_combination h1
+    · have h2 := (hF t ht).2.1 ω
+      rw [(hXi t ht ω).1] at h2
+      linear_combination h2
+    · linarith [(hF t ht).2.2 ω]
+
+end Woodford.OptimalPolicyRules.GeneralLinksInertia
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Propositions 8.3 and 8.4 for the general representation of Proposition 8.1
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §1.4–1.5, pp. 553–559.
+
+`Prop83.prop83` was proved for every matrix `Λ` of the (original) hypothesis structure
+`TargetCriterion.Prop81.Prop81Conclusion`. Proposition 8.1 is now proved in general, in the
+corrected form `Prop81General.Prop81ConclusionM` (multipliers `M_t` known at `t`, adapted plans),
+which is the form that holds under uncertainty. This module connects the two.
+
+## Main results
+
+* `hequiv_of_prop81M`: the corrected Proposition 8.1 gives the perturbation hypothesis of
+  `Prop83.prop83_of_perturbation` at any bounded solution of the first-order conditions.
+* `prop83M_bounds`, `prop83M`: **Proposition 8.3 for every representation `Prop81ConclusionM`**
+  (Assumptions 8.1, 8.3, 8.7; no root of (1.15) on `|λ| = β⁻¹` for the exact count).
+* `prop83_of_assumptions`: Proposition 8.1 (from Assumptions 8.2 (i), 8.3, 8.4,
+  `PencilAssumptions.prop81_of_assumptions`) and Proposition 8.3 together.
+* `prop84M`: **Proposition 8.4** for every representation `Prop81ConclusionM`.
+-/
+
+namespace Woodford.OptimalPolicyRules.Prop83Links
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ Adjugate
+open TargetCriterion (zerosInside fwdOp lagOp prop84_conditional roots_reverse_outside
+  map_reverse_ofReal)
+open TargetCriterion.Prop81
+open Prop81General (Prop81ConclusionM MultKnown)
+
+variable {Ω : Type*} {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (corrected): perturbing a bounded solution `φ₀`
+(with `M_t` known at `t`) of (1.18) by a bounded deterministic `h` keeps the multipliers known,
+so the representation `Prop81ConclusionM` applies to `φ₀ + h`: this is the hypothesis of
+`Prop83.prop83_of_perturbation`. -/
+theorem hequiv_of_prop81M {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) {y0 : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ0 : ℕ → Ω → ιZ ⊕ ιz → ℝ} (hy0b : BoundedV y0) (hy0a : AdaptedV 𝔼 y0)
+    (hφ0b : BoundedV φ0) (hφ0m : MultKnown 𝔼 t0 φ0) :
+    ∀ h : ℕ → ιZ ⊕ ιz → ℝ, Prop83.BddSeq h →
+      (Eq118 P 𝔼 t0 y0 (fun t ω => φ0 t ω + h (t - t0)) ↔
+        Eq120 t0 H.Λ (H.Qop (xproc P y0)) (fun t ω => φ0 t ω + h (t - t0)) ∧
+          Eq121 t0 H.Υ (H.Rop (xproc P y0)) (fun t ω => φ0 t ω + h (t - t0))) := by
+  intro h hb
+  refine H.equiv y0 _ hy0b hy0a ?_ ?_
+  · obtain ⟨M, hM⟩ := hφ0b
+    obtain ⟨C, hC⟩ := hb
+    refine ⟨M + C, fun t ω i => (abs_add_le _ _).trans (add_le_add (hM t ω i) ?_)⟩
+    have := hC (t - t0) i
+    rwa [Real.norm_eq_abs] at this
+  · intro t ht r
+    have h1 := hφ0m t ht r
+    have e : (fun ω => Mpart (φ0 (t + 1) ω + h (t + 1 - t0)) r) =
+        (fun ω => Mpart (φ0 (t + 1) ω) r) + fun _ => h (t + 1 - t0) (Sum.inr r) := rfl
+    rw [e, map_add, h1, 𝔼.const]
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557, two-sided, for every representation of the
+corrected Proposition 8.1.** Under Assumptions 8.1, 8.3 and 8.7 (`n_Z + m` roots of (1.15) with
+`|μ| < β⁻¹`), `α(L) = det(I − ΛL)` has at most `m` zeros inside the unit circle and at least `m`
+in the closed unit disc. -/
+theorem prop83M_bounds [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω}
+    {t0 : ℕ} (H : Prop81ConclusionM P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : PencilEigen.Assumption83 P.sys) {m : ℕ}
+    (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m) :
+    zerosInside (alpha H.Λ) ≤ m ∧
+      m ≤ zerosInside (alpha H.Λ) + Prop83.zerosOnCircle (alpha H.Λ) := by
+  obtain ⟨y, φ, hyb, hya, hφb, hφm, h118⟩ := Prop83.exists_base_of_assumption81 hA
+  exact Prop83.bounds_of_homEquiv
+    (Prop83.homEquiv_of_perturbation h118 (hequiv_of_prop81M H hyb hya hφb hφm)) P.β_pos h83 h87
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557, for every representation of the corrected
+Proposition 8.1** (any expectation system, nonempty sample space): under Assumptions 8.1, 8.3
+and 8.7, with no root of (1.15) on `|λ| = β⁻¹`, `α(L) = det(I − ΛL)` has exactly `m` zeros
+inside the unit circle, and none on it. -/
+theorem prop83M [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : PencilEigen.Assumption83 P.sys) {m : ℕ}
+    (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    zerosInside (alpha H.Λ) = m ∧ Prop83.zerosOnCircle (alpha H.Λ) = 0 := by
+  obtain ⟨y, φ, hyb, hya, hφb, hφm, h118⟩ := Prop83.exists_base_of_assumption81 hA
+  have hE := Prop83.homEquiv_of_perturbation h118 (hequiv_of_prop81M H hyb hya hφb hφm)
+  exact ⟨Prop83.eq_of_homEquiv hE P.β_pos h83 h87 hcirc,
+    Prop83.zerosOnCircle_eq_zero hE P.β_pos h83.regular hcirc⟩
+
+/-- Woodford (2003), (1.18), p. 540: a constant plan `y_t = v₀` with `T̃'W(T v₀ − τ*) = 0` and
+zero multipliers is a bounded adapted solution of the first-order conditions (with `M_t` known
+at `t`): a base point for Proposition 8.3 that needs no Assumption 8.1. -/
+theorem const_base (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    (v0 : (ιZ ⊕ ιz) ⊕ Unit → ℝ) (hv0 : P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ v0 - P.τstar)) = 0) :
+    BoundedV (fun (_ : ℕ) (_ : Ω) => v0) ∧ AdaptedV 𝔼 (fun (_ : ℕ) (_ : Ω) => v0) ∧
+      BoundedV (fun (_ : ℕ) (_ : Ω) (_ : ιZ ⊕ ιz) => (0 : ℝ)) ∧
+      MultKnown 𝔼 t0 (fun (_ : ℕ) (_ : Ω) (_ : ιZ ⊕ ιz) => (0 : ℝ)) ∧
+      Eq118 P 𝔼 t0 (fun _ _ => v0) (fun _ _ _ => 0) := by
+  refine ⟨⟨∑ i, |v0 i|, fun _ _ i =>
+      Finset.single_le_sum (f := fun i => |v0 i|) (fun _ _ => abs_nonneg _) (Finset.mem_univ i)⟩,
+    fun t i => 𝔼.const t (v0 i), ⟨0, fun _ _ _ => by simp⟩, fun t _ _ => 𝔼.const t 0, ?_⟩
+  intro t _ ω
+  have e : EV 𝔼 t (fun (_ : Ω) (_ : ιZ ⊕ ιz) => (0 : ℝ)) = fun _ _ => 0 :=
+    PencilSplit.EV_const 𝔼 t (fun _ => 0)
+  simp only [e, hv0]
+  simp [← Pi.zero_def]
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557, for every representation of the corrected
+Proposition 8.1, without Assumption 8.1**, when a constant plan attains the targets in the sense
+`T̃'W(T v₀ − τ*) = 0` (`const_base`): under Assumptions 8.3 and 8.7, with no root of (1.15) on
+`|λ| = β⁻¹`, `α(L) = det(I − ΛL)` has exactly `m` zeros inside the unit circle, and none on it. -/
+theorem prop83M_const [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) (v0 : (ιZ ⊕ ιz) ⊕ Unit → ℝ)
+    (hv0 : P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ v0 - P.τstar)) = 0)
+    (h83 : PencilEigen.Assumption83 P.sys) {m : ℕ}
+    (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    zerosInside (alpha H.Λ) = m ∧ Prop83.zerosOnCircle (alpha H.Λ) = 0 := by
+  obtain ⟨hyb, hya, hφb, hφm, h118⟩ := const_base P 𝔼 t0 v0 hv0
+  have hE := Prop83.homEquiv_of_perturbation h118 (hequiv_of_prop81M H hyb hya hφb hφm)
+  exact ⟨Prop83.eq_of_homEquiv hE P.β_pos h83 h87 hcirc,
+    Prop83.zerosOnCircle_eq_zero hE P.β_pos h83.regular hcirc⟩
+
+/-- **Woodford (2003), Propositions 8.1 and 8.3 together, pp. 553–557.** Under Assumptions 8.1,
+8.2 (case (i)), 8.3, 8.4 and 8.7, with no root of (1.15) on `|λ| = β⁻¹`, Proposition 8.1 holds
+and every representation it delivers has `α(L)` with exactly `m` zeros inside the unit circle. -/
+theorem prop83_of_assumptions [Nonempty Ω] (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω)
+    (t0 : ℕ) (hA : Assumption81 P 𝔼 t0) (h82 : PencilEigen.Assumption82 P.sys P.β)
+    (hi : GeneralFOC.Selection.ConjClosed h82.sel) (h83 : PencilEigen.Assumption83 P.sys)
+    (h84 : PencilAssumptions.Assumption84 P.sys h82.sel) {m : ℕ}
+    (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    Nonempty (Prop81ConclusionM P 𝔼 t0) ∧
+      ∀ H : Prop81ConclusionM P 𝔼 t0, zerosInside (alpha H.Λ) = m :=
+  ⟨PencilAssumptions.prop81_of_assumptions P h82 hi h83 h84 𝔼 t0,
+    fun H => (prop83M H hA h83 h87 hcirc).1⟩
+
+/-- **Woodford (2003), Proposition 8.4, p. 558, for every representation of the corrected
+Proposition 8.1.** Under Assumptions 8.1, 8.3 and 8.7, with no root of (1.15) on `|λ| = β⁻¹`:
+`α(L) = α₁(L)α₂(L)` with `deg α₁ = m`, the zeros of `α₁` inside and those of `α₂` outside the
+unit circle; for every bounded adapted `w` the bounded forward inverse `g = α̃₁(L⁻¹)⁻¹ w` exists
+and is unique; and for bounded adapted instrument paths (1.28) holds at all dates `t ≥ T` iff
+(1.32) does. -/
+theorem prop84M [Nonempty Ω] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+    (H : Prop81ConclusionM P 𝔼 t0) (hA : Assumption81 P 𝔼 t0)
+    (h83 : PencilEigen.Assumption83 P.sys) {m : ℕ}
+    (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    ∃ α1 α2 : ℝ[X], alpha H.Λ = α1 * α2 ∧ α1.natDegree = m ∧
+      (∀ z ∈ (α1.map Complex.ofRealHom).roots, ‖z‖ < 1) ∧
+      (∀ z ∈ (α2.map Complex.ofRealHom).roots, 1 < ‖z‖) ∧
+      ∀ (lam istar : ℝ) (i w : ℕ → Ω → ℝ), BoundedProc i → 𝔼.Adapted i → BoundedProc w →
+        𝔼.Adapted w →
+        (∃! g, BoundedProc g ∧ 𝔼.Adapted g ∧ (aeval (fwdOp 𝔼) α1.reverse) g = w) ∧
+        ∀ g, BoundedProc g → 𝔼.Adapted g → (aeval (fwdOp 𝔼) α1.reverse) g = w → ∀ T,
+          ((∀ t, T ≤ t → (lam • (aeval (lagOp (Ω := Ω)) (alpha H.Λ))
+              (fun t ω => i t ω - istar) + w) t = 0) ↔
+            (∀ t, T ≤ t → (g + lam • ((lagOp (Ω := Ω)) ^ m)
+              ((aeval (lagOp (Ω := Ω)) α2) (fun t ω => i t ω - istar))) t = 0)) := by
+  obtain ⟨hm, hc⟩ := prop83M H hA h83 h87 hcirc
+  obtain ⟨α1, α2, hfac, hmon, hroots1, hdeg, hroots2⟩ :=
+    Prop84General.exists_inside_factorization (alpha H.Λ) (alpha_ne_zero _)
+  have hin : ∀ z ∈ (α1.map Complex.ofRealHom).roots, ‖z‖ < 1 := by
+    intro z hz
+    rw [hroots1] at hz
+    exact (Multiset.mem_filter.mp hz).2
+  have hrev : ∀ z ∈ (α1.reverse.map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+    rw [map_reverse_ofReal]
+    exact roots_reverse_outside hin
+  have hrev0 : α1.reverse ≠ 0 := fun h => hmon.ne_zero (reverse_eq_zero.mp h)
+  refine ⟨α1, α2, hfac, hdeg.trans hm, hin,
+    Prop84General.roots_cofactor_outside (alpha_ne_zero _) hfac hroots2 hc,
+    fun lam istar i w hib hia hwb hwa => ⟨?_, fun g hgb hga hg T => ?_⟩⟩
+  · exact Prop84General.forward_inverse_existsUnique hrev0 hrev hwb hwa
+  · rw [hfac]
+    exact Prop84General.prop84_from (hdeg.trans hm) hmon.ne_zero hrev hib hia hgb hga hg T
+
+end Woodford.OptimalPolicyRules.Prop83Links
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Assumption 8.1 does not exclude roots of (1.15) on `|μ| = β⁻¹`
+
+Woodford (2003), *Interest and Prices*, Chapter 8: Assumption 8.1 (p. 541) and the characteristic
+polynomial (1.15) (p. 546); the circle `|μ| = β⁻¹` is the boundary of the root count of
+Assumptions 8.2 and 8.7 (pp. 552, 556), and `Prop83.prop83` needs that no root lies on it.
+
+The scalar problem `circProblem`: `E_t z_{t+1} = β⁻¹ z_t + i_t + c_t` (`n_Z = 0`, `n_z = 1`) with
+loss `½(z_t² + i_t²)`. The root of (1.15) is `μ = β⁻¹`, on the circle. Yet the first-order
+conditions reduce to the workhorse `βE_t M_{t+1} − (1 + β + β²) M_t + M_{t−1} = −β² c_t`
+(Chapter 7's second-order equation, `InflTargetInertia.secondOrder_existsUnique`), which has a
+unique bounded solution for every bounded disturbance and initial multiplier: Assumption 8.1
+holds (`circ_assumption81`).
+
+So the hypothesis "no root on `|μ| = β⁻¹`" of `Prop83.prop83` is not implied by Assumption 8.1
+(`assumption81_not_exclude_circle`). (In this scalar problem Assumption 8.7 fails, `m = 0`; it
+settles the question asked, not a counterexample to Proposition 8.3 itself.)
+-/
+
+namespace Woodford.OptimalPolicyRules.Circle81
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ
+open InflTargetInertia (SecondOrder ysol secondOrder_existsUnique lagW)
+
+/-- Woodford (2003), eq. (1.1), p. 537: `E_t z_{t+1} = β⁻¹ z_t + i_t + c_t`. -/
+noncomputable def circSys (β : ℝ) (hβ : β ≠ 0) : LinearRESystem Empty Unit where
+  A11 := 0
+  A12 := 0
+  A21 := 0
+  A22 := Matrix.of fun _ _ => β⁻¹
+  Et := 1
+  B2 := fun _ => 1
+  A22_isUnit := by
+    rw [isUnit_iff_ne_zero, det_unique]
+    exact inv_ne_zero hβ
+  B2_ne_zero := by
+    intro h
+    have := congrFun h ()
+    simp at this
+
+/-- Woodford (2003), eqs. (1.2)–(1.4), p. 537: the loss `½(z_t² + i_t²)`, `τ = (z, i)`,
+`W = I`. -/
+noncomputable def circProblem (β : ℝ) (hβ0 : 0 < β) (hβ1 : β < 1) :
+    LQProblem Empty Unit (Fin 2) where
+  sys := circSys β hβ0.ne'
+  β := β
+  β_pos := hβ0
+  β_lt_one := hβ1
+  Ttil := Matrix.of fun a col => Sum.elim (fun e => e.elim) (fun _ => if a = 0 then 1 else 0) col
+  Ti := ![0, 1]
+  W := 1
+  τstar := 0
+  W_posDef := PosDef.one
+
+variable {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+
+/-- Woodford (2003), eq. (1.15), p. 546: `det(A − μÎ) = β⁻¹ − μ`; its root `β⁻¹` lies on the
+circle `|μ| = β⁻¹`. -/
+theorem circ_root : (β⁻¹ : ℂ) ∈ (circSys β hβ0.ne').pencilPoly.roots ∧
+    ‖((β : ℂ))⁻¹‖ = β⁻¹ := by
+  have hp : (circSys β hβ0.ne').pencilPoly = C ((β : ℂ)⁻¹) - X := by
+    refine Polynomial.funext fun z => ?_
+    rw [PencilSplit.pencilPoly_eval, Prop83.det_empty_sum, det_unique]
+    simp [toBlocks₂₂, LinearRESystem.Ahat, LinearRESystem.Ihat, circSys,
+      fromBlocks_apply₂₂]
+  refine ⟨?_, ?_⟩
+  · rw [hp, mem_roots]
+    · simp
+    · intro h
+      have := congrArg natDegree h
+      rw [natDegree_sub_eq_right_of_natDegree_lt (by simp)] at this
+      simp at this
+  · rw [norm_inv, Complex.norm_real, Real.norm_of_nonneg hβ0.le]
+
+/-- Woodford (2003), (1.9) for `circProblem`, p. 541: with `M_t` known at `t`, the first-order
+conditions at date `t` are `β⁻¹M_t + z_t − β⁻¹M_{t−1} = 0` and `M_t + i_t = 0`. -/
+theorem circ_foc_at_iff (𝔼 : ExpectationSystem Unit)
+    (y : ℕ → Unit → (Empty ⊕ Unit) ⊕ Unit → ℝ) {φ : ℕ → Unit → Empty ⊕ Unit → ℝ}
+    (hmφ : MultiplierMeas 𝔼 φ) (t : ℕ) (ω : Unit) :
+    ((circProblem β hβ0 hβ1).sys.Atilᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω +
+      (circProblem β hβ0 hβ1).Tᵀ *ᵥ ((circProblem β hβ0 hβ1).W *ᵥ
+        ((circProblem β hβ0 hβ1).T *ᵥ y t ω - (circProblem β hβ0 hβ1).τstar)) -
+      (circProblem β hβ0 hβ1).β⁻¹ • ((circProblem β hβ0 hβ1).sys.Itilᵀ *ᵥ φ t ω) = 0) ↔
+      (β⁻¹ * φ (t + 1) ω (Sum.inr ()) + y t ω (Sum.inl (Sum.inr ())) -
+          β⁻¹ * φ t ω (Sum.inr ()) = 0 ∧
+        φ (t + 1) ω (Sum.inr ()) + y t ω (Sum.inr ()) = 0) := by
+  have hE : 𝔼.E t (fun ω' => φ (t + 1) ω' (Sum.inr ())) ω = φ (t + 1) ω (Sum.inr ()) :=
+    congrFun (hmφ t ()) ω
+  rw [foc_iff_split _ hmφ y t ω]
+  have key : ∀ v : Empty ⊕ Unit → ℝ, v = 0 ↔ v (Sum.inr ()) = 0 := by
+    intro v
+    constructor
+    · intro h
+      rw [h]
+      rfl
+    · intro h
+      funext r
+      rcases r with e | u
+      · exact e.elim
+      · exact h
+  rw [key]
+  simp [circProblem, circSys, LinearRESystem.Ahat, LinearRESystem.Ihat, LQProblem.T, Mpart,
+    EV, hE, mulVec, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two, fromBlocks_apply₂₂]
+
+/-- Woodford (2003), (1.1) for `circProblem`: `E_t z_{t+1} = β⁻¹z_t + i_t + c_t`. -/
+theorem circ_structural_iff (𝔼 : ExpectationSystem Unit) (c : ℕ → Unit → Unit → ℝ)
+    (y : ℕ → Unit → (Empty ⊕ Unit) ⊕ Unit → ℝ) :
+    (circSys β hβ0.ne').Structural 𝔼 c 0 y ↔
+      ∀ t ω, 𝔼.E t (fun ω' => y (t + 1) ω' (Sum.inl (Sum.inr ()))) ω =
+        β⁻¹ * y t ω (Sum.inl (Sum.inr ())) + y t ω (Sum.inr ()) + c t ω () := by
+  unfold LinearRESystem.Structural
+  constructor
+  · intro h t ω
+    have := congrFun (h t (Nat.zero_le t) ω).2 ()
+    simpa [circSys, EV, zpart, Zpart, ipart, mulVec, dotProduct] using this
+  · intro h t _ ω
+    refine ⟨funext fun e => e.elim, funext fun u => ?_⟩
+    have := h t ω
+    simpa [circSys, EV, zpart, Zpart, ipart, mulVec, dotProduct] using this
+
+/-- **Woodford (2003), Assumption 8.1, p. 541, for `circProblem` (perfect foresight).** For every
+bounded disturbance and initial multiplier, the system (1.1) + (1.9) has exactly one bounded
+solution: the multiplier solves the workhorse second-order equation
+`βM_{t+1} − (1 + β + β²)M_t + M_{t−1} = −β²c_t`, and `z_t = β⁻¹(M_{t−1} − M_t)`, `i_t = −M_t`. -/
+theorem circ_assumption81 : Assumption81 (circProblem β hβ0 hβ1) perfectForesight 0 := by
+  have hβ := hβ0.ne'
+  have hc : (0 : ℝ) < β ^ 2 := by positivity
+  -- the second-order equation of a solution
+  have hsecond : ∀ {c : ℕ → Unit → Unit → ℝ} {Z0 : Unit → Empty → ℝ} {M0 : Unit → Unit → ℝ}
+      {y : ℕ → Unit → (Empty ⊕ Unit) ⊕ Unit → ℝ} {φ : ℕ → Unit → Empty ⊕ Unit → ℝ},
+      FOCSystem (circProblem β hβ0 hβ1) perfectForesight c 0 Z0 M0 y φ →
+      SecondOrder perfectForesight β (β ^ 2) (fun ω => M0 ω ())
+        (fun t ω => -β ^ 2 * c t ω ()) (fun t ω => φ (t + 1) ω (Sum.inr ())) := by
+    intro c Z0 M0 y φ hsys t ω
+    have hfoc := fun s => (circ_foc_at_iff hβ0 hβ1 perfectForesight y hsys.2.2.1 s ω).mp
+      (hsys.2.2.2.2 s (Nat.zero_le s) ω)
+    have hstr := (circ_structural_iff hβ0 perfectForesight c y).mp hsys.1.1 t ω
+    have hlag : lagW (fun ω => M0 ω ()) (fun t ω => φ (t + 1) ω (Sum.inr ())) t ω =
+        φ t ω (Sum.inr ()) := by
+      cases t with
+      | zero => exact (congrFun (hsys.2.2.2.1 ω) ()).symm
+      | succ t => rfl
+    rw [hlag]
+    have h0 := (hfoc t).1
+    have h1 := (hfoc (t + 1)).1
+    have h2 := (hfoc t).2
+    change y (t + 1) ω (Sum.inl (Sum.inr ())) =
+      β⁻¹ * y t ω (Sum.inl (Sum.inr ())) + y t ω (Sum.inr ()) + c t ω () at hstr
+    change β * φ (t + 1 + 1) ω (Sum.inr ()) - (1 + β + β ^ 2) * φ (t + 1) ω (Sum.inr ()) +
+      φ t ω (Sum.inr ()) = -β ^ 2 * c t ω ()
+    have hstr' : β * y (t + 1) ω (Sum.inl (Sum.inr ())) = y t ω (Sum.inl (Sum.inr ())) +
+        β * y t ω (Sum.inr ()) + β * c t ω () := by
+      rw [hstr]
+      field_simp
+    field_simp at h0 h1
+    linear_combination β * h1 - β * hstr' - h0 - β ^ 2 * h2
+  refine ⟨fun c Z0 M0 hcb _ _ _ => ?_, fun c Z0 M0 y y' φ φ' h h' t _ => ?_⟩
+  · obtain ⟨Mc, hMc⟩ := hcb
+    have hf : ∀ t ω, |(fun t ω => -β ^ 2 * c t ω ()) t ω| ≤ β ^ 2 * Mc := by
+      intro t ω
+      simp only [abs_mul, abs_neg, abs_pow, abs_of_pos hβ0]
+      exact mul_le_mul_of_nonneg_left (hMc t ω ()) hc.le
+    obtain ⟨⟨hsol, hsa, hsb⟩, -⟩ := secondOrder_existsUnique perfectForesight hβ0 hβ1 hc hf
+      (fun _ => rfl) (y₀ := fun ω => M0 ω ()) (Y := |M0 () ()|) (fun ω => le_refl _) rfl
+    set Ms := ysol perfectForesight β (β ^ 2) (fun ω => M0 ω ()) (fun t ω => -β ^ 2 * c t ω ())
+      with hMs
+    set Ml := lagW (fun ω => M0 ω ()) Ms with hMl
+    set yP : ℕ → Unit → (Empty ⊕ Unit) ⊕ Unit → ℝ := fun t ω =>
+      Sum.elim (Sum.elim (fun e => e.elim) (fun _ => β⁻¹ * (Ml t ω - Ms t ω)))
+        (fun _ => -Ms t ω) with hyP
+    set φP : ℕ → Unit → Empty ⊕ Unit → ℝ := fun t ω =>
+      Sum.elim (fun e => e.elim) (fun _ => Ml t ω) with hφP
+    obtain ⟨B, hB⟩ := hsb
+    have hB0 : 0 ≤ B := (abs_nonneg _).trans (hB 0 ())
+    have hβi : 0 < β⁻¹ := inv_pos.mpr hβ0
+    have hm : 0 ≤ max |M0 () ()| B := (abs_nonneg _).trans (le_max_left _ _)
+    have hl : ∀ t ω, |Ml t ω| ≤ max |M0 () ()| B := fun t ω => InflTargetInertia.lagW_bounded
+      (fun ω => le_refl |M0 ω ()|) hB t ω
+    have hmult : MultiplierMeas perfectForesight φP := fun t r => rfl
+    refine ⟨yP, φP, ⟨⟨?_, fun ω => funext fun e => e.elim, ?_, fun t i => rfl⟩, ?_, hmult,
+        fun ω => funext fun u => rfl, fun t _ ω => ?_⟩⟩
+    · change (circSys β hβ0.ne').Structural perfectForesight c 0 yP
+      rw [circ_structural_iff hβ0]
+      intro t ω
+      have := hsol t ω
+      change β * Ms (t + 1) ω - (1 + β + β ^ 2) * Ms t ω + Ml t ω = -β ^ 2 * c t ω () at this
+      change β⁻¹ * (Ml (t + 1) ω - Ms (t + 1) ω) =
+        β⁻¹ * (β⁻¹ * (Ml t ω - Ms t ω)) + -Ms t ω + c t ω ()
+      have e : Ml (t + 1) ω = Ms t ω := rfl
+      rw [e]
+      field_simp
+      linear_combination -this
+    · refine ⟨β⁻¹ * (max |M0 () ()| B + B) + B + max |M0 () ()| B, fun t ω i => ?_⟩
+      have hs := hB t ω
+      have hp : 0 ≤ β⁻¹ * (max |M0 () ()| B + B) := by positivity
+      rcases i with (e | u) | u
+      · exact e.elim
+      · change |β⁻¹ * (Ml t ω - Ms t ω)| ≤ _
+        rw [abs_mul, abs_of_pos hβi]
+        have := mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add (hl t ω) hs)) hβi.le
+        linarith
+      · change |-Ms t ω| ≤ _
+        rw [abs_neg]
+        linarith
+    · refine ⟨max |M0 () ()| B, fun t ω i => ?_⟩
+      rcases i with e | u
+      · exact e.elim
+      · exact hl t ω
+    · refine (circ_foc_at_iff hβ0 hβ1 perfectForesight yP hmult t ω).mpr ⟨?_, ?_⟩
+      · change β⁻¹ * Ml (t + 1) ω + β⁻¹ * (Ml t ω - Ms t ω) - β⁻¹ * Ml t ω = 0
+        have e : Ml (t + 1) ω = Ms t ω := rfl
+        rw [e]
+        ring
+      · change Ml (t + 1) ω + -Ms t ω = 0
+        have e : Ml (t + 1) ω = Ms t ω := rfl
+        rw [e]
+        ring
+  · -- uniqueness
+    have hf : ∀ t ω, |(fun t ω => -β ^ 2 * c t ω ()) t ω| ≤ β ^ 2 * |c t ω ()| := by
+      intro t ω
+      simp only [abs_mul, abs_neg, abs_pow, abs_of_pos hβ0]
+      exact le_refl _
+    have hMb : ∀ {y : ℕ → Unit → (Empty ⊕ Unit) ⊕ Unit → ℝ} {φ : ℕ → Unit → Empty ⊕ Unit → ℝ},
+        FOCSystem (circProblem β hβ0 hβ1) perfectForesight c 0 Z0 M0 y φ →
+        BoundedProc (fun t ω => φ (t + 1) ω (Sum.inr ())) := by
+      intro y φ hs
+      obtain ⟨B, hB⟩ := hs.2.1
+      exact ⟨B, fun t ω => hB (t + 1) ω (Sum.inr ())⟩
+    obtain ⟨Bc, hBc⟩ : ∃ Bc, ∀ t ω, |c t ω ()| ≤ Bc := by
+      -- `c` is bounded: it is determined by the bounded plan through (1.1)
+      obtain ⟨By, hBy⟩ := h.1.2.2.1
+      refine ⟨By + β⁻¹ * By + By, fun t ω => ?_⟩
+      have hstr := (circ_structural_iff hβ0 perfectForesight c y).mp h.1.1 t ω
+      change y (t + 1) ω (Sum.inl (Sum.inr ())) =
+        β⁻¹ * y t ω (Sum.inl (Sum.inr ())) + y t ω (Sum.inr ()) + c t ω () at hstr
+      have e : c t ω () = y (t + 1) ω (Sum.inl (Sum.inr ())) -
+          β⁻¹ * y t ω (Sum.inl (Sum.inr ())) - y t ω (Sum.inr ()) := by linarith
+      rw [e]
+      have h1 := hBy (t + 1) ω (Sum.inl (Sum.inr ()))
+      have h2 := hBy t ω (Sum.inl (Sum.inr ()))
+      have h3 := hBy t ω (Sum.inr ())
+      have hβi : 0 < β⁻¹ := inv_pos.mpr hβ0
+      calc _ ≤ |y (t + 1) ω (Sum.inl (Sum.inr ()))| + |β⁻¹ * y t ω (Sum.inl (Sum.inr ()))| +
+            |y t ω (Sum.inr ())| := by
+            exact (abs_sub _ _).trans (add_le_add (abs_sub _ _) le_rfl)
+        _ ≤ _ := by
+            rw [abs_mul, abs_of_pos hβi]
+            nlinarith
+    have hf' : ∀ t ω, |(fun t ω => -β ^ 2 * c t ω ()) t ω| ≤ β ^ 2 * Bc := fun t ω =>
+      (hf t ω).trans (mul_le_mul_of_nonneg_left (hBc t ω) hc.le)
+    have huniq := (secondOrder_existsUnique perfectForesight hβ0 hβ1 hc hf' (fun _ => rfl)
+      (y₀ := fun ω => M0 ω ()) (Y := |M0 () ()|) (fun ω => le_refl _) rfl).2
+    have e1 := huniq _ (hsecond h) (fun _ => rfl) (hMb h)
+    have e2 := huniq _ (hsecond h') (fun _ => rfl) (hMb h')
+    have hM : ∀ s ω, φ s ω (Sum.inr ()) = φ' s ω (Sum.inr ()) := by
+      intro s ω
+      cases s with
+      | zero => exact (congrFun (h.2.2.2.1 ω) ()).trans (congrFun (h'.2.2.2.1 ω) ()).symm
+      | succ s => exact (congrFun (congrFun e1 s) ω).trans (congrFun (congrFun e2 s) ω).symm
+    have hfo := fun s ω => (circ_foc_at_iff hβ0 hβ1 perfectForesight y h.2.2.1 s ω).mp
+      (h.2.2.2.2 s (Nat.zero_le s) ω)
+    have hfo' := fun s ω => (circ_foc_at_iff hβ0 hβ1 perfectForesight y' h'.2.2.1 s ω).mp
+      (h'.2.2.2.2 s (Nat.zero_le s) ω)
+    refine ⟨funext fun ω => funext fun i => ?_, funext fun ω => funext fun i => ?_⟩
+    · rcases i with (e | u) | u
+      · exact e.elim
+      · have a := (hfo t ω).1
+        have b := (hfo' t ω).1
+        rw [hM, hM] at a
+        linarith
+      · have a := (hfo t ω).2
+        have b := (hfo' t ω).2
+        rw [hM] at a
+        linarith
+    · rcases i with e | u
+      · exact e.elim
+      · exact hM t ω
+
+/-- **Woodford (2003), Assumption 8.1 (p. 541) and (1.15) (p. 546): Assumption 8.1 does not
+exclude roots on `|μ| = β⁻¹`.** For `0 < β < 1`, `circProblem` satisfies Assumption 8.1 (under
+perfect foresight) and its characteristic polynomial (1.15) has the root `β⁻¹`, of modulus
+exactly `β⁻¹`. -/
+theorem assumption81_not_exclude_circle :
+    Assumption81 (circProblem β hβ0 hβ1) perfectForesight 0 ∧
+      ∃ l ∈ (circProblem β hβ0 hβ1).sys.pencilPoly.roots, ‖l‖ = (circProblem β hβ0 hβ1).β⁻¹ :=
+  ⟨circ_assumption81 hβ0 hβ1, _, (circ_root hβ0).1, (circ_root hβ0).2⟩
+
+end Woodford.OptimalPolicyRules.Circle81
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The inflation-inertia model: deflating splits, Proposition 8.3, and Rule III
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §3.2, pp. 592–604, and App. G.6–G.7,
+pp. 724–732, through the general Propositions 8.1 and 8.3 (§1.4–1.5, pp. 553–557).
+
+The inflation-inertia model (`GeneralLinksInertia.inProblem`: `n_Z = 1`, `Z_t = π_{t−1}`,
+`z = (π, x)`) is fed through the general machinery of Propositions 8.1 and 8.3.
+
+## Main results
+
+* **The characteristic polynomial (1.15).** `in_pencil_eval`, `in_pencilPoly`:
+  `det(A − μÎ) = −β(μ − μ₁)(μ − μ₂)(μ − μ₃)` with `μⱼ = (βλⱼ)⁻¹` for the roots `λⱼ` of
+  Proposition 8.7 (`CubicRoots`); `in_assumption83` (Assumption 8.3 when `S² ≠ 4P₂₃`),
+  `in_stableCount` (`n_Z + m` roots with `|μ| < β⁻¹`, `m = 1`), `in_no_circle`.
+* **Proposition 8.3 for the model.** `in_prop83`: for EVERY representation of the corrected
+  Proposition 8.1 (`Prop81ConclusionM`), `α(L) = det(I − ΛL)` has exactly one zero inside the unit
+  circle and none on it (real or complex roots; no Assumption 8.1 needed).
+* **The deflating splits (G.4).** `inSplit`: for each real root `λₛ` of `λ² − Sλ + P₂₃` (the root
+  solved forward) a `DeflatingSplit` with `J = (1, μ, σμ²/(1 − μ))'`, `Ψ = [μ]`, `μ = (βλₛ)⁻¹`;
+  `in_Kdet` (`det K = γ/μ`), `in_Λmat` (explicit `Λ`), `alpha_inJ`:
+  `α(L) = (1 − λ₁L)(1 − (S − λₛ)L)`. `alpha_ruleI`, `alpha_ruleII`: solving `λ₃` (resp. `λ₂`)
+  forward gives the lag polynomial of Rule I (3.22) (resp. Rule II (3.23)).
+* **Every split is one of these; Rule III.** `split_classify`, `split_alpha`: every
+  `DeflatingSplit` of the model has `Λ` (hence `α`) of some `inSplit`; `split_isEmpty`: in the
+  complex case there is none; `split_not_ruleIII`: away from `S² = 4P₂₃` no split has Rule III's
+  lag polynomial `(1 − λ₁L)(1 − ½(λ₂ + λ₃)L)` (3.24).
+* **Proposition 8.9's `ρ₁ > 1` from Proposition 8.3.** `one_lt_trace_sub_det` (a `2 × 2` lemma:
+  one zero of `α` inside, none on the circle, `det Λ, tr Λ > 0` ⇒ `tr Λ − det Λ > 1`) and
+  `prop_8_9_rho1_from_general`: `ρ₁ = 1 + (λ_b − 1)(1 − λ₁) > 1` for Rules I and II.
+
+## Implementation notes
+
+The `3 × 3` determinants are computed by reindexing `Unit ⊕ Fin 2 ≃ Fin 3` (`eqv3`).
+-/
+
+namespace Woodford.OptimalPolicyRules.InertiaSplit
+
+open Matrix Polynomial GeneralSetup Adjugate PencilSplit
+open TargetCriterion (zerosInside)
+open IRuleBasic (Calib)
+open CubicRoots
+open GeneralLinksInertia (inSys inProblem in_det_ne in_xvec)
+
+/-- The reindexing `Unit ⊕ Fin 2 ≃ Fin 3` used for `3 × 3` determinants. -/
+def eqv3 : Unit ⊕ Fin 2 ≃ Fin 3 :=
+  (Equiv.sumCongr finOneEquiv.symm (Equiv.refl _)).trans finSumFinEquiv
+
+/-- Woodford (2003), (1.15) (tool): `eqv3⁻¹ 0` is the predetermined coordinate `Z`. -/
+theorem eqv3_0 : eqv3.symm 0 = Sum.inl () := rfl
+
+/-- Woodford (2003), (1.15) (tool): `eqv3⁻¹ 1` is the `π`-coordinate. -/
+theorem eqv3_1 : eqv3.symm 1 = Sum.inr 0 := rfl
+
+/-- Woodford (2003), (1.15) (tool): `eqv3⁻¹ 2` is the `x`-coordinate. -/
+theorem eqv3_2 : eqv3.symm 2 = Sum.inr 1 := rfl
+
+variable (c : Calib) (γ : ℝ)
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-! ### The characteristic polynomial (1.15) of the inertia model -/
+
+/-- Woodford (2003), App. G.6, p. 725: the root `μ = (βλ)⁻¹` of (1.15) belonging to a root `λ`
+of `P(λ)` (3.17)–(3.20). -/
+noncomputable def muj (l : ℂ) : ℂ := ((c.β : ℂ) * l)⁻¹
+
+/-- Woodford (2003), eq. (1.15), p. 546, for the inertia model:
+`det(A − μÎ) = γ − (1 + γ + βγ)μ + (1 + β + βγ + κσ)μ² − βμ³`. -/
+theorem in_pencil_eval (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) (z : ℂ) :
+    (inSys c γ hσ hd).pencilPoly.eval z = γ - (1 + γ + c.β * γ) * z +
+      (1 + c.β + c.β * γ + c.κ * c.σ) * z ^ 2 - c.β * z ^ 3 := by
+  rw [PencilSplit.pencilPoly_eval, ← det_submatrix_equiv_self eqv3.symm, det_fin_three]
+  simp [eqv3_0, eqv3_1, eqv3_2, LinearRESystem.Ahat, LinearRESystem.Ihat, inSys]
+  ring
+
+/-- Woodford (2003), (1.15) at `μ = 0`: `det A = γ` for the inertia model. -/
+theorem in_Ahat_det (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) :
+    (inSys c γ hσ hd).Ahat.det = γ := by
+  rw [← det_submatrix_equiv_self eqv3.symm, det_fin_three]
+  simp [eqv3_0, eqv3_1, eqv3_2, LinearRESystem.Ahat, inSys]
+
+/-- Woodford (2003), Prop. 8.7, p. 594: `λ₂ ≠ 0` (indeed `|λ₂| > 1`). -/
+theorem lam2_ne_zero {β γ κ σ : ℝ} (h : Assumptions.Standing β γ κ σ) : lam2 β γ κ σ ≠ 0 :=
+  fun e => by
+    have := one_lt_norm_lam2 h
+    rw [e, norm_zero] at this
+    linarith
+
+/-- Woodford (2003), Prop. 8.7, p. 594: `λ₃ ≠ 0` (indeed `|λ₃| > 1`). -/
+theorem lam3_ne_zero {β γ κ σ : ℝ} (h : Assumptions.Standing β γ κ σ) : lam3 β γ κ σ ≠ 0 :=
+  fun e => by
+    have := one_lt_norm_lam3 h
+    rw [e, norm_zero] at this
+    linarith
+
+/-- Woodford (2003), (1.15) and Prop. 8.7, App. G.6, p. 725: under the standing assumptions the
+characteristic polynomial of the inertia model is `−β(μ − μ₁)(μ − μ₂)(μ − μ₃)`,
+`μⱼ = (βλⱼ)⁻¹`. -/
+theorem in_pencilPoly (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) :
+    (inSys c γ hσ hd).pencilPoly = C (-(c.β : ℂ)) * (X - C (muj c (lam1 c.β γ c.κ c.σ))) *
+      (X - C (muj c (lam2 c.β γ c.κ c.σ))) * (X - C (muj c (lam3 c.β γ c.κ c.σ))) := by
+  have hβ : (c.β : ℂ) ≠ 0 := by exact_mod_cast h.beta_pos.ne'
+  have h1 : (lam1 c.β γ c.κ c.σ : ℂ) ≠ 0 := by exact_mod_cast (lam1_spec h).1.ne'
+  have h2 := lam2_ne_zero h
+  have h3 := lam3_ne_zero h
+  have hv := vieta_G19 h
+  refine Polynomial.funext fun z => ?_
+  rw [in_pencil_eval]
+  have hA := ApolyC_factor h ((c.β : ℂ) * z)
+  have key : ∀ l : ℂ, l ≠ 0 →
+      (1 - l * ((c.β : ℂ) * z)) = -((c.β : ℂ) * l) * (z - ((c.β : ℂ) * l)⁻¹) := by
+    intro l hl
+    field_simp
+    ring
+  rw [key _ h1, key _ h2, key _ h3] at hA
+  have e : ApolyC c.β γ c.κ c.σ ((c.β : ℂ) * z) = (c.β : ℂ) * ((γ : ℂ) - (1 + γ + c.β * γ) * z +
+      (1 + c.β + c.β * γ + c.κ * c.σ) * z ^ 2 - c.β * z ^ 3) := by
+    simp only [ApolyC, coefA0, coefA1, coefA2, coefA3]
+    push_cast
+    field_simp
+    ring
+  rw [e] at hA
+  simp only [eval_mul, eval_C, eval_sub, eval_X, muj]
+  refine mul_left_cancel₀ hβ ?_
+  rw [hA]
+  push_cast
+  have hv' : (c.β : ℂ) * γ * ((c.β : ℂ) * lam1 c.β γ c.κ c.σ * lam2 c.β γ c.κ c.σ *
+      lam3 c.β γ c.κ c.σ) = 1 := by
+    rw [← hv]
+    exact inv_mul_cancel₀ (by simp [hβ, h1, h2, h3])
+  linear_combination (-(c.β : ℂ) ^ 2 * (z - ((c.β : ℂ) * (lam1 c.β γ c.κ c.σ : ℂ))⁻¹) *
+    (z - ((c.β : ℂ) * lam2 c.β γ c.κ c.σ)⁻¹) * (z - ((c.β : ℂ) * lam3 c.β γ c.κ c.σ)⁻¹)) * hv'
+
+/-- Woodford (2003), App. G.6: `|μ| = (β|λ|)⁻¹` for `μ = (βλ)⁻¹`. -/
+theorem norm_muj (hβ : 0 < c.β) (l : ℂ) : ‖muj c l‖ = (c.β * ‖l‖)⁻¹ := by
+  rw [muj, norm_inv, norm_mul, Complex.norm_real, Real.norm_of_nonneg hβ.le]
+
+/-- Woodford (2003), (1.15) and Prop. 8.7: the roots of (1.15) are `μ₁, μ₂, μ₃`. -/
+theorem in_roots (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) :
+    (inSys c γ hσ hd).pencilPoly.roots = {muj c (lam1 c.β γ c.κ c.σ),
+      muj c (lam2 c.β γ c.κ c.σ), muj c (lam3 c.β γ c.κ c.σ)} := by
+  have hβ : -(c.β : ℂ) ≠ 0 := neg_ne_zero.mpr (by exact_mod_cast h.beta_pos.ne')
+  rw [in_pencilPoly c γ h, mul_assoc, mul_assoc, roots_C_mul _ hβ,
+    roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (mul_ne_zero (X_sub_C_ne_zero _)
+      (X_sub_C_ne_zero _))), roots_mul (mul_ne_zero (X_sub_C_ne_zero _) (X_sub_C_ne_zero _)),
+    roots_X_sub_C, roots_X_sub_C, roots_X_sub_C]
+  rfl
+
+/-- Woodford (2003), pp. 552, 556, with Prop. 8.7: `|μ₁| > β⁻¹` (as `λ₁ < 1`) while
+`|μ₂|, |μ₃| < β⁻¹` (as `|λ₂|, |λ₃| > 1`). -/
+theorem in_root_norms (h : Assumptions.Standing c.β γ c.κ c.σ) :
+    c.β⁻¹ < ‖muj c (lam1 c.β γ c.κ c.σ)‖ ∧ ‖muj c (lam2 c.β γ c.κ c.σ)‖ < c.β⁻¹ ∧
+      ‖muj c (lam3 c.β γ c.κ c.σ)‖ < c.β⁻¹ := by
+  have hβ := h.beta_pos
+  have h1 := lam1_spec h
+  rw [norm_muj c hβ, norm_muj c hβ, norm_muj c hβ, Complex.norm_real,
+    Real.norm_of_nonneg h1.1.le]
+  refine ⟨?_, ?_, ?_⟩
+  · exact inv_strictAnti₀ (mul_pos hβ h1.1) (by nlinarith)
+  · exact inv_strictAnti₀ hβ (by nlinarith [one_lt_norm_lam2 h])
+  · exact inv_strictAnti₀ hβ (by nlinarith [one_lt_norm_lam3 h])
+
+/-- Woodford (2003), App. G.6: `μ = (βλ)⁻¹ ≠ 0`. -/
+theorem muj_ne_zero (h : Assumptions.Standing c.β γ c.κ c.σ) {l : ℂ} (hl : l ≠ 0) :
+    muj c l ≠ 0 :=
+  inv_ne_zero (mul_ne_zero (by exact_mod_cast h.beta_pos.ne') hl)
+
+/-- Woodford (2003), Assumption 8.7, p. 556, for the inertia model: exactly `n_Z + 1 = 2` roots
+of (1.15) have `|μ| < β⁻¹` (`A` is invertible), so `m = 1`. -/
+theorem in_stableCount (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) :
+    (inSys c γ hσ hd).stableCount c.β⁻¹ = Fintype.card Unit + 1 := by
+  obtain ⟨n1, n2, n3⟩ := in_root_norms c γ h
+  have hA : (inSys c γ hσ hd).Ahat.rank = 3 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+    · simp
+    · rw [in_Ahat_det]
+      exact isUnit_iff_ne_zero.mpr h.gamma_pos.ne'
+  have z2 := muj_ne_zero c γ h (lam2_ne_zero h)
+  have z3 := muj_ne_zero c γ h (lam3_ne_zero h)
+  unfold LinearRESystem.stableCount
+  rw [in_roots c γ h, hA]
+  simp only [Multiset.insert_eq_cons, Multiset.filter_cons, Multiset.filter_singleton]
+  simp [n1.not_gt, n2, n3, z2, z3]
+
+/-- Woodford (2003), p. 537: `det Ẽ = β` for the inertia model. -/
+theorem in_Et_det (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) : (inSys c γ hσ hd).Et.det = c.β := by
+  simp [inSys, det_fin_two]
+
+/-- Woodford (2003), App. G.6: `λ ↦ (βλ)⁻¹` is injective. -/
+theorem muj_injective (hβ : c.β ≠ 0) {l l' : ℂ} (h : muj c l = muj c l') : l = l' :=
+  mul_left_cancel₀ (by exact_mod_cast hβ : (c.β : ℂ) ≠ 0) (inv_injective h)
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716, for the inertia model: (1.15) is a nonzero
+polynomial with `3 = rank Ẽ + rank A − n_z` distinct nonzero roots, provided `λ₂ ≠ λ₃`
+(`S² ≠ 4P₂₃`). -/
+theorem in_assumption83 (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) (hD : discQ c.β γ c.κ c.σ ≠ 0) :
+    PencilEigen.Assumption83 (inSys c γ hσ hd) := by
+  obtain ⟨n1, n2, n3⟩ := in_root_norms c γ h
+  have z1 := muj_ne_zero c γ h (by exact_mod_cast (lam1_spec h).1.ne' :
+    (lam1 c.β γ c.κ c.σ : ℂ) ≠ 0)
+  have z2 := muj_ne_zero c γ h (lam2_ne_zero h)
+  have z3 := muj_ne_zero c γ h (lam3_ne_zero h)
+  have hnz : PencilEigen.nonzeroRoots (inSys c γ hσ hd) = {muj c (lam1 c.β γ c.κ c.σ),
+      muj c (lam2 c.β γ c.κ c.σ), muj c (lam3 c.β γ c.κ c.σ)} := by
+    rw [PencilEigen.nonzeroRoots, in_roots c γ h, Multiset.filter_eq_self]
+    intro a ha
+    simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at ha
+    rcases ha with rfl | rfl | rfl
+    exacts [z1, z2, z3]
+  have hA : (inSys c γ hσ hd).Ahat.rank = 3 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+    · simp
+    · rw [in_Ahat_det]
+      exact isUnit_iff_ne_zero.mpr h.gamma_pos.ne'
+  have hE : (inSys c γ hσ hd).Et.rank = 2 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+    · simp
+    · rw [in_Et_det]
+      exact isUnit_iff_ne_zero.mpr h.beta_pos.ne'
+  refine (PencilEigen.Assumption83.ofRoots _ ?_ ?_ ?_).elim id
+  · rw [in_pencilPoly c γ h]
+    exact mul_ne_zero (mul_ne_zero (mul_ne_zero (C_ne_zero.mpr
+      (neg_ne_zero.mpr (by exact_mod_cast h.beta_pos.ne'))) (X_sub_C_ne_zero _))
+      (X_sub_C_ne_zero _)) (X_sub_C_ne_zero _)
+  · rw [hnz]
+    have h12 : muj c (lam1 c.β γ c.κ c.σ) ≠ muj c (lam2 c.β γ c.κ c.σ) := fun e => by
+      rw [e] at n1; linarith
+    have h13 : muj c (lam1 c.β γ c.κ c.σ) ≠ muj c (lam3 c.β γ c.κ c.σ) := fun e => by
+      rw [e] at n1; linarith
+    have h23 : muj c (lam2 c.β γ c.κ c.σ) ≠ muj c (lam3 c.β γ c.κ c.σ) := fun e =>
+      hD (lam2_eq_lam3_iff.mp (muj_injective c h.beta_pos.ne' e))
+    simp [h12, h13, h23]
+  · rw [hnz, hA, hE]
+    simp
+
+/-- Woodford (2003), pp. 556–558, for the inertia model: no root of (1.15) lies on
+`|μ| = β⁻¹`. -/
+theorem in_no_circle (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) : ∀ l ∈ (inSys c γ hσ hd).pencilPoly.roots, ‖l‖ ≠ c.β⁻¹ := by
+  obtain ⟨n1, n2, n3⟩ := in_root_norms c γ h
+  intro l hl
+  rw [in_roots c γ h] at hl
+  simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at hl
+  rcases hl with rfl | rfl | rfl
+  · exact n1.ne'
+  · exact n2.ne
+  · exact n3.ne
+
+/-! ### A deflating split for each real selected root -/
+
+/-- Woodford (2003), eq. (1.15), p. 546, for the inertia model at a real argument:
+`det(A − μÎ) = γ − (1 + γ + βγ)μ + (1 + β + βγ + κσ)μ² − βμ³` (`in_pencil_eval`). -/
+noncomputable def pR (μ : ℝ) : ℝ :=
+  γ - (1 + γ + c.β * γ) * μ + (1 + c.β + c.β * γ + c.κ * c.σ) * μ ^ 2 - c.β * μ ^ 3
+
+/-- Woodford (2003), App. G.1, (G.4), p. 717, for the inertia model: the `3 × 1` matrix
+`J = (1, μ, σμ²/(1 − μ))'` spanning the right deflating subspace of a selected root `μ`
+(`Z`-row, then the `π`- and `x`-rows). -/
+noncomputable def inJ (μ : ℝ) : Matrix (Unit ⊕ Fin 2) Unit ℝ :=
+  Matrix.of fun r _ => Sum.elim (fun _ => 1) ![μ, c.σ * μ ^ 2 / (1 - μ)] r
+
+/-- Woodford (2003), App. G.1, (G.4), p. 717: `Ψ = [μ]` (`n_Z = 1`). -/
+def inPsi (μ : ℝ) : Matrix Unit Unit ℝ := Matrix.of fun _ _ => μ
+
+/-- Woodford (2003), (1.15): `μ = 1` is never a root, `det(A − Î) = κσ`. -/
+theorem pR_one : pR c γ 1 = c.κ * c.σ := by
+  unfold pR
+  ring
+
+/-- Woodford (2003), (1.15): `μ = 0` is never a root, `det A = γ`. -/
+theorem pR_zero : pR c γ 0 = γ := by
+  unfold pR
+  ring
+
+/-- Woodford (2003), App. G.6, p. 725: `det(A − μÎ)` at `μ = (βλ)⁻¹` is `P(λ)/(βλ³)`, so the
+roots of (1.15) are the `(βλⱼ)⁻¹` of the roots `λⱼ` of (3.17)–(3.20). -/
+theorem pR_inv {l : ℝ} (hβ : c.β ≠ 0) (hl : l ≠ 0) :
+    pR c γ (c.β * l)⁻¹ * (c.β * l ^ 3) = Precip c.β γ c.κ c.σ l := by
+  unfold pR Precip coefA2
+  field_simp
+  ring
+
+/-- Woodford (2003), App. G.1, (G.4), p. 717: `A J = Î J Ψ` for `J = inJ μ`, `Ψ = [μ]`, at every
+real root `μ ≠ 1` of (1.15). -/
+theorem in_deflate (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) {μ : ℝ} (hp : pR c γ μ = 0)
+    (h1 : 1 - μ ≠ 0) :
+    (inSys c γ hσ hd).Ahat * inJ c μ = (inSys c γ hσ hd).Ihat * inJ c μ * inPsi μ := by
+  ext r u
+  rcases r with r | j
+  · simp [mul_apply, Fintype.sum_sum_type, LinearRESystem.Ahat, LinearRESystem.Ihat, inSys, inJ,
+      inPsi]
+  · fin_cases j
+    · simp [mul_apply, Fintype.sum_sum_type, Fin.sum_univ_two, LinearRESystem.Ahat,
+        LinearRESystem.Ihat, inSys, inJ, inPsi]
+      field_simp
+      unfold pR at hp
+      linear_combination -hp
+    · simp [mul_apply, Fintype.sum_sum_type, Fin.sum_univ_two, LinearRESystem.Ahat,
+        LinearRESystem.Ihat, inSys, inJ, inPsi]
+      field_simp
+      ring
+
+/-- Woodford (2003), App. G.1, p. 718: `J₁ = 1` for `J = inJ μ`. -/
+theorem in_J1 (μ : ℝ) : J1 (inJ c μ) = 1 := by
+  ext a b
+  simp [J1, inJ]
+
+/-- Woodford (2003), eq. (1.21), p. 553: `Υ = −(J₁')⁻¹J₂'Ẽ' = −(βμ, σμ + σμ²/(1 − μ))`. -/
+theorem in_Υmat (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) (μ : ℝ) :
+    Υmat (inSys c γ hσ hd) (inJ c μ) =
+      Matrix.of fun _ j => ![-(c.β * μ), -(c.σ * μ + c.σ * μ ^ 2 / (1 - μ))] j := by
+  rw [Υmat, in_J1, transpose_one, inv_one, Matrix.one_mul]
+  ext a j
+  fin_cases j <;> simp [mul_apply, Fin.sum_univ_two, J2, inJ, inSys] <;> ring
+
+/-- Woodford (2003), eq. (1.20), p. 553: `K = A₂₂' + A₁₂'Υ` for the inertia model. -/
+theorem in_Kmat (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) (μ : ℝ) :
+    Kmat (inSys c γ hσ hd) (inJ c μ) =
+      !![1 + c.β * γ - c.β * μ, -(c.σ * μ + c.σ * μ ^ 2 / (1 - μ)); -c.κ, 1] := by
+  rw [Kmat, in_Υmat]
+  ext i j
+  fin_cases i <;> fin_cases j <;> simp [mul_apply, inSys]
+  all_goals ring
+
+/-- Woodford (2003), Assumption 8.4 (i) for the inertia model: `det K = γ/μ ≠ 0` at a root. -/
+theorem in_Kdet (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) {μ : ℝ} (hp : pR c γ μ = 0)
+    (h1 : 1 - μ ≠ 0) (h0 : μ ≠ 0) :
+    (Kmat (inSys c γ hσ hd) (inJ c μ)).det = γ / μ := by
+  rw [in_Kmat, det_fin_two_of]
+  unfold pR at hp
+  field_simp
+  linear_combination -hp
+
+/-- Woodford (2003), eq. (1.20), p. 553: `Λ = β⁻¹K⁻¹Ẽ'` for the inertia model,
+`Λ = (μ/(βγ)) [β, σ + d; κβ, κσ + 1 + βγ − βμ]`, `d = σμ/(1 − μ)`. -/
+theorem in_Λmat (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) (hβ : c.β ≠ 0) (hγ : γ ≠ 0) {μ : ℝ}
+    (hp : pR c γ μ = 0) (h1 : 1 - μ ≠ 0) (h0 : μ ≠ 0) :
+    Λmat (inSys c γ hσ hd) c.β (inJ c μ) = (μ / (c.β * γ)) •
+      !![c.β, c.σ + (c.σ * μ + c.σ * μ ^ 2 / (1 - μ));
+        c.κ * c.β, c.κ * c.σ + (1 + c.β * γ - c.β * μ)] := by
+  have hEt : (inSys c γ hσ hd).Etᵀ = !![c.β, c.σ; 0, 1] := by
+    ext i j
+    fin_cases i <;> fin_cases j <;> rfl
+  rw [Λmat, inv_def, in_Kdet c γ hσ hd hp h1 h0, in_Kmat, adjugate_fin_two_of, hEt,
+    Ring.inverse_eq_inv', Matrix.smul_mul, mul_fin_two, smul_smul]
+  congr 1
+  · field_simp
+  · ext i j
+    fin_cases i <;> fin_cases j <;> simp
+
+/-- Woodford (2003), (1.22), p. 553: for a `2 × 2` matrix,
+`α(L) = det(I − ΛL) = 1 − (tr Λ)L + (det Λ)L²`. -/
+theorem alpha_fin_two (Λ : Matrix (Fin 2) (Fin 2) ℝ) :
+    Adjugate.alpha Λ = 1 - C Λ.trace * X + C Λ.det * X ^ 2 := by
+  rw [Adjugate.alpha, Adjugate.lagMat, det_fin_two, det_fin_two, trace_fin_two]
+  simp only [Matrix.sub_apply, Matrix.smul_apply, Matrix.map_apply, Matrix.one_apply_eq,
+    Matrix.one_apply_ne (by decide : (0 : Fin 2) ≠ 1),
+    Matrix.one_apply_ne (by decide : (1 : Fin 2) ≠ 0), smul_eq_mul, C_add, C_sub, C_mul]
+  ring
+
+/-- Woodford (2003), (1.20): `tr Λ = (μ/(βγ))(1 + β + βγ + κσ − βμ)` for the inertia model. -/
+theorem in_Λ_trace (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) (hβ : c.β ≠ 0) (hγ : γ ≠ 0) {μ : ℝ}
+    (hp : pR c γ μ = 0) (h1 : 1 - μ ≠ 0) (h0 : μ ≠ 0) :
+    (Λmat (inSys c γ hσ hd) c.β (inJ c μ)).trace =
+      μ / (c.β * γ) * (1 + c.β + c.β * γ + c.κ * c.σ - c.β * μ) := by
+  rw [in_Λmat c γ hσ hd hβ hγ hp h1 h0, trace_fin_two]
+  simp
+  ring
+
+/-- Woodford (2003), (1.20): `det Λ = μ/(βγ)` for the inertia model. -/
+theorem in_Λ_det (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) (hβ : c.β ≠ 0) (hγ : γ ≠ 0) {μ : ℝ}
+    (hp : pR c γ μ = 0) (h1 : 1 - μ ≠ 0) (h0 : μ ≠ 0) :
+    (Λmat (inSys c γ hσ hd) c.β (inJ c μ)).det = μ / (c.β * γ) := by
+  have hEt : (inSys c γ hσ hd).Et.det = c.β := in_Et_det c γ hσ hd
+  rw [Λmat, det_smul, det_mul, det_nonsing_inv, det_transpose, hEt, in_Kdet c γ hσ hd hp h1 h0,
+    Ring.inverse_eq_inv', Fintype.card_fin]
+  field_simp
+
+/-! ### The quadratic factor `λ² − Sλ + P₂₃` -/
+
+/-- Woodford (2003), (G.18), p. 725: the quadratic `λ² − Sλ + P₂₃` with roots `λ₂, λ₃`. -/
+noncomputable def quadQ (β γ κ σ l : ℝ) : ℝ := l ^ 2 - sumS β γ κ σ * l + prodP β γ κ σ
+
+/-- Woodford (2003), App. G.6, p. 726: completing the square,
+`λ² − Sλ + P₂₃ = (λ − S/2)² − (S² − 4P₂₃)/4`. -/
+theorem quadQ_eq (β γ κ σ l : ℝ) :
+    quadQ β γ κ σ l = (l - sumS β γ κ σ / 2) ^ 2 - discQ β γ κ σ / 4 := by
+  unfold quadQ discQ
+  ring
+
+/-- Woodford (2003), Prop. 8.7, p. 594: in the real case `λ₂ʳ` is a root of the quadratic. -/
+theorem quadQ_lam2r {β γ κ σ : ℝ} (hD : 0 ≤ discQ β γ κ σ) : quadQ β γ κ σ (lam2r β γ κ σ) = 0 := by
+  rw [quadQ_eq]
+  unfold lam2r
+  have := Real.sq_sqrt hD
+  linear_combination this / 4
+
+/-- Woodford (2003), Prop. 8.7, p. 594: in the real case `λ₃ʳ` is a root of the quadratic. -/
+theorem quadQ_lam3r {β γ κ σ : ℝ} (hD : 0 ≤ discQ β γ κ σ) : quadQ β γ κ σ (lam3r β γ κ σ) = 0 := by
+  rw [quadQ_eq]
+  unfold lam3r
+  have := Real.sq_sqrt hD
+  linear_combination this / 4
+
+/-- Woodford (2003), Prop. 8.7, p. 594: a real root of `λ² − Sλ + P₂₃` exists only in the real
+case, and is `λ₂ʳ` or `λ₃ʳ`. -/
+theorem quadQ_cases {β γ κ σ l : ℝ} (hq : quadQ β γ κ σ l = 0) :
+    0 ≤ discQ β γ κ σ ∧ (l = lam2r β γ κ σ ∨ l = lam3r β γ κ σ) := by
+  rw [quadQ_eq] at hq
+  have hD : discQ β γ κ σ = (2 * l - sumS β γ κ σ) ^ 2 := by linear_combination -4 * hq
+  refine ⟨hD ▸ sq_nonneg _, ?_⟩
+  have hs : Real.sqrt (discQ β γ κ σ) = |2 * l - sumS β γ κ σ| := by
+    rw [hD, Real.sqrt_sq_eq_abs]
+  unfold lam2r lam3r
+  rw [hs]
+  rcases le_or_gt 0 (2 * l - sumS β γ κ σ) with h | h
+  · right
+    rw [abs_of_nonneg h]
+    ring
+  · left
+    rw [abs_of_neg h]
+    ring
+
+/-- Woodford (2003), Prop. 8.7, p. 594: the real roots of `λ² − Sλ + P₂₃` exceed one. -/
+theorem one_lt_of_quadQ {β γ κ σ l : ℝ} (h : Assumptions.Standing β γ κ σ)
+    (hq : quadQ β γ κ σ l = 0) : 1 < l := by
+  rcases (quadQ_cases hq).2 with rfl | rfl
+  · exact one_lt_lam2r h
+  · exact one_lt_lam3r h
+
+/-- Woodford (2003), (G.18), p. 725: `P(λ) = βγ(λ − λ₁)(λ² − Sλ + P₂₃)`, so a real root
+`λ ≠ λ₁` of (3.17) is a root of the quadratic factor. -/
+theorem quadQ_of_Precip {β γ κ σ l : ℝ} (h : Assumptions.Standing β γ κ σ)
+    (hP : Precip β γ κ σ l = 0) (hl : l ≠ lam1 β γ κ σ) : quadQ β γ κ σ l = 0 := by
+  rw [Precip_factor h] at hP
+  rcases mul_eq_zero.mp hP with h1 | h1
+  · rcases mul_eq_zero.mp h1 with h2 | h2
+    · exact absurd h2 (mul_ne_zero h.beta_pos.ne' h.gamma_pos.ne')
+    · exact absurd (sub_eq_zero.mp h2) hl
+  · exact h1
+
+/-! ### The split of a real root `λₛ` solved forward -/
+
+/-- Woodford (2003), (G.20), p. 725, with (1.15): at `μ = (βλₛ)⁻¹`,
+`tr Λ = λ₁ + (S − λₛ)`. -/
+theorem tr_eq (h : Assumptions.Standing c.β γ c.κ c.σ) {ls : ℝ} (hls : ls ≠ 0)
+    (hp : pR c γ (c.β * ls)⁻¹ = 0) :
+    (c.β * ls)⁻¹ / (c.β * γ) * (1 + c.β + c.β * γ + c.κ * c.σ - c.β * (c.β * ls)⁻¹) =
+      lam1 c.β γ c.κ c.σ + (sumS c.β γ c.κ c.σ - ls) := by
+  have hβ := h.beta_pos.ne'
+  have hγ := h.gamma_pos.ne'
+  have hv := vieta_sum h
+  unfold pR at hp
+  field_simp at hp ⊢
+  linear_combination hp - c.β * ls ^ 2 * hv
+
+/-- Woodford (2003), (G.19), p. 725: at `μ = (βλₛ)⁻¹`, `det Λ = μ/(βγ) = λ₁(S − λₛ)`. -/
+theorem det_eq (h : Assumptions.Standing c.β γ c.κ c.σ) {ls : ℝ} (hls : ls ≠ 0)
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) :
+    (c.β * ls)⁻¹ / (c.β * γ) = lam1 c.β γ c.κ c.σ * (sumS c.β γ c.κ c.σ - ls) := by
+  have hβ := h.beta_pos.ne'
+  have hγ := h.gamma_pos.ne'
+  have hv := vieta_const h
+  unfold quadQ at hq
+  field_simp at hv ⊢
+  linear_combination -hv + c.β ^ 2 * γ * lam1 c.β γ c.κ c.σ * hq
+
+/-- Woodford (2003), App. G.6: a root `λₛ` of the quadratic factor gives the root
+`μ = (βλₛ)⁻¹` of (1.15), with `0 < μ < β⁻¹` and `μ ≠ 1`. -/
+theorem mu_facts (h : Assumptions.Standing c.β γ c.κ c.σ) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) :
+    pR c γ (c.β * ls)⁻¹ = 0 ∧ 1 - (c.β * ls)⁻¹ ≠ 0 ∧ (c.β * ls)⁻¹ ≠ 0 ∧
+      0 < (c.β * ls)⁻¹ ∧ (c.β * ls)⁻¹ < c.β⁻¹ := by
+  have hβ := h.beta_pos
+  have hls := one_lt_of_quadQ h hq
+  have hP : Precip c.β γ c.κ c.σ ls = 0 := by
+    rw [Precip_factor h, show ls ^ 2 - sumS c.β γ c.κ c.σ * ls + prodP c.β γ c.κ c.σ = 0 from hq,
+      mul_zero]
+  have hp : pR c γ (c.β * ls)⁻¹ = 0 := by
+    have e := pR_inv c γ hβ.ne' (by linarith : ls ≠ 0)
+    rw [hP] at e
+    rcases mul_eq_zero.mp e with e | e
+    · exact e
+    · exact absurd e (mul_ne_zero hβ.ne' (pow_ne_zero 3 (by linarith)))
+  have hpos : 0 < (c.β * ls)⁻¹ := inv_pos.mpr (mul_pos hβ (by linarith))
+  refine ⟨hp, fun e => ?_, hpos.ne', hpos, inv_strictAnti₀ hβ (by nlinarith)⟩
+  have : (c.β * ls)⁻¹ = 1 := by linarith
+  rw [this, pR_one] at hp
+  exact (mul_pos h.kappa_pos h.sigma_pos).ne' hp
+
+/-- **Woodford (2003), App. G.1, (G.4), pp. 717–718, for the inertia model: the deflating split
+of a real root `λₛ` of `λ² − Sλ + P₂₃`** (the root solved forward; `μ = (βλₛ)⁻¹` is the selected
+root of (1.15) with `|μ| < β⁻¹`), `J = inJ μ`, `Ψ = [μ]`. -/
+noncomputable def inSplit (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) :
+    DeflatingSplit (inProblem c γ hc hγ0.le).sys c.β where
+  J := inJ c (c.β * ls)⁻¹
+  Ψ := inPsi (c.β * ls)⁻¹
+  deflate := by
+    have h : Assumptions.Standing c.β γ c.κ c.σ :=
+      ⟨hc.2.2.1, hc.2.2.2.1, hc.1, hc.2.1, hγ0, hγ1⟩
+    obtain ⟨hp, h1, -⟩ := mu_facts c γ h hq
+    exact in_deflate c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hp h1
+  eig_lt := by
+    have h : Assumptions.Standing c.β γ c.κ c.σ :=
+      ⟨hc.2.2.1, hc.2.2.2.1, hc.1, hc.2.1, hγ0, hγ1⟩
+    obtain ⟨-, -, -, hpos, hlt⟩ := mu_facts c γ h hq
+    intro ν hν
+    rw [det_unique] at hν
+    simp only [Matrix.sub_apply, scalar_apply, diagonal_apply_eq, Matrix.map_apply, inPsi,
+      Matrix.of_apply, sub_eq_zero] at hν
+    rw [hν, Complex.norm_real, Real.norm_of_nonneg hpos.le]
+    exact hlt
+  J1_det := by
+    rw [in_J1, det_one]
+    exact one_ne_zero
+  K_det := by
+    have h : Assumptions.Standing c.β γ c.κ c.σ :=
+      ⟨hc.2.2.1, hc.2.2.2.1, hc.1, hc.2.1, hγ0, hγ1⟩
+    obtain ⟨hp, h1, h0, -⟩ := mu_facts c γ h hq
+    rw [show (inProblem c γ hc hγ0.le).sys = inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)
+      from rfl, in_Kdet c γ _ _ hp h1 h0]
+    exact div_ne_zero hγ0.ne' h0
+
+/-- **Woodford (2003), (1.22) and (3.22)–(3.23), for the inertia model**: the split solving the
+real root `λₛ` forward has `α(L) = det(I − ΛL) = (1 − λ₁L)(1 − λ_bL)` with `λ_b = S − λₛ` the
+other root of `λ² − Sλ + P₂₃`. -/
+theorem alpha_inJ (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) {ls : ℝ} (hq : quadQ c.β γ c.κ c.σ ls = 0) :
+    alpha (Λmat (inSys c γ hσ hd) c.β (inJ c (c.β * ls)⁻¹)) =
+      (1 - C (lam1 c.β γ c.κ c.σ) * X) * (1 - C (sumS c.β γ c.κ c.σ - ls) * X) := by
+  obtain ⟨hp, h1, h0, -⟩ := mu_facts c γ h hq
+  have hls : ls ≠ 0 := by linarith [one_lt_of_quadQ h hq]
+  rw [alpha_fin_two, in_Λ_trace c γ hσ hd h.beta_pos.ne' h.gamma_pos.ne' hp h1 h0,
+    in_Λ_det c γ hσ hd h.beta_pos.ne' h.gamma_pos.ne' hp h1 h0, tr_eq c γ h hls hp,
+    det_eq c γ h hls hq, C_add, C_mul]
+  ring
+
+/-! ### Proposition 8.3 for the inertia model, and Proposition 8.9's `ρ₁ > 1` -/
+
+/-- Woodford (2003), Prop. 8.7, p. 594: the standing assumptions of the cubic from an admissible
+calibration with `0 < γ ≤ 1`. -/
+theorem standing_of (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) :
+    Assumptions.Standing c.β γ c.κ c.σ :=
+  ⟨hc.2.2.1, hc.2.2.2.1, hc.1, hc.2.1, hγ0, hγ1⟩
+
+/-- Woodford (2003), (1.18): the constant plan `Z = π = 0`, `x = x*`, `i = 0` attains the
+targets entering `T̃'W(τ − τ*)` (`T̃'W(Tv₀ − τ*) = 0`), a base point for Proposition 8.3. -/
+theorem in_xvec_base (hc : c.Adm) (hγ : 0 ≤ γ) :
+    (inProblem c γ hc hγ).Ttilᵀ *ᵥ ((inProblem c γ hc hγ).W *ᵥ ((inProblem c γ hc hγ).T *ᵥ
+      Sum.elim (Sum.elim (fun _ => 0) ![0, c.xstar]) (fun _ => 0) -
+        (inProblem c γ hc hγ).τstar)) = 0 := by
+  rw [in_xvec]
+  funext r
+  rcases r with r | k
+  · simp
+  · fin_cases k <;> simp
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557, for the inertia model, for every
+representation of Proposition 8.1** (any expectation system, nonempty sample space; real or
+complex roots, `S² ≠ 4P₂₃`): `α(L) = det(I − ΛL)` has exactly one zero inside the unit circle
+and none on it. Here `n_Z = 1`, (1.15) has the two roots `(βλ₂)⁻¹, (βλ₃)⁻¹` with `|μ| < β⁻¹`
+(`m = 1`), and no root on `|μ| = β⁻¹`; Assumption 8.1 is not needed (`prop83M_const`). -/
+theorem in_prop83 {Ω : Type*} [Nonempty Ω] (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : discQ c.β γ c.κ c.σ ≠ 0) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    (H : Prop81General.Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) :
+    zerosInside (alpha H.Λ) = 1 ∧ Prop83.zerosOnCircle (alpha H.Λ) = 0 :=
+  Prop83Links.prop83M_const H _ (in_xvec_base c γ hc hγ0.le)
+    (in_assumption83 c γ (standing_of c γ hc hγ0 hγ1) hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hD)
+    (in_stableCount c γ (standing_of c γ hc hγ0 hγ1) hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le))
+    (in_no_circle c γ (standing_of c γ hc hγ0 hγ1) hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le))
+
+/-- Woodford (2003), Proposition 8.3 for a `2 × 2` matrix `Λ` with `det Λ > 0` and `tr Λ > 0`:
+if `α(L) = det(I − ΛL)` has exactly one zero inside the unit circle and none on it, then
+`tr Λ − det Λ > 1`, i.e. `α(1) < 0`. (The eigenvalues are real, since a complex pair has equal
+moduli; both are positive; one exceeds one and the other is below one.) -/
+theorem one_lt_trace_sub_det (Λ : Matrix (Fin 2) (Fin 2) ℝ) (hin : zerosInside (alpha Λ) = 1)
+    (hon : Prop83.zerosOnCircle (alpha Λ) = 0) (hdet : 0 < Λ.det) (htr : 0 < Λ.trace) :
+    1 < Λ.trace - Λ.det := by
+  rw [Prop83.zerosInside_alpha] at hin
+  rw [Prop83.zerosOnCircle_alpha] at hon
+  obtain ⟨a, b, hab⟩ := Multiset.card_eq_two.mp (Prop83.card_charpoly_roots (Prop83.cmat Λ))
+  have hsplit := prod_multiset_X_sub_C_of_monic_of_roots_card_eq (charpoly_monic (Prop83.cmat Λ))
+    (by rw [Prop83.card_charpoly_roots, charpoly_natDegree_eq_dim])
+  rw [hab, charpoly_fin_two] at hsplit
+  simp only [Multiset.insert_eq_cons, Multiset.map_cons, Multiset.map_singleton,
+    Multiset.prod_cons, Multiset.prod_singleton] at hsplit
+  have htrC : (Prop83.cmat Λ).trace = (Λ.trace : ℂ) := by
+    simp [trace_fin_two, Prop83.cmat]
+  have hdetC : (Prop83.cmat Λ).det = (Λ.det : ℂ) := by
+    simp [det_fin_two, Prop83.cmat]
+  rw [htrC, hdetC] at hsplit
+  have c1 : -a - b = -(Λ.trace : ℂ) := by
+    simpa [coeff_X, coeff_C, mul_sub, sub_mul] using
+      congrArg (fun p : ℂ[X] => p.coeff 1) hsplit
+  have c0 : a * b = (Λ.det : ℂ) := by
+    simpa [coeff_X, coeff_C, mul_sub, sub_mul] using
+      congrArg (fun p : ℂ[X] => p.coeff 0) hsplit
+  rw [hab] at hin hon
+  have hs : a + b = (Λ.trace : ℂ) := by linear_combination -c1
+  have him := congrArg Complex.im hs
+  have hre := congrArg Complex.re hs
+  have pim := congrArg Complex.im c0
+  have pre := congrArg Complex.re c0
+  simp only [Complex.add_im, Complex.add_re, Complex.ofReal_im, Complex.ofReal_re,
+    Complex.mul_im, Complex.mul_re] at him hre pim pre
+  simp only [Multiset.insert_eq_cons, Multiset.filter_cons, Multiset.filter_singleton] at hin hon
+  by_cases h0 : a.im = 0
+  · have h0' : b.im = 0 := by linarith
+    obtain ⟨x, rfl⟩ : ∃ x : ℝ, a = x := ⟨a.re, Complex.ext (by simp) (by simp [h0])⟩
+    obtain ⟨y, rfl⟩ : ∃ y : ℝ, b = y := ⟨b.re, Complex.ext (by simp) (by simp [h0'])⟩
+    simp only [Complex.ofReal_re, Complex.ofReal_im, mul_zero, sub_zero] at hre pre
+    have hx : 0 < x := by
+      by_contra hx
+      nlinarith [not_lt.mp hx]
+    have hy : 0 < y := by
+      by_contra hy
+      nlinarith [not_lt.mp hy]
+    simp only [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hx, abs_of_pos hy] at hin hon
+    rw [← hre, ← pre]
+    by_cases h1 : 1 < x <;> by_cases h2 : 1 < y <;> simp [h1, h2] at hin
+    · have : y ≠ 1 := fun e => by simp [e] at hon
+      have : y < 1 := lt_of_le_of_ne (not_lt.mp h2) this
+      nlinarith
+    · have : x ≠ 1 := fun e => by simp [e] at hon
+      have : x < 1 := lt_of_le_of_ne (not_lt.mp h1) this
+      nlinarith
+  · exfalso
+    have hbim : b.im = -a.im := by linarith
+    have hbre : b.re = a.re := by
+      rw [hbim] at pim
+      have : a.im * (b.re - a.re) = 0 := by linear_combination pim
+      rcases mul_eq_zero.mp this with e | e
+      · exact absurd e h0
+      · linarith
+    have hb : b = (starRingEnd ℂ) a := Complex.ext (by simp [hbre]) (by simp [hbim])
+    rw [hb, Complex.norm_conj] at hin
+    by_cases h1 : 1 < ‖a‖ <;> simp [h1] at hin
+
+/-- **Woodford (2003), Proposition 8.9, p. 596, `ρ₁ > 1`, obtained from the general
+Proposition 8.3.** For the deflating split solving a real root `λₛ` forward, the general
+Proposition 8.3 (`in_prop83`: one zero of `α(L)` inside the unit circle, none on it) together
+with `det Λ > 0` and `tr Λ > 0` (read off `Λ` without its eigenvalues) gives `tr Λ − det Λ > 1`;
+since `tr Λ = λ₁ + λ_b` and `det Λ = λ₁λ_b` (`λ_b = S − λₛ`), this is
+`ρ₁ = 1 + (λ_b − 1)(1 − λ₁) > 1`, the coefficient of (3.25) for Rule I (`λₛ = λ₃`) and Rule II
+(`λₛ = λ₂`). -/
+theorem prop_8_9_rho1_from_general {Ω : Type*} [Nonempty Ω] (hc : c.Adm) (hγ0 : 0 < γ)
+    (hγ1 : γ ≤ 1) (hD : discQ c.β γ c.κ c.σ ≠ 0) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) :
+    1 < InflationInertiaRepresentations.rho1 (lam1 c.β γ c.κ c.σ) (sumS c.β γ c.κ c.σ - ls) := by
+  have h := standing_of c γ hc hγ0 hγ1
+  obtain ⟨hin, hon⟩ := in_prop83 c γ hc hγ0 hγ1 hD 𝔼 t0
+    (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0)
+  obtain ⟨hp, h1, h0, hpos, hlt⟩ := mu_facts c γ h hq
+  have hls : ls ≠ 0 := by linarith [one_lt_of_quadQ h hq]
+  have hβγ : 0 < c.β * γ := mul_pos hc.1 hγ0
+  have hΛ : (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Λ =
+      Λmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β (inJ c (c.β * ls)⁻¹) := rfl
+  rw [hΛ] at hin hon
+  have htr := in_Λ_trace c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hc.1.ne' hγ0.ne' hp h1 h0
+  have hdet := in_Λ_det c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hc.1.ne' hγ0.ne' hp h1 h0
+  have hβμ : c.β * (c.β * ls)⁻¹ < 1 := by
+    calc c.β * (c.β * ls)⁻¹ < c.β * c.β⁻¹ := mul_lt_mul_of_pos_left hlt hc.1
+      _ = 1 := mul_inv_cancel₀ hc.1.ne'
+  have hκσ : 0 < c.κ * c.σ := mul_pos hc.2.2.2.1 hc.2.2.1
+  have key := one_lt_trace_sub_det _ hin hon (by rw [hdet]; positivity)
+    (by rw [htr]; exact mul_pos (div_pos hpos hβγ) (by nlinarith [hc.1, hβγ]))
+  rw [htr, hdet, tr_eq c γ h hls hp, det_eq c γ h hls hq] at key
+  unfold InflationInertiaRepresentations.rho1
+  linarith
+
+/-! ### Every deflating split of the inertia model solves a real root forward -/
+
+/-- Woodford (2003), (1.20)–(1.21), p. 553: `Υ`, hence `K` and `Λ`, depend only on the column
+space of `J`: `Υ(JM) = Υ(J)` for invertible `M`. -/
+theorem Υmat_mul (S : LinearRESystem ιZ ιz) (J : Matrix (ιZ ⊕ ιz) ιZ ℝ) {M : Matrix ιZ ιZ ℝ}
+    (hM : IsUnit M.det) : Υmat S (J * M) = Υmat S J := by
+  have hMt : IsUnit Mᵀ.det := by rwa [det_transpose]
+  rw [Υmat, Υmat, J1_mul, J2_mul, transpose_mul, transpose_mul, Matrix.mul_inv_rev,
+    Matrix.mul_assoc ((J1 J)ᵀ)⁻¹, ← Matrix.mul_assoc (Mᵀ)⁻¹, nonsing_inv_mul _ hMt,
+    Matrix.one_mul]
+
+/-- Woodford (2003), (1.20), p. 553: `Λ(JM) = Λ(J)` for invertible `M`. -/
+theorem Λmat_mul (S : LinearRESystem ιZ ιz) (β : ℝ) (J : Matrix (ιZ ⊕ ιz) ιZ ℝ)
+    {M : Matrix ιZ ιZ ℝ} (hM : IsUnit M.det) : Λmat S β (J * M) = Λmat S β J := by
+  rw [Λmat, Λmat, Kmat, Kmat, Υmat_mul S J hM]
+
+/-- **Woodford (2003), App. G.1 (G.4) for the inertia model: every deflating split is one of
+`inSplit`.** For any real `J` (`3 × 1`, `J₁ ≠ 0`), `Ψ = [ψ]` with `AJ = ÎJΨ` and `|ψ| < β⁻¹`,
+`ψ = (βλₛ)⁻¹` for a real root `λₛ` of `λ² − Sλ + P₂₃`, and `Λ` is that of `inJ ψ`. -/
+theorem split_classify (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) (D : DeflatingSplit (inSys c γ hσ hd) c.β) :
+    ∃ ls, quadQ c.β γ c.κ c.σ ls = 0 ∧
+      Λmat (inSys c γ hσ hd) c.β D.J = Λmat (inSys c γ hσ hd) c.β (inJ c (c.β * ls)⁻¹) := by
+  have hβ := h.beta_pos
+  set ψ := D.Ψ () () with hψ
+  set j := D.J (Sum.inl ()) () with hj
+  set a := D.J (Sum.inr 0) () with ha
+  set b := D.J (Sum.inr 1) () with hb
+  have hΨ : D.Ψ = inPsi ψ := by
+    ext u v
+    rfl
+  have hdef := D.deflate
+  have eZ : a = j * ψ := by
+    have := congrFun (congrFun hdef (Sum.inl ())) ()
+    simpa [mul_apply, Fintype.sum_sum_type, Fin.sum_univ_two, LinearRESystem.Ahat,
+      LinearRESystem.Ihat, inSys, hΨ, inPsi] using this
+  have e0 : -(γ * j) + ((1 + c.β * γ) * a + -(c.κ * b)) = c.β * a * ψ := by
+    have := congrFun (congrFun hdef (Sum.inr 0)) ()
+    simpa [mul_apply, Fintype.sum_sum_type, Fin.sum_univ_two, LinearRESystem.Ahat,
+      LinearRESystem.Ihat, inSys, hΨ, inPsi] using this
+  have e1 : b = (c.σ * a + b) * ψ := by
+    have := congrFun (congrFun hdef (Sum.inr 1)) ()
+    simpa [mul_apply, Fintype.sum_sum_type, Fin.sum_univ_two, LinearRESystem.Ahat,
+      LinearRESystem.Ihat, inSys, hΨ, inPsi] using this
+  have hj0 : j ≠ 0 := by
+    have := D.J1_det
+    rwa [det_unique] at this
+  have heig : ‖(ψ : ℂ)‖ < c.β⁻¹ := by
+    refine D.eig_lt ψ ?_
+    rw [det_unique, hΨ]
+    simp [inPsi]
+  rw [Complex.norm_real, Real.norm_eq_abs] at heig
+  have h1 : 1 - ψ ≠ 0 := by
+    intro e
+    have e' : ψ = 1 := by linarith
+    rw [e', mul_one] at e1
+    rw [e', mul_one] at eZ
+    have : c.σ * a = 0 := by linarith
+    rcases mul_eq_zero.mp this with e2 | e2
+    · exact hσ e2
+    · exact hj0 (eZ ▸ e2)
+  have hb' : b * (1 - ψ) = c.σ * ψ ^ 2 * j := by linear_combination e1 + c.σ * ψ * eZ
+  have hbv : b = c.σ * ψ ^ 2 / (1 - ψ) * j := by
+    rw [div_mul_eq_mul_div, eq_div_iff h1]
+    linear_combination hb'
+  have hp : pR c γ ψ = 0 := by
+    have : j * pR c γ ψ = 0 := by
+      unfold pR
+      linear_combination (-(1 - ψ)) * e0 + (1 - ψ) * (1 + c.β * γ - c.β * ψ) * eZ - c.κ * hb'
+    rcases mul_eq_zero.mp this with e | e
+    · exact absurd e hj0
+    · exact e
+  have hψ0 : ψ ≠ 0 := by
+    intro e
+    rw [e, pR_zero] at hp
+    exact h.gamma_pos.ne' hp
+  set ls := (c.β * ψ)⁻¹ with hls
+  have hls0 : ls ≠ 0 := inv_ne_zero (mul_ne_zero hβ.ne' hψ0)
+  have hψls : (c.β * ls)⁻¹ = ψ := by
+    rw [hls]
+    field_simp
+  have hP : Precip c.β γ c.κ c.σ ls = 0 := by
+    rw [← pR_inv c γ hβ.ne' hls0, hψls, hp, zero_mul]
+  have habs : 1 < |ls| := by
+    rw [hls, abs_inv, abs_mul, abs_of_pos hβ]
+    have hψpos : 0 < |ψ| := abs_pos.mpr hψ0
+    rw [one_lt_inv₀ (mul_pos hβ hψpos)]
+    calc c.β * |ψ| < c.β * c.β⁻¹ := mul_lt_mul_of_pos_left heig hβ
+      _ = 1 := mul_inv_cancel₀ hβ.ne'
+  have hne : ls ≠ lam1 c.β γ c.κ c.σ := by
+    intro e
+    have := lam1_spec h
+    rw [e, abs_of_pos this.1] at habs
+    linarith [this.2.1]
+  refine ⟨ls, quadQ_of_Precip h hP hne, ?_⟩
+  have hJ : D.J = inJ c ψ * Matrix.of (fun _ _ => j) := by
+    ext r u
+    cases u
+    rcases r with r | k
+    · simp [mul_apply, inJ, hj]
+    · fin_cases k
+      · simp only [mul_apply, inJ, Finset.univ_unique, Finset.sum_singleton, Matrix.of_apply,
+          Sum.elim_inr]
+        exact eZ.trans (mul_comm _ _)
+      · simp only [mul_apply, inJ, Finset.univ_unique, Finset.sum_singleton, Matrix.of_apply,
+          Sum.elim_inr]
+        exact hbv
+  rw [hJ, Λmat_mul _ _ _ (by rw [det_unique]; exact isUnit_iff_ne_zero.mpr hj0), hψls]
+
+/-- Woodford (2003), (1.22), (3.22)–(3.24): for every deflating split of the inertia model,
+`α(L) = (1 − λ₁L)(1 − λ_bL)` with `λ_b = S − λₛ` for a real root `λₛ` of `λ² − Sλ + P₂₃`. -/
+theorem split_alpha (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) (D : DeflatingSplit (inSys c γ hσ hd) c.β) :
+    ∃ ls, quadQ c.β γ c.κ c.σ ls = 0 ∧ alpha (Λmat (inSys c γ hσ hd) c.β D.J) =
+      (1 - C (lam1 c.β γ c.κ c.σ) * X) * (1 - C (sumS c.β γ c.κ c.σ - ls) * X) := by
+  obtain ⟨ls, hq, hΛ⟩ := split_classify c γ h hσ hd D
+  exact ⟨ls, hq, by rw [hΛ, alpha_inJ c γ h hσ hd hq]⟩
+
+/-- Woodford (2003), Prop. 8.7, p. 594: in the complex case (`S² − 4P₂₃ < 0`) the inertia model
+has **no** real deflating split (Assumption 8.2 (i) fails: the two roots with `|μ| < β⁻¹` are a
+complex pair and `n_Z = 1`). -/
+theorem split_isEmpty (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) (hD : discQ c.β γ c.κ c.σ < 0) :
+    IsEmpty (DeflatingSplit (inSys c γ hσ hd) c.β) := by
+  refine ⟨fun D => ?_⟩
+  obtain ⟨ls, hq, -⟩ := split_classify c γ h hσ hd D
+  exact absurd (quadQ_cases hq).1 (not_le.mpr hD)
+
+/-- Woodford (2003), (1.22): `1 − aL = 1 − bL` forces `a = b`, after cancelling a common factor
+`1 − cL`. -/
+theorem cancel_linear {a b d : ℝ}
+    (h : (1 - C d * X) * (1 - C a * X : ℝ[X]) = (1 - C d * X) * (1 - C b * X)) : a = b := by
+  have h0 : (1 - C d * X : ℝ[X]) ≠ 0 := by
+    intro e
+    have := congrArg (fun p : ℝ[X] => p.coeff 0) e
+    simp at this
+  have e := congrArg (fun p : ℝ[X] => p.coeff 1) (mul_left_cancel₀ h0 h)
+  simpa using e
+
+/-- **Woodford (2003), Rule III (3.24), p. 595, is not the rule (1.28) of any deflating split.**
+Away from the bifurcation `S² = 4P₂₃`, no deflating split of the inertia model has the lag
+polynomial `(1 − λ₁L)(1 − ½(λ₂ + λ₃)L)` of Rule III: every split has
+`α(L) = (1 − λ₁L)(1 − λ_bL)` with `λ_b ∈ {λ₂, λ₃}` (`split_alpha`), and `λ_b = S/2` would make
+`λₛ = S/2` a double root. (In the complex case there is no deflating split at all,
+`split_isEmpty`.) -/
+theorem split_not_ruleIII (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) (hD : discQ c.β γ c.κ c.σ ≠ 0)
+    (D : DeflatingSplit (inSys c γ hσ hd) c.β) :
+    alpha (Λmat (inSys c γ hσ hd) c.β D.J) ≠
+      (1 - C (lam1 c.β γ c.κ c.σ) * X) * (1 - C (sumS c.β γ c.κ c.σ / 2) * X) := by
+  obtain ⟨ls, hq, hα⟩ := split_alpha c γ h hσ hd D
+  intro e
+  rw [hα] at e
+  have e2 := cancel_linear e
+  have hls : ls = sumS c.β γ c.κ c.σ / 2 := by linarith
+  rw [quadQ_eq, hls, sub_self] at hq
+  exact hD (by linarith)
+
+/-- Woodford (2003), (G.20): `λ₂ʳ + λ₃ʳ = S`. -/
+theorem lam2r_add_lam3r (β γ κ σ : ℝ) : lam2r β γ κ σ + lam3r β γ κ σ = sumS β γ κ σ := by
+  unfold lam2r lam3r
+  ring
+
+/-- **Woodford (2003), Rule I (3.22), p. 595, as the split solving `λ₃` forward**: in the real
+case `inSplit` with `λₛ = λ₃` has `α(L) = (1 − λ₁L)(1 − λ₂L)`, the lag polynomial of Rule I. -/
+theorem alpha_ruleI (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) (hD : 0 ≤ discQ c.β γ c.κ c.σ) :
+    alpha (Λmat (inProblem c γ hc hγ0.le).sys c.β (inSplit c γ hc hγ0 hγ1 (quadQ_lam3r hD)).J) =
+      (1 - C (lam1 c.β γ c.κ c.σ) * X) * (1 - C (lam2r c.β γ c.κ c.σ) * X) := by
+  rw [show (inSplit c γ hc hγ0 hγ1 (quadQ_lam3r hD)).J = inJ c (c.β * lam3r c.β γ c.κ c.σ)⁻¹
+    from rfl, show (inProblem c γ hc hγ0.le).sys = inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)
+    from rfl, alpha_inJ c γ ⟨hc.2.2.1, hc.2.2.2.1, hc.1, hc.2.1, hγ0, hγ1⟩ _ _ (quadQ_lam3r hD),
+    ← lam2r_add_lam3r, add_sub_cancel_right]
+
+/-- **Woodford (2003), Rule II (3.23), p. 595, as the split solving `λ₂` forward**: in the real
+case `inSplit` with `λₛ = λ₂` has `α(L) = (1 − λ₁L)(1 − λ₃L)`, the lag polynomial of Rule II. -/
+theorem alpha_ruleII (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) (hD : 0 ≤ discQ c.β γ c.κ c.σ) :
+    alpha (Λmat (inProblem c γ hc hγ0.le).sys c.β (inSplit c γ hc hγ0 hγ1 (quadQ_lam2r hD)).J) =
+      (1 - C (lam1 c.β γ c.κ c.σ) * X) * (1 - C (lam3r c.β γ c.κ c.σ) * X) := by
+  rw [show (inSplit c γ hc hγ0 hγ1 (quadQ_lam2r hD)).J = inJ c (c.β * lam2r c.β γ c.κ c.σ)⁻¹
+    from rfl, show (inProblem c γ hc hγ0.le).sys = inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)
+    from rfl, alpha_inJ c γ ⟨hc.2.2.1, hc.2.2.2.1, hc.1, hc.2.1, hγ0, hγ1⟩ _ _ (quadQ_lam2r hD),
+    ← lam2r_add_lam3r, add_sub_cancel_left]
+
+end Woodford.OptimalPolicyRules.InertiaSplit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.10 from the general Proposition 8.4
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Proposition 8.4 (p. 558) and Proposition 8.10
+(p. 601; proof App. G.9, pp. 737–739).
+
+Proposition 8.4 says that an instrument rule (1.28), `α(L)(i_t − i*) λᵢ + w_t = 0` with
+`α(L) = α₁(L)α₂(L)` (`deg α₁ = m`, zeros of `α₁` inside the unit circle), is equivalent to the
+target criterion (1.32), `g_t + λᵢ L^m α₂(L)(i_t − i*) = 0`, where `g = α̃₁(L⁻¹)⁻¹ w` is the
+bounded forward inverse. For the inflation-inertia model in the real-root case, Rule I (3.22)
+is (1.28) with `α(L) = (1 − λ₁L)(1 − λ₂L)` and `w_t = −(βγλ₃)⁻¹ ∑ λ₃^{−j} E_t f̂_{t+j}`; taking
+`α₁ = L − λ₂⁻¹`, `α₂ = −λ₂(1 − λ₁L)` the general `Prop84General.prop84_from` turns it into the
+pure targeting rule (3.26).
+
+## Main results
+
+* `fwd_Kker_sub`: the forward inverse of `1 − λ₂⁻¹L⁻¹` applied to `∑ λ₃^{−j} E_t f̂_{t+j}` is the
+  double forward sum `∑ K_j E_t f̂_{t+j}` of (3.26): `Φ_t − λ₂⁻¹E_tΦ_{t+1} = ∑ λ₃^{−j}E_tf̂_{t+j}`
+  (by uniqueness of bounded forward solutions, `Prop84General.forward_inverse_existsUnique`).
+* `ruleI_iff_targetRule`: **Rule I (3.22) ⟺ the targeting rule (3.26), from the general
+  Proposition 8.4** (`prop84_from`), for real roots `1 < λ₂, λ₃`, from any date `T ≥ 2`.
+* `prop_8_10_via_prop84`: **Proposition 8.10 (real case) via Proposition 8.4**: the Euler
+  equation (3.21) ⟺ Rule I (Proposition 8.8, `prop_8_8_real`) ⟺ (3.26) (Proposition 8.4).
+-/
+
+namespace Woodford.OptimalPolicyRules.InertiaProp810
+
+open Polynomial GeneralSetup
+open TargetCriterion (fwdOp lagOp)
+open InflationInertiaRepresentations (InertiaRoots sR pR Kker fwd geomKer TargetRule)
+open CubicRoots
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), p. 558: `(1 − aL⁻¹)x_t = x_t − a E_t x_{t+1}`. -/
+theorem aeval_one_sub (a : ℝ) (x : ℕ → Ω → ℝ) (t : ℕ) :
+    (aeval (fwdOp 𝔼) (1 - C a * X)) x t = x t - a • 𝔼.E t (x (t + 1)) := by
+  simp only [map_sub, map_one, map_mul, aeval_C, aeval_X, LinearMap.sub_apply,
+    Module.End.one_apply, Module.End.mul_apply, Module.algebraMap_end_apply]
+  rfl
+
+/-- Woodford (2003), p. 558: for `a > 1` the zero of `1 − a⁻¹L` (`L = a`) lies outside the unit
+circle. -/
+theorem roots_one_sub_inv {a : ℝ} (ha : 1 < a) :
+    ∀ z ∈ ((1 - C a⁻¹ * X : ℝ[X]).map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+  have ha0 : a ≠ 0 := by linarith
+  intro z hz
+  rw [Polynomial.map_sub, Polynomial.map_one, Polynomial.map_mul, map_C, map_X,
+    Complex.ofRealHom_eq_coe, Prop83.roots_one_sub_C_mul_X] at hz
+  have hne : ((a⁻¹ : ℝ) : ℂ) ≠ 0 := by exact_mod_cast inv_ne_zero ha0
+  simp only [hne, ↓reduceIte, Multiset.mem_singleton] at hz
+  rw [hz, ← Complex.ofReal_inv, inv_inv, Complex.norm_real, Real.norm_of_nonneg (by linarith)]
+  exact ha
+
+/-- Woodford (2003), (3.22) and (G.49), App. G.9: for real roots `1 < λ₂, λ₃` of
+`InertiaRoots`, the double forward sum `Φ_t = ∑ K_j E_t f̂_{t+j}` satisfies
+`Φ_t − λ₂⁻¹E_tΦ_{t+1} = ∑_j λ₃^{−j} E_t f̂_{t+j}`: `(1 − λ₂⁻¹L⁻¹)⁻¹` applied to the forward sum
+of Rule I is the forward sum of (3.26). -/
+theorem fwd_Kker_sub {β γ κ σ l1 r2 r3 : ℝ} (h : InertiaRoots β γ κ σ l1 (r2 : ℂ) (r3 : ℂ))
+    (hr2 : 1 < r2) (hr3 : 1 < r3) {f : ℕ → Ω → ℝ} (hfb : BoundedProc f) (hfa : 𝔼.Adapted f) :
+    (fun t => fwd 𝔼 (Kker (r2 + r3) (r2 * r3)) f t -
+        r2⁻¹ • 𝔼.E t (fwd 𝔼 (Kker (r2 + r3) (r2 * r3)) f (t + 1))) =
+      fwd 𝔼 (geomKer r3⁻¹) f := by
+  have hs : sR (r2 : ℂ) (r3 : ℂ) = r2 + r3 := by simp [sR]
+  have hp : pR (r2 : ℂ) (r3 : ℂ) = r2 * r3 := by simp [pR]
+  have h20 : r2 ≠ 0 := by linarith
+  have h30 : r3 ≠ 0 := by linarith
+  obtain ⟨Mf, hMf⟩ := hfb
+  have hK := h.summable_abs_Kker
+  rw [hs, hp] at hK
+  have hrec := fun t => h.fwd_Kker_rec 𝔼 hMf hfa t
+  simp only [hs, hp] at hrec
+  set Φ := fwd 𝔼 (Kker (r2 + r3) (r2 * r3)) f with hΦ
+  have hΦb : BoundedProc Φ := InflationInertiaRepresentations.fwd_bounded 𝔼 hK ⟨Mf, hMf⟩
+  have hΦa : 𝔼.Adapted Φ := fun t => InflationInertiaRepresentations.E_fwd_self 𝔼 hK hMf t
+  have hg0 : 0 ≤ r3⁻¹ := inv_nonneg.mpr (by linarith)
+  have hg1 : r3⁻¹ < 1 := inv_lt_one_of_one_lt₀ hr3
+  have hG := InflationInertiaRepresentations.summable_abs_geomKer hg0 hg1
+  set Ψ3 := fwd 𝔼 (geomKer r3⁻¹) f with hΨ3
+  set D : ℕ → Ω → ℝ := fun t => Φ t - r2⁻¹ • 𝔼.E t (Φ (t + 1)) with hD
+  have hφ0 : (1 - C r3⁻¹ * X : ℝ[X]) ≠ 0 := by
+    intro e
+    have := congrArg (fun p : ℝ[X] => p.coeff 0) e
+    simp at this
+  have huniq := Prop84General.forward_inverse_existsUnique (𝔼 := 𝔼) hφ0 (roots_one_sub_inv hr3)
+    ⟨Mf, hMf⟩ hfa
+  -- `D` solves `(1 − λ₃⁻¹L⁻¹)D = f̂`
+  have hDb : BoundedProc D := by
+    obtain ⟨MΦ, hMΦ⟩ := hΦb
+    refine ⟨MΦ + |r2⁻¹| * MΦ, fun t ω => ?_⟩
+    simp only [hD, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    have h1 := hMΦ t ω
+    have h2 := mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hMΦ (t + 1)) t ω) (abs_nonneg r2⁻¹)
+    have e := abs_sub (Φ t ω) (r2⁻¹ * 𝔼.E t (Φ (t + 1)) ω)
+    rw [abs_mul] at e
+    linarith
+  have hDa : 𝔼.Adapted D := fun t => by
+    simp only [hD]
+    rw [map_sub, map_smul, hΦa t, 𝔼.tower le_rfl]
+  have hDsol : (aeval (fwdOp 𝔼) (1 - C r3⁻¹ * X)) D = f := by
+    funext t
+    rw [aeval_one_sub]
+    have hr := hrec t
+    simp only [hD]
+    rw [map_sub, map_smul, 𝔼.tower (Nat.le_succ t), hr]
+    funext ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    field_simp
+    ring
+  -- `Ψ3` solves `(1 − λ₃⁻¹L⁻¹)Ψ3 = f̂`
+  have hΨb : BoundedProc Ψ3 := InflationInertiaRepresentations.fwd_bounded 𝔼 hG ⟨Mf, hMf⟩
+  have hΨa : 𝔼.Adapted Ψ3 := fun t => InflationInertiaRepresentations.E_fwd_self 𝔼 hG hMf t
+  have hΨsol : (aeval (fwdOp 𝔼) (1 - C r3⁻¹ * X)) Ψ3 = f := by
+    funext t
+    rw [aeval_one_sub]
+    have hr := InflationInertiaRepresentations.fwd_rec 𝔼 hG (a := r3⁻¹) (b := 0)
+      (by simp [geomKer]) (fun j => by simp [geomKer, pow_succ]; ring) hMf hfa t
+    rw [← hΨ3] at hr
+    rw [hr]
+    simp [geomKer]
+  exact huniq.unique ⟨hDb, hDa, hDsol⟩ ⟨hΨb, hΨa, hΨsol⟩
+
+/-- **Woodford (2003), Rule I (3.22) ⟺ the pure targeting rule (3.26), from the general
+Proposition 8.4** (real roots `1 < λ₂, λ₃`). Rule I is (1.28) with `λᵢ`-normalised
+`α(L) = (1 − λ₁L)(1 − λ₂L)` and `w_t = −(βγλ₃)⁻¹ ∑ λ₃^{−j} E_t f̂_{t+j}` (written at date `t`;
+`RuleIReal` at `t − 2` is stated at date `t`). With `α₁ = L − λ₂⁻¹` (zero inside the unit circle,
+`m = 1`), `α₂ = −λ₂(1 − λ₁L)` and `g = −(βγλ₃)⁻¹ ∑ K_j E_t f̂_{t+j}` (which solves
+`α̃₁(L⁻¹)g = w`, `fwd_Kker_sub`), `Prop84General.prop84_from` gives (1.32), which is (3.26). -/
+theorem ruleI_iff_targetRule {β γ κ σ l1 r2 r3 : ℝ} (hβ : 0 < β) (hγ : 0 < γ)
+    (h : InertiaRoots β γ κ σ l1 (r2 : ℂ) (r3 : ℂ)) (hr2 : 1 < r2) (hr3 : 1 < r3)
+    {i f : ℕ → Ω → ℝ} (hib : BoundedProc i) (hia : 𝔼.Adapted i) (hfb : BoundedProc f)
+    (hfa : 𝔼.Adapted f) {T : ℕ} (hT : 2 ≤ T) :
+    (∀ t, T ≤ t → InflationInertiaRules.RuleIReal 𝔼 β γ l1 r2 r3 i f (t - 2)) ↔
+      (∀ t, T ≤ t → TargetRule 𝔼 β γ l1 (sR (r2 : ℂ) (r3 : ℂ)) (pR (r2 : ℂ) (r3 : ℂ)) i f t) := by
+  have hs : sR (r2 : ℂ) (r3 : ℂ) = r2 + r3 := by simp [sR]
+  have hp : pR (r2 : ℂ) (r3 : ℂ) = r2 * r3 := by simp [pR]
+  rw [hs, hp]
+  have h20 : r2 ≠ 0 := by linarith
+  have h30 : r3 ≠ 0 := by linarith
+  have hβγ : β * γ ≠ 0 := (mul_pos hβ hγ).ne'
+  obtain ⟨Mf, hMf⟩ := hfb
+  have hK := h.summable_abs_Kker
+  rw [hs, hp] at hK
+  set Φ := fwd 𝔼 (Kker (r2 + r3) (r2 * r3)) f with hΦ
+  set Ψ3 := fwd 𝔼 (geomKer r3⁻¹) f with hΨ3
+  set k := (β * γ * r3)⁻¹ with hk
+  set α1 : ℝ[X] := X - C r2⁻¹ with hα1
+  set α2 : ℝ[X] := C (-r2) * (1 - C l1 * X) with hα2
+  have hm : α1.natDegree = 1 := natDegree_X_sub_C _
+  have hα10 : α1 ≠ 0 := X_sub_C_ne_zero _
+  have hroots : ∀ z ∈ (α1.reverse.map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+    rw [hα1, Prop83.reverse_X_sub_C]
+    exact roots_one_sub_inv hr2
+  set g : ℕ → Ω → ℝ := fun t => (-k) • Φ t with hg
+  set w : ℕ → Ω → ℝ := fun t => (-k) • Ψ3 t with hw
+  have hgb : BoundedProc g := by
+    obtain ⟨MΦ, hMΦ⟩ := InflationInertiaRepresentations.fwd_bounded 𝔼 hK ⟨Mf, hMf⟩
+    refine ⟨|k| * MΦ, fun t ω => ?_⟩
+    simp only [hg, Pi.smul_apply, smul_eq_mul, abs_mul, abs_neg]
+    exact mul_le_mul_of_nonneg_left (hMΦ t ω) (abs_nonneg k)
+  have hga : 𝔼.Adapted g := fun t => by
+    simp only [hg]
+    rw [map_smul, InflationInertiaRepresentations.E_fwd_self 𝔼 hK hMf t]
+  have hgsol : (aeval (fwdOp 𝔼) α1.reverse) g = w := by
+    rw [hα1, Prop83.reverse_X_sub_C]
+    funext t
+    rw [aeval_one_sub]
+    have e := congrFun (fwd_Kker_sub 𝔼 h hr2 hr3 ⟨Mf, hMf⟩ hfa) t
+    rw [← hΦ, ← hΨ3] at e
+    simp only [hg, hw, map_smul]
+    rw [← e, smul_sub, smul_comm r2⁻¹ (-k)]
+  have key := Prop84General.prop84_from (α2 := α2) (lam := 1) (istar := 0) hm hα10 hroots hib
+    hia hgb hga hgsol T
+  have hprod : α1 * α2 = C 1 - C (l1 + r2) * X + C (l1 * r2) * X ^ 2 := by
+    refine Polynomial.funext fun x => ?_
+    simp only [hα1, hα2, eval_mul, eval_sub, eval_X, eval_C, eval_one, eval_add, eval_pow]
+    field_simp
+    ring
+  rw [hprod] at key
+  have hα2deg : α2.natDegree ≤ 1 := by
+    rw [hα2]
+    compute_degree!
+  have hpdeg : (C 1 - C (l1 + r2) * X + C (l1 * r2) * X ^ 2 : ℝ[X]).natDegree ≤ 2 := by
+    compute_degree!
+  refine (forall_congr' fun t => imp_congr_right fun ht => ?_).trans
+    (key.trans (forall_congr' fun t => imp_congr_right fun ht => ?_))
+  · obtain ⟨n, rfl⟩ : ∃ n, t = n + 2 := ⟨t - 2, by omega⟩
+    unfold InflationInertiaRules.RuleIReal
+    rw [show n + 2 - 2 = n by omega, funext_iff]
+    refine forall_congr' fun ω => ?_
+    simp only [Pi.add_apply, Pi.smul_apply, one_smul, smul_eq_mul, Pi.zero_apply, sub_zero, hw]
+    rw [Prop84General.aeval_lagOp_apply_of_le _ hpdeg (by omega)]
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, coeff_add, coeff_sub,
+      coeff_C, coeff_C_mul, coeff_X, coeff_X_pow, Nat.sub_zero]
+    norm_num
+    have eΨ : Ψ3 (n + 2) ω = ∑' j, (r3 ^ j)⁻¹ * 𝔼.E (n + 2) (f (n + 2 + j)) ω := by
+      simp [hΨ3, fwd, geomKer, inv_pow]
+    have hk' : k = r3⁻¹ * (γ⁻¹ * β⁻¹) := by
+      rw [hk]
+      ring
+    rw [eΨ, hk']
+    constructor <;> intro h0 <;> linarith
+  · unfold TargetRule
+    rw [funext_iff, funext_iff]
+    refine forall_congr' fun ω => ?_
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, one_smul, smul_eq_mul,
+      Pi.zero_apply, sub_zero, hg]
+    rw [Prop84General.lagOp_pow_apply (by omega),
+      Prop84General.aeval_lagOp_apply_of_le _ hα2deg (by omega)]
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, hα2, coeff_C_mul,
+      coeff_sub, coeff_one, Nat.sub_zero, show t - 1 - 1 = t - 2 by omega]
+    norm_num
+    have e : r3⁻¹ * r2⁻¹ * (γ⁻¹ * β⁻¹) = r2⁻¹ * k := by
+      rw [hk]
+      ring
+    rw [e, ← hΦ]
+    have hinv : r2 * r2⁻¹ = 1 := mul_inv_cancel₀ h20
+    constructor
+    · intro h0
+      linear_combination (-r2⁻¹) * h0 - (i (t - 1) ω - l1 * i (t - 2) ω) * hinv
+    · intro h0
+      linear_combination (-r2) * h0 + k * Φ t ω * hinv
+
+/-- **Woodford (2003), Proposition 8.10, p. 601 (three real roots), via the general
+Proposition 8.4.** Under Proposition 8.7's assumptions with `S² ≥ 4P₂₃`, bounded adapted
+`ı̂, f̂` satisfy the Euler equation (3.21) at all dates `t ≥ t₀` (each stated at date `t + 2`) iff
+they satisfy the pure targeting rule (3.26) at all dates `t ≥ t₀ + 2`. The chain is (3.21) ⟺
+Rule I (Proposition 8.8, `InflationInertiaRules.prop_8_8_real`) ⟺ (3.26) (Proposition 8.4,
+`ruleI_iff_targetRule`), so the equivalence of the targeting rule with the optimal plan is an
+special case of the general Proposition 8.4. -/
+theorem prop_8_10_via_prop84 {β γ κ σ : ℝ} (h : Assumptions.Standing β γ κ σ)
+    (hD : 0 ≤ discQ β γ κ σ) {i f : ℕ → Ω → ℝ} (hib : BoundedProc i) (hia : 𝔼.Adapted i)
+    (hfb : BoundedProc f) (hfa : 𝔼.Adapted f) (t0 : ℕ) :
+    (∀ t, t0 ≤ t → InflationInertiaRules.Euler 𝔼 β γ κ σ i f t) ↔
+      (∀ t, t0 + 2 ≤ t → TargetRule 𝔼 β γ (lam1 β γ κ σ) (sR (lam2r β γ κ σ : ℂ)
+        (lam3r β γ κ σ : ℂ)) (pR (lam2r β γ κ σ : ℂ) (lam3r β γ κ σ : ℂ)) i f t) := by
+  obtain ⟨Mi, hMi⟩ := hib
+  obtain ⟨Mf, hMf⟩ := hfb
+  have h88 := (InflationInertiaRules.prop_8_8_real 𝔼 h hD hia hfa hMi hMf t0).1
+  have h84 := ruleI_iff_targetRule 𝔼 h.beta_pos h.gamma_pos (Links.inertiaRoots_real h hD)
+    (one_lt_lam2r h) (one_lt_lam3r h) ⟨Mi, hMi⟩ hia ⟨Mf, hMf⟩ hfa (T := t0 + 2) (by omega)
+  rw [← h88, ← h84]
+  constructor
+  · intro H t ht
+    exact H (t - 2) (by omega)
+  · intro H n hn
+    have := H (n + 2) (by omega)
+    rwa [show n + 2 - 2 = n by omega] at this
+
+end Woodford.OptimalPolicyRules.InertiaProp810
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The general target criterion (1.23) of the inertia model is Rule I or Rule II
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §1.4 (pp. 553–556) and §3.2 (pp. 592–598),
+App. G.7, pp. 727–730.
+
+For the representation of Proposition 8.1 built from a deflating split of the inertia model
+(`InertiaSplit.inSplit`, the real root `λₛ` of `λ² − Sλ + P₂₃` solved forward), the general target
+criterion (1.23), `α(L)λᵢ(i_t − i*) + B₂'B(L)q_t = 0` with `q = Q(L⁻¹)T̃'W(τ − τ*)`, is computed
+explicitly: it is Rule I (`λₛ = λ₃`) or Rule II (`λₛ = λ₂`).
+
+## Main results
+
+* `Bc_fin_two`, `in_Kinv`, `dot_two`: the coefficient matrices of `B(L) = adj(I − ΛL)`, `K⁻¹`.
+* `Fw_rec`: the forward solution `F` of the split obeys `F_t = λₛ⁻¹E_tF_{t+1} + β[(μ − γ)q̂_t +
+  (σμ²/(1 − μ))g_t]` (`q̂ = π − γZ`, `g = λₓ(x − x*)`, `μ = (βλₛ)⁻¹`).
+* `Qop_eq`: `q_t = −(μ/γ)(q̂_t + a_t + d g_t, κ(q̂_t + a_t) + e g_t)`, `a_t = E_tF_{t+1}`.
+* `crit_eq`: the criterion equals `λᵢα(L)(i_t − i*) − (σμ/γ)[κ(q̂_t + a_t) + e g_t − g_{t−1}]`.
+* `W_eq_fwd`, `fplan_eq_fhat`: `(σ/λᵢ)[κ(q̂_t + a_t) + e g_t − g_{t−1}] = ∑_j λₛ^{−j}E_tf̂_{t+j}`
+  (uniqueness of the bounded forward solution; the step is (1.15) at `μ`).
+* `crit_rule`: **the criterion is `λᵢ[(1 − λ₁L)(1 − λ_bL)(i_t − i*) −
+  (βγλₛ)⁻¹∑λₛ^{−j}E_tf̂_{t+j}]`** at every `t ≥ 1` along bounded adapted plans with
+  `Z_{t+1} = π_t`.
+* `crit_iff_ruleI`, `crit_iff_ruleII`: the general criterion holds from `T ≥ 2` on iff Rule I
+  (3.22) (resp. Rule II (3.23)) does.
+-/
+
+namespace Woodford.OptimalPolicyRules.InertiaCriterion
+
+open Matrix Polynomial GeneralSetup Adjugate PencilSplit
+open IRuleBasic (Calib)
+open CubicRoots
+open GeneralLinksInertia (inSys inProblem in_det_ne in_xvec Zof)
+open GeneralLinks (piOf xOf iOf)
+open InertiaSplit (pR inJ inPsi quadQ inSplit mu_facts standing_of)
+open InflationInertiaRepresentations (geomKer)
+open TargetCriterion.Prop81 (xproc)
+open GeneralFOC.LQ (Mpart)
+
+variable (c : Calib) (γ : ℝ)
+
+/-- Woodford (2003), p. 553 (tool): the coefficient matrices of `B(L) = adj(I − ΛL)` for a
+`2 × 2` matrix: `B₀ = I`, `B₁ = [−Λ₁₁ Λ₀₁; Λ₁₀ −Λ₀₀]`, `B₂ = 0`. -/
+theorem Bc_fin_two (Λ : Matrix (Fin 2) (Fin 2) ℝ) :
+    TargetCriterion.Lag.Bc (Bpoly Λ) 0 = 1 ∧
+      TargetCriterion.Lag.Bc (Bpoly Λ) 1 = !![-Λ 1 1, Λ 0 1; Λ 1 0, -Λ 0 0] ∧
+      TargetCriterion.Lag.Bc (Bpoly Λ) 2 = 0 := by
+  refine ⟨?_, ?_, ?_⟩ <;>
+  · ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp [TargetCriterion.Lag.Bc, Bpoly, adjugate_fin_two, lagMat, coeff_one, coeff_X, coeff_C]
+
+/-- Woodford (2003), (1.23), p. 554 (tool): `(0, σ)·(v + [a b; c d] w) = σ(v₁ + c w₀ + d w₁)`. -/
+theorem dot_two (σ a b d e : ℝ) (v w : Fin 2 → ℝ) :
+    ![0, σ] ⬝ᵥ (v + !![a, b; d, e] *ᵥ w) = σ * (v 1 + (d * w 0 + e * w 1)) := by
+  simp [dotProduct, Fin.sum_univ_two]
+
+/-- Woodford (2003), eq. (1.20), p. 553: `K⁻¹ = (μ/γ)[1 d; κ e]` for the inertia model, with
+`d = σμ + σμ²/(1 − μ)` and `e = 1 + βγ − βμ`. -/
+theorem in_Kinv (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) {μ : ℝ} (hp : pR c γ μ = 0)
+    (h1 : 1 - μ ≠ 0) (h0 : μ ≠ 0) :
+    (Kmat (inSys c γ hσ hd) (inJ c μ))⁻¹ = (μ / γ) •
+      !![1, c.σ * μ + c.σ * μ ^ 2 / (1 - μ); c.κ, 1 + c.β * γ - c.β * μ] := by
+  rw [inv_def, InertiaSplit.in_Kdet c γ hσ hd hp h1 h0, InertiaSplit.in_Kmat, adjugate_fin_two_of,
+    Ring.inverse_eq_inv', inv_div, neg_neg, neg_neg]
+
+/-- Woodford (2003), App. G.1 and (1.21), p. 553, for the inertia model: the forward solution
+`F_t = ∑ (βμ)ᵏ E_t βJ'x_{t+k}` of the split solving `λₛ` forward (`βμ = λₛ⁻¹`) obeys
+`F_t = βμ E_tF_{t+1} + β[(μ − γ)(π_t − γZ_t) + (σμ²/(1 − μ))λₓ(x_t − x*)]`. -/
+theorem Fw_rec {Ω : Type*} (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) (𝔼 : ExpectationSystem Ω)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hyb : BoundedV y) (hya : AdaptedV 𝔼 y)
+    (t : ℕ) (ω : Ω) :
+    Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq) (xproc (inProblem c γ hc hγ0.le) y) t ω () =
+      c.β * (c.β * ls)⁻¹ * 𝔼.E t (fun ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+        (xproc (inProblem c γ hc hγ0.le) y) (t + 1) ω' ()) ω +
+      c.β * (((c.β * ls)⁻¹ - γ) * (piOf y t ω - γ * Zof y t ω) +
+        c.σ * (c.β * ls)⁻¹ ^ 2 / (1 - (c.β * ls)⁻¹) * (c.lx * (xOf y t ω - c.xstar))) := by
+  have hxb : BoundedV (xproc (inProblem c γ hc hγ0.le) y) :=
+    TargetCriterion.Prop81.boundedV_xproc (P := inProblem c γ hc hγ0.le) hyb
+  obtain ⟨hrec, -, -⟩ := fwdSum_spec 𝔼 ((inSplit c γ hc hγ0 hγ1 hq).powDecay_G hc.1)
+    (boundedV_mulVec (c.β • (inSplit c γ hc hγ0 hγ1 hq).Jᵀ) hxb)
+  have hknown : KnownV 𝔼 t (fun ω' => (c.β • (inSplit c γ hc hγ0 hγ1 hq).Jᵀ) *ᵥ
+      xproc (inProblem c γ hc hγ0.le) y t ω') :=
+    PencilSplit.knownV_mulVec 𝔼 _ (Prop81General.adaptedV_xproc _ hya t)
+  have hF : ∀ s ω', Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+      (xproc (inProblem c γ hc hγ0.le) y) s ω' = fwdSum 𝔼 (c.β • (inSplit c γ hc hγ0 hγ1 hq).Ψᵀ)
+        (fun t ω => (c.β • (inSplit c γ hc hγ0 hγ1 hq).Jᵀ) *ᵥ
+          xproc (inProblem c γ hc hγ0.le) y t ω) s ω' := fun _ _ => rfl
+  simp only [hF]
+  rw [congrFun (hrec t ω) (), EV_of_known 𝔼 hknown]
+  have hx : xproc (inProblem c γ hc hγ0.le) y t ω = _ := in_xvec c γ hc hγ0.le (y t ω)
+  beta_reduce
+  rw [hx]
+  simp [mulVec, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two, inSplit, inPsi, inJ, EV,
+    Zof, piOf, xOf]
+  ring
+
+/-- Woodford (2003), eq. (1.20), p. 553, for the inertia model: the forcing of the multiplier
+recursion is `q_t = −K⁻¹(E_t x^z_t + A₁₂'E_tF_{t+1}) = −(μ/γ)(q̂_t + a_t + d g_t,
+κ(q̂_t + a_t) + e g_t)` with `q̂ = π − γZ`, `g = λₓ(x − x*)`, `a_t = E_tF_{t+1}`. -/
+theorem Qop_eq {Ω : Type*} (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) (𝔼 : ExpectationSystem Ω)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hya : AdaptedV 𝔼 y) (t : ℕ) (ω : Ω) :
+    Prop81General.Qop 𝔼 (inSplit c γ hc hγ0 hγ1 hq) (xproc (inProblem c γ hc hγ0.le) y) t ω =
+      -(((c.β * ls)⁻¹ / γ) • ![(piOf y t ω - γ * Zof y t ω) +
+          𝔼.E t (fun ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+            (xproc (inProblem c γ hc hγ0.le) y) (t + 1) ω' ()) ω +
+          (c.σ * (c.β * ls)⁻¹ + c.σ * (c.β * ls)⁻¹ ^ 2 / (1 - (c.β * ls)⁻¹)) *
+            (c.lx * (xOf y t ω - c.xstar)),
+        c.κ * ((piOf y t ω - γ * Zof y t ω) +
+          𝔼.E t (fun ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+            (xproc (inProblem c γ hc hγ0.le) y) (t + 1) ω' ()) ω) +
+          (1 + c.β * γ - c.β * (c.β * ls)⁻¹) * (c.lx * (xOf y t ω - c.xstar))]) := by
+  obtain ⟨hp, h1, h0, -⟩ := mu_facts c γ (standing_of c γ hc hγ0 hγ1) hq
+  have hxa := Prop81General.adaptedV_xproc (inProblem c γ hc hγ0.le) hya t
+  have hknown : KnownV 𝔼 t (fun ω' => Mpart (xproc (inProblem c γ hc hγ0.le) y t ω')) :=
+    fun r => hxa (Sum.inr r)
+  have hKinv := in_Kinv c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hp h1 h0
+  unfold Prop81General.Qop Prop81General.Rop
+  rw [EV_of_known 𝔼 hknown]
+  change -((Kmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) (inJ c (c.β * ls)⁻¹))⁻¹ *ᵥ
+    _) = _
+  rw [hKinv, show J1 (inSplit c γ hc hγ0 hγ1 hq).J = 1 from InertiaSplit.in_J1 c _,
+    transpose_one, inv_one]
+  have hx : xproc (inProblem c γ hc hγ0.le) y t ω = _ := in_xvec c γ hc hγ0.le (y t ω)
+  beta_reduce
+  rw [hx]
+  funext r
+  fin_cases r <;>
+    simp [mulVec, dotProduct, Fin.sum_univ_two, Mpart, EV, inProblem, inSys, Zof, piOf, xOf] <;>
+    ring
+
+/-- **Woodford (2003), (1.23) and (1.28), pp. 554–556, for the inertia model.** For the
+representation of Proposition 8.1 built from the split solving `λₛ` forward (`μ = (βλₛ)⁻¹`,
+`λ_b = S − λₛ`), the general target criterion with `v = λᵢ(i − i*)` and `q = Q(L⁻¹)T̃'W(τ − τ*)` is
+`λᵢ(1 − λ₁L)(1 − λ_bL)(i_t − i*) − (σμ/γ)[κ(q̂_t + a_t) + e g_t − g_{t−1}]`,
+`q̂ = π − γZ`, `g = λₓ(x − x*)`, `a_t = E_tF_{t+1}`, `e = 1 + βγ − βμ`. -/
+theorem crit_eq {Ω : Type*} (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hya : AdaptedV 𝔼 y) (t : ℕ) (ω : Ω) :
+    TargetCriterion.Crit.crit
+        (alpha (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Λ)
+        (Bpoly (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Λ) 2
+        (inProblem c γ hc hγ0.le).sys.B2 (fun s ω => c.li * (iOf y s ω - c.istar))
+        ((Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Qop
+          (xproc (inProblem c γ hc hγ0.le) y)) t ω =
+      c.li * ((iOf y t ω - c.istar) - (lam1 c.β γ c.κ c.σ + (sumS c.β γ c.κ c.σ - ls)) *
+          (iOf y (t - 1) ω - c.istar) + lam1 c.β γ c.κ c.σ * (sumS c.β γ c.κ c.σ - ls) *
+          (iOf y (t - 2) ω - c.istar)) -
+        c.σ * ((c.β * ls)⁻¹ / γ) * (c.κ * ((piOf y t ω - γ * Zof y t ω) +
+          𝔼.E t (fun ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+            (xproc (inProblem c γ hc hγ0.le) y) (t + 1) ω' ()) ω) +
+          (1 + c.β * γ - c.β * (c.β * ls)⁻¹) * (c.lx * (xOf y t ω - c.xstar)) -
+          c.lx * (xOf y (t - 1) ω - c.xstar)) := by
+  have h := standing_of c γ hc hγ0 hγ1
+  obtain ⟨hp, h1, h0, -⟩ := mu_facts c γ h hq
+  have hΛ : (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Λ =
+      Λmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β (inJ c (c.β * ls)⁻¹) := rfl
+  have hQ : (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Qop
+      (xproc (inProblem c γ hc hγ0.le) y) =
+      Prop81General.Qop 𝔼 (inSplit c γ hc hγ0 hγ1 hq) (xproc (inProblem c γ hc hγ0.le) y) := rfl
+  have hα := InertiaSplit.alpha_inJ c γ h hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hq
+  have hα' : (1 - C (lam1 c.β γ c.κ c.σ) * X) * (1 - C (sumS c.β γ c.κ c.σ - ls) * X) =
+      (1 : ℝ[X]) - C (lam1 c.β γ c.κ c.σ + (sumS c.β γ c.κ c.σ - ls)) * X +
+        C (lam1 c.β γ c.κ c.σ * (sumS c.β γ c.κ c.σ - ls)) * X ^ 2 := by
+    simp only [C_add, C_mul]
+    ring
+  obtain ⟨hB0, hB1, hB2⟩ := Bc_fin_two (Λmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le))
+    c.β (inJ c (c.β * ls)⁻¹))
+  have hL := InertiaSplit.in_Λmat c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hc.1.ne' hγ0.ne' hp
+    h1 h0
+  have hK := InertiaSplit.in_Kdet c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hp h1 h0
+  rw [InertiaSplit.in_Kmat, det_fin_two_of] at hK
+  have e00 : Λmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β (inJ c (c.β * ls)⁻¹) 0 0 =
+      (c.β * ls)⁻¹ / γ := by
+    rw [hL]
+    simp only [Matrix.smul_apply, of_apply, cons_val', cons_val_zero, empty_val',
+      cons_val_fin_one, smul_eq_mul]
+    field_simp
+  have e10 : Λmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β (inJ c (c.β * ls)⁻¹) 1 0 =
+      c.κ * ((c.β * ls)⁻¹ / γ) := by
+    rw [hL]
+    simp only [Matrix.smul_apply, of_apply, cons_val', cons_val_zero, cons_val_one, empty_val',
+      cons_val_fin_one, smul_eq_mul]
+    field_simp
+  unfold TargetCriterion.Crit.crit
+  rw [hΛ, hQ, hα, hα', Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_one,
+    Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_one, hB0, hB1, hB2,
+    Nat.sub_zero, one_mulVec, zero_mulVec, add_zero,
+    show (inProblem c γ hc hγ0.le).sys.B2 = ![0, c.σ] from rfl, dot_two,
+    Qop_eq c γ hc hγ0 hγ1 hq 𝔼 hya t, Qop_eq c γ hc hγ0 hγ1 hq 𝔼 hya (t - 1), e00, e10]
+  simp only [coeff_add, coeff_sub, coeff_one, coeff_C_mul, coeff_X_pow, coeff_X, Pi.neg_apply,
+    Pi.smul_apply, smul_eq_mul, Matrix.cons_val_one, Matrix.cons_val_zero]
+  generalize 𝔼.E (t - 1) (fun ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+    (xproc (inProblem c γ hc hγ0.le) y) (t - 1 + 1) ω' ()) ω = A1
+  generalize 𝔼.E t (fun ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+    (xproc (inProblem c γ hc hγ0.le) y) (t + 1) ω' ()) ω = A0
+  have hK2 : (c.β * ls)⁻¹ / γ * ((1 + c.β * γ - c.β * (c.β * ls)⁻¹) -
+      c.κ * (c.σ * (c.β * ls)⁻¹ + c.σ * (c.β * ls)⁻¹ ^ 2 / (1 - (c.β * ls)⁻¹))) = 1 := by
+    rw [show (1 + c.β * γ - c.β * (c.β * ls)⁻¹) - c.κ * (c.σ * (c.β * ls)⁻¹ + c.σ *
+      (c.β * ls)⁻¹ ^ 2 / (1 - (c.β * ls)⁻¹)) = γ / (c.β * ls)⁻¹ by linear_combination hK]
+    have hβls : c.β * ls ≠ 0 := fun e => h0 (by rw [e, _root_.inv_zero])
+    field_simp
+    exact div_self hβls
+  norm_num
+  linear_combination (c.σ * ((c.β * ls)⁻¹ / γ) * (c.lx * (xOf y (t - 1) ω - c.xstar))) * hK2
+
+/-- Woodford (2003), p. 539 (tool): a linear combination of four quantities bounded by `M` is
+bounded by `(|a₁| + |a₂| + |a₃| + |a₄|)M`. -/
+theorem abs_lin4 {a1 a2 a3 a4 u1 u2 u3 u4 M : ℝ} (h1 : |u1| ≤ M) (h2 : |u2| ≤ M) (h3 : |u3| ≤ M)
+    (h4 : |u4| ≤ M) :
+    |a1 * u1 + a2 * u2 + a3 * u3 + a4 * u4| ≤ (|a1| + |a2| + |a3| + |a4|) * M := by
+  calc |a1 * u1 + a2 * u2 + a3 * u3 + a4 * u4|
+      ≤ |a1 * u1| + |a2 * u2| + |a3 * u3| + |a4 * u4| := by
+        have e1 := abs_add_le (a1 * u1 + a2 * u2 + a3 * u3) (a4 * u4)
+        have e2 := abs_add_le (a1 * u1 + a2 * u2) (a3 * u3)
+        have e3 := abs_add_le (a1 * u1) (a2 * u2)
+        linarith
+    _ = |a1| * |u1| + |a2| * |u2| + |a3| * |u3| + |a4| * |u4| := by simp only [abs_mul]
+    _ ≤ |a1| * M + |a2| * M + |a3| * M + |a4| * M := by gcongr
+    _ = (|a1| + |a2| + |a3| + |a4|) * M := by ring
+
+/-- Woodford (2003), (3.18)–(3.19), p. 593, along a plan: `q̃'_t = (σ/λᵢ)[κ(π_t − γZ_t) +
+λₓ(x_t − x_{t−1})]` (with the plan's own predetermined `Z_t`), and `f̂'_t = q̃'_t − βγE_tq̃'_{t+1}`;
+along a feasible plan (`Z_t = π_{t−1}`) these are `q̃` and `f̂` from date `1` on. -/
+noncomputable def fplan {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+    (y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ) (s : ℕ) : Ω → ℝ :=
+  (c.σ / c.li) • (c.κ • (piOf y s - γ • Zof y s) + c.lx • (xOf y s - xOf y (s - 1))) -
+    (c.β * γ) • 𝔼.E s ((c.σ / c.li) • (c.κ • (piOf y (s + 1) - γ • Zof y (s + 1)) +
+      c.lx • (xOf y (s + 1) - xOf y s)))
+
+/-- Woodford (2003), App. G.7, pp. 727–728, through the general representation: with
+`a_t = E_tF_{t+1}` (`Fw_rec`), the process `W_t = (σ/λᵢ)[κ(q̂_t + a_t) + e g_t − g_{t−1}]` is the
+forward sum `∑_j λₛ^{−j} E_t f̂'_{t+j}` (both are the unique bounded adapted solution of
+`W_t − λₛ⁻¹E_tW_{t+1} = f̂'_t`; the step uses `κσμ²/(1 − μ) − μe = −γ`, i.e. (1.15) at `μ`). -/
+theorem W_eq_fwd {Ω : Type*} (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) (𝔼 : ExpectationSystem Ω)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hyb : BoundedV y) (hya : AdaptedV 𝔼 y) (t : ℕ)
+    (ω : Ω) :
+    c.σ / c.li * (c.κ * ((piOf y t ω - γ * Zof y t ω) +
+        𝔼.E t (fun ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+          (xproc (inProblem c γ hc hγ0.le) y) (t + 1) ω' ()) ω) +
+        (1 + c.β * γ - c.β * (c.β * ls)⁻¹) * (c.lx * (xOf y t ω - c.xstar)) -
+        c.lx * (xOf y (t - 1) ω - c.xstar)) =
+      InflationInertiaRepresentations.fwd 𝔼 (geomKer ls⁻¹) (fplan c γ 𝔼 y) t ω := by
+  have h := standing_of c γ hc hγ0 hγ1
+  obtain ⟨hp, h1, h0, -⟩ := mu_facts c γ h hq
+  have hls1 : 1 < ls := InertiaSplit.one_lt_of_quadQ h hq
+  have hβ0 := hc.1.ne'
+  set μ := (c.β * ls)⁻¹ with hμ
+  have hBμ : c.β * μ = ls⁻¹ := by
+    rw [hμ]
+    field_simp
+  set e := 1 + c.β * γ - c.β * μ with he
+  set j1 := c.σ * μ ^ 2 / (1 - μ) with hj1
+  have hj : c.κ * j1 - μ * e = -γ := by
+    unfold pR at hp
+    rw [hj1, he]
+    field_simp
+    linear_combination hp
+  set Fs : ℕ → Ω → ℝ := fun s ω' => Prop81General.Fw 𝔼 (inSplit c γ hc hγ0 hγ1 hq)
+    (xproc (inProblem c γ hc hγ0.le) y) s ω' () with hFs
+  set qh : ℕ → Ω → ℝ := fun s => piOf y s - γ • Zof y s with hqh
+  set g : ℕ → Ω → ℝ := fun s => c.lx • (xOf y s - fun _ => c.xstar) with hg
+  set a : ℕ → Ω → ℝ := fun s => 𝔼.E s (Fs (s + 1)) with ha
+  set W : ℕ → Ω → ℝ := fun s => (c.σ / c.li) • (c.κ • (qh s + a s) + e • g s - g (s - 1)) with hW
+  have hFrec : ∀ s, Fs s = (c.β * μ) • 𝔼.E s (Fs (s + 1)) + c.β • ((μ - γ) • qh s + j1 • g s) := by
+    intro s
+    funext ω'
+    have := Fw_rec c γ hc hγ0 hγ1 hq 𝔼 hyb hya s ω'
+    simp only [hFs, hqh, hg, Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul, piOf, Zof,
+      xOf] at this ⊢
+    rw [this]
+  -- knownness
+  have hpk : ∀ s, 𝔼.E s (piOf y s) = piOf y s := fun s => hya s (Sum.inl (Sum.inr 0))
+  have hZk : ∀ s, 𝔼.E s (Zof y s) = Zof y s := fun s => hya s (Sum.inl (Sum.inl ()))
+  have hxk : ∀ s, 𝔼.E s (xOf y s) = xOf y s := fun s => hya s (Sum.inl (Sum.inr 1))
+  have hqhk : ∀ s, 𝔼.E s (qh s) = qh s := fun s => by
+    simp only [hqh]
+    rw [map_sub, map_smul, hpk, hZk]
+  have hgk : ∀ s, 𝔼.E s (g s) = g s := fun s => by
+    simp only [hg]
+    rw [map_smul, map_sub, hxk, 𝔼.const]
+  have hgk' : ∀ s, 𝔼.E s (g (s - 1)) = g (s - 1) := fun s =>
+    ForwardSolution.E_of_known 𝔼 (Nat.sub_le s 1) (hgk (s - 1))
+  have hak : ∀ s, 𝔼.E s (a s) = a s := fun s => by
+    simp only [ha]
+    rw [𝔼.tower le_rfl]
+  -- boundedness
+  obtain ⟨My, hMy⟩ := hyb
+  have hxb : BoundedV (xproc (inProblem c γ hc hγ0.le) y) :=
+    TargetCriterion.Prop81.boundedV_xproc (P := inProblem c γ hc hγ0.le) ⟨My, hMy⟩
+  obtain ⟨-, -, ⟨MF, hMF⟩⟩ := fwdSum_spec 𝔼 ((inSplit c γ hc hγ0 hγ1 hq).powDecay_G hc.1)
+    (boundedV_mulVec (c.β • (inSplit c γ hc hγ0 hγ1 hq).Jᵀ) hxb)
+  have hFb : ∀ s ω', |Fs s ω'| ≤ MF := fun s ω' => hMF s ω' ()
+  have hab : ∀ s ω', |a s ω'| ≤ MF := fun s ω' => 𝔼.abs_E_le (hFb (s + 1)) s ω'
+  have hpb : ∀ s ω', |piOf y s ω'| ≤ My := fun s ω' => hMy s ω' _
+  have hZb : ∀ s ω', |Zof y s ω'| ≤ My := fun s ω' => hMy s ω' _
+  have hxb' : ∀ s ω', |xOf y s ω'| ≤ My := fun s ω' => hMy s ω' _
+  set K := (1 + |γ|) * My + MF + |c.lx| * (My + |c.xstar|) + My with hK
+  have hMy0 : 0 ≤ My := (abs_nonneg _).trans (hMy 0 ω (Sum.inr ()))
+  have hMF0 : 0 ≤ MF := (abs_nonneg _).trans (hFb 0 ω)
+  have hqhb : ∀ s ω', |qh s ω'| ≤ K := fun s ω' => by
+    have e : qh s ω' = 1 * piOf y s ω' + (-γ) * Zof y s ω' + 0 * 0 + 0 * 0 := by
+      simp [hqh]
+      ring
+    rw [e]
+    refine (abs_lin4 (M := My) (hpb s ω') (hZb s ω') (by simpa using hMy0)
+      (by simpa using hMy0)).trans ?_
+    rw [hK]
+    simp only [abs_one, abs_neg, abs_zero, add_zero]
+    nlinarith [abs_nonneg c.lx, abs_nonneg c.xstar, abs_nonneg γ]
+  have hgb : ∀ s ω', |g s ω'| ≤ K := fun s ω' => by
+    have e : g s ω' = c.lx * (xOf y s ω' - c.xstar) := by simp [hg]
+    rw [e, abs_mul]
+    have h2 : |xOf y s ω' - c.xstar| ≤ My + |c.xstar| :=
+      (abs_sub _ _).trans (by linarith [hxb' s ω'])
+    have h3 := mul_le_mul_of_nonneg_left h2 (abs_nonneg c.lx)
+    rw [hK]
+    nlinarith [abs_nonneg γ]
+  have hab' : ∀ s ω', |a s ω'| ≤ K := fun s ω' => (hab s ω').trans (by
+    rw [hK]
+    nlinarith [abs_nonneg c.lx, abs_nonneg c.xstar, abs_nonneg γ])
+  have hK0 : 0 ≤ K := (abs_nonneg _).trans (hqhb 0 ω)
+  have hEE : ∀ s (z : Ω → ℝ), 𝔼.E s (𝔼.E s z) = 𝔼.E s z := fun s z => 𝔼.tower le_rfl z
+  -- the forcing `f̂'` through `q̂` and `g`
+  have hgd : ∀ s, c.lx • (xOf y s - xOf y (s - 1)) = g s - g (s - 1) := fun s => by
+    funext ω'
+    simp [hg]
+    ring
+  have hgd1 : ∀ s, c.lx • (xOf y (s + 1) - xOf y s) = g (s + 1) - g s := fun s => by
+    funext ω'
+    simp [hg]
+    ring
+  have hfp0 : ∀ s, fplan c γ 𝔼 y s = (c.σ / c.li) • (c.κ • qh s + (g s - g (s - 1))) -
+      (c.β * γ) • 𝔼.E s ((c.σ / c.li) • (c.κ • qh (s + 1) + (g (s + 1) - g s))) := by
+    intro s
+    unfold fplan
+    rw [hgd, hgd1]
+  have hfp : ∀ s, fplan c γ 𝔼 y s = (c.σ / c.li) • (c.κ • qh s + (g s - g (s - 1))) -
+      (c.β * γ) • ((c.σ / c.li) • (c.κ • 𝔼.E s (qh (s + 1)) + (𝔼.E s (g (s + 1)) - g s))) := by
+    intro s
+    rw [hfp0]
+    simp only [map_smul, map_add, map_sub, hgk]
+  -- `a_s` through `F_{s+2}`
+  have has : ∀ s, a s = (c.β * μ) • 𝔼.E s (Fs (s + 1 + 1)) +
+      c.β • ((μ - γ) • 𝔼.E s (qh (s + 1)) + j1 • 𝔼.E s (g (s + 1))) := by
+    intro s
+    simp only [ha]
+    rw [hFrec (s + 1), map_add, map_smul, map_smul, map_add, map_smul, map_smul,
+      𝔼.tower (Nat.le_succ s)]
+  have hEW : ∀ s, 𝔼.E s (W (s + 1)) = (c.σ / c.li) • (c.κ • (𝔼.E s (qh (s + 1)) +
+      𝔼.E s (Fs (s + 1 + 1))) + e • 𝔼.E s (g (s + 1)) - g s) := by
+    intro s
+    simp only [hW, ha]
+    rw [map_smul, map_sub, map_add, map_smul, map_add, map_smul, 𝔼.tower (Nat.le_succ s),
+      Nat.add_sub_cancel, hgk]
+  -- `W` is a bounded adapted solution of `W_s − λₛ⁻¹E_sW_{s+1} = f̂'_s`
+  have hWsol : (aeval (TargetCriterion.fwdOp 𝔼) (1 - C ls⁻¹ * X)) W = fplan c γ 𝔼 y := by
+    funext s
+    rw [InertiaProp810.aeval_one_sub, hEW, hfp]
+    simp only [hW]
+    rw [has]
+    funext ω'
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    linear_combination (c.σ / c.li * c.β * 𝔼.E s (g (s + 1)) ω') * hj +
+      (c.σ / c.li * (c.κ * (𝔼.E s (qh (s + 1)) ω' + 𝔼.E s (Fs (s + 1 + 1)) ω') +
+        e * 𝔼.E s (g (s + 1)) ω' - g s ω')) * hBμ + (c.σ / c.li * g s ω') * he
+  have hWa : 𝔼.Adapted W := fun s => by
+    simp only [hW]
+    rw [map_smul, map_sub, map_add, map_smul, map_add, map_smul, hqhk, hak, hgk, hgk']
+  have hWb : BoundedProc W := by
+    refine ⟨(|c.σ / c.li * c.κ| + |c.σ / c.li * c.κ| + |c.σ / c.li * e| + |-(c.σ / c.li)|) * K,
+      fun s ω' => ?_⟩
+    have ew : W s ω' = c.σ / c.li * c.κ * qh s ω' + c.σ / c.li * c.κ * a s ω' +
+        c.σ / c.li * e * g s ω' + -(c.σ / c.li) * g (s - 1) ω' := by
+      simp only [hW, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    rw [ew]
+    exact abs_lin4 (hqhb s ω') (hab' s ω') (hgb s ω') (hgb (s - 1) ω')
+  -- `f̂'` is bounded and adapted
+  set K2 := (|c.σ / c.li * c.κ| + |c.σ / c.li| + |-(c.σ / c.li)| + |(0 : ℝ)|) * K with hK2
+  have hK20 : 0 ≤ K2 := mul_nonneg (by positivity) hK0
+  have hinner : ∀ s ω', |((c.σ / c.li) • (c.κ • qh (s + 1) + (g (s + 1) - g s))) ω'| ≤ K2 :=
+    fun s ω' => by
+      have ew : ((c.σ / c.li) • (c.κ • qh (s + 1) + (g (s + 1) - g s))) ω' =
+          c.σ / c.li * c.κ * qh (s + 1) ω' + c.σ / c.li * g (s + 1) ω' +
+            -(c.σ / c.li) * g s ω' + 0 * 0 := by
+        simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+        ring
+      rw [ew]
+      exact abs_lin4 (hqhb (s + 1) ω') (hgb (s + 1) ω') (hgb s ω') (by simpa using hK0)
+  set Mf := (|c.σ / c.li * c.κ| + |c.σ / c.li| + |-(c.σ / c.li)| + |-(c.β * γ)|) * (K + K2)
+    with hMf
+  have hfb : ∀ s ω', |fplan c γ 𝔼 y s ω'| ≤ Mf := fun s ω' => by
+    have ew : fplan c γ 𝔼 y s ω' = c.σ / c.li * c.κ * qh s ω' + c.σ / c.li * g s ω' +
+        -(c.σ / c.li) * g (s - 1) ω' + -(c.β * γ) *
+          𝔼.E s ((c.σ / c.li) • (c.κ • qh (s + 1) + (g (s + 1) - g s))) ω' := by
+      rw [hfp0]
+      simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    rw [ew]
+    exact abs_lin4 ((hqhb s ω').trans (by linarith)) ((hgb s ω').trans (by linarith))
+      ((hgb (s - 1) ω').trans (by linarith))
+      ((𝔼.abs_E_le (hinner s) s ω').trans (by linarith))
+  have hfa : 𝔼.Adapted (fplan c γ 𝔼 y) := fun s => by
+    rw [hfp0]
+    simp only [map_sub, map_smul, map_add, hEE, hqhk, hgk, hgk']
+  -- the forward sum solves the same equation
+  have hg0 : 0 ≤ ls⁻¹ := inv_nonneg.mpr (by linarith)
+  have hg1 : ls⁻¹ < 1 := inv_lt_one_of_one_lt₀ hls1
+  have hG := InflationInertiaRepresentations.summable_abs_geomKer hg0 hg1
+  set Ψ := InflationInertiaRepresentations.fwd 𝔼 (geomKer ls⁻¹) (fplan c γ 𝔼 y) with hΨ
+  have hΨb : BoundedProc Ψ := InflationInertiaRepresentations.fwd_bounded 𝔼 hG ⟨Mf, hfb⟩
+  have hΨa : 𝔼.Adapted Ψ := fun s => InflationInertiaRepresentations.E_fwd_self 𝔼 hG hfb s
+  have hΨsol : (aeval (TargetCriterion.fwdOp 𝔼) (1 - C ls⁻¹ * X)) Ψ = fplan c γ 𝔼 y := by
+    funext s
+    rw [InertiaProp810.aeval_one_sub]
+    have hr := InflationInertiaRepresentations.fwd_rec 𝔼 hG (a := ls⁻¹) (b := 0)
+      (by simp [geomKer]) (fun j => by simp [geomKer, pow_succ]; ring) hfb hfa s
+    rw [← hΨ] at hr
+    rw [hr]
+    simp [geomKer]
+  have hφ0 : (1 - C ls⁻¹ * X : ℝ[X]) ≠ 0 := by
+    intro e0
+    have := congrArg (fun p : ℝ[X] => p.coeff 0) e0
+    simp at this
+  have huniq := Prop84General.forward_inverse_existsUnique (𝔼 := 𝔼) hφ0
+    (InertiaProp810.roots_one_sub_inv hls1) ⟨Mf, hfb⟩ hfa
+  have hWΨ := huniq.unique ⟨hWb, hWa, hWsol⟩ ⟨hΨb, hΨa, hΨsol⟩
+  have := congrFun (congrFun hWΨ t) ω
+  rw [← this]
+  simp only [hW, hqh, hg, ha, hFs, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+
+/-- Woodford (2003), (3.18)–(3.19), p. 593: along a plan with `Z_{s+1} = π_s` (the first
+structural equation), `f̂'_s = f̂_s` from date `1` on (`κ ≠ 0`). -/
+theorem fplan_eq_fhat {Ω : Type*} (hc : c.Adm) (𝔼 : ExpectationSystem Ω)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hZ : ∀ s, Zof y (s + 1) = piOf y s) {s : ℕ}
+    (hs : 1 ≤ s) :
+    fplan c γ 𝔼 y s =
+      InflationInertiaRepresentations.fhat 𝔼 c.β γ c.κ c.σ c.lx c.li (piOf y) (xOf y) s := by
+  have hκ := hc.2.2.2.1.ne'
+  have hli := hc.2.2.2.2.2.ne'
+  obtain ⟨n, rfl⟩ : ∃ n, s = n + 1 := ⟨s - 1, by omega⟩
+  have hq : ∀ m, (c.σ / c.li) • (c.κ • (piOf y (m + 1) - γ • Zof y (m + 1)) +
+      c.lx • (xOf y (m + 1) - xOf y (m + 1 - 1))) =
+      InflationInertiaRepresentations.qtilde γ c.κ c.σ c.lx c.li (piOf y) (xOf y) (m + 1) := by
+    intro m
+    unfold InflationInertiaRepresentations.qtilde
+    rw [hZ m, Nat.add_sub_cancel]
+    funext ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    field_simp
+  unfold fplan InflationInertiaRepresentations.fhat
+  rw [hq n, ← hq (n + 1), Nat.add_sub_cancel]
+
+/-- **Woodford (2003), (1.23)/(1.28) for the inertia model: the general target criterion is Rule
+I or Rule II.** For the representation of Proposition 8.1 built from the split solving the real
+root `λₛ` forward, along any bounded adapted plan with `Z_{t+1} = π_t`, at every date `t ≥ 1`,
+the criterion (1.23) (with `v = λᵢ(i − i*)`, `q = Q(L⁻¹)T̃'W(τ − τ*)`) equals
+`λᵢ[(1 − λ₁L)(1 − λ_bL)(i_t − i*) − (βγλₛ)⁻¹ ∑_j λₛ^{−j} E_t f̂_{t+j}]`, `λ_b = S − λₛ`:
+the rule (3.22) (`λₛ = λ₃`) or (3.23) (`λₛ = λ₂`) for `ı̂ = i − i*` and `f̂` of (3.18). -/
+theorem crit_rule {Ω : Type*} (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hyb : BoundedV y) (hya : AdaptedV 𝔼 y)
+    (hZ : ∀ s, Zof y (s + 1) = piOf y s) {t : ℕ} (ht : 1 ≤ t) (ω : Ω) :
+    TargetCriterion.Crit.crit
+        (alpha (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Λ)
+        (Bpoly (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Λ) 2
+        (inProblem c γ hc hγ0.le).sys.B2 (fun s ω => c.li * (iOf y s ω - c.istar))
+        ((Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) 𝔼 t0).Qop
+          (xproc (inProblem c γ hc hγ0.le) y)) t ω =
+      c.li * ((iOf y t ω - c.istar) - (lam1 c.β γ c.κ c.σ + (sumS c.β γ c.κ c.σ - ls)) *
+          (iOf y (t - 1) ω - c.istar) + lam1 c.β γ c.κ c.σ * (sumS c.β γ c.κ c.σ - ls) *
+          (iOf y (t - 2) ω - c.istar) - (c.β * γ * ls)⁻¹ * ∑' j, (ls⁻¹) ^ j *
+          𝔼.E t (InflationInertiaRepresentations.fhat 𝔼 c.β γ c.κ c.σ c.lx c.li (piOf y) (xOf y)
+            (t + j)) ω) := by
+  have hli := hc.2.2.2.2.2.ne'
+  have hσ := hc.2.2.1.ne'
+  have hβ := hc.1.ne'
+  have hls : ls ≠ 0 := by
+    linarith [InertiaSplit.one_lt_of_quadQ (standing_of c γ hc hγ0 hγ1) hq]
+  have hfwd : InflationInertiaRepresentations.fwd 𝔼 (geomKer ls⁻¹) (fplan c γ 𝔼 y) t ω =
+      ∑' j, (ls⁻¹) ^ j * 𝔼.E t (InflationInertiaRepresentations.fhat 𝔼 c.β γ c.κ c.σ c.lx c.li
+        (piOf y) (xOf y) (t + j)) ω := by
+    unfold InflationInertiaRepresentations.fwd
+    refine tsum_congr fun j => ?_
+    rw [fplan_eq_fhat c γ hc 𝔼 hZ (by omega)]
+    rfl
+  rw [crit_eq c γ hc hγ0 hγ1 hq 𝔼 t0 hya t ω, ← hfwd, ← W_eq_fwd c γ hc hγ0 hγ1 hq 𝔼 hyb hya t ω]
+  field_simp
+
+/-- Woodford (2003), (1.23) and (3.22)–(3.23) (tool): for `λᵢ ≠ 0`, the criterion value
+`λᵢ[(1 − λ₁L)(1 − λ_bL)ı̂_t − (βγλₛ)⁻¹∑λₛ^{−j}E_tf̂_{t+j}]` vanishes at `t = n + 2` iff the real
+rule with kept root `λ_b` and forward root `λₛ` holds at `n`. -/
+theorem crit_zero_iff {Ω : Type*} (𝔼 : ExpectationSystem Ω) {li β γ l1 lb ls : ℝ} (hli : li ≠ 0)
+    (ı f : ℕ → Ω → ℝ) (n : ℕ) :
+    (∀ ω, li * (ı (n + 2) ω - (l1 + lb) * ı (n + 2 - 1) ω + l1 * lb * ı (n + 2 - 2) ω -
+        (β * γ * ls)⁻¹ * ∑' j, (ls⁻¹) ^ j * 𝔼.E (n + 2) (f (n + 2 + j)) ω) = 0) ↔
+      InflationInertiaRules.RuleIReal 𝔼 β γ l1 lb ls ı f n := by
+  unfold InflationInertiaRules.RuleIReal
+  refine forall_congr' fun ω => ?_
+  rw [show n + 2 - 1 = n + 1 by omega, show n + 2 - 2 = n by omega, mul_eq_zero]
+  constructor
+  · rintro (h | h)
+    · exact absurd h hli
+    · linarith
+  · intro h
+    right
+    linarith
+
+/-- **Woodford (2003), Rule I (3.22), p. 595, is the general target criterion (1.23)/(1.28).**
+In the real case, for the representation of Proposition 8.1 whose split solves `λ₃` forward,
+along any bounded adapted plan with `Z_{t+1} = π_t`, the general criterion holds at all dates
+`t ≥ T` (`T ≥ 2`) iff Rule I holds there (for `ı̂ = i − i*` and `f̂` of (3.18)). -/
+theorem crit_iff_ruleI {Ω : Type*} (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : 0 ≤ discQ c.β γ c.κ c.σ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hyb : BoundedV y) (hya : AdaptedV 𝔼 y)
+    (hZ : ∀ s, Zof y (s + 1) = piOf y s) {T : ℕ} (hT : 2 ≤ T) :
+    (∀ t, T ≤ t → ∀ ω, TargetCriterion.Crit.crit
+        (alpha (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (InertiaSplit.quadQ_lam3r hD))
+          𝔼 t0).Λ)
+        (Bpoly (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (InertiaSplit.quadQ_lam3r hD))
+          𝔼 t0).Λ) 2
+        (inProblem c γ hc hγ0.le).sys.B2 (fun s ω => c.li * (iOf y s ω - c.istar))
+        ((Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (InertiaSplit.quadQ_lam3r hD)) 𝔼 t0).Qop
+          (xproc (inProblem c γ hc hγ0.le) y)) t ω = 0) ↔
+      ∀ t, T ≤ t → InflationInertiaRules.RuleIReal 𝔼 c.β γ (lam1 c.β γ c.κ c.σ)
+        (lam2r c.β γ c.κ c.σ) (lam3r c.β γ c.κ c.σ) (fun s ω => iOf y s ω - c.istar)
+        (InflationInertiaRepresentations.fhat 𝔼 c.β γ c.κ c.σ c.lx c.li (piOf y) (xOf y))
+        (t - 2) := by
+  have hb : sumS c.β γ c.κ c.σ - lam3r c.β γ c.κ c.σ = lam2r c.β γ c.κ c.σ := by
+    rw [← InertiaSplit.lam2r_add_lam3r]
+    ring
+  refine forall_congr' fun t => imp_congr_right fun ht => ?_
+  obtain ⟨n, rfl⟩ : ∃ n, t = n + 2 := ⟨t - 2, by omega⟩
+  rw [show n + 2 - 2 = n by omega, ← crit_zero_iff 𝔼 hc.2.2.2.2.2.ne']
+  refine forall_congr' fun ω => ?_
+  rw [crit_rule c γ hc hγ0 hγ1 _ 𝔼 t0 hyb hya hZ (by omega) ω, hb]
+
+/-- **Woodford (2003), Rule II (3.23), p. 595, is the general target criterion (1.23)/(1.28)**
+for the representation whose split solves `λ₂` forward (real case). -/
+theorem crit_iff_ruleII {Ω : Type*} (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : 0 ≤ discQ c.β γ c.κ c.σ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} (hyb : BoundedV y) (hya : AdaptedV 𝔼 y)
+    (hZ : ∀ s, Zof y (s + 1) = piOf y s) {T : ℕ} (hT : 2 ≤ T) :
+    (∀ t, T ≤ t → ∀ ω, TargetCriterion.Crit.crit
+        (alpha (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (InertiaSplit.quadQ_lam2r hD))
+          𝔼 t0).Λ)
+        (Bpoly (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (InertiaSplit.quadQ_lam2r hD))
+          𝔼 t0).Λ) 2
+        (inProblem c γ hc hγ0.le).sys.B2 (fun s ω => c.li * (iOf y s ω - c.istar))
+        ((Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (InertiaSplit.quadQ_lam2r hD)) 𝔼 t0).Qop
+          (xproc (inProblem c γ hc hγ0.le) y)) t ω = 0) ↔
+      ∀ t, T ≤ t → InflationInertiaRules.RuleIIReal 𝔼 c.β γ (lam1 c.β γ c.κ c.σ)
+        (lam2r c.β γ c.κ c.σ) (lam3r c.β γ c.κ c.σ) (fun s ω => iOf y s ω - c.istar)
+        (InflationInertiaRepresentations.fhat 𝔼 c.β γ c.κ c.σ c.lx c.li (piOf y) (xOf y))
+        (t - 2) := by
+  have hb : sumS c.β γ c.κ c.σ - lam2r c.β γ c.κ c.σ = lam3r c.β γ c.κ c.σ := by
+    rw [← InertiaSplit.lam2r_add_lam3r]
+    ring
+  refine forall_congr' fun t => imp_congr_right fun ht => ?_
+  obtain ⟨n, rfl⟩ : ∃ n, t = n + 2 := ⟨t - 2, by omega⟩
+  unfold InflationInertiaRules.RuleIIReal
+  rw [show n + 2 - 2 = n by omega, ← crit_zero_iff 𝔼 hc.2.2.2.2.2.ne']
+  refine forall_congr' fun ω => ?_
+  rw [crit_rule c γ hc hγ0 hγ1 _ 𝔼 t0 hyb hya hZ (by omega) ω, hb]
+
+end Woodford.OptimalPolicyRules.InertiaCriterion
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Rule III and the non-uniqueness of `Λ` in Proposition 8.1
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Proposition 8.1 (p. 553), Proposition 8.3
+(pp. 556–557) and Rule III (3.24), p. 595.
+
+`InertiaSplit.split_not_ruleIII` shows that no deflating split of the inertia model has Rule
+III's lag polynomial `(1 − λ₁L)(1 − ½(λ₂ + λ₃)L)`. This module shows that the homogeneous content
+of Proposition 8.1 — the equivalence of the homogeneous (1.18) with the homogeneous
+(1.20)–(1.21) on bounded sequences, which is all that Proposition 8.3 uses — does not pin `Λ`
+down: the unstable eigenvalue may be moved to any `ν` with `|ν| > 1`.
+
+## Main results
+
+* `homEquiv_modify`: if `(Λ − λ_b)(Λ − λ₁) = 0`, `λ₁ ≠ λ_b`, `|λ_b| > 1` and `|ν| > 1`, then
+  `Λ' = Λ + ((ν − λ_b)/(λ_b − λ₁))(Λ − λ₁I)` (which replaces the eigenvalue `λ_b` by `ν`) has the
+  same bounded homogeneous solutions: `HomEquiv S β Λ Υ → HomEquiv S β Λ' Υ`.
+* `alpha_modify`: for `2 × 2` `Λ` with eigenvalues `λ₁, λ_b`, `α'(L) = (1 − λ₁L)(1 − νL)`.
+* `ruleIII_homEquiv`: **for the inertia model in the real case, Rule III's lag polynomial is
+  `det(I − Λ'L)` for a matrix `Λ'` satisfying the homogeneous Proposition 8.1 equivalence**
+  (built from the Rule I split with `ν = S/2`). So Rule III is excluded only for the `Λ` of a
+  deflating split (`InertiaSplit.split_not_ruleIII`), not by Proposition 8.1's homogeneous
+  equivalence or by Proposition 8.3.
+-/
+
+namespace Woodford.OptimalPolicyRules.InertiaRuleIII
+
+open Matrix Polynomial GeneralSetup Adjugate PencilSplit
+open IRuleBasic (Calib)
+open CubicRoots
+open GeneralLinksInertia (inSys inProblem in_det_ne)
+open InertiaSplit (inJ quadQ inSplit standing_of)
+open GeneralFOC.LQ (Mpart)
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 556 (tool): a bounded sequence `u_{t+1} = a u_t` with `|a| > 1`
+vanishes. -/
+theorem eq_zero_of_bdd_geom {a : ℝ} (ha : 1 < |a|) {u : ℕ → ιz → ℝ}
+    (hb : ∃ C, ∀ t i, |u t i| ≤ C) (hu : ∀ t, u (t + 1) = a • u t) : ∀ t, u t = 0 := by
+  obtain ⟨C, hC⟩ := hb
+  have hpow : ∀ t, u t = a ^ t • u 0 := by
+    intro t
+    induction t with
+    | zero => simp
+    | succ n ih => rw [hu n, ih, smul_smul, pow_succ, mul_comm]
+  have h0 : u 0 = 0 := by
+    funext i
+    by_contra hne
+    have hpos : 0 < |u 0 i| := abs_pos.mpr hne
+    have htend : Filter.Tendsto (fun t : ℕ => |a| ^ t * |u 0 i|) Filter.atTop Filter.atTop :=
+      (tendsto_pow_atTop_atTop_of_one_lt ha).atTop_mul_const hpos
+    obtain ⟨t, ht⟩ := (htend.eventually_gt_atTop C).exists
+    have := hC t i
+    rw [hpow t, Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow] at this
+    linarith
+  intro t
+  rw [hpow t, h0, smul_zero]
+
+/-- **Woodford (2003), Proposition 8.1, p. 553: `Λ` is not determined by the homogeneous
+equivalence.** If `(Λ − λ_bI)(Λ − λ₁I) = 0` with `λ₁ ≠ λ_b`, `|λ_b| > 1`, then for every `ν` with
+`|ν| > 1` the matrix `Λ' = Λ + c(Λ − λ₁I)`, `c = (ν − λ_b)/(λ_b − λ₁)`, has the same bounded
+homogeneous solutions of (1.20)–(1.21) as `Λ`. (On the range of `Λ − λ₁I`, `Λ` acts as `λ_b` and
+`Λ'` as `ν`; bounded orbits never enter it.) -/
+theorem homEquiv_modify {S : LinearRESystem ιZ ιz} {β : ℝ} {Λ : Matrix ιz ιz ℝ}
+    {Υ : Matrix ιZ ιz ℝ} (hE : Prop83.HomEquiv S β Λ Υ) {l1 lb ν : ℝ}
+    (hmin : (Λ - lb • (1 : Matrix ιz ιz ℝ)) * (Λ - l1 • (1 : Matrix ιz ιz ℝ)) = 0)
+    (h1b : l1 ≠ lb) (hb : 1 < |lb|) (hν : 1 < |ν|) :
+    Prop83.HomEquiv S β (Λ + ((ν - lb) / (lb - l1)) • (Λ - l1 • (1 : Matrix ιz ιz ℝ))) Υ := by
+  set c := (ν - lb) / (lb - l1) with hc
+  set N := Λ - l1 • (1 : Matrix ιz ιz ℝ) with hN
+  have hsub : lb - l1 ≠ 0 := sub_ne_zero.mpr h1b.symm
+  -- `Λ N = λ_b N`, and `N` commutes with `Λ`
+  have hΛN : Λ * N = lb • N := by
+    have := hmin
+    rw [sub_mul, smul_mul_assoc, Matrix.one_mul, sub_eq_zero] at this
+    exact this
+  have hNΛ : N * Λ = Λ * N := by
+    rw [hN, sub_mul, Matrix.mul_sub, smul_mul_assoc, Matrix.one_mul, mul_smul_comm,
+      Matrix.mul_one]
+  have hN2 : N * N = (lb - l1) • N := by
+    rw [hN, Matrix.sub_mul, ← hN, hΛN, smul_mul_assoc, Matrix.one_mul, sub_smul]
+  have hΛ'N : (Λ + c • N) * N = ν • N := by
+    rw [Matrix.add_mul, hΛN, smul_mul_assoc, hN2, smul_smul, ← add_smul]
+    congr 1
+    rw [hc]
+    field_simp
+    ring
+  intro h hbd
+  rw [hE h hbd]
+  -- bounded sequences `N M_t`
+  obtain ⟨C, hC⟩ := hbd
+  have hNb : ∃ C', ∀ t i, |(N *ᵥ Mpart (h t)) i| ≤ C' := by
+    obtain ⟨K, hK⟩ := GeneralFOC.exists_bound_mulVec N C
+    exact ⟨K, fun t i => hK (Mpart (h t)) (fun j => by
+      have := hC t (Sum.inr j)
+      rwa [Real.norm_eq_abs] at this) i⟩
+  constructor
+  · intro hR t
+    obtain ⟨hM, hξ⟩ := hR t
+    refine ⟨?_, hξ⟩
+    have hz := eq_zero_of_bdd_geom hb hNb (fun s => by
+      rw [(hR s).1, mulVec_mulVec, hNΛ, hΛN, Matrix.smul_mulVec])
+    rw [hM, Matrix.add_mulVec, Matrix.smul_mulVec, hz t, smul_zero, add_zero]
+  · intro hR t
+    obtain ⟨hM, hξ⟩ := hR t
+    refine ⟨?_, hξ⟩
+    have hz := eq_zero_of_bdd_geom hν hNb (fun s => by
+      rw [(hR s).1, mulVec_mulVec]
+      have hcomm : N * (Λ + c • N) = (Λ + c • N) * N := by
+        rw [Matrix.mul_add, Matrix.add_mul, hNΛ, mul_smul_comm, smul_mul_assoc]
+      rw [hcomm, hΛ'N, Matrix.smul_mulVec])
+    rw [hM, Matrix.add_mulVec, Matrix.smul_mulVec, hz t, smul_zero, add_zero]
+
+/-- Woodford (2003), (1.22), p. 553: Cayley–Hamilton for a `2 × 2` matrix with
+`tr Λ = λ₁ + λ_b`, `det Λ = λ₁λ_b`: `(Λ − λ_bI)(Λ − λ₁I) = 0`. -/
+theorem cayley_two (Λ : Matrix (Fin 2) (Fin 2) ℝ) {l1 lb : ℝ} (htr : Λ.trace = l1 + lb)
+    (hdet : Λ.det = l1 * lb) :
+    (Λ - lb • (1 : Matrix (Fin 2) (Fin 2) ℝ)) * (Λ - l1 • (1 : Matrix (Fin 2) (Fin 2) ℝ)) = 0 := by
+  rw [trace_fin_two] at htr
+  rw [det_fin_two] at hdet
+  ext i j
+  fin_cases i <;> fin_cases j <;>
+    simp [mul_apply, Fin.sum_univ_two, Matrix.sub_apply, Matrix.one_apply]
+  · linear_combination (Λ 0 0) * htr - hdet
+  · linear_combination (Λ 0 1) * htr
+  · linear_combination (Λ 1 0) * htr
+  · linear_combination (Λ 1 1) * htr - hdet
+
+/-- Woodford (2003), (1.22): for `2 × 2` `Λ` with eigenvalues `λ₁ ≠ λ_b` (`tr Λ = λ₁ + λ_b`,
+`det Λ = λ₁λ_b`), `Λ' = Λ + ((ν − λ_b)/(λ_b − λ₁))(Λ − λ₁I)` has
+`α'(L) = det(I − Λ'L) = (1 − λ₁L)(1 − νL)`. -/
+theorem alpha_modify (Λ : Matrix (Fin 2) (Fin 2) ℝ) {l1 lb ν : ℝ} (htr : Λ.trace = l1 + lb)
+    (hdet : Λ.det = l1 * lb) (h1b : l1 ≠ lb) :
+    alpha (Λ + ((ν - lb) / (lb - l1)) • (Λ - l1 • (1 : Matrix (Fin 2) (Fin 2) ℝ))) =
+      (1 - C l1 * X) * (1 - C ν * X) := by
+  have hsub : lb - l1 ≠ 0 := sub_ne_zero.mpr h1b.symm
+  set c := (ν - lb) / (lb - l1) with hc
+  have hcν : lb + c * (lb - l1) = ν := by
+    rw [hc]
+    field_simp
+    ring
+  rw [trace_fin_two] at htr
+  rw [det_fin_two] at hdet
+  have htr' : (Λ + c • (Λ - l1 • (1 : Matrix (Fin 2) (Fin 2) ℝ))).trace = l1 + ν := by
+    rw [trace_fin_two]
+    simp [Matrix.sub_apply]
+    linear_combination (1 + c) * htr + hcν
+  have hdet' : (Λ + c • (Λ - l1 • (1 : Matrix (Fin 2) (Fin 2) ℝ))).det = l1 * ν := by
+    rw [det_fin_two]
+    simp [Matrix.sub_apply]
+    linear_combination (1 + c) ^ 2 * hdet - c * l1 * (1 + c) * htr + l1 * hcν
+  rw [InertiaSplit.alpha_fin_two, htr', hdet', C_add, C_mul]
+  ring
+
+/-- **Woodford (2003), Rule III (3.24), p. 595, and Proposition 8.1: Rule III's lag polynomial is
+`det(I − Λ'L)` for a `Λ'` satisfying the homogeneous Proposition 8.1 equivalence.** In the real
+case (`S² ≥ 4P₂₃`), starting from the `Λ` of the Rule I split (`λₛ = λ₃`, eigenvalues `λ₁, λ₂`),
+`Λ' = Λ + ((S/2 − λ₂)/(λ₂ − λ₁))(Λ − λ₁I)` has the same bounded homogeneous solutions as `Λ`
+(`homEquiv_modify`, `ν = S/2 > 1`) and `α'(L) = (1 − λ₁L)(1 − ½(λ₂ + λ₃)L)`. Hence neither the
+homogeneous equivalence nor Proposition 8.3 excludes Rule III's `α(L)`; only the deflating-split
+construction of `Λ` does (`InertiaSplit.split_not_ruleIII`). -/
+theorem ruleIII_homEquiv (c : Calib) (γ : ℝ) (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : 0 ≤ discQ c.β γ c.κ c.σ) :
+    ∃ Λ' : Matrix (Fin 2) (Fin 2) ℝ,
+      Prop83.HomEquiv (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β Λ'
+        (Υmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le))
+          (inJ c (c.β * lam3r c.β γ c.κ c.σ)⁻¹)) ∧
+      alpha Λ' = (1 - C (lam1 c.β γ c.κ c.σ) * X) * (1 - C (sumS c.β γ c.κ c.σ / 2) * X) := by
+  have h := standing_of c γ hc hγ0 hγ1
+  have hq := InertiaSplit.quadQ_lam3r hD
+  obtain ⟨hp, h1, h0, -⟩ := InertiaSplit.mu_facts c γ h hq
+  have hls : lam3r c.β γ c.κ c.σ ≠ 0 := by linarith [one_lt_lam3r h]
+  -- the homogeneous equivalence for the split's `Λ`, from Proposition 8.1 (perfect foresight)
+  set H := Prop81General.prop81 (inProblem c γ hc hγ0.le) (inSplit c γ hc hγ0 hγ1 hq)
+    perfectForesight 0 with hH
+  obtain ⟨hyb, hya, hφb, hφm, h118⟩ := Prop83Links.const_base (inProblem c γ hc hγ0.le)
+    perfectForesight 0 _ (InertiaSplit.in_xvec_base c γ hc hγ0.le)
+  have hE := Prop83.homEquiv_of_perturbation h118
+    (Prop83Links.hequiv_of_prop81M H hyb hya hφb hφm)
+  change Prop83.HomEquiv (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β
+    (Λmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β
+      (inJ c (c.β * lam3r c.β γ c.κ c.σ)⁻¹))
+    (Υmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le))
+      (inJ c (c.β * lam3r c.β γ c.κ c.σ)⁻¹)) at hE
+  -- its trace and determinant
+  have hb : sumS c.β γ c.κ c.σ - lam3r c.β γ c.κ c.σ = lam2r c.β γ c.κ c.σ := by
+    rw [← InertiaSplit.lam2r_add_lam3r]
+    ring
+  have htr := InertiaSplit.in_Λ_trace c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hc.1.ne'
+    hγ0.ne' hp h1 h0
+  rw [InertiaSplit.tr_eq c γ h hls hp, hb] at htr
+  have hdet := InertiaSplit.in_Λ_det c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hc.1.ne'
+    hγ0.ne' hp h1 h0
+  rw [InertiaSplit.det_eq c γ h hls hq, hb] at hdet
+  have hl1 := lam1_spec h
+  have h2 := one_lt_lam2r h
+  have h1b : lam1 c.β γ c.κ c.σ ≠ lam2r c.β γ c.κ c.σ := by linarith
+  have hS := two_lt_sumS h
+  refine ⟨_, homEquiv_modify hE (cayley_two _ htr hdet) h1b
+    (by rw [abs_of_pos (by linarith)]; exact h2)
+    (ν := sumS c.β γ c.κ c.σ / 2) (by rw [abs_of_pos (by linarith)]; linarith),
+    alpha_modify _ htr hdet h1b⟩
+
+end Woodford.OptimalPolicyRules.InertiaRuleIII
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Assumption 8.1 for the basic model
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumption 8.1 (p. 541), for the basic
+neo-Wicksellian model of §3.1 (pp. 582–591), via the second-order multiplier system of
+Appendix G.4 (pp. 721–722).
+
+## Main results
+
+* `sys2R_existsUnique`: the second-order Blanchard–Kahn theorem of `IRuleBasic`
+  (`sys2_existsUnique`, deterministic initial multipliers) extended to a **random** initial
+  multiplier `Φ_{−1}` known at date `0` and bounded: the homogeneous solution
+  `Φ̂_s = X^{s+1}Φ_{−1}` carries the initial condition (`hat_sys`), and the rest solves the
+  system with `Φ_{−1} = 0`.
+* `nk_assumption81M`: **Assumption 8.1 (corrected, `Prop82General.Assumption81M`) holds for the
+  basic model**, for every expectation system and every initial date `t₀`: for every bounded
+  adapted disturbance and every bounded initial multiplier `M_{t₀−1}` known at `t₀ − 1`, the
+  system (1.1) + (1.9) has exactly one bounded solution. The first-order conditions (3.3)–(3.5)
+  express `π, x, i` through the multipliers (`GeneralLinks.nk_foc_at_iff`), and (2.1), (3.1) then
+  become the multiplier system `P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t` of App. G.4, with dates
+  counted from `t₀` (`Prop84General.shiftES`).
+* `nk_assumption81_perfectForesight`: under perfect foresight the original formalisation
+  `GeneralFOC.LQ.Assumption81` holds as well.
+* `not_assumption81_coin`: the original formalisation cannot hold under genuine uncertainty
+  from a date `t₀ ≥ 1`: it asks for a solution for every `M_{t₀−1}` known only at `t₀`, while a
+  solution has `M_{t₀−1}` known at `t₀ − 1`. On the coin-flip tree it fails at `t₀ = 1` for
+  every problem with a forward-looking variable.
+-/
+
+namespace Woodford.OptimalPolicyRules.NKAssumption81
+
+open Matrix GeneralSetup GeneralFOC GeneralFOC.LQ
+open IRuleBasic (rvMul VAdapted VBounded Sys2 lagV rvMul_rvMul rvMul_add rvMul_sub
+  add_rvMul sub_rvMul rvMul_one E_rvMul)
+
+variable {Ω : Type*}
+
+/-! ### The second-order system with a random initial multiplier -/
+
+/-- Woodford (2003), App. G.4, p. 721: a vector process lagged once with a **random** pre-sample
+value `z_{−1} = z₀`. -/
+def lagR (z0 : Fin 2 → Ω → ℝ) (z : ℕ → Fin 2 → Ω → ℝ) : ℕ → Fin 2 → Ω → ℝ
+  | 0 => z0
+  | s + 1 => z s
+
+/-- Woodford (2003), App. G.4, p. 721: `Φ` solves `P E_sΦ_{s+1} − A₁Φ_s + A₂Φ_{s−1} = F_s` for all
+`s ≥ 0`, with the random initial value `Φ_{−1} = Φm`. -/
+def Sys2R (𝔼 : ExpectationSystem Ω) (P A1 A2 : Matrix (Fin 2) (Fin 2) ℝ)
+    (F : ℕ → Fin 2 → Ω → ℝ) (Φm : Fin 2 → Ω → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) : Prop :=
+  ∀ s, rvMul P (fun j => 𝔼.E s (Φ (s + 1) j)) - rvMul A1 (Φ s) + rvMul A2 (lagR Φm Φ s) = F s
+
+/-- Woodford (2003), App. G.4: the homogeneous solution `Φ̂_s = X^{s+1}Φ_{−1}` carrying the
+initial multiplier. -/
+def hatΦ (X : Matrix (Fin 2) (Fin 2) ℝ) (Φm : Fin 2 → Ω → ℝ) : ℕ → Fin 2 → Ω → ℝ :=
+  fun s => rvMul (X ^ (s + 1)) Φm
+
+/-- Woodford (2003), App. G.4 (tool): the lag of `Φ̂` is `X^sΦ_{−1}`. -/
+theorem lagR_hat (X : Matrix (Fin 2) (Fin 2) ℝ) (Φm : Fin 2 → Ω → ℝ) (s : ℕ) :
+    lagR Φm (hatΦ X Φm) s = rvMul (X ^ s) Φm := by
+  cases s with
+  | zero => simp [lagR, rvMul_one]
+  | succ s => rfl
+
+variable (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), App. G.4 (tool): `Φ̂` is known at every date when `Φ_{−1}` is known at `0`. -/
+theorem hat_known (X : Matrix (Fin 2) (Fin 2) ℝ) {Φm : Fin 2 → Ω → ℝ}
+    (hm : ∀ j, 𝔼.E 0 (Φm j) = Φm j) (k s : ℕ) (j : Fin 2) :
+    𝔼.E s (rvMul (X ^ k) Φm j) = rvMul (X ^ k) Φm j := by
+  rw [E_rvMul 𝔼]
+  congr 1
+  funext i
+  exact ForwardSolution.E_of_known 𝔼 (Nat.zero_le s) (hm i)
+
+/-- Woodford (2003), App. G.4: `Φ̂_s = X^{s+1}Φ_{−1}` solves the homogeneous system when `X` solves
+`PX² − A₁X + A₂ = 0`. -/
+theorem hat_sys {P A1 A2 X : Matrix (Fin 2) (Fin 2) ℝ} (hX : P * X * X - A1 * X + A2 = 0)
+    {Φm : Fin 2 → Ω → ℝ} (hm : ∀ j, 𝔼.E 0 (Φm j) = Φm j) :
+    Sys2R 𝔼 P A1 A2 (fun _ => 0) Φm (hatΦ X Φm) := by
+  intro s
+  have hE : (fun j => 𝔼.E s (hatΦ X Φm (s + 1) j)) = rvMul (X ^ (s + 2)) Φm :=
+    funext fun j => hat_known 𝔼 X hm (s + 2) s j
+  rw [hE, lagR_hat, hatΦ, rvMul_rvMul, rvMul_rvMul, rvMul_rvMul, ← sub_rvMul, ← add_rvMul]
+  have hm0 : P * X ^ (s + 2) - A1 * X ^ (s + 1) + A2 * X ^ s =
+      (P * X * X - A1 * X + A2) * X ^ s := by
+    have e1 : X ^ (s + 1) = X * X ^ s := pow_succ' X s
+    have e2 : X ^ (s + 2) = X * X * X ^ s := by
+      rw [pow_succ', pow_succ', Matrix.mul_assoc]
+    rw [e1, e2]
+    simp only [sub_mul, add_mul, Matrix.mul_assoc]
+  rw [hm0, hX, Matrix.zero_mul]
+  funext i ω
+  simp [rvMul]
+
+/-- Woodford (2003), App. G.4 (linearity): `Φ` solves the system with the random initial value
+`Φ_{−1}` iff `Φ − Φ̂` solves it with `Φ_{−1} = 0` (`IRuleBasic.Sys2`). -/
+theorem sys2R_iff {P A1 A2 X : Matrix (Fin 2) (Fin 2) ℝ} (hX : P * X * X - A1 * X + A2 = 0)
+    {F : ℕ → Fin 2 → Ω → ℝ} {Φm : Fin 2 → Ω → ℝ} (hm : ∀ j, 𝔼.E 0 (Φm j) = Φm j)
+    (Φ : ℕ → Fin 2 → Ω → ℝ) :
+    Sys2R 𝔼 P A1 A2 F Φm Φ ↔ Sys2 𝔼 P A1 A2 F 0 (fun s => Φ s - hatΦ X Φm s) := by
+  have hh := hat_sys 𝔼 hX hm
+  have key : ∀ s, rvMul P (fun j => 𝔼.E s ((Φ (s + 1) - hatΦ X Φm (s + 1)) j)) -
+      rvMul A1 (Φ s - hatΦ X Φm s) + rvMul A2 (lagV 0 (fun s => Φ s - hatΦ X Φm s) s) =
+      (rvMul P (fun j => 𝔼.E s (Φ (s + 1) j)) - rvMul A1 (Φ s) + rvMul A2 (lagR Φm Φ s)) -
+      (rvMul P (fun j => 𝔼.E s (hatΦ X Φm (s + 1) j)) - rvMul A1 (hatΦ X Φm s) +
+        rvMul A2 (lagR Φm (hatΦ X Φm) s)) := by
+    intro s
+    have e1 : (fun j => 𝔼.E s ((Φ (s + 1) - hatΦ X Φm (s + 1)) j)) =
+        (fun j => 𝔼.E s (Φ (s + 1) j)) - (fun j => 𝔼.E s (hatΦ X Φm (s + 1) j)) := by
+      funext j
+      simp [map_sub]
+    have e2 : lagV 0 (fun s => Φ s - hatΦ X Φm s) s = lagR Φm Φ s - lagR Φm (hatΦ X Φm) s := by
+      cases s with
+      | zero =>
+        funext j ω
+        simp [lagV, lagR]
+      | succ s => rfl
+    rw [e1, e2, rvMul_sub, rvMul_sub, rvMul_sub]
+    abel
+  constructor
+  · intro h s
+    change rvMul P (fun j => 𝔼.E s ((Φ (s + 1) - hatΦ X Φm (s + 1)) j)) -
+      rvMul A1 (Φ s - hatΦ X Φm s) + rvMul A2 (lagV 0 (fun s => Φ s - hatΦ X Φm s) s) = F s
+    rw [key, h s, hh s, sub_zero]
+  · intro h s
+    have := key s
+    rw [show rvMul P (fun j => 𝔼.E s ((Φ (s + 1) - hatΦ X Φm (s + 1)) j)) -
+      rvMul A1 (Φ s - hatΦ X Φm s) + rvMul A2 (lagV 0 (fun s => Φ s - hatΦ X Φm s) s) = F s
+      from h s, hh s, sub_zero] at this
+    exact this.symm
+
+/-- **Woodford (2003), App. G.4, pp. 721–722: the second-order Blanchard–Kahn theorem with a
+random initial multiplier.** Under the hypotheses of `IRuleBasic.sys2_existsUnique` (a stable real
+solvent `X`, `B = PX − A₁` invertible, `K = −B⁻¹P` stable), for every bounded adapted forcing and
+every bounded `Φ_{−1}` known at date `0` the system has exactly one bounded adapted solution. -/
+theorem sys2R_existsUnique {P A1 A2 X : Matrix (Fin 2) (Fin 2) ℝ}
+    (hX : P * X * X - A1 * X + A2 = 0) (hXs : SchurStable (tr2 X) (det2 X))
+    (hB : det2 (P * X - A1) ≠ 0)
+    (hK : SchurStable (tr2 (-(IRuleBasic.inv2 (P * X - A1) * P)))
+      (det2 (-(IRuleBasic.inv2 (P * X - A1) * P))))
+    {F : ℕ → Fin 2 → Ω → ℝ} (hFb : VBounded F) (hFa : VAdapted 𝔼 F) {Φm : Fin 2 → Ω → ℝ}
+    (hm : ∀ j, 𝔼.E 0 (Φm j) = Φm j) (hmb : ∃ K, ∀ j ω, |Φm j ω| ≤ K) :
+    ∃! Φ, Sys2R 𝔼 P A1 A2 F Φm Φ ∧ VAdapted 𝔼 Φ ∧ VBounded Φ := by
+  obtain ⟨Φt, ⟨hs, ha, hb⟩, hu⟩ := IRuleBasic.sys2_existsUnique 𝔼 hX hXs hB hK hFb hFa 0
+  have hha : VAdapted 𝔼 (hatΦ X Φm) := fun s j => hat_known 𝔼 X hm (s + 1) s j
+  have hhb : VBounded (hatΦ X Φm) := by
+    obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hXp⟩ := IRuleBasic.pow_bound_of_schurStable hXs
+    obtain ⟨K, hK⟩ := hmb
+    have hK' : ∀ j ω, |Φm j ω| ≤ max K 0 := fun j ω => (hK j ω).trans (le_max_left _ _)
+    refine ⟨2 * (Cb * max K 0), fun s j ω => ?_⟩
+    have h1 := IRuleBasic.abs_rvMul_pow_le hXp (s + 1) hK' j ω
+    have hp : ρ ^ (s + 1) ≤ 1 := pow_le_one₀ hρ0.le hρ1.le
+    have hM : 0 ≤ max K 0 := le_max_right _ _
+    have h2 : Cb * ρ ^ (s + 1) * max K 0 ≤ Cb * max K 0 := by
+      have := mul_le_mul_of_nonneg_left hp hCb
+      nlinarith
+    push_cast at h1
+    change |rvMul (X ^ (s + 1)) Φm j ω| ≤ _
+    linarith
+  have hdiff : ∀ Φ : ℕ → Fin 2 → Ω → ℝ, VAdapted 𝔼 Φ → VBounded Φ →
+      VAdapted 𝔼 (fun s => Φ s - hatΦ X Φm s) ∧ VBounded (fun s => Φ s - hatΦ X Φm s) := by
+    intro Φ h1 h2
+    refine ⟨fun s j => ?_, ?_⟩
+    · change 𝔼.E s (Φ s j - hatΦ X Φm s j) = Φ s j - hatΦ X Φm s j
+      rw [map_sub, h1 s j, hha s j]
+    · obtain ⟨M1, hM1⟩ := h2
+      obtain ⟨M2, hM2⟩ := hhb
+      exact ⟨M1 + M2, fun s j ω => (abs_sub _ _).trans (add_le_add (hM1 s j ω) (hM2 s j ω))⟩
+  refine ⟨fun s => Φt s + hatΦ X Φm s, ⟨?_, fun s j => ?_, ?_⟩, ?_⟩
+  · rw [sys2R_iff 𝔼 hX hm]
+    convert hs using 2
+    simp
+  · change 𝔼.E s (Φt s j + hatΦ X Φm s j) = Φt s j + hatΦ X Φm s j
+    rw [map_add, ha s j, hha s j]
+  · obtain ⟨M1, hM1⟩ := hb
+    obtain ⟨M2, hM2⟩ := hhb
+    exact ⟨M1 + M2, fun s j ω => (abs_add_le _ _).trans (add_le_add (hM1 s j ω) (hM2 s j ω))⟩
+  · rintro Φ' ⟨hs', ha', hb'⟩
+    obtain ⟨hda, hdb⟩ := hdiff Φ' ha' hb'
+    have hd := hu _ ⟨(sys2R_iff 𝔼 hX hm Φ').mp hs', hda, hdb⟩
+    funext s
+    have := congrFun hd s
+    rw [← this]
+    abel
+
+/-! ### The basic model -/
+
+namespace NK
+
+open GeneralLinks
+open IRuleBasic (Calib PmG A1G A2G cpG c1G c2G Fphi)
+
+variable (c : Calib)
+
+/-- Woodford (2003), App. G.4, pp. 721–722: the multiplier system of the basic model has a real
+solvent `X` with both eigenvalues inside the unit circle, `B = PX − A₁` invertible and
+`K = −B⁻¹P` stable (from `IRuleBasic.exists_real_split`, `solvent_eq`, `schurStable_scale`). -/
+theorem nk_solvent (hc : c.Adm) : ∃ X : Matrix (Fin 2) (Fin 2) ℝ,
+    PmG c.β c.σ c.κ c.lx * X * X - A1G c.β c.σ c.κ c.lx c.li * X + A2G c.β c.σ c.κ c.lx = 0 ∧
+      SchurStable (tr2 X) (det2 X) ∧
+      det2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) ≠ 0 ∧
+      SchurStable
+        (tr2 (-(IRuleBasic.inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) *
+          PmG c.β c.σ c.κ c.lx)))
+        (det2 (-(IRuleBasic.inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) *
+          PmG c.β c.σ c.κ c.lx))) := by
+  obtain ⟨hβ0, hβ1, hσ, hκ, hlx, hli⟩ := hc
+  obtain ⟨T, D, hTD, hD, hfacC⟩ := IRuleBasic.exists_real_split hβ0 hβ1 hσ hκ hlx.le hli
+  have hfac : ∀ μ : ℝ, IRuleBasic.pR c.β c.σ c.κ c.lx c.li μ =
+      (μ ^ 2 - T * μ + D) * (μ ^ 2 - T / (c.β * D) * μ + 1 / (c.β ^ 2 * D)) := by
+    intro μ
+    have := hfacC μ
+    rw [IRuleBasic.pG_ofReal] at this
+    exact_mod_cast this
+  obtain ⟨-, hsolv, htr, hdet, hB, htrK, hdetK⟩ :=
+    IRuleBasic.solvent_eq hβ0 hβ1 hlx hli hTD hD hfac
+  have hK := IRuleBasic.schurStable_scale hβ0 hβ1 hTD
+  rw [← htrK, ← hdetK] at hK
+  exact ⟨_, hsolv, by rw [htr, hdet]; exact hTD, hB, hK⟩
+
+/-- Woodford (2003), (2.1), (3.1) with (3.3)–(3.5), App. G.4: **the rows of the multiplier
+system.** If `π, x, i` and their expectations are given by the first-order conditions at `t`
+and `t + 1` in terms of the lagged, current and expected multipliers `a, f, e` (entries `0`:
+`φ₁` on (3.1), `1`: `φ₂` on (2.1)), the structural equations with disturbance `(c₀, c₁)` hold
+iff the two rows of `P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t` do, with `u = −c₀`,
+`rⁿ = −c₁/σ`. -/
+theorem rows_iff (hc : c.Adm) {a0 a1 f0 f1 e0 e1 p x i ep ex c0 c1 : ℝ}
+    (hp : p = c.σ / c.β * a0 - f1 + a1) (hep : ep = c.σ / c.β * f0 - e1 + f1)
+    (hx : x = c.xstar + c.lx⁻¹ * (c.κ * f1 - f0 + c.β⁻¹ * a0))
+    (hex : ex = c.xstar + c.lx⁻¹ * (c.κ * e1 - e0 + c.β⁻¹ * f0))
+    (hi : i = c.istar - c.σ / c.li * f0) :
+    (c.β * ep = p - c.κ * x + c0 ∧ c.σ * ep + ex = x + c.σ * i + c1) ↔
+      (c.β * e0 + c.β * c.lx * cpG c.σ c.κ c.lx * e1 - c1G c.β c.σ c.lx c.li * f0 -
+          c.β * c.lx * cpG c.σ c.κ c.lx * f1 + a0 = c.β * c.lx * c.σ * (-(c1 / c.σ) - c.istar) ∧
+        c.β * e1 - cpG c.σ c.κ c.lx * f0 - c2G c.β c.κ c.lx * f1 +
+          cpG c.σ c.κ c.lx / c.β * a0 + a1 = -c0 + c.κ * c.xstar) := by
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  obtain ⟨hAS, hIS⟩ := IRuleBasic.rows_real c hc.1.ne' hc.2.2.2.2.1.ne' hc.2.2.2.2.2.ne'
+    (u := -c0) (rn := -(c1 / c.σ)) hp hep hx hex hi
+  have e1 : (c.β * ep = p - c.κ * x + c0) ↔ (p = c.κ * x + c.β * ep + -c0) :=
+    ⟨fun h => by linarith, fun h => by linarith⟩
+  have e2 : (c.σ * ep + ex = x + c.σ * i + c1) ↔ (x = ex - c.σ * (i - ep - -(c1 / c.σ))) := by
+    constructor
+    · intro h
+      field_simp
+      linarith
+    · intro h
+      rw [h]
+      field_simp
+      ring
+  rw [e1, e2, hAS, hIS]
+  exact and_comm
+
+/-- Woodford (2003), (1.1) for the basic model at one date, p. 537, with any disturbance
+`c_t`: the structural equations at `(t, ω)` are `βE_tπ_{t+1} = π_t − κx_t + c₀` (2.1) and
+`σE_tπ_{t+1} + E_tx_{t+1} = x_t + σi_t + c₁` (3.1). -/
+theorem nk_struct_at (hσ : c.σ ≠ 0) (𝔼 : ExpectationSystem Ω) (cc : ℕ → Ω → Fin 2 → ℝ)
+    (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ) (t : ℕ) (ω : Ω) :
+    ((nkSys c hσ).Et *ᵥ EV 𝔼 t (fun ω' => zpart (y (t + 1) ω')) ω =
+      (nkSys c hσ).A21 *ᵥ Zpart (y t ω) + (nkSys c hσ).A22 *ᵥ zpart (y t ω) +
+        ipart (y t ω) • (nkSys c hσ).B2 + cc t ω) ↔
+      (c.β * 𝔼.E t (piOf y (t + 1)) ω = piOf y t ω - c.κ * xOf y t ω + cc t ω 0 ∧
+        c.σ * 𝔼.E t (piOf y (t + 1)) ω + 𝔼.E t (xOf y (t + 1)) ω =
+          xOf y t ω + c.σ * iOf y t ω + cc t ω 1) := by
+  rw [funext_iff, Fin.forall_fin_two]
+  simp only [nkSys, mulVec, dotProduct, Fin.sum_univ_two, EV, zpart, Zpart, ipart,
+    piOf_eq, xOf_eq, piOf, xOf, iOf, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+    Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+    Matrix.empty_val', Matrix.cons_val_fin_one, Finset.univ_eq_empty, Finset.sum_empty,
+    Matrix.zero_apply]
+  constructor
+  · rintro ⟨h0, h1⟩
+    constructor <;> linarith
+  · rintro ⟨h0, h1⟩
+    constructor <;> linarith
+
+/-- Woodford (2003), App. G.4: the multipliers `Φ_s = (φ_{1,t₀+s}, φ_{2,t₀+s})` of a solution of
+(1.1) + (1.9), read from `M_{t₀+s}` (`φ_{t₀+s+1}`; entry `1` is the multiplier on (3.1), entry
+`0` the one on (2.1)), with dates counted from `t₀`. -/
+def PhiOf (t0 : ℕ) (φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ) : ℕ → Fin 2 → Ω → ℝ :=
+  fun s => ![fun ω => φ (s + t0 + 1) ω (Sum.inr 1), fun ω => φ (s + t0 + 1) ω (Sum.inr 0)]
+
+/-- Woodford (2003), App. G.4: the initial multipliers `Φ_{−1} = (M_{t₀−1,1}, M_{t₀−1,0})`. -/
+def PhiM (M0 : Ω → Fin 2 → ℝ) : Fin 2 → Ω → ℝ := ![fun ω => M0 ω 1, fun ω => M0 ω 0]
+
+/-- Woodford (2003), (2.1), (3.1): the forcing of the multiplier system for the disturbance
+`c_t = (−u_t, −σrⁿ_t)`, dates counted from `t₀`. -/
+noncomputable def Fnk (cc : ℕ → Ω → Fin 2 → ℝ) (t0 : ℕ) : ℕ → Fin 2 → Ω → ℝ :=
+  Fphi c (fun s ω => -(cc (s + t0) ω 1 / c.σ)) (fun s ω => -cc (s + t0) ω 0)
+
+/-- Woodford (2003), App. G.4 (tool): the lagged multipliers are those of `φ_{t₀+s}`. -/
+theorem lagR_PhiOf (t0 : ℕ) {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} {M0 : Ω → Fin 2 → ℝ}
+    (hM : ∀ ω, Mpart (φ t0 ω) = M0 ω) (s : ℕ) :
+    lagR (PhiM M0) (PhiOf t0 φ) s =
+      ![fun ω => φ (s + t0) ω (Sum.inr 1), fun ω => φ (s + t0) ω (Sum.inr 0)] := by
+  cases s with
+  | zero =>
+    funext j ω
+    simp only [zero_add]
+    fin_cases j
+    · change M0 ω 1 = φ t0 ω (Sum.inr 1)
+      rw [← hM ω]
+      rfl
+    · change M0 ω 0 = φ t0 ω (Sum.inr 0)
+      rw [← hM ω]
+      rfl
+  | succ s =>
+    rw [show s + 1 + t0 = s + t0 + 1 by omega]
+    rfl
+
+/-- **Woodford (2003), (2.1), (3.1) and (3.3)–(3.5), App. G.4, at one date: (1.1) is the
+multiplier system.** Along multipliers with `M_t` known at `t`, if (1.9) holds at `t` and
+`t + 1`, then the structural equations at `(t, ω)` hold iff the two rows of
+`P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t` do (dates `t = s + t₀`). -/
+theorem row_iff (hc : c.Adm) (𝔼 : ExpectationSystem Ω) (cc : ℕ → Ω → Fin 2 → ℝ) (t0 : ℕ)
+    (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ) {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ}
+    {M0 : Ω → Fin 2 → ℝ} (hmφ : MultiplierMeas 𝔼 φ) (hM : ∀ ω, Mpart (φ t0 ω) = M0 ω)
+    (hfoc : PFOC (nkProblem c hc) 𝔼 t0 y φ) (s : ℕ) (ω : Ω) :
+    ((nkSys c hc.2.2.1.ne').Et *ᵥ EV 𝔼 (s + t0) (fun ω' => zpart (y (s + t0 + 1) ω')) ω =
+      (nkSys c hc.2.2.1.ne').A21 *ᵥ Zpart (y (s + t0) ω) +
+        (nkSys c hc.2.2.1.ne').A22 *ᵥ zpart (y (s + t0) ω) +
+        ipart (y (s + t0) ω) • (nkSys c hc.2.2.1.ne').B2 + cc (s + t0) ω) ↔
+      ∀ j, (rvMul (PmG c.β c.σ c.κ c.lx) (fun j => (Prop84General.shiftES 𝔼 t0).E s
+          (PhiOf t0 φ (s + 1) j)) - rvMul (A1G c.β c.σ c.κ c.lx c.li) (PhiOf t0 φ s) +
+          rvMul (A2G c.β c.σ c.κ c.lx) (lagR (PhiM M0) (PhiOf t0 φ) s)) j ω =
+        Fnk c cc t0 s j ω := by
+  set t := s + t0 with ht
+  have h0 := fun ω' => (nk_foc_at_iff c hc 𝔼 y hmφ t ω').mp (hfoc t (by omega) ω')
+  have h1 := fun ω' => (nk_foc_at_iff c hc 𝔼 y hmφ (t + 1) ω').mp (hfoc (t + 1) (by omega) ω')
+  simp only [nkPhi1, nkPhi2] at h0 h1
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hlx : c.lx ≠ 0 := hc.2.2.2.2.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  -- the plan at `t + 1` through the multipliers, and its expectation
+  have hπf : piOf y (t + 1) = fun ω' => c.σ / c.β * φ (t + 1) ω' (Sum.inr 1) -
+      φ (t + 1 + 1) ω' (Sum.inr 0) + φ (t + 1) ω' (Sum.inr 0) := by
+    funext ω'
+    linarith [(h1 ω').1]
+  have hxf : xOf y (t + 1) = fun ω' => c.xstar + c.lx⁻¹ * (c.κ * φ (t + 1 + 1) ω' (Sum.inr 0) -
+      φ (t + 1 + 1) ω' (Sum.inr 1) + c.β⁻¹ * φ (t + 1) ω' (Sum.inr 1)) := by
+    funext ω'
+    have := (h1 ω').2.1
+    have h' : xOf y (t + 1) ω' - c.xstar = c.lx⁻¹ * (c.κ * φ (t + 1 + 1) ω' (Sum.inr 0) -
+        φ (t + 1 + 1) ω' (Sum.inr 1) + c.β⁻¹ * φ (t + 1) ω' (Sum.inr 1)) := by
+      rw [eq_inv_mul_iff_mul_eq₀ hlx]
+      linarith
+    linarith
+  have hk1 := hmφ t 1
+  have hk0 := hmφ t 0
+  have hEπ : 𝔼.E t (piOf y (t + 1)) ω = c.σ / c.β * φ (t + 1) ω (Sum.inr 1) -
+      𝔼.E t (fun ω' => φ (t + 1 + 1) ω' (Sum.inr 0)) ω + φ (t + 1) ω (Sum.inr 0) := by
+    rw [hπf, ExpectationTools.E_fun_add, ExpectationTools.E_fun_sub, ExpectationTools.E_fun_mul,
+      hk1, hk0]
+  have hEx : 𝔼.E t (xOf y (t + 1)) ω = c.xstar + c.lx⁻¹ * (c.κ *
+      𝔼.E t (fun ω' => φ (t + 1 + 1) ω' (Sum.inr 0)) ω -
+      𝔼.E t (fun ω' => φ (t + 1 + 1) ω' (Sum.inr 1)) ω + c.β⁻¹ * φ (t + 1) ω (Sum.inr 1)) := by
+    rw [hxf, ExpectationTools.E_fun_add, ExpectationTools.E_fun_mul, ExpectationTools.E_fun_add,
+      ExpectationTools.E_fun_sub, ExpectationTools.E_fun_mul, ExpectationTools.E_fun_mul, hk1,
+      𝔼.const]
+  have hp : piOf y t ω = c.σ / c.β * φ t ω (Sum.inr 1) - φ (t + 1) ω (Sum.inr 0) +
+      φ t ω (Sum.inr 0) := by linarith [(h0 ω).1]
+  have hx : xOf y t ω = c.xstar + c.lx⁻¹ * (c.κ * φ (t + 1) ω (Sum.inr 0) -
+      φ (t + 1) ω (Sum.inr 1) + c.β⁻¹ * φ t ω (Sum.inr 1)) := by
+    have := (h0 ω).2.1
+    have h' : xOf y t ω - c.xstar = c.lx⁻¹ * (c.κ * φ (t + 1) ω (Sum.inr 0) -
+        φ (t + 1) ω (Sum.inr 1) + c.β⁻¹ * φ t ω (Sum.inr 1)) := by
+      rw [eq_inv_mul_iff_mul_eq₀ hlx]
+      linarith
+    linarith
+  have hi : iOf y t ω = c.istar - c.σ / c.li * φ (t + 1) ω (Sum.inr 1) := by
+    have := (h0 ω).2.2
+    have h' : iOf y t ω - c.istar = c.li⁻¹ * (-(c.σ * φ (t + 1) ω (Sum.inr 1))) := by
+      rw [eq_inv_mul_iff_mul_eq₀ hli]
+      linarith
+    rw [div_eq_mul_inv]
+    linarith
+  rw [nk_struct_at c hc.2.2.1.ne' 𝔼 cc y t ω, rows_iff c hc hp hEπ hx hEx hi, Fin.forall_fin_two]
+  have hL := lagR_PhiOf t0 hM s
+  rw [hL]
+  simp only [IRuleBasic.sys_row, PmG, A1G, A2G, Fnk, Fphi, PhiOf, Prop84General.shiftES,
+    Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+    Matrix.empty_val', Matrix.cons_val_fin_one, Pi.smul_apply, Pi.sub_apply, Pi.add_apply,
+    smul_eq_mul]
+  rw [show s + 1 + t0 + 1 = t + 1 + 1 by omega, show s + t0 + 1 = t + 1 by omega]
+  constructor
+  · rintro ⟨r0, r1⟩
+    constructor <;> linarith
+  · rintro ⟨r0, r1⟩
+    constructor <;> linarith
+
+/-- **Woodford (2003), (1.1) + (1.9) for the basic model is the multiplier system of App. G.4.**
+Along multipliers with `M_t` known at `t`, `M_{t₀−1} = M₀` and (1.9) from `t₀` on, the
+structural equations (1.1) hold from `t₀` on iff `Φ` solves
+`P E_sΦ_{s+1} − A₁Φ_s + A₂Φ_{s−1} = F_s` (dates `s = t − t₀`, `Φ_{−1}` from `M₀`). -/
+theorem struct_iff_sys (hc : c.Adm) (𝔼 : ExpectationSystem Ω) (cc : ℕ → Ω → Fin 2 → ℝ)
+    (t0 : ℕ) (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ) {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ}
+    {M0 : Ω → Fin 2 → ℝ} (hmφ : MultiplierMeas 𝔼 φ) (hM : ∀ ω, Mpart (φ t0 ω) = M0 ω)
+    (hfoc : PFOC (nkProblem c hc) 𝔼 t0 y φ) :
+    (nkProblem c hc).sys.Structural 𝔼 cc t0 y ↔
+      Sys2R (Prop84General.shiftES 𝔼 t0) (PmG c.β c.σ c.κ c.lx) (A1G c.β c.σ c.κ c.lx c.li)
+        (A2G c.β c.σ c.κ c.lx) (Fnk c cc t0) (PhiM M0) (PhiOf t0 φ) := by
+  constructor
+  · intro h s
+    funext j ω
+    exact (row_iff c hc 𝔼 cc t0 y hmφ hM hfoc s ω).mp (h (s + t0) (by omega) ω).2 j
+  · intro h t ht ω
+    obtain ⟨s, rfl⟩ : ∃ s, t = s + t0 := ⟨t - t0, by omega⟩
+    exact ⟨funext fun e => e.elim,
+      (row_iff c hc 𝔼 cc t0 y hmφ hM hfoc s ω).mpr fun j => congrFun (congrFun (h s) j) ω⟩
+
+/-- Woodford (2003), App. G.4 (linearity): the difference of two solutions with the same
+forcing and initial value solves the homogeneous system with `Φ_{−1} = 0`. -/
+theorem sys2R_sub {𝔼 : ExpectationSystem Ω} {P A1 A2 : Matrix (Fin 2) (Fin 2) ℝ}
+    {F : ℕ → Fin 2 → Ω → ℝ} {Φm : Fin 2 → Ω → ℝ} {Φ Φ' : ℕ → Fin 2 → Ω → ℝ}
+    (h : Sys2R 𝔼 P A1 A2 F Φm Φ) (h' : Sys2R 𝔼 P A1 A2 F Φm Φ') :
+    Sys2 𝔼 P A1 A2 (fun _ => 0) 0 (fun s => Φ s - Φ' s) := by
+  intro s
+  have e1 : (fun j => 𝔼.E s ((fun s => Φ s - Φ' s) (s + 1) j)) =
+      (fun j => 𝔼.E s (Φ (s + 1) j)) - (fun j => 𝔼.E s (Φ' (s + 1) j)) := by
+    funext j
+    simp [map_sub]
+  have e2 : lagV 0 (fun s => Φ s - Φ' s) s = lagR Φm Φ s - lagR Φm Φ' s := by
+    cases s with
+    | zero =>
+      funext j ω
+      simp [lagV, lagR]
+    | succ s => rfl
+  rw [e1, e2, rvMul_sub, rvMul_sub, rvMul_sub]
+  have hs := h s
+  have hs' := h' s
+  calc _ = (rvMul P (fun j => 𝔼.E s (Φ (s + 1) j)) - rvMul A1 (Φ s) + rvMul A2 (lagR Φm Φ s)) -
+      (rvMul P (fun j => 𝔼.E s (Φ' (s + 1) j)) - rvMul A1 (Φ' s) +
+        rvMul A2 (lagR Φm Φ' s)) := by abel
+    _ = 0 := by rw [hs, hs', sub_self]
+
+/-- Woodford (2003), App. G.4: the multipliers of a solution of (1.1) + (1.9) are adapted
+(dates from `t₀`). -/
+theorem phiOf_adapted (𝔼 : ExpectationSystem Ω) (t0 : ℕ) {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ}
+    (hmφ : MultiplierMeas 𝔼 φ) : VAdapted (Prop84General.shiftES 𝔼 t0) (PhiOf t0 φ) := by
+  intro s j
+  fin_cases j
+  · exact hmφ (s + t0) 1
+  · exact hmφ (s + t0) 0
+
+/-- Woodford (2003), App. G.4: the multipliers of a bounded solution are bounded. -/
+theorem phiOf_bounded (t0 : ℕ) {φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ} (hb : BoundedV φ) :
+    VBounded (PhiOf t0 φ) := by
+  obtain ⟨M, hM⟩ := hb
+  refine ⟨M, fun s j ω => ?_⟩
+  fin_cases j
+  · exact hM (s + t0 + 1) ω (Sum.inr 1)
+  · exact hM (s + t0 + 1) ω (Sum.inr 0)
+
+/-- **Woodford (2003), Assumption 8.1 (uniqueness), p. 541, for the basic model**: two bounded
+solutions of (1.1) + (1.9) with the same disturbance and the same `M_{t₀−1}` coincide from `t₀`
+on (any expectation system, any `t₀`). -/
+theorem nk_focUnique (hc : c.Adm) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    FOCUnique (nkProblem c hc) 𝔼 t0 := by
+  intro cc Z0 M0 y y' φ φ' hs hs'
+  obtain ⟨X, hX, hXs, hB, hK⟩ := nk_solvent c hc
+  set 𝔼' := Prop84General.shiftES 𝔼 t0
+  have h1 := (struct_iff_sys c hc 𝔼 cc t0 y hs.2.2.1 hs.2.2.2.1 hs.2.2.2.2).mp hs.1.1
+  have h2 := (struct_iff_sys c hc 𝔼 cc t0 y' hs'.2.2.1 hs'.2.2.2.1 hs'.2.2.2.2).mp hs'.1.1
+  have hd := sys2R_sub h1 h2
+  obtain ⟨Z, -, hZu⟩ := IRuleBasic.sys2_existsUnique 𝔼' hX hXs hB hK (F := fun _ => 0)
+    ⟨0, fun _ _ _ => by simp⟩ (fun s j => 𝔼'.const s 0) 0
+  have hzero : Sys2 𝔼' (PmG c.β c.σ c.κ c.lx) (A1G c.β c.σ c.κ c.lx c.li) (A2G c.β c.σ c.κ c.lx)
+      (fun _ => 0) 0 (fun _ => 0) := by
+    intro s
+    have hE : (fun j => 𝔼'.E s ((fun _ : ℕ => (0 : Fin 2 → Ω → ℝ)) (s + 1) j)) = 0 := by
+      funext j
+      exact 𝔼'.const s 0
+    have hL : lagV 0 (fun _ : ℕ => (0 : Fin 2 → Ω → ℝ)) s = 0 := by
+      cases s with
+      | zero =>
+        funext j ω
+        simp [lagV]
+      | succ s => rfl
+    rw [hE, hL]
+    funext j ω
+    simp [rvMul]
+  have ha1 := phiOf_adapted 𝔼 t0 hs.2.2.1
+  have ha2 := phiOf_adapted 𝔼 t0 hs'.2.2.1
+  have hDa : VAdapted 𝔼' (fun s => PhiOf t0 φ s - PhiOf t0 φ' s) := by
+    intro s j
+    change 𝔼'.E s (PhiOf t0 φ s j - PhiOf t0 φ' s j) = PhiOf t0 φ s j - PhiOf t0 φ' s j
+    rw [map_sub, ha1 s j, ha2 s j]
+  have hDb : VBounded (fun s => PhiOf t0 φ s - PhiOf t0 φ' s) := by
+    obtain ⟨M1, hM1⟩ := phiOf_bounded t0 hs.2.1
+    obtain ⟨M2, hM2⟩ := phiOf_bounded t0 hs'.2.1
+    exact ⟨M1 + M2, fun s j ω => (abs_sub _ _).trans (add_le_add (hM1 s j ω) (hM2 s j ω))⟩
+  have hD : (fun s => PhiOf t0 φ s - PhiOf t0 φ' s) = fun _ => 0 := by
+    rw [hZu _ ⟨hd, hDa, hDb⟩, hZu _ ⟨hzero, fun s j => 𝔼'.const s 0,
+      ⟨0, fun _ _ _ => by simp⟩⟩]
+  -- the multipliers agree from `t₀` on
+  have hφ : ∀ t, t0 ≤ t → φ t = φ' t := by
+    intro t ht
+    funext ω r
+    rcases r with e | r
+    · exact e.elim
+    · rcases Nat.eq_or_lt_of_le ht with h | h
+      · subst h
+        have a := congrFun (hs.2.2.2.1 ω) r
+        have b := congrFun (hs'.2.2.2.1 ω) r
+        exact a.trans b.symm
+      · obtain ⟨s, rfl⟩ : ∃ s, t = s + t0 + 1 := ⟨t - t0 - 1, by omega⟩
+        have d0 := congrFun (congrFun (congrFun hD s) 0) ω
+        have d1 := congrFun (congrFun (congrFun hD s) 1) ω
+        simp only [PhiOf, Pi.sub_apply, Matrix.cons_val_one, Matrix.cons_val_zero,
+          Pi.zero_apply] at d0 d1
+        fin_cases r
+        · change φ (s + t0 + 1) ω (Sum.inr 0) = φ' (s + t0 + 1) ω (Sum.inr 0)
+          linarith
+        · change φ (s + t0 + 1) ω (Sum.inr 1) = φ' (s + t0 + 1) ω (Sum.inr 1)
+          linarith
+  refine fun t ht => ⟨?_, hφ t ht⟩
+  funext ω i
+  have g1 := (nk_foc_at_iff c hc 𝔼 y hs.2.2.1 t ω).mp (hs.2.2.2.2 t ht ω)
+  have g2 := (nk_foc_at_iff c hc 𝔼 y' hs'.2.2.1 t ω).mp (hs'.2.2.2.2 t ht ω)
+  have e0 := congrFun (hφ t ht) ω
+  have e1 := congrFun (hφ (t + 1) (by omega)) ω
+  simp only [nkPhi1, nkPhi2, e0, e1] at g1 g2
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hlx : c.lx ≠ 0 := hc.2.2.2.2.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  rcases i with (e | j) | u
+  · exact e.elim
+  · fin_cases j
+    · change piOf y t ω = piOf y' t ω
+      linarith [g1.1, g2.1]
+    · change xOf y t ω = xOf y' t ω
+      have h := g1.2.1
+      have h' := g2.2.1
+      have : c.lx * (xOf y t ω - xOf y' t ω) = 0 := by linarith
+      rcases mul_eq_zero.mp this with h0 | h0
+      · exact absurd h0 hlx
+      · linarith
+  · change iOf y t ω = iOf y' t ω
+    have h := g1.2.2
+    have h' := g2.2.2
+    have : c.li * (iOf y t ω - iOf y' t ω) = 0 := by linarith
+    rcases mul_eq_zero.mp this with h0 | h0
+    · exact absurd h0 hli
+    · linarith
+
+/-- Woodford (2003), fn 6, p. 539 (tool): a linear combination of three quantities bounded by `B`
+plus a constant is bounded by `(|a| + |b| + |d|)B + |e|`. -/
+theorem abs_lin3 {a b d e u v w B : ℝ} (hu : |u| ≤ B) (hv : |v| ≤ B) (hw : |w| ≤ B) :
+    |e + a * u + b * v + d * w| ≤ (|a| + |b| + |d|) * B + |e| := by
+  have h1 : |a * u| ≤ |a| * B := by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left hu (abs_nonneg a)
+  have h2 : |b * v| ≤ |b| * B := by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left hv (abs_nonneg b)
+  have h3 : |d * w| ≤ |d| * B := by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left hw (abs_nonneg d)
+  have t1 := abs_add_le (e + a * u + b * v) (d * w)
+  have t2 := abs_add_le (e + a * u) (b * v)
+  have t3 := abs_add_le e (a * u)
+  linarith
+
+/-- Woodford (2003), (3.3)–(3.5): the plan determined by the multipliers `Φ` (dates from `t₀`;
+`π_t = σβ⁻¹φ_{1,t−1} − φ_{2t} + φ_{2,t−1}`, `x_t = x* + λ_x⁻¹(κφ_{2t} − φ_{1t} + β⁻¹φ_{1,t−1})`,
+`i_t = i* − (σ/λ_i)φ_{1t}`), and `0` before `t₀`. -/
+noncomputable def yOf (t0 : ℕ) (M0 : Ω → Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) :
+    ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ :=
+  fun t ω => if t0 ≤ t then
+    Sum.elim (Sum.elim (fun e => e.elim)
+      ![c.σ / c.β * lagR (PhiM M0) Φ (t - t0) 0 ω - Φ (t - t0) 1 ω +
+          lagR (PhiM M0) Φ (t - t0) 1 ω,
+        c.xstar + c.lx⁻¹ * (c.κ * Φ (t - t0) 1 ω - Φ (t - t0) 0 ω +
+          c.β⁻¹ * lagR (PhiM M0) Φ (t - t0) 0 ω)])
+      (fun _ => c.istar - c.σ / c.li * Φ (t - t0) 0 ω)
+  else 0
+
+/-- Woodford (2003), p. 540: the multipliers `φ_t = M_{t−1}` determined by `Φ` and `M_{t₀−1} = M₀`
+(`0` before `t₀`). -/
+noncomputable def φOf (t0 : ℕ) (M0 : Ω → Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) :
+    ℕ → Ω → Empty ⊕ Fin 2 → ℝ :=
+  fun t ω => Sum.elim (fun e => e.elim) (fun j =>
+    if t < t0 then 0 else if t = t0 then M0 ω j else ![Φ (t - t0 - 1) 1 ω, Φ (t - t0 - 1) 0 ω] j)
+
+/-- Woodford (2003), App. G.4 (tool): `φOf` has the multipliers `Φ`. -/
+theorem phiOf_φOf (t0 : ℕ) (M0 : Ω → Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) :
+    PhiOf t0 (φOf t0 M0 Φ) = Φ := by
+  funext s j ω
+  have h1 : ¬ (s + t0 + 1 < t0) := by omega
+  have h2 : s + t0 + 1 ≠ t0 := by omega
+  have h3 : s + t0 + 1 - t0 - 1 = s := by omega
+  fin_cases j <;> simp [PhiOf, φOf, h1, h2, h3]
+
+/-- Woodford (2003), p. 540 (tool): the lagged multipliers of `φOf` at `t ≥ t₀`. -/
+theorem φOf_lag (t0 : ℕ) (M0 : Ω → Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) {t : ℕ} (ht : t0 ≤ t)
+    (ω : Ω) : φOf t0 M0 Φ t ω (Sum.inr 1) = lagR (PhiM M0) Φ (t - t0) 0 ω ∧
+      φOf t0 M0 Φ t ω (Sum.inr 0) = lagR (PhiM M0) Φ (t - t0) 1 ω := by
+  rcases Nat.eq_or_lt_of_le ht with h | h
+  · subst h
+    simp [φOf, lagR, PhiM]
+  · obtain ⟨k, hk⟩ : ∃ k, t - t0 = k + 1 := ⟨t - t0 - 1, by omega⟩
+    have h1 : ¬ t < t0 := by omega
+    have h2 : t ≠ t0 := by omega
+    simp [φOf, h1, h2, hk, lagR]
+
+/-- Woodford (2003), p. 540 (tool): the current multipliers of `φOf` at `t ≥ t₀`. -/
+theorem φOf_succ (t0 : ℕ) (M0 : Ω → Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) {t : ℕ} (ht : t0 ≤ t)
+    (ω : Ω) : φOf t0 M0 Φ (t + 1) ω (Sum.inr 1) = Φ (t - t0) 0 ω ∧
+      φOf t0 M0 Φ (t + 1) ω (Sum.inr 0) = Φ (t - t0) 1 ω := by
+  have h1 : ¬ t + 1 < t0 := by omega
+  have h2 : t + 1 ≠ t0 := by omega
+  have h3 : t + 1 - t0 - 1 = t - t0 := by omega
+  simp [φOf, h1, h2, h3]
+
+/-- **Woodford (2003), Assumption 8.1 (existence, corrected), p. 541, for the basic model**: for
+every bounded adapted disturbance and every bounded `M_{t₀−1}` known at `t₀ − 1`, (1.1) + (1.9)
+has a bounded solution (any expectation system, any `t₀`). The multipliers solve the system of
+App. G.4 with the random initial value (`sys2R_existsUnique`); the plan is read off (3.3)–(3.5). -/
+theorem nk_focSolvableM (hc : c.Adm) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Prop82General.FOCSolvableM (nkProblem c hc) 𝔼 t0 := by
+  intro cc Z0 M0 hcb hca _ hMb hMk
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hlx : c.lx ≠ 0 := hc.2.2.2.2.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  obtain ⟨X, hX, hXs, hB, hK⟩ := nk_solvent c hc
+  set 𝔼' := Prop84General.shiftES 𝔼 t0 with h𝔼'
+  have hMk0 : ∀ j, 𝔼'.E 0 (PhiM M0 j) = PhiM M0 j := by
+    intro j
+    have h := KnownV.mono 𝔼 (Nat.sub_le t0 1) hMk
+    fin_cases j
+    · change 𝔼.E (0 + t0) (fun ω => M0 ω 1) = fun ω => M0 ω 1
+      rw [zero_add]
+      exact h 1
+    · change 𝔼.E (0 + t0) (fun ω => M0 ω 0) = fun ω => M0 ω 0
+      rw [zero_add]
+      exact h 0
+  obtain ⟨K, hK0⟩ := hMb
+  have hMb' : ∃ K, ∀ j ω, |PhiM M0 j ω| ≤ K := by
+    refine ⟨K, fun j ω => ?_⟩
+    fin_cases j
+    · exact hK0 ω 1
+    · exact hK0 ω 0
+  -- the forcing
+  obtain ⟨Mc, hMc⟩ := hcb
+  have hFb : VBounded (Fnk c cc t0) := by
+    refine IRuleBasic.Fphi_bounded c ⟨Mc / |c.σ|, fun s ω => ?_⟩ ⟨Mc, fun s ω => ?_⟩
+    · rw [abs_neg, abs_div]
+      exact div_le_div_of_nonneg_right (hMc (s + t0) ω 1) (abs_nonneg _)
+    · rw [abs_neg]
+      exact hMc (s + t0) ω 0
+  have hFa : VAdapted 𝔼' (Fnk c cc t0) := by
+    refine IRuleBasic.Fphi_adapted 𝔼' c (fun s => ?_) (fun s => ?_)
+    · change 𝔼.E (s + t0) (fun ω => -(cc (s + t0) ω 1 / c.σ)) = _
+      have e : (fun ω => -(cc (s + t0) ω 1 / c.σ)) =
+          (-c.σ⁻¹) • fun ω => cc (s + t0) ω 1 := by
+        funext ω
+        simp only [Pi.smul_apply, smul_eq_mul]
+        ring
+      rw [e, map_smul, hca (s + t0) 1]
+    · change 𝔼.E (s + t0) (fun ω => -cc (s + t0) ω 0) = _
+      have e : (fun ω => -cc (s + t0) ω 0) = -fun ω => cc (s + t0) ω 0 := rfl
+      rw [e, map_neg, hca (s + t0) 0]
+  obtain ⟨Φ, ⟨hΦs, hΦa, hΦb⟩, -⟩ := sys2R_existsUnique 𝔼' hX hXs hB hK hFb hFa hMk0 hMb'
+  set φ := φOf t0 M0 Φ with hφdef
+  set y := yOf c t0 M0 Φ with hydef
+  -- the multipliers
+  have hM : ∀ ω, Mpart (φ t0 ω) = M0 ω := by
+    intro ω
+    funext j
+    simp [hφdef, φOf, Mpart]
+  have hmφ : MultiplierMeas 𝔼 φ := by
+    intro t r
+    rcases lt_trichotomy (t + 1) t0 with h | h | h
+    · have e : (fun ω => φ (t + 1) ω (Sum.inr r)) = fun _ => 0 := by
+        funext ω
+        simp [hφdef, φOf, h]
+      rw [e, 𝔼.const]
+    · have e : (fun ω => φ (t + 1) ω (Sum.inr r)) = fun ω => M0 ω r := by
+        funext ω
+        simp [hφdef, φOf, h]
+      rw [e]
+      have := hMk r
+      rwa [show t0 - 1 = t by omega] at this
+    · obtain ⟨s, rfl⟩ : ∃ s, t = s + t0 := ⟨t - t0, by omega⟩
+      have hs := φOf_succ t0 M0 Φ (t := s + t0) (by omega)
+      rw [Nat.add_sub_cancel] at hs
+      fin_cases r
+      · have e : (fun ω => φ (s + t0 + 1) ω (Sum.inr 0)) = Φ s 1 := funext fun ω => (hs ω).2
+        change 𝔼.E (s + t0) (fun ω => φ (s + t0 + 1) ω (Sum.inr 0)) =
+          fun ω => φ (s + t0 + 1) ω (Sum.inr 0)
+        rw [e]
+        exact hΦa s 1
+      · have e : (fun ω => φ (s + t0 + 1) ω (Sum.inr 1)) = Φ s 0 := funext fun ω => (hs ω).1
+        change 𝔼.E (s + t0) (fun ω => φ (s + t0 + 1) ω (Sum.inr 1)) =
+          fun ω => φ (s + t0 + 1) ω (Sum.inr 1)
+        rw [e]
+        exact hΦa s 0
+  -- bounds
+  obtain ⟨MΦ, hMΦ⟩ := hΦb
+  set Bd := max MΦ (max K 0) with hBd
+  have hΦB : ∀ s j ω, |Φ s j ω| ≤ Bd := fun s j ω => (hMΦ s j ω).trans (le_max_left _ _)
+  have hLB : ∀ s j ω, |lagR (PhiM M0) Φ s j ω| ≤ Bd := by
+    intro s j ω
+    cases s with
+    | zero =>
+      fin_cases j
+      · exact (hK0 ω 1).trans ((le_max_left _ _).trans (le_max_right _ _))
+      · exact (hK0 ω 0).trans ((le_max_left _ _).trans (le_max_right _ _))
+    | succ s => exact hΦB s j ω
+  have hB0 : 0 ≤ Bd := (le_max_right K 0).trans (le_max_right _ _)
+  have hφb : BoundedV φ := by
+    refine ⟨Bd, fun t ω r => ?_⟩
+    rcases r with e | r
+    · exact e.elim
+    · by_cases h1 : t < t0
+      · simp [hφdef, φOf, h1, hB0]
+      · by_cases h2 : t = t0
+        · subst h2
+          simp only [hφdef, φOf, lt_irrefl, ↓reduceIte, Sum.elim_inr]
+          exact (hK0 ω r).trans ((le_max_left _ _).trans (le_max_right _ _))
+        · simp only [hφdef, φOf, h1, h2, ↓reduceIte, Sum.elim_inr]
+          fin_cases r
+          · exact hΦB _ 1 ω
+          · exact hΦB _ 0 ω
+  -- the first-order conditions
+  have hfoc : PFOC (nkProblem c hc) 𝔼 t0 y φ := by
+    intro t ht ω
+    refine (nk_foc_at_iff c hc 𝔼 y hmφ t ω).mpr ?_
+    obtain ⟨l1, l0⟩ := φOf_lag t0 M0 Φ ht ω
+    obtain ⟨s1, s0⟩ := φOf_succ t0 M0 Φ ht ω
+    simp only [nkPhi1, nkPhi2, hφdef, l1, l0, s1, s0, hydef, piOf_eq, xOf_eq, iOf, yOf, ht,
+      ↓reduceIte, Sum.elim_inl, Sum.elim_inr, Matrix.cons_val_zero, Matrix.cons_val_one]
+    refine ⟨by ring, ?_, ?_⟩
+    · field_simp
+      ring
+    · field_simp
+      ring
+  -- the structural equations
+  have hstr : (nkProblem c hc).sys.Structural 𝔼 cc t0 y := by
+    refine (struct_iff_sys c hc 𝔼 cc t0 y hmφ hM hfoc).mpr ?_
+    rw [hφdef, phiOf_φOf]
+    exact hΦs
+  -- the plan is bounded and adapted
+  have hyb : BoundedV y := by
+    refine ⟨((|c.σ / c.β| + 1 + 1) * Bd + 0) + ((|c.lx⁻¹ * c.κ| + |c.lx⁻¹| + |c.lx⁻¹ * c.β⁻¹|) *
+      Bd + |c.xstar|) + ((|c.σ / c.li| + 0 + 0) * Bd + |c.istar|), fun t ω i => ?_⟩
+    have hb1 := abs_lin3 (e := 0) (a := c.σ / c.β) (b := -1) (d := 1)
+      (hLB (t - t0) 0 ω) (hΦB (t - t0) 1 ω) (hLB (t - t0) 1 ω)
+    have hb2 := abs_lin3 (e := c.xstar) (a := c.lx⁻¹ * c.κ) (b := -c.lx⁻¹)
+      (d := c.lx⁻¹ * c.β⁻¹) (hΦB (t - t0) 1 ω) (hΦB (t - t0) 0 ω) (hLB (t - t0) 0 ω)
+    have hb3 := abs_lin3 (e := c.istar) (a := -(c.σ / c.li)) (b := 0) (d := 0)
+      (hΦB (t - t0) 0 ω) (hΦB (t - t0) 0 ω) (hΦB (t - t0) 0 ω)
+    simp only [abs_neg, abs_one, abs_zero] at hb1 hb2 hb3
+    have p1 : 0 ≤ ((|c.σ / c.β| + 1 + 1) * Bd + 0) := by positivity
+    have p2 : 0 ≤ (|c.lx⁻¹ * c.κ| + |c.lx⁻¹| + |c.lx⁻¹ * c.β⁻¹|) * Bd + |c.xstar| := by
+      positivity
+    have p3 : 0 ≤ (|c.σ / c.li| + 0 + 0) * Bd + |c.istar| := by positivity
+    by_cases ht : t0 ≤ t
+    · rcases i with (e | j) | u
+      · exact e.elim
+      · fin_cases j
+        · change |y t ω (Sum.inl (Sum.inr 0))| ≤ _
+          simp only [hydef, yOf, ht, ↓reduceIte, Sum.elim_inl, Sum.elim_inr,
+            Matrix.cons_val_zero]
+          have e : c.σ / c.β * lagR (PhiM M0) Φ (t - t0) 0 ω - Φ (t - t0) 1 ω +
+              lagR (PhiM M0) Φ (t - t0) 1 ω = 0 + c.σ / c.β * lagR (PhiM M0) Φ (t - t0) 0 ω +
+              -1 * Φ (t - t0) 1 ω + 1 * lagR (PhiM M0) Φ (t - t0) 1 ω := by ring
+          rw [e]
+          linarith
+        · change |y t ω (Sum.inl (Sum.inr 1))| ≤ _
+          simp only [hydef, yOf, ht, ↓reduceIte, Sum.elim_inl, Sum.elim_inr,
+            Matrix.cons_val_one, Matrix.cons_val_zero]
+          have e : c.xstar + c.lx⁻¹ * (c.κ * Φ (t - t0) 1 ω - Φ (t - t0) 0 ω +
+              c.β⁻¹ * lagR (PhiM M0) Φ (t - t0) 0 ω) = c.xstar + c.lx⁻¹ * c.κ * Φ (t - t0) 1 ω +
+              -c.lx⁻¹ * Φ (t - t0) 0 ω + c.lx⁻¹ * c.β⁻¹ * lagR (PhiM M0) Φ (t - t0) 0 ω := by
+            ring
+          rw [e]
+          linarith
+      · simp only [hydef, yOf, ht, ↓reduceIte, Sum.elim_inr]
+        have e : c.istar - c.σ / c.li * Φ (t - t0) 0 ω = c.istar + -(c.σ / c.li) *
+            Φ (t - t0) 0 ω + 0 * Φ (t - t0) 0 ω + 0 * Φ (t - t0) 0 ω := by ring
+        rw [e]
+        linarith
+    · simp only [hydef, yOf, ht, ↓reduceIte, Pi.zero_apply, abs_zero]
+      linarith
+  have hlagk : ∀ s j, 𝔼.E (s + t0) (lagR (PhiM M0) Φ s j) = lagR (PhiM M0) Φ s j := by
+    intro s j
+    cases s with
+    | zero => rw [zero_add]; exact (zero_add t0) ▸ hMk0 j
+    | succ k =>
+      exact ForwardSolution.E_of_known 𝔼 (by omega : k + t0 ≤ k + 1 + t0) (hΦa k j)
+  have hΦk : ∀ s j, 𝔼.E (s + t0) (Φ s j) = Φ s j := fun s j => hΦa s j
+  have hya : AdaptedV 𝔼 y := by
+    intro t i
+    by_cases ht : t0 ≤ t
+    · obtain ⟨s, rfl⟩ : ∃ s, t = s + t0 := ⟨t - t0, by omega⟩
+      have hs : s + t0 - t0 = s := by omega
+      rcases i with (e | j) | u
+      · exact e.elim
+      · fin_cases j
+        · have e : (fun ω => y (s + t0) ω (Sum.inl (Sum.inr 0))) =
+              (c.σ / c.β) • lagR (PhiM M0) Φ s 0 - Φ s 1 + lagR (PhiM M0) Φ s 1 := by
+            funext ω
+            simp [hydef, yOf, hs]
+          change 𝔼.E (s + t0) (fun ω => y (s + t0) ω (Sum.inl (Sum.inr 0))) =
+            fun ω => y (s + t0) ω (Sum.inl (Sum.inr 0))
+          rw [e, map_add, map_sub, map_smul, hlagk, hlagk, hΦk]
+        · have e : (fun ω => y (s + t0) ω (Sum.inl (Sum.inr 1))) =
+              (fun _ => c.xstar) + c.lx⁻¹ • (c.κ • Φ s 1 - Φ s 0 +
+                c.β⁻¹ • lagR (PhiM M0) Φ s 0) := by
+            funext ω
+            simp [hydef, yOf, hs]
+            ring
+          change 𝔼.E (s + t0) (fun ω => y (s + t0) ω (Sum.inl (Sum.inr 1))) =
+            fun ω => y (s + t0) ω (Sum.inl (Sum.inr 1))
+          rw [e, map_add, map_smul, map_add, map_sub, map_smul, map_smul, hlagk, hΦk, hΦk,
+            𝔼.const]
+      · have e : (fun ω => y (s + t0) ω (Sum.inr u)) =
+            (fun _ => c.istar) - (c.σ / c.li) • Φ s 0 := by
+          funext ω
+          simp [hydef, yOf, hs]
+        change 𝔼.E (s + t0) (fun ω => y (s + t0) ω (Sum.inr u)) =
+          fun ω => y (s + t0) ω (Sum.inr u)
+        rw [e, map_sub, map_smul, hΦk, 𝔼.const]
+    · have e : (fun ω => y t ω i) = fun _ => 0 := by
+        funext ω
+        simp [hydef, yOf, ht]
+      change 𝔼.E t (fun ω => y t ω i) = fun ω => y t ω i
+      rw [e, 𝔼.const]
+  exact ⟨y, φ, ⟨hstr, fun _ => funext fun e => e.elim, hyb, hya⟩, hφb, hmφ, hM, hfoc⟩
+
+/-- **Woodford (2003), Assumption 8.1, p. 541, holds for the basic model** in the corrected form
+`Prop82General.Assumption81M`: for every expectation system, every initial date `t₀`, every
+bounded adapted disturbance and every bounded `M_{t₀−1}` known at `t₀ − 1`, the system
+(1.1) + (1.9) has exactly one bounded solution. -/
+theorem nk_assumption81M (hc : c.Adm) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Prop82General.Assumption81M (nkProblem c hc) 𝔼 t0 :=
+  ⟨nk_focSolvableM c hc 𝔼 t0, nk_focUnique c hc 𝔼 t0⟩
+
+/-- **Woodford (2003), Assumption 8.1, p. 541, for the basic model under perfect foresight**, in
+the original formalisation `GeneralFOC.LQ.Assumption81` (every initial condition is known and
+bounded on the one-point sample space). -/
+theorem nk_assumption81_perfectForesight (hc : c.Adm) (t0 : ℕ) :
+    Assumption81 (nkProblem c hc) perfectForesight t0 := by
+  refine ⟨fun cc Z0 M0 hcb hca hZ0 _ => ?_, nk_focUnique c hc perfectForesight t0⟩
+  exact nk_focSolvableM c hc perfectForesight t0 cc Z0 M0 hcb hca hZ0
+    ⟨|M0 () 0| + |M0 () 1|, fun ω r => by
+      rcases ω
+      fin_cases r
+      · simp
+      · simp⟩ (fun _ => rfl)
+
+end NK
+
+/-! ### The original formalisation of Assumption 8.1 under uncertainty -/
+
+/-- **Woodford (2003), Assumption 8.1, p. 541: the original formalisation
+`GeneralFOC.LQ.Assumption81` fails under genuine uncertainty from `t₀ = 1`**, for every problem
+with a forward-looking variable. It asks for a solution for every `M_{t₀−1}` known at `t₀`, but a
+solution has `M_t` known at `t` (`MultiplierMeas`), so `M_{t₀−1}` must be known at `t₀ − 1`; on the
+coin-flip tree the first flip `ε₁` is known at date 1 and not at date 0. Hence the corrected
+`Prop82General.Assumption81M` (initial multiplier bounded and known at `t₀ − 1`). -/
+theorem not_assumption81_coin {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ]
+    [DecidableEq ιZ] [DecidableEq ιz] [Nonempty ιz] (P : LQProblem ιZ ιz ιτ) :
+    ¬ Assumption81 P ExpectationsFiniteTree.coinSystem 1 := by
+  intro hA
+  obtain ⟨r⟩ := (inferInstance : Nonempty ιz)
+  have hk : KnownV ExpectationsFiniteTree.coinSystem 1
+      (fun ω (_ : ιz) => ExpectationsFiniteTree.coinShock 1 ω) := by
+    intro j
+    funext ω
+    rw [ExpectationsFiniteTree.coinSystem,
+      ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E]
+    exact ExpectationsFiniteTree.coinTree.condE_of_const_on_cell fun ω' hω' =>
+      ExpectationsFiniteTree.coinShock_measurable 1 hω'
+  obtain ⟨y, φ, hs⟩ := hA.solvable (fun _ _ _ => 0) (fun _ _ => 0)
+    (fun ω _ => ExpectationsFiniteTree.coinShock 1 ω) ⟨0, fun _ _ _ => by simp⟩
+    (fun t _ => ExpectationsFiniteTree.coinSystem.const t 0)
+    (fun _ => ExpectationsFiniteTree.coinSystem.const 1 0) hk
+  have hm := hs.2.2.1 0 r
+  have hM : (fun ω => φ (0 + 1) ω (Sum.inr r)) = ExpectationsFiniteTree.coinShock 1 := by
+    funext ω
+    exact congrFun (hs.2.2.2.1 ω) r
+  rw [hM, ExpectationsFiniteTree.coinShock_mean_zero 0] at hm
+  have := congrFun hm (true, true)
+  simp [ExpectationsFiniteTree.coinShock] at this
+
+end Woodford.OptimalPolicyRules.NKAssumption81
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The inflation-inertia model: Assumption 8.5, Proposition 8.2, and case (ii) of Assumption 8.2
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumptions 8.2, 8.4 and 8.5 and Propositions
+8.1–8.2 (pp. 552–555, App. G.1–G.2, pp. 716–719), for the inflation-inertia model of §3.2
+(pp. 592–604).
+
+## Main results
+
+* `assumption85_two`: for a `2 × 2` matrix `Λ` with `det Λ ≠ 0`, `Λ₁₀ ≠ 0` and `B₂ = (0, σ)`,
+  `σ ≠ 0`, Assumption 8.5 holds (used for the basic model in `GeneralTheoryLinks` too).
+* `in_assumption85`: **Assumption 8.5 for the inertia model**, for the `Λ` of every deflating split
+  (`InertiaSplit.inSplit`, the real case).
+* `in_prop82_real`: **Proposition 8.2 for the inertia model in the real case**, from
+  `Prop82General.prop82_of_split`, given the corrected Assumption 8.1
+  (`Prop82General.Assumption81M`).
+* **The complex case `S² < 4P₂₃`: Proposition 8.1 through case (ii) of Assumption 8.2.**
+  `in_eigvec`: `u = (1, μ, σμ²/(1 − μ))` is a complex eigenvector of the pencil for every root
+  `μ ≠ 1`; `in_assumption82II`: selecting `μ₂ = (βλ₂)⁻¹` alone is case (ii) of Assumption 8.2
+  (`μ₃ = conj μ₂` unselected, `|Re μ₂⁻¹| = βS/2 > β`); `in_Kdet_complex`: with `J = Re(μu)` the
+  matrix `K` has `det K = γ/Re μ ≠ 0`; `in_assumption84II`: the corrected Assumption 8.4 (ii)
+  holds (`J⁺ = (Re μu, Im μu)`, `P = e₁`, residual root `h` with `h⁻¹ = Re μ⁻¹`); hence
+  `in_prop81_complex` (Proposition 8.1 in the complex case, any expectation system) and
+  `in_prop81_all` (Proposition 8.1 for the model at every admissible calibration).
+-/
+
+namespace Woodford.OptimalPolicyRules.InertiaProp8182
+
+open Matrix Polynomial GeneralSetup PencilSplit
+open IRuleBasic (Calib)
+open CubicRoots
+open InertiaSplit
+open GeneralLinksInertia (inSys inProblem in_det_ne)
+
+variable {Ω : Type*}
+
+/-! ### Assumption 8.5 for a `2 × 2` matrix -/
+
+/-- Woodford (2003), Assumption 8.5 (tool): a family indexed by `Fin (rank Λ)` for a rank-2
+`2 × 2` matrix is the pair `![f 0, f 1]`. -/
+theorem linearIndependent_fin_rank {Λ : Matrix (Fin 2) (Fin 2) ℝ} {f : ℕ → Fin 2 → ℝ}
+    (hr : Λ.rank = 2) (h : LinearIndependent ℝ ![f 0, f 1]) :
+    LinearIndependent ℝ (fun j : Fin Λ.rank => f j.val) := by
+  generalize hk : Λ.rank = k at hr ⊢
+  subst hr
+  convert h using 1
+  funext j
+  fin_cases j <;> rfl
+
+/-- **Woodford (2003), Assumption 8.5, App. G.2, p. 719, for `2 × 2` systems with `B₂ = (0, σ)`**:
+if `det Λ ≠ 0` (so `k = rank Λ = 2`), `σ ≠ 0` and `Λ₁₀ ≠ 0`, then `B₂', B₂'Λ` are linearly
+independent and so are `B₂'Λ, B₂'Λ²`. -/
+theorem assumption85_two {Λ : Matrix (Fin 2) (Fin 2) ℝ} {σ : ℝ} (hσ : σ ≠ 0) (h10 : Λ 1 0 ≠ 0)
+    (hdet : Λ.det ≠ 0) : PencilAssumptions.Assumption85 Λ ![0, σ] := by
+  have hdu : IsUnit Λ.det := isUnit_iff_ne_zero.mpr hdet
+  have hr : Λ.rank = 2 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr hdu)]
+    simp
+  have h1 : LinearIndependent ℝ ![![0, σ], ![0, σ] ᵥ* Λ] := by
+    rw [LinearIndependent.pair_iff]
+    intro s t hst
+    have e0 := congrFun hst 0
+    have e1 := congrFun hst 1
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, vecMul, dotProduct, Fin.sum_univ_two,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Pi.zero_apply] at e0 e1
+    have ht : t = 0 := by
+      have h' : t * (σ * Λ 1 0) = 0 := by linarith
+      rcases mul_eq_zero.mp h' with h | h
+      · exact h
+      · exact absurd h (mul_ne_zero hσ h10)
+    subst ht
+    have h' : s * σ = 0 := by linarith
+    exact ⟨(mul_eq_zero.mp h').resolve_right hσ, rfl⟩
+  refine ⟨?_, ?_⟩
+  · refine linearIndependent_fin_rank (f := fun j => ![0, σ] ᵥ* Λ ^ j) hr ?_
+    simpa using h1
+  · unfold TargetCriterion.Krylov.Assumption85b
+    have h2 : LinearIndependent ℝ ![![0, σ] ᵥ* Λ, (![0, σ] ᵥ* Λ) ᵥ* Λ] := by
+      rw [LinearIndependent.pair_iff] at h1 ⊢
+      intro s t hst
+      refine h1 s t ?_
+      have e := congrArg (fun v => v ᵥ* Λ⁻¹) hst
+      simp only [add_vecMul, smul_vecMul, vecMul_vecMul, Matrix.mul_assoc,
+        mul_nonsing_inv _ hdu, Matrix.mul_one, vecMul_one, zero_vecMul] at e
+      exact e
+    refine linearIndependent_fin_rank (f := fun j => ![0, σ] ᵥ* Λ ^ (j + 1)) hr ?_
+    simpa [pow_two, vecMul_vecMul] using h2
+
+/-! ### The real case: Assumption 8.5 and Proposition 8.2 -/
+
+variable (c : Calib) (γ : ℝ)
+
+/-- **Woodford (2003), Assumption 8.5, App. G.2, p. 719, for the inflation-inertia model**: for the
+`Λ = (μ/(βγ))[β, σ + d; κβ, κσ + 1 + βγ − βμ]` of the split of any real root `λₛ` of
+`λ² − Sλ + P₂₃` (`μ = (βλₛ)⁻¹`), with `B₂ = (0, σ)`. -/
+theorem in_assumption85 (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ls : ℝ}
+    (hq : quadQ c.β γ c.κ c.σ ls = 0) :
+    PencilAssumptions.Assumption85
+      (Λmat (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β (inJ c (c.β * ls)⁻¹))
+      (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)).B2 := by
+  have h := standing_of c γ hc hγ0 hγ1
+  obtain ⟨hp, h1, h0, -, -⟩ := mu_facts c γ h hq
+  have hΛ := in_Λmat c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hc.1.ne' hγ0.ne' hp h1 h0
+  have hdt := in_Λ_det c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le) hc.1.ne' hγ0.ne' hp h1 h0
+  refine assumption85_two hc.2.2.1.ne' ?_ ?_
+  · rw [hΛ]
+    simp only [Matrix.smul_apply, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_one,
+      Matrix.cons_val_zero, Matrix.empty_val', Matrix.cons_val_fin_one, smul_eq_mul]
+    exact mul_ne_zero (div_ne_zero h0 (mul_ne_zero hc.1.ne' hγ0.ne'))
+      (mul_ne_zero hc.2.2.2.1.ne' hc.1.ne')
+  · rw [hdt]
+    exact div_ne_zero h0 (mul_ne_zero hc.1.ne' hγ0.ne')
+
+/-- **Woodford (2003), Proposition 8.2, p. 555, for the inflation-inertia model, real case
+(`S² ≥ 4P₂₃`, including the double root)**: given the corrected Assumption 8.1 and an expectation
+system with pull-out, commitment to the target criterion (1.23) built from the split solving
+`λ₂ʳ` forward is robustly optimal (a window of `D ≥ 2` lags, any consistent bounded history);
+Assumption 8.5 holds (`in_assumption85`). -/
+theorem in_prop82_real {𝔼 : ExpectationSystem Ω} {t0 : ℕ} (hc : c.Adm) (hγ0 : 0 < γ)
+    (hγ1 : γ ≤ 1) (hD : 0 ≤ discQ c.β γ c.κ c.σ) (hpull : 𝔼.PullOut)
+    (hA : Prop82General.Assumption81M (inProblem c γ hc hγ0.le) 𝔼 t0) {D : ℕ}
+    (hD1 : D + 1 ≤ t0) (hD2 : 2 ≤ D) {Mh qh : ℕ → Ω → Fin 2 → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK
+      (Λmat (inProblem c γ hc hγ0.le).sys c.β (inSplit c γ hc hγ0 hγ1 (quadQ_lam2r hD)).J)
+      (inProblem c γ hc hγ0.le).sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    RobustlyOptimal (κ := Fin 2) (inProblem c γ hc hγ0.le) 𝔼 t0
+      (fun _ y => Prop82General.Prop82M.CriterionM
+        (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (quadQ_lam2r hD)) 𝔼 t0) D qh vh y)
+      (fun _ y t ω => zpart (y t ω)) := by
+  have hE : (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)).Et.rank = 2 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+    · simp
+    · rw [in_Et_det]
+      exact isUnit_iff_ne_zero.mpr hc.1.ne'
+  refine Prop82General.prop82_of_split hpull hA _ ?_ hD1 ?_ hhist hMhb hMhk hqhb hvhb
+  · rw [show (inSplit c γ hc hγ0 hγ1 (quadQ_lam2r hD)).J =
+        inJ c (c.β * lam2r c.β γ c.κ c.σ)⁻¹ from rfl,
+      show (inProblem c γ hc hγ0.le).sys = inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)
+        from rfl,
+      show (inProblem c γ hc hγ0.le).β = c.β from rfl]
+    exact (in_assumption85 c γ hc hγ0 hγ1 (quadQ_lam2r hD)).2
+  · change (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)).Et.rank ≤ D
+    rw [hE]
+    exact hD2
+
+/-- Woodford (2003), (1.15) at `μ = 0`: `A` is invertible for the inertia model
+(`det A = γ > 0`), so `rank A = 3`. -/
+theorem in_rank_Ahat (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) : (inSys c γ hσ hd).Ahat.rank = 3 := by
+  rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+  · simp
+  · rw [in_Ahat_det]
+    exact isUnit_iff_ne_zero.mpr h.gamma_pos.ne'
+
+/-- Woodford (2003), **Proposition 8.1**, p. 553, for the inflation-inertia model in the real
+case `S² ≥ 4P₂₃`, **including the double root** `S² = 4P₂₃` (where Assumption 8.3 fails): the
+deflating split solving `λ₂ʳ` forward (`InertiaSplit.inSplit`) gives the corrected Proposition
+8.1 for any expectation system. -/
+theorem in_prop81_real (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : 0 ≤ discQ c.β γ c.κ c.σ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Nonempty (Prop81General.Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) :=
+  ⟨Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 (quadQ_lam2r hD)) 𝔼 t0⟩
+
+/-! ### The complex case: case (ii) of Assumption 8.2 -/
+
+/-- Woodford (2003), App. G.1, (G.1), for the inertia model: the complex vector
+`u(μ) = (1, μ, σμ²/(1 − μ))` (`Z`-, `π`-, `x`-rows). -/
+noncomputable def inU (μ : ℂ) : Unit ⊕ Fin 2 → ℂ :=
+  Sum.elim (fun _ => 1) ![μ, c.σ * μ ^ 2 / (1 - μ)]
+
+/-- Woodford (2003), App. G.1, (G.1), for the inertia model: for every root `μ ≠ 1` of (1.15),
+real or complex, `A u(μ) = μ Î u(μ)`. -/
+theorem in_eigvec (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) {μ : ℂ}
+    (hp : (inSys c γ hσ hd).pencilPoly.eval μ = 0) (h1 : 1 - μ ≠ 0) :
+    (inSys c γ hσ hd).Ahat.map Complex.ofReal *ᵥ inU c μ =
+      μ • ((inSys c γ hσ hd).Ihat.map Complex.ofReal *ᵥ inU c μ) := by
+  rw [in_pencil_eval] at hp
+  funext r
+  rcases r with r | j
+  · simp [mulVec, dotProduct, Fintype.sum_sum_type, LinearRESystem.Ahat, LinearRESystem.Ihat,
+      inSys, inU]
+  · fin_cases j
+    · simp [mulVec, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two, LinearRESystem.Ahat,
+        LinearRESystem.Ihat, inSys, inU]
+      field_simp
+      linear_combination -hp
+    · simp [mulVec, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two, LinearRESystem.Ahat,
+        LinearRESystem.Ihat, inSys, inU]
+      field_simp
+      ring
+
+open CaseIIInstance (pairJ rotΨ selA hOf resid_of_eigvec book_iff inv_fin_one)
+
+/-- Woodford (2003), App. G.1 (tool): the eigenvalues of the real block `[[ρ, σ], [−σ, ρ]]` of
+`μ = ρ + iσ` (`σ ≠ 0`) are `μ` and `conj μ`. -/
+theorem rotΨ_eig {μ ν : ℂ} (hτ : μ.im ≠ 0)
+    (hν : (Matrix.scalar (Option Unit) ν - (rotΨ μ.re μ.im).map Complex.ofReal).det = 0) :
+    ν = μ ∨ ν = starRingEnd ℂ μ := by
+  obtain ⟨z, hz0, hz⟩ := PencilEigen.exists_eigvec hν
+  have e1 : (μ.re : ℂ) * z none + (μ.im : ℂ) * z (some ()) = ν * z none := by
+    simpa [mulVec, dotProduct, Fintype.sum_option, rotΨ] using congrFun hz none
+  have e2 : -(μ.im : ℂ) * z none + (μ.re : ℂ) * z (some ()) = ν * z (some ()) := by
+    simpa [mulVec, dotProduct, Fintype.sum_option, rotΨ] using congrFun hz (some ())
+  have hτc : (μ.im : ℂ) ≠ 0 := by exact_mod_cast hτ
+  have hzn : z none ≠ 0 := by
+    intro h0
+    apply hz0
+    funext c
+    rcases c with _ | c
+    · exact h0
+    · rw [h0, mul_zero, zero_add, mul_zero] at e1
+      rcases c
+      exact (mul_eq_zero.mp e1).resolve_left hτc
+  have hq : ((ν - μ.re) ^ 2 + (μ.im : ℂ) ^ 2) * z none = 0 := by
+    linear_combination (μ.re - ν) * e1 - (μ.im : ℂ) * e2
+  have key : (ν - μ) * (ν - starRingEnd ℂ μ) = (ν - μ.re) ^ 2 + (μ.im : ℂ) ^ 2 := by
+    apply Complex.ext <;> simp [Complex.mul_re, Complex.mul_im, pow_two] <;> ring
+  have hq2 : (ν - μ) * (ν - starRingEnd ℂ μ) = 0 := by
+    rw [key]
+    exact (mul_eq_zero.mp hq).resolve_right hzn
+  rcases mul_eq_zero.mp hq2 with h | h
+  · exact Or.inl (sub_eq_zero.mp h)
+  · exact Or.inr (sub_eq_zero.mp h)
+
+/-- Woodford (2003), eq. (1.20), p. 553, for the inertia model and any real `J` (`3 × 1`, `J₁ ≠ 0`):
+`det K · J₁ = (1 + βγ)J₁ − (β + κσ)J_π − κJ_x`. -/
+theorem in_Kdet_gen (hσ : c.σ ≠ 0) (hd : 1 + c.β * γ ≠ 0) (J : Matrix (Unit ⊕ Fin 2) Unit ℝ)
+    (h0 : J (Sum.inl ()) () ≠ 0) :
+    (Kmat (inSys c γ hσ hd) J).det * J (Sum.inl ()) () =
+      (1 + c.β * γ) * J (Sum.inl ()) () - (c.β + c.κ * c.σ) * J (Sum.inr 0) () -
+        c.κ * J (Sum.inr 1) () := by
+  have hinv : ((J1 J)ᵀ)⁻¹ = Matrix.of fun _ _ => (J (Sum.inl ()) ())⁻¹ := by
+    rw [inv_fin_one (M := (J1 J)ᵀ) (by exact h0)]
+    rfl
+  rw [Kmat, Υmat, hinv, det_fin_two]
+  simp [inSys, Matrix.mul_apply, Fin.sum_univ_two, J2]
+  field_simp
+  ring
+
+/-- Woodford (2003), Prop. 8.7, p. 594, complex case `S² < 4P₂₃`: the selected root
+`μ₂ = (βλ₂)⁻¹` of (1.15) is not real, has `Re μ₂ > 0`, its conjugate is `μ₃ = (βλ₃)⁻¹`, and
+`|Re μ₂⁻¹| = β Re λ₂ = βS/2 > β`. -/
+theorem mu2_facts (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) (hD : discQ c.β γ c.κ c.σ < 0) :
+    (muj c (lam2 c.β γ c.κ c.σ)).im ≠ 0 ∧ 0 < (muj c (lam2 c.β γ c.κ c.σ)).re ∧
+      starRingEnd ℂ (muj c (lam2 c.β γ c.κ c.σ)) = muj c (lam3 c.β γ c.κ c.σ) ∧
+      c.β < |((muj c (lam2 c.β γ c.κ c.σ))⁻¹).re| := by
+  have h := standing_of c γ hc hγ0 hγ1
+  obtain ⟨him, -, hre⟩ := lam2_complex h hD
+  have hβ := hc.1
+  set l := lam2 c.β γ c.κ c.σ with hl
+  have hz : ((c.β : ℂ) * l).re = c.β * l.re := Complex.re_ofReal_mul _ _
+  have hzi : ((c.β : ℂ) * l).im = c.β * l.im := Complex.im_ofReal_mul _ _
+  have hn : 0 < Complex.normSq ((c.β : ℂ) * l) := by
+    rw [Complex.normSq_pos]
+    intro h0
+    have := congrArg Complex.re h0
+    rw [hz, Complex.zero_re] at this
+    nlinarith
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · rw [muj, Complex.inv_im, hzi]
+    intro h0
+    rw [neg_div, neg_eq_zero, div_eq_zero_iff] at h0
+    rcases h0 with h0 | h0
+    · exact him ((mul_eq_zero.mp h0).resolve_left hβ.ne')
+    · exact hn.ne' h0
+  · rw [muj, Complex.inv_re, hz]
+    exact div_pos (mul_pos hβ (by linarith)) hn
+  · simp [muj, hl, lam3_eq_conj hD, map_inv₀, map_mul, Complex.conj_ofReal]
+  · rw [muj, inv_inv, hz, abs_of_pos (mul_pos hβ (by linarith))]
+    nlinarith
+
+/-- **Woodford (2003), Assumption 8.2, p. 552, case (ii), for the inflation-inertia model in the
+complex case `S² < 4P₂₃`**: select `μ₂ = (βλ₂)⁻¹` alone (`n_Z = 1`, `A` invertible); its conjugate
+`μ₃` is not selected and `|Re μ₂⁻¹| > β`. -/
+noncomputable def in_assumption82II (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : discQ c.β γ c.κ c.σ < 0) :
+    PencilEigen.Assumption82 (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β where
+  count := by
+    unfold LinearRESystem.Assumption82Count
+    rw [in_stableCount c γ (standing_of c γ hc hγ0 hγ1)]
+    omega
+  sel := {muj c (lam2 c.β γ c.κ c.σ)}
+  sel_le := by
+    have h := standing_of c γ hc hγ0 hγ1
+    refine Multiset.singleton_le.mpr (Multiset.mem_filter.mpr ⟨?_, ?_, (in_root_norms c γ h).2.1⟩)
+    · rw [in_roots c γ h]
+      simp
+    · exact muj_ne_zero c γ h (lam2_ne_zero h)
+  sel_card := by
+    rw [in_rank_Ahat c γ (standing_of c γ hc hγ0 hγ1)]
+    simp
+  cases := by
+    obtain ⟨him, -, -, hbook⟩ := mu2_facts c γ hc hγ0 hγ1 hD
+    refine Or.inr ⟨_, Multiset.mem_singleton_self _, ?_, ?_, hbook⟩
+    · rw [Multiset.mem_singleton]
+      intro h0
+      have := congrArg Complex.im h0
+      rw [Complex.conj_im] at this
+      exact him (by linarith)
+    · rw [Multiset.erase_singleton]
+      simp [GeneralFOC.Selection.ConjClosed]
+
+/-- **Woodford (2003), Assumption 8.4 (ii), corrected (`CaseIIBasis.Assumption84II`), for the
+inflation-inertia model in the complex case**: with `u = (1, μ, σμ²/(1 − μ))` for `μ = μ₂`, the
+basis `J⁺ = (Re μu, Im μu)` is admissible for `{μ₂, conj μ₂}`; with `P = e₁` (`J = Re μu`),
+`J₁ = Re μ ≠ 0`, `det K = γ/Re μ ≠ 0`, and the residual root `h` has `h⁻¹ = Re μ⁻¹`, so
+`|βh| < 1` is the book's `|Re μ⁻¹| > β`. -/
+theorem in_assumption84II (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : discQ c.β γ c.κ c.σ < 0) :
+    CaseIIBasis.Assumption84II (inSys c γ hc.2.2.1.ne' (in_det_ne c γ hc hγ0.le)) c.β
+      (Prop81CaseII.selPlus (in_assumption82II c γ hc hγ0 hγ1 hD).sel
+        (muj c (lam2 c.β γ c.κ c.σ))) := by
+  have h := standing_of c γ hc hγ0 hγ1
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  have hd := in_det_ne c γ hc hγ0.le
+  obtain ⟨him, hre, hconj, hbook⟩ := mu2_facts c γ hc hγ0 hγ1 hD
+  set μ := muj c (lam2 c.β γ c.κ c.σ) with hμ
+  have hroot : (inSys c γ hσ hd).pencilPoly.eval μ = 0 := by
+    rw [in_pencilPoly c γ h]
+    simp [hμ]
+  have h1 : 1 - μ ≠ 0 := by
+    intro h0
+    have := congrArg Complex.im h0
+    simp only [Complex.sub_im, Complex.one_im, Complex.zero_im] at this
+    exact him (by linarith)
+  have hu := in_eigvec c γ hσ hd hroot h1
+  have hu1 : inU c μ (Sum.inl default) = 1 := rfl
+  have ha : (μ * inU c μ (Sum.inl default)).re ≠ 0 := by
+    rw [hu1, mul_one]
+    exact hre.ne'
+  obtain ⟨hdef, hres⟩ := resid_of_eigvec (inSys c γ hσ hd) hu μ ha
+  -- the complex identity behind `det K = γ/Re μ`
+  rw [in_pencil_eval] at hroot
+  have hid : ((1 + c.β * γ : ℝ) : ℂ) * μ - ((c.β + c.κ * c.σ : ℝ) : ℂ) * (μ * μ) -
+      ((c.κ : ℝ) : ℂ) * (μ * ((c.σ : ℂ) * μ ^ 2 / (1 - μ))) = ((γ : ℝ) : ℂ) := by
+    push_cast
+    field_simp
+    linear_combination -hroot
+  have hidr := congrArg Complex.re hid
+  simp only [Complex.sub_re, Complex.re_ofReal_mul, Complex.ofReal_re] at hidr
+  refine ⟨pairJ (μ • inU c μ), rotΨ μ.re μ.im, ⟨hdef, ?_, fun ν hν => Or.inr ?_⟩, selA,
+    hOf μ.re μ.im (μ * inU c μ (Sum.inl default)), ?_, ?_, ?_, hres⟩
+  · refine Fintype.linearIndependent_iff.mpr fun g hg i => ?_
+    have e1 : g none * μ.re + g (some ()) * μ.im = 0 := by
+      simpa [Fintype.sum_option, pairJ, inU, Complex.mul_re, Complex.mul_im] using
+        congrFun hg (Sum.inl ())
+    have e2 : g none * (μ.re * μ.re - μ.im * μ.im) +
+        g (some ()) * (μ.re * μ.im + μ.im * μ.re) = 0 := by
+      simpa [Fintype.sum_option, pairJ, inU, Complex.mul_re, Complex.mul_im] using
+        congrFun hg (Sum.inr 0)
+    have hpos : 0 < μ.re ^ 2 + μ.im ^ 2 := by positivity
+    have g1 : g none * (μ.im * (μ.re ^ 2 + μ.im ^ 2)) = 0 := by
+      linear_combination (2 * μ.re * μ.im) * e1 - μ.im * e2
+    have g2 : g (some ()) * (μ.im * (μ.re ^ 2 + μ.im ^ 2)) = 0 := by
+      linear_combination -((μ.re ^ 2 - μ.im ^ 2) * e1 - μ.re * e2)
+    have hne : μ.im * (μ.re ^ 2 + μ.im ^ 2) ≠ 0 := mul_ne_zero him hpos.ne'
+    rcases i with _ | i
+    · exact (mul_eq_zero.mp g1).resolve_right hne
+    · rcases i
+      exact (mul_eq_zero.mp g2).resolve_right hne
+  · change ν ∈ starRingEnd ℂ μ ::ₘ ({μ} : Multiset ℂ)
+    rcases rotΨ_eig him hν with e | e
+    · rw [e]
+      exact Multiset.mem_cons_of_mem (Multiset.mem_singleton_self _)
+    · rw [e]
+      exact Multiset.mem_cons_self _ _
+  · rw [Matrix.det_unique]
+    simpa [J1, Matrix.mul_apply, Fintype.sum_option, pairJ, selA, inU] using hre.ne'
+  · set J' : Matrix (Unit ⊕ Fin 2) Unit ℝ := pairJ (μ • inU c μ) * selA with hJ'
+    have hJ0 : J' (Sum.inl ()) () = μ.re := by
+      simp [hJ', Matrix.mul_apply, Fintype.sum_option, pairJ, selA, inU]
+    have hk := in_Kdet_gen c γ hσ hd J' (by rw [hJ0]; exact hre.ne')
+    have hJ1' : J' (Sum.inr 0) () = (μ * μ).re := by
+      simp [hJ', Matrix.mul_apply, Fintype.sum_option, pairJ, selA, inU]
+    have hJ2' : J' (Sum.inr 1) () = (μ * ((c.σ : ℂ) * μ ^ 2 / (1 - μ))).re := by
+      simp [hJ', Matrix.mul_apply, Fintype.sum_option, pairJ, selA, inU]
+    rw [hJ0, hJ1', hJ2'] at hk
+    intro h0
+    rw [h0, zero_mul] at hk
+    exact hγ0.ne' (by linarith)
+  · have e : μ * inU c μ (Sum.inl default) = ((1 : ℝ) : ℂ) * μ := by
+      rw [hu1]
+      simp
+    rw [e]
+    exact (book_iff hre.ne' one_ne_zero hc.1).mpr hbook
+
+/-- **Woodford (2003), Proposition 8.1, p. 553, for the inflation-inertia model in the complex
+case `S² < 4P₂₃`**, through case (ii) of Assumption 8.2 (`in_assumption82II`) and the corrected
+Assumption 8.4 (ii) (`in_assumption84II`) — `CaseIIBasis.prop81_caseII`; any expectation
+system. (There is no real deflating split in this case, `InertiaSplit.split_isEmpty`.) -/
+theorem in_prop81_complex (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : discQ c.β γ c.κ c.σ < 0) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Nonempty (Prop81General.Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) :=
+  CaseIIBasis.prop81_caseII (inProblem c γ hc hγ0.le) (in_assumption82II c γ hc hγ0 hγ1 hD)
+    (Multiset.mem_singleton_self _) (in_assumption84II c γ hc hγ0 hγ1 hD) 𝔼 t0
+
+/-- **Woodford (2003), Proposition 8.1, p. 553, for the inflation-inertia model at every
+admissible calibration** (`0 < γ ≤ 1`; real roots, the double root, or a complex pair), for any
+expectation system. -/
+theorem in_prop81_all (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) (𝔼 : ExpectationSystem Ω)
+    (t0 : ℕ) : Nonempty (Prop81General.Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) := by
+  rcases le_or_gt 0 (discQ c.β γ c.κ c.σ) with hD | hD
+  · exact in_prop81_real c γ hc hγ0 hγ1 hD 𝔼 t0
+  · exact in_prop81_complex c γ hc hγ0 hγ1 hD 𝔼 t0
+
+end Woodford.OptimalPolicyRules.InertiaProp8182
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Links between the general theory of Props 8.1–8.4 and the rest of the chapter
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §1.4–1.5 (pp. 552–559) and Appendix G.1–G.2
+(pp. 716–719), with the inflation-inertia model of §3.2 (pp. 592–604) and the basic model of
+§3.1 (pp. 582–591).
+
+## Main results
+
+* **The bounded-orbit subspace does not depend on the representation.**
+  `orbitBdd_eq_of_homEquiv`: any two matrices `Λ, Λ'` that represent the bounded solutions of the
+  homogeneous (1.18) as Proposition 8.1 requires (`Prop83.HomEquiv`) have the same subspace of
+  initial multipliers with bounded orbits. With `card_le_zerosInside_add_finrank` and
+  `zerosInside_add_one_le_of_root` this gives Proposition 8.3's count for *every*
+  representation from one explicit representation, with no distinct-root assumption.
+* **The inflation-inertia model at the double root `S² = 4P₂₃`.** There Assumption 8.3 fails
+  (`in_double_not_assumption83`), and no selection satisfying Assumption 8.2 takes whole root
+  classes (`in_double_not_selWhole`), so neither `PencilAssumptions.prop81_of_assumptions` nor
+  `PencilRepeated.prop81_of_assumptions_general` applies. Proposition 8.1 still holds there from
+  the explicit split (`InertiaProp8182.in_prop81_real`, all real cases), and so does Proposition
+  8.3 for every representation (`in_prop83_real`). With `InertiaSplit.in_prop83` (`S² ≠ 4P₂₃`)
+  this gives Proposition 8.3 for the model at **every** admissible calibration (`in_prop83_all`),
+  and with `InertiaProp8182.in_prop81_all` (complex roots through case (ii) of Assumption 8.2)
+  Propositions 8.1 and 8.3 together at every calibration (`in_props_81_83_all`).
+* **The old conditional results of `TargetCriterion`.** `conclusionM_of_conclusion`: the original
+  hypothesis structure `Prop81Conclusion` (whenever `R(L⁻¹)` is adapted, e.g. under perfect
+  foresight, `conclusionM_perfectForesight`) is an instance of the corrected
+  `Prop81ConclusionM`, with the same criterion (`criterion_iff`); so the conclusions of
+  `prop82_optimal`, `prop82_unique` hold **without** their hypothesis `MultStable`, under
+  Assumption 8.5 instead (`prop82_optimal_of_assumption85`, `prop82_unique_of_assumption85`;
+  `MultStable` fails in the book's applications, `PencilAssumptions.not_multStable_of_unselected`).
+  `prop84_conditional_discharged`: every hypothesis of `TargetCriterion.prop84_conditional` is
+  supplied by Propositions 8.3–8.4 (`Prop84General`) for every corrected representation, so its
+  equivalence holds unconditionally. `prop83Claim_perfectForesight`: the statement
+  `TargetCriterion.Prop83Claim` is non-vacuous and true under Assumptions 8.2 (i)–8.4.
+* **The basic model as a worked instance.** `nk_assumption82`, `nk_assumption84`,
+  `nk_assumption85` check Assumptions 8.2, 8.4 and 8.5 for `GeneralLinks.nkProblem`
+  (Assumption 8.3 is `GeneralLinks.nk_assumption83`, Assumption 8.1 (corrected) is
+  `NKAssumption81.NK.nk_assumption81M`); `nk_Λmat`: the general `Λ = β⁻¹K⁻¹Ẽ'` is the
+  hand-computed `GeneralLinks.nkΛ`; `nk_prop81_prop83`: Propositions 8.1 and 8.3 for the basic
+  model from the general theorems; `nk_prop82`: Proposition 8.2 for it, for every expectation
+  system with pull-out (no further hypothesis).
+* `circSys_half`: the scalar system of `Circle81` at `β = 1/2` is `Prop81General.coinSys`.
+-/
+
+namespace Woodford.OptimalPolicyRules.GeneralTheoryLinks
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ Adjugate
+open TargetCriterion (zerosInside)
+open TargetCriterion.Prop81
+open Prop83 (cmat HomEquiv orbitBdd zerosOnCircle)
+open Prop81General (Prop81ConclusionM)
+
+variable {Ω : Type*}
+
+/-! ### The bounded-orbit subspace is representation-independent -/
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-- Woodford (2003), p. 553 (the paragraph after Proposition 8.1) and p. 557: if `Λ, Υ` and
+`Λ', Υ'` both represent the bounded solutions of the homogeneous (1.18) (`HomEquiv`), every
+initial multiplier `M` with a bounded orbit under `Λ` has a bounded orbit under `Λ'`: the bounded
+solution `(Υ Λᵗ M, Λᵗ M)` of (1.18) obeys (1.20) for `Λ'` too, so its `M`-block is `Λ'ᵗ M`. -/
+theorem orbitBdd_le_of_homEquiv {S : LinearRESystem ιZ ιz} {β : ℝ} {Λ Λ' : Matrix ιz ιz ℝ}
+    {Υ Υ' : Matrix ιZ ιz ℝ} (hE : HomEquiv S β Λ Υ) (hE' : HomEquiv S β Λ' Υ') :
+    orbitBdd (cmat Λ) ≤ orbitBdd (cmat Λ') := by
+  intro v hv
+  obtain ⟨C, hC⟩ := hv
+  set h : ℕ → ιZ ⊕ ιz → ℂ := fun t => Prop83.Gmap (cmat Υ) ((cmat Λ ^ t) *ᵥ v) with hh
+  have hrep : Prop83.RepSolC Λ Υ h := by
+    intro t
+    refine ⟨funext fun r => ?_, funext fun r => ?_⟩
+    · change ((cmat Λ ^ (t + 1)) *ᵥ v) r = (cmat Λ *ᵥ ((cmat Λ ^ t) *ᵥ v)) r
+      rw [pow_succ', mulVec_mulVec]
+    · rfl
+  have hb : Prop83.BddSeq h := by
+    refine ⟨(∑ i', ∑ j, ‖cmat Υ i' j‖) * max C 0 + max C 0, fun t i => ?_⟩
+    exact Prop83.norm_Gmap_le (cmat Υ) (le_max_right C 0)
+      (fun j => (hC t j).trans (le_max_left _ _)) i
+  have hrep' := Prop83.repSolC_of_homSolC hE' hb (Prop83.homSolC_of_repSolC hE hb hrep)
+  have hM : ∀ t, (fun r => h t (Sum.inr r)) = (cmat Λ' ^ t) *ᵥ v := by
+    intro t
+    induction t with
+    | zero =>
+      funext r
+      change ((cmat Λ ^ 0) *ᵥ v) r = ((cmat Λ' ^ 0) *ᵥ v) r
+      simp
+    | succ t ih => rw [(hrep' t).1, ih, pow_succ', mulVec_mulVec]
+  obtain ⟨K, hK⟩ := hb
+  refine ⟨K, fun k i => ?_⟩
+  have := hK k (Sum.inr i)
+  rwa [show h k (Sum.inr i) = ((cmat Λ' ^ k) *ᵥ v) i from congrFun (hM k) i] at this
+
+/-- Woodford (2003), pp. 553, 557: **the bounded-orbit subspace is the same for every
+representation** of the bounded homogeneous solutions of (1.18). -/
+theorem orbitBdd_eq_of_homEquiv {S : LinearRESystem ιZ ιz} {β : ℝ} {Λ Λ' : Matrix ιz ιz ℝ}
+    {Υ Υ' : Matrix ιZ ιz ℝ} (hE : HomEquiv S β Λ Υ) (hE' : HomEquiv S β Λ' Υ') :
+    orbitBdd (cmat Λ) = orbitBdd (cmat Λ') :=
+  le_antisymm (orbitBdd_le_of_homEquiv hE hE') (orbitBdd_le_of_homEquiv hE' hE)
+
+/-- Woodford (2003), p. 557 (tool): an eigenvector for an eigenvalue `|μ| > 1` has an unbounded
+orbit. -/
+theorem not_mem_orbitBdd {M : Matrix ιz ιz ℂ} {z : ιz → ℂ} {μ : ℂ} (hz0 : z ≠ 0)
+    (hz : M *ᵥ z = μ • z) (hμ : 1 < ‖μ‖) : z ∉ orbitBdd M := by
+  rintro ⟨C, hC⟩
+  obtain ⟨i, hi⟩ : ∃ i, z i ≠ 0 := by
+    by_contra hn
+    push Not at hn
+    exact hz0 (funext hn)
+  have hpow : ∀ k, (M ^ k) *ᵥ z = μ ^ k • z := by
+    intro k
+    induction k with
+    | zero => simp
+    | succ k ih => rw [pow_succ', ← mulVec_mulVec, ih, mulVec_smul, hz, smul_smul, pow_succ]
+  obtain ⟨k, hk⟩ := pow_unbounded_of_one_lt (C / ‖z i‖) hμ
+  have h1 := hC k i
+  rw [hpow, Pi.smul_apply, smul_eq_mul, norm_mul, norm_pow] at h1
+  have hzi : 0 < ‖z i‖ := norm_pos_iff.mpr hi
+  rw [div_lt_iff₀ hzi] at hk
+  linarith
+
+/-- Woodford (2003), p. 557 (tool): a matrix with an eigenvalue `|μ| > 1` has a bounded-orbit
+subspace of dimension `< n`. -/
+theorem finrank_orbitBdd_lt {M : Matrix ιz ιz ℂ} {μ : ℂ} (hroot : M.charpoly.eval μ = 0)
+    (hμ : 1 < ‖μ‖) : Module.finrank ℂ (orbitBdd M) < Fintype.card ιz := by
+  rw [eval_charpoly] at hroot
+  obtain ⟨z, hz0, hz⟩ := PencilEigen.exists_eigvec hroot
+  have hne : orbitBdd M ≠ ⊤ := fun h => not_mem_orbitBdd hz0 hz hμ (h ▸ Submodule.mem_top)
+  have := Submodule.finrank_lt hne
+  rwa [Module.finrank_fintype_fun_eq_card] at this
+
+variable {S : LinearRESystem ιZ ιz} {β : ℝ} {Λ : Matrix ιz ιz ℝ} {Υ : Matrix ιZ ιz ℝ}
+
+/-- Woodford (2003), Proposition 8.3, pp. 556–557, **lower half without Assumption 8.3**: if no
+root of (1.15) lies on `|λ| = β⁻¹`, then `n_z ≤ zerosInside α + dim(bounded orbits of Λ)`. -/
+theorem card_le_zerosInside_add_finrank (hE : HomEquiv S β Λ Υ) (hβ : 0 < β)
+    (hreg : S.pencilPoly ≠ 0) (hcirc : ∀ l ∈ S.pencilPoly.roots, ‖l‖ ≠ β⁻¹) :
+    Fintype.card ιz ≤ zerosInside (alpha Λ) + Module.finrank ℂ (orbitBdd (cmat Λ)) := by
+  have h0 := Prop83.zerosOnCircle_eq_zero hE hβ hreg hcirc
+  rw [Prop83.zerosOnCircle_alpha] at h0
+  rw [Prop83.zerosInside_alpha]
+  have hin := Prop83.card_inside_le_finrank (cmat Λ)
+  have hR : Multiset.card (cmat Λ).charpoly.roots = Fintype.card ιz :=
+    Prop83.card_charpoly_roots _
+  set R := (cmat Λ).charpoly.roots
+  have hp1 := congrArg Multiset.card (Multiset.filter_add_not (fun μ : ℂ => ‖μ‖ < 1) R)
+  have hp2 := congrArg Multiset.card (Multiset.filter_add_not (fun μ : ℂ => 1 < ‖μ‖)
+    (R.filter (fun μ => ¬ ‖μ‖ < 1)))
+  rw [Multiset.card_add] at hp1 hp2
+  have e1 : (R.filter (fun μ => ¬ ‖μ‖ < 1)).filter (fun μ => 1 < ‖μ‖) =
+      R.filter (fun μ => 1 < ‖μ‖) := by
+    rw [Multiset.filter_filter]
+    exact Multiset.filter_congr fun μ _ => ⟨fun h => h.1, fun h => ⟨h, by linarith⟩⟩
+  have e2 : (R.filter (fun μ => ¬ ‖μ‖ < 1)).filter (fun μ => ¬ 1 < ‖μ‖) =
+      R.filter (fun μ => ‖μ‖ = 1) := by
+    rw [Multiset.filter_filter]
+    refine Multiset.filter_congr fun μ _ => ⟨fun h => ?_, fun h => ⟨?_, ?_⟩⟩
+    · exact le_antisymm (not_lt.mp h.1) (not_lt.mp h.2)
+    · rw [h]
+      exact lt_irrefl 1
+    · rw [h]
+      exact lt_irrefl 1
+  rw [e1, e2] at hp2
+  omega
+
+/-- Woodford (2003), Proposition 8.3, pp. 556–557, **upper half without Assumption 8.3**: a
+nonzero root `λ` of (1.15) with `|λ| ≥ β⁻¹` makes `(βλ)⁻¹` an eigenvalue of `Λ` in the closed
+unit disc (`Prop83.charpoly_root_of_pencil_root`), so `zerosInside α ≤ n_z − 1`. -/
+theorem zerosInside_add_one_le_of_root (hE : HomEquiv S β Λ Υ) (hβ : 0 < β)
+    (hreg : S.pencilPoly ≠ 0) {l : ℂ} (hl : l ∈ S.pencilPoly.roots) (hl0 : l ≠ 0)
+    (hln : β⁻¹ ≤ ‖l‖) : zerosInside (alpha Λ) + 1 ≤ Fintype.card ιz := by
+  have hdet : (cmat S.Ahat - l • cmat S.Ihat).det = 0 := by
+    rw [← PencilSplit.pencilPoly_eval]
+    exact (mem_roots hreg).mp hl
+  have hroot := Prop83.charpoly_root_of_pencil_root hE hβ hl0 hdet hln
+  have hx : ‖((β : ℂ) * l)⁻¹‖ ≤ 1 := by
+    have h1 : 1 ≤ β * ‖l‖ := by
+      have := mul_le_mul_of_nonneg_left hln hβ.le
+      rwa [mul_inv_cancel₀ hβ.ne'] at this
+    rw [norm_inv, norm_mul, Complex.norm_real, Real.norm_of_nonneg hβ.le]
+    exact inv_le_one_of_one_le₀ h1
+  have hxR : ((β : ℂ) * l)⁻¹ ∈ (cmat Λ).charpoly.roots :=
+    (mem_roots (charpoly_monic _).ne_zero).mpr hroot
+  rw [Prop83.zerosInside_alpha]
+  have hR : Multiset.card (cmat Λ).charpoly.roots = Fintype.card ιz :=
+    Prop83.card_charpoly_roots _
+  set R := (cmat Λ).charpoly.roots
+  have hp := congrArg Multiset.card (Multiset.filter_add_not (fun μ : ℂ => 1 < ‖μ‖) R)
+  rw [Multiset.card_add] at hp
+  have hpos : 0 < Multiset.card (R.filter (fun μ : ℂ => ¬ 1 < ‖μ‖)) :=
+    Multiset.card_pos_iff_exists_mem.mpr ⟨_, Multiset.mem_filter.mpr ⟨hxR, not_lt.mpr hx⟩⟩
+  omega
+
+/-! ### The inflation-inertia model, including the double root `S² = 4P₂₃` -/
+
+namespace Inertia
+
+open InertiaSplit CubicRoots GeneralLinksInertia
+open IRuleBasic (Calib)
+
+variable (c : Calib) (γ : ℝ)
+
+/-- Woodford (2003), (1.15), App. G.6, p. 725, for the inertia model: the characteristic
+polynomial is a nonzero polynomial (it is `−β(μ − μ₁)(μ − μ₂)(μ − μ₃)`). -/
+theorem in_pencil_ne_zero (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) : (inSys c γ hσ hd).pencilPoly ≠ 0 := by
+  rw [in_pencilPoly c γ h]
+  exact mul_ne_zero (mul_ne_zero (mul_ne_zero (C_ne_zero.mpr
+    (neg_ne_zero.mpr (by exact_mod_cast h.beta_pos.ne'))) (X_sub_C_ne_zero _))
+    (X_sub_C_ne_zero _)) (X_sub_C_ne_zero _)
+
+/-- Woodford (2003), App. G.1 and G.6, p. 725: the nonzero roots of (1.15) for the inertia
+model are `μ₁, μ₂, μ₃` (`μⱼ = (βλⱼ)⁻¹`), with multiplicity. -/
+theorem in_nonzeroRoots (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) :
+    PencilEigen.nonzeroRoots (inSys c γ hσ hd) = {muj c (lam1 c.β γ c.κ c.σ),
+      muj c (lam2 c.β γ c.κ c.σ), muj c (lam3 c.β γ c.κ c.σ)} := by
+  have z1 := muj_ne_zero c γ h (by exact_mod_cast (lam1_spec h).1.ne' :
+    (lam1 c.β γ c.κ c.σ : ℂ) ≠ 0)
+  have z2 := muj_ne_zero c γ h (lam2_ne_zero h)
+  have z3 := muj_ne_zero c γ h (lam3_ne_zero h)
+  rw [PencilEigen.nonzeroRoots, in_roots c γ h, Multiset.filter_eq_self]
+  intro a ha
+  simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at ha
+  rcases ha with rfl | rfl | rfl
+  exacts [z1, z2, z3]
+
+/-- Woodford (2003), Assumption 8.3, App. G.1, p. 716, **fails at the double root**: when
+`S² = 4P₂₃` the roots `μ₂ = μ₃` of (1.15) coincide, so (1.15) has no three distinct nonzero
+roots. -/
+theorem in_double_not_assumption83 (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) (hD0 : discQ c.β γ c.κ c.σ = 0) :
+    ¬ PencilEigen.Assumption83 (inSys c γ hσ hd) := by
+  intro h83
+  have hnd := h83.nodup
+  rw [in_nonzeroRoots c γ h hσ hd, lam2_eq_lam3_iff.mpr hD0] at hnd
+  simp at hnd
+
+/-- Woodford (2003), Assumption 8.2, p. 552, at the double root `S² = 4P₂₃`: every selection of
+`n_Z = 1` root with `|μ| < β⁻¹` takes one copy of the double root `μ₂ = μ₃`, so it never takes
+whole root classes (`PencilRepeated.SelWhole`). Hence
+`PencilRepeated.prop81_of_assumptions_general` does not apply there (its selection must be
+whole), and Proposition 8.1 at the double root comes from the explicit split instead
+(`InertiaProp8182.in_prop81_real`). -/
+theorem in_double_not_selWhole (h : Assumptions.Standing c.β γ c.κ c.σ) (hσ : c.σ ≠ 0)
+    (hd : 1 + c.β * γ ≠ 0) (hD0 : discQ c.β γ c.κ c.σ = 0)
+    (h82 : PencilEigen.Assumption82 (inSys c γ hσ hd) c.β) :
+    ¬ PencilRepeated.SelWhole (inSys c γ hσ hd) h82.sel := by
+  intro hw
+  obtain ⟨n1, -, -⟩ := in_root_norms c γ h
+  have h23 := lam2_eq_lam3_iff.mpr hD0
+  have hcard : Multiset.card h82.sel = 1 := by
+    have := h82.sel_card
+    rw [InertiaProp8182.in_rank_Ahat c γ h hσ hd] at this
+    simpa using this
+  obtain ⟨a, ha⟩ := Multiset.card_eq_one.mp hcard
+  have hmem : a ∈ h82.sel := by
+    rw [ha]
+    exact Multiset.mem_singleton_self a
+  have hfl := Multiset.mem_of_le h82.sel_le hmem
+  rw [Multiset.mem_filter, in_roots c γ h] at hfl
+  have ha3 : a = muj c (lam3 c.β γ c.κ c.σ) := by
+    obtain ⟨hr, -, hlt⟩ := hfl
+    simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at hr
+    rcases hr with rfl | rfl | rfl
+    · exact absurd hlt (not_lt.mpr n1.le)
+    · rw [h23]
+    · rfl
+  have hne : muj c (lam1 c.β γ c.κ c.σ) ≠ muj c (lam3 c.β γ c.κ c.σ) := fun e => by
+    obtain ⟨-, -, n3⟩ := in_root_norms c γ h
+    rw [e] at n1
+    linarith
+  have hc := hw a hmem
+  rw [ha, ha3, in_roots c γ h, h23] at hc
+  simp [hne.symm] at hc
+
+/-- Woodford (2003), Proposition 8.1, p. 553, for the inertia model: every representation of the
+corrected Proposition 8.1 represents the bounded deterministic solutions of the homogeneous
+(1.18) (`HomEquiv`); the base point is the constant plan of `InertiaSplit.in_xvec_base`, so
+Assumption 8.1 is not needed. -/
+theorem in_homEquiv [Nonempty Ω] (hc : c.Adm) (hγ : 0 ≤ γ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    (H : Prop81ConclusionM (inProblem c γ hc hγ) 𝔼 t0) :
+    HomEquiv (inProblem c γ hc hγ).sys c.β H.Λ H.Υ := by
+  obtain ⟨hyb, hya, hφb, hφm, h118⟩ :=
+    Prop83Links.const_base _ 𝔼 t0 _ (in_xvec_base c γ hc hγ)
+  exact Prop83.homEquiv_of_perturbation h118 (Prop83Links.hequiv_of_prop81M H hyb hya hφb hφm)
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557, for the inflation-inertia model in the real
+case `S² ≥ 4P₂₃`, including the double root, for every representation of Proposition 8.1**
+(any expectation system, nonempty sample space): `α(L) = det(I − ΛL)` has exactly one zero
+inside the unit circle and none on it. Assumption 8.3 is not used (it fails at the double root):
+the upper bound comes from the root `μ₁` (`zerosInside_add_one_le_of_root`), the lower bound
+from comparing the bounded-orbit subspace with that of the explicit split solving `λ₂ʳ` forward,
+whose `Λ` has the eigenvalue `λ₃ʳ > 1` (`orbitBdd_eq_of_homEquiv`). -/
+theorem in_prop83_real [Nonempty Ω] (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD : 0 ≤ discQ c.β γ c.κ c.σ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    (H : Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) :
+    zerosInside (alpha H.Λ) = 1 ∧ zerosOnCircle (alpha H.Λ) = 0 := by
+  have h := standing_of c γ hc hγ0 hγ1
+  have hβ := hc.1
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  have hd := in_det_ne c γ hc hγ0.le
+  have hE := in_homEquiv c γ hc hγ0.le 𝔼 t0 H
+  have hreg : (inProblem c γ hc hγ0.le).sys.pencilPoly ≠ 0 := in_pencil_ne_zero c γ h hσ hd
+  have hcirc : ∀ l ∈ (inProblem c γ hc hγ0.le).sys.pencilPoly.roots, ‖l‖ ≠ c.β⁻¹ :=
+    in_no_circle c γ h hσ hd
+  -- the reference representation: the split solving `λ₂ʳ` forward (perfect foresight)
+  have hq : quadQ c.β γ c.κ c.σ (lam2r c.β γ c.κ c.σ) = 0 := quadQ_lam2r hD
+  have hEs := in_homEquiv c γ hc hγ0.le perfectForesight 0
+    (Prop81General.prop81 _ (inSplit c γ hc hγ0 hγ1 hq) perfectForesight 0)
+  obtain ⟨hp, h1, h0, -, -⟩ := mu_facts c γ h hq
+  have hl2 := one_lt_lam2r h
+  have hls0 : lam2r c.β γ c.κ c.σ ≠ 0 := by linarith
+  have htr := in_Λ_trace c γ hσ hd hβ.ne' h.gamma_pos.ne' hp h1 h0
+  have hdt := in_Λ_det c γ hσ hd hβ.ne' h.gamma_pos.ne' hp h1 h0
+  rw [tr_eq c γ h hls0 hp] at htr
+  rw [det_eq c γ h hls0 hq] at hdt
+  have hb : sumS c.β γ c.κ c.σ - lam2r c.β γ c.κ c.σ = lam3r c.β γ c.κ c.σ := by
+    linarith [lam2r_add_lam3r c.β γ c.κ c.σ]
+  rw [hb] at htr hdt
+  set Λs := PencilSplit.Λmat (inSys c γ hσ hd) c.β (inJ c (c.β * lam2r c.β γ c.κ c.σ)⁻¹) with hΛs
+  have hroot : (cmat Λs).charpoly.eval (lam3r c.β γ c.κ c.σ : ℂ) = 0 := by
+    have htrC : (cmat Λs).trace = (Λs.trace : ℂ) := by simp [trace_fin_two, Prop83.cmat]
+    have hdetC : (cmat Λs).det = (Λs.det : ℂ) := by simp [det_fin_two, Prop83.cmat]
+    rw [charpoly_fin_two, htrC, hdetC, htr, hdt]
+    simp only [eval_add, eval_sub, eval_mul, eval_pow, eval_X, eval_C]
+    push_cast
+    ring
+  have hfr := finrank_orbitBdd_lt hroot (by
+    rw [Complex.norm_real, Real.norm_of_nonneg (by linarith [one_lt_lam3r h])]
+    exact one_lt_lam3r h)
+  rw [Fintype.card_fin] at hfr
+  have heq := orbitBdd_eq_of_homEquiv hE hEs
+  have hfr' : Module.finrank ℂ (orbitBdd (cmat H.Λ)) ≤ 1 := by
+    rw [heq]
+    change Module.finrank ℂ (orbitBdd (cmat Λs)) ≤ 1
+    omega
+  have hlow := card_le_zerosInside_add_finrank hE hβ hreg hcirc
+  obtain ⟨n1, -, -⟩ := in_root_norms c γ h
+  have hl1 : muj c (lam1 c.β γ c.κ c.σ) ∈ (inProblem c γ hc hγ0.le).sys.pencilPoly.roots := by
+    change muj c (lam1 c.β γ c.κ c.σ) ∈ (inSys c γ hσ hd).pencilPoly.roots
+    rw [in_roots c γ h]
+    simp
+  have hl0 : muj c (lam1 c.β γ c.κ c.σ) ≠ 0 :=
+    muj_ne_zero c γ h (by exact_mod_cast (lam1_spec h).1.ne' : (lam1 c.β γ c.κ c.σ : ℂ) ≠ 0)
+  have hup := zerosInside_add_one_le_of_root hE hβ hreg hl1 hl0 n1.le
+  rw [Fintype.card_fin] at hlow hup
+  exact ⟨by omega, Prop83.zerosOnCircle_eq_zero hE hβ hreg hcirc⟩
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557, for the inflation-inertia model at every
+admissible calibration** (`0 < γ ≤ 1`, real or complex roots, with or without the double root
+`S² = 4P₂₃`), for every representation of the corrected Proposition 8.1: `α(L) = det(I − ΛL)`
+has exactly one zero inside the unit circle and none on it. -/
+theorem in_prop83_all [Nonempty Ω] (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) (H : Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) :
+    zerosInside (alpha H.Λ) = 1 ∧ zerosOnCircle (alpha H.Λ) = 0 := by
+  rcases le_or_gt 0 (discQ c.β γ c.κ c.σ) with hD | hD
+  · exact in_prop83_real c γ hc hγ0 hγ1 hD 𝔼 t0 H
+  · exact in_prop83 c γ hc hγ0 hγ1 hD.ne 𝔼 t0 H
+
+/-- **Woodford (2003), Propositions 8.1 and 8.3 for the inflation-inertia model at every
+admissible calibration** (`0 < γ ≤ 1`; real roots, the double root `S² = 4P₂₃`, or a complex
+pair; any expectation system, nonempty sample space): the corrected Proposition 8.1 holds
+(`InertiaProp8182.in_prop81_all`, through case (ii) of Assumption 8.2 when the roots are
+complex), and every representation has `α(L)` with exactly one zero inside the unit circle and
+none on it (`in_prop83_all`). -/
+theorem in_props_81_83_all [Nonempty Ω] (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    Nonempty (Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) ∧
+      ∀ H : Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0,
+        zerosInside (alpha H.Λ) = 1 ∧ zerosOnCircle (alpha H.Λ) = 0 :=
+  ⟨InertiaProp8182.in_prop81_all c γ hc hγ0 hγ1 𝔼 t0, fun H => in_prop83_all c γ hc hγ0 hγ1 𝔼 t0 H⟩
+
+/-- **Woodford (2003), Propositions 8.1 and 8.3 at the double root `S² = 4P₂₃` of the
+inflation-inertia model** (pp. 553–557, 594–596): Assumption 8.3 fails there, yet the corrected
+Proposition 8.1 holds (any expectation system) and every representation it delivers has
+`α(L)` with exactly one zero inside the unit circle and none on it. -/
+theorem in_double_props_81_83 [Nonempty Ω] (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (hD0 : discQ c.β γ c.κ c.σ = 0) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    ¬ PencilEigen.Assumption83 (inProblem c γ hc hγ0.le).sys ∧
+      Nonempty (Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0) ∧
+      ∀ H : Prop81ConclusionM (inProblem c γ hc hγ0.le) 𝔼 t0,
+        zerosInside (alpha H.Λ) = 1 ∧ zerosOnCircle (alpha H.Λ) = 0 :=
+  ⟨in_double_not_assumption83 c γ (standing_of c γ hc hγ0 hγ1) hc.2.2.1.ne'
+      (in_det_ne c γ hc hγ0.le) hD0,
+    InertiaProp8182.in_prop81_real c γ hc hγ0 hγ1 hD0.ge 𝔼 t0,
+    fun H => in_prop83_real c γ hc hγ0 hγ1 hD0.ge 𝔼 t0 H⟩
+
+end Inertia
+
+/-! ### The basic model: a fully worked instance of the general theory -/
+
+namespace NK
+
+open GeneralLinks
+open IRuleBasic (Calib)
+
+variable (c : Calib)
+
+/-- Woodford (2003), (1.15), p. 546, for the basic model:
+`det(A − μÎ) = βμ² − (1 + β + κσ)μ + 1`. -/
+theorem nk_pencil_eval (hσ : c.σ ≠ 0) (z : ℂ) :
+    (nkSys c hσ).pencilPoly.eval z = c.β * z ^ 2 - (1 + c.β + c.κ * c.σ) * z + 1 := by
+  rw [PencilSplit.pencilPoly_eval, Prop83.det_empty_sum, det_fin_two]
+  simp [toBlocks₂₂, LinearRESystem.Ahat, LinearRESystem.Ihat, nkSys]
+  ring
+
+/-- Woodford (2003), (1.15) at `μ = 0`: `A` is invertible for the basic model
+(`det A = det A₂₂ = 1`), so `rank A = 2`. -/
+theorem nk_rank_Ahat (hσ : c.σ ≠ 0) : (nkSys c hσ).Ahat.rank = 2 := by
+  rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+  · simp
+  · rw [Prop83.det_empty_sum]
+    exact (nkSys c hσ).A22_isUnit
+
+/-- **Woodford (2003), Assumption 8.2, p. 552, for the basic model**: `n_Z = 0`, the zero root
+does not occur (`rank A = n`), and the empty selection is admissible (case (i)). -/
+noncomputable def nk_assumption82 (hσ : c.σ ≠ 0) : PencilEigen.Assumption82 (nkSys c hσ) c.β where
+  count := by
+    unfold LinearRESystem.Assumption82Count
+    simp
+  sel := 0
+  sel_le := Multiset.zero_le _
+  sel_card := by
+    rw [nk_rank_Ahat c hσ]
+    simp
+  cases := Or.inl (by simp [GeneralFOC.Selection.ConjClosed])
+
+/-- Woodford (2003), App. G.1, (G.6), p. 718, for the basic model: with `Γ = (0; I)`,
+`W = Ẽ A₂₂⁻¹ = [β βκ; σ σκ + 1]` gives `W Γ'A = Γ'Î`. -/
+theorem nk_G6 (hσ : c.σ ≠ 0) :
+    !![c.β, c.β * c.κ; c.σ, c.σ * c.κ + 1] * (Matrix.fromRows 0 1 :
+      Matrix (Empty ⊕ Fin 2) (Fin 2) ℝ)ᵀ * (nkSys c hσ).Ahat =
+      (Matrix.fromRows 0 1 : Matrix (Empty ⊕ Fin 2) (Fin 2) ℝ)ᵀ * (nkSys c hσ).Ihat := by
+  ext i j
+  rcases j with e | j
+  · exact e.elim
+  · fin_cases i <;> fin_cases j <;>
+      simp [nkSys, LinearRESystem.Ahat, LinearRESystem.Ihat, Matrix.mul_apply,
+        Fin.sum_univ_two, Fintype.sum_sum_type, Matrix.one_apply, vecMul, dotProduct]
+
+/-- **Woodford (2003), Assumption 8.4, App. G.1, p. 718, for the basic model** (with the empty
+selection): `Γ = (0; I)`, `W = Ẽ A₂₂⁻¹`, whose eigenvalues are the reciprocals `λ₁⁻¹, λ₂⁻¹` of
+the (unselected) roots of (1.15); `A'Γ` has rank 2 and `Γ₂ = I`. -/
+noncomputable def nk_assumption84 (hσ : c.σ ≠ 0) :
+    PencilAssumptions.Assumption84 (nkSys c hσ) 0 where
+  Γ := Matrix.fromRows 0 1
+  W := !![c.β, c.β * c.κ; c.σ, c.σ * c.κ + 1]
+  G6 := nk_G6 c hσ
+  W_eig := by
+    intro θ hθ
+    have hdet : θ ^ 2 - (1 + c.β + c.κ * c.σ) * θ + c.β = 0 := by
+      rw [det_fin_two] at hθ
+      simp [Matrix.scalar_apply] at hθ
+      linear_combination hθ
+    by_cases h0 : θ = 0
+    · exact Or.inl h0
+    · refine Or.inr ⟨θ⁻¹, ?_, inv_ne_zero h0, by simp, (inv_inv θ).symm⟩
+      rw [nk_pencil_eval c hσ]
+      field_simp
+      linear_combination hdet
+  full_rank := by
+    refine le_antisymm (rank_le_card_width _) ?_
+    have hsub : ((nkSys c hσ).Ahatᵀ * (Matrix.fromRows 0 1 :
+        Matrix (Empty ⊕ Fin 2) (Fin 2) ℝ)).submatrix Sum.inr id = (nkSys c hσ).A22ᵀ := by
+      ext i j
+      fin_cases i <;> fin_cases j <;>
+        simp [LinearRESystem.Ahat, Matrix.mul_apply, Fintype.sum_sum_type, Matrix.one_apply]
+    have hr : (nkSys c hσ).A22ᵀ.rank = 2 := by
+      rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+      · simp
+      · rw [det_transpose]
+        exact (nkSys c hσ).A22_isUnit
+    have := rank_submatrix_le ((nkSys c hσ).Ahatᵀ * (Matrix.fromRows 0 1 :
+        Matrix (Empty ⊕ Fin 2) (Fin 2) ℝ)) Sum.inr id
+    rw [hsub, hr] at this
+    simpa using this
+  det_Γ2 := by
+    have e : (Matrix.fromRows 0 1 : Matrix (Empty ⊕ Fin 2) (Fin 2) ℝ).submatrix Sum.inr id =
+        1 := by
+      ext i j
+      simp
+    rw [e, det_one]
+    exact one_ne_zero
+
+/-- Woodford (2003), (1.20), p. 553, for the basic model: the general `Λ = β⁻¹K⁻¹Ẽ'` of
+Proposition 8.1 (`PencilSplit.Λmat`, any `J`: with `n_Z = 0`, `K = A₂₂'`) is the hand-computed
+`GeneralLinks.nkΛ = [1 σ/β; κ (1 + κσ)/β]`. -/
+theorem nk_Λmat (hσ : c.σ ≠ 0) (hβ : c.β ≠ 0) (J : Matrix (Empty ⊕ Fin 2) Empty ℝ) :
+    PencilSplit.Λmat (nkSys c hσ) c.β J = nkΛ c := by
+  have hK : PencilSplit.Kmat (nkSys c hσ) J = !![1, 0; -c.κ, 1] := by
+    ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp [PencilSplit.Kmat, nkSys]
+  have hKi : (PencilSplit.Kmat (nkSys c hσ) J)⁻¹ = !![1, 0; c.κ, 1] := by
+    rw [hK]
+    refine Matrix.inv_eq_left_inv ?_
+    ext i j
+    fin_cases i <;> fin_cases j <;> simp [Matrix.mul_apply, Fin.sum_univ_two]
+  rw [PencilSplit.Λmat, hKi]
+  ext i j
+  fin_cases i <;> fin_cases j <;> simp [nkΛ, nkSys, Fin.sum_univ_two, vecMul, dotProduct]
+  all_goals field_simp
+  all_goals ring
+
+/-- Woodford (2003), (1.20), p. 553: `det Λ = β⁻¹` for the basic model. -/
+theorem nk_det_Λ (hβ : c.β ≠ 0) : (nkΛ c).det = c.β⁻¹ := by
+  rw [det_fin_two]
+  simp [nkΛ]
+  field_simp
+  ring
+
+/-- **Woodford (2003), Assumption 8.5, App. G.2, p. 719, for the basic model**: with `B₂ = (0, σ)`
+and `k = rank Λ = 2`, `B₂', B₂'Λ` are linearly independent, and so are `B₂'Λ, B₂'Λ²`
+(`InertiaProp8182.assumption85_two`: `det Λ = β⁻¹ ≠ 0`, `Λ₁₀ = κ ≠ 0`). -/
+theorem nk_assumption85 (hc : c.Adm) :
+    PencilAssumptions.Assumption85 (nkΛ c) (nkSys c hc.2.2.1.ne').B2 :=
+  InertiaProp8182.assumption85_two hc.2.2.1.ne' (by simpa [nkΛ] using hc.2.2.2.1.ne')
+    (by rw [nk_det_Λ c hc.1.ne']; exact inv_ne_zero hc.1.ne')
+
+/-- **Woodford (2003), Propositions 8.1 and 8.3 for the basic model, from the general
+theorems** (pp. 553–557, 582–586; any expectation system, nonempty sample space). Assumptions
+8.2 (case (i), empty selection), 8.3 and 8.4 hold (`nk_assumption82`,
+`GeneralLinks.nk_assumption83`, `nk_assumption84`), so `PencilAssumptions.prop81_of_assumptions`
+gives the corrected Proposition 8.1, whose `Λ` is `GeneralLinks.nkΛ`; and for **every**
+representation `α(L) = det(I − ΛL)` has exactly one zero inside the unit circle and none on it
+(`Prop83Links.prop83M_const`, `m = 1`, no root on `|μ| = β⁻¹`): Proposition 8.5's
+superinertia. Assumption 8.1 is not needed. -/
+theorem nk_prop81_prop83 [Nonempty Ω] (hc : c.Adm) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    (∃ H : Prop81ConclusionM (nkProblem c hc) 𝔼 t0, H.Λ = nkΛ c) ∧
+      ∀ H : Prop81ConclusionM (nkProblem c hc) 𝔼 t0,
+        zerosInside (alpha H.Λ) = 1 ∧ zerosOnCircle (alpha H.Λ) = 0 := by
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  have hi : GeneralFOC.Selection.ConjClosed (nk_assumption82 c hσ).sel := by
+    simp [GeneralFOC.Selection.ConjClosed, nk_assumption82]
+  refine ⟨⟨Prop81General.prop81 _ (PencilAssumptions.splitOf (nkProblem c hc)
+    (nk_assumption82 c hσ) hi (nk_assumption83 c hc) (nk_assumption84 c hσ)) 𝔼 t0,
+    nk_Λmat c hσ hc.1.ne' _⟩, fun H => ?_⟩
+  have hv0 : (nkProblem c hc).Ttilᵀ *ᵥ ((nkProblem c hc).W *ᵥ ((nkProblem c hc).T *ᵥ
+      Sum.elim (Sum.elim (fun e => e.elim) ![0, c.xstar]) (fun _ => 0) -
+        (nkProblem c hc).τstar)) = 0 := by
+    rw [nk_xvec]
+    funext r
+    rcases r with e | j
+    · exact e.elim
+    · fin_cases j <;> simp
+  exact Prop83Links.prop83M_const H _ hv0 (nk_assumption83 c hc) (nk_stableCount c hc)
+    (nk_no_circle c hc)
+
+/-- **Woodford (2003), Proposition 8.2 for the basic model, from the general theorem**
+(p. 555), for every expectation system with pull-out: Assumptions 8.1 (corrected,
+`NKAssumption81.NK.nk_assumption81M`), 8.2–8.5 (`nk_assumption82`,
+`GeneralLinks.nk_assumption83`, `nk_assumption84`, `nk_assumption85`) hold, so
+`PencilAssumptions.prop82_of_assumptions` applies: commitment to the target criterion (1.23)
+built from the representation with `Λ = nkΛ` is robustly optimal (a window of `D ≥ 2` lags,
+any consistent bounded history). -/
+theorem nk_prop82 {𝔼 : ExpectationSystem Ω} {t0 : ℕ} (hc : c.Adm) (hpull : 𝔼.PullOut)
+    {D : ℕ} (hD : D + 1 ≤ t0) (hD2 : 2 ≤ D)
+    {Mh qh : ℕ → Ω → Fin 2 → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK (nkΛ c) (nkSys c hc.2.2.1.ne').B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) :
+    ∃ H : Prop81ConclusionM (nkProblem c hc) 𝔼 t0, H.Λ = nkΛ c ∧
+      RobustlyOptimal (κ := Fin 2) (nkProblem c hc) 𝔼 t0
+        (fun _ y => Prop82General.Prop82M.CriterionM H D qh vh y)
+        (fun _ y t ω => zpart (y t ω)) := by
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  have hi : GeneralFOC.Selection.ConjClosed (nk_assumption82 c hσ).sel := by
+    simp [GeneralFOC.Selection.ConjClosed, nk_assumption82]
+  have hΛ := nk_Λmat c hσ hc.1.ne' (PencilAssumptions.splitOf (nkProblem c hc)
+    (nk_assumption82 c hσ) hi (nk_assumption83 c hc) (nk_assumption84 c hσ)).J
+  have hE : (nkSys c hσ).Et.rank = 2 := by
+    rw [rank_of_isUnit _ ((isUnit_iff_isUnit_det _).mpr ?_)]
+    · simp
+    · simp [nkSys, det_fin_two, hc.1.ne']
+  refine ⟨_, hΛ, PencilAssumptions.prop82_of_assumptions hpull
+    (NKAssumption81.NK.nk_assumption81M c hc 𝔼 t0) (nk_assumption82 c hσ) hi
+    (nk_assumption83 c hc) (nk_assumption84 c hσ) ?_ hD ?_ ?_ hMhb hMhk hqhb hvhb⟩
+  · convert nk_assumption85 c hc using 2
+    · exact hΛ
+    · rfl
+  · change (nkSys c hσ).Et.rank ≤ D
+    rw [hE]
+    exact hD2
+  · convert hhist using 2
+    · exact hΛ
+    · rfl
+
+end NK
+
+/-! ### The old conditional results of `TargetCriterion` -/
+
+namespace Old
+
+variable {ιτ : Type*} [Fintype ιτ] {P : LQProblem ιZ ιz ιτ} {𝔼 : ExpectationSystem Ω} {t0 : ℕ}
+
+/-- Woodford (2003), Proposition 8.1, p. 553: the original hypothesis structure
+`TargetCriterion.Prop81.Prop81Conclusion` (the equivalence for all bounded multipliers) yields
+the corrected `Prop81General.Prop81ConclusionM` (the equivalence restricted to adapted plans and
+multipliers known at `t`), whenever its `R(L⁻¹)` is adapted. -/
+def conclusionM_of_conclusion (H : Prop81Conclusion P 𝔼 t0)
+    (hR : ∀ x, BoundedV x → AdaptedV 𝔼 (H.Rop x)) : Prop81ConclusionM P 𝔼 t0 where
+  Λ := H.Λ
+  Υ := H.Υ
+  Qop := H.Qop
+  Rop := H.Rop
+  equiv := fun y φ hy _ hφ _ => H.equiv y φ hy hφ
+  Qbounded := H.Qbounded
+  Rbounded := H.Rbounded
+  Qadapted := H.Qadapted
+  Radapted := hR
+
+/-- Woodford (2003), Proposition 8.1, p. 553, under perfect foresight: every inhabitant of the
+original structure is one of the corrected structure (everything is adapted). -/
+def conclusionM_perfectForesight (H : Prop81Conclusion P perfectForesight t0) :
+    Prop81ConclusionM P perfectForesight t0 :=
+  conclusionM_of_conclusion H fun _ _ _ _ => rfl
+
+/-- Woodford (2003), eq. (1.23), p. 554: the target criterion of the old conditional
+Proposition 8.2 (`TargetCriterion.Prop82.Criterion`) is that of the unconditional one
+(`Prop82General.Prop82M.CriterionM`) for the converted representation. -/
+theorem criterion_iff (H : Prop81Conclusion P 𝔼 t0)
+    (hR : ∀ x, BoundedV x → AdaptedV 𝔼 (H.Rop x)) (D : ℕ) (qh : ℕ → Ω → ιz → ℝ)
+    (vh : ℕ → Ω → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) :
+    TargetCriterion.Prop82.Criterion H D qh vh y ↔
+      Prop82General.Prop82M.CriterionM (conclusionM_of_conclusion H hR) D qh vh y :=
+  Iff.rfl
+
+/-- **Woodford (2003), Proposition 8.2 (second part), p. 555: `TargetCriterion.prop82_optimal`
+without its hypothesis `MultStable`.** For the old representation (with `R(L⁻¹)` adapted, e.g.
+under perfect foresight), Assumption 8.5 and a bounded history replace `MultStable` (which fails
+in the book's applications, `PencilAssumptions.not_multStable_of_unselected`); the conclusion is
+the same. -/
+theorem prop82_optimal_of_assumption85 (hpull : 𝔼.PullOut) (H : Prop81Conclusion P 𝔼 t0)
+    (hR : ∀ x, BoundedV x → AdaptedV 𝔼 (H.Rop x))
+    (h85 : TargetCriterion.Krylov.Assumption85b H.Λ P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D) (hα : (alpha H.Λ).natDegree ≤ D)
+    {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : P.Feasible 𝔼 c t0 Z0 y)
+    (hcrit : TargetCriterion.Prop82.Criterion H D qh vh y) :
+    P.OptimalSubjectTo 𝔼 c t0 Z0 (fun ω => P.sys.Et *ᵥ zpart (y t0 ω)) y :=
+  Prop82General.Prop82M.prop82M_optimal hpull (conclusionM_of_conclusion H hR) h85 hD hB hα
+    hhist hMhb hMhk hqhb hvhb hy hcrit
+
+/-- **Woodford (2003), Proposition 8.2 (uniqueness), p. 555: `TargetCriterion.prop82_unique`
+without its hypothesis `MultStable`**, under Assumption 8.5 and a bounded history instead (and
+the corrected Assumption 8.1, `Prop82General.Assumption81M`, implied by the original). -/
+theorem prop82_unique_of_assumption85 (hA : Prop82General.Assumption81M P 𝔼 t0)
+    (H : Prop81Conclusion P 𝔼 t0)
+    (hR : ∀ x, BoundedV x → AdaptedV 𝔼 (H.Rop x))
+    (h85 : TargetCriterion.Krylov.Assumption85b H.Λ P.sys.B2) {D : ℕ} (hD : D + 1 ≤ t0)
+    (hB : ∀ i c, (Bpoly H.Λ i c).natDegree ≤ D) (hα : (alpha H.Λ).natDegree ≤ D)
+    {Mh qh : ℕ → Ω → ιz → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : TargetCriterion.Prop82.HistoryOK H.Λ P.sys.B2 t0 D Mh qh vh)
+    (hMhb : BoundedV Mh) (hMhk : AdaptedV 𝔼 Mh) (hqhb : BoundedV qh)
+    (hvhb : ∃ K, ∀ t ω, |vh t ω| ≤ K) {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ}
+    {y y' : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : P.Feasible 𝔼 c t0 Z0 y)
+    (hy' : P.Feasible 𝔼 c t0 Z0 y') (hcrit : TargetCriterion.Prop82.Criterion H D qh vh y)
+    (hcrit' : TargetCriterion.Prop82.Criterion H D qh vh y') : ∀ t, t0 ≤ t → y t = y' t :=
+  Prop82General.Prop82M.prop82M_unique hA (conclusionM_of_conclusion H hR) h85 hD hB hα hhist
+    hMhb hMhk hqhb hvhb hy hy' hcrit hcrit'
+
+/-- **Woodford (2003), Proposition 8.4, p. 558: the hypotheses of
+`TargetCriterion.prop84_conditional` are discharged** for every representation of the corrected
+Proposition 8.1, under Assumptions 8.1, 8.3, 8.7 and no root of (1.15) on `|λ| = β⁻¹`
+(`Prop83Links.prop84M`): `α = α₁α₂` with `deg α₁ = m`, `α₁ ≠ 0`, every root of `α̃₁` outside the
+unit circle, and for every bounded adapted `w` a bounded adapted `g` with `E_t α̃₁(L⁻¹) g_t = w_t`;
+so the conditional equivalence (1.28) ⟺ (1.32) at all dates holds outright. -/
+theorem prop84_conditional_discharged [Nonempty Ω] (H : Prop81ConclusionM P 𝔼 t0)
+    (hA : Assumption81 P 𝔼 t0) (h83 : PencilEigen.Assumption83 P.sys) {m : ℕ}
+    (h87 : P.sys.stableCount P.β⁻¹ = Fintype.card ιZ + m)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    ∃ α1 α2 : ℝ[X], alpha H.Λ = α1 * α2 ∧ α1.natDegree = m ∧ α1 ≠ 0 ∧
+      (∀ z ∈ (α1.reverse.map Complex.ofRealHom).roots, 1 < ‖z‖) ∧
+      ∀ (lam istar : ℝ) (i w : ℕ → Ω → ℝ), BoundedProc i → 𝔼.Adapted i → BoundedProc w →
+        𝔼.Adapted w → ∃ g, BoundedProc g ∧ 𝔼.Adapted g ∧
+          (aeval (TargetCriterion.fwdOp 𝔼) α1.reverse) g = w ∧
+          (lam • (aeval (TargetCriterion.lagOp (Ω := Ω)) (alpha H.Λ))
+              (fun t ω => i t ω - istar) + w = 0 ↔
+            g + lam • ((TargetCriterion.lagOp (Ω := Ω)) ^ m)
+              ((aeval (TargetCriterion.lagOp (Ω := Ω)) α2) (fun t ω => i t ω - istar)) = 0) := by
+  obtain ⟨α1, α2, hfac, hdeg, hin, -, hrest⟩ := Prop83Links.prop84M H hA h83 h87 hcirc
+  have hα1 : α1 ≠ 0 := fun h0 => alpha_ne_zero H.Λ (by rw [hfac, h0, zero_mul])
+  have hrev : ∀ z ∈ (α1.reverse.map Complex.ofRealHom).roots, 1 < ‖z‖ := by
+    rw [TargetCriterion.map_reverse_ofReal]
+    exact TargetCriterion.roots_reverse_outside hin
+  refine ⟨α1, α2, hfac, hdeg, hα1, hrev, fun lam istar i w hib hia hwb hwa => ?_⟩
+  obtain ⟨g, ⟨hgb, hga, hg⟩, -⟩ := (hrest lam istar i w hib hia hwb hwa).1
+  refine ⟨g, hgb, hga, hg, ?_⟩
+  rw [hfac]
+  exact TargetCriterion.prop84_conditional hdeg hα1 hrev hib hia hgb hg
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557: the statement `TargetCriterion.Prop83Claim`
+is non-vacuous and true** under perfect foresight, Assumptions 8.1, 8.2 (case (i)), 8.3, 8.4 and
+no root of (1.15) on `|λ| = β⁻¹`: the original hypothesis structure is inhabited
+(`PencilAssumptions.prop81_of_assumptions_perfectForesight`) and every inhabitant satisfies the
+claim (`Prop83.prop83Claim_holds`). -/
+theorem prop83Claim_perfectForesight (P : LQProblem ιZ ιz ιτ) (t0 : ℕ)
+    (hA : Assumption81 P perfectForesight t0) (h82 : PencilEigen.Assumption82 P.sys P.β)
+    (hi : GeneralFOC.Selection.ConjClosed h82.sel) (h83 : PencilEigen.Assumption83 P.sys)
+    (h84 : PencilAssumptions.Assumption84 P.sys h82.sel)
+    (hcirc : ∀ l ∈ P.sys.pencilPoly.roots, ‖l‖ ≠ P.β⁻¹) :
+    Nonempty (Prop81Conclusion P perfectForesight t0) ∧
+      ∀ H : Prop81Conclusion P perfectForesight t0,
+        TargetCriterion.Prop83Claim P perfectForesight t0 H :=
+  ⟨PencilAssumptions.prop81_of_assumptions_perfectForesight P h82 hi h83 h84 t0,
+    fun H => Prop83.prop83Claim_holds H hA h83 hcirc⟩
+
+end Old
+
+/-! ### The scalar circle system -/
+
+/-- Woodford (2003), (1.1) (the scalar systems of the counterexamples): `Circle81.circSys` at
+`β = 1/2`, `E_t z_{t+1} = 2z_t + i_t + c_t`, is the system `Prop81General.coinSys` of the
+counterexamples to the uncorrected Proposition 8.1 and to the remark on p. 553. -/
+theorem circSys_half :
+    Circle81.circSys (1 / 2) (by norm_num) = Prop81General.coinSys := by
+  unfold Circle81.circSys Prop81General.coinSys
+  congr 1
+  ext i j
+  norm_num
+
+end Woodford.OptimalPolicyRules.GeneralTheoryLinks
+
 set_option linter.style.longLine false
 #print axioms Woodford.OptimalPolicyRules.SchurStable
 #print axioms Woodford.OptimalPolicyRules.disc
@@ -29597,3 +43875,726 @@ set_option linter.style.longLine false
 #print axioms Woodford.OptimalPolicyRules.Links.is_inertia_iff
 #print axioms Woodford.OptimalPolicyRules.Links.asInd_iff
 #print axioms Woodford.OptimalPolicyRules.Links.as_predetermined_zero_iff
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.EV_add
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.EV_sub
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.EV_smul
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.EV_const
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.EV_tower
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.knownV_EV
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.knownV_mulVec_add
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.knownV_mulVec
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.EV_add_const
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.knownV_add
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.knownV_sum_mulVec
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.boundedV_mulVec
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.boundedV_add
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.abs_EV_le
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.PowDecay
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.powDecay_of_eig
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.abs_mulVec_pow_le
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.fwdSum
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.fwdSum_spec
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.eq_fwdSum
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.J1
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.J2
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.J1_mul
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.J2_mul
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.Υmat
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.Kmat
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.Λmat
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.mk
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.J
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.Ψ
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.deflate
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.eig_lt
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.J1_det
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.K_det
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.Ahat_transpose_mulVec
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.Ihat_transpose_mulVec
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.J_transpose_mulVec
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.deflate_transpose
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.pencilPoly_eval
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.eig_isRoot
+#print axioms Woodford.OptimalPolicyRules.PencilSplit.DeflatingSplit.powDecay_G
+#print axioms Woodford.OptimalPolicyRules.Prop81General.MultKnown
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81EquivM
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.mk
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Λ
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Υ
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Qop
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Rop
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.equiv
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Qbounded
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Rbounded
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Qadapted
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Prop81ConclusionM.Radapted
+#print axioms Woodford.OptimalPolicyRules.Prop81General.fpart
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Fw
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Rop
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Qop
+#print axioms Woodford.OptimalPolicyRules.Prop81General.adaptedV_xproc
+#print axioms Woodford.OptimalPolicyRules.Prop81General.lhs118
+#print axioms Woodford.OptimalPolicyRules.Prop81General.Mpart_lhs118
+#print axioms Woodford.OptimalPolicyRules.Prop81General.J_lhs118
+#print axioms Woodford.OptimalPolicyRules.Prop81General.w_split
+#print axioms Woodford.OptimalPolicyRules.Prop81General.eq121_iff
+#print axioms Woodford.OptimalPolicyRules.Prop81General.eq120_iff
+#print axioms Woodford.OptimalPolicyRules.Prop81General.prop81_equiv
+#print axioms Woodford.OptimalPolicyRules.Prop81General.fw_spec
+#print axioms Woodford.OptimalPolicyRules.Prop81General.qop_adapted
+#print axioms Woodford.OptimalPolicyRules.Prop81General.prop81
+#print axioms Woodford.OptimalPolicyRules.Prop81General.prop81_matrices
+#print axioms Woodford.OptimalPolicyRules.Prop81General.prop81_perfectForesight
+#print axioms Woodford.OptimalPolicyRules.Prop81General.rank_Λmat
+#print axioms Woodford.OptimalPolicyRules.Prop81General.natDegree_alpha_le
+#print axioms Woodford.OptimalPolicyRules.Prop81General.coinSys
+#print axioms Woodford.OptimalPolicyRules.Prop81General.coinProblem
+#print axioms Woodford.OptimalPolicyRules.Prop81General.coinMult
+#print axioms Woodford.OptimalPolicyRules.Prop81General.coin_lhs118
+#print axioms Woodford.OptimalPolicyRules.Prop81General.coin_eq118
+#print axioms Woodford.OptimalPolicyRules.Prop81General.coinMult_E
+#print axioms Woodford.OptimalPolicyRules.Prop81General.not_prop81Equiv_coin
+#print axioms Woodford.OptimalPolicyRules.Prop81General.prop81Conclusion_coin_isEmpty
+#print axioms Woodford.OptimalPolicyRules.Prop81General.coinSplit
+#print axioms Woodford.OptimalPolicyRules.Prop81General.prop81M_coin
+#print axioms Woodford.OptimalPolicyRules.Prop82General.KrylovBound.krylov_factor
+#print axioms Woodford.OptimalPolicyRules.Prop82General.KrylovBound.iterate_rec
+#print axioms Woodford.OptimalPolicyRules.Prop82General.KrylovBound.exists_bound_dot_pow
+#print axioms Woodford.OptimalPolicyRules.Prop82General.KrylovBound.boundedV_of_krylov
+#print axioms Woodford.OptimalPolicyRules.Prop82General.KrylovBound.gRule
+#print axioms Woodford.OptimalPolicyRules.Prop82General.KrylovBound.multiplier_rule
+#print axioms Woodford.OptimalPolicyRules.Prop82General.FOCSolvableM
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Assumption81M
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Assumption81M.mk
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Assumption81M.solvable
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Assumption81M.unique
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Assumption81M.of_assumption81
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.CriterionM
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.φconM
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.known_MseqM
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.bounded_vproc
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.boundedV_splice
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.focSystem_of_criterionM
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.prop82M_optimal
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.prop82M_unique
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.histThen
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.histThen_rec
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.prop82M_exists
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.prop82M_determinate
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.prop82M_multiplier_rule
+#print axioms Woodford.OptimalPolicyRules.Prop82General.Prop82M.prop82M_robustlyOptimal
+#print axioms Woodford.OptimalPolicyRules.Prop82General.prop82_of_split
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.SelCases
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption82
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption82.mk
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption82.count
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption82.sel
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption82.sel_le
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption82.sel_card
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption82.cases
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.nonzeroRoots
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.KerA
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.KerALeft
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.KerILeft
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.KerI
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.mk
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.regular
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.nodup
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.card_nonzero
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.kerA
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.kerA_left
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.kerI_left
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.kerI
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.RealSelection
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.RealSelection.mk
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.RealSelection.J
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.RealSelection.Ψ
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.RealSelection.deflate
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.RealSelection.indep
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.RealSelection.eig
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.exists_eigvec
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.map_mulVec_ofReal
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.map_mulVec_conj
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.linearIndependent_ofReal
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.re_mulVec_map
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.im_mulVec_map
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.finrank_finset_sup
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.card_le_rank_Ahat
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.det_pencil_ofReal
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.exists_pencil_eigvec
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.exists_pencil_eigvec_real
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.shift_eigvec
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.deflate_of_cols
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.RS
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.US
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.card_sel
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.mk
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.vR
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.vR_ne
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.vR_eig
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.wU
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.wU_ne
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.wU_eig
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.kv
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.kv_ind
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.EigenData.kv_ker
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.exists_eigenData
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.Col
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.col
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.rot
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.PsiC
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.reim_eig
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.sum_PsiC_inl
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.sum_PsiC_pair
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.sum_PsiC_ker
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.deflate_C
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.mulVec_PsiC
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.PsiC_eig
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.exists_shift
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.μf
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.famE
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.μf_injective
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.famE_eig
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.pair_combo
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Construction.col_indep
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.exists_realSelection
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.exists_ker_basis
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.assumption83_kernels
+#print axioms Woodford.OptimalPolicyRules.PencilEigen.Assumption83.ofRoots
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.sylvester_zero
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.eq_zero_of_indep
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.rank_eq_of_injective
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.exists_of_mulVec_eq_zero
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.map_ofReal_mul
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.WEig
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84.mk
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84.Γ
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84.W
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84.G6
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84.W_eig
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84.full_rank
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption84.det_Γ2
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.G7
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.IJ_injective
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.J1_det_ne_zero
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.K_det_ne_zero
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.splitOfSel
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.nonempty_deflatingSplit
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.splitOf
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.prop81_of_assumptions
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.prop81_of_assumptions_perfectForesight
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.Assumption85
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.prop82_of_assumptions
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.prop82_multiplier_rule_of_assumptions
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.J_transpose_mulVec_C
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.unselected_eig
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.alpha_map_ofReal
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.unselected
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.unselected_spec
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.unselected_map_le
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.natDegree_alpha_eq_rank
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.nonzero_eig_eq
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.mrec_zero
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.not_multStable_of_eig
+#print axioms Woodford.OptimalPolicyRules.PencilAssumptions.not_multStable_of_unselected
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.mrec_formula
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.boundedV_mrec_of_powDecay
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.Mrep
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.φrep
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.Mrep_rec
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.Mrep_known
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.Mrep_bounded
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.φrep_spec
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.prop81M_solution
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.prop81M_unique
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.powDecay_Λ_of_outside
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.remark_p553
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.circleProblem
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.circle_pencil
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.circle_roots
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.circle_lhs118
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.circle_counterexample
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.eig_conj
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.realSelection_misses_unpaired
+#print axioms Woodford.OptimalPolicyRules.Prop81Unique.re_det_rescale_zero
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Nr
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.shift_mul_Nr
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.shift_mul_Nc
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.det_shift_C
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.eig_to_N
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.N_to_eig
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.det_one_sub_smul
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.pencil_factor
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.pencil_roots_eq
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.count_pencil_roots
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.realPart
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.ConjStable
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.finrank_realPart
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.toLin'_sub_pow_apply
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.conj_mem_maxGen
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.conj_mem_eigenspace
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.SelWhole
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.φN
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.ν0
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wfam
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Tset
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wsub
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.conjPre
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wfam_ν0
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wfam_ne
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wfam_le
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wfam_indep
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.ν0_eq
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.ν0_ne_zero
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.inv_sub_ne_ν0
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wsub_conj
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Wsub_invariant
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.mem_Tset_of_eig
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.realPart_eigenspace_ν0
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.finrank_eigenspace_ν0
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.finrank_Wsub
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Ureal
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Nr_mem_Ureal
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.Nr_inj_Ureal
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.exists_deflating_cols
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.exists_realSelection_general
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.selWhole_of_assumption83
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.splitGen
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.splitOfGen
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.prop81_of_assumptions_general
+#print axioms Woodford.OptimalPolicyRules.PencilRepeated.prop82_of_assumptions_general
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.residProj
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.mk
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.Jp
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.Ψp
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.deflate
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.eig_lt
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.P
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.J1_det
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.K_det
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.H
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.resid
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.decay
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QuasiSplit.powDecay_Gp
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.wp_P
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.Jp_lhs118
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.Fp
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.RopII
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.QopII
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.prop81_equivII
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.fwII_spec
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.qopII_adapted
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.prop81II
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.powDecay_smul_one
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.quasiOfDeflating
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.prop82_of_quasiSplit
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.selPlus
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.conjClosed_selPlus
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.pencil_eval_conj
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.Assumption84IIall
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.nonempty_quasiSplit
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.selWhole_selPlus_of_83
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.quasiSplitOf
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.prop81_caseII_all
+#print axioms Woodford.OptimalPolicyRules.Prop81CaseII.prop82_caseII_all
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.obsMap
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.obsMap_injective
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.obsEquiv
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.gRule1
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.multiplier_rule1
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.rule_lags_full
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.rule_lags_lt
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.eq_zero_of_rank_zero
+#print axioms Woodford.OptimalPolicyRules.MultiplierLags.rule_lags_zero
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.CondII
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.Admissible
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.Assumption84II
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.residProj_change
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.cond_change
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.deflate_change
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.exists_T_of_span
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.IJ_inj_cols
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.Ψ_eq_of_basis
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.cond_of_sameSpan
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.basis_invariance
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.SameSubspace
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.sameSubspace_of_card
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.all_of_ex
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.ex_of_all
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.nonempty_quasiSplit_ex
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.quasiSplitOfEx
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.prop81_caseII
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.prop82_caseII
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.ZeroSemisimple
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.maxGen_ν0_eq
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.injC_of_injR
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.col_mem_Wsub
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.sameSubspace_of_semisimple
+#print axioms Woodford.OptimalPolicyRules.CaseIIBasis.all_of_ex_semisimple
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.hOf
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.rotΨ
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.selA
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.pairJ
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.deflate_pair
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.inv_fin_one
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.resid_pair
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.resid_of_eigvec
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.hOf_real_mul
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.hOf_book
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.book_iff
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.hOf_surj
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.book_condition_depends_on_scaling
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.exSys
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.exProblem
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.μ0
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.u0
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_eig
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_root
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_det
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_reg
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_rank
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_mem
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex82
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_not_caseI
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_admissible
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex84
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex84all
+#print axioms Woodford.OptimalPolicyRules.CaseIIInstance.ex_prop81
+#print axioms Woodford.OptimalPolicyRules.Prop83.roots_one_sub_C_mul_X
+#print axioms Woodford.OptimalPolicyRules.Prop83.one_sub_C_mul_X_ne_zero
+#print axioms Woodford.OptimalPolicyRules.Prop83.roots_prod_one_sub
+#print axioms Woodford.OptimalPolicyRules.Prop83.reverse_multiset_prod
+#print axioms Woodford.OptimalPolicyRules.Prop83.reverse_X_sub_C
+#print axioms Woodford.OptimalPolicyRules.Prop83.roots_reverse
+#print axioms Woodford.OptimalPolicyRules.Prop83.zerosOnCircle
+#print axioms Woodford.OptimalPolicyRules.Prop83.cmat
+#print axioms Woodford.OptimalPolicyRules.Prop83.alpha_map_ofReal
+#print axioms Woodford.OptimalPolicyRules.Prop83.zerosInside_alpha
+#print axioms Woodford.OptimalPolicyRules.Prop83.zerosOnCircle_alpha
+#print axioms Woodford.OptimalPolicyRules.Prop83.norm_mulVec_le
+#print axioms Woodford.OptimalPolicyRules.Prop83.BddSeq
+#print axioms Woodford.OptimalPolicyRules.Prop83.HomSol
+#print axioms Woodford.OptimalPolicyRules.Prop83.RepSol
+#print axioms Woodford.OptimalPolicyRules.Prop83.HomEquiv
+#print axioms Woodford.OptimalPolicyRules.Prop83.HomSolC
+#print axioms Woodford.OptimalPolicyRules.Prop83.RepSolC
+#print axioms Woodford.OptimalPolicyRules.Prop83.Mpart_eq
+#print axioms Woodford.OptimalPolicyRules.Prop83.ξpart_eq
+#print axioms Woodford.OptimalPolicyRules.Prop83.repSolC_of_homSolC
+#print axioms Woodford.OptimalPolicyRules.Prop83.homSolC_of_repSolC
+#print axioms Woodford.OptimalPolicyRules.Prop83.cmat_transpose
+#print axioms Woodford.OptimalPolicyRules.Prop83.charpoly_root_of_pencil_root
+#print axioms Woodford.OptimalPolicyRules.Prop83.mulVec_eq_zero_of_ker
+#print axioms Woodford.OptimalPolicyRules.Prop83.card_sub_rank_le_rootMultiplicity
+#print axioms Woodford.OptimalPolicyRules.Prop83.card_charpoly_roots
+#print axioms Woodford.OptimalPolicyRules.Prop83.card_outside_le
+#print axioms Woodford.OptimalPolicyRules.Prop83.orbitBdd
+#print axioms Woodford.OptimalPolicyRules.Prop83.pow_mulVec_mem_orbitBdd
+#print axioms Woodford.OptimalPolicyRules.Prop83.mem_orbitBdd_of_pow
+#print axioms Woodford.OptimalPolicyRules.Prop83.maxGenEigenspace_le_orbitBdd
+#print axioms Woodford.OptimalPolicyRules.Prop83.card_filter_roots_eq_sum
+#print axioms Woodford.OptimalPolicyRules.Prop83.card_inside_le_finrank
+#print axioms Woodford.OptimalPolicyRules.Prop83.Gmap
+#print axioms Woodford.OptimalPolicyRules.Prop83.Gmap_injective
+#print axioms Woodford.OptimalPolicyRules.Prop83.norm_Gmap_le
+#print axioms Woodford.OptimalPolicyRules.Prop83.norm_dotProduct_le
+#print axioms Woodford.OptimalPolicyRules.Prop83.star_of_orbitBdd
+#print axioms Woodford.OptimalPolicyRules.Prop83.constraint_of_orbitBdd
+#print axioms Woodford.OptimalPolicyRules.Prop83.finrank_orbitBdd_le
+#print axioms Woodford.OptimalPolicyRules.Prop83.card_inside_le
+#print axioms Woodford.OptimalPolicyRules.Prop83.pencil_root_of_circle_eigenvalue
+#print axioms Woodford.OptimalPolicyRules.Prop83.bounds_of_homEquiv
+#print axioms Woodford.OptimalPolicyRules.Prop83.zerosOnCircle_eq_zero
+#print axioms Woodford.OptimalPolicyRules.Prop83.eq_of_homEquiv
+#print axioms Woodford.OptimalPolicyRules.Prop83.Mpart_add
+#print axioms Woodford.OptimalPolicyRules.Prop83.ξpart_add
+#print axioms Woodford.OptimalPolicyRules.Prop83.homEquiv_of_perturbation
+#print axioms Woodford.OptimalPolicyRules.Prop83.homEquiv_of_prop81
+#print axioms Woodford.OptimalPolicyRules.Prop83.exists_base_of_assumption81
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop83_bounds
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop83
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop83_of_perturbation
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop83_noCircle
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop83_superinertial
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop83Claim_holds
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop81Conclusion_of_isEmpty
+#print axioms Woodford.OptimalPolicyRules.Prop83.assumption81_of_isEmpty
+#print axioms Woodford.OptimalPolicyRules.Prop83.prop83_needs_nonempty
+#print axioms Woodford.OptimalPolicyRules.Prop83.circSys
+#print axioms Woodford.OptimalPolicyRules.Prop83.jordanΛ
+#print axioms Woodford.OptimalPolicyRules.Prop83.det_empty_sum
+#print axioms Woodford.OptimalPolicyRules.Prop83.circSys_pencilPoly
+#print axioms Woodford.OptimalPolicyRules.Prop83.circSys_roots
+#print axioms Woodford.OptimalPolicyRules.Prop83.circSys_homEquiv
+#print axioms Woodford.OptimalPolicyRules.Prop83.jordanΛ_zeros
+#print axioms Woodford.OptimalPolicyRules.Prop83.circle_counterexample
+#print axioms Woodford.OptimalPolicyRules.Prop84General.exists_fwdC_sub_eq
+#print axioms Woodford.OptimalPolicyRules.Prop84General.exists_aeval_fwdC_eq
+#print axioms Woodford.OptimalPolicyRules.Prop84General.fwdOp_re
+#print axioms Woodford.OptimalPolicyRules.Prop84General.aeval_fwdOp_re
+#print axioms Woodford.OptimalPolicyRules.Prop84General.forward_inverse_existsUnique
+#print axioms Woodford.OptimalPolicyRules.Prop84General.not_unique_of_root_in_disc
+#print axioms Woodford.OptimalPolicyRules.Prop84General.forward_inverse_iff
+#print axioms Woodford.OptimalPolicyRules.Prop84General.insideRoots
+#print axioms Woodford.OptimalPolicyRules.Prop84General.insideRoots_conj
+#print axioms Woodford.OptimalPolicyRules.Prop84General.exists_inside_factorization
+#print axioms Woodford.OptimalPolicyRules.Prop84General.roots_cofactor_outside
+#print axioms Woodford.OptimalPolicyRules.Prop84General.shiftES
+#print axioms Woodford.OptimalPolicyRules.Prop84General.aeval_fwdOp_shift
+#print axioms Woodford.OptimalPolicyRules.Prop84General.forward_eq_zero_from_iff
+#print axioms Woodford.OptimalPolicyRules.Prop84General.gap_bounded_adapted
+#print axioms Woodford.OptimalPolicyRules.Prop84General.prop84_from
+#print axioms Woodford.OptimalPolicyRules.Prop84General.alpha_factorization
+#print axioms Woodford.OptimalPolicyRules.Prop84General.prop84
+#print axioms Woodford.OptimalPolicyRules.Prop84General.lagOp_pow_apply
+#print axioms Woodford.OptimalPolicyRules.Prop84General.aeval_lagOp_apply_of_le
+#print axioms Woodford.OptimalPolicyRules.Prop84General.wproc
+#print axioms Woodford.OptimalPolicyRules.Prop84General.crit_eq_rule
+#print axioms Woodford.OptimalPolicyRules.Prop84General.wproc_bounded_adapted
+#print axioms Woodford.OptimalPolicyRules.Prop84General.prop84_criterion
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkSys
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkTtil
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkProblem
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.piOf
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.xOf
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.iOf
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.piOf_eq
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.xOf_eq
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.cNK
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_structural_iff
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_Ahat_transpose_mulVec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_Ihat_transpose_mulVec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_xvec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_vvec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkPhi1
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkPhi2
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.lag_nkPhi
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.lag_nkPhi1
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.lag_nkPhi2
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_foc_at_iff
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_foc_iff
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkΛ
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkQ
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkX
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkQ_eq
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_eq120_of_foc
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_homEquiv
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_alpha
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_Bc
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.mulVec_two
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nkQ_mulVec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_crit_eq
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.lag_of_pos
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_crit_iff_rule
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_rule_of_foc
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_pencilPoly
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_assumption83
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_stableCount
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_no_circle
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_charpoly
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.nk_zerosInside
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.prop_8_6_from_general
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.emptyES
+#print axioms Woodford.OptimalPolicyRules.GeneralLinks.prop83Claim_false_empty
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.phi310
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.phi310_roots
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.prop_8_10_from_general
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_det_ne
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.inSys
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.inTtil
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.inProblem
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.Zof
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.E_quasi_diff
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_structural_iff
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_Ahat_transpose_mulVec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_Ihat_transpose_mulVec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_xvec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_vvec
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.Xi1
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.Xi2
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_foc_at_iff
+#print axioms Woodford.OptimalPolicyRules.GeneralLinksInertia.in_foc_iff
+#print axioms Woodford.OptimalPolicyRules.Prop83Links.hequiv_of_prop81M
+#print axioms Woodford.OptimalPolicyRules.Prop83Links.prop83M_bounds
+#print axioms Woodford.OptimalPolicyRules.Prop83Links.prop83M
+#print axioms Woodford.OptimalPolicyRules.Prop83Links.const_base
+#print axioms Woodford.OptimalPolicyRules.Prop83Links.prop83M_const
+#print axioms Woodford.OptimalPolicyRules.Prop83Links.prop83_of_assumptions
+#print axioms Woodford.OptimalPolicyRules.Prop83Links.prop84M
+#print axioms Woodford.OptimalPolicyRules.Circle81.circSys
+#print axioms Woodford.OptimalPolicyRules.Circle81.circProblem
+#print axioms Woodford.OptimalPolicyRules.Circle81.circ_root
+#print axioms Woodford.OptimalPolicyRules.Circle81.circ_foc_at_iff
+#print axioms Woodford.OptimalPolicyRules.Circle81.circ_structural_iff
+#print axioms Woodford.OptimalPolicyRules.Circle81.circ_assumption81
+#print axioms Woodford.OptimalPolicyRules.Circle81.assumption81_not_exclude_circle
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.eqv3
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.eqv3_0
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.eqv3_1
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.eqv3_2
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.muj
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_pencil_eval
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Ahat_det
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.lam2_ne_zero
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.lam3_ne_zero
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_pencilPoly
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.norm_muj
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_roots
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_root_norms
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.muj_ne_zero
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_stableCount
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Et_det
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.muj_injective
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_assumption83
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_no_circle
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.pR
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.inJ
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.inPsi
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.pR_one
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.pR_zero
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.pR_inv
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_deflate
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_J1
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Υmat
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Kmat
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Kdet
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Λmat
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.alpha_fin_two
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Λ_trace
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_Λ_det
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.quadQ
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.quadQ_eq
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.quadQ_lam2r
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.quadQ_lam3r
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.quadQ_cases
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.one_lt_of_quadQ
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.quadQ_of_Precip
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.tr_eq
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.det_eq
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.mu_facts
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.inSplit
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.alpha_inJ
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.standing_of
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_xvec_base
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.in_prop83
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.one_lt_trace_sub_det
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.prop_8_9_rho1_from_general
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.Υmat_mul
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.Λmat_mul
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.split_classify
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.split_alpha
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.split_isEmpty
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.cancel_linear
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.split_not_ruleIII
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.lam2r_add_lam3r
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.alpha_ruleI
+#print axioms Woodford.OptimalPolicyRules.InertiaSplit.alpha_ruleII
+#print axioms Woodford.OptimalPolicyRules.InertiaProp810.aeval_one_sub
+#print axioms Woodford.OptimalPolicyRules.InertiaProp810.roots_one_sub_inv
+#print axioms Woodford.OptimalPolicyRules.InertiaProp810.fwd_Kker_sub
+#print axioms Woodford.OptimalPolicyRules.InertiaProp810.ruleI_iff_targetRule
+#print axioms Woodford.OptimalPolicyRules.InertiaProp810.prop_8_10_via_prop84
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.Bc_fin_two
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.dot_two
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.in_Kinv
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.Fw_rec
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.Qop_eq
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.crit_eq
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.abs_lin4
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.fplan
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.W_eq_fwd
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.fplan_eq_fhat
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.crit_rule
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.crit_zero_iff
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.crit_iff_ruleI
+#print axioms Woodford.OptimalPolicyRules.InertiaCriterion.crit_iff_ruleII
+#print axioms Woodford.OptimalPolicyRules.InertiaRuleIII.eq_zero_of_bdd_geom
+#print axioms Woodford.OptimalPolicyRules.InertiaRuleIII.homEquiv_modify
+#print axioms Woodford.OptimalPolicyRules.InertiaRuleIII.cayley_two
+#print axioms Woodford.OptimalPolicyRules.InertiaRuleIII.alpha_modify
+#print axioms Woodford.OptimalPolicyRules.InertiaRuleIII.ruleIII_homEquiv
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.lagR
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.Sys2R
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.hatΦ
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.lagR_hat
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.hat_known
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.hat_sys
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.sys2R_iff
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.sys2R_existsUnique
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.nk_solvent
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.rows_iff
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.nk_struct_at
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.PhiOf
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.PhiM
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.Fnk
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.lagR_PhiOf
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.row_iff
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.struct_iff_sys
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.sys2R_sub
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.phiOf_adapted
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.phiOf_bounded
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.nk_focUnique
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.abs_lin3
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.yOf
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.φOf
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.phiOf_φOf
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.φOf_lag
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.φOf_succ
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.nk_focSolvableM
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.nk_assumption81M
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.NK.nk_assumption81_perfectForesight
+#print axioms Woodford.OptimalPolicyRules.NKAssumption81.not_assumption81_coin
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.linearIndependent_fin_rank
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.assumption85_two
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_assumption85
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_prop82_real
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_rank_Ahat
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_prop81_real
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.inU
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_eigvec
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.rotΨ_eig
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_Kdet_gen
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.mu2_facts
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_assumption82II
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_assumption84II
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_prop81_complex
+#print axioms Woodford.OptimalPolicyRules.InertiaProp8182.in_prop81_all
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.orbitBdd_le_of_homEquiv
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.orbitBdd_eq_of_homEquiv
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.not_mem_orbitBdd
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.finrank_orbitBdd_lt
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.card_le_zerosInside_add_finrank
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.zerosInside_add_one_le_of_root
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_pencil_ne_zero
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_nonzeroRoots
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_double_not_assumption83
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_double_not_selWhole
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_homEquiv
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_prop83_real
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_prop83_all
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_props_81_83_all
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Inertia.in_double_props_81_83
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_pencil_eval
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_rank_Ahat
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_assumption82
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_G6
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_assumption84
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_Λmat
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_det_Λ
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_assumption85
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_prop81_prop83
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.NK.nk_prop82
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Old.conclusionM_of_conclusion
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Old.conclusionM_perfectForesight
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Old.criterion_iff
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Old.prop82_optimal_of_assumption85
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Old.prop82_unique_of_assumption85
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Old.prop84_conditional_discharged
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.Old.prop83Claim_perfectForesight
+#print axioms Woodford.OptimalPolicyRules.GeneralTheoryLinks.circSys_half

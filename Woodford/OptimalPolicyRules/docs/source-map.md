@@ -9,9 +9,11 @@ Appendix G.2–G.10, then the cross-links between modules and the shared tools. 
 appendix is listed at the place where the chapter states it; the intermediate displays of each
 appendix proof are listed under that appendix section. Every statement holds for an arbitrary
 `ExpectationSystem`, so under perfect foresight and under uncertainty; optimality is proved by
-Lagrangian sufficiency, and "unique" means unique among bounded adapted processes. The general
-theory of §§1.4–1.5 (Propositions 8.1–8.4) is deferred: Proposition 8.1's conclusion is a
-hypothesis structure and Proposition 8.3 a stated claim, and what follows from them is proved.
+Lagrangian sufficiency, and "unique" means unique among bounded adapted processes. In §§1.4–1.5
+Proposition 8.1's conclusion first enters as a hypothesis structure and Proposition 8.3 as a stated
+claim, and what the chapter derives from them is proved there; the general proofs of Propositions
+8.1–8.4 (Appendix G.1–G.2), in corrected form where needed, and their specialisation to the
+models of §3 are listed in the section "General theory (Props 8.1–8.4)" after §1.5.
 Results restated from earlier chapters (the Chapter 3 quadratic roots, the Chapter 4
 Blanchard–Kahn tools, Chapter 7's target criterion) are listed where Chapter 8 uses them. The
 shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) and the
@@ -74,10 +76,104 @@ elsewhere `t₀ = 0` with the pre-sample values given at date 0.
 | Woodford p. 555, n. 16 | the coefficient of `i_t` in (1.23) is `T_i'WT_i + B₂'Q(0)T̃'WT_i` | `TargetCriterion.Crit.instrument_coefficient` |
 | Assumption 8.6, p. 556 | target variables `(τ̂, i)` with block-diagonal `W`; the coefficient is `λ_i`; `W ≻ 0` forces `λ_i > 0` | `TargetCriterion.A86.Assumption86`, `TargetCriterion.A86.Assumption86.Ttil_W_Ti`, `TargetCriterion.A86.Assumption86.Ti_W_Ti`, `TargetCriterion.A86.Assumption86.Ti_W_gap`, `TargetCriterion.A86.Assumption86.lam_pos`, `TargetCriterion.A86.instrument_coefficient_A86` |
 | Woodford (1.28), p. 556; (1.29), p. 557 | with `λ_i ≠ 0`, (1.23) is the implicit instrument rule (1.28); with no instrument weight it is the pure targeting rule (1.29) | `TargetCriterion.Rule128.γc`, `TargetCriterion.Rule128.eq128_iff`, `TargetCriterion.Rule128.eq129` |
-| Prop 8.3, pp. 556–557 | superinertia, stated only | `TargetCriterion.zerosInside`, `TargetCriterion.Prop83Claim` |
+| Prop 8.3, pp. 556–557 | superinertia, stated as a claim (proved in the general-theory section below) | `TargetCriterion.zerosInside`, `TargetCriterion.Prop83Claim` |
 | Woodford (1.30)–(1.31), pp. 557–558 | for `φ` with all roots outside the unit circle, a bounded adapted `y` with `E_tφ(L⁻¹)y_t = 0` is zero, so (1.30) ⇔ (1.31); the forward operator `(Fx)_t = E_tx_{t+1}`, real and complex | `TargetCriterion.fwdOp`, `TargetCriterion.fwdOp_pow_succ_apply`, `TargetCriterion.aeval_fwdOp_apply`, `TargetCriterion.E_lin2`, `TargetCriterion.E_lin2'`, `TargetCriterion.fwdC`, `TargetCriterion.eq_zero_of_fwdC_eq`, `TargetCriterion.boundedC_aeval`, `TargetCriterion.eq_zero_of_aeval_fwdC_eq_zero`, `TargetCriterion.fwdC_ofReal`, `TargetCriterion.aeval_fwdC_ofReal`, `TargetCriterion.eq_zero_of_aeval_fwdOp_eq_zero`, `TargetCriterion.eq_zero_of_forward_sum_eq_zero`, `TargetCriterion.eq130_iff_eq131`, `IRuleForwardIntegrated.forwardSeries_eq_zero_iff` |
 | Woodford p. 558 | `E_tγ̃₁(L⁻¹)aᵢ(L)x_{t−m} = γ₂(L)x_t`, with `γ₂` unique when `γ̃₁` is invertible | `TargetCriterion.lagOp`, `TargetCriterion.lagOp_adapted`, `TargetCriterion.fwdOp_lagOp`, `TargetCriterion.fwdOp_pow_lagOp_pow`, `TargetCriterion.aeval_fwdOp_reverse_lag`, `TargetCriterion.aeval_lagOp_adapted`, `TargetCriterion.p558_identity`, `TargetCriterion.boundedProc_lagOp`, `TargetCriterion.boundedProc_aeval_lagOp`, `TargetCriterion.roots_reverse_outside`, `TargetCriterion.map_reverse_ofReal`, `TargetCriterion.p558_unique` |
 | Prop 8.4, p. 558 | (1.28) ⇔ (1.32), given the factorisation `α = α₁α₂` and the bounded forward inverse | `TargetCriterion.prop84_conditional` |
+
+## General theory (Props 8.1–8.4), App. G.1–G.2 (PencilSplit … GeneralTheoryLinks)
+
+The general proofs, in corrected form where the printed statement fails (see the corrections),
+followed by their specialisation to the basic model of §3.1 and the inflation-inertia model of
+§3.2.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford p. 540; App. G.1 | vector expectations; bounded forward solution of `w_t = G E_t w_{t+1} + f_t` when the powers of `G` decay (Gelfand), and its uniqueness | `PencilSplit.EV_add`, `PencilSplit.EV_tower`, `PencilSplit.knownV_mulVec`, `PencilSplit.knownV_sum_mulVec`, `PencilSplit.EV_add_const`, `PencilSplit.PowDecay`, `PencilSplit.powDecay_of_eig`, `PencilSplit.fwdSum`, `PencilSplit.fwdSum_spec`, `PencilSplit.eq_fwdSum` |
+| App. G.1, (G.4) | the deflating pair `A J = Î J Ψ` with eigenvalues of `Ψ` in `\|μ\| < β⁻¹` and `J₁`, `K` invertible; the blocks `J₁`, `J₂`; eigenvalues of `Ψ` are roots of (1.15) | `PencilSplit.DeflatingSplit`, `PencilSplit.J1`, `PencilSplit.J2`, `PencilSplit.J_transpose_mulVec`, `PencilSplit.deflate_transpose`, `PencilSplit.pencilPoly_eval`, `PencilSplit.DeflatingSplit.eig_isRoot` |
+| (G.5) | `‖(βΨ′)ᵏ‖` decays geometrically | `PencilSplit.DeflatingSplit.powDecay_G`, `PencilSplit.powDecay_of_eig` |
+| Prop 8.1, p. 553, (1.18)–(1.21) | `Λ`, `Υ`, `Q`, `R` exist with (1.18) ⇔ (1.20)–(1.21) for bounded multipliers, `M_t` known at `t` and adapted plans, any expectation system | `Prop81General.MultKnown`, `Prop81General.Prop81EquivM`, `Prop81General.Prop81ConclusionM`, `Prop81General.prop81_equiv`, `Prop81General.prop81`, `PencilAssumptions.prop81_of_assumptions` |
+| Prop 8.1, deterministic | the original hypothesis structure is inhabited under perfect foresight | `Prop81General.prop81_perfectForesight`, `PencilAssumptions.prop81_of_assumptions_perfectForesight`, `GeneralTheoryLinks.Old.conclusionM_perfectForesight` |
+| Prop 8.1, under uncertainty | the original structure is empty on the coin-flip tree; the corrected one is inhabited there | `Prop81General.coinProblem`, `Prop81General.not_prop81Equiv_coin`, `Prop81General.prop81Conclusion_coin_isEmpty`, `Prop81General.prop81M_coin` |
+| Prop 8.1, explicit matrices | `Λ = β⁻¹K⁻¹Ẽ′`, `Υ = −(J₁′)⁻¹J₂′Ẽ′`, `R = (J₁′)⁻¹∑(βΨ′)ᵏE_tβJ′x`; `Q(L⁻¹)`, `R(L⁻¹)` map bounded adapted to bounded adapted | `Prop81General.prop81_matrices`, `PencilSplit.Λmat`, `PencilSplit.Υmat`, `Prop81General.Rop`, `Prop81General.Qop`, `Prop81General.fw_spec`, `Prop81General.qop_adapted` |
+| Prop 8.1, old vs corrected | the original conclusion (plans adapted) yields the corrected one, with the same criterion | `GeneralTheoryLinks.Old.conclusionM_of_conclusion`, `GeneralTheoryLinks.Old.criterion_iff` |
+| Assumption 8.2, p. 552 | hypothesis structure (cases (i) and (ii)) | `PencilEigen.Assumption82`, `PencilEigen.SelCases` |
+| Assumption 8.3, p. 716 | hypothesis structure; its kernel clauses always hold | `PencilEigen.Assumption83`, `PencilEigen.assumption83_kernels`, `PencilEigen.Assumption83.ofRoots` |
+| Assumption 8.4, p. 718, (G.6) | hypothesis structure (real `Γ`, case (i)) | `PencilAssumptions.Assumption84`, `PencilAssumptions.WEig` |
+| Assumption 8.5, p. 719 | both parts | `PencilAssumptions.Assumption85` |
+| (G.1)–(G.4), fn 2, pp. 716–717 | real `J` with independent columns, `A J = Î J Ψ`, eigenvalues of `Ψ` in the selection or zero (distinct roots) | `PencilEigen.exists_realSelection`, `PencilEigen.Construction.col_indep`, `PencilEigen.Construction.deflate_C`, `PencilEigen.Construction.PsiC_eig` |
+| (G.7), p. 718, "follows from (G.3)" | `Γ′ÎJ = Γ′AJ = 0` | `PencilAssumptions.G7`, `PencilAssumptions.sylvester_zero` |
+| Assumption 8.4(i),(ii), role | `J₁` and `K` invertible | `PencilAssumptions.J1_det_ne_zero`, `PencilAssumptions.K_det_ne_zero`, `PencilAssumptions.nonempty_deflatingSplit` |
+| fn 15, p. 554 | rank `Λ` = rank `Ẽ` | `Prop81General.rank_Λmat` |
+| p. 553 (E18) | `deg α ≤ rank Λ = rank Ẽ` in general; `=` under Assumptions 8.2(i)–8.4; the nonzero eigenvalues of `Λ` are `(βμ)⁻¹` over the unselected nonzero roots | `Prop81General.natDegree_alpha_le`, `PencilAssumptions.natDegree_alpha_eq_rank`, `PencilAssumptions.nonzero_eig_eq`, `PencilAssumptions.unselected_eig` |
+| p. 553, remark | with stable `Λ` (no unselected root on `\|μ\| = β⁻¹`): unique `Λ`, `Υ`, `Q`, `R` and a unique bounded multiplier solution given `M_{t₀−1}` | `Prop81Unique.prop81M_unique`, `Prop81Unique.prop81M_solution`, `Prop81Unique.remark_p553` |
+| p. 553, remark | fails with a root on the circle: no bounded multiplier solves (1.18) | `Prop81General.coinSys`, `Prop81Unique.circleProblem`, `Prop81Unique.circle_roots`, `Prop81Unique.circle_counterexample` |
+| Prop 8.2, p. 555 | the multiplier recursion need not be stable: `MultStable` fails under Assumption 8.7 | `PencilAssumptions.not_multStable_of_unselected`, `PencilAssumptions.not_multStable_of_eig` |
+| Assumption 8.5, role, p. 555 | observability keeps the multipliers bounded | `Prop82General.KrylovBound.boundedV_of_krylov`, `Prop82General.KrylovBound.krylov_factor` |
+| Assumption 8.1, p. 541 | corrected form: the initial multiplier bounded and known at `t₀ − 1`; implied by the original | `Prop82General.FOCSolvableM`, `Prop82General.Assumption81M`, `Prop82General.Assumption81M.of_assumption81` |
+| Assumption 8.1, p. 541 | the original formalisation is unsatisfiable under uncertainty (coin tree, `t₀ = 1`) | `NKAssumption81.not_assumption81_coin` |
+| Prop 8.2, p. 555 | determinacy (existence and uniqueness) under Assumptions 8.1 (corrected), 8.5 and Prop 8.1 | `Prop82General.Prop82M.prop82M_determinate`, `Prop82General.Prop82M.prop82M_exists`, `Prop82General.Prop82M.prop82M_unique` |
+| Prop 8.2, second part, (1.27) | optimal subject to `Ẽz_{t₀} = ē` | `Prop82General.Prop82M.prop82M_optimal` |
+| Prop 8.2, p. 555, (1.17), (1.24) | `M_{t−1} = g(q_{t−1..t−D}, v_{t−1..t−D})` with one time-invariant `g` at every `t ≥ t₀` | `Prop82General.Prop82M.prop82M_multiplier_rule`, `Prop82General.KrylovBound.gRule`, `Prop82General.KrylovBound.multiplier_rule`, `PencilAssumptions.prop82_multiplier_rule_of_assumptions` |
+| (1.24), p. 554 | `d = min(k, n_z − 1)` lags of `q` suffice (`k ≥ 1`; the first part of Assumption 8.5 for `k = n_z`); one formal lag at `k = 0` | `MultiplierLags.rule_lags_lt`, `MultiplierLags.rule_lags_full`, `MultiplierLags.obsMap_injective`, `MultiplierLags.rule_lags_zero` |
+| Definition, pp. 549–550, and p. 555 | (1.23) is robustly optimal | `Prop82General.Prop82M.prop82M_robustlyOptimal`, `Prop82General.prop82_of_split`, `PencilAssumptions.prop82_of_assumptions` |
+| Prop 8.2, old vs corrected | the conclusions of the conditional `prop82_optimal`, `prop82_unique` without `MultStable`, under Assumption 8.5 and a bounded history | `GeneralTheoryLinks.Old.prop82_optimal_of_assumption85`, `GeneralTheoryLinks.Old.prop82_unique_of_assumption85` |
+| (1.15), App. G.1 | the roots of the pencil are `s + ν⁻¹` over the nonzero eigenvalues `ν` of `N = (A − sÎ)⁻¹Î`, with multiplicity | `PencilRepeated.pencil_factor`, `PencilRepeated.pencil_roots_eq`, `PencilRepeated.count_pencil_roots` |
+| App. G.1, (G.4), fn 2 | a real deflating pair for any selection of whole root classes, repeated roots allowed | `PencilRepeated.SelWhole`, `PencilRepeated.Wsub`, `PencilRepeated.finrank_Wsub`, `PencilRepeated.exists_deflating_cols`, `PencilRepeated.exists_realSelection_general` |
+| Assumption 8.3 | distinct roots give whole classes | `PencilRepeated.selWhole_of_assumption83` |
+| Props 8.1, 8.2, pp. 553, 555 | under Assumptions 8.2(i), 8.4 and (1.15) ≠ 0, with no distinctness | `PencilRepeated.prop81_of_assumptions_general`, `PencilRepeated.prop82_of_assumptions_general` |
+| Assumption 8.2(ii), p. 552 | no real deflating pair carries an unpaired complex root | `Prop81Unique.eig_conj`, `Prop81Unique.realSelection_misses_unpaired` |
+| Assumption 8.4(ii), p. 718 | `det[Re Γ₂] ≠ 0` depends on the scaling of a complex eigenvector | `Prop81Unique.re_det_rescale_zero` |
+| (1.15) | roots come in conjugate pairs | `Prop81CaseII.pencil_eval_conj` |
+| Prop 8.1, case (ii) | the quasi-split construction `J = J⁺P` with residual root `h`; the full equivalence; case (i) is `P = I`, `h = 0` | `Prop81CaseII.QuasiSplit`, `Prop81CaseII.residProj`, `Prop81CaseII.prop81_equivII`, `Prop81CaseII.prop81II`, `Prop81CaseII.quasiOfDeflating` |
+| Assumption 8.4(ii), corrected | the condition on a basis, and its basis-universal form | `CaseIIBasis.CondII`, `CaseIIBasis.Admissible`, `Prop81CaseII.Assumption84IIall` |
+| Assumption 8.4(ii), corrected | the condition is basis-invariant | `CaseIIBasis.cond_change`, `CaseIIBasis.basis_invariance` |
+| Assumption 8.4(ii), corrected | existential statement; ∃ ⇔ ∀ when the zero root is semisimple (p. 547 convention) or `n_Z + 1 = n` | `CaseIIBasis.Assumption84II`, `CaseIIBasis.ex_of_all`, `CaseIIBasis.all_of_ex_semisimple`, `CaseIIBasis.sameSubspace_of_card` |
+| App. G.1 | admissible bases span the selected subspace when the zero root is semisimple | `CaseIIBasis.col_mem_Wsub`, `CaseIIBasis.sameSubspace_of_semisimple` |
+| Props 8.1, 8.2, case (ii) | hold under the ∃ form, and under the ∀ form | `CaseIIBasis.prop81_caseII`, `CaseIIBasis.prop82_caseII`, `Prop81CaseII.prop81_caseII_all`, `Prop81CaseII.prop82_caseII_all` |
+| Assumptions 8.2(ii) + 8.4(ii) | satisfiable: an explicit system with roots `1 ± i`, genuinely case (ii), with Prop 8.1 | `CaseIIInstance.exSys`, `CaseIIInstance.exProblem`, `CaseIIInstance.ex82`, `CaseIIInstance.ex_not_caseI`, `CaseIIInstance.ex84`, `CaseIIInstance.ex84all`, `CaseIIInstance.ex_prop81` |
+| App. G.1, `n_Z = 1` | the residual root `h = ρ + σb₁/a₁` as a function of the eigenvector's scaling | `CaseIIInstance.hOf`, `CaseIIInstance.resid_pair`, `CaseIIInstance.resid_of_eigvec`, `CaseIIInstance.hOf_real_mul` |
+| Assumption 8.2(ii), p. 552 | `β < \|Re μ⁻¹\|` ⇔ `\|βh\| < 1` at the book's normalisation; the condition depends on the normalisation | `CaseIIInstance.hOf_book`, `CaseIIInstance.book_iff`, `CaseIIInstance.hOf_surj`, `CaseIIInstance.book_condition_depends_on_scaling` |
+| Prop 8.3, p. 556 | `m` zeros of `α` inside the unit circle for every Prop 8.1 representation, with no root of (1.15) on `\|λ\| = β⁻¹`; bounds without it | `Prop83.prop83`, `Prop83.prop83_bounds`, `Prop83.prop83_of_perturbation`, `Prop83.prop83_superinertial`, `Prop83.prop83Claim_holds` |
+| pp. 556–557 | the zeros of `α` are the reciprocals of the eigenvalues of `Λ` | `Prop83.zerosInside_alpha`, `Prop83.zerosOnCircle_alpha` |
+| Prop 8.3 | the exact count fails with a root on the circle (Jordan `Λ′` at the homogeneous level) | `Prop83.circSys`, `Prop83.jordanΛ`, `Prop83.circle_counterexample` |
+| Prop 8.3 | needs a nonempty sample space | `Prop83.prop83_needs_nonempty`, `GeneralLinks.prop83Claim_false_empty` |
+| Prop 8.1 ⇒ Prop 8.3, pp. 553–556 | Prop 8.3 for every corrected representation; without Assumption 8.1 for a constant base | `Prop83Links.hequiv_of_prop81M`, `Prop83.exists_base_of_assumption81`, `Prop83Links.prop83M_bounds`, `Prop83Links.prop83M`, `Prop83Links.const_base`, `Prop83Links.prop83M_const`, `Prop83Links.prop83_of_assumptions` |
+| Prop 8.3 | `Prop83Claim` is non-vacuous and true under perfect foresight | `GeneralTheoryLinks.Old.prop83Claim_perfectForesight` |
+| pp. 553, 557 | the bounded-orbit subspace is the same for every representation; an eigenvalue with `\|μ\| > 1` has an unbounded orbit | `GeneralTheoryLinks.orbitBdd_le_of_homEquiv`, `GeneralTheoryLinks.orbitBdd_eq_of_homEquiv`, `GeneralTheoryLinks.not_mem_orbitBdd`, `GeneralTheoryLinks.finrank_orbitBdd_lt` |
+| Prop 8.3 without Assumption 8.3 | lower half with no circle root; upper half from a root with `\|λ\| ≥ β⁻¹` | `GeneralTheoryLinks.card_le_zerosInside_add_finrank`, `GeneralTheoryLinks.zerosInside_add_one_le_of_root` |
+| Assumption 8.1, p. 541 | does not exclude roots of (1.15) with `\|μ\| = β⁻¹` | `Circle81.circProblem`, `Circle81.circ_root`, `Circle81.circ_assumption81`, `Circle81.assumption81_not_exclude_circle`, `GeneralTheoryLinks.circSys_half` |
+| p. 558 | the factorisation `α = α₁α₂`, `α₁` real monic with the inside roots | `Prop84General.insideRoots`, `Prop84General.insideRoots_conj`, `Prop84General.exists_inside_factorization`, `Prop84General.roots_cofactor_outside`, `Prop84General.alpha_factorization` |
+| p. 558 | the bounded forward inverse exists and is unique, and the root condition is exact | `Prop84General.forward_inverse_existsUnique`, `Prop84General.not_unique_of_root_in_disc`, `Prop84General.forward_inverse_iff` |
+| (1.30)–(1.31), from any date | via the shifted expectation system | `Prop84General.shiftES`, `Prop84General.forward_eq_zero_from_iff` |
+| Prop 8.4, p. 558 | (1.28) ⇔ (1.32), unconditional; for the corrected representation; the conditional theorem's hypotheses discharged | `Prop84General.prop84`, `Prop84General.prop84_from`, `Prop84General.prop84_criterion`, `Prop83Links.prop84M`, `GeneralTheoryLinks.Old.prop84_conditional_discharged` |
+| §3.1 as §1 | (1.1) ⇔ (2.1) + (3.1); (1.9) ⇔ (3.3)–(3.5); `Λ`, `Q`, `α` | `GeneralLinks.nkSys`, `GeneralLinks.nkProblem`, `GeneralLinks.nk_structural_iff`, `GeneralLinks.nk_foc_iff`, `GeneralLinks.nkΛ`, `GeneralLinks.nkQ_eq`, `GeneralLinks.nk_homEquiv`, `GeneralLinks.nk_alpha` |
+| (1.23)/(1.28) ⇒ (3.7) | the general criterion is the rule (3.7) | `GeneralLinks.nk_crit_iff_rule`, `GeneralLinks.nk_rule_of_foc` |
+| (1.15), basic model | `det(A − μÎ) = βμ² − (1 + β + κσ)μ + 1`; rank `A` = 2; one root inside, none on the circle | `GeneralTheoryLinks.NK.nk_pencil_eval`, `GeneralTheoryLinks.NK.nk_rank_Ahat`, `GeneralLinks.nk_pencilPoly`, `GeneralLinks.nk_stableCount`, `GeneralLinks.nk_no_circle` |
+| App. G.4, pp. 721–722 | second-order Blanchard–Kahn theorem with a random initial multiplier known at date 0 | `NKAssumption81.Sys2R`, `NKAssumption81.sys2R_iff`, `NKAssumption81.sys2R_existsUnique` |
+| (1.1) + (1.9), §3.1 | is the App. G.4 multiplier system | `NKAssumption81.NK.row_iff`, `NKAssumption81.NK.struct_iff_sys` |
+| Assumption 8.1, basic model | holds: corrected form for every expectation system and `t₀`; original under perfect foresight | `NKAssumption81.NK.nk_focUnique`, `NKAssumption81.NK.nk_focSolvableM`, `NKAssumption81.NK.nk_assumption81M`, `NKAssumption81.NK.nk_assumption81_perfectForesight` |
+| Assumptions 8.2–8.5, basic model | hold (empty selection; `Γ = (0; I)`; `B₂ = (0, σ)`) | `GeneralTheoryLinks.NK.nk_assumption82`, `GeneralLinks.nk_assumption83`, `GeneralTheoryLinks.NK.nk_G6`, `GeneralTheoryLinks.NK.nk_assumption84`, `GeneralTheoryLinks.NK.nk_assumption85`, `InertiaProp8182.assumption85_two` |
+| (1.20), basic model | the general `Λ = β⁻¹K⁻¹Ẽ′` is `nkΛ` | `GeneralTheoryLinks.NK.nk_Λmat` |
+| Props 8.1 + 8.3, basic model | unconditional | `GeneralTheoryLinks.NK.nk_prop81_prop83` |
+| Prop 8.2, basic model | robust optimality with only pull-out | `GeneralTheoryLinks.NK.nk_prop82` |
+| Prop 8.5 / fn 35; Prop 8.6 | superinertia from Prop 8.3, `z² − (ρ₁ + ρ₂)z + ρ₂`; Prop 8.6 from Prop 8.4 | `GeneralLinks.nk_charpoly`, `GeneralLinks.nk_zerosInside`, `GeneralLinks.prop_8_6_from_general` |
+| §3.2 as §1 | (1.1), (1.9) ⇔ (2.6), (3.1), (3.15), (3.4), (3.5) | `GeneralLinksInertia.inSys`, `GeneralLinksInertia.inProblem`, `GeneralLinksInertia.in_structural_iff`, `GeneralLinksInertia.in_foc_iff` |
+| Prop 8.10 | from the (1.30) ⇔ (1.31) lemma | `GeneralLinksInertia.phi310_roots`, `GeneralLinksInertia.prop_8_10_from_general` |
+| p. 594, App. G.6, (1.15) | the pencil and its roots `(βλⱼ)⁻¹`; rank `A` = 3 | `InertiaSplit.in_pencil_eval`, `InertiaSplit.in_pencilPoly`, `InertiaSplit.in_roots`, `InertiaSplit.in_stableCount`, `InertiaSplit.in_no_circle`, `InertiaSplit.in_assumption83`, `InertiaProp8182.in_rank_Ahat`, `GeneralTheoryLinks.Inertia.in_pencil_ne_zero`, `GeneralTheoryLinks.Inertia.in_nonzeroRoots` |
+| App. G.1 (G.4) for §3.2 | a split for each real root solved forward; every split is one of these; none in the complex case | `InertiaSplit.inSplit`, `InertiaSplit.in_Λmat`, `InertiaSplit.in_Kdet`, `InertiaSplit.split_classify`, `InertiaSplit.split_alpha`, `InertiaSplit.split_isEmpty` |
+| p. 595, (3.22)–(3.23) | `α` of the `λ₃`- and `λ₂`-splits | `InertiaSplit.alpha_inJ`, `InertiaSplit.alpha_ruleI`, `InertiaSplit.alpha_ruleII` |
+| p. 595, (3.22)–(3.23) with (1.23) | the general criterion is Rule I or Rule II | `InertiaCriterion.crit_rule`, `InertiaCriterion.crit_iff_ruleI`, `InertiaCriterion.crit_iff_ruleII` |
+| p. 595, (3.24) | Rule III's `α` is not a split's `α`, but is compatible with the homogeneous equivalence; `Λ` is not determined by it | `InertiaSplit.split_not_ruleIII`, `InertiaRuleIII.homEquiv_modify`, `InertiaRuleIII.ruleIII_homEquiv` |
+| Prop 8.3 for §3.2 | one zero of `α` inside the unit circle, none on it, for every representation, at every calibration | `InertiaSplit.in_prop83`, `GeneralTheoryLinks.Inertia.in_prop83_real`, `GeneralTheoryLinks.Inertia.in_prop83_all` |
+| Ass. 8.2–8.3 at `S² = 4P₂₃` | Assumption 8.3 fails and no admissible selection takes whole classes, yet Props 8.1 and 8.3 hold | `GeneralTheoryLinks.Inertia.in_double_not_assumption83`, `GeneralTheoryLinks.Inertia.in_double_not_selWhole`, `GeneralTheoryLinks.Inertia.in_double_props_81_83` |
+| Prop 8.1, §3.2, real case | holds (explicit split), and gives `HomEquiv` with no Assumption 8.1 | `InertiaProp8182.in_prop81_real`, `GeneralTheoryLinks.Inertia.in_homEquiv` |
+| Ass. 8.2(ii), 8.4(ii), §3.2 complex case | hold: `\|Re μ₂⁻¹\| = βS/2 > β` and `det K = γ / Re μ₂ ≠ 0` | `InertiaProp8182.inU`, `InertiaProp8182.in_eigvec`, `InertiaProp8182.mu2_facts`, `InertiaProp8182.in_assumption82II`, `InertiaProp8182.in_Kdet_gen`, `InertiaProp8182.in_assumption84II` |
+| Prop 8.1, §3.2 | complex case; every calibration | `InertiaProp8182.in_prop81_complex`, `InertiaProp8182.in_prop81_all` |
+| Props 8.1 + 8.3, §3.2 | every calibration | `GeneralTheoryLinks.Inertia.in_props_81_83_all` |
+| Assumption 8.5, Prop 8.2, §3.2 | Assumption 8.5 for the `Λ` of every real split; Prop 8.2 in the real case given the corrected Assumption 8.1 | `InertiaProp8182.in_assumption85`, `InertiaProp8182.in_prop82_real` |
+| p. 596, Prop 8.9 | `ρ₁ > 1` from the general Prop 8.3 | `InertiaSplit.one_lt_trace_sub_det`, `InertiaSplit.prop_8_9_rho1_from_general` |
+| p. 601, Prop 8.10 | via Prop 8.4 (real case) | `InertiaProp810.fwd_Kker_sub`, `InertiaProp810.ruleI_iff_targetRule`, `InertiaProp810.prop_8_10_via_prop84` |
 
 ## §2.1 A model with inflation inertia, pp. 560–565 (InflTargetInertia)
 
@@ -227,7 +323,7 @@ elsewhere `t₀ = 0` with the pre-sample values given at date 0.
 
 ## Appendix G, pp. 716–745
 
-App. G.1 (Assumptions 8.3 and 8.4) belongs to the deferred general theory and has no rows.
+App. G.1 (Assumptions 8.3 and 8.4, (G.1)–(G.9)) and the general use of App. G.2 are listed in the section "General theory (Props 8.1–8.4)" after §1.5.
 
 | Book | Claim | Lean |
 | --- | --- | --- |
