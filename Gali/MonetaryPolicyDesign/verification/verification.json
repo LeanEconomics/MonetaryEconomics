@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-14T01:06:59.954819+00:00",
-  "theorems": 582,
+  "checked_at_utc": "2026-10-20T05:33:05.519966+00:00",
+  "theorems": 770,
   "module_theorems": {
     "MonetaryPolicyDesign/Determinacy.lean": 23,
     "MonetaryPolicyDesign/Expectations.lean": 18,
@@ -18,9 +18,16 @@
     "MonetaryPolicyDesign/Ex4_3.lean": 17,
     "MonetaryPolicyDesign/Ex4_4.lean": 21,
     "MonetaryPolicyDesign/Ex4_5.lean": 105,
-    "MonetaryPolicyDesign/Ex4_6.lean": 46
+    "MonetaryPolicyDesign/Ex4_6.lean": 46,
+    "MonetaryPolicyDesign/InvariantSplit.lean": 52,
+    "MonetaryPolicyDesign/GeneralBKForward.lean": 17,
+    "MonetaryPolicyDesign/GeneralBK.lean": 39,
+    "MonetaryPolicyDesign/MoneyRuleSystem.lean": 14,
+    "MonetaryPolicyDesign/MoneyRuleRoots.lean": 17,
+    "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean": 35,
+    "MonetaryPolicyDesign/Ex4_4Determinacy.lean": 14
   },
-  "audited_declarations": 842,
+  "audited_declarations": 1081,
   "declarations": [
     {
       "name": "Gali.MonetaryPolicyDesign.SchurStable",
@@ -4231,6 +4238,1201 @@
       "name": "Gali.MonetaryPolicyDesign.Ex4_6.book_claim_false",
       "kind": "theorem",
       "module": "MonetaryPolicyDesign/Ex4_6.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.eigs",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.NoUnit",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.mem_eigs_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.exists_eigvec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.exists_left_eigvec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.mem_eigs_of_eigvec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.pow_mulVec_eigvec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.map_ofReal_pow",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.card_eigs",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.pow_entry_bound",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.norm_le_one_of_pow_bounded",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.boundedOrbits",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.mulVec_mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.mem_boundedOrbits_of_orbit",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.re_mulVec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.im_mulVec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.boundedOrbitsC",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.maxGenEigenspace_le_boundedOrbitsC",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_boundedOrbitsC_le",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_finset_sup",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.card_filter_eq_sum",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount_le_finrank",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.unstableCount",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount_add_unstableCount",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.restrict_block",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.norm_le_one_of_bounded_pow_mul",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.exists_restrict_stable",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_le_stableCount",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.tendsto_of_mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_eq_stableCount",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.boundedOrbits_eq_bot_of_unstable",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.abs_entry_le_sum",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.rec_closed",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.rec_bounded",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.xrecV",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.GenericX",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.projX",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.graphV",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.IsGraph",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.matrix_eq_of_mulVec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.mulVec_sumElim",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.exists_graph",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.lam",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.cmat",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.graph_invariant",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.graph_invariant_vec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.lam_mulVec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.mulVec_graphV",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.pow_mulVec_graphV",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.lam_pow_bounded",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.fromBlocks_shear_mul",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.charpoly_split",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.charpoly_map_ofReal",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.eigs_split",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.lam_stable",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.zero_of_cmat_orbit",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.cmat_unstable",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount_eq_card",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_le_of_genericX",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.not_genericX_of_lt",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.exists_unreached_of_lt",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_eq_iff_stableCount_eq",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_apply",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_apply_sum",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_mv",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_add",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_sub",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.add_mv",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.sub_mv",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_one",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_zero",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_neg",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.E_mv",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.AdaptedV",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.BoundedV",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.FSolves",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.boundedV_mv",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.adaptedV_mv",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.fsolves_iterate",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.abs_mv_le",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.fsolves_unique",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBKForward.fsolves_exists",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.map_ofReal_mulVec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.det_ne_zero_of_unstable",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.inv_stable",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.boundedV_add",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.boundedV_sub",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.boundedV_neg",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.adaptedV_add",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.adaptedV_sub",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.adaptedV_neg",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.Solves",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.Equil",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.Determinate",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.eval_split",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.mv_inl",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.mv_inr",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.zx_block_eq",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.identity_zhat",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.identity_x",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.identity_exist",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.identity_exist_x",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.xrecR",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.xrecR_bounded",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.xrecR_known",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.fsolves_iff_cform",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.determinate_of",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.sum_q_mulVec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.false_of_linear_growth",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.no_bounded_resonance",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.exists_left_eigvec_unit",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.nonexist_of_unit",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_unit",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.mult_of_not_genericX",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_not_genericX",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.nonexist_of_lt",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_lt",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_gt",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff_count",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff_unstableCount",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff_perfectForesight",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.mem_boundedOrbits_of_tendsto",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.GeneralBK.mem_boundedOrbits_iff_tendsto",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.Predetermined",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM0",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM1",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.BM",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.stateVec",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.expVec",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.shockVec",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.System34",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM1_sub_smul_AM0",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM0",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM1",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM_sub_smul",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charpoly_AM_eval",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.isRoot_charpoly_AM_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_expand",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_zero",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_one",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_signs",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_root_gt_one",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM_has_eigenvalue_gt_one",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM_pos_lt_one",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleSystem.BookDeterminacyClaim",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleSystem.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.coef2",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.coef1",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charCubic_eq_coef",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ1",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ0",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ1_mul",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ0_mul",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charCubic_factor",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charCubic_neg_one",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.exists_root_gt_one",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quad_values",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quad_schurStable",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.bookDeterminacyClaim_holds",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.bookDeterminacyClaim_gali",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.norm_lt_one_of_quadratic",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadPoly",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadPoly_root",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charpoly_AM_factor",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.eigs_AM",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.AM_root_location",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.AM_root_location_gali",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleRoots.real_eigenvalue_unique",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eigs_submatrix_equiv",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.genericX_of_eigvec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.norm_gt_one_of_recip",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.isUnit_det_AM1",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.isUnit_det_AM0",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3_eq_inv_AM",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.det_pencil",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.det_pencil_factor",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.det_AM1_mul_charpoly_Ab3",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.charpoly_Ab3_factor",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3_root_location",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eS",
+      "kind": "abbrev",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Abk",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eigv3",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.pencil_eigvec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3_eigvec",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eigs_Abk",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Abk_bk_conditions",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Abk_determinate",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.yvec",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.svec",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.wvec",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.yvec_apply",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.E_yvec_apply",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.wvec_apply",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.mv_Abk_apply",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.backward_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.solves_Abk_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Equil34",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.equil_Abk_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.svec_boundedV",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.svec_adaptedV",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_existsUnique_pos",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2f",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eS2",
+      "kind": "abbrev",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.exists_rho1",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.charpoly_B2f",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2f_root_location",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2_bk_conditions",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2_determinate",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.y2",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.w2",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.solves_B2_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_zero_iff",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_existsUnique_zero",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_existsUnique",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal",
+      "kind": "def",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_zero",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.lagP_adapted",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.lagP_bounded",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_pred",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_adapted",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_bounded",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.infl_adapted",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.infl_bounded",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.system34_of_moneyRule",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.equil34_zero",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRule_gap_infl_zero",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRuleUniqueness_holds",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRule_unique_outcome",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
+    },
+    {
+      "name": "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRule_implements_uniquely",
+      "kind": "theorem",
+      "module": "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
     }
   ],
   "full_build": "passed",
@@ -8445,6 +9647,1199 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.eigs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.NoUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.mem_eigs_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.exists_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.exists_left_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.mem_eigs_of_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.pow_mulVec_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.map_ofReal_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.card_eigs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.pow_entry_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.norm_le_one_of_pow_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.mulVec_mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.mem_boundedOrbits_of_orbit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.re_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.im_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.boundedOrbitsC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.maxGenEigenspace_le_boundedOrbitsC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_boundedOrbitsC_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_finset_sup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.card_filter_eq_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount_le_finrank": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount_add_unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.restrict_block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.norm_le_one_of_bounded_pow_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.exists_restrict_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_le_stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.tendsto_of_mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_eq_stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.boundedOrbits_eq_bot_of_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.abs_entry_le_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.rec_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.rec_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.xrecV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.GenericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.projX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.IsGraph": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.matrix_eq_of_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.mulVec_sumElim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.exists_graph": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.cmat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.graph_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.graph_invariant_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.lam_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.mulVec_graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.pow_mulVec_graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.lam_pow_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.fromBlocks_shear_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.charpoly_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.charpoly_map_ofReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.eigs_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.lam_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.zero_of_cmat_orbit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.cmat_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.stableCount_eq_card": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_le_of_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.not_genericX_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.exists_unreached_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.InvariantSplit.finrank_eq_iff_stableCount_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_apply_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.add_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.sub_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.mv_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.E_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.AdaptedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.BoundedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.FSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.boundedV_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.adaptedV_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.fsolves_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.abs_mv_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.fsolves_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBKForward.fsolves_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.map_ofReal_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.det_ne_zero_of_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.inv_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.boundedV_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.boundedV_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.boundedV_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.adaptedV_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.adaptedV_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.adaptedV_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.Equil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.eval_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.mv_inl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.mv_inr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.zx_block_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.identity_zhat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.identity_x": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.identity_exist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.identity_exist_x": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.xrecR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.xrecR_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.xrecR_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.fsolves_iff_cform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.determinate_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.sum_q_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.false_of_linear_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.no_bounded_resonance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.exists_left_eigvec_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.nonexist_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.mult_of_not_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_not_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.nonexist_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.not_determinate_of_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff_count": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff_unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.determinate_iff_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.mem_boundedOrbits_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.GeneralBK.mem_boundedOrbits_iff_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.Predetermined": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.BM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.stateVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.expVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.shockVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.System34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM1_sub_smul_AM0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM_sub_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charpoly_AM_eval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.isRoot_charpoly_AM_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_expand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_signs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.charCubic_root_gt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.AM_has_eigenvalue_gt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.det_AM_pos_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleSystem.BookDeterminacyClaim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.coef2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.coef1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charCubic_eq_coef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ1_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadQ0_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charCubic_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charCubic_neg_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.exists_root_gt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quad_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quad_schurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.bookDeterminacyClaim_holds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.bookDeterminacyClaim_gali": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.norm_lt_one_of_quadratic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.quadPoly_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.charpoly_AM_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.eigs_AM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.AM_root_location": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.AM_root_location_gali": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleRoots.real_eigenvalue_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eigs_submatrix_equiv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.genericX_of_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.norm_gt_one_of_recip": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.isUnit_det_AM1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.isUnit_det_AM0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3_eq_inv_AM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.det_pencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.det_pencil_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.det_AM1_mul_charpoly_Ab3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.charpoly_Ab3_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3_root_location": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eS": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Abk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eigv3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.pencil_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Ab3_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eigs_Abk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Abk_bk_conditions": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Abk_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.yvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.svec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.wvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.yvec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.E_yvec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.wvec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.mv_Abk_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.backward_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.solves_Abk_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.Equil34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.equil_Abk_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.svec_boundedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.svec_adaptedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_existsUnique_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2f": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.eS2": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.exists_rho1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.charpoly_B2f": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2f_root_location": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2_bk_conditions": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.B2_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.y2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.w2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.solves_B2_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_existsUnique_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.MoneyRuleDeterminacy.system34_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.lagP_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.lagP_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_pred": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.realBal_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.infl_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.infl_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.system34_of_moneyRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.equil34_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRule_gap_infl_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRuleUniqueness_holds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRule_unique_outcome": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.MonetaryPolicyDesign.Ex4_4Determinacy.moneyRule_implements_uniquely": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -8465,16 +10860,23 @@
     "MonetaryPolicyDesign/Ex4_4.lean": "dff1bfb87f957dfbd0c91035d91572acc815c9260a9496a3a67d7b76db126836",
     "MonetaryPolicyDesign/Ex4_5.lean": "7b2b3f4f2fe985bda63e83c0e40a34c65d693b8b472f95b787b80ba5bc0be7e0",
     "MonetaryPolicyDesign/Ex4_6.lean": "d6c0f281177c50e5e449b9406a452f523ff40dcc65b485eb7270b724e0514661",
-    "MonetaryPolicyDesign.lean": "a14647d1eea91ab5035f17bf0d577ab2fae6a134326c329d0b1b8a47d2abcda7",
+    "MonetaryPolicyDesign/InvariantSplit.lean": "c91781116e2888dda8c903cf35f22ee57ae460979b0675966c008cd2d421602d",
+    "MonetaryPolicyDesign/GeneralBKForward.lean": "b13bc9fb4043b6fe5b61e47f63c50608c1bc78089d8efe3360cc89d47fb787b4",
+    "MonetaryPolicyDesign/GeneralBK.lean": "8f44225fb367d6d1e04643b6897b5808da5f62752abaf44b62f880dffba91d04",
+    "MonetaryPolicyDesign/MoneyRuleSystem.lean": "ed213f6440e29f5cd3fb388cf6cffd555e1d35c172f7ae21e7b5f6378e40e7e9",
+    "MonetaryPolicyDesign/MoneyRuleRoots.lean": "4c8cdf7843b049d3dbbd2e9ff3bcb31ef07ebf91aee29a8c868e2292a360a948",
+    "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean": "7f2c58b7986c1a462b86cbc032d1a0f354c5389f5ee2b440f6e769aec8a215a0",
+    "MonetaryPolicyDesign/Ex4_4Determinacy.lean": "a850801924d7378b8e528cdc4f77ec886d4c6cad7764c44ff9969b127a120e50",
+    "MonetaryPolicyDesign.lean": "b06e90b47014fd1b82c1a2a8fa99606f9d139bb2510e1318d5b1465bcba22763",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "4d506de89c139ff48b753e51fafff644439a7a48dffe0d5c1fb8a2d8b27efec7",
     "lake-manifest.json": "559898a1941ad6daed3f1cdcec0e95ebd9733018079a75705208e647a762c133",
-    "proof-manifest.json": "2393358d74ccf5f276e48da0822cc078cfae9b6a9c900fa0c41e7645b019c7dc",
+    "proof-manifest.json": "40a4b07bbabec72110905a123716e3181c467d864675a1241c31f868309506ac",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "0e65c5caf48061c89271449f882a3864ab89ac47c9a9e1660da92e8edfb85cea",
+  "fresh_audit_sha256": "5dd726927e0694589ccab52f34de803155f70cb43c5498e705efabff66e60dde",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 4: Monetary Policy Design in the Basic New Keynesian Model, with Appendix 4.1 and Exercises 4.1-4.6. The efficient allocation and its symmetry, markup and dispersion distortions, the optimal subsidy, the divine coincidence, determinacy under the exogenous, Taylor-type and forward-looking rules (with the corrected forward-rule matrix), the second-order welfare approximation with an exact version of Lemma 2, simple rules and Table 4.1, and the exercises.",
+  "scope": "Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 4: Monetary Policy Design in the Basic New Keynesian Model, with Appendix 4.1 and Exercises 4.1-4.6. The efficient allocation and its symmetry, markup and dispersion distortions, the optimal subsidy, the divine coincidence, determinacy under the exogenous, Taylor-type and forward-looking rules (with the corrected forward-rule matrix), the second-order welfare approximation with an exact version of Lemma 2, simple rules and Table 4.1, and the exercises. Post-book: Ex 4.4(c) uniqueness under the money rule proved (the rule reduces to the Chapter 3 money-rule system with zero shocks, which is determinate).",
   "source": "Jordi Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 4, pp. 98-125."
 }

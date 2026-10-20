@@ -17,7 +17,14 @@
     "MonetaryPolicyDesign/Ex4_3.lean",
     "MonetaryPolicyDesign/Ex4_4.lean",
     "MonetaryPolicyDesign/Ex4_5.lean",
-    "MonetaryPolicyDesign/Ex4_6.lean"
+    "MonetaryPolicyDesign/Ex4_6.lean",
+    "MonetaryPolicyDesign/InvariantSplit.lean",
+    "MonetaryPolicyDesign/GeneralBKForward.lean",
+    "MonetaryPolicyDesign/GeneralBK.lean",
+    "MonetaryPolicyDesign/MoneyRuleSystem.lean",
+    "MonetaryPolicyDesign/MoneyRuleRoots.lean",
+    "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean",
+    "MonetaryPolicyDesign/Ex4_4Determinacy.lean"
   ],
   "theorem_counts": {
     "MonetaryPolicyDesign/Determinacy.lean": 23,
@@ -36,8 +43,15 @@
     "MonetaryPolicyDesign/Ex4_3.lean": 17,
     "MonetaryPolicyDesign/Ex4_4.lean": 21,
     "MonetaryPolicyDesign/Ex4_5.lean": 105,
-    "MonetaryPolicyDesign/Ex4_6.lean": 46
+    "MonetaryPolicyDesign/Ex4_6.lean": 46,
+    "MonetaryPolicyDesign/InvariantSplit.lean": 52,
+    "MonetaryPolicyDesign/GeneralBKForward.lean": 17,
+    "MonetaryPolicyDesign/GeneralBK.lean": 39,
+    "MonetaryPolicyDesign/MoneyRuleSystem.lean": 14,
+    "MonetaryPolicyDesign/MoneyRuleRoots.lean": 17,
+    "MonetaryPolicyDesign/MoneyRuleDeterminacy.lean": 35,
+    "MonetaryPolicyDesign/Ex4_4Determinacy.lean": 14
   },
-  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 4: Monetary Policy Design in the Basic New Keynesian Model, with Appendix 4.1 and Exercises 4.1-4.6. The efficient allocation and its symmetry, markup and dispersion distortions, the optimal subsidy, the divine coincidence, determinacy under the exogenous, Taylor-type and forward-looking rules (with the corrected forward-rule matrix), the second-order welfare approximation with an exact version of Lemma 2, simple rules and Table 4.1, and the exercises.",
+  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 4: Monetary Policy Design in the Basic New Keynesian Model, with Appendix 4.1 and Exercises 4.1-4.6. The efficient allocation and its symmetry, markup and dispersion distortions, the optimal subsidy, the divine coincidence, determinacy under the exogenous, Taylor-type and forward-looking rules (with the corrected forward-rule matrix), the second-order welfare approximation with an exact version of Lemma 2, simple rules and Table 4.1, and the exercises. Post-book: Ex 4.4(c) uniqueness under the money rule proved (the rule reduces to the Chapter 3 money-rule system with zero shocks, which is determinate).",
   "source": "Jordi Galí, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 4, pp. 98-125."
 }

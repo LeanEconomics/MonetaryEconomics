@@ -25,7 +25,12 @@
     "BasicNewKeynesianModel/Ex3_6.lean",
     "BasicNewKeynesianModel/Ex3_7.lean",
     "BasicNewKeynesianModel/Ex3_8.lean",
-    "BasicNewKeynesianModel/Ex3_9.lean"
+    "BasicNewKeynesianModel/Ex3_9.lean",
+    "BasicNewKeynesianModel/InvariantSplit.lean",
+    "BasicNewKeynesianModel/GeneralBKForward.lean",
+    "BasicNewKeynesianModel/GeneralBK.lean",
+    "BasicNewKeynesianModel/MoneyRuleRoots.lean",
+    "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
   ],
   "theorem_counts": {
     "BasicNewKeynesianModel/PriceDuration.lean": 5,
@@ -52,8 +57,13 @@
     "BasicNewKeynesianModel/Ex3_6.lean": 27,
     "BasicNewKeynesianModel/Ex3_7.lean": 15,
     "BasicNewKeynesianModel/Ex3_8.lean": 6,
-    "BasicNewKeynesianModel/Ex3_9.lean": 8
+    "BasicNewKeynesianModel/Ex3_9.lean": 8,
+    "BasicNewKeynesianModel/InvariantSplit.lean": 52,
+    "BasicNewKeynesianModel/GeneralBKForward.lean": 17,
+    "BasicNewKeynesianModel/GeneralBK.lean": 39,
+    "BasicNewKeynesianModel/MoneyRuleRoots.lean": 17,
+    "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean": 36
   },
-  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 3: The Basic New Keynesian Model, with Appendices 3.1-3.4 and Exercises 3.1-3.9. Rational expectations as an abstract expectation system with perfect-foresight and finite-event-tree instances; determinacy of two-variable systems via the Schur-Cohn condition; CES demand; the exact Calvo price index and price dispersion; the household's optimality conditions; the reset-price problem over an infinite horizon; marginal cost, the New Keynesian Phillips curve and the dynamic IS equation linked to the nonlinear model as exact derivatives; the Taylor-rule equilibrium with the Bullard-Mitra condition and its unique bounded solution; shock responses; the money-supply rule; calibration; and the exercises.",
+  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 3: The Basic New Keynesian Model, with Appendices 3.1-3.4 and Exercises 3.1-3.9. Rational expectations as an abstract expectation system with perfect-foresight and finite-event-tree instances; determinacy of two-variable systems via the Schur-Cohn condition; CES demand; the exact Calvo price index and price dispersion; the household's optimality conditions; the reset-price problem over an infinite horizon; marginal cost, the New Keynesian Phillips curve and the dynamic IS equation linked to the nonlinear model as exact derivatives; the Taylor-rule equilibrium with the Bullard-Mitra condition and its unique bounded solution; shock responses; the money-supply rule; calibration; and the exercises. Post-book: the money-rule determinacy claim of p. 75 and fn 14 (numerical only in the book) proved for all admissible parameters, including eta = 0, with genuine Blanchard-Kahn determinacy of system (34) for any expectation system via a copy of the general Blanchard-Kahn theorem.",
   "source": "Jordi Galí, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 3, pp. 52-97."
 }

@@ -6,8 +6,9 @@ Run the commands below from this directory. [Return to the library index](../../
 
 A checked formalisation of Galí (2015), *Monetary Policy, Inflation, and the
 Business Cycle*, 2nd ed., Chapter 4, "Monetary Policy Design in the Basic New
-Keynesian Model" (pp. 98–125), with its appendix and exercises. The library
-contains **582 theorems** and audits **842 declarations**.
+Keynesian Model" (pp. 98–125), with its appendix and exercises, plus a
+post-book proof of uniqueness under the money rule of Exercise 4.4(c). The
+library contains **770 theorems** and audits **1081 declarations**.
 
 Headline results, in the namespace `Gali.MonetaryPolicyDesign`:
 * **Efficiency and distortions.** The planner's optimum is symmetric across
@@ -28,6 +29,16 @@ Headline results, in the namespace `Gali.MonetaryPolicyDesign`:
   in advance on a constructed probability space (`Ex4_5.exists_sticky_equilibrium`)
   and the corrected determinacy region of the price-level rule
   (`Ex4_6.determinate_iff`).
+* **Ex. 4.4(c) uniqueness (post-book).** The optimum `ỹ = π = 0`, `p = p*`,
+  `i = rⁿ` is the *unique* bounded equilibrium under the money supply rule, for
+  `σ > 0`, `η ≥ 0`, `κ > 0`, `0 < β ≤ 1` and any expectation system
+  (`Ex4_4Determinacy.moneyRuleUniqueness_holds`,
+  `Ex4_4Determinacy.moneyRule_implements_uniquely`). Every equilibrium under the
+  rule solves the Chapter 3 money-rule system (34) with all shocks zero, the
+  natural-rate and natural-output terms cancelling
+  (`Ex4_4Determinacy.system34_of_moneyRule`), and (34) is determinate
+  (`MoneyRuleDeterminacy.system34_existsUnique`, Galí's fn. 14 of Chapter 3,
+  proved via the general Blanchard–Kahn theorem `GeneralBK.determinate_iff`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for where the printed text is wrong or
@@ -54,6 +65,13 @@ imprecise.
 | [Ex4_4](MonetaryPolicyDesign/Ex4_4.lean) | 21 | Exercise 4.4: interest-rate versus money rules |
 | [Ex4_5](MonetaryPolicyDesign/Ex4_5.lean) | 105 | Exercise 4.5: prices set in advance, an exact lognormal model on a constructed probability space |
 | [Ex4_6](MonetaryPolicyDesign/Ex4_6.lean) | 46 | Exercise 4.6: the price-level rule (corrected determinacy region) |
+| [InvariantSplit](MonetaryPolicyDesign/InvariantSplit.lean) | 52 | Post-book (restated from the Woodford Chapter 4 project): eigenvalues with multiplicity, the stable invariant subspace and its dimension, the split into predetermined and non-predetermined coordinates |
+| [GeneralBKForward](MonetaryPolicyDesign/GeneralBKForward.lean) | 17 | Post-book (restated from Woodford): forward systems `s_t = K E_t s_{t+1} + w_t` over any finite index type, the unique bounded forward solution |
+| [GeneralBK](MonetaryPolicyDesign/GeneralBK.lean) | 39 | Post-book (restated from Woodford): the general Blanchard–Kahn theorem for any `ExpectationSystem`, determinacy iff no unit root, the counting rule and genericity |
+| [MoneyRuleSystem](MonetaryPolicyDesign/MoneyRuleSystem.lean) | 14 | Post-book (restated from the Chapter 3 project): the money-rule system (34), its characteristic cubic, the book's determinacy claim (Ch. 3, fn. 14) |
+| [MoneyRuleRoots](MonetaryPolicyDesign/MoneyRuleRoots.lean) | 17 | Post-book (restated from Chapter 3): the cubic's root `r > 1` and Schur-stable quadratic factor; fn. 14 proved; root location of `A_M` |
+| [MoneyRuleDeterminacy](MonetaryPolicyDesign/MoneyRuleDeterminacy.lean) | 35 | Post-book (restated from Chapter 3): Blanchard–Kahn determinacy of (34) for every forcing, `η > 0` and `η = 0` |
+| [Ex4_4Determinacy](MonetaryPolicyDesign/Ex4_4Determinacy.lean) | 14 | Exercise 4.4(c): the money rule reduces to (34) with zero shocks; the optimum is the unique bounded equilibrium |
 
 ## Build and verify
 

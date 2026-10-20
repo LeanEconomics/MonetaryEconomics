@@ -6,8 +6,9 @@ Run the commands below from this directory. [Return to the library index](../../
 
 A checked formalisation of Galí (2015), *Monetary Policy, Inflation, and the
 Business Cycle*, 2nd ed., Chapter 3, "The Basic New Keynesian Model"
-(pp. 52–97), with its appendices and exercises. The library contains
-**592 theorems** and audits **837 declarations**.
+(pp. 52–97), with its appendices and exercises, plus a post-book proof of the
+money-rule determinacy claim of p. 75 and fn. 14. The library contains
+**753 theorems** and audits **1038 declarations**.
 
 Headline results, in the namespace `Gali.BasicNewKeynesianModel`:
 * **Determinacy.** A two-variable rational-expectations system has a unique
@@ -27,6 +28,19 @@ Headline results, in the namespace `Gali.BasicNewKeynesianModel`:
   (`PriceDispersion.dispersion_second_order`); the log-linear Euler equation is
   the exact derivative of the nonlinear one
   (`Household.hasDerivAt_log_eulerMoment_family`).
+* **Money-rule determinacy (post-book).** Galí's claim (p. 75, fn. 14) that
+  the equilibrium under an exogenous money supply is always determinate rests on
+  numerical evidence only in the book. It is proved here for all `σ ≥ 0`,
+  `η ≥ 0`, `κ > 0`, `0 ≤ β ≤ 1`, including Galí's boundary `η = 0`: `A_M` has
+  one eigenvalue outside and two inside the unit circle, none on it
+  (`MoneyRuleRoots.bookDeterminacyClaim_holds`,
+  `MoneyRuleRoots.AM_root_location`). This is genuine Blanchard–Kahn
+  determinacy: for `σ > 0` and `0 < β ≤ 1`, system (34) has exactly one bounded
+  adapted equilibrium for every bounded adapted shock process and initial real
+  balance, for any expectation system (`MoneyRuleDeterminacy.system34_existsUnique`,
+  via the general Blanchard–Kahn theorem `GeneralBK.determinate_iff`); for
+  `η > 0` the model equations, the nominal rate included, have exactly one
+  bounded solution (`MoneyRuleDeterminacy.model_existsUnique`).
 * **Corrections.** Seven printed claims are false or need a missing hypothesis;
   each is proved in corrected form with a counterexample to the printed one.
 
@@ -63,6 +77,11 @@ imprecise.
 | [Ex3_7](BasicNewKeynesianModel/Ex3_7.lean) | 15 | Exercise 3.7: technology shocks and a Taylor rule |
 | [Ex3_8](BasicNewKeynesianModel/Ex3_8.lean) | 6 | Exercise 3.8: utility linear in consumption |
 | [Ex3_9](BasicNewKeynesianModel/Ex3_9.lean) | 8 | Exercise 3.9: the Galí–Gertler hybrid NKPC |
+| [InvariantSplit](BasicNewKeynesianModel/InvariantSplit.lean) | 52 | Post-book (restated from the Woodford Chapter 4 project): eigenvalues with multiplicity, the stable invariant subspace and its dimension, the split into predetermined and non-predetermined coordinates |
+| [GeneralBKForward](BasicNewKeynesianModel/GeneralBKForward.lean) | 17 | Post-book (restated from Woodford): forward systems `s_t = K E_t s_{t+1} + w_t` over any finite index type, the unique bounded forward solution |
+| [GeneralBK](BasicNewKeynesianModel/GeneralBK.lean) | 39 | Post-book (restated from Woodford): the general Blanchard–Kahn theorem for any `ExpectationSystem`, determinacy iff no unit root, the counting rule and genericity |
+| [MoneyRuleRoots](BasicNewKeynesianModel/MoneyRuleRoots.lean) | 17 | p. 75, fn. 14: the characteristic cubic factors with a root `r > 1` and a Schur-stable quadratic; the book's determinacy claim proved; root location of `A_M` |
+| [MoneyRuleDeterminacy](BasicNewKeynesianModel/MoneyRuleDeterminacy.lean) | 36 | p. 75: Blanchard–Kahn determinacy of (34) for every forcing (backward form for `η > 0`, exact two-variable reduction for `η = 0`); the model's unique equilibrium for `η > 0` |
 
 ## Build and verify
 

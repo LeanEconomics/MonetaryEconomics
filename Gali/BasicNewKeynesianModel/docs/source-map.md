@@ -42,7 +42,14 @@ name, relative to the namespace `Gali.BasicNewKeynesianModel`. Page numbers are 
 | Galí p. 75 | f(0) = σηβ > 0, f(1) = κ > 0, leading coeff −(1+ση) | `MoneyRule.charCubic_signs`, `MoneyRule.charCubic_expand` |
 | Galí p. 75 | one eigenvalue > 1 | `MoneyRule.AM_has_eigenvalue_gt_one` |
 | Galí p. 75 | product of eigenvalues ∈ (0,1) | `MoneyRule.det_AM_pos_lt_one` |
-| Galí p. 75, fn. 14 | determinacy always holds — NOT YET CLAIMED | `MoneyRule.BookDeterminacyClaim` (def only) |
+| Galí p. 75, fn. 14 | determinacy always holds (the book's claim, stated) | `MoneyRule.BookDeterminacyClaim` |
+| Galí p. 75, fn. 14 | f = det(A_{M,1} − zA_{M,0}) has a root r > 1 and factors with a Schur-stable quadratic (the book's claim, proved for σ ≥ 0, η ≥ 0, κ > 0, 0 ≤ β ≤ 1) | `MoneyRuleRoots.bookDeterminacyClaim_holds`, `MoneyRuleRoots.bookDeterminacyClaim_gali` |
+| Galí p. 75 | A_M: one eigenvalue outside the closed disc, two inside, none on the circle (with multiplicity) | `MoneyRuleRoots.AM_root_location`, `MoneyRuleRoots.AM_root_location_gali`, `MoneyRuleRoots.real_eigenvalue_unique` |
+| Galí p. 75 | backward form; A_b = A_M⁻¹; BK conditions; determinate for every forcing | `MoneyRuleDeterminacy.Ab3_eq_inv_AM`, `MoneyRuleDeterminacy.Ab3_root_location`, `MoneyRuleDeterminacy.Abk_bk_conditions`, `MoneyRuleDeterminacy.Abk_determinate` |
+| Galí p. 75 (η = 0) | exact reduction to two variables; determinate | `MoneyRuleDeterminacy.system34_zero_iff`, `MoneyRuleDeterminacy.B2_bk_conditions`, `MoneyRuleDeterminacy.B2_determinate` |
+| Galí p. 75, "always determined" | (34) has a unique bounded adapted equilibrium for all bounded adapted shocks and any l̂₋₁ | `MoneyRuleDeterminacy.system34_existsUnique` |
+| Galí §3.4.2, pp. 74–75 | unique equilibrium of the model equations, i included (η > 0) | `MoneyRuleDeterminacy.model_existsUnique` |
+| Galí p. 75; Woodford App. C.1 | general Blanchard–Kahn theorem: determinate iff no unit root, counting rule and genericity; a unit root gives non-existence | `GeneralBK.determinate_iff`, `GeneralBK.nonexist_of_unit`, `GeneralBK.not_determinate_of_unit` |
 | Galí (35), p. 75 | money-growth AR(1) | `MoneyRule.moneyGrowth_isAR1` |
 | Galí p. 77 | interest-rate difference equation | `MoneyRule.interest_rate_equation` |
 | Galí p. 77 | forward solution unique bounded | `MoneyRule.interest_rate_forward_unique`, `MoneyRule.interest_rate_forward_exists` |
@@ -151,4 +158,4 @@ name, relative to the namespace `Gali.BasicNewKeynesianModel`. Page numbers are 
 | Ex 3.8(c), p. 96 | r = ρ | `Ex3_8.euler_real_rate`, `Ex3_8.hasDerivAt_euler_path` |
 | Ex 3.8(d), p. 96 | rule replicates natural allocation (unique) | `Ex3_8.natural_allocation_replicated` |
 | Ex 3.9(a), p. 97 | hybrid NKPC γ_b, γ_f, κ, φ̃ | `Ex3_9.hybrid_nkpc`, `Ex3_9.hybrid_nkpc_of_series`, `Ex3_9.hybrid_standard`, `Ex3_9.gammas_sum` |
-| p. 75, fn. 14 | Determinacy under the money rule always holds | Not yet claimed (book: numerical only); post-book item |
+| p. 75, §3.4.2 | Unique equilibrium of the model equations including i at η = 0 | Not formalised: at η = 0 money demand does not involve i, which is then set by the DIS; determinacy of (34) itself covers η = 0 (`MoneyRuleDeterminacy.system34_existsUnique`) |

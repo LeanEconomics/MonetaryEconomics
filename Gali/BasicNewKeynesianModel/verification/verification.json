@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-13T22:09:38.231037+00:00",
-  "theorems": 592,
+  "checked_at_utc": "2026-10-20T05:31:33.500006+00:00",
+  "theorems": 753,
   "module_theorems": {
     "BasicNewKeynesianModel/PriceDuration.lean": 5,
     "BasicNewKeynesianModel/Determinacy.lean": 23,
@@ -26,9 +26,14 @@
     "BasicNewKeynesianModel/Ex3_6.lean": 27,
     "BasicNewKeynesianModel/Ex3_7.lean": 15,
     "BasicNewKeynesianModel/Ex3_8.lean": 6,
-    "BasicNewKeynesianModel/Ex3_9.lean": 8
+    "BasicNewKeynesianModel/Ex3_9.lean": 8,
+    "BasicNewKeynesianModel/InvariantSplit.lean": 52,
+    "BasicNewKeynesianModel/GeneralBKForward.lean": 17,
+    "BasicNewKeynesianModel/GeneralBK.lean": 39,
+    "BasicNewKeynesianModel/MoneyRuleRoots.lean": 17,
+    "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean": 36
   },
-  "audited_declarations": 837,
+  "audited_declarations": 1038,
   "declarations": [
     {
       "name": "Gali.BasicNewKeynesianModel.durationProb",
@@ -4214,6 +4219,1011 @@
       "name": "Gali.BasicNewKeynesianModel.Ex3_9.gammas_sum",
       "kind": "theorem",
       "module": "BasicNewKeynesianModel/Ex3_9.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.eigs",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.NoUnit",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.mem_eigs_iff",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.exists_eigvec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.exists_left_eigvec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.mem_eigs_of_eigvec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.pow_mulVec_eigvec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.map_ofReal_pow",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.card_eigs",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.pow_entry_bound",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.norm_le_one_of_pow_bounded",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbits",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.mem_boundedOrbits_of_orbit",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.re_mulVec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.im_mulVec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbitsC",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.maxGenEigenspace_le_boundedOrbitsC",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_boundedOrbitsC_le",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_finset_sup",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.card_filter_eq_sum",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_le_finrank",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.unstableCount",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_add_unstableCount",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.restrict_block",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.norm_le_one_of_bounded_pow_mul",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.exists_restrict_stable",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_le_stableCount",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.tendsto_of_mem_boundedOrbits",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_eq_stableCount",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbits_eq_bot_of_unstable",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.abs_entry_le_sum",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.rec_closed",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.rec_bounded",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.xrecV",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.GenericX",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.projX",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.graphV",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.IsGraph",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.matrix_eq_of_mulVec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_sumElim",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.exists_graph",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.lam",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.cmat",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.graph_invariant",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.graph_invariant_vec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.lam_mulVec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_graphV",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.pow_mulVec_graphV",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.lam_pow_bounded",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.fromBlocks_shear_mul",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.charpoly_split",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.charpoly_map_ofReal",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.eigs_split",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.lam_stable",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.zero_of_cmat_orbit",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.cmat_unstable",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_eq_card",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_le_of_genericX",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.not_genericX_of_lt",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.exists_unreached_of_lt",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_eq_iff_stableCount_eq",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/InvariantSplit.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_apply",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_apply_sum",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_mv",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_add",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_sub",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.add_mv",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.sub_mv",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_one",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_zero",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_neg",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.E_mv",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.AdaptedV",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.BoundedV",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.FSolves",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.boundedV_mv",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.adaptedV_mv",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_iterate",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.abs_mv_le",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_unique",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_exists",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBKForward.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.map_ofReal_mulVec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.det_ne_zero_of_unstable",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.inv_stable",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.boundedV_add",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.boundedV_sub",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.boundedV_neg",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_add",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_sub",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_neg",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.Solves",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.Equil",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.Determinate",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.eval_split",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.mv_inl",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.mv_inr",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.zx_block_eq",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.identity_zhat",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.identity_x",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.identity_exist",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.identity_exist_x",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.xrecR",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.xrecR_bounded",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.xrecR_known",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.fsolves_iff_cform",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.determinate_of",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.sum_q_mulVec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.false_of_linear_growth",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.no_bounded_resonance",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.exists_left_eigvec_unit",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.nonexist_of_unit",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_unit",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.mult_of_not_genericX",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_not_genericX",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.nonexist_of_lt",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_lt",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_gt",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_count",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_unstableCount",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_perfectForesight",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_of_tendsto",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_iff_tendsto",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/GeneralBK.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.coef2",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.coef1",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_eq_coef",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ1",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ0",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ1_mul",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ0_mul",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_factor",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_neg_one",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.exists_root_gt_one",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quad_values",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quad_schurStable",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.bookDeterminacyClaim_holds",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.bookDeterminacyClaim_gali",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.norm_lt_one_of_quadratic",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadPoly",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadPoly_root",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charpoly_AM_factor",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.eigs_AM",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.AM_root_location",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.AM_root_location_gali",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleRoots.real_eigenvalue_unique",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleRoots.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigs_submatrix_equiv",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.genericX_of_eigvec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.norm_gt_one_of_recip",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.isUnit_det_AM1",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.isUnit_det_AM0",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_eq_inv_AM",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_pencil",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_pencil_factor",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_AM1_mul_charpoly_Ab3",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.charpoly_Ab3_factor",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_root_location",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eS",
+      "kind": "abbrev",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigv3",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.pencil_eigvec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_eigvec",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigs_Abk",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk_bk_conditions",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk_determinate",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.yvec",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.wvec",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.yvec_apply",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.E_yvec_apply",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.wvec_apply",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.mv_Abk_apply",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.backward_iff",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.solves_Abk_iff",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Equil34",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.equil_Abk_iff",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec_boundedV",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec_adaptedV",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique_pos",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2f",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eS2",
+      "kind": "abbrev",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.exists_rho1",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.charpoly_B2f",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2f_root_location",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2_bk_conditions",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2_determinate",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.y2",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.w2",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.solves_B2_iff",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_zero_iff",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique_zero",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.ModelEquil",
+      "kind": "def",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
+    },
+    {
+      "name": "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.model_existsUnique",
+      "kind": "theorem",
+      "module": "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean"
     }
   ],
   "full_build": "passed",
@@ -8403,6 +9413,1009 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.eigs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.NoUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.mem_eigs_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.exists_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.exists_left_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.mem_eigs_of_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.pow_mulVec_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.map_ofReal_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.card_eigs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.pow_entry_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.norm_le_one_of_pow_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.mem_boundedOrbits_of_orbit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.re_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.im_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbitsC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.maxGenEigenspace_le_boundedOrbitsC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_boundedOrbitsC_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_finset_sup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.card_filter_eq_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_le_finrank": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_add_unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.restrict_block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.norm_le_one_of_bounded_pow_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.exists_restrict_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_le_stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.tendsto_of_mem_boundedOrbits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_eq_stableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbits_eq_bot_of_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.abs_entry_le_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.rec_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.rec_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.xrecV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.GenericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.projX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.IsGraph": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.matrix_eq_of_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_sumElim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.exists_graph": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.cmat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.graph_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.graph_invariant_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.lam_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.pow_mulVec_graphV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.lam_pow_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.fromBlocks_shear_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.charpoly_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.charpoly_map_ofReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.eigs_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.lam_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.zero_of_cmat_orbit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.cmat_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_eq_card": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_le_of_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.not_genericX_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.exists_unreached_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.InvariantSplit.finrank_eq_iff_stableCount_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_apply_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.add_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.sub_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.mv_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.E_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.AdaptedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.BoundedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.FSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.boundedV_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.adaptedV_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.abs_mv_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.map_ofReal_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.det_ne_zero_of_unstable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.inv_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.boundedV_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.boundedV_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.boundedV_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.Equil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.eval_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.mv_inl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.mv_inr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.zx_block_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.identity_zhat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.identity_x": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.identity_exist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.identity_exist_x": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.xrecR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.xrecR_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.xrecR_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.fsolves_iff_cform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.determinate_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.sum_q_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.false_of_linear_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.no_bounded_resonance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.exists_left_eigvec_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.nonexist_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.mult_of_not_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_not_genericX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.nonexist_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_count": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_unstableCount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_iff_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.coef2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.coef1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_eq_coef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ1_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ0_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_neg_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.exists_root_gt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quad_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quad_schurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.bookDeterminacyClaim_holds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.bookDeterminacyClaim_gali": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.norm_lt_one_of_quadratic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadPoly_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.charpoly_AM_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.eigs_AM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.AM_root_location": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.AM_root_location_gali": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleRoots.real_eigenvalue_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigs_submatrix_equiv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.genericX_of_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.norm_gt_one_of_recip": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.isUnit_det_AM1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.isUnit_det_AM0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_eq_inv_AM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_pencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_pencil_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_AM1_mul_charpoly_Ab3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.charpoly_Ab3_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_root_location": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eS": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigv3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.pencil_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_eigvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigs_Abk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk_bk_conditions": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.yvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.wvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.yvec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.E_yvec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.wvec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.mv_Abk_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.backward_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.solves_Abk_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Equil34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.equil_Abk_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec_boundedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec_adaptedV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2f": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eS2": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.exists_rho1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.charpoly_B2f": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2f_root_location": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2_bk_conditions": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.y2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.w2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.solves_B2_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.ModelEquil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.model_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -8431,16 +10444,21 @@
     "BasicNewKeynesianModel/Ex3_7.lean": "ebae1802005d02a95038975a358a9cad7d05534421a13b91efa0c38947ee7acc",
     "BasicNewKeynesianModel/Ex3_8.lean": "cb3c94e6e569b7c11032a76f4008671af4e1ccd826b21d16f837970d0adb7108",
     "BasicNewKeynesianModel/Ex3_9.lean": "5897af1c9303b3c93e889319c560d4f161f415e51dcf1037e201943071abfe35",
-    "BasicNewKeynesianModel.lean": "b4fb9aae84b2ebde559aa7214a47660a30d779ee602af9dcb444f6890904edb7",
+    "BasicNewKeynesianModel/InvariantSplit.lean": "b7fe41b4be1732b08d1fd90ab82044df03d2f7d6bce27b9bc0280b1344847a0a",
+    "BasicNewKeynesianModel/GeneralBKForward.lean": "d2ebb3aef8e78c65bd223bfe753d94fefe390ee4308346ee58a12654224dee8b",
+    "BasicNewKeynesianModel/GeneralBK.lean": "489e42b0dbef07059f1694531a31611ecd3311013724c97a65cc3476ccb610ea",
+    "BasicNewKeynesianModel/MoneyRuleRoots.lean": "8073b1e83f876335d8bbfd47998093165d9bf561c9bdacfd8a15dfa17739c9c1",
+    "BasicNewKeynesianModel/MoneyRuleDeterminacy.lean": "18351073a3028be35d3d6c274207f978decde5ca6b2919a6722e4ddb6e3f4b76",
+    "BasicNewKeynesianModel.lean": "25972defa27cf2ad611ffb2568d72f1bcee35f91bf20a6068e075dc74645bf48",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "5896f300394fcf40f9ba5ec9f406b9c9f055777029706b933e8bbf8f2383362a",
     "lake-manifest.json": "01e977c42d929d6be4e133806f74b0c68ce46464eb166470217c3d6faaa8828c",
-    "proof-manifest.json": "a5b09d0deba83d07bf427bd1c4ea699382701443f7bfdc831a642ffc77d3518b",
+    "proof-manifest.json": "5afdacce69da01fd3dfe7e4403f164f8411a2cde76d149c8d972bea50598f5a8",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "50ae67747e5d444bfc3ec274b0c9d86b2f4c290b12fb05beaf43b1f8f5e0e9dd",
+  "fresh_audit_sha256": "bf3b3f322aa495d748c3448a256aec7304224878ce9afe82b251cf4b82eeb8d1",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 3: The Basic New Keynesian Model, with Appendices 3.1-3.4 and Exercises 3.1-3.9. Rational expectations as an abstract expectation system with perfect-foresight and finite-event-tree instances; determinacy of two-variable systems via the Schur-Cohn condition; CES demand; the exact Calvo price index and price dispersion; the household's optimality conditions; the reset-price problem over an infinite horizon; marginal cost, the New Keynesian Phillips curve and the dynamic IS equation linked to the nonlinear model as exact derivatives; the Taylor-rule equilibrium with the Bullard-Mitra condition and its unique bounded solution; shock responses; the money-supply rule; calibration; and the exercises.",
+  "scope": "Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 3: The Basic New Keynesian Model, with Appendices 3.1-3.4 and Exercises 3.1-3.9. Rational expectations as an abstract expectation system with perfect-foresight and finite-event-tree instances; determinacy of two-variable systems via the Schur-Cohn condition; CES demand; the exact Calvo price index and price dispersion; the household's optimality conditions; the reset-price problem over an infinite horizon; marginal cost, the New Keynesian Phillips curve and the dynamic IS equation linked to the nonlinear model as exact derivatives; the Taylor-rule equilibrium with the Bullard-Mitra condition and its unique bounded solution; shock responses; the money-supply rule; calibration; and the exercises. Post-book: the money-rule determinacy claim of p. 75 and fn 14 (numerical only in the book) proved for all admissible parameters, including eta = 0, with genuine Blanchard-Kahn determinacy of system (34) for any expectation system via a copy of the general Blanchard-Kahn theorem.",
   "source": "Jordi Gal\u00ed, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 3, pp. 52-97."
 }

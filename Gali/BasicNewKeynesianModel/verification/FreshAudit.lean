@@ -40,6 +40,14 @@ import Mathlib.Analysis.Calculus.FDeriv.Mul
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.Calculus.Deriv.Add
 import Mathlib.Data.Fin.VecNotation
+import Mathlib.Analysis.Normed.Algebra.GelfandFormula
+import Mathlib.Analysis.Matrix.Normed
+import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
+import Mathlib.LinearAlgebra.Eigenspace.Zero
+import Mathlib.LinearAlgebra.Charpoly.ToMatrix
+import Mathlib.Analysis.Complex.Polynomial.Basic
+import Mathlib.LinearAlgebra.Matrix.Block
+import Mathlib.Algebra.Order.Field.GeomSum
 set_option autoImplicit false
 
 /-
@@ -13334,6 +13342,3603 @@ theorem gammas_sum {β θ ω : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β ≤ 1) (hθ0 : 
 
 end Gali.BasicNewKeynesianModel.Ex3_9
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The stable invariant subspace of a real matrix
+
+Woodford (2003), *Interest and Prices*, Appendix C.1, p. 670 and footnotes 1–2; Blanchard and
+Kahn (1980). Linear algebra behind the general Blanchard–Kahn theorem (`GeneralBK`).
+
+Restated from the Woodford Chapter 4 project (`NeoWicksellianFramework.InvariantSplit`, namespace
+renamed; this project does not import across projects). Used here for Galí (2015), Ch. 3,
+§3.4.2, p. 75 and fn. 14: determinacy under an exogenous money supply
+(`MoneyRuleDeterminacy`).
+
+For a real square matrix `A` (any finite index type):
+
+* `eigs A`: the complex eigenvalues of `A` with algebraic multiplicity (the roots of the
+  characteristic polynomial over `ℂ`), `stableCount A` the number of them in the open unit disc,
+  `NoUnit A`: no eigenvalue on the unit circle.
+* `boundedOrbits A`: the real subspace of vectors `v` whose orbit `Aᵗ v` is bounded — the real
+  stable invariant subspace when `NoUnit A` holds.
+* `pow_entry_bound`: eigenvalues in the open disc give geometric decay of the powers (Gelfand's
+  formula); `norm_le_one_of_pow_bounded`: bounded powers force eigenvalues in the closed disc.
+* `stableCount_le_finrank`: the number of stable eigenvalues (with multiplicity) is at most the
+  dimension of `boundedOrbits A` (complex generalised eigenspaces of stable eigenvalues have
+  bounded orbits; their real and imaginary parts lie in `boundedOrbits A`).
+* `finrank_le_stableCount`, `finrank_eq_stableCount`: with no eigenvalue on the unit circle the
+  dimension of `boundedOrbits A` *equals* the number of eigenvalues in the open disc (the
+  restriction of `A` to it, `restrict_block`, has a characteristic polynomial dividing that of
+  `A` and bounded powers, `exists_restrict_stable`); `boundedOrbits_eq_bot_of_unstable`.
+* `tendsto_of_mem_boundedOrbits`: with no eigenvalue on the unit circle every bounded orbit tends
+  to `0` — `boundedOrbits A` is the real stable invariant subspace `{v : Aᵗ v → 0}`.
+
+For a split state `Z ⊕ X` (`X` the predetermined coordinates):
+
+* `GenericX A`: `boundedOrbits A` meets `{x = 0}` only in `0` (the genericity condition).
+* `exists_graph`: if moreover `dim boundedOrbits A = |X|`, the subspace is the graph of a matrix
+  `G : Z × X` (`IsGraph`), so `A [G; I] = [G; I] Λ` with `Λ = A_xz G + A_xx` (`lam`), and with
+  `C = A_zz − G A_xz` (`cmat`) the change of variables `ẑ = z − G x` makes `A` block triangular:
+  `charpoly A = charpoly C · charpoly Λ` (`charpoly_split`, `eigs_split`).
+* `lam_stable`: under `NoUnit`, every eigenvalue of `Λ` lies in the open disc;
+  `cmat_unstable`: every eigenvalue of `C` lies outside the closed disc;
+  `stableCount_eq_card`: hence exactly `|X|` eigenvalues of `A` lie in the open disc.
+
+The proof of `pow_entry_bound` is restated from `BlanchardKahn.pow_entry_bound` (from the Galí
+Chapter 6 project), generalised from `Fin n` to any finite index type.
+-/
+
+namespace Gali.BasicNewKeynesianModel.InvariantSplit
+
+open Polynomial Filter Topology
+open scoped Matrix
+
+variable {κ : Type*} [Fintype κ] [DecidableEq κ]
+
+/-! ### Complex eigenvalues of a real matrix -/
+
+/-- Woodford (2003), App. C.1, p. 670: the complex eigenvalues of a real square matrix, with
+algebraic multiplicity (the roots of its characteristic polynomial over `ℂ`). -/
+noncomputable def eigs (K : Matrix κ κ ℝ) : Multiset ℂ := (K.map Complex.ofReal).charpoly.roots
+
+/-- Woodford (2003), App. C.1, p. 670: the number of eigenvalues (with multiplicity) in the open
+unit disc. -/
+noncomputable def stableCount (K : Matrix κ κ ℝ) : ℕ :=
+  Multiset.card ((eigs K).filter (fun μ => ‖μ‖ < 1))
+
+/-- Woodford (2003), App. C.1, p. 670, fn. 1: no eigenvalue lies on the unit circle. -/
+def NoUnit (K : Matrix κ κ ℝ) : Prop := ∀ μ ∈ eigs K, ‖μ‖ ≠ 1
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `μ` is an eigenvalue iff `det (μ I − K) = 0`. -/
+theorem mem_eigs_iff (K : Matrix κ κ ℝ) (μ : ℂ) :
+    μ ∈ eigs K ↔ (Matrix.scalar κ μ - K.map Complex.ofReal).det = 0 := by
+  rw [eigs, mem_roots (Matrix.charpoly_monic _).ne_zero, IsRoot, Matrix.eval_charpoly]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an eigenvalue has a complex eigenvector. -/
+theorem exists_eigvec {K : Matrix κ κ ℝ} {μ : ℂ} (h : μ ∈ eigs K) :
+    ∃ c : κ → ℂ, c ≠ 0 ∧ K.map Complex.ofReal *ᵥ c = μ • c := by
+  obtain ⟨c, hc0, hc⟩ := Matrix.exists_mulVec_eq_zero_iff.mpr ((mem_eigs_iff K μ).mp h)
+  refine ⟨c, hc0, ?_⟩
+  rw [Matrix.sub_mulVec, sub_eq_zero] at hc
+  rw [← hc]
+  funext i
+  simp [Matrix.scalar_apply, Matrix.mulVec_diagonal]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an eigenvalue has a complex left eigenvector. -/
+theorem exists_left_eigvec {K : Matrix κ κ ℝ} {μ : ℂ} (h : μ ∈ eigs K) :
+    ∃ q : κ → ℂ, q ≠ 0 ∧ q ᵥ* K.map Complex.ofReal = μ • q := by
+  obtain ⟨q, hq0, hq⟩ := Matrix.exists_vecMul_eq_zero_iff.mpr ((mem_eigs_iff K μ).mp h)
+  refine ⟨q, hq0, ?_⟩
+  rw [Matrix.vecMul_sub, sub_eq_zero] at hq
+  rw [← hq]
+  funext i
+  simp [Matrix.scalar_apply, Matrix.vecMul_diagonal, mul_comm]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a complex eigenvector gives an eigenvalue. -/
+theorem mem_eigs_of_eigvec {K : Matrix κ κ ℝ} {μ : ℂ} {c : κ → ℂ} (hc0 : c ≠ 0)
+    (hc : K.map Complex.ofReal *ᵥ c = μ • c) : μ ∈ eigs K := by
+  rw [mem_eigs_iff, ← Matrix.exists_mulVec_eq_zero_iff]
+  refine ⟨c, hc0, ?_⟩
+  rw [Matrix.sub_mulVec, hc]
+  funext i
+  simp [Matrix.scalar_apply]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an eigenvector of `M` is one of every power,
+`Mᵗ c = μᵗ c`. -/
+theorem pow_mulVec_eigvec {R : Type*} [CommRing R] {M : Matrix κ κ R} {μ : R} {c : κ → R}
+    (hc : M *ᵥ c = μ • c) (t : ℕ) : M ^ t *ᵥ c = μ ^ t • c := by
+  induction t with
+  | zero => simp
+  | succ t ih =>
+    rw [pow_succ, ← Matrix.mulVec_mulVec, hc, Matrix.mulVec_smul, ih, smul_smul, pow_succ,
+      mul_comm]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): powers of the complexified matrix are the
+complexified powers. -/
+theorem map_ofReal_pow (K : Matrix κ κ ℝ) (t : ℕ) :
+    (K ^ t).map Complex.ofReal = K.map Complex.ofReal ^ t :=
+  Matrix.map_pow K Complex.ofRealHom t
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the number of eigenvalues equals the dimension. -/
+theorem card_eigs (K : Matrix κ κ ℝ) : Multiset.card (eigs K) = Fintype.card κ := by
+  rw [eigs, IsAlgClosed.card_roots_eq_natDegree, Matrix.charpoly_natDegree_eq_dim]
+
+/-! ### Geometric decay and bounded powers -/
+
+/-- Woodford (2003), App. C.1, p. 670, fn. 1 (Blanchard–Kahn, the tool; restated from
+`BlanchardKahn.pow_entry_bound` for any finite index type): if every complex eigenvalue of a
+real square matrix `K` lies in the open unit disc, the entries of `Kᵏ` decay geometrically
+(Gelfand's spectral radius formula). -/
+theorem pow_entry_bound (K : Matrix κ κ ℝ) (h : ∀ μ ∈ eigs K, ‖μ‖ < 1) :
+    ∃ Cb ρ : ℝ, 0 ≤ Cb ∧ 0 < ρ ∧ ρ < 1 ∧ ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k := by
+  let _ : NormedRing (Matrix κ κ ℂ) := Matrix.linftyOpNormedRing
+  let _ : NormedAlgebra ℂ (Matrix κ κ ℂ) := Matrix.linftyOpNormedAlgebra
+  set A : Matrix κ κ ℂ := K.map Complex.ofReal with hA
+  have hspec : ∀ w ∈ spectrum ℂ A, w ∈ A.charpoly.roots.toFinset ∧ ‖w‖ < 1 := by
+    intro w hw
+    rw [Matrix.mem_spectrum_iff_isRoot_charpoly] at hw
+    have hm : w ∈ A.charpoly.roots := by
+      rw [mem_roots (Matrix.charpoly_monic A).ne_zero]; exact hw
+    exact ⟨Multiset.mem_toFinset.mpr hm, h w hm⟩
+  set ρ0 : NNReal := A.charpoly.roots.toFinset.sup (fun w => ‖w‖₊) with hρ0
+  have hρ0lt : ρ0 < 1 := by
+    rw [hρ0, Finset.sup_lt_iff (by norm_num)]
+    intro w hw
+    have := h w (Multiset.mem_toFinset.mp hw)
+    rw [← NNReal.coe_lt_coe, coe_nnnorm]
+    simpa using this
+  have hsr : spectralRadius ℂ A ≤ (ρ0 : ENNReal) := by
+    refine iSup₂_le fun w hw => ?_
+    rw [quasispectrum_eq_spectrum_union_zero] at hw
+    rcases hw with hw | hw
+    · exact ENNReal.coe_le_coe.mpr (Finset.le_sup (f := fun w => ‖w‖₊) (hspec w hw).1)
+    · rw [Set.mem_singleton_iff] at hw
+      subst hw
+      simp
+  set r : ℝ := ((ρ0 : ℝ) + 1) / 2 with hr
+  have hρ0' : (ρ0 : ℝ) < 1 := by exact_mod_cast hρ0lt
+  have hρ0r : (ρ0 : ℝ) < r := by rw [hr]; linarith
+  have hr1 : r < 1 := by rw [hr]; linarith
+  have hr0 : 0 < r := lt_of_le_of_lt ρ0.coe_nonneg hρ0r
+  have hlt : spectralRadius ℂ A < ENNReal.ofReal r := by
+    refine lt_of_le_of_lt hsr ?_
+    rw [← ENNReal.ofReal_coe_nnreal]
+    exact (ENNReal.ofReal_lt_ofReal_iff hr0).mpr hρ0r
+  have hev := (spectrum.pow_norm_pow_one_div_tendsto_nhds_spectralRadius A).eventually_lt_const
+    hlt
+  obtain ⟨N, hN⟩ := eventually_atTop.mp hev
+  have hbig : ∀ k ≥ N + 1, ‖A ^ k‖ ≤ r ^ k := by
+    intro k hk
+    have h1 := hN k (by omega)
+    rw [ENNReal.ofReal_lt_ofReal_iff hr0] at h1
+    have hk0 : k ≠ 0 := by omega
+    have h2 : (‖A ^ k‖ ^ (1 / k : ℝ)) ^ k = ‖A ^ k‖ := by
+      rw [one_div]; exact Real.rpow_inv_natCast_pow (norm_nonneg _) hk0
+    rw [← h2]
+    exact (pow_lt_pow_left₀ h1 (Real.rpow_nonneg (norm_nonneg _) _) hk0).le
+  set Cb : ℝ := 1 + ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k with hCb
+  have hsum0 : 0 ≤ ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k :=
+    Finset.sum_nonneg fun k _ => div_nonneg (norm_nonneg _) (pow_nonneg hr0.le _)
+  have hCb0 : 0 ≤ Cb := by linarith
+  have hall : ∀ k, ‖A ^ k‖ ≤ Cb * r ^ k := by
+    intro k
+    by_cases hk : k ≤ N
+    · have hmem : k ∈ Finset.range (N + 1) := Finset.mem_range.mpr (by omega)
+      have hle : ‖A ^ k‖ / r ^ k ≤ ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k :=
+        Finset.single_le_sum (f := fun k => ‖A ^ k‖ / r ^ k)
+          (fun k _ => div_nonneg (norm_nonneg _) (pow_nonneg hr0.le _)) hmem
+      have hrk : 0 < r ^ k := pow_pos hr0 k
+      have : ‖A ^ k‖ = ‖A ^ k‖ / r ^ k * r ^ k := by field_simp
+      rw [this]
+      exact mul_le_mul_of_nonneg_right (by linarith) hrk.le
+    · have := hbig k (by omega)
+      have hrk : 0 ≤ r ^ k := pow_nonneg hr0.le k
+      nlinarith
+  refine ⟨Cb, r, hCb0, hr0, hr1, fun k i j => ?_⟩
+  have hentry : |(K ^ k) i j| = ‖(A ^ k) i j‖ := by
+    have e : (A ^ k) i j = ((K ^ k) i j : ℂ) := by
+      rw [hA, ← map_ofReal_pow]; rfl
+    rw [e, Complex.norm_real, Real.norm_eq_abs]
+  rw [hentry]
+  refine le_trans ?_ (hall k)
+  rw [Matrix.linfty_opNorm_def]
+  have h1 : ‖(A ^ k) i j‖₊ ≤ ∑ j, ‖(A ^ k) i j‖₊ :=
+    Finset.single_le_sum (f := fun j => ‖(A ^ k) i j‖₊) (fun _ _ => by positivity)
+      (Finset.mem_univ j)
+  have h2 : ∑ j, ‖(A ^ k) i j‖₊ ≤ Finset.univ.sup fun i => ∑ j, ‖(A ^ k) i j‖₊ :=
+    Finset.le_sup (f := fun i => ∑ j, ‖(A ^ k) i j‖₊) (Finset.mem_univ i)
+  have := h1.trans h2
+  rw [← coe_nnnorm]
+  exact_mod_cast this
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): if the entries of all powers of a real matrix are
+bounded, every complex eigenvalue lies in the closed unit disc. -/
+theorem norm_le_one_of_pow_bounded {K : Matrix κ κ ℝ} {Cb : ℝ}
+    (hb : ∀ t i j, |(K ^ t) i j| ≤ Cb) : ∀ μ ∈ eigs K, ‖μ‖ ≤ 1 := by
+  intro μ hμ
+  obtain ⟨c, hc0, hc⟩ := exists_eigvec hμ
+  obtain ⟨i, hi⟩ : ∃ i, c i ≠ 0 := by
+    by_contra hne
+    push Not at hne
+    exact hc0 (funext hne)
+  by_contra hgt
+  push Not at hgt
+  set D : ℝ := ∑ j, Cb * ‖c j‖ with hD
+  have hle : ∀ t : ℕ, ‖μ‖ ^ t * ‖c i‖ ≤ D := by
+    intro t
+    have e := congrFun (pow_mulVec_eigvec hc t) i
+    rw [← map_ofReal_pow] at e
+    simp only [Pi.smul_apply, smul_eq_mul] at e
+    rw [← norm_pow, ← norm_mul, ← e, Matrix.mulVec, dotProduct]
+    refine (norm_sum_le _ _).trans (Finset.sum_le_sum fun j _ => ?_)
+    rw [norm_mul, Matrix.map_apply, Complex.norm_real, Real.norm_eq_abs]
+    exact mul_le_mul_of_nonneg_right (hb t i j) (norm_nonneg _)
+  have hci : 0 < ‖c i‖ := norm_pos_iff.mpr hi
+  have htend : Tendsto (fun t : ℕ => ‖μ‖ ^ t * ‖c i‖) atTop atTop :=
+    (tendsto_pow_atTop_atTop_of_one_lt hgt).atTop_mul_const hci
+  obtain ⟨t, ht⟩ := (htend.eventually_gt_atTop D).exists
+  exact absurd (hle t) (not_le.mpr ht)
+
+/-! ### The bounded-orbit (stable) subspace -/
+
+/-- Woodford (2003), App. C.1, p. 670, fn. 2: the real vectors whose orbit `Aᵗ v` under
+`y_{t+1} = A y_t` is bounded — the real stable invariant subspace of `A` when no eigenvalue lies on
+the unit circle. -/
+def boundedOrbits (A : Matrix κ κ ℝ) : Submodule ℝ (κ → ℝ) where
+  carrier := {v | ∃ C, ∀ t i, |(A ^ t *ᵥ v) i| ≤ C}
+  add_mem' := by
+    rintro v w ⟨C, hC⟩ ⟨D, hD⟩
+    refine ⟨C + D, fun t i => ?_⟩
+    rw [Matrix.mulVec_add, Pi.add_apply]
+    exact (abs_add_le _ _).trans (add_le_add (hC t i) (hD t i))
+  zero_mem' := ⟨0, fun t i => by simp⟩
+  smul_mem' := by
+    rintro c v ⟨C, hC⟩
+    refine ⟨|c| * C, fun t i => ?_⟩
+    rw [Matrix.mulVec_smul, Pi.smul_apply, smul_eq_mul, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hC t i) (abs_nonneg c)
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): membership in the bounded-orbit subspace. -/
+theorem mem_boundedOrbits {A : Matrix κ κ ℝ} {v : κ → ℝ} :
+    v ∈ boundedOrbits A ↔ ∃ C, ∀ t i, |(A ^ t *ᵥ v) i| ≤ C := Iff.rfl
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the bounded-orbit subspace is `A`-invariant. -/
+theorem mulVec_mem_boundedOrbits {A : Matrix κ κ ℝ} {v : κ → ℝ} (hv : v ∈ boundedOrbits A) :
+    A *ᵥ v ∈ boundedOrbits A := by
+  obtain ⟨C, hC⟩ := hv
+  refine ⟨C, fun t i => ?_⟩
+  rw [Matrix.mulVec_mulVec, ← pow_succ]
+  exact hC (t + 1) i
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a vector whose orbit is a bounded sequence `y`
+lies in the bounded-orbit subspace. -/
+theorem mem_boundedOrbits_of_orbit {A : Matrix κ κ ℝ} {y : ℕ → κ → ℝ}
+    (hy : ∀ t, y (t + 1) = A *ᵥ y t) {C : ℝ} (hC : ∀ t i, |y t i| ≤ C) :
+    y 0 ∈ boundedOrbits A := by
+  have horb : ∀ t, A ^ t *ᵥ y 0 = y t := by
+    intro t
+    induction t with
+    | zero => simp
+    | succ t ih => rw [pow_succ', ← Matrix.mulVec_mulVec, ih, hy t]
+  exact ⟨C, fun t i => by rw [horb t]; exact hC t i⟩
+
+omit [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): the real part of a complexified matrix–vector
+product. -/
+theorem re_mulVec (K : Matrix κ κ ℝ) (v : κ → ℂ) (i : κ) :
+    ((K.map Complex.ofReal *ᵥ v) i).re = (K *ᵥ fun j => (v j).re) i := by
+  simp [Matrix.mulVec, dotProduct, Complex.re_sum]
+
+omit [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): the imaginary part of a complexified matrix–vector
+product. -/
+theorem im_mulVec (K : Matrix κ κ ℝ) (v : κ → ℂ) (i : κ) :
+    ((K.map Complex.ofReal *ᵥ v) i).im = (K *ᵥ fun j => (v j).im) i := by
+  simp [Matrix.mulVec, dotProduct, Complex.im_sum]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the complex vectors with bounded orbits. -/
+def boundedOrbitsC (A : Matrix κ κ ℝ) : Submodule ℂ (κ → ℂ) where
+  carrier := {v | ∃ C, ∀ t i, ‖(A.map Complex.ofReal ^ t *ᵥ v) i‖ ≤ C}
+  add_mem' := by
+    rintro v w ⟨C, hC⟩ ⟨D, hD⟩
+    refine ⟨C + D, fun t i => ?_⟩
+    rw [Matrix.mulVec_add, Pi.add_apply]
+    exact (norm_add_le _ _).trans (add_le_add (hC t i) (hD t i))
+  zero_mem' := ⟨0, fun t i => by simp⟩
+  smul_mem' := by
+    rintro c v ⟨C, hC⟩
+    refine ⟨‖c‖ * C, fun t i => ?_⟩
+    rw [Matrix.mulVec_smul, Pi.smul_apply, smul_eq_mul, norm_mul]
+    exact mul_le_mul_of_nonneg_left (hC t i) (norm_nonneg c)
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): generalised eigenvectors of an eigenvalue in the
+open unit disc have bounded orbits. Induction on the nilpotency order: with
+`u = (A − μ) v` of bounded orbit, `Aᵗ⁺¹ v = μ Aᵗ v + Aᵗ u` stays bounded. -/
+theorem maxGenEigenspace_le_boundedOrbitsC (A : Matrix κ κ ℝ) {μ : ℂ} (hμ : ‖μ‖ < 1) :
+    Module.End.maxGenEigenspace (Matrix.toLin' (A.map Complex.ofReal)) μ ≤ boundedOrbitsC A := by
+  set M : Matrix κ κ ℂ := A.map Complex.ofReal with hM
+  intro v hv
+  rw [Module.End.mem_maxGenEigenspace] at hv
+  obtain ⟨k, hk⟩ := hv
+  induction k generalizing v with
+  | zero => simp only [pow_zero, Module.End.one_apply] at hk; rw [hk]; exact Submodule.zero_mem _
+  | succ k ih =>
+    set u : κ → ℂ := M *ᵥ v - μ • v with hu
+    have hu' : (Matrix.toLin' M - μ • 1) v = u := by
+      simp [hu, Matrix.toLin'_apply]
+    have hub : u ∈ boundedOrbitsC A := by
+      apply ih
+      rw [← hu', ← Module.End.mul_apply, ← pow_succ]
+      exact hk
+    obtain ⟨Cu, hCu⟩ := hub
+    set V : ℝ := ∑ i, ‖v i‖ with hV
+    set Mb : ℝ := max V (max Cu 0 / (1 - ‖μ‖)) with hMb
+    have h1 : 0 < 1 - ‖μ‖ := by linarith
+    have hCM : max Cu 0 ≤ (1 - ‖μ‖) * Mb := by
+      have : max Cu 0 / (1 - ‖μ‖) ≤ Mb := le_max_right _ _
+      rw [div_le_iff₀ h1] at this
+      linarith
+    refine ⟨Mb, fun t => ?_⟩
+    induction t with
+    | zero =>
+      intro i
+      simp only [pow_zero, Matrix.one_mulVec]
+      exact le_trans (Finset.single_le_sum (f := fun i => ‖v i‖) (fun i _ => norm_nonneg _)
+        (Finset.mem_univ i)) (le_max_left _ _)
+    | succ t ih2 =>
+      intro i
+      have e : M ^ (t + 1) *ᵥ v = μ • (M ^ t *ᵥ v) + M ^ t *ᵥ u := by
+        rw [pow_succ, ← Matrix.mulVec_mulVec, hu, Matrix.mulVec_sub, Matrix.mulVec_smul]
+        abel
+      rw [e, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      refine (norm_add_le _ _).trans ?_
+      rw [norm_mul]
+      have hu2 := hCu t i
+      have := mul_le_mul_of_nonneg_left (ih2 i) (norm_nonneg μ)
+      have : Cu ≤ max Cu 0 := le_max_left _ _
+      nlinarith
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the complex bounded-orbit subspace is spanned by
+(the images of) real vectors with bounded orbits, so its complex dimension is at most the real
+dimension of `boundedOrbits A`. -/
+theorem finrank_boundedOrbitsC_le (A : Matrix κ κ ℝ) :
+    Module.finrank ℂ (boundedOrbitsC A) ≤ Module.finrank ℝ (boundedOrbits A) := by
+  set b := Module.finBasis ℝ (boundedOrbits A) with hb
+  set f : Fin (Module.finrank ℝ (boundedOrbits A)) → (κ → ℂ) :=
+    fun k i => (((b k : boundedOrbits A) : κ → ℝ) i : ℂ) with hf
+  have hreal : ∀ w ∈ boundedOrbits A,
+      (fun i => (w i : ℂ)) ∈ Submodule.span ℂ (Set.range f) := by
+    intro w hw
+    have hsum := b.sum_repr ⟨w, hw⟩
+    have e : (fun i => (w i : ℂ)) = ∑ k, ((b.repr ⟨w, hw⟩ k : ℝ) : ℂ) • f k := by
+      funext i
+      have := congrArg (fun z : boundedOrbits A => (z : κ → ℝ) i) hsum
+      simp only [Submodule.coe_sum, Submodule.coe_smul, Finset.sum_apply, Pi.smul_apply,
+        smul_eq_mul] at this
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, hf, ← this, Complex.ofReal_sum,
+        Complex.ofReal_mul]
+    rw [e]
+    exact Submodule.sum_mem _ fun k _ =>
+      Submodule.smul_mem _ _ (Submodule.subset_span (Set.mem_range_self k))
+  have hle : boundedOrbitsC A ≤ Submodule.span ℂ (Set.range f) := by
+    rintro v ⟨C, hC⟩
+    have hre : (fun i => (v i).re) ∈ boundedOrbits A := by
+      refine ⟨C, fun t i => ?_⟩
+      rw [← re_mulVec, map_ofReal_pow]
+      exact (Complex.abs_re_le_norm _).trans (hC t i)
+    have him : (fun i => (v i).im) ∈ boundedOrbits A := by
+      refine ⟨C, fun t i => ?_⟩
+      rw [← im_mulVec, map_ofReal_pow]
+      exact (Complex.abs_im_le_norm _).trans (hC t i)
+    have e : v = (fun i => ((v i).re : ℂ)) + Complex.I • fun i => ((v i).im : ℂ) := by
+      funext i
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rw [mul_comm]
+      exact (Complex.re_add_im (v i)).symm
+    rw [e]
+    exact Submodule.add_mem _ (hreal _ hre) (Submodule.smul_mem _ _ (hreal _ him))
+  calc Module.finrank ℂ (boundedOrbitsC A) ≤ Module.finrank ℂ (Submodule.span ℂ (Set.range f)) :=
+        Submodule.finrank_mono hle
+    _ ≤ Fintype.card (Fin (Module.finrank ℝ (boundedOrbits A))) := finrank_range_le_card f
+    _ = Module.finrank ℝ (boundedOrbits A) := Fintype.card_fin _
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the dimension of the span of finitely many
+independent subspaces is the sum of their dimensions. -/
+theorem finrank_finset_sup {V : Type*} [AddCommGroup V] [Module ℂ V] [FiniteDimensional ℂ V]
+    {W : ℂ → Submodule ℂ V} (hW : iSupIndep W) (s : Finset ℂ) :
+    Module.finrank ℂ (s.sup W : Submodule ℂ V) = ∑ μ ∈ s, Module.finrank ℂ (W μ) := by
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s ha ih =>
+    rw [Finset.sup_insert, Finset.sum_insert ha, ← ih]
+    have hd : Disjoint (W a) (s.sup W) := by
+      rw [Finset.sup_eq_iSup]
+      have := hW.disjoint_biSup (x := a) (y := (s : Set ℂ)) (by simpa using ha)
+      simpa using this
+    have h := Submodule.finrank_sup_add_finrank_inf_eq (W a) (s.sup W)
+    rw [disjoint_iff.mp hd, finrank_bot, add_zero] at h
+    exact h
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the number of eigenvalues in a set, counted with
+multiplicity, is the sum of their root multiplicities. -/
+theorem card_filter_eq_sum (p : ℂ[X]) (P : ℂ → Prop) [DecidablePred P] :
+    Multiset.card (p.roots.filter P) =
+      ∑ μ ∈ p.roots.toFinset.filter P, p.rootMultiplicity μ := by
+  rw [← Multiset.toFinset_sum_count_eq, Multiset.toFinset_filter]
+  refine Finset.sum_congr rfl fun μ hμ => ?_
+  rw [Finset.mem_filter] at hμ
+  rw [Multiset.count_filter, count_roots]
+  simp only [hμ.2, ↓reduceIte]
+
+/-- **Stable eigenvalues span bounded orbits** (Woodford (2003), App. C.1, p. 670; Blanchard and
+Kahn (1980)): the number of eigenvalues of `A` in the open unit disc, counted with algebraic
+multiplicity, is at most the dimension of the real bounded-orbit subspace. -/
+theorem stableCount_le_finrank (A : Matrix κ κ ℝ) :
+    stableCount A ≤ Module.finrank ℝ (boundedOrbits A) := by
+  set φ := Matrix.toLin' (A.map Complex.ofReal) with hφ
+  set p := (A.map Complex.ofReal).charpoly with hp
+  set s := p.roots.toFinset.filter (fun μ => ‖μ‖ < 1) with hs
+  have hcount : stableCount A = ∑ μ ∈ s, Module.finrank ℂ (Module.End.maxGenEigenspace φ μ) := by
+    rw [stableCount, eigs, card_filter_eq_sum]
+    refine Finset.sum_congr rfl fun μ _ => ?_
+    rw [LinearMap.finrank_maxGenEigenspace_eq, hφ, Matrix.charpoly_toLin']
+  have hsup : s.sup (Module.End.maxGenEigenspace φ) ≤ boundedOrbitsC A := by
+    refine Finset.sup_le fun μ hμ => ?_
+    rw [hs, Finset.mem_filter] at hμ
+    exact maxGenEigenspace_le_boundedOrbitsC A hμ.2
+  rw [hcount, ← finrank_finset_sup (Module.End.independent_maxGenEigenspace φ) s]
+  exact (Submodule.finrank_mono hsup).trans (finrank_boundedOrbitsC_le A)
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the number of eigenvalues outside the closed unit
+disc. -/
+noncomputable def unstableCount (K : Matrix κ κ ℝ) : ℕ :=
+  Multiset.card ((eigs K).filter (fun μ => 1 < ‖μ‖))
+
+/-- Woodford (2003), App. C.1, p. 670: with no eigenvalue on the unit circle, the stable and the
+unstable eigenvalues together are all `n` of them. -/
+theorem stableCount_add_unstableCount {K : Matrix κ κ ℝ} (h : NoUnit K) :
+    stableCount K + unstableCount K = Fintype.card κ := by
+  rw [stableCount, unstableCount, ← card_eigs K, ← Multiset.card_add]
+  congr 1
+  conv_rhs => rw [← Multiset.filter_add_not (fun μ : ℂ => ‖μ‖ < 1) (eigs K)]
+  congr 1
+  refine Multiset.filter_congr fun μ hμ => ?_
+  have := h μ hμ
+  constructor
+  · intro h1; exact not_lt.mpr h1.le
+  · intro h1; exact lt_of_le_of_ne (not_lt.mp h1) (Ne.symm this)
+
+/-! ### The bounded-orbit subspace has exactly `stableCount` dimensions (no unit eigenvalue) -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an `A`-invariant subspace `V` carries a matrix `T`
+of the restriction of `A` (in the basis `Module.finBasis`), and `charpoly T` divides
+`charpoly A` (block triangular form in a basis adapted to `V ⊕ W`, `W` a complement). -/
+theorem restrict_block (A : Matrix κ κ ℝ) (V : Submodule ℝ (κ → ℝ))
+    (hV : ∀ v ∈ V, A *ᵥ v ∈ V) :
+    ∃ T : Matrix (Fin (Module.finrank ℝ V)) (Fin (Module.finrank ℝ V)) ℝ,
+      T.charpoly ∣ A.charpoly ∧ ∀ j, A *ᵥ (Module.finBasis ℝ V j : κ → ℝ) =
+        ∑ i, T i j • (Module.finBasis ℝ V i : κ → ℝ) := by
+  set bV := Module.finBasis ℝ V with hbV
+  obtain ⟨W, hW⟩ := Submodule.exists_isCompl V
+  set bW := Module.finBasis ℝ W with hbW
+  set e := Submodule.prodEquivOfIsCompl V W hW with he
+  set φ : Module.End ℝ (κ → ℝ) := Matrix.toLin' A with hφ
+  set ψ := e.symm.conj φ with hψdef
+  set bb := bV.prod bW with hbb
+  set T' := LinearMap.toMatrix bb bb ψ with hT'
+  have hψ : ∀ j, ψ (bb (Sum.inl j)) = (⟨A *ᵥ bV j, hV _ (bV j).2⟩, 0) := by
+    intro j
+    rw [hψdef, LinearEquiv.conj_apply]
+    simp only [LinearMap.comp_apply, LinearEquiv.coe_coe, LinearEquiv.symm_symm]
+    have h1 : e (bb (Sum.inl j)) = bV j := by
+      rw [he, Submodule.coe_prodEquivOfIsCompl', hbb, Module.Basis.prod_apply_inl_fst,
+        Module.Basis.prod_apply_inl_snd]
+      simp
+    rw [h1, hφ, Matrix.toLin'_apply]
+    exact Submodule.prodEquivOfIsCompl_symm_apply_left V W hW ⟨_, _⟩
+  have h21 : T'.toBlocks₂₁ = 0 := by
+    ext k j
+    simp only [Matrix.toBlocks₂₁, Matrix.of_apply, Matrix.zero_apply, hT',
+      LinearMap.toMatrix_apply]
+    rw [hψ, hbb, Module.Basis.prod_repr_inr]
+    simp
+  have h11 : ∀ i j, T'.toBlocks₁₁ i j = bV.repr ⟨A *ᵥ bV j, hV _ (bV j).2⟩ i := by
+    intro i j
+    simp only [Matrix.toBlocks₁₁, Matrix.of_apply, hT', LinearMap.toMatrix_apply]
+    rw [hψ, hbb, Module.Basis.prod_repr_inl]
+  refine ⟨T'.toBlocks₁₁, ?_, fun j => ?_⟩
+  · have hc : A.charpoly = T'.charpoly := by
+      rw [hT', LinearMap.charpoly_toMatrix, hψdef, LinearEquiv.charpoly_conj, hφ,
+        Matrix.charpoly_toLin']
+    rw [hc, ← Matrix.fromBlocks_toBlocks T', h21, Matrix.charpoly_fromBlocks_zero₂₁]
+    exact dvd_mul_right _ _
+  · have hsum := bV.sum_repr ⟨A *ᵥ bV j, hV _ (bV j).2⟩
+    have := congrArg Subtype.val hsum
+    simp only [Submodule.coe_sum, Submodule.coe_smul] at this
+    rw [← this]
+    exact Finset.sum_congr rfl fun i _ => by rw [h11]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `|μ| ≤ 1` when `μᵗ z` stays bounded, `z ≠ 0`. -/
+theorem norm_le_one_of_bounded_pow_mul {μ z : ℂ} (hz : z ≠ 0) {C : ℝ}
+    (h : ∀ t : ℕ, ‖μ ^ t * z‖ ≤ C) : ‖μ‖ ≤ 1 := by
+  by_contra hgt
+  push Not at hgt
+  have hz0 : 0 < ‖z‖ := norm_pos_iff.mpr hz
+  have htend : Tendsto (fun t : ℕ => ‖μ‖ ^ t * ‖z‖) atTop atTop :=
+    (tendsto_pow_atTop_atTop_of_one_lt hgt).atTop_mul_const hz0
+  obtain ⟨t, ht⟩ := (htend.eventually_gt_atTop C).exists
+  have := h t
+  rw [norm_mul, norm_pow] at this
+  linarith
+
+/-- Woodford (2003), App. C.1, p. 670 (Blanchard and Kahn (1980)): if no eigenvalue lies on the
+unit circle, the matrix `T` of `A` restricted to the bounded-orbit subspace has all its
+eigenvalues in the open unit disc, and they are eigenvalues of `A` with multiplicity. The
+restriction has bounded powers, so its eigenvalues lie in the closed disc (`restrict_block`
+gives `charpoly T ∣ charpoly A`). -/
+theorem exists_restrict_stable {A : Matrix κ κ ℝ} (hnu : NoUnit A) :
+    ∃ T : Matrix (Fin (Module.finrank ℝ (boundedOrbits A)))
+        (Fin (Module.finrank ℝ (boundedOrbits A))) ℝ,
+      eigs T ≤ eigs A ∧ (∀ μ ∈ eigs T, ‖μ‖ < 1) ∧
+      ∀ j, A *ᵥ (Module.finBasis ℝ (boundedOrbits A) j : κ → ℝ) =
+        ∑ i, T i j • (Module.finBasis ℝ (boundedOrbits A) i : κ → ℝ) := by
+  set B := boundedOrbits A with hB
+  set bV := Module.finBasis ℝ B with hbV
+  obtain ⟨T, hdvd, hexp⟩ := restrict_block A B (fun v hv => mulVec_mem_boundedOrbits hv)
+  have hle : eigs T ≤ eigs A := by
+    have e1 : (T.map Complex.ofReal).charpoly = T.charpoly.map Complex.ofRealHom :=
+      Matrix.charpoly_map T Complex.ofRealHom
+    have e2 : (A.map Complex.ofReal).charpoly = A.charpoly.map Complex.ofRealHom :=
+      Matrix.charpoly_map A Complex.ofRealHom
+    rw [eigs, eigs, e1, e2]
+    exact Polynomial.roots.le_of_dvd ((Matrix.charpoly_monic A).map _).ne_zero
+      (Polynomial.map_dvd _ hdvd)
+  set bv : Fin (Module.finrank ℝ B) → κ → ℝ := fun j => (bV j : κ → ℝ) with hbv
+  have hli : LinearIndependent ℝ bv := bV.linearIndependent.map' B.subtype (Submodule.ker_subtype B)
+  have hst : ∀ μ ∈ eigs T, ‖μ‖ < 1 := by
+    intro μ hμ
+    obtain ⟨c, hc0, hc⟩ := exists_eigvec hμ
+    have hcT : ∀ i, ∑ j, (T i j : ℂ) * c j = μ * c i := fun i => by
+      have := congrFun hc i
+      simpa [Matrix.mulVec, dotProduct] using this
+    set u : κ → ℂ := fun k => ∑ j, c j * (bv j k : ℂ) with hu
+    have hAu : A.map Complex.ofReal *ᵥ u = μ • u := by
+      funext k
+      have hb : ∀ j, ∑ l, (A k l : ℂ) * (bv j l : ℂ) = ∑ i, (T i j : ℂ) * (bv i k : ℂ) := by
+        intro j
+        have := congrFun (hexp j) k
+        simp only [Matrix.mulVec, dotProduct, Finset.sum_apply, Pi.smul_apply,
+          smul_eq_mul] at this
+        exact_mod_cast this
+      simp only [Matrix.mulVec, dotProduct, Matrix.map_apply, hu, Pi.smul_apply, smul_eq_mul,
+        Finset.mul_sum]
+      rw [Finset.sum_comm]
+      have e1 : ∀ j, ∑ l, (A k l : ℂ) * (c j * (bv j l : ℂ)) =
+          c j * ∑ i, (T i j : ℂ) * (bv i k : ℂ) := by
+        intro j
+        rw [← hb j, Finset.mul_sum]
+        exact Finset.sum_congr rfl fun l _ => by ring
+      simp only [e1, Finset.mul_sum]
+      rw [Finset.sum_comm]
+      refine Finset.sum_congr rfl fun i _ => ?_
+      rw [show μ * (c i * (bv i k : ℂ)) = (∑ j, (T i j : ℂ) * c j) * (bv i k : ℂ) by
+        rw [hcT i]; ring, Finset.sum_mul]
+      exact Finset.sum_congr rfl fun j _ => by ring
+    have hre : (fun k => (u k).re) = ∑ j, (c j).re • bv j := by
+      funext k
+      simp [hu, Finset.sum_apply, Complex.re_sum]
+    have him : (fun k => (u k).im) = ∑ j, (c j).im • bv j := by
+      funext k
+      simp [hu, Finset.sum_apply, Complex.im_sum]
+    have hreB : (fun k => (u k).re) ∈ B := by
+      rw [hre]
+      exact Submodule.sum_mem _ fun j _ => Submodule.smul_mem _ _ (bV j).2
+    have himB : (fun k => (u k).im) ∈ B := by
+      rw [him]
+      exact Submodule.sum_mem _ fun j _ => Submodule.smul_mem _ _ (bV j).2
+    have hu0 : u ≠ 0 := by
+      intro h0
+      have h1 : ∑ j, (c j).re • bv j = 0 := by
+        rw [← hre, h0]; funext k; simp
+      have h2 : ∑ j, (c j).im • bv j = 0 := by
+        rw [← him, h0]; funext k; simp
+      apply hc0
+      funext j
+      exact Complex.ext (Fintype.linearIndependent_iff.mp hli _ h1 j)
+        (Fintype.linearIndependent_iff.mp hli _ h2 j)
+    obtain ⟨k, hk⟩ : ∃ k, u k ≠ 0 := by
+      by_contra hne
+      push Not at hne
+      exact hu0 (funext hne)
+    obtain ⟨C1, hC1⟩ := hreB
+    obtain ⟨C2, hC2⟩ := himB
+    have hbd : ∀ t : ℕ, ‖μ ^ t * u k‖ ≤ C1 + C2 := by
+      intro t
+      have e := congrFun (pow_mulVec_eigvec hAu t) k
+      rw [← map_ofReal_pow] at e
+      simp only [Pi.smul_apply, smul_eq_mul] at e
+      rw [← e]
+      have hr := hC1 t k
+      have hi := hC2 t k
+      rw [← re_mulVec] at hr
+      rw [← im_mulVec] at hi
+      refine (Complex.norm_le_abs_re_add_abs_im _).trans (add_le_add hr hi)
+    have h1 := norm_le_one_of_bounded_pow_mul hk hbd
+    exact lt_of_le_of_ne h1 (hnu μ (Multiset.mem_of_le hle hμ))
+  exact ⟨T, hle, hst, hexp⟩
+
+/-- **The stable dimension equals the stable count** (Woodford (2003), App. C.1, p. 670;
+Blanchard and Kahn (1980)), upper bound: if no eigenvalue lies on the unit circle, the dimension
+of the bounded-orbit subspace is at most the number of eigenvalues in the open unit disc. -/
+theorem finrank_le_stableCount {A : Matrix κ κ ℝ} (hnu : NoUnit A) :
+    Module.finrank ℝ (boundedOrbits A) ≤ stableCount A := by
+  obtain ⟨T, hle, hst, -⟩ := exists_restrict_stable hnu
+  calc Module.finrank ℝ (boundedOrbits A) = Multiset.card (eigs T) := by
+        rw [card_eigs, Fintype.card_fin]
+    _ = Multiset.card ((eigs T).filter (fun μ => ‖μ‖ < 1)) := by
+        rw [Multiset.filter_eq_self.mpr hst]
+    _ ≤ stableCount A := Multiset.card_le_card (Multiset.filter_le_filter _ hle)
+
+/-- **Bounded orbits decay** (Woodford (2003), App. C.1, p. 670; Blanchard and Kahn (1980)): if
+no eigenvalue lies on the unit circle, every bounded orbit tends to `0`, so the bounded-orbit
+subspace is the stable subspace `{v : Aᵗ v → 0}`. On the subspace, `A` acts through the matrix
+`T` of `exists_restrict_stable`, whose powers decay geometrically. -/
+theorem tendsto_of_mem_boundedOrbits {A : Matrix κ κ ℝ} (hnu : NoUnit A) {v : κ → ℝ}
+    (hv : v ∈ boundedOrbits A) : Tendsto (fun t => A ^ t *ᵥ v) atTop (𝓝 0) := by
+  obtain ⟨T, -, hst, hexp⟩ := exists_restrict_stable hnu
+  obtain ⟨Cb, ρ, -, hρ0, hρ1, hT⟩ := pow_entry_bound T hst
+  set bV := Module.finBasis ℝ (boundedOrbits A) with hbV
+  set b : Fin (Module.finrank ℝ (boundedOrbits A)) → κ → ℝ := fun j => (bV j : κ → ℝ) with hb
+  have hpow : ∀ t j, A ^ t *ᵥ b j = ∑ i, (T ^ t) i j • b i := by
+    intro t
+    induction t with
+    | zero =>
+      intro j
+      simp only [pow_zero, Matrix.one_mulVec, Matrix.one_apply, ite_smul, one_smul, zero_smul,
+        Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte]
+    | succ t ih =>
+      intro j
+      rw [pow_succ', ← Matrix.mulVec_mulVec, ih j, Matrix.mulVec_sum]
+      simp only [Matrix.mulVec_smul, hb, hexp, Finset.smul_sum, smul_smul]
+      rw [Finset.sum_comm]
+      refine Finset.sum_congr rfl fun k _ => ?_
+      rw [← Finset.sum_smul, pow_succ', Matrix.mul_apply]
+      congr 1
+      exact Finset.sum_congr rfl fun i _ => mul_comm _ _
+  have hv' : v = ∑ j, bV.repr ⟨v, hv⟩ j • b j := by
+    have := congrArg Subtype.val (bV.sum_repr ⟨v, hv⟩)
+    simp only [Submodule.coe_sum, Submodule.coe_smul] at this
+    exact this.symm
+  have hentry : ∀ i j, Tendsto (fun t => (T ^ t) i j) atTop (𝓝 0) := by
+    intro i j
+    refine squeeze_zero_norm (a := fun t : ℕ => Cb * ρ ^ t) (fun t => ?_) ?_
+    · rw [Real.norm_eq_abs]; exact hT t i j
+    · simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hρ0.le hρ1).const_mul Cb
+  have e : (fun t => A ^ t *ᵥ v) =
+      fun t => ∑ j, ∑ i, (bV.repr ⟨v, hv⟩ j * (T ^ t) i j) • b i := by
+    funext t
+    conv_lhs => rw [hv']
+    rw [Matrix.mulVec_sum]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [Matrix.mulVec_smul, hpow, Finset.smul_sum]
+    exact Finset.sum_congr rfl fun i _ => by rw [smul_smul]
+  rw [e]
+  have : (0 : κ → ℝ) = ∑ j : Fin (Module.finrank ℝ (boundedOrbits A)),
+      ∑ i : Fin (Module.finrank ℝ (boundedOrbits A)), (bV.repr ⟨v, hv⟩ j * 0) • b i := by
+    simp
+  rw [this]
+  refine tendsto_finsetSum _ fun j _ => tendsto_finsetSum _ fun i _ => ?_
+  exact ((hentry i j).const_mul _).smul_const _
+
+/-- **The stable dimension equals the stable count** (Woodford (2003), App. C.1, p. 670, the
+"equivalently" of the counting rule; Blanchard and Kahn (1980)): with no eigenvalue on the unit
+circle, the real bounded-orbit (stable) subspace has dimension equal to the number of eigenvalues
+in the open unit disc, counted with algebraic multiplicity. -/
+theorem finrank_eq_stableCount {A : Matrix κ κ ℝ} (hnu : NoUnit A) :
+    Module.finrank ℝ (boundedOrbits A) = stableCount A :=
+  le_antisymm (finrank_le_stableCount hnu) (stableCount_le_finrank A)
+
+/-- Woodford (2003), App. C.1, p. 670 (Prop. C.1's mechanism): if every eigenvalue lies outside
+the closed unit disc, the only bounded orbit is `0`. -/
+theorem boundedOrbits_eq_bot_of_unstable {A : Matrix κ κ ℝ} (h : ∀ μ ∈ eigs A, 1 < ‖μ‖) :
+    boundedOrbits A = ⊥ := by
+  have hnu : NoUnit A := fun μ hμ h1 => by have := h μ hμ; rw [h1] at this; exact lt_irrefl _ this
+  have hc : stableCount A = 0 := by
+    rw [stableCount, Multiset.card_eq_zero, Multiset.filter_eq_nil]
+    exact fun μ hμ => not_lt.mpr (h μ hμ).le
+  rw [← Submodule.finrank_eq_zero, finrank_eq_stableCount hnu, hc]
+
+/-! ### Bounded linear recursions -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an entry of a matrix is bounded by the sum of the
+absolute values of all entries. -/
+theorem abs_entry_le_sum {m n : Type*} [Fintype m] [Fintype n] (M : Matrix m n ℝ) (i : m)
+    (j : n) : |M i j| ≤ ∑ i, ∑ j, |M i j| :=
+  (Finset.single_le_sum (f := fun j => |M i j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ j)).trans
+    (Finset.single_le_sum (f := fun i => ∑ j, |M i j|)
+      (fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _) (Finset.mem_univ i))
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `|(M v)_i| ≤ n a b` when the entries of `M` are
+bounded by `a` and those of `v` by `b`. -/
+theorem abs_mulVec_le {m n : Type*} [Fintype n] (M : Matrix m n ℝ) (v : n → ℝ) {a b : ℝ}
+    (hM : ∀ i j, |M i j| ≤ a) (hv : ∀ j, |v j| ≤ b) (i : m) :
+    |(M *ᵥ v) i| ≤ Fintype.card n * (a * b) := by
+  rw [Matrix.mulVec, dotProduct]
+  calc |∑ j, M i j * v j| ≤ ∑ j, |M i j * v j| := Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ _j : n, a * b := by
+        refine Finset.sum_le_sum fun j _ => ?_
+        rw [abs_mul]
+        exact mul_le_mul (hM i j) (hv j) (abs_nonneg _) ((abs_nonneg _).trans (hM i j))
+    _ = Fintype.card n * (a * b) := by simp
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the solution of `x_{t+1} = L x_t + f_t`,
+`x_t = Lᵗ x_0 + ∑_{k<t} Lᵏ f_{t−1−k}`. -/
+theorem rec_closed {L : Matrix κ κ ℝ} {f x : ℕ → κ → ℝ} (hx : ∀ t, x (t + 1) = L *ᵥ x t + f t)
+    (t : ℕ) : x t = L ^ t *ᵥ x 0 + ∑ k ∈ Finset.range t, L ^ k *ᵥ f (t - 1 - k) := by
+  induction t with
+  | zero => simp
+  | succ t ih =>
+    rw [hx t, ih, Matrix.mulVec_add, Matrix.mulVec_sum, Matrix.mulVec_mulVec, ← pow_succ',
+      Finset.sum_range_succ' _ t, add_assoc]
+    congr 1
+    simp only [pow_zero, Matrix.one_mulVec, Matrix.mulVec_mulVec, ← pow_succ']
+    rw [show t + 1 - 1 - 0 = t by omega]
+    congr 1
+    refine Finset.sum_congr rfl fun k hk => ?_
+    rw [Finset.mem_range] at hk
+    rw [show t + 1 - 1 - (k + 1) = t - 1 - k by omega]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): if the powers of `L` decay geometrically, the
+backward recursion `x_{t+1} = L x_t + f_t` with bounded `f` has a bounded solution. -/
+theorem rec_bounded {L : Matrix κ κ ℝ} {Cb ρ : ℝ} (hCb : 0 ≤ Cb) (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
+    (hL : ∀ k i j, |(L ^ k) i j| ≤ Cb * ρ ^ k) {f x : ℕ → κ → ℝ}
+    (hx : ∀ t, x (t + 1) = L *ᵥ x t + f t) {F X0 : ℝ} (hF0 : 0 ≤ F) (hX0 : 0 ≤ X0)
+    (hf : ∀ t j, |f t j| ≤ F) (hx0 : ∀ j, |x 0 j| ≤ X0) :
+    ∀ t j, |x t j| ≤ Fintype.card κ * Cb * (X0 + F / (1 - ρ)) := by
+  intro t j
+  set c : ℝ := (Fintype.card κ : ℝ) with hc
+  have hc0 : 0 ≤ c := Nat.cast_nonneg _
+  have h1 : 0 < 1 - ρ := by linarith
+  rw [rec_closed hx t, Pi.add_apply, Finset.sum_apply]
+  have hA : |(L ^ t *ᵥ x 0) j| ≤ c * (Cb * ρ ^ t * X0) :=
+    abs_mulVec_le _ _ (hL t) hx0 j
+  have hB : ∀ k ∈ Finset.range t, |(L ^ k *ᵥ f (t - 1 - k)) j| ≤ c * Cb * F * ρ ^ k := by
+    intro k _
+    have := abs_mulVec_le _ _ (hL k) (hf (t - 1 - k)) j
+    calc _ ≤ c * (Cb * ρ ^ k * F) := this
+      _ = c * Cb * F * ρ ^ k := by ring
+  have hgeo : ∑ k ∈ Finset.range t, ρ ^ k ≤ 1 / (1 - ρ) := by
+    have := geom_sum_Ico_le_of_lt_one (m := 0) (n := t) hρ0 hρ1
+    rwa [pow_zero, ← Finset.range_eq_Ico] at this
+  have hρt : ρ ^ t ≤ 1 := pow_le_one₀ hρ0 hρ1.le
+  have hsum : |∑ k ∈ Finset.range t, (L ^ k *ᵥ f (t - 1 - k)) j| ≤ c * Cb * F * (1 / (1 - ρ)) := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ((Finset.sum_le_sum hB).trans ?_)
+    rw [← Finset.mul_sum]
+    exact mul_le_mul_of_nonneg_left hgeo (by positivity)
+  have hcCb : 0 ≤ c * Cb := mul_nonneg hc0 hCb
+  calc _ ≤ |(L ^ t *ᵥ x 0) j| + |∑ k ∈ Finset.range t, (L ^ k *ᵥ f (t - 1 - k)) j| :=
+        abs_add_le _ _
+    _ ≤ c * (Cb * ρ ^ t * X0) + c * Cb * F * (1 / (1 - ρ)) := add_le_add hA hsum
+    _ ≤ c * Cb * X0 + c * Cb * F * (1 / (1 - ρ)) := by
+        have : c * (Cb * ρ ^ t * X0) = c * Cb * X0 * ρ ^ t := by ring
+        rw [this]
+        have := mul_le_mul_of_nonneg_left hρt (mul_nonneg hcCb hX0)
+        linarith
+    _ = c * Cb * (X0 + F / (1 - ρ)) := by ring
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the backward recursion `x_{t+1} = L x_t + f_t`,
+`x_0` given. -/
+def xrecV {ι : Type*} [Fintype ι] (L : Matrix ι ι ℝ) (f : ℕ → ι → ℝ) (x0 : ι → ℝ) :
+    ℕ → ι → ℝ
+  | 0 => x0
+  | t + 1 => L *ᵥ xrecV L f x0 t + f t
+
+/-! ### Predetermined coordinates: the genericity condition and the graph -/
+
+variable {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X]
+
+/-- Woodford (2003), App. C.1, p. 672, fn. 2 (the genericity condition the book leaves
+implicit; Blanchard and Kahn (1980)): with the state split into non-predetermined coordinates
+`Z` and predetermined coordinates `X`, no nonzero bounded orbit starts with `x = 0`. -/
+def GenericX (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) : Prop :=
+  ∀ v ∈ boundedOrbits A, (∀ j, v (Sum.inr j) = 0) → v = 0
+
+/-- Woodford (2003), App. C.1, p. 672: the projection onto the predetermined coordinates. -/
+def projX : (Z ⊕ X → ℝ) →ₗ[ℝ] (X → ℝ) := LinearMap.funLeft ℝ ℝ Sum.inr
+
+/-- Woodford (2003), App. C.1, p. 672: the vector `(G x, x)` of the graph of `G : X → Z`. -/
+def graphV (G : Matrix Z X ℝ) (x : X → ℝ) : Z ⊕ X → ℝ := Sum.elim (G *ᵥ x) x
+
+/-- Woodford (2003), App. C.1, p. 672 (Blanchard–Kahn): the bounded-orbit subspace is the graph
+of `G`: it contains every `(G x, x)`, and each of its vectors has `z = G x`. -/
+def IsGraph (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) : Prop :=
+  (∀ x, graphV G x ∈ boundedOrbits A) ∧
+    ∀ v ∈ boundedOrbits A, ∀ i, v (Sum.inl i) = (G *ᵥ fun j => v (Sum.inr j)) i
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): two matrices acting identically on all vectors
+are equal. -/
+theorem matrix_eq_of_mulVec {m n : Type*} [Fintype n] {M N : Matrix m n ℝ}
+    (h : ∀ x, M *ᵥ x = N *ᵥ x) : M = N := by
+  classical
+  ext i j
+  have := congrFun (h (Pi.single j 1)) i
+  simpa [Matrix.mulVec, dotProduct, Pi.single_apply] using this
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): a block matrix acting on `(z, x)`. -/
+theorem mulVec_sumElim (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (z : Z → ℝ) (x : X → ℝ) :
+    A *ᵥ Sum.elim z x = Sum.elim (A.toBlocks₁₁ *ᵥ z + A.toBlocks₁₂ *ᵥ x)
+      (A.toBlocks₂₁ *ᵥ z + A.toBlocks₂₂ *ᵥ x) := by
+  conv_lhs => rw [← Matrix.fromBlocks_toBlocks A]
+  rw [Matrix.fromBlocks_mulVec]
+  rfl
+
+/-- **The graph** (Woodford (2003), App. C.1, p. 672; Blanchard and Kahn (1980)): if the
+bounded-orbit subspace has dimension `|X|` and meets `{x = 0}` only in `0`, it projects
+isomorphically onto the predetermined coordinates, so it is the graph of a matrix `G`. -/
+theorem exists_graph {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (hd : Module.finrank ℝ (boundedOrbits A) = Fintype.card X) (hg : GenericX A) :
+    ∃ G : Matrix Z X ℝ, IsGraph A G := by
+  set B := boundedOrbits A with hB
+  set f : B →ₗ[ℝ] (X → ℝ) := (projX (Z := Z) (X := X)).domRestrict B with hf
+  have hfv : ∀ v : B, ∀ j, f v j = (v : Z ⊕ X → ℝ) (Sum.inr j) := fun _ _ => rfl
+  have hinj : Function.Injective f := by
+    rw [← LinearMap.ker_eq_bot, LinearMap.ker_eq_bot']
+    intro v hv
+    apply Subtype.ext
+    exact hg v v.2 (fun j => by rw [← hfv]; exact congrFun hv j)
+  have hsurj : Function.Surjective f :=
+    (LinearMap.injective_iff_surjective_of_finrank_eq_finrank
+      (by rw [hd, Module.finrank_fintype_fun_eq_card])).mp hinj
+  choose b hb using fun j : X => hsurj (Pi.single j 1)
+  set G : Matrix Z X ℝ := fun i j => (b j : Z ⊕ X → ℝ) (Sum.inl i) with hG
+  have h1 : ∀ x : X → ℝ, graphV G x = ∑ j, x j • (b j : Z ⊕ X → ℝ) := by
+    intro x
+    funext k
+    rcases k with i | k
+    · simp [graphV, hG, Matrix.mulVec, dotProduct, Finset.sum_apply, mul_comm]
+    · have e : ∀ j, (b j : Z ⊕ X → ℝ) (Sum.inr k) = (Pi.single j (1 : ℝ) : X → ℝ) k := fun j => by
+        rw [← hfv, hb j]
+      simp only [graphV, Sum.elim_inr, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      simp only [e]
+      simp [Pi.single_apply]
+  have hmem : ∀ x : X → ℝ, graphV G x ∈ B := by
+    intro x
+    rw [h1 x]
+    exact Submodule.sum_mem _ fun j _ => Submodule.smul_mem _ _ (b j).2
+  refine ⟨G, hmem, fun v hv i => ?_⟩
+  set w := v - graphV G (fun j => v (Sum.inr j)) with hw
+  have hwB : w ∈ B := Submodule.sub_mem _ hv (hmem _)
+  have hw0 : w = 0 := hg w hwB (fun j => by simp [hw, graphV])
+  have := congrFun hw0 (Sum.inl i)
+  simp only [hw, Pi.sub_apply, graphV, Sum.elim_inl, Pi.zero_apply, sub_eq_zero] at this
+  exact this
+
+/-- Woodford (2003), App. C.1, p. 672: `Λ = A_xz G + A_xx`, the matrix of `A` restricted to the
+graph, in the predetermined coordinates. -/
+def lam (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) : Matrix X X ℝ :=
+  A.toBlocks₂₁ * G + A.toBlocks₂₂
+
+/-- Woodford (2003), App. C.1, p. 672: `C = A_zz − G A_xz`, the matrix governing
+`ẑ_t = z_t − G x_t`. -/
+def cmat (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) : Matrix Z Z ℝ :=
+  A.toBlocks₁₁ - G * A.toBlocks₂₁
+
+/-- Woodford (2003), App. C.1, p. 672: invariance of the graph,
+`A_zz G + A_zx = G Λ`, i.e. `A [G; I] = [G; I] Λ`. -/
+theorem graph_invariant {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ} (hG : IsGraph A G) :
+    A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G := by
+  refine matrix_eq_of_mulVec fun x => ?_
+  have hv := mulVec_mem_boundedOrbits (hG.1 x)
+  funext i
+  have e := hG.2 _ hv i
+  rw [graphV, mulVec_sumElim] at e
+  simp only [Sum.elim_inl, Sum.elim_inr] at e
+  have e2 : (A.toBlocks₁₁ * G + A.toBlocks₁₂) *ᵥ x =
+      A.toBlocks₁₁ *ᵥ (G *ᵥ x) + A.toBlocks₁₂ *ᵥ x := by
+    rw [Matrix.add_mulVec, Matrix.mulVec_mulVec]
+  have e3 : (G * lam A G) *ᵥ x = G *ᵥ (A.toBlocks₂₁ *ᵥ (G *ᵥ x) + A.toBlocks₂₂ *ᵥ x) := by
+    rw [← Matrix.mulVec_mulVec, lam, Matrix.add_mulVec, Matrix.mulVec_mulVec]
+  rw [e2, e3]
+  exact e
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): the invariance identity on vectors,
+`A_zz G x + A_zx x = G Λ x`. -/
+theorem graph_invariant_vec {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) (x : X → ℝ) :
+    A.toBlocks₁₁ *ᵥ (G *ᵥ x) + A.toBlocks₁₂ *ᵥ x = G *ᵥ (lam A G *ᵥ x) := by
+  have := congrArg (fun M => M *ᵥ x) hinv
+  simpa only [Matrix.add_mulVec, Matrix.mulVec_mulVec] using this
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): `Λ x = A_xz G x + A_xx x`. -/
+theorem lam_mulVec (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) (x : X → ℝ) :
+    lam A G *ᵥ x = A.toBlocks₂₁ *ᵥ (G *ᵥ x) + A.toBlocks₂₂ *ᵥ x := by
+  rw [lam, Matrix.add_mulVec, Matrix.mulVec_mulVec]
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672: `A (G x, x) = (G Λ x, Λ x)`. -/
+theorem mulVec_graphV {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) (x : X → ℝ) :
+    A *ᵥ graphV G x = graphV G (lam A G *ᵥ x) := by
+  rw [graphV, mulVec_sumElim, graphV, graph_invariant_vec hinv, lam_mulVec]
+
+/-- Woodford (2003), App. C.1, p. 672: `Aᵗ (G x, x) = (G Λᵗ x, Λᵗ x)`. -/
+theorem pow_mulVec_graphV {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) (x : X → ℝ) (t : ℕ) :
+    A ^ t *ᵥ graphV G x = graphV G (lam A G ^ t *ᵥ x) := by
+  induction t with
+  | zero => simp
+  | succ t ih =>
+    rw [pow_succ', ← Matrix.mulVec_mulVec, ih, mulVec_graphV hinv, Matrix.mulVec_mulVec,
+      ← pow_succ']
+
+/-- Woodford (2003), App. C.1, p. 672: the powers of `Λ` are bounded (`Λᵗ` is `Aᵗ` on bounded
+orbits). -/
+theorem lam_pow_bounded {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ} (hG : IsGraph A G) :
+    ∃ Cb, ∀ t j k, |(lam A G ^ t) j k| ≤ Cb := by
+  have hinv := graph_invariant hG
+  choose C hC using fun k : X => hG.1 (Pi.single k (1 : ℝ))
+  refine ⟨∑ k, |C k|, fun t j k => ?_⟩
+  have e : (lam A G ^ t) j k = (A ^ t *ᵥ graphV G (Pi.single k (1 : ℝ))) (Sum.inr j) := by
+    rw [pow_mulVec_graphV hinv, graphV, Sum.elim_inr]
+    simp [Matrix.mulVec, dotProduct, Pi.single_apply]
+  rw [e]
+  exact ((hC k t _).trans (le_abs_self _)).trans
+    (Finset.single_le_sum (f := fun k => |C k|) (fun _ _ => abs_nonneg _) (Finset.mem_univ k))
+
+/-- Woodford (2003), App. C.1, p. 672 (tool): the change of variables `ẑ = z − G x` and its
+inverse. -/
+theorem fromBlocks_shear_mul (G : Matrix Z X ℝ) :
+    Matrix.fromBlocks (1 : Matrix Z Z ℝ) G 0 (1 : Matrix X X ℝ) *
+      Matrix.fromBlocks (1 : Matrix Z Z ℝ) (-G) 0 (1 : Matrix X X ℝ) = 1 := by
+  rw [Matrix.fromBlocks_multiply]
+  simp [Matrix.fromBlocks_one]
+
+/-- **Block triangularisation** (Woodford (2003), App. C.1, p. 672; Blanchard and Kahn (1980)):
+in the coordinates `(ẑ, x)`, `ẑ = z − G x`, the matrix `A` is block lower triangular with
+diagonal blocks `C` and `Λ`, so `charpoly A = charpoly C · charpoly Λ`. -/
+theorem charpoly_split {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) :
+    A.charpoly = (cmat A G).charpoly * (lam A G).charpoly := by
+  set T := Matrix.fromBlocks (1 : Matrix Z Z ℝ) G 0 (1 : Matrix X X ℝ) with hT
+  set T' := Matrix.fromBlocks (1 : Matrix Z Z ℝ) (-G) 0 (1 : Matrix X X ℝ) with hT'
+  have hconj : T' * A * T = Matrix.fromBlocks (cmat A G) 0 A.toBlocks₂₁ (lam A G) := by
+    rw [hT, hT']
+    conv_lhs => rw [← Matrix.fromBlocks_toBlocks A]
+    rw [Matrix.fromBlocks_multiply, Matrix.fromBlocks_multiply]
+    have h12 : (A.toBlocks₁₁ - G * A.toBlocks₂₁) * G + (A.toBlocks₁₂ - G * A.toBlocks₂₂) = 0 := by
+      have e : (A.toBlocks₁₁ - G * A.toBlocks₂₁) * G + (A.toBlocks₁₂ - G * A.toBlocks₂₂) =
+          (A.toBlocks₁₁ * G + A.toBlocks₁₂) - G * lam A G := by
+        rw [lam, Matrix.sub_mul, Matrix.mul_add, Matrix.mul_assoc]
+        abel
+      rw [e, hinv, sub_self]
+    congr 1
+    · simp [cmat, sub_eq_add_neg, Matrix.neg_mul]
+    · simpa [sub_eq_add_neg, Matrix.neg_mul, Matrix.add_mul, Matrix.mul_assoc] using h12
+    · simp
+    · simp [lam]
+  calc A.charpoly = ((T * T') * A).charpoly := by rw [fromBlocks_shear_mul, Matrix.one_mul]
+    _ = ((T' * A) * T).charpoly := by rw [Matrix.mul_assoc, Matrix.charpoly_mul_comm]
+    _ = _ := by rw [hconj, Matrix.charpoly_fromBlocks_zero₁₂]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the characteristic polynomial of the
+complexification. -/
+theorem charpoly_map_ofReal (K : Matrix κ κ ℝ) :
+    (K.map Complex.ofReal).charpoly = K.charpoly.map Complex.ofRealHom :=
+  Matrix.charpoly_map K Complex.ofRealHom
+
+/-- Woodford (2003), App. C.1, p. 672: the eigenvalues of `A` are those of `C` together with those
+of `Λ`, with multiplicity. -/
+theorem eigs_split {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) :
+    eigs A = eigs (cmat A G) + eigs (lam A G) := by
+  rw [eigs, eigs, eigs, charpoly_map_ofReal, charpoly_map_ofReal, charpoly_map_ofReal,
+    charpoly_split hinv, Polynomial.map_mul]
+  refine roots_mul ?_
+  exact mul_ne_zero ((Matrix.charpoly_monic _).map _).ne_zero
+    ((Matrix.charpoly_monic _).map _).ne_zero
+
+/-- Woodford (2003), App. C.1, p. 672: with no eigenvalue on the unit circle, every eigenvalue of
+`Λ` lies in the open unit disc. -/
+theorem lam_stable {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ} (hG : IsGraph A G)
+    (hnu : NoUnit A) : ∀ μ ∈ eigs (lam A G), ‖μ‖ < 1 := by
+  intro μ hμ
+  obtain ⟨Cb, hCb⟩ := lam_pow_bounded hG
+  have h1 := norm_le_one_of_pow_bounded hCb μ hμ
+  have h2 : μ ∈ eigs A := by
+    rw [eigs_split (graph_invariant hG)]
+    exact Multiset.mem_add.mpr (Or.inr hμ)
+  exact lt_of_le_of_ne h1 (hnu μ h2)
+
+/-- Woodford (2003), App. C.1, p. 672 (Blanchard–Kahn): a bounded solution `ẑ` of
+`ẑ_{t+1} = C ẑ_t` starts at `0` — otherwise `(ẑ_0, 0)` would be a nonzero bounded orbit of `A`
+with `x = 0` (the orbit is completed by `x_{t+1} = Λ x_t + A_xz ẑ_t`, `x_0 = 0`). -/
+theorem zero_of_cmat_orbit {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hG : IsGraph A G) (hg : GenericX A) {Cb ρ : ℝ} (hCb : 0 ≤ Cb) (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
+    (hL : ∀ k i j, |(lam A G ^ k) i j| ≤ Cb * ρ ^ k) {zh : ℕ → Z → ℝ}
+    (hrec : ∀ t, zh (t + 1) = cmat A G *ᵥ zh t) {Kz : ℝ} (hKz : 0 ≤ Kz)
+    (hzb : ∀ t i, |zh t i| ≤ Kz) : zh 0 = 0 := by
+  have hinv := graph_invariant hG
+  set R := A.toBlocks₂₁ with hR
+  set x : ℕ → X → ℝ := xrecV (lam A G) (fun t => R *ᵥ zh t) 0 with hx
+  have hxrec : ∀ t, x (t + 1) = lam A G *ᵥ x t + R *ᵥ zh t := fun t => rfl
+  set aR : ℝ := ∑ i, ∑ j, |R i j| with haR
+  set aG : ℝ := ∑ i, ∑ j, |G i j| with haG
+  have haR0 : 0 ≤ aR := Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _
+  have haG0 : 0 ≤ aG := Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _
+  set F : ℝ := Fintype.card Z * (aR * Kz) with hF
+  have hF0 : 0 ≤ F := by positivity
+  have hfb : ∀ t j, |(R *ᵥ zh t) j| ≤ F := fun t j =>
+    abs_mulVec_le R (zh t) (abs_entry_le_sum R) (hzb t) j
+  set Xb : ℝ := Fintype.card X * Cb * (0 + F / (1 - ρ)) with hXb
+  have hxb : ∀ t j, |x t j| ≤ Xb :=
+    rec_bounded hCb hρ0 hρ1 hL hxrec hF0 le_rfl hfb (fun j => by simp [hx, xrecV])
+  have hXb0 : 0 ≤ Xb := by
+    have : 0 < 1 - ρ := by linarith
+    positivity
+  set y : ℕ → Z ⊕ X → ℝ := fun t => Sum.elim (zh t + G *ᵥ x t) (x t) with hy
+  have hystep : ∀ t, y (t + 1) = A *ᵥ y t := by
+    intro t
+    rw [hy, mulVec_sumElim]
+    simp only
+    rw [hrec t, hxrec t]
+    congr 1
+    · rw [cmat]
+      simp only [Matrix.mulVec_add, Matrix.sub_mulVec, ← Matrix.mulVec_mulVec]
+      rw [← graph_invariant_vec hinv]
+      abel
+    · simp only [Matrix.mulVec_add, lam_mulVec]
+      abel
+  have hyb : ∀ t k, |y t k| ≤ Kz + Fintype.card X * (aG * Xb) + Xb := by
+    intro t k
+    have hGx : ∀ i, |(G *ᵥ x t) i| ≤ Fintype.card X * (aG * Xb) := fun i =>
+      abs_mulVec_le G (x t) (abs_entry_le_sum G) (hxb t) i
+    rcases k with i | j
+    · simp only [hy, Sum.elim_inl, Pi.add_apply]
+      have := (abs_add_le _ _).trans (add_le_add (hzb t i) (hGx i))
+      linarith
+    · simp only [hy, Sum.elim_inr]
+      have : 0 ≤ Kz + Fintype.card X * (aG * Xb) := by positivity
+      linarith [hxb t j]
+  have hmem := mem_boundedOrbits_of_orbit hystep hyb
+  have h0 : y 0 = 0 := hg _ hmem (fun j => by simp [hy, hx, xrecV])
+  funext i
+  have := congrFun h0 (Sum.inl i)
+  simpa [hy, hx, xrecV] using this
+
+/-- Woodford (2003), App. C.1, p. 672 (Blanchard–Kahn): under genericity, every eigenvalue of
+`C = A_zz − G A_xz` lies outside the closed unit disc (given that `Λ` is stable). For an
+eigenvalue `|μ| ≤ 1` with eigenvector `c`, the real and imaginary parts of `μᵗ c` are bounded
+solutions of `ẑ_{t+1} = C ẑ_t`, so `c = 0` by `zero_of_cmat_orbit`. -/
+theorem cmat_unstable {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ} (hG : IsGraph A G)
+    (hg : GenericX A) (hΛ : ∀ μ ∈ eigs (lam A G), ‖μ‖ < 1) :
+    ∀ μ ∈ eigs (cmat A G), 1 < ‖μ‖ := by
+  intro μ hμ
+  by_contra hle
+  push Not at hle
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hL⟩ := pow_entry_bound (lam A G) hΛ
+  obtain ⟨c, hc0, hc⟩ := exists_eigvec hμ
+  set K : ℝ := ∑ i, ‖c i‖ with hK
+  have hK0 : 0 ≤ K := Finset.sum_nonneg fun _ _ => norm_nonneg _
+  have hstep : ∀ t i, μ ^ (t + 1) * c i =
+      ((cmat A G).map Complex.ofReal *ᵥ fun j => μ ^ t * c j) i := by
+    intro t i
+    have : (cmat A G).map Complex.ofReal *ᵥ (fun j => μ ^ t * c j) = μ ^ (t + 1) • c := by
+      have e : (fun j => μ ^ t * c j) = μ ^ t • c := rfl
+      rw [e, Matrix.mulVec_smul, hc, smul_smul, pow_succ]
+    rw [this]
+    rfl
+  have hbd : ∀ t i, ‖μ ^ t * c i‖ ≤ K := by
+    intro t i
+    rw [norm_mul, norm_pow]
+    calc ‖μ‖ ^ t * ‖c i‖ ≤ 1 * ‖c i‖ :=
+          mul_le_mul_of_nonneg_right (pow_le_one₀ (norm_nonneg _) hle) (norm_nonneg _)
+      _ ≤ K := by
+          rw [one_mul]
+          exact Finset.single_le_sum (f := fun i => ‖c i‖) (fun _ _ => norm_nonneg _)
+            (Finset.mem_univ i)
+  have hre := zero_of_cmat_orbit hG hg hCb hρ0.le hρ1 hL
+    (zh := fun t i => (μ ^ t * c i).re)
+    (fun t => by
+      funext i
+      rw [hstep t i]
+      exact re_mulVec _ _ i) hK0
+    (fun t i => (Complex.abs_re_le_norm _).trans (hbd t i))
+  have him := zero_of_cmat_orbit hG hg hCb hρ0.le hρ1 hL
+    (zh := fun t i => (μ ^ t * c i).im)
+    (fun t => by
+      funext i
+      rw [hstep t i]
+      exact im_mulVec _ _ i) hK0
+    (fun t i => (Complex.abs_im_le_norm _).trans (hbd t i))
+  apply hc0
+  funext i
+  have h1 := congrFun hre i
+  have h2 := congrFun him i
+  simp only [pow_zero, one_mul, Pi.zero_apply] at h1 h2
+  exact Complex.ext h1 h2
+
+/-- **The eigenvalue count** (Woodford (2003), App. C.1, p. 672; Blanchard and Kahn (1980)): if
+the graph's `Λ` is stable and `C` is unstable, exactly `|X|` eigenvalues of `A` (with
+multiplicity) lie in the open unit disc. -/
+theorem stableCount_eq_card {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G)
+    (hΛ : ∀ μ ∈ eigs (lam A G), ‖μ‖ < 1) (hC : ∀ μ ∈ eigs (cmat A G), 1 < ‖μ‖) :
+    stableCount A = Fintype.card X := by
+  rw [stableCount, eigs_split hinv, Multiset.filter_add, Multiset.card_add,
+    Multiset.filter_eq_nil.mpr (fun μ hμ => not_lt.mpr (hC μ hμ).le),
+    Multiset.filter_eq_self.mpr hΛ, Multiset.card_zero, zero_add, card_eigs]
+
+/-- Woodford (2003), App. C.1, p. 672: genericity bounds the dimension of the bounded-orbit
+subspace by the number of predetermined variables. -/
+theorem finrank_le_of_genericX {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (hg : GenericX A) :
+    Module.finrank ℝ (boundedOrbits A) ≤ Fintype.card X := by
+  set f := (projX (Z := Z) (X := X)).domRestrict (boundedOrbits A) with hf
+  have hinj : Function.Injective f := by
+    rw [← LinearMap.ker_eq_bot, LinearMap.ker_eq_bot']
+    intro v hv
+    exact Subtype.ext (hg v v.2 (fun j => congrFun hv j))
+  have := LinearMap.finrank_le_finrank_of_injective hinj
+  rwa [Module.finrank_fintype_fun_eq_card] at this
+
+/-- Woodford (2003), App. C.1, p. 672, fn. 2: more bounded directions than predetermined
+variables violate genericity. -/
+theorem not_genericX_of_lt {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Fintype.card X < Module.finrank ℝ (boundedOrbits A)) : ¬ GenericX A :=
+  fun hg => absurd (finrank_le_of_genericX hg) (not_le.mpr h)
+
+/-- Woodford (2003), App. C.1, p. 672: fewer bounded directions than predetermined variables
+leave some initial condition `x₀` not reached by any bounded orbit. -/
+theorem exists_unreached_of_lt {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Module.finrank ℝ (boundedOrbits A) < Fintype.card X) :
+    ∃ x0 : X → ℝ, ∀ v ∈ boundedOrbits A, (fun j => v (Sum.inr j)) ≠ x0 := by
+  set f := (projX (Z := Z) (X := X)).domRestrict (boundedOrbits A) with hf
+  have hr : LinearMap.range f ≠ ⊤ := by
+    intro htop
+    have h1 := LinearMap.finrank_range_le f
+    rw [htop, finrank_top, Module.finrank_fintype_fun_eq_card] at h1
+    exact absurd h1 (not_le.mpr h)
+  obtain ⟨x0, hx0⟩ : ∃ x0, x0 ∉ LinearMap.range f := by
+    by_contra hall
+    push Not at hall
+    exact hr (eq_top_iff.mpr fun x _ => hall x)
+  refine ⟨x0, fun v hv he => hx0 ⟨⟨v, hv⟩, ?_⟩⟩
+  rw [← he]
+  rfl
+
+/-- **The two forms of the counting condition** (Woodford (2003), App. C.1, p. 672; Blanchard and
+Kahn (1980)): with no eigenvalue on the unit circle and genericity, the stable subspace has
+dimension `|X|` iff exactly `|X|` eigenvalues (with multiplicity) lie in the open unit disc. -/
+theorem finrank_eq_iff_stableCount_eq {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (hnu : NoUnit A)
+    (hg : GenericX A) :
+    Module.finrank ℝ (boundedOrbits A) = Fintype.card X ↔ stableCount A = Fintype.card X := by
+  constructor
+  · intro hd
+    obtain ⟨G, hG⟩ := exists_graph hd hg
+    have hΛ := lam_stable hG hnu
+    exact stableCount_eq_card (graph_invariant hG) hΛ (cmat_unstable hG hg hΛ)
+  · intro hc
+    exact le_antisymm (finrank_le_of_genericX hg) (hc ▸ stableCount_le_finrank A)
+
+end Gali.BasicNewKeynesianModel.InvariantSplit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Forward systems over an arbitrary finite index type
+
+Woodford (2003), *Interest and Prices*, Appendix C.1, p. 670, fn. 1 (Blanchard and Kahn 1980).
+Vector processes of random variables indexed by any finite type, and the forward system
+`s_t = K E_t s_{t+1} + w_t`: if the powers of `K` decay geometrically it has exactly one bounded
+adapted solution for every bounded adapted forcing, the forward series
+`s_t = ∑_{k ≥ 0} Kᵏ E_t w_{t+k}` (`fsolves_exists`, `fsolves_unique`).
+
+Restated from `BlanchardKahn` (`rvMul`, `FSolves`, `fsolves_iterate`, `fsolves_unique`,
+`fsolves_exists`, which restated them from the Galí Chapter 6 project), generalised from `Fin n`
+to any finite index type.
+
+Restated from the Woodford Chapter 4 project (`NeoWicksellianFramework.GeneralBKForward`,
+namespace renamed; this project does not import across projects); the interchange of `E_t` and a
+geometrically dominated series is `MoneyRule.E_tsum`. Used here for Galí (2015), Ch. 3, §3.4.2,
+p. 75 and fn. 14 (`MoneyRuleDeterminacy`).
+-/
+
+namespace Gali.BasicNewKeynesianModel.GeneralBKForward
+
+open Filter Topology
+open scoped Matrix
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a matrix acting on a vector of random variables,
+`(M a)_i = ∑_j M_{ij} a_j`. -/
+def mv {Ω m n : Type*} [Fintype n] (M : Matrix m n ℝ) (a : n → Ω → ℝ) : m → Ω → ℝ :=
+  fun i => ∑ j, M i j • a j
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action, pointwise. -/
+theorem mv_apply {Ω m n : Type*} [Fintype n] (M : Matrix m n ℝ) (a : n → Ω → ℝ) (i : m)
+    (ω : Ω) : mv M a i ω = (M *ᵥ fun j => a j ω) i := by
+  simp [mv, Finset.sum_apply, Matrix.mulVec, dotProduct]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action, pointwise, as a sum. -/
+theorem mv_apply_sum {Ω m n : Type*} [Fintype n] (M : Matrix m n ℝ) (a : n → Ω → ℝ) (i : m)
+    (ω : Ω) : mv M a i ω = ∑ j, M i j * a j ω := by
+  simp [mv, Finset.sum_apply]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): compatibility with matrix multiplication. -/
+theorem mv_mv {Ω m n l : Type*} [Fintype n] [Fintype l] (M : Matrix m n ℝ) (N : Matrix n l ℝ)
+    (a : l → Ω → ℝ) : mv M (mv N a) = mv (M * N) a := by
+  funext i
+  simp only [mv, Matrix.mul_apply, Finset.smul_sum, smul_smul, Finset.sum_smul]
+  exact Finset.sum_comm
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): additivity of the action. -/
+theorem mv_add {Ω m n : Type*} [Fintype n] (M : Matrix m n ℝ) (a b : n → Ω → ℝ) :
+    mv M (a + b) = mv M a + mv M b := by
+  funext i
+  simp only [mv, Pi.add_apply, smul_add, Finset.sum_add_distrib]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action respects subtraction. -/
+theorem mv_sub {Ω m n : Type*} [Fintype n] (M : Matrix m n ℝ) (a b : n → Ω → ℝ) :
+    mv M (a - b) = mv M a - mv M b := by
+  funext i
+  simp only [mv, Pi.sub_apply, smul_sub, Finset.sum_sub_distrib]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action of a sum of matrices. -/
+theorem add_mv {Ω m n : Type*} [Fintype n] (M N : Matrix m n ℝ) (a : n → Ω → ℝ) :
+    mv (M + N) a = mv M a + mv N a := by
+  funext i
+  simp only [mv, Matrix.add_apply, add_smul, Finset.sum_add_distrib, Pi.add_apply]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action of a difference of matrices. -/
+theorem sub_mv {Ω m n : Type*} [Fintype n] (M N : Matrix m n ℝ) (a : n → Ω → ℝ) :
+    mv (M - N) a = mv M a - mv N a := by
+  funext i
+  simp only [mv, Matrix.sub_apply, sub_smul, Finset.sum_sub_distrib, Pi.sub_apply]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the identity matrix acts trivially. -/
+theorem mv_one {Ω n : Type*} [Fintype n] [DecidableEq n] (a : n → Ω → ℝ) :
+    mv (1 : Matrix n n ℝ) a = a := by
+  funext i
+  simp [mv, Matrix.one_apply]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action on the zero vector. -/
+theorem mv_zero {Ω m n : Type*} [Fintype n] (M : Matrix m n ℝ) :
+    mv M (0 : n → Ω → ℝ) = 0 := by
+  funext i
+  simp [mv]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action respects negation. -/
+theorem mv_neg {Ω m n : Type*} [Fintype n] (M : Matrix m n ℝ) (a : n → Ω → ℝ) :
+    mv M (-a) = -mv M a := by
+  funext i
+  simp [mv, Finset.sum_neg_distrib]
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `E_t` commutes with constant matrices. -/
+theorem E_mv {m n : Type*} [Fintype n] (t : ℕ) (M : Matrix m n ℝ) (a : n → Ω → ℝ) (i : m) :
+    𝔼.E t (mv M a i) = mv M (fun j => 𝔼.E t (a j)) i := by
+  simp only [mv, map_sum, map_smul]
+
+/-- Woodford (2003), App. C.1, p. 670: a vector process is adapted. -/
+def AdaptedV {ι : Type*} (s : ℕ → ι → Ω → ℝ) : Prop := ∀ t i, 𝔼.E t (s t i) = s t i
+
+/-- Woodford (2003), App. C.1, p. 670: a vector process is bounded. -/
+def BoundedV {ι : Type*} (s : ℕ → ι → Ω → ℝ) : Prop := ∃ M, ∀ t i ω, |s t i ω| ≤ M
+
+/-- Woodford (2003), App. C.1, p. 670: `s` solves the forward system
+`s_t = K E_t s_{t+1} + w_t`. -/
+def FSolves {ι : Type*} [Fintype ι] (K : Matrix ι ι ℝ) (w s : ℕ → ι → Ω → ℝ) : Prop :=
+  ∀ t, s t = mv K (fun j => 𝔼.E t (s (t + 1) j)) + w t
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a constant matrix maps a bounded vector process to
+a bounded one. -/
+theorem boundedV_mv {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ)
+    {a : ℕ → n → Ω → ℝ} (ha : BoundedV a) : BoundedV (fun t => mv M (a t)) := by
+  have := Fintype.ofFinite m
+  obtain ⟨B, hB⟩ := ha
+  refine ⟨Fintype.card n * ((∑ i, ∑ j, |M i j|) * max B 0), fun t i ω => ?_⟩
+  change |mv M (a t) i ω| ≤ _
+  rw [mv_apply]
+  exact InvariantSplit.abs_mulVec_le M _ (InvariantSplit.abs_entry_le_sum M)
+    (fun j => (hB t j ω).trans (le_max_left _ _)) i |>.trans (le_of_eq (by ring))
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a constant matrix maps an adapted vector process
+to an adapted one. -/
+theorem adaptedV_mv {m n : Type*} [Fintype n] (M : Matrix m n ℝ) {a : ℕ → n → Ω → ℝ}
+    (ha : AdaptedV 𝔼 a) : AdaptedV 𝔼 (fun t => mv M (a t)) := by
+  intro t i
+  change 𝔼.E t (mv M (a t) i) = mv M (a t) i
+  rw [E_mv 𝔼]
+  congr 1
+  funext j
+  exact ha t j
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-- Woodford (2003), App. C.1, p. 670: iterating a homogeneous forward system,
+`d_t = Kᵏ E_t d_{t+k}`. -/
+theorem fsolves_iterate {K : Matrix ι ι ℝ} {d : ℕ → ι → Ω → ℝ} (hd : FSolves 𝔼 K 0 d)
+    (had : AdaptedV 𝔼 d) (t k : ℕ) : d t = mv (K ^ k) (fun j => 𝔼.E t (d (t + k) j)) := by
+  induction k with
+  | zero =>
+    funext i
+    simp only [pow_zero, add_zero, mv_one, had t i]
+  | succ k ih =>
+    rw [ih]
+    have h := hd (t + k)
+    simp only [Pi.zero_apply, add_zero] at h
+    have : (fun j => 𝔼.E t (d (t + k) j)) = mv K (fun j => 𝔼.E t (d (t + (k + 1)) j)) := by
+      funext j
+      rw [h, E_mv 𝔼]
+      congr 1
+      funext l
+      rw [𝔼.tower (Nat.le_add_right t k), ← add_assoc]
+    rw [this, mv_mv, ← pow_succ]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): bound for `Kᵏ` acting on a bounded vector. -/
+theorem abs_mv_le {M : Matrix ι ι ℝ} {c : ℝ} (hM : ∀ i j, |M i j| ≤ c) {a : ι → Ω → ℝ}
+    {B : ℝ} (ha : ∀ j ω, |a j ω| ≤ B) (i : ι) (ω : Ω) :
+    |mv M a i ω| ≤ Fintype.card ι * (c * B) := by
+  rw [mv_apply]
+  exact InvariantSplit.abs_mulVec_le M _ hM (fun j => ha j ω) i
+
+/-- Woodford (2003), App. C.1, p. 670, fn. 1 (Blanchard–Kahn): if the powers of `K` decay
+geometrically, `s_t = K E_t s_{t+1} + w_t` has at most one bounded adapted solution. -/
+theorem fsolves_unique {K : Matrix ι ι ℝ} {Cb ρ : ℝ} (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
+    (hK : ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k) {w x y : ℕ → ι → Ω → ℝ}
+    (hx : FSolves 𝔼 K w x) (hy : FSolves 𝔼 K w y) (hax : AdaptedV 𝔼 x) (hay : AdaptedV 𝔼 y)
+    (hbx : BoundedV x) (hby : BoundedV y) : x = y := by
+  obtain ⟨M₁, hM₁⟩ := hbx
+  obtain ⟨M₂, hM₂⟩ := hby
+  set d : ℕ → ι → Ω → ℝ := fun t => x t - y t with hd_def
+  have hd : FSolves 𝔼 K 0 d := by
+    intro t
+    simp only [hd_def, Pi.zero_apply, add_zero, Pi.sub_apply, map_sub]
+    rw [hx t, hy t]
+    funext i
+    simp only [Pi.add_apply, Pi.sub_apply, mv, smul_sub, Finset.sum_sub_distrib]
+    abel
+  have had : AdaptedV 𝔼 d := by
+    intro t i
+    simp only [hd_def, Pi.sub_apply, map_sub, hax t i, hay t i]
+  have hdb : ∀ t i ω, |d t i ω| ≤ M₁ + M₂ := fun t i ω => by
+    simp only [hd_def, Pi.sub_apply]
+    exact (abs_sub _ _).trans (add_le_add (hM₁ t i ω) (hM₂ t i ω))
+  have hzero : d = 0 := by
+    funext t i ω
+    have hle : ∀ k, |d t i ω| ≤ Fintype.card ι * (Cb * ρ ^ k * (M₁ + M₂)) := by
+      intro k
+      rw [fsolves_iterate 𝔼 hd had t k]
+      exact abs_mv_le (hK k) (fun j ω => 𝔼.abs_E_le (hdb (t + k) j) t ω) i ω
+    have hlim : Tendsto (fun k : ℕ => (Fintype.card ι : ℝ) * (Cb * ρ ^ k * (M₁ + M₂))) atTop
+        (𝓝 0) := by
+      have := ((tendsto_pow_atTop_nhds_zero_of_lt_one hρ0 hρ1).const_mul Cb).mul_const
+        (M₁ + M₂)
+      simpa using this.const_mul (Fintype.card ι : ℝ)
+    have h0 : |d t i ω| ≤ 0 := ge_of_tendsto' hlim hle
+    simpa using h0
+  funext t i ω
+  have := congrFun (congrFun (congrFun hzero t) i) ω
+  simpa [hd_def, sub_eq_zero] using this
+
+/-- Woodford (2003), App. C.1, p. 670, fn. 1 (Blanchard–Kahn): if the powers of `K` decay
+geometrically, the forward series `s_t = ∑_{k ≥ 0} Kᵏ E_t w_{t+k}` is a bounded adapted solution
+of `s_t = K E_t s_{t+1} + w_t` for bounded adapted forcing `w`. -/
+theorem fsolves_exists {K : Matrix ι ι ℝ} {Cb ρ : ℝ} (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
+    (hK : ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k) {w : ℕ → ι → Ω → ℝ} {Mw : ℝ}
+    (hw : ∀ t i ω, |w t i ω| ≤ Mw) (haw : AdaptedV 𝔼 w) :
+    ∃ s, FSolves 𝔼 K w s ∧ AdaptedV 𝔼 s ∧ BoundedV s := by
+  set Mb : ℝ := Fintype.card ι * Cb * Mw with hMb
+  set B : ℕ → ℕ → ι → Ω → ℝ := fun k t => mv (K ^ k) (fun j => 𝔼.E t (w (t + k) j)) with hB
+  have hT : ∀ k t t' i ω, |mv (K ^ k) (fun j => 𝔼.E t (w t' j)) i ω| ≤ ρ ^ k * Mb := by
+    intro k t t' i ω
+    have := abs_mv_le (hK k) (fun j ω => 𝔼.abs_E_le (hw t' j) t ω) i ω
+    calc _ ≤ Fintype.card ι * (Cb * ρ ^ k * Mw) := this
+      _ = ρ ^ k * Mb := by rw [hMb]; ring
+  have hTs : ∀ t t' : ℕ → ℕ, ∀ i ω,
+      Summable fun k => mv (K ^ k) (fun j => 𝔼.E (t k) (w (t' k) j)) i ω := fun t t' i ω =>
+    Summable.of_norm_bounded ((summable_geometric_of_lt_one hρ0 hρ1).mul_right Mb)
+      (fun k => by rw [Real.norm_eq_abs]; exact hT k (t k) (t' k) i ω)
+  have hBb : ∀ k t i ω, |B k t i ω| ≤ ρ ^ k * Mb := fun k t i ω => hT k t (t + k) i ω
+  have hsum : ∀ t i ω, Summable fun k => B k t i ω := fun t i ω =>
+    hTs (fun _ => t) (fun k => t + k) i ω
+  set s : ℕ → ι → Ω → ℝ := fun t i ω => ∑' k, B k t i ω with hs
+  have hEB : ∀ k t i, 𝔼.E t (B k (t + 1) i) =
+      mv (K ^ k) (fun j => 𝔼.E t (w (t + 1 + k) j)) i := by
+    intro k t i
+    simp only [hB, E_mv 𝔼, 𝔼.tower (Nat.le_succ t)]
+  have hEs : ∀ t i ω, 𝔼.E t (s (t + 1) i) ω =
+      ∑' k, mv (K ^ k) (fun j => 𝔼.E t (w (t + 1 + k) j)) i ω := by
+    intro t i ω
+    have := MoneyRule.E_tsum 𝔼 hρ0 hρ1 (f := fun k => B k (t + 1) i)
+      (fun k ω => hBb k (t + 1) i ω) t ω
+    rw [show s (t + 1) i = fun ω' => ∑' k, B k (t + 1) i ω' from rfl, this]
+    exact tsum_congr fun k => by rw [hEB]
+  refine ⟨s, ?_, ?_, ?_⟩
+  · intro t
+    funext i ω
+    have hB0 : B 0 t i ω = w t i ω := by
+      simp only [hB, pow_zero, add_zero, mv_one, haw t i]
+    have hshift : ∀ k, B (k + 1) t i ω =
+        ∑ l, K i l * mv (K ^ k) (fun j => 𝔼.E t (w (t + 1 + k) j)) l ω := by
+      intro k
+      simp only [hB]
+      rw [← mv_apply_sum, mv_mv, ← pow_succ', show t + (k + 1) = t + 1 + k by omega]
+    have hR : (mv K (fun j => 𝔼.E t (s (t + 1) j)) + w t) i ω =
+        (∑' k, B (k + 1) t i ω) + w t i ω := by
+      rw [Pi.add_apply, Pi.add_apply, mv_apply_sum]
+      congr 1
+      simp only [hEs, ← tsum_mul_left]
+      rw [← Summable.tsum_finsetSum (fun l _ =>
+        (hTs (fun _ => t) (fun k => t + 1 + k) l ω).mul_left (K i l))]
+      exact tsum_congr fun k => (hshift k).symm
+    rw [hR, show s t i ω = ∑' k, B k t i ω from rfl, (hsum t i ω).tsum_eq_zero_add, hB0]
+    ring
+  · intro t i
+    funext ω
+    have := MoneyRule.E_tsum 𝔼 hρ0 hρ1 (f := fun k => B k t i)
+      (fun k ω => hBb k t i ω) t ω
+    rw [show s t i = fun ω' => ∑' k, B k t i ω' from rfl, this]
+    refine tsum_congr fun k => ?_
+    simp only [hB, E_mv 𝔼, 𝔼.E_E_self]
+  · refine ⟨Mb / (1 - ρ), fun t i ω => ?_⟩
+    have hg : HasSum (fun k : ℕ => ρ ^ k * Mb) (Mb / (1 - ρ)) := by
+      have := (hasSum_geometric_of_lt_one hρ0 hρ1).mul_right Mb
+      rwa [← div_eq_inv_mul] at this
+    have := tsum_of_norm_bounded hg (f := fun k => B k t i ω)
+      (fun k => by rw [Real.norm_eq_abs]; exact hBb k t i ω)
+    rw [Real.norm_eq_abs] at this
+    exact this
+
+end Gali.BasicNewKeynesianModel.GeneralBKForward
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The general Blanchard–Kahn theorem
+
+Woodford (2003), *Interest and Prices*, Appendix C.1, p. 670 (Props. C.1, C.2 and footnotes
+1–2), which *assumes* the counting rule of Blanchard and Kahn (1980). This module proves the
+general rule, for any number of predetermined and non-predetermined variables and any
+`ExpectationSystem` (perfect foresight and genuine uncertainty alike), with existence and
+uniqueness among bounded adapted processes.
+
+Restated from the Woodford Chapter 4 project (`NeoWicksellianFramework.GeneralBK`, namespace
+renamed; this project does not import across projects). Used here for Galí (2015), Ch. 3,
+§3.4.2, p. 75 and fn. 14 (`MoneyRuleDeterminacy`).
+
+## Setting
+
+The state is `y_t = (z_t, x_t)` with index type `Z ⊕ X`: `z_t` non-predetermined, `x_t`
+predetermined. `E_t y_{t+1} = A y_t + w_t` (`Solves`) for a real matrix `A`; an equilibrium
+(`Equil`) is a bounded adapted solution whose predetermined block `x_{t+1}` is known at date `t`
+and starts at the given `x_0`. `Determinate`: for every bounded adapted forcing `w` and every
+`x_0` there is exactly one equilibrium.
+
+## Main results
+
+* `determinate_of` (**sufficiency**, any `ExpectationSystem`): no eigenvalue of `A` on the unit
+  circle (`NoUnit`), the bounded-orbit (stable) subspace of dimension `|X|`, and genericity
+  (`GenericX`: the stable subspace meets `{x = 0}` only in `0`) imply determinacy. Proof: the
+  stable subspace is the graph of `G` (`InvariantSplit.exists_graph`); `ẑ_t = z_t − G x_t` solves
+  `E_t ẑ_{t+1} = C ẑ_t + ŵ_t` with all eigenvalues of `C` outside the closed disc, so it is the
+  forward solution through `C⁻¹`; then `x_{t+1} = Λ x_t + A_xz ẑ_t + w^x_t` with `Λ` stable is
+  solved backward from `x_0`.
+* Necessity, for every `ExpectationSystem` on a nonempty state space, failure by failure:
+  - an eigenvalue on the unit circle gives **non-existence** by resonance: a bounded
+    deterministic forcing `w_t = Re(μ^{t+1} b)` admits no bounded solution at all
+    (`nonexist_of_unit`);
+  - a failure of genericity gives **non-uniqueness**: next to every equilibrium there is another
+    one, obtained by adding a bounded orbit with `x_0 = 0` (`mult_of_not_genericX`); this
+    covers a stable subspace of dimension larger than `|X|` (`InvariantSplit.not_genericX_of_lt`);
+  - a stable subspace of dimension smaller than `|X|` gives **non-existence** for some `x_0`
+    already with `w = 0` (`nonexist_of_lt`).
+* `determinate_iff` (**the Blanchard–Kahn theorem**): `Determinate ↔ NoUnit ∧ dim = |X| ∧ GenericX`;
+  `determinate_iff_count`: the same with the dimension replaced by the number of eigenvalues in
+  the open unit disc counted with algebraic multiplicity (`stableCount A = |X|`);
+  `determinate_iff_unstableCount`: equivalently `|Z|` eigenvalues outside the closed disc.
+* `determinate_iff_perfectForesight`: determinacy does not depend on the expectation system.
+* `mem_boundedOrbits_iff_tendsto_of_noUnit`: with no eigenvalue on the unit circle the
+  bounded-orbit subspace is the stable invariant subspace `{v : Aᵗ v → 0}`, and its dimension is
+  the number of stable eigenvalues (`InvariantSplit.finrank_eq_stableCount`), so (ii) can be read
+  either way.
+-/
+
+namespace Gali.BasicNewKeynesianModel.GeneralBK
+
+open Filter Topology InvariantSplit GeneralBKForward
+open scoped Matrix
+
+/-! ### Small tools -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a complexified real vector under a complexified
+real matrix. -/
+theorem map_ofReal_mulVec {m n : Type*} [Fintype n] (K : Matrix m n ℝ) (v : n → ℝ) :
+    K.map Complex.ofReal *ᵥ (fun i => (v i : ℂ)) = fun i => ((K *ᵥ v) i : ℂ) := by
+  funext i
+  simp [Matrix.mulVec, dotProduct, Complex.ofReal_sum]
+
+variable {κ : Type*} [Fintype κ] [DecidableEq κ]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a matrix with all eigenvalues outside the closed
+unit disc is invertible. -/
+theorem det_ne_zero_of_unstable {K : Matrix κ κ ℝ} (h : ∀ μ ∈ eigs K, 1 < ‖μ‖) : K.det ≠ 0 := by
+  intro hd
+  obtain ⟨v, hv0, hv⟩ := Matrix.exists_mulVec_eq_zero_iff.mpr hd
+  have h0 : (0 : ℂ) ∈ eigs K := by
+    refine mem_eigs_of_eigvec (c := fun i => (v i : ℂ)) ?_ ?_
+    · intro hc
+      apply hv0
+      funext i
+      have := congrFun hc i
+      simpa using this
+    · rw [map_ofReal_mulVec, hv]
+      funext i
+      simp
+  have := h 0 h0
+  norm_num at this
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): if every eigenvalue of `K` lies outside the closed
+unit disc, every eigenvalue of `K⁻¹` lies in the open disc. -/
+theorem inv_stable {K : Matrix κ κ ℝ} (h : ∀ μ ∈ eigs K, 1 < ‖μ‖) : ∀ μ ∈ eigs K⁻¹, ‖μ‖ < 1 := by
+  have hdet := det_ne_zero_of_unstable h
+  have hKK : K * K⁻¹ = 1 := Matrix.mul_nonsing_inv K (isUnit_iff_ne_zero.mpr hdet)
+  intro μ hμ
+  obtain ⟨c, hc0, hc⟩ := exists_eigvec hμ
+  have hmap : K.map Complex.ofReal * K⁻¹.map Complex.ofReal = 1 := by
+    have e : (K * K⁻¹).map Complex.ofReal = K.map Complex.ofReal * K⁻¹.map Complex.ofReal :=
+      Matrix.map_mul (f := Complex.ofRealHom)
+    rw [← e, hKK]
+    exact Matrix.map_one _ (by simp) (by simp)
+  have hc' : μ • (K.map Complex.ofReal *ᵥ c) = c := by
+    calc μ • (K.map Complex.ofReal *ᵥ c) = K.map Complex.ofReal *ᵥ (μ • c) :=
+          (Matrix.mulVec_smul _ _ _).symm
+      _ = (K.map Complex.ofReal * K⁻¹.map Complex.ofReal) *ᵥ c := by
+          rw [← hc, Matrix.mulVec_mulVec]
+      _ = c := by rw [hmap, Matrix.one_mulVec]
+  have hμ0 : μ ≠ 0 := by
+    intro h0
+    apply hc0
+    rw [← hc', h0, zero_smul]
+  have hev : K.map Complex.ofReal *ᵥ c = μ⁻¹ • c := (eq_inv_smul_iff₀ hμ0).mpr hc'
+  have h1 := h μ⁻¹ (mem_eigs_of_eigvec hc0 hev)
+  rw [norm_inv] at h1
+  exact (one_lt_inv₀ (norm_pos_iff.mpr hμ0)).mp h1
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): sums of bounded vector processes are bounded. -/
+theorem boundedV_add {a b : ℕ → κ → Ω → ℝ} (ha : BoundedV a) (hb : BoundedV b) :
+    BoundedV (fun t => a t + b t) := by
+  obtain ⟨A, hA⟩ := ha
+  obtain ⟨B, hB⟩ := hb
+  exact ⟨A + B, fun t i ω => (abs_add_le _ _).trans (add_le_add (hA t i ω) (hB t i ω))⟩
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): differences of bounded vector processes are
+bounded. -/
+theorem boundedV_sub {a b : ℕ → κ → Ω → ℝ} (ha : BoundedV a) (hb : BoundedV b) :
+    BoundedV (fun t => a t - b t) := by
+  obtain ⟨A, hA⟩ := ha
+  obtain ⟨B, hB⟩ := hb
+  exact ⟨A + B, fun t i ω => (abs_sub _ _).trans (add_le_add (hA t i ω) (hB t i ω))⟩
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): negatives of bounded vector processes are
+bounded. -/
+theorem boundedV_neg {a : ℕ → κ → Ω → ℝ} (ha : BoundedV a) : BoundedV (fun t => -a t) := by
+  obtain ⟨A, hA⟩ := ha
+  exact ⟨A, fun t i ω => by simpa using hA t i ω⟩
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): sums of adapted vector processes are adapted. -/
+theorem adaptedV_add {a b : ℕ → κ → Ω → ℝ} (ha : AdaptedV 𝔼 a) (hb : AdaptedV 𝔼 b) :
+    AdaptedV 𝔼 (fun t => a t + b t) := fun t i => by
+  simp only [Pi.add_apply, map_add, ha t i, hb t i]
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): differences of adapted vector processes are
+adapted. -/
+theorem adaptedV_sub {a b : ℕ → κ → Ω → ℝ} (ha : AdaptedV 𝔼 a) (hb : AdaptedV 𝔼 b) :
+    AdaptedV 𝔼 (fun t => a t - b t) := fun t i => by
+  simp only [Pi.sub_apply, map_sub, ha t i, hb t i]
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): negatives of adapted vector processes are
+adapted. -/
+theorem adaptedV_neg {a : ℕ → κ → Ω → ℝ} (ha : AdaptedV 𝔼 a) : AdaptedV 𝔼 (fun t => -a t) :=
+  fun t i => by simp only [Pi.neg_apply, map_neg, ha t i]
+
+/-! ### The system -/
+
+/-- Woodford (2003), (C.19) and App. C.1, p. 670: `y` solves `E_t y_{t+1} = A y_t + w_t`. -/
+def Solves {ι : Type*} [Fintype ι] (A : Matrix ι ι ℝ) (w y : ℕ → ι → Ω → ℝ) : Prop :=
+  ∀ t i, 𝔼.E t (y (t + 1) i) = mv A (y t) i + w t i
+
+variable {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X]
+
+/-- Woodford (2003), App. C.1, pp. 670–672 (Blanchard and Kahn 1980): a (bounded) rational
+expectations equilibrium of `E_t y_{t+1} = A y_t + w_t` with state `y = (z, x)`: `y` solves the
+system, is adapted and bounded, the predetermined block `x_{t+1}` is known at date `t`, and
+`x_0` is the given vector. -/
+def Equil (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (w : ℕ → Z ⊕ X → Ω → ℝ) (x0 : X → ℝ)
+    (y : ℕ → Z ⊕ X → Ω → ℝ) : Prop :=
+  Solves 𝔼 A w y ∧ AdaptedV 𝔼 y ∧
+    (∀ t j, 𝔼.E t (y (t + 1) (Sum.inr j)) = y (t + 1) (Sum.inr j)) ∧
+    (∀ j, y 0 (Sum.inr j) = fun _ => x0 j) ∧ BoundedV y
+
+/-- Woodford (2003), App. C.1, p. 670 (determinacy, Blanchard and Kahn 1980): for every bounded
+adapted forcing and every initial value of the predetermined variables there is exactly one
+bounded equilibrium. -/
+def Determinate (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) : Prop :=
+  ∀ w : ℕ → Z ⊕ X → Ω → ℝ, BoundedV w → AdaptedV 𝔼 w → ∀ x0 : X → ℝ, ∃! y, Equil 𝔼 A w x0 y
+
+omit [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): a random state vector at a fixed outcome, split
+into its blocks. -/
+theorem eval_split (y : Z ⊕ X → Ω → ℝ) (ω : Ω) :
+    (fun k => y k ω) = Sum.elim (fun i => y (Sum.inl i) ω) (fun j => y (Sum.inr j) ω) := by
+  funext k
+  rcases k with i | j <;> rfl
+
+/-! ### Identities behind the change of variables `ẑ = z − G x` -/
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): the rows of `A y` for the non-predetermined block,
+`(A y)_z = A_zz z + A_zx x`. -/
+theorem mv_inl (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (y : Z ⊕ X → Ω → ℝ) :
+    (fun i => mv A y (Sum.inl i)) =
+      mv A.toBlocks₁₁ (fun i => y (Sum.inl i)) + mv A.toBlocks₁₂ (fun j => y (Sum.inr j)) := by
+  funext i
+  simp only [mv, Fintype.sum_sum_type, Pi.add_apply]
+  rfl
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): the rows of `A y` for the predetermined block,
+`(A y)_x = A_xz z + A_xx x`. -/
+theorem mv_inr (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (y : Z ⊕ X → Ω → ℝ) :
+    (fun j => mv A y (Sum.inr j)) =
+      mv A.toBlocks₂₁ (fun i => y (Sum.inl i)) + mv A.toBlocks₂₂ (fun j => y (Sum.inr j)) := by
+  funext j
+  simp only [mv, Fintype.sum_sum_type, Pi.add_apply]
+  rfl
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): the invariance of the graph solved for `A_zx`:
+`A_zx = G A_xz G + G A_xx − A_zz G`. -/
+theorem zx_block_eq {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) :
+    A.toBlocks₁₂ = G * A.toBlocks₂₁ * G + G * A.toBlocks₂₂ - A.toBlocks₁₁ * G := by
+  rw [eq_sub_iff_add_eq, add_comm, hinv, lam, Matrix.mul_add, Matrix.mul_assoc]
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (uniqueness step): for random `(z, x)`,
+`A_zz z + A_zx x + w^z − G (A_xz z + A_xx x + w^x) = C (z − G x) + (w^z − G w^x)`. -/
+theorem identity_zhat {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) (z wz : Z → Ω → ℝ)
+    (x wx : X → Ω → ℝ) :
+    mv A.toBlocks₁₁ z + mv A.toBlocks₁₂ x + wz -
+        mv G (mv A.toBlocks₂₁ z + mv A.toBlocks₂₂ x + wx) =
+      mv (cmat A G) (z - mv G x) + (wz - mv G wx) := by
+  rw [zx_block_eq hinv, cmat]
+  simp only [add_mv, sub_mv, mv_add, mv_sub, ← mv_mv]
+  abel
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (the predetermined block):
+`A_xz z + A_xx x = A_xz (z − G x) + Λ x`. -/
+theorem identity_x (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) (z : Z → Ω → ℝ)
+    (x : X → Ω → ℝ) :
+    mv A.toBlocks₂₁ z + mv A.toBlocks₂₂ x = mv A.toBlocks₂₁ (z - mv G x) + mv (lam A G) x := by
+  rw [lam]
+  simp only [add_mv, mv_sub, ← mv_mv]
+  abel
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (existence step): with `z = ẑ + G x`,
+`C ẑ + (w^z − G w^x) + G (Λ x + (A_xz ẑ + w^x)) = A_zz z + A_zx x + w^z`. -/
+theorem identity_exist {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) (a wz : Z → Ω → ℝ)
+    (b c : X → Ω → ℝ) :
+    mv (cmat A G) a + (wz - mv G c) + mv G (mv (lam A G) b + (mv A.toBlocks₂₁ a + c)) =
+      mv A.toBlocks₁₁ (a + mv G b) + mv A.toBlocks₁₂ b + wz := by
+  rw [zx_block_eq hinv, cmat, lam]
+  simp only [add_mv, sub_mv, mv_add, ← mv_mv]
+  abel_nf
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (existence step, predetermined block):
+`Λ x + (A_xz ẑ + w^x) = A_xz (ẑ + G x) + A_xx x + w^x`. -/
+theorem identity_exist_x (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) (a : Z → Ω → ℝ)
+    (b c : X → Ω → ℝ) :
+    mv (lam A G) b + (mv A.toBlocks₂₁ a + c) =
+      mv A.toBlocks₂₁ (a + mv G b) + mv A.toBlocks₂₂ b + c := by
+  rw [lam]
+  simp only [add_mv, mv_add, ← mv_mv]
+  abel
+
+/-! ### The backward recursion for the predetermined block -/
+
+/-- Woodford (2003), App. C.1, p. 672: the predetermined block `x_{t+1} = Λ x_t + g_t`,
+`x_0` given, as a process of random variables. -/
+def xrecR (L : Matrix X X ℝ) (g : ℕ → X → Ω → ℝ) (x0 : X → ℝ) : ℕ → X → Ω → ℝ
+  | 0 => fun j _ => x0 j
+  | t + 1 => mv L (xrecR L g x0 t) + g t
+
+omit [DecidableEq Z] in
+/-- Woodford (2003), App. C.1, p. 672: the backward recursion is bounded when `Λ` is stable and
+`g` is bounded. -/
+theorem xrecR_bounded {L : Matrix X X ℝ} (hL : ∀ μ ∈ eigs L, ‖μ‖ < 1) {g : ℕ → X → Ω → ℝ}
+    (hg : BoundedV g) (x0 : X → ℝ) : BoundedV (xrecR L g x0) := by
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hLp⟩ := pow_entry_bound L hL
+  obtain ⟨F, hF⟩ := hg
+  refine ⟨Fintype.card X * Cb * (∑ j, |x0 j| + max F 0 / (1 - ρ)), fun t j ω => ?_⟩
+  have hrec : ∀ t, (fun j => xrecR L g x0 (t + 1) j ω) =
+      L *ᵥ (fun j => xrecR L g x0 t j ω) + fun j => g t j ω := by
+    intro t
+    funext j
+    simp only [xrecR, Pi.add_apply, mv_apply]
+  exact rec_bounded (x := fun t j => xrecR L g x0 t j ω) (f := fun t j => g t j ω) hCb hρ0.le
+    hρ1 hLp hrec (le_max_right _ _) (Finset.sum_nonneg fun _ _ => abs_nonneg _)
+    (fun t j => (hF t j ω).trans (le_max_left _ _))
+    (fun j => Finset.single_le_sum (f := fun j => |x0 j|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ j)) t j
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672: the backward recursion is known one period ahead:
+`x_t` is known at `t` and so is `x_{t+1}` (when `g` is adapted). -/
+theorem xrecR_known {L : Matrix X X ℝ} {g : ℕ → X → Ω → ℝ} (hg : AdaptedV 𝔼 g) (x0 : X → ℝ) :
+    ∀ t j, 𝔼.E t (xrecR L g x0 t j) = xrecR L g x0 t j ∧
+      𝔼.E t (xrecR L g x0 (t + 1) j) = xrecR L g x0 (t + 1) j := by
+  have hnext : ∀ t, (∀ j, 𝔼.E t (xrecR L g x0 t j) = xrecR L g x0 t j) →
+      ∀ j, 𝔼.E t (xrecR L g x0 (t + 1) j) = xrecR L g x0 (t + 1) j := by
+    intro t ht j
+    simp only [xrecR, Pi.add_apply, map_add, E_mv 𝔼, hg t j]
+    congr 2
+    funext k
+    exact ht k
+  have hcur : ∀ t j, 𝔼.E t (xrecR L g x0 t j) = xrecR L g x0 t j := by
+    intro t
+    induction t with
+    | zero => intro j; exact 𝔼.const 0 (x0 j)
+    | succ t ih =>
+      intro j
+      rw [← hnext t ih j, 𝔼.known (Nat.le_succ t)]
+  exact fun t j => ⟨hcur t j, hnext t (hcur t) j⟩
+
+/-! ### Sufficiency -/
+
+/-- Woodford (2003), App. C.1, p. 672 (tool): with `K C = C K = 1`, the forward form
+`ẑ_t = K E_t ẑ_{t+1} − K ŵ_t` is the system `E_t ẑ_{t+1} = C ẑ_t + ŵ_t`. -/
+theorem fsolves_iff_cform {C K : Matrix Z Z ℝ} (hKC : K * C = 1) (hCK : C * K = 1)
+    (wh zh : ℕ → Z → Ω → ℝ) :
+    FSolves 𝔼 K (fun t => -mv K (wh t)) zh ↔
+      ∀ t, (fun i => 𝔼.E t (zh (t + 1) i)) = mv C (zh t) + wh t := by
+  constructor
+  · intro h t
+    have e := congrArg (mv C) (h t)
+    rw [mv_add, mv_neg, mv_mv, mv_mv, hCK, mv_one, mv_one] at e
+    rw [e]
+    abel
+  · intro h t
+    simp only [h t, mv_add, mv_mv, hKC, mv_one, add_neg_cancel_right]
+
+/-- **Blanchard–Kahn, sufficiency** (Woodford (2003), App. C.1, p. 670; Blanchard and Kahn 1980):
+for any expectation system, if no eigenvalue of `A` lies on the unit circle, the stable
+(bounded-orbit) subspace has dimension equal to the number of predetermined variables, and it
+meets `{x = 0}` only in `0`, then for every bounded adapted forcing and every `x_0` there is
+exactly one bounded equilibrium. -/
+theorem determinate_of {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (hnu : NoUnit A)
+    (hd : Module.finrank ℝ (boundedOrbits A) = Fintype.card X) (hg : GenericX A) :
+    Determinate 𝔼 A := by
+  obtain ⟨G, hG⟩ := exists_graph hd hg
+  have hinv := graph_invariant hG
+  have hΛ := lam_stable hG hnu
+  have hC := cmat_unstable hG hg hΛ
+  have hdet : IsUnit (cmat A G).det := isUnit_iff_ne_zero.mpr (det_ne_zero_of_unstable hC)
+  have hKC : (cmat A G)⁻¹ * cmat A G = 1 := Matrix.nonsing_inv_mul _ hdet
+  have hCK : cmat A G * (cmat A G)⁻¹ = 1 := Matrix.mul_nonsing_inv _ hdet
+  obtain ⟨CbK, ρK, -, hρK0, hρK1, hKpow⟩ := pow_entry_bound _ (inv_stable hC)
+  intro w hwb hwa x0
+  set wz : ℕ → Z → Ω → ℝ := fun t i => w t (Sum.inl i) with hwz
+  set wx : ℕ → X → Ω → ℝ := fun t j => w t (Sum.inr j) with hwx
+  have hwzb : BoundedV wz := by
+    obtain ⟨M, hM⟩ := hwb; exact ⟨M, fun t i ω => hM t _ ω⟩
+  have hwxb : BoundedV wx := by
+    obtain ⟨M, hM⟩ := hwb; exact ⟨M, fun t j ω => hM t _ ω⟩
+  have hwzA : AdaptedV 𝔼 wz := fun t i => hwa t (Sum.inl i)
+  have hwxA : AdaptedV 𝔼 wx := fun t j => hwa t (Sum.inr j)
+  set wh : ℕ → Z → Ω → ℝ := fun t => wz t - mv G (wx t) with hwh
+  have hwhb : BoundedV wh := boundedV_sub hwzb (boundedV_mv G hwxb)
+  have hwhA : AdaptedV 𝔼 wh := adaptedV_sub 𝔼 hwzA (adaptedV_mv 𝔼 G hwxA)
+  have hfb : BoundedV (fun t => -mv (cmat A G)⁻¹ (wh t)) :=
+    boundedV_neg (boundedV_mv _ hwhb)
+  have hfA : AdaptedV 𝔼 (fun t => -mv (cmat A G)⁻¹ (wh t)) :=
+    adaptedV_neg 𝔼 (adaptedV_mv 𝔼 _ hwhA)
+  obtain ⟨Mf, hMf⟩ := hfb
+  obtain ⟨zh, hzh, hzhA, hzhb⟩ := fsolves_exists 𝔼 hρK0.le hρK1 hKpow hMf hfA
+  have hzhE := (fsolves_iff_cform 𝔼 hKC hCK wh zh).mp hzh
+  set g : ℕ → X → Ω → ℝ := fun t => mv A.toBlocks₂₁ (zh t) + wx t with hgdef
+  have hgA : AdaptedV 𝔼 g := adaptedV_add 𝔼 (adaptedV_mv 𝔼 _ hzhA) hwxA
+  have hgb : BoundedV g := boundedV_add (boundedV_mv _ hzhb) hwxb
+  set xr := xrecR (lam A G) g x0 with hxr
+  have hxrb : BoundedV xr := xrecR_bounded hΛ hgb x0
+  have hxrK := xrecR_known 𝔼 (L := lam A G) hgA x0
+  have hxr1 : ∀ t, xr (t + 1) = mv (lam A G) (xr t) + g t := fun t => rfl
+  set y : ℕ → Z ⊕ X → Ω → ℝ := fun t => Sum.elim (zh t + mv G (xr t)) (xr t) with hy
+  have hyz : ∀ t, (fun i => y t (Sum.inl i)) = zh t + mv G (xr t) := fun t => rfl
+  have hyx : ∀ t, (fun j => y t (Sum.inr j)) = xr t := fun t => rfl
+  -- every equilibrium is `y`
+  have huniq : ∀ y', Equil 𝔼 A w x0 y' → y' = y := by
+    rintro y' ⟨hs, ha, hk, h0, hb⟩
+    set zh' : ℕ → Z → Ω → ℝ :=
+      fun t => (fun i => y' t (Sum.inl i)) - mv G (fun j => y' t (Sum.inr j)) with hzh'
+    have hzh'A : AdaptedV 𝔼 zh' :=
+      adaptedV_sub 𝔼 (fun t i => ha t (Sum.inl i))
+        (adaptedV_mv 𝔼 G (fun t j => ha t (Sum.inr j)))
+    have hb1 : BoundedV (fun t i => y' t (Sum.inl i)) := by
+      obtain ⟨M, hM⟩ := hb; exact ⟨M, fun t i ω => hM t _ ω⟩
+    have hb2 : BoundedV (fun t j => y' t (Sum.inr j)) := by
+      obtain ⟨M, hM⟩ := hb; exact ⟨M, fun t j ω => hM t _ ω⟩
+    have hzh'b : BoundedV zh' := boundedV_sub hb1 (boundedV_mv G hb2)
+    have hEz : ∀ t, (fun i => 𝔼.E t (y' (t + 1) (Sum.inl i))) =
+        (fun i => mv A (y' t) (Sum.inl i)) + wz t := fun t => by
+      funext i; rw [hs t]; rfl
+    have hEx : ∀ t, (fun j => 𝔼.E t (y' (t + 1) (Sum.inr j))) =
+        (fun j => mv A (y' t) (Sum.inr j)) + wx t := fun t => by
+      funext j; rw [hs t]; rfl
+    have hcf : ∀ t, (fun i => 𝔼.E t (zh' (t + 1) i)) = mv (cmat A G) (zh' t) + wh t := by
+      intro t
+      have hE : (fun i => 𝔼.E t (zh' (t + 1) i)) =
+          (fun i => 𝔼.E t (y' (t + 1) (Sum.inl i))) -
+            mv G (fun j => 𝔼.E t (y' (t + 1) (Sum.inr j))) := by
+        funext i
+        simp only [hzh', Pi.sub_apply, map_sub, E_mv 𝔼]
+      rw [hE, hEz, hEx, mv_inl, mv_inr, identity_zhat hinv]
+    have hzz : zh' = zh :=
+      fsolves_unique 𝔼 hρK0.le hρK1 hKpow ((fsolves_iff_cform 𝔼 hKC hCK wh zh').mpr hcf) hzh
+        hzh'A hzhA hzh'b ⟨_, hzhb.choose_spec⟩
+    have hxx : ∀ t, (fun j => y' t (Sum.inr j)) = xr t := by
+      intro t
+      induction t with
+      | zero => funext j; exact h0 j
+      | succ t ih =>
+        have e1 : (fun j => y' (t + 1) (Sum.inr j)) =
+            (fun j => 𝔼.E t (y' (t + 1) (Sum.inr j))) := by
+          funext j; exact (hk t j).symm
+        have hz't : (fun i => y' t (Sum.inl i)) - mv G (fun j => y' t (Sum.inr j)) = zh' t := rfl
+        rw [e1, hEx, mv_inr, identity_x A G, hz't, hzz, ih, hxr1]
+        simp only [hgdef]
+        abel
+    funext t k
+    rcases k with i | j
+    · have e := congrFun (congrArg (fun f => f t) hzz) i
+      simp only [hzh', Pi.sub_apply, hxx t] at e
+      have e2 : y' t (Sum.inl i) = zh t i + mv G (xr t) i := by
+        rw [← e]; abel
+      rw [e2]
+      rfl
+    · exact congrFun (hxx t) j
+  refine ⟨y, ⟨?_, ?_, ?_, ?_, ?_⟩, huniq⟩
+  · -- the system
+    intro t k
+    rcases k with i | j
+    · have hv : (fun i => 𝔼.E t (y (t + 1) (Sum.inl i))) =
+          (fun i => mv A (y t) (Sum.inl i)) + wz t := by
+        have e1 : (fun i => 𝔼.E t (y (t + 1) (Sum.inl i))) =
+            (fun i => 𝔼.E t (zh (t + 1) i)) + mv G (fun j => 𝔼.E t (xr (t + 1) j)) := by
+          funext i
+          simp only [hy, Sum.elim_inl, Pi.add_apply, map_add, E_mv 𝔼]
+        have e2 : (fun j => 𝔼.E t (xr (t + 1) j)) = xr (t + 1) := by
+          funext j; exact (hxrK t j).2
+        rw [e1, e2, hzhE t, hxr1, mv_inl, hyz, hyx, hwh, hgdef]
+        exact identity_exist hinv _ _ _ _
+      exact congrFun hv i
+    · have hv : (fun j => 𝔼.E t (y (t + 1) (Sum.inr j))) =
+          (fun j => mv A (y t) (Sum.inr j)) + wx t := by
+        have e1 : (fun j => 𝔼.E t (y (t + 1) (Sum.inr j))) = xr (t + 1) := by
+          funext j; exact (hxrK t j).2
+        rw [e1, hxr1, mv_inr, hyz, hyx, hgdef]
+        exact identity_exist_x A G _ _ _
+      exact congrFun hv j
+  · -- adapted
+    intro t k
+    rcases k with i | j
+    · simp only [hy, Sum.elim_inl, Pi.add_apply, map_add, E_mv 𝔼, hzhA t i]
+      congr 2
+      funext j
+      exact (hxrK t j).1
+    · exact (hxrK t j).1
+  · -- the predetermined block is known one period ahead
+    intro t j
+    exact (hxrK t j).2
+  · -- the initial condition
+    intro j
+    rfl
+  · -- boundedness
+    obtain ⟨Mz, hMz⟩ := hzhb
+    obtain ⟨Mx, hMx⟩ := hxrb
+    obtain ⟨Mg, hMg⟩ := boundedV_mv G ⟨Mx, hMx⟩
+    refine ⟨max (Mz + Mg) Mx, fun t k ω => ?_⟩
+    rcases k with i | j
+    · change |zh t i ω + mv G (xr t) i ω| ≤ _
+      exact ((abs_add_le _ _).trans (add_le_add (hMz t i ω) (hMg t i ω))).trans
+        (le_max_left _ _)
+    · exact (hMx t j ω).trans (le_max_right _ _)
+
+/-! ### Necessity (i): an eigenvalue on the unit circle gives non-existence by resonance -/
+
+open ComplexConjugate
+
+omit [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): for a left eigenvector `q A = μ q`,
+`q · (A e) = μ (q · e)`. -/
+theorem sum_q_mulVec {A : Matrix κ κ ℝ} {μ : ℂ} {q : κ → ℂ}
+    (hq : q ᵥ* A.map Complex.ofReal = μ • q) (e : κ → ℝ) :
+    ∑ i, q i * ((A *ᵥ e) i : ℂ) = μ * ∑ j, q j * (e j : ℂ) := by
+  have hcol : ∀ j, ∑ i, q i * (A i j : ℂ) = μ * q j := fun j => by
+    have := congrFun hq j
+    simpa [Matrix.vecMul, dotProduct] using this
+  simp only [Matrix.mulVec, dotProduct, Complex.ofReal_sum, Complex.ofReal_mul, Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  simp_rw [← mul_assoc]
+  rw [← Finset.sum_mul, hcol j, mul_assoc]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a linear lower bound `a + T c − K` with `c > 0`
+cannot stay below a constant. -/
+theorem false_of_linear_growth {a c K Q : ℝ} (hc : 0 < c) (h : ∀ T : ℕ, a + T * c - K ≤ Q) :
+    False := by
+  obtain ⟨T, hT⟩ := exists_nat_gt ((Q + K - a) / c)
+  have := h T
+  rw [div_lt_iff₀ hc] at hT
+  linarith
+
+omit [DecidableEq κ] in
+/-- **Resonance** (Woodford (2003), App. C.1, p. 670, fn. 1: the boundary case): let `‖μ‖ = 1`
+and `q A = μ q`, `q ≠ 0` (with `q` real when `μ = ±1`). Then the deterministic system
+`e_{t+1} = A e_t + w_t` with the bounded forcing `w_{t,i} = Re(μ^{t+1} q̄_i)` has no bounded
+solution: `d_t = (q · e_t) μ̄ᵗ` grows like `t ∑|q_i|²/2`. -/
+theorem no_bounded_resonance {A : Matrix κ κ ℝ} {μ : ℂ} (hμ : ‖μ‖ = 1) {q : κ → ℂ}
+    (hq0 : q ≠ 0) (hq : q ᵥ* A.map Complex.ofReal = μ • q)
+    (hre : μ ^ 2 = 1 → ∀ i, (q i).im = 0) {e : ℕ → κ → ℝ}
+    (he : ∀ t, e (t + 1) = A *ᵥ e t + fun i => (μ ^ (t + 1) * conj (q i)).re)
+    {B : ℝ} (hB : ∀ t i, |e t i| ≤ B) : False := by
+  set m : ℕ → ℂ := fun t => ∑ i, q i * (e t i : ℂ) with hm
+  set N : ℝ := ∑ i, ‖q i‖ ^ 2 with hN
+  set σ : ℂ := ∑ i, q i ^ 2 with hσ
+  set ζ : ℂ := conj μ ^ 2 with hζ
+  have hμc : μ * conj μ = 1 := by
+    rw [Complex.mul_conj, Complex.normSq_eq_norm_sq, hμ]
+    norm_num
+  have hN0 : 0 < N := by
+    obtain ⟨i, hi⟩ : ∃ i, q i ≠ 0 := by
+      by_contra hne
+      push Not at hne
+      exact hq0 (funext hne)
+    exact Finset.sum_pos' (fun i _ => by positivity)
+      ⟨i, Finset.mem_univ i, by have := norm_pos_iff.mpr hi; positivity⟩
+  have hNc : (N : ℂ) = ∑ i, q i * conj (q i) := by
+    rw [hN]
+    push_cast
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Complex.mul_conj, Complex.normSq_eq_norm_sq]
+    push_cast
+    ring
+  have hqw : ∀ t, ∑ i, q i * (((μ ^ (t + 1) * conj (q i)).re : ℝ) : ℂ) =
+      (μ ^ (t + 1) * (N : ℂ) + conj μ ^ (t + 1) * σ) / 2 := by
+    intro t
+    rw [hNc, hσ, Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib, Finset.sum_div]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Complex.re_eq_add_conj, map_mul, map_pow, Complex.conj_conj]
+    ring
+  have hm_succ : ∀ t, m (t + 1) = μ * m t + (μ ^ (t + 1) * (N : ℂ) + conj μ ^ (t + 1) * σ) / 2 := by
+    intro t
+    simp only [hm, he t, Pi.add_apply, Complex.ofReal_add, mul_add, Finset.sum_add_distrib]
+    rw [sum_q_mulVec hq, hqw]
+  set d : ℕ → ℂ := fun t => m t * conj μ ^ t with hd
+  have hd_succ : ∀ t, d (t + 1) = d t + ((N : ℂ) + σ * ζ ^ (t + 1)) / 2 := by
+    intro t
+    have h1 : μ ^ (t + 1) * conj μ ^ (t + 1) = 1 := by rw [← mul_pow, hμc, one_pow]
+    have h2 : μ * conj μ ^ (t + 1) = conj μ ^ t := by
+      rw [pow_succ]
+      linear_combination (conj μ ^ t) * hμc
+    have h3 : conj μ ^ (t + 1) * conj μ ^ (t + 1) = ζ ^ (t + 1) := by
+      rw [hζ, ← pow_mul, ← pow_add]
+      ring_nf
+    simp only [hd]
+    rw [hm_succ t]
+    linear_combination (m t) * h2 + ((N : ℂ) / 2) * h1 + (σ / 2) * h3
+  set S : ℕ → ℂ := fun T => ∑ s ∈ Finset.range T, ζ ^ (s + 1) with hS
+  have hd_closed : ∀ T : ℕ, d T = d 0 + ((T * N / 2 : ℝ) : ℂ) + σ / 2 * S T := by
+    intro T
+    induction T with
+    | zero => simp [hS]
+    | succ T ih =>
+      rw [hd_succ T, ih]
+      simp only [hS, Finset.sum_range_succ]
+      push_cast
+      ring
+  set Q : ℝ := ∑ i, ‖q i‖ * B with hQ
+  have hdQ : ∀ T, ‖d T‖ ≤ Q := by
+    intro T
+    simp only [hd, hm, norm_mul, norm_pow, Complex.norm_conj, hμ, one_pow, mul_one]
+    refine (norm_sum_le _ _).trans (Finset.sum_le_sum fun i _ => ?_)
+    rw [norm_mul, Complex.norm_real, Real.norm_eq_abs]
+    exact mul_le_mul_of_nonneg_left (hB T i) (norm_nonneg _)
+  -- the oscillating part is bounded below
+  obtain ⟨K, hK⟩ : ∃ K : ℝ, ∀ T, -K ≤ (σ / 2 * S T).re := by
+    by_cases hζ1 : ζ = 1
+    · have hμ2 : μ ^ 2 = 1 := by
+        have := congrArg conj hζ1
+        rw [hζ, map_pow, Complex.conj_conj, map_one] at this
+        exact this
+      have hreal := hre hμ2
+      have hσN : σ = (N : ℂ) := by
+        rw [hσ, hNc]
+        refine Finset.sum_congr rfl fun i _ => ?_
+        have hqi : q i = ((q i).re : ℂ) := Complex.ext rfl (by simp [hreal i])
+        rw [hqi, Complex.conj_ofReal]
+        ring
+      refine ⟨0, fun T => ?_⟩
+      have hST : S T = (T : ℂ) := by simp [hS, hζ1]
+      rw [hσN, hST]
+      have : ((N : ℂ) / 2 * (T : ℂ)).re = N / 2 * T := by
+        rw [show ((N : ℂ) / 2 * (T : ℂ)) = ((N / 2 * T : ℝ) : ℂ) by push_cast; ring,
+          Complex.ofReal_re]
+      rw [this]
+      have : 0 ≤ N / 2 * T := by positivity
+      linarith
+    · have hζn : ‖ζ‖ = 1 := by rw [hζ, norm_pow, Complex.norm_conj, hμ, one_pow]
+      have hζ1' : ζ - 1 ≠ 0 := sub_ne_zero.mpr hζ1
+      refine ⟨‖σ‖ / ‖ζ - 1‖, fun T => ?_⟩
+      have hSb : ‖S T‖ ≤ 2 / ‖ζ - 1‖ := by
+        have e : S T = ζ * ((ζ ^ T - 1) / (ζ - 1)) := by
+          rw [hS, ← geom_sum_eq hζ1 T, Finset.mul_sum]
+          exact Finset.sum_congr rfl fun s _ => by ring
+        rw [e, norm_mul, hζn, one_mul, norm_div]
+        refine div_le_div_of_nonneg_right ?_ (norm_nonneg _)
+        calc ‖ζ ^ T - 1‖ ≤ ‖ζ ^ T‖ + ‖(1 : ℂ)‖ := norm_sub_le _ _
+          _ = 2 := by rw [norm_pow, hζn, one_pow, norm_one]; norm_num
+      have hb : ‖σ / 2 * S T‖ ≤ ‖σ‖ / ‖ζ - 1‖ := by
+        rw [norm_mul, norm_div, Complex.norm_two]
+        calc ‖σ‖ / 2 * ‖S T‖ ≤ ‖σ‖ / 2 * (2 / ‖ζ - 1‖) :=
+              mul_le_mul_of_nonneg_left hSb (by positivity)
+          _ = ‖σ‖ / ‖ζ - 1‖ := by ring
+      have := Complex.abs_re_le_norm (σ / 2 * S T)
+      have := neg_abs_le (σ / 2 * S T).re
+      linarith
+  refine false_of_linear_growth (a := (d 0).re) (c := N / 2) (K := K) (Q := Q)
+    (by positivity) fun T => ?_
+  have h1 : (d T).re = (d 0).re + T * N / 2 + (σ / 2 * S T).re := by
+    rw [hd_closed T, Complex.add_re, Complex.add_re, Complex.ofReal_re]
+  have h2 : (d T).re ≤ Q := (Complex.re_le_norm _).trans (hdQ T)
+  have h3 := hK T
+  have : (T : ℝ) * (N / 2) = T * N / 2 := by ring
+  linarith
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an eigenvalue on the unit circle has a left
+eigenvector, which can be chosen real when the eigenvalue is `±1`. -/
+theorem exists_left_eigvec_unit {A : Matrix κ κ ℝ} {μ : ℂ} (hμ : μ ∈ eigs A) :
+    ∃ q : κ → ℂ, q ≠ 0 ∧ q ᵥ* A.map Complex.ofReal = μ • q ∧
+      (μ ^ 2 = 1 → ∀ i, (q i).im = 0) := by
+  by_cases h2 : μ ^ 2 = 1
+  · obtain ⟨r, hr⟩ : ∃ r : ℝ, μ = (r : ℂ) := by
+      have : (μ - 1) * (μ + 1) = 0 := by linear_combination h2
+      rcases mul_eq_zero.mp this with e | e
+      · exact ⟨1, by push_cast; linear_combination e⟩
+      · exact ⟨-1, by push_cast; linear_combination e⟩
+    have hdetC := (mem_eigs_iff A μ).mp hμ
+    have hmap : Matrix.scalar κ μ - A.map Complex.ofReal =
+        (Matrix.scalar κ r - A).map Complex.ofReal := by
+      ext i j
+      by_cases hij : i = j
+      · subst hij; simp [hr]
+      · simp [Matrix.scalar_apply, Matrix.diagonal_apply_ne _ hij]
+    have hdetR : (Matrix.scalar κ r - A).det = 0 := by
+      have e := RingHom.map_det Complex.ofRealHom (Matrix.scalar κ r - A)
+      rw [hmap] at hdetC
+      have e2 : (Complex.ofRealHom.mapMatrix (Matrix.scalar κ r - A)) =
+          (Matrix.scalar κ r - A).map Complex.ofReal := rfl
+      rw [e2, hdetC] at e
+      exact Complex.ofReal_eq_zero.mp e
+    obtain ⟨p, hp0, hp⟩ := Matrix.exists_vecMul_eq_zero_iff.mpr hdetR
+    refine ⟨fun i => (p i : ℂ), ?_, ?_, fun _ i => by simp⟩
+    · intro h
+      apply hp0
+      funext i
+      have := congrFun h i
+      simpa using this
+    · rw [Matrix.vecMul_sub, sub_eq_zero] at hp
+      funext j
+      have hj := congrFun hp j
+      have h1 : (p ᵥ* Matrix.scalar κ r) j = r * p j := by
+        simp [Matrix.scalar_apply, Matrix.vecMul_diagonal, mul_comm]
+      have e : ∑ i, p i * A i j = r * p j := by
+        calc ∑ i, p i * A i j = (p ᵥ* A) j := rfl
+          _ = r * p j := hj.symm.trans h1
+      simp only [Matrix.vecMul, dotProduct, Matrix.map_apply, Pi.smul_apply, smul_eq_mul, hr]
+      exact_mod_cast e
+  · obtain ⟨q, hq0, hq⟩ := exists_left_eigvec hμ
+    exact ⟨q, hq0, hq, fun h => absurd h h2⟩
+
+/-- **Non-existence at a unit-circle eigenvalue** (Woodford (2003), App. C.1, p. 670, fn. 1;
+Blanchard and Kahn 1980): if `A` has an eigenvalue `μ` with `|μ| = 1`, there is a bounded
+adapted (indeed deterministic) forcing, `w_{t,i} = Re(μ^{t+1} q̄_i)` for a left eigenvector `q`,
+for which `E_t y_{t+1} = A y_t + w_t` has no bounded solution at all, adapted or not, whatever the
+predetermined restrictions. Taking `E_0` of a solution reduces to `no_bounded_resonance`. -/
+theorem nonexist_of_unit [Nonempty Ω] {A : Matrix κ κ ℝ} {μ : ℂ} (hμ : μ ∈ eigs A)
+    (h1 : ‖μ‖ = 1) :
+    ∃ w : ℕ → κ → Ω → ℝ, BoundedV w ∧ AdaptedV 𝔼 w ∧
+      ∀ y, Solves 𝔼 A w y → BoundedV y → False := by
+  obtain ⟨q, hq0, hq, hre⟩ := exists_left_eigvec_unit hμ
+  refine ⟨fun t i _ => (μ ^ (t + 1) * conj (q i)).re, ⟨∑ i, ‖q i‖, fun t i _ => ?_⟩,
+    fun t i => 𝔼.const t _, ?_⟩
+  · refine (Complex.abs_re_le_norm _).trans ?_
+    rw [norm_mul, norm_pow, h1, one_pow, one_mul, Complex.norm_conj]
+    exact Finset.single_le_sum (f := fun i => ‖q i‖) (fun _ _ => norm_nonneg _)
+      (Finset.mem_univ i)
+  · rintro y hy ⟨B, hB⟩
+    obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+    refine no_bounded_resonance h1 hq0 hq hre (e := fun t i => 𝔼.E 0 (y t i) ω₀) (fun t => ?_)
+      (B := B) (fun t i => 𝔼.abs_E_le (hB t i) 0 ω₀)
+    funext i
+    have e1 : 𝔼.E 0 (y (t + 1) i) = 𝔼.E 0 (𝔼.E t (y (t + 1) i)) :=
+      (𝔼.tower (Nat.zero_le t) _).symm
+    rw [e1, hy t i, map_add, E_mv 𝔼, 𝔼.const, Pi.add_apply, Pi.add_apply, mv_apply]
+
+/-- Woodford (2003), App. C.1, p. 670, fn. 1: with an eigenvalue on the unit circle the system is
+not determinate (equilibrium fails to exist for some bounded forcing). -/
+theorem not_determinate_of_unit [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {μ : ℂ}
+    (hμ : μ ∈ eigs A) (h1 : ‖μ‖ = 1) : ¬ Determinate 𝔼 A := by
+  intro hdet
+  obtain ⟨w, hwb, hwa, hno⟩ := nonexist_of_unit 𝔼 hμ h1
+  obtain ⟨y, ⟨hs, -, -, -, hb⟩, -⟩ := hdet w hwb hwa 0
+  exact hno y hs hb
+
+/-! ### Necessity (ii): genericity and the dimension of the stable subspace -/
+
+/-- **Non-uniqueness without genericity** (Woodford (2003), App. C.1, p. 672, fn. 2; Blanchard
+and Kahn 1980): if a nonzero bounded orbit `Aᵗ v` starts with `x = 0`, then next to every
+equilibrium there is another one (add the deterministic path `Aᵗ v`). -/
+theorem mult_of_not_genericX [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (h : ¬ GenericX A)
+    {w : ℕ → Z ⊕ X → Ω → ℝ} {x0 : X → ℝ} {y : ℕ → Z ⊕ X → Ω → ℝ} (hy : Equil 𝔼 A w x0 y) :
+    ∃ y', Equil 𝔼 A w x0 y' ∧ y' ≠ y := by
+  unfold GenericX at h
+  push Not at h
+  obtain ⟨v, ⟨C, hC⟩, hvx, hv0⟩ := h
+  obtain ⟨hs, ha, hk, h0, ⟨M, hM⟩⟩ := hy
+  set y' : ℕ → Z ⊕ X → Ω → ℝ := fun t k => y t k + fun _ => (A ^ t *ᵥ v) k with hy'
+  refine ⟨y', ⟨fun t k => ?_, fun t k => ?_, fun t j => ?_, fun j => ?_, ⟨M + C, ?_⟩⟩, ?_⟩
+  · simp only [hy', map_add, 𝔼.const, hs t k]
+    funext ω
+    simp only [Pi.add_apply, mv_apply]
+    rw [show (fun j => y t j ω + (A ^ t *ᵥ v) j) = (fun j => y t j ω) + A ^ t *ᵥ v from rfl,
+      Matrix.mulVec_add, Pi.add_apply, Matrix.mulVec_mulVec, ← pow_succ']
+    ring
+  · simp only [hy', map_add, 𝔼.const, ha t k]
+  · simp only [hy', map_add, 𝔼.const, hk t j]
+  · simp only [hy', pow_zero, Matrix.one_mulVec, hvx j, h0 j]
+    funext ω
+    simp
+  · intro t k ω
+    exact (abs_add_le _ _).trans (add_le_add (hM t k ω) (hC t k))
+  · intro he
+    apply hv0
+    funext k
+    obtain ⟨ω⟩ := ‹Nonempty Ω›
+    have := congrFun (congrFun (congrFun he 0) k) ω
+    simpa [hy'] using this
+
+/-- Woodford (2003), App. C.1, p. 672, fn. 2: without genericity the system is not
+determinate (already for `w = 0`, `x_0 = 0` there are two equilibria). -/
+theorem not_determinate_of_not_genericX [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : ¬ GenericX A) : ¬ Determinate 𝔼 A := by
+  intro hdet
+  have hb0 : BoundedV (0 : ℕ → Z ⊕ X → Ω → ℝ) := ⟨0, fun _ _ _ => by simp⟩
+  have ha0 : AdaptedV 𝔼 (0 : ℕ → Z ⊕ X → Ω → ℝ) := fun t k => by simp
+  obtain ⟨y, hy, huniq⟩ := hdet 0 hb0 ha0 0
+  obtain ⟨y', hy', hne⟩ := mult_of_not_genericX 𝔼 h hy
+  exact hne (huniq y' hy')
+
+/-- **Non-existence with too few stable directions** (Woodford (2003), App. C.1, p. 670;
+Blanchard and Kahn 1980): if the bounded-orbit subspace has dimension below the number of
+predetermined variables, some initial `x_0` admits no equilibrium even with `w = 0`. Taking
+`E_0` of an equilibrium gives, outcome by outcome, a bounded orbit starting at `(z_0, x_0)`. -/
+theorem nonexist_of_lt [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Module.finrank ℝ (boundedOrbits A) < Fintype.card X) :
+    ∃ x0 : X → ℝ, ∀ y, ¬ Equil 𝔼 A 0 x0 y := by
+  obtain ⟨x0, hx0⟩ := exists_unreached_of_lt h
+  refine ⟨x0, fun y hy => ?_⟩
+  obtain ⟨hs, -, -, h0, ⟨M, hM⟩⟩ := hy
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  set e : ℕ → Z ⊕ X → ℝ := fun t k => 𝔼.E 0 (y t k) ω₀ with he
+  have hstep : ∀ t, e (t + 1) = A *ᵥ e t := by
+    intro t
+    funext k
+    have e1 : 𝔼.E 0 (y (t + 1) k) = 𝔼.E 0 (𝔼.E t (y (t + 1) k)) :=
+      (𝔼.tower (Nat.zero_le t) _).symm
+    simp only [he]
+    rw [e1, hs t k, Pi.zero_apply, Pi.zero_apply, add_zero, E_mv 𝔼, mv_apply]
+  have hmem := mem_boundedOrbits_of_orbit hstep (fun t k => 𝔼.abs_E_le (hM t k) 0 ω₀)
+  apply hx0 _ hmem
+  funext j
+  simp only [he, h0 j, 𝔼.const]
+
+/-- Woodford (2003), App. C.1, p. 670: too few stable directions — not determinate. -/
+theorem not_determinate_of_lt [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Module.finrank ℝ (boundedOrbits A) < Fintype.card X) : ¬ Determinate 𝔼 A := by
+  intro hdet
+  obtain ⟨x0, hx0⟩ := nonexist_of_lt 𝔼 h
+  obtain ⟨y, hy, -⟩ := hdet 0 ⟨0, fun _ _ _ => by simp⟩ (fun t k => by simp) x0
+  exact hx0 y hy
+
+/-- Woodford (2003), App. C.1, p. 672, fn. 2: too many stable directions — not determinate
+(genericity must fail, so equilibria are not unique). -/
+theorem not_determinate_of_gt [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Fintype.card X < Module.finrank ℝ (boundedOrbits A)) : ¬ Determinate 𝔼 A :=
+  not_determinate_of_not_genericX 𝔼 (not_genericX_of_lt h)
+
+/-! ### The Blanchard–Kahn theorem -/
+
+/-- **The Blanchard–Kahn theorem** (Woodford (2003), App. C.1, p. 670 and fn. 1–2, which the book
+takes from Blanchard and Kahn (1980)): for any expectation system on a nonempty state space, the
+system `E_t y_{t+1} = A y_t + w_t` with `|X|` predetermined variables is determinate iff
+(i) no eigenvalue of `A` lies on the unit circle, (ii) the stable (bounded-orbit) subspace has
+dimension `|X|`, and (iii) the stable subspace meets `{x = 0}` only in `0`. -/
+theorem determinate_iff [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ NoUnit A ∧ Module.finrank ℝ (boundedOrbits A) = Fintype.card X ∧
+      GenericX A := by
+  constructor
+  · intro hdet
+    have hnu : NoUnit A := fun μ hμ h1 => not_determinate_of_unit 𝔼 hμ h1 hdet
+    have hg : GenericX A := by
+      by_contra hg
+      exact not_determinate_of_not_genericX 𝔼 hg hdet
+    refine ⟨hnu, ?_, hg⟩
+    rcases lt_trichotomy (Module.finrank ℝ (boundedOrbits A)) (Fintype.card X) with h | h | h
+    · exact absurd hdet (not_determinate_of_lt 𝔼 h)
+    · exact h
+    · exact absurd hdet (not_determinate_of_gt 𝔼 h)
+  · rintro ⟨hnu, hd, hg⟩
+    exact determinate_of 𝔼 hnu hd hg
+
+/-- **The Blanchard–Kahn counting rule** (Woodford (2003), App. C.1, p. 670 and fn. 1–2; Blanchard
+and Kahn 1980): determinate iff no eigenvalue on the unit circle, exactly `|X|` eigenvalues in the
+open unit disc counted with algebraic multiplicity, and genericity. -/
+theorem determinate_iff_count [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ NoUnit A ∧ stableCount A = Fintype.card X ∧ GenericX A := by
+  rw [determinate_iff]
+  constructor
+  · rintro ⟨hnu, hd, hg⟩
+    exact ⟨hnu, (finrank_eq_iff_stableCount_eq hnu hg).mp hd, hg⟩
+  · rintro ⟨hnu, hc, hg⟩
+    exact ⟨hnu, (finrank_eq_iff_stableCount_eq hnu hg).mpr hc, hg⟩
+
+/-- **The Blanchard–Kahn counting rule, unstable form** (Woodford (2003), App. C.1, p. 670;
+Blanchard and Kahn 1980): determinate iff no eigenvalue on the unit circle, exactly as many
+eigenvalues outside the unit circle (with multiplicity) as non-predetermined variables, and
+genericity. -/
+theorem determinate_iff_unstableCount [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ NoUnit A ∧ unstableCount A = Fintype.card Z ∧ GenericX A := by
+  rw [determinate_iff_count]
+  constructor
+  · rintro ⟨hnu, hc, hg⟩
+    refine ⟨hnu, ?_, hg⟩
+    have := stableCount_add_unstableCount hnu
+    rw [Fintype.card_sum, hc] at this
+    omega
+  · rintro ⟨hnu, hc, hg⟩
+    refine ⟨hnu, ?_, hg⟩
+    have := stableCount_add_unstableCount hnu
+    rw [Fintype.card_sum, hc] at this
+    omega
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 670: determinacy does not depend on the expectation system —
+it holds under any expectation system on a nonempty state space iff it holds under perfect
+foresight. -/
+theorem determinate_iff_perfectForesight [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ Determinate perfectForesight A := by
+  classical
+  rw [determinate_iff, determinate_iff]
+
+/-! ### The bounded-orbit subspace is the stable subspace -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a vector whose orbit tends to `0` has a bounded
+orbit. -/
+theorem mem_boundedOrbits_of_tendsto {A : Matrix κ κ ℝ} {v : κ → ℝ}
+    (h : Tendsto (fun t => A ^ t *ᵥ v) atTop (𝓝 0)) : v ∈ boundedOrbits A := by
+  obtain ⟨C, hC⟩ := isBounded_iff_forall_norm_le.mp
+    (Metric.isBounded_range_of_tendsto (fun t => A ^ t *ᵥ v) h)
+  exact ⟨C, fun t i => (norm_le_pi_norm (A ^ t *ᵥ v) i).trans (hC _ ⟨t, rfl⟩) |>.trans' le_rfl⟩
+
+/-- Woodford (2003), App. C.1, p. 670 (Blanchard and Kahn 1980): with no eigenvalue on the unit
+circle, the bounded-orbit subspace is exactly the stable subspace `{v : Aᵗ v → 0}`. -/
+theorem mem_boundedOrbits_iff_tendsto_of_noUnit {A : Matrix κ κ ℝ} (hnu : NoUnit A)
+    (v : κ → ℝ) : v ∈ boundedOrbits A ↔ Tendsto (fun t => A ^ t *ᵥ v) atTop (𝓝 0) :=
+  ⟨tendsto_of_mem_boundedOrbits hnu, mem_boundedOrbits_of_tendsto⟩
+
+/-- Woodford (2003), App. C.1, p. 670 (Blanchard and Kahn 1980): under the Blanchard–Kahn
+conditions every bounded orbit tends to `0` — the bounded-orbit subspace is exactly the stable
+subspace `{v : Aᵗ v → 0}`. -/
+theorem mem_boundedOrbits_iff_tendsto {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (hnu : NoUnit A)
+    (hd : Module.finrank ℝ (boundedOrbits A) = Fintype.card X) (hg : GenericX A)
+    (v : Z ⊕ X → ℝ) :
+    v ∈ boundedOrbits A ↔ Tendsto (fun t => A ^ t *ᵥ v) atTop (𝓝 0) := by
+  refine ⟨fun hv => ?_, mem_boundedOrbits_of_tendsto⟩
+  obtain ⟨G, hG⟩ := exists_graph hd hg
+  have hinv := graph_invariant hG
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hL⟩ := pow_entry_bound _ (lam_stable hG hnu)
+  set x : X → ℝ := fun j => v (Sum.inr j) with hx
+  have hvg : v = graphV G x := by
+    funext k
+    rcases k with i | j
+    · exact hG.2 v hv i
+    · rfl
+  set Xb : ℝ := ∑ j, |x j| with hXb
+  have hXb0 : 0 ≤ Xb := Finset.sum_nonneg fun _ _ => abs_nonneg _
+  have hxj : ∀ j, |x j| ≤ Xb := fun j =>
+    Finset.single_le_sum (f := fun j => |x j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ j)
+  set aG : ℝ := ∑ i, ∑ j, |G i j| with haG
+  have hLx : ∀ t j, |(lam A G ^ t *ᵥ x) j| ≤ Fintype.card X * (Cb * ρ ^ t * Xb) :=
+    fun t j => InvariantSplit.abs_mulVec_le _ _ (hL t) hxj j
+  have hlim : Tendsto (fun t : ℕ => (Fintype.card X : ℝ) * (Cb * ρ ^ t * Xb)) atTop (𝓝 0) := by
+    have := ((tendsto_pow_atTop_nhds_zero_of_lt_one hρ0.le hρ1).const_mul Cb).mul_const Xb
+    simpa using this.const_mul (Fintype.card X : ℝ)
+  have hlim2 : Tendsto (fun t : ℕ => (Fintype.card X : ℝ) *
+      (aG * ((Fintype.card X : ℝ) * (Cb * ρ ^ t * Xb)))) atTop (𝓝 0) := by
+    simpa using (hlim.const_mul aG).const_mul (Fintype.card X : ℝ)
+  rw [hvg, tendsto_pi_nhds]
+  intro k
+  simp only [pow_mulVec_graphV hinv]
+  rcases k with i | j
+  · refine squeeze_zero_norm (fun t => ?_) hlim2
+    rw [Real.norm_eq_abs]
+    exact InvariantSplit.abs_mulVec_le G _ (abs_entry_le_sum G) (hLx t) i
+  · refine squeeze_zero_norm (fun t => ?_) hlim
+    rw [Real.norm_eq_abs]
+    exact hLx t j
+
+end Gali.BasicNewKeynesianModel.GeneralBK
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Root location for the money-supply system (34): Galí's footnote 14 proved
+
+Galí (2015), Chapter 3, §3.4.2, p. 75 and fn. 14. Under an exogenous money supply the
+equilibrium solves (34), `A_{M,0} x_t = A_{M,1} E_t x_{t+1} + B_M s_t`, and the book states,
+supported only by a numerical exploration (fn. 14), that `A_M = A_{M,0}⁻¹ A_{M,1}` always has two
+eigenvalues inside and one outside the unit circle. Here this is proved for all parameters.
+
+With `b = 1 + ση` the eigenvalues of `A_M` are the roots of the characteristic cubic
+`f(z) = (ση − z b)(β − z)(1 − z) − ηκ z(1 − z) + κ z²` (`MoneyRule.isRoot_charpoly_AM_iff`):
+`f(0) = σηβ`, `f(1) = κ > 0`, `f(−1) = 2(1 + 2ση)(1 + β) + 2ηκ + κ > 0`, leading coefficient
+`−b < 0`. So `f` has a real root `r > 1` and factors as `f(z) = −b (z − r)(z² + q₁ z + q₀)`;
+evaluating at `0`, `1`, `−1` gives `b r q₀ = σηβ`, `b (r − 1)(1 + q₁ + q₀) = κ` and
+`b (1 + r)(1 − q₁ + q₀) = f(−1)`, which are exactly the Schur–Cohn conditions
+`|q₀| < 1`, `|q₁| < 1 + q₀` for the quadratic factor.
+
+## Parameter domain
+
+Everything holds for `σ ≥ 0`, `η ≥ 0`, `κ > 0`, `0 ≤ β ≤ 1`, which contains Galí's domain
+(`σ > 0`, `κ > 0`, `0 < β < 1`, and `η ≥ 0`: Galí (2015), Ch. 2, eq. (4), p. 21 allows a zero
+interest semi-elasticity of money demand). At `η = 0` one eigenvalue is `0` (still inside).
+
+## Main results
+
+* `exists_root_gt_one`, `charCubic_factor`: the real root `r > 1` and the factorisation.
+* `quad_schurStable`: the quadratic factor satisfies the Schur–Cohn conditions.
+* `bookDeterminacyClaim_holds`, `bookDeterminacyClaim_gali`: the book's claim
+  `MoneyRule.BookDeterminacyClaim` is TRUE (stated before without proof).
+* `norm_lt_one_of_quadratic`: a complex root of a real monic quadratic satisfying the Schur–Cohn
+  conditions lies in the open unit disc.
+* `AM_root_location`: counted with algebraic multiplicity over `ℂ`, `A_M` has exactly one
+  eigenvalue outside the closed unit disc (`unstableCount = 1`), two in the open disc
+  (`stableCount = 2`) and none on the unit circle (`NoUnit`).
+* `real_eigenvalue_unique`: every real eigenvalue of modulus `≥ 1` is the root `r > 1`.
+
+The analogous result for a more general model was proved analytically by Schabert and
+Stoltenberg (2005), ECB Working Paper 458, Prop. 12 and App. 6.12.
+-/
+
+namespace Gali.BasicNewKeynesianModel.MoneyRuleRoots
+
+open Polynomial MoneyRule InvariantSplit
+
+/-! ### The real factorisation -/
+
+/-- Galí (2015), p. 75: the coefficient of `z²` in the characteristic cubic. -/
+def coef2 (σ η β κ : ℝ) : ℝ := σ * η + (1 + σ * η) * (1 + β) + η * κ + κ
+
+/-- Galí (2015), p. 75: the coefficient of `z` in the characteristic cubic. -/
+def coef1 (σ η β κ : ℝ) : ℝ := -(σ * η) * (1 + β) - (1 + σ * η) * β - η * κ
+
+/-- Galí (2015), p. 75: `f(z) = −(1+ση) z³ + c₂ z² + c₁ z + σηβ`. -/
+theorem charCubic_eq_coef (σ η β κ z : ℝ) :
+    charCubic σ η β κ z =
+      -(1 + σ * η) * z ^ 3 + coef2 σ η β κ * z ^ 2 + coef1 σ η β κ * z + σ * η * β := by
+  rw [charCubic_expand, coef2, coef1]
+
+/-- Galí (2015), p. 75: the linear coefficient `q₁ = r − c₂/(1+ση)` of the quadratic factor of
+the cubic after the root `r` is divided out. -/
+noncomputable def quadQ1 (σ η β κ r : ℝ) : ℝ := r - coef2 σ η β κ / (1 + σ * η)
+
+/-- Galí (2015), p. 75: the constant `q₀ = r q₁ − c₁/(1+ση)` of the quadratic factor. -/
+noncomputable def quadQ0 (σ η β κ r : ℝ) : ℝ := r * quadQ1 σ η β κ r - coef1 σ η β κ / (1 + σ * η)
+
+/-- Galí (2015), p. 75: `(1+ση) q₁ = (1+ση) r − c₂`. -/
+theorem quadQ1_mul {σ η β κ : ℝ} (hb : 1 + σ * η ≠ 0) (r : ℝ) :
+    (1 + σ * η) * quadQ1 σ η β κ r = (1 + σ * η) * r - coef2 σ η β κ := by
+  rw [quadQ1, mul_sub, mul_div_cancel₀ _ hb]
+
+/-- Galí (2015), p. 75: `(1+ση) q₀ = (1+ση) r q₁ − c₁`. -/
+theorem quadQ0_mul {σ η β κ : ℝ} (hb : 1 + σ * η ≠ 0) (r : ℝ) :
+    (1 + σ * η) * quadQ0 σ η β κ r = (1 + σ * η) * r * quadQ1 σ η β κ r - coef1 σ η β κ := by
+  rw [quadQ0, mul_sub, mul_div_cancel₀ _ hb, mul_assoc]
+
+/-- Galí (2015), p. 75: if `f(r) = 0` the cubic factors as
+`f(z) = −(1+ση)(z − r)(z² + q₁ z + q₀)`. -/
+theorem charCubic_factor {σ η β κ r : ℝ} (hb : 1 + σ * η ≠ 0) (hr : charCubic σ η β κ r = 0)
+    (z : ℝ) : charCubic σ η β κ z =
+      -(1 + σ * η) * (z - r) * (z ^ 2 + quadQ1 σ η β κ r * z + quadQ0 σ η β κ r) := by
+  have h1 := quadQ1_mul (κ := κ) (β := β) hb r
+  have h0 := quadQ0_mul (κ := κ) (β := β) hb r
+  rw [charCubic_eq_coef] at hr ⊢
+  linear_combination (z ^ 2 - r ^ 2) * h1 + (z - r) * h0 + hr
+
+/-- Galí (2015), p. 75: `f(−1) = 2(1 + 2ση)(1 + β) + 2ηκ + κ`. -/
+theorem charCubic_neg_one (σ η β κ : ℝ) :
+    charCubic σ η β κ (-1) = 2 * (1 + 2 * (σ * η)) * (1 + β) + 2 * (η * κ) + κ := by
+  unfold charCubic; ring
+
+/-- Galí (2015), p. 75: for `σ, η ≥ 0`, `κ > 0`, `0 ≤ β ≤ 1` the cubic has a real root strictly
+greater than one (IVT between `f(1) = κ > 0` and `f(1 + c₂/(1+ση)) < 0`). -/
+theorem exists_root_gt_one {σ η β κ : ℝ} (hσ : 0 ≤ σ) (hη : 0 ≤ η) (hκ : 0 < κ) (hβ0 : 0 ≤ β)
+    (hβ1 : β ≤ 1) : ∃ r, 1 < r ∧ charCubic σ η β κ r = 0 := by
+  have hsη : 0 ≤ σ * η := mul_nonneg hσ hη
+  have hηκ : 0 ≤ η * κ := mul_nonneg hη hκ.le
+  set b := 1 + σ * η with hb
+  have hb0 : 0 < b := by linarith
+  have hc2 : 0 < coef2 σ η β κ := by
+    unfold coef2; nlinarith
+  have hc1 : coef1 σ η β κ ≤ 0 := by
+    unfold coef1; nlinarith
+  set R := 1 + coef2 σ η β κ / b with hR
+  have hR1 : 1 < R := by have := div_pos hc2 hb0; linarith
+  have hbR : b * R = b + coef2 σ η β κ := by rw [hR]; field_simp
+  have hfR : charCubic σ η β κ R < 0 := by
+    rw [charCubic_eq_coef]
+    have hlead : -b * R ^ 3 + coef2 σ η β κ * R ^ 2 = -b * R ^ 2 := by
+      have : -b * R ^ 3 + coef2 σ η β κ * R ^ 2 = R ^ 2 * (coef2 σ η β κ - b * R) := by ring
+      rw [this, hbR]; ring
+    have hR2 : 1 < R ^ 2 := by nlinarith
+    have hc1R : coef1 σ η β κ * R ≤ 0 := mul_nonpos_of_nonpos_of_nonneg hc1 (by linarith)
+    have hsηβ : σ * η * β ≤ σ * η := by nlinarith
+    have hbR2 : b < b * R ^ 2 := by nlinarith
+    rw [← hb]
+    linarith
+  have hcont : ContinuousOn (charCubic σ η β κ) (Set.Icc 1 R) := by
+    unfold charCubic
+    fun_prop
+  have hmem : (0 : ℝ) ∈ Set.Ioo (charCubic σ η β κ R) (charCubic σ η β κ 1) := by
+    rw [charCubic_one]
+    exact ⟨hfR, hκ⟩
+  obtain ⟨z, ⟨hz1, -⟩, hz⟩ := intermediate_value_Ioo' hR1.le hcont hmem
+  exact ⟨z, hz1, hz⟩
+
+/-- Galí (2015), p. 75: the values of the quadratic factor at `0`, `1`, `−1` (given a root
+`r > 1`): `(1+ση) r q₀ = σηβ`, `(1+ση)(r − 1)(1 + q₁ + q₀) = κ`,
+`(1+ση)(1 + r)(1 − q₁ + q₀) = f(−1)`. -/
+theorem quad_values {σ η β κ r : ℝ} (hb : 1 + σ * η ≠ 0) (hr : charCubic σ η β κ r = 0) :
+    (1 + σ * η) * r * quadQ0 σ η β κ r = σ * η * β ∧
+      (1 + σ * η) * (r - 1) * (1 + quadQ1 σ η β κ r + quadQ0 σ η β κ r) = κ ∧
+      (1 + σ * η) * (1 + r) * (1 - quadQ1 σ η β κ r + quadQ0 σ η β κ r) =
+        charCubic σ η β κ (-1) := by
+  have h0 := charCubic_factor hb hr 0
+  have h1 := charCubic_factor hb hr 1
+  have hm := charCubic_factor hb hr (-1)
+  rw [charCubic_zero] at h0
+  rw [charCubic_one] at h1
+  refine ⟨by linear_combination -h0, by linear_combination -h1, by linear_combination -hm⟩
+
+/-- Galí (2015), p. 75: for `σ, η ≥ 0`, `κ > 0`, `0 ≤ β ≤ 1` and a root `r > 1`, the quadratic
+factor `z² + q₁ z + q₀` satisfies the Schur–Cohn conditions `|q₀| < 1`, `|q₁| < 1 + q₀`, and
+`q₀ ≥ 0` (with `q₀ > 0` iff `σηβ > 0`). -/
+theorem quad_schurStable {σ η β κ r : ℝ} (hσ : 0 ≤ σ) (hη : 0 ≤ η) (hκ : 0 < κ)
+    (hβ0 : 0 ≤ β) (hβ1 : β ≤ 1) (hr1 : 1 < r) (hr : charCubic σ η β κ r = 0) :
+    SchurStable (-quadQ1 σ η β κ r) (quadQ0 σ η β κ r) ∧ 0 ≤ quadQ0 σ η β κ r := by
+  have hsη : 0 ≤ σ * η := mul_nonneg hσ hη
+  have hηκ : 0 ≤ η * κ := mul_nonneg hη hκ.le
+  have hb0 : 0 < 1 + σ * η := by linarith
+  obtain ⟨h0, h1, hm⟩ := quad_values hb0.ne' hr
+  rw [charCubic_neg_one] at hm
+  have hbr : 0 < (1 + σ * η) * r := by positivity
+  have hq0 : 0 ≤ quadQ0 σ η β κ r := by
+    by_contra hneg
+    push Not at hneg
+    have : (1 + σ * η) * r * quadQ0 σ η β κ r < 0 := mul_neg_of_pos_of_neg hbr hneg
+    have : 0 ≤ σ * η * β := mul_nonneg hsη hβ0
+    linarith
+  have hq0' : quadQ0 σ η β κ r < 1 := by
+    by_contra hge
+    push Not at hge
+    have hsηβ : σ * η * β ≤ σ * η := by nlinarith
+    have : (1 + σ * η) * r * 1 ≤ (1 + σ * η) * r * quadQ0 σ η β κ r :=
+      mul_le_mul_of_nonneg_left hge hbr.le
+    nlinarith
+  have hp1 : 0 < 1 + quadQ1 σ η β κ r + quadQ0 σ η β κ r := by
+    have hpos : 0 < (1 + σ * η) * (r - 1) := mul_pos hb0 (by linarith)
+    refine pos_of_mul_pos_right (a := (1 + σ * η) * (r - 1)) ?_ hpos.le
+    rw [h1]; exact hκ
+  have hm1 : 0 < 1 - quadQ1 σ η β κ r + quadQ0 σ η β κ r := by
+    have hpos : 0 < (1 + σ * η) * (1 + r) := mul_pos hb0 (by linarith)
+    refine pos_of_mul_pos_right (a := (1 + σ * η) * (1 + r)) ?_ hpos.le
+    rw [hm]; positivity
+  refine ⟨⟨?_, ?_⟩, hq0⟩
+  · rw [abs_lt]; constructor <;> linarith
+  · rw [abs_lt]; constructor <;> linarith
+
+/-- **Galí (2015), p. 75, fn. 14, PROVED**: for `σ, η ≥ 0`, `κ > 0`, `0 ≤ β ≤ 1` the
+characteristic cubic factors as `−(1+ση)(z − r)(z² + q₁ z + q₀)` with `r > 1` and the quadratic
+factor Schur stable: the book's (numerically supported) determinacy claim holds. -/
+theorem bookDeterminacyClaim_holds {σ η β κ : ℝ} (hσ : 0 ≤ σ) (hη : 0 ≤ η) (hκ : 0 < κ)
+    (hβ0 : 0 ≤ β) (hβ1 : β ≤ 1) : BookDeterminacyClaim σ η β κ := by
+  obtain ⟨r, hr1, hr⟩ := exists_root_gt_one hσ hη hκ hβ0 hβ1
+  have hb : 1 + σ * η ≠ 0 := by have := mul_nonneg hσ hη; linarith
+  exact ⟨r, quadQ1 σ η β κ r, quadQ0 σ η β κ r, hr1, charCubic_factor hb hr,
+    (quad_schurStable hσ hη hκ hβ0 hβ1 hr1 hr).1⟩
+
+/-- **Galí (2015), p. 75, fn. 14, PROVED** on the book's parameter domain `σ > 0`, `η ≥ 0`,
+`κ > 0`, `0 < β < 1`. -/
+theorem bookDeterminacyClaim_gali {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 ≤ η) (hκ : 0 < κ)
+    (hβ0 : 0 < β) (hβ1 : β < 1) : BookDeterminacyClaim σ η β κ :=
+  bookDeterminacyClaim_holds hσ.le hη hκ hβ0.le hβ1.le
+
+/-! ### Complex roots -/
+
+/-- Galí (2015), p. 75 (Schur–Cohn for a real quadratic): if `|b| < 1` and `|a| < 1 + b`, every
+complex root of `ν² + a ν + b` lies in the open unit disc. -/
+theorem norm_lt_one_of_quadratic {a b : ℝ} (hb : |b| < 1) (ha : |a| < 1 + b) {ν : ℂ}
+    (hν : ν ^ 2 + a * ν + b = 0) : ‖ν‖ < 1 := by
+  have hre := congrArg Complex.re hν
+  have him := congrArg Complex.im hν
+  simp only [sq, Complex.add_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
+    Complex.add_im, Complex.mul_im, Complex.zero_re, Complex.zero_im] at hre him
+  set x := ν.re
+  set y := ν.im
+  obtain ⟨hb1, hb2⟩ := abs_lt.mp hb
+  obtain ⟨ha1, ha2⟩ := abs_lt.mp ha
+  have hn : ‖ν‖ ^ 2 = x ^ 2 + y ^ 2 := by
+    rw [Complex.sq_norm, Complex.normSq_apply]; ring
+  have key : x ^ 2 + y ^ 2 < 1 := by
+    by_cases hy : y = 0
+    · rw [hy] at hre ⊢
+      have hx : x * x + a * x + b = 0 := by linarith
+      have hlt : x < 1 := by
+        by_contra hx1
+        push Not at hx1
+        nlinarith [mul_nonneg (sub_nonneg.mpr hx1) (sub_nonneg.mpr (hb2.le.trans hx1))]
+      have hgt : -1 < x := by
+        by_contra hx1
+        push Not at hx1
+        nlinarith [mul_nonneg (sub_nonneg.mpr hx1) (by linarith : (0 : ℝ) ≤ -x - b)]
+      nlinarith
+    · have h2 : 2 * x + a = 0 := by
+        have : y * (2 * x + a) = 0 := by linarith
+        rcases mul_eq_zero.mp this with h | h
+        · exact absurd h hy
+        · exact h
+      nlinarith
+  rw [← hn] at key
+  exact (sq_lt_one_iff₀ (norm_nonneg _)).mp key
+
+/-- Galí (2015), p. 75: the real monic quadratic `z² + q₁ z + q₀`. -/
+noncomputable def quadPoly (q₁ q₀ : ℝ) : ℝ[X] := X ^ 2 + C q₁ * X + C q₀
+
+/-- Galí (2015), p. 75: a complex root `μ` of the quadratic satisfies `μ² + q₁ μ + q₀ = 0`. -/
+theorem quadPoly_root {q₁ q₀ : ℝ} {μ : ℂ}
+    (h : μ ∈ ((quadPoly q₁ q₀).map Complex.ofRealHom).roots) : μ ^ 2 + q₁ * μ + q₀ = 0 := by
+  have h' := (mem_roots'.mp h).2
+  simpa [quadPoly, IsRoot] using h'
+
+/-- Galí (2015), p. 75: with `1 + ση ≠ 0` and `f(r) = 0`, the characteristic polynomial of `A_M`
+is `(X − r)(X² + q₁ X + q₀)`. -/
+theorem charpoly_AM_factor {σ η β κ r : ℝ} (hb : 1 + σ * η ≠ 0) (hr : charCubic σ η β κ r = 0) :
+    (AM σ η β κ).charpoly = (X - C r) * quadPoly (quadQ1 σ η β κ r) (quadQ0 σ η β κ r) := by
+  refine Polynomial.funext fun z => ?_
+  rw [charpoly_AM_eval hb, charCubic_factor hb hr]
+  simp only [quadPoly, eval_mul, eval_sub, eval_X, eval_C, eval_add, eval_pow]
+  field_simp
+
+/-- Galí (2015), p. 75: the eigenvalues of `A_M` (with multiplicity) are `r` and the two complex
+roots of the quadratic factor. -/
+theorem eigs_AM {σ η β κ r : ℝ} (hb : 1 + σ * η ≠ 0) (hr : charCubic σ η β κ r = 0) :
+    eigs (AM σ η β κ) = {(r : ℂ)} +
+      ((quadPoly (quadQ1 σ η β κ r) (quadQ0 σ η β κ r)).map Complex.ofRealHom).roots := by
+  have hne : ((AM σ η β κ).charpoly.map Complex.ofRealHom) ≠ 0 :=
+    ((Matrix.charpoly_monic _).map _).ne_zero
+  rw [eigs, charpoly_map_ofReal]
+  rw [charpoly_AM_factor hb hr, Polynomial.map_mul] at hne ⊢
+  rw [roots_mul hne, Polynomial.map_sub, Polynomial.map_X, Polynomial.map_C, roots_X_sub_C]
+  rfl
+
+/-- **Galí (2015), p. 75, fn. 14 — root location, PROVED**: for `σ, η ≥ 0`, `κ > 0`,
+`0 ≤ β ≤ 1`, counted with algebraic multiplicity over `ℂ`, `A_M = A_{M,0}⁻¹ A_{M,1}` has no
+eigenvalue on the unit circle, exactly one outside the closed unit disc and exactly two in the
+open unit disc. -/
+theorem AM_root_location {σ η β κ : ℝ} (hσ : 0 ≤ σ) (hη : 0 ≤ η) (hκ : 0 < κ) (hβ0 : 0 ≤ β)
+    (hβ1 : β ≤ 1) :
+    NoUnit (AM σ η β κ) ∧ unstableCount (AM σ η β κ) = 1 ∧ stableCount (AM σ η β κ) = 2 := by
+  obtain ⟨r, hr1, hr⟩ := exists_root_gt_one hσ hη hκ hβ0 hβ1
+  have hb : 1 + σ * η ≠ 0 := by have := mul_nonneg hσ hη; linarith
+  obtain ⟨hS, -⟩ := quad_schurStable hσ hη hκ hβ0 hβ1 hr1 hr
+  set R := ((quadPoly (quadQ1 σ η β κ r) (quadQ0 σ η β κ r)).map Complex.ofRealHom).roots
+    with hRdef
+  have hRin : ∀ μ ∈ R, ‖μ‖ < 1 := by
+    intro μ hμ
+    refine norm_lt_one_of_quadratic hS.1 ?_ (quadPoly_root hμ)
+    have := hS.2
+    rwa [abs_neg] at this
+  have hrn : ‖(r : ℂ)‖ = r := by rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by linarith)]
+  have he : eigs (AM σ η β κ) = {(r : ℂ)} + R := eigs_AM hb hr
+  have hcard : Multiset.card R = 2 := by
+    have h3 := card_eigs (AM σ η β κ)
+    rw [he, Multiset.card_add, Multiset.card_singleton, Fintype.card_fin] at h3
+    omega
+  have hra : |r| = r := abs_of_pos (by linarith)
+  refine ⟨?_, ?_, ?_⟩
+  · intro μ hμ
+    rw [he, Multiset.mem_add, Multiset.mem_singleton] at hμ
+    rcases hμ with rfl | hμ
+    · rw [hrn]; exact hr1.ne'
+    · exact (hRin μ hμ).ne
+  · rw [unstableCount, he, Multiset.filter_add,
+      Multiset.filter_eq_nil.mpr (fun μ hμ => not_lt.mpr (hRin μ hμ).le), add_zero,
+      Multiset.filter_singleton]
+    simp [hra, hr1]
+  · rw [stableCount, he, Multiset.filter_add, Multiset.filter_eq_self.mpr hRin,
+      Multiset.filter_singleton]
+    simp [hra, hr1.le, hcard]
+
+/-- **Galí (2015), p. 75 — root location on the book's domain** (`σ > 0`, `η ≥ 0`, `κ > 0`,
+`0 < β < 1`): one eigenvalue of `A_M` outside the closed unit disc, two inside the open disc,
+none on the circle. -/
+theorem AM_root_location_gali {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 ≤ η) (hκ : 0 < κ)
+    (hβ0 : 0 < β) (hβ1 : β < 1) :
+    NoUnit (AM σ η β κ) ∧ unstableCount (AM σ η β κ) = 1 ∧ stableCount (AM σ η β κ) = 2 :=
+  AM_root_location hσ.le hη hκ hβ0.le hβ1.le
+
+/-- Galí (2015), p. 75: the real eigenvalue outside the unit circle is unique: every real root of
+the cubic with `|z| ≥ 1` equals the root `r > 1`. -/
+theorem real_eigenvalue_unique {σ η β κ r z : ℝ} (hσ : 0 ≤ σ) (hη : 0 ≤ η) (hκ : 0 < κ)
+    (hβ0 : 0 ≤ β) (hβ1 : β ≤ 1) (hr1 : 1 < r) (hr : charCubic σ η β κ r = 0)
+    (hz : charCubic σ η β κ z = 0) (hz1 : 1 ≤ |z|) : z = r := by
+  have hb : 1 + σ * η ≠ 0 := by have := mul_nonneg hσ hη; linarith
+  obtain ⟨hS, -⟩ := quad_schurStable hσ hη hκ hβ0 hβ1 hr1 hr
+  rw [charCubic_factor hb hr, mul_eq_zero, mul_eq_zero] at hz
+  rcases hz with (h | h) | h
+  · exact absurd (neg_eq_zero.mp h) hb
+  · linarith
+  · have hn := norm_lt_one_of_quadratic hS.1 (by have := hS.2; rwa [abs_neg] at this)
+      (ν := (z : ℂ)) (by exact_mod_cast h)
+    rw [Complex.norm_real, Real.norm_eq_abs] at hn
+    linarith
+
+end Gali.BasicNewKeynesianModel.MoneyRuleRoots
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Determinacy under an exogenous money supply
+
+Galí (2015), Chapter 3, §3.4.2, p. 75 and fn. 14: "the equilibrium is always determined under an
+exogenous path for the money supply". This module proves it in the strong sense of the general
+Blanchard–Kahn theorem (`GeneralBK`, restated from the Woodford Chapter 4 project): for every
+bounded adapted path of the shocks `s_t = (r̂ⁿ_t, ŷⁿ_t, Δm_t)`, every initial real balance
+`l̂_{−1}` and any `ExpectationSystem`, system (34),
+`A_{M,0} x_t = A_{M,1} E_t x_{t+1} + B_M s_t` with `l̂_{t−1}` predetermined, has exactly one
+bounded adapted solution.
+
+## The state-space form
+
+The state is `x_t = (ỹ_t, π_t; l̂_{t−1})`, indexed by `Fin 2 ⊕ Fin 1` (two non-predetermined
+variables, one predetermined).
+
+* `η > 0`: `A_{M,1}` is invertible (`det A_{M,1} = σηβ`), and (34) is
+  `E_t x_{t+1} = A_b x_t − A_{M,1}⁻¹ B_M s_t` with `A_b = A_{M,1}⁻¹ A_{M,0} = A_M⁻¹`
+  (`Ab3_eq_inv_AM`). Its characteristic polynomial is `(X − r⁻¹)(X² + (q₁/q₀) X + 1/q₀)`
+  (`charpoly_Ab3_factor`): one eigenvalue `1/r ∈ (0, 1)` and two outside the closed unit disc
+  (`Ab3_root_location`). Genericity holds because the stable eigenvector has a non-zero
+  real-balance component (`Abk_genericX`).
+* `η = 0` (allowed by Galí, Ch. 2, p. 21): `A_{M,1}` is singular (one infinite generalised
+  eigenvalue). The first row of (34) is then static, `ỹ_t = l̂_t − ŷⁿ_t`, and the system reduces
+  exactly to `(π_t; l̂_{t−1})` with `E_t (π_{t+1}, l̂_t) = B (π_t, l̂_{t−1}) + w_t`,
+  `B = [[(1+κ)/β, −κ/β], [−1, 1]]`, whose eigenvalues are `ρ₁ ∈ (0,1)` and `1/(βρ₁) > 1`.
+
+## Main results
+
+* `Abk_determinate`, `B2_determinate`: the Blanchard–Kahn conditions hold, so the state-space
+  systems are determinate for EVERY bounded adapted forcing vector.
+* `system34_existsUnique`: for `σ > 0`, `η ≥ 0`, `κ > 0`, `0 < β ≤ 1` and bounded adapted shocks,
+  (34) has exactly one bounded adapted equilibrium with predetermined real balances starting at
+  any given `l̂_{−1}` — for every `ExpectationSystem`.
+* `model_existsUnique`: for `η > 0`, the same for the model equations themselves — the NKPC (22),
+  the DIS (23), money demand (31) and the identity (33) — with the nominal rate included.
+-/
+
+namespace Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy
+
+open Polynomial MoneyRule MoneyRuleRoots InvariantSplit GeneralBKForward GeneralBK
+open scoped Matrix
+
+/-! ### Tools -/
+
+/-- Galí (2015), p. 75 (tool): the eigenvalues are invariant under a relabelling of the state. -/
+theorem eigs_submatrix_equiv {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Fintype κ]
+    [DecidableEq κ] (e : ι ≃ κ) (M : Matrix κ κ ℝ) : eigs (M.submatrix e e) = eigs M := by
+  unfold eigs
+  rw [show (M.submatrix e e).map Complex.ofReal = Matrix.reindex e.symm e.symm
+    (M.map Complex.ofReal) from rfl, Matrix.charpoly_reindex]
+
+/-- Galí (2015), p. 75 (tool): if the stable count is one and a real eigenvector of a stable
+eigenvalue has a non-zero predetermined component, the genericity condition holds (the stable
+subspace is the line through that eigenvector). -/
+theorem genericX_of_eigvec {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z]
+    [DecidableEq X] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (hnu : NoUnit A) (hs : stableCount A = 1)
+    {ρ : ℝ} (hρ : |ρ| < 1) {e : Z ⊕ X → ℝ} (he : A *ᵥ e = ρ • e) {j : X}
+    (hej : e (Sum.inr j) ≠ 0) : GenericX A := by
+  have he0 : e ≠ 0 := fun h => hej (by rw [h]; rfl)
+  have hmem : e ∈ boundedOrbits A := by
+    refine ⟨∑ k, |e k|, fun t i => ?_⟩
+    rw [pow_mulVec_eigvec he t, Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow]
+    calc |ρ| ^ t * |e i| ≤ 1 * |e i| :=
+          mul_le_mul_of_nonneg_right (pow_le_one₀ (abs_nonneg _) hρ.le) (abs_nonneg _)
+      _ = |e i| := one_mul _
+      _ ≤ ∑ k, |e k| :=
+          Finset.single_le_sum (f := fun k => |e k|) (fun k _ => abs_nonneg _)
+            (Finset.mem_univ i)
+  have hspan : Submodule.span ℝ {e} = boundedOrbits A := by
+    refine Submodule.eq_of_le_of_finrank_eq ?_ ?_
+    · rw [Submodule.span_le, Set.singleton_subset_iff]
+      exact hmem
+    · rw [finrank_span_singleton he0, finrank_eq_stableCount hnu, hs]
+  intro v hv hvx
+  rw [← hspan, Submodule.mem_span_singleton] at hv
+  obtain ⟨c, rfl⟩ := hv
+  have h := hvx j
+  rw [Pi.smul_apply, smul_eq_mul, mul_eq_zero] at h
+  rcases h with h | h
+  · rw [h, zero_smul]
+  · exact absurd h hej
+
+/-- Galí (2015), p. 75 (tool): the roots of `X² + (q₁/q₀) X + 1/q₀` are the reciprocals of the
+roots of `X² + q₁ X + q₀`, so they lie OUTSIDE the closed unit disc when the latter satisfies the
+Schur–Cohn conditions. -/
+theorem norm_gt_one_of_recip {q₁ q₀ : ℝ} (hS : SchurStable (-q₁) q₀) (hq0 : q₀ ≠ 0) {μ : ℂ}
+    (h : μ ∈ ((quadPoly (q₁ / q₀) q₀⁻¹).map Complex.ofRealHom).roots) : 1 < ‖μ‖ := by
+  have h1 := quadPoly_root h
+  have hq0c : (q₀ : ℂ) ≠ 0 := by exact_mod_cast hq0
+  have hμ : μ ≠ 0 := by
+    rintro rfl
+    have : ((q₀⁻¹ : ℝ) : ℂ) = 0 := by simpa using h1
+    exact hq0 (by exact_mod_cast inv_eq_zero.mp (by exact_mod_cast this))
+  have h2 : (q₀ : ℂ) * μ ^ 2 + q₁ * μ + 1 = 0 := by
+    have e : (q₀ : ℂ) * (μ ^ 2 + ((q₁ / q₀ : ℝ) : ℂ) * μ + ((q₀⁻¹ : ℝ) : ℂ)) =
+        q₀ * μ ^ 2 + q₁ * μ + 1 := by
+      push_cast
+      field_simp
+    rw [← e, h1, mul_zero]
+  set ν := μ⁻¹ with hν
+  have hνμ : ν * μ = 1 := inv_mul_cancel₀ hμ
+  have h3 : ν ^ 2 + q₁ * ν + q₀ = 0 := by
+    linear_combination ν ^ 2 * h2 - ((q₁ : ℂ) * ν + q₀ * (1 + ν * μ)) * hνμ
+  have hn := norm_lt_one_of_quadratic hS.1 (by have := hS.2; rwa [abs_neg] at this) h3
+  have hν0 : ν ≠ 0 := inv_ne_zero hμ
+  have hμν : μ = ν⁻¹ := by rw [hν, inv_inv]
+  rw [hμν, norm_inv]
+  exact (one_lt_inv₀ (norm_pos_iff.mpr hν0)).mpr hn
+
+/-! ### `η > 0`: the backward matrix `A_b = A_{M,1}⁻¹ A_{M,0}` -/
+
+/-- Galí (2015), eq. (34), p. 75: with `A_{M,1}` invertible, (34) reads
+`E_t x_{t+1} = A_b x_t − A_{M,1}⁻¹ B_M s_t` with `A_b = A_{M,1}⁻¹ A_{M,0}`. -/
+noncomputable def Ab3 (σ η β κ : ℝ) : Matrix (Fin 3) (Fin 3) ℝ := (AM1 σ η β)⁻¹ * AM0 σ η κ
+
+/-- Galí (2015), p. 75: `A_{M,1}` is invertible iff `σηβ ≠ 0`; in particular for `η > 0`. -/
+theorem isUnit_det_AM1 {σ η β : ℝ} (hσ : σ ≠ 0) (hη : η ≠ 0) (hβ : β ≠ 0) :
+    IsUnit (AM1 σ η β).det := by
+  rw [det_AM1]
+  exact (mul_ne_zero (mul_ne_zero hσ hη) hβ).isUnit
+
+/-- Galí (2015), p. 75: `A_{M,0}` is invertible whenever `1 + ση ≠ 0`. -/
+theorem isUnit_det_AM0 {σ η κ : ℝ} (hb : 1 + σ * η ≠ 0) : IsUnit (AM0 σ η κ).det := by
+  rw [det_AM0]
+  exact hb.isUnit
+
+/-- Galí (2015), p. 75: the backward matrix is the inverse of `A_M = A_{M,0}⁻¹ A_{M,1}`, so its
+eigenvalues are the reciprocals of those of `A_M`. -/
+theorem Ab3_eq_inv_AM {σ η β κ : ℝ} (hb : 1 + σ * η ≠ 0) :
+    Ab3 σ η β κ = (AM σ η β κ)⁻¹ := by
+  rw [AM, Matrix.mul_inv_rev, Matrix.nonsing_inv_nonsing_inv _ (isUnit_det_AM0 hb), Ab3]
+
+/-- Galí (2015), p. 75: `det(z A_{M,1} − A_{M,0}) = σηβ z³ + c₁ z² + c₂ z − (1+ση)`, the
+reversed characteristic cubic `z³ f(1/z)`. -/
+theorem det_pencil (σ η β κ z : ℝ) :
+    (z • AM1 σ η β - AM0 σ η κ).det =
+      σ * η * β * z ^ 3 + coef1 σ η β κ * z ^ 2 + coef2 σ η β κ * z - (1 + σ * η) := by
+  simp [Matrix.det_fin_three, AM0, AM1, coef1, coef2]
+  ring
+
+/-- Galí (2015), p. 75: with `f(r) = 0`,
+`det(z A_{M,1} − A_{M,0}) = −(1+ση)(1 − r z)(1 + q₁ z + q₀ z²)`. -/
+theorem det_pencil_factor {σ η β κ r : ℝ} (hb : 1 + σ * η ≠ 0) (hr : charCubic σ η β κ r = 0)
+    (z : ℝ) : (z • AM1 σ η β - AM0 σ η κ).det =
+      -(1 + σ * η) * (1 - r * z) * (1 + quadQ1 σ η β κ r * z + quadQ0 σ η β κ r * z ^ 2) := by
+  have h1 := quadQ1_mul (κ := κ) (β := β) hb r
+  have h0 := quadQ0_mul (κ := κ) (β := β) hb r
+  rw [det_pencil]
+  rw [charCubic_eq_coef] at hr
+  linear_combination (z - r ^ 2 * z ^ 3) * h1 + (z ^ 2 - r * z ^ 3) * h0 + z ^ 3 * hr
+
+/-- Galí (2015), p. 75: `det A_{M,1} · det(z − A_b) = det(z A_{M,1} − A_{M,0})`. -/
+theorem det_AM1_mul_charpoly_Ab3 {σ η β κ : ℝ} (hu : IsUnit (AM1 σ η β).det) (z : ℝ) :
+    (AM1 σ η β).det * (Ab3 σ η β κ).charpoly.eval z = (z • AM1 σ η β - AM0 σ η κ).det := by
+  rw [Matrix.eval_charpoly, ← Matrix.det_mul]
+  congr 1
+  rw [Matrix.mul_sub, Ab3, Matrix.mul_nonsing_inv_cancel_left _ _ hu, Matrix.scalar_apply,
+    ← Matrix.smul_one_eq_diagonal, Matrix.mul_smul, Matrix.mul_one]
+
+/-- Galí (2015), p. 75: for `σ, η, β ≠ 0`, `1 + ση ≠ 0` and a root `r` of the cubic, the
+characteristic polynomial of `A_b` is `(X − r⁻¹)(X² + (q₁/q₀) X + q₀⁻¹)`. -/
+theorem charpoly_Ab3_factor {σ η β κ r : ℝ} (hσ : σ ≠ 0) (hη : η ≠ 0) (hβ : β ≠ 0)
+    (hb : 1 + σ * η ≠ 0) (hr : charCubic σ η β κ r = 0) :
+    (Ab3 σ η β κ).charpoly = (X - C r⁻¹) *
+      quadPoly (quadQ1 σ η β κ r / quadQ0 σ η β κ r) (quadQ0 σ η β κ r)⁻¹ := by
+  have hu := isUnit_det_AM1 hσ hη hβ
+  obtain ⟨hv0, -, -⟩ := quad_values hb hr
+  have hsηβ : σ * η * β ≠ 0 := mul_ne_zero (mul_ne_zero hσ hη) hβ
+  have hr0 : r ≠ 0 := by rintro rfl; apply hsηβ; rw [← hv0]; ring
+  have hq0 : quadQ0 σ η β κ r ≠ 0 := by rintro h; apply hsηβ; rw [← hv0, h]; ring
+  refine Polynomial.funext fun z => ?_
+  have e := det_AM1_mul_charpoly_Ab3 (κ := κ) hu z
+  rw [det_pencil_factor hb hr, det_AM1, ← hv0] at e
+  have hden : (1 + σ * η) * r * quadQ0 σ η β κ r ≠ 0 := by rw [hv0]; exact hsηβ
+  simp only [quadPoly, eval_mul, eval_sub, eval_X, eval_C, eval_add, eval_pow]
+  have key : (1 + σ * η) * r * quadQ0 σ η β κ r * ((z - r⁻¹) * (z ^ 2 +
+      quadQ1 σ η β κ r / quadQ0 σ η β κ r * z + (quadQ0 σ η β κ r)⁻¹)) =
+      -(1 + σ * η) * (1 - r * z) * (1 + quadQ1 σ η β κ r * z + quadQ0 σ η β κ r * z ^ 2) := by
+    field_simp
+    ring
+  exact mul_left_cancel₀ hden (e.trans key.symm)
+
+/-- Galí (2015), p. 75, fn. 14 (backward form, `η > 0`): for `σ, η, β > 0`, `κ > 0`, `β ≤ 1`,
+`A_b = A_M⁻¹` has exactly one eigenvalue in the open unit disc (namely `1/r`), two outside the
+closed disc and none on the unit circle (with algebraic multiplicity over `ℂ`). -/
+theorem Ab3_root_location {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 < η) (hκ : 0 < κ) (hβ0 : 0 < β)
+    (hβ1 : β ≤ 1) :
+    NoUnit (Ab3 σ η β κ) ∧ stableCount (Ab3 σ η β κ) = 1 ∧ unstableCount (Ab3 σ η β κ) = 2 := by
+  obtain ⟨r, hr1, hr⟩ := exists_root_gt_one hσ.le hη.le hκ hβ0.le hβ1
+  have hb : 1 + σ * η ≠ 0 := by have := mul_pos hσ hη; linarith
+  obtain ⟨hS, -⟩ := quad_schurStable hσ.le hη.le hκ hβ0.le hβ1 hr1 hr
+  obtain ⟨hv0, -, -⟩ := quad_values hb hr
+  have hq0 : quadQ0 σ η β κ r ≠ 0 := by
+    intro h
+    rw [h, mul_zero] at hv0
+    have := mul_pos (mul_pos hσ hη) hβ0
+    linarith
+  set R := ((quadPoly (quadQ1 σ η β κ r / quadQ0 σ η β κ r)
+    (quadQ0 σ η β κ r)⁻¹).map Complex.ofRealHom).roots with hRdef
+  have hRout : ∀ μ ∈ R, 1 < ‖μ‖ := fun μ hμ => norm_gt_one_of_recip hS hq0 hμ
+  have he : eigs (Ab3 σ η β κ) = {((r⁻¹ : ℝ) : ℂ)} + R := by
+    have hne : ((Ab3 σ η β κ).charpoly.map Complex.ofRealHom) ≠ 0 :=
+      ((Matrix.charpoly_monic _).map _).ne_zero
+    rw [eigs, charpoly_map_ofReal]
+    rw [charpoly_Ab3_factor hσ.ne' hη.ne' hβ0.ne' hb hr, Polynomial.map_mul] at hne ⊢
+    rw [roots_mul hne, Polynomial.map_sub, Polynomial.map_X, Polynomial.map_C, roots_X_sub_C]
+    rfl
+  have hr0 : 0 < r := by linarith
+  have hrlt : r⁻¹ < 1 := inv_lt_one_of_one_lt₀ hr1
+  have hra : |r⁻¹| = r⁻¹ := abs_of_pos (inv_pos.mpr hr0)
+  have hcard : Multiset.card R = 2 := by
+    have h3 := card_eigs (Ab3 σ η β κ)
+    rw [he, Multiset.card_add, Multiset.card_singleton, Fintype.card_fin] at h3
+    omega
+  refine ⟨?_, ?_, ?_⟩
+  · intro μ hμ
+    rw [he, Multiset.mem_add, Multiset.mem_singleton] at hμ
+    rcases hμ with rfl | hμ
+    · rw [Complex.norm_real, Real.norm_eq_abs, hra]; exact hrlt.ne
+    · exact (hRout μ hμ).ne'
+  · rw [stableCount, he, Multiset.filter_add,
+      Multiset.filter_eq_nil.mpr (fun μ hμ => not_lt.mpr (hRout μ hμ).le), add_zero,
+      Multiset.filter_singleton]
+    simp [abs_of_pos hr0, hrlt]
+  · rw [unstableCount, he, Multiset.filter_add, Multiset.filter_eq_self.mpr hRout,
+      Multiset.filter_singleton]
+    simp [abs_of_pos hr0, hrlt.le, hcard]
+
+/-- Galí (2015), p. 75: the relabelling of `Fin 3` as `Fin 2 ⊕ Fin 1`: `ỹ_t, π_t`
+non-predetermined (`Sum.inl 0`, `Sum.inl 1`), `l̂_{t−1}` predetermined (`Sum.inr 0`). -/
+abbrev eS : Fin 2 ⊕ Fin 1 ≃ Fin 3 := finSumFinEquiv
+
+/-- Galí (2015), eq. (34), p. 75: the backward matrix on the split state `Fin 2 ⊕ Fin 1`. -/
+noncomputable def Abk (σ η β κ : ℝ) : Matrix (Fin 2 ⊕ Fin 1) (Fin 2 ⊕ Fin 1) ℝ :=
+  (Ab3 σ η β κ).submatrix eS eS
+
+/-- Galí (2015), p. 75: a real eigenvector of the pencil for the root `r`:
+`A_{M,1} v = r A_{M,0} v` with `v = ((r − β)(r − 1), rκ(r − 1), r²κ)`. -/
+def eigv3 (β κ r : ℝ) : Fin 3 → ℝ := ![(r - β) * (r - 1), r * κ * (r - 1), r ^ 2 * κ]
+
+/-- Galí (2015), p. 75: `A_{M,1} v = r A_{M,0} v` when `f(r) = 0`. -/
+theorem pencil_eigvec {σ η β κ r : ℝ} (hr : charCubic σ η β κ r = 0) :
+    AM1 σ η β *ᵥ eigv3 β κ r = r • (AM0 σ η κ *ᵥ eigv3 β κ r) := by
+  unfold charCubic at hr
+  funext i
+  fin_cases i
+  · simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, AM0, AM1, eigv3]
+    linear_combination hr
+  · simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, AM0, AM1, eigv3]
+    ring
+  · simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, AM0, AM1, eigv3]
+    ring
+
+/-- Galí (2015), p. 75: `A_b v = r⁻¹ v` (the stable eigenvector of the backward matrix). -/
+theorem Ab3_eigvec {σ η β κ r : ℝ} (hu : IsUnit (AM1 σ η β).det) (hr0 : r ≠ 0)
+    (hr : charCubic σ η β κ r = 0) : Ab3 σ η β κ *ᵥ eigv3 β κ r = r⁻¹ • eigv3 β κ r := by
+  have h := pencil_eigvec (σ := σ) (η := η) hr
+  have h0 : AM0 σ η κ *ᵥ eigv3 β κ r = r⁻¹ • (AM1 σ η β *ᵥ eigv3 β κ r) := by
+    rw [h, smul_smul, inv_mul_cancel₀ hr0, one_smul]
+  rw [Ab3, ← Matrix.mulVec_mulVec, h0, Matrix.mulVec_smul, Matrix.mulVec_mulVec,
+    Matrix.nonsing_inv_mul _ hu, Matrix.one_mulVec]
+
+/-- Galí (2015), p. 75: the eigenvalues of the split backward matrix are those of `A_b`. -/
+theorem eigs_Abk (σ η β κ : ℝ) : eigs (Abk σ η β κ) = eigs (Ab3 σ η β κ) :=
+  eigs_submatrix_equiv eS _
+
+/-- Galí (2015), p. 75, fn. 14 (`η > 0`): the Blanchard–Kahn conditions for (34): no eigenvalue
+of the backward matrix on the unit circle, exactly one (= the number of predetermined variables)
+in the open unit disc, and genericity (the stable eigenvector moves real balances). -/
+theorem Abk_bk_conditions {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 < η) (hκ : 0 < κ) (hβ0 : 0 < β)
+    (hβ1 : β ≤ 1) :
+    NoUnit (Abk σ η β κ) ∧ stableCount (Abk σ η β κ) = Fintype.card (Fin 1) ∧
+      GenericX (Abk σ η β κ) := by
+  obtain ⟨hnu, hs, -⟩ := Ab3_root_location hσ hη hκ hβ0 hβ1
+  have hnu' : NoUnit (Abk σ η β κ) := by unfold NoUnit; rw [eigs_Abk]; exact hnu
+  have hs' : stableCount (Abk σ η β κ) = 1 := by unfold stableCount; rw [eigs_Abk]; exact hs
+  refine ⟨hnu', hs', ?_⟩
+  obtain ⟨r, hr1, hr⟩ := exists_root_gt_one hσ.le hη.le hκ hβ0.le hβ1
+  have hr0 : 0 < r := by linarith
+  have hu := isUnit_det_AM1 hσ.ne' hη.ne' hβ0.ne'
+  have hev : Abk σ η β κ *ᵥ (eigv3 β κ r ∘ eS) = r⁻¹ • (eigv3 β κ r ∘ eS) := by
+    rw [Abk, Matrix.submatrix_mulVec_equiv, Function.comp_assoc, Equiv.self_comp_symm,
+      Function.comp_id, Ab3_eigvec hu hr0.ne' hr]
+    rfl
+  refine genericX_of_eigvec hnu' hs' (ρ := r⁻¹) ?_ hev (j := 0) ?_
+  · rw [abs_of_pos (inv_pos.mpr hr0)]; exact inv_lt_one_of_one_lt₀ hr1
+  · change r ^ 2 * κ ≠ 0
+    positivity
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- **Galí (2015), p. 75, fn. 14 (`η > 0`)**: the backward form of (34) is determinate, in the
+strong Blanchard–Kahn sense: for EVERY bounded adapted forcing vector and every initial real
+balance there is exactly one bounded equilibrium, for any expectation system. -/
+theorem Abk_determinate {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 < η) (hκ : 0 < κ) (hβ0 : 0 < β)
+    (hβ1 : β ≤ 1) : Determinate 𝔼 (Abk σ η β κ) := by
+  obtain ⟨hnu, hs, hg⟩ := Abk_bk_conditions hσ hη hκ hβ0 hβ1
+  exact determinate_of 𝔼 hnu (by rw [finrank_eq_stableCount hnu, hs]) hg
+
+/-! ### `η > 0`: from the state-space form back to (34) -/
+
+/-- Galí (2015), eq. (34), p. 75: the state `x_t = (ỹ_t, π_t; l̂_{t−1})` as a vector process on
+the split index `Fin 2 ⊕ Fin 1`. -/
+def yvec (ygap infl L : ℕ → Ω → ℝ) : ℕ → Fin 2 ⊕ Fin 1 → Ω → ℝ :=
+  fun t k => ![ygap t, infl t, L t] (eS k)
+
+/-- Galí (2015), eq. (34), p. 75: the shock vector `s_t = (r̂ⁿ_t, ŷⁿ_t, Δm_t)` as a vector
+process. -/
+def svec (rn yn dm : ℕ → Ω → ℝ) : ℕ → Fin 3 → Ω → ℝ := fun t => ![rn t, yn t, dm t]
+
+/-- Galí (2015), eq. (34), p. 75: the forcing `−A_{M,1}⁻¹ B_M s_t` of the backward form. -/
+noncomputable def wvec (σ η β : ℝ) (rn yn dm : ℕ → Ω → ℝ) : ℕ → Fin 2 ⊕ Fin 1 → Ω → ℝ :=
+  fun t k => mv (-((AM1 σ η β)⁻¹ * BM η)) (svec rn yn dm t) (eS k)
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (tool): the state vector at an outcome, relabelled. -/
+theorem yvec_apply (ygap infl L : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    (fun k => yvec ygap infl L t k ω) = stateVec ygap infl L t ω ∘ eS := by
+  funext k
+  simp only [Function.comp, yvec, stateVec]
+  generalize eS k = i
+  fin_cases i <;> rfl
+
+/-- Galí (2015), p. 75 (tool): the forecast vector at an outcome, relabelled. -/
+theorem E_yvec_apply (ygap infl L : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    (fun k => 𝔼.E t (yvec ygap infl L (t + 1) k) ω) = expVec 𝔼 ygap infl L t ω ∘ eS := by
+  funext k
+  simp only [Function.comp, yvec, expVec]
+  generalize eS k = i
+  fin_cases i <;> rfl
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (tool): the forcing at an outcome, relabelled. -/
+theorem wvec_apply (σ η β : ℝ) (rn yn dm : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    (fun k => wvec σ η β rn yn dm t k ω) =
+      ((-((AM1 σ η β)⁻¹ * BM η)) *ᵥ shockVec rn yn dm t ω) ∘ eS := by
+  funext k
+  simp only [Function.comp, wvec, mv_apply]
+  congr 2
+  funext j
+  fin_cases j <;> rfl
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (tool): the split backward matrix acting on a state, relabelled. -/
+theorem mv_Abk_apply (σ η β κ : ℝ) (a : Fin 2 ⊕ Fin 1 → Ω → ℝ) (ω : Ω) :
+    (fun k => mv (Abk σ η β κ) a k ω) = (Ab3 σ η β κ *ᵥ ((fun k => a k ω) ∘ eS.symm)) ∘ eS := by
+  funext k
+  rw [mv_apply, Abk, Matrix.submatrix_mulVec_equiv]
+
+/-- Galí (2015), eq. (34), p. 75: with `A_{M,1}` invertible,
+`E = A_b x − A_{M,1}⁻¹ B_M s` iff `A_{M,0} x = A_{M,1} E + B_M s`. -/
+theorem backward_iff {σ η β κ : ℝ} (hu : IsUnit (AM1 σ η β).det) (x Ex s : Fin 3 → ℝ) :
+    Ex = Ab3 σ η β κ *ᵥ x + (-((AM1 σ η β)⁻¹ * BM η)) *ᵥ s ↔
+      AM0 σ η κ *ᵥ x = AM1 σ η β *ᵥ Ex + BM η *ᵥ s := by
+  constructor
+  · rintro rfl
+    rw [Matrix.mulVec_add, Matrix.mulVec_mulVec, Matrix.mulVec_mulVec, Ab3,
+      Matrix.mul_nonsing_inv_cancel_left _ _ hu, Matrix.mul_neg,
+      Matrix.mul_nonsing_inv_cancel_left _ _ hu, Matrix.neg_mulVec]
+    abel
+  · intro h
+    have hE : Ex = (AM1 σ η β)⁻¹ *ᵥ (AM1 σ η β *ᵥ Ex) := by
+      rw [Matrix.mulVec_mulVec, Matrix.nonsing_inv_mul _ hu, Matrix.one_mulVec]
+    have h1 : AM1 σ η β *ᵥ Ex = AM0 σ η κ *ᵥ x - BM η *ᵥ s := by rw [h]; abel
+    rw [hE, h1, Matrix.mulVec_sub, Matrix.mulVec_mulVec, Matrix.mulVec_mulVec, Ab3,
+      Matrix.neg_mulVec, sub_eq_add_neg]
+
+/-- Galí (2015), eq. (34), p. 75 (`η > 0`): the backward state-space system holds iff (34) holds. -/
+theorem solves_Abk_iff {σ η β κ : ℝ} (hu : IsUnit (AM1 σ η β).det)
+    {ygap infl L rn yn dm : ℕ → Ω → ℝ} :
+    Solves 𝔼 (Abk σ η β κ) (wvec σ η β rn yn dm) (yvec ygap infl L) ↔
+      System34 𝔼 σ η β κ ygap infl L rn yn dm := by
+  have key : ∀ t ω, (∀ k, 𝔼.E t (yvec ygap infl L (t + 1) k) ω =
+      mv (Abk σ η β κ) (yvec ygap infl L t) k ω + wvec σ η β rn yn dm t k ω) ↔
+      (AM0 σ η κ).mulVec (stateVec ygap infl L t ω) =
+        (AM1 σ η β).mulVec (expVec 𝔼 ygap infl L t ω) + (BM η).mulVec (shockVec rn yn dm t ω) := by
+    intro t ω
+    rw [← backward_iff hu]
+    have hfun : (∀ k, 𝔼.E t (yvec ygap infl L (t + 1) k) ω =
+        mv (Abk σ η β κ) (yvec ygap infl L t) k ω + wvec σ η β rn yn dm t k ω) ↔
+        (fun k => 𝔼.E t (yvec ygap infl L (t + 1) k) ω) =
+          (fun k => mv (Abk σ η β κ) (yvec ygap infl L t) k ω) +
+            (fun k => wvec σ η β rn yn dm t k ω) :=
+      ⟨fun h => funext h, fun h k => congrFun h k⟩
+    rw [hfun, E_yvec_apply, mv_Abk_apply, wvec_apply, yvec_apply, Function.comp_assoc,
+      Equiv.self_comp_symm, Function.comp_id, ← Pi.add_comp]
+    exact eS.surjective.injective_comp_right.eq_iff
+  constructor
+  · intro h t ω
+    exact (key t ω).mp fun k => congrFun (h t k) ω
+  · intro h t k
+    funext ω
+    exact (key t ω).mpr (h t ω) k
+
+/-- Galí (2015), eq. (34), p. 75: a bounded equilibrium of (34) with predetermined real balances
+starting at `l̂_{−1} = L0`: (34) holds, `l̂_t` is known at `t`, all three variables are adapted
+and bounded. -/
+def Equil34 (σ η β κ L0 : ℝ) (rn yn dm ygap infl L : ℕ → Ω → ℝ) : Prop :=
+  System34 𝔼 σ η β κ ygap infl L rn yn dm ∧ Predetermined 𝔼 L ∧ L 0 = (fun _ => L0) ∧
+    𝔼.Adapted ygap ∧ 𝔼.Adapted infl ∧ 𝔼.Adapted L ∧
+    BoundedProc ygap ∧ BoundedProc infl ∧ BoundedProc L
+
+/-- Galí (2015), p. 75 (`η > 0`): equilibria of the backward state-space form are exactly the
+bounded equilibria of (34). -/
+theorem equil_Abk_iff {σ η β κ L0 : ℝ} (hu : IsUnit (AM1 σ η β).det)
+    {ygap infl L rn yn dm : ℕ → Ω → ℝ} :
+    Equil 𝔼 (Abk σ η β κ) (wvec σ η β rn yn dm) (fun _ => L0) (yvec ygap infl L) ↔
+      Equil34 𝔼 σ η β κ L0 rn yn dm ygap infl L := by
+  have hA : AdaptedV 𝔼 (yvec ygap infl L) ↔
+      𝔼.Adapted ygap ∧ 𝔼.Adapted infl ∧ 𝔼.Adapted L := by
+    constructor
+    · intro h
+      exact ⟨fun t => h t (Sum.inl 0), fun t => h t (Sum.inl 1), fun t => h t (Sum.inr 0)⟩
+    · rintro ⟨h1, h2, h3⟩ t k
+      rcases k with i | j
+      · fin_cases i
+        · exact h1 t
+        · exact h2 t
+      · fin_cases j
+        exact h3 t
+  have hK : (∀ t (j : Fin 1), 𝔼.E t (yvec ygap infl L (t + 1) (Sum.inr j)) =
+      yvec ygap infl L (t + 1) (Sum.inr j)) ↔ Predetermined 𝔼 L := by
+    constructor
+    · intro h t
+      exact h t 0
+    · intro h t j
+      fin_cases j
+      exact h t
+  have hI : (∀ j : Fin 1, yvec ygap infl L 0 (Sum.inr j) = fun _ => (fun _ => L0) j) ↔
+      L 0 = fun _ => L0 := by
+    constructor
+    · intro h
+      exact h 0
+    · intro h j
+      fin_cases j
+      exact h
+  have hB : BoundedV (yvec ygap infl L) ↔
+      BoundedProc ygap ∧ BoundedProc infl ∧ BoundedProc L := by
+    constructor
+    · rintro ⟨M, hM⟩
+      exact ⟨⟨M, fun t ω => hM t (Sum.inl 0) ω⟩, ⟨M, fun t ω => hM t (Sum.inl 1) ω⟩,
+        ⟨M, fun t ω => hM t (Sum.inr 0) ω⟩⟩
+    · rintro ⟨⟨M1, h1⟩, ⟨M2, h2⟩, ⟨M3, h3⟩⟩
+      refine ⟨max M1 (max M2 M3), fun t k ω => ?_⟩
+      rcases k with i | j
+      · fin_cases i
+        · exact (h1 t ω).trans (le_max_left _ _)
+        · exact (h2 t ω).trans ((le_max_left _ _).trans (le_max_right _ _))
+      · fin_cases j
+        exact (h3 t ω).trans ((le_max_right _ _).trans (le_max_right _ _))
+  unfold Equil Equil34
+  rw [solves_Abk_iff 𝔼 hu, hA, hK, hI, hB]
+  tauto
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (tool): bounded shocks give a bounded shock vector. -/
+theorem svec_boundedV {rn yn dm : ℕ → Ω → ℝ} (h1 : BoundedProc rn) (h2 : BoundedProc yn)
+    (h3 : BoundedProc dm) : BoundedV (svec rn yn dm) := by
+  obtain ⟨M1, h1⟩ := h1
+  obtain ⟨M2, h2⟩ := h2
+  obtain ⟨M3, h3⟩ := h3
+  refine ⟨max M1 (max M2 M3), fun t k ω => ?_⟩
+  fin_cases k
+  · exact (h1 t ω).trans (le_max_left _ _)
+  · exact (h2 t ω).trans ((le_max_left _ _).trans (le_max_right _ _))
+  · exact (h3 t ω).trans ((le_max_right _ _).trans (le_max_right _ _))
+
+/-- Galí (2015), p. 75 (tool): adapted shocks give an adapted shock vector. -/
+theorem svec_adaptedV {rn yn dm : ℕ → Ω → ℝ} (h1 : 𝔼.Adapted rn) (h2 : 𝔼.Adapted yn)
+    (h3 : 𝔼.Adapted dm) : AdaptedV 𝔼 (svec rn yn dm) := by
+  intro t k
+  fin_cases k
+  · exact h1 t
+  · exact h2 t
+  · exact h3 t
+
+/-- **Galí (2015), p. 75, fn. 14 (`η > 0`), PROVED**: for `σ, η, β > 0`, `κ > 0`, `β ≤ 1`, any
+expectation system, bounded adapted shocks `r̂ⁿ, ŷⁿ, Δm` and any initial real balance
+`l̂_{−1} = L0`, system (34) has exactly one bounded adapted equilibrium with predetermined real
+balances. -/
+theorem system34_existsUnique_pos {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 < η) (hκ : 0 < κ)
+    (hβ0 : 0 < β) (hβ1 : β ≤ 1) {rn yn dm : ℕ → Ω → ℝ} (hrnb : BoundedProc rn)
+    (hynb : BoundedProc yn) (hdmb : BoundedProc dm) (hrna : 𝔼.Adapted rn)
+    (hyna : 𝔼.Adapted yn) (hdma : 𝔼.Adapted dm) (L0 : ℝ) :
+    ∃! v : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      Equil34 𝔼 σ η β κ L0 rn yn dm v.1 v.2.1 v.2.2 := by
+  have hu := isUnit_det_AM1 hσ.ne' hη.ne' hβ0.ne'
+  have hwb : BoundedV (wvec σ η β rn yn dm) := by
+    obtain ⟨B, hB⟩ := boundedV_mv (-((AM1 σ η β)⁻¹ * BM η)) (svec_boundedV hrnb hynb hdmb)
+    exact ⟨B, fun t k ω => hB t (eS k) ω⟩
+  have hwa : AdaptedV 𝔼 (wvec σ η β rn yn dm) := fun t k =>
+    adaptedV_mv 𝔼 (-((AM1 σ η β)⁻¹ * BM η)) (svec_adaptedV 𝔼 hrna hyna hdma) t (eS k)
+  obtain ⟨y, hy, huniq⟩ := Abk_determinate 𝔼 hσ hη hκ hβ0 hβ1 _ hwb hwa (fun _ => L0)
+  have hyv : yvec (fun t => y t (Sum.inl 0)) (fun t => y t (Sum.inl 1))
+      (fun t => y t (Sum.inr 0)) = y := by
+    funext t k
+    rcases k with i | j
+    · fin_cases i <;> rfl
+    · fin_cases j; rfl
+  refine ⟨(fun t => y t (Sum.inl 0), fun t => y t (Sum.inl 1), fun t => y t (Sum.inr 0)),
+    ?_, ?_⟩
+  · exact (equil_Abk_iff 𝔼 hu).mp (by rw [hyv]; exact hy)
+  · rintro ⟨a, b, c⟩ hv
+    have h := huniq _ ((equil_Abk_iff 𝔼 hu).mpr hv)
+    rw [← h]
+    rfl
+
+/-! ### `η = 0`: the reduced two-variable system -/
+
+/-- Galí (2015), eq. (34), p. 75 with `η = 0`: the backward matrix of the reduced system in
+`(π_t; l̂_{t−1})`, `[[(1+κ)/β, −κ/β], [−1, 1]]`. -/
+noncomputable def B2f (β κ : ℝ) : Matrix (Fin 2) (Fin 2) ℝ := !![(1 + κ) / β, -κ / β; -1, 1]
+
+/-- Galí (2015), p. 75: the relabelling of `Fin 2` as `Fin 1 ⊕ Fin 1` (`π_t` non-predetermined,
+`l̂_{t−1}` predetermined). -/
+abbrev eS2 : Fin 1 ⊕ Fin 1 ≃ Fin 2 := finSumFinEquiv
+
+/-- Galí (2015), eq. (34), p. 75 with `η = 0`: the reduced backward matrix on `Fin 1 ⊕ Fin 1`. -/
+noncomputable def B2 (β κ : ℝ) : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ :=
+  (B2f β κ).submatrix eS2 eS2
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (`η = 0`): the stable root `ρ₁ ∈ (0, 1)` of
+`β ρ² − (1 + β + κ) ρ + 1 = 0` (IVT: the left side is `1` at `0` and `−κ` at `1`). -/
+theorem exists_rho1 {β κ : ℝ} (hκ : 0 < κ) :
+    ∃ ρ, 0 < ρ ∧ ρ < 1 ∧ β * ρ ^ 2 - (1 + β + κ) * ρ + 1 = 0 := by
+  have hcont : ContinuousOn (fun z : ℝ => β * z ^ 2 - (1 + β + κ) * z + 1) (Set.Icc 0 1) := by
+    fun_prop
+  have hmem : (0 : ℝ) ∈ Set.Ioo ((fun z : ℝ => β * z ^ 2 - (1 + β + κ) * z + 1) 1)
+      ((fun z : ℝ => β * z ^ 2 - (1 + β + κ) * z + 1) 0) := by
+    simp only [Set.mem_Ioo]
+    constructor <;> nlinarith
+  obtain ⟨z, ⟨hz0, hz1⟩, hz⟩ := intermediate_value_Ioo' zero_le_one hcont hmem
+  exact ⟨z, hz0, hz1, hz⟩
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (`η = 0`): the characteristic polynomial of the reduced matrix is
+`(X − ρ₁)(X − 1/(βρ₁))`. -/
+theorem charpoly_B2f {β κ ρ : ℝ} (hβ : β ≠ 0) (hρ0 : ρ ≠ 0)
+    (hρ : β * ρ ^ 2 - (1 + β + κ) * ρ + 1 = 0) :
+    (B2f β κ).charpoly = (X - C ρ) * (X - C (1 / (β * ρ))) := by
+  refine Polynomial.funext fun z => ?_
+  rw [Matrix.eval_charpoly, Matrix.det_fin_two]
+  simp only [eval_mul, eval_sub, eval_X, eval_C]
+  simp [B2f, Matrix.scalar_apply]
+  field_simp
+  linear_combination z * hρ
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (`η = 0`): the reduced matrix has one eigenvalue `ρ₁ ∈ (0, 1)`, one
+eigenvalue `1/(βρ₁) > 1`, none on the unit circle. -/
+theorem B2f_root_location {β κ : ℝ} (hκ : 0 < κ) (hβ0 : 0 < β) (hβ1 : β ≤ 1) :
+    NoUnit (B2f β κ) ∧ stableCount (B2f β κ) = 1 := by
+  obtain ⟨ρ, hρ0, hρ1, hρ⟩ := exists_rho1 (β := β) hκ
+  have hβρ : β * ρ < 1 := by nlinarith
+  have hρ2 : 1 < 1 / (β * ρ) := one_lt_one_div (by positivity) hβρ
+  have he : eigs (B2f β κ) = {(ρ : ℂ)} + {((1 / (β * ρ) : ℝ) : ℂ)} := by
+    have hne : ((B2f β κ).charpoly.map Complex.ofRealHom) ≠ 0 :=
+      ((Matrix.charpoly_monic _).map _).ne_zero
+    rw [eigs, charpoly_map_ofReal]
+    rw [charpoly_B2f hβ0.ne' hρ0.ne' hρ, Polynomial.map_mul] at hne ⊢
+    rw [roots_mul hne, Polynomial.map_sub, Polynomial.map_X, Polynomial.map_C, roots_X_sub_C,
+      Polynomial.map_sub, Polynomial.map_X, Polynomial.map_C, roots_X_sub_C]
+    rfl
+  have hn1 : ‖(ρ : ℂ)‖ = ρ := by
+    rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hρ0]
+  have hn2 : ‖((1 / (β * ρ) : ℝ) : ℂ)‖ = 1 / (β * ρ) := by
+    rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by linarith)]
+  refine ⟨?_, ?_⟩
+  · intro μ hμ
+    rw [he, Multiset.mem_add, Multiset.mem_singleton, Multiset.mem_singleton] at hμ
+    rcases hμ with rfl | rfl
+    · rw [hn1]; exact hρ1.ne
+    · rw [hn2]; exact hρ2.ne'
+  · have hlt2 : ¬ 1 / (β * ρ) < 1 := not_lt.mpr hρ2.le
+    rw [stableCount, he, Multiset.filter_add, Multiset.filter_singleton,
+      Multiset.filter_singleton]
+    simp only [hn1, hn2, hρ1, hlt2, ↓reduceIte, Multiset.card_add, Multiset.card_singleton,
+      Multiset.empty_eq_zero, Multiset.card_zero]
+
+omit 𝔼 in
+/-- Galí (2015), p. 75 (`η = 0`): the Blanchard–Kahn conditions for the reduced system: no
+eigenvalue on the unit circle, exactly one in the open disc, genericity (the stable eigenvector
+`(1 − ρ₁, 1)` moves real balances). -/
+theorem B2_bk_conditions {β κ : ℝ} (hκ : 0 < κ) (hβ0 : 0 < β) (hβ1 : β ≤ 1) :
+    NoUnit (B2 β κ) ∧ stableCount (B2 β κ) = Fintype.card (Fin 1) ∧ GenericX (B2 β κ) := by
+  obtain ⟨hnu, hs⟩ := B2f_root_location hκ hβ0 hβ1
+  have heq : eigs (B2 β κ) = eigs (B2f β κ) := eigs_submatrix_equiv eS2 _
+  have hnu' : NoUnit (B2 β κ) := by unfold NoUnit; rw [heq]; exact hnu
+  have hs' : stableCount (B2 β κ) = 1 := by unfold stableCount; rw [heq]; exact hs
+  refine ⟨hnu', hs', ?_⟩
+  obtain ⟨ρ, hρ0, hρ1, hρ⟩ := exists_rho1 (β := β) hκ
+  have hv : B2f β κ *ᵥ ![1 - ρ, 1] = ρ • ![1 - ρ, 1] := by
+    funext i
+    fin_cases i
+    · simp [B2f, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
+      field_simp
+      linear_combination hρ
+    · simp [B2f, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
+  have hev : B2 β κ *ᵥ (![1 - ρ, 1] ∘ eS2) = ρ • (![1 - ρ, 1] ∘ eS2) := by
+    rw [B2, Matrix.submatrix_mulVec_equiv, Function.comp_assoc, Equiv.self_comp_symm,
+      Function.comp_id, hv]
+    rfl
+  refine genericX_of_eigvec hnu' hs' (ρ := ρ) ?_ hev (j := 0) ?_
+  · rw [abs_of_pos hρ0]; exact hρ1
+  · change (1 : ℝ) ≠ 0
+    exact one_ne_zero
+
+/-- **Galí (2015), p. 75 (`η = 0`)**: the reduced backward system is determinate for every
+bounded adapted forcing vector, for any expectation system. -/
+theorem B2_determinate {β κ : ℝ} (hκ : 0 < κ) (hβ0 : 0 < β) (hβ1 : β ≤ 1) :
+    Determinate 𝔼 (B2 β κ) := by
+  obtain ⟨hnu, hs, hg⟩ := B2_bk_conditions hκ hβ0 hβ1
+  exact determinate_of 𝔼 hnu (by rw [finrank_eq_stableCount hnu, hs]) hg
+
+/-- Galí (2015), eq. (34), p. 75 (`η = 0`): the reduced state `(π_t; l̂_{t−1})`. -/
+def y2 (infl L : ℕ → Ω → ℝ) : ℕ → Fin 1 ⊕ Fin 1 → Ω → ℝ := fun t k => ![infl t, L t] (eS2 k)
+
+/-- Galí (2015), eq. (34), p. 75 (`η = 0`): the reduced forcing
+`((κ/β)(ŷⁿ_t − Δm_t); Δm_t)`. -/
+noncomputable def w2 (β κ : ℝ) (yn dm : ℕ → Ω → ℝ) : ℕ → Fin 1 ⊕ Fin 1 → Ω → ℝ :=
+  fun t k => ![(κ / β) • (yn t - dm t), dm t] (eS2 k)
+
+/-- Galí (2015), eq. (34), p. 75 (`η = 0`): the reduced system, written out:
+`E_t π_{t+1} = ((1+κ)/β) π_t − (κ/β) l̂_{t−1} + (κ/β)(ŷⁿ_t − Δm_t)` and
+`E_t l̂_t = −π_t + l̂_{t−1} + Δm_t`. -/
+theorem solves_B2_iff {β κ : ℝ} {infl L yn dm : ℕ → Ω → ℝ} :
+    Solves 𝔼 (B2 β κ) (w2 β κ yn dm) (y2 infl L) ↔
+      (∀ t ω, 𝔼.E t (infl (t + 1)) ω = (1 + κ) / β * infl t ω + -κ / β * L t ω +
+        κ / β * (yn t ω - dm t ω)) ∧
+      (∀ t ω, 𝔼.E t (L (t + 1)) ω = -infl t ω + L t ω + dm t ω) := by
+  have h0 : ∀ t ω, mv (B2 β κ) (y2 infl L t) (Sum.inl 0) ω =
+      (1 + κ) / β * infl t ω + -κ / β * L t ω := by
+    intro t ω
+    rw [mv_apply_sum, Fintype.sum_sum_type]
+    simp [B2, B2f, y2, show eS2 (Sum.inl 0) = 0 from rfl, show eS2 (Sum.inr 0) = 1 from rfl]
+  have h1 : ∀ t ω, mv (B2 β κ) (y2 infl L t) (Sum.inr 0) ω = -infl t ω + L t ω := by
+    intro t ω
+    rw [mv_apply_sum, Fintype.sum_sum_type]
+    simp [B2, B2f, y2, show eS2 (Sum.inl 0) = 0 from rfl, show eS2 (Sum.inr 0) = 1 from rfl]
+  constructor
+  · intro h
+    refine ⟨fun t ω => ?_, fun t ω => ?_⟩
+    · have := congrFun (h t (Sum.inl 0)) ω
+      rw [Pi.add_apply, h0] at this
+      exact this
+    · have := congrFun (h t (Sum.inr 0)) ω
+      rw [Pi.add_apply, h1] at this
+      exact this
+  · rintro ⟨ha, hb⟩ t k
+    funext ω
+    rcases k with i | j
+    · fin_cases i
+      rw [Pi.add_apply]
+      have := h0 t ω
+      simp only [Fin.zero_eta, Fin.isValue] at this ⊢
+      rw [this]
+      exact ha t ω
+    · fin_cases j
+      rw [Pi.add_apply]
+      have := h1 t ω
+      simp only [Fin.zero_eta, Fin.isValue] at this ⊢
+      rw [this]
+      exact hb t ω
+
+/-- Galí (2015), eq. (34), p. 75 (`η = 0`): with predetermined real balances, (34) is the static
+equation `ỹ_t = l̂_t − ŷⁿ_t` together with the reduced two-variable system. -/
+theorem system34_zero_iff {σ β κ : ℝ} (hβ : β ≠ 0) {ygap infl L rn yn dm : ℕ → Ω → ℝ}
+    (hL : Predetermined 𝔼 L) :
+    System34 𝔼 σ 0 β κ ygap infl L rn yn dm ↔
+      (∀ t, ygap t = L (t + 1) - yn t) ∧
+      (∀ t ω, 𝔼.E t (infl (t + 1)) ω = (1 + κ) / β * infl t ω + -κ / β * L t ω +
+        κ / β * (yn t ω - dm t ω)) ∧
+      (∀ t ω, 𝔼.E t (L (t + 1)) ω = -infl t ω + L t ω + dm t ω) := by
+  have e1 : ∀ x l s : ℝ, β * ((1 + κ) / β * x + -κ / β * l + κ / β * s) =
+      (1 + κ) * x - κ * l + κ * s := by
+    intro x l s
+    field_simp
+    ring
+  constructor
+  · intro h
+    have hrow : ∀ t ω, ygap t ω = L (t + 1) ω - yn t ω ∧
+        -κ * ygap t ω + infl t ω = β * 𝔼.E t (infl (t + 1)) ω ∧
+        -infl t ω + L t ω = L (t + 1) ω - dm t ω := by
+      intro t ω
+      have h0 := congrFun (h t ω) 0
+      have h1 := congrFun (h t ω) 1
+      have h2 := congrFun (h t ω) 2
+      have hLω := congrFun (hL t) ω
+      simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, AM0, AM1, BM, stateVec, expVec,
+        shockVec] at h0 h1 h2
+      refine ⟨by linarith, by linarith, by linarith⟩
+    refine ⟨fun t => funext fun ω => (hrow t ω).1, fun t ω => ?_, fun t ω => ?_⟩
+    · obtain ⟨a, b, c⟩ := hrow t ω
+      apply mul_left_cancel₀ hβ
+      rw [e1]
+      linear_combination -b - κ * a + κ * c
+    · have hLω := congrFun (hL t) ω
+      obtain ⟨-, -, c⟩ := hrow t ω
+      linarith
+  · rintro ⟨ha, hb, hc⟩ t ω
+    have a := congrFun (ha t) ω
+    have b := hb t ω
+    have c := hc t ω
+    have hLω := congrFun (hL t) ω
+    have b' : β * 𝔼.E t (infl (t + 1)) ω =
+        (1 + κ) * infl t ω - κ * L t ω + κ * (yn t ω - dm t ω) := by rw [b, e1]
+    simp only [Pi.sub_apply] at a
+    funext j
+    fin_cases j
+    · simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, AM0, AM1, BM, stateVec, expVec,
+        shockVec]
+      linarith
+    · simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, AM0, AM1, BM, stateVec, expVec,
+        shockVec]
+      linear_combination (-κ) * a - b' + κ * hLω - κ * c
+    · simp [Matrix.mulVec, dotProduct, Fin.sum_univ_three, AM0, AM1, BM, stateVec, expVec,
+        shockVec]
+      linarith
+
+/-- **Galí (2015), p. 75, fn. 14 (`η = 0`), PROVED**: with an interest-inelastic money demand
+(`η = 0`, allowed in Galí, Ch. 2, p. 21), `κ > 0`, `0 < β ≤ 1`, any `σ`, any expectation system,
+bounded adapted shocks and any initial real balance, (34) has exactly one bounded adapted
+equilibrium with predetermined real balances (the natural rate `r̂ⁿ` does not enter). -/
+theorem system34_existsUnique_zero {σ β κ : ℝ} (hκ : 0 < κ) (hβ0 : 0 < β) (hβ1 : β ≤ 1)
+    {rn yn dm : ℕ → Ω → ℝ} (hynb : BoundedProc yn) (hdmb : BoundedProc dm)
+    (hyna : 𝔼.Adapted yn) (hdma : 𝔼.Adapted dm) (L0 : ℝ) :
+    ∃! v : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      Equil34 𝔼 σ 0 β κ L0 rn yn dm v.1 v.2.1 v.2.2 := by
+  obtain ⟨My, hMy⟩ := hynb
+  obtain ⟨Md, hMd⟩ := hdmb
+  have hwb : BoundedV (w2 β κ yn dm) := by
+    refine ⟨|κ / β| * (My + Md) + Md, fun t k ω => ?_⟩
+    have hd0 : 0 ≤ Md := (abs_nonneg _).trans (hMd 0 ω)
+    have hk : 0 ≤ |κ / β| * (My + Md) := by
+      have : 0 ≤ My := (abs_nonneg _).trans (hMy 0 ω)
+      positivity
+    rcases k with i | j
+    · fin_cases i
+      change |(κ / β) * (yn t ω - dm t ω)| ≤ _
+      rw [abs_mul]
+      have : |yn t ω - dm t ω| ≤ My + Md :=
+        (abs_sub _ _).trans (add_le_add (hMy t ω) (hMd t ω))
+      nlinarith [abs_nonneg (κ / β)]
+    · fin_cases j
+      change |dm t ω| ≤ _
+      linarith [hMd t ω]
+  have hwa : AdaptedV 𝔼 (w2 β κ yn dm) := by
+    intro t k
+    rcases k with i | j
+    · fin_cases i
+      change 𝔼.E t ((κ / β) • (yn t - dm t)) = (κ / β) • (yn t - dm t)
+      rw [map_smul, map_sub, hyna t, hdma t]
+    · fin_cases j
+      exact hdma t
+  obtain ⟨y, ⟨hs, ha, hk, hi, hb⟩, huniq⟩ :=
+    B2_determinate 𝔼 hκ hβ0 hβ1 (w2 β κ yn dm) hwb hwa (fun _ => L0)
+  set infl : ℕ → Ω → ℝ := fun t => y t (Sum.inl 0) with hinfl
+  set L : ℕ → Ω → ℝ := fun t => y t (Sum.inr 0) with hLdef
+  have hyv : y2 infl L = y := by
+    funext t k
+    rcases k with i | j
+    · fin_cases i; rfl
+    · fin_cases j; rfl
+  have hpred : Predetermined 𝔼 L := fun t => hk t 0
+  rw [← hyv, solves_B2_iff] at hs
+  refine ⟨(fun t => L (t + 1) - yn t, infl, L), ⟨?_, hpred, hi 0, ?_, fun t => ha t (Sum.inl 0),
+    fun t => ha t (Sum.inr 0), ?_, ?_, ?_⟩, ?_⟩
+  · exact (system34_zero_iff 𝔼 hβ0.ne' hpred).mpr ⟨fun t => rfl, hs.1, hs.2⟩
+  · intro t
+    change 𝔼.E t (L (t + 1) - yn t) = L (t + 1) - yn t
+    rw [map_sub, hpred t, hyna t]
+  · obtain ⟨M, hM⟩ := hb
+    refine ⟨M + My, fun t ω => ?_⟩
+    change |L (t + 1) ω - yn t ω| ≤ _
+    exact (abs_sub _ _).trans (add_le_add (hM (t + 1) (Sum.inr 0) ω) (hMy t ω))
+  · obtain ⟨M, hM⟩ := hb
+    exact ⟨M, fun t ω => hM t (Sum.inl 0) ω⟩
+  · obtain ⟨M, hM⟩ := hb
+    exact ⟨M, fun t ω => hM t (Sum.inr 0) ω⟩
+  · rintro ⟨g', i', L'⟩ ⟨hsys, hpred', hL0, -, hai, haL, -, hbi, hbL⟩
+    obtain ⟨hg, ha', hb'⟩ := (system34_zero_iff 𝔼 hβ0.ne' hpred').mp hsys
+    have heq : y2 i' L' = y := by
+      refine huniq _ ⟨(solves_B2_iff 𝔼).mpr ⟨ha', hb'⟩, ?_, ?_, ?_, ?_⟩
+      · intro t k
+        rcases k with i | j
+        · fin_cases i; exact hai t
+        · fin_cases j; exact haL t
+      · intro t j
+        fin_cases j
+        exact hpred' t
+      · intro j
+        fin_cases j
+        exact hL0
+      · obtain ⟨M1, h1⟩ := hbi
+        obtain ⟨M2, h2⟩ := hbL
+        refine ⟨max M1 M2, fun t k ω => ?_⟩
+        rcases k with i | j
+        · fin_cases i; exact (h1 t ω).trans (le_max_left _ _)
+        · fin_cases j; exact (h2 t ω).trans (le_max_right _ _)
+    have hi' : i' = infl := funext fun t => congrFun (congrFun heq t) (Sum.inl 0)
+    have hL' : L' = L := funext fun t => congrFun (congrFun heq t) (Sum.inr 0)
+    subst hi' hL'
+    have hg' : g' = fun t => L (t + 1) - yn t := funext hg
+    rw [hg']
+
+/-- **Galí (2015), p. 75 and fn. 14, PROVED** ("the equilibrium is always determined under an
+exogenous path for the money supply"): for `σ > 0`, `η ≥ 0`, `κ > 0`, `0 < β ≤ 1`, any
+expectation system, bounded adapted shocks `r̂ⁿ, ŷⁿ, Δm` and any initial real balance
+`l̂_{−1} = L0`, system (34) has exactly one bounded adapted equilibrium `(ỹ, π, l̂)` with real
+balances predetermined. -/
+theorem system34_existsUnique {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 ≤ η) (hκ : 0 < κ)
+    (hβ0 : 0 < β) (hβ1 : β ≤ 1) {rn yn dm : ℕ → Ω → ℝ} (hrnb : BoundedProc rn)
+    (hynb : BoundedProc yn) (hdmb : BoundedProc dm) (hrna : 𝔼.Adapted rn)
+    (hyna : 𝔼.Adapted yn) (hdma : 𝔼.Adapted dm) (L0 : ℝ) :
+    ∃! v : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      Equil34 𝔼 σ η β κ L0 rn yn dm v.1 v.2.1 v.2.2 := by
+  rcases hη.lt_or_eq with h | h
+  · exact system34_existsUnique_pos 𝔼 hσ h hκ hβ0 hβ1 hrnb hynb hdmb hrna hyna hdma L0
+  · subst h
+    exact system34_existsUnique_zero 𝔼 hκ hβ0 hβ1 hynb hdmb hyna hdma L0
+
+/-- Galí (2015), §3.4.2: an equilibrium of the model under an exogenous money supply: the NKPC
+(22), the DIS (23), the real-balance identity (33) and money demand (31), with predetermined real
+balances starting at `l̂_{−1} = L0` and output gap, inflation, real balances and the nominal rate
+all adapted and bounded. -/
+def ModelEquil (σ η β κ L0 : ℝ) (rn yn dm ygap infl L i : ℕ → Ω → ℝ) : Prop :=
+  NKPC 𝔼 β κ infl ygap ∧ DIS 𝔼 σ ygap infl i rn ∧ RealBalanceId infl L dm ∧
+    MoneyDemandGap η ygap i yn L ∧ Predetermined 𝔼 L ∧ L 0 = (fun _ => L0) ∧
+    𝔼.Adapted ygap ∧ 𝔼.Adapted infl ∧ 𝔼.Adapted L ∧ 𝔼.Adapted i ∧
+    BoundedProc ygap ∧ BoundedProc infl ∧ BoundedProc L ∧ BoundedProc i
+
+/-- **Galí (2015), §3.4.2, pp. 74–75 and fn. 14: determinacy of the model, PROVED** (`η > 0`): for
+`σ, η > 0`, `κ > 0`, `0 < β ≤ 1`, any expectation system, bounded adapted shocks and any initial
+real balance, the model equations (22), (23), (31), (33) have exactly one bounded adapted
+solution `(ỹ, π, l̂, i)` with predetermined real balances. -/
+theorem model_existsUnique {σ η β κ : ℝ} (hσ : 0 < σ) (hη : 0 < η) (hκ : 0 < κ)
+    (hβ0 : 0 < β) (hβ1 : β ≤ 1) {rn yn dm : ℕ → Ω → ℝ} (hrnb : BoundedProc rn)
+    (hynb : BoundedProc yn) (hdmb : BoundedProc dm) (hrna : 𝔼.Adapted rn)
+    (hyna : 𝔼.Adapted yn) (hdma : 𝔼.Adapted dm) (L0 : ℝ) :
+    ∃! v : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      ModelEquil 𝔼 σ η β κ L0 rn yn dm v.1 v.2.1 v.2.2.1 v.2.2.2 := by
+  obtain ⟨⟨g, p, L⟩, ⟨hsys, hpred, hL0, hag, hap, haL, hbg, hbp, hbL⟩, huniq⟩ :=
+    system34_existsUnique_pos 𝔼 hσ hη hκ hβ0 hβ1 hrnb hynb hdmb hrna hyna hdma L0
+  set i : ℕ → Ω → ℝ := fun t => η⁻¹ • (g t - L (t + 1) + yn t) with hidef
+  have hMD : MoneyDemandGap η g i yn L := by
+    intro t
+    funext ω
+    simp only [hidef, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    field_simp
+    ring
+  obtain ⟨hN, hD, hR⟩ := (model_iff_system34 𝔼 hσ.ne' hη.ne' hMD hpred).mpr hsys
+  obtain ⟨My, hMy⟩ := hynb
+  refine ⟨(g, p, L, i), ⟨hN, hD, hR, hMD, hpred, hL0, hag, hap, haL, ?_, hbg, hbp, hbL, ?_⟩, ?_⟩
+  · intro t
+    change 𝔼.E t (η⁻¹ • (g t - L (t + 1) + yn t)) = η⁻¹ • (g t - L (t + 1) + yn t)
+    rw [map_smul, map_add, map_sub, hag t, hpred t, hyna t]
+  · obtain ⟨Mg, hMg⟩ := hbg
+    obtain ⟨ML, hML⟩ := hbL
+    refine ⟨|η⁻¹| * (Mg + ML + My), fun t ω => ?_⟩
+    change |η⁻¹ * (g t ω - L (t + 1) ω + yn t ω)| ≤ _
+    rw [abs_mul]
+    refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+    calc |g t ω - L (t + 1) ω + yn t ω| ≤ |g t ω - L (t + 1) ω| + |yn t ω| := abs_add_le _ _
+      _ ≤ |g t ω| + |L (t + 1) ω| + |yn t ω| := by gcongr; exact abs_sub _ _
+      _ ≤ Mg + ML + My := by gcongr <;> [exact hMg t ω; exact hML (t + 1) ω; exact hMy t ω]
+  · rintro ⟨g', p', L', i'⟩ ⟨hN', hD', hR', hMD', hpred', hL0', hag', hap', haL', -, hbg', hbp',
+      hbL', -⟩
+    have hsys' := (model_iff_system34 𝔼 hσ.ne' hη.ne' hMD' hpred').mp ⟨hN', hD', hR'⟩
+    have h3 := huniq (g', p', L') ⟨hsys', hpred', hL0', hag', hap', haL', hbg', hbp', hbL'⟩
+    simp only [Prod.mk.injEq] at h3
+    obtain ⟨rfl, rfl, rfl⟩ := h3
+    have hi' : i' = i := by
+      funext t ω
+      have e := congrFun (hMD' t) ω
+      simp only [hidef, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+      field_simp
+      linarith
+    rw [hi']
+
+end Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy
+
 set_option linter.style.longLine false
 #print axioms Gali.BasicNewKeynesianModel.durationProb
 #print axioms Gali.BasicNewKeynesianModel.durationProb_nonneg
@@ -14172,3 +17777,204 @@ set_option linter.style.longLine false
 #print axioms Gali.BasicNewKeynesianModel.Ex3_9.hybrid_nkpc_of_series
 #print axioms Gali.BasicNewKeynesianModel.Ex3_9.hybrid_standard
 #print axioms Gali.BasicNewKeynesianModel.Ex3_9.gammas_sum
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.eigs
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.stableCount
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.NoUnit
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.mem_eigs_iff
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.exists_eigvec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.exists_left_eigvec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.mem_eigs_of_eigvec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.pow_mulVec_eigvec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.map_ofReal_pow
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.card_eigs
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.pow_entry_bound
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.norm_le_one_of_pow_bounded
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbits
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.mem_boundedOrbits
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_mem_boundedOrbits
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.mem_boundedOrbits_of_orbit
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.re_mulVec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.im_mulVec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbitsC
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.maxGenEigenspace_le_boundedOrbitsC
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.finrank_boundedOrbitsC_le
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.finrank_finset_sup
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.card_filter_eq_sum
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_le_finrank
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.unstableCount
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_add_unstableCount
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.restrict_block
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.norm_le_one_of_bounded_pow_mul
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.exists_restrict_stable
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.finrank_le_stableCount
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.tendsto_of_mem_boundedOrbits
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.finrank_eq_stableCount
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.boundedOrbits_eq_bot_of_unstable
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.abs_entry_le_sum
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.abs_mulVec_le
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.rec_closed
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.rec_bounded
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.xrecV
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.GenericX
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.projX
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.graphV
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.IsGraph
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.matrix_eq_of_mulVec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_sumElim
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.exists_graph
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.lam
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.cmat
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.graph_invariant
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.graph_invariant_vec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.lam_mulVec
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.mulVec_graphV
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.pow_mulVec_graphV
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.lam_pow_bounded
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.fromBlocks_shear_mul
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.charpoly_split
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.charpoly_map_ofReal
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.eigs_split
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.lam_stable
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.zero_of_cmat_orbit
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.cmat_unstable
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.stableCount_eq_card
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.finrank_le_of_genericX
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.not_genericX_of_lt
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.exists_unreached_of_lt
+#print axioms Gali.BasicNewKeynesianModel.InvariantSplit.finrank_eq_iff_stableCount_eq
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_apply
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_apply_sum
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_mv
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_add
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_sub
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.add_mv
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.sub_mv
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_one
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_zero
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.mv_neg
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.E_mv
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.AdaptedV
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.BoundedV
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.FSolves
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.boundedV_mv
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.adaptedV_mv
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_iterate
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.abs_mv_le
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_unique
+#print axioms Gali.BasicNewKeynesianModel.GeneralBKForward.fsolves_exists
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.map_ofReal_mulVec
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.det_ne_zero_of_unstable
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.inv_stable
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.boundedV_add
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.boundedV_sub
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.boundedV_neg
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_add
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_sub
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.adaptedV_neg
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.Solves
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.Equil
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.Determinate
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.eval_split
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.mv_inl
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.mv_inr
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.zx_block_eq
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.identity_zhat
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.identity_x
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.identity_exist
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.identity_exist_x
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.xrecR
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.xrecR_bounded
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.xrecR_known
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.fsolves_iff_cform
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.determinate_of
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.sum_q_mulVec
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.false_of_linear_growth
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.no_bounded_resonance
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.exists_left_eigvec_unit
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.nonexist_of_unit
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_unit
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.mult_of_not_genericX
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_not_genericX
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.nonexist_of_lt
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_lt
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.not_determinate_of_gt
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_count
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_unstableCount
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.determinate_iff_perfectForesight
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_of_tendsto
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit
+#print axioms Gali.BasicNewKeynesianModel.GeneralBK.mem_boundedOrbits_iff_tendsto
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.coef2
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.coef1
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_eq_coef
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ1
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ0
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ1_mul
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadQ0_mul
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_factor
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.charCubic_neg_one
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.exists_root_gt_one
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quad_values
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quad_schurStable
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.bookDeterminacyClaim_holds
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.bookDeterminacyClaim_gali
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.norm_lt_one_of_quadratic
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadPoly
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.quadPoly_root
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.charpoly_AM_factor
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.eigs_AM
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.AM_root_location
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.AM_root_location_gali
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleRoots.real_eigenvalue_unique
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigs_submatrix_equiv
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.genericX_of_eigvec
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.norm_gt_one_of_recip
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.isUnit_det_AM1
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.isUnit_det_AM0
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_eq_inv_AM
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_pencil
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_pencil_factor
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.det_AM1_mul_charpoly_Ab3
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.charpoly_Ab3_factor
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_root_location
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eS
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigv3
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.pencil_eigvec
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Ab3_eigvec
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eigs_Abk
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk_bk_conditions
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Abk_determinate
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.yvec
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.wvec
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.yvec_apply
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.E_yvec_apply
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.wvec_apply
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.mv_Abk_apply
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.backward_iff
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.solves_Abk_iff
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.Equil34
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.equil_Abk_iff
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec_boundedV
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.svec_adaptedV
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique_pos
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2f
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.eS2
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.exists_rho1
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.charpoly_B2f
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2f_root_location
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2_bk_conditions
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.B2_determinate
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.y2
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.w2
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.solves_B2_iff
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_zero_iff
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique_zero
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.system34_existsUnique
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.ModelEquil
+#print axioms Gali.BasicNewKeynesianModel.MoneyRuleDeterminacy.model_existsUnique

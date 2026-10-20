@@ -87,7 +87,15 @@ its Lean name, relative to the namespace `Gali.MonetaryPolicyDesign`. Page numbe
 | Ex 4.4(a), p. 122 | the rule implements ỹ = π = 0 uniquely iff (14) | `Ex4_4.rule_implements`, `Ex4_4.implements_uniquely_iff`, `Ex4_4.schurStable_AT_iff` |
 | Ex 4.4(b), p. 122 | money under the optimal policy; constant money suboptimal | `Ex4_4.money_path_optimal`, `Ex4_4.constant_money_not_optimal`, `Ex4_4.constant_money_optimal_of_const` |
 | Ex 4.4(c), p. 123 | money rule implements the optimum (existence); equals a price-level interest rule | `Ex4_4.moneyRule_equilibrium`, `Ex4_4.moneyRule_iff_interestRule` |
-| Ex 4.4(c), p. 123 | uniqueness under the money rule — NOT YET CLAIMED | `Ex4_4.MoneyRuleUniqueness` (definition only) |
+| Ex 4.4(c), p. 123 | uniqueness under the money rule (the claim, stated) | `Ex4_4.MoneyRuleUniqueness` |
+| Ex 4.4(c), p. 123 | the money rule reduces to (34) with zero shocks | `Ex4_4Determinacy.system34_of_moneyRule` |
+| Ex 4.4(c), p. 123 | the optimum is the unique bounded equilibrium under the money rule | `Ex4_4Determinacy.moneyRuleUniqueness_holds`, `Ex4_4Determinacy.moneyRule_implements_uniquely` |
+| Ch. 3 (34), p. 75 (used in Ex 4.4(c)) | the money-rule system (34) and its characteristic cubic | `MoneyRuleSystem.System34`, `MoneyRuleSystem.charCubic`, `MoneyRuleSystem.isRoot_charpoly_AM_iff` |
+| Ch. 3 p. 75, fn. 14 | f has a root r > 1 and factors with a Schur-stable quadratic (the book's claim) | `MoneyRuleRoots.bookDeterminacyClaim_holds`, `MoneyRuleRoots.bookDeterminacyClaim_gali` |
+| Ch. 3 p. 75 | A_M: one eigenvalue outside the closed disc, two inside, none on the circle | `MoneyRuleRoots.AM_root_location`, `MoneyRuleRoots.AM_root_location_gali` |
+| Ch. 3 p. 75 | backward form; BK conditions; determinate for every forcing (η > 0; exact reduction at η = 0) | `MoneyRuleDeterminacy.Abk_bk_conditions`, `MoneyRuleDeterminacy.Abk_determinate`, `MoneyRuleDeterminacy.system34_zero_iff`, `MoneyRuleDeterminacy.B2_determinate` |
+| Ch. 3 p. 75, "always determined" | (34) has a unique bounded adapted equilibrium for all bounded adapted shocks and any l̂₋₁ | `MoneyRuleDeterminacy.system34_existsUnique` |
+| Woodford App. C.1 | general Blanchard–Kahn theorem | `GeneralBK.determinate_iff`, `GeneralBK.nonexist_of_unit`, `GeneralBK.not_determinate_of_unit` |
 | Ex 4.5(a), p. 124 | household FOCs | `Ex4_5.labour_optimum_iff`, `Ex4_5.money_optimum_iff`, `Ex4_5.eulerRHS` |
 | Ex 4.5(b), p. 124 | P(i) = 𝓜W/A | `Ex4_5.price_optimum_iff` |
 | Ex 4.5(c), p. 124 | N constant; Y; V; inflation; existence | `Ex4_5.flex_employment`, `Ex4_5.flex_output`, `Ex4_5.flex_velocity`, `Ex4_5.flex_inflation`, `Ex4_5.flex_candidate` |
@@ -97,4 +105,4 @@ its Lean name, relative to the namespace `Gali.MonetaryPolicyDesign`. Page numbe
 | Ex 4.5(g), pp. 124–125 | φ_a = 1, φ_v = 0 replicates flexible prices; Friedman level | `Ex4_5.stabilization_improves`, `Ex4_5.stabilization_optimal`, `Ex4_5.tendsto_policyWelfare_friedman`, `Ex4_5.policy_not_optimal`, `Ex4_5.sticky_replicates_flex`, `Ex4_5.sticky_employment_replicates`, `Ex4_5.policyWelfare_replicates` |
 | Ex 4.5 | concrete Gaussian probability space | `Ex4_5.concreteShocks`, `Ex4_5.exists_flex_equilibrium`, `Ex4_5.exists_sticky_equilibrium` |
 | Ex 4.6, p. 125 | determinacy iff φ_p > 0 ∨ φ_p < φ* (corrected) | `Ex4_6.determinate_of_pos`, `Ex4_6.not_determinate_of_le`, `Ex4_6.determinate_iff`, `Ex4_6.determinate_iff_pos_of_ge`, `Ex4_6.book_claim_false` |
-| Table 4.2, p. 119 | Money-growth rule statistics | Computational (requires solving the `3 × 3` money-rule system); not formalised |
+| Table 4.2, p. 119 | Money-growth rule statistics | Computational (requires numerically solving the `3 × 3` money-rule system, whose determinacy is proved in `MoneyRuleDeterminacy.system34_existsUnique`); not formalised |
