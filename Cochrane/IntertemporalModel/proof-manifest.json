@@ -1,0 +1,35 @@
+{
+  "library": "IntertemporalModel",
+  "modules": [
+    "IntertemporalModel/Determinacy.lean",
+    "IntertemporalModel/Expectations.lean",
+    "IntertemporalModel/ExpectationsFiniteTree.lean",
+    "IntertemporalModel/ForwardSolution.lean",
+    "IntertemporalModel/ExpectationTools.lean",
+    "IntertemporalModel/Environment.lean",
+    "IntertemporalModel/Valuation.lean",
+    "IntertemporalModel/EquilibriumFormation.lean",
+    "IntertemporalModel/FiscalMonetary.lean",
+    "IntertemporalModel/FlatSupply.lean",
+    "IntertemporalModel/LinearFTMP.lean",
+    "IntertemporalModel/Links.lean",
+    "IntertemporalModel/GeneralLinks.lean"
+  ],
+  "theorem_counts": {
+    "IntertemporalModel/Determinacy.lean": 23,
+    "IntertemporalModel/Expectations.lean": 20,
+    "IntertemporalModel/ExpectationsFiniteTree.lean": 21,
+    "IntertemporalModel/ForwardSolution.lean": 44,
+    "IntertemporalModel/ExpectationTools.lean": 28,
+    "IntertemporalModel/Environment.lean": 22,
+    "IntertemporalModel/Valuation.lean": 52,
+    "IntertemporalModel/EquilibriumFormation.lean": 19,
+    "IntertemporalModel/FiscalMonetary.lean": 94,
+    "IntertemporalModel/FlatSupply.lean": 13,
+    "IntertemporalModel/LinearFTMP.lean": 57,
+    "IntertemporalModel/Links.lean": 28,
+    "IntertemporalModel/GeneralLinks.lean": 16
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 2 (with Online Appendix A1.1): An intertemporal model. The environment and household problem (Euler equation, money dominated when i > 0, no negative rates); the valuation equation derived from flow plus transversality for signed surpluses, with the transversality condition and the Euler equation derived from optimisation under uncertainty on finite event trees; existence and uniqueness of the price level; equilibrium formation and the money-overhang condition; fiscal and monetary policy: unexpected inflation determined by present-value news, interest-rate pegs, the expected/unexpected decomposition, share splits and equity issues, s-shaped surpluses, the flat supply curve; the linear fiscal theory of monetary policy (exact Fisher equation, peg and Taylor-type rule solutions for every theta, impulse responses); links to Woodford's exogenous-rate indeterminacy and Taylor principle.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 2, pp. 20-51, and Online Appendix A1.1, pp. 554-556."
+}
