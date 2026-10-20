@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [Gali/ClassicalMonetaryModel, Gali/BasicNewKeynesianModel, Gali/MonetaryPolicyDesign, Gali/DiscretionCommitment, Gali/StickyWagesPrices, Gali/Unemployment, Gali/OpenEconomy, Woodford/ReturnOfMonetaryRules, Woodford/PriceLevelDetermination, Woodford/NominalRigidities, Woodford/NeoWicksellianFramework, Woodford/PolicyResponseDynamics, Woodford/StabilizationWelfare, Woodford/GainsFromCommitment, Woodford/OptimalPolicyRules, Cochrane/TwoPeriodModel, Cochrane/IntertemporalModel, Cochrane/FiscalConstraints, Cochrane/LongTermDebtDynamics, Cochrane/AssetsRulesBalanceSheets]
+        project: [Gali/ClassicalMonetaryModel, Gali/BasicNewKeynesianModel, Gali/MonetaryPolicyDesign, Gali/DiscretionCommitment, Gali/StickyWagesPrices, Gali/Unemployment, Gali/OpenEconomy, Woodford/ReturnOfMonetaryRules, Woodford/PriceLevelDetermination, Woodford/NominalRigidities, Woodford/NeoWicksellianFramework, Woodford/PolicyResponseDynamics, Woodford/StabilizationWelfare, Woodford/GainsFromCommitment, Woodford/OptimalPolicyRules, Cochrane/TwoPeriodModel, Cochrane/IntertemporalModel, Cochrane/Generality, Cochrane/FiscalConstraints, Cochrane/LongTermDebtDynamics, Cochrane/AssetsRulesBalanceSheets]
     defaults:
       run:
         working-directory: ${{ matrix.project }}
