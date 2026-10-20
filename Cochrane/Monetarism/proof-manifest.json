@@ -1,0 +1,43 @@
+{
+  "library": "Monetarism",
+  "modules": [
+    "Monetarism/Determinacy.lean",
+    "Monetarism/Expectations.lean",
+    "Monetarism/ExpectationsFiniteTree.lean",
+    "Monetarism/ForwardSolution.lean",
+    "Monetarism/Regimes.lean",
+    "Monetarism/CaganRE.lean",
+    "Monetarism/MoneyInUtility.lean",
+    "Monetarism/MoneyTargetingDynamics.lean",
+    "Monetarism/UnpleasantArithmetic.lean",
+    "Monetarism/Seigniorage.lean",
+    "Monetarism/PruningDeflation.lean",
+    "Monetarism/PruningInflation.lean",
+    "Monetarism/ObstfeldRogoff.lean",
+    "Monetarism/Nonseparable.lean",
+    "Monetarism/CashInAdvance.lean",
+    "Monetarism/ContinuousTime.lean",
+    "Monetarism/Links.lean"
+  ],
+  "theorem_counts": {
+    "Monetarism/Determinacy.lean": 23,
+    "Monetarism/Expectations.lean": 20,
+    "Monetarism/ExpectationsFiniteTree.lean": 21,
+    "Monetarism/ForwardSolution.lean": 44,
+    "Monetarism/Regimes.lean": 26,
+    "Monetarism/CaganRE.lean": 35,
+    "Monetarism/MoneyInUtility.lean": 73,
+    "Monetarism/MoneyTargetingDynamics.lean": 34,
+    "Monetarism/UnpleasantArithmetic.lean": 13,
+    "Monetarism/Seigniorage.lean": 27,
+    "Monetarism/PruningDeflation.lean": 53,
+    "Monetarism/PruningInflation.lean": 42,
+    "Monetarism/ObstfeldRogoff.lean": 28,
+    "Monetarism/Nonseparable.lean": 33,
+    "Monetarism/CashInAdvance.lean": 78,
+    "Monetarism/ContinuousTime.lean": 82,
+    "Monetarism/Links.lean": 24
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 19 (with Chapter 11 and 14 claims and Online Appendix A1.6, A3 and A4): Monetarism. Monetary and fiscal regimes, NI-7 observational equivalence and double-passive indeterminacy; open-market-operation claims of Chapter 11 and the helicopter arithmetic; Cagan money demand under rational expectations with the full solution family, sunspots and fiscal selection of the price level; money in the utility function with FOCs derived from optimisation under perfect foresight and on a finite event tree, the value of money, power utility and certified Figure 19.1 numbers (E13: 1 + mu > beta); global money-targeting dynamics; unpleasant arithmetic; seigniorage, the Laffer peak (E16) and Baumol-Tobin elasticities; pruning deflations (E17: TVC fails iff mu >= 0) and inflations (finite-time explosion, countably many equilibria, modified utility); Obstfeld-Rogoff redemption and Cochrane's demonetised equilibrium (E18 caption corrected); nonseparable utility (E19: stable iff b > 1 + i/2); cash in advance with the stochastic Euler equation derived from optimality ((19.29) needs the money TVC, (19.38) corrected, E14, E15); continuous-time money with CES limits (E20) and the IS curve with money (E21). Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 19, pp. 433-464, Chapter 11, pp. 315-318, Section 14.1, p. 342, and Online Appendix A1.6, A3.1-A3.2 and A4, pp. 567-569, 612-632 and 635-641."
+}
