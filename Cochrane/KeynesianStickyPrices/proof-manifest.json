@@ -1,0 +1,41 @@
+{
+  "library": "KeynesianStickyPrices",
+  "modules": [
+    "KeynesianStickyPrices/Determinacy.lean",
+    "KeynesianStickyPrices/Expectations.lean",
+    "KeynesianStickyPrices/ExpectationsFiniteTree.lean",
+    "KeynesianStickyPrices/ForwardSolution.lean",
+    "KeynesianStickyPrices/SharedTools.lean",
+    "KeynesianStickyPrices/StaticIS.lean",
+    "KeynesianStickyPrices/RulesAdaptiveRE.lean",
+    "KeynesianStickyPrices/AR1Responses.lean",
+    "KeynesianStickyPrices/FullModel.lean",
+    "KeynesianStickyPrices/PersistenceFreedom.lean",
+    "KeynesianStickyPrices/AdaptiveTaylor.lean",
+    "KeynesianStickyPrices/FiscalUnderpinnings.lean",
+    "KeynesianStickyPrices/OptimalPolicy.lean",
+    "KeynesianStickyPrices/TaylorDeterminacy.lean",
+    "KeynesianStickyPrices/History.lean",
+    "KeynesianStickyPrices/Links.lean"
+  ],
+  "theorem_counts": {
+    "KeynesianStickyPrices/Determinacy.lean": 23,
+    "KeynesianStickyPrices/Expectations.lean": 20,
+    "KeynesianStickyPrices/ExpectationsFiniteTree.lean": 21,
+    "KeynesianStickyPrices/ForwardSolution.lean": 44,
+    "KeynesianStickyPrices/SharedTools.lean": 11,
+    "KeynesianStickyPrices/StaticIS.lean": 43,
+    "KeynesianStickyPrices/RulesAdaptiveRE.lean": 23,
+    "KeynesianStickyPrices/AR1Responses.lean": 46,
+    "KeynesianStickyPrices/FullModel.lean": 61,
+    "KeynesianStickyPrices/PersistenceFreedom.lean": 16,
+    "KeynesianStickyPrices/AdaptiveTaylor.lean": 12,
+    "KeynesianStickyPrices/FiscalUnderpinnings.lean": 39,
+    "KeynesianStickyPrices/OptimalPolicy.lean": 20,
+    "KeynesianStickyPrices/TaylorDeterminacy.lean": 36,
+    "KeynesianStickyPrices/History.lean": 11,
+    "KeynesianStickyPrices/Links.lean": 28
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 17-18 (with Online Appendix A1.7, A1.8 and A1.13.1): Keynesian models with sticky prices. The static IS-Phillips model with adaptive versus rational expectations, the RE solution family and its infinite-past form (17.8); policy rules in both models with the stability and determinacy sets corrected (E7: phi > 1 or phi < -1 - 2/(sigma kappa)); AR(1) responses, super-Fisherian and open-mouth cases and the root eta*; any persistence with any sign and a long-run response of one ((17.14) inverse corrected, E8); the adaptive Taylor rule; the full model with its two-sided solution, the anticipated rate rise from minus infinity (Figure 17.5) and Figure 17.6 surplus changes (labels shown inconsistent); fiscal underpinnings (17.19) with the dating correction and Figure 17.7 numbers certified (E10); optimal policy with the x* = 0 intercept corrected (E9); Taylor determinacy with phi_x ((1.58); phi > 1 neither necessary nor sufficient only once phi_x < 0 is allowed; complex roots, E11; (1.55) entry corrected); Chapter 18 rules; links showing the simple model is exactly the beta = 0 case of the full model. Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 17, pp. 397-421, Chapter 18, pp. 422-432, and Online Appendix A1.7, A1.8 and A1.13.1, pp. 569-572 and 586-588."
+}
