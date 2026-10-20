@@ -15,7 +15,8 @@
     "PolicyResponseDynamics/InvestmentLimits.lean",
     "PolicyResponseDynamics/ISBlock.lean",
     "PolicyResponseDynamics/InvestmentNaturalRate.lean",
-    "PolicyResponseDynamics/Links.lean"
+    "PolicyResponseDynamics/Links.lean",
+    "PolicyResponseDynamics/HabitNecessity.lean"
   ],
   "theorem_counts": {
     "PolicyResponseDynamics/Determinacy.lean": 23,
@@ -32,8 +33,9 @@
     "PolicyResponseDynamics/InvestmentLimits.lean": 44,
     "PolicyResponseDynamics/ISBlock.lean": 53,
     "PolicyResponseDynamics/InvestmentNaturalRate.lean": 37,
-    "PolicyResponseDynamics/Links.lean": 20
+    "PolicyResponseDynamics/Links.lean": 20,
+    "PolicyResponseDynamics/HabitNecessity.lean": 76
   },
-  "scope": "Woodford, Interest and Prices, Chapter 5: Dynamics of the Response to Monetary Policy, with Appendix D. Predetermined expenditure and the reduction to the Chapter 4 system with determinacy transfer, the variance decomposition; small quantitative models and the Table 5.1-5.3 arithmetic; habit persistence (App D.1) with the (1.26)-(1.29) Phillips-curve identity and a general-n one-predetermined-variable solution theory; the investment model linearised as exact derivatives; Proposition 5.1 (positivity corrected), the quasi-differenced form and the limits as adjustment costs grow; the IS block with exact root location, Proposition 5.2 (corrected statement) and n-dimensional forward determinacy for (3.36).",
+  "scope": "Woodford, Interest and Prices, Chapter 5: Dynamics of the Response to Monetary Policy, with Appendix D. Predetermined expenditure and the reduction to the Chapter 4 system with determinacy transfer, the variance decomposition; small quantitative models and the Table 5.1-5.3 arithmetic; habit persistence (App D.1) with the (1.26)-(1.29) Phillips-curve identity and a general-n one-predetermined-variable solution theory, and the exact Blanchard-Kahn iff for the habit model (necessity: non-existence at a unit root or with no stable root, a continuum otherwise, genuinely stochastic sunspots with two stable roots); the investment model linearised as exact derivatives; Proposition 5.1 (positivity corrected), the quasi-differenced form and the limits as adjustment costs grow; the IS block with exact root location, Proposition 5.2 (corrected statement) and n-dimensional forward determinacy for (3.36).",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 5, pp. 320-380, and Appendix D, pp. 687-691."
 }

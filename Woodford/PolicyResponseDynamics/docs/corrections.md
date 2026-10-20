@@ -7,14 +7,10 @@ when found and revised if formalisation shows the finding itself to be wrong. Se
 that looked suspect turned out to be correct: the identity (3.14) of Proposition 5.1 holds as
 stated whenever `αβμ₂ ≠ 1` (`Prop51.prop51`); the equivalence in footnote 34 is exact
 (`ISBlock.N_pos_iff`); and (3.31) holds as printed, since `K̃_{t+1}` is known at `t`
-(`InvestmentNaturalRate.eq331_printed`). Two items are not formalised. The converse (necessity) of
-the general Blanchard–Kahn condition for the habit model (1.30)–(1.33) is deferred by the author:
-the condition is stated exactly and proved sufficient (`Habit.BKCondition`,
-`Habit.habit_existsUnique`) and non-vacuous (`Habit.bkCondition_calibration`). The empirical
-content (the VAR identification, Figures 5.1–5.5, Table 5.4 and its Wald tests, and the
-estimated reaction-function coefficients) is out of scope, as are the simulated responses of
-Figures 5.6–5.10, apart from the claims the text makes about them. Lean names are relative to
-the namespace `Woodford.PolicyResponseDynamics`.
+(`InvestmentNaturalRate.eq331_printed`). The empirical content (the VAR identification,
+Figures 5.1–5.5, Table 5.4 and its Wald tests, and the estimated reaction-function coefficients)
+is out of scope, as are the simulated responses of Figures 5.6–5.10, apart from the claims the
+text makes about them. Lean names are relative to the namespace `Woodford.PolicyResponseDynamics`.
 
 ## Claims that are false as printed
 
@@ -46,6 +42,7 @@ the namespace `Woodford.PolicyResponseDynamics`.
 | (1.29), p. 335 | `κ = ξ_pηφ/δ`, with the Chapter 4 model the limiting case `η = 0`. | At `η = 0` the formula is `0/0`: `δ = 0` and `κδ = ξ_pηφ` holds for every `κ` (`Habit.eta_zero_kappa`); the second coefficient condition forces `κ = ξ_p(ω + σ⁻¹)`. The division-free `κ = ξ_p(B + √(B² − 4β(ηφ)²))/2` makes (1.26) and (1.27) equivalent for every `η ≥ 0` (`Habit.habKappa`, `Habit.AS126_iff_AS127_habit`). |
 | p. 335 | `δ/η → φ/(ω + φ)` and `κ → ξ_p(ω + σ⁻¹)` as `η → 0`. | `φ` depends on `η`, so it must be read at `η = 0`, `φ = σ⁻¹`: `δ/η → σ⁻¹/(ω + σ⁻¹)` as `η → 0⁺` (`Habit.delta_div_eta_tendsto`, `Habit.kappa_tendsto`). |
 | (1.30)–(1.33), p. 335 | Under a determinacy condition the habit model, with the predetermined `x_{t−1}`, has a unique bounded solution of the form (1.31)–(1.33). | (1.25) contains `E_tx_{t+2}`, so the system has three non-predetermined variables, `π`, `x` and `E_tx_{t+1}`, besides `x_{t−1}` (`Habit.habit_iff_predSys`). Existence, uniqueness and the form (1.31)–(1.33) are proved under the exact Blanchard–Kahn condition for `n` non-predetermined variables (`Habit.predSysN_existsUnique`, `Habit.habit_existsUnique`, `Habit.habit_solution_form`), which holds at the Table 5.1 parameters with `η = 1/2` (`Habit.bkCondition_calibration`). |
+| (1.30)–(1.33), pp. 335–336 | (1.31)–(1.33) hold when the rule's coefficients are "in the range that implies determinacy". | The range is never stated. Exactly: the characteristic quartic `Q` of the system has one root in the closed unit disc, counted with multiplicity, and it lies inside (`HabitNecessity.HabitRootCond`, `HabitNecessity.habQ_structural`); for `0 < β < 1`, `φ ≠ 0` and every `η`, including the Chapter 4 limit `η = 0`, on any nonempty state space, this holds iff there is a unique bounded equilibrium for every bounded disturbance and every bounded `x_{−1}`, iff the Blanchard–Kahn condition holds (`HabitNecessity.habit_determinate_iff`, `HabitNecessity.habit_determinate_iff_bk`, `HabitNecessity.habit_bk_iff`). When it fails, some bounded disturbance has no bounded equilibrium or there is a continuum of them (`HabitNecessity.habit_failure`), and two stable roots give sunspot equilibria (`HabitNecessity.habit_sunspots_of_twoStable`). `Q(1) = (1 − β)φ_x + (φ_π − 1)κ(1 − δ)(1 − βδ)`, so the Taylor-principle boundary is where `μ = 1` is a root (`HabitNecessity.habQ_one_kappa`). The condition holds at the Table 5.1 parameters with `η = 1/2` and fails under the passive rule `φ_π ≈ 0.70`, `φ_x ≈ 0.030` and at `φ_π = 1`, `φ_x = 0` (`HabitNecessity.determinate_calibration`, `HabitNecessity.not_determinate_passive`, `HabitNecessity.nonexist_boundary`). |
 | Table 5.1, p. 342 | `ν = 0.11`; markup "less than 15%". | `ν = .75 × .14 = .105` and `(θ − 1)⁻¹ ≈ .1453`, which the printed figures round (`SmallModels.table51_nu`, `SmallModels.table51_markup`). |
 | n. 29, p. 358 | The definition of `q` differs from the one in "Section 2.1 above". | The reference is to Ch. 4 §2.1, (2.3), p. 249, where `q` is the Hicks-neutral composite (`InvestmentModel.qPrinted`); Chapter 5's own §2.1 is the Rotemberg–Woodford model and does not define `q`. |
 | p. 356 | `ρ_y > ρ_k > 0` given `ω_p > 0`. | `ω_p ≥ 0` suffices, with `ν > 0`, `φ_h > 1` (`InvestmentModel.rhoY_gt_rhoK_pos`). |

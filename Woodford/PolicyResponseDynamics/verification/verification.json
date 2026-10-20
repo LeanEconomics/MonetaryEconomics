@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-15T22:31:09.992072+00:00",
-  "theorems": 757,
+  "checked_at_utc": "2026-10-20T23:18:57.326589+00:00",
+  "theorems": 833,
   "module_theorems": {
     "PolicyResponseDynamics/Determinacy.lean": 23,
     "PolicyResponseDynamics/Expectations.lean": 20,
@@ -16,9 +16,10 @@
     "PolicyResponseDynamics/InvestmentLimits.lean": 44,
     "PolicyResponseDynamics/ISBlock.lean": 53,
     "PolicyResponseDynamics/InvestmentNaturalRate.lean": 37,
-    "PolicyResponseDynamics/Links.lean": 20
+    "PolicyResponseDynamics/Links.lean": 20,
+    "PolicyResponseDynamics/HabitNecessity.lean": 76
   },
-  "audited_declarations": 1155,
+  "audited_declarations": 1252,
   "declarations": [
     {
       "name": "Woodford.PolicyResponseDynamics.SchurStable",
@@ -5794,6 +5795,491 @@
       "name": "Woodford.PolicyResponseDynamics.Links.habDelta_eq_mu1",
       "kind": "theorem",
       "module": "PolicyResponseDynamics/Links.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.quart",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.synth",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.quart_eq_synth",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.rem1",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.rem0",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.quart_eq_quadratic",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.rem_of_roots",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.rem_zero_of_roots",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.quart_conj",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habCoef",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habQ",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_structural",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_one",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_one_kappa",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.arDen",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.arP",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.arQ",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.ar_row0_X",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.ar_row1_X",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.ar_row1_L",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.modeZ",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.ar2_predSys",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.predSysN_add",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_add_mode",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_mul_sub",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_bounded_of_distinct",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_summable",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_bounded_of_schur",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_mode",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.sunX",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_succ",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_adapted",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_rec",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_bounded",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_charpoly",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habY",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row0",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row1",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row2",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row3",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.expSys_of_predSys",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.no_bounded_resonance",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habY_props",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_det_real",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_col0",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_col1",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habA_col2",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_unitRoot",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_noRoot",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.HabitDeterminate",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.steady_habit",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.arDen_ne_zero",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_add_mode_full",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.detMode",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.detMode_rec",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_continuum",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_continuum_x0",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_of_factor",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.arDen_ne_zero_of_schur",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_sunspot",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.coinShock_adapted",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.coinShock_bounded",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.coin_sunspot",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.HabitRootCond",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.bkOmega",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_real",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.decomp_of_root",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.resM_det",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.bk_of_rootCond",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.factor_of_nonreal",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.HabitNonexist",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_of_nonexist",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_of_unit",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_zero_eta",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.factor_of_unit_eta_zero",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_failure",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.determinate_of_bk",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.rootCond_of_determinate",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_determinate_iff",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_bk_iff",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_determinate_iff_bk",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_determinate_iff_sigma",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.HabitTwoStable",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.schur_factor_of_twoStable",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.habit_sunspots_of_twoStable",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_of_twoStable",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.rootCond_calibration",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.determinate_calibration",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.indPhiPi",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.indPhiX",
+      "kind": "def",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.twoStable_passive",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.not_rootCond_passive",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.sunspot_passive",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_passive",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_boundary",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
+    },
+    {
+      "name": "Woodford.PolicyResponseDynamics.HabitNecessity.not_rootCond_boundary",
+      "kind": "theorem",
+      "module": "PolicyResponseDynamics/HabitNecessity.lean"
     }
   ],
   "full_build": "passed",
@@ -11573,6 +12059,491 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.quart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.synth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.quart_eq_synth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.rem1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.rem0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.quart_eq_quadratic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.rem_of_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.rem_zero_of_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.quart_conj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_structural": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_one_kappa": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.arDen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.arP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.arQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.ar_row0_X": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.ar_row1_X": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.ar_row1_L": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.modeZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.ar2_predSys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.predSysN_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_add_mode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_mul_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_bounded_of_distinct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_bounded_of_schur": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.chSeq_mode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.sunX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.sunX_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_charpoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_row3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.expSys_of_predSys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.no_bounded_resonance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habY_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_det_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_col0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_col1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habA_col2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_unitRoot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_noRoot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.HabitDeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.steady_habit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.arDen_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_add_mode_full": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.detMode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.detMode_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_continuum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_continuum_x0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_of_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.arDen_ne_zero_of_schur": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.coinShock_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.coinShock_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.coin_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.HabitRootCond": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.bkOmega": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.decomp_of_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.resM_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.bk_of_rootCond": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.factor_of_nonreal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.HabitNonexist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_of_nonexist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habQ_zero_eta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.factor_of_unit_eta_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_failure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.determinate_of_bk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.rootCond_of_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_bk_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_determinate_iff_bk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_determinate_iff_sigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.HabitTwoStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.schur_factor_of_twoStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.habit_sunspots_of_twoStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_of_twoStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.rootCond_calibration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.determinate_calibration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.indPhiPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.indPhiX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.twoStable_passive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.not_rootCond_passive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.sunspot_passive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.not_determinate_passive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.nonexist_boundary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PolicyResponseDynamics.HabitNecessity.not_rootCond_boundary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -11584,23 +12555,24 @@
     "PolicyResponseDynamics/ExpectationCalculus.lean": "80ec54e30c5746aa9f5914f68f5afec44e191098e9c1cab94ac0a6059af4f827",
     "PolicyResponseDynamics/Predetermined.lean": "3e1aac03225b85bbb8bfde98d90297887db8b04bd35b5aaa85f1a9d785421d80",
     "PolicyResponseDynamics/SmallModels.lean": "74fef25c13f4a71eb5b3fcf63583ad176bb83358f7fe5b784d7a32a7f3315978",
-    "PolicyResponseDynamics/Habit.lean": "da7bb4cae4943bbd19c6b0613800a7a605e2ad0ca3d6aa0352f283687efaf6dd",
+    "PolicyResponseDynamics/Habit.lean": "8183fbe9264c3068358d9839e88f2deb8173557bcef905e73aa4987f554eed97",
     "PolicyResponseDynamics/InvestmentModel.lean": "ca93541cd8a43b9597d0b3e63bce665da0dafc9edea436518d47564b9c3cfb7b",
     "PolicyResponseDynamics/Prop51.lean": "c73f93617565b404c4c69e26443eca544d271b09e6f22869a3cd22f0903065d1",
     "PolicyResponseDynamics/InvestmentLimits.lean": "dc6fa51f4aa8ad137fb52d5e30d150cd6e9bde17363b5fa1b2ef73bf935a8652",
     "PolicyResponseDynamics/ISBlock.lean": "4f28ba9504689b637b9e3a8fe080a2a87b6c7debc3da2b13f4e92b7be3eaf542",
     "PolicyResponseDynamics/InvestmentNaturalRate.lean": "82da8123191cabf4e2abea84c72d3e70f7ba909114e13c2d74a20dd0a6780916",
     "PolicyResponseDynamics/Links.lean": "ac290608af6af446b93712c6742d16742ec3c26f9517660ab5c96aa31557908d",
-    "PolicyResponseDynamics.lean": "466cd0fe195937fcea9dc615ae77150e68f34e43908486a0b904ff12b5a5a87e",
+    "PolicyResponseDynamics/HabitNecessity.lean": "39c12d6486b4c169710523678ea4be07610c3c4c33f8eab65f8da7a8421c920f",
+    "PolicyResponseDynamics.lean": "23381798c85801cc263327daf2e21471ba00e65a396156a93ad6feb3655056da",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "bd2a682db00a9876e75d111210e0f953d457113a747d5c081a3bbcd0cfa72c35",
     "lake-manifest.json": "84da8a6a9ea47f75da70f3b09fce037ea380f49a30a126bd6d0698a7f6946522",
-    "proof-manifest.json": "5172ef4560ab15967e56e4bcb34223610b03507f5870367540c19b8bec73e387",
+    "proof-manifest.json": "a8e62efd48eca7a66ec9c1994d3db7c009de3604bcea5d165c731568dc89ac82",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "d6fc461235aa78dcb6057ab4eeb6a545db135c33f67e1e0ad32d54718d44d34f",
+  "fresh_audit_sha256": "0936c08e1585b42b1fd970b86edf5cca2a191cd952e9ac1973c0deaea619993f",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Woodford, Interest and Prices, Chapter 5: Dynamics of the Response to Monetary Policy, with Appendix D. Predetermined expenditure and the reduction to the Chapter 4 system with determinacy transfer, the variance decomposition; small quantitative models and the Table 5.1-5.3 arithmetic; habit persistence (App D.1) with the (1.26)-(1.29) Phillips-curve identity and a general-n one-predetermined-variable solution theory; the investment model linearised as exact derivatives; Proposition 5.1 (positivity corrected), the quasi-differenced form and the limits as adjustment costs grow; the IS block with exact root location, Proposition 5.2 (corrected statement) and n-dimensional forward determinacy for (3.36).",
+  "scope": "Woodford, Interest and Prices, Chapter 5: Dynamics of the Response to Monetary Policy, with Appendix D. Predetermined expenditure and the reduction to the Chapter 4 system with determinacy transfer, the variance decomposition; small quantitative models and the Table 5.1-5.3 arithmetic; habit persistence (App D.1) with the (1.26)-(1.29) Phillips-curve identity and a general-n one-predetermined-variable solution theory, and the exact Blanchard-Kahn iff for the habit model (necessity: non-existence at a unit root or with no stable root, a continuum otherwise, genuinely stochastic sunspots with two stable roots); the investment model linearised as exact derivatives; Proposition 5.1 (positivity corrected), the quasi-differenced form and the limits as adjustment costs grow; the IS block with exact root location, Proposition 5.2 (corrected statement) and n-dimensional forward determinacy for (3.36).",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 5, pp. 320-380, and Appendix D, pp. 687-691."
 }

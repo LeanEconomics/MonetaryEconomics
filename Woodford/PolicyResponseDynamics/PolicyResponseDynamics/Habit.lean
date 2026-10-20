@@ -57,8 +57,8 @@ are genuine `tsum`s or limits.
   (`habit_iff_predSys`), `habit_existsUnique`, `habit_solution_form`, `habit_decomp_eta_zero`;
   survey error 7: `taylor130_iff_quarter`. Non-vacuity for `η > 0` at the Table 5.1
   calibration with `η = 1/2`: `vphiOf_calibration`, `calPhiPi`, `calPhiX`, `calOmega`, `calG`,
-  `bkCondition_calibration`, `habit_existsUnique_calibration`. Necessity of `BKCondition` (the
-  general Blanchard–Kahn converse) is deferred by the user's decision.
+  `bkCondition_calibration`, `habit_existsUnique_calibration`. Necessity of `BKCondition` is
+  proved in the module `HabitNecessity` (`habit_determinate_iff_bk`).
 -/
 
 namespace Woodford.PolicyResponseDynamics.Habit
@@ -1854,8 +1854,8 @@ eigenvalue `λ` attached to the predetermined variable inside the unit circle, `
 invertible, and every (complex) eigenvalue of the forward-block matrix `G = M⁻¹N` inside the
 unit circle (equivalently, all remaining roots of the system outside it). This module proves
 that the condition is sufficient for existence and uniqueness (`predSysN_existsUnique`) and that it
-is non-vacuous for `η > 0` (`bkCondition_calibration`); its necessity (the general
-Blanchard–Kahn converse) is deferred by the user's decision. -/
+is non-vacuous for `η > 0` (`bkCondition_calibration`); its necessity is proved in the module
+`HabitNecessity` (`habit_determinate_iff_bk`). -/
 def BKCondition {n : ℕ} (P N : Matrix (Fin n) (Fin n) ℝ) (h φ : Fin n → ℝ) (ρ lam : ℝ)
     (ω : Fin n → ℝ) : Prop :=
   DecompN P N h φ ρ lam ω ∧ |lam| < 1 ∧ IsUnit (resMN P N φ ω).det ∧
@@ -2599,8 +2599,8 @@ noncomputable def calG : Matrix (Fin 3) (Fin 3) ℝ :=
 `λ = 1/6`, `ω = calOmega`; `det M ≠ 0`; and the characteristic polynomial of `G = M⁻¹N` factors
 as `(w − 100/103)(w² − T w + D)` with `(T, D)` Schur–Cohn stable, so all eigenvalues of `G` lie
 inside the unit circle (the system's roots are `1/6`, `1.03` and a complex pair of modulus
-`≈ 2.5`). Only sufficiency of `BKCondition` is proved in this module; its necessity (the
-general Blanchard–Kahn converse) is deferred by the user's decision. -/
+`≈ 2.5`). Only sufficiency of `BKCondition` is proved in this module; its necessity is proved
+in the module `HabitNecessity` (`habit_determinate_iff_bk`). -/
 theorem bkCondition_calibration :
     BKCondition (habP (4 / 105) (47 / 100) (32 / 101) (99 / 100) (1 / 2) calPhiPi calPhiX)
       (habN (32 / 101) (99 / 100) (1 / 2)) (habH (4 / 105) (32 / 101) (1 / 2)) habSel 0

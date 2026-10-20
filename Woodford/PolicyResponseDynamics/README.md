@@ -10,7 +10,7 @@ Response to Monetary Policy" (pp. 320–380), together with the proofs in Append
 perfect foresight and genuine uncertainty; log-linear equations are exact derivatives of the
 nonlinear model, infinite sums are genuine limits, and determinacy means existence and
 uniqueness of a bounded adapted equilibrium for every bounded forcing, proved rather than
-assumed from a root count. The library contains **757 theorems**, including the shared core.
+assumed from a root count. The library contains **833 theorems**, including the shared core.
 
 Headline results, in the namespace `Woodford.PolicyResponseDynamics`:
 * **Predetermined expenditure.** The IS relation (1.6)–(1.8) as exact derivatives, with the
@@ -26,9 +26,17 @@ Headline results, in the namespace `Woodford.PolicyResponseDynamics`:
   (`Habit.habit_marginal_value`, `Habit.invest_marginal_value`), the forward solution and the
   AR(2) output gap (`Habit.forward_solution`, `Habit.ar2_output_gap`), (1.26) iff (1.27) for every
   `η ≥ 0` with the root location of (1.28) (`Habit.AS126_iff_AS127_habit`,
-  `Habit.habDelta_lt_iff`), and existence and uniqueness under an exact Blanchard–Kahn condition
-  for `n` non-predetermined variables, shown to hold at a calibration
-  (`Habit.habit_existsUnique`, `Habit.bkCondition_calibration`).
+  `Habit.habDelta_lt_iff`), and the exact determinacy condition: for every `η`, a unique bounded
+  equilibrium for every bounded disturbance iff the Blanchard–Kahn condition for `n`
+  non-predetermined variables iff the characteristic quartic has exactly one root in the closed
+  unit disc, lying inside it (`Habit.habit_existsUnique`,
+  `HabitNecessity.habit_determinate_iff_bk`, `HabitNecessity.habit_determinate_iff`,
+  `HabitNecessity.HabitRootCond`). When it fails some bounded disturbance has no bounded
+  equilibrium or there is a continuum of them, and two stable roots give sunspot equilibria
+  (`HabitNecessity.habit_failure`, `HabitNecessity.habit_sunspots_of_twoStable`); it holds at a
+  calibration and fails under a passive rule and on the Taylor-principle boundary
+  (`HabitNecessity.determinate_calibration`, `HabitNecessity.sunspot_passive`,
+  `HabitNecessity.nonexist_boundary`).
 * **Small quantitative models.** (2.1), (2.4)–(2.7) derived, the Table 5.1–5.3 arithmetic with
   `ζ` corrected (`SmallModels.eq21`, `SmallModels.eq25`, `SmallModels.table51_zeta_from_theta`),
   and the Figure 5.8 rule identified as (2.8), which is determinate, rather than (1.12), which is
@@ -52,12 +60,10 @@ See the [source map](docs/source-map.md) for the correspondence with the book an
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: necessity of the Blanchard–Kahn condition for the habit model (1.30)–(1.33), which
-is deferred to a later project on the general theory (sufficiency is proved); the empirical
-content of the chapter (the VAR identification, Figures 5.1–5.5, Table 5.4 and its Wald tests,
-and the estimated reaction functions) is out of scope; the simulated impulse responses and
-coefficient plots of Figures 5.6–5.10 are not formalised, only the claims the text makes about
-them.
+Not covered: the empirical content of the chapter (the VAR identification, Figures 5.1–5.5,
+Table 5.4 and its Wald tests, and the estimated reaction functions) is out of scope; the simulated
+impulse responses and coefficient plots of Figures 5.6–5.10 are not formalised, only the claims
+the text makes about them.
 
 ## Library map
 
@@ -78,6 +84,7 @@ them.
 | [ISBlock](PolicyResponseDynamics/ISBlock.lean) | 53 | §3.3: (3.20)–(3.26), root location, the constant IS coefficient of p. 367 corrected, n. 34 |
 | [InvestmentNaturalRate](PolicyResponseDynamics/InvestmentNaturalRate.lean) | 37 | §3.4, D.3: the natural rate, Proposition 5.2 corrected, (3.27)–(3.39), determinacy of (3.36), n. 38, p. 378 |
 | [Links](PolicyResponseDynamics/Links.lean) | 20 | §1–§3: the investment model linked to Propositions 5.1 and 5.2 and to the IS block, the habit model to (2.4), (1.26) and (D.2) |
+| [HabitNecessity](PolicyResponseDynamics/HabitNecessity.lean) | 76 | §1.2: the characteristic quartic of (1.30)–(1.33), necessity of the Blanchard–Kahn condition (non-existence, a continuum, sunspots), the exact determinacy condition, the calibration and points where it fails |
 
 ## Build and verify
 
