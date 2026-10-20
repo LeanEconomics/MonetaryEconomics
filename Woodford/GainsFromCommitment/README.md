@@ -5,8 +5,8 @@ This is the `Woodford/GainsFromCommitment/` proof project in
 Run the commands below from this directory. [Return to the library index](../../README.md).
 
 A checked formalisation of Woodford (2003), *Interest and Prices*, Chapter 7, "Gains from
-Commitment to a Policy Rule" (pp. 464–531), together with the proofs in Appendix F
-(pp. 709–718). Model equations hold for an arbitrary expectation operator, so every result covers
+Commitment to a Policy Rule" (pp. 464–533), together with the proofs in Appendix F
+(pp. 709–715). Model equations hold for an arbitrary expectation operator, so every result covers
 perfect foresight and genuine uncertainty. Losses are genuine infinite discounted sums over
 bounded plans, and every optimality claim is proved as optimality: a feasible plan satisfying the
 first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian

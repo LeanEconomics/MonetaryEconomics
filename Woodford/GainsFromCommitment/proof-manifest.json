@@ -51,5 +51,5 @@
     "GainsFromCommitment/Links.lean": 40
   },
   "scope": "Woodford, Interest and Prices, Chapter 7: Gains from Commitment, with Appendix F. The second-order rational-expectations workhorse and Lagrangian sufficiency for LQ problems; the inflation bias of discretion and date-0 commitment (Props 7.1-7.3); timeless optimality; monetary frictions and indexation; discretion and optimal commitment under cost-push shocks (Props 7.4-7.8) with impulse responses, variance frontiers and natural-rate disturbances (Props 7.9-7.10); optimal noninertial plans, the optimal Taylor rule and forecast-based rules (Props 7.11-7.13); the optimal instrument path and sunspot continuum under an exogenous path (Prop 7.14); the targeting rule and its implementation (Props 7.15-7.17). Book misprints and false claims are corrected with Lean counterexamples.",
-  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 7, pp. 464-531, and Appendix F, pp. 709-718."
+  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 7, pp. 464-533, and Appendix F, pp. 709-715."
 }

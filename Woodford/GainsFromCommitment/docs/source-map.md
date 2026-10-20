@@ -1,7 +1,7 @@
 # Source map
 
 Woodford (2003), *Interest and Prices*, Chapter 7, "Gains from Commitment to a Policy Rule"
-(pp. 464–531), with the proofs in Appendix F (pp. 709–718). Each formal claim is listed with its
+(pp. 464–533), with the proofs in Appendix F (pp. 709–715). Each formal claim is listed with its
 Lean name, relative to the namespace `Woodford.GainsFromCommitment`. Page numbers are book pages.
 Rows follow the book, section by section, with the modules that formalise each section named in
 the heading: Chapter 7 §1–§5, then Appendix F.1–F.6, then the cross-links between modules and the
