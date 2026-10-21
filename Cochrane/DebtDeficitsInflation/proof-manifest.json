@@ -21,7 +21,8 @@
     "DebtDeficitsInflation/ExpectationsMeasureIID.lean",
     "DebtDeficitsInflation/ConditioningDownMeasure.lean",
     "DebtDeficitsInflation/InvertibilityMeasure.lean",
-    "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    "DebtDeficitsInflation/InvertibilityMeasureL2.lean",
+    "DebtDeficitsInflation/Wold.lean"
   ],
   "theorem_counts": {
     "DebtDeficitsInflation/Determinacy.lean": 23,
@@ -44,7 +45,8 @@
     "DebtDeficitsInflation/ExpectationsMeasureIID.lean": 37,
     "DebtDeficitsInflation/ConditioningDownMeasure.lean": 36,
     "DebtDeficitsInflation/InvertibilityMeasure.lean": 38,
-    "DebtDeficitsInflation/InvertibilityMeasureL2.lean": 11
+    "DebtDeficitsInflation/InvertibilityMeasureL2.lean": 11,
+    "DebtDeficitsInflation/Wold.lean": 67
   },
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 4 (with Online Appendix A2): Debt, deficits, discount rates and inflation. Innovations, martingale-difference shocks and moving-average representations; the linearised flow and present-value identities, derived as exact derivatives; unexpected inflation equals minus a(rho) times the surplus shock, with the AR(1), MA(1), ARMA and permanent-transitory cases; the surplus-process facts and debt feedback; the generalised decompositions (4.11)-(4.13) with Campbell-Shiller and Campbell-Ammer; VAR identities, Cholesky ordering and the present-value tautology; conditioning down; invertibility and Hilbert-space Wold statements; Hansen-Sargent. Data, estimates and figures are out of scope. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 4, pp. 81-116, and Online Appendix A2, pp. 593-611."

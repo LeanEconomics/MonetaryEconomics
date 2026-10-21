@@ -12,7 +12,7 @@ sums over bounded plans. Every optimality claim is proved as optimality: a feasi
 the first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Optimal from a timeless perspective" and
 "robustly optimal" are given precise definitions and proved. "Unique equilibrium" means unique
-among bounded adapted processes. The library contains **2120 theorems**, including the shared
+among bounded adapted processes. The library contains **2357 theorems**, including the shared
 core.
 
 The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4), which the book states
@@ -105,6 +105,46 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
   (`OptimalRulesMeasureStatic.static_coin_assumption81`). On a finite, fully supported space every
   notion agrees with the core one, and the one-point space is perfect foresight
   (`OptimalRulesMeasure.Bridge.mAssumption81_iff`, `OptimalRulesMeasure.Bridge.unitSystem_pf`).
+  For an arbitrary bounded adapted disturbance (no VAR): the conditional forecast path of any
+  solution is a perfect-foresight solution (`OptimalRulesMeasureForecast.fc_focSystem`), so the
+  uniqueness half of Assumption 8.1 follows from its perfect-foresight form
+  (`OptimalRulesMeasureForecast.m_focUnique_of_pf`) and (1.23) holds a.s.
+  (`OptimalRulesMeasureForecast.m_criterion`). Conversely, a bounded feasible plan satisfying (1.23)
+  a.s. is the FOC solution, so commitment to (1.23) is determinate with no stability of `Λ`
+  (`OptimalRulesMeasureConverse.m_criterion_iff`, `OptimalRulesMeasureConverse.m_prop82_unique_pf`).
+  The perfect-foresight solution map has an absolutely summable kernel, by the closed graph theorem
+  (`OptimalRulesMeasureKernel.kernel_summable`, `OptimalRulesMeasureKernel.kernel_hasSum`), and
+  existence holds iff the forecast-driven state `X_{t+1} = h + HX_t + E_t∑_kK^N_kc_{t+k}` is
+  essentially bounded (`OptimalRulesMeasureGeneral.m_exists_iff`), which geometric stability of `H`
+  guarantees (`OptimalRulesMeasureGeneral.m_assumption81MB_of_powDecay`,
+  `OptimalRulesMeasureGeneral.m_prop82_general`). The perfect-foresight Assumption 8.1 makes `H_n`
+  power-bounded but not geometrically stable (`OptimalRulesMeasureStability.powBdd_Hn`,
+  `OptimalRulesMeasureStability.ur_eigenvalue_one`), and it does not give existence for every
+  disturbance: Example B fails on the fair-coin economy
+  (`OptimalRulesMeasureCounterexample.pf_assumption81_not_sufficient`). The exact spectral relation
+  is with the pencil of (1.1) + (1.9), not (1.15): `ν` is an eigenvalue of `H` iff `|ν| ≤ 1` and `ν`
+  is a root of that pencil (`OptimalRulesMeasureSpectrum.eig_Hgen_iff`), so the root condition on
+  the pencil gives the measure Assumption 8.1 for every disturbance
+  (`OptimalRulesMeasureSpectrum.m_assumption81MB_of_noEulerRoot`). In the basic model and the
+  inflation-inertia model `H_n` is geometrically stable
+  (`OptimalRulesMeasureStabilityModels.NK.nk_powDecay`,
+  `OptimalRulesMeasureStabilityModels.Inertia.in_powDecay`), and Proposition 8.2 holds on every
+  filtered probability space for every bounded adapted disturbance with no hypothesis left
+  (`OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_general`; inertia model in the real case,
+  `OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_general`). The whole theory is redone for
+  a quasi-split (`Prop81CaseII.QuasiSplit`, case (ii) of Assumption 8.2, where no real deflating
+  split exists): Proposition 8.2 holds for every bounded adapted disturbance and on every VAR
+  economy (`OptimalRulesMeasureQuasiSplit.m_prop82_generalQ`,
+  `OptimalRulesMeasureQuasiSplit.m_prop82_varQ`), the forward step through the a.s. vanishing of a
+  bounded residual with `D_t = βH E_tD_{t+1}` (`OptimalRulesMeasureQuasiSplit.m_fwd_zero`), and the
+  real-split theorems are recovered as a special case
+  (`OptimalRulesMeasureQuasiSplit.m_prop82_general_of_quasi`). So the inflation-inertia model
+  satisfies Proposition 8.2 on every filtered probability space in the complex case `discQ < 0`
+  (`OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_general`,
+  `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_var`) and at every admissible calibration
+  `0 < γ ≤ 1`, with no hypothesis left (`OptimalRulesMeasureInertiaComplex.in_m_prop82_all_general`,
+  `OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var`); Assumption 8.5 holds for the `Λ` of
+  every quasi-split of the model (`OptimalRulesMeasureInertiaComplex.in_h85_quasi`).
 * **Cross-links.** The formalisations of the same objects in different modules are proved to
   agree: the canonical roots of Proposition 8.7 satisfy the hypotheses of Propositions 8.9–8.11
   (`Links.inertiaRoots_of_standing`); the two Euler equations, `A(z)` and discriminants coincide
@@ -243,7 +283,11 @@ the printed text precise. The main corrections and results:
   Assumption 8.1 holds exactly when the corrected form does and date-`t₀` information is a.s.
   bounded and a.s. predictable at `t₀ − 1`; the bounded optimal plan that p. 593 assumes
   exists at every calibration, by a root count for the degree-6 FOC polynomial, not the
-  Proposition 8.7 cubic. Separately, two hypothesis structures of the earlier formalisation (the original Proposition
+  Proposition 8.7 cubic. The perfect-foresight Assumption 8.1 does not make `H_n` geometrically
+  stable and does not give the measure Assumption 8.1 for every disturbance, and the eigenvalues
+  of `H` are not the roots of (1.15) selected by the split; an earlier version of this README
+  listed the first as unproved and the second as open (see [corrections](docs/corrections.md)).
+  Separately, two hypothesis structures of the earlier formalisation (the original Proposition
   8.1 conclusion and Assumption 8.1) were found unsatisfiable under uncertainty and corrected;
   these are formalisation errors, not the book's.
 
@@ -253,18 +297,9 @@ Not formalised:
     FOC system's leading matrix is singular;
   * Rule III at the full stochastic level. Only the homogeneous level (`Prop83.HomEquiv`), which is
     all Proposition 8.3 uses, is proved;
-  * on a genuine probability space (`OptimalRulesMeasureMarkov`), where the linear form (1.5) of
-    Proposition 8.2 is proved for a VAR(1) exogenous state (`OptimalRulesMeasureMarkov.IsVAR`):
-    determinacy under (1.23), that a bounded plan satisfying (1.23) a.s. is the FOC solution
-    (the converse of `OptimalRulesMeasureMarkov.criterion_var`; the core
-    `Prop82General.Prop82M.prop82M_unique` covers only an `ExpectationSystem`); Assumption 8.1 for
-    a dynamic model with an arbitrary bounded adapted disturbance, which is proved only for VAR
-    disturbances (and for every disturbance in the static problem,
-    `OptimalRulesMeasureStatic.static_assumption81MB`); and that the stability of `H_n` assumed
-    by the existence theorem follows from the perfect-foresight Assumption 8.1. Power-boundedness
-    follows, but the absence of eigenvalues of modulus one is not shown; stability is verified for
-    the static problem (`OptimalRulesMeasureStatic.static_Hn`), not for the basic or
-    inflation-inertia models;
+  * on a genuine probability space: the algebraic multiplicities in
+    `OptimalRulesMeasureSpectrum.eig_Hgen_iff` (a set equality only) and the pairing `ν ↔ 1/(βν)` of the Euler pencil; and the full next-state kernel of Example B, of
+    which only `K^N_0` is computed (`OptimalRulesMeasureCounterexample.eB_KN0`);
   * repeated roots when the selection takes only part of a root class (`PencilRepeated.SelWhole`
     fails);
   * ∃ ⇒ ∀ for `CaseIIBasis.Assumption84II` when the zero root is not semisimple. It is proved when
@@ -368,6 +403,17 @@ Not formalised:
 | [OptimalRulesMeasureMarkov](OptimalPolicyRules/OptimalRulesMeasureMarkov.lean) | 55 | Prop 8.2 on VAR economies: the perfect-foresight solution map and its time-invariant coefficient matrices; conditional forecasts of any solution; the linear form (1.5) and with (1.24); (1.19)–(1.20) and (1.23) a.s.; Assumption 8.1 (uniqueness; existence under stable `H_n`); timeless optimality |
 | [OptimalRulesMeasureIID](OptimalPolicyRules/OptimalRulesMeasureIID.lean) | 19 | The i.i.d.-driven VAR and Prop 8.2 on it; the fair-coin economy (`BddInfo` holds, `PredInfo` fails) and the Gaussian economy (`BddInfo` fails): the book's Assumption 8.1 and robust optimality there |
 | [OptimalRulesMeasureStatic](OptimalPolicyRules/OptimalRulesMeasureStatic.lean) | 14 | A static problem: the corrected Assumption 8.1 on every probability space; the book's form holds on the coin economy at `t₀ = 0` and fails at `t₀ ≥ 1`; `H_n = 0`, so the existence theorem applies |
+| [OptimalRulesMeasureForecast](OptimalPolicyRules/OptimalRulesMeasureForecast.lean) | 11 | For any bounded adapted disturbance: forecast paths of solutions are perfect-foresight solutions; Assumption 8.1 (uniqueness) from perfect foresight; (1.19)–(1.20) and (1.23) a.s. |
+| [OptimalRulesMeasureConverse](OptimalPolicyRules/OptimalRulesMeasureConverse.lean) | 29 | The converse of Prop 8.1 with conditional expectations: the forward recursion by the tower property, (1.23) a.s. ⟺ the FOC solution, determinacy under (1.23), Prop 8.2 on VAR economies; links to the core criterion |
+| [OptimalRulesMeasureKernel](OptimalPolicyRules/OptimalRulesMeasureKernel.lean) | 29 | The perfect-foresight solution map: affine, time invariant, closed under limits; continuity by the closed graph theorem; the absolutely summable kernel |
+| [OptimalRulesMeasureGeneral](OptimalPolicyRules/OptimalRulesMeasureGeneral.lean) | 25 | Assumption 8.1 for any bounded adapted disturbance: the forecast-driven state, the exact existence condition, stable `H` or the root condition; `H` power-bounded; Prop 8.2 for every disturbance |
+| [OptimalRulesMeasureStability](OptimalPolicyRules/OptimalRulesMeasureStability.lean) | 20 | `H_n` = `H`, power-bounded; stable iff no unit-circle eigenvalue; the counterexample `urP` with eigenvalue 1 where measure Assumption 8.1 still holds |
+| [OptimalRulesMeasureStabilityModels](OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean) | 11 | `H_n` geometrically stable in the basic and inflation-inertia models; Assumption 8.1 on every probability space for both |
+| [OptimalRulesMeasureModelsProp82](OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean) | 9 | The empty deflating split; Assumption 8.5 and the split discharged; measure Prop 8.2 with no hypothesis left for the basic model and the inflation-inertia model (real case) |
+| [OptimalRulesMeasureCounterexample](OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean) | 36 | Example B: perfect-foresight Assumption 8.1 holds, `H` has eigenvalue 1 with a forced left eigen-direction, and on the fair-coin economy no bounded solution exists |
+| [OptimalRulesMeasureSpectrum](OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean) | 23 | The spectrum of `H` = roots of the Euler pencil of (1.1) + (1.9) in the closed unit disc; the root condition on the pencil; not the selected roots of (1.15) |
+| [OptimalRulesMeasureQuasiSplit](OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean) | 32 | Prop 8.2 from a quasi-split (case (ii)) with conditional expectations: (1.19)–(1.20) and (1.23) a.s., the converse by a.s. forward uniqueness, every disturbance and VAR economies; the real split as a special case; link to the core criterion |
+| [OptimalRulesMeasureInertiaComplex](OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean) | 12 | Assumption 8.5 for every quasi-split of the inflation-inertia model; measure Prop 8.2 in the complex case and at every calibration, with no hypothesis left; links to the core |
 
 ## Modelling conventions
 
@@ -398,7 +444,12 @@ Not formalised:
   Chapter 8 objects are restated on it with `E_t` applied componentwise
   (`OptimalRulesMeasure.EVm`) and essentially bounded vector processes
   (`OptimalRulesMeasure.MBoundedV`); the exogenous state is a VAR(1) in the conditional-expectation
-  sense (`OptimalRulesMeasureMarkov.IsVAR`). On a finite, fully supported space each notion is the
+  sense (`OptimalRulesMeasureMarkov.IsVAR`), or, from `OptimalRulesMeasureForecast` on, any bounded
+  adapted disturbance, which enters through its conditional forecast path
+  (`OptimalRulesMeasureForecast.cfc`) and the perfect-foresight kernel
+  (`OptimalRulesMeasureKernel.KY`); the endogenous state transition of the general case is
+  `OptimalRulesMeasureGeneral.Hgen`, equal to `H_n` (`OptimalRulesMeasureStability.Hn_eq_Hgen`).
+  On a finite, fully supported space each notion is the
   core one (`OptimalRulesMeasure.Bridge.mFOCSystem_iff`, `OptimalRulesMeasure.Bridge.mAssumption81_iff`),
   and the one-point space is perfect foresight (`OptimalRulesMeasure.Bridge.unitSystem_pf`).
 * **Bounded adapted processes.** Plans, multipliers and disturbances are bounded and adapted;

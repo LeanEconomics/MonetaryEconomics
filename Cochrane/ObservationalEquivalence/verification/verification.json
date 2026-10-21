@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T19:39:59.441099+00:00",
-  "theorems": 760,
+  "checked_at_utc": "2026-10-21T20:58:08.499770+00:00",
+  "theorems": 890,
   "module_theorems": {
     "ObservationalEquivalence/Determinacy.lean": 23,
     "ObservationalEquivalence/Expectations.lean": 20,
@@ -28,9 +28,12 @@
     "ObservationalEquivalence/GrangerMeasure.lean": 17,
     "ObservationalEquivalence/MarkovRegimesMeasure.lean": 35,
     "ObservationalEquivalence/SquareSummableRG.lean": 26,
-    "ObservationalEquivalence/SurplusRegressionL2.lean": 29
+    "ObservationalEquivalence/SurplusRegressionL2.lean": 29,
+    "ObservationalEquivalence/MarkovRegimesGeneral.lean": 44,
+    "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean": 48,
+    "ObservationalEquivalence/MarkovRegimesReach.lean": 38
   },
-  "audited_declarations": 1005,
+  "audited_declarations": 1186,
   "declarations": [
     {
       "name": "Cochrane.ObservationalEquivalence.SchurStable",
@@ -5056,6 +5059,911 @@
       "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.coinZ_harmonic_regL2_pos",
       "kind": "theorem",
       "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.P",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.nonneg",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.rowSum",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.NodeN",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.Solves",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.BoundedFn",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.Determinate",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.absM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgnM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.specRad",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.GenCondition",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.NaiveCondition",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_entry_of_lt",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.map_pow_ofReal",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_abs_pow_entry",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.norm_le_spectralRadius",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.exists_eigen_of_not_lt",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.exists_bdd_backward",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.eigen_of_mem_spectrum",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.specRad_le_of_eigen",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgn",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgn_mul_abs",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_sgn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.histSign",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.histSign_cons",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_histSign",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.row_absM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.row_sgnM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sum_pow_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.not_determinate_of_homog",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.zero_coeff_homog",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.zero_coeff_indeterminate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_nonzero_of_not",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_nonzero_of_not_naive",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_le_pow_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol_bounded",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.solves_sub",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff_abs",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_congr_abs",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.naive_necessary",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.junk_inverse_wrong",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.ofTwo",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff_old",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.absM_ofTwo",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_iff_genCondition",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.schur_iff_specRad",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_corrected",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.egDL",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.egHalf",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_formula_fails_negative",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.negative_regime_determinate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.naive_not_sufficient",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iidT",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iid_specRad_lt_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iid_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.three_regime_determinate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneral.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.regime",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.adapted",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.markov",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MSolves",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MDeterminate",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sm_comp",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_le_sum_abs",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.bddRV_comp",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.integrable_of_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_E_le_markov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_homog_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_sm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.bnd",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_bound_const",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.summable_const",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_hasSum",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.not_mdet_of_homog",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.zeroSunspot",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.zero_coeff_homogM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc_succ_sm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc_sm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_sgnProc",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.twisted_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff_tree",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff_abs",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.ofTwoRegime",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.msolves_ofTwo",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_two_regime_recovered",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_dl_corrected",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_mono",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_top",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_le_one",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cnt",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cnt_mono",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.measurable_pick",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.exists_interval",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick_spec",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.unif_pick",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.integral_pick",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_measurable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_markov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainRegimeN",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_initial",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_initial_pos",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_three_regime_determinate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_negative_regime_determinate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_dl_formula_fails_negative",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_naive_not_sufficient",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_mem",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_not_mem",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.GenConditionOn",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_univ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.genConditionOn_univ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.row_maskM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.Reach",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.ae_mem_reach",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_univ_of_initial",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_boundOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_homog_eq_zeroOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.bndOn",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdM_boundOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdM_bound_constOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.summable_constOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_hasSumOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_solvesOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_bddOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.determinate_of_genConditionOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.not_mdet_of_homog_at",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.cBack",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.exists_bdd_backward_on",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.twisted_solvesOn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_determinate_iff_reach",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_determinate_iff_reach_of_initial",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeFiltration",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeFiltration_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regime_measurable_nat",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeSystem",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_markov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.naturalRegime",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.determinate_filtration_invariant",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.integral_regime",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.law_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist_chainN",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_chainN",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.chainN_determinate_iff_reach",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_chainN_determinate_iff_reach",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.egAbsorb",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesReach.chain_unreachable_zero_determinate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesReach.lean"
     }
   ],
   "full_build": "passed",
@@ -10081,6 +10989,907 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.rowSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.NodeN": [],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.BoundedFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.absM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgnM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.specRad": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.GenCondition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.NaiveCondition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_entry_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.map_pow_ofReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_abs_pow_entry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.norm_le_spectralRadius": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.exists_eigen_of_not_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.exists_bdd_backward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.eigen_of_mem_spectrum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.specRad_le_of_eigen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgn_mul_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_sgn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.histSign": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.histSign_cons": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_histSign": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.row_absM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.row_sgnM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sum_pow_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.not_determinate_of_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.zero_coeff_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.zero_coeff_indeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_nonzero_of_not": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_nonzero_of_not_naive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_le_pow_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.solves_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_congr_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.naive_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.junk_inverse_wrong": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.ofTwo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff_old": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.absM_ofTwo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_iff_genCondition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.schur_iff_specRad": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_corrected": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.egDL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.egHalf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_formula_fails_negative": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.negative_regime_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.naive_not_sufficient": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iidT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iid_specRad_lt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iid_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.three_regime_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MDeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sm_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_le_sum_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.bddRV_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.integrable_of_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_E_le_markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_homog_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.bnd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_bound_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.summable_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.not_mdet_of_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.zeroSunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.zero_coeff_homogM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc_succ_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_sgnProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.twisted_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff_tree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.ofTwoRegime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.msolves_ofTwo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_two_regime_recovered": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_dl_corrected": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_top": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cnt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cnt_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.measurable_pick": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.exists_interval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.unif_pick": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.integral_pick": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainRegimeN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_initial_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_three_regime_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_negative_regime_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_dl_formula_fails_negative": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_naive_not_sufficient": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_not_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.GenConditionOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.genConditionOn_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.row_maskM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.Reach": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.ae_mem_reach": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_univ_of_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_boundOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_homog_eq_zeroOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.bndOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdM_boundOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdM_bound_constOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.summable_constOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_hasSumOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_solvesOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_bddOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.determinate_of_genConditionOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.not_mdet_of_homog_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.cBack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.exists_bdd_backward_on": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.twisted_solvesOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_determinate_iff_reach": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_determinate_iff_reach_of_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeFiltration_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regime_measurable_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.naturalRegime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.determinate_filtration_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.integral_regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.law_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist_chainN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_chainN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.chainN_determinate_iff_reach": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_chainN_determinate_iff_reach": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.egAbsorb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesReach.chain_unreachable_zero_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -10111,15 +11920,18 @@
     "ObservationalEquivalence/MarkovRegimesMeasure.lean": "a2d3e6d4a3ff609f789410a0fe05c454000f501d6d6383116927fbd10d9904a8",
     "ObservationalEquivalence/SquareSummableRG.lean": "8f810e45740f1f82d59c55622c394766895161b61b9224006cac2879226ea812",
     "ObservationalEquivalence/SurplusRegressionL2.lean": "93fd9b756e2a9ebf08b6ffde7b88f6f32014f17b195d4481c9d0f6858a0519a3",
-    "ObservationalEquivalence.lean": "a703ebbbbbfdf4bd3d171b3a3023ef226777ee717dd1a3f355a65ecd5a4756e0",
+    "ObservationalEquivalence/MarkovRegimesGeneral.lean": "7f2f100fafb46295db4254073aa690af97b4ac5a4266cc8da796ce6c26632f64",
+    "ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean": "a694ffc11ffd619bfdd90ab7efde38f613f6bbe3c3916f90b59ccbe6544b2d4b",
+    "ObservationalEquivalence/MarkovRegimesReach.lean": "bdffc2b4c3a7c3327f112d6f954feb58df78ce4a18243fa325cd993bedf77b30",
+    "ObservationalEquivalence.lean": "2d5f1a1affa7fd1b76cb203c625dfb63e4623bec56f5b88a507f3ad973f7e572",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "e9a8ce4a923efde2eabf9122c4657e5949c19a57522bca9b3464526d9be97f5f",
     "lake-manifest.json": "3a3e594142289109ad51938546e449e9216f9f32d46221ec741c00aeda0a5d92",
-    "proof-manifest.json": "c33cf0c43d9c92c0fc5a870e169c31e0f9687b8c4e827dc991f18a0c3d5aa74c",
+    "proof-manifest.json": "ea318576acb57298a1f9e409e95aa692c5765ed537c9aff46315633166cc4399",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "e9a6f6a5936d56fbacdf6bfe254e608b527c54a650b2690b5203ad2f234efa6b",
+  "fresh_audit_sha256": "3af7caf45c91d54f98d6310af5b8a689e7daa848d11b921328771e12206bdb2b",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 22 (with Chapters 23-24 claims and Online Appendix A2): Observational equivalence of fiscal and new Keynesian regimes. Valuation equation in all regimes and the unexpected-inflation formula; the starred model (16.20)-(16.24), (22.7)-(22.11), (23.4); OE-1 (existence, uniqueness in both determinate regions, continuum and sunspots in double-passive; E12 corrected labels under the TVC and bounded-debt criteria); non-identification NI-1 to NI-3 and reverse engineering; Leeper regions (a)-(d) with the |phi| = 1 boundary and the unstarred double-active non-existence (E19); OE-2 money regimes; the surplus-on-debt regression is positive for any non-iid exogenous surplus, finite and infinite MA (E16); Granger-causality definitions coincide only bivariately (E17); VAR present-value identities and singular shocks; ex-post SDF and finite-state FTAP; Davig-Leeper Markov-switching determinacy; links to Woodford Prop 4.11. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 22, pp. 495-510, Chapters 23-24, pp. 512-523, and Online Appendix A2, pp. 593-611."

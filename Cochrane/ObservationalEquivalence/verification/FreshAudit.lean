@@ -47,6 +47,7 @@ import Mathlib.Algebra.QuadraticDiscriminant
 import Mathlib.Analysis.PSeries
 import Mathlib.MeasureTheory.Function.L2Space
 import Mathlib.Analysis.InnerProductSpace.LinearMap
+import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
 set_option autoImplicit false
 
 /-
@@ -13884,6 +13885,2446 @@ theorem coinZ_harmonic_regL2_pos {ρ : ℝ} (hρ : |ρ| < 1) (t : ℕ) :
 
 end Cochrane.ObservationalEquivalence.SurplusRegressionL2
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Markov-switching monetary policy with `N` regimes and coefficients of any sign
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.2, pp. 522–523 (Davig and
+Leeper (2006, 2007): policy-rule coefficients switch according to a Markov process; "the Markov
+assumption, with exactly two (or even N) states"; "a time with `φ < 1` should be something like
+'locally passive' or 'temporarily passive'"), and Chapter 22, §22.3, p. 500.
+
+## The model
+
+`N` regimes follow a Markov chain with transition matrix `P` (`TransitionN`); the frictionless
+model is `E_t π_{t+1} = φ_{S_t} π_t + u_t` with arbitrary real rule coefficients `φ_i` (positive,
+negative or zero). As in `MarkovRegimes`, a process is a function of the regime history: at the
+node `(i, h)` (current regime `i`, past regimes `h`, most recent first),
+`E_t π_{t+1} = ∑_j P_{ij} π(j, i :: h)` (`Solves`). The model is *determinate*
+(`Determinate`) if for every bounded disturbance `u` there is exactly one bounded solution.
+
+## Main results
+
+* `determinate_iff` (**Davig–Leeper for `N` regimes and any signs**): the model is determinate
+  iff every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` (entries `P_{ij}/|φ_i|`, a nonnegative
+  matrix; `absM`) is `< 1` (`GenCondition`). The spectral radius is Mathlib's `spectralRadius ℂ`
+  of the matrix viewed over `ℂ`.
+* **Zero coefficients** (`zero_coeff_indeterminate`): a regime with `φ_i = 0` makes the model
+  indeterminate — the date-`0` value in that regime enters no equation. Nothing replaces `Φ⁻¹`: the
+  inverse-free form of the condition is `∀ i, φ_i ≠ 0` together with `ρ(|Φ|⁻¹P) < 1`, and Lean's
+  junk value `1/0 = 0` must not be used (`junk_inverse_wrong`).
+* **Signs do not matter** (`determinate_iff_abs`, `determinate_congr_abs`): determinacy depends
+  only on `|φ_i|`. Necessity uses the sign-twisted sunspot `π(i, h) = s(h) x_{|h|}(i)`,
+  `s(h) = ∏_{l ∈ h} sgn φ_l`, where `x_t = |Φ|⁻¹P x_{t+1}` is built from a complex eigenvector of
+  `|Φ|⁻¹P` with eigenvalue of modulus `≥ 1`; sufficiency uses Gelfand's formula
+  (`summable_entry_of_lt`) and the forward solution `fwdSol`.
+* **The naive generalisation fails** (`naive_necessary`, `naive_not_sufficient`): the spectral
+  condition on `Φ⁻¹P` itself is necessary but not sufficient — with `P_{ij} = ½` and
+  `φ = (½, −½)`, `Φ⁻¹P` is nilpotent but the model is indeterminate.
+* **The two-regime Davig–Leeper formula fails with negative coefficients**
+  (`dl_formula_fails_negative`): with `p_00 = 0.9`, `p_11 = 0.5`, `φ = (½, −½)` the formula
+  `(1 − φ_1)p_00 + (1 − φ_0)p_11 + φ_0φ_1 > 1`, `p_00/φ_0 + p_11/φ_1 < 2` holds, but the model is
+  indeterminate. Corrected statement (`dl_corrected`): for two regimes with `φ_i ≠ 0`, determinacy
+  iff the Davig–Leeper formula holds for `|φ_0|, |φ_1|`.
+* **Special cases**: `determinate_iff_old`, `dl_iff_genCondition` (the two-regime, `φ_i > 0`
+  results of `MarkovRegimes` are the case `N = 2`); `iid_determinate_iff` (i.i.d. regimes:
+  determinate iff `∑_j q_j/|φ_j| < 1`).
+* Examples: `negative_regime_determinate` (`φ = (2, −½)`, short-lived passive regime),
+  `three_regime_determinate` (three i.i.d. regimes with `φ = (4, −4, ½)`).
+-/
+
+namespace Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+
+open Filter Topology
+open scoped Matrix ENNReal NNReal
+
+variable (N : ℕ)
+
+/-- Cochrane (2023), p. 523 ("exactly two (or even N) states"): the transition matrix
+`P_{ij} = Pr(S_{t+1} = j | S_t = i)` of an `N`-state Markov chain. -/
+structure TransitionN where
+  /-- the transition probabilities -/
+  P : Fin N → Fin N → ℝ
+  /-- probabilities are nonnegative -/
+  nonneg : ∀ i j, 0 ≤ P i j
+  /-- rows sum to one -/
+  rowSum : ∀ i, ∑ j, P i j = 1
+
+/-- Cochrane (2023), p. 522: a node of the regime tree, the current regime and the list of past
+regimes (most recent first). -/
+abbrev NodeN := Fin N × List (Fin N)
+
+variable {N}
+
+/-- Cochrane (2023), eqs. (22.3)–(22.4), p. 500, with Markov-switching `φ` (pp. 522–523):
+`E_t π_{t+1} = φ_{S_t} π_t + u_t`, with `E_t π_{t+1} = ∑_j P_{ij} π(j, i :: h)` at `(i, h)`. -/
+def Solves (T : TransitionN N) (φ : Fin N → ℝ) (u π : NodeN N → ℝ) : Prop :=
+  ∀ i h, ∑ j, T.P i j * π (j, i :: h) = φ i * π (i, h) + u (i, h)
+
+/-- Cochrane (2023), p. 500: a process bounded over all regime histories. -/
+def BoundedFn (x : NodeN N → ℝ) : Prop := ∃ B, ∀ n, |x n| ≤ B
+
+/-- Cochrane (2023), pp. 522–523: the model is determinate — for every bounded disturbance there
+is exactly one bounded equilibrium. -/
+def Determinate (T : TransitionN N) (φ : Fin N → ℝ) : Prop :=
+  ∀ u, BoundedFn u → ∃! π, Solves T φ u π ∧ BoundedFn π
+
+/-- Cochrane (2023), p. 523 ("move eigenvalues from stable to unstable"): the nonnegative matrix
+`|Φ|⁻¹P`, entries `P_{ij}/|φ_i|`. -/
+noncomputable def absM (T : TransitionN N) (φ : Fin N → ℝ) : Matrix (Fin N) (Fin N) ℝ :=
+  Matrix.of fun i j => T.P i j / |φ i|
+
+/-- Cochrane (2023), p. 523: the matrix `Φ⁻¹P`, entries `P_{ij}/φ_i`. -/
+noncomputable def sgnM (T : TransitionN N) (φ : Fin N → ℝ) : Matrix (Fin N) (Fin N) ℝ :=
+  Matrix.of fun i j => T.P i j / φ i
+
+/-- Cochrane (2023), p. 523: the spectral radius of a real matrix, the largest modulus of its
+complex eigenvalues (Mathlib's `spectralRadius ℂ` of the matrix viewed over `ℂ`). -/
+noncomputable def specRad (A : Matrix (Fin N) (Fin N) ℝ) : ℝ≥0∞ :=
+  spectralRadius ℂ (A.map Complex.ofReal)
+
+/-- Cochrane (2023), pp. 522–523 (the Davig–Leeper "long-run Taylor principle" for `N` regimes
+and coefficients of any sign): every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is `< 1`. -/
+def GenCondition (T : TransitionN N) (φ : Fin N → ℝ) : Prop :=
+  (∀ i, φ i ≠ 0) ∧ specRad (absM T φ) < 1
+
+/-- Cochrane (2023), p. 523: the naive generalisation, the spectral radius of `Φ⁻¹P` itself
+`< 1` (necessary, `naive_necessary`, but not sufficient, `naive_not_sufficient`). -/
+def NaiveCondition (T : TransitionN N) (φ : Fin N → ℝ) : Prop :=
+  (∀ i, φ i ≠ 0) ∧ specRad (sgnM T φ) < 1
+
+/-! ### Spectral tools -/
+
+/-- Cochrane (2023), p. 523 (Gelfand's formula): if the spectral radius of a complex matrix is
+`< 1`, the entries of its powers are absolutely summable. -/
+theorem summable_entry_of_lt {A : Matrix (Fin N) (Fin N) ℂ} (h : spectralRadius ℂ A < 1)
+    (i j : Fin N) : Summable (fun k => ‖(A ^ k) i j‖) := by
+  let _ : NormedRing (Matrix (Fin N) (Fin N) ℂ) := Matrix.linftyOpNormedRing
+  let _ : NormedAlgebra ℂ (Matrix (Fin N) (Fin N) ℂ) := Matrix.linftyOpNormedAlgebra
+  obtain ⟨θ, hρθ, hθ1⟩ := ENNReal.lt_iff_exists_nnreal_btwn.1 h
+  have hθ1' : (θ : ℝ) < 1 := by exact_mod_cast hθ1
+  have hg := spectrum.pow_nnnorm_pow_one_div_tendsto_nhds_spectralRadius A
+  have hev : ∀ᶠ n : ℕ in atTop, (‖A ^ n‖₊ : ℝ≥0∞) ^ (1 / n : ℝ) < θ :=
+    hg.eventually (gt_mem_nhds hρθ)
+  have hev2 : ∀ᶠ n : ℕ in atTop, ‖(A ^ n) i j‖ ≤ (θ : ℝ) ^ n := by
+    filter_upwards [hev, eventually_ge_atTop 1] with n hn hn1
+    have hnpos : (0 : ℝ) < n := by exact_mod_cast hn1
+    have h1 : (‖A ^ n‖₊ : ℝ≥0∞) < (θ : ℝ≥0∞) ^ n := by
+      have := ENNReal.rpow_lt_rpow hn (show (0 : ℝ) < n from hnpos)
+      rwa [← ENNReal.rpow_mul, one_div_mul_cancel hnpos.ne', ENNReal.rpow_one,
+        ENNReal.rpow_natCast] at this
+    have h2 : ‖A ^ n‖₊ < θ ^ n := by exact_mod_cast h1
+    have h3 : ‖A ^ n‖ < (θ : ℝ) ^ n := by exact_mod_cast h2
+    have hentry : ‖(A ^ n) i j‖ ≤ ‖A ^ n‖ := by
+      rw [← coe_nnnorm, ← coe_nnnorm, NNReal.coe_le_coe, Matrix.linfty_opNNNorm_def]
+      refine le_trans ?_ (Finset.le_sup (f := fun i : Fin N => ∑ j : Fin N, ‖(A ^ n) i j‖₊)
+        (Finset.mem_univ i))
+      exact Finset.single_le_sum (f := fun j => ‖(A ^ n) i j‖₊) (fun _ _ => by positivity)
+        (Finset.mem_univ j)
+    exact hentry.trans h3.le
+  exact summable_of_isBigO_nat (summable_geometric_of_lt_one θ.2 hθ1')
+    (Asymptotics.IsBigO.of_bound 1 (by
+      filter_upwards [hev2] with n hn
+      rw [one_mul, norm_norm, Real.norm_eq_abs, abs_of_nonneg (pow_nonneg θ.2 n)]
+      exact hn))
+
+/-- Cochrane (2023), p. 523: powers commute with viewing a real matrix over `ℂ`. -/
+theorem map_pow_ofReal (A : Matrix (Fin N) (Fin N) ℝ) (k : ℕ) :
+    (A ^ k).map Complex.ofReal = (A.map Complex.ofReal) ^ k := by
+  exact map_pow (Complex.ofRealHom.mapMatrix (m := Fin N)) A k
+
+/-- Cochrane (2023), p. 523: if the spectral radius of a real matrix is `< 1`, the entries of its
+powers are absolutely summable. -/
+theorem summable_abs_pow_entry {A : Matrix (Fin N) (Fin N) ℝ} (h : specRad A < 1) (i j : Fin N) :
+    Summable (fun k => |(A ^ k) i j|) := by
+  have hs := summable_entry_of_lt h i j
+  refine hs.congr fun k => ?_
+  rw [← map_pow_ofReal, Matrix.map_apply, Complex.norm_real, Real.norm_eq_abs]
+
+/-- Cochrane (2023), p. 523: an eigenvalue of a complex matrix is bounded by the spectral
+radius. -/
+theorem norm_le_spectralRadius {A : Matrix (Fin N) (Fin N) ℂ} {z : ℂ} {v : Fin N → ℂ}
+    (hv : v ≠ 0) (hAv : A *ᵥ v = z • v) : (‖z‖₊ : ℝ≥0∞) ≤ spectralRadius ℂ A := by
+  have hz : z ∈ spectrum ℂ A := by
+    rw [spectrum.mem_iff, Matrix.isUnit_iff_isUnit_det, isUnit_iff_ne_zero, not_not,
+      ← Matrix.exists_mulVec_eq_zero_iff]
+    refine ⟨v, hv, ?_⟩
+    rw [Matrix.sub_mulVec, Algebra.algebraMap_eq_smul_one, Matrix.smul_mulVec,
+      Matrix.one_mulVec, hAv, sub_self]
+  rw [spectralRadius_eq_of_unital]
+  exact le_iSup₂ (f := fun k (_ : k ∈ spectrum ℂ A) => (‖k‖₊ : ℝ≥0∞)) z hz
+
+/-- Cochrane (2023), p. 523: if the spectral radius of a complex matrix is not `< 1`, it has an
+eigenvector whose eigenvalue has modulus `≥ 1`. -/
+theorem exists_eigen_of_not_lt {A : Matrix (Fin N) (Fin N) ℂ} (h : ¬ spectralRadius ℂ A < 1) :
+    ∃ (z : ℂ) (v : Fin N → ℂ), 1 ≤ ‖z‖ ∧ v ≠ 0 ∧ A *ᵥ v = z • v := by
+  let _ : NormedRing (Matrix (Fin N) (Fin N) ℂ) := Matrix.linftyOpNormedRing
+  let _ : NormedAlgebra ℂ (Matrix (Fin N) (Fin N) ℂ) := Matrix.linftyOpNormedAlgebra
+  rcases (spectrum ℂ A).eq_empty_or_nonempty with he | hne
+  · exfalso
+    apply h
+    rw [spectralRadius_eq_of_unital, he]
+    simp
+  · obtain ⟨z, hz, hzr⟩ := spectrum.exists_nnnorm_eq_spectralRadius_of_nonempty hne
+    have hz1 : (1 : ℝ≥0∞) ≤ ‖z‖₊ := by rw [hzr]; exact not_lt.1 h
+    have hz1' : 1 ≤ ‖z‖ := by
+      have : (1 : ℝ≥0) ≤ ‖z‖₊ := by exact_mod_cast hz1
+      exact_mod_cast this
+    rw [spectrum.mem_iff, Matrix.isUnit_iff_isUnit_det, isUnit_iff_ne_zero, not_not,
+      ← Matrix.exists_mulVec_eq_zero_iff] at hz
+    obtain ⟨v, hv, hzv⟩ := hz
+    refine ⟨z, v, hz1', hv, ?_⟩
+    rw [Matrix.sub_mulVec, Algebra.algebraMap_eq_smul_one, Matrix.smul_mulVec,
+      Matrix.one_mulVec, sub_eq_zero] at hzv
+    exact hzv.symm
+
+/-- Cochrane (2023), p. 523 (the backward recursion `x_t = A x_{t+1}`): if the spectral radius of
+a real matrix `A` is not `< 1`, there is a bounded real sequence `x_t` with `x_t = A x_{t+1}` and
+`x_0 ≠ 0` — built as `x_t = Re(z^{−t} v)` from an eigenvector `Av = zv`, `|z| ≥ 1`. -/
+theorem exists_bdd_backward {A : Matrix (Fin N) (Fin N) ℝ} (h : ¬ specRad A < 1) :
+    ∃ x : ℕ → Fin N → ℝ, (∀ t, x t = A *ᵥ x (t + 1)) ∧ (∃ B, ∀ t i, |x t i| ≤ B) ∧
+      ∃ i₀, x 0 i₀ ≠ 0 := by
+  obtain ⟨z, v, hz1, hv, hAv⟩ := exists_eigen_of_not_lt h
+  obtain ⟨i₀, hi₀⟩ : ∃ i₀, v i₀ ≠ 0 := by
+    by_contra hcon
+    push Not at hcon
+    exact hv (funext hcon)
+  have hz0 : z ≠ 0 := by
+    intro hz; rw [hz, norm_zero] at hz1; linarith
+  set w : Fin N → ℂ := (starRingEnd ℂ) (v i₀) • v with hw
+  have hAw : (A.map Complex.ofReal) *ᵥ w = z • w := by
+    rw [hw, Matrix.mulVec_smul, hAv, smul_comm]
+  have hw0 : (w i₀).re ≠ 0 := by
+    simp only [hw, Pi.smul_apply, smul_eq_mul]
+    rw [mul_comm, Complex.mul_conj, Complex.ofReal_re]
+    exact (Complex.normSq_pos.2 hi₀).ne'
+  refine ⟨fun t i => ((z⁻¹) ^ t * w i).re, ?_, ⟨∑ i, ‖w i‖, ?_⟩, i₀, ?_⟩
+  · intro t
+    funext i
+    have hrow := congrFun hAw i
+    simp only [Matrix.mulVec, dotProduct, Matrix.map_apply, Pi.smul_apply, smul_eq_mul] at hrow
+    simp only [Matrix.mulVec, dotProduct]
+    have key : ∑ j, A i j * ((z⁻¹) ^ (t + 1) * w j).re =
+        ((z⁻¹) ^ (t + 1) * ∑ j, (A i j : ℂ) * w j).re := by
+      rw [Finset.mul_sum, Complex.re_sum]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [show (z⁻¹) ^ (t + 1) * ((A i j : ℂ) * w j) = (A i j : ℂ) * ((z⁻¹) ^ (t + 1) * w j)
+        by ring, Complex.re_ofReal_mul]
+    rw [key, hrow, pow_succ]
+    congr 1
+    field_simp
+  · intro t i
+    refine (Complex.abs_re_le_norm _).trans ?_
+    rw [norm_mul, norm_pow, norm_inv]
+    have hle : ‖z‖⁻¹ ^ t ≤ 1 :=
+      pow_le_one₀ (inv_nonneg.2 (norm_nonneg _)) (inv_le_one_of_one_le₀ hz1)
+    calc ‖z‖⁻¹ ^ t * ‖w i‖ ≤ 1 * ‖w i‖ := mul_le_mul_of_nonneg_right hle (norm_nonneg _)
+      _ = ‖w i‖ := one_mul _
+      _ ≤ ∑ i, ‖w i‖ := Finset.single_le_sum (f := fun i => ‖w i‖) (fun _ _ => norm_nonneg _)
+          (Finset.mem_univ i)
+  · simpa using hw0
+
+/-- Cochrane (2023), p. 523: every eigenvalue of a complex matrix comes with an eigenvector. -/
+theorem eigen_of_mem_spectrum {A : Matrix (Fin N) (Fin N) ℂ} {z : ℂ} (hz : z ∈ spectrum ℂ A) :
+    ∃ v : Fin N → ℂ, v ≠ 0 ∧ A *ᵥ v = z • v := by
+  rw [spectrum.mem_iff, Matrix.isUnit_iff_isUnit_det, isUnit_iff_ne_zero, not_not,
+    ← Matrix.exists_mulVec_eq_zero_iff] at hz
+  obtain ⟨v, hv, hzv⟩ := hz
+  refine ⟨v, hv, ?_⟩
+  rw [Matrix.sub_mulVec, Algebra.algebraMap_eq_smul_one, Matrix.smul_mulVec,
+    Matrix.one_mulVec, sub_eq_zero] at hzv
+  exact hzv.symm
+
+/-- Cochrane (2023), p. 523: if every complex eigenvalue of a real matrix has modulus at most `c`,
+its spectral radius is at most `c`. -/
+theorem specRad_le_of_eigen {A : Matrix (Fin N) (Fin N) ℝ} {c : ℝ≥0}
+    (h : ∀ (z : ℂ) (v : Fin N → ℂ), v ≠ 0 → (A.map Complex.ofReal) *ᵥ v = z • v → ‖z‖₊ ≤ c) :
+    specRad A ≤ c := by
+  unfold specRad
+  rw [spectralRadius_eq_of_unital]
+  refine iSup₂_le fun z hz => ?_
+  obtain ⟨v, hv, hAv⟩ := eigen_of_mem_spectrum hz
+  exact_mod_cast h z v hv hAv
+
+/-! ### The sign of a coefficient and of a history -/
+
+/-- Cochrane (2023), p. 523: the sign `sgn a = 1` if `a ≥ 0`, `−1` otherwise. -/
+noncomputable def sgn (a : ℝ) : ℝ := if 0 ≤ a then 1 else -1
+
+/-- Cochrane (2023), p. 523: `sgn a · |a| = a`. -/
+theorem sgn_mul_abs (a : ℝ) : sgn a * |a| = a := by
+  unfold sgn
+  split_ifs with h
+  · rw [one_mul, abs_of_nonneg h]
+  · rw [abs_of_neg (not_le.1 h)]; ring
+
+/-- Cochrane (2023), p. 523: `|sgn a| = 1`. -/
+theorem abs_sgn (a : ℝ) : |sgn a| = 1 := by
+  unfold sgn; split_ifs <;> simp
+
+/-- Cochrane (2023), p. 523: the sign of a regime history, `s(h) = ∏_{l ∈ h} sgn φ_l`. -/
+noncomputable def histSign (φ : Fin N → ℝ) (h : List (Fin N)) : ℝ :=
+  (h.map fun l => sgn (φ l)).prod
+
+/-- Cochrane (2023), p. 523: `s(i :: h) = sgn φ_i · s(h)`. -/
+theorem histSign_cons (φ : Fin N → ℝ) (i : Fin N) (h : List (Fin N)) :
+    histSign φ (i :: h) = sgn (φ i) * histSign φ h := by
+  simp [histSign]
+
+/-- Cochrane (2023), p. 523: `|s(h)| = 1`. -/
+theorem abs_histSign (φ : Fin N → ℝ) (h : List (Fin N)) : |histSign φ h| = 1 := by
+  induction h with
+  | nil => simp [histSign]
+  | cons i h ih => rw [histSign_cons, abs_mul, abs_sgn, ih, one_mul]
+
+/-! ### Row identities -/
+
+/-- Cochrane (2023), p. 523: `∑_j P_{ij} g_j = |φ_i| ∑_j (|Φ|⁻¹P)_{ij} g_j` when `φ_i ≠ 0`. -/
+theorem row_absM (T : TransitionN N) {φ : Fin N → ℝ} {i : Fin N} (hφ : φ i ≠ 0)
+    (g : Fin N → ℝ) : ∑ j, T.P i j * g j = |φ i| * ∑ j, absM T φ i j * g j := by
+  have h0 : |φ i| ≠ 0 := abs_ne_zero.2 hφ
+  simp only [absM, Matrix.of_apply, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  field_simp
+
+/-- Cochrane (2023), p. 523: `∑_j P_{ij} g_j = φ_i ∑_j (Φ⁻¹P)_{ij} g_j` when `φ_i ≠ 0`. -/
+theorem row_sgnM (T : TransitionN N) {φ : Fin N → ℝ} {i : Fin N} (hφ : φ i ≠ 0)
+    (g : Fin N → ℝ) : ∑ j, T.P i j * g j = φ i * ∑ j, sgnM T φ i j * g j := by
+  simp only [sgnM, Matrix.of_apply, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  field_simp
+
+/-- Cochrane (2023), p. 523: `∑_l (A^{k+1})_{il} c_l = ∑_j A_{ij} ∑_l (A^k)_{jl} c_l`. -/
+theorem sum_pow_succ (A : Matrix (Fin N) (Fin N) ℝ) (k : ℕ) (i : Fin N) (c : Fin N → ℝ) :
+    ∑ l, (A ^ (k + 1)) i l * c l = ∑ j, A i j * ∑ l, (A ^ k) j l * c l := by
+  simp only [pow_succ', Matrix.mul_apply, Finset.sum_mul, Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun l _ => ?_
+  ring
+
+/-! ### Indeterminacy -/
+
+/-- Cochrane (2023), pp. 522–523: a nonzero bounded solution of the homogeneous model rules out
+determinacy. -/
+theorem not_determinate_of_homog {T : TransitionN N} {φ : Fin N → ℝ}
+    (h : ∃ e, Solves T φ 0 e ∧ BoundedFn e ∧ e ≠ 0) : ¬ Determinate T φ := by
+  intro hd
+  obtain ⟨e, he, heb, hne⟩ := h
+  obtain ⟨π, _, huniq⟩ := hd 0 ⟨0, fun n => by simp⟩
+  have h0 : (0 : NodeN N → ℝ) = π :=
+    huniq 0 ⟨fun i h => by simp, ⟨0, fun n => by simp⟩⟩
+  exact hne ((huniq e ⟨he, heb⟩).trans h0.symm)
+
+/-- Cochrane (2023), p. 523 (**zero coefficients**): if `φ_i = 0` the date-`0` value of inflation
+in regime `i` enters no equation, so `π = 1{node = (i, [])}` is a nonzero bounded solution of the
+homogeneous model. -/
+theorem zero_coeff_homog (T : TransitionN N) {φ : Fin N → ℝ} {i : Fin N} (hφ : φ i = 0) :
+    ∃ e, Solves T φ 0 e ∧ BoundedFn e ∧ e ≠ 0 := by
+  classical
+  refine ⟨fun n => if n = (i, []) then 1 else 0, ?_, ⟨1, fun n => ?_⟩, ?_⟩
+  · intro k h
+    have hl : ∀ j, ((j, k :: h) : NodeN N) ≠ (i, []) := fun j hj => by
+      simp at hj
+    simp only [hl, ↓reduceIte, mul_zero, Finset.sum_const_zero, Pi.zero_apply, add_zero]
+    by_cases hk : ((k, h) : NodeN N) = (i, [])
+    · simp only [hk, ↓reduceIte, mul_one]
+      rw [Prod.mk.injEq] at hk
+      rw [hk.1, hφ]
+    · simp [hk]
+  · change |(if n = (i, []) then (1 : ℝ) else 0)| ≤ 1
+    split_ifs <;> simp
+  · intro h0
+    have := congrFun h0 (i, [])
+    simp at this
+
+/-- Cochrane (2023), p. 523 (**zero coefficients**): a regime with `φ_i = 0` makes the model
+indeterminate. -/
+theorem zero_coeff_indeterminate (T : TransitionN N) {φ : Fin N → ℝ} {i : Fin N}
+    (hφ : φ i = 0) : ¬ Determinate T φ :=
+  not_determinate_of_homog (zero_coeff_homog T hφ)
+
+/-- Cochrane (2023), pp. 522–523 (**necessity, any signs**): if every `φ_i ≠ 0` but the spectral
+radius of `|Φ|⁻¹P` is not `< 1`, the sign-twisted process `π(i, h) = s(h) x_{|h|}(i)` with
+`x_t = |Φ|⁻¹P x_{t+1}` is a nonzero bounded solution of the homogeneous model. -/
+theorem homog_nonzero_of_not (T : TransitionN N) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    (h : ¬ specRad (absM T φ) < 1) : ∃ e, Solves T φ 0 e ∧ BoundedFn e ∧ e ≠ 0 := by
+  obtain ⟨x, hx, ⟨B, hB⟩, i₀, hi₀⟩ := exists_bdd_backward h
+  refine ⟨fun n => histSign φ n.2 * x n.2.length n.1, ?_, ⟨B, fun n => ?_⟩, ?_⟩
+  · intro i h
+    have hrow : ∑ j, T.P i j * x (h.length + 1) j = |φ i| * x h.length i := by
+      rw [row_absM T (hφ i), hx h.length]
+      rfl
+    simp only [List.length_cons, Pi.zero_apply, add_zero]
+    calc ∑ j, T.P i j * (histSign φ (i :: h) * x (h.length + 1) j)
+        = histSign φ (i :: h) * ∑ j, T.P i j * x (h.length + 1) j := by
+          rw [Finset.mul_sum]
+          exact Finset.sum_congr rfl fun j _ => by ring
+      _ = φ i * (histSign φ h * x h.length i) := by
+          rw [hrow, histSign_cons]
+          linear_combination (histSign φ h * x h.length i) * sgn_mul_abs (φ i)
+  · rw [abs_mul, abs_histSign, one_mul]
+    exact hB _ _
+  · intro h0
+    have := congrFun h0 (i₀, [])
+    simp only [histSign, List.map_nil, List.prod_nil, List.length_nil, one_mul,
+      Pi.zero_apply] at this
+    exact hi₀ this
+
+/-- Cochrane (2023), p. 523 (**the naive condition is necessary**): if every `φ_i ≠ 0` but the
+spectral radius of `Φ⁻¹P` is not `< 1`, `π(i, h) = x_{|h|}(i)` with `x_t = Φ⁻¹P x_{t+1}` is a
+nonzero bounded solution of the homogeneous model. -/
+theorem homog_nonzero_of_not_naive (T : TransitionN N) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    (h : ¬ specRad (sgnM T φ) < 1) : ∃ e, Solves T φ 0 e ∧ BoundedFn e ∧ e ≠ 0 := by
+  obtain ⟨x, hx, ⟨B, hB⟩, i₀, hi₀⟩ := exists_bdd_backward h
+  refine ⟨fun n => x n.2.length n.1, ?_, ⟨B, fun n => hB _ _⟩, ?_⟩
+  · intro i h
+    simp only [List.length_cons, Pi.zero_apply, add_zero]
+    rw [row_sgnM T (hφ i), hx h.length]
+    rfl
+  · intro h0
+    have := congrFun h0 (i₀, [])
+    exact hi₀ this
+
+/-! ### Uniqueness and existence under the condition -/
+
+/-- Cochrane (2023), p. 523 (iterating the expectational recursion): a bounded solution of the
+homogeneous model satisfies `|π(i, h)| ≤ B ∑_j ((|Φ|⁻¹P)^k)_{ij}` for every `k`. -/
+theorem abs_le_pow_bound (T : TransitionN N) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    {e : NodeN N → ℝ} (he : Solves T φ 0 e) {B : ℝ} (hB : ∀ n, |e n| ≤ B) (k : ℕ) :
+    ∀ i h, |e (i, h)| ≤ B * ∑ j, (absM T φ ^ k) i j := by
+  induction k with
+  | zero =>
+    intro i h
+    simp only [pow_zero, Matrix.one_apply, Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte,
+      mul_one]
+    exact hB _
+  | succ k ih =>
+    intro i h
+    have hpos : 0 < |φ i| := abs_pos.2 (hφ i)
+    have heq : φ i * e (i, h) = ∑ j, T.P i j * e (j, i :: h) := by
+      have := he i h; simp only [Pi.zero_apply, add_zero] at this; linarith
+    have habs : |φ i| * |e (i, h)| ≤ ∑ j, T.P i j * |e (j, i :: h)| := by
+      rw [← abs_mul, heq]
+      refine (Finset.abs_sum_le_sum_abs _ _).trans (le_of_eq ?_)
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [abs_mul, abs_of_nonneg (T.nonneg i j)]
+    have hstep : ∑ j, T.P i j * |e (j, i :: h)| ≤
+        ∑ j, T.P i j * (B * ∑ l, (absM T φ ^ k) j l) :=
+      Finset.sum_le_sum fun j _ => mul_le_mul_of_nonneg_left (ih j (i :: h)) (T.nonneg i j)
+    have hval : ∑ j, T.P i j * (B * ∑ l, (absM T φ ^ k) j l) =
+        |φ i| * (B * ∑ l, (absM T φ ^ (k + 1)) i l) := by
+      have hs := sum_pow_succ (absM T φ) k i (fun _ => 1)
+      simp only [mul_one] at hs
+      rw [row_absM T (hφ i), hs]
+      congr 1
+      rw [Finset.mul_sum]
+      exact Finset.sum_congr rfl fun j _ => by ring
+    have := habs.trans (hstep.trans (le_of_eq hval))
+    exact le_of_mul_le_mul_left this hpos
+
+/-- Cochrane (2023), pp. 522–523: under the condition the homogeneous model has no bounded
+solution other than zero. -/
+theorem homog_eq_zero (T : TransitionN N) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {e : NodeN N → ℝ} (he : Solves T φ 0 e) (hb : BoundedFn e) : e = 0 := by
+  obtain ⟨B, hB⟩ := hb
+  funext n
+  obtain ⟨i, h⟩ := n
+  have hlim : Tendsto (fun k => B * ∑ j, (absM T φ ^ k) i j) atTop (𝓝 0) := by
+    have hj : ∀ j ∈ Finset.univ, Tendsto (fun k => (absM T φ ^ k) i j) atTop (𝓝 0) :=
+      fun j _ => (summable_abs_pow_entry hc.2 i j).of_abs.tendsto_atTop_zero
+    simpa using (tendsto_finsetSum Finset.univ hj).const_mul B
+  have hle : |e (i, h)| ≤ 0 :=
+    ge_of_tendsto' hlim fun k => abs_le_pow_bound T hc.1 he hB k i h
+  simpa using abs_nonpos_iff.mp hle
+
+/-- Cochrane (2023), p. 523 (the forward solution): `Δ_0 = −u/φ`,
+`Δ_{k+1}(i, h) = ∑_j P_{ij} Δ_k(j, i :: h)/φ_i`. -/
+noncomputable def fwdTerm (T : TransitionN N) (φ : Fin N → ℝ) (u : NodeN N → ℝ) :
+    ℕ → NodeN N → ℝ
+  | 0, n => -u n / φ n.1
+  | k + 1, n => (∑ j, T.P n.1 j * fwdTerm T φ u k (j, n.1 :: n.2)) / φ n.1
+
+/-- Cochrane (2023), p. 523: the forward solution `π = ∑_k Δ_k`. -/
+noncomputable def fwdSol (T : TransitionN N) (φ : Fin N → ℝ) (u : NodeN N → ℝ) (n : NodeN N) :
+    ℝ :=
+  ∑' k, fwdTerm T φ u k n
+
+/-- Cochrane (2023), p. 523: `|Δ_k(i, h)| ≤ U ∑_l ((|Φ|⁻¹P)^k)_{il}/|φ_l|`. -/
+theorem fwdTerm_bound (T : TransitionN N) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    {u : NodeN N → ℝ} {U : ℝ} (hU : ∀ n, |u n| ≤ U) (k : ℕ) :
+    ∀ i h, |fwdTerm T φ u k (i, h)| ≤ U * ∑ l, (absM T φ ^ k) i l * (1 / |φ l|) := by
+  induction k with
+  | zero =>
+    intro i h
+    simp only [fwdTerm, pow_zero, Matrix.one_apply, ite_mul, one_mul, zero_mul,
+      Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte]
+    rw [abs_div, abs_neg, mul_one_div]
+    exact div_le_div_of_nonneg_right (hU _) (abs_nonneg _)
+  | succ k ih =>
+    intro i h
+    have hpos : 0 < |φ i| := abs_pos.2 (hφ i)
+    simp only [fwdTerm]
+    rw [abs_div, div_le_iff₀ hpos]
+    calc |∑ j, T.P i j * fwdTerm T φ u k (j, i :: h)|
+        ≤ ∑ j, T.P i j * |fwdTerm T φ u k (j, i :: h)| := by
+          refine (Finset.abs_sum_le_sum_abs _ _).trans (le_of_eq ?_)
+          refine Finset.sum_congr rfl fun j _ => ?_
+          rw [abs_mul, abs_of_nonneg (T.nonneg i j)]
+      _ ≤ ∑ j, T.P i j * (U * ∑ l, (absM T φ ^ k) j l * (1 / |φ l|)) :=
+          Finset.sum_le_sum fun j _ =>
+            mul_le_mul_of_nonneg_left (ih j (i :: h)) (T.nonneg i j)
+      _ = (U * ∑ l, (absM T φ ^ (k + 1)) i l * (1 / |φ l|)) * |φ i| := by
+          have hs := sum_pow_succ (absM T φ) k i (fun l => 1 / |φ l|)
+          rw [row_absM T (hφ i), hs, mul_comm _ (|φ i|)]
+          congr 1
+          rw [Finset.mul_sum]
+          exact Finset.sum_congr rfl fun j _ => by ring
+
+/-- Cochrane (2023), p. 523: the dominating sequence for the forward solution is summable under
+the condition. -/
+theorem summable_bound (T : TransitionN N) {φ : Fin N → ℝ} (hc : GenCondition T φ) (U : ℝ)
+    (i : Fin N) : Summable (fun k => U * ∑ l, (absM T φ ^ k) i l * (1 / |φ l|)) :=
+  (summable_sum fun l _ =>
+    ((summable_abs_pow_entry hc.2 i l).of_abs.mul_right _)).mul_left U
+
+/-- Cochrane (2023), p. 523: the forward-solution terms are summable at every node. -/
+theorem fwdTerm_summable (T : TransitionN N) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {u : NodeN N → ℝ} {U : ℝ} (hU : ∀ n, |u n| ≤ U) (n : NodeN N) :
+    Summable (fun k => fwdTerm T φ u k n) := by
+  obtain ⟨i, h⟩ := n
+  exact Summable.of_norm_bounded (summable_bound T hc U i) fun k => by
+    rw [Real.norm_eq_abs]; exact fwdTerm_bound T hc.1 hU k i h
+
+/-- Cochrane (2023), pp. 522–523: under the condition the forward solution solves
+`E_t π_{t+1} = φ_{S_t} π_t + u_t`. -/
+theorem fwdSol_solves (T : TransitionN N) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {u : NodeN N → ℝ} {U : ℝ} (hU : ∀ n, |u n| ≤ U) : Solves T φ u (fwdSol T φ u) := by
+  intro i h
+  have hs := fun n => fwdTerm_summable T hc hU n
+  have hφi := hc.1 i
+  have hsplit := (hs (i, h)).tsum_eq_zero_add
+  have hA : ∑ j, T.P i j * fwdSol T φ u (j, i :: h) =
+      ∑' k, ∑ j, T.P i j * fwdTerm T φ u k (j, i :: h) := by
+    simp only [fwdSol]
+    rw [Summable.tsum_finsetSum fun j _ => (hs _).mul_left _]
+    exact Finset.sum_congr rfl fun j _ => (tsum_mul_left).symm
+  have hB : fwdSol T φ u (i, h) = -u (i, h) / φ i +
+      (∑' k, ∑ j, T.P i j * fwdTerm T φ u k (j, i :: h)) / φ i := by
+    unfold fwdSol
+    rw [hsplit, ← tsum_div_const]
+    rfl
+  rw [hA, hB]
+  field_simp
+  ring
+
+/-- Cochrane (2023), pp. 522–523: under the condition the forward solution is bounded. -/
+theorem fwdSol_bounded (T : TransitionN N) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {u : NodeN N → ℝ} {U : ℝ} (hU : ∀ n, |u n| ≤ U) : BoundedFn (fwdSol T φ u) := by
+  set g : Fin N → ℝ := fun i => ∑' k, U * ∑ l, (absM T φ ^ k) i l * (1 / |φ l|) with hg
+  refine ⟨∑ i, |g i|, fun n => ?_⟩
+  obtain ⟨i, h⟩ := n
+  have h1 : |fwdSol T φ u (i, h)| ≤ g i := by
+    unfold fwdSol
+    have hsa : Summable (fun k => |fwdTerm T φ u k (i, h)|) :=
+      Summable.of_nonneg_of_le (fun _ => abs_nonneg _) (fun k => fwdTerm_bound T hc.1 hU k i h)
+        (summable_bound T hc U i)
+    have hn := norm_tsum_le_tsum_norm (f := fun k => fwdTerm T φ u k (i, h))
+      (by simpa only [Real.norm_eq_abs] using hsa)
+    simp only [Real.norm_eq_abs] at hn
+    exact hn.trans (Summable.tsum_le_tsum (fun k => fwdTerm_bound T hc.1 hU k i h) hsa
+      (summable_bound T hc U i))
+  exact h1.trans ((le_abs_self _).trans (Finset.single_le_sum (f := fun i => |g i|)
+    (fun _ _ => abs_nonneg _) (Finset.mem_univ i)))
+
+/-- Cochrane (2023), pp. 522–523: the difference of two solutions solves the homogeneous
+model. -/
+theorem solves_sub (T : TransitionN N) (φ : Fin N → ℝ) {u π₁ π₂ : NodeN N → ℝ}
+    (h₁ : Solves T φ u π₁) (h₂ : Solves T φ u π₂) : Solves T φ 0 (π₁ - π₂) := by
+  intro i h
+  have e1 := h₁ i h
+  have e2 := h₂ i h
+  simp only [Pi.sub_apply, Pi.zero_apply, mul_sub, Finset.sum_sub_distrib, add_zero]
+  linarith
+
+/-! ### The determinacy theorem -/
+
+/-- Cochrane (2023), pp. 522–523 (**Davig–Leeper for `N` regimes and coefficients of any
+sign**): the Markov-switching model `E_t π_{t+1} = φ_{S_t} π_t + u_t` has exactly one bounded
+equilibrium for every bounded disturbance iff every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P`
+is `< 1`. -/
+theorem determinate_iff (T : TransitionN N) (φ : Fin N → ℝ) :
+    Determinate T φ ↔ GenCondition T φ := by
+  constructor
+  · intro hd
+    by_cases h0 : ∀ i, φ i ≠ 0
+    · refine ⟨h0, ?_⟩
+      by_contra hns
+      exact not_determinate_of_homog (homog_nonzero_of_not T h0 hns) hd
+    · push Not at h0
+      obtain ⟨i, hi⟩ := h0
+      exact absurd hd (zero_coeff_indeterminate T hi)
+  · intro hc u ⟨U, hU⟩
+    refine ⟨fwdSol T φ u, ⟨fwdSol_solves T hc hU, fwdSol_bounded T hc hU⟩, ?_⟩
+    rintro π ⟨hπ, hπb⟩
+    have hd := solves_sub T φ hπ (fwdSol_solves T hc hU)
+    obtain ⟨B1, hB1⟩ := hπb
+    obtain ⟨B2, hB2⟩ := fwdSol_bounded T hc hU
+    have hzero := homog_eq_zero T hc hd ⟨B1 + B2, fun n => by
+      simp only [Pi.sub_apply]
+      exact (abs_sub _ _).trans (add_le_add (hB1 n) (hB2 n))⟩
+    exact sub_eq_zero.mp hzero
+
+/-- Cochrane (2023), pp. 522–523 (**signs do not matter**): determinacy depends only on the
+absolute values `|φ_i|`. -/
+theorem determinate_iff_abs (T : TransitionN N) (φ : Fin N → ℝ) :
+    Determinate T φ ↔ Determinate T (fun i => |φ i|) := by
+  rw [determinate_iff, determinate_iff]
+  have hM : absM T (fun i => |φ i|) = absM T φ := by
+    ext i j; simp [absM]
+  unfold GenCondition
+  rw [hM]
+  simp only [ne_eq, abs_eq_zero]
+
+/-- Cochrane (2023), pp. 522–523: two coefficient vectors with the same absolute values are
+determinate together. -/
+theorem determinate_congr_abs (T : TransitionN N) {φ ψ : Fin N → ℝ}
+    (h : ∀ i, |φ i| = |ψ i|) : Determinate T φ ↔ Determinate T ψ := by
+  rw [determinate_iff_abs, determinate_iff_abs T ψ]
+  simp only [h]
+
+/-- Cochrane (2023), p. 523 (**the naive condition is necessary**): determinacy implies that every
+`φ_i ≠ 0` and that the spectral radius of `Φ⁻¹P` is `< 1`. -/
+theorem naive_necessary (T : TransitionN N) {φ : Fin N → ℝ} (hd : Determinate T φ) :
+    NaiveCondition T φ := by
+  have h0 := ((determinate_iff T φ).1 hd).1
+  refine ⟨h0, ?_⟩
+  by_contra hns
+  exact not_determinate_of_homog (homog_nonzero_of_not_naive T h0 hns) hd
+
+/-- Cochrane (2023), p. 523 (**zero coefficients, Lean's junk inverse is wrong**): with one
+regime, `P = 1` and `φ = 0`, the junk matrix `|Φ|⁻¹P` (computed with `1/0 = 0`) has spectral
+radius `0 < 1`, yet the model is indeterminate — `φ_i ≠ 0` must be part of the condition. -/
+theorem junk_inverse_wrong :
+    specRad (absM (⟨fun _ _ => 1, fun _ _ => zero_le_one, fun _ => by simp⟩ : TransitionN 1)
+      (fun _ => 0)) < 1 ∧
+    ¬ Determinate (⟨fun _ _ => 1, fun _ _ => zero_le_one, fun _ => by simp⟩ : TransitionN 1)
+      (fun _ => 0) := by
+  refine ⟨?_, zero_coeff_indeterminate _ (i := 0) rfl⟩
+  have h0 : absM (⟨fun _ _ => 1, fun _ _ => zero_le_one, fun _ => by simp⟩ : TransitionN 1)
+      (fun _ => 0) = 0 := by
+    ext i j; simp [absM]
+  rw [h0]
+  simp [specRad]
+
+/-! ### Two regimes: the special case `N = 2` and the Davig–Leeper formula -/
+
+/-- Cochrane (2023), p. 522: a two-state transition matrix of `MarkovRegimes` as an `N = 2`
+transition matrix. -/
+def ofTwo (T : MarkovRegimes.Transition) : TransitionN 2 := ⟨T.P, T.nonneg, T.rowSum⟩
+
+/-- Cochrane (2023), pp. 522–523 (**link**): for `N = 2` the model and its determinacy are
+exactly those of `MarkovRegimes` (the regime trees coincide). -/
+theorem determinate_iff_old (T : MarkovRegimes.Transition) (φ : Fin 2 → ℝ) :
+    Determinate (ofTwo T) φ ↔ ∀ u, MarkovRegimes.BoundedFn u →
+      ∃! π, MarkovRegimes.Solves T φ u π ∧ MarkovRegimes.BoundedFn π :=
+  Iff.rfl
+
+/-- Cochrane (2023), p. 523: for `φ > 0`, `|Φ|⁻¹P` is the matrix `M = Φ⁻¹P` of `MarkovRegimes`. -/
+theorem absM_ofTwo (T : MarkovRegimes.Transition) {φ : Fin 2 → ℝ} (hφ : ∀ i, 0 < φ i) :
+    absM (ofTwo T) φ = MarkovRegimes.regM T φ := by
+  ext i j
+  simp [absM, MarkovRegimes.regM, ofTwo, abs_of_pos (hφ i)]
+
+/-- Cochrane (2023), pp. 522–523 (**the two-regime result recovered**): for two regimes with
+`φ_0, φ_1 > 0`, Davig and Leeper's condition `(1 − φ_1)p_00 + (1 − φ_0)p_11 + φ_0φ_1 > 1`,
+`p_00/φ_0 + p_11/φ_1 < 2` is the general condition. -/
+theorem dl_iff_genCondition (T : MarkovRegimes.Transition) {φ : Fin 2 → ℝ}
+    (hφ : ∀ i, 0 < φ i) : MarkovRegimes.DLCondition T φ ↔ GenCondition (ofTwo T) φ :=
+  (MarkovRegimes.determinate_iff T hφ).symm.trans
+    ((determinate_iff_old T φ).symm.trans (determinate_iff _ φ))
+
+/-- Cochrane (2023), p. 523: for `φ > 0` the `2 × 2` Schur–Cohn condition of `MarkovRegimes`
+is the spectral-radius condition. -/
+theorem schur_iff_specRad (T : MarkovRegimes.Transition) {φ : Fin 2 → ℝ} (hφ : ∀ i, 0 < φ i) :
+    SchurStable (tr2 (MarkovRegimes.regM T φ)) (det2 (MarkovRegimes.regM T φ)) ↔
+      specRad (MarkovRegimes.regM T φ) < 1 := by
+  rw [← MarkovRegimes.dl_iff_schur T hφ, dl_iff_genCondition T hφ, GenCondition,
+    absM_ofTwo T hφ]
+  exact ⟨fun h => h.2, fun h => ⟨fun i => (hφ i).ne', h⟩⟩
+
+/-- Cochrane (2023), pp. 522–523 (**the corrected Davig–Leeper formula**): with two regimes and
+coefficients of any sign, the model is determinate iff `φ_0, φ_1 ≠ 0` and the Davig–Leeper formula
+holds for `|φ_0|, |φ_1|`. -/
+theorem dl_corrected (T : MarkovRegimes.Transition) (φ : Fin 2 → ℝ) :
+    Determinate (ofTwo T) φ ↔
+      (∀ i, φ i ≠ 0) ∧ MarkovRegimes.DLCondition T (fun i => |φ i|) := by
+  by_cases h0 : ∀ i, φ i ≠ 0
+  · rw [determinate_iff_abs, determinate_iff_old,
+      MarkovRegimes.determinate_iff T (fun i => abs_pos.2 (h0 i))]
+    exact ⟨fun h => ⟨h0, h⟩, fun h => h.2⟩
+  · push Not at h0
+    obtain ⟨i, hi⟩ := h0
+    exact ⟨fun h => absurd h (zero_coeff_indeterminate _ hi), fun h => absurd hi (h.1 i)⟩
+
+/-- Cochrane (2023), p. 523 (example): a chain with `p_00 = 0.9`, `p_11 = 0.5`. -/
+noncomputable def egDL : MarkovRegimes.Transition where
+  P := ![![9 / 10, 1 / 10], ![1 / 2, 1 / 2]]
+  nonneg := by intro i j; fin_cases i <;> fin_cases j <;> norm_num
+  rowSum := by intro i; fin_cases i <;> simp [Fin.sum_univ_two] <;> norm_num
+
+/-- Cochrane (2023), p. 523 (example): i.i.d. regimes with `p_ij = ½`. -/
+noncomputable def egHalf : MarkovRegimes.Transition where
+  P := fun _ _ => 1 / 2
+  nonneg := by intro i j; norm_num
+  rowSum := by intro i; simp
+
+/-- Cochrane (2023), pp. 522–523 (**the Davig–Leeper formula fails with a negative
+coefficient**): with `p_00 = 0.9`, `p_11 = 0.5` and `φ = (½, −½)` the formula
+`(1 − φ_1)p_00 + (1 − φ_0)p_11 + φ_0φ_1 > 1`, `p_00/φ_0 + p_11/φ_1 < 2` holds, but the model is
+indeterminate (both regimes have `|φ_i| = ½ < 1`). -/
+theorem dl_formula_fails_negative :
+    MarkovRegimes.DLCondition egDL ![1 / 2, -1 / 2] ∧
+      ¬ Determinate (ofTwo egDL) ![1 / 2, -1 / 2] := by
+  refine ⟨?_, ?_⟩
+  · simp only [MarkovRegimes.DLCondition, egDL]
+    norm_num
+  · rw [dl_corrected]
+    rintro ⟨-, h⟩
+    simp only [MarkovRegimes.DLCondition, egDL] at h
+    norm_num at h
+
+/-- Cochrane (2023), p. 523 (**a negative regime that is still determinate**): with the
+short-lived passive chain `p_00 = 0.9`, `p_11 = 0.4` and `φ = (2, −½)` the model is
+determinate. -/
+theorem negative_regime_determinate :
+    Determinate (ofTwo MarkovRegimes.egShortPassive) ![2, -1 / 2] := by
+  rw [dl_corrected]
+  refine ⟨fun i => by fin_cases i <;> norm_num, ?_⟩
+  simp only [MarkovRegimes.DLCondition, MarkovRegimes.egShortPassive]
+  norm_num
+
+/-- Cochrane (2023), p. 523 (**sign changes destroy the naive condition**): with `p_ij = ½` and
+`φ = (½, −½)`, `Φ⁻¹P` is nilpotent (spectral radius `0`), so the naive condition holds, but the
+model is indeterminate (`|Φ|⁻¹P = 2P` has spectral radius `2`). -/
+theorem naive_not_sufficient :
+    NaiveCondition (ofTwo egHalf) ![1 / 2, -1 / 2] ∧
+      ¬ Determinate (ofTwo egHalf) ![1 / 2, -1 / 2] := by
+  refine ⟨⟨fun i => by fin_cases i <;> norm_num, ?_⟩, ?_⟩
+  · have hMM : (sgnM (ofTwo egHalf) ![1 / 2, -1 / 2]).map Complex.ofReal *
+        (sgnM (ofTwo egHalf) ![1 / 2, -1 / 2]).map Complex.ofReal = 0 := by
+      ext i j
+      fin_cases i <;> fin_cases j <;>
+        simp [sgnM, ofTwo, egHalf, Matrix.mul_apply, Fin.sum_univ_two] <;> norm_num
+    refine lt_of_le_of_lt (specRad_le_of_eigen (c := 0) fun z v hv hAv => ?_) (by simp)
+    have h2 : (z * z) • v = 0 := by
+      rw [mul_smul, ← hAv, ← Matrix.mulVec_smul, ← hAv, Matrix.mulVec_mulVec, hMM,
+        Matrix.zero_mulVec]
+    rcases smul_eq_zero.1 h2 with hz | hv'
+    · simp [mul_self_eq_zero.1 hz]
+    · exact absurd hv' hv
+  · rw [dl_corrected]
+    rintro ⟨-, h⟩
+    simp only [MarkovRegimes.DLCondition, egHalf] at h
+    norm_num at h
+
+/-! ### I.i.d. regimes -/
+
+/-- Cochrane (2023), p. 523: i.i.d. regimes, `P_{ij} = q_j`. -/
+def iidT (q : Fin N → ℝ) (hq0 : ∀ j, 0 ≤ q j) (hq1 : ∑ j, q j = 1) : TransitionN N :=
+  ⟨fun _ j => q j, fun _ j => hq0 j, fun _ => hq1⟩
+
+/-- Cochrane (2023), p. 523: with i.i.d. regimes and `φ_i ≠ 0`, the spectral radius of
+`|Φ|⁻¹P` is `< 1` iff `∑_j q_j/|φ_j| < 1` (`|Φ|⁻¹P` has rank one; its nonzero eigenvalue is
+`∑_j q_j/|φ_j|`). -/
+theorem iid_specRad_lt_iff (q : Fin N → ℝ) (hq0 : ∀ j, 0 ≤ q j) (hq1 : ∑ j, q j = 1)
+    {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0) :
+    specRad (absM (iidT q hq0 hq1) φ) < 1 ↔ ∑ j, q j / |φ j| < 1 := by
+  set c : ℝ := ∑ j, q j / |φ j| with hc
+  have hc0 : 0 ≤ c := Finset.sum_nonneg fun j _ => div_nonneg (hq0 j) (abs_nonneg _)
+  have hrow : ∀ (v : Fin N → ℂ) (i : Fin N),
+      ((absM (iidT q hq0 hq1) φ).map Complex.ofReal *ᵥ v) i =
+        (∑ j, (q j : ℂ) * v j) / ((|φ i| : ℝ) : ℂ) := by
+    intro v i
+    simp only [Matrix.mulVec, dotProduct, Matrix.map_apply, absM, iidT, Matrix.of_apply,
+      Complex.ofReal_div, Finset.sum_div]
+    exact Finset.sum_congr rfl fun j _ => by ring
+  have hφc : ∀ i, ((|φ i| : ℝ) : ℂ) ≠ 0 := fun i => by exact_mod_cast abs_ne_zero.2 (hφ i)
+  constructor
+  · intro h
+    by_contra hge
+    push Not at hge
+    obtain ⟨j₀, -, hj₀⟩ := Finset.exists_ne_zero_of_sum_ne_zero (s := Finset.univ)
+      (f := fun j => q j / |φ j|) (by rw [← hc]; linarith)
+    set d : Fin N → ℂ := fun i => 1 / ((|φ i| : ℝ) : ℂ) with hd
+    have hdv : (absM (iidT q hq0 hq1) φ).map Complex.ofReal *ᵥ d = (c : ℂ) • d := by
+      funext i
+      rw [hrow, Pi.smul_apply, smul_eq_mul, hc]
+      push_cast
+      simp only [hd]
+      rw [div_eq_mul_one_div _ ((|φ i| : ℝ) : ℂ)]
+      congr 1
+      exact Finset.sum_congr rfl fun j _ => by ring
+    have hd0 : d ≠ 0 := by
+      intro h0
+      have := congrFun h0 j₀
+      simp only [hd, Pi.zero_apply, one_div, inv_eq_zero] at this
+      exact hφc j₀ this
+    have hle := norm_le_spectralRadius hd0 hdv
+    have hc1 : (1 : ℝ≥0∞) ≤ ‖(c : ℂ)‖₊ := by
+      have h1 : (1 : ℝ≥0) ≤ ‖(c : ℂ)‖₊ := by
+        rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_one, Complex.norm_real,
+          Real.norm_eq_abs, abs_of_nonneg hc0]
+        exact hge
+      exact_mod_cast h1
+    exact absurd (hc1.trans hle) (not_le.2 h)
+  · intro h
+    refine lt_of_le_of_lt (specRad_le_of_eigen (c := c.toNNReal) fun z v hv hAv => ?_)
+      (ENNReal.coe_lt_one_iff.2 (Real.toNNReal_lt_one.2 h))
+    set s : ℂ := ∑ j, (q j : ℂ) * v j with hs
+    have hzv : ∀ i, z * v i = s / ((|φ i| : ℝ) : ℂ) := fun i => by
+      rw [← hrow, hAv, Pi.smul_apply, smul_eq_mul]
+    have hzs : z * s = s * c := by
+      rw [hs, Finset.mul_sum, hc]
+      push_cast
+      rw [Finset.mul_sum]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [mul_left_comm, hzv j]
+      ring
+    obtain ⟨i₀, hi₀⟩ : ∃ i, v i ≠ 0 := by
+      by_contra hcon
+      push Not at hcon
+      exact hv (funext hcon)
+    by_cases hs0 : s = 0
+    · have := hzv i₀
+      rw [hs0, zero_div] at this
+      rcases mul_eq_zero.1 this with hz | hz
+      · simp [hz]
+      · exact absurd hz hi₀
+    · have hzc : z = c := by
+        have := hzs
+        rw [mul_comm s] at this
+        exact mul_right_cancel₀ hs0 this
+      rw [hzc, ← NNReal.coe_le_coe, coe_nnnorm, Complex.norm_real, Real.norm_eq_abs,
+        abs_of_nonneg hc0, Real.coe_toNNReal _ hc0]
+
+/-- Cochrane (2023), pp. 522–523 (**i.i.d. regimes**): with i.i.d. regimes the model is
+determinate iff every `φ_i ≠ 0` and `∑_j q_j/|φ_j| < 1` — the probability-weighted harmonic mean
+of `|φ_i|` exceeds one. -/
+theorem iid_determinate_iff (q : Fin N → ℝ) (hq0 : ∀ j, 0 ≤ q j) (hq1 : ∑ j, q j = 1)
+    (φ : Fin N → ℝ) :
+    Determinate (iidT q hq0 hq1) φ ↔ (∀ i, φ i ≠ 0) ∧ ∑ j, q j / |φ j| < 1 := by
+  rw [determinate_iff]
+  exact ⟨fun h => ⟨h.1, (iid_specRad_lt_iff q hq0 hq1 h.1).1 h.2⟩,
+    fun h => ⟨h.1, (iid_specRad_lt_iff q hq0 hq1 h.1).2 h.2⟩⟩
+
+/-- Cochrane (2023), p. 523 (**three regimes, one negative and one passive**): with three equally
+likely i.i.d. regimes and `φ = (4, −4, ½)`, the model is determinate
+(`∑_j q_j/|φ_j| = 1/12 + 1/12 + 2/3 = 5/6 < 1`). -/
+theorem three_regime_determinate :
+    Determinate (iidT (fun _ : Fin 3 => 1 / 3) (fun _ => by norm_num)
+      (by simp)) ![4, -4, 1 / 2] := by
+  rw [iid_determinate_iff]
+  refine ⟨fun i => by fin_cases i <;> norm_num, ?_⟩
+  simp [Fin.sum_univ_three]
+  norm_num
+
+end Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# `N`-regime Markov switching with coefficients of any sign on a genuine probability space
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.2, pp. 522–523 (Davig and
+Leeper (2006, 2007): policy-rule coefficients switch according to a Markov process; "the Markov
+assumption, with exactly two (or even N) states"; "a time with `φ < 1` should be something like
+'locally passive' or 'temporarily passive'").
+
+`MarkovRegimesGeneral` proves the determinacy theorem for `N` regimes and coefficients of any sign
+on the regime tree. Here the same theorem is proved in any `MeasExpectationSystem` carrying an
+`N`-state Markov regime process, and on a genuine `N`-state chain driven by i.i.d. uniforms.
+
+## Main results
+
+* `MeasMarkovRegimeN S T`: an adapted `Fin N`-valued regime process with the a.e. Markov property
+  `E_t f(S_{t+1}) = ∑_j P_{S_t j} f(j)`; `MSolves`, `MDeterminate`.
+* `meas_determinate_iff` (**Davig–Leeper for `N` regimes and any signs, genuinely**): if every
+  regime has positive probability at date `0`, the model `E_t π_{t+1} = φ_{S_t} π_t + u_t` has a
+  bounded adapted equilibrium, unique a.e., for every bounded adapted disturbance iff every
+  `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is `< 1` (`GenCondition`).
+  Necessity: `zero_coeff_homogM` (`φ_i = 0`: `π_0 = 1{S_0 = i}`, `π_t = 0` for `t ≥ 1`) and
+  `twisted_solves` (the sign-twisted sunspot `π_t = s_t x_t(S_t)`, `s_t = ∏_{τ<t} sgn φ_{S_τ}`).
+  Sufficiency: `meas_homog_eq_zero`, `fwdSolM_solves`, `fwdSolM_bdd`.
+* Links: `meas_determinate_iff_tree` (same condition as the tree), `ofTwoRegime`,
+  `meas_two_regime_recovered` (the two-regime `φ > 0` result of `MarkovRegimesMeasure` as a special
+  case), `meas_dl_corrected` (two regimes, any signs).
+* The chain: `cumP`, `pick` (inverse-CDF sampling), `unif_pick` (`Pr(pick p U = j) = p_j`),
+  `integral_pick`, `chainN` (`S_0 = pick q U_0`, `S_{t+1} = pick P_{S_t} U_{t+1}`), `chainN_markov`,
+  `chainRegimeN`, `chainN_initial`, `chainN_determinate_iff`; examples
+  `chainN_three_regime_determinate`, `chain_negative_regime_determinate`,
+  `chain_dl_formula_fails_negative`, `chain_naive_not_sufficient`.
+-/
+
+namespace Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ObservationalEquivalence.ExpectationsMeasure
+open Cochrane.ObservationalEquivalence.ExpectationsMeasureIID
+open Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+open scoped Matrix ENNReal NNReal
+
+variable {Ω : Type*} [MeasurableSpace Ω] {N : ℕ}
+
+variable (S : MeasExpectationSystem Ω) (T : TransitionN N)
+
+/-- Cochrane (2023), p. 522 ("switches … according to a Markov process"), genuinely, with `N`
+regimes: a regime process adapted to the filtration with the Markov property
+`E_t f(S_{t+1}) = ∑_j P_{S_t j} f(j)` a.e. -/
+structure MeasMarkovRegimeN where
+  /-- the regime process -/
+  regime : ℕ → Ω → Fin N
+  /-- the regime is known at each date -/
+  adapted : ∀ t, Measurable[S.𝓕 t] (regime t)
+  /-- the Markov property -/
+  markov : ∀ t (f : Fin N → ℝ), S.E t (fun ω => f (regime (t + 1) ω)) =ᵐ[S.μ]
+    fun ω => ∑ j, T.P (regime t ω) j * f j
+
+variable {S T}
+
+/-- Cochrane (2023), eqs. (22.3)–(22.4), p. 500, with Markov-switching `φ` (p. 522), genuinely:
+`E_t π_{t+1} = φ_{S_t} π_t + u_t` a.e. at every date. -/
+def MSolves (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (u π : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, S.E t (π (t + 1)) =ᵐ[S.μ] fun ω => φ (R.regime t ω) * π t ω + u t ω
+
+/-- Cochrane (2023), pp. 522–523, genuinely: for every bounded adapted disturbance there is a
+bounded adapted equilibrium, and any two are equal a.e. -/
+def MDeterminate (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) : Prop :=
+  ∀ u : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 u → S.BddProc u →
+    (∃ π, MSolves R φ u π ∧ StronglyAdapted S.𝓕 π ∧ S.BddProc π) ∧
+    ∀ π₁ π₂ : ℕ → Ω → ℝ, MSolves R φ u π₁ → MSolves R φ u π₂ → StronglyAdapted S.𝓕 π₁ →
+      StronglyAdapted S.𝓕 π₂ → S.BddProc π₁ → S.BddProc π₂ → ∀ t, π₁ t =ᵐ[S.μ] π₂ t
+
+/-! ### Functions of the regime -/
+
+/-- Cochrane (2023), p. 522: a function of the current regime is known at that date. -/
+theorem sm_comp (R : MeasMarkovRegimeN S T) (f : Fin N → ℝ) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 t] (fun ω => f (R.regime t ω)) :=
+  (Measurable.of_discrete.comp (R.adapted t)).stronglyMeasurable
+
+/-- Cochrane (2023), p. 522: `|f(i)| ≤ ∑_l |f(l)|`. -/
+theorem abs_le_sum_abs (f : Fin N → ℝ) (i : Fin N) : |f i| ≤ ∑ l, |f l| :=
+  Finset.single_le_sum (f := fun l => |f l|) (fun _ _ => abs_nonneg _) (Finset.mem_univ i)
+
+/-- Cochrane (2023), p. 522: a function of the regime is a bounded random variable. -/
+theorem bddRV_comp (R : MeasMarkovRegimeN S T) (f : Fin N → ℝ) (t : ℕ) :
+    S.BddRV (fun ω => f (R.regime t ω)) :=
+  MeasExpectationSystem.BddRV.of_stronglyMeasurable (sm_comp R f t)
+    (Eventually.of_forall fun ω => abs_le_sum_abs f (R.regime t ω))
+
+/-- Cochrane (2023), p. 522: a bounded adapted process is integrable at every date. -/
+theorem integrable_of_adapted {x : ℕ → Ω → ℝ} (hx : StronglyAdapted S.𝓕 x) (hb : S.BddProc x)
+    (t : ℕ) : Integrable (x t) S.μ := by
+  obtain ⟨M, hM⟩ := hb
+  exact MeasExpectationSystem.BddRV.integrable
+    (MeasExpectationSystem.BddRV.of_stronglyMeasurable (hx t) (hM t))
+
+/-- Cochrane (2023), p. 523 (iterating the expectational recursion): if `|x| ≤ g(S_{t+1})` a.e.
+then `|E_t x| ≤ ∑_j P_{S_t j} g(j)` a.e. -/
+theorem abs_E_le_markov (R : MeasMarkovRegimeN S T) {x : Ω → ℝ} (hx : Integrable x S.μ)
+    {g : Fin N → ℝ} {t : ℕ} (hb : ∀ᵐ ω ∂S.μ, |x ω| ≤ g (R.regime (t + 1) ω)) :
+    ∀ᵐ ω ∂S.μ, |S.E t x ω| ≤ ∑ j, T.P (R.regime t ω) j * g j := by
+  have hf := (bddRV_comp R g (t + 1)).integrable
+  have hn := (bddRV_comp R (fun l => -g l) (t + 1)).integrable
+  have hup : x ≤ᵐ[S.μ] fun ω => g (R.regime (t + 1) ω) :=
+    hb.mono fun ω h => (le_abs_self _).trans h
+  have hlo : (fun ω => -g (R.regime (t + 1) ω)) ≤ᵐ[S.μ] x :=
+    hb.mono fun ω h => by have := neg_abs_le (x ω); linarith
+  filter_upwards [S.E_mono hx hf hup t, S.E_mono hn hx hlo t, R.markov t g,
+    R.markov t (fun l => -g l)] with ω h1 h2 h3 h4
+  rw [h3] at h1
+  rw [h4] at h2
+  simp only [mul_neg, Finset.sum_neg_distrib] at h2
+  exact abs_le.2 ⟨by linarith, h1⟩
+
+/-! ### Uniqueness under the condition -/
+
+/-- Cochrane (2023), p. 523, genuinely: a bounded adapted solution of the homogeneous model
+satisfies `|e_t| ≤ B ∑_j ((|Φ|⁻¹P)^k)_{S_t j}` a.e. for every `k`. -/
+theorem meas_bound (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    {e : ℕ → Ω → ℝ} (he : ∀ t, S.E t (e (t + 1)) =ᵐ[S.μ] fun ω => φ (R.regime t ω) * e t ω)
+    (hea : StronglyAdapted S.𝓕 e) {B : ℝ} (hB : ∀ t, ∀ᵐ ω ∂S.μ, |e t ω| ≤ B) (k : ℕ) :
+    ∀ t, ∀ᵐ ω ∂S.μ, |e t ω| ≤ B * ∑ j, (absM T φ ^ k) (R.regime t ω) j := by
+  induction k with
+  | zero =>
+    intro t
+    filter_upwards [hB t] with ω h
+    simpa only [pow_zero, Matrix.one_apply, Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte,
+      mul_one] using h
+  | succ k ih =>
+    intro t
+    have hei : Integrable (e (t + 1)) S.μ := integrable_of_adapted hea ⟨B, hB⟩ (t + 1)
+    filter_upwards [abs_E_le_markov R hei (g := fun l => B * ∑ j, (absM T φ ^ k) l j)
+      (ih (t + 1)), he t] with ω h1 h2
+    rw [h2] at h1
+    set i := R.regime t ω
+    have hpos : 0 < |φ i| := abs_pos.2 (hφ i)
+    have hval : ∑ j, T.P i j * (B * ∑ l, (absM T φ ^ k) j l) =
+        |φ i| * (B * ∑ j, (absM T φ ^ (k + 1)) i j) := by
+      have hs := sum_pow_succ (absM T φ) k i (fun _ => 1)
+      simp only [mul_one] at hs
+      rw [row_absM T (hφ i), hs]
+      congr 1
+      rw [Finset.mul_sum]
+      exact Finset.sum_congr rfl fun j _ => by ring
+    rw [hval, abs_mul] at h1
+    exact le_of_mul_le_mul_left h1 hpos
+
+/-- Cochrane (2023), pp. 522–523, genuinely: under the condition the homogeneous model has no
+bounded adapted solution other than zero (a.e.) — no regime-dependent or extraneous sunspots. -/
+theorem meas_homog_eq_zero (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {e : ℕ → Ω → ℝ} (he : ∀ t, S.E t (e (t + 1)) =ᵐ[S.μ] fun ω => φ (R.regime t ω) * e t ω)
+    (hea : StronglyAdapted S.𝓕 e) (hb : S.BddProc e) : ∀ t, e t =ᵐ[S.μ] 0 := by
+  obtain ⟨B, hB⟩ := hb
+  intro t
+  filter_upwards [ae_all_iff.2 fun k => meas_bound R hc.1 he hea hB k t] with ω h
+  have hlim : Tendsto (fun k => B * ∑ j, (absM T φ ^ k) (R.regime t ω) j) atTop (𝓝 0) := by
+    have hj : ∀ j ∈ Finset.univ,
+        Tendsto (fun k => (absM T φ ^ k) (R.regime t ω) j) atTop (𝓝 0) :=
+      fun j _ => (summable_abs_pow_entry hc.2 _ j).of_abs.tendsto_atTop_zero
+    simpa using (tendsto_finsetSum Finset.univ hj).const_mul B
+  have hle : |e t ω| ≤ 0 := ge_of_tendsto' hlim h
+  simpa using abs_nonpos_iff.mp hle
+
+/-! ### Existence: the forward solution -/
+
+/-- Cochrane (2023), p. 523 (the forward solution, genuinely): `Δ_0(t) = −u_t/φ_{S_t}`,
+`Δ_{k+1}(t) = E_t Δ_k(t+1)/φ_{S_t}`. -/
+noncomputable def fwdM (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (u : ℕ → Ω → ℝ) :
+    ℕ → ℕ → Ω → ℝ
+  | 0, t => fun ω => -((φ (R.regime t ω))⁻¹ * u t ω)
+  | k + 1, t => fun ω => (φ (R.regime t ω))⁻¹ * S.E t (fwdM R φ u k (t + 1)) ω
+
+/-- Cochrane (2023), p. 523: `Δ_k(t)` is known at `t`. -/
+theorem fwdM_sm (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (k t : ℕ) : StronglyMeasurable[S.𝓕 t] (fwdM R φ u k t) := by
+  cases k with
+  | zero => exact ((sm_comp R (fun i => (φ i)⁻¹) t).mul (hua t)).neg
+  | succ k => exact (sm_comp R (fun i => (φ i)⁻¹) t).mul (S.stronglyMeasurable_E t _)
+
+/-- Cochrane (2023), p. 523: the regime-wise bound `U ∑_l ((|Φ|⁻¹P)^k)_{il}/|φ_l|`. -/
+noncomputable def bnd (T : TransitionN N) (φ : Fin N → ℝ) (U : ℝ) (k : ℕ) (i : Fin N) : ℝ :=
+  U * ∑ l, (absM T φ ^ k) i l * (1 / |φ l|)
+
+/-- Cochrane (2023), p. 523: `|Δ_k(t)| ≤ U ∑_l ((|Φ|⁻¹P)^k)_{S_t l}/|φ_l|` a.e. -/
+theorem fwdM_bound (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    {u : ℕ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u) {U : ℝ} (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U)
+    (k : ℕ) : ∀ t, ∀ᵐ ω ∂S.μ, |fwdM R φ u k t ω| ≤ bnd T φ U k (R.regime t ω) := by
+  induction k with
+  | zero =>
+    intro t
+    filter_upwards [hU t] with ω h
+    simp only [fwdM, bnd, pow_zero, Matrix.one_apply, ite_mul, one_mul, zero_mul,
+      Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte]
+    rw [abs_neg, abs_mul, abs_inv, mul_one_div, ← div_eq_inv_mul]
+    exact div_le_div_of_nonneg_right h (abs_nonneg _)
+  | succ k ih =>
+    intro t
+    have hint : Integrable (fwdM R φ u k (t + 1)) S.μ :=
+      MeasExpectationSystem.BddRV.integrable
+        (MeasExpectationSystem.BddRV.of_stronglyMeasurable (fwdM_sm R φ hua k (t + 1))
+          (M := ∑ l, |bnd T φ U k l|)
+          ((ih (t + 1)).mono fun ω h => h.trans ((le_abs_self _).trans
+            (abs_le_sum_abs (bnd T φ U k) _))))
+    filter_upwards [abs_E_le_markov R hint (g := bnd T φ U k) (ih (t + 1))] with ω h1
+    simp only [fwdM]
+    set i := R.regime t ω
+    have hpos : 0 < |φ i| := abs_pos.2 (hφ i)
+    have hval : (|φ i|)⁻¹ * ∑ j, T.P i j * bnd T φ U k j = bnd T φ U (k + 1) i := by
+      have hs := sum_pow_succ (absM T φ) k i (fun l => 1 / |φ l|)
+      simp only [bnd]
+      rw [row_absM T (hφ i), hs, ← mul_assoc, inv_mul_cancel₀ hpos.ne', one_mul,
+        Finset.mul_sum]
+      exact Finset.sum_congr rfl fun j _ => by ring
+    rw [abs_mul, abs_inv, ← hval]
+    exact mul_le_mul_of_nonneg_left h1 (inv_nonneg.2 (abs_nonneg _))
+
+/-- Cochrane (2023), p. 523: the dominating constants `c_k = ∑_i |bnd_k(i)|` bound `|Δ_k(t)|`. -/
+theorem fwdM_bound_const (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    {u : ℕ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u) {U : ℝ}
+    (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) (k t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |fwdM R φ u k t ω| ≤ ∑ l, |bnd T φ U k l| := by
+  filter_upwards [fwdM_bound R hφ hua hU k t] with ω h
+  exact h.trans ((le_abs_self _).trans (abs_le_sum_abs (bnd T φ U k) _))
+
+/-- Cochrane (2023), p. 523: under the condition the dominating constants are summable. -/
+theorem summable_const (T : TransitionN N) {φ : Fin N → ℝ} (hc : GenCondition T φ) (U : ℝ) :
+    Summable (fun k => ∑ l, |bnd T φ U k l|) :=
+  summable_sum fun l _ => (summable_bound T hc U l).abs
+
+/-- Cochrane (2023), p. 523: the forward solution `π_t = E_t ∑_k Δ_k(t)` (adapted by
+construction; `fwdSolM_hasSum`: it is `∑_k Δ_k(t)` a.e.). -/
+noncomputable def fwdSolM (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) :
+    Ω → ℝ :=
+  S.E t (fun ω => ∑' k, fwdM R φ u k t ω)
+
+/-- Cochrane (2023), p. 523: under the condition the forward solution is the convergent series
+`∑_k Δ_k(t)` a.e. -/
+theorem fwdSolM_hasSum (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {u : ℕ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u) {U : ℝ}
+    (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => fwdM R φ u k t ω) (fwdSolM R φ u t ω) := by
+  have hE := S.E_hasSum (f := fun k => fwdM R φ u k t) (summable_const T hc U)
+    (fun k => ((fwdM_sm R φ hua k t).mono (S.𝓕.le t)).aestronglyMeasurable)
+    (fun k => fwdM_bound_const R hc.1 hua hU k t) t
+  have hEk : ∀ k, S.E t (fwdM R φ u k t) = fwdM R φ u k t := fun k =>
+    S.E_of_stronglyMeasurable (fwdM_sm R φ hua k t)
+      (MeasExpectationSystem.BddRV.integrable
+        (MeasExpectationSystem.BddRV.of_stronglyMeasurable (fwdM_sm R φ hua k t)
+          (fwdM_bound_const R hc.1 hua hU k t)))
+  filter_upwards [hE] with ω h
+  simp only [hEk] at h
+  exact h
+
+/-- Cochrane (2023), pp. 522–523, genuinely: under the condition the forward solution solves
+`E_t π_{t+1} = φ_{S_t} π_t + u_t` a.e. -/
+theorem fwdSolM_solves (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {u : ℕ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u) {U : ℝ}
+    (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) : MSolves R φ u (fwdSolM R φ u) := by
+  intro t
+  have hcongr : S.E t (fwdSolM R φ u (t + 1)) =ᵐ[S.μ]
+      S.E t (fun ω => ∑' k, fwdM R φ u k (t + 1) ω) :=
+    S.E_congr ((fwdSolM_hasSum R hc hua hU (t + 1)).mono fun ω h => h.tsum_eq.symm) t
+  have hE := S.E_hasSum (f := fun k => fwdM R φ u k (t + 1)) (summable_const T hc U)
+    (fun k => ((fwdM_sm R φ hua k (t + 1)).mono (S.𝓕.le _)).aestronglyMeasurable)
+    (fun k => fwdM_bound_const R hc.1 hua hU k (t + 1)) t
+  filter_upwards [hcongr, hE, fwdSolM_hasSum R hc hua hU t] with ω e1 e2 e3
+  rw [e1]
+  have hφi := hc.1 (R.regime t ω)
+  have key : ∀ k, S.E t (fwdM R φ u k (t + 1)) ω =
+      φ (R.regime t ω) * fwdM R φ u (k + 1) t ω := by
+    intro k
+    simp only [fwdM]
+    rw [← mul_assoc, mul_inv_cancel₀ hφi, one_mul]
+  simp only [key] at e2
+  have e3' := (hasSum_nat_add_iff' 1).mpr e3
+  simp only [Finset.sum_range_one] at e3'
+  rw [e2.unique (e3'.mul_left (φ (R.regime t ω)))]
+  simp only [fwdM]
+  field_simp
+  ring
+
+/-- Cochrane (2023), pp. 522–523: the forward solution is bounded. -/
+theorem fwdSolM_bdd (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hc : GenCondition T φ)
+    {u : ℕ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u) {U : ℝ}
+    (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) : S.BddProc (fwdSolM R φ u) := by
+  refine ⟨∑' k, ∑ l, |bnd T φ U k l|, fun t => ?_⟩
+  filter_upwards [fwdSolM_hasSum R hc hua hU t,
+    ae_all_iff.2 fun k => fwdM_bound_const R hc.1 hua hU k t] with ω h hb
+  have hs : Summable fun k => |fwdM R φ u k t ω| :=
+    Summable.of_nonneg_of_le (fun _ => abs_nonneg _) hb (summable_const T hc U)
+  rw [← h.tsum_eq]
+  have hn := norm_tsum_le_tsum_norm (f := fun k => fwdM R φ u k t ω)
+    (by simpa only [Real.norm_eq_abs] using hs)
+  simp only [Real.norm_eq_abs] at hn
+  exact hn.trans (Summable.tsum_le_tsum hb hs (summable_const T hc U))
+
+/-- Cochrane (2023), p. 523: the forward solution is adapted. -/
+theorem fwdSolM_adapted (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (u : ℕ → Ω → ℝ) :
+    StronglyAdapted S.𝓕 (fwdSolM R φ u) := fun t => S.stronglyMeasurable_E t _
+
+/-! ### Non-uniqueness when the condition fails -/
+
+/-- Cochrane (2023), pp. 522–523: a nonzero bounded adapted solution of the homogeneous model
+rules out determinacy. -/
+theorem not_mdet_of_homog (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {e : ℕ → Ω → ℝ}
+    (he : MSolves R φ 0 e) (hea : StronglyAdapted S.𝓕 e) (heb : S.BddProc e)
+    (hne : ¬ e 0 =ᵐ[S.μ] 0) : ¬ MDeterminate R φ := by
+  intro hd
+  have huniq := (hd 0 (fun _ => stronglyMeasurable_zero)
+    ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩).2
+  have hz : MSolves R φ 0 0 := fun t => Eventually.of_forall fun ω => by simp [S.E_zero]
+  exact hne (huniq e 0 he hz hea (fun _ => stronglyMeasurable_zero) heb
+    ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ 0)
+
+/-- Cochrane (2023), p. 523 (**zero coefficients**): the process `π_0 = 1{S_0 = i}`,
+`π_t = 0` for `t ≥ 1`. -/
+noncomputable def zeroSunspot (R : MeasMarkovRegimeN S T) (i : Fin N) : ℕ → Ω → ℝ :=
+  fun t ω => (if t = 0 then 1 else 0) * (if R.regime t ω = i then 1 else 0)
+
+/-- Cochrane (2023), p. 523 (**zero coefficients, genuinely**): if `φ_i = 0`, the process
+`π_0 = 1{S_0 = i}`, `π_t = 0` for `t ≥ 1` is a bounded adapted solution of the homogeneous
+model. -/
+theorem zero_coeff_homogM (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {i : Fin N}
+    (hφ : φ i = 0) :
+    MSolves R φ 0 (zeroSunspot R i) ∧ StronglyAdapted S.𝓕 (zeroSunspot R i) ∧
+      S.BddProc (zeroSunspot R i) := by
+  refine ⟨fun t => ?_, fun t => ?_, ⟨1, fun t => Eventually.of_forall fun ω => ?_⟩⟩
+  · have h0 : zeroSunspot R i (t + 1) = 0 := by
+      funext ω; simp [zeroSunspot]
+    refine Eventually.of_forall fun ω => ?_
+    rw [h0, S.E_zero]
+    by_cases hr : R.regime t ω = i
+    · simp [zeroSunspot, hr, hφ]
+    · simp [zeroSunspot, hr]
+  · exact (stronglyMeasurable_const.mul (sm_comp R (fun l => if l = i then 1 else 0) t))
+  · simp only [zeroSunspot]
+    split_ifs <;> simp
+
+/-- Cochrane (2023), p. 523: the sign of the regime history, `s_0 = 1`,
+`s_{t+1} = sgn φ_{S_t} · s_t`. -/
+noncomputable def sgnProc (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => 1
+  | t + 1 => fun ω => sgn (φ (R.regime t ω)) * sgnProc R φ t ω
+
+/-- Cochrane (2023), p. 523: `s_{t+1}` is known at `t`. -/
+theorem sgnProc_succ_sm (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 t] (sgnProc R φ (t + 1)) := by
+  induction t with
+  | zero => exact (sm_comp R (fun l => sgn (φ l)) 0).mul stronglyMeasurable_const
+  | succ t ih =>
+    exact (sm_comp R (fun l => sgn (φ l)) (t + 1)).mul (ih.mono (S.𝓕.mono (Nat.le_succ t)))
+
+/-- Cochrane (2023), p. 523: `s_t` is known at `t`. -/
+theorem sgnProc_sm (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 t] (sgnProc R φ t) := by
+  cases t with
+  | zero => exact stronglyMeasurable_const
+  | succ t => exact (sgnProc_succ_sm R φ t).mono (S.𝓕.mono (Nat.le_succ t))
+
+/-- Cochrane (2023), p. 523: `|s_t| = 1`. -/
+theorem abs_sgnProc (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (t : ℕ) (ω : Ω) :
+    |sgnProc R φ t ω| = 1 := by
+  induction t with
+  | zero => simp [sgnProc]
+  | succ t ih => simp only [sgnProc]; rw [abs_mul, abs_sgn, ih, one_mul]
+
+/-- Cochrane (2023), pp. 522–523 (**the sign-twisted sunspot, genuinely**): if
+`x_t = |Φ|⁻¹P x_{t+1}` and every `φ_i ≠ 0`, then `π_t = s_t x_t(S_t)` solves the homogeneous
+model `E_t π_{t+1} = φ_{S_t} π_t` a.e. -/
+theorem twisted_solves (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    {x : ℕ → Fin N → ℝ} (hx : ∀ t, x t = absM T φ *ᵥ x (t + 1)) :
+    MSolves R φ 0 (fun t ω => sgnProc R φ t ω * x t (R.regime t ω)) := by
+  intro t
+  have hpull := S.E_pullOut (sgnProc_succ_sm R φ t) (C := 1)
+    (Eventually.of_forall fun ω => (abs_sgnProc R φ (t + 1) ω).le)
+    (bddRV_comp R (x (t + 1)) (t + 1)).integrable
+  filter_upwards [hpull, R.markov t (x (t + 1))] with ω h1 h2
+  change S.E t (sgnProc R φ (t + 1) * fun ω => x (t + 1) (R.regime (t + 1) ω)) ω = _
+  rw [h1, Pi.mul_apply, h2]
+  set i := R.regime t ω
+  have hrow : ∑ j, T.P i j * x (t + 1) j = |φ i| * x t i := by
+    rw [row_absM T (hφ i), hx t]
+    rfl
+  rw [hrow]
+  simp only [sgnProc, Pi.zero_apply, add_zero]
+  linear_combination (sgnProc R φ t ω * x t i) * sgn_mul_abs (φ i)
+
+/-! ### The determinacy theorem -/
+
+/-- Cochrane (2023), pp. 522–523 (**Davig–Leeper for `N` regimes and any signs, genuinely**): in
+any `MeasExpectationSystem` carrying an `N`-state Markov regime process in which every regime has
+positive probability at date `0`, the model `E_t π_{t+1} = φ_{S_t} π_t + u_t` has, for every
+bounded adapted disturbance, a bounded adapted equilibrium that is unique up to a.e. equality iff
+every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is `< 1`. -/
+theorem meas_determinate_iff (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ)
+    (hS0 : ∀ i, S.μ {ω | R.regime 0 ω = i} ≠ 0) : MDeterminate R φ ↔ GenCondition T φ := by
+  constructor
+  · intro hd
+    by_cases h0 : ∀ i, φ i ≠ 0
+    · refine ⟨h0, ?_⟩
+      by_contra hns
+      obtain ⟨x, hx, ⟨B, hB⟩, i₀, hi₀⟩ := exists_bdd_backward hns
+      refine not_mdet_of_homog R (twisted_solves R h0 hx)
+        (fun t => (sgnProc_sm R φ t).mul (sm_comp R (x t) t))
+        ⟨B, fun t => Eventually.of_forall fun ω => ?_⟩ ?_ hd
+      · rw [abs_mul, abs_sgnProc, one_mul]; exact hB _ _
+      · intro hz
+        apply hS0 i₀
+        refine measure_mono_null (fun ω (hω : R.regime 0 ω = i₀) => ?_) (ae_iff.1 hz)
+        simp only [Set.mem_ofPred_eq, sgnProc, one_mul, hω, Pi.zero_apply]
+        exact hi₀
+    · push Not at h0
+      obtain ⟨i, hi⟩ := h0
+      obtain ⟨hs, ha, hb⟩ := zero_coeff_homogM R (S := S) hi
+      refine absurd hd (not_mdet_of_homog R hs ha hb fun hz => hS0 i ?_)
+      refine measure_mono_null (fun ω (hω : R.regime 0 ω = i) => ?_) (ae_iff.1 hz)
+      simp [zeroSunspot, hω]
+  · intro hc u hua ⟨U, hU⟩
+    refine ⟨⟨fwdSolM R φ u, fwdSolM_solves R hc hua hU, fwdSolM_adapted R φ u,
+      fwdSolM_bdd R hc hua hU⟩, ?_⟩
+    intro π₁ π₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂
+    have hi₁ := integrable_of_adapted ha₁ hb₁
+    have hi₂ := integrable_of_adapted ha₂ hb₂
+    have he : ∀ t, S.E t (π₁ (t + 1) - π₂ (t + 1)) =ᵐ[S.μ]
+        fun ω => φ (R.regime t ω) * (π₁ t ω - π₂ t ω) := by
+      intro t
+      filter_upwards [S.E_sub (hi₁ (t + 1)) (hi₂ (t + 1)) t, h₁ t, h₂ t] with ω e1 e2 e3
+      rw [e1, Pi.sub_apply, e2, e3]
+      ring
+    obtain ⟨B₁, hB₁⟩ := hb₁
+    obtain ⟨B₂, hB₂⟩ := hb₂
+    have hz := meas_homog_eq_zero R hc (e := fun t => π₁ t - π₂ t) he
+      (fun t => (ha₁ t).sub (ha₂ t)) ⟨B₁ + B₂, fun t => by
+        filter_upwards [hB₁ t, hB₂ t] with ω e1 e2
+        exact (abs_sub _ _).trans (add_le_add e1 e2)⟩
+    intro t
+    filter_upwards [hz t] with ω e
+    exact sub_eq_zero.mp e
+
+/-- Cochrane (2023), pp. 522–523 (**link** with the tree theorem `determinate_iff`): determinacy
+on the genuine probability space is equivalent to determinacy on the regime tree. -/
+theorem meas_determinate_iff_tree (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ)
+    (hS0 : ∀ i, S.μ {ω | R.regime 0 ω = i} ≠ 0) : MDeterminate R φ ↔ Determinate T φ :=
+  (meas_determinate_iff R φ hS0).trans (determinate_iff T φ).symm
+
+/-- Cochrane (2023), pp. 522–523, genuinely: determinacy depends only on `|φ_i|`. -/
+theorem meas_determinate_iff_abs (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ)
+    (hS0 : ∀ i, S.μ {ω | R.regime 0 ω = i} ≠ 0) :
+    MDeterminate R φ ↔ MDeterminate R (fun i => |φ i|) := by
+  rw [meas_determinate_iff_tree R φ hS0, meas_determinate_iff_tree R _ hS0]
+  exact determinate_iff_abs T φ
+
+/-! ### Two regimes: the special case of `MarkovRegimesMeasure` -/
+
+/-- Cochrane (2023), p. 522: a two-state Markov regime of `MarkovRegimesMeasure` as an `N = 2`
+Markov regime. -/
+def ofTwoRegime {T₂ : MarkovRegimes.Transition}
+    (R : MarkovRegimesMeasure.MeasMarkovRegime S T₂) : MeasMarkovRegimeN S (ofTwo T₂) :=
+  ⟨R.regime, R.adapted, R.markov⟩
+
+/-- Cochrane (2023), pp. 522–523 (**link**): for `N = 2` the genuine model is exactly that of
+`MarkovRegimesMeasure`. -/
+theorem msolves_ofTwo {T₂ : MarkovRegimes.Transition}
+    (R : MarkovRegimesMeasure.MeasMarkovRegime S T₂) (φ : Fin 2 → ℝ) (u π : ℕ → Ω → ℝ) :
+    MSolves (ofTwoRegime R) φ u π ↔ MarkovRegimesMeasure.MSolves R φ u π :=
+  Iff.rfl
+
+/-- Cochrane (2023), pp. 522–523 (**the two-regime, `φ > 0` result recovered**): for two regimes
+with `φ_0, φ_1 > 0`, genuine determinacy holds iff Davig and Leeper's condition holds. -/
+theorem meas_two_regime_recovered {T₂ : MarkovRegimes.Transition}
+    (R : MarkovRegimesMeasure.MeasMarkovRegime S T₂) {φ : Fin 2 → ℝ} (hφ : ∀ i, 0 < φ i)
+    (hS0 : ∀ i, S.μ {ω | R.regime 0 ω = i} ≠ 0) :
+    MDeterminate (ofTwoRegime R) φ ↔ MarkovRegimes.DLCondition T₂ φ :=
+  (meas_determinate_iff (ofTwoRegime R) φ hS0).trans (dl_iff_genCondition T₂ hφ).symm
+
+/-- Cochrane (2023), pp. 522–523 (**the corrected two-regime formula, genuinely**): for two regimes
+and coefficients of any sign, genuine determinacy holds iff `φ_0, φ_1 ≠ 0` and the Davig–Leeper
+formula holds for `|φ_0|, |φ_1|`. -/
+theorem meas_dl_corrected {T₂ : MarkovRegimes.Transition}
+    (R : MarkovRegimesMeasure.MeasMarkovRegime S T₂) (φ : Fin 2 → ℝ)
+    (hS0 : ∀ i, S.μ {ω | R.regime 0 ω = i} ≠ 0) :
+    MDeterminate (ofTwoRegime R) φ ↔
+      (∀ i, φ i ≠ 0) ∧ MarkovRegimes.DLCondition T₂ (fun i => |φ i|) :=
+  (meas_determinate_iff_tree (ofTwoRegime R) φ hS0).trans (dl_corrected T₂ φ)
+
+/-! ### A genuine `N`-state Markov chain driven by i.i.d. uniforms -/
+
+/-- Cochrane (2023), p. 522 (sampling a regime): the cumulative probabilities
+`c_k = ∑_{l < k} p_l`. -/
+noncomputable def cumP (p : Fin N → ℝ) (k : ℕ) : ℝ := ∑ l : Fin N, if (l : ℕ) < k then p l else 0
+
+/-- Cochrane (2023), p. 522: `c_0 = 0`. -/
+theorem cumP_zero (p : Fin N → ℝ) : cumP p 0 = 0 := by simp [cumP]
+
+/-- Cochrane (2023), p. 522: the cumulative probabilities are monotone. -/
+theorem cumP_mono {p : Fin N → ℝ} (hp : ∀ j, 0 ≤ p j) {k k' : ℕ} (h : k ≤ k') :
+    cumP p k ≤ cumP p k' := by
+  refine Finset.sum_le_sum fun l _ => ?_
+  by_cases h1 : (l : ℕ) < k
+  · simp [h1, show (l : ℕ) < k' by omega]
+  · simp only [h1, ↓reduceIte]
+    split_ifs
+    · exact hp l
+    · exact le_rfl
+
+/-- Cochrane (2023), p. 522: `c_N = ∑_l p_l = 1`. -/
+theorem cumP_top {p : Fin N → ℝ} (hp1 : ∑ j, p j = 1) : cumP p N = 1 := by
+  simp only [cumP, Fin.is_lt, ↓reduceIte]
+  exact hp1
+
+/-- Cochrane (2023), p. 522: `c_k ≤ 1`. -/
+theorem cumP_le_one {p : Fin N → ℝ} (hp : ∀ j, 0 ≤ p j) (hp1 : ∑ j, p j = 1) (k : ℕ) :
+    cumP p k ≤ 1 := by
+  rw [← hp1]
+  refine Finset.sum_le_sum fun l _ => ?_
+  split_ifs
+  · exact le_rfl
+  · exact hp l
+
+/-- Cochrane (2023), p. 522: `c_{j+1} = c_j + p_j`. -/
+theorem cumP_succ (p : Fin N → ℝ) (j : Fin N) : cumP p (j + 1) = cumP p j + p j := by
+  have key : ∀ l : Fin N, (if (l : ℕ) < j + 1 then p l else 0) =
+      (if (l : ℕ) < j then p l else 0) + (if l = j then p l else 0) := by
+    intro l
+    by_cases h1 : (l : ℕ) < j
+    · have hne : l ≠ j := fun h => by rw [h] at h1; omega
+      simp [h1, hne, show (l : ℕ) < j + 1 by omega]
+    · by_cases h2 : l = j
+      · subst h2; simp
+      · have hv : (l : ℕ) ≠ j := fun h => h2 (Fin.ext h)
+        have : ¬ (l : ℕ) < j + 1 := by omega
+        simp [h1, h2, this]
+  simp only [cumP, key, Finset.sum_add_distrib, Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte]
+
+/-- Cochrane (2023), p. 522: the number of regimes whose cumulative probability `c_{l+1}` is at
+most `x`. -/
+noncomputable def cnt (p : Fin N → ℝ) (x : ℝ) : ℕ :=
+  (Finset.univ.filter fun l : Fin N => cumP p (l + 1) ≤ x).card
+
+/-- Cochrane (2023), p. 522: the count is monotone in `x`. -/
+theorem cnt_mono (p : Fin N → ℝ) : Monotone (cnt p) := fun x y hxy =>
+  Finset.card_le_card fun l hl => by
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hl ⊢
+    linarith
+
+/-- Cochrane (2023), p. 522 (inverse-CDF sampling): `pick p x = j` iff `c_j ≤ x < c_{j+1}` (for
+`x ∈ [0, 1)`, `pick_spec`). -/
+noncomputable def pick [NeZero N] (p : Fin N → ℝ) (x : ℝ) : Fin N :=
+  ⟨min (cnt p x) (N - 1), Nat.lt_of_le_of_lt (min_le_right _ _)
+    (Nat.sub_lt (NeZero.pos N) Nat.one_pos)⟩
+
+/-- Cochrane (2023), p. 522: sampling is measurable. -/
+theorem measurable_pick [NeZero N] (p : Fin N → ℝ) : Measurable (pick p) :=
+  (measurable_from_nat (f := fun n => (⟨min n (N - 1), Nat.lt_of_le_of_lt (min_le_right _ _)
+    (Nat.sub_lt (NeZero.pos N) Nat.one_pos)⟩ : Fin N))).comp (cnt_mono p).measurable
+
+/-- Cochrane (2023), p. 522: if `c_j ≤ x < c_{j+1}` then `pick p x = j`. -/
+theorem pick_eq [NeZero N] {p : Fin N → ℝ} (hp : ∀ j, 0 ≤ p j) {x : ℝ} {j : Fin N}
+    (h1 : cumP p j ≤ x) (h2 : x < cumP p (j + 1)) : pick p x = j := by
+  have hset : (Finset.univ.filter fun l : Fin N => cumP p (l + 1) ≤ x) =
+      Finset.univ.filter fun l : Fin N => (l : ℕ) < j := by
+    ext l
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    constructor
+    · intro hl
+      by_contra hlj
+      push Not at hlj
+      have := cumP_mono hp (show (j : ℕ) + 1 ≤ l + 1 by omega)
+      linarith
+    · intro hl
+      exact (cumP_mono hp (show (l : ℕ) + 1 ≤ j by omega)).trans h1
+  have hc : cnt p x = j := by
+    rw [cnt, hset, Fin.card_filter_val_lt]
+    exact min_eq_right j.isLt.le
+  ext
+  simp only [pick, hc]
+  have := j.isLt
+  omega
+
+/-- Cochrane (2023), p. 522: every `x ∈ [0, 1)` lies in some `[c_j, c_{j+1})`. -/
+theorem exists_interval [NeZero N] {p : Fin N → ℝ} (hp1 : ∑ j, p j = 1) {x : ℝ} (hx0 : 0 ≤ x)
+    (hx1 : x < 1) : ∃ j : Fin N, cumP p j ≤ x ∧ x < cumP p (j + 1) := by
+  classical
+  have hN := NeZero.pos N
+  have htop : x < cumP p (N - 1 + 1) := by
+    rw [Nat.sub_add_cancel hN, cumP_top hp1]; exact hx1
+  have hex : ∃ k, x < cumP p (k + 1) := ⟨N - 1, htop⟩
+  have hk : x < cumP p (Nat.find hex + 1) := Nat.find_spec hex
+  have hkN : Nat.find hex < N := by
+    have := Nat.find_min' hex htop
+    omega
+  refine ⟨⟨Nat.find hex, hkN⟩, ?_, hk⟩
+  change cumP p (Nat.find hex) ≤ x
+  rcases Nat.eq_zero_or_pos (Nat.find hex) with h0 | hpos
+  · rw [h0, cumP_zero]; exact hx0
+  · have := Nat.find_min hex (show Nat.find hex - 1 < Nat.find hex by omega)
+    push Not at this
+    rwa [Nat.sub_add_cancel hpos] at this
+
+/-- Cochrane (2023), p. 522: for `x ∈ [0, 1)`, `pick p x = j` iff `c_j ≤ x < c_{j+1}`. -/
+theorem pick_spec [NeZero N] {p : Fin N → ℝ} (hp : ∀ j, 0 ≤ p j) (hp1 : ∑ j, p j = 1) {x : ℝ}
+    (hx0 : 0 ≤ x) (hx1 : x < 1) (j : Fin N) :
+    pick p x = j ↔ cumP p j ≤ x ∧ x < cumP p (j + 1) := by
+  constructor
+  · intro h
+    obtain ⟨j', h1, h2⟩ := exists_interval hp1 hx0 hx1
+    have := pick_eq hp h1 h2
+    rw [h] at this
+    subst this
+    exact ⟨h1, h2⟩
+  · rintro ⟨h1, h2⟩
+    exact pick_eq hp h1 h2
+
+/-- Cochrane (2023), p. 522: `Pr(pick p U = j) = p_j` for a uniform `U`. -/
+theorem unif_pick [NeZero N] {p : Fin N → ℝ} (hp : ∀ j, 0 ≤ p j) (hp1 : ∑ j, p j = 1)
+    (j : Fin N) :
+    (MarkovRegimesMeasure.unifProb : Measure ℝ) {x | pick p x = j} = ENNReal.ofReal (p j) := by
+  change volume.restrict (Set.Icc 0 1) {x | pick p x = j} = _
+  have hms : MeasurableSet {x | pick p x = j} := measurable_pick p (measurableSet_singleton j)
+  rw [Measure.restrict_apply hms]
+  have hI : volume (Set.Ico (cumP p j) (cumP p (j + 1))) = ENNReal.ofReal (p j) := by
+    rw [Real.volume_Ico, cumP_succ, add_sub_cancel_left]
+  have hsub1 : Set.Ico (cumP p j) (cumP p (j + 1)) ⊆ {x | pick p x = j} ∩ Set.Icc 0 1 := by
+    intro x ⟨h1, h2⟩
+    have h0 : 0 ≤ cumP p j := (cumP_zero p).symm.le.trans (cumP_mono hp (Nat.zero_le _))
+    have hle := cumP_le_one hp hp1 (j + 1)
+    exact ⟨pick_eq hp h1 h2, by linarith, by linarith⟩
+  have hsub2 : {x | pick p x = j} ∩ Set.Icc 0 1 ⊆
+      Set.Ico (cumP p j) (cumP p (j + 1)) ∪ {1} := by
+    intro x ⟨hx, h0, h1⟩
+    rcases h1.lt_or_eq with hlt | heq
+    · exact Or.inl ((pick_spec hp hp1 h0 hlt j).1 hx)
+    · exact Or.inr heq
+  refine le_antisymm ?_ (hI ▸ measure_mono hsub1)
+  calc volume ({x | pick p x = j} ∩ Set.Icc 0 1)
+      ≤ volume (Set.Ico (cumP p j) (cumP p (j + 1)) ∪ {1}) := measure_mono hsub2
+    _ ≤ volume (Set.Ico (cumP p j) (cumP p (j + 1))) + volume ({1} : Set ℝ) :=
+        measure_union_le _ _
+    _ = ENNReal.ofReal (p j) := by rw [hI, Real.volume_singleton, add_zero]
+
+/-- Cochrane (2023), p. 522: `E f(pick p U) = ∑_j p_j f(j)` for a uniform `U`. -/
+theorem integral_pick [NeZero N] {p : Fin N → ℝ} (hp : ∀ j, 0 ≤ p j) (hp1 : ∑ j, p j = 1)
+    (f : Fin N → ℝ) :
+    ∫ x, f (pick p x) ∂(MarkovRegimesMeasure.unifProb : Measure ℝ) = ∑ j, p j * f j := by
+  have hm := measurable_pick p
+  rw [← integral_map hm.aemeasurable
+    (Measurable.of_discrete (f := f)).stronglyMeasurable.aestronglyMeasurable,
+    integral_fintype Integrable.of_finite]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [smul_eq_mul, measureReal_def, Measure.map_apply hm (measurableSet_singleton j)]
+  change ((MarkovRegimesMeasure.unifProb : Measure ℝ) {x | pick p x = j}).toReal * f j = _
+  rw [unif_pick hp hp1, ENNReal.toReal_ofReal (hp j)]
+
+/-- Cochrane (2023), p. 522 (**the `N`-state regime process**): `S_0 = pick q U_0` and
+`S_{t+1} = pick P_{S_t} U_{t+1}`, with i.i.d. uniforms `U_t(ω) = ω_t`. -/
+noncomputable def chainN [NeZero N] (T : TransitionN N) (q : Fin N → ℝ) :
+    ℕ → (ℕ → ℝ) → Fin N
+  | 0 => fun ω => pick q (ω 0)
+  | t + 1 => fun ω => pick (T.P (chainN T q t ω)) (ω (t + 1))
+
+/-- Cochrane (2023), p. 522: the regime is known at each date. -/
+theorem chainN_measurable [NeZero N] (T : TransitionN N) (q : Fin N → ℝ) (t : ℕ) :
+    Measurable[(iidSystem MarkovRegimesMeasure.unifProb).𝓕 t] (chainN T q t) := by
+  induction t with
+  | zero =>
+    exact (measurable_pick q).comp (measurable_shock MarkovRegimesMeasure.unifProb le_rfl)
+  | succ t ih =>
+    have hF : Measurable (fun z : Fin N × ℝ => pick (T.P z.1) z.2) :=
+      measurable_from_prod_countable_right fun i => measurable_pick (T.P i)
+    have heq : chainN T q (t + 1) = (fun z : Fin N × ℝ => pick (T.P z.1) z.2) ∘
+        (fun ω => (chainN T q t ω, shock (t + 1) ω)) := by
+      funext ω
+      simp only [chainN, Function.comp_apply, shock]
+    rw [heq]
+    exact hF.comp ((ih.mono ((iidSystem MarkovRegimesMeasure.unifProb).𝓕.mono
+      (Nat.le_succ t)) le_rfl).prodMk
+      (measurable_shock MarkovRegimesMeasure.unifProb le_rfl))
+
+/-- Cochrane (2023), p. 522 (**the Markov property**): `E_t f(S_{t+1}) = ∑_j P_{S_t j} f(j)`
+a.e. — the regime process is an `N`-state Markov chain with transition matrix `P`. -/
+theorem chainN_markov [NeZero N] (T : TransitionN N) (q : Fin N → ℝ) (t : ℕ)
+    (f : Fin N → ℝ) :
+    (iidSystem MarkovRegimesMeasure.unifProb).E t (fun ω => f (chainN T q (t + 1) ω))
+      =ᵐ[(iidSystem MarkovRegimesMeasure.unifProb).μ]
+      fun ω => ∑ j, T.P (chainN T q t ω) j * f j := by
+  set Sy := iidSystem MarkovRegimesMeasure.unifProb
+  set ind : Fin N → (ℕ → ℝ) → ℝ := fun i ω => if chainN T q t ω = i then 1 else 0 with hind
+  set y : Fin N → (ℕ → ℝ) → ℝ := fun i ω => f (pick (T.P i) (ω (t + 1))) with hy
+  have hdec : (fun ω => f (chainN T q (t + 1) ω)) = ∑ i, ind i * y i := by
+    funext ω
+    simp only [Finset.sum_apply, Pi.mul_apply, hind, hy]
+    rw [Finset.sum_eq_single (chainN T q t ω)]
+    · simp [chainN]
+    · intro b _ hb; simp [Ne.symm hb]
+    · simp
+  have hgm : ∀ i : Fin N, Measurable (fun x => f (pick (T.P i) x)) := fun i =>
+    (Measurable.of_discrete (f := f)).comp (measurable_pick (T.P i))
+  have hindsm : ∀ i, StronglyMeasurable[Sy.𝓕 t] (ind i) := fun i =>
+    ((Measurable.of_discrete (f := fun c : Fin N => if c = i then (1 : ℝ) else 0)).comp
+      (chainN_measurable T q t)).stronglyMeasurable
+  have hindb : ∀ i, ∀ᵐ ω ∂Sy.μ, |ind i ω| ≤ 1 := fun i =>
+    Eventually.of_forall fun ω => by simp only [hind]; split_ifs <;> simp
+  have hyB : ∀ i, Sy.BddRV (y i) := fun i =>
+    ⟨((hgm i).comp (measurable_pi_apply (t + 1))).aestronglyMeasurable, ∑ l, |f l|,
+      Eventually.of_forall fun ω => abs_le_sum_abs f _⟩
+  have hindB : ∀ i, Sy.BddRV (ind i) := fun i =>
+    MeasExpectationSystem.BddRV.of_stronglyMeasurable (hindsm i) (hindb i)
+  have hterm : ∀ i, Sy.E t (ind i * y i) =ᵐ[Sy.μ] fun ω => ind i ω * ∑ j, T.P i j * f j := by
+    intro i
+    have hEy : Sy.E t (y i) =ᵐ[Sy.μ] fun _ => ∑ j, T.P i j * f j := by
+      rw [← integral_pick (T.nonneg i) (T.rowSum i) f]
+      exact E_shock_fun MarkovRegimesMeasure.unifProb t (hgm i)
+    filter_upwards [Sy.E_pullOut (hindsm i) (hindb i) (hyB i).integrable, hEy] with ω h1 h2
+    rw [h1, Pi.mul_apply, h2]
+  rw [hdec]
+  filter_upwards [condExp_finsetSum (s := Finset.univ) (f := fun i => ind i * y i)
+    (fun i _ => ((hindB i).mul (hyB i)).integrable) (Sy.𝓕 t), ae_all_iff.2 hterm]
+    with ω h1 h2
+  refine h1.trans ?_
+  rw [Finset.sum_apply]
+  refine (Finset.sum_congr rfl fun i _ => h2 i).trans ?_
+  simp only [hind]
+  rw [Finset.sum_eq_single (chainN T q t ω)]
+  · simp
+  · intro b _ hb; simp [Ne.symm hb]
+  · simp
+
+/-- Cochrane (2023), p. 522: the regime process of `chainN` as an `N`-state Markov regime of the
+i.i.d. expectation system with uniform shocks. -/
+noncomputable def chainRegimeN [NeZero N] (T : TransitionN N) (q : Fin N → ℝ) :
+    MeasMarkovRegimeN (iidSystem MarkovRegimesMeasure.unifProb) T :=
+  ⟨chainN T q, chainN_measurable T q, chainN_markov T q⟩
+
+/-- Cochrane (2023), p. 522: the initial distribution, `Pr(S_0 = i) = q_i`. -/
+theorem chainN_initial [NeZero N] (T : TransitionN N) {q : Fin N → ℝ} (hq0 : ∀ j, 0 ≤ q j)
+    (hq1 : ∑ j, q j = 1) (i : Fin N) :
+    (iidSystem MarkovRegimesMeasure.unifProb).μ {ω | chainN T q 0 ω = i} =
+      ENNReal.ofReal (q i) := by
+  have hmp := measurePreserving_eval_infinitePi
+    (fun _ => (MarkovRegimesMeasure.unifProb : Measure ℝ)) 0
+  have e0 : {ω : ℕ → ℝ | chainN T q 0 ω = i} = Function.eval 0 ⁻¹' (pick q ⁻¹' {i}) :=
+    rfl
+  rw [e0]
+  change Measure.infinitePi (fun _ => (MarkovRegimesMeasure.unifProb : Measure ℝ)) _ = _
+  rw [hmp.measure_preimage (measurable_pick q (measurableSet_singleton i)).nullMeasurableSet]
+  exact unif_pick hq0 hq1 i
+
+/-- Cochrane (2023), p. 522: with `q_i > 0` every regime has positive probability at date `0`. -/
+theorem chainN_initial_pos [NeZero N] (T : TransitionN N) {q : Fin N → ℝ}
+    (hq0 : ∀ j, 0 < q j) (hq1 : ∑ j, q j = 1) (i : Fin N) :
+    (iidSystem MarkovRegimesMeasure.unifProb).μ {ω | (chainRegimeN T q).regime 0 ω = i} ≠ 0 := by
+  change (iidSystem MarkovRegimesMeasure.unifProb).μ {ω | chainN T q 0 ω = i} ≠ 0
+  rw [chainN_initial T (fun j => (hq0 j).le) hq1 i, ne_eq, ENNReal.ofReal_eq_zero, not_le]
+  exact hq0 i
+
+/-- Cochrane (2023), pp. 522–523 (**Davig–Leeper for `N` regimes and any signs, on a genuine
+Markov chain**): for the `N`-state chain driven by i.i.d. uniforms with every `q_i > 0`, bounded
+adapted equilibria exist and are unique (a.e.) for every bounded adapted disturbance iff every
+`φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is `< 1`, iff the tree model is determinate. -/
+theorem chainN_determinate_iff [NeZero N] (T : TransitionN N) {q : Fin N → ℝ}
+    (hq0 : ∀ j, 0 < q j) (hq1 : ∑ j, q j = 1) (φ : Fin N → ℝ) :
+    (MDeterminate (chainRegimeN T q) φ ↔ GenCondition T φ) ∧
+      (MDeterminate (chainRegimeN T q) φ ↔ Determinate T φ) :=
+  ⟨meas_determinate_iff _ φ (chainN_initial_pos T hq0 hq1),
+    meas_determinate_iff_tree _ φ (chainN_initial_pos T hq0 hq1)⟩
+
+/-- Cochrane (2023), p. 523 (**three regimes on a genuine chain**): three equally likely i.i.d.
+regimes with `φ = (4, −4, ½)` — one negative, one passive — give a determinate economy. -/
+theorem chainN_three_regime_determinate :
+    MDeterminate (chainRegimeN (iidT (fun _ : Fin 3 => 1 / 3) (fun _ => by norm_num)
+      (by simp)) (fun _ => 1 / 3)) ![4, -4, 1 / 2] :=
+  ((chainN_determinate_iff _ (fun _ => by norm_num) (by simp) _).2).2 three_regime_determinate
+
+/-- Cochrane (2023), p. 523 (**a negative regime that is still determinate, genuinely**): on the
+two-state chain of `MarkovRegimesMeasure` with `p_00 = 0.9`, `p_11 = 0.4`, `0 < q < 1` and
+`φ = (2, −½)`, the economy is determinate. -/
+theorem chain_negative_regime_determinate {q : ℝ} (hq0 : 0 < q) (hq1 : q < 1) :
+    MDeterminate (ofTwoRegime (MarkovRegimesMeasure.chainRegime MarkovRegimes.egShortPassive q))
+      ![2, -1 / 2] :=
+  (meas_determinate_iff_tree _ _
+    (MarkovRegimesMeasure.chain_initial_pos MarkovRegimes.egShortPassive hq0 hq1)).2
+    negative_regime_determinate
+
+/-- Cochrane (2023), pp. 522–523 (**the Davig–Leeper formula fails with a negative coefficient,
+genuinely**): on the two-state chain with `p_00 = 0.9`, `p_11 = 0.5`, `0 < q < 1` and
+`φ = (½, −½)`, the formula holds but the economy is indeterminate. -/
+theorem chain_dl_formula_fails_negative {q : ℝ} (hq0 : 0 < q) (hq1 : q < 1) :
+    MarkovRegimes.DLCondition egDL ![1 / 2, -1 / 2] ∧
+      ¬ MDeterminate (ofTwoRegime (MarkovRegimesMeasure.chainRegime egDL q)) ![1 / 2, -1 / 2] :=
+  ⟨dl_formula_fails_negative.1, fun h => dl_formula_fails_negative.2
+    ((meas_determinate_iff_tree _ _
+      (MarkovRegimesMeasure.chain_initial_pos egDL hq0 hq1)).1 h)⟩
+
+/-- Cochrane (2023), p. 523 (**the naive condition is not sufficient, genuinely**): on the
+two-state chain with `p_ij = ½`, `0 < q < 1` and `φ = (½, −½)`, `Φ⁻¹P` is nilpotent but the
+economy is indeterminate. -/
+theorem chain_naive_not_sufficient {q : ℝ} (hq0 : 0 < q) (hq1 : q < 1) :
+    NaiveCondition (ofTwo egHalf) ![1 / 2, -1 / 2] ∧
+      ¬ MDeterminate (ofTwoRegime (MarkovRegimesMeasure.chainRegime egHalf q)) ![1 / 2, -1 / 2] :=
+  ⟨naive_not_sufficient.1, fun h => naive_not_sufficient.2
+    ((meas_determinate_iff_tree _ _
+      (MarkovRegimesMeasure.chain_initial_pos egHalf hq0 hq1)).1 h)⟩
+
+end Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Markov switching on a genuine probability space: determinacy and reachable regimes
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.2, pp. 522–523 (Davig and
+Leeper (2006, 2007): policy-rule coefficients switch according to a Markov process with "two (or
+even N) states"; "a time with `φ < 1` should be something like 'locally passive' or 'temporarily
+passive'").
+
+`MarkovRegimesGeneralMeasure.meas_determinate_iff` assumes every regime has positive probability
+at date `0`. Here that hypothesis is dropped. A regime is *reachable* (`Reach`) if it has positive
+probability at some date. Only reachable regimes matter.
+
+## Main results
+
+* `meas_determinate_iff_reach` (**exact determinacy condition, any `MeasExpectationSystem`**): the
+  model `E_t π_{t+1} = φ_{S_t} π_t + u_t` is determinate (a bounded adapted equilibrium, unique
+  a.e., for every bounded adapted disturbance) iff `φ_i ≠ 0` for every reachable regime and the
+  spectral radius of `|Φ|⁻¹P` with the rows of unreachable regimes set to zero (`maskM`) is `< 1`
+  (`GenConditionOn T φ (Reach R)`). The condition does not depend on the filtration.
+  * Sufficiency (`determinate_of_genConditionOn`): for any set `A` of regimes that `S_t` lies in
+    a.s.
+  * Zero coefficients (`pegSunspot`, `pegSunspot_solves`): let `t₀` be the first date at which a
+    regime with `φ = 0` has positive probability. Then `π_s = c_{t₀−s}(S_s)` for `s ≤ t₀` and
+    `π_s = 0` afterwards is a nonzero bounded solution of the homogeneous model. Here
+    `c_0 = 1{φ = 0}` and `c_{k+1} = Φ⁻¹P c_k`. It is a finite-horizon "peg-date" sunspot and
+    needs no extra randomness: it lives on the regime history alone.
+  * Spectral failure (`exists_bdd_backward_on`, `twisted_solvesOn`): a sign-twisted sunspot,
+    shifted so that it is nonzero at a date at which its regime is reached.
+* `regimeFiltration`, `regimeSystem`, `naturalRegime`, `natural_determinate_iff`,
+  `determinate_filtration_invariant`: **the version for the filtration generated by the regime
+  process alone**, the same condition. Determinacy is the same in every filtration that carries
+  the Markov regime.
+* `integral_regime`, `law_succ`, `dist_eq`, `reach_iff`: `Pr(S_t = ·) = Pr(S_0 = ·) Pᵗ`, and the
+  reachable regimes are those with `(p_0 Pᵗ)_i ≠ 0` for some `t`.
+* `chainN_determinate_iff_reach`, `natural_chainN_determinate_iff_reach`: **the i.i.d.-uniform
+  chain**, with any initial distribution `q`, in its uniform filtration and in its regime-only
+  filtration.
+* `chain_unreachable_zero_determinate`: with `q = (1, 0)`, `P = [[1, 0], [½, ½]]` and `φ = (2, 0)`
+  the genuine economy is determinate, although the regime tree (all histories) is not.
+* `meas_determinate_iff_reach_of_initial`: the earlier theorem is the case in which every regime
+  has positive probability at date `0`.
+-/
+
+namespace Cochrane.ObservationalEquivalence.MarkovRegimesReach
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ObservationalEquivalence.ExpectationsMeasure
+open Cochrane.ObservationalEquivalence.ExpectationsMeasureIID
+open Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+open Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure
+open scoped Matrix ENNReal NNReal
+
+variable {Ω : Type*} [MeasurableSpace Ω] {N : ℕ}
+
+variable {S : MeasExpectationSystem Ω} {T : TransitionN N}
+
+/-! ### The masked matrix and the condition on a set of regimes -/
+
+/-- Cochrane (2023), p. 523: `|Φ|⁻¹P` with the rows of regimes outside `A` set to zero. -/
+noncomputable def maskM (T : TransitionN N) (φ : Fin N → ℝ) (A : Set (Fin N)) :
+    Matrix (Fin N) (Fin N) ℝ :=
+  Matrix.of fun i j => A.indicator (fun i => T.P i j / |φ i|) i
+
+/-- Cochrane (2023), p. 523: rows of `maskM` inside `A`. -/
+theorem maskM_mem {φ : Fin N → ℝ} {A : Set (Fin N)} {i : Fin N} (hi : i ∈ A) (j : Fin N) :
+    maskM T φ A i j = T.P i j / |φ i| := by
+  simp [maskM, hi]
+
+/-- Cochrane (2023), p. 523: rows of `maskM` outside `A` vanish. -/
+theorem maskM_not_mem {φ : Fin N → ℝ} {A : Set (Fin N)} {i : Fin N} (hi : i ∉ A) (j : Fin N) :
+    maskM T φ A i j = 0 := by
+  simp [maskM, hi]
+
+/-- Cochrane (2023), pp. 522–523: the determinacy condition on a set `A` of regimes — `φ_i ≠ 0`
+for `i ∈ A`, and the spectral radius of `maskM` is `< 1`. -/
+def GenConditionOn (T : TransitionN N) (φ : Fin N → ℝ) (A : Set (Fin N)) : Prop :=
+  (∀ i ∈ A, φ i ≠ 0) ∧ specRad (maskM T φ A) < 1
+
+/-- Cochrane (2023), p. 523: with `A` all regimes, `maskM = |Φ|⁻¹P`. -/
+theorem maskM_univ (φ : Fin N → ℝ) : maskM T φ Set.univ = absM T φ := by
+  ext i j
+  simp [maskM, absM]
+
+/-- Cochrane (2023), pp. 522–523: on all regimes the condition is `GenCondition`. -/
+theorem genConditionOn_univ (φ : Fin N → ℝ) :
+    GenConditionOn T φ Set.univ ↔ GenCondition T φ := by
+  simp [GenConditionOn, GenCondition, maskM_univ]
+
+/-- Cochrane (2023), p. 523: `∑_j P_{ij} g_j = |φ_i| ∑_j (maskM)_{ij} g_j` for `i ∈ A`,
+`φ_i ≠ 0`. -/
+theorem row_maskM {φ : Fin N → ℝ} {A : Set (Fin N)} {i : Fin N} (hi : i ∈ A) (hφ : φ i ≠ 0)
+    (g : Fin N → ℝ) : ∑ j, T.P i j * g j = |φ i| * ∑ j, maskM T φ A i j * g j := by
+  have h0 : |φ i| ≠ 0 := abs_ne_zero.2 hφ
+  simp only [maskM_mem hi, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  field_simp
+
+/-! ### Reachable regimes -/
+
+/-- Cochrane (2023), p. 522: the reachable regimes, those with positive probability at some
+date. -/
+def Reach (R : MeasMarkovRegimeN S T) : Set (Fin N) :=
+  {i | ∃ t, S.μ {ω | R.regime t ω = i} ≠ 0}
+
+/-- Cochrane (2023), p. 522: at every date the regime is reachable almost surely. -/
+theorem ae_mem_reach (R : MeasMarkovRegimeN S T) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, R.regime t ω ∈ Reach R := by
+  have h : ∀ i, ∀ᵐ ω ∂S.μ, R.regime t ω = i → i ∈ Reach R := by
+    intro i
+    by_cases hi : i ∈ Reach R
+    · exact Eventually.of_forall fun _ _ => hi
+    · have h0 : S.μ {ω | R.regime t ω = i} = 0 := by
+        by_contra hne
+        exact hi ⟨t, hne⟩
+      rw [ae_iff]
+      refine measure_mono_null (fun ω hω => ?_) h0
+      simp only [Set.mem_ofPred_eq, not_imp] at hω
+      exact hω.1
+  filter_upwards [ae_all_iff.2 h] with ω hω
+  exact hω _ rfl
+
+/-- Cochrane (2023), p. 522: if every regime has positive probability at date `0`, every regime
+is reachable. -/
+theorem reach_univ_of_initial (R : MeasMarkovRegimeN S T)
+    (hS0 : ∀ i, S.μ {ω | R.regime 0 ω = i} ≠ 0) : Reach R = Set.univ :=
+  Set.eq_univ_of_forall fun i => ⟨0, hS0 i⟩
+
+/-! ### Sufficiency on any almost-sure set of regimes -/
+
+/-- Cochrane (2023), p. 523, genuinely: a bounded adapted solution of the homogeneous model
+satisfies `|e_t| ≤ B ∑_j ((maskM)^k)_{S_t j}` a.e. for every `k`. -/
+theorem meas_boundOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hφ : ∀ i ∈ A, φ i ≠ 0) {e : ℕ → Ω → ℝ}
+    (he : ∀ t, S.E t (e (t + 1)) =ᵐ[S.μ] fun ω => φ (R.regime t ω) * e t ω)
+    (hea : StronglyAdapted S.𝓕 e) {B : ℝ} (hB : ∀ t, ∀ᵐ ω ∂S.μ, |e t ω| ≤ B) (k : ℕ) :
+    ∀ t, ∀ᵐ ω ∂S.μ, |e t ω| ≤ B * ∑ j, (maskM T φ A ^ k) (R.regime t ω) j := by
+  induction k with
+  | zero =>
+    intro t
+    filter_upwards [hB t] with ω h
+    simpa only [pow_zero, Matrix.one_apply, Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte,
+      mul_one] using h
+  | succ k ih =>
+    intro t
+    have hei : Integrable (e (t + 1)) S.μ := integrable_of_adapted hea ⟨B, hB⟩ (t + 1)
+    filter_upwards [abs_E_le_markov R hei (g := fun l => B * ∑ j, (maskM T φ A ^ k) l j)
+      (ih (t + 1)), he t, hA t] with ω h1 h2 h3
+    rw [h2] at h1
+    set i := R.regime t ω
+    have hφi := hφ i h3
+    have hpos : 0 < |φ i| := abs_pos.2 hφi
+    have hval : ∑ j, T.P i j * (B * ∑ l, (maskM T φ A ^ k) j l) =
+        |φ i| * (B * ∑ j, (maskM T φ A ^ (k + 1)) i j) := by
+      have hs := sum_pow_succ (maskM T φ A) k i (fun _ => 1)
+      simp only [mul_one] at hs
+      rw [row_maskM h3 hφi, hs]
+      congr 1
+      rw [Finset.mul_sum]
+      exact Finset.sum_congr rfl fun j _ => by ring
+    rw [hval, abs_mul] at h1
+    exact le_of_mul_le_mul_left h1 hpos
+
+/-- Cochrane (2023), pp. 522–523, genuinely: under the condition on `A` the homogeneous model has
+no bounded adapted solution other than zero (a.e.). -/
+theorem meas_homog_eq_zeroOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hc : GenConditionOn T φ A) {e : ℕ → Ω → ℝ}
+    (he : ∀ t, S.E t (e (t + 1)) =ᵐ[S.μ] fun ω => φ (R.regime t ω) * e t ω)
+    (hea : StronglyAdapted S.𝓕 e) (hb : S.BddProc e) : ∀ t, e t =ᵐ[S.μ] 0 := by
+  obtain ⟨B, hB⟩ := hb
+  intro t
+  filter_upwards [ae_all_iff.2 fun k => meas_boundOn R hA hc.1 he hea hB k t] with ω h
+  have hlim : Tendsto (fun k => B * ∑ j, (maskM T φ A ^ k) (R.regime t ω) j) atTop (𝓝 0) := by
+    have hj : ∀ j ∈ Finset.univ,
+        Tendsto (fun k => (maskM T φ A ^ k) (R.regime t ω) j) atTop (𝓝 0) :=
+      fun j _ => (summable_abs_pow_entry hc.2 _ j).of_abs.tendsto_atTop_zero
+    simpa using (tendsto_finsetSum Finset.univ hj).const_mul B
+  have hle : |e t ω| ≤ 0 := ge_of_tendsto' hlim h
+  simpa using abs_nonpos_iff.mp hle
+
+/-- Cochrane (2023), p. 523: the regime-wise bound `U ∑_l ((maskM)^k)_{il}/|φ_l|`. -/
+noncomputable def bndOn (T : TransitionN N) (φ : Fin N → ℝ) (A : Set (Fin N)) (U : ℝ) (k : ℕ)
+    (i : Fin N) : ℝ :=
+  U * ∑ l, (maskM T φ A ^ k) i l * (1 / |φ l|)
+
+/-- Cochrane (2023), p. 523: `|Δ_k(t)| ≤ bndOn_k(S_t)` a.e. -/
+theorem fwdM_boundOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hφ : ∀ i ∈ A, φ i ≠ 0) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) {U : ℝ} (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) (k : ℕ) :
+    ∀ t, ∀ᵐ ω ∂S.μ, |fwdM R φ u k t ω| ≤ bndOn T φ A U k (R.regime t ω) := by
+  induction k with
+  | zero =>
+    intro t
+    filter_upwards [hU t] with ω h
+    simp only [fwdM, bndOn, pow_zero, Matrix.one_apply, ite_mul, one_mul, zero_mul,
+      Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte]
+    rw [abs_neg, abs_mul, abs_inv, mul_one_div, ← div_eq_inv_mul]
+    exact div_le_div_of_nonneg_right h (abs_nonneg _)
+  | succ k ih =>
+    intro t
+    have hint : Integrable (fwdM R φ u k (t + 1)) S.μ :=
+      MeasExpectationSystem.BddRV.integrable
+        (MeasExpectationSystem.BddRV.of_stronglyMeasurable (fwdM_sm R φ hua k (t + 1))
+          (M := ∑ l, |bndOn T φ A U k l|)
+          ((ih (t + 1)).mono fun ω h => h.trans ((le_abs_self _).trans
+            (abs_le_sum_abs (bndOn T φ A U k) _))))
+    filter_upwards [abs_E_le_markov R hint (g := bndOn T φ A U k) (ih (t + 1)), hA t]
+      with ω h1 h3
+    simp only [fwdM]
+    set i := R.regime t ω
+    have hφi := hφ i h3
+    have hpos : 0 < |φ i| := abs_pos.2 hφi
+    have hval : (|φ i|)⁻¹ * ∑ j, T.P i j * bndOn T φ A U k j = bndOn T φ A U (k + 1) i := by
+      have hs := sum_pow_succ (maskM T φ A) k i (fun l => 1 / |φ l|)
+      simp only [bndOn]
+      rw [row_maskM h3 hφi, hs, ← mul_assoc, inv_mul_cancel₀ hpos.ne', one_mul,
+        Finset.mul_sum]
+      exact Finset.sum_congr rfl fun j _ => by ring
+    rw [abs_mul, abs_inv, ← hval]
+    exact mul_le_mul_of_nonneg_left h1 (inv_nonneg.2 (abs_nonneg _))
+
+/-- Cochrane (2023), p. 523: the dominating constants `∑_i |bndOn_k(i)|`. -/
+theorem fwdM_bound_constOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hφ : ∀ i ∈ A, φ i ≠ 0) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) {U : ℝ} (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) (k t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |fwdM R φ u k t ω| ≤ ∑ l, |bndOn T φ A U k l| := by
+  filter_upwards [fwdM_boundOn R hA hφ hua hU k t] with ω h
+  exact h.trans ((le_abs_self _).trans (abs_le_sum_abs (bndOn T φ A U k) _))
+
+/-- Cochrane (2023), p. 523: under the condition on `A` the dominating constants are
+summable. -/
+theorem summable_constOn {φ : Fin N → ℝ} {A : Set (Fin N)} (hc : GenConditionOn T φ A) (U : ℝ) :
+    Summable (fun k => ∑ l, |bndOn T φ A U k l|) :=
+  summable_sum fun l _ => ((summable_sum fun m _ =>
+    ((summable_abs_pow_entry hc.2 l m).of_abs.mul_right _)).mul_left U).abs
+
+/-- Cochrane (2023), p. 523: under the condition on `A` the forward solution is `∑_k Δ_k(t)`
+a.e. -/
+theorem fwdSolM_hasSumOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hc : GenConditionOn T φ A) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) {U : ℝ} (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => fwdM R φ u k t ω) (fwdSolM R φ u t ω) := by
+  have hE := S.E_hasSum (f := fun k => fwdM R φ u k t) (summable_constOn hc U)
+    (fun k => ((fwdM_sm R φ hua k t).mono (S.𝓕.le t)).aestronglyMeasurable)
+    (fun k => fwdM_bound_constOn R hA hc.1 hua hU k t) t
+  have hEk : ∀ k, S.E t (fwdM R φ u k t) = fwdM R φ u k t := fun k =>
+    S.E_of_stronglyMeasurable (fwdM_sm R φ hua k t)
+      (MeasExpectationSystem.BddRV.integrable
+        (MeasExpectationSystem.BddRV.of_stronglyMeasurable (fwdM_sm R φ hua k t)
+          (fwdM_bound_constOn R hA hc.1 hua hU k t)))
+  filter_upwards [hE] with ω h
+  simp only [hEk] at h
+  exact h
+
+/-- Cochrane (2023), pp. 522–523, genuinely: under the condition on `A` the forward solution
+solves `E_t π_{t+1} = φ_{S_t} π_t + u_t` a.e. -/
+theorem fwdSolM_solvesOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hc : GenConditionOn T φ A) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) {U : ℝ} (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) :
+    MSolves R φ u (fwdSolM R φ u) := by
+  intro t
+  have hcongr : S.E t (fwdSolM R φ u (t + 1)) =ᵐ[S.μ]
+      S.E t (fun ω => ∑' k, fwdM R φ u k (t + 1) ω) :=
+    S.E_congr ((fwdSolM_hasSumOn R hA hc hua hU (t + 1)).mono fun ω h => h.tsum_eq.symm) t
+  have hE := S.E_hasSum (f := fun k => fwdM R φ u k (t + 1)) (summable_constOn hc U)
+    (fun k => ((fwdM_sm R φ hua k (t + 1)).mono (S.𝓕.le _)).aestronglyMeasurable)
+    (fun k => fwdM_bound_constOn R hA hc.1 hua hU k (t + 1)) t
+  filter_upwards [hcongr, hE, fwdSolM_hasSumOn R hA hc hua hU t, hA t] with ω e1 e2 e3 e4
+  rw [e1]
+  have hφi := hc.1 _ e4
+  have key : ∀ k, S.E t (fwdM R φ u k (t + 1)) ω =
+      φ (R.regime t ω) * fwdM R φ u (k + 1) t ω := by
+    intro k
+    simp only [fwdM]
+    rw [← mul_assoc, mul_inv_cancel₀ hφi, one_mul]
+  simp only [key] at e2
+  have e3' := (hasSum_nat_add_iff' 1).mpr e3
+  simp only [Finset.sum_range_one] at e3'
+  rw [e2.unique (e3'.mul_left (φ (R.regime t ω)))]
+  simp only [fwdM]
+  field_simp
+  ring
+
+/-- Cochrane (2023), pp. 522–523: under the condition on `A` the forward solution is bounded. -/
+theorem fwdSolM_bddOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hc : GenConditionOn T φ A) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) {U : ℝ} (hU : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ U) :
+    S.BddProc (fwdSolM R φ u) := by
+  refine ⟨∑' k, ∑ l, |bndOn T φ A U k l|, fun t => ?_⟩
+  filter_upwards [fwdSolM_hasSumOn R hA hc hua hU t,
+    ae_all_iff.2 fun k => fwdM_bound_constOn R hA hc.1 hua hU k t] with ω h hb
+  have hs : Summable fun k => |fwdM R φ u k t ω| :=
+    Summable.of_nonneg_of_le (fun _ => abs_nonneg _) hb (summable_constOn hc U)
+  rw [← h.tsum_eq]
+  have hn := norm_tsum_le_tsum_norm (f := fun k => fwdM R φ u k t ω)
+    (by simpa only [Real.norm_eq_abs] using hs)
+  simp only [Real.norm_eq_abs] at hn
+  exact hn.trans (Summable.tsum_le_tsum hb hs (summable_constOn hc U))
+
+/-- Cochrane (2023), pp. 522–523 (**sufficiency on any almost-sure set of regimes**): if `S_t ∈ A`
+a.s. at every date, `φ_i ≠ 0` on `A` and the spectral radius of `maskM T φ A` is `< 1`, the model
+is determinate. -/
+theorem determinate_of_genConditionOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ}
+    {A : Set (Fin N)} (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hc : GenConditionOn T φ A) :
+    MDeterminate R φ := by
+  intro u hua ⟨U, hU⟩
+  refine ⟨⟨fwdSolM R φ u, fwdSolM_solvesOn R hA hc hua hU, fwdSolM_adapted R φ u,
+    fwdSolM_bddOn R hA hc hua hU⟩, ?_⟩
+  intro π₁ π₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂
+  have hi₁ := integrable_of_adapted ha₁ hb₁
+  have hi₂ := integrable_of_adapted ha₂ hb₂
+  have he : ∀ t, S.E t (π₁ (t + 1) - π₂ (t + 1)) =ᵐ[S.μ]
+      fun ω => φ (R.regime t ω) * (π₁ t ω - π₂ t ω) := by
+    intro t
+    filter_upwards [S.E_sub (hi₁ (t + 1)) (hi₂ (t + 1)) t, h₁ t, h₂ t] with ω e1 e2 e3
+    rw [e1, Pi.sub_apply, e2, e3]
+    ring
+  obtain ⟨B₁, hB₁⟩ := hb₁
+  obtain ⟨B₂, hB₂⟩ := hb₂
+  have hz := meas_homog_eq_zeroOn R hA hc (e := fun t => π₁ t - π₂ t) he
+    (fun t => (ha₁ t).sub (ha₂ t)) ⟨B₁ + B₂, fun t => by
+      filter_upwards [hB₁ t, hB₂ t] with ω e1 e2
+      exact (abs_sub _ _).trans (add_le_add e1 e2)⟩
+  intro t
+  filter_upwards [hz t] with ω e
+  exact sub_eq_zero.mp e
+
+/-! ### Necessity -/
+
+/-- Cochrane (2023), pp. 522–523: a bounded adapted solution of the homogeneous model that is not
+a.e. zero at some date rules out determinacy. -/
+theorem not_mdet_of_homog_at (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {e : ℕ → Ω → ℝ}
+    (he : MSolves R φ 0 e) (hea : StronglyAdapted S.𝓕 e) (heb : S.BddProc e) {t : ℕ}
+    (hne : ¬ e t =ᵐ[S.μ] 0) : ¬ MDeterminate R φ := by
+  intro hd
+  have huniq := (hd 0 (fun _ => stronglyMeasurable_zero)
+    ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩).2
+  have hz : MSolves R φ 0 0 := fun t => Eventually.of_forall fun ω => by simp [S.E_zero]
+  exact hne (huniq e 0 he hz hea (fun _ => stronglyMeasurable_zero) heb
+    ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ t)
+
+/-- Cochrane (2023), p. 523 (the backward recursion of the peg-date sunspot): `c_0 = 1{φ = 0}`,
+`c_{k+1}(i) = ∑_j P_{ij} c_k(j)/φ_i`. -/
+noncomputable def cBack (T : TransitionN N) (φ : Fin N → ℝ) : ℕ → Fin N → ℝ
+  | 0 => fun i => if φ i = 0 then 1 else 0
+  | k + 1 => fun i => (∑ j, T.P i j * cBack T φ k j) / φ i
+
+/-- Cochrane (2023), p. 523 (**the peg-date sunspot**): `π_s = c_{t₀−s}(S_s)` for `s ≤ t₀`,
+`π_s = 0` for `s > t₀`. -/
+noncomputable def pegSunspot (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (t₀ : ℕ) :
+    ℕ → Ω → ℝ :=
+  fun s ω => if s ≤ t₀ then cBack T φ (t₀ - s) (R.regime s ω) else 0
+
+/-- Cochrane (2023), p. 523 (**zero coefficients, genuinely**): if `φ_{S_s} ≠ 0` a.s. for every
+date `s < t₀`, the peg-date sunspot solves the homogeneous model. -/
+theorem pegSunspot_solves (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {t₀ : ℕ}
+    (h : ∀ s < t₀, ∀ᵐ ω ∂S.μ, φ (R.regime s ω) ≠ 0) : MSolves R φ 0 (pegSunspot R φ t₀) := by
+  intro s
+  by_cases hs : s < t₀
+  · have he1 : pegSunspot R φ t₀ (s + 1) =
+        fun ω => cBack T φ (t₀ - (s + 1)) (R.regime (s + 1) ω) := by
+      funext ω
+      simp [pegSunspot, show s + 1 ≤ t₀ by omega]
+    rw [he1]
+    filter_upwards [R.markov s (cBack T φ (t₀ - (s + 1))), h s hs] with ω h1 h2
+    rw [h1]
+    simp only [pegSunspot, show s ≤ t₀ by omega, ↓reduceIte, Pi.zero_apply, add_zero]
+    rw [show t₀ - s = (t₀ - (s + 1)) + 1 by omega]
+    simp only [cBack]
+    rw [mul_div_cancel₀ _ h2]
+  · have he1 : pegSunspot R φ t₀ (s + 1) = 0 := by
+      funext ω
+      simp [pegSunspot, show ¬ s + 1 ≤ t₀ by omega]
+    rw [he1, S.E_zero]
+    refine Eventually.of_forall fun ω => ?_
+    by_cases hst : s ≤ t₀
+    · have hst' : t₀ - s = 0 := by omega
+      by_cases h0 : φ (R.regime s ω) = 0
+      · simp [pegSunspot, hst, hst', cBack, h0]
+      · simp [pegSunspot, hst, hst', cBack, h0]
+    · simp [pegSunspot, hst]
+
+/-- Cochrane (2023), p. 523: the peg-date sunspot is adapted. -/
+theorem pegSunspot_adapted (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (t₀ : ℕ) :
+    StronglyAdapted S.𝓕 (pegSunspot R φ t₀) := by
+  intro s
+  by_cases hs : s ≤ t₀
+  · have : pegSunspot R φ t₀ s = fun ω => cBack T φ (t₀ - s) (R.regime s ω) := by
+      funext ω; simp [pegSunspot, hs]
+    rw [this]
+    exact sm_comp R _ s
+  · have : pegSunspot R φ t₀ s = 0 := by
+      funext ω; simp [pegSunspot, hs]
+    rw [this]
+    exact stronglyMeasurable_zero
+
+/-- Cochrane (2023), p. 523: the peg-date sunspot is bounded (it is nonzero at finitely many
+dates only). -/
+theorem pegSunspot_bdd (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) (t₀ : ℕ) :
+    S.BddProc (pegSunspot R φ t₀) := by
+  refine ⟨∑ k ∈ Finset.range (t₀ + 1), ∑ i, |cBack T φ k i|,
+    fun s => Eventually.of_forall fun ω => ?_⟩
+  have hnn : 0 ≤ ∑ k ∈ Finset.range (t₀ + 1), ∑ i, |cBack T φ k i| :=
+    Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _
+  by_cases hs : s ≤ t₀
+  · simp only [pegSunspot, hs, ↓reduceIte]
+    refine (abs_le_sum_abs (cBack T φ (t₀ - s)) _).trans ?_
+    exact Finset.single_le_sum (f := fun k => ∑ i, |cBack T φ k i|)
+      (fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _)
+      (Finset.mem_range.2 (by omega))
+  · simp only [pegSunspot, hs, ↓reduceIte, abs_zero]
+    exact hnn
+
+/-- Cochrane (2023), p. 523: if the spectral radius of `maskM T φ A` is not `< 1`, there is a
+regime `i₀ ∈ A` such that for every date `T₀` some bounded `x_t = maskM x_{t+1}` has
+`x_{T₀}(i₀) ≠ 0` (a complex eigenvector, rescaled by `z^{T₀}`). -/
+theorem exists_bdd_backward_on {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hns : ¬ specRad (maskM T φ A) < 1) :
+    ∃ i₀ ∈ A, ∀ T₀ : ℕ, ∃ x : ℕ → Fin N → ℝ, (∀ t, x t = maskM T φ A *ᵥ x (t + 1)) ∧
+      (∃ B, ∀ t i, |x t i| ≤ B) ∧ x T₀ i₀ ≠ 0 := by
+  obtain ⟨z, v, hz1, hv, hAv⟩ := exists_eigen_of_not_lt hns
+  obtain ⟨i₀, hi₀⟩ : ∃ i₀, v i₀ ≠ 0 := by
+    by_contra hcon
+    push Not at hcon
+    exact hv (funext hcon)
+  have hz0 : z ≠ 0 := by
+    intro hz; rw [hz, norm_zero] at hz1; linarith
+  have hi₀A : i₀ ∈ A := by
+    by_contra hnot
+    have hrow := congrFun hAv i₀
+    simp only [Matrix.mulVec, dotProduct, Matrix.map_apply, maskM_not_mem hnot,
+      Complex.ofReal_zero, zero_mul, Finset.sum_const_zero, Pi.smul_apply, smul_eq_mul] at hrow
+    rcases mul_eq_zero.1 hrow.symm with h | h
+    · exact hz0 h
+    · exact hi₀ h
+  refine ⟨i₀, hi₀A, fun T₀ => ?_⟩
+  set w : Fin N → ℂ := (starRingEnd ℂ) (v i₀) • v with hw
+  have hAw : ((maskM T φ A).map Complex.ofReal) *ᵥ w = z • w := by
+    rw [hw, Matrix.mulVec_smul, hAv, smul_comm]
+  have hw0 : (w i₀).re ≠ 0 := by
+    simp only [hw, Pi.smul_apply, smul_eq_mul]
+    rw [mul_comm, Complex.mul_conj, Complex.ofReal_re]
+    exact (Complex.normSq_pos.2 hi₀).ne'
+  refine ⟨fun t i => (z ^ T₀ * (z⁻¹) ^ t * w i).re, ?_, ⟨‖z‖ ^ T₀ * ∑ i, ‖w i‖, ?_⟩, ?_⟩
+  · intro t
+    funext i
+    have hrow := congrFun hAw i
+    simp only [Matrix.mulVec, dotProduct, Matrix.map_apply, Pi.smul_apply, smul_eq_mul] at hrow
+    simp only [Matrix.mulVec, dotProduct]
+    have key : ∑ j, maskM T φ A i j * (z ^ T₀ * (z⁻¹) ^ (t + 1) * w j).re =
+        (z ^ T₀ * (z⁻¹) ^ (t + 1) * ∑ j, (maskM T φ A i j : ℂ) * w j).re := by
+      rw [Finset.mul_sum, Complex.re_sum]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [show z ^ T₀ * (z⁻¹) ^ (t + 1) * ((maskM T φ A i j : ℂ) * w j) =
+        (maskM T φ A i j : ℂ) * (z ^ T₀ * (z⁻¹) ^ (t + 1) * w j) by ring,
+        Complex.re_ofReal_mul]
+    rw [key, hrow, pow_succ]
+    congr 1
+    field_simp
+  · intro t i
+    refine (Complex.abs_re_le_norm _).trans ?_
+    rw [norm_mul, norm_mul, norm_pow, norm_pow, norm_inv]
+    have hle : ‖z‖⁻¹ ^ t ≤ 1 :=
+      pow_le_one₀ (inv_nonneg.2 (norm_nonneg _)) (inv_le_one_of_one_le₀ hz1)
+    have hwi : ‖w i‖ ≤ ∑ i, ‖w i‖ :=
+      Finset.single_le_sum (f := fun i => ‖w i‖) (fun _ _ => norm_nonneg _) (Finset.mem_univ i)
+    have hzT : 0 ≤ ‖z‖ ^ T₀ := pow_nonneg (norm_nonneg _) _
+    calc ‖z‖ ^ T₀ * ‖z‖⁻¹ ^ t * ‖w i‖ ≤ ‖z‖ ^ T₀ * 1 * ∑ i, ‖w i‖ :=
+          mul_le_mul (mul_le_mul_of_nonneg_left hle hzT) hwi (norm_nonneg _)
+            (by positivity)
+      _ = ‖z‖ ^ T₀ * ∑ i, ‖w i‖ := by ring
+  · have h1 : z ^ T₀ * (z⁻¹) ^ T₀ = 1 := by
+      rw [← mul_pow, mul_inv_cancel₀ hz0, one_pow]
+    change (z ^ T₀ * (z⁻¹) ^ T₀ * w i₀).re ≠ 0
+    rw [h1, one_mul]
+    exact hw0
+
+/-- Cochrane (2023), pp. 522–523 (**the sign-twisted sunspot on `A`, genuinely**): if `S_t ∈ A`
+a.s., `φ_i ≠ 0` on `A` and `x_t = maskM x_{t+1}`, then `π_t = s_t x_t(S_t)` solves the homogeneous
+model a.e. -/
+theorem twisted_solvesOn (R : MeasMarkovRegimeN S T) {φ : Fin N → ℝ} {A : Set (Fin N)}
+    (hA : ∀ t, ∀ᵐ ω ∂S.μ, R.regime t ω ∈ A) (hφ : ∀ i ∈ A, φ i ≠ 0)
+    {x : ℕ → Fin N → ℝ} (hx : ∀ t, x t = maskM T φ A *ᵥ x (t + 1)) :
+    MSolves R φ 0 (fun t ω => sgnProc R φ t ω * x t (R.regime t ω)) := by
+  intro t
+  have hpull := S.E_pullOut (sgnProc_succ_sm R φ t) (C := 1)
+    (Eventually.of_forall fun ω => (abs_sgnProc R φ (t + 1) ω).le)
+    (bddRV_comp R (x (t + 1)) (t + 1)).integrable
+  filter_upwards [hpull, R.markov t (x (t + 1)), hA t] with ω h1 h2 h3
+  change S.E t (sgnProc R φ (t + 1) * fun ω => x (t + 1) (R.regime (t + 1) ω)) ω = _
+  rw [h1, Pi.mul_apply, h2]
+  set i := R.regime t ω
+  have hrow : ∑ j, T.P i j * x (t + 1) j = |φ i| * x t i := by
+    rw [row_maskM h3 (hφ i h3), hx t]
+    rfl
+  rw [hrow]
+  simp only [sgnProc, Pi.zero_apply, add_zero]
+  linear_combination (sgnProc R φ t ω * x t i) * sgn_mul_abs (φ i)
+
+/-! ### The exact determinacy condition -/
+
+/-- Cochrane (2023), pp. 522–523 (**Davig–Leeper on a genuine probability space, exactly**): in
+any `MeasExpectationSystem` carrying an `N`-state Markov regime process, the model
+`E_t π_{t+1} = φ_{S_t} π_t + u_t` has, for every bounded adapted disturbance, a bounded adapted
+equilibrium unique up to a.e. equality iff `φ_i ≠ 0` for every reachable regime and the spectral
+radius of `|Φ|⁻¹P` restricted to the reachable regimes (`maskM T φ (Reach R)`) is `< 1`. -/
+theorem meas_determinate_iff_reach (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) :
+    MDeterminate R φ ↔ GenConditionOn T φ (Reach R) := by
+  constructor
+  · intro hd
+    by_cases h0 : ∀ i ∈ Reach R, φ i ≠ 0
+    · refine ⟨h0, ?_⟩
+      by_contra hns
+      obtain ⟨i₀, ⟨T₀, hT₀⟩, hx⟩ := exists_bdd_backward_on hns
+      obtain ⟨x, hxr, ⟨B, hB⟩, hxT⟩ := hx T₀
+      refine not_mdet_of_homog_at R (twisted_solvesOn R (ae_mem_reach R) h0 hxr)
+        (fun t => (sgnProc_sm R φ t).mul (sm_comp R (x t) t))
+        ⟨B, fun t => Eventually.of_forall fun ω => ?_⟩ (t := T₀) ?_ hd
+      · rw [abs_mul, abs_sgnProc, one_mul]; exact hB _ _
+      · intro hz
+        apply hT₀
+        refine measure_mono_null (fun ω (hω : R.regime T₀ ω = i₀) => ?_) (ae_iff.1 hz)
+        simp only [Set.mem_ofPred_eq, Pi.zero_apply, hω]
+        intro h
+        rcases mul_eq_zero.1 h with h' | h'
+        · have := abs_sgnProc R φ T₀ ω
+          rw [h', abs_zero] at this
+          exact zero_ne_one this
+        · exact hxT h'
+    · push Not at h0
+      obtain ⟨i, ⟨t, ht⟩, hi⟩ := h0
+      have hex : ∃ t, S.μ {ω | φ (R.regime t ω) = 0} ≠ 0 :=
+        ⟨t, fun h => ht (measure_mono_null
+          (fun ω (hω : R.regime t ω = i) => by simp [Set.mem_ofPred_eq, hω, hi]) h)⟩
+      classical
+      obtain ⟨t₀, ht₀, hmin⟩ : ∃ t₀, S.μ {ω | φ (R.regime t₀ ω) = 0} ≠ 0 ∧
+          ∀ s < t₀, S.μ {ω | φ (R.regime s ω) = 0} = 0 :=
+        ⟨Nat.find hex, Nat.find_spec hex, fun s hs => by
+          by_contra hne
+          exact Nat.find_min hex hs hne⟩
+      have hmin' : ∀ s < t₀, ∀ᵐ ω ∂S.μ, φ (R.regime s ω) ≠ 0 := by
+        intro s hs
+        rw [ae_iff]
+        simpa only [ne_eq, not_not] using hmin s hs
+      refine absurd hd (not_mdet_of_homog_at R (pegSunspot_solves R hmin')
+        (pegSunspot_adapted R φ t₀) (pegSunspot_bdd R φ t₀) (t := t₀) ?_)
+      intro hz
+      apply ht₀
+      refine measure_mono_null (fun ω (hω : φ (R.regime t₀ ω) = 0) => ?_) (ae_iff.1 hz)
+      simp [pegSunspot, cBack, hω]
+  · intro hc
+    exact determinate_of_genConditionOn R (ae_mem_reach R) hc
+
+/-- Cochrane (2023), pp. 522–523 (**link**): when every regime has positive probability at date
+`0`, the exact condition is `GenCondition`, recovering `meas_determinate_iff`. -/
+theorem meas_determinate_iff_reach_of_initial (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ)
+    (hS0 : ∀ i, S.μ {ω | R.regime 0 ω = i} ≠ 0) :
+    GenConditionOn T φ (Reach R) ↔ GenCondition T φ := by
+  rw [reach_univ_of_initial R hS0, genConditionOn_univ]
+
+/-! ### The filtration generated by the regime process alone -/
+
+/-- Cochrane (2023), p. 522: the filtration generated by the regime process,
+`𝓖_t = σ(S_0, …, S_t)`. -/
+def regimeFiltration (R : MeasMarkovRegimeN S T) : Filtration ℕ ‹MeasurableSpace Ω› where
+  seq t := ⨆ s ∈ Set.Iic t, MeasurableSpace.comap (R.regime s) inferInstance
+  mono' := fun _ _ hab => iSup₂_mono' fun s hs =>
+    ⟨s, Set.mem_Iic.2 (le_trans (Set.mem_Iic.1 hs) hab), le_rfl⟩
+  le' := fun _ => iSup₂_le fun s _ => ((R.adapted s).mono (S.𝓕.le s) le_rfl).comap_le
+
+/-- Cochrane (2023), p. 522: the regime filtration is coarser than the original one. -/
+theorem regimeFiltration_le (R : MeasMarkovRegimeN S T) (t : ℕ) :
+    regimeFiltration R t ≤ S.𝓕 t :=
+  iSup₂_le fun s hs => ((R.adapted s).mono (S.𝓕.mono (Set.mem_Iic.1 hs)) le_rfl).comap_le
+
+/-- Cochrane (2023), p. 522: the regime is known in the regime filtration. -/
+theorem regime_measurable_nat (R : MeasMarkovRegimeN S T) (t : ℕ) :
+    Measurable[regimeFiltration R t] (R.regime t) :=
+  Measurable.of_comap_le (le_iSup₂ (f := fun s (_ : s ∈ Set.Iic t) =>
+    MeasurableSpace.comap (R.regime s) inferInstance) t (Set.mem_Iic.2 le_rfl))
+
+/-- Cochrane (2023), p. 522: the expectation system with the same probability and the regime
+filtration. -/
+def regimeSystem (R : MeasMarkovRegimeN S T) : MeasExpectationSystem Ω :=
+  ⟨S.P, regimeFiltration R⟩
+
+/-- Cochrane (2023), p. 522: the Markov property holds in the regime filtration (tower
+property). -/
+theorem natural_markov (R : MeasMarkovRegimeN S T) (t : ℕ) (f : Fin N → ℝ) :
+    (regimeSystem R).E t (fun ω => f (R.regime (t + 1) ω)) =ᵐ[(regimeSystem R).μ]
+      fun ω => ∑ j, T.P (R.regime t ω) j * f j := by
+  change S.μ[(fun ω => f (R.regime (t + 1) ω)) | regimeFiltration R t] =ᵐ[S.μ] _
+  have h1 := condExp_condExp_of_le (μ := S.μ) (f := fun ω => f (R.regime (t + 1) ω))
+    (regimeFiltration_le R t) (S.𝓕.le t)
+  have h2 : S.μ[S.μ[(fun ω => f (R.regime (t + 1) ω)) | S.𝓕 t] | regimeFiltration R t]
+      =ᵐ[S.μ] S.μ[(fun ω => ∑ j, T.P (R.regime t ω) j * f j) | regimeFiltration R t] :=
+    condExp_congr_ae (R.markov t f)
+  have h3 : S.μ[(fun ω => ∑ j, T.P (R.regime t ω) j * f j) | regimeFiltration R t] =
+      fun ω => ∑ j, T.P (R.regime t ω) j * f j :=
+    condExp_of_stronglyMeasurable ((regimeFiltration R).le t)
+      ((Measurable.of_discrete (f := fun i => ∑ j, T.P i j * f j)).comp
+        (regime_measurable_nat R t)).stronglyMeasurable
+      (bddRV_comp R (fun i => ∑ j, T.P i j * f j) t).integrable
+  exact h1.symm.trans (h2.trans (Eventually.of_forall fun ω => congrFun h3 ω))
+
+/-- Cochrane (2023), p. 522: the regime process as a Markov regime of the regime filtration. -/
+def naturalRegime (R : MeasMarkovRegimeN S T) : MeasMarkovRegimeN (regimeSystem R) T :=
+  ⟨R.regime, regime_measurable_nat R, natural_markov R⟩
+
+/-- Cochrane (2023), pp. 522–523 (**the regime-only filtration**): with information
+`σ(S_0, …, S_t)` the model is determinate iff the same reachable-regime condition holds. -/
+theorem natural_determinate_iff (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) :
+    MDeterminate (naturalRegime R) φ ↔ GenConditionOn T φ (Reach R) :=
+  meas_determinate_iff_reach (naturalRegime R) φ
+
+/-- Cochrane (2023), pp. 522–523: determinacy is the same in the original filtration and in the
+filtration generated by the regimes alone — extra randomness creates no extra sunspots. -/
+theorem determinate_filtration_invariant (R : MeasMarkovRegimeN S T) (φ : Fin N → ℝ) :
+    MDeterminate R φ ↔ MDeterminate (naturalRegime R) φ :=
+  (meas_determinate_iff_reach R φ).trans (natural_determinate_iff R φ).symm
+
+/-! ### The law of the regime and reachability -/
+
+/-- Cochrane (2023), p. 522: `E g(S_t) = ∑_i Pr(S_t = i) g(i)`. -/
+theorem integral_regime (R : MeasMarkovRegimeN S T) (t : ℕ) (g : Fin N → ℝ) :
+    ∫ ω, g (R.regime t ω) ∂S.μ = ∑ i, S.μ.real {ω | R.regime t ω = i} * g i := by
+  have hm : Measurable (R.regime t) := (R.adapted t).mono (S.𝓕.le t) le_rfl
+  rw [← integral_map hm.aemeasurable
+    (Measurable.of_discrete (f := g)).stronglyMeasurable.aestronglyMeasurable,
+    integral_fintype Integrable.of_finite]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  rw [smul_eq_mul, measureReal_def, Measure.map_apply hm (measurableSet_singleton i)]
+  rfl
+
+/-- Cochrane (2023), p. 522: `Pr(S_{t+1} = j) = ∑_i Pr(S_t = i) P_{ij}`. -/
+theorem law_succ (R : MeasMarkovRegimeN S T) (t : ℕ) (j : Fin N) :
+    S.μ.real {ω | R.regime (t + 1) ω = j} = ∑ i, S.μ.real {ω | R.regime t ω = i} * T.P i j := by
+  have h1 := integral_regime R (t + 1) (fun l => if l = j then (1 : ℝ) else 0)
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte] at h1
+  have hm := R.markov t (fun l => if l = j then (1 : ℝ) else 0)
+  beta_reduce at hm
+  rw [← h1, ← S.integral_E t, integral_congr_ae hm]
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte]
+  exact integral_regime R t (fun i => T.P i j)
+
+/-- Cochrane (2023), p. 522: the distribution of the regime at date `t`. -/
+noncomputable def dist (R : MeasMarkovRegimeN S T) (t : ℕ) : Fin N → ℝ :=
+  fun i => S.μ.real {ω | R.regime t ω = i}
+
+/-- Cochrane (2023), p. 522: `p_t = p_0 Pᵗ`. -/
+theorem dist_eq (R : MeasMarkovRegimeN S T) (t : ℕ) :
+    dist R t = dist R 0 ᵥ* (Matrix.of T.P) ^ t := by
+  induction t with
+  | zero => simp
+  | succ t ih =>
+    rw [pow_succ, ← Matrix.vecMul_vecMul, ← ih]
+    funext j
+    simp only [dist, law_succ, Matrix.vecMul, dotProduct, Matrix.of_apply]
+
+/-- Cochrane (2023), p. 522: a regime is reachable iff `(p_0 Pᵗ)_i ≠ 0` for some `t`. -/
+theorem reach_iff (R : MeasMarkovRegimeN S T) (i : Fin N) :
+    i ∈ Reach R ↔ ∃ t, (dist R 0 ᵥ* (Matrix.of T.P) ^ t) i ≠ 0 := by
+  refine exists_congr fun t => ?_
+  rw [← dist_eq]
+  simp only [dist, ne_eq]
+  rw [measureReal_eq_zero_iff (measure_ne_top _ _)]
+
+/-! ### The i.i.d.-uniform chain with any initial distribution -/
+
+/-- Cochrane (2023), p. 522: the initial distribution of `chainN` is `q`. -/
+theorem dist_chainN [NeZero N] (T : TransitionN N) {q : Fin N → ℝ} (hq0 : ∀ j, 0 ≤ q j)
+    (hq1 : ∑ j, q j = 1) : dist (chainRegimeN T q) 0 = q := by
+  funext i
+  simp only [dist, measureReal_def]
+  change ((iidSystem MarkovRegimesMeasure.unifProb).μ {ω | chainN T q 0 ω = i}).toReal = q i
+  rw [chainN_initial T hq0 hq1 i, ENNReal.toReal_ofReal (hq0 i)]
+
+/-- Cochrane (2023), p. 522: the reachable regimes of the chain, `{i | ∃ t, (q Pᵗ)_i ≠ 0}`. -/
+theorem reach_chainN [NeZero N] (T : TransitionN N) {q : Fin N → ℝ} (hq0 : ∀ j, 0 ≤ q j)
+    (hq1 : ∑ j, q j = 1) :
+    Reach (chainRegimeN T q) = {i | ∃ t, (q ᵥ* (Matrix.of T.P) ^ t) i ≠ 0} := by
+  ext i
+  rw [reach_iff, dist_chainN T hq0 hq1]
+  rfl
+
+/-- Cochrane (2023), pp. 522–523 (**the uniform chain, any initial distribution**): the chain
+driven by i.i.d. uniforms is determinate iff `φ_i ≠ 0` and the spectral condition hold on the
+regimes `i` with `(q Pᵗ)_i ≠ 0` for some `t`. -/
+theorem chainN_determinate_iff_reach [NeZero N] (T : TransitionN N) {q : Fin N → ℝ}
+    (hq0 : ∀ j, 0 ≤ q j) (hq1 : ∑ j, q j = 1) (φ : Fin N → ℝ) :
+    MDeterminate (chainRegimeN T q) φ ↔
+      GenConditionOn T φ {i | ∃ t, (q ᵥ* (Matrix.of T.P) ^ t) i ≠ 0} := by
+  rw [meas_determinate_iff_reach, reach_chainN T hq0 hq1]
+
+/-- Cochrane (2023), pp. 522–523 (**the uniform chain, regime-only filtration**): the same
+condition with information `σ(S_0, …, S_t)`. -/
+theorem natural_chainN_determinate_iff_reach [NeZero N] (T : TransitionN N) {q : Fin N → ℝ}
+    (hq0 : ∀ j, 0 ≤ q j) (hq1 : ∑ j, q j = 1) (φ : Fin N → ℝ) :
+    MDeterminate (naturalRegime (chainRegimeN T q)) φ ↔
+      GenConditionOn T φ {i | ∃ t, (q ᵥ* (Matrix.of T.P) ^ t) i ≠ 0} := by
+  rw [natural_determinate_iff, reach_chainN T hq0 hq1]
+
+/-- Cochrane (2023), p. 523 (example): regime `0` absorbing, regime `1` left with probability
+`½`, `P = [[1, 0], [½, ½]]`. -/
+noncomputable def egAbsorb : MarkovRegimes.Transition where
+  P := ![![1, 0], ![1 / 2, 1 / 2]]
+  nonneg := by intro i j; fin_cases i <;> fin_cases j <;> norm_num
+  rowSum := by intro i; fin_cases i <;> norm_num [Fin.sum_univ_two]
+
+/-- Cochrane (2023), pp. 522–523 (**an unreachable peg does not matter**): with
+`P = [[1, 0], [½, ½]]`, initial distribution `q = (1, 0)` and `φ = (2, 0)`, regime `1` is never
+reached and the genuine economy (uniform chain, in its own or its regime-only filtration) is
+determinate. The regime tree, which contains every history, is not (`φ_1 = 0`). -/
+theorem chain_unreachable_zero_determinate :
+    MDeterminate (chainRegimeN (ofTwo egAbsorb) ![1, 0]) ![2, 0] ∧
+      MDeterminate (naturalRegime (chainRegimeN (ofTwo egAbsorb) ![1, 0])) ![2, 0] ∧
+      ¬ Determinate (ofTwo egAbsorb) ![2, 0] := by
+  have hq0 : ∀ j, 0 ≤ (![1, 0] : Fin 2 → ℝ) j := by intro j; fin_cases j <;> norm_num
+  have hq1 : ∑ j, (![1, 0] : Fin 2 → ℝ) j = 1 := by simp [Fin.sum_univ_two]
+  have hstat : ∀ t, (![1, 0] : Fin 2 → ℝ) ᵥ* (Matrix.of (ofTwo egAbsorb).P) ^ t = ![1, 0] := by
+    intro t
+    induction t with
+    | zero => simp
+    | succ t ih =>
+      rw [pow_succ, ← Matrix.vecMul_vecMul, ih]
+      funext j
+      fin_cases j <;>
+        simp [Matrix.vecMul, dotProduct, Fin.sum_univ_two, ofTwo, egAbsorb]
+  have hset : {i | ∃ t, ((![1, 0] : Fin 2 → ℝ) ᵥ* (Matrix.of (ofTwo egAbsorb).P) ^ t) i ≠ 0} =
+      {0} := by
+    ext i
+    simp only [hstat, Set.mem_ofPred_eq, exists_const, Set.mem_singleton_iff]
+    fin_cases i <;> simp
+  have hc : GenConditionOn (ofTwo egAbsorb) ![2, 0] {0} := by
+    refine ⟨fun i hi => by rw [Set.mem_singleton_iff.1 hi]; norm_num, ?_⟩
+    have e00 : maskM (ofTwo egAbsorb) ![2, 0] {0} 0 0 = 1 / 2 := by
+      rw [maskM_mem (Set.mem_singleton 0)]; simp [ofTwo, egAbsorb]
+    have e01 : maskM (ofTwo egAbsorb) ![2, 0] {0} 0 1 = 0 := by
+      rw [maskM_mem (Set.mem_singleton 0)]; simp [ofTwo, egAbsorb]
+    have e1 : ∀ j, maskM (ofTwo egAbsorb) ![2, 0] {0} 1 j = 0 := fun j =>
+      maskM_not_mem (by simp) j
+    refine lt_of_le_of_lt (specRad_le_of_eigen (c := 1 / 2) fun z v hv hAv => ?_)
+      (ENNReal.coe_lt_one_iff.2 (by norm_num))
+    have h0 := congrFun hAv 0
+    have h1 := congrFun hAv 1
+    simp only [Matrix.mulVec, dotProduct, Fin.sum_univ_two, Matrix.map_apply, e00, e01, e1,
+      Pi.smul_apply, smul_eq_mul, Complex.ofReal_zero, zero_mul, add_zero] at h0 h1
+    by_cases hz : z = 0
+    · simp [hz]
+    · have hv1 : v 1 = 0 := by
+        rcases mul_eq_zero.1 h1.symm with h | h
+        · exact absurd h hz
+        · exact h
+      have hv0 : v 0 ≠ 0 := by
+        intro h
+        apply hv
+        funext j
+        fin_cases j
+        · exact h
+        · exact hv1
+      have hzv : z = 1 / 2 := by
+        have := h0
+        push_cast at this
+        exact mul_right_cancel₀ hv0 this.symm
+      rw [hzv, ← NNReal.coe_le_coe, coe_nnnorm]
+      norm_num
+  refine ⟨?_, ?_, zero_coeff_indeterminate _ (i := 1) rfl⟩
+  · rw [chainN_determinate_iff_reach _ hq0 hq1, hset]
+    exact hc
+  · rw [natural_chainN_determinate_iff_reach _ hq0 hq1, hset]
+    exact hc
+
+end Cochrane.ObservationalEquivalence.MarkovRegimesReach
+
 set_option linter.style.longLine false
 #print axioms Cochrane.ObservationalEquivalence.SchurStable
 #print axioms Cochrane.ObservationalEquivalence.discQ
@@ -14890,3 +17331,184 @@ set_option linter.style.longLine false
 #print axioms Cochrane.ObservationalEquivalence.SurplusRegressionL2.valueL2_ae_valueM
 #print axioms Cochrane.ObservationalEquivalence.SurplusRegressionL2.harmonicCoeff
 #print axioms Cochrane.ObservationalEquivalence.SurplusRegressionL2.coinZ_harmonic_regL2_pos
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.mk
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.P
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.nonneg
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.TransitionN.rowSum
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.NodeN
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.Solves
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.BoundedFn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.Determinate
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.absM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgnM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.specRad
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.GenCondition
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.NaiveCondition
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_entry_of_lt
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.map_pow_ofReal
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_abs_pow_entry
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.norm_le_spectralRadius
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.exists_eigen_of_not_lt
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.exists_bdd_backward
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.eigen_of_mem_spectrum
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.specRad_le_of_eigen
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sgn_mul_abs
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_sgn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.histSign
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.histSign_cons
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_histSign
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.row_absM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.row_sgnM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.sum_pow_succ
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.not_determinate_of_homog
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.zero_coeff_homog
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.zero_coeff_indeterminate
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_nonzero_of_not
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_nonzero_of_not_naive
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.abs_le_pow_bound
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.homog_eq_zero
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm_bound
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.summable_bound
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdTerm_summable
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol_solves
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.fwdSol_bounded
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.solves_sub
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff_abs
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_congr_abs
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.naive_necessary
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.junk_inverse_wrong
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.ofTwo
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.determinate_iff_old
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.absM_ofTwo
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_iff_genCondition
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.schur_iff_specRad
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_corrected
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.egDL
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.egHalf
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.dl_formula_fails_negative
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.negative_regime_determinate
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.naive_not_sufficient
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iidT
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iid_specRad_lt_iff
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.iid_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneral.three_regime_determinate
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.mk
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.regime
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.adapted
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MeasMarkovRegimeN.markov
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MSolves
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.MDeterminate
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sm_comp
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_le_sum_abs
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.bddRV_comp
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.integrable_of_adapted
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_E_le_markov
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_bound
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_homog_eq_zero
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_sm
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.bnd
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_bound
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdM_bound_const
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.summable_const
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_hasSum
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_solves
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_bdd
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.fwdSolM_adapted
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.not_mdet_of_homog
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.zeroSunspot
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.zero_coeff_homogM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc_succ_sm
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.sgnProc_sm
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.abs_sgnProc
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.twisted_solves
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff_tree
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_determinate_iff_abs
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.ofTwoRegime
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.msolves_ofTwo
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_two_regime_recovered
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.meas_dl_corrected
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_zero
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_mono
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_top
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_le_one
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cumP_succ
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cnt
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.cnt_mono
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.measurable_pick
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick_eq
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.exists_interval
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.pick_spec
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.unif_pick
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.integral_pick
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_measurable
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_markov
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainRegimeN
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_initial
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_initial_pos
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chainN_three_regime_determinate
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_negative_regime_determinate
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_dl_formula_fails_negative
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesGeneralMeasure.chain_naive_not_sufficient
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_mem
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_not_mem
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.GenConditionOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.maskM_univ
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.genConditionOn_univ
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.row_maskM
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.Reach
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.ae_mem_reach
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_univ_of_initial
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_boundOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_homog_eq_zeroOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.bndOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdM_boundOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdM_bound_constOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.summable_constOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_hasSumOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_solvesOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.fwdSolM_bddOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.determinate_of_genConditionOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.not_mdet_of_homog_at
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.cBack
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_solves
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_adapted
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.pegSunspot_bdd
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.exists_bdd_backward_on
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.twisted_solvesOn
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_determinate_iff_reach
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.meas_determinate_iff_reach_of_initial
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeFiltration
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeFiltration_le
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.regime_measurable_nat
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.regimeSystem
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_markov
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.naturalRegime
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.determinate_filtration_invariant
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.integral_regime
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.law_succ
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist_eq
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_iff
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.dist_chainN
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.reach_chainN
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.chainN_determinate_iff_reach
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.natural_chainN_determinate_iff_reach
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.egAbsorb
+#print axioms Cochrane.ObservationalEquivalence.MarkovRegimesReach.chain_unreachable_zero_determinate

@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T19:35:00.416392+00:00",
-  "theorems": 631,
+  "checked_at_utc": "2026-10-21T21:50:56.188365+00:00",
+  "theorems": 735,
   "module_theorems": {
     "AssetsRulesBalanceSheets/Determinacy.lean": 23,
     "AssetsRulesBalanceSheets/Expectations.lean": 20,
@@ -28,9 +28,12 @@
     "AssetsRulesBalanceSheets/ExpectationsMeasure.lean": 71,
     "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean": 37,
     "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean": 39,
-    "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean": 35
+    "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean": 35,
+    "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean": 32,
+    "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean": 48,
+    "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean": 24
   },
-  "audited_declarations": 799,
+  "audited_declarations": 943,
   "declarations": [
     {
       "name": "Cochrane.AssetsRulesBalanceSheets.SchurStable",
@@ -4026,6 +4029,726 @@
       "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_deterministic",
       "kind": "theorem",
       "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.debt_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.child_lt",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.compare_step",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.RuleEqmGen",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.ruleEqm_iff_gen",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.hasSum_E_value",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.target_ruleEqmGen",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_compare",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_news",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_d_news",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_d_news_link",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.BoolNews.bool_news_unique",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.tvc_sub_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0_below",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0_random",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0_random_below",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.lag\u03b5",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.surplus",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.value",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.lag\u03b5_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef_top",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.value_rec",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.lag\u03b5_measurable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.abs_lag\u03b5_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.ma_props",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.value_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.fr_unique_ma",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.surplus",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.coef",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.value",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.summable_abs_shift",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.coef_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.value_rec",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.sum_coef_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.ma_props",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.fr_unique_ma",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasMeasure",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasMeasure_univ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasCoin",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.integral_biasCoin",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.E_branch",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.kap",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.kq",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.pr",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.cc",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.xL",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.lam",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.params",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mv",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.At",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Bv",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Pv",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.bv",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Phi",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Psi",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.meas_up",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av_pred",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_fun_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.MAB_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_pred",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Pv_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Phi_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Psi_meas",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_eq",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_pos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_succ_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mv_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.At_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Bv_eq",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_fac",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.ratio_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.path_invariants",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.mP",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.mP_pos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Pv_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_rec",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.bv_flow",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Psi_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sys",
+      "kind": "abbrev",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mup",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mdn",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mv_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.qmart",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.rate",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasCoin_singleton_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.sys_singleton",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.integrable_all",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.psi_step",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.psi_iter",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.EV_bound",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tvc",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.valuation",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.counter_ruleEqm",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.fr_below_counterexample",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.fr_d_dividing_line",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.fr_below_link",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.propagate",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.exists_delta",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.base_event",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.compare_step_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.compare_step_ratio",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.value_lower",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.ratio_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_compare_below",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_unique_below_news",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_d_news_below",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_unique_s0_random_full",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_unique_s0_random_below_full",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShotFiltration",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_E_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_E_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_const",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.osTarget",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_eqm_form",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.osPrice",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.osDebt",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_eqm_exists",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_exists_iff_atom",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wts",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wts_pos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.hasSum_wts",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wMeasure",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wMeasure_singleton",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wMeasure_univ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wProb",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.xC",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.integral_pow2",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.oneShot_no_eqm",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean"
     }
   ],
   "full_build": "passed",
@@ -8006,6 +8729,726 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.debt_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.child_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.compare_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.RuleEqmGen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.ruleEqm_iff_gen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.hasSum_E_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.target_ruleEqmGen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_compare": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_d_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_d_news_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.BoolNews.bool_news_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.tvc_sub_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0_random": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.fr_unique_s0_random_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.lag\u03b5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.surplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.lag\u03b5_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.coef_top": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.value_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.lag\u03b5_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.abs_lag\u03b5_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.ma_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.value_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MA.fr_unique_ma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.surplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.coef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.summable_abs_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.coef_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.value_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.sum_coef_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.ma_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetOpen.MAinf.fr_unique_ma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasCoin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.integral_biasCoin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.E_branch": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.kap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.kq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.pr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.cc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.xL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.params": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.At": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Phi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Psi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.meas_up": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av_pred": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_fun_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.MAB_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_pred": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Pv_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Phi_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Psi_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.av_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tgt_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_succ_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sw_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mv_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.At_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Bv_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_fac": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.ratio_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.path_invariants": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.mP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.mP_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Pv_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Vv_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.bv_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Psi_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Sys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mdn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.Mv_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.qmart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.biasCoin_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.sys_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.integrable_all": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.psi_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.psi_iter": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.EV_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.counter_ruleEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.fr_below_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.fr_d_dividing_line": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesBelowCounter.fr_below_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.propagate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.exists_delta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.base_event": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.compare_step_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.compare_step_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.value_lower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.ratio_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_compare_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_unique_below_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_d_news_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_unique_s0_random_full": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.fr_unique_s0_random_below_full": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShotFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_E_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.osTarget": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_eqm_form": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.osPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.osDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_eqm_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.oneShot_exists_iff_atom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wts_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.hasSum_wts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.wProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.xC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.integral_pow2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetClose.NoExist.oneShot_no_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -8036,15 +9479,18 @@
     "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean": "84dbf42e8ad506345a6b98a12fd295b233d4df1dda48175fdcfd80711304255e",
     "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean": "3fa25a787875a8843b4253d2a05df468bc83312d2286ca647accb695bf098ef3",
     "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean": "8d6d996782edda2eb9d7a8467b94d8d5e65d1cd1f352c1764a9a4206e2afa210",
-    "AssetsRulesBalanceSheets.lean": "1c24dd33e45b7ae79173f6bff000aacf5915d2b465510d2f7d4d896fe6ef1a59",
+    "AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean": "ea8d39d1d6d5e1ba0073bc0aa94fd9b43ff94b9adce3bae0b7cc266db5e2950c",
+    "AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean": "fd30fb4b56c6c8eb2840c5ef8c47d50f6826c5c6276077cccf0fde1c7d9a9b85",
+    "AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean": "437e14ac3fc2edfe1c302c8a54cc555831594e6536e7d988d368f17394281843",
+    "AssetsRulesBalanceSheets.lean": "2058918328adfe5ba694b017ade30c05bf7000d2e03556eaa9f1969dcc48ac99",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "4459cee1a6f920870caaa72e93b085ab3e3641fb9cfdbcf3001b24a887fc013d",
     "lake-manifest.json": "8e19a4aeec76fb6856c5d793c1eb5fef1657b0af91f8c50e4bd582de963d31d0",
-    "proof-manifest.json": "1cdb94e033c68d7a8ac5e93dbd0965c5072c4315b5f07963793aad91c17abe84",
+    "proof-manifest.json": "43a6eb0950ab41a1ab1aad4771122b5bba3657e06cb6870b791ca97d19eeefd7",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "de52e4e78cf98333d9bc5a326e302388770a0f3f1629ed1ba755eca195efeb41",
+  "fresh_audit_sha256": "c08f7be0615c9a31281c2f2d0536506e9166b278872a0aea02750c4aa8efe8ae",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 8-10 (Part II: Assets, rules, and institutions), with the exchange-rate claims of Ch24 and the real-bills claim of Ch11. Indexed and foreign debt, currency pegs and the gold standard; capital structure and the cashless limit; maturity as a buffer; default and haircuts; central-bank independence; better rules: inflation targets (0 < alpha < 2), fiscal rules (only P = P* under perfect foresight; false in general under uncertainty with an explicit sunspot tree; restored for prices bounded on one side), the fiscal Taylor rule, mixed debt rules, spread targets and swaps, an indexed-debt peg and a CPI standard; pots of assets, shares as money, balance sheets; separate versus common surplus pools and the exchange rate. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapters 8-10, pp. 238-311; also pp. 322 and 527."

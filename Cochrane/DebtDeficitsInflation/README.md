@@ -15,9 +15,11 @@ value of debt and the return on debt. Every identity and model claim is proved f
 innovation operator `Δ_{t+1} = E_{t+1} − E_t` and moving averages in a martingale-difference
 shock. The invertibility and Wold statements of §4.3 and A2 are proved in a real Hilbert space of
 second moments. Conditioning down, invertibility, Wold and Granger causality are also proved on a
-genuine probability space, with Mathlib conditional expectations and in `L²` of an i.i.d. economy.
-The library contains **686 theorems**, including the shared core; 385 of them are in the twelve
-chapter modules and 85 in the three measure-theoretic chapter modules.
+genuine probability space, with Mathlib conditional expectations and in `L²` of an i.i.d. economy,
+and the Wold decomposition theorem that A2 invokes is proved in full for any weakly stationary
+sequence in a real Hilbert space.
+The library contains **753 theorems**, including the shared core; 385 of them are in the twelve
+chapter modules and 152 in the four measure-theoretic and Hilbert-space chapter modules.
 
 **Scope.** The data, the estimates, the tables and the figures of Chapter 4 are out of scope:
 §4.1's U.S. surplus and debt series (Figures 4.1–4.2), the surplus-process estimates of §4.3
@@ -76,6 +78,19 @@ Headline results, in the namespace `Cochrane.DebtDeficitsInflation`:
   absolutely summable moving average (`InvertibilityMeasure.granger_general`,
   `InvertibilityMeasureL2.iid_granger_general`), with error variances `σ²` versus `θ²σ²` in the
   factorised case (`InvertibilityMeasure.granger_factor`).
+* **The Wold decomposition theorem.** A2 pp. 597 and 600 invoke it without stating it; it is
+  proved in full for a weakly stationary sequence in a real Hilbert space (in `L²`: inner products
+  are covariances, projections best linear forecasts). The innovations `e_t = x_t − P_{H_{t−1}}x_t`
+  are white noise, and `x_t = ∑c_je_{t−j} + d_t` with `∑c_j² < ∞`, `c_0 = 1` and `d_t` in the
+  remote past orthogonal to `e` (`Wold.wold_decomposition`); any one-sided representation in
+  forecast errors is the Wold one, which is why an autoregression recovers it (`Wold.wold_unique`);
+  the regular part is regular and the deterministic part deterministic, and neither can be dropped
+  (`Wold.wold_dichotomy`, `Wold.mixed_example`); covariance stationarity is the same as being the
+  orbit of a linear isometry (`Wold.stationary_iff_exists_shift`, `Wold.wold_of_stationary`). Every
+  absolutely summable moving average in white noise is regular (`Wold.maProc_regular`), and the
+  factorised statement (2.17) is an instance: its autoregression error is the Wold innovation and
+  its fitted coefficients the Wold coefficients (`Wold.wold_factor_is_wold`,
+  `Wold.IIDEconomy.iid_wold_factor_is_wold`, `Wold.IIDEconomy.coin_wold`).
 
 ## (4.11) is an identity, not a repayment condition
 
@@ -159,7 +174,11 @@ In addition, found during formalisation: A2's ARMA(1,1) is non-invertible not on
 recovery of the shock from an autoregression of debt, A2 p. 601, needs the other roots of `a(L)`
 outside the unit circle (`InvertibilityMeasure.debt_not_invertible_example`); and the
 unexpected-inflation decomposition conditions down only up to the term `Δ^I_{t+1}v_t`
-(`ConditioningDownMeasure.Example.econ_decomp_counterexample`). An earlier version of this README
+(`ConditioningDownMeasure.Example.econ_decomp_counterexample`). The Wold theorem makes two A2
+p. 597 statements precise: the Wold moving average is fundamental but can have a root on the unit
+circle, so "invertible" is too strong (`Wold.wold_unit_root`,
+`Wold.IIDEconomy.coin_wold_unit_root`), and an autoregression recovers the moving average only
+for a regular process, without a deterministic part (`Wold.IIDEconomy.iid_mixed`). An earlier version of this README
 listed the closed-span non-invertibility statement at `ρ = 1` as unproved; it is false (see
 [corrections](docs/corrections.md)).
 
@@ -179,13 +198,11 @@ Not formalised:
 * the cross-reference "Section 5.5" of A2 p. 594 (E17);
 * statistical claims: "OLS is consistent" for (2.16), and the regressions of (4.17)–(4.18) as
   estimators (they are proved as population covariance algebra);
-* the general Wold decomposition theorem (any stationary process is a deterministic part plus a
-  moving average in its innovations). What is proved is the book's factorised claim (2.17) for
-  every absolutely summable `g` with an absolutely summable inverse
-  (`InvertibilityMeasure.wold_factor`), not only the MA(1), ARMA(1,1) and ARMA(2,1) cases;
 * Wold and Granger causality as statements about conditional expectations given the σ-algebra of
   past surpluses: they are proved for best linear forecasts (closed linear spans and orthogonal
-  projections in `L²`), which is what Wold and a VAR mean; for non-Gaussian shocks the two differ;
+  projections in `L²`), which is what Wold and a VAR mean; for non-Gaussian shocks the two differ.
+  This includes the general Wold decomposition theorem (`Wold.wold_decomposition`): its innovation
+  is the linear forecast error, not `x_t − E(x_t|σ(x_{t−1}, x_{t−2}, …))`;
 * conditioning down without bounded processes or with `|ρ| = 1`: the measure-theoretic results
   assume bounded measurable processes and `|ρ| < 1`, which the ex-post present value needs.
 
@@ -214,6 +231,7 @@ Not formalised:
 | [ConditioningDownMeasure](DebtDeficitsInflation/ConditioningDownMeasure.lean) | 36 | §4.3 pp. 101–102, A2 (2.22)–(2.23) on a general probability space: nested filtrations, conditioning down iff `v_t ∈ I_t`, the valuation and flow identities, (3.20) and (4.2) under any information with the extra term `Δ^I_{t+1}v_t`, the lagged-econometrician counterexample, links to `ConditioningDown` |
 | [InvertibilityMeasure](DebtDeficitsInflation/InvertibilityMeasure.lean) | 38 | §4.3 p. 102, A2 (2.17)–(2.21) in a Hilbert space: no summable filter at `\|ρ\| ≤ 1`, the closed-span correction at `\|ρ\| = 1`, the factorised Wold statement, debt as ex-post PV and its invertibility (with a counterexample), Granger causality for an arbitrary moving average |
 | [InvertibilityMeasureL2](DebtDeficitsInflation/InvertibilityMeasureL2.lean) | 11 | The invertibility, Wold and Granger statements in `L²` of the i.i.d. economy (`e_t = ε_{φ(t)}`, `φ : ℤ ≃ ℕ`), the unit-root counterexample, the fair-coin instance |
+| [Wold](DebtDeficitsInflation/Wold.lean) | 67 | A2 pp. 597, 600: the Wold decomposition theorem in a real Hilbert space (innovations, decomposition, uniqueness, the regular/deterministic dichotomy, covariance stationarity ⇔ isometry orbit), a mixed example, MAs are regular, the factorised (2.17) as an instance, the unit-root correction, the `L²` i.i.d. and fair-coin instances |
 
 ## Modelling conventions
 
@@ -257,7 +275,10 @@ Not formalised:
   surplus history" means membership of the closed linear span of current and past surpluses
   (`Invertibility.Hilbert.pastSpan`). The genuine instance is `L²` of the i.i.d. economy
   (`InvertibilityMeasureL2.shockL2`, `InvertibilityMeasureL2.iid_whiteNoise`), where inner products
-  are covariances and projections are best linear forecasts.
+  are covariances and projections are best linear forecasts. The Wold theorem takes a sequence
+  `x : ℤ → H` that is weakly stationary in either of two equivalent forms: the orbit of a linear
+  isometry `U x_t = x_{t+1}`, or `⟪x_s, x_u⟫` depending only on `s − u`
+  (`Wold.stationary_iff_exists_shift`); `Wold.past` is `Invertibility.Hilbert.pastSpan`.
 * **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
   functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above stated for it
   still holds. On a countable `Ω` it forces finitely supported forecasts, so it cannot carry an

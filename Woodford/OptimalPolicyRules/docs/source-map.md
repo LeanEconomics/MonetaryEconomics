@@ -15,8 +15,12 @@ claim, and what the chapter derives from them is proved there; the general proof
 8.1–8.4 (Appendix G.1–G.2), in corrected form where needed, and their specialisation to the
 models of §3 are listed in the section "General theory (Props 8.1–8.4)" after §1.5.
 The general problem is also restated on a genuine probability space, with Mathlib's conditional
-expectation and equations holding almost surely (`OptimalRulesMeasure` and the three modules after
-it); those rows follow the general theory, and the copied measure-theoretic core
+expectation and equations holding almost surely (`OptimalRulesMeasure` and the fourteen modules
+after it: VAR economies, i.i.d. economies, a static problem, then arbitrary bounded adapted
+disturbances, the converse of Proposition 8.1, the perfect-foresight kernel, the stability of `H_n`,
+Proposition 8.2 for the two models, Example B, the spectrum of `H`, Proposition 8.2 from a
+quasi-split and the inflation-inertia model in the complex case); those rows follow the
+general theory, and the copied measure-theoretic core
 (`ExpectationsMeasure`, `ExpectationsMeasureIID`) is listed just before the shared tools.
 Results restated from earlier chapters (the Chapter 3 quadratic roots, the Chapter 4
 Blanchard–Kahn tools, Chapter 7's target criterion) are listed where Chapter 8 uses them. The
@@ -258,6 +262,149 @@ problem (the core `GeneralFOC.LQ.Assumption81` under `perfectForesight`).
 | Assumption 8.1, p. 541 | the solution `z_t = i_t = −c_t/2`, `M_t = c_t/2`; existence, uniqueness and the corrected Assumption 8.1 on every probability space, at every `t₀` | `OptimalRulesMeasureStatic.staticY`, `OptimalRulesMeasureStatic.staticΦ`, `OptimalRulesMeasureStatic.static_solvable`, `OptimalRulesMeasureStatic.static_sol`, `OptimalRulesMeasureStatic.static_unique`, `OptimalRulesMeasureStatic.static_assumption81MB` |
 | Assumption 8.1 as stated, p. 541 | holds on the fair-coin economy at `t₀ = 0`, fails there at every `t₀ ≥ 1` | `OptimalRulesMeasureStatic.static_coin_assumption81`, `OptimalRulesMeasureStatic.static_coin_not_assumption81` |
 | Assumption 8.1 (perfect foresight); p. 539; Prop 8.2, p. 555 | the perfect-foresight Assumption 8.1 holds and `H_n = 0`, so the existence theorem applies on every VAR economy | `OptimalRulesMeasureStatic.static_pf`, `OptimalRulesMeasureStatic.static_nextN`, `OptimalRulesMeasureStatic.static_Hn`, `OptimalRulesMeasureStatic.powDecay_zero`, `OptimalRulesMeasureStatic.static_var` |
+
+## Conditional forecasts for an arbitrary disturbance, pp. 538–555 (OptimalRulesMeasureForecast)
+
+No VAR is assumed: the disturbance `c_t` is any bounded adapted process on any filtered probability
+space.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 537 and fn 4 (tools) | the forecast path `k ↦ E_tc_{t+k}(ω)` of the disturbance as a perfect-foresight forcing; the disturbance of (1.1) as a matrix; `c_s` is integrable along a bounded adapted plan | `OptimalRulesMeasureForecast.cfc`, `OptimalRulesMeasureForecast.liftDist_one`, `OptimalRulesMeasureForecast.integrable_dist` |
+| pp. 538–541 | the conditional forecast path of any bounded solution of (1.1) + (1.9) is a perfect-foresight solution from `(Z_t, E_tM_{t−1})`, for every disturbance (no VAR, no measurability of `M₀` needed) | `OptimalRulesMeasureForecast.fc_focSystem` |
+| p. 540; (1.9), p. 541 (tools) | a known multiplier is its own forecast at later dates; the multipliers `ξ_t` on the predetermined rows are pinned down by `E_tφ_{t+1}` and `y_t`; `M_{t−1}` is a.s. its own forecast | `OptimalRulesMeasureForecast.mpart_EVm_of_le`, `OptimalRulesMeasureForecast.ξ_eq_of_foc`, `OptimalRulesMeasureForecast.mpart_EVm_self` |
+| Assumption 8.1 (uniqueness), p. 541 | `FOCUnique P perfectForesight 0` gives `MFOCUnique S P t₀` on every probability space, for every disturbance | `OptimalRulesMeasureForecast.m_focUnique_of_pf` |
+| (1.19)–(1.20), p. 553 | (1.20) and (1.19) hold a.s. along every bounded solution, and for the spliced history, for every disturbance | `OptimalRulesMeasureForecast.m_eq119_120`, `OptimalRulesMeasureForecast.m_spliced_119_120` |
+| (1.23), p. 554, fn 14 | commitment to the target criterion a.s.; it holds along every bounded solution with a consistent history, for every disturbance | `OptimalRulesMeasureForecast.MCriterion`, `OptimalRulesMeasureForecast.m_criterion` |
+| p. 541 (link) | on the one-point space the forecast path is the solution itself | `OptimalRulesMeasureForecast.fc_unitSystem` |
+
+## Determinacy under (1.23) on a probability space: the converse of Prop 8.1, pp. 553–555 (OptimalRulesMeasureConverse)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. G.1, p. 717; p. 553; (1.26), p. 554 (tools) | geometric vector series converge absolutely, with a uniform bound and one-step recursion; `T̃'W(Tv − τ*)` and `T_i'W(Tv − τ*)` are bounded and affine | `OptimalRulesMeasureConverse.geom_vec`, `OptimalRulesMeasureConverse.geom_shift`, `OptimalRulesMeasureConverse.geom_bound`, `OptimalRulesMeasureConverse.xv_bound`, `OptimalRulesMeasureConverse.vv_bound`, `OptimalRulesMeasureConverse.xv_affine` |
+| App. G.1; (1.21), p. 553 | the realised forward sum `R_t = ∑_k(βΨ')ᵏβJ'x_{t+k}`, `F_t = E_tR_t`, `r_t = (J₁')⁻¹F_t`; `R_t` converges a.s., is bounded and integrable | `OptimalRulesMeasureConverse.Rsum`, `OptimalRulesMeasureConverse.Fm`, `OptimalRulesMeasureConverse.rm`, `OptimalRulesMeasureConverse.rsum_spec`, `OptimalRulesMeasureConverse.xproc_int_known`, `OptimalRulesMeasureConverse.rsum_integrable` |
+| App. G.1, (G.5) | the forward recursion `F_t = βJ'x_t + βΨ'E_tF_{t+1}` a.s., by the law of iterated expectations (no passing of `E_t` through the series); `F_t`, `r_t` bounded and known at `t` | `OptimalRulesMeasureConverse.Fm_rec`, `OptimalRulesMeasureConverse.Fm_bdd`, `OptimalRulesMeasureConverse.rm_known` |
+| (1.20), (1.25), pp. 553–554 | `q_t = −K⁻¹(x^z_t + A₁₂'E_tr_{t+1})`, known and bounded; it equals a.s. the forecast-based `OptimalRulesMeasureMarkov.qM` | `OptimalRulesMeasureConverse.qm`, `OptimalRulesMeasureConverse.qm_known_bdd`, `OptimalRulesMeasureConverse.qM_eq`, `OptimalRulesMeasureConverse.qm_eq_qM` |
+| (1.23); App. G.2, Assumption 8.5 (tools) | the criterion depends on `q` only at `ω`; an a.s. version of `Prop82General.KrylovBound.boundedV_of_krylov` with a bound uniform over `ω` | `OptimalRulesMeasureConverse.crit_congr`, `OptimalRulesMeasureConverse.krylov_ae` |
+| (1.18)–(1.21), pp. 552–553 | (1.9) splits into (1.18) and (1.19) once `M_t` is given; the reverse algebra of Prop 8.1, pointwise | `OptimalRulesMeasureConverse.foc_split_pt`, `OptimalRulesMeasureConverse.eq118_pt` |
+| p. 555; (1.20)–(1.21) | the multipliers implied by a plan under the criterion: `M_t` from the history and (1.20), `ξ_t = ΥM_{t−1} + r_t`; `M_t` known at `t` | `OptimalRulesMeasureConverse.Mc`, `OptimalRulesMeasureConverse.φc`, `OptimalRulesMeasureConverse.Mc_known` |
+| Prop 8.2 (converse direction), p. 555 | a bounded feasible plan satisfying (1.23) a.s. from `t₀` on, with a consistent history, solves (1.1) + (1.9) | `OptimalRulesMeasureConverse.m_focSystem_of_criterion` |
+| Props 8.1–8.2, p. 555 | for a feasible plan, (1.23) a.s. ⟺ it is the FOC solution; a criterion plan equals the optimal plan a.s. | `OptimalRulesMeasureConverse.m_criterion_iff`, `OptimalRulesMeasureConverse.m_criterion_eq_foc` |
+| Prop 8.2 (determinacy), p. 555 | two bounded feasible plans satisfying (1.23) a.s. coincide, under the measure uniqueness half of Assumption 8.1 and Assumption 8.5, or from perfect-foresight uniqueness alone; no stability of `Λ` | `OptimalRulesMeasureConverse.m_prop82_unique`, `OptimalRulesMeasureConverse.m_prop82_unique_pf` |
+| Prop 8.2, p. 555 | on every VAR economy: full determinacy plus timeless optimality | `OptimalRulesMeasureConverse.m_prop82_var` |
+| (1.23), (1.25) (links) | on the one-point space the forecast-based `q_t` is `Prop81General.Qop perfectForesight` and `MCriterion` is the core `Prop82General.Prop82M.CriterionM` | `OptimalRulesMeasureConverse.Qop_pf_eq`, `OptimalRulesMeasureConverse.qM_unit`, `OptimalRulesMeasureConverse.mCriterion_unit_iff` |
+
+## Assumption 8.1 under perfect foresight: the solution map and its kernel, pp. 537–542 (OptimalRulesMeasureKernel)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.1) + (1.9), pp. 537–541; fn 6, p. 539 | the perfect-foresight system with forcing path `g` from the state `n = (Z_0, M_{−1})`; bounded forcing paths and their closure properties | `OptimalRulesMeasureKernel.PFSol`, `OptimalRulesMeasureKernel.BddSeq`, `OptimalRulesMeasureKernel.bddSeq_comb`, `OptimalRulesMeasureKernel.bddSeq_shift`, `OptimalRulesMeasureKernel.bddSeq_bcf`, `OptimalRulesMeasureKernel.bddSeq_zero`, `OptimalRulesMeasureKernel.bddSeq_imp`, `OptimalRulesMeasureKernel.bddSeq_trunc` |
+| Assumption 8.1, p. 541 | the solution map: a bounded solution from every state for every bounded forcing path, unique, bounded | `OptimalRulesMeasureKernel.pfsol_exists`, `OptimalRulesMeasureKernel.solY`, `OptimalRulesMeasureKernel.solΦ`, `OptimalRulesMeasureKernel.sol_spec`, `OptimalRulesMeasureKernel.sol_unique`, `OptimalRulesMeasureKernel.sol_bdd` |
+| (1.10), p. 542; p. 539 | the solution map is affine and time invariant; the next state | `OptimalRulesMeasureKernel.sol_comb`, `OptimalRulesMeasureKernel.nextS`, `OptimalRulesMeasureKernel.sol_shift` |
+| p. 541 (tools) | pointwise limits of solutions are solutions | `OptimalRulesMeasureKernel.lim_eq`, `OptimalRulesMeasureKernel.pfsol_limit` |
+| Assumption 8.1, p. 541 (closed graph theorem) | the solution map, measured from the zero data, is a continuous linear map `ℝ^{n_Z+n_z} × ℓ^∞ → ℓ^∞`; solutions are bounded uniformly in the data; continuity under bounded pointwise convergence (Tychonoff) | `OptimalRulesMeasureKernel.dvec`, `OptimalRulesMeasureKernel.dvec_bound`, `OptimalRulesMeasureKernel.dbcf`, `OptimalRulesMeasureKernel.Tlin`, `OptimalRulesMeasureKernel.Tlin_continuous`, `OptimalRulesMeasureKernel.sol_bound`, `OptimalRulesMeasureKernel.sol_tendsto` |
+| (1.10), p. 541 (the kernel) | unit impulses, truncated paths; the kernels `K^d_k` of the plan and the multipliers; the response is linear in the forcing and a finite kernel sum for a truncated path | `OptimalRulesMeasureKernel.imp`, `OptimalRulesMeasureKernel.truncSeq`, `OptimalRulesMeasureKernel.KY`, `OptimalRulesMeasureKernel.KΦ`, `OptimalRulesMeasureKernel.dsol_lin`, `OptimalRulesMeasureKernel.truncSeq_succ`, `OptimalRulesMeasureKernel.truncSeq_bdd`, `OptimalRulesMeasureKernel.dsol_finsum`, `OptimalRulesMeasureKernel.dsol_trunc` |
+| Assumption 8.1, p. 541 | the kernel is absolutely summable, `∑_k\|K^d_k\| < ∞`, and `y_d(n, g) = y_d(n, 0) + ∑_kK^d_kg_k` for every bounded `g`; the response does not depend on the state | `OptimalRulesMeasureKernel.mul_sgn`, `OptimalRulesMeasureKernel.abs_mulVec_le`, `OptimalRulesMeasureKernel.kernel_summable`, `OptimalRulesMeasureKernel.sol_sub_indep`, `OptimalRulesMeasureKernel.kernel_hasSum` |
+| (1.5), (1.10) | with zero forcing the solution is affine in the state | `OptimalRulesMeasureKernel.sol0_affine` |
+
+## Assumption 8.1 and Prop 8.2 for an arbitrary bounded adapted disturbance, pp. 537–555 (OptimalRulesMeasureGeneral)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. G.1 (the forward part) | the realised kernel series `∑_kL_kc_{s+k}(ω)` converges a.s., is bounded and integrable, and `E_t` passes through it | `OptimalRulesMeasureGeneral.Rser`, `OptimalRulesMeasureGeneral.rser_spec` |
+| p. 539 | the next-state kernel `K^N`, absolutely summable; `N(n, g) = N(n, 0) + ∑_kK^N_kg_k`, `N(n, 0) = h + Hn`; the matrix `H` of the endogenous state transition | `OptimalRulesMeasureGeneral.KN`, `OptimalRulesMeasureGeneral.KN_summable`, `OptimalRulesMeasureGeneral.nextS_hasSum`, `OptimalRulesMeasureGeneral.nextS_affine`, `OptimalRulesMeasureGeneral.hgen`, `OptimalRulesMeasureGeneral.Hgen`, `OptimalRulesMeasureGeneral.hgen_spec` |
+| p. 539; (1.5), (1.17) | the forecast-driven state `X_{t+1} = h + HX_t + E_t∑_kK^N_kc_{t+k}`; the candidate plan and multipliers; the forecast path of the disturbance | `OptimalRulesMeasureGeneral.Xs`, `OptimalRulesMeasureGeneral.ygen`, `OptimalRulesMeasureGeneral.φgen`, `OptimalRulesMeasureGeneral.chat`, `OptimalRulesMeasureGeneral.chat_bdd` |
+| p. 540 | the forecast-driven state is known at the right dates | `OptimalRulesMeasureGeneral.Xs_known`, `OptimalRulesMeasureGeneral.Xs_known'` |
+| pp. 539–541 | the candidate is a.s. the perfect-foresight solution of the current state and forecast path, and its conditional forecasts are the date-1 values | `OptimalRulesMeasureGeneral.gen_now`, `OptimalRulesMeasureGeneral.gen_next` |
+| Assumption 8.1 (existence), p. 541 | if the forecast-driven state is essentially bounded, the candidate is a bounded solution; every solution has that state | `OptimalRulesMeasureGeneral.gen_solves`, `OptimalRulesMeasureGeneral.state_eq_of_sol` |
+| Assumption 8.1, p. 541 (the exact condition) | for every bounded adapted disturbance, (1.1) + (1.9) has a bounded solution iff the forecast-driven state is essentially bounded | `OptimalRulesMeasureGeneral.m_exists_iff` |
+| p. 539; App. G.1, (G.5) | if `H` is geometrically stable the state is bounded, so measure Assumption 8.1 holds on every probability space for every disturbance | `OptimalRulesMeasureGeneral.xs_bdd_of_powDecay`, `OptimalRulesMeasureGeneral.m_focSolvableMB_of_powDecay`, `OptimalRulesMeasureGeneral.m_assumption81MB_of_powDecay` |
+| Assumption 8.1, p. 541; App. G.1 | the perfect-foresight Assumption 8.1 makes `H` power-bounded; a power-bounded matrix with no eigenvalue on the unit circle is geometrically stable; the root condition gives measure Assumption 8.1 | `OptimalRulesMeasureGeneral.iter_sol`, `OptimalRulesMeasureGeneral.state_of_sol`, `OptimalRulesMeasureGeneral.powBdd_Hgen`, `OptimalRulesMeasureGeneral.powDecay_of_powBdd_noUnit`, `OptimalRulesMeasureGeneral.powDecay_Hgen_of_noUnit`, `OptimalRulesMeasureGeneral.m_assumption81MB_of_noUnit` |
+| Prop 8.2, p. 555 | determinacy for every bounded adapted disturbance on every filtered probability space | `OptimalRulesMeasureGeneral.m_prop82_general` |
+| Assumption 8.1, p. 541 (link) | on the one-point space the exact condition always holds | `OptimalRulesMeasureGeneral.unit_known`, `OptimalRulesMeasureGeneral.xs_bdd_unit` |
+
+## Stability of `H_n`, p. 539, and Assumption 8.1 (OptimalRulesMeasureStability)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 539 | `H_n` (defined through a VAR) is the general `H`, whatever the VAR; the perfect-foresight Assumption 8.1 makes it power-bounded | `OptimalRulesMeasureStability.nextN_mkX_zero`, `OptimalRulesMeasureStability.Hn_eq_Hgen`, `OptimalRulesMeasureStability.powBdd_Hn` |
+| Assumption 8.1, p. 541; p. 539 (corrected statement) | under the perfect-foresight Assumption 8.1, `H_n` is geometrically stable iff it has no eigenvalue on the unit circle; a matrix whose orbits all tend to zero has decaying powers | `OptimalRulesMeasureStability.noUnit_of_powDecay`, `OptimalRulesMeasureStability.powDecay_Hn_iff`, `OptimalRulesMeasureStability.powDecay_of_tendsto` |
+| (1.1)–(1.4), (1.9), pp. 537–541 (counterexample) | the static problem `0 = z + i + c`, loss `½(z² + i²)`, with a predetermined `Z_{t+1} = Z_t` that enters nothing else; its constraints, FOCs and explicit solution | `OptimalRulesMeasureStability.urSys`, `OptimalRulesMeasureStability.urP`, `OptimalRulesMeasureStability.ur_foc_iff`, `OptimalRulesMeasureStability.ur_struct_iff`, `OptimalRulesMeasureStability.ur_Zrow`, `OptimalRulesMeasureStability.urY`, `OptimalRulesMeasureStability.urΦ` |
+| Assumption 8.1, p. 541 | for `urP`: existence and uniqueness on every probability space, the corrected measure form, and the perfect-foresight form | `OptimalRulesMeasureStability.ur_solvable`, `OptimalRulesMeasureStability.half_forward_zero`, `OptimalRulesMeasureStability.ur_sol`, `OptimalRulesMeasureStability.ur_unique`, `OptimalRulesMeasureStability.ur_assumption81MB`, `OptimalRulesMeasureStability.ur_pf` |
+| p. 539 (correction) | for `urP`: `(Z_1, M_0) = (Z_0, 0)`, `He_Z = e_Z`, so `H` has the eigenvalue `1` and neither `H` nor `H_n` (for any VAR) is geometrically stable | `OptimalRulesMeasureStability.ur_nextS`, `OptimalRulesMeasureStability.ur_Hgen_eZ`, `OptimalRulesMeasureStability.ur_eigenvalue_one`, `OptimalRulesMeasureStability.ur_not_powDecay`, `OptimalRulesMeasureStability.ur_not_powDecay_Hn` |
+
+## Stability of `H_n` in the basic and inflation-inertia models, §§3.1–3.2 (OptimalRulesMeasureStabilityModels)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 539 (tool) | `Hᵏn` is the difference of the date-`k` states of the zero-forcing solutions from `n` and from `0` | `OptimalRulesMeasureStabilityModels.Hgen_pow_mulVec` |
+| §3.1, App. G.4 | basic model: the zero-forcing multipliers solve the second-order system; `H_n` is geometrically stable at every admissible calibration; Assumption 8.1 on every filtered probability space for every disturbance | `OptimalRulesMeasureStabilityModels.NK.sys2R_sub'`, `OptimalRulesMeasureStabilityModels.NK.nk_sys2R`, `OptimalRulesMeasureStabilityModels.NK.nk_powDecay`, `OptimalRulesMeasureStabilityModels.NK.nk_powDecay_Hn`, `OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB` |
+| §3.2, App. C.1 | inflation-inertia model (`0 < γ ≤ 1`): the zero-forcing solution is a Blanchard–Kahn equilibrium with `Z_{t+1} = π_t`; `H_n` geometrically stable; Assumption 8.1 on every probability space | `OptimalRulesMeasureStabilityModels.Inertia.in_equil`, `OptimalRulesMeasureStabilityModels.Inertia.in_Z_next`, `OptimalRulesMeasureStabilityModels.Inertia.in_powDecay`, `OptimalRulesMeasureStabilityModels.Inertia.in_powDecay_Hn`, `OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB` |
+
+## Prop 8.2 on a probability space for the basic and inflation-inertia models (OptimalRulesMeasureModelsProp82)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. G.1, pp. 717–718, (G.4) | the empty deflating split when `n_Z = 0` (determinant one, no selected roots, `K = A₂₂'`) | `OptimalRulesMeasureModelsProp82.emptySplit` |
+| Prop 8.2 (p. 555) + A8.5 (App. G.2, p. 719) + split (G.4, pp. 717–718), basic model §3.1 | the split, its `Λ = GeneralLinks.nkΛ`, Assumption 8.5 and the degree bound `D ≥ 2`; measure Prop 8.2 on every filtered probability space for every bounded adapted disturbance, and on every VAR economy, with no hypothesis left | `OptimalRulesMeasureModelsProp82.NK.nkSplit`, `OptimalRulesMeasureModelsProp82.NK.nk_Λ_split`, `OptimalRulesMeasureModelsProp82.NK.nk_h85`, `OptimalRulesMeasureModelsProp82.NK.nk_degrees`, `OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_general`, `OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_var` |
+| Same, inflation-inertia model §3.2, real case (App. G.6, pp. 725–726) | the real split `InertiaSplit.inSplit`, Assumption 8.5 and the degree bound; measure Prop 8.2 for every disturbance and on every VAR economy, for `0 < γ ≤ 1` and `0 ≤ discQ` | `OptimalRulesMeasureModelsProp82.Inertia.inRealSplit`, `OptimalRulesMeasureModelsProp82.Inertia.in_h85`, `OptimalRulesMeasureModelsProp82.Inertia.in_degrees`, `OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_general`, `OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_var` |
+
+## Assumption 8.1: perfect foresight does not imply the measure form (OptimalRulesMeasureCounterexample)
+
+Example B: `Z_{t+1} = Z_t + z_t`, `E_tz_{t+1} = Z_t + z_t + i_t + c_t`, `β = 1/2`, `τ = (z, i)`,
+`W = I`, `τ* = 0`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.1)–(1.4), (1.9), pp. 537–541 | the problem `eBP`, its constraints and FOCs | `OptimalRulesMeasureCounterexample.eBSys`, `OptimalRulesMeasureCounterexample.eBP`, `OptimalRulesMeasureCounterexample.eB_foc_iff`, `OptimalRulesMeasureCounterexample.eB_struct_iff`, `OptimalRulesMeasureCounterexample.eB_Zrow` |
+| App. G; fn 6, p. 539 (tools) | the forward sum `U_t = −∑2^{−k}g_{t+k}`: convergent, recursive, bounded, zero for the zero path; a bounded path with `x_{t+1} = 2x_t` is zero | `OptimalRulesMeasureCounterexample.fwd`, `OptimalRulesMeasureCounterexample.fwd_summable`, `OptimalRulesMeasureCounterexample.fwd_succ`, `OptimalRulesMeasureCounterexample.fwd_bdd`, `OptimalRulesMeasureCounterexample.fwd_zero`, `OptimalRulesMeasureCounterexample.double_zero` |
+| Assumption 8.1, p. 541, perfect foresight | the explicit plan solves the system; along any solution the derived recursions hold and the data determine `(Z_t, M_{t−1}, z_t)`; existence, uniqueness and Assumption 8.1 | `OptimalRulesMeasureCounterexample.eBL`, `OptimalRulesMeasureCounterexample.eBS`, `OptimalRulesMeasureCounterexample.eBy`, `OptimalRulesMeasureCounterexample.eBφ`, `OptimalRulesMeasureCounterexample.eB_pfSystem`, `OptimalRulesMeasureCounterexample.eB_solvable`, `OptimalRulesMeasureCounterexample.eB_derived`, `OptimalRulesMeasureCounterexample.eB_U_succ`, `OptimalRulesMeasureCounterexample.eB_triple_eq`, `OptimalRulesMeasureCounterexample.eB_unique`, `OptimalRulesMeasureCounterexample.eB_pf`, `OptimalRulesMeasureCounterexample.eB_sol` |
+| p. 539 | `H = [1/3 2/3; 1/3 2/3]`, with the left eigen-direction `e = (1, 2)` and the eigenvalue `1`, so `H` is not geometrically stable | `OptimalRulesMeasureCounterexample.eB_nextS0`, `OptimalRulesMeasureCounterexample.eB_Hgen_mulVec`, `OptimalRulesMeasureCounterexample.eB_Hgen`, `OptimalRulesMeasureCounterexample.eB_left_eig`, `OptimalRulesMeasureCounterexample.eB_eigenvalue_one`, `OptimalRulesMeasureCounterexample.eB_not_powDecay` |
+| p. 539 (correction of the earlier conjecture) | `K^N_0 = (−1/3, 4/15)` and `e'K^N_0 = 1/5 ≠ 0`: a unit-modulus left eigen-direction of `H` receives forcing | `OptimalRulesMeasureCounterexample.imp_scalar`, `OptimalRulesMeasureCounterexample.eB_KN0`, `OptimalRulesMeasureCounterexample.eB_eKN`, `OptimalRulesMeasureCounterexample.eB_conjecture_false` |
+| p. 540 (the fair-coin economy, tools) | the coins are bounded by one; the coin random walk is adapted, bounded by `k`, with `E[(ε_{s+1} + ⋯ + ε_{s+k})²] = k` | `OptimalRulesMeasureCounterexample.coin_shock_bdd`, `OptimalRulesMeasureCounterexample.walk_sm`, `OptimalRulesMeasureCounterexample.walk_bdd`, `OptimalRulesMeasureCounterexample.coin_walk_sq` |
+| A8.1, p. 541: perfect foresight does not imply measure A8.1 | with `c_t = ε_t`: along a bounded solution `L` is a random walk, so no bounded solution exists for any initial conditions or starting date; the measure form fails; the forecast-driven state is unbounded | `OptimalRulesMeasureCounterexample.eB_coin_L`, `OptimalRulesMeasureCounterexample.eB_no_solution`, `OptimalRulesMeasureCounterexample.eB_not_solvable`, `OptimalRulesMeasureCounterexample.eB_not_assumption81MB`, `OptimalRulesMeasureCounterexample.eB_xs_unbounded`, `OptimalRulesMeasureCounterexample.pf_assumption81_not_sufficient` |
+
+## The spectrum of `H` and the Euler pencil, p. 539, (1.15) (OptimalRulesMeasureSpectrum)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. G.1 (tools) | real and imaginary parts of complexified products; eigenvalues of a power-bounded matrix lie in the closed unit disc | `OptimalRulesMeasureSpectrum.re_mulVec_apply`, `OptimalRulesMeasureSpectrum.im_mulVec_apply`, `OptimalRulesMeasureSpectrum.eig_norm_le_one` |
+| (1.1) + (1.9), pp. 537–541 | `ν` is a root of the Euler pencil when the homogeneous perfect-foresight system has a nonzero solution `νᵗ(u, p)` | `OptimalRulesMeasureSpectrum.EulerEq`, `OptimalRulesMeasureSpectrum.EulerRoot` |
+| p. 539 (tools) | the responses `D_Y`, `D_Φ` of the plan and the multipliers to the initial state with zero forcing: affine, time invariant (`D(1) = D(0)H`), respecting the initial conditions, solving the homogeneous (1.1) and (1.9); the complex versions | `OptimalRulesMeasureSpectrum.DY`, `OptimalRulesMeasureSpectrum.DΦ`, `OptimalRulesMeasureSpectrum.D_mulVec`, `OptimalRulesMeasureSpectrum.Hgen_eq_next`, `OptimalRulesMeasureSpectrum.D_shift`, `OptimalRulesMeasureSpectrum.D_init`, `OptimalRulesMeasureSpectrum.D_next`, `OptimalRulesMeasureSpectrum.sol_struct`, `OptimalRulesMeasureSpectrum.sol_foc`, `OptimalRulesMeasureSpectrum.D_struct`, `OptimalRulesMeasureSpectrum.D_foc`, `OptimalRulesMeasureSpectrum.Dc_shift`, `OptimalRulesMeasureSpectrum.Dc_init` |
+| p. 539; Assumption 8.1, p. 541 | an eigenvector of `H` generates an eigen-solution; a bounded eigen-solution is the plan from its initial state | `OptimalRulesMeasureSpectrum.eulerEq_of_eig`, `OptimalRulesMeasureSpectrum.stateOf`, `OptimalRulesMeasureSpectrum.eig_sol` |
+| p. 539 vs (1.15), p. 546 / (1.1)+(1.9) | under perfect-foresight A8.1, `ν` is an eigenvalue of `H` iff `\|ν\| ≤ 1` and `ν` is a root of the Euler pencil; `H` is geometrically stable iff the pencil has no root on the unit circle, which gives measure A8.1 for every disturbance | `OptimalRulesMeasureSpectrum.eig_Hgen_iff`, `OptimalRulesMeasureSpectrum.powDecay_Hgen_iff_noEulerRoot`, `OptimalRulesMeasureSpectrum.m_assumption81MB_of_noEulerRoot` |
+| p. 539; §§3.1–3.2 | Example B has the root `1`; the basic and inflation-inertia models have none on the unit circle | `OptimalRulesMeasureSpectrum.eB_eulerRoot_one`, `OptimalRulesMeasureSpectrum.nk_noEulerRoot`, `OptimalRulesMeasureSpectrum.in_noEulerRoot` |
+| (1.15), p. 546 (correction) | in the basic model `H` has an eigenvalue, but the split selects no root of (1.15): `H`'s eigenvalues are not the selected roots | `OptimalRulesMeasureSpectrum.nk_spec_not_selected` |
+
+## Prop 8.2 from a quasi-split on a probability space, pp. 552–555, App. G.1–G.2 (OptimalRulesMeasureQuasiSplit)
+
+A quasi-split (`Prop81CaseII.QuasiSplit`) replaces the real deflating split in case (ii) of
+Assumption 8.2: a real deflating pair `A J⁺ = Î J⁺ Ψ⁺` with one extra column (a real `2 × 2`
+block), a real `P` with `J = J⁺P`, and a residual map `H` on `ker P'` with `(βH)ᵏ → 0`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.25), p. 554; (1.23), p. 554, and fn 14, case (ii) | the forecast-based `q_t` (the core `Prop81CaseII.QopII` on the conditional forecast path); the target criterion a.s. with `Λ = β⁻¹K⁻¹Ẽ'` for `J = J⁺P` | `OptimalRulesMeasureQuasiSplit.qMQ`, `OptimalRulesMeasureQuasiSplit.MCriterionQ` |
+| (1.19)–(1.20), p. 553; (1.23), p. 554, case (ii) | along every bounded solution of (1.1) + (1.9), `M_t = ΛM_{t−1} + q_t` and `B₂'M_t + v_t = 0` a.s. (also for the spliced processes), so the optimal plan satisfies the criterion a.s., for every disturbance | `OptimalRulesMeasureQuasiSplit.m_eq119_120Q`, `OptimalRulesMeasureQuasiSplit.m_spliced_119_120Q`, `OptimalRulesMeasureQuasiSplit.m_criterionQ` |
+| App. G.1, p. 717 (forward uniqueness) | if `Gᵏ` decays geometrically, an essentially bounded process with `D_t = G E_tD_{t+1}` a.s. vanishes a.s. (`D_t = Gᵏ⁺¹E_tD_{t+k+1}` by the tower property) | `OptimalRulesMeasureQuasiSplit.pow_bound_tendsto`, `OptimalRulesMeasureQuasiSplit.m_fwd_zero` |
+| App. G.1, (G.5); (1.20)–(1.21), (1.25), pp. 553–554, case (ii) | the realised forward sum `R⁺_t`, `F⁺_t = E_tR⁺_t`, `r_t = (J₁')⁻¹P'F⁺_t`, `q_t`: convergent, integrable, recursive a.s., bounded, known at `t`; `E_t` passes through the series, so `q_t` equals the forecast-based `qMQ` a.s. | `OptimalRulesMeasureQuasiSplit.RsumQ`, `OptimalRulesMeasureQuasiSplit.FmQ`, `OptimalRulesMeasureQuasiSplit.rmQ`, `OptimalRulesMeasureQuasiSplit.qmQ`, `OptimalRulesMeasureQuasiSplit.rsumQ_spec`, `OptimalRulesMeasureQuasiSplit.rsumQ_integrable`, `OptimalRulesMeasureQuasiSplit.FmQ_rec`, `OptimalRulesMeasureQuasiSplit.FmQ_bdd`, `OptimalRulesMeasureQuasiSplit.rmQ_known`, `OptimalRulesMeasureQuasiSplit.qmQ_known_bdd`, `OptimalRulesMeasureQuasiSplit.qMQ_eq`, `OptimalRulesMeasureQuasiSplit.qmQ_eq_qMQ` |
+| (1.18), p. 552; (1.20)–(1.21), p. 553; p. 555, case (ii) | the `z`-rows of (1.18) vanish and `J⁺₁'` times its `ξ`-rows is `Ψ⁺'(E_tD_{t+1}) − β⁻¹D_t`; the implied multipliers `M_t`, `φ_t`, known at `t`; the residual `D = J⁺'Î'φ − F⁺` lies in `ker P'` | `OptimalRulesMeasureQuasiSplit.eq118Q_pt`, `OptimalRulesMeasureQuasiSplit.McQ`, `OptimalRulesMeasureQuasiSplit.φcQ`, `OptimalRulesMeasureQuasiSplit.McQ_known`, `OptimalRulesMeasureQuasiSplit.pD_zero` |
+| Prop 8.2 (the converse direction), p. 555, case (ii) | a bounded feasible plan satisfying (1.23) a.s. solves (1.1) + (1.9): the residual satisfies `D_t = βH E_tD_{t+1}` a.s. and vanishes a.s.; any disturbance, no stability of `Λ` | `OptimalRulesMeasureQuasiSplit.m_focSystem_of_criterionQ` |
+| Props 8.1–8.2, p. 555, case (ii) | determinacy under the criterion; the criterion plan is the FOC solution; (1.23) a.s. ⟺ (1.1) + (1.9) | `OptimalRulesMeasureQuasiSplit.m_prop82_uniqueQ`, `OptimalRulesMeasureQuasiSplit.m_criterionQ_eq_foc`, `OptimalRulesMeasureQuasiSplit.m_criterionQ_iff` |
+| Prop 8.2, p. 555 + A8.2(ii), p. 552 + App. G.1 | measure Prop 8.2 from a quasi-split: for every bounded adapted disturbance on every filtered probability space, and on every VAR economy with optimality from a timeless perspective | `OptimalRulesMeasureQuasiSplit.m_prop82_generalQ`, `OptimalRulesMeasureQuasiSplit.m_prop82_varQ` |
+| App. G.1 (the real split is a special case) | for `Prop81CaseII.quasiOfDeflating` the `Λ`, `R(L⁻¹)`, `Q(L⁻¹)` and `qMQ` are those of the real split, the criterion is `MCriterion`, and `OptimalRulesMeasureGeneral.m_prop82_general` and `OptimalRulesMeasureConverse.m_prop82_var` follow from the quasi-split theorems | `OptimalRulesMeasureQuasiSplit.Λmat_quasiOfDeflating`, `OptimalRulesMeasureQuasiSplit.ropII_quasiOfDeflating`, `OptimalRulesMeasureQuasiSplit.qopII_quasiOfDeflating`, `OptimalRulesMeasureQuasiSplit.qMQ_quasiOfDeflating`, `OptimalRulesMeasureQuasiSplit.mCriterionQ_quasiOfDeflating_iff`, `OptimalRulesMeasureQuasiSplit.m_prop82_general_of_quasi`, `OptimalRulesMeasureQuasiSplit.m_prop82_var_of_quasi` |
+| (1.23), (1.25), case (ii) (link) | on the one-point space `qMQ` is `Prop81CaseII.QopII perfectForesight` and the criterion is the core `Prop82General.Prop82M.CriterionM` of `Prop81CaseII.prop81II` | `OptimalRulesMeasureQuasiSplit.QopII_pf_eq`, `OptimalRulesMeasureQuasiSplit.qMQ_unit`, `OptimalRulesMeasureQuasiSplit.mCriterionQ_unit_iff` |
+
+## Prop 8.2 for the inflation-inertia model in the complex case, on a probability space, §3.2 (OptimalRulesMeasureInertiaComplex)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| A8.5, App. G.2, p. 719; (1.22), p. 554 | for **every** quasi-split of the inertia model, Assumption 8.5 holds for its `Λ` and the representation has degree `≤ rank Λ ≤ 2` | `OptimalRulesMeasureInertiaComplex.in_h85_quasi`, `OptimalRulesMeasureInertiaComplex.in_degrees_quasi` |
+| Prop 8.2, p. 555, any quasi-split | measure Prop 8.2 for every bounded adapted disturbance and on every VAR economy, no hypothesis beyond `0 < γ ≤ 1` | `OptimalRulesMeasureInertiaComplex.in_m_prop82_quasi_general`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_quasi_var` |
+| Prop 8.2 + A8.5 (G.2, p. 719), §3.2 complex case `S² < 4P₂₃` | measure Prop 8.2 with the quasi-split `InertiaProp82Complex.inQ`, for every disturbance and on every VAR economy, unconditional | `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_general`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_var` |
+| Same, every calibration `0 < γ ≤ 1`; App. G.1 | a quasi-split exists at every calibration (the real split when `discQ ≥ 0`, `inQ` when `discQ < 0`), and measure Prop 8.2 holds for it | `OptimalRulesMeasureInertiaComplex.in_exists_quasi`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_all_general`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var` |
+| (1.23), Prop 8.2 (links) | on the one-point space the criterion is the core criterion of `InertiaProp82Complex.in_prop82_complex_B`, and the measure theorem holds there with sure equality; in the real case the quasi-split criterion is that of `OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_general` | `OptimalRulesMeasureInertiaComplex.in_mCriterion_unit_iff`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_unit`, `OptimalRulesMeasureInertiaComplex.in_real_criterion_iff` |
 
 ## §2.1 A model with inflation inertia, pp. 560–565 (InflTargetInertia)
 

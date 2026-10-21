@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T19:23:30.743807+00:00",
-  "theorems": 2120,
+  "checked_at_utc": "2026-10-21T22:57:09.206913+00:00",
+  "theorems": 2357,
   "module_theorems": {
     "OptimalPolicyRules/Determinacy.lean": 23,
     "OptimalPolicyRules/Expectations.lean": 20,
@@ -64,9 +64,20 @@
     "OptimalPolicyRules/OptimalRulesMeasure.lean": 47,
     "OptimalPolicyRules/OptimalRulesMeasureMarkov.lean": 55,
     "OptimalPolicyRules/OptimalRulesMeasureIID.lean": 19,
-    "OptimalPolicyRules/OptimalRulesMeasureStatic.lean": 14
+    "OptimalPolicyRules/OptimalRulesMeasureStatic.lean": 14,
+    "OptimalPolicyRules/OptimalRulesMeasureForecast.lean": 11,
+    "OptimalPolicyRules/OptimalRulesMeasureConverse.lean": 29,
+    "OptimalPolicyRules/OptimalRulesMeasureKernel.lean": 29,
+    "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean": 25,
+    "OptimalPolicyRules/OptimalRulesMeasureStability.lean": 20,
+    "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean": 11,
+    "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean": 9,
+    "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean": 36,
+    "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean": 23,
+    "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean": 32,
+    "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean": 12
   },
-  "audited_declarations": 3077,
+  "audited_declarations": 3369,
   "declarations": [
     {
       "name": "Woodford.OptimalPolicyRules.SchurStable",
@@ -15452,6 +15463,1466 @@
       "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStatic.static_var",
       "kind": "theorem",
       "module": "OptimalPolicyRules/OptimalRulesMeasureStatic.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.cfc",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.liftDist_one",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.integrable_dist",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.fc_focSystem",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.mpart_EVm_of_le",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.\u03be_eq_of_foc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_focUnique_of_pf",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.mpart_EVm_self",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_eq119_120",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.MCriterion",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_spliced_119_120",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_criterion",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.fc_unitSystem",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureForecast.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.geom_vec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.geom_shift",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.xv_bound",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.vv_bound",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.xv_affine",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Rsum",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Fm",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rm",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qm",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rsum_spec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.xproc_int_known",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rsum_integrable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Fm_rec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Fm_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rm_known",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qm_known_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.geom_bound",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qM_eq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qm_eq_qM",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.crit_congr",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.krylov_ae",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.foc_split_pt",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.eq118_pt",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Mc",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.\u03c6c",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Mc_known",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_focSystem_of_criterion",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_prop82_unique",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_prop82_unique_pf",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_criterion_eq_foc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_criterion_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_prop82_var",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Qop_pf_eq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qM_unit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.mCriterion_unit_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureConverse.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.PFSol",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.BddSeq",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.pfsol_exists",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.solY",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol\u03a6",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_spec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_unique",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_comb",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_comb",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.nextS",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_shift",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_shift",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.lim_eq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.pfsol_limit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_bcf",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dvec",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dvec_bound",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dbcf",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.Tlin",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.Tlin_continuous",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_bound",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_tendsto",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.imp",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.truncSeq",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.KY",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.K\u03a6",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_imp",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dsol_lin",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.truncSeq_succ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.truncSeq_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dsol_finsum",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_trunc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dsol_trunc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.mul_sgn",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.kernel_summable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_sub_indep",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.kernel_hasSum",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol0_affine",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureKernel.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Rser",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.rser_spec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.KN",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.KN_summable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.nextS_hasSum",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.nextS_affine",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.hgen",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Hgen",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.hgen_spec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Xs",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.ygen",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.\u03c6gen",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Xs_known",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Xs_known'",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.chat",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.chat_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.gen_now",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.gen_next",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.gen_solves",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.state_eq_of_sol",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_exists_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.xs_bdd_of_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_focSolvableMB_of_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_assumption81MB_of_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.iter_sol",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.state_of_sol",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.powBdd_Hgen",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.powDecay_of_powBdd_noUnit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.powDecay_Hgen_of_noUnit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_assumption81MB_of_noUnit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_prop82_general",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.unit_known",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.xs_bdd_unit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.nextN_mkX_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.Hn_eq_Hgen",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.powBdd_Hn",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.noUnit_of_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.powDecay_Hn_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.powDecay_of_tendsto",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.urSys",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.urP",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_foc_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_struct_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_Zrow",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.urY",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur\u03a6",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_solvable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.half_forward_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_sol",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_unique",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_assumption81MB",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_pf",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_nextS",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_Hgen_eZ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_eigenvalue_one",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_not_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_not_powDecay_Hn",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStability.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Hgen_pow_mulVec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.sys2R_sub'",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_sys2R",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_powDecay_Hn",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_equil",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_Z_next",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_powDecay_Hn",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.emptySplit",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nkSplit",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_\u039b_split",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_h85",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_degrees",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_general",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_var",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.inRealSplit",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_h85",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_degrees",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_general",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_var",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBSys",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBP",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_foc_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_struct_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_Zrow",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_summable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_succ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBL",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBS",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBy",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB\u03c6",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_pfSystem",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_solvable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.double_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_derived",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_U_succ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_triple_eq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_unique",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_pf",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_sol",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_nextS0",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_Hgen_mulVec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_Hgen",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_left_eig",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_eigenvalue_one",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_not_powDecay",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.imp_scalar",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_KN0",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_eKN",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_conjecture_false",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.coin_shock_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.walk_sm",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.walk_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.coin_walk_sq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_coin_L",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_no_solution",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_not_solvable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_not_assumption81MB",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_xs_unbounded",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.pf_assumption81_not_sufficient",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.re_mulVec_apply",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.im_mulVec_apply",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eig_norm_le_one",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.EulerEq",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.EulerRoot",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.DY",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D\u03a6",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_mulVec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.Hgen_eq_next",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_shift",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_init",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_next",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.sol_struct",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.sol_foc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_struct",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_foc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.Dc_shift",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.Dc_init",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eulerEq_of_eig",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.stateOf",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eig_sol",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eig_Hgen_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.powDecay_Hgen_iff_noEulerRoot",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.m_assumption81MB_of_noEulerRoot",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eB_eulerRoot_one",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.nk_noEulerRoot",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.in_noEulerRoot",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.nk_spec_not_selected",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.MCriterionQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_eq119_120Q",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_spliced_119_120Q",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_criterionQ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.pow_bound_tendsto",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_fwd_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.RsumQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.FmQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rmQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qmQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rsumQ_spec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rsumQ_integrable",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.FmQ_rec",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.FmQ_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rmQ_known",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qmQ_known_bdd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ_eq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qmQ_eq_qMQ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.eq118Q_pt",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.McQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.\u03c6cQ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.McQ_known",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.pD_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_focSystem_of_criterionQ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_uniqueQ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_criterionQ_eq_foc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_criterionQ_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_generalQ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_varQ",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.\u039bmat_quasiOfDeflating",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.ropII_quasiOfDeflating",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qopII_quasiOfDeflating",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ_quasiOfDeflating",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.mCriterionQ_quasiOfDeflating_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_general_of_quasi",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_var_of_quasi",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.QopII_pf_eq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ_unit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.mCriterionQ_unit_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_h85_quasi",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_degrees_quasi",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_quasi_general",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_quasi_var",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_general",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_var",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_exists_quasi",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_all_general",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_mCriterion_unit_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_unit",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_real_criterion_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean"
     }
   ],
   "full_build": "passed",
@@ -30814,6 +32285,1466 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.cfc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.liftDist_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.integrable_dist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.fc_focSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.mpart_EVm_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.\u03be_eq_of_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_focUnique_of_pf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.mpart_EVm_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_eq119_120": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.MCriterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_spliced_119_120": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.m_criterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureForecast.fc_unitSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.geom_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.geom_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.xv_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.vv_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.xv_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Rsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Fm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rsum_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.xproc_int_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rsum_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Fm_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Fm_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.rm_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qm_known_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.geom_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qM_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qm_eq_qM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.crit_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.krylov_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.foc_split_pt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.eq118_pt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Mc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.\u03c6c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Mc_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_focSystem_of_criterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_prop82_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_prop82_unique_pf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_criterion_eq_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_criterion_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.m_prop82_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.Qop_pf_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.qM_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureConverse.mCriterion_unit_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.PFSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.BddSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.pfsol_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.solY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol\u03a6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.nextS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.lim_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.pfsol_limit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_bcf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dvec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dvec_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dbcf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.Tlin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.Tlin_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.imp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.truncSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.KY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.K\u03a6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_imp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dsol_lin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.truncSeq_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.truncSeq_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dsol_finsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.bddSeq_trunc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.dsol_trunc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.mul_sgn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.kernel_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol_sub_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.kernel_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureKernel.sol0_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Rser": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.rser_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.KN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.KN_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.nextS_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.nextS_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.hgen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Hgen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.hgen_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Xs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.ygen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.\u03c6gen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Xs_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.Xs_known'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.chat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.chat_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.gen_now": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.gen_next": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.gen_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.state_eq_of_sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.xs_bdd_of_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_focSolvableMB_of_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_assumption81MB_of_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.iter_sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.state_of_sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.powBdd_Hgen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.powDecay_of_powBdd_noUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.powDecay_Hgen_of_noUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_assumption81MB_of_noUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.m_prop82_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.unit_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureGeneral.xs_bdd_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.nextN_mkX_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.Hn_eq_Hgen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.powBdd_Hn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.noUnit_of_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.powDecay_Hn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.powDecay_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.urSys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.urP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_foc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_struct_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_Zrow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.urY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur\u03a6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_solvable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.half_forward_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_assumption81MB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_pf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_nextS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_Hgen_eZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_eigenvalue_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_not_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStability.ur_not_powDecay_Hn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Hgen_pow_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.sys2R_sub'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_sys2R": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_powDecay_Hn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_equil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_Z_next": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_powDecay_Hn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.emptySplit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nkSplit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_\u039b_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_h85": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_degrees": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.inRealSplit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_h85": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_degrees": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBSys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_foc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_struct_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_Zrow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eBy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB\u03c6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_pfSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_solvable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.double_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_derived": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_U_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_triple_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_pf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.fwd_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_nextS0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_Hgen_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_Hgen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_left_eig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_eigenvalue_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_not_powDecay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.imp_scalar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_KN0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_eKN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_conjecture_false": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.coin_shock_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.walk_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.walk_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.coin_walk_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_coin_L": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_no_solution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_not_solvable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_not_assumption81MB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.eB_xs_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureCounterexample.pf_assumption81_not_sufficient": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.re_mulVec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.im_mulVec_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eig_norm_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.EulerEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.EulerRoot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.DY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D\u03a6": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.Hgen_eq_next": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_init": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_next": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.sol_struct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.sol_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_struct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.D_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.Dc_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.Dc_init": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eulerEq_of_eig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.stateOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eig_sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eig_Hgen_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.powDecay_Hgen_iff_noEulerRoot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.m_assumption81MB_of_noEulerRoot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.eB_eulerRoot_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.nk_noEulerRoot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.in_noEulerRoot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureSpectrum.nk_spec_not_selected": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.MCriterionQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_eq119_120Q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_spliced_119_120Q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_criterionQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.pow_bound_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_fwd_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.RsumQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.FmQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rmQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qmQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rsumQ_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rsumQ_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.FmQ_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.FmQ_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.rmQ_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qmQ_known_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qmQ_eq_qMQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.eq118Q_pt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.McQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.\u03c6cQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.McQ_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.pD_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_focSystem_of_criterionQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_uniqueQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_criterionQ_eq_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_criterionQ_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_generalQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_varQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.\u039bmat_quasiOfDeflating": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.ropII_quasiOfDeflating": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qopII_quasiOfDeflating": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ_quasiOfDeflating": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.mCriterionQ_quasiOfDeflating_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_general_of_quasi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.m_prop82_var_of_quasi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.QopII_pf_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.qMQ_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureQuasiSplit.mCriterionQ_unit_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_h85_quasi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_degrees_quasi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_quasi_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_quasi_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_exists_quasi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_all_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_mCriterion_unit_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.OptimalRulesMeasureInertiaComplex.in_real_criterion_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -30880,15 +33811,26 @@
     "OptimalPolicyRules/OptimalRulesMeasureMarkov.lean": "bc1ab865ec9461549dc1bcf5f4812621b32c3e318f3ad5c6b5abac0d9fa251fd",
     "OptimalPolicyRules/OptimalRulesMeasureIID.lean": "ef6005136108e296a078a5a0227c2f83e01b566934df34cd580ce1bef3ef70a0",
     "OptimalPolicyRules/OptimalRulesMeasureStatic.lean": "02998e06b7814f39089dc0b5cf3b4d32acfdf91767cd3eccad24fba89010a758",
-    "OptimalPolicyRules.lean": "7ced204cf44bf71bc3a111c45403d8790db5d4b045578219c8edffdcee88a8de",
+    "OptimalPolicyRules/OptimalRulesMeasureForecast.lean": "8a2004c11395a1b6a7afabdc4e33adb71cb94d3537b671a0bc9e0429f09cd42d",
+    "OptimalPolicyRules/OptimalRulesMeasureConverse.lean": "2514ff0acbe73758a593c49a452faa1277b456e84bdc935a2bae0bb48051f923",
+    "OptimalPolicyRules/OptimalRulesMeasureKernel.lean": "c5423e2dc1d4e7c8fcc4ec37995257ab06a5a7c147cb4aeb36349d6d77467949",
+    "OptimalPolicyRules/OptimalRulesMeasureGeneral.lean": "d06a99e5d5055efb17c9a7503198f04884d77ec0fa15259b9b622cd6aec7fee6",
+    "OptimalPolicyRules/OptimalRulesMeasureStability.lean": "001a78e5d4bb2e3df951f097d233f93c12f01586288c12f8b33815d6e128a867",
+    "OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean": "834d2dde9ea8f0f6eefd234f898f735d2a8500db4cb12a74bbfab6c55434c698",
+    "OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean": "18e042e291da14499253a179ae1d8de94b1d95ef42b6142400d821a200f226d6",
+    "OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean": "9b5b073d9eb9f6543b08ef73e898b5dbfbe00a1a94dd6406ca31dbdc2f4cc182",
+    "OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean": "8060977dc11156fd3722a3d99b33057f2b8d1af3f4933f4a1de7edd05b74694d",
+    "OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean": "b3c62f1fd6c907f1b7f042729a7d1c5fd1b26b6f7758aeb73807180b89070eb3",
+    "OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean": "b2104115bba5498fb511fde1772c7b4948e99c1c5852cd2492faaa61fdffadb7",
+    "OptimalPolicyRules.lean": "5207b45ced36c8f6a84ce14267e2bc56f9972df072f926f485341463d2cc2276",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "d7644dbc7a4e68c3122bb56a2e0be511e8d9c9237c9f5c9f4a5301939c130326",
     "lake-manifest.json": "23325d240e3f6390165c682a5f99cb54ca838f1f31fa4b194ab3cc4de39dad67",
-    "proof-manifest.json": "b01ce72f1b7f26e9b92ae9ae70dc0663feddb19057374af98d083832508a7b13",
+    "proof-manifest.json": "738e37c9e10fa89c762b08f1d25429caced122f1e99a24d958dc6bd9ad428b25",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "1175a9155a53e84f9eee382dd3b1d24d342609cc2679ad6e870d02552fb74f2e",
+  "fresh_audit_sha256": "14d81dfed2a1779994f41b5158f2e23000f656b3b51ffe553705413afab58cca",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Woodford, Interest and Prices, Chapter 8: Optimal Policy Rules, with Appendix G. The general LQ setup and first-order conditions with the target-criterion construction via adjugates; Propositions 8.1-8.4 proved in general (Giannoni-Woodford theory the book does not prove): Prop 8.1 from Assumptions 8.2-8.4 via deflating subspaces of the pencil (1.15), corrected so multipliers are known at their date, with repeated roots and a normalisation-free case (ii); Prop 8.2 without a multiplier-stability hypothesis (Assumption 8.5 suffices) and with Assumption 8.1 corrected, robust optimality; Prop 8.3 superinertia with the no-circle hypothesis it needs (counterexample otherwise); Prop 8.4 unconditional; worked instances for the basic and inflation-inertia models (the latter with Assumption 8.1 and Prop 8.2 at every admissible calibration, via a copy of the general Blanchard-Kahn theorem and a root count for the degree-6 FOC polynomial). Optimal inflation targeting under inflation inertia, sticky wages (exact determinacy region for kappa_w /= kappa_p, with a counterexample), habit persistence, predetermined pricing, the Giannoni-Woodford model and imperfect information; Prop 8.5 determinacy for every admissible parameter and Prop 8.6; the inflation-inertia model: Prop 8.7 roots, Lemmas G.1-G.2, Prop 8.8 Rules I-III over the complex numbers with determinacy of the rule system, Props 8.9-8.11 unconditional with their limits, Figs 8.3-8.5 numbers (Fig 8.4 .39 enclosed). Book misprints and false claims are corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 8, pp. 534-623, and Appendix G, pp. 716-745; Giannoni and Woodford (2002a)."
