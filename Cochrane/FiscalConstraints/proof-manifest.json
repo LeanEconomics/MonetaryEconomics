@@ -1,0 +1,41 @@
+{
+  "library": "FiscalConstraints",
+  "modules": [
+    "FiscalConstraints/Determinacy.lean",
+    "FiscalConstraints/Expectations.lean",
+    "FiscalConstraints/ExpectationsFiniteTree.lean",
+    "FiscalConstraints/ForwardSolution.lean",
+    "FiscalConstraints/ExpIntegrals.lean",
+    "FiscalConstraints/Laffer.lean",
+    "FiscalConstraints/DiscountGrowth.lean",
+    "FiscalConstraints/Crash.lean",
+    "FiscalConstraints/LinearODE.lean",
+    "FiscalConstraints/RvsG.lean",
+    "FiscalConstraints/DebtLimitStochastic.lean",
+    "FiscalConstraints/GrowthTheoryTVC.lean",
+    "FiscalConstraints/MoneyLiquidity.lean",
+    "FiscalConstraints/ReturnDiscounting.lean",
+    "FiscalConstraints/AggregateUncertainty.lean",
+    "FiscalConstraints/Links.lean"
+  ],
+  "theorem_counts": {
+    "FiscalConstraints/Determinacy.lean": 23,
+    "FiscalConstraints/Expectations.lean": 20,
+    "FiscalConstraints/ExpectationsFiniteTree.lean": 21,
+    "FiscalConstraints/ForwardSolution.lean": 44,
+    "FiscalConstraints/ExpIntegrals.lean": 17,
+    "FiscalConstraints/Laffer.lean": 14,
+    "FiscalConstraints/DiscountGrowth.lean": 14,
+    "FiscalConstraints/Crash.lean": 28,
+    "FiscalConstraints/LinearODE.lean": 12,
+    "FiscalConstraints/RvsG.lean": 69,
+    "FiscalConstraints/DebtLimitStochastic.lean": 20,
+    "FiscalConstraints/GrowthTheoryTVC.lean": 18,
+    "FiscalConstraints/MoneyLiquidity.lean": 17,
+    "FiscalConstraints/ReturnDiscounting.lean": 8,
+    "FiscalConstraints/AggregateUncertainty.lean": 52,
+    "FiscalConstraints/Links.lean": 16
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."
+}

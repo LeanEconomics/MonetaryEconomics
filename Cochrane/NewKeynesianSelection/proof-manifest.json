@@ -1,0 +1,43 @@
+{
+  "library": "NewKeynesianSelection",
+  "modules": [
+    "NewKeynesianSelection/Determinacy.lean",
+    "NewKeynesianSelection/Expectations.lean",
+    "NewKeynesianSelection/ExpectationsFiniteTree.lean",
+    "NewKeynesianSelection/ForwardSolution.lean",
+    "NewKeynesianSelection/Innovation.lean",
+    "NewKeynesianSelection/FTPLSimple.lean",
+    "NewKeynesianSelection/SimplestModel.lean",
+    "NewKeynesianSelection/KingForm.lean",
+    "NewKeynesianSelection/Hyperinflation.lean",
+    "NewKeynesianSelection/Identification.lean",
+    "NewKeynesianSelection/ObservationalEquivalence.lean",
+    "NewKeynesianSelection/Responses.lean",
+    "NewKeynesianSelection/GlobalDynamics.lean",
+    "NewKeynesianSelection/LowerBound.lean",
+    "NewKeynesianSelection/SelectionPatches.lean",
+    "NewKeynesianSelection/SimsTinyFiscal.lean",
+    "NewKeynesianSelection/Links.lean"
+  ],
+  "theorem_counts": {
+    "NewKeynesianSelection/Determinacy.lean": 23,
+    "NewKeynesianSelection/Expectations.lean": 20,
+    "NewKeynesianSelection/ExpectationsFiniteTree.lean": 21,
+    "NewKeynesianSelection/ForwardSolution.lean": 44,
+    "NewKeynesianSelection/Innovation.lean": 33,
+    "NewKeynesianSelection/FTPLSimple.lean": 35,
+    "NewKeynesianSelection/SimplestModel.lean": 42,
+    "NewKeynesianSelection/KingForm.lean": 18,
+    "NewKeynesianSelection/Hyperinflation.lean": 29,
+    "NewKeynesianSelection/Identification.lean": 55,
+    "NewKeynesianSelection/ObservationalEquivalence.lean": 43,
+    "NewKeynesianSelection/Responses.lean": 25,
+    "NewKeynesianSelection/GlobalDynamics.lean": 49,
+    "NewKeynesianSelection/LowerBound.lean": 42,
+    "NewKeynesianSelection/SelectionPatches.lean": 99,
+    "NewKeynesianSelection/SimsTinyFiscal.lean": 16,
+    "NewKeynesianSelection/Links.lean": 25
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 16 (with Chapter 12 and Online Appendix A3 parts): Equilibrium selection in new Keynesian models. Innovation operators; the simplest model (16.1)-(16.11) with its sunspot family, determinacy iff |phi|>1, the AR(1) solution and the Wicksellian rule ((16.8) corrected); the King form and its translation bijection; nominal hyperinflations satisfy the TVC under passive fiscal policy while the FTPL rules out real explosions; non-identification NI-1 to NI-4 with finite-sample OLS/IV identities and learnability; observational equivalence of NK and FTPL equilibria (E6 corrected: passive iff gamma = alpha); responses (Fisherian, super-Fisherian, open mouth); global dynamics at the lower bound with the second steady state (E2 corrected, tangency counterexample); selection patches (MSV, ACK, BSGU, Woodford mu-bar, Bassetto, V-shaped rules, SGU, Sims 1994, bounded-rule finite-time explosion); Sims' tiny fiscal model (E1 corrected: TVC fails iff phi >= R); links to Woodford Ch2 and Ch4 Prop 4.11. Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 16, pp. 363-396, Chapter 12, pp. 324-328, and Online Appendix A3, pp. 613-616."
+}

@@ -1,0 +1,4126 @@
+{
+  "checked_at_utc": "2026-10-20T09:57:43.372239+00:00",
+  "theorems": 305,
+  "module_theorems": {
+    "LongTermDebtDynamics/Determinacy.lean": 23,
+    "LongTermDebtDynamics/Expectations.lean": 20,
+    "LongTermDebtDynamics/ExpectationsFiniteTree.lean": 21,
+    "LongTermDebtDynamics/ForwardSolution.lean": 44,
+    "LongTermDebtDynamics/MaturityStructure.lean": 15,
+    "LongTermDebtDynamics/ForwardGuidance.lean": 37,
+    "LongTermDebtDynamics/MaturingDebt.lean": 14,
+    "LongTermDebtDynamics/BondSales.lean": 15,
+    "LongTermDebtDynamics/FutureSales.lean": 18,
+    "LongTermDebtDynamics/GeneralFormula.lean": 52,
+    "LongTermDebtDynamics/PolicyConstraints.lean": 29,
+    "LongTermDebtDynamics/QuantitativeEasing.lean": 17
+  },
+  "audited_declarations": 408,
+  "declarations": [
+    {
+      "name": "Cochrane.LongTermDebtDynamics.SchurStable",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.disc",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.root\u2081",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.root\u2082",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.root_sum",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.root_prod",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.root_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.normSq_root_of_neg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.norm_root_of_nonneg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.schurStable_iff_roots",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.chSeq",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.convSeq",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.convSeq_rec",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.chSeq_eq_convSeq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.norm_convSeq_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.abs_chSeq_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.tendsto_chSeq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.tr2",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.det2",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.tr2_eq_trace",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.det2_eq_det",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.sq_eq_cayleyHamilton",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.pow_succ_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.abs_pow_entry_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.tendsto_pow_entry",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BoundedSeq",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.homogeneous_iterate",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.homogeneous_eq_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.eq_root_of_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.exists_eigenvector",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.exists_bounded_homogeneous",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem",
+      "kind": "structure",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.E",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.const",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.mono",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.tower",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.known",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.perfectForesight",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BoundedProc",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BoundedVec",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.Adapted",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.IsAR1",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_neg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.bounded_E",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.ar1_iterate",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forward_iterate",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forward_ar1_solves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_tsum",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_summable",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_solves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_bounded",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.eq_forwardSeries",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_adapted",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.PullOut",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.Solves",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.AdaptedVec",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.system_iterate",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.system_unique",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.system_not_unique",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.Determinate",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationSystem.determinate_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.perfectForesight_pullOut",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree",
+      "kind": "structure",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mk",
+      "kind": "constructor",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.prob",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.prob_pos",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.prob_sum",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.info",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.refines",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mass",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.num",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mass_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mass_congr",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.num_congr",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_congr",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_add",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_smul",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condELin",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_const",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_mono",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_known",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_tower",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.toExpectationSystem",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_of_trivial",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinObs",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinTree",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinSystem",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.firstHeads",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinSystem_E0_firstHeads",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinSystem_not_perfectForesight",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinShock",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinShock_measurable",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1_measurable",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinShock_mean_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1_isAR1",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1_nondegenerate",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.finiteTree_pullOut",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.Solves",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.E_of_known",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.solves_adapted",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.iterate_A15",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.tendsto_partial_A16",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.summable_A16",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.eq_forwardSeries_abs",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_solves_abs",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_bounded_abs",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_adapted_abs",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.existsUnique_bounded",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.ScalarEq",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarEq_one_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarSol",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarSol_apply",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarEq_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.scalar_existsUnique",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.scalar_homog",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.scalar_determinate_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_adapted",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_solves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_bounded",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.eq_sunspotFamily",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.homog_solves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.solves_add_homog",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.bounded_solutions_not_countable",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.exists_bounded_of_one_lt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.existsUnique_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.printed_A17_one_solves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.printed_A17_fails_neg_one",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.unit_sunspot_solves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.unit_sunspot_bounded",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_solves_of_decay",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.ar1_decay",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.no_bounded_solution_unit",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.solves_iff_forwardSeries",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.predetermined_restriction",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.hasSum_geometric_ratio",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.tsum_geometric_ratio",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.summable_geom_mul",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.abel_tsum",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.sum_weights_by_parts",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.tsum_weights_by_parts",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.abs_lt_abs_of_sub_pos_add_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.abs_lt_abs_iff_of_add_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardSolution.E_tsum_dom",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.sales",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.Predetermined",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.Predetermined.known",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.Predetermined.known_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.bondPrice",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.bondPrice_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.NominalFlow",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.RealFlow",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.nominalFlow_iff_realFlow",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.debtTerm",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.debtValue",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.surplusTerm",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.pvSurplus",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.PresentValue",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.DebtDominated",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.nominalValue_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.hasSum_E_debtValue_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.realFlow_iff_recursion",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.debtValue_adapted",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.debtValue_iterate",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.summable_surplusTerm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.Transversality",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.presentValue_iff_tvc",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.pvSurplus_recursion",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.flow_tvc_iff_presentValue",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.transversality_of_bounded",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturityStructure.presentValue_of_bounded",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturityStructure.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_of_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_add",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_same",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.inv_pow_lt_fgPrice",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_lt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_mono",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgRate",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_unique",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_eq_of_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_jump",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_eq_path",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.valuation_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_fg_of_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_fg_lt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_mono",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_immediate_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgSum",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.hasSum_fg_geometric",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgSum_same",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fg_jump_geometric",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fg_jump_immediate",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_neg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_abs_lt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_tendsto",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_abs_mono_omega",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_calibration",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.perpetuity_ratio_bounds",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgIntegrand",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgValue",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.integral_cfg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgValue_same",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfg_jump",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_neg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_abs_anti",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_tendsto",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_abs_anti_varpi",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.ForwardGuidance.steady_sales",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/ForwardGuidance.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.NoSales",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.debt_eq_initial",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.price_eq_maturing",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_solution",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_E_price",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_bondPrice",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_presentValue",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_price_news",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_bond_news",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_price_indep",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.OnePeriod",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_flow_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_flow_E",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_backward",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_two_period",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_fear",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/MaturingDebt.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.SalesAtZeroOnly",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.debt_eq_one",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.maturing_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.E_price_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.bondPrice_mul_debt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.real_revenue",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.dilution_formula",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.no_outstanding",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.no_outstanding_price_indep",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.sales_lower_bondPrice",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.sales_raise_future_price",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.bondPrice_target_iff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.unit_elasticity",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.outstanding_sales_lower_price",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.hasDerivAt_dilution",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.BondSales.offset_shock",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/BondSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.flows_of_realFlow",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.price_two",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.price_one",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.E_price_one",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.price_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.no_outstanding_price_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.price_two_symm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.bondPrice_two_symm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.x1_formula",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.future_sales_raise_Q1",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.no_time0_sales",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.price_zero_no_sale_two",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.price_zero_no_sale_one",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.x0Fun",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.x0_closed",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.hasDerivAt_x0",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.x0_strictMono",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.x0_strictAnti",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.FutureSales.x0_const",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/FutureSales.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.weight",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.sum_triangle",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_first_step",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.comps",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.mem_comps",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.chainProd",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.chainProd_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.chainSum",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_eq_chainSum",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.fracSold",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.MaturingSystem",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.realFlow_iff_maturingSystem",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_known",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.theoremW_finite",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.RowBound",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.domA",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.domWeight",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_domA",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.domWeight_nonneg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.domWeight_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.abs_weight_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.sum_domWeight_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.summable_domWeight",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaTerm",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaW",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.abs_formulaTerm_le",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaW_summable",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaW_solves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.unique_of_row",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.theoremW",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.col_lemma",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.abs_E_le_E_abs",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.unique_of_noBuyback",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.homogeneous_of_two",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.unique_iff_homogeneous",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback.nonneg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback.frac_nonneg",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback.col_le_one",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.bounded_of_presentValue",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.price_unique_noBuyback",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.price_unique_row",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.price_formula",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.special_noSales",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.special_onePeriod",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.fracSold_onePeriod",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.exD",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.exS",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.printed_715_fails",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.pvMatrix",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.pvMatrix_row",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cxS",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cxStar",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cxX",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD_self",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD_succ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD_far",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_buyback",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_flow",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_presentValue",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_bounded",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_ne",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_frac",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_weight_rec",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_weight",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_formula_diverges",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_not_row",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/GeneralFormula.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.DivClosed",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.perfectForesight_divClosed",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.finiteTree_divClosed",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.E_div_known",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.bOne",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOneD",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOneX",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.Targets",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.cTwo",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwoD",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwoX",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.bOne_known",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.bOne_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_predetermined",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_E",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_achieves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_719",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_flow",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_presentValue",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.pvSurplus_adapted",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.E_pvSurplus_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_achieves",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.cTwo_pos_known",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_E",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_flow",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_presentValue",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.policies_differ",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.presentValue_zero_nominal",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.onePeriod_price_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.qe_tradeoff",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.qe_tradeoff_strict",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.qe_negative_position",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.offset_shock",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.offset_shock_cost",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.end_of_period_value",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.PolicyConstraints.end_of_period_value_nominal",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/PolicyConstraints.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.steady_state",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.steady_price",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.QEPresentValue",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.Eq723",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.pv_iff_723",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.reserves_formula",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.reserves_unique",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.all_M",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_unique",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.solve_tail",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.solve_tail_necessary",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.solve_tail_counterexample",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qeResidual",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_exists",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_residual_summable",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_exists_necessary",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_counterexample",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.pv_iff_724",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.Irrelevance.maturity_irrelevance",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.QuantitativeEasing.strong_qe",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/QuantitativeEasing.lean"
+    }
+  ],
+  "full_build": "passed",
+  "fresh_source_compilation": "passed",
+  "fresh_source_lint_options": [
+    "-Dlinter.mathlibStandardSet=true",
+    "-Dlinter.style.header=false"
+  ],
+  "axioms": {
+    "Cochrane.LongTermDebtDynamics.SchurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.root\u2081": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.root\u2082": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.root_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.root_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.root_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.normSq_root_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.norm_root_of_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.schurStable_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.convSeq_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.chSeq_eq_convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.norm_convSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.abs_chSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.tendsto_chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.tr2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.det2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.tr2_eq_trace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.det2_eq_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.sq_eq_cayleyHamilton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.pow_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.abs_pow_entry_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.tendsto_pow_entry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BoundedSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.homogeneous_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.homogeneous_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.eq_root_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.exists_eigenvector": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.exists_bounded_homogeneous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BoundedProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BoundedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.Adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.IsAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.bounded_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.ar1_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forward_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forward_ar1_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.E_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.eq_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.forwardSeries_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.PullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.AdaptedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.system_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.system_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.system_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationSystem.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.perfectForesight_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.prob_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.prob_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.info": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.refines": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mass": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.num": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mass_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.mass_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.num_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.FiniteTree.condE_of_trivial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinObs": [],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinSystem_E0_firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinSystem_not_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinShock_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinShock_mean_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1_isAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.coinAR1_nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ExpectationsFiniteTree.finiteTree_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.E_of_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.solves_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.iterate_A15": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.tendsto_partial_A16": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.summable_A16": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.eq_forwardSeries_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_solves_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_bounded_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_adapted_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.existsUnique_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.ScalarEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarEq_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarSol_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.scalarEq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.scalar_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.scalar_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.scalar_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.sunspotFamily_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.eq_sunspotFamily": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.homog_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.solves_add_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.bounded_solutions_not_countable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.exists_bounded_of_one_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.printed_A17_one_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.printed_A17_fails_neg_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.unit_sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.unit_sunspot_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.forwardSeries_solves_of_decay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.ar1_decay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.no_bounded_solution_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.solves_iff_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.predetermined_restriction": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.hasSum_geometric_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.tsum_geometric_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.abel_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.sum_weights_by_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.tsum_weights_by_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.abs_lt_abs_of_sub_pos_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.abs_lt_abs_iff_of_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardSolution.E_tsum_dom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.sales": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.Predetermined": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.Predetermined.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.Predetermined.known_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.bondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.bondPrice_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.NominalFlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.RealFlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.nominalFlow_iff_realFlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.debtTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.debtValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.surplusTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.pvSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.PresentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.DebtDominated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.nominalValue_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.hasSum_E_debtValue_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.realFlow_iff_recursion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.debtValue_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.debtValue_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.summable_surplusTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.Transversality": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.presentValue_iff_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.pvSurplus_recursion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.flow_tvc_iff_presentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.transversality_of_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturityStructure.presentValue_of_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_same": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.inv_pow_lt_fgPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_eq_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPath_jump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgPrice_eq_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.valuation_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_fg_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_fg_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.priceLevel_immediate_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.hasSum_fg_geometric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgSum_same": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fg_jump_geometric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fg_jump_immediate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_abs_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_abs_mono_omega": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.fgJump_calibration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.perpetuity_ratio_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgIntegrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.integral_cfg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgValue_same": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfg_jump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_abs_anti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.cfgJump_abs_anti_varpi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.ForwardGuidance.steady_sales": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.NoSales": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.debt_eq_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.price_eq_maturing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_solution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_E_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_bondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_presentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_price_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_bond_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.noSales_price_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.OnePeriod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_flow_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_flow_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_backward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_two_period": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.MaturingDebt.oneperiod_fear": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.SalesAtZeroOnly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.debt_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.maturing_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.E_price_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.bondPrice_mul_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.real_revenue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.dilution_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.no_outstanding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.no_outstanding_price_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.sales_lower_bondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.sales_raise_future_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.bondPrice_target_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.unit_elasticity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.outstanding_sales_lower_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.hasDerivAt_dilution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.BondSales.offset_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.flows_of_realFlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.price_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.price_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.E_price_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.price_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.no_outstanding_price_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.price_two_symm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.bondPrice_two_symm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.x1_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.future_sales_raise_Q1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.no_time0_sales": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.price_zero_no_sale_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.price_zero_no_sale_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.x0Fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.x0_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.hasDerivAt_x0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.x0_strictMono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.x0_strictAnti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.FutureSales.x0_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.weight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.sum_triangle": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_first_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.comps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.mem_comps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.chainProd": [],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.chainProd_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.chainSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_eq_chainSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.fracSold": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.MaturingSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.realFlow_iff_maturingSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.theoremW_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.RowBound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.domA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.domWeight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.weight_domA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.domWeight_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.domWeight_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.abs_weight_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.sum_domWeight_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.summable_domWeight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.abs_formulaTerm_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaW_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.formulaW_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.unique_of_row": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.theoremW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.col_lemma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.abs_E_le_E_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.unique_of_noBuyback": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.homogeneous_of_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.unique_iff_homogeneous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback.nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback.frac_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.NoBuyback.col_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.bounded_of_presentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.price_unique_noBuyback": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.price_unique_row": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.price_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.special_noSales": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.special_onePeriod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.fracSold_onePeriod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.exD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.exS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.printed_715_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.pvMatrix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.pvMatrix_row": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cxS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cxStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cxX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cxD_far": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_buyback": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_presentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_frac": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_weight_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_weight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_formula_diverges": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.GeneralFormula.cx_not_row": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.DivClosed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.perfectForesight_divClosed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.finiteTree_divClosed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.E_div_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.bOne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOneD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOneX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.Targets": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.cTwo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwoD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwoX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.bOne_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.bOne_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_predetermined": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_achieves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_719": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polOne_presentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.pvSurplus_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.E_pvSurplus_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_achieves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.cTwo_pos_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.polTwo_presentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.policies_differ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.presentValue_zero_nominal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.onePeriod_price_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.qe_tradeoff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.qe_tradeoff_strict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.qe_negative_position": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.offset_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.offset_shock_cost": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.end_of_period_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.PolicyConstraints.end_of_period_value_nominal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.steady_state": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.steady_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.QEPresentValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.Eq723": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.pv_iff_723": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.reserves_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.reserves_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.all_M": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.solve_tail": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.solve_tail_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.solve_tail_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qeResidual": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_residual_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_exists_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.qe_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.pv_iff_724": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.Irrelevance.maturity_irrelevance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.QuantitativeEasing.strong_qe": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "LongTermDebtDynamics/Determinacy.lean": "07527864dfa041d946db99b38d41fba2e6653cfabd3a6d61dea3140a3bf23122",
+    "LongTermDebtDynamics/Expectations.lean": "a1b13a0c9bf0a3fb995d8f4caa851d01fc0c635a5cb8bdecc10b4058ba647010",
+    "LongTermDebtDynamics/ExpectationsFiniteTree.lean": "f3ed4c3ffe129f5b4170a7d9495ece209ea4267256347db52c89225aeec64422",
+    "LongTermDebtDynamics/ForwardSolution.lean": "3d1c10b9f8857780625e322f2dd0f428492fc7a91f75e8a40996e4fc685af68a",
+    "LongTermDebtDynamics/MaturityStructure.lean": "ee04b4c1a478612a312c86ac82f6ef8eb99b6d5ea3395988644ee564f6d7a745",
+    "LongTermDebtDynamics/ForwardGuidance.lean": "3d831c4de9dcc7f0b3d07e34d76b0027d035154936e4d40c93df924899329069",
+    "LongTermDebtDynamics/MaturingDebt.lean": "d695003980bddfe0946ee65ae512d852e27c8ff97fdffe8be30f4568ec2f131e",
+    "LongTermDebtDynamics/BondSales.lean": "f6a6dc2fd1d5a528f3d7ed580e665e0b2d418a7ca6bc0d800c72618a60965334",
+    "LongTermDebtDynamics/FutureSales.lean": "af56ad7901985eaa86ce36a4c247cb14ce6afc9ad09fae051f231abaf1691fcc",
+    "LongTermDebtDynamics/GeneralFormula.lean": "e6298ed92ac01bc7831608d98772dec81259e96a861bcfeb1d36686a3bd5d6df",
+    "LongTermDebtDynamics/PolicyConstraints.lean": "40d00b5e427fdb1c5b1dc2e25cd1ac09e54a4d495316ae36e68f5229020d16ff",
+    "LongTermDebtDynamics/QuantitativeEasing.lean": "51281daf587db1a1e5f2e289cd2b9ff9201b0ccc7347bd6c89644fdf2de71f57",
+    "LongTermDebtDynamics.lean": "fc97ea99a6679952f3d7100cddaf92548bc7ef8999b61d333fbb8df77e85d8b9",
+    "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
+    "lakefile.toml": "32aee420ad61a418c3baff9176097c8a6d10510372f4662944e87c82cef2f13e",
+    "lake-manifest.json": "8640ffa3c8aa40400a34f2948821c84266e5f806da8619b2b23a9c93b580304f",
+    "proof-manifest.json": "acc6cbc5769fae6a32797b492d22ffd171b80ee995e184000c89a40e285c589d",
+    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "fresh_audit_sha256": "07bc18dc9b316898f309c3d57758272bff33ca1febaf6ee510752da5f6e8b0f2",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 7 (with Online Appendix A1.2.1, A1.14): Long-term debt dynamics. The maturity structure with flow and present-value relations (equivalent under transversality); forward guidance and bond-price targets (T >= k sharp), with discrete and continuous closed forms; maturing debt as a buffer; bond sales, dilution and unit elasticity; future sales in three periods; the general formula (7.17) with the explicit chain-sum weights, its convergence under a row condition, uniqueness of the price level without buy-backs, and a counterexample showing the present-value system need not determine the price level; policy constraints (Theorem P), QE trade-offs; quantitative easing with existence and uniqueness of the required purchases. Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 7, pp. 212-236, and Online Appendix A1.2.1 and A1.14."
+}

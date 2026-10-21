@@ -1,0 +1,33 @@
+{
+  "library": "LongTermDebtDynamics",
+  "modules": [
+    "LongTermDebtDynamics/Determinacy.lean",
+    "LongTermDebtDynamics/Expectations.lean",
+    "LongTermDebtDynamics/ExpectationsFiniteTree.lean",
+    "LongTermDebtDynamics/ForwardSolution.lean",
+    "LongTermDebtDynamics/MaturityStructure.lean",
+    "LongTermDebtDynamics/ForwardGuidance.lean",
+    "LongTermDebtDynamics/MaturingDebt.lean",
+    "LongTermDebtDynamics/BondSales.lean",
+    "LongTermDebtDynamics/FutureSales.lean",
+    "LongTermDebtDynamics/GeneralFormula.lean",
+    "LongTermDebtDynamics/PolicyConstraints.lean",
+    "LongTermDebtDynamics/QuantitativeEasing.lean"
+  ],
+  "theorem_counts": {
+    "LongTermDebtDynamics/Determinacy.lean": 23,
+    "LongTermDebtDynamics/Expectations.lean": 20,
+    "LongTermDebtDynamics/ExpectationsFiniteTree.lean": 21,
+    "LongTermDebtDynamics/ForwardSolution.lean": 44,
+    "LongTermDebtDynamics/MaturityStructure.lean": 15,
+    "LongTermDebtDynamics/ForwardGuidance.lean": 37,
+    "LongTermDebtDynamics/MaturingDebt.lean": 14,
+    "LongTermDebtDynamics/BondSales.lean": 15,
+    "LongTermDebtDynamics/FutureSales.lean": 18,
+    "LongTermDebtDynamics/GeneralFormula.lean": 52,
+    "LongTermDebtDynamics/PolicyConstraints.lean": 29,
+    "LongTermDebtDynamics/QuantitativeEasing.lean": 17
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 7 (with Online Appendix A1.2.1, A1.14): Long-term debt dynamics. The maturity structure with flow and present-value relations (equivalent under transversality); forward guidance and bond-price targets (T >= k sharp), with discrete and continuous closed forms; maturing debt as a buffer; bond sales, dilution and unit elasticity; future sales in three periods; the general formula (7.17) with the explicit chain-sum weights, its convergence under a row condition, uniqueness of the price level without buy-backs, and a counterexample showing the present-value system need not determine the price level; policy constraints (Theorem P), QE trade-offs; quantitative easing with existence and uniqueness of the required purchases. Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 7, pp. 212-236, and Online Appendix A1.2.1 and A1.14."
+}

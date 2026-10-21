@@ -1,0 +1,41 @@
+{
+  "library": "DiscretionCommitment",
+  "modules": [
+    "DiscretionCommitment/Determinacy.lean",
+    "DiscretionCommitment/Expectations.lean",
+    "DiscretionCommitment/ExpectationsFiniteTree.lean",
+    "DiscretionCommitment/LossAndCostPush.lean",
+    "DiscretionCommitment/CostPushSources.lean",
+    "DiscretionCommitment/Discretion.lean",
+    "DiscretionCommitment/Commitment.lean",
+    "DiscretionCommitment/CommitmentVsDiscretion.lean",
+    "DiscretionCommitment/DistortedSS.lean",
+    "DiscretionCommitment/ZLBDiscretion.lean",
+    "DiscretionCommitment/ZLBCommitment.lean",
+    "DiscretionCommitment/Ex5_1.lean",
+    "DiscretionCommitment/Ex5_2.lean",
+    "DiscretionCommitment/Ex5_3.lean",
+    "DiscretionCommitment/Ex5_4.lean",
+    "DiscretionCommitment/Ex5_5.lean"
+  ],
+  "theorem_counts": {
+    "DiscretionCommitment/Determinacy.lean": 23,
+    "DiscretionCommitment/Expectations.lean": 18,
+    "DiscretionCommitment/ExpectationsFiniteTree.lean": 20,
+    "DiscretionCommitment/LossAndCostPush.lean": 33,
+    "DiscretionCommitment/CostPushSources.lean": 17,
+    "DiscretionCommitment/Discretion.lean": 40,
+    "DiscretionCommitment/Commitment.lean": 98,
+    "DiscretionCommitment/CommitmentVsDiscretion.lean": 14,
+    "DiscretionCommitment/DistortedSS.lean": 68,
+    "DiscretionCommitment/ZLBDiscretion.lean": 38,
+    "DiscretionCommitment/ZLBCommitment.lean": 42,
+    "DiscretionCommitment/Ex5_1.lean": 38,
+    "DiscretionCommitment/Ex5_2.lean": 32,
+    "DiscretionCommitment/Ex5_3.lean": 22,
+    "DiscretionCommitment/Ex5_4.lean": 22,
+    "DiscretionCommitment/Ex5_5.lean": 30
+  },
+  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 5: Monetary Policy Tradeoffs: Discretion versus Commitment, with Appendices 5.1-5.2 and Exercises 5.1-5.5. The cost-push tradeoff and the small-distortion loss; cost-push sources (corrected); optimal discretion and its implementation; the optimal commitment policy (deterministic and under uncertainty) and its implementation; commitment versus discretion; the inflation bias and its absence under commitment (corrected (26)-(27)); discretion and commitment at the zero lower bound; and the exercises.",
+  "source": "Jordi Galí, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 5, pp. 126-162."
+}
