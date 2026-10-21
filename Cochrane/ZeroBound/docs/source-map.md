@@ -8,7 +8,8 @@ pages. The book has no labelled propositions, so rows are keyed by equation numb
 table or page. Rows follow the book section by section, and each heading names the modules that
 formalise the section: §20.1, §20.2.1 with the Chapter 24 claims, §§20.2.2–20.2.6, §20.3,
 Chapter 21, then the links between the modules, the links with Galí (2015) and Woodford (2003),
-the restated Woodford block and the shared tools.
+Galí's commitment optimum (lift-off timing, existence and the shape of the zero-rate spell), the
+restated Woodford block and the shared tools.
 
 The discrete-time results (§20.1, §20.2.1, §20.2.6, Chapter 24) hold for an arbitrary
 `ExpectationSystem`, so under perfect foresight and under uncertainty, except where a row says
@@ -200,7 +201,9 @@ Woodford Chapter 6 project", and all are re-proved here. Galí's model is
 `[0, t_Z]` and `ρ` after; his IS slope `σ⁻¹` is Cochrane's `σ`. The commitment theorems take the
 form of the path delivered by Galí's algorithm (the zero-rate recursion (48)–(49) on
 `[0, t_C]`, the FOC (36) and the Phillips curve at `t_C + 1`, the closed form (42)–(43) after),
-with `t_C ≥ t_Z` as an explicit hypothesis; see [corrections](corrections.md).
+with `t_C ≥ t_Z` as an explicit hypothesis. That hypothesis holds at every optimum
+(`LiftoffTiming`), and the optimum always has this form (`LiftoffStructure`); see
+[corrections](corrections.md).
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -259,6 +262,61 @@ member of the discrete Werning family.
 | Cochrane p. 475 | the exact closed form of the discrete trap path at period length `h`; it is the trap part of the family member `LinksGaliWoodford.wState` | `LinksGaliWoodfordLimit.trapDisc`, `LinksGaliWoodfordLimit.coefA`, `LinksGaliWoodfordLimit.coefB`, `LinksGaliWoodfordLimit.closed_generic`, `LinksGaliWoodfordLimit.trapDisc_closed`, `LinksGaliWoodfordLimit.trapDisc_eq_wState` |
 | Cochrane (20.8)–(20.10), p. 475 | `WerningModel.wPi` in two modes; the algebra of the limit with `λ^fλ^b = κσ`, `λ^f − λ^b = ρ` | `LinksGaliWoodfordLimit.wPi_modes`, `LinksGaliWoodfordLimit.algA`, `LinksGaliWoodfordLimit.algB`, `LinksGaliWoodfordLimit.algX` |
 | Cochrane §20.2.2, p. 475, and §5.7.1 | cutting `T − t` into `n + 1` periods, the discrete trap path converges in `x` and `π` to the continuous Werning path `(wX, wPi)` with `π_T = c` at time `t`, for every member of the family | `LinksGaliWoodfordLimit.trap_tendsto`, `LinksGaliWoodfordLimit.trap_pi_tendsto`, `LinksGaliWoodfordLimit.trap_x_tendsto`, `LinksGaliWoodfordLimit.wState_tendsto` |
+
+## Lift-off timing: the bound binds throughout the shock (LiftoffTiming)
+
+Galí's commitment problem of `LinksGaliWoodford` (loss `∑ βᵗ(π_t² + ϑx_t²)`, the Phillips curve,
+the IS curve and `i_t ≥ 0`, natural rate `−η` on `[0, t_Z]` and `ρ` after). Galí's algorithm
+guesses a lift-off date `t_C ≥ t_Z`, and the commitment theorems of `LinksGaliWoodford` take it
+as a hypothesis. This module proves it for every optimum, for all `β ∈ (0,1)`, `κ, σ, ϑ > 0`,
+`η > 0` and `ρ ≥ 0`. The KKT conditions are shown to be necessary by finite-support directions,
+with transversality of the multipliers by Tannery's theorem; discrete maximum principles on
+inflation then exclude a slack date in the shock. Every declaration cites Cochrane §20.2.4
+(pp. 478–480) and Galí (2015) §5.4.2 (pp. 148–152).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Galí (2015) (29)–(30), p. 145; Cochrane p. 465, (5.2), p. 118 | the rate gap `i_t − rⁿ_t = π_{t+1} + σ(x_{t+1} − x_t)`, the multiplier combination `π_{t+1} + (ϑ/κ)(x_{t+1} − x_t)` and its date-0 form `π₀ + (ϑ/κ)x₀`; the implied rate is the natural rate plus the gap; the Phillips curve solved for `x`; the rate is nonnegative on a feasible path; a finite loss forces `β^t π_t² → 0` | `LiftoffTiming.gap`, `LiftoffTiming.lam`, `LiftoffTiming.lamI`, `LiftoffTiming.impliedRate_eq_gap`, `LiftoffTiming.x_of_nkpc`, `LiftoffTiming.rate_nonneg`, `LiftoffTiming.tendsto_pi_sq` |
+| Cochrane §20.2.4, p. 479; Galí (29), (35)–(36), p. 149 | under the Phillips curve the gap and the combination are the second-difference operator `comb` of `π` (with `a = σ/κ` and `a = ϑ/κ²`); with `r = σκ/ϑ`, `gap = r · lam − (r − 1)π_{t+1}`; the FOCs give `κ · lam_t = cξ₂,t − ξ₂,t+1 − ξ₂,t−1/β` and `κ(π₀ + (ϑ/κ)x₀) = −ξ₂,₀` | `LiftoffTiming.comb`, `LiftoffTiming.gap_comb`, `LiftoffTiming.lam_comb`, `LiftoffTiming.lamI_eq`, `LiftoffTiming.gap_lam`, `LiftoffTiming.lam_mult`, `LiftoffTiming.lamI_mult` |
+| Cochrane p. 479 | maximum-principle and growth tools for `comb`: its value at a weak local minimum; a rise above the bound keeps rising, with increments growing by at least `β⁻¹`; oddness; such growth is incompatible with `β^t u_t² → 0` and, for `u ≥ 0`, with `β^t u_t → 0` | `LiftoffTiming.comb_le_of_min`, `LiftoffTiming.comb_up`, `LiftoffTiming.comb_step`, `LiftoffTiming.comb_neg`, `LiftoffTiming.grow`, `LiftoffTiming.not_tendsto_sq`, `LiftoffTiming.not_tendsto_lin`, `LiftoffTiming.comb_blowup` |
+| Cochrane p. 479; Galí (35)–(36) and transversality, p. 149 | a nonnegative multiplier sequence vanishing at `s` with three-term operator `≤ 0` vanishes on `[0, s]` (finite maximum principle) and, given `β^t ξ₂,t → 0`, on `[s, ∞)` | `LiftoffTiming.mult_zero_left`, `LiftoffTiming.mult_zero_right` |
+| Cochrane §20.2.4, p. 479 | **commitment inflation never exceeds the depth of the shock**, `π_t ≤ η` at every date of the optimum (a discrete maximum principle for a general bound `B`); negative inflation after the shock stays nonpositive | `LiftoffTiming.pi_le_bound`, `LiftoffTiming.optimal_pi_le`, `LiftoffTiming.post_nonpos` |
+| Galí (2015) (35)–(36), p. 149 | the multipliers attached to a path by solving (35)–(36) forward from `ξ₁,₋₁ = ξ₂,₋₁ = 0`; they satisfy (35)–(36) and are the only solutions | `LiftoffTiming.mult`, `LiftoffTiming.mxi1`, `LiftoffTiming.mxi2`, `LiftoffTiming.foc35_mult`, `LiftoffTiming.foc36_mult`, `LiftoffTiming.mult_unique` |
+| Galí pp. 148–149; Cochrane p. 485 | the cross term of the loss in a direction, the loss along a perturbed path, summability and oddness of the cross term; feasibility of a perturbation; **first-order necessary condition**: at an optimum the derivative in every feasible direction is nonnegative | `LiftoffTiming.cross`, `LiftoffTiming.lossTerm_pert`, `LiftoffTiming.summable_cross`, `LiftoffTiming.cross_neg`, `LiftoffTiming.feasible_pert`, `LiftoffTiming.foc_dir` |
+| Galí (34), p. 147; Cochrane p. 479 | a direction obeying the backward step raises the rate gap by its forcing; `hdir s` raises the rate at `s` alone (zero after `s`, finite support, finite loss), and its derivative is `β^s ξ₂,s/σ` (Lagrangian identity), which gives `ξ₂ ≥ 0` and complementary slackness | `LiftoffTiming.dir_of_step`, `LiftoffTiming.hdir`, `LiftoffTiming.hdir_gt`, `LiftoffTiming.hdir_step`, `LiftoffTiming.hdir_dir`, `LiftoffTiming.hdir_summable`, `LiftoffTiming.cross_hdir` |
+| Cochrane §20.1, p. 467, §20.2.2, p. 475 | the bounded peg mode `w_t = λ₁⁻ᵗ(v_x, 1)`: zero rate gaps, finite loss, and zero derivative at an optimum | `LiftoffTiming.wdir`, `LiftoffTiming.wdir_step`, `LiftoffTiming.wdir_dir`, `LiftoffTiming.wdir_summable`, `LiftoffTiming.cross_wdir` |
+| Cochrane (5.6), p. 119, p. 475, p. 479 | `λ₁ + λ₂ = 1 + β + κ/σ`, `λ₁λ₂ = β`, `0 < λ₂ < 1 < λ₁`; the `λ₂` eigenvector `(v₂, 1)`; `(−1/σ, −κ/σ) = c₁(v_x, 1) + c₂(v₂, 1)`, and `k` zero-gap backward steps from it in closed form | `LiftoffTiming.vx2`, `LiftoffTiming.cf1`, `LiftoffTiming.cf2`, `LiftoffTiming.l_add`, `LiftoffTiming.l_mul`, `LiftoffTiming.l2_bounds`, `LiftoffTiming.l2_vx2`, `LiftoffTiming.kappa_vx2`, `LiftoffTiming.cf_vx`, `LiftoffTiming.cf_sum`, `LiftoffTiming.backState_closed` |
+| Galí p. 149 (transversality); Cochrane p. 479 | the localised direction `hdir s − c₁λ₁ˢ w`, bounded uniformly in `s` and `t`; `β^t|π_t|`, `β^t|x_t|` summable; **at an optimum `β^t ξ₂,t → 0`** (Tannery's theorem) | `LiftoffTiming.ddir`, `LiftoffTiming.ddir_le`, `LiftoffTiming.ddir_gt`, `LiftoffTiming.ddir_bound`, `LiftoffTiming.summable_abs`, `LiftoffTiming.tendsto_mxi2` |
+| Galí (35)–(36), p. 149 | **the KKT conditions are necessary** at the optimum, for any natural-rate path, with `β^t ξ₂,t → 0` | `LiftoffTiming.kkt_necessary` |
+| Cochrane p. 479; Galí §5.4.2 | on a KKT path with `β^t ξ₂,t → 0` every multiplier of the shock interval is strictly positive: for `σκ ≤ ϑ` a slack shock date gives `i_s < 0`; for `ϑ < σκ` it makes the peg dynamics explode | `LiftoffTiming.slack_contra_le`, `LiftoffTiming.slack_contra_gt`, `LiftoffTiming.trap_mult_pos` |
+| Galí p. 152 (the guess `t_C ≥ t_Z`); Cochrane pp. 478–479 | at the optimum `i_t = 0` and `ξ₂,t > 0` for all `t ≤ t_Z`, so the zero-rate recursion (48), p. 151, holds on the whole shock | `LiftoffTiming.optimal_trap_binds`, `LiftoffTiming.optimal_h48` |
+| Galí p. 152; Cochrane p. 479 | **the lift-off date satisfies `t_C ≥ t_Z`**: stated via a positive rate at `t_C + 1`, via `ξ₂,t_C+1 = 0`, or as `0 < i_t ⇒ t_Z < t` | `LiftoffTiming.liftoff_ge`, `LiftoffTiming.liftoff_ge_mult`, `LiftoffTiming.liftoff_after_shock` |
+| Cochrane pp. 478–479; Galí p. 152 | `LinksGaliWoodford.comm_gt_disc`, `LinksGaliWoodford.comm_loss_lt`, `LinksGaliWoodford.comm_promise` and `LinksGaliWoodford.comm_gt_disc_of_state` for the optimum without the hypotheses `t_Z ≤ t_C` and (48) | `LiftoffTiming.comm_gt_disc_opt`, `LiftoffTiming.comm_loss_lt_opt`, `LiftoffTiming.comm_promise_opt`, `LiftoffTiming.comm_gt_disc_of_state_opt` |
+| Galí p. 152, verification | the algorithm for an arbitrary guess `t_C`: a candidate passing the checks is the unique optimum and satisfies `t_Z ≤ t_C`, so the guess is without loss of generality; with `ξ₁,t_C+1 > 0` discretion is strictly worse | `LiftoffTiming.algorithm_verification_gen`, `LiftoffTiming.comm_loss_lt_alg_gen` |
+
+## The commitment optimum: existence, uniqueness and lift-off (LiftoffStructure)
+
+Continues `LiftoffTiming`. Existence comes from the Hilbert projection theorem in a weighted
+`ℓ²`, the shape of the zero-rate spell from maximum principles and the two-root structure of the
+post-lift-off dynamics. The shape results need `ρ > 0`; at `ρ = 0` the module gives the exact
+dichotomy and shows `ρ > 0` cannot be dropped.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 479; Galí (15), p. 136; Cochrane §5.7.1 | `comb` is homogeneous and shifts by constants; `δ` solves `βδ² − (1 + β + κ²/ϑ)δ + 1 = 0`; a two-root recursion with `β^n u_n² → 0` follows its stable root | `LiftoffStructure.comb_smul`, `LiftoffStructure.comb_add_const`, `LiftoffStructure.del_root`, `LiftoffStructure.two_root` |
+| Galí p. 148; Cochrane p. 485 | paths coded in `ℓ²(ℕ ⊕ ℕ)` as `(√β^t π_t, √β^t √ϑ x_t)`: decoding inverts coding, and the loss of a decoded path is its squared norm, finite; every finite-loss path has a code | `LiftoffStructure.PathSpace`, `LiftoffStructure.decP`, `LiftoffStructure.decX`, `LiftoffStructure.enc`, `LiftoffStructure.sqrt_pow_sq`, `LiftoffStructure.decP_enc`, `LiftoffStructure.decX_enc`, `LiftoffStructure.lossTerm_dec`, `LiftoffStructure.summable_sq`, `LiftoffStructure.norm_sq_eq`, `LiftoffStructure.loss_dec`, `LiftoffStructure.memℓp_enc` |
+| Galí p. 149 | feasible paths (Phillips curve and `i ≥ 0` at every date) are convex; their codes form a closed convex set | `LiftoffStructure.feasible_convex`, `LiftoffStructure.feasSet`, `LiftoffStructure.coord_continuous`, `LiftoffStructure.feasSet_closed`, `LiftoffStructure.feasSet_convex` |
+| Galí p. 148, §5.4.2; Cochrane §20.2.4, p. 479 | **the commitment optimum exists** for any natural-rate path with a feasible finite-loss path (minimal-norm feasible code), and **exists and is unique** for `ρ ≥ 0` and any `t_Z` | `LiftoffStructure.exists_optimal`, `LiftoffStructure.optimal_exists_unique` |
+| Galí p. 150; Cochrane p. 479 | no re-binding (`ρ ≥ 0`): once the bound multiplier vanishes after the shock it stays zero | `LiftoffStructure.no_return` |
+| Galí p. 152; Cochrane p. 479 | the rate lifts off in finite time (`ρ > 0`): some post-shock date has a zero multiplier | `LiftoffStructure.exists_slack_after` |
+| Galí (37)–(43), pp. 149–150 | after the last binding date the optimum follows Galí's closed form: the closed form is necessary | `LiftoffStructure.post_form` |
+| Galí p. 152; Cochrane pp. 478–479 | the binding set is an initial interval `[0, t_B]`, `t_B ≥ t_Z`, with `i > 0` from `t_B + 2` on; there is `t_C ≥ t_Z` with `i = 0` exactly on `[0, t_C]` and `i > 0` after (`ρ, η > 0`) | `LiftoffStructure.optimal_binding`, `LiftoffStructure.optimal_liftoff` |
+| Galí p. 152 (converse of `LinksGaliWoodford.algorithm_verification`) | the optimum satisfies every hypothesis of Galí's algorithm, with `ξ = mult` and `t_C` the last binding date | `LiftoffStructure.optimal_algorithm_form` |
+| Cochrane §20.2.4, pp. 478–480; Galí §5.4.2, pp. 148–152 | **the commitment optimum, fully characterised** (`β ∈ (0,1)`; `κ, σ, ϑ, ρ, η > 0`; any `t_Z`): it exists, is unique, and has `t_C ≥ t_Z` with `i = 0` exactly on `[0, t_C]` and `i > 0` after | `LiftoffStructure.commitment_characterisation` |
+| Galí p. 152 (`ρ ≥ 0`) | after a finite lift-off, with `A = (1 − δ)(1 − σκ/ϑ)ξ₁,t_B+1`: `i_{t_B+1} < ρ + A` and `i_{t_B+2+k} = ρ + Aδ^{k+1}` | `LiftoffStructure.liftoff_rates` |
+| Cochrane §20.2.4; Galí §5.4.2, at `ρ = 0` | either the rate is zero at every date, or `σκ ≠ ϑ` and the zero-rate spell is `[0, t_C]`, `t_C ≥ t_Z`, with `i > 0` after | `LiftoffStructure.rho_zero_structure` |
+| same, `ρ = 0` and `σκ = ϑ` | the optimal rate is zero at every date: it never lifts off | `LiftoffStructure.rho_zero_unit_ratio` |
+| correction to `LiftoffStructure.commitment_characterisation` | `ρ > 0` cannot be dropped: for every `β ∈ (0,1)`, `κ, σ, η > 0` and `t_Z`, with `ρ = 0` and `ϑ = σκ` the optimum exists and is unique but never lifts off; exact instance `β = 1/2`, `κ = σ = ϑ = η = 1`, `t_Z = 0` | `LiftoffStructure.rho_zero_no_liftoff`, `LiftoffStructure.rho_zero_instance` |
 
 ## Restated Woodford block (GlobalDynamics)
 

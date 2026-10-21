@@ -15,10 +15,10 @@ every equation holds state by state. The continuous-time Werning model of §§20
 deterministic paths `ℝ → ℝ`, exact derivatives off a countable set of dates, and genuine
 improper integrals. In both, an equilibrium is a solution of the model equations, "determinate"
 means exactly one bounded solution, and the fiscal theory selects instead through the valuation
-equation. The library contains **662 theorems**, including the shared core; 554 of them are in
-the fifteen chapter modules, 49 of these in a verbatim copy of Woodford Chapter 2 results
-(`GlobalDynamics`), and 142 in the two modules linking Chapter 20 to Galí's and Woodford's
-treatments of the bound (`LinksGaliWoodford`, `LinksGaliWoodfordLimit`).
+equation. The library contains **761 theorems**, including the shared core; 653 of them are in
+the seventeen chapter modules, 49 of these in a verbatim copy of Woodford Chapter 2 results
+(`GlobalDynamics`), and 241 in the four modules on Galí's and Woodford's treatments of the bound
+(`LinksGaliWoodford`, `LinksGaliWoodfordLimit`, `LiftoffTiming`, `LiftoffStructure`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E1–E11 and E20 refer to
@@ -100,14 +100,23 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   (`Links.gabaix_rational_eq_peg`, `Links.gabaix_rational_straddle`). A steady state of the
   Chapter 16 map at the bound is `Π_L = β` (`Links.zlb_fixed_point_eq_beta`).
 * **Galí's commitment and Woodford's moment constraint.** Galí's optimal commitment at the bound
-  is delayed lift-off plus a positive promise: given `t_C ≥ t_Z` and Galí's sign condition, it
-  lies strictly above delayed lift-off at its own lift-off date, which lies above discretion, and
-  discretion has strictly larger loss (`LinksGaliWoodford.comm_gt_delay`,
-  `LinksGaliWoodford.comm_gt_disc`, `LinksGaliWoodford.comm_loss_lt`). The sign condition fails at
+  is delayed lift-off plus a positive promise: given Galí's sign condition, it lies strictly above
+  delayed lift-off at its own lift-off date, which lies above discretion, and discretion has
+  strictly larger loss (`LinksGaliWoodford.comm_gt_delay`, `LinksGaliWoodford.comm_gt_disc`,
+  `LiftoffTiming.comm_gt_disc_opt`, `LiftoffTiming.comm_loss_lt_opt`). The sign condition fails at
   an exact optimum (`LinksGaliWoodford.cex_xi_neg`). Discrete trap paths converge to Werning's
   continuous ones (`LinksGaliWoodfordLimit.trap_tendsto`). Neither Woodford's moment constraint
   nor the pathwise bound implies the other (`LinksGaliWoodford.Moments.neither_implies`). See
   the relation to the Woodford and Galí projects below.
+* **The commitment optimum.** At the optimum the bound binds on the whole shock, so the lift-off
+  date satisfies `t_C ≥ t_Z` and Galí's guess is without loss of generality
+  (`LiftoffTiming.optimal_trap_binds`, `LiftoffTiming.liftoff_ge`,
+  `LiftoffTiming.algorithm_verification_gen`); commitment inflation never exceeds the depth of the
+  shock (`LiftoffTiming.optimal_pi_le`). For `ρ > 0` the optimum exists, is unique, and keeps the
+  rate at zero exactly on `[0, t_C]` and positive after
+  (`LiftoffStructure.commitment_characterisation`); it is always the path of Galí's algorithm
+  (`LiftoffStructure.optimal_algorithm_form`). With `ρ = 0` and `σκ = ϑ` the rate never lifts off
+  (`LiftoffStructure.rho_zero_no_liftoff`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -128,6 +137,8 @@ delayed lift-off the positive post-trap natural rate it needs. The links with Ga
 two features of his commitment solution: the positivity of (42)–(43), p. 150, needs
 `ξ₁,t_C+1 > 0`, which fails at an exact optimum (`LinksGaliWoodford.cex_xi_neg`), and strictly
 later lift-off is not a property of every optimum (`LinksGaliWoodford.cex_liftoff_at_shock_end`).
+The weak inequality `t_C ≥ t_Z`, Galí's guess, holds at every optimum (`LiftoffTiming.liftoff_ge`),
+and lift-off needs a positive post-shock natural rate (`LiftoffStructure.rho_zero_no_liftoff`).
 
 Not formalised:
 * the empirical and narrative parts of Chapters 20–21: the U.S. and Japanese experience, QE, the
@@ -151,9 +162,9 @@ Not formalised:
   delayed lift-off, whose models and parameters do not match, and between the nonlinear Covid
   helicopter `P = B/S` and the linearised valuation equations, beyond the frictionless limit of
   the impact coefficient (`Links.fiscal_impact_frictionless`);
-* the inequality `t_C ≥ t_Z` for Galí's commitment optimum (the bound binds throughout the
-  trap), which is a hypothesis of the commitment theorems of `LinksGaliWoodford` (see the
-  relation to the Woodford and Galí projects below);
+* which calibrations with `ρ = 0` and `σκ ≠ ϑ` never lift off: the exact dichotomy is proved
+  (`LiftoffStructure.rho_zero_structure`), and `σκ = ϑ` always lands in the never-lift-off branch,
+  but the converse is not (see the relation to the Woodford and Galí projects below);
 * a structural link with Woodford's Proposition 6.9, which shares no model equations with
   Chapter 20; the link is at the level of the constraint;
 * stochastic versions of the continuous-time results, and of the global orbit results of
@@ -183,6 +194,8 @@ Not formalised:
 | [Links](ZeroBound/Links.lean) | 20 | Discrete-to-continuous convergence of roots, paths and impact coefficients; Gabaix at `M = M^f = 1`; `Π_L = β` in the Chapter 16 map and in the rule of §20.2.1 |
 | [LinksGaliWoodford](ZeroBound/LinksGaliWoodford.lean) | 123 | Galí's commitment as delayed lift-off plus a promise, the discrete Werning family, the sign of `ξ₁,t_C+1` and an exact optimum; Woodford's moment constraint against the pathwise bound; Woodford's dispersion and `Π_L = β` (Galí and Woodford definitions restated) |
 | [LinksGaliWoodfordLimit](ZeroBound/LinksGaliWoodfordLimit.lean) | 19 | Exact two-mode closed form of the discrete trap path; convergence of whole trap paths to the continuous-time Werning paths |
+| [LiftoffTiming](ZeroBound/LiftoffTiming.lean) | 69 | Galí's commitment optimum: necessity of the KKT conditions with transversality, `π_t ≤ η`, the bound binds on the whole shock, `t_C ≥ t_Z`; the commitment theorems without that hypothesis |
+| [LiftoffStructure](ZeroBound/LiftoffStructure.lean) | 30 | Existence (Hilbert projection in a weighted `ℓ²`) and uniqueness of the optimum; no re-binding, finite lift-off, the post-lift-off closed form; the full characterisation; the `ρ = 0` dichotomy and `ρ > 0` necessary |
 
 ## Modelling conventions
 
@@ -226,6 +239,10 @@ Not formalised:
   monotonicity in `κ`, and `0 < β ≤ 1`, `Π* ≥ 1` for the welfare comparison. The commitment
   theorems of `LinksGaliWoodford` take the form of the path from Galí's algorithm, with
   `t_C ≥ t_Z` and, where positivity after lift-off is used, `ξ₁,t_C+1 > 0` as hypotheses.
+  `t_C ≥ t_Z` is proved for every optimum (`LiftoffTiming.liftoff_ge`), and versions for the
+  optimum drop it (`LiftoffTiming.comm_gt_disc_opt`); `ξ₁,t_C+1 > 0` remains a hypothesis of
+  (42)–(43), because it fails at some optima. The shape of the zero-rate spell assumes `ρ > 0`, which is
+  necessary (`LiftoffStructure.rho_zero_no_liftoff`).
 
 ## Relation to the Woodford and Galí projects
 
@@ -240,7 +257,8 @@ lemmas (`ZLBRule.lower_attracting`, `ZLBRule.upper_repelling`), and `Links` uses
 with `Π_L = β` (`Links.map46_fixed_beta_iff`, `Links.zlb_fixed_point_eq_beta`).
 
 `LinksGaliWoodford` and `LinksGaliWoodfordLimit` link Chapter 20 to two other treatments of the
-bound. The definitions they need are restated, with docstrings "restated from the Galí Chapter 5
+bound, and `LiftoffTiming` and `LiftoffStructure` solve Galí's commitment problem in that setting.
+The definitions they need are restated, with docstrings "restated from the Galí Chapter 5
 project" or "restated from the Woodford Chapter 6 project", and every result is proved here.
 
 **Galí (2015), §5.4.2, in the `DiscretionCommitment` project (`ZLBCommitment`).** Galí solves
@@ -277,12 +295,46 @@ and a lift-off date `t_C + 1`, in the discrete model `π_t = βπ_{t+1} + κx_t`
   the shock, `t_C = t_Z` (`LinksGaliWoodford.cex_optimal`, `LinksGaliWoodford.cex_xi_neg`,
   `LinksGaliWoodford.cex_liftoff_at_shock_end`). Commitment still lies above discretion on the
   zero-rate spell (`LinksGaliWoodford.comm_gt_disc_of_state`).
-* *What is not proved.* `t_C ≥ t_Z`, that the bound binds on all of `[0, t_Z]` at the optimum, is
-  a hypothesis of the commitment theorems, as it is a guess of Galí's algorithm. It held in every
-  numerical check, but it is not derived from optimality: the restated Galí results give KKT
-  sufficiency, not necessity, and even granting necessity the response of the rate gap to the
-  bound multipliers has positive entries two or more periods apart, so a sign argument does not
-  exclude a slack date in the trap.
+* *Lift-off timing, proved (`LiftoffTiming`).* At the commitment optimum the bound binds on all
+  of `[0, t_Z]`, so `t_C ≥ t_Z`, for all `β ∈ (0,1)`, `κ, σ, ϑ, η > 0` and `ρ ≥ 0`
+  (`LiftoffTiming.optimal_trap_binds`, `LiftoffTiming.optimal_h48`, `LiftoffTiming.liftoff_ge`,
+  `LiftoffTiming.liftoff_ge_mult`, `LiftoffTiming.liftoff_after_shock`). The proof has two steps.
+  First, the KKT conditions are necessary (`LiftoffTiming.kkt_necessary`): raising the rate at a
+  single date is a finite-support direction whose loss derivative is `β^s ξ₂,s/σ`, which gives
+  `ξ₂ ≥ 0` and complementary slackness, and transversality `β^t ξ₂,t → 0` follows from Tannery's
+  theorem after subtracting the bounded peg mode (`LiftoffTiming.cross_hdir`,
+  `LiftoffTiming.tendsto_mxi2`). Second, the rate gap and the multiplier combination are both
+  second-difference operators of inflation, so discrete maximum principles apply: commitment
+  inflation never exceeds `η` (`LiftoffTiming.optimal_pi_le`), and a slack date in the shock gives
+  a negative rate when `σκ ≤ ϑ` and explosive peg dynamics when `ϑ < σκ`
+  (`LiftoffTiming.slack_contra_le`, `LiftoffTiming.slack_contra_gt`,
+  `LiftoffTiming.trap_mult_pos`). The commitment theorems hold for the optimum without the
+  hypotheses `t_C ≥ t_Z` and (48) (`LiftoffTiming.comm_gt_disc_opt`,
+  `LiftoffTiming.comm_loss_lt_opt`, `LiftoffTiming.comm_promise_opt`,
+  `LiftoffTiming.comm_gt_disc_of_state_opt`), and the verification theorem holds for an arbitrary
+  guess, proving `t_Z ≤ t_C`: Galí's guess is without loss of generality
+  (`LiftoffTiming.algorithm_verification_gen`, `LiftoffTiming.comm_loss_lt_alg_gen`). Earlier
+  numerical "counterexamples" were round-off at weights `β^t` near `10⁻¹⁷`.
+* *The optimum characterised (`LiftoffStructure`).* Coding paths in a weighted `ℓ²(ℕ ⊕ ℕ)` makes
+  the loss a squared norm and the feasible set closed and convex, so the Hilbert projection
+  theorem gives existence, and strict convexity uniqueness, for every `ρ ≥ 0` and `t_Z`
+  (`LiftoffStructure.exists_optimal`, `LiftoffStructure.optimal_exists_unique`). After the shock
+  the bound never re-binds once it is slack (`LiftoffStructure.no_return`), lift-off is finite
+  for `ρ > 0` (`LiftoffStructure.exists_slack_after`), and Galí's closed form (37)–(43) after
+  lift-off is necessary (`LiftoffStructure.post_form`). Hence, for `κ, σ, ϑ, ρ, η > 0`, the
+  binding set is an initial interval `[0, t_C]` with `t_C ≥ t_Z` and `i > 0` after
+  (`LiftoffStructure.optimal_binding`, `LiftoffStructure.optimal_liftoff`), the optimum satisfies
+  every hypothesis of Galí's algorithm (`LiftoffStructure.optimal_algorithm_form`), and the
+  whole statement is `LiftoffStructure.commitment_characterisation`.
+* *A zero post-shock natural rate.* With `ρ = 0` the optimum either keeps the rate at zero forever
+  or has `σκ ≠ ϑ` and the shape above (`LiftoffStructure.rho_zero_structure`, with the
+  post-lift-off rates of `LiftoffStructure.liftoff_rates`). At `σκ = ϑ` it never lifts off
+  (`LiftoffStructure.rho_zero_unit_ratio`, `LiftoffStructure.rho_zero_no_liftoff`, exact instance
+  `LiftoffStructure.rho_zero_instance`), so `ρ > 0` in the characterisation is necessary.
+* *What remains open.* Which calibrations with `ρ = 0` and `σκ ≠ ϑ` never lift off is not
+  settled; the dichotomy is exact, but "never lifts off iff `σκ = ϑ`" is not claimed. Galí's sign
+  condition `ξ₁,t_C+1 > 0` remains a genuine hypothesis of the positivity of (42)–(43) and of the
+  results that use it, because it fails at some optima (`LinksGaliWoodford.cex_xi_neg`).
 
 **Woodford (2003), Chapter 6, §4.2, in the `StabilizationWelfare` project (`ZLB.lean`).**
 Proposition 6.9 replaces the bound by a constraint on the discounted mean and second moment of

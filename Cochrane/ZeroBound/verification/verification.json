@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T23:28:38.199826+00:00",
-  "theorems": 662,
+  "checked_at_utc": "2026-10-21T02:52:02.631987+00:00",
+  "theorems": 761,
   "module_theorems": {
     "ZeroBound/Determinacy.lean": 23,
     "ZeroBound/Expectations.lean": 20,
@@ -20,9 +20,11 @@
     "ZeroBound/ZLBWelfare.lean": 21,
     "ZeroBound/Links.lean": 20,
     "ZeroBound/LinksGaliWoodford.lean": 123,
-    "ZeroBound/LinksGaliWoodfordLimit.lean": 19
+    "ZeroBound/LinksGaliWoodfordLimit.lean": 19,
+    "ZeroBound/LiftoffTiming.lean": 69,
+    "ZeroBound/LiftoffStructure.lean": 30
   },
-  "audited_declarations": 842,
+  "audited_declarations": 960,
   "declarations": [
     {
       "name": "Cochrane.ZeroBound.SchurStable",
@@ -4233,6 +4235,596 @@
       "name": "Cochrane.ZeroBound.LinksGaliWoodfordLimit.wState_tendsto",
       "kind": "theorem",
       "module": "ZeroBound/LinksGaliWoodfordLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comb",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comb_le_of_min",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comb_up",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comb_step",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comb_neg",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.grow",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.not_tendsto_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.not_tendsto_lin",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comb_blowup",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.gap",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.lam",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.lamI",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.impliedRate_eq_gap",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.x_of_nkpc",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.gap_comb",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.lam_comb",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.lamI_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.gap_lam",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.lam_mult",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.lamI_mult",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.rate_nonneg",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.tendsto_pi_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.mult_zero_left",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.mult_zero_right",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.pi_le_bound",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.post_nonpos",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.slack_contra_le",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.slack_contra_gt",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.trap_mult_pos",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.mult",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.mxi1",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.mxi2",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.foc35_mult",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.foc36_mult",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.mult_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cross",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.lossTerm_pert",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.summable_cross",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.foc_dir",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.feasible_pert",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cross_neg",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.dir_of_step",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.hdir",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.hdir_gt",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.hdir_step",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.hdir_dir",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.hdir_summable",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cross_hdir",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.wdir",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.wdir_step",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.wdir_dir",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.wdir_summable",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cross_wdir",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.vx2",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cf1",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cf2",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.l_add",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.l_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.l2_bounds",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.l2_vx2",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.kappa_vx2",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cf_vx",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.cf_sum",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.backState_closed",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.ddir",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.ddir_le",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.ddir_gt",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.ddir_bound",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.summable_abs",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.tendsto_mxi2",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.kkt_necessary",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.optimal_trap_binds",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.optimal_h48",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.liftoff_ge",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.liftoff_ge_mult",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.liftoff_after_shock",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.optimal_pi_le",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comm_gt_disc_opt",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comm_loss_lt_opt",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comm_promise_opt",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comm_gt_disc_of_state_opt",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.algorithm_verification_gen",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffTiming.comm_loss_lt_alg_gen",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffTiming.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.comb_smul",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.comb_add_const",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.del_root",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.two_root",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.no_return",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.exists_slack_after",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.post_form",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.optimal_binding",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.optimal_liftoff",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.optimal_algorithm_form",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.PathSpace",
+      "kind": "abbrev",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.decP",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.decX",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.enc",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.sqrt_pow_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.decP_enc",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.decX_enc",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.lossTerm_dec",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.summable_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.norm_sq_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.loss_dec",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.mem\u2113p_enc",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.feasible_convex",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.feasSet",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.coord_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.feasSet_closed",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.feasSet_convex",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.exists_optimal",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.optimal_exists_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.commitment_characterisation",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.liftoff_rates",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.rho_zero_structure",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.rho_zero_unit_ratio",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.rho_zero_no_liftoff",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffStructure.rho_zero_instance",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffStructure.lean"
     }
   ],
   "full_build": "passed",
@@ -8446,6 +9038,596 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comb_le_of_min": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comb_up": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comb_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comb_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.grow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.not_tendsto_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.not_tendsto_lin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comb_blowup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.lamI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.impliedRate_eq_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.x_of_nkpc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.gap_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.lam_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.lamI_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.gap_lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.lam_mult": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.lamI_mult": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.rate_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.tendsto_pi_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.mult_zero_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.mult_zero_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.pi_le_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.post_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.slack_contra_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.slack_contra_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.trap_mult_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.mult": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.mxi1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.mxi2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.foc35_mult": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.foc36_mult": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.mult_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.lossTerm_pert": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.summable_cross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.foc_dir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.feasible_pert": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cross_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.dir_of_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.hdir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.hdir_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.hdir_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.hdir_dir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.hdir_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cross_hdir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.wdir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.wdir_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.wdir_dir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.wdir_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cross_wdir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.vx2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cf1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cf2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.l_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.l_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.l2_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.l2_vx2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.kappa_vx2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cf_vx": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.cf_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.backState_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.ddir": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.ddir_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.ddir_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.ddir_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.summable_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.tendsto_mxi2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.kkt_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.optimal_trap_binds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.optimal_h48": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.liftoff_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.liftoff_ge_mult": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.liftoff_after_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.optimal_pi_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comm_gt_disc_opt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comm_loss_lt_opt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comm_promise_opt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comm_gt_disc_of_state_opt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.algorithm_verification_gen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffTiming.comm_loss_lt_alg_gen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.comb_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.comb_add_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.del_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.two_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.no_return": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.exists_slack_after": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.post_form": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.optimal_binding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.optimal_liftoff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.optimal_algorithm_form": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.PathSpace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.decP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.decX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.enc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.sqrt_pow_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.decP_enc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.decX_enc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.lossTerm_dec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.summable_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.norm_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.loss_dec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.mem\u2113p_enc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.feasible_convex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.feasSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.coord_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.feasSet_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.feasSet_convex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.exists_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.optimal_exists_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.commitment_characterisation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.liftoff_rates": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.rho_zero_structure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.rho_zero_unit_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.rho_zero_no_liftoff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffStructure.rho_zero_instance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -8468,16 +9650,18 @@
     "ZeroBound/Links.lean": "5265bcb3c5211de1148e1809e3d426fd1d2c78b84e4a46db0a4816c552105dd6",
     "ZeroBound/LinksGaliWoodford.lean": "cf4a456cc55b3e3a2fc7393b24f9aa416e18b30d63f0eb064b713890e4966664",
     "ZeroBound/LinksGaliWoodfordLimit.lean": "60376ed50a91199204615bce194856eac19edf7abec2617e2d0105976f6990d9",
-    "ZeroBound.lean": "720dd5f01d7b5ae7c140ebecfa95600466e1339438ba00580abbe8f5d2ad1f40",
+    "ZeroBound/LiftoffTiming.lean": "7b9b24e71f07943afc71273e5f64dbef7f36c3358fdadb2647459c897b604633",
+    "ZeroBound/LiftoffStructure.lean": "d6a526b268826f95c310e2e9033eac5d7eef18e0935d436ccdc671c52c73f3aa",
+    "ZeroBound.lean": "de342d8780824f3e2d7204c81995f70e73dbf3d6879c6f3600b55e37b3a409fc",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "7ef77f0cb3da29c46a8a062c4c8b974cf418e49cf41e435f74ac0f4ddfacc5ed",
     "lake-manifest.json": "b69d55f3c11b62b0f7b40bcc8cbee17a9071adc355272601c2b0faddab148f14",
-    "proof-manifest.json": "6dcc3b3532a870d378ed784d205d6a6e120f5daffab0f7412d8de03b8f3325b3",
+    "proof-manifest.json": "eaa2126c08378f946b8348a226a11076c3b9d8e2537a5def88f7bf0f631f5e3a",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "a96ab341cec06e5910369913bcda8f7c9e0fce94869caebc02836ab2e8fc72c9",
+  "fresh_audit_sha256": "12c746d7dd8eeae9b8bfe5090e6ce318ccc8ef7a8e12da4e43506d57c01b995b",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models; links to Gali (optimal commitment at the zero bound as delayed lift-off, the discretionary path as the end-of-shock lift-off, the commitment path strictly above both, the sign condition behind Gali (42)-(43) characterised and shown to fail at an exact optimum, discrete trap paths converging to the continuous Werning paths) and to Woodford (his interest-rate-variance constraint and the pathwise zero bound: neither implies the other; the zero-bound steady state under Woodford welfare). Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models; links to Gali (optimal commitment at the zero bound as delayed lift-off, the discretionary path as the end-of-shock lift-off, the commitment path strictly above both, the sign condition behind Gali (42)-(43) characterised and shown to fail at an exact optimum, discrete trap paths converging to the continuous Werning paths) and to Woodford (his interest-rate-variance constraint and the pathwise zero bound: neither implies the other; the zero-bound steady state under Woodford welfare). The Gali commitment optimum is fully characterised: it exists and is unique, the optimality conditions are necessary, the zero bound binds on the whole shock (t_C >= t_Z), the zero-rate spell is an initial interval with a positive rate after lift-off (rho > 0; at rho = 0 a dichotomy, and the rate never lifts off when sigma kappa = vartheta), and every hypothesis of Gali algorithm holds at the optimum. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 20, pp. 465-485, Chapter 21, pp. 486-494, and Chapter 24, pp. 522-524."
 }
