@@ -35,7 +35,12 @@
     "PriceLevelDetermination/LinearSystemsUnit.lean",
     "PriceLevelDetermination/LocalIFTSystems.lean",
     "PriceLevelDetermination/LocalIFTSystemsBar.lean",
-    "PriceLevelDetermination/LocalIFTSystemsApps.lean"
+    "PriceLevelDetermination/LocalIFTSystemsApps.lean",
+    "PriceLevelDetermination/LinearSystemsStochastic.lean",
+    "PriceLevelDetermination/LocalIFTSystemsStochastic.lean",
+    "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean",
+    "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean",
+    "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
   ],
   "theorem_counts": {
     "PriceLevelDetermination/Determinacy.lean": 23,
@@ -72,8 +77,13 @@
     "PriceLevelDetermination/LinearSystemsUnit.lean": 8,
     "PriceLevelDetermination/LocalIFTSystems.lean": 65,
     "PriceLevelDetermination/LocalIFTSystemsBar.lean": 7,
-    "PriceLevelDetermination/LocalIFTSystemsApps.lean": 38
+    "PriceLevelDetermination/LocalIFTSystemsApps.lean": 38,
+    "PriceLevelDetermination/LinearSystemsStochastic.lean": 64,
+    "PriceLevelDetermination/LocalIFTSystemsStochastic.lean": 71,
+    "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean": 20,
+    "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean": 37,
+    "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean": 14
   },
-  "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example. Post-book: the stochastic (L-infinity processes with E_t) version of the Appendix A.3 implicit-function theorem with the C1 vs C2 accuracy distinction (E18), stochastic local (in)determinacy of Propositions 2.3, 2.6-2.8 and 2.11-2.13 with genuinely random sunspots, the stochastic transversality condition and the level forms; the p.137 claim that the target is the unique stochastic equilibrium in the Schmitt-Grohe-Uribe example is true on finite trees but refuted by a perpetual sunspot on a geometric probability space with Mathlib conditional expectation; n-dimensional systems with predetermined variables: the (A.9) root condition made exact (generically iff fails in exactly two ways; unit-circle roots always destroy existence), the nonlinear local theorem at any steady state with its converse and second-order bound, a copy of the general Blanchard-Kahn theorem, and the inertial rule (Proposition 2.8) as a two-dimensional application.",
+  "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example. Post-book: the stochastic (L-infinity processes with E_t) version of the Appendix A.3 implicit-function theorem with the C1 vs C2 accuracy distinction (E18), stochastic local (in)determinacy of Propositions 2.3, 2.6-2.8 and 2.11-2.13 with genuinely random sunspots, the stochastic transversality condition and the level forms; the p.137 claim that the target is the unique stochastic equilibrium in the Schmitt-Grohe-Uribe example is true on finite trees but refuted by a perpetual sunspot on a geometric probability space with Mathlib conditional expectation; n-dimensional systems with predetermined variables: the (A.9) root condition made exact (generically iff fails in exactly two ways; unit-circle roots always destroy existence), the nonlinear local theorem at any steady state with its converse and second-order bound, a copy of the general Blanchard-Kahn theorem, and the inertial rule (Proposition 2.8) as a two-dimensional application. Under uncertainty, n-dimensional systems with predetermined variables: the determinacy criterion is unchanged (the same exact root condition), explicit decision rule, failure modes identical to perfect foresight, random sunspots (linear, and nonlinear whenever (A.8) is onto but not one-to-one), the nonlinear local theorem in the book form (A.11) and in the forecast form under informational closure, at any steady state with converse and second-order bound, and the inertial rule under uncertainty.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 2, pp. 61-138, and Appendix A, pp. 627-655."
 }

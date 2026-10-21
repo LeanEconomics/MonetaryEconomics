@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T00:09:59.519974+00:00",
-  "theorems": 1404,
+  "checked_at_utc": "2026-10-21T02:41:31.264605+00:00",
+  "theorems": 1610,
   "module_theorems": {
     "PriceLevelDetermination/Determinacy.lean": 23,
     "PriceLevelDetermination/Expectations.lean": 20,
@@ -36,9 +36,14 @@
     "PriceLevelDetermination/LinearSystemsUnit.lean": 8,
     "PriceLevelDetermination/LocalIFTSystems.lean": 65,
     "PriceLevelDetermination/LocalIFTSystemsBar.lean": 7,
-    "PriceLevelDetermination/LocalIFTSystemsApps.lean": 38
+    "PriceLevelDetermination/LocalIFTSystemsApps.lean": 38,
+    "PriceLevelDetermination/LinearSystemsStochastic.lean": 64,
+    "PriceLevelDetermination/LocalIFTSystemsStochastic.lean": 71,
+    "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean": 20,
+    "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean": 37,
+    "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean": 14
   },
-  "audited_declarations": 1885,
+  "audited_declarations": 2155,
   "declarations": [
     {
       "name": "Woodford.PriceLevelDetermination.SchurStable",
@@ -9464,6 +9469,1356 @@
       "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsApps.not_second_order_C1",
       "kind": "theorem",
       "module": "PriceLevelDetermination/LocalIFTSystemsApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_succ",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.SolvesLinS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.LinDeterminateS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_lagP",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.adaptedV_lagP",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_zero_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_split",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.comp_stepS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lin_of_pencilS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.pencil_of_linS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_pencil",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_pf",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_roots",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_sysOp_iff_stoch",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.detP",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.adaptedV_detP",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_detP",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mv_cst",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvesLinS_detP_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.proj_solves",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedSeq_proj",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.HomInjectiveS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.homInjectiveS_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.NonexistS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.NonuniqueS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.nonuniqueS_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.nonexistS_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.stoch_nonexist_of_unit_root",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.failure_cases_stoch",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.sunP",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mv_mul_xi",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_homog_head",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.coinShock_one_known",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.coin_random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.coin_random_sunspot_of_count_gt",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_solvent",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.quadMat_mulVec_of_solvent",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvent_stable",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_solventD",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solventJ_stable",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_decision_rule",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.fwdV",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.fwdV_spec",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_eq",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_adapted",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_bounded",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkSol",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkSol_solves_book",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.decision_rule",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.book_form_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.SProcV",
+      "kind": "abbrev",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.abs_apply_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_toP",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_norm_boundV",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.ofP",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_ofP",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_injective",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_add",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_sub",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mkOp",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mkOp_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.condEV",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_condEV",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_linS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.opS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_mv_EV",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_opS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_toP_opS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.adapted_of_opS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_adapted",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_opS_of_adapted",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvesLinS_shift",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff_roots",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff_sysOp",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LinearSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemI",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemI_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasStrictFDerivAt_nemI",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.continuous_nemID",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_nemI",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ParS",
+      "kind": "abbrev",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_ptS_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptSL",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptSL_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_ptSL_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.SolvesSV",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqMapS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqMapS_eq_zero_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqDS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasStrictFDerivAt_eqMapS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_eqMapS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bOpS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bOpS_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linS_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqD0S",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqDS_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.adaptedV_condEV",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_condEV_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.toP_condEV_bOpS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linInvS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_linInvS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linInvS_linOpS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_linSolS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_eq_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS_solves",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eq_linSolS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigMapS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_bigMapS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDInvS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDInvS_bigDS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDS_bigDInvS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDEquivS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_bigMapS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.implicitSolS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.zero_mem_homeoS_source",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigMapS_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.zero_mem_homeoS_target",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS_symm_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiffAt_homeoS_symm",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_homeoS_symm",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.implicitSolS_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_implicitSolS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacy_globalS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.lin_cutoffS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_cutoff_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_roots",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_linOp",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS_of_roots",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.first_order_locS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_sub_linSolS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_globalS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_locS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.condEV_sub_condEV",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_embG",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embPar",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_embPar_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.toP_embG",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.adaptedV_embG",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_embG_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.sysOp_surjective_of_opS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.sysOp_not_injective_of_opS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.surjective_of_solution_mapS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.not_locally_uniqueS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_of_local_determinacyS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_local_determinacyS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS_embPar",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.unembS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG_unembS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.unembS_embG",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_unembS_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.pf_local_determinacy_recovered",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ssParS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.constS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_shift_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS_at",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_iff_local_determinacyS_at",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_locS_at",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochastic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.isUnit_linOpS_inert_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_linDeterminateS_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_local_determinacyS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_second_orderS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_iffS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_nonuniqueS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_nonexistS_of_unit",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_coin_random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertIter",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertI",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertPi",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertSun",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.abs_inertIter_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scal1",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.vec1",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scal1_vec1",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.vec1_scal1",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.norm_vec1_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.norm_scal1_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.solvesSV_embedF_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.fderiv_embedF_blocks",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.isUnit_linOpS_embedF_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.linSolS_embedF",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scalar_local_determinacyS_recovered",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.not_second_order_C1S",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.lz",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.joinL",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.lz_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.joinL_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_inl",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_inr",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.contDiffAt_Gaug",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.fderiv_Gaug",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.mulVec_M_Gaug",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.dE_Gaug",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.mv_Gaug",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.sumElim_eq_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesLinS_Gaug_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linDeterminateS_Gaug_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_linOpS_Gaug_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_linOpS_Gaug_iff_roots",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.EKnown",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.SolvesFS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augS_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS_augS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_augS_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_projS_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augPar",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augPar_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_augPar_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF_ptS_aug",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesSV_of_solvesFS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.cellConst_pi",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.eq_augS_of_solvesSV",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesFS_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linSolF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linSolF_spec",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.local_determinacyF",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.first_order_locF",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.second_order_locF",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesFS_embG",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.condEV_condEV",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS_eqD0S_Gaug",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.surjective_of_solution_mapF",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_of_local_determinacyF",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_iff_local_determinacyF",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.Br",
+      "kind": "abbrev",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.ev0",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.arg0",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.parB",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.arg0_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.parB_apply",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchMap",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchD",
+      "kind": "def",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.hasStrictFDerivAt_branchMap",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.eqD0_lead",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.eqD0_zeroPar",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.leadOp_impOp",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.fderiv_arg0",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.range_branchD",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.kernel_ne_zero_at_zero",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.finiteDimensional_ker_branchD",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchD_anti",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_nonlinear",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_count_gt",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_opS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
     }
   ],
   "full_build": "passed",
@@ -18859,6 +20214,1354 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.SolvesLinS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.LinDeterminateS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_lagP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.adaptedV_lagP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_zero_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.comp_stepS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.lin_of_pencilS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.pencil_of_linS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_pencil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_pf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_sysOp_iff_stoch": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.detP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.adaptedV_detP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_detP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mv_cst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvesLinS_detP_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.proj_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedSeq_proj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.HomInjectiveS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.homInjectiveS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.NonexistS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.NonuniqueS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.nonuniqueS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.nonexistS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.stoch_nonexist_of_unit_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.failure_cases_stoch": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.sunP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mv_mul_xi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_homog_head": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.coinShock_one_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.coin_random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.coin_random_sunspot_of_count_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_solvent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.quadMat_mulVec_of_solvent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvent_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_solventD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solventJ_stable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_decision_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.fwdV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.fwdV_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkSol_solves_book": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.decision_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.book_form_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.SProcV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.abs_apply_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_toP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_norm_boundV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.ofP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_ofP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mkOp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.mkOp_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.condEV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_condEV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.linS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_linS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_mv_EV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_toP_opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.adapted_of_opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_opS_of_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvesLinS_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff_sysOp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemI_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasStrictFDerivAt_nemI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.continuous_nemID": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_nemI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ParS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_ptS_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptSL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptSL_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_ptSL_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.SolvesSV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqMapS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqMapS_eq_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqDS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasStrictFDerivAt_eqMapS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_eqMapS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bOpS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bOpS_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linS_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqD0S": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqDS_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.adaptedV_condEV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_condEV_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.toP_condEV_bOpS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linInvS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_linInvS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linInvS_linOpS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_linSolS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eq_linSolS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigMapS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_bigMapS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDInvS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDInvS_bigDS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDS_bigDInvS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDEquivS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_bigMapS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.implicitSolS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.zero_mem_homeoS_source": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigMapS_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.zero_mem_homeoS_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS_symm_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiffAt_homeoS_symm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_homeoS_symm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.implicitSolS_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_implicitSolS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacy_globalS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.lin_cutoffS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_cutoff_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_linOp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS_of_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.first_order_locS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_sub_linSolS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_globalS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_locS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.condEV_sub_condEV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_embG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embPar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_embPar_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.toP_embG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.adaptedV_embG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_embG_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.sysOp_surjective_of_opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.sysOp_not_injective_of_opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.surjective_of_solution_mapS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.not_locally_uniqueS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_of_local_determinacyS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_local_determinacyS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS_embPar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.unembS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG_unembS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.unembS_embG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_unembS_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.pf_local_determinacy_recovered": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ssParS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.constS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_shift_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_iff_local_determinacyS_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_locS_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.isUnit_linOpS_inert_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_linDeterminateS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_local_determinacyS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_second_orderS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_iffS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_nonuniqueS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_nonexistS_of_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_coin_random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertIter": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertSun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.abs_inertIter_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scal1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.vec1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scal1_vec1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.vec1_scal1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.norm_vec1_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.norm_scal1_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.solvesSV_embedF_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.fderiv_embedF_blocks": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.isUnit_linOpS_embedF_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.linSolS_embedF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scalar_local_determinacyS_recovered": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.not_second_order_C1S": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.lz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.joinL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.lz_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.joinL_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_inl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_inr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.contDiffAt_Gaug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.fderiv_Gaug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.mulVec_M_Gaug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.dE_Gaug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.mv_Gaug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.sumElim_eq_iff": [
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesLinS_Gaug_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linDeterminateS_Gaug_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_linOpS_Gaug_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_linOpS_Gaug_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.EKnown": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.SolvesFS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augS_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS_augS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_augS_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_projS_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augPar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augPar_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_augPar_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF_ptS_aug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesSV_of_solvesFS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.cellConst_pi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.eq_augS_of_solvesSV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesFS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linSolF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linSolF_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.local_determinacyF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.first_order_locF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.second_order_locF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesFS_embG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.condEV_condEV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS_eqD0S_Gaug": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.surjective_of_solution_mapF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_of_local_determinacyF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_iff_local_determinacyF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.Br": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.ev0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.arg0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.parB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.arg0_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.parB_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchMap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.hasStrictFDerivAt_branchMap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.eqD0_lead": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.eqD0_zeroPar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.leadOp_impOp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.fderiv_arg0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.range_branchD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.kernel_ne_zero_at_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.finiteDimensional_ker_branchD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchD_anti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_nonlinear": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_count_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -18897,16 +21600,21 @@
     "PriceLevelDetermination/LocalIFTSystems.lean": "688859be7c3426cee9a4f59767c73833b61c653a0f6bb62f1c7fcdd158410a9b",
     "PriceLevelDetermination/LocalIFTSystemsBar.lean": "465615ad95b06813c0a5a78aa2ac47596e80823b18e3b6f73a992f2de250e0ab",
     "PriceLevelDetermination/LocalIFTSystemsApps.lean": "0ff697f56b5aed1ee689196dfe0939282a47e495dd952fa6e67ea27c4db24b5e",
-    "PriceLevelDetermination.lean": "42bfceef1cca1c89521f2a028cd4338be4022cd2e95db5f443c2df7ac7fd2937",
+    "PriceLevelDetermination/LinearSystemsStochastic.lean": "8026850db6d5eff41c8dd6212313b67f04cbb89c8cf613327cd56376bde30c9c",
+    "PriceLevelDetermination/LocalIFTSystemsStochastic.lean": "a14a7c87189a971ec7d2543ab316ec9cb92038b31dbb93297f9d86c706e1e280",
+    "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean": "651d783553c477e7b6c3d6fcc56e95d4370ea1b54cc200a23c9df866843288e1",
+    "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean": "d9a59810291c71ef4cb0373cc70863b1c526c80c89697f6b3bb5a854b96ba2f0",
+    "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean": "3a8c117a3b6c641f08f5aa8fa567783181b1c2381dac3cc20095dccd560979cd",
+    "PriceLevelDetermination.lean": "b4debc34505d29674b377a11677f0ac046352cee925917797681cdddf55bc9bf",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "54d71d0b018bbe74721b0737c8a3763e33c31272978e97950f95f9e182e5a59a",
     "lake-manifest.json": "e908365bf29aa95e2d844a30e95f4e926befe3dfe9ea1a75c7d7824102fe2090",
-    "proof-manifest.json": "5e5082da69fcab371287c6163fee47732774350c5b356e79c9691cb09a5e36fd",
+    "proof-manifest.json": "b22db611f907994b23b4b7aabbbafb626f2bb254e0c4e79ffd651b6aa5cd8d98",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "768552090d0c2ccabeb2cfd0a2139e1b0e315e27539acb9d94b20bab8a1c0afb",
+  "fresh_audit_sha256": "1ea5ed372a007ed86ff384425ad579e75c71a8f5ea2d1f0f4d7033077c07912c",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example. Post-book: the stochastic (L-infinity processes with E_t) version of the Appendix A.3 implicit-function theorem with the C1 vs C2 accuracy distinction (E18), stochastic local (in)determinacy of Propositions 2.3, 2.6-2.8 and 2.11-2.13 with genuinely random sunspots, the stochastic transversality condition and the level forms; the p.137 claim that the target is the unique stochastic equilibrium in the Schmitt-Grohe-Uribe example is true on finite trees but refuted by a perpetual sunspot on a geometric probability space with Mathlib conditional expectation; n-dimensional systems with predetermined variables: the (A.9) root condition made exact (generically iff fails in exactly two ways; unit-circle roots always destroy existence), the nonlinear local theorem at any steady state with its converse and second-order bound, a copy of the general Blanchard-Kahn theorem, and the inertial rule (Proposition 2.8) as a two-dimensional application.",
+  "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example. Post-book: the stochastic (L-infinity processes with E_t) version of the Appendix A.3 implicit-function theorem with the C1 vs C2 accuracy distinction (E18), stochastic local (in)determinacy of Propositions 2.3, 2.6-2.8 and 2.11-2.13 with genuinely random sunspots, the stochastic transversality condition and the level forms; the p.137 claim that the target is the unique stochastic equilibrium in the Schmitt-Grohe-Uribe example is true on finite trees but refuted by a perpetual sunspot on a geometric probability space with Mathlib conditional expectation; n-dimensional systems with predetermined variables: the (A.9) root condition made exact (generically iff fails in exactly two ways; unit-circle roots always destroy existence), the nonlinear local theorem at any steady state with its converse and second-order bound, a copy of the general Blanchard-Kahn theorem, and the inertial rule (Proposition 2.8) as a two-dimensional application. Under uncertainty, n-dimensional systems with predetermined variables: the determinacy criterion is unchanged (the same exact root condition), explicit decision rule, failure modes identical to perfect foresight, random sunspots (linear, and nonlinear whenever (A.8) is onto but not one-to-one), the nonlinear local theorem in the book form (A.11) and in the forecast form under informational closure, at any steady state with converse and second-order bound, and the inertial rule under uncertainty.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 2, pp. 61-138, and Appendix A, pp. 627-655."
 }

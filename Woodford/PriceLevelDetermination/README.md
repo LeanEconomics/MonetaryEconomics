@@ -10,7 +10,7 @@ Determination under Interest-Rate Rules" (pp. 61–138), together with the proof
 perfect foresight and genuine uncertainty; log-linear equations are exact derivatives of the
 nonlinear model, and the exact nonlinear model is linked to them by implicit-function theorems
 on bounded sequences and on bounded processes under uncertainty, for scalar equations and for
-`n`-dimensional systems with predetermined variables. The library contains **1404 theorems**,
+`n`-dimensional systems with predetermined variables. The library contains **1610 theorems**,
 including the shared core.
 
 Headline results, in the namespace `Woodford.PriceLevelDetermination`:
@@ -75,15 +75,38 @@ Headline results, in the namespace `Woodford.PriceLevelDetermination`:
   (`LocalIFTSystemsApps.inertial_iff`, `LocalIFTSystemsApps.inert_book_count_fails`), and the
   scalar theorem is recovered as `n = 1`
   (`LocalIFTSystemsApps.scalar_local_determinacy_recovered`).
+* **`n`-dimensional systems under uncertainty.** On every expectation system with a nonempty
+  state space, `f₁x_{t−1} + f₂x_t + f₃E_t x_{t+1} = w_t` is determinate exactly when its
+  perfect-foresight counterpart is, so the criterion is the same exact root condition
+  (`LinearSystemsStochastic.linDeterminateS_iff_pf`), and a determinate system has the
+  Blanchard–Kahn decision rule `x_t = Gx_{t−1} + ∑ₖJᵏD⁻¹E_t w_{t+k}`, also for singular `f₃`
+  (`LinearSystemsStochastic.decision_rule`). When the condition fails, existence or uniqueness
+  fails exactly as under perfect foresight (`LinearSystemsStochastic.failure_cases_stoch`), and
+  non-uniqueness gives genuinely random sunspots, linear
+  (`LinearSystemsStochastic.coin_random_sunspot`) and, when (A.8) is onto, nonlinear
+  (`LocalIFTSystemsStochasticSunspots.random_sunspot_nonlinear`). The local theorem holds in the
+  book form `E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0`
+  (`LocalIFTSystemsStochastic.local_determinacyS`) and, under informational closure and
+  disturbances known at each date, in the forecast form `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0`
+  (`LocalIFTSystemsStochasticFormI.local_determinacyF`), with its converse
+  (`LocalIFTSystemsStochastic.isUnit_linOpS_iff_local_determinacyS`) and E18
+  (`LocalIFTSystemsStochastic.second_order_locS`,
+  `LocalIFTSystemsStochasticApps.not_second_order_C1S`). Applied to the inertial rule under
+  uncertainty (`LocalIFTSystemsStochasticApps.inertial_iffS`,
+  `LocalIFTSystemsStochasticApps.inertial_random_sunspot`); the scalar stochastic theorem and the
+  perfect-foresight theorem are recovered
+  (`LocalIFTSystemsStochasticApps.scalar_local_determinacyS_recovered`,
+  `LocalIFTSystemsStochastic.pf_local_determinacy_recovered`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: systems with `n > 1` equations or predetermined variables under uncertainty; the
-stochastic implicit-function theorem is for one forward-looking equation, and the `n`-dimensional
-theorem is for perfect foresight. Figures 2.1–2.5 are formalised only through their closed forms
-and spot values.
+Not covered: nonlinear sunspot equilibria of `n`-dimensional systems are constructed only when
+(A.8) is onto, and whether they exist otherwise is open; the exact models are not decided on the
+boundary of the root condition (for the inertial rule, `φ_π = 0` or `|φ_π + ρ| = 1`, where only
+linear sunspots and non-existence are proved). Figures 2.1–2.5 are formalised only through their
+closed forms and spot values.
 
 ## Library map
 
@@ -124,6 +147,11 @@ and spot values.
 | [LocalIFTSystems](PriceLevelDetermination/LocalIFTSystems.lean) | 65 | A.3: the implicit-function theorem for `F(x_{t−1}, x_t, x_{t+1}, e_t) = 0` on `ℓ∞(ℕ, ℝⁿ)`; first and second order; the converse; the `x³ = e` example |
 | [LocalIFTSystemsBar](PriceLevelDetermination/LocalIFTSystemsBar.lean) | 7 | A.3: local determinacy, the converse and second order at an arbitrary steady state |
 | [LocalIFTSystemsApps](PriceLevelDetermination/LocalIFTSystemsApps.lean) | 38 | A.3 applied: the inertial rule (2.12) as a two-dimensional system; the scalar theorem as `n = 1`; E18 in `n` dimensions |
+| [LinearSystemsStochastic](PriceLevelDetermination/LinearSystemsStochastic.lean) | 64 | A.3, (A.12)–(A.13): `n`-dimensional linear RE systems with predetermined variables; determinate iff the perfect-foresight system is; the decision rule; the book form; which half fails; random linear sunspots |
+| [LocalIFTSystemsStochastic](PriceLevelDetermination/LocalIFTSystemsStochastic.lean) | 71 | A.3 under uncertainty: the implicit-function theorem for `E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0` on `ℓ∞(ℕ × Ω, ℝⁿ)`; first and second order; the converse; any steady state; perfect foresight recovered |
+| [LocalIFTSystemsStochasticApps](PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean) | 20 | A.3 applied under uncertainty: the inertial rule (2.12), including random sunspots of the exact model; the scalar stochastic theorem as `n = 1`; E18 |
+| [LocalIFTSystemsStochasticFormI](PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean) | 37 | A.3: the form `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` under informational closure and known disturbances, via the forecast as a variable; local determinacy, first and second order, the converse |
+| [LocalIFTSystemsStochasticSunspots](PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean) | 14 | A.3: random sunspot equilibria of nonlinear `n`-dimensional systems on the coin-flip tree when (A.8) is onto but not one-to-one |
 
 ## Relation to the Woodford Chapter 4 project
 

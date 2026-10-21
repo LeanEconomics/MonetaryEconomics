@@ -32403,6 +32403,5181 @@ theorem not_second_order_C1 :
 
 end Woodford.PriceLevelDetermination.LocalIFTSystemsApps
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Linear rational-expectations systems with predetermined variables under uncertainty
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, eqs. (A.11)–(A.13), pp. 633–635. The
+book asserts that under uncertainty the linearised system
+`f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = w_t` (`x_t ∈ ℝⁿ`, `x_{−1}` given) has a unique bounded
+solution exactly when the perfect-foresight system (A.10) does. This module proves it for an
+arbitrary `ExpectationSystem` on any nonempty state space, using only the core axioms
+(linearity, constants, monotonicity, tower and known-earlier; no pull-out, no informational
+closure).
+
+## Main results
+
+* `SolvesLinS`, `LinDeterminateS`: the stochastic system and its determinacy (a unique bounded
+  adapted solution for every bounded adapted forcing and every `x_{−1}`).
+* `linDeterminateS_iff_pencil`: the system is the companion pencil of
+  `SystemsBKPencil.GeneralBKSingular` under the same expectation system.
+* **`linDeterminateS_iff_pf`**: uncertainty does not change determinacy — stochastic determinacy
+  holds iff perfect-foresight determinacy (`LinearSystems.LinDeterminate`) holds;
+  `linDeterminateS_iff_roots`: iff the exact root condition of
+  `LinearSystems.linDeterminate_iff`; `isUnit_sysOp_iff_stoch`.
+* The Blanchard–Kahn decision rule (`exists_solvent`, `solvent_stable`, `isUnit_solventD`,
+  `solventJ_stable`, `exists_decision_rule`, `fwdV_spec`, `bkSol`, `bkSol_solves_book`,
+  `decision_rule`): under the root condition there are matrices `G` (stable, solving
+  `f₁ + f₂G + f₃G² = 0`), `D = f₂ + f₃G` (invertible) and `J = −D⁻¹f₃` (stable) such that the
+  unique solution is `x_t = G x_{t−1} + ∑_{k ≥ 0} Jᵏ D⁻¹ E_t w_{t+k}`: the stable block is solved
+  backward and the unstable block forward with `E_t`, the series commuting with `E_t` by the
+  core `ExpectationSystem.E_tsum`. The same formula solves the book form
+  `f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = E_t w_t` for forcing that need not be adapted
+  (`book_form_iff`).
+* Which half fails under uncertainty: `solvesLinS_detP_iff` (deterministic paths),
+  `proj_solves` (date-`k` forecasts of a stochastic solution solve (A.10)), `homInjectiveS_iff`,
+  `nonuniqueS_iff`, `nonexistS_iff` (non-uniqueness / non-existence under uncertainty are exactly
+  non-injectivity / non-surjectivity of the perfect-foresight operator (A.8));
+  `stoch_nonexist_of_unit_root` (a root on the unit circle: non-existence for some bounded
+  deterministic forcing, any `f₃`); `failure_cases_stoch` (the four-way classification).
+* Genuinely random sunspots: `random_sunspot` (on any system carrying a mean-zero variable
+  revealed at date 1) and `coin_random_sunspot`, `coin_random_sunspot_of_count_gt` (on the core
+  coin-flip tree, whenever more than `n` roots lie inside the unit circle or genericity fails).
+* The operator on `ℓ∞(ℕ × Ω, ℝⁿ)`: `opS` (with the adaptedness term `x_t − E_t x_t`),
+  `isUnit_opS_iff` (invertible iff stochastic determinacy), `isUnit_opS_iff_roots`.
+-/
+
+namespace Woodford.PriceLevelDetermination.LinearSystemsStochastic
+
+open Filter Topology
+open LinearSystems SystemsBK.InvariantSplit SystemsBK.GeneralBKForward SystemsBK.GeneralBK
+open SystemsBKPencil.GeneralBKPencil SystemsBKPencil.GeneralBKSingular
+open scoped Matrix
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-! ### The stochastic linear system -/
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: the lagged vector process `x_{t−1}` with the
+deterministic initial condition `x_{−1} = xm`. -/
+def lagP (xm : ι → ℝ) (x : ℕ → ι → Ω → ℝ) : ℕ → ι → Ω → ℝ :=
+  lagV (fun i (_ : Ω) => xm i) x
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: `x_{−1}` is the initial condition. -/
+@[simp] theorem lagP_zero (xm : ι → ℝ) (x : ℕ → ι → Ω → ℝ) :
+    lagP xm x 0 = fun i (_ : Ω) => xm i := rfl
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the lag at `t + 1` is `x_t`. -/
+@[simp] theorem lagP_succ (xm : ι → ℝ) (x : ℕ → ι → Ω → ℝ) (t : ℕ) :
+    lagP xm x (t + 1) = x t := rfl
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: `x` solves the linearised conditions under
+uncertainty, `f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = w_t` for all `t ≥ 0`, with `x_{−1} = xm`. -/
+def SolvesLinS (f₁ f₂ f₃ : Matrix ι ι ℝ) (w : ℕ → ι → Ω → ℝ) (xm : ι → ℝ)
+    (x : ℕ → ι → Ω → ℝ) : Prop :=
+  ∀ t, mv f₁ (lagP xm x t) + mv f₂ (x t) + mv f₃ (fun i => 𝔼.E t (x (t + 1) i)) = w t
+
+/-- Woodford (2003), App. A.3, pp. 633–634: **determinacy under uncertainty**: for every bounded
+adapted forcing and every initial condition `x_{−1}` there is exactly one bounded adapted
+solution of (A.13). -/
+def LinDeterminateS (f₁ f₂ f₃ : Matrix ι ι ℝ) : Prop :=
+  ∀ w : ℕ → ι → Ω → ℝ, BoundedV w → AdaptedV 𝔼 w → ∀ xm : ι → ℝ,
+    ∃! x, BoundedV x ∧ AdaptedV 𝔼 x ∧ SolvesLinS 𝔼 f₁ f₂ f₃ w xm x
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): the lag of a bounded process is bounded. -/
+theorem boundedV_lagP [Finite ι] (xm : ι → ℝ) {x : ℕ → ι → Ω → ℝ} (hx : BoundedV x) :
+    BoundedV (lagP xm x) := by
+  have := Fintype.ofFinite ι
+  obtain ⟨C, hC⟩ := hx
+  refine ⟨max C (∑ i, |xm i|), fun t i ω => ?_⟩
+  cases t with
+  | zero =>
+    exact (Finset.single_le_sum (f := fun i => |xm i|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ i)).trans (le_max_right _ _)
+  | succ t => exact (hC t i ω).trans (le_max_left _ _)
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): the lag of an adapted process is adapted (the
+date-`t` value is known at `t + 1`). -/
+theorem adaptedV_lagP (xm : ι → ℝ) {x : ℕ → ι → Ω → ℝ} (hx : AdaptedV 𝔼 x) :
+    AdaptedV 𝔼 (lagP xm x) := by
+  intro t i
+  cases t with
+  | zero => exact 𝔼.const 0 (xm i)
+  | succ t =>
+    change 𝔼.E (t + 1) (x t i) = x t i
+    rw [← hx t i, 𝔼.known (Nat.le_succ t)]
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): the lag of the zero process from zero is zero. -/
+theorem lagP_zero_zero (t : ℕ) : lagP (0 : ι → ℝ) (0 : ℕ → ι → Ω → ℝ) t = 0 := by
+  cases t <;> rfl
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): the lag splits into the lag from zero and the
+initial-condition impulse. -/
+theorem lagP_split (xm : ι → ℝ) (x : ℕ → ι → Ω → ℝ) (t : ℕ) :
+    lagP xm x t = lagP 0 x t + lagP xm 0 t := by
+  cases t <;> funext i ω <;> simp [lagP]
+
+/-! ### The companion pencil under uncertainty -/
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634, as a first-order system in
+`y_t = (x_t, x_{t−1})`: one step of the companion pencil, state by state, is one period of
+(A.13) together with the law of motion of the predetermined block. -/
+theorem comp_stepS (f₁ f₂ f₃ : Matrix ι ι ℝ) (Y Y' W : ι ⊕ ι → Ω → ℝ) :
+    mv (compA0 f₃) Y' = mv (compA1 f₁ f₂) Y + W ↔
+      mv f₁ (fun i => Y (Sum.inr i)) + mv f₂ (fun i => Y (Sum.inl i)) +
+          mv f₃ (fun i => Y' (Sum.inl i)) = (fun i => W (Sum.inl i)) ∧
+        (fun i => Y' (Sum.inr i)) = (fun i => Y (Sum.inl i)) + fun i => W (Sum.inr i) := by
+  have key : ∀ ω, (compA0 f₃ *ᵥ fun k => Y' k ω) =
+      compA1 f₁ f₂ *ᵥ (fun k => Y k ω) + (fun k => W k ω) ↔
+      f₁ *ᵥ (fun i => Y (Sum.inr i) ω) + f₂ *ᵥ (fun i => Y (Sum.inl i) ω) +
+          f₃ *ᵥ (fun i => Y' (Sum.inl i) ω) = (fun i => W (Sum.inl i) ω) ∧
+        (fun i => Y' (Sum.inr i) ω) = (fun i => Y (Sum.inl i) ω) + fun i => W (Sum.inr i) ω :=
+    fun ω => comp_step f₁ f₂ f₃ _ _ _
+  constructor
+  · intro h
+    have hω : ∀ ω, (compA0 f₃ *ᵥ fun k => Y' k ω) =
+        compA1 f₁ f₂ *ᵥ (fun k => Y k ω) + (fun k => W k ω) := fun ω => by
+      funext k
+      have := congrFun (congrFun h k) ω
+      simpa only [Pi.add_apply, mv_apply] using this
+    refine ⟨funext fun i => funext fun ω => ?_, funext fun i => funext fun ω => ?_⟩
+    · have := congrFun ((key ω).mp (hω ω)).1 i
+      simpa only [Pi.add_apply, mv_apply] using this
+    · have := congrFun ((key ω).mp (hω ω)).2 i
+      simpa only [Pi.add_apply] using this
+  · rintro ⟨h1, h2⟩
+    have hω : ∀ ω, (compA0 f₃ *ᵥ fun k => Y' k ω) =
+        compA1 f₁ f₂ *ᵥ (fun k => Y k ω) + (fun k => W k ω) := fun ω => by
+      refine (key ω).mpr ⟨funext fun i => ?_, funext fun i => ?_⟩
+      · have := congrFun (congrFun h1 i) ω
+        simpa only [Pi.add_apply, mv_apply] using this
+      · have := congrFun (congrFun h2 i) ω
+        simpa only [Pi.add_apply] using this
+    funext k ω
+    have := congrFun (hω ω) k
+    simpa only [Pi.add_apply, mv_apply] using this
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: a solution `y_t = (z_t, k_t)` of the
+companion pencil with forcing `(a_t, b_t)`, predetermined block known one period ahead and
+`k_0 = x_{−1}`, has `k_t = z_{t−1} + b_{t−1}`, and `z` solves (A.13) with forcing
+`a_t − f₁ b_{t−1}`. -/
+theorem lin_of_pencilS {f₁ f₂ f₃ : Matrix ι ι ℝ} {W y : ℕ → ι ⊕ ι → Ω → ℝ} {x0 : ι → ℝ}
+    (hy : SolvesPencil 𝔼 (compA0 f₃) (compA1 f₁ f₂) W y)
+    (hk : ∀ t j, 𝔼.E t (y (t + 1) (Sum.inr j)) = y (t + 1) (Sum.inr j))
+    (h0 : ∀ j, y 0 (Sum.inr j) = fun _ => x0 j) :
+    (∀ t, (fun j => y t (Sum.inr j)) =
+        lagP x0 (fun s i => y s (Sum.inl i)) t + lagP 0 (fun s j => W s (Sum.inr j)) t) ∧
+      SolvesLinS 𝔼 f₁ f₂ f₃
+        (fun t => (fun i => W t (Sum.inl i)) - mv f₁ (lagP 0 (fun s j => W s (Sum.inr j)) t))
+        x0 (fun s i => y s (Sum.inl i)) := by
+  have hstep := fun t => (comp_stepS f₁ f₂ f₃ _ _ _).mp (hy t)
+  have hkt : ∀ t, (fun j => y t (Sum.inr j)) =
+      lagP x0 (fun s i => y s (Sum.inl i)) t + lagP 0 (fun s j => W s (Sum.inr j)) t := by
+    intro t
+    cases t with
+    | zero =>
+      funext j ω
+      simp [h0 j]
+    | succ t =>
+      have e := (hstep t).2
+      have e2 : (fun j => y (t + 1) (Sum.inr j)) =
+          fun j => 𝔼.E t (y (t + 1) (Sum.inr j)) := funext fun j => (hk t j).symm
+      rw [e2, e]
+      rfl
+  refine ⟨hkt, fun t => ?_⟩
+  have e1 := (hstep t).1
+  rw [hkt t, mv_add] at e1
+  beta_reduce
+  rw [← e1]
+  abel
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: conversely, an adapted solution `z` of
+(A.13) with forcing `a_t − f₁ b_{t−1}` (`b` adapted) gives the solution
+`y_t = (z_t, z_{t−1} + b_{t−1})` of the companion pencil with forcing `(a_t, b_t)`. -/
+theorem pencil_of_linS {f₁ f₂ f₃ : Matrix ι ι ℝ} {W : ℕ → ι ⊕ ι → Ω → ℝ} {xm : ι → ℝ}
+    {z : ℕ → ι → Ω → ℝ} (hza : AdaptedV 𝔼 z) (hWa : AdaptedV 𝔼 W)
+    (h : SolvesLinS 𝔼 f₁ f₂ f₃
+      (fun t => (fun i => W t (Sum.inl i)) - mv f₁ (lagP 0 (fun s j => W s (Sum.inr j)) t))
+      xm z) :
+    SolvesPencil 𝔼 (compA0 f₃) (compA1 f₁ f₂) W
+      (fun t => Sum.elim (z t) (lagP xm z t + lagP 0 (fun s j => W s (Sum.inr j)) t)) := by
+  intro t
+  rw [comp_stepS]
+  constructor
+  · simp only [Sum.elim_inl, Sum.elim_inr]
+    have h1 := h t
+    beta_reduce at h1
+    rw [eq_sub_iff_add_eq] at h1
+    have hl : (fun i => (lagP xm z t + lagP 0 (fun s j => W s (Sum.inr j)) t) i) =
+        lagP xm z t + lagP 0 (fun s j => W s (Sum.inr j)) t := rfl
+    rw [hl, mv_add, ← h1]
+    abel
+  · funext i
+    simp only [Sum.elim_inl, Sum.elim_inr, Pi.add_apply, lagP_succ, map_add, hza t i,
+      hWa t (Sum.inr i)]
+
+/-- **(A.13) as a Blanchard–Kahn pencil under uncertainty** (Woodford (2003), App. A.3,
+pp. 633–634): the stochastic linearised system is determinate iff its companion pencil
+`A₀ E_t y_{t+1} = A₁ y_t + w_t`, `y_t = (x_t, x_{t−1})`, is determinate under the same
+expectation system. -/
+theorem linDeterminateS_iff_pencil (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    LinDeterminateS 𝔼 f₁ f₂ f₃ ↔ DeterminatePencil 𝔼 (compA0 f₃) (compA1 f₁ f₂) := by
+  constructor
+  · intro hL W hWb hWa x0
+    set b : ℕ → ι → Ω → ℝ := fun s j => W s (Sum.inr j) with hb
+    have hbb : BoundedV b := by
+      obtain ⟨M, hM⟩ := hWb; exact ⟨M, fun t j ω => hM t _ ω⟩
+    have hba : AdaptedV 𝔼 b := fun t j => hWa t (Sum.inr j)
+    have hab : BoundedV (fun t i => W t (Sum.inl i)) := by
+      obtain ⟨M, hM⟩ := hWb; exact ⟨M, fun t j ω => hM t _ ω⟩
+    have haa : AdaptedV 𝔼 (fun t i => W t (Sum.inl i)) := fun t i => hWa t (Sum.inl i)
+    obtain ⟨x, ⟨hxb, hxa, hx⟩, hxu⟩ := hL (fun t => (fun i => W t (Sum.inl i)) -
+      mv f₁ (lagP 0 b t)) (boundedV_sub hab (boundedV_mv f₁ (boundedV_lagP 0 hbb)))
+      (adaptedV_sub 𝔼 haa (adaptedV_mv 𝔼 f₁ (adaptedV_lagP 𝔼 0 hba))) x0
+    refine ⟨fun t => Sum.elim (x t) (lagP x0 x t + lagP 0 b t),
+      ⟨pencil_of_linS 𝔼 hxa hWa hx, ?_, ?_, ?_, ?_⟩, fun y' hy' => ?_⟩
+    · intro t k
+      rcases k with i | j
+      · exact hxa t i
+      · exact (adaptedV_add 𝔼 (adaptedV_lagP 𝔼 x0 hxa) (adaptedV_lagP 𝔼 0 hba)) t j
+    · intro t j
+      change 𝔼.E t (x t j + b t j) = x t j + b t j
+      rw [map_add, hxa t j, hba t j]
+    · intro j
+      funext ω
+      simp [b]
+    · obtain ⟨M1, hM1⟩ := hxb
+      obtain ⟨M2, hM2⟩ := boundedV_add (boundedV_lagP x0 ⟨M1, hM1⟩) (boundedV_lagP 0 hbb)
+      refine ⟨max M1 M2, fun t k ω => ?_⟩
+      rcases k with i | j
+      · exact (hM1 t i ω).trans (le_max_left _ _)
+      · exact (hM2 t j ω).trans (le_max_right _ _)
+    · obtain ⟨hs, ha, hk, h0, hbd⟩ := hy'
+      obtain ⟨hkt, hsol⟩ := lin_of_pencilS 𝔼 hs hk h0
+      have hz : (fun s i => y' s (Sum.inl i)) = x := hxu _ ⟨by
+        obtain ⟨M, hM⟩ := hbd; exact ⟨M, fun t i ω => hM t _ ω⟩,
+        fun t i => ha t (Sum.inl i), hsol⟩
+      funext t k
+      rcases k with i | j
+      · exact congrFun (congrFun hz t) i
+      · have := congrFun (hkt t) j
+        rw [hz] at this
+        exact this
+  · intro hD w hwb hwa xm
+    set W : ℕ → ι ⊕ ι → Ω → ℝ := fun t => Sum.elim (w t) 0 with hW
+    have hWb : BoundedV W := by
+      obtain ⟨M, hM⟩ := hwb
+      refine ⟨max M 0, fun t k ω => ?_⟩
+      rcases k with i | j
+      · exact (hM t i ω).trans (le_max_left _ _)
+      · simp [hW]
+    have hWa : AdaptedV 𝔼 W := by
+      intro t k
+      rcases k with i | j
+      · exact hwa t i
+      · change 𝔼.E t 0 = 0
+        exact map_zero _
+    have hb0 : (fun s j => W s (Sum.inr j)) = (0 : ℕ → ι → Ω → ℝ) := rfl
+    have hforce : (fun t => (fun i => W t (Sum.inl i)) -
+        mv f₁ (lagP 0 (fun s j => W s (Sum.inr j)) t)) = w := by
+      funext t
+      rw [hb0, lagP_zero_zero, mv_zero, sub_zero]
+      rfl
+    obtain ⟨y, ⟨hs, ha, hk, h0, hbd⟩, hyu⟩ := hD W hWb hWa xm
+    obtain ⟨-, hsol⟩ := lin_of_pencilS 𝔼 hs hk h0
+    rw [hforce] at hsol
+    refine ⟨fun s i => y s (Sum.inl i), ⟨by
+      obtain ⟨M, hM⟩ := hbd; exact ⟨M, fun t i ω => hM t _ ω⟩,
+      fun t i => ha t (Sum.inl i), hsol⟩, fun x' ⟨hx'b, hx'a, hx'⟩ => ?_⟩
+    rw [← hforce] at hx'
+    have he := hyu _ ⟨pencil_of_linS 𝔼 hx'a hWa hx', ?_, ?_, ?_, ?_⟩
+    · funext t i
+      rw [← he]
+      rfl
+    · intro t k
+      rcases k with i | j
+      · exact hx'a t i
+      · rw [hb0]
+        exact (adaptedV_add 𝔼 (adaptedV_lagP 𝔼 xm hx'a)
+          (adaptedV_lagP 𝔼 0 (fun _ _ => map_zero _))) t j
+    · intro t j
+      change 𝔼.E t (x' t j + (0 : ℕ → ι → Ω → ℝ) t j) = x' t j + (0 : ℕ → ι → Ω → ℝ) t j
+      rw [map_add, hx'a t j]
+      simp
+    · intro j
+      funext ω
+      simp
+    · obtain ⟨M1, hM1⟩ := hx'b
+      obtain ⟨M2, hM2⟩ := boundedV_add (boundedV_lagP xm ⟨M1, hM1⟩)
+        (boundedV_lagP 0 (⟨0, fun _ _ _ => by simp⟩ : BoundedV (0 : ℕ → ι → Ω → ℝ)))
+      refine ⟨max M1 M2, fun t k ω => ?_⟩
+      rcases k with i | j
+      · exact (hM1 t i ω).trans (le_max_left _ _)
+      · rw [hb0]
+        exact (hM2 t j ω).trans (le_max_right _ _)
+
+omit [DecidableEq ι] in
+/-- **Uncertainty does not change the determinacy criterion** (Woodford (2003), App. A.3,
+pp. 633–634, (A.12)–(A.13)): for every expectation system on a nonempty state space, the
+stochastic system `f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = w_t` is determinate iff the
+perfect-foresight system (A.10) is. -/
+theorem linDeterminateS_iff_pf [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    LinDeterminateS 𝔼 f₁ f₂ f₃ ↔ LinDeterminate f₁ f₂ f₃ := by
+  classical
+  rw [linDeterminateS_iff_pencil, linDeterminate_iff_pencil, determinatePencil_iff_general,
+    determinatePencil_iff_general]
+
+/-- **The exact root condition under uncertainty** (Woodford (2003), App. A.3, eqs. (A.9) and
+(A.12)–(A.13), pp. 632–634): for every expectation system on a nonempty state space, (A.13) is
+determinate iff `det(f₃λ² + f₂λ + f₁) ≢ 0`, no root lies on the unit circle, exactly `n` roots
+lie in the open unit disc, and genericity holds — the same condition as under perfect
+foresight. -/
+theorem linDeterminateS_iff_roots [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    LinDeterminateS 𝔼 f₁ f₂ f₃ ↔ quadPoly f₁ f₂ f₃ ≠ 0 ∧
+      (∀ μ ∈ ((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card (((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card ι ∧ HomInjective f₁ f₂ f₃ := by
+  rw [linDeterminateS_iff_pf, linDeterminate_iff]
+
+/-- Woodford (2003), App. A.3, pp. 632–634: the perfect-foresight operator (A.8) on
+`ℓ∞(ℕ, ℝⁿ)` is invertible iff the stochastic system (A.13) is determinate, for any expectation
+system on a nonempty state space. -/
+theorem isUnit_sysOp_iff_stoch [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    IsUnit (sysOp f₁ f₂ f₃) ↔ LinDeterminateS 𝔼 f₁ f₂ f₃ := by
+  rw [isUnit_sysOp_iff, linDeterminateS_iff_pf]
+
+/-! ### Perfect foresight inside uncertainty: deterministic processes and projections -/
+
+/-- Woodford (2003), App. A.3, p. 634: a deterministic sequence of vectors as a vector process
+(the same value in every state of the world). -/
+def detP (Y : ℕ → ι → ℝ) : ℕ → ι → Ω → ℝ := fun t i _ => Y t i
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: a deterministic process is adapted. -/
+theorem adaptedV_detP (Y : ℕ → ι → ℝ) : AdaptedV 𝔼 (detP Y : ℕ → ι → Ω → ℝ) :=
+  fun t i => 𝔼.const t (Y t i)
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: a bounded deterministic sequence is a bounded process. -/
+theorem boundedV_detP {Y : ℕ → ι → ℝ} (hY : LinearSystems.BoundedSeq Y) :
+    BoundedV (detP Y : ℕ → ι → Ω → ℝ) := by
+  obtain ⟨C, hC⟩ := hY
+  exact ⟨C, fun t i _ => hC t i⟩
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): a matrix acting on a deterministic vector. -/
+theorem mv_cst (M : Matrix ι ι ℝ) (v : ι → ℝ) :
+    mv M (fun i (_ : Ω) => v i) = fun i _ => (M *ᵥ v) i := by
+  funext i ω
+  rw [mv_apply]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: **a deterministic process solves the stochastic system
+iff it solves the perfect-foresight system** (expectations of known values are those values). -/
+theorem solvesLinS_detP_iff [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) (W Y : ℕ → ι → ℝ)
+    (xm : ι → ℝ) :
+    SolvesLinS 𝔼 f₁ f₂ f₃ (detP W) xm (detP Y) ↔ SolvesLin f₁ f₂ f₃ W xm Y := by
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  have hl : ∀ t, lagP xm (detP Y : ℕ → ι → Ω → ℝ) t = fun i _ => lagV xm Y t i := by
+    intro t
+    cases t <;> rfl
+  have hE : ∀ t, (fun i => 𝔼.E t ((detP Y : ℕ → ι → Ω → ℝ) (t + 1) i)) =
+      fun i _ => Y (t + 1) i := fun t => funext fun i => 𝔼.const t _
+  refine forall_congr' fun t => ?_
+  rw [hl, hE]
+  change mv f₁ (fun i (_ : Ω) => lagV xm Y t i) + mv f₂ (fun i (_ : Ω) => Y t i) +
+    mv f₃ (fun i (_ : Ω) => Y (t + 1) i) = (fun i _ => W t i) ↔ _
+  rw [mv_cst, mv_cst, mv_cst]
+  constructor
+  · intro h
+    funext i
+    have := congrFun (congrFun h i) ω₀
+    simpa only [Pi.add_apply] using this
+  · intro h
+    funext i ω
+    simp only [Pi.add_apply]
+    rw [← h]
+    rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: **projection onto date-`k` information**: if `x` is an
+adapted solution of the stochastic system, then in every state `ω` the sequence of forecasts
+`s ↦ E_k x_{k+s}(ω)` solves the perfect-foresight system with forcing `E_k w_{k+s}(ω)` and initial
+condition `x_{k−1}(ω)` (law of iterated expectations). -/
+theorem proj_solves {f₁ f₂ f₃ : Matrix ι ι ℝ} {w x : ℕ → ι → Ω → ℝ} {xm : ι → ℝ}
+    (hxa : AdaptedV 𝔼 x) (hx : SolvesLinS 𝔼 f₁ f₂ f₃ w xm x) (k : ℕ) (ω : Ω) :
+    SolvesLin f₁ f₂ f₃ (fun s i => 𝔼.E k (w (k + s) i) ω) (fun i => lagP xm x k i ω)
+      (fun s i => 𝔼.E k (x (k + s) i) ω) := by
+  intro s
+  funext i
+  have h := congrArg (fun a : ι → Ω → ℝ => 𝔼.E k (a i) ω) (hx (k + s))
+  simp only [Pi.add_apply, map_add, E_mv 𝔼] at h
+  rw [mv_apply, mv_apply, mv_apply] at h
+  have h3 : (fun j => 𝔼.E k (𝔼.E (k + s) (x (k + s + 1) j)) ω) =
+      fun j => 𝔼.E k (x (k + (s + 1)) j) ω := by
+    funext j
+    rw [𝔼.tower (Nat.le_add_right k s), add_assoc]
+  have h1 : (fun j => 𝔼.E k (lagP xm x (k + s) j) ω) =
+      lagV (fun i => lagP xm x k i ω) (fun s i => 𝔼.E k (x (k + s) i) ω) s := by
+    funext j
+    cases s with
+    | zero => exact congrFun (adaptedV_lagP 𝔼 xm hxa k j) ω
+    | succ s => rfl
+  rw [h3, h1] at h
+  exact h
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): forecasts of a bounded process are bounded. -/
+theorem boundedSeq_proj {x : ℕ → ι → Ω → ℝ} (hx : BoundedV x) (k : ℕ) (ω : Ω) :
+    LinearSystems.BoundedSeq (fun s i => 𝔼.E k (x (k + s) i) ω) := by
+  obtain ⟨C, hC⟩ := hx
+  exact ⟨C, fun s i => 𝔼.abs_E_le (hC (k + s) i) k ω⟩
+
+/-- Woodford (2003), App. A.3, pp. 633–634: uniqueness under uncertainty — the homogeneous
+system with `x_{−1} = 0` has no nonzero bounded adapted solution. -/
+def HomInjectiveS (f₁ f₂ f₃ : Matrix ι ι ℝ) : Prop :=
+  ∀ x, BoundedV x → AdaptedV 𝔼 x → SolvesLinS 𝔼 f₁ f₂ f₃ 0 0 x → x = 0
+
+omit [DecidableEq ι] in
+/-- **Uniqueness under uncertainty is uniqueness under perfect foresight** (Woodford (2003),
+App. A.3, pp. 633–634): for every expectation system on a nonempty state space, the
+homogeneous stochastic system has no nonzero bounded adapted solution iff the perfect-foresight
+genericity condition `HomInjective` holds. (Necessity: a deterministic solution is adapted;
+sufficiency: project a solution on date-`k` information, by induction on `k`.) -/
+theorem homInjectiveS_iff [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    HomInjectiveS 𝔼 f₁ f₂ f₃ ↔ HomInjective f₁ f₂ f₃ := by
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  constructor
+  · intro h Y hYb hY
+    have hs : SolvesLinS 𝔼 f₁ f₂ f₃ (detP 0) 0 (detP Y) :=
+      (solvesLinS_detP_iff 𝔼 _ _ _ _ _ _).mpr hY
+    have h0 := h _ (boundedV_detP hYb) (adaptedV_detP 𝔼 Y) hs
+    funext t i
+    exact congrFun (congrFun (congrFun h0 t) i) ω₀
+  · intro h x hxb hxa hx
+    have key : ∀ k, (∀ j < k, x j = 0) → x k = 0 := by
+      intro k hk
+      funext i ω
+      have hlag : (fun i => lagP 0 x k i ω) = 0 := by
+        funext j
+        cases k with
+        | zero => rfl
+        | succ k => simp [hk k (Nat.lt_succ_self k)]
+      have hp := proj_solves 𝔼 hxa hx k ω
+      rw [hlag] at hp
+      have hw : (fun s i => 𝔼.E k ((0 : ℕ → ι → Ω → ℝ) (k + s) i) ω) = 0 := by
+        funext s j
+        simp
+      rw [hw] at hp
+      have := congrFun (congrFun (h _ (boundedSeq_proj 𝔼 hxb k ω) hp) 0) i
+      simpa [hxa k i] using this
+    funext k
+    induction k using Nat.strong_induction_on with
+    | _ k ih => exact key k ih
+
+/-- Woodford (2003), App. A.3, pp. 633–634: **non-existence under uncertainty** — some bounded
+deterministic forcing admits no bounded (adapted or not) solution with `x_{−1} = 0`. -/
+def NonexistS (f₁ f₂ f₃ : Matrix ι ι ℝ) : Prop :=
+  ∃ W : ℕ → ι → ℝ, LinearSystems.BoundedSeq W ∧
+    ∀ x, BoundedV x → ¬ SolvesLinS 𝔼 f₁ f₂ f₃ (detP W) 0 x
+
+/-- Woodford (2003), App. A.3, pp. 633–634: **non-uniqueness under uncertainty** — the
+homogeneous system with `x_{−1} = 0` has a nonzero bounded adapted solution. -/
+def NonuniqueS (f₁ f₂ f₃ : Matrix ι ι ℝ) : Prop :=
+  ∃ x, BoundedV x ∧ AdaptedV 𝔼 x ∧ SolvesLinS 𝔼 f₁ f₂ f₃ 0 0 x ∧ x ≠ 0
+
+/-- Woodford (2003), App. A.3, pp. 632–634: non-uniqueness under uncertainty is exactly
+non-injectivity of the perfect-foresight operator (A.8). -/
+theorem nonuniqueS_iff [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    NonuniqueS 𝔼 f₁ f₂ f₃ ↔ ¬ Function.Injective (sysOp f₁ f₂ f₃) := by
+  rw [← homInjective_iff_injective, ← homInjectiveS_iff 𝔼]
+  constructor
+  · rintro ⟨x, hxb, hxa, hx, hx0⟩ h
+    exact hx0 (h x hxb hxa hx)
+  · intro h
+    simp only [HomInjectiveS, not_forall] at h
+    obtain ⟨x, hxb, hxa, hx, hx0⟩ := h
+    exact ⟨x, hxb, hxa, hx, hx0⟩
+
+/-- Woodford (2003), App. A.3, pp. 632–634: non-existence under uncertainty (for some bounded
+deterministic forcing) is exactly non-surjectivity of the perfect-foresight operator (A.8).
+(If (A.8) is onto, the deterministic solution solves the stochastic system; if a bounded process
+solves the stochastic system with deterministic forcing, its date-`0` forecasts solve (A.10).) -/
+theorem nonexistS_iff [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    NonexistS 𝔼 f₁ f₂ f₃ ↔ ¬ Function.Surjective (sysOp f₁ f₂ f₃) := by
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  constructor
+  · rintro ⟨W, hWb, hno⟩ hs
+    obtain ⟨Y, hY⟩ := hs (toSeqV W hWb)
+    have hYs := (sysOp_eq_iff _ _ _ _ _).mp hY
+    exact hno _ (boundedV_detP (boundedSeq_coe Y))
+      ((solvesLinS_detP_iff 𝔼 _ _ _ _ _ _).mpr hYs)
+  · intro hns
+    by_contra hne
+    apply hns
+    intro y
+    have hyb := boundedSeq_coe y
+    have hex : ∃ x, BoundedV x ∧ SolvesLinS 𝔼 f₁ f₂ f₃ (detP fun t => y t) 0 x := by
+      by_contra hno
+      push Not at hno
+      exact hne ⟨fun t => y t, hyb, fun x hxb hx => hno x hxb hx⟩
+    obtain ⟨x, hxb, hx⟩ := hex
+    -- the date-`0` forecasts solve (A.10)
+    set z : ℕ → ι → ℝ := fun s i => 𝔼.E 0 (x s i) ω₀ with hz
+    have hzs : SolvesLin f₁ f₂ f₃ (fun t => y t) 0 z := by
+      intro s
+      funext i
+      have h := congrArg (fun a : ι → Ω → ℝ => 𝔼.E 0 (a i) ω₀) (hx s)
+      have hc : 𝔼.E 0 ((detP (fun t => (y t : ι → ℝ)) : ℕ → ι → Ω → ℝ) s i) =
+          fun _ => y s i := 𝔼.const 0 _
+      simp only [Pi.add_apply, map_add, E_mv 𝔼] at h
+      rw [hc, mv_apply, mv_apply, mv_apply] at h
+      have h3 : (fun j => 𝔼.E 0 (𝔼.E s (x (s + 1) j)) ω₀) = z (s + 1) := by
+        funext j
+        rw [𝔼.tower (Nat.zero_le s)]
+      have h1 : (fun j => 𝔼.E 0 (lagP 0 x s j) ω₀) = lagV 0 z s := by
+        funext j
+        cases s with
+        | zero => exact congrFun (𝔼.const 0 0) ω₀
+        | succ s => rfl
+      rw [h3, h1] at h
+      exact h
+    exact ⟨toSeqV z (boundedSeq_proj 𝔼 hxb 0 ω₀ |> fun h => by simpa using h),
+      (sysOp_eq_iff _ _ _ _ _).mpr hzs⟩
+
+/-- **A root of (A.9) on the unit circle destroys existence under uncertainty, for any `f₃`**
+(Woodford (2003), App. A.3, eqs. (A.9), (A.13), pp. 632–634): some bounded deterministic forcing
+admits no bounded solution of the stochastic system with `x_{−1} = 0`. -/
+theorem stoch_nonexist_of_unit_root [Nonempty Ω] {f₁ f₂ f₃ : Matrix ι ι ℝ} {μ : ℂ}
+    (hμ : μ ∈ ((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots) (h1 : ‖μ‖ = 1) :
+    NonexistS 𝔼 f₁ f₂ f₃ :=
+  (nonexistS_iff 𝔼 f₁ f₂ f₃).mpr (LinearSystemsUnit.not_surjective_of_unit_root hμ h1)
+
+/-- **Which half fails under uncertainty** (Woodford (2003), App. A.3, pp. 632–634): if the
+stochastic system is not determinate, then (i) a root of (A.9) lies on the unit circle and
+existence fails, or (ii) more than `n` roots lie inside and uniqueness fails, or (iii) no root
+lies on the circle, fewer than `n` lie inside, and existence fails, or (iv) no root lies on the
+circle, exactly `n` lie inside, and uniqueness fails (genericity) — exactly as under perfect
+foresight, with deterministic witnesses. -/
+theorem failure_cases_stoch [Nonempty Ω] {f₁ f₂ f₃ : Matrix ι ι ℝ}
+    (hfail : ¬ LinDeterminateS 𝔼 f₁ f₂ f₃) :
+    (∃ μ ∈ ((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots, ‖μ‖ = 1) ∧
+        NonexistS 𝔼 f₁ f₂ f₃ ∨
+      Fintype.card ι < Multiset.card (((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots.filter
+          (fun μ => ‖μ‖ < 1)) ∧ NonuniqueS 𝔼 f₁ f₂ f₃ ∨
+      (∀ μ ∈ ((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+        Multiset.card (((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots.filter
+          (fun μ => ‖μ‖ < 1)) < Fintype.card ι ∧ NonexistS 𝔼 f₁ f₂ f₃ ∨
+      (∀ μ ∈ ((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+        Multiset.card (((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots.filter
+          (fun μ => ‖μ‖ < 1)) = Fintype.card ι ∧ NonuniqueS 𝔼 f₁ f₂ f₃ := by
+  rw [linDeterminateS_iff_pf] at hfail
+  rw [nonexistS_iff, nonuniqueS_iff]
+  exact LinearSystemsUnit.failure_cases_general hfail
+
+/-! ### Genuinely random sunspots -/
+
+/-- Woodford (2003), App. A.3, p. 634: the sunspot process `x_0 = 0`, `x_{t+1} = ξ · Y_t`
+built from a deterministic sequence `Y` and a random variable `ξ`. -/
+def sunP (ξ : Ω → ℝ) (Y : ℕ → ι → ℝ) : ℕ → ι → Ω → ℝ :=
+  lagV 0 (fun s i ω => Y s i * ξ ω)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): a matrix acting on `v · ξ`. -/
+theorem mv_mul_xi (M : Matrix ι ι ℝ) (v : ι → ℝ) (ξ : Ω → ℝ) :
+    mv M (fun i ω => v i * ξ ω) = fun i ω => (M *ᵥ v) i * ξ ω := by
+  funext i ω
+  rw [mv_apply_sum, Matrix.mulVec, dotProduct, Finset.sum_mul]
+  exact Finset.sum_congr rfl fun j _ => by ring
+
+omit [DecidableEq ι] in
+/-- **Random sunspot equilibria** (Woodford (2003), App. A.3, p. 634; the stochastic form of
+non-uniqueness): if `ξ` is a bounded random variable revealed at date 1 (`E_1 ξ = ξ`) with
+`E_0 ξ = 0`, and `Y` is a bounded solution of the homogeneous perfect-foresight system with
+`x_{−1} = 0`, then `x_0 = 0`, `x_{t+1} = ξ Y_t` is a bounded adapted solution of the homogeneous
+stochastic system with `x_{−1} = 0`. -/
+theorem random_sunspot {f₁ f₂ f₃ : Matrix ι ι ℝ} {ξ : Ω → ℝ} {B : ℝ} (hξb : ∀ ω, |ξ ω| ≤ B)
+    (hξ0 : 𝔼.E 0 ξ = 0) (hξ1 : 𝔼.E 1 ξ = ξ) {Y : ℕ → ι → ℝ} (hYb : LinearSystems.BoundedSeq Y)
+    (hY : SolvesLin f₁ f₂ f₃ 0 0 Y) :
+    BoundedV (sunP ξ Y) ∧ AdaptedV 𝔼 (sunP ξ Y) ∧ SolvesLinS 𝔼 f₁ f₂ f₃ 0 0 (sunP ξ Y) := by
+  have hξt : ∀ t, 𝔼.E (t + 1) ξ = ξ := fun t => by
+    rw [← hξ1, 𝔼.known (by omega : 1 ≤ t + 1)]
+  have hEs : ∀ t (v : ι → ℝ), (fun i => 𝔼.E (t + 1) (fun ω => v i * ξ ω)) =
+      fun i ω => v i * ξ ω := by
+    intro t v
+    funext i
+    have : (fun ω => v i * ξ ω) = v i • ξ := rfl
+    rw [this, map_smul, hξt]
+  refine ⟨?_, ?_, ?_⟩
+  · obtain ⟨C, hC⟩ := hYb
+    refine ⟨max C 0 * max B 0, fun t i ω => ?_⟩
+    cases t with
+    | zero =>
+      change |(0 : ℝ)| ≤ _
+      rw [abs_zero]
+      positivity
+    | succ t =>
+      change |Y t i * ξ ω| ≤ _
+      rw [abs_mul]
+      exact mul_le_mul ((hC t i).trans (le_max_left _ _)) ((hξb ω).trans (le_max_left _ _))
+        (abs_nonneg _) (le_max_right _ _)
+  · intro t i
+    cases t with
+    | zero => exact map_zero _
+    | succ t => exact congrFun (hEs t (Y t)) i
+  · intro t
+    cases t with
+    | zero =>
+      have h1 : (fun i => 𝔼.E 0 (sunP ξ Y (0 + 1) i)) = 0 := by
+        funext i
+        change 𝔼.E 0 (Y 0 i • ξ) = 0
+        rw [map_smul, hξ0, smul_zero]
+      rw [h1]
+      have h2 : lagP (0 : ι → ℝ) (sunP ξ Y) 0 = 0 := rfl
+      have h3 : sunP ξ Y 0 = 0 := rfl
+      rw [h2, h3, mv_zero, mv_zero, mv_zero, add_zero, add_zero]
+      rfl
+    | succ t =>
+      have h1 : (fun i => 𝔼.E (t + 1) (sunP ξ Y (t + 1 + 1) i)) =
+          fun i ω => Y (t + 1) i * ξ ω := hEs t (Y (t + 1))
+      have h2 : lagP (0 : ι → ℝ) (sunP ξ Y) (t + 1) = fun i ω => lagV 0 Y t i * ξ ω := by
+        funext i ω
+        cases t with
+        | zero => simp [sunP, lagP]
+        | succ t => rfl
+      have h3 : sunP ξ Y (t + 1) = fun i ω => Y t i * ξ ω := rfl
+      rw [h1, h2, h3, mv_mul_xi, mv_mul_xi, mv_mul_xi]
+      funext i ω
+      have := congrFun (hY t) i
+      simp only [Pi.add_apply, Pi.zero_apply] at this ⊢
+      rw [← add_mul, ← add_mul, this, zero_mul]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 632 (tool): if genericity fails, the homogeneous
+perfect-foresight system with `x_{−1} = 0` has a bounded solution with `x_0 ≠ 0` (drop the
+leading zeros of a nonzero solution). -/
+theorem exists_homog_head {f₁ f₂ f₃ : Matrix ι ι ℝ} (h : ¬ HomInjective f₁ f₂ f₃) :
+    ∃ Y : ℕ → ι → ℝ, LinearSystems.BoundedSeq Y ∧ SolvesLin f₁ f₂ f₃ 0 0 Y ∧ Y 0 ≠ 0 := by
+  simp only [HomInjective, not_forall] at h
+  obtain ⟨Z, hZb, hZ, hZ0⟩ := h
+  have hex : ∃ t, Z t ≠ 0 := by
+    by_contra hne
+    push Not at hne
+    exact hZ0 (funext hne)
+  classical
+  set s := Nat.find hex with hs
+  have hsZ : Z s ≠ 0 := Nat.find_spec hex
+  have hmin : ∀ j < s, Z j = 0 := fun j hj => by
+    by_contra hne
+    exact Nat.find_min hex hj hne
+  refine ⟨fun t => Z (s + t), ?_, fun t => ?_, by simpa using hsZ⟩
+  · obtain ⟨C, hC⟩ := hZb
+    exact ⟨C, fun t i => hC (s + t) i⟩
+  · have e := hZ (s + t)
+    have hl : lagV 0 (fun t => Z (s + t)) t = lagV 0 Z (s + t) := by
+      cases t with
+      | zero =>
+        cases hs' : s with
+        | zero => rfl
+        | succ s' =>
+          simp only [lagV_zero, Nat.add_zero, lagV_succ]
+          exact (hmin s' (by omega)).symm
+      | succ t => rfl
+    rw [hl]
+    beta_reduce
+    rw [show s + (t + 1) = s + t + 1 by omega]
+    exact e
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the date-1 coin innovation `±1` is revealed at
+date 1 on the core coin-flip tree. -/
+theorem coinShock_one_known :
+    ExpectationsFiniteTree.coinSystem.E 1 (ExpectationsFiniteTree.coinShock 1) =
+      ExpectationsFiniteTree.coinShock 1 := by
+  funext ω
+  rw [ExpectationsFiniteTree.coinSystem, ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E]
+  exact ExpectationsFiniteTree.coinTree.condE_of_const_on_cell fun ω' h =>
+    ExpectationsFiniteTree.coinShock_measurable 1 h
+
+omit [DecidableEq ι] in
+/-- **Genuinely random sunspots on the coin-flip tree** (Woodford (2003), App. A.3, p. 634):
+if genericity fails (the homogeneous perfect-foresight system has a nonzero bounded solution),
+then on the core two-coin tree the homogeneous stochastic system with `x_{−1} = 0` has, for every
+scale `c ≠ 0`, a bounded adapted solution with `x_0 = 0` whose date-1 value differs across the
+first coin flip (it is not a deterministic path). -/
+theorem coin_random_sunspot {f₁ f₂ f₃ : Matrix ι ι ℝ} (h : ¬ HomInjective f₁ f₂ f₃) {c : ℝ}
+    (hc : c ≠ 0) :
+    ∃ x : ℕ → ι → Bool × Bool → ℝ, BoundedV x ∧
+      AdaptedV ExpectationsFiniteTree.coinSystem x ∧
+      SolvesLinS ExpectationsFiniteTree.coinSystem f₁ f₂ f₃ 0 0 x ∧ x 0 = 0 ∧
+      (fun i => x 1 i (true, true)) ≠ fun i => x 1 i (false, true) := by
+  obtain ⟨Y, hYb, hY, hY0⟩ := exists_homog_head h
+  have hcY : SolvesLin f₁ f₂ f₃ 0 0 (fun t => c • Y t) := by
+    intro t
+    have e := hY t
+    have hl : lagV 0 (fun t => c • Y t) t = c • lagV 0 Y t := by
+      cases t <;> simp
+    rw [hl, Matrix.mulVec_smul, Matrix.mulVec_smul, Matrix.mulVec_smul, ← smul_add, ← smul_add, e]
+    simp
+  have hcYb : LinearSystems.BoundedSeq (fun t => c • Y t) := by
+    obtain ⟨C, hC⟩ := hYb
+    exact ⟨|c| * C, fun t i => by
+      change |c * Y t i| ≤ _
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hC t i) (abs_nonneg c)⟩
+  have hξb : ∀ ω, |ExpectationsFiniteTree.coinShock 1 ω| ≤ 1 := fun ω => by
+    unfold ExpectationsFiniteTree.coinShock
+    split_ifs <;> simp
+  obtain ⟨hb, ha, hs⟩ := random_sunspot ExpectationsFiniteTree.coinSystem hξb
+    (ExpectationsFiniteTree.coinShock_mean_zero 0) coinShock_one_known hcYb hcY
+  refine ⟨_, hb, ha, hs, rfl, fun he => hY0 ?_⟩
+  funext i
+  have e1 : c * Y 0 i * ExpectationsFiniteTree.coinShock 1 (true, true) =
+      c * Y 0 i * ExpectationsFiniteTree.coinShock 1 (false, true) := congrFun he i
+  have h1 : ExpectationsFiniteTree.coinShock 1 (true, true) = 1 := by
+    simp [ExpectationsFiniteTree.coinShock]
+  have hm1 : ExpectationsFiniteTree.coinShock 1 (false, true) = -1 := by
+    simp [ExpectationsFiniteTree.coinShock]
+  rw [h1, hm1] at e1
+  have h2 : c * Y 0 i = 0 := by linarith
+  simpa [hc] using h2
+
+/-- **Too many stable roots: random sunspots under uncertainty** (Woodford (2003), App. A.3,
+pp. 632–634): if more than `n` roots of `det(f₃λ² + f₂λ + f₁)` lie in the open unit disc, the
+conclusion of `coin_random_sunspot` holds. -/
+theorem coin_random_sunspot_of_count_gt {f₁ f₂ f₃ : Matrix ι ι ℝ}
+    (h : Fintype.card ι < Multiset.card (((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots.filter
+      (fun μ => ‖μ‖ < 1))) {c : ℝ} (hc : c ≠ 0) :
+    ∃ x : ℕ → ι → Bool × Bool → ℝ, BoundedV x ∧
+      AdaptedV ExpectationsFiniteTree.coinSystem x ∧
+      SolvesLinS ExpectationsFiniteTree.coinSystem f₁ f₂ f₃ 0 0 x ∧ x 0 = 0 ∧
+      (fun i => x 1 i (true, true)) ≠ fun i => x 1 i (false, true) :=
+  coin_random_sunspot (fun hh => not_injective_of_count_gt h
+    ((homInjective_iff_injective f₁ f₂ f₃).mp hh)) hc
+
+/-! ### The Blanchard–Kahn decision rule -/
+
+/-- Woodford (2003), App. A.3, p. 633: **the stable solvent of (A.10)**. If the
+perfect-foresight system is determinate, there is a matrix `G` with bounded powers solving
+`f₁ + f₂ G + f₃ G² = 0` such that the unique bounded solution of the homogeneous system with
+initial condition `x_{−1} = v` is `x_t = G^{t+1} v`. -/
+theorem exists_solvent {f₁ f₂ f₃ : Matrix ι ι ℝ} (hL : LinDeterminate f₁ f₂ f₃) :
+    ∃ G : Matrix ι ι ℝ, f₁ + f₂ * G + f₃ * G ^ 2 = 0 ∧ (∃ C, ∀ t i j, |(G ^ t) i j| ≤ C) ∧
+      ∀ (v : ι → ℝ) (Y : ℕ → ι → ℝ), LinearSystems.BoundedSeq Y → SolvesLin f₁ f₂ f₃ 0 v Y →
+        ∀ t, Y t = G ^ (t + 1) *ᵥ v := by
+  have h0b : LinearSystems.BoundedSeq (0 : ℕ → ι → ℝ) := ⟨0, fun _ _ => by simp⟩
+  choose X hX using fun j : ι => (hL 0 h0b (Pi.single j 1)).exists
+  choose C hC using fun j => (hX j).1
+  set Φ : (ι → ℝ) → ℕ → ι → ℝ := fun v t => ∑ j, v j • X j t with hΦ
+  have hlag : ∀ v t, lagV v (Φ v) t = ∑ j, v j • lagV (Pi.single j 1) (X j) t := by
+    intro v t
+    cases t with
+    | zero =>
+      funext k
+      simp [Finset.sum_apply, Pi.single_apply]
+    | succ t => rfl
+  have hΦs : ∀ v, SolvesLin f₁ f₂ f₃ 0 v (Φ v) := by
+    intro v t
+    have e : f₁ *ᵥ lagV v (Φ v) t + f₂ *ᵥ Φ v t + f₃ *ᵥ Φ v (t + 1) =
+        ∑ j, v j • (f₁ *ᵥ lagV (Pi.single j 1) (X j) t + f₂ *ᵥ X j t + f₃ *ᵥ X j (t + 1)) := by
+      rw [hlag v t]
+      simp only [hΦ, Matrix.mulVec_sum, Matrix.mulVec_smul, smul_add, Finset.sum_add_distrib]
+    rw [e]
+    simp [(hX _).2 t]
+  have hΦb : ∀ v, LinearSystems.BoundedSeq (Φ v) := by
+    intro v
+    refine ⟨∑ j, |v j| * C j, fun t i => ?_⟩
+    simp only [hΦ, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun j _ => ?_)
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hC j t i) (abs_nonneg _)
+  have huniq : ∀ v Y, LinearSystems.BoundedSeq Y → SolvesLin f₁ f₂ f₃ 0 v Y → Y = Φ v :=
+    fun v Y hYb hY => (hL 0 h0b v).unique ⟨hYb, hY⟩ ⟨hΦb v, hΦs v⟩
+  set G : Matrix ι ι ℝ := Matrix.of fun i j => X j 0 i with hG
+  have hG0 : ∀ v, Φ v 0 = G *ᵥ v := by
+    intro v
+    funext i
+    simp [hΦ, hG, Matrix.mulVec, dotProduct, Finset.sum_apply, mul_comm]
+  have hshift : ∀ v t, Φ v (t + 1) = Φ (G *ᵥ v) t := by
+    intro v
+    have hs : SolvesLin f₁ f₂ f₃ 0 (G *ᵥ v) (fun t => Φ v (t + 1)) := by
+      intro t
+      have e := hΦs v (t + 1)
+      have hl : lagV (G *ᵥ v) (fun t => Φ v (t + 1)) t = lagV v (Φ v) (t + 1) := by
+        cases t with
+        | zero => exact (hG0 v).symm
+        | succ t => rfl
+      rw [hl]
+      exact e
+    have h := huniq (G *ᵥ v) _ (boundedSeq_succ (hΦb v)) hs
+    exact fun t => congrFun h t
+  have hpow : ∀ t v, Φ v t = G ^ (t + 1) *ᵥ v := by
+    intro t
+    induction t with
+    | zero => intro v; rw [hG0, zero_add, pow_one]
+    | succ t ih => intro v; rw [hshift, ih, Matrix.mulVec_mulVec, ← pow_succ]
+  refine ⟨G, ?_, ⟨1 + ∑ j, |C j|, fun t i j => ?_⟩, fun v Y hYb hY t => ?_⟩
+  · refine matrix_eq_of_mulVec fun v => ?_
+    have e := hΦs v 0
+    rw [lagV_zero, hpow, hpow, zero_add, pow_one] at e
+    rw [Matrix.zero_mulVec, Matrix.add_mulVec, Matrix.add_mulVec, ← Matrix.mulVec_mulVec,
+      ← Matrix.mulVec_mulVec]
+    exact e
+  · have hsum : |C j| ≤ ∑ j, |C j| :=
+      Finset.single_le_sum (f := fun j => |C j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ j)
+    cases t with
+    | zero =>
+      rw [pow_zero, Matrix.one_apply]
+      have h1 : (0 : ℝ) ≤ ∑ j, |C j| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+      split_ifs
+      · rw [abs_one]; linarith
+      · rw [abs_zero]; linarith
+    | succ t =>
+      have e : (G ^ (t + 1)) i j = X j t i := by
+        have h1 := congrFun (hpow t (Pi.single j 1)) i
+        simp only [hΦ, Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.single_apply] at h1
+        simp only [ite_mul, one_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ,
+          ↓reduceIte] at h1
+        rw [h1]
+        simp [Matrix.mulVec, dotProduct, Pi.single_apply]
+      rw [e]
+      linarith [hC j t i, le_abs_self (C j)]
+  · rw [huniq v Y hYb hY, hpow]
+
+/-- Woodford (2003), eq. (A.9), p. 632 (tool): an eigenvector `c` of a solvent `G`
+(`f₁ + f₂G + f₃G² = 0`) with eigenvalue `μ` is a null vector of `μ²f₃ + μf₂ + f₁`. -/
+theorem quadMat_mulVec_of_solvent {f₁ f₂ f₃ G : Matrix ι ι ℝ}
+    (hsol : f₁ + f₂ * G + f₃ * G ^ 2 = 0) {μ : ℂ} {c : ι → ℂ}
+    (hc : G.map Complex.ofReal *ᵥ c = μ • c) :
+    LinearSystemsUnit.quadMat f₁ f₂ f₃ μ *ᵥ c = 0 := by
+  have hz : (Complex.ofRealHom.mapMatrix (f₁ + f₂ * G + f₃ * G ^ 2)) *ᵥ c = 0 := by
+    rw [hsol, map_zero, Matrix.zero_mulVec]
+  rw [map_add, map_add, map_mul, map_mul, map_pow] at hz
+  change (f₁.map Complex.ofReal + f₂.map Complex.ofReal * G.map Complex.ofReal +
+    f₃.map Complex.ofReal * G.map Complex.ofReal ^ 2) *ᵥ c = 0 at hz
+  rw [Matrix.add_mulVec, Matrix.add_mulVec, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec,
+    pow_two, ← Matrix.mulVec_mulVec] at hz
+  simp only [hc, Matrix.mulVec_smul, smul_smul] at hz
+  rw [LinearSystemsUnit.quadMat, Matrix.add_mulVec, Matrix.add_mulVec, Matrix.smul_mulVec,
+    Matrix.smul_mulVec, ← hz, pow_two]
+  abel
+
+/-- Woodford (2003), App. A.3, p. 633: **the solvent is stable**: under determinacy every
+eigenvalue of `G` lies in the open unit disc (bounded powers put them in the closed disc, and an
+eigenvalue on the circle would be a unit-circle root of (A.9), destroying existence). -/
+theorem solvent_stable {f₁ f₂ f₃ G : Matrix ι ι ℝ} (hL : LinDeterminate f₁ f₂ f₃)
+    (hsol : f₁ + f₂ * G + f₃ * G ^ 2 = 0) {C : ℝ} (hb : ∀ t i j, |(G ^ t) i j| ≤ C) :
+    ∀ μ ∈ eigs G, ‖μ‖ < 1 := by
+  intro μ hμ
+  rcases (norm_le_one_of_pow_bounded hb μ hμ).lt_or_eq with h | h
+  · exact h
+  · exfalso
+    obtain ⟨c, hc0, hc⟩ := exists_eigvec hμ
+    have hdet : (LinearSystemsUnit.quadMat f₁ f₂ f₃ μ).det = 0 :=
+      Matrix.exists_mulVec_eq_zero_iff.mp ⟨c, hc0, quadMat_mulVec_of_solvent hsol hc⟩
+    have hs : Function.Surjective (sysOp f₁ f₂ f₃) :=
+      (ContinuousLinearMap.isUnit_iff_bijective.mp ((isUnit_sysOp_iff _ _ _).mpr hL)).2
+    exact LinearSystemsUnit.not_surjective_of_unit_det hdet h hs
+
+/-- Woodford (2003), App. A.3, p. 633: under determinacy `D = f₂ + f₃ G` is invertible (the
+date-0 impulse response to a forcing `c` at date 0 solves `D x_0 = c`). -/
+theorem isUnit_solventD {f₁ f₂ f₃ G : Matrix ι ι ℝ} (hL : LinDeterminate f₁ f₂ f₃)
+    (hG : ∀ (v : ι → ℝ) (Y : ℕ → ι → ℝ), LinearSystems.BoundedSeq Y →
+      SolvesLin f₁ f₂ f₃ 0 v Y → ∀ t, Y t = G ^ (t + 1) *ᵥ v) :
+    IsUnit (f₂ + f₃ * G).det := by
+  rw [← Matrix.isUnit_iff_isUnit_det, ← Matrix.mulVec_surjective_iff_isUnit]
+  intro c
+  set w : ℕ → ι → ℝ := fun t => if t = 0 then c else 0 with hw
+  have hwb : LinearSystems.BoundedSeq w := ⟨∑ i, |c i|, fun t i => by
+    by_cases ht : t = 0
+    · simp only [hw, ht, ↓reduceIte]
+      exact Finset.single_le_sum (f := fun i => |c i|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ i)
+    · simp only [hw, ht, ↓reduceIte, Pi.zero_apply, abs_zero]
+      exact Finset.sum_nonneg fun _ _ => abs_nonneg _⟩
+  obtain ⟨x, ⟨hxb, hx⟩, -⟩ := hL w hwb 0
+  have htail : SolvesLin f₁ f₂ f₃ 0 (x 0) (fun t => x (t + 1)) := by
+    intro t
+    have e := hx (t + 1)
+    have hl : lagV (x 0) (fun t => x (t + 1)) t = lagV 0 x (t + 1) := by
+      cases t <;> rfl
+    rw [hl]
+    simpa [hw] using e
+  have h1 := hG (x 0) _ (boundedSeq_succ hxb) htail 0
+  rw [zero_add, pow_one] at h1
+  refine ⟨x 0, ?_⟩
+  have e0 := hx 0
+  simp only [lagV_zero, Matrix.mulVec_zero, zero_add, hw, ↓reduceIte] at e0
+  rw [Matrix.add_mulVec, ← Matrix.mulVec_mulVec, ← h1]
+  exact e0
+
+/-- Woodford (2003), App. A.3, p. 633: **the unstable block is stable when solved forward**:
+under determinacy every eigenvalue of `J = −D⁻¹f₃` lies in the open unit disc. (An eigenvalue
+`μ` with `|μ| ≥ 1` gives the bounded sequence `ẑ_t = Re(μ⁻ᵗ c)` with `ẑ_t = J ẑ_{t+1}`, and
+`x_t = G x_{t−1} + ẑ_t` would be a nonzero bounded solution of the homogeneous system with
+`x_{−1} = 0`.) -/
+theorem solventJ_stable {f₁ f₂ f₃ G : Matrix ι ι ℝ} (hL : LinDeterminate f₁ f₂ f₃)
+    (hsol : f₁ + f₂ * G + f₃ * G ^ 2 = 0) (hGs : ∀ μ ∈ eigs G, ‖μ‖ < 1)
+    (hD : IsUnit (f₂ + f₃ * G).det) :
+    ∀ μ ∈ eigs (-((f₂ + f₃ * G)⁻¹ * f₃)), ‖μ‖ < 1 := by
+  set D := f₂ + f₃ * G with hDdef
+  set J := -(D⁻¹ * f₃) with hJ
+  have hDJ : D * J = -f₃ := by
+    rw [hJ, Matrix.mul_neg, ← Matrix.mul_assoc, Matrix.mul_nonsing_inv _ hD, Matrix.one_mul]
+  intro μ hμ
+  by_contra hge
+  push Not at hge
+  have hμ0 : μ ≠ 0 := by
+    intro h0
+    rw [h0, norm_zero] at hge
+    linarith
+  obtain ⟨c, hc0, hc⟩ := exists_eigvec hμ
+  obtain ⟨c', ⟨i0, hi0⟩, hc'⟩ : ∃ c' : ι → ℂ, (∃ i, (c' i).re ≠ 0) ∧
+      J.map Complex.ofReal *ᵥ c' = μ • c' := by
+    by_cases hre : ∃ i, (c i).re ≠ 0
+    · exact ⟨c, hre, hc⟩
+    · push Not at hre
+      obtain ⟨i, hi⟩ : ∃ i, c i ≠ 0 := by
+        by_contra hne
+        push Not at hne
+        exact hc0 (funext hne)
+      refine ⟨(-Complex.I) • c, ⟨i, ?_⟩, ?_⟩
+      · intro h0
+        apply hi
+        apply Complex.ext
+        · simpa using hre i
+        · simpa using h0
+      · rw [Matrix.mulVec_smul, hc, smul_comm]
+  set z : ℕ → ι → ℝ := fun t i => ((μ⁻¹) ^ t * c' i).re with hz
+  have hzJ : ∀ t, J *ᵥ z (t + 1) = z t := by
+    intro t
+    funext i
+    have e := re_mulVec J ((μ⁻¹) ^ (t + 1) • c') i
+    rw [Matrix.mulVec_smul, hc', smul_smul] at e
+    simp only [Pi.smul_apply, smul_eq_mul] at e
+    rw [hz]
+    simp only
+    rw [← e]
+    congr 1
+    rw [pow_succ, mul_assoc ((μ⁻¹) ^ t) μ⁻¹ μ, inv_mul_cancel₀ hμ0, mul_one]
+  have hμinv : ‖μ⁻¹‖ ≤ 1 := by
+    rw [norm_inv]
+    exact inv_le_one_of_one_le₀ hge
+  have hzb : ∀ t i, |z t i| ≤ ∑ j, ‖c' j‖ := by
+    intro t i
+    refine (Complex.abs_re_le_norm _).trans ?_
+    rw [norm_mul, norm_pow]
+    calc ‖μ⁻¹‖ ^ t * ‖c' i‖ ≤ 1 * ‖c' i‖ :=
+          mul_le_mul_of_nonneg_right (pow_le_one₀ (norm_nonneg _) hμinv) (norm_nonneg _)
+      _ ≤ ∑ j, ‖c' j‖ := by
+          rw [one_mul]
+          exact Finset.single_le_sum (f := fun j => ‖c' j‖) (fun _ _ => norm_nonneg _)
+            (Finset.mem_univ i)
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hGp⟩ := pow_entry_bound G hGs
+  set x := xrecV G (fun t => z (t + 1)) (z 0) with hx
+  have hxrec : ∀ t, x t = G *ᵥ lagV 0 x t + z t := by
+    intro t
+    cases t with
+    | zero => simp [hx, xrecV]
+    | succ t => rfl
+  have hB0 : 0 ≤ ∑ j, ‖c' j‖ := Finset.sum_nonneg fun _ _ => norm_nonneg _
+  have hxb : LinearSystems.BoundedSeq x :=
+    ⟨_, rec_bounded hCb hρ0.le hρ1 hGp (fun t => rfl) hB0 hB0 (fun t j => hzb (t + 1) j)
+      (fun j => hzb 0 j)⟩
+  have hxs : SolvesLin f₁ f₂ f₃ 0 0 x := by
+    intro t
+    set L := lagV 0 x t with hL'
+    have h1 : x (t + 1) = G *ᵥ x t + z (t + 1) := rfl
+    rw [h1, hxrec t, ← hL', ← hzJ t]
+    have e : f₁ *ᵥ L + f₂ *ᵥ (G *ᵥ L + J *ᵥ z (t + 1)) +
+        f₃ *ᵥ (G *ᵥ (G *ᵥ L + J *ᵥ z (t + 1)) + z (t + 1)) =
+        (f₁ + f₂ * G + f₃ * G ^ 2) *ᵥ L + (D * J) *ᵥ z (t + 1) + f₃ *ᵥ z (t + 1) := by
+      simp only [hDdef, Matrix.add_mulVec, Matrix.mulVec_add, Matrix.mulVec_mulVec, pow_two,
+        Matrix.mul_assoc, Matrix.add_mul]
+      abel
+    rw [e, hsol, hDJ, Matrix.neg_mulVec, Matrix.zero_mulVec]
+    simp
+  have hinj : HomInjective f₁ f₂ f₃ := ((linDeterminate_iff _ _ _).mp hL).2.2.2
+  have hx0 := congrFun (congrFun (hinj x hxb hxs) 0) i0
+  have hz0 : x 0 i0 = z 0 i0 := by simp [hx, xrecV]
+  rw [hz0] at hx0
+  apply hi0
+  simpa [hz] using hx0
+
+/-- **The Blanchard–Kahn decision rule** (Woodford (2003), App. A.3, pp. 632–634; Blanchard and
+Kahn (1980)): if (A.10) is determinate there are matrices `G`, `D`, `J` with
+`f₁ + f₂G + f₃G² = 0`, `D = f₂ + f₃G` invertible, `J = −D⁻¹f₃`, and every eigenvalue of `G` and
+of `J` in the open unit disc. -/
+theorem exists_decision_rule {f₁ f₂ f₃ : Matrix ι ι ℝ} (hL : LinDeterminate f₁ f₂ f₃) :
+    ∃ G D J : Matrix ι ι ℝ, f₁ + f₂ * G + f₃ * G ^ 2 = 0 ∧ D = f₂ + f₃ * G ∧ IsUnit D.det ∧
+      J = -(D⁻¹ * f₃) ∧ (∀ μ ∈ eigs G, ‖μ‖ < 1) ∧ ∀ μ ∈ eigs J, ‖μ‖ < 1 := by
+  obtain ⟨G, hsol, ⟨C, hb⟩, hG⟩ := exists_solvent hL
+  have hGs := solvent_stable hL hsol hb
+  have hD := isUnit_solventD hL hG
+  exact ⟨G, _, _, hsol, rfl, hD, rfl, hGs, solventJ_stable hL hsol hGs hD⟩
+
+/-! ### The stochastic decision rule: stable block backward, unstable block forward with `E_t` -/
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634 (and (1.37), p. 70): the forward series
+`ẑ_t = ∑_{k ≥ 0} Kᵏ E_t f_{t+k}` (the vector version of the core `forwardSeries`). -/
+noncomputable def fwdV (K : Matrix ι ι ℝ) (f : ℕ → ι → Ω → ℝ) : ℕ → ι → Ω → ℝ :=
+  fun t i ω => ∑' k, mv (K ^ k) (fun j => 𝔼.E t (f (t + k) j)) i ω
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634 (Blanchard–Kahn forward step, restated from
+`SystemsBK.GeneralBKForward.fsolves_exists` for an explicit series and forcing that need not be
+adapted): if the powers of `K` decay geometrically and `f` is bounded, the forward series solves
+`ẑ_t = K E_t ẑ_{t+1} + E_t f_t`, is adapted and is bounded; `E_t` commutes with the series by
+`ExpectationSystem.E_tsum`. -/
+theorem fwdV_spec {K : Matrix ι ι ℝ} {Cb ρ : ℝ} (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
+    (hK : ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k) {f : ℕ → ι → Ω → ℝ} {Mw : ℝ}
+    (hw : ∀ t i ω, |f t i ω| ≤ Mw) :
+    (∀ t, fwdV 𝔼 K f t = mv K (fun j => 𝔼.E t (fwdV 𝔼 K f (t + 1) j)) +
+        fun j => 𝔼.E t (f t j)) ∧ AdaptedV 𝔼 (fwdV 𝔼 K f) ∧ BoundedV (fwdV 𝔼 K f) := by
+  set Mb : ℝ := Fintype.card ι * Cb * Mw with hMb
+  set B : ℕ → ℕ → ι → Ω → ℝ := fun k t => mv (K ^ k) (fun j => 𝔼.E t (f (t + k) j)) with hB
+  have hT : ∀ k t t' i ω, |mv (K ^ k) (fun j => 𝔼.E t (f t' j)) i ω| ≤ ρ ^ k * Mb := by
+    intro k t t' i ω
+    have := abs_mv_le (hK k) (fun j ω => 𝔼.abs_E_le (hw t' j) t ω) i ω
+    calc _ ≤ Fintype.card ι * (Cb * ρ ^ k * Mw) := this
+      _ = ρ ^ k * Mb := by rw [hMb]; ring
+  have hTs : ∀ t t' : ℕ → ℕ, ∀ i ω,
+      Summable fun k => mv (K ^ k) (fun j => 𝔼.E (t k) (f (t' k) j)) i ω := fun t t' i ω =>
+    Summable.of_norm_bounded ((summable_geometric_of_lt_one hρ0 hρ1).mul_right Mb)
+      (fun k => by rw [Real.norm_eq_abs]; exact hT k (t k) (t' k) i ω)
+  have hBb : ∀ k t i ω, |B k t i ω| ≤ ρ ^ k * Mb := fun k t i ω => hT k t (t + k) i ω
+  have hsum : ∀ t i ω, Summable fun k => B k t i ω := fun t i ω =>
+    hTs (fun _ => t) (fun k => t + k) i ω
+  have hs : ∀ t i, fwdV 𝔼 K f t i = fun ω => ∑' k, B k t i ω := fun _ _ => rfl
+  have hEB : ∀ k t i, 𝔼.E t (B k (t + 1) i) =
+      mv (K ^ k) (fun j => 𝔼.E t (f (t + 1 + k) j)) i := by
+    intro k t i
+    simp only [hB, E_mv 𝔼, 𝔼.tower (Nat.le_succ t)]
+  have hEs : ∀ t i ω, 𝔼.E t (fwdV 𝔼 K f (t + 1) i) ω =
+      ∑' k, mv (K ^ k) (fun j => 𝔼.E t (f (t + 1 + k) j)) i ω := by
+    intro t i ω
+    have := 𝔼.E_tsum hρ0 hρ1 (f := fun k => B k (t + 1) i) (fun k ω => hBb k (t + 1) i ω) t ω
+    rw [hs, this]
+    exact tsum_congr fun k => by rw [hEB]
+  refine ⟨?_, ?_, ?_⟩
+  · intro t
+    funext i ω
+    have hB0 : B 0 t i ω = 𝔼.E t (f t i) ω := by
+      simp only [hB, pow_zero, add_zero, mv_one]
+    have hshift : ∀ k, B (k + 1) t i ω =
+        ∑ l, K i l * mv (K ^ k) (fun j => 𝔼.E t (f (t + 1 + k) j)) l ω := by
+      intro k
+      simp only [hB]
+      rw [← mv_apply_sum, mv_mv, ← pow_succ', show t + (k + 1) = t + 1 + k by omega]
+    have hR : (mv K (fun j => 𝔼.E t (fwdV 𝔼 K f (t + 1) j)) + fun j => 𝔼.E t (f t j)) i ω =
+        (∑' k, B (k + 1) t i ω) + 𝔼.E t (f t i) ω := by
+      rw [Pi.add_apply, Pi.add_apply, mv_apply_sum]
+      congr 1
+      simp only [hEs, ← tsum_mul_left]
+      rw [← Summable.tsum_finsetSum (fun l _ =>
+        (hTs (fun _ => t) (fun k => t + 1 + k) l ω).mul_left (K i l))]
+      exact tsum_congr fun k => (hshift k).symm
+    rw [hR]
+    change ∑' k, B k t i ω = _
+    rw [(hsum t i ω).tsum_eq_zero_add, hB0]
+    ring
+  · intro t i
+    funext ω
+    have := 𝔼.E_tsum hρ0 hρ1 (f := fun k => B k t i) (fun k ω => hBb k t i ω) t ω
+    rw [hs, this]
+    refine tsum_congr fun k => ?_
+    simp only [hB, E_mv 𝔼, 𝔼.E_E_self]
+  · refine ⟨Mb / (1 - ρ), fun t i ω => ?_⟩
+    have hg : HasSum (fun k : ℕ => ρ ^ k * Mb) (Mb / (1 - ρ)) := by
+      have := (hasSum_geometric_of_lt_one hρ0 hρ1).mul_right Mb
+      rwa [← div_eq_inv_mul] at this
+    have := tsum_of_norm_bounded hg (f := fun k => B k t i ω)
+      (fun k => by rw [Real.norm_eq_abs]; exact hBb k t i ω)
+    rw [Real.norm_eq_abs] at this
+    exact this
+
+/-- Woodford (2003), App. A.3, p. 634: the backward recursion of the stable block,
+`x_t = G x_{t−1} + ẑ_t` with `x_{−1}` given. -/
+def bkRec (G : Matrix ι ι ℝ) (z : ℕ → ι → Ω → ℝ) (xm : ι → ℝ) : ℕ → ι → Ω → ℝ
+  | 0 => mv G (fun i _ => xm i) + z 0
+  | t + 1 => mv G (bkRec G z xm t) + z (t + 1)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: `x_t = G x_{t−1} + ẑ_t` at every date. -/
+theorem bkRec_eq (G : Matrix ι ι ℝ) (z : ℕ → ι → Ω → ℝ) (xm : ι → ℝ) (t : ℕ) :
+    bkRec G z xm t = mv G (lagP xm (bkRec G z xm) t) + z t := by
+  cases t <;> rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the backward recursion of an adapted process is
+adapted. -/
+theorem bkRec_adapted (G : Matrix ι ι ℝ) {z : ℕ → ι → Ω → ℝ} (hz : AdaptedV 𝔼 z)
+    (xm : ι → ℝ) : AdaptedV 𝔼 (bkRec G z xm) := by
+  intro t
+  induction t with
+  | zero =>
+    intro i
+    change 𝔼.E 0 (mv G (fun i _ => xm i) i + z 0 i) = mv G (fun i _ => xm i) i + z 0 i
+    rw [map_add, E_mv 𝔼, hz 0 i]
+    congr 2
+    funext j
+    exact 𝔼.const 0 _
+  | succ t ih =>
+    intro i
+    change 𝔼.E (t + 1) (mv G (bkRec G z xm t) i + z (t + 1) i) =
+      mv G (bkRec G z xm t) i + z (t + 1) i
+    rw [map_add, E_mv 𝔼, hz (t + 1) i]
+    congr 2
+    funext j
+    rw [← ih j, 𝔼.known (Nat.le_succ t)]
+
+/-- Woodford (2003), App. A.3, p. 634: the backward recursion is bounded when the powers of `G`
+decay geometrically and `ẑ` is bounded. -/
+theorem bkRec_bounded {G : Matrix ι ι ℝ} {Cb ρ : ℝ} (hCb : 0 ≤ Cb) (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
+    (hG : ∀ k i j, |(G ^ k) i j| ≤ Cb * ρ ^ k) {z : ℕ → ι → Ω → ℝ} (hz : BoundedV z)
+    (xm : ι → ℝ) : BoundedV (bkRec G z xm) := by
+  obtain ⟨Mz, hMz⟩ := hz
+  set X0 : ℝ := ∑ j, |(G *ᵥ xm) j| + max Mz 0 with hX0
+  have hX0n : 0 ≤ X0 := add_nonneg (Finset.sum_nonneg fun _ _ => abs_nonneg _) (le_max_right _ _)
+  refine ⟨Fintype.card ι * Cb * (X0 + max Mz 0 / (1 - ρ)), fun t i ω => ?_⟩
+  have hrec : ∀ t, (fun j => bkRec G z xm (t + 1) j ω) =
+      G *ᵥ (fun j => bkRec G z xm t j ω) + fun j => z (t + 1) j ω := by
+    intro t
+    funext j
+    simp only [bkRec, Pi.add_apply, mv_apply]
+  exact rec_bounded (x := fun t j => bkRec G z xm t j ω) (f := fun t j => z (t + 1) j ω) hCb hρ0
+    hρ1 hG hrec (le_max_right _ _) hX0n (fun t j => (hMz (t + 1) j ω).trans (le_max_left _ _))
+    (fun j => by
+      change |mv G (fun i _ => xm i) j ω + z 0 j ω| ≤ X0
+      rw [mv_apply]
+      refine (abs_add_le _ _).trans (add_le_add ?_ ((hMz 0 j ω).trans (le_max_left _ _)))
+      exact Finset.single_le_sum (f := fun j => |(G *ᵥ xm) j|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ j)) t i
+
+/-- Woodford (2003), App. A.3, pp. 633–634: **the stochastic Blanchard–Kahn solution**
+`x_t = G x_{t−1} + ∑_{k ≥ 0} Jᵏ D⁻¹ E_t w_{t+k}`, `x_{−1} = xm`. -/
+noncomputable def bkSol (G D J : Matrix ι ι ℝ) (w : ℕ → ι → Ω → ℝ) (xm : ι → ℝ) :
+    ℕ → ι → Ω → ℝ :=
+  bkRec G (fwdV 𝔼 J (fun t => mv D⁻¹ (w t))) xm
+
+/-- **The decision rule solves the book form of (A.13)** (Woodford (2003), App. A.3,
+pp. 633–634): if `f₁ + f₂G + f₃G² = 0`, `D = f₂ + f₃G` is invertible, `J = −D⁻¹f₃`, and the
+powers of `G` and `J` decay geometrically, then for every bounded forcing `w` — adapted or not —
+`bkSol` is a bounded adapted solution of `f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = E_t w_t`. -/
+theorem bkSol_solves_book {f₁ f₂ f₃ G D J : Matrix ι ι ℝ} (hsol : f₁ + f₂ * G + f₃ * G ^ 2 = 0)
+    (hDd : D = f₂ + f₃ * G) (hD : IsUnit D.det) (hJ : J = -(D⁻¹ * f₃)) {Cg ρg Cj ρj : ℝ}
+    (hCg : 0 ≤ Cg) (hρg0 : 0 ≤ ρg) (hρg1 : ρg < 1) (hGp : ∀ k i j, |(G ^ k) i j| ≤ Cg * ρg ^ k)
+    (hρj0 : 0 ≤ ρj) (hρj1 : ρj < 1) (hJp : ∀ k i j, |(J ^ k) i j| ≤ Cj * ρj ^ k)
+    {w : ℕ → ι → Ω → ℝ} (hwb : BoundedV w) (xm : ι → ℝ) :
+    BoundedV (bkSol 𝔼 G D J w xm) ∧ AdaptedV 𝔼 (bkSol 𝔼 G D J w xm) ∧
+      SolvesLinS 𝔼 f₁ f₂ f₃ (fun t i => 𝔼.E t (w t i)) xm (bkSol 𝔼 G D J w xm) := by
+  obtain ⟨Mf, hMf⟩ := boundedV_mv D⁻¹ hwb
+  obtain ⟨hzs, hza, hzb⟩ := fwdV_spec 𝔼 hρj0 hρj1 hJp (f := fun t => mv D⁻¹ (w t)) hMf
+  set z := fwdV 𝔼 J (fun t => mv D⁻¹ (w t)) with hzdef
+  set x := bkSol 𝔼 G D J w xm with hx
+  have hxa : AdaptedV 𝔼 x := bkRec_adapted 𝔼 G hza xm
+  refine ⟨bkRec_bounded hCg hρg0 hρg1 hGp hzb xm, hxa, fun t => ?_⟩
+  set L := lagP xm x t with hL
+  set Ez : ι → Ω → ℝ := fun j => 𝔼.E t (z (t + 1) j) with hEz
+  set Ew : ι → Ω → ℝ := fun j => 𝔼.E t (w t j) with hEw
+  have hxt : x t = mv G L + z t := bkRec_eq G z xm t
+  have hEx : (fun i => 𝔼.E t (x (t + 1) i)) = mv G (x t) + Ez := by
+    funext i
+    change 𝔼.E t (mv G (x t) i + z (t + 1) i) = _
+    rw [map_add, E_mv 𝔼]
+    congr 2
+    funext j
+    exact hxa t j
+  have hzt : z t = mv J Ez + mv D⁻¹ Ew := by
+    rw [hzs t]
+    congr 1
+    funext j
+    exact E_mv 𝔼 t D⁻¹ (w t) j
+  have hDinv : D * D⁻¹ = 1 := Matrix.mul_nonsing_inv _ hD
+  have hDJ : D * J + f₃ = 0 := by
+    rw [hJ, Matrix.mul_neg, ← Matrix.mul_assoc, hDinv, Matrix.one_mul, neg_add_cancel]
+  have hDG : f₁ + D * G = 0 := by
+    rw [hDd, Matrix.add_mul, ← hsol, Matrix.mul_assoc, pow_two]
+    abel
+  have h1 : mv f₂ (x t) + mv f₃ (mv G (x t)) = mv D (x t) := by
+    rw [mv_mv, ← add_mv, hDd]
+  have h2 : mv D (x t) = mv (D * G) L + (mv (D * J) Ez + Ew) := by
+    rw [hxt, mv_add, mv_mv, hzt, mv_add, mv_mv, mv_mv, hDinv, mv_one]
+  change mv f₁ L + mv f₂ (x t) + mv f₃ (fun i => 𝔼.E t (x (t + 1) i)) = Ew
+  rw [hEx, mv_add, ← add_assoc, add_assoc (mv f₁ L), h1, h2]
+  have e : mv f₁ L + (mv (D * G) L + (mv (D * J) Ez + Ew)) + mv f₃ Ez =
+      mv (f₁ + D * G) L + mv (D * J + f₃) Ez + Ew := by
+    rw [add_mv, add_mv]
+    abel
+  rw [e, hDG, hDJ, zero_mv, zero_mv, zero_add, zero_add]
+
+/-- **The decision rule under uncertainty** (Woodford (2003), App. A.3, pp. 632–634;
+Blanchard–Kahn): for every expectation system on a nonempty state space, if (A.13) is
+determinate (equivalently the exact root condition holds) there are matrices `G`, `D`, `J` —
+`f₁ + f₂G + f₃G² = 0`, `D = f₂ + f₃G` invertible, `J = −D⁻¹f₃`, every eigenvalue of `G` and of
+`J` in the open unit disc — such that for every bounded forcing `w` (not necessarily adapted) and
+every `x_{−1}`, the book form `f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = E_t w_t` has exactly one
+bounded adapted solution, namely `x_t = G x_{t−1} + ∑_{k ≥ 0} Jᵏ D⁻¹ E_t w_{t+k}` (`bkSol`). -/
+theorem decision_rule [Nonempty Ω] {f₁ f₂ f₃ : Matrix ι ι ℝ}
+    (hL : LinDeterminateS 𝔼 f₁ f₂ f₃) :
+    ∃ G D J : Matrix ι ι ℝ, f₁ + f₂ * G + f₃ * G ^ 2 = 0 ∧ D = f₂ + f₃ * G ∧ IsUnit D.det ∧
+      J = -(D⁻¹ * f₃) ∧ (∀ μ ∈ eigs G, ‖μ‖ < 1) ∧ (∀ μ ∈ eigs J, ‖μ‖ < 1) ∧
+      ∀ w : ℕ → ι → Ω → ℝ, BoundedV w → ∀ xm : ι → ℝ,
+        BoundedV (bkSol 𝔼 G D J w xm) ∧ AdaptedV 𝔼 (bkSol 𝔼 G D J w xm) ∧
+        SolvesLinS 𝔼 f₁ f₂ f₃ (fun t i => 𝔼.E t (w t i)) xm (bkSol 𝔼 G D J w xm) ∧
+        ∀ x, BoundedV x → AdaptedV 𝔼 x →
+          SolvesLinS 𝔼 f₁ f₂ f₃ (fun t i => 𝔼.E t (w t i)) xm x → x = bkSol 𝔼 G D J w xm := by
+  obtain ⟨G, D, J, hsol, hDd, hD, hJ, hGs, hJs⟩ :=
+    exists_decision_rule ((linDeterminateS_iff_pf 𝔼 _ _ _).mp hL)
+  obtain ⟨Cg, ρg, hCg, hρg0, hρg1, hGp⟩ := pow_entry_bound G hGs
+  obtain ⟨Cj, ρj, -, hρj0, hρj1, hJp⟩ := pow_entry_bound J hJs
+  refine ⟨G, D, J, hsol, hDd, hD, hJ, hGs, hJs, fun w hwb xm => ?_⟩
+  obtain ⟨hb, ha, hs⟩ := bkSol_solves_book 𝔼 hsol hDd hD hJ hCg hρg0.le hρg1 hGp hρj0.le hρj1
+    hJp hwb xm
+  refine ⟨hb, ha, hs, fun x hxb hxa hx => ?_⟩
+  have hEb : BoundedV (fun t i => 𝔼.E t (w t i)) := by
+    obtain ⟨M, hM⟩ := hwb
+    exact ⟨M, fun t i ω => 𝔼.abs_E_le (hM t i) t ω⟩
+  have hEa : AdaptedV 𝔼 (fun t i => 𝔼.E t (w t i)) := fun t i => 𝔼.E_E_self t _
+  exact (hL _ hEb hEa xm).unique ⟨hxb, hxa, hx⟩ ⟨hb, ha, hs⟩
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, eq. (A.11), p. 633 (**the book form**): for a bounded forcing
+that need not be adapted (date-`t+1` shocks inside `E_t`), the stochastic system
+`f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = E_t w_t` has exactly one bounded adapted solution for
+every bounded `w` and every `x_{−1}` iff the exact root condition holds. -/
+theorem book_form_iff [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    (∀ w : ℕ → ι → Ω → ℝ, BoundedV w → ∀ xm : ι → ℝ,
+      ∃! x, BoundedV x ∧ AdaptedV 𝔼 x ∧
+        SolvesLinS 𝔼 f₁ f₂ f₃ (fun t i => 𝔼.E t (w t i)) xm x) ↔
+      LinDeterminateS 𝔼 f₁ f₂ f₃ := by
+  classical
+  constructor
+  · intro h w hwb hwa xm
+    have he : (fun t i => 𝔼.E t (w t i)) = w := funext fun t => funext fun i => hwa t i
+    have := h w hwb xm
+    rwa [he] at this
+  · intro hL w hwb xm
+    obtain ⟨G, D, J, -, -, -, -, -, -, h⟩ := decision_rule 𝔼 hL
+    obtain ⟨hb, ha, hs, hu⟩ := h w hwb xm
+    exact ⟨_, ⟨hb, ha, hs⟩, fun x ⟨hxb, hxa, hx⟩ => hu x hxb hxa hx⟩
+
+/-! ### The linearised operator on `ℓ∞(ℕ × Ω, ℝⁿ)` -/
+
+/-- Woodford (2003), App. A.3, p. 634: the Banach space of uniformly bounded vector processes
+`x_t(ω) ∈ ℝⁿ` (sup over dates, states and coordinates); adaptedness is not built in. -/
+abbrev SProcV (ι Ω : Type*) [Fintype ι] : Type _ := LocalIFTStochastic.BFun (ℕ × Ω) (ι → ℝ)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): each coordinate of a bounded vector process is
+bounded by its norm. -/
+theorem abs_apply_le (x : SProcV ι Ω) (t : ℕ) (ω : Ω) (i : ι) : |x (t, ω) i| ≤ ‖x‖ := by
+  rw [← Real.norm_eq_abs]
+  exact (norm_le_pi_norm (x (t, ω)) i).trans (LocalIFTStochastic.norm_apply_le x (t, ω))
+
+/-- Woodford (2003), App. A.3, p. 634: an element of `ℓ∞(ℕ × Ω, ℝⁿ)` as a vector process. -/
+def toP (x : SProcV ι Ω) : ℕ → ι → Ω → ℝ := fun t i ω => x (t, ω) i
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: elements of `ℓ∞(ℕ × Ω, ℝⁿ)` are bounded processes. -/
+theorem boundedV_toP (x : SProcV ι Ω) : BoundedV (toP x) :=
+  ⟨‖x‖, fun t i ω => abs_apply_le x t ω i⟩
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): a uniformly bounded vector process has a uniform
+bound on its vector norms. -/
+theorem exists_norm_boundV {x : ℕ → ι → Ω → ℝ} (hx : BoundedV x) :
+    ∃ C, ∀ p : ℕ × Ω, ‖(fun i => x p.1 i p.2 : ι → ℝ)‖ ≤ C := by
+  obtain ⟨C, hC⟩ := hx
+  exact ⟨max C 0, fun p => (pi_norm_le_iff_of_nonneg (le_max_right _ _)).mpr fun i => by
+    rw [Real.norm_eq_abs]
+    exact (hC p.1 i p.2).trans (le_max_left _ _)⟩
+
+/-- Woodford (2003), App. A.3, p. 634: a bounded vector process as an element of
+`ℓ∞(ℕ × Ω, ℝⁿ)`. -/
+noncomputable def ofP (x : ℕ → ι → Ω → ℝ) (hx : BoundedV x) : SProcV ι Ω :=
+  LocalIFTStochastic.mkB (fun p i => x p.1 i p.2) (exists_norm_boundV hx)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: `toP` inverts `ofP`. -/
+@[simp] theorem toP_ofP (x : ℕ → ι → Ω → ℝ) (hx : BoundedV x) : toP (ofP x hx) = x := rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: elements are determined by their processes. -/
+theorem toP_injective {x y : SProcV ι Ω} (h : toP x = toP y) : x = y := by
+  ext ⟨t, ω⟩ i
+  exact congrFun (congrFun (congrFun h t) i) ω
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): processes of sums. -/
+@[simp] theorem toP_add (x y : SProcV ι Ω) : toP (x + y) = toP x + toP y := rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): processes of differences. -/
+@[simp] theorem toP_sub (x y : SProcV ι Ω) : toP (x - y) = toP x - toP y := rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): the zero element is the zero process. -/
+@[simp] theorem toP_zero : toP (0 : SProcV ι Ω) = 0 := rfl
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a bounded operator on `ℓ∞(ℕ × Ω, ℝⁿ)` defined
+pointwise by an additive, homogeneous formula with a linear bound. -/
+noncomputable def mkOp (F : SProcV ι Ω → ℕ × Ω → (ι → ℝ)) {C : ℝ} (hC0 : 0 ≤ C)
+    (hC : ∀ x p, ‖F x p‖ ≤ C * ‖x‖) (hadd : ∀ x y, F (x + y) = F x + F y)
+    (hsmul : ∀ (c : ℝ) x, F (c • x) = c • F x) : SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  LinearMap.mkContinuous
+    { toFun := fun x => LocalIFTStochastic.mkB (F x) ⟨C * ‖x‖, hC x⟩
+      map_add' := fun x y => lp.ext (funext fun p => by
+        change F (x + y) p = F x p + F y p
+        rw [hadd]
+        rfl)
+      map_smul' := fun c x => lp.ext (funext fun p => by
+        change F (c • x) p = c • F x p
+        rw [hsmul]
+        rfl) }
+    C (fun x => LocalIFTStochastic.norm_le_of_forall (by positivity) (hC x))
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): values of `mkOp`. -/
+@[simp] theorem mkOp_apply (F : SProcV ι Ω → ℕ × Ω → (ι → ℝ)) {C : ℝ} (hC0 : 0 ≤ C)
+    (hC : ∀ x p, ‖F x p‖ ≤ C * ‖x‖) (hadd : ∀ x y, F (x + y) = F x + F y)
+    (hsmul : ∀ (c : ℝ) x, F (c • x) = c • F x) (x : SProcV ι Ω) (p : ℕ × Ω) :
+    mkOp F hC0 hC hadd hsmul x p = F x p := rfl
+
+/-- Woodford (2003), App. A.3, p. 634: the conditional-expectation operator
+`x ↦ (E_t x_t)_t` on vector processes, coordinate by coordinate (norm at most one). -/
+noncomputable def condEV : SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  mkOp (fun x p i => 𝔼.E p.1 (fun ω => x (p.1, ω) i) p.2) zero_le_one
+    (fun x p => (pi_norm_le_iff_of_nonneg (by positivity)).mpr fun i => by
+      rw [Real.norm_eq_abs, one_mul]
+      exact 𝔼.abs_E_le (fun ω => abs_apply_le x p.1 ω i) p.1 p.2)
+    (fun x y => by
+      funext p i
+      change 𝔼.E p.1 ((fun ω => x (p.1, ω) i) + fun ω => y (p.1, ω) i) p.2 = _
+      rw [map_add]
+      rfl)
+    (fun c x => by
+      funext p i
+      change 𝔼.E p.1 (c • fun ω => x (p.1, ω) i) p.2 = _
+      rw [map_smul]
+      rfl)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the process of `condEV x` is `E_t x_t`. -/
+theorem toP_condEV (x : SProcV ι Ω) (t : ℕ) :
+    toP (condEV 𝔼 x) t = fun i => 𝔼.E t (toP x t i) := rfl
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632, state by state: the operator
+`x ↦ (f₁ x_{t−1} + f₂ x_t + f₃ x_{t+1})_t` (with `x_{−1} = 0`) applied in every state. -/
+noncomputable def linS (f₁ f₂ f₃ : Matrix ι ι ℝ) : SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  mkOp (fun x p => f₁ *ᵥ lagV 0 (fun s => x (s, p.2)) p.1 + f₂ *ᵥ x p + f₃ *ᵥ x (p.1 + 1, p.2))
+    (C := ‖mclm f₁‖ + ‖mclm f₂‖ + ‖mclm f₃‖) (by positivity)
+    (fun x p => by
+      have hl : ‖lagV 0 (fun s => x (s, p.2)) p.1‖ ≤ ‖x‖ := by
+        cases p.1 with
+        | zero => simp
+        | succ t => exact LocalIFTStochastic.norm_apply_le x _
+      have e : ∀ (M : Matrix ι ι ℝ) (v : ι → ℝ), ‖M *ᵥ v‖ ≤ ‖mclm M‖ * ‖v‖ := fun M v => by
+        rw [← mclm_apply]; exact (mclm M).le_opNorm v
+      calc _ ≤ ‖f₁ *ᵥ lagV 0 (fun s => x (s, p.2)) p.1‖ + ‖f₂ *ᵥ x p‖ +
+            ‖f₃ *ᵥ x (p.1 + 1, p.2)‖ := norm_add₃_le
+        _ ≤ ‖mclm f₁‖ * ‖x‖ + ‖mclm f₂‖ * ‖x‖ + ‖mclm f₃‖ * ‖x‖ := by
+          gcongr
+          · exact (e f₁ _).trans (mul_le_mul_of_nonneg_left hl (norm_nonneg _))
+          · exact (e f₂ _).trans (mul_le_mul_of_nonneg_left
+              (LocalIFTStochastic.norm_apply_le x p) (norm_nonneg _))
+          · exact (e f₃ _).trans (mul_le_mul_of_nonneg_left
+              (LocalIFTStochastic.norm_apply_le x _) (norm_nonneg _))
+        _ = _ := by ring)
+    (fun x y => by
+      funext p
+      have hl : lagV 0 (fun s => (x + y) (s, p.2)) p.1 =
+          lagV 0 (fun s => x (s, p.2)) p.1 + lagV 0 (fun s => y (s, p.2)) p.1 := by
+        cases p.1 <;> simp
+      change f₁ *ᵥ lagV 0 (fun s => (x + y) (s, p.2)) p.1 + f₂ *ᵥ (x + y) p +
+          f₃ *ᵥ (x + y) (p.1 + 1, p.2) =
+        (f₁ *ᵥ lagV 0 (fun s => x (s, p.2)) p.1 + f₂ *ᵥ x p + f₃ *ᵥ x (p.1 + 1, p.2)) +
+          (f₁ *ᵥ lagV 0 (fun s => y (s, p.2)) p.1 + f₂ *ᵥ y p + f₃ *ᵥ y (p.1 + 1, p.2))
+      rw [hl, lp.coeFn_add]
+      simp only [Pi.add_apply, Matrix.mulVec_add]
+      abel)
+    (fun c x => by
+      funext p
+      have hl : lagV 0 (fun s => (c • x) (s, p.2)) p.1 =
+          c • lagV 0 (fun s => x (s, p.2)) p.1 := by
+        cases p.1 <;> simp
+      change f₁ *ᵥ lagV 0 (fun s => (c • x) (s, p.2)) p.1 + f₂ *ᵥ (c • x) p +
+          f₃ *ᵥ (c • x) (p.1 + 1, p.2) =
+        c • (f₁ *ᵥ lagV 0 (fun s => x (s, p.2)) p.1 + f₂ *ᵥ x p + f₃ *ᵥ x (p.1 + 1, p.2))
+      rw [hl, lp.coeFn_smul]
+      simp only [Pi.smul_apply, Matrix.mulVec_smul, smul_add])
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632: the process of `linS x`. -/
+theorem toP_linS (f₁ f₂ f₃ : Matrix ι ι ℝ) (x : SProcV ι Ω) (t : ℕ) :
+    toP (linS f₁ f₂ f₃ x) t = mv f₁ (lagP 0 (toP x) t) + mv f₂ (toP x t) +
+      mv f₃ (toP x (t + 1)) := by
+  funext i ω
+  simp only [Pi.add_apply, mv_apply]
+  change (f₁ *ᵥ lagV 0 (fun s => x (s, ω)) t + f₂ *ᵥ x (t, ω) + f₃ *ᵥ x (t + 1, ω)) i = _
+  have hl : lagV 0 (fun s => x (s, ω)) t = fun j => lagP 0 (toP x) t j ω := by
+    cases t <;> rfl
+  rw [hl]
+  rfl
+
+/-- Woodford (2003), App. A.3, eqs. (A.12)–(A.13), p. 634: **the linearised operator under
+uncertainty with predetermined variables**,
+`x ↦ (E_t[f₁ x_{t−1} + f₂ x_t + f₃ x_{t+1}] + (x_t − E_t x_t))_t` on `ℓ∞(ℕ × Ω, ℝⁿ)`
+(`x_{−1} = 0`). The second term vanishes exactly on adapted processes, so adaptedness is not
+built into the space. -/
+noncomputable def opS (f₁ f₂ f₃ : Matrix ι ι ℝ) : SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  (condEV 𝔼).comp (linS f₁ f₂ f₃) + (1 - condEV 𝔼)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634 (tool): `E_t` of a matrix times `E_t a` is
+the matrix times `E_t a`. -/
+theorem EV_mv_EV (t : ℕ) (M : Matrix ι ι ℝ) (a : ι → Ω → ℝ) :
+    (fun i => 𝔼.E t (mv M (fun j => 𝔼.E t (a j)) i)) = mv M (fun j => 𝔼.E t (a j)) := by
+  funext i
+  rw [E_mv 𝔼]
+  congr 1
+  funext j
+  exact 𝔼.E_E_self t _
+
+/-- Woodford (2003), App. A.3, eqs. (A.12)–(A.13), p. 634: the process of `opS x`,
+`f₁ E_t x_{t−1} + f₂ E_t x_t + f₃ E_t x_{t+1} + (x_t − E_t x_t)`. -/
+theorem toP_opS (f₁ f₂ f₃ : Matrix ι ι ℝ) (x : SProcV ι Ω) (t : ℕ) :
+    toP (opS 𝔼 f₁ f₂ f₃ x) t =
+      mv f₁ (fun i => 𝔼.E t (lagP 0 (toP x) t i)) + mv f₂ (fun i => 𝔼.E t (toP x t i)) +
+        mv f₃ (fun i => 𝔼.E t (toP x (t + 1) i)) + (toP x t - fun i => 𝔼.E t (toP x t i)) := by
+  have e1 : toP (opS 𝔼 f₁ f₂ f₃ x) t = toP (condEV 𝔼 (linS f₁ f₂ f₃ x)) t +
+      (toP x t - toP (condEV 𝔼 x) t) := rfl
+  rw [e1, toP_condEV, toP_condEV, toP_linS]
+  congr 1
+  funext i
+  simp only [Pi.add_apply, map_add, E_mv 𝔼]
+
+/-- Woodford (2003), App. A.3, p. 634: `E_t` of `(opS x)_t` drops the adaptedness term. -/
+theorem EV_toP_opS (f₁ f₂ f₃ : Matrix ι ι ℝ) (x : SProcV ι Ω) (t : ℕ) :
+    (fun i => 𝔼.E t (toP (opS 𝔼 f₁ f₂ f₃ x) t i)) =
+      mv f₁ (fun i => 𝔼.E t (lagP 0 (toP x) t i)) + mv f₂ (fun i => 𝔼.E t (toP x t i)) +
+        mv f₃ (fun i => 𝔼.E t (toP x (t + 1) i)) := by
+  rw [toP_opS]
+  funext i
+  have hA := congrFun (EV_mv_EV 𝔼 t f₁ (lagP 0 (toP x) t)) i
+  have hB := congrFun (EV_mv_EV 𝔼 t f₂ (toP x t)) i
+  have hC := congrFun (EV_mv_EV 𝔼 t f₃ (toP x (t + 1))) i
+  beta_reduce at hA hB hC
+  simp only [Pi.add_apply, Pi.sub_apply, map_add, map_sub, 𝔼.E_E_self, sub_self, add_zero]
+  rw [hA, hB, hC]
+
+/-- Woodford (2003), App. A.3, p. 634: if `opS x` is adapted, so is `x` (the adaptedness term is
+the only non-measurable part). -/
+theorem adapted_of_opS (f₁ f₂ f₃ : Matrix ι ι ℝ) (x : SProcV ι Ω)
+    (h : AdaptedV 𝔼 (toP (opS 𝔼 f₁ f₂ f₃ x))) : AdaptedV 𝔼 (toP x) := by
+  intro t i
+  have e1 := congrFun (EV_toP_opS 𝔼 f₁ f₂ f₃ x t) i
+  have e2 := congrFun (toP_opS 𝔼 f₁ f₂ f₃ x t) i
+  rw [h t i] at e1
+  rw [e1] at e2
+  simp only [Pi.add_apply, Pi.sub_apply] at e2
+  have : toP x t i - 𝔼.E t (toP x t i) = 0 := by
+    have := congrArg (fun a => a - (mv f₁ (fun i => 𝔼.E t (lagP 0 (toP x) t i)) i +
+      mv f₂ (fun i => 𝔼.E t (toP x t i)) i + mv f₃ (fun i => 𝔼.E t (toP x (t + 1) i)) i)) e2
+    simp only [add_sub_cancel_left, sub_self] at this
+    exact this.symm
+  exact (sub_eq_zero.mp this).symm
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): for adapted `x`, `E_t x_{t−1} = x_{t−1}` and
+`E_t x_t = x_t`. -/
+theorem EV_adapted {x : ℕ → ι → Ω → ℝ} (hx : AdaptedV 𝔼 x) (t : ℕ) :
+    (fun i => 𝔼.E t (lagP 0 x t i)) = lagP 0 x t ∧ (fun i => 𝔼.E t (x t i)) = x t :=
+  ⟨funext fun i => adaptedV_lagP 𝔼 0 hx t i, funext fun i => hx t i⟩
+
+/-- Woodford (2003), App. A.3, p. 634: on adapted processes `opS` is the left side of (A.13). -/
+theorem toP_opS_of_adapted (f₁ f₂ f₃ : Matrix ι ι ℝ) (x : SProcV ι Ω)
+    (hx : AdaptedV 𝔼 (toP x)) (t : ℕ) :
+    toP (opS 𝔼 f₁ f₂ f₃ x) t = mv f₁ (lagP 0 (toP x) t) + mv f₂ (toP x t) +
+      mv f₃ (fun i => 𝔼.E t (toP x (t + 1) i)) := by
+  rw [toP_opS, (EV_adapted 𝔼 hx t).1, (EV_adapted 𝔼 hx t).2, sub_self, add_zero]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 633 (tool): the initial condition moves to the forcing,
+`f₁ x_{t−1} = f₁ x_{t−1}|_{x_{−1}=0} + f₁ x_{−1} 1_{t=0}`. -/
+theorem solvesLinS_shift (f₁ f₂ f₃ : Matrix ι ι ℝ) (w : ℕ → ι → Ω → ℝ) (xm : ι → ℝ)
+    (x : ℕ → ι → Ω → ℝ) :
+    SolvesLinS 𝔼 f₁ f₂ f₃ w xm x ↔
+      SolvesLinS 𝔼 f₁ f₂ f₃ (fun t => w t - mv f₁ (lagP xm 0 t)) 0 x := by
+  refine forall_congr' fun t => ?_
+  rw [lagP_split xm x t, mv_add, eq_sub_iff_add_eq]
+  constructor <;> intro h <;> rw [← h] <;> abel
+
+/-- **The linearised operator (A.12) is invertible iff (A.13) is determinate** (Woodford (2003),
+App. A.3, pp. 633–634): on `ℓ∞(ℕ × Ω, ℝⁿ)`, `opS` is invertible iff for every bounded adapted
+forcing and every `x_{−1}` there is exactly one bounded adapted solution. (The operator is block
+triangular: the adaptedness term is the identity on `ker E`, and on adapted processes it is the
+left side of (A.13).) -/
+theorem isUnit_opS_iff (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    IsUnit (opS 𝔼 f₁ f₂ f₃) ↔ LinDeterminateS 𝔼 f₁ f₂ f₃ := by
+  rw [ContinuousLinearMap.isUnit_iff_bijective]
+  constructor
+  · rintro ⟨hinj, hsurj⟩ w hwb hwa xm
+    set y := fun t => w t - mv f₁ (lagP xm 0 t) with hy
+    have hyb : BoundedV y :=
+      boundedV_sub hwb (boundedV_mv f₁ (boundedV_lagP xm ⟨0, fun _ _ _ => by simp⟩))
+    have hya : AdaptedV 𝔼 y :=
+      adaptedV_sub 𝔼 hwa (adaptedV_mv 𝔼 f₁ (adaptedV_lagP 𝔼 xm (fun _ _ => map_zero _)))
+    obtain ⟨x, hx⟩ := hsurj (ofP y hyb)
+    have hxp : toP (opS 𝔼 f₁ f₂ f₃ x) = y := by rw [hx]; rfl
+    have hxa : AdaptedV 𝔼 (toP x) := adapted_of_opS 𝔼 f₁ f₂ f₃ x (by rw [hxp]; exact hya)
+    refine ⟨toP x, ⟨boundedV_toP x, hxa, (solvesLinS_shift 𝔼 _ _ _ _ _ _).mpr fun t => ?_⟩,
+      fun x' ⟨hx'b, hx'a, hx'⟩ => ?_⟩
+    · rw [← toP_opS_of_adapted 𝔼 f₁ f₂ f₃ x hxa t, hxp]
+    · have hd : SolvesLinS 𝔼 f₁ f₂ f₃ 0 0 (fun t => x' t - toP x t) := by
+        have h1 := (solvesLinS_shift 𝔼 _ _ _ _ _ _).mp hx'
+        intro t
+        have e1 := h1 t
+        have e2 := toP_opS_of_adapted 𝔼 f₁ f₂ f₃ x hxa t
+        rw [hxp] at e2
+        have hl : lagP 0 (fun t => x' t - toP x t) t = lagP 0 x' t - lagP 0 (toP x) t := by
+          cases t with
+          | zero => funext i ω; simp [lagP]
+          | succ t => rfl
+        have hE : (fun i => 𝔼.E t ((x' (t + 1) - toP x (t + 1)) i)) =
+            (fun i => 𝔼.E t (x' (t + 1) i)) - fun i => 𝔼.E t (toP x (t + 1) i) := by
+          funext i; simp [map_sub]
+        rw [hl]
+        beta_reduce
+        rw [hE, mv_sub, mv_sub, mv_sub, Pi.zero_apply]
+        have : mv f₁ (lagP 0 x' t) + mv f₂ (x' t) + mv f₃ (fun i => 𝔼.E t (x' (t + 1) i)) -
+            (mv f₁ (lagP 0 (toP x) t) + mv f₂ (toP x t) +
+              mv f₃ (fun i => 𝔼.E t (toP x (t + 1) i))) = 0 := by
+          rw [e1, ← e2, sub_self]
+        rw [← this]
+        abel
+      have hdb : BoundedV (fun t => x' t - toP x t) := boundedV_sub hx'b (boundedV_toP x)
+      have hda : AdaptedV 𝔼 (fun t => x' t - toP x t) := adaptedV_sub 𝔼 hx'a hxa
+      have h0 : opS 𝔼 f₁ f₂ f₃ (ofP _ hdb) = 0 := by
+        apply toP_injective
+        funext t
+        rw [toP_opS_of_adapted 𝔼 f₁ f₂ f₃ (ofP _ hdb) hda t]
+        exact hd t
+      have := hinj (h0.trans (map_zero _).symm)
+      have e := congrArg toP this
+      rw [toP_ofP, toP_zero] at e
+      funext t i ω
+      have := congrFun (congrFun (congrFun e t) i) ω
+      simp only [Pi.sub_apply, Pi.zero_apply, sub_eq_zero] at this
+      exact this
+  · intro hL
+    constructor
+    · intro x x' hxx
+      have h0 : opS 𝔼 f₁ f₂ f₃ (x - x') = 0 := by rw [map_sub, hxx, sub_self]
+      have hp : toP (opS 𝔼 f₁ f₂ f₃ (x - x')) = 0 := by rw [h0]; rfl
+      have ha : AdaptedV 𝔼 (toP (x - x')) :=
+        adapted_of_opS 𝔼 f₁ f₂ f₃ _ (by rw [hp]; exact fun _ _ => map_zero _)
+      have hs : SolvesLinS 𝔼 f₁ f₂ f₃ 0 0 (toP (x - x')) := fun t => by
+        rw [← toP_opS_of_adapted 𝔼 f₁ f₂ f₃ _ ha t, hp]
+      have hz : SolvesLinS 𝔼 f₁ f₂ f₃ 0 0 (0 : ℕ → ι → Ω → ℝ) := fun t => by
+        have h0 : (fun (_ : ι) => 𝔼.E t (0 : Ω → ℝ)) = 0 :=
+          funext fun _ => map_zero _
+        simp only [lagP_zero_zero, Pi.zero_apply, mv_zero, zero_add]
+        rw [h0, mv_zero]
+      have e := (hL 0 ⟨0, fun _ _ _ => by simp⟩ (fun _ _ => map_zero _) 0).unique
+        ⟨boundedV_toP _, ha, hs⟩ ⟨⟨0, fun _ _ _ => by simp⟩, fun _ _ => map_zero _, hz⟩
+      exact sub_eq_zero.mp (toP_injective e)
+    · intro y
+      set b : ℕ → ι → Ω → ℝ := fun t => toP y t - fun i => 𝔼.E t (toP y t i) with hb
+      have hbb : BoundedV b := by
+        obtain ⟨M, hM⟩ := boundedV_toP y
+        exact ⟨M + M, fun t i ω => (abs_sub _ _).trans
+          (add_le_add (hM t i ω) (𝔼.abs_E_le (hM t i) t ω))⟩
+      have hEb : ∀ t i, 𝔼.E t (b t i) = 0 := fun t i => by
+        simp [hb, map_sub, 𝔼.E_E_self]
+      have hEb1 : ∀ t i, 𝔼.E t (b (t + 1) i) = 0 := fun t i => by
+        simp [hb, map_sub, 𝔼.tower (Nat.le_succ t)]
+      set w : ℕ → ι → Ω → ℝ := fun t => (fun i => 𝔼.E t (toP y t i)) -
+        mv f₁ (fun i => 𝔼.E t (lagP 0 b t i)) with hw
+      have hwb : BoundedV w := by
+        refine boundedV_sub ?_ (boundedV_mv f₁ ?_)
+        · obtain ⟨M, hM⟩ := boundedV_toP y
+          exact ⟨M, fun t i ω => 𝔼.abs_E_le (hM t i) t ω⟩
+        · obtain ⟨M, hM⟩ := boundedV_lagP 0 hbb
+          exact ⟨M, fun t i ω => 𝔼.abs_E_le (hM t i) t ω⟩
+      have hwa : AdaptedV 𝔼 w := by
+        refine adaptedV_sub 𝔼 (fun t i => 𝔼.E_E_self t _) (adaptedV_mv 𝔼 f₁ ?_)
+        exact fun t i => 𝔼.E_E_self t _
+      obtain ⟨z, ⟨hzb, hza, hz⟩, -⟩ := hL w hwb hwa 0
+      set xp : ℕ → ι → Ω → ℝ := fun t => z t + b t with hxp
+      have hxpb : BoundedV xp := boundedV_add hzb hbb
+      refine ⟨ofP xp hxpb, toP_injective ?_⟩
+      funext t
+      rw [toP_opS, toP_ofP]
+      have h1 : (fun i => 𝔼.E t (lagP 0 xp t i)) =
+          lagP 0 z t + fun i => 𝔼.E t (lagP 0 b t i) := by
+        funext i
+        have hl : lagP 0 xp t i = lagP 0 z t i + lagP 0 b t i := by
+          cases t with
+          | zero => funext ω; simp [lagP]
+          | succ t => rfl
+        rw [hl, map_add, adaptedV_lagP 𝔼 0 hza t i]
+        rfl
+      have h2 : (fun i => 𝔼.E t (xp t i)) = z t := by
+        funext i
+        simp only [hxp, Pi.add_apply, map_add, hza t i, hEb t i, add_zero]
+      have h3 : (fun i => 𝔼.E t (xp (t + 1) i)) = fun i => 𝔼.E t (z (t + 1) i) := by
+        funext i
+        simp only [hxp, Pi.add_apply, map_add, hEb1 t i, add_zero]
+      rw [h1, h2, h3, mv_add]
+      have e' : mv f₁ (lagP 0 z t) + mv f₂ (z t) + mv f₃ (fun i => 𝔼.E t (z (t + 1) i)) =
+          w t := hz t
+      have hxpt : xp t - z t = b t := by simp [hxp]
+      rw [hxpt]
+      calc mv f₁ (lagP 0 z t) + mv f₁ (fun i => 𝔼.E t (lagP 0 b t i)) + mv f₂ (z t) +
+            mv f₃ (fun i => 𝔼.E t (z (t + 1) i)) + b t
+          = (mv f₁ (lagP 0 z t) + mv f₂ (z t) + mv f₃ (fun i => 𝔼.E t (z (t + 1) i))) +
+            mv f₁ (fun i => 𝔼.E t (lagP 0 b t i)) + b t := by abel
+        _ = toP y t := by
+          rw [e', hw, hb]
+          simp only
+          abel
+
+/-- **Invertibility on `ℓ∞(ℕ × Ω, ℝⁿ)` is the exact root condition** (Woodford (2003),
+App. A.3, eqs. (A.9), (A.12), pp. 632–634): for every expectation system on a nonempty state
+space, the operator (A.12) is invertible iff `det(f₃λ² + f₂λ + f₁) ≢ 0`, no root lies on the
+unit circle, exactly `n` roots lie inside, and genericity holds — the perfect-foresight
+condition; uncertainty does not change it. -/
+theorem isUnit_opS_iff_roots [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    IsUnit (opS 𝔼 f₁ f₂ f₃) ↔ quadPoly f₁ f₂ f₃ ≠ 0 ∧
+      (∀ μ ∈ ((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card (((quadPoly f₁ f₂ f₃).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card ι ∧ HomInjective f₁ f₂ f₃ := by
+  rw [isUnit_opS_iff, linDeterminateS_iff_roots]
+
+/-- Woodford (2003), App. A.3, pp. 632–634: the stochastic operator (A.12) is invertible iff the
+perfect-foresight operator (A.8) is. -/
+theorem isUnit_opS_iff_sysOp [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    IsUnit (opS 𝔼 f₁ f₂ f₃) ↔ IsUnit (sysOp f₁ f₂ f₃) := by
+  rw [isUnit_opS_iff, isUnit_sysOp_iff_stoch 𝔼]
+
+end Woodford.PriceLevelDetermination.LinearSystemsStochastic
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Local determinacy of `n`-dimensional systems with predetermined variables under uncertainty
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, eqs. (A.11)–(A.13), pp. 633–635. For `n`
+equilibrium conditions in the book's stochastic form (A.11),
+`E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0` (`x_t ∈ ℝⁿ` adapted, `x_{−1}` given, a bounded
+disturbance process `e_t(ω)` in a finite-dimensional space that need not be adapted — date-`t+1`
+shocks may sit inside `E_t`), the book asserts, citing Woodford (1986) and without proof, that
+the implicit-function theorem applies on sequences of bounded functions with the `L∞` norm,
+giving a locally unique bounded equilibrium approximated by the linear rational-expectations
+solution. This module proves it for an arbitrary `ExpectationSystem` (core axioms only), with
+predetermined variables, at any steady state, with the converse and the correct error bounds.
+
+## Main results
+
+* Nemytskii operators on bounded functions on any index set (`nemI`, `hasStrictFDerivAt_nemI`,
+  `contDiff_nemI`).
+* The equilibrium map `eqMapS` on `(ℝⁿ × ℓ∞(ℕ × Ω, E)) × ℓ∞(ℕ × Ω, ℝⁿ)`,
+  `Φ(u, x)_t = E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] + (x_t − E_t x_t)`: its zeros are exactly the
+  adapted solutions (`eqMapS_eq_zero_iff`), it is `C¹` (`contDiff_eqMapS`), and its derivative at
+  the steady state is the operator (A.12) `LinearSystemsStochastic.opS` plus the parameter part
+  (`eqDS_zero`).
+* `local_determinacyS` (**the theorem**): `G` `C¹` near `0`, `G(0) = 0`, (A.12) invertible —
+  equivalently the exact root condition of `LinearSystems.linDeterminate_iff` on
+  `f_j = D_jG(0)`, for any nonempty `Ω` (`isUnit_linOpS_iff_roots`) — ⟹ for `‖(x_{−1}, e)‖ < δ`
+  there is a unique bounded adapted equilibrium within `ε` of the steady state, `C¹` in
+  `(x_{−1}, e)`, whose derivative at `0` is the linear RE solution `linSolS`
+  (`linSolS_solves`, `eq_linSolS`).
+* E18: `first_order_locS` (`o(‖u‖)` for `C¹`), `second_order_globalS`, `second_order_locS`
+  (`O(‖u‖²)` for `C²`).
+* The converse: `surjective_of_solution_mapS`, `not_locally_uniqueS`,
+  `isUnit_of_local_determinacyS`, `isUnit_linOpS_iff_local_determinacyS` — local determinacy with a
+  solution map differentiable at the steady state holds iff the root condition holds (when the
+  disturbances move every equation).
+* Perfect foresight inside uncertainty: `embG`, `embPar`, `solvesSV_embG_iff` (deterministic
+  paths are stochastic equilibria iff they are perfect-foresight ones), `linSolS_embPar`;
+  `pf_local_determinacy_recovered`: `LocalIFTSystems.local_determinacy` follows from
+  `local_determinacyS` for the `perfectForesight` system.
+* Any steady state `x̄`: `local_determinacyS_at`, `isUnit_iff_local_determinacyS_at`,
+  `second_order_locS_at`.
+
+Only the core `ExpectationSystem` axioms are used: no pull-out property and no informational
+closure (the book form (A.11) needs neither).
+-/
+
+namespace Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic SystemsBK.GeneralBKForward
+open LocalIFTSystems (Arg d1 d2 d3 dE M1 M2 M3 mulVec_M fderiv_zero_apply4 fderiv_close cutoff
+  cutoff_eq contDiff_cutoff fderiv_cutoff exists_ball_contDiffAt norm_remainder_le
+  lipschitz_fderiv)
+
+/-! ### Nemytskii operators on bounded functions -/
+
+variable {I Q V W : Type*} [NormedAddCommGroup Q] [NormedSpace ℝ Q] [NormedAddCommGroup V]
+  [NormedSpace ℝ V] [FiniteDimensional ℝ V] [NormedAddCommGroup W] [NormedSpace ℝ W]
+
+/-- Woodford (2003), App. A.3, eq. (A.11), p. 633: the Nemytskii (superposition) operator
+`q ↦ (F(π_i q))_i` on bounded functions on an index set `I` (here dates and states), built from
+coordinate maps `π_i` of norm at most one. -/
+noncomputable def nemI (F : V → W) (hF : Continuous F) (pt : I → Q →L[ℝ] V)
+    (hpt : ∀ i q, ‖pt i q‖ ≤ ‖q‖) (q : Q) : LocalIFTStochastic.BFun I W :=
+  LocalIFTStochastic.mkB (fun i => F (pt i q)) (by
+    obtain ⟨C, hC⟩ := LocalIFT.exists_bound_ball3 hF ‖q‖
+    exact ⟨C, fun i => hC _ (hpt i q)⟩)
+
+omit [NormedSpace ℝ W] in
+/-- Woodford (2003), App. A.3, p. 634: values of the Nemytskii operator. -/
+@[simp] theorem nemI_apply (F : V → W) (hF : Continuous F) (pt : I → Q →L[ℝ] V)
+    (hpt : ∀ i q, ‖pt i q‖ ≤ ‖q‖) (q : Q) (i : I) : nemI F hF pt hpt q i = F (pt i q) := rfl
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: the candidate derivative of the Nemytskii
+operator, `dq ↦ (DF(π_i q)(π_i dq))_i`. -/
+noncomputable def nemID (F : V → W) (hF : ContDiff ℝ 1 F) (pt : I → Q →L[ℝ] V)
+    (hpt : ∀ i q, ‖pt i q‖ ≤ ‖q‖) (q : Q) : Q →L[ℝ] LocalIFTStochastic.BFun I W :=
+  LinearMap.mkContinuousOfExistsBound
+    { toFun := fun dq => LocalIFTStochastic.mkB (fun i => fderiv ℝ F (pt i q) (pt i dq)) (by
+        obtain ⟨C, hC⟩ := LocalIFT.exists_bound_ball3 (hF.continuous_fderiv one_ne_zero) ‖q‖
+        exact ⟨C * ‖dq‖, fun i => ((fderiv ℝ F (pt i q)).le_opNorm _).trans
+          (mul_le_mul (hC _ (hpt i q)) (hpt i dq) (norm_nonneg _)
+            ((norm_nonneg _).trans (hC _ (hpt i q))))⟩)
+      map_add' := fun dq dq' => lp.ext (funext fun i => by simp)
+      map_smul' := fun c dq => lp.ext (funext fun i => by simp) }
+    (by
+      obtain ⟨C, hC⟩ := LocalIFT.exists_bound_ball3 (hF.continuous_fderiv one_ne_zero) ‖q‖
+      have hC0 : 0 ≤ C := (norm_nonneg _).trans (hC 0 (by simp))
+      refine ⟨C, fun dq => LocalIFTStochastic.norm_le_of_forall (by positivity) fun i => ?_⟩
+      exact ((fderiv ℝ F (pt i q)).le_opNorm _).trans
+        (mul_le_mul (hC _ (hpt i q)) (hpt i dq) (norm_nonneg _) hC0))
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: values of `nemID`. -/
+@[simp] theorem nemID_apply (F : V → W) (hF : ContDiff ℝ 1 F) (pt : I → Q →L[ℝ] V)
+    (hpt : ∀ i q, ‖pt i q‖ ≤ ‖q‖) (q dq : Q) (i : I) :
+    nemID F hF pt hpt q dq i = fderiv ℝ F (pt i q) (pt i dq) := rfl
+
+/-- Woodford (2003), App. A.3, p. 634: **the Nemytskii operator of a `C¹` map is strictly
+Fréchet differentiable at every point** of the space of bounded functions (uniform continuity of
+`DF` on bounded sets). -/
+theorem hasStrictFDerivAt_nemI {F : V → W} (hF : ContDiff ℝ 1 F) (pt : I → Q →L[ℝ] V)
+    (hpt : ∀ i q, ‖pt i q‖ ≤ ‖q‖) (q : Q) :
+    HasStrictFDerivAt (nemI F hF.continuous pt hpt) (nemID F hF pt hpt q) q := by
+  rw [hasStrictFDerivAt_iff_isLittleO, Asymptotics.isLittleO_iff]
+  intro c hc
+  obtain ⟨δ, hδ, hclose⟩ := fderiv_close hF ‖q‖ hc
+  have hball : Metric.ball (q, q) (δ / 2) ∈ 𝓝 (q, q) := Metric.ball_mem_nhds _ (by positivity)
+  filter_upwards [hball] with p hp
+  rw [Metric.mem_ball, Prod.dist_eq, max_lt_iff, dist_eq_norm, dist_eq_norm] at hp
+  refine LocalIFTStochastic.norm_le_of_forall (by positivity) (fun i => ?_)
+  have hmem : ∀ y : Q, ‖y - q‖ < δ / 2 → pt i y ∈ Metric.ball (pt i q) (δ / 2) := fun y hy => by
+    rw [Metric.mem_ball, dist_eq_norm, ← map_sub]
+    exact (hpt i _).trans_lt hy
+  have key := (convex_ball (pt i q) (δ / 2)).norm_image_sub_le_of_norm_fderiv_le' (f := F)
+    (φ := fderiv ℝ F (pt i q)) (C := c) (fun w _ => (hF.differentiable one_ne_zero) w)
+    (fun w hw => by
+      rw [Metric.mem_ball, dist_eq_norm] at hw
+      exact (hclose (pt i q) w (hpt i q) (by linarith)).le)
+    (hmem p.2 hp.2) (hmem p.1 hp.1)
+  simp only [lp.coeFn_sub, Pi.sub_apply, nemI_apply, nemID_apply]
+  rw [map_sub (pt i)]
+  refine key.trans (mul_le_mul_of_nonneg_left ?_ hc.le)
+  rw [← map_sub]
+  exact hpt i _
+
+/-- Woodford (2003), App. A.3, p. 634: the derivative `q ↦ nemID q` is continuous in operator
+norm. -/
+theorem continuous_nemID {F : V → W} (hF : ContDiff ℝ 1 F) (pt : I → Q →L[ℝ] V)
+    (hpt : ∀ i q, ‖pt i q‖ ≤ ‖q‖) : Continuous (nemID F hF pt hpt) := by
+  rw [Metric.continuous_iff]
+  intro q ε hε
+  obtain ⟨δ, hδ, hclose⟩ := fderiv_close hF ‖q‖ (half_pos hε)
+  refine ⟨δ, hδ, fun q' hq' => ?_⟩
+  rw [dist_eq_norm] at hq' ⊢
+  refine lt_of_le_of_lt (ContinuousLinearMap.opNorm_le_bound _ (half_pos hε).le
+    (fun dq => ?_)) (half_lt_self hε)
+  refine LocalIFTStochastic.norm_le_of_forall (by positivity) (fun i => ?_)
+  simp only [sub_apply, lp.coeFn_sub, Pi.sub_apply, nemID_apply]
+  rw [← sub_apply]
+  refine ((fderiv ℝ F (pt i q') - fderiv ℝ F (pt i q)).le_opNorm _).trans
+    (mul_le_mul (hclose _ _ (hpt i q) ?_).le (hpt i dq) (norm_nonneg _) (half_pos hε).le)
+  rw [← map_sub]
+  exact (hpt i _).trans_lt hq'
+
+/-- Woodford (2003), App. A.3, p. 634: the Nemytskii operator of a `C¹` map is `C¹`. -/
+theorem contDiff_nemI {F : V → W} (hF : ContDiff ℝ 1 F) (pt : I → Q →L[ℝ] V)
+    (hpt : ∀ i q, ‖pt i q‖ ≤ ‖q‖) : ContDiff ℝ 1 (nemI F hF.continuous pt hpt) :=
+  contDiff_one_iff_hasFDerivAt.mpr
+    ⟨nemID F hF pt hpt, continuous_nemID hF pt hpt,
+      fun q => (hasStrictFDerivAt_nemI hF pt hpt q).hasFDerivAt⟩
+
+/-! ### The stochastic `n`-dimensional class (A.11) -/
+
+variable {ι : Type*} [Fintype ι]
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+variable {Ω : Type*}
+
+/-- Woodford (2003), App. A.3, p. 634: the "parameters" of the stochastic sequence-space
+problem — the initial condition `x_{−1}` and the whole bounded disturbance process `e_t(ω)`
+(not required to be adapted). -/
+abbrev ParS (ι : Type*) [Fintype ι] (E Ω : Type*) [NormedAddCommGroup E] : Type _ :=
+  (ι → ℝ) × LocalIFTStochastic.BFun (ℕ × Ω) E
+
+/-- Woodford (2003), App. A.3, eq. (A.11), p. 633: the date-`t`, state-`ω` argument
+`(x_{t−1}(ω), x_t(ω), x_{t+1}(ω), e_t(ω))` of the period conditions. -/
+def ptS (q : ParS ι E Ω × SProcV ι Ω) (p : ℕ × Ω) : Arg ι E :=
+  (lagV q.1.1 (fun s => q.2 (s, p.2)) p.1, q.2 p, q.2 (p.1 + 1, p.2), q.1.2 p)
+
+omit [NormedSpace ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: every date-state argument is bounded by the norm of the
+point. -/
+theorem norm_ptS_le (q : ParS ι E Ω × SProcV ι Ω) (p : ℕ × Ω) : ‖ptS q p‖ ≤ ‖q‖ := by
+  obtain ⟨t, ω⟩ := p
+  have h1 : ‖lagV q.1.1 (fun s => q.2 (s, ω)) t‖ ≤ ‖q‖ := by
+    cases t with
+    | zero => exact (norm_fst_le q.1).trans (norm_fst_le q)
+    | succ t => exact (LocalIFTStochastic.norm_apply_le q.2 _).trans (norm_snd_le q)
+  have h2 : ‖q.2 (t, ω)‖ ≤ ‖q‖ := (LocalIFTStochastic.norm_apply_le q.2 _).trans (norm_snd_le q)
+  have h3 : ‖q.2 (t + 1, ω)‖ ≤ ‖q‖ :=
+    (LocalIFTStochastic.norm_apply_le q.2 _).trans (norm_snd_le q)
+  have h4 : ‖q.1.2 (t, ω)‖ ≤ ‖q‖ :=
+    (LocalIFTStochastic.norm_apply_le q.1.2 _).trans ((norm_snd_le q.1).trans (norm_fst_le q))
+  rw [ptS, norm_prod_le_iff, norm_prod_le_iff, norm_prod_le_iff]
+  exact ⟨h1, h2, h3, h4⟩
+
+/-- Woodford (2003), App. A.3, p. 634: the date-state argument as a continuous linear map of norm
+at most one. -/
+noncomputable def ptSL (p : ℕ × Ω) : ParS ι E Ω × SProcV ι Ω →L[ℝ] Arg ι E :=
+  LinearMap.mkContinuous
+    { toFun := fun q => ptS q p
+      map_add' := fun q q' => by obtain ⟨t, ω⟩ := p; cases t <;> rfl
+      map_smul' := fun c q => by obtain ⟨t, ω⟩ := p; cases t <;> rfl }
+    1 (fun q => by rw [one_mul]; exact norm_ptS_le q p)
+
+/-- Woodford (2003), App. A.3, p. 634: values of `ptSL`. -/
+@[simp] theorem ptSL_apply (p : ℕ × Ω) (q : ParS ι E Ω × SProcV ι Ω) : ptSL p q = ptS q p :=
+  rfl
+
+/-- Woodford (2003), App. A.3, p. 634: `ptSL` has norm at most one. -/
+theorem norm_ptSL_le (p : ℕ × Ω) (q : ParS ι E Ω × SProcV ι Ω) : ‖ptSL p q‖ ≤ ‖q‖ :=
+  norm_ptS_le q p
+
+/-- Woodford (2003), App. A.3, eq. (A.11), p. 633: `x` is an equilibrium of the stochastic
+conditions given `u = (x_{−1}, e)`: `x` is adapted and `E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0`
+for every date, coordinate and state. -/
+def SolvesSV (𝔼 : ExpectationSystem Ω) (G : Arg ι E → (ι → ℝ)) (u : ParS ι E Ω)
+    (x : SProcV ι Ω) : Prop :=
+  AdaptedV 𝔼 (toP x) ∧ ∀ t i, 𝔼.E t (fun ω => G (ptS (u, x) (t, ω)) i) = 0
+
+variable (𝔼 : ExpectationSystem Ω)
+variable [FiniteDimensional ℝ E]
+
+/-- Woodford (2003), App. A.3, eqs. (A.11)–(A.12), pp. 633–634: **the equilibrium map**
+`Φ(u, x)_t = E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] + (x_t − E_t x_t)` on
+`(ℝⁿ × ℓ∞(ℕ × Ω, E)) × ℓ∞(ℕ × Ω, ℝⁿ)`. -/
+noncomputable def eqMapS (G : Arg ι E → (ι → ℝ)) (hG : Continuous G)
+    (q : ParS ι E Ω × SProcV ι Ω) : SProcV ι Ω :=
+  condEV 𝔼 (nemI G hG ptSL norm_ptSL_le q) + (q.2 - condEV 𝔼 q.2)
+
+/-- Woodford (2003), App. A.3, p. 634: **zeros of the equilibrium map are exactly the adapted
+solutions** of (A.11) (apply `E_t`: the adaptedness term has conditional mean zero). -/
+theorem eqMapS_eq_zero_iff (G : Arg ι E → (ι → ℝ)) (hG : Continuous G) (u : ParS ι E Ω)
+    (x : SProcV ι Ω) : eqMapS 𝔼 G hG (u, x) = 0 ↔ SolvesSV 𝔼 G u x := by
+  have hP : ∀ t, toP (eqMapS 𝔼 G hG (u, x)) t =
+      (fun i => 𝔼.E t (fun ω => G (ptS (u, x) (t, ω)) i)) +
+        (toP x t - fun i => 𝔼.E t (toP x t i)) := fun t => rfl
+  have hE : ∀ t i, 𝔼.E t (toP (eqMapS 𝔼 G hG (u, x)) t i) =
+      𝔼.E t (fun ω => G (ptS (u, x) (t, ω)) i) := by
+    intro t i
+    rw [hP t]
+    simp only [Pi.add_apply, Pi.sub_apply, map_add, map_sub, 𝔼.E_E_self, sub_self, add_zero]
+  constructor
+  · intro h
+    have h0 : toP (eqMapS 𝔼 G hG (u, x)) = 0 := by rw [h]; rfl
+    have hc : ∀ t i, 𝔼.E t (fun ω => G (ptS (u, x) (t, ω)) i) = 0 := by
+      intro t i
+      rw [← hE t i, h0]
+      exact map_zero _
+    refine ⟨fun t i => ?_, hc⟩
+    have e := congrFun (hP t) i
+    rw [h0] at e
+    simp only [Pi.zero_apply, Pi.add_apply, Pi.sub_apply, hc t i, zero_add] at e
+    exact (sub_eq_zero.mp e.symm).symm
+  · rintro ⟨ha, hc⟩
+    apply toP_injective
+    funext t i
+    rw [hP t]
+    simp only [Pi.add_apply, Pi.sub_apply, hc t i, ha t i, sub_self, add_zero]
+    rfl
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: the candidate derivative of the equilibrium
+map at `q`. -/
+noncomputable def eqDS (G : Arg ι E → (ι → ℝ)) (hG : ContDiff ℝ 1 G)
+    (q : ParS ι E Ω × SProcV ι Ω) : ParS ι E Ω × SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  (condEV 𝔼).comp (nemID G hG ptSL norm_ptSL_le q) +
+    (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω) -
+      (condEV 𝔼).comp (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω)))
+
+/-- Woodford (2003), App. A.3, p. 634: **the equilibrium map is strictly differentiable at
+every point**. -/
+theorem hasStrictFDerivAt_eqMapS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G)
+    (q : ParS ι E Ω × SProcV ι Ω) :
+    HasStrictFDerivAt (eqMapS 𝔼 G hG.continuous) (eqDS 𝔼 G hG q) q := by
+  have h1 := (condEV 𝔼).hasStrictFDerivAt.comp q (hasStrictFDerivAt_nemI hG ptSL norm_ptSL_le q)
+  have h2 := (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω)).hasStrictFDerivAt (x := q)
+  have h3 := ((condEV 𝔼).comp
+    (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω))).hasStrictFDerivAt (x := q)
+  exact h1.add (h2.sub h3)
+
+/-- Woodford (2003), App. A.3, p. 634: the equilibrium map is `C¹`. -/
+theorem contDiff_eqMapS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) :
+    ContDiff ℝ 1 (eqMapS 𝔼 G hG.continuous) :=
+  ((condEV 𝔼).contDiff.comp (contDiff_nemI hG ptSL norm_ptSL_le)).add
+    (contDiff_snd.sub ((condEV 𝔼).contDiff.comp contDiff_snd))
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: the derivative of the conditions with respect
+to the parameters `u = (x_{−1}, e)`, state by state: `(f₁ x_{−1} 1_{t=0} + D₄G e_t(ω))`. -/
+noncomputable def bOpS (G : Arg ι E → (ι → ℝ)) : ParS ι E Ω →L[ℝ] SProcV ι Ω :=
+  LinearMap.mkContinuous
+    { toFun := fun u => LocalIFTStochastic.mkB
+        (fun p => d1 G (lagV u.1 0 p.1) + dE G (u.2 p))
+        ⟨(‖d1 G‖ + ‖dE G‖) * ‖u‖, fun p => by
+          have hl : ‖lagV u.1 (0 : ℕ → ι → ℝ) p.1‖ ≤ ‖u‖ :=
+            (LocalIFTSystems.norm_lagV_impulse u.1 p.1).trans (norm_fst_le u)
+          have he : ‖u.2 p‖ ≤ ‖u‖ := (LocalIFTStochastic.norm_apply_le u.2 p).trans
+            (norm_snd_le u)
+          calc _ ≤ ‖d1 G (lagV u.1 0 p.1)‖ + ‖dE G (u.2 p)‖ := norm_add_le _ _
+            _ ≤ ‖d1 G‖ * ‖u‖ + ‖dE G‖ * ‖u‖ := add_le_add
+                (((d1 G).le_opNorm _).trans (mul_le_mul_of_nonneg_left hl (norm_nonneg _)))
+                (((dE G).le_opNorm _).trans (mul_le_mul_of_nonneg_left he (norm_nonneg _)))
+            _ = _ := by ring⟩
+      map_add' := fun u v => lp.ext (funext fun p => by
+        have hl : lagV (u + v).1 (0 : ℕ → ι → ℝ) p.1 = lagV u.1 0 p.1 + lagV v.1 0 p.1 := by
+          cases p.1 <;> simp
+        simp only [LocalIFTStochastic.mkB_apply, hl, map_add, Prod.snd_add, lp.coeFn_add,
+          Pi.add_apply]
+        abel)
+      map_smul' := fun c u => lp.ext (funext fun p => by
+        have hl : lagV (c • u).1 (0 : ℕ → ι → ℝ) p.1 = c • lagV u.1 0 p.1 := by
+          cases p.1 <;> simp
+        simp only [LocalIFTStochastic.mkB_apply, hl, map_smul, Prod.smul_snd, lp.coeFn_smul,
+          Pi.smul_apply, smul_add, RingHom.id_apply]) }
+    (‖d1 G‖ + ‖dE G‖) (fun u => LocalIFTStochastic.norm_le_of_forall (by positivity) fun p => by
+      have hl : ‖lagV u.1 (0 : ℕ → ι → ℝ) p.1‖ ≤ ‖u‖ :=
+        (LocalIFTSystems.norm_lagV_impulse u.1 p.1).trans (norm_fst_le u)
+      have he : ‖u.2 p‖ ≤ ‖u‖ := (LocalIFTStochastic.norm_apply_le u.2 p).trans (norm_snd_le u)
+      calc _ ≤ ‖d1 G (lagV u.1 0 p.1)‖ + ‖dE G (u.2 p)‖ := norm_add_le _ _
+        _ ≤ ‖d1 G‖ * ‖u‖ + ‖dE G‖ * ‖u‖ := add_le_add
+            (((d1 G).le_opNorm _).trans (mul_le_mul_of_nonneg_left hl (norm_nonneg _)))
+            (((dE G).le_opNorm _).trans (mul_le_mul_of_nonneg_left he (norm_nonneg _)))
+        _ = _ := by ring)
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: values of `bOpS`. -/
+theorem bOpS_apply (G : Arg ι E → (ι → ℝ)) (u : ParS ι E Ω) (p : ℕ × Ω) :
+    bOpS G u p = d1 G (lagV u.1 0 p.1) + dE G (u.2 p) := rfl
+
+variable [DecidableEq ι]
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (tool): values of `linS`. -/
+theorem linS_apply (f₁ f₂ f₃ : Matrix ι ι ℝ) (x : SProcV ι Ω) (p : ℕ × Ω) :
+    linS f₁ f₂ f₃ x p =
+      f₁ *ᵥ lagV 0 (fun s => x (s, p.2)) p.1 + f₂ *ᵥ x p + f₃ *ᵥ x (p.1 + 1, p.2) := rfl
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: the linearised operator with `f_j = D_jG(0)`
+(the matrices `LocalIFTSystems.M1`–`M3`) on `ℓ∞(ℕ × Ω, ℝⁿ)`. -/
+noncomputable def linOpS (G : Arg ι E → (ι → ℝ)) : SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  opS 𝔼 (M1 G) (M2 G) (M3 G)
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: the derivative of the equilibrium map at the
+steady state, `(u, x̂) ↦ opS x̂ + E_t[B u]`. -/
+noncomputable def eqD0S (G : Arg ι E → (ι → ℝ)) :
+    ParS ι E Ω × SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  (linOpS 𝔼 G).comp (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω)) +
+    (condEV 𝔼).comp ((bOpS G).comp (ContinuousLinearMap.fst ℝ (ParS ι E Ω) (SProcV ι Ω)))
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632, state by state: at the steady state the
+pointwise derivative is `f₁ x_{t−1} + f₂ x_t + f₃ x_{t+1} + D₄G e_t`. -/
+theorem nemID_zero {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) :
+    nemID G hG (ptSL (ι := ι) (E := E) (Ω := Ω)) norm_ptSL_le 0 =
+      (linS (M1 G) (M2 G) (M3 G)).comp (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω)) +
+        (bOpS G).comp (ContinuousLinearMap.fst ℝ (ParS ι E Ω) (SProcV ι Ω)) := by
+  refine ContinuousLinearMap.ext fun q => lp.ext (funext fun p => ?_)
+  obtain ⟨t, ω⟩ := p
+  have e1 : nemID G hG ptSL norm_ptSL_le 0 q (t, ω) = fderiv ℝ G 0 (ptS q (t, ω)) := by
+    rw [nemID_apply, ptSL_apply, ptSL_apply]
+    congr 2
+    cases t <;> rfl
+  have e2 : ((linS (M1 G) (M2 G) (M3 G)).comp
+      (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω)) +
+      (bOpS G).comp (ContinuousLinearMap.fst ℝ (ParS ι E Ω) (SProcV ι Ω))) q (t, ω) =
+      (M1 G *ᵥ lagV 0 (fun s => q.2 (s, ω)) t + M2 G *ᵥ q.2 (t, ω) +
+        M3 G *ᵥ q.2 (t + 1, ω)) + (d1 G (lagV q.1.1 0 t) + dE G (q.1.2 (t, ω))) := by
+    rw [add_apply, ContinuousLinearMap.comp_apply, ContinuousLinearMap.comp_apply,
+      ContinuousLinearMap.coe_snd', ContinuousLinearMap.coe_fst', lp.coeFn_add, Pi.add_apply,
+      linS_apply, bOpS_apply]
+  rw [e1, e2, ptS, fderiv_zero_apply4, (mulVec_M G _).1, (mulVec_M G _).2.1, (mulVec_M G _).2.2,
+    LinearSystems.lagV_split q.1.1 (fun s => q.2 (s, ω)) t, map_add]
+  abel
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: **at the steady state the derivative of the
+equilibrium map is the operator (A.12)** (plus the parameter part). -/
+theorem eqDS_zero {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) :
+    eqDS 𝔼 G hG 0 = eqD0S 𝔼 G := by
+  rw [eqDS, nemID_zero hG]
+  refine ContinuousLinearMap.ext fun q => ?_
+  simp only [eqD0S, linOpS, opS, add_apply, ContinuousLinearMap.comp_apply,
+    sub_apply, ContinuousLinearMap.coe_snd', ContinuousLinearMap.coe_fst',
+    one_apply_eq_self, map_add]
+  abel
+
+/-! ### The linear rational-expectations solution -/
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): conditional expectations of bounded processes are
+adapted. -/
+theorem adaptedV_condEV (y : SProcV ι Ω) : AdaptedV 𝔼 (toP (condEV 𝔼 y)) := fun t i => by
+  change 𝔼.E t (𝔼.E t (fun ω => y (t, ω) i)) = 𝔼.E t (fun ω => y (t, ω) i)
+  exact 𝔼.E_E_self t _
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `‖E_t‖ ≤ 1` on vector processes. -/
+theorem norm_condEV_le (y : SProcV ι Ω) : ‖condEV 𝔼 y‖ ≤ ‖y‖ :=
+  LocalIFTStochastic.norm_le_of_forall (norm_nonneg y) fun p =>
+    (pi_norm_le_iff_of_nonneg (norm_nonneg y)).mpr fun i => by
+      rw [Real.norm_eq_abs]
+      exact 𝔼.abs_E_le (fun ω => abs_apply_le y p.1 ω i) p.1 p.2
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: `E_t` of the parameter part is
+`f₁ x_{−1} 1_{t=0} + E_t[D₄G e_t]`. -/
+theorem toP_condEV_bOpS (G : Arg ι E → (ι → ℝ)) (u : ParS ι E Ω) (t : ℕ) :
+    toP (condEV 𝔼 (bOpS G u)) t =
+      mv (M1 G) (lagP u.1 0 t) + fun i => 𝔼.E t (fun ω => dE G (u.2 (t, ω)) i) := by
+  funext i ω
+  have e : toP (bOpS G u) t i =
+      (fun _ => d1 G (lagV u.1 0 t) i) + fun ω' => dE G (u.2 (t, ω')) i := by
+    funext ω'
+    rfl
+  change 𝔼.E t (toP (bOpS G u) t i) ω = _
+  rw [e, map_add, 𝔼.const]
+  simp only [Pi.add_apply, mv_apply]
+  congr 1
+  rw [← (mulVec_M G _).1]
+  congr 2
+  funext j
+  cases t <;> rfl
+
+/-- Woodford (2003), App. A.3, p. 634: the inverse of the linearised operator (A.12), when it
+exists. -/
+noncomputable def linInvS (G : Arg ι E → (ι → ℝ)) : SProcV ι Ω →L[ℝ] SProcV ι Ω :=
+  Ring.inverse (linOpS 𝔼 G)
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: `linInvS` is a right inverse. -/
+theorem linOpS_linInvS {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G)) (y : SProcV ι Ω) :
+    linOpS 𝔼 G (linInvS 𝔼 G y) = y := by
+  have h := Ring.mul_inverse_cancel _ hL
+  unfold linInvS
+  simpa using congrArg (fun T : SProcV ι Ω →L[ℝ] SProcV ι Ω => T y) h
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: `linInvS` is a left inverse. -/
+theorem linInvS_linOpS {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G)) (x : SProcV ι Ω) :
+    linInvS 𝔼 G (linOpS 𝔼 G x) = x := by
+  have h := Ring.inverse_mul_cancel _ hL
+  unfold linInvS
+  simpa using congrArg (fun T : SProcV ι Ω →L[ℝ] SProcV ι Ω => T x) h
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: **the solution operator of the linear
+rational-expectations system**, `u ↦ −(A.12)⁻¹ E_t[B u]`. -/
+noncomputable def linSolS (G : Arg ι E → (ι → ℝ)) : ParS ι E Ω →L[ℝ] SProcV ι Ω :=
+  -((linInvS 𝔼 G).comp ((condEV 𝔼).comp (bOpS G)))
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: `(A.12) x̂ = −E_t[B u]` for `x̂ = linSolS u`. -/
+theorem linOpS_linSolS {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G)) (u : ParS ι E Ω) :
+    linOpS 𝔼 G (linSolS 𝔼 G u) = -condEV 𝔼 (bOpS G u) := by
+  change linOpS 𝔼 G (-(linInvS 𝔼 G (condEV 𝔼 (bOpS G u)))) = _
+  rw [map_neg, linOpS_linInvS 𝔼 hL]
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634 (tool): `x̂` solves the linear RE system
+`f₁ x̂_{t−1} + f₂ x̂_t + f₃ E_t x̂_{t+1} + E_t[D₄G e_t] = 0`, `x̂_{−1} = x_{−1}`, with `x̂` adapted,
+iff `(A.12) x̂ = −E_t[B u]`. -/
+theorem linOpS_eq_iff (G : Arg ι E → (ι → ℝ)) (u : ParS ι E Ω) (x : SProcV ι Ω) :
+    linOpS 𝔼 G x = -condEV 𝔼 (bOpS G u) ↔ AdaptedV 𝔼 (toP x) ∧
+      SolvesLinS 𝔼 (M1 G) (M2 G) (M3 G)
+        (fun t => -fun i => 𝔼.E t (fun ω => dE G (u.2 (t, ω)) i)) u.1 (toP x) := by
+  constructor
+  · intro h
+    have hp : toP (opS 𝔼 (M1 G) (M2 G) (M3 G) x) = -toP (condEV 𝔼 (bOpS G u)) := by
+      change toP (linOpS 𝔼 G x) = _
+      rw [h]
+      rfl
+    have ha : AdaptedV 𝔼 (toP x) := adapted_of_opS 𝔼 _ _ _ x (by
+      rw [hp]
+      exact SystemsBK.GeneralBK.adaptedV_neg 𝔼 (adaptedV_condEV 𝔼 _))
+    refine ⟨ha, (solvesLinS_shift 𝔼 _ _ _ _ _ _).mpr fun t => ?_⟩
+    rw [← toP_opS_of_adapted 𝔼 _ _ _ x ha t, hp, Pi.neg_apply, toP_condEV_bOpS]
+    abel_nf
+  · rintro ⟨ha, hs⟩
+    apply toP_injective
+    funext t
+    have e := (solvesLinS_shift 𝔼 _ _ _ _ _ _).mp hs t
+    change toP (opS 𝔼 (M1 G) (M2 G) (M3 G) x) t = -toP (condEV 𝔼 (bOpS G u)) t
+    rw [toP_opS_of_adapted 𝔼 _ _ _ x ha t, e, toP_condEV_bOpS]
+    abel_nf
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: `linSolS u` is a bounded adapted solution of
+the linear RE system `f₁ x̂_{t−1} + f₂ x̂_t + f₃ E_t x̂_{t+1} + E_t[D₄G e_t] = 0`,
+`x̂_{−1} = x_{−1}`. -/
+theorem linSolS_solves {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G)) (u : ParS ι E Ω) :
+    AdaptedV 𝔼 (toP (linSolS 𝔼 G u)) ∧
+      SolvesLinS 𝔼 (M1 G) (M2 G) (M3 G)
+        (fun t => -fun i => 𝔼.E t (fun ω => dE G (u.2 (t, ω)) i)) u.1 (toP (linSolS 𝔼 G u)) :=
+  (linOpS_eq_iff 𝔼 G u _).mp (linOpS_linSolS 𝔼 hL u)
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: the linear RE system has exactly one bounded
+adapted solution, `linSolS u`. -/
+theorem eq_linSolS {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G)) {u : ParS ι E Ω}
+    {x : SProcV ι Ω} (ha : AdaptedV 𝔼 (toP x))
+    (hs : SolvesLinS 𝔼 (M1 G) (M2 G) (M3 G)
+      (fun t => -fun i => 𝔼.E t (fun ω => dE G (u.2 (t, ω)) i)) u.1 (toP x)) :
+    x = linSolS 𝔼 G u := by
+  have h := (linOpS_eq_iff 𝔼 G u x).mpr ⟨ha, hs⟩
+  rw [← linInvS_linOpS 𝔼 hL x, h, map_neg]
+  rfl
+
+/-! ### The implicit-function theorem on `ℓ∞(ℕ × Ω, ℝⁿ)` -/
+
+/-- Woodford (2003), App. A.3, p. 634: the augmented map `(u, x) ↦ (u, Φ(u, x))`. -/
+noncomputable def bigMapS (G : Arg ι E → (ι → ℝ)) (hG : Continuous G)
+    (q : ParS ι E Ω × SProcV ι Ω) : ParS ι E Ω × SProcV ι Ω :=
+  (q.1, eqMapS 𝔼 G hG q)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the augmented map is `C¹`. -/
+theorem contDiff_bigMapS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) :
+    ContDiff ℝ 1 (bigMapS 𝔼 G hG.continuous) :=
+  contDiff_fst.prodMk (contDiff_eqMapS 𝔼 hG)
+
+/-- Woodford (2003), App. A.3, p. 634: the derivative of the augmented map at the steady
+state. -/
+noncomputable def bigDS (G : Arg ι E → (ι → ℝ)) :
+    ParS ι E Ω × SProcV ι Ω →L[ℝ] ParS ι E Ω × SProcV ι Ω :=
+  (ContinuousLinearMap.fst ℝ (ParS ι E Ω) (SProcV ι Ω)).prod (eqD0S 𝔼 G)
+
+/-- Woodford (2003), App. A.3, p. 634: the inverse of `bigDS`,
+`(u, y) ↦ (u, (A.12)⁻¹(y − E_t[B u]))`. -/
+noncomputable def bigDInvS (G : Arg ι E → (ι → ℝ)) :
+    ParS ι E Ω × SProcV ι Ω →L[ℝ] ParS ι E Ω × SProcV ι Ω :=
+  (ContinuousLinearMap.fst ℝ (ParS ι E Ω) (SProcV ι Ω)).prod
+    ((linInvS 𝔼 G).comp (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω) -
+      (condEV 𝔼).comp ((bOpS G).comp (ContinuousLinearMap.fst ℝ (ParS ι E Ω) (SProcV ι Ω)))))
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: `bigDInvS` is a left inverse of `bigDS`. -/
+theorem bigDInvS_bigDS {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G))
+    (q : ParS ι E Ω × SProcV ι Ω) : bigDInvS 𝔼 G (bigDS 𝔼 G q) = q := by
+  refine Prod.ext rfl ?_
+  change linInvS 𝔼 G (linOpS 𝔼 G q.2 + condEV 𝔼 (bOpS G q.1) - condEV 𝔼 (bOpS G q.1)) = q.2
+  rw [add_sub_cancel_right, linInvS_linOpS 𝔼 hL]
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: `bigDInvS` is a right inverse of `bigDS`. -/
+theorem bigDS_bigDInvS {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G))
+    (q : ParS ι E Ω × SProcV ι Ω) : bigDS 𝔼 G (bigDInvS 𝔼 G q) = q := by
+  refine Prod.ext rfl ?_
+  change linOpS 𝔼 G (linInvS 𝔼 G (q.2 - condEV 𝔼 (bOpS G q.1))) + condEV 𝔼 (bOpS G q.1) = q.2
+  rw [linOpS_linInvS 𝔼 hL, sub_add_cancel]
+
+/-- Woodford (2003), App. A.3, p. 634: when (A.12) is invertible the derivative of the augmented
+map is a continuous linear equivalence. -/
+noncomputable def bigDEquivS (G : Arg ι E → (ι → ℝ)) (hL : IsUnit (linOpS 𝔼 G)) :
+    (ParS ι E Ω × SProcV ι Ω) ≃L[ℝ] (ParS ι E Ω × SProcV ι Ω) :=
+  ContinuousLinearEquiv.equivOfInverse (bigDS 𝔼 G) (bigDInvS 𝔼 G) (bigDInvS_bigDS 𝔼 hL)
+    (bigDS_bigDInvS 𝔼 hL)
+
+/-- Woodford (2003), App. A.3, p. 634: the derivative of the augmented map at the steady
+state. -/
+theorem hasFDerivAt_bigMapS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G)
+    (hL : IsUnit (linOpS 𝔼 G)) :
+    HasFDerivAt (bigMapS 𝔼 G hG.continuous) (bigDEquivS 𝔼 G hL : _ →L[ℝ] _) 0 := by
+  have h := (hasStrictFDerivAt_eqMapS 𝔼 hG 0).hasFDerivAt
+  rw [eqDS_zero 𝔼 hG] at h
+  exact hasFDerivAt_fst.prodMk h
+
+/-- Woodford (2003), App. A.3, pp. 633–634: the local homeomorphism given by the
+inverse-function theorem on `L∞` (Mathlib's `HasStrictFDerivAt.toOpenPartialHomeomorph`). -/
+noncomputable def homeoS (G : Arg ι E → (ι → ℝ)) (hG : ContDiff ℝ 1 G)
+    (hL : IsUnit (linOpS 𝔼 G)) :
+    OpenPartialHomeomorph (ParS ι E Ω × SProcV ι Ω) (ParS ι E Ω × SProcV ι Ω) :=
+  ((contDiff_bigMapS 𝔼 hG).contDiffAt.hasStrictFDerivAt' (hasFDerivAt_bigMapS 𝔼 hG hL)
+    one_ne_zero).toOpenPartialHomeomorph (bigMapS 𝔼 G hG.continuous)
+
+/-- Woodford (2003), App. A.3, p. 634: the locally unique stochastic equilibrium
+`x = X(x_{−1}, e)`. -/
+noncomputable def implicitSolS (G : Arg ι E → (ι → ℝ)) (hG : ContDiff ℝ 1 G)
+    (hL : IsUnit (linOpS 𝔼 G)) (u : ParS ι E Ω) : SProcV ι Ω :=
+  ((homeoS 𝔼 G hG hL).symm (u, 0)).2
+
+/-- Woodford (2003), App. A.3, p. 634: the local homeomorphism is the augmented map. -/
+theorem homeoS_apply {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (hL : IsUnit (linOpS 𝔼 G))
+    (q : ParS ι E Ω × SProcV ι Ω) : homeoS 𝔼 G hG hL q = bigMapS 𝔼 G hG.continuous q := rfl
+
+/-- Woodford (2003), App. A.3, p. 634: the steady state lies in the source. -/
+theorem zero_mem_homeoS_source {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G)
+    (hL : IsUnit (linOpS 𝔼 G)) : (0 : ParS ι E Ω × SProcV ι Ω) ∈ (homeoS 𝔼 G hG hL).source :=
+  HasStrictFDerivAt.mem_toOpenPartialHomeomorph_source _
+
+omit [DecidableEq ι] [NormedSpace ℝ E] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: with `x_{−1} = x̄` and no disturbances the steady state
+is an equilibrium. -/
+theorem solvesSV_zero {G : Arg ι E → (ι → ℝ)} (h0 : G 0 = 0) :
+    SolvesSV 𝔼 G (0 : ParS ι E Ω) (0 : SProcV ι Ω) := by
+  refine ⟨fun t i => map_zero _, fun t i => ?_⟩
+  have hz : (fun ω => G (ptS ((0 : ParS ι E Ω), (0 : SProcV ι Ω)) (t, ω)) i) = 0 := by
+    funext ω
+    have hp : ptS ((0 : ParS ι E Ω), (0 : SProcV ι Ω)) (t, ω) = 0 := by
+      cases t <;> rfl
+    rw [hp, h0]
+    rfl
+  rw [hz]
+  exact map_zero _
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the augmented map fixes the steady state. -/
+theorem bigMapS_zero {G : Arg ι E → (ι → ℝ)} (hG : Continuous G) (h0 : G 0 = 0) :
+    bigMapS 𝔼 G hG 0 = 0 :=
+  Prod.ext rfl ((eqMapS_eq_zero_iff 𝔼 G hG 0 0).mpr (solvesSV_zero 𝔼 h0))
+
+/-- Woodford (2003), App. A.3, p. 634: the steady state lies in the target. -/
+theorem zero_mem_homeoS_target {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) : (0 : ParS ι E Ω × SProcV ι Ω) ∈ (homeoS 𝔼 G hG hL).target := by
+  have h := (homeoS 𝔼 G hG hL).map_source (zero_mem_homeoS_source 𝔼 hG hL)
+  rwa [homeoS_apply, bigMapS_zero 𝔼 hG.continuous h0] at h
+
+/-- Woodford (2003), App. A.3, p. 634: the local inverse maps the steady state to itself. -/
+theorem homeoS_symm_zero {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) : (homeoS 𝔼 G hG hL).symm 0 = 0 := by
+  have h := (homeoS 𝔼 G hG hL).left_inv (zero_mem_homeoS_source 𝔼 hG hL)
+  rwa [homeoS_apply, bigMapS_zero 𝔼 hG.continuous h0] at h
+
+/-- Woodford (2003), App. A.3, p. 634: the local inverse is `C¹` at the steady state. -/
+theorem contDiffAt_homeoS_symm {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) : ContDiffAt ℝ 1 (homeoS 𝔼 G hG hL).symm 0 := by
+  refine (homeoS 𝔼 G hG hL).contDiffAt_symm (f₀' := bigDEquivS 𝔼 G hL)
+    (zero_mem_homeoS_target 𝔼 hG h0 hL) ?_ ?_
+  · rw [homeoS_symm_zero 𝔼 hG h0 hL]
+    exact hasFDerivAt_bigMapS 𝔼 hG hL
+  · rw [homeoS_symm_zero 𝔼 hG h0 hL]
+    exact (contDiff_bigMapS 𝔼 hG).contDiffAt
+
+/-- Woodford (2003), App. A.3, p. 634: the derivative of the local inverse at the steady state
+is the inverse of the derivative. -/
+theorem hasFDerivAt_homeoS_symm {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) :
+    HasFDerivAt (homeoS 𝔼 G hG hL).symm ((bigDEquivS 𝔼 G hL).symm : _ →L[ℝ] _) 0 := by
+  refine (homeoS 𝔼 G hG hL).hasFDerivAt_symm (zero_mem_homeoS_target 𝔼 hG h0 hL) ?_
+  rw [homeoS_symm_zero 𝔼 hG h0 hL]
+  exact hasFDerivAt_bigMapS 𝔼 hG hL
+
+/-- Woodford (2003), App. A.3, p. 634: with `x_{−1} = x̄` and no disturbances the equilibrium is
+the steady state. -/
+theorem implicitSolS_zero {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) : implicitSolS 𝔼 G hG hL 0 = 0 := by
+  rw [implicitSolS, Prod.mk_zero_zero, homeoS_symm_zero 𝔼 hG h0 hL]
+  rfl
+
+/-- Woodford (2003), App. A.3, pp. 633–634: **the first-order term of the exact stochastic
+equilibrium is the linear rational-expectations solution** (A.13). -/
+theorem hasFDerivAt_implicitSolS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) : HasFDerivAt (implicitSolS 𝔼 G hG hL) (linSolS 𝔼 G) 0 := by
+  have hin : HasFDerivAt (fun u : ParS ι E Ω => ((u, (0 : SProcV ι Ω)) : ParS ι E Ω × SProcV ι Ω))
+      (ContinuousLinearMap.inl ℝ (ParS ι E Ω) (SProcV ι Ω)) 0 :=
+    (ContinuousLinearMap.inl ℝ (ParS ι E Ω) (SProcV ι Ω)).hasFDerivAt
+  have hs : HasFDerivAt (homeoS 𝔼 G hG hL).symm ((bigDEquivS 𝔼 G hL).symm : _ →L[ℝ] _)
+      ((0 : ParS ι E Ω), (0 : SProcV ι Ω)) := by
+    rw [Prod.mk_zero_zero]
+    exact hasFDerivAt_homeoS_symm 𝔼 hG h0 hL
+  have h := (ContinuousLinearMap.snd ℝ (ParS ι E Ω) (SProcV ι Ω)).hasFDerivAt.comp
+    (0 : ParS ι E Ω) (hs.comp (0 : ParS ι E Ω) hin)
+  refine h.congr_fderiv (ContinuousLinearMap.ext (fun u => ?_))
+  change linInvS 𝔼 G ((0 : SProcV ι Ω) - condEV 𝔼 (bOpS G u)) =
+    -(linInvS 𝔼 G (condEV 𝔼 (bOpS G u)))
+  rw [zero_sub, map_neg]
+
+/-- Woodford (2003), App. A.3, pp. 633–634, **global-`C¹` form**: if `G` is `C¹`, `G(0) = 0` and
+(A.12) is invertible, there are `ε, δ > 0` such that for `‖(x_{−1}, e)‖ < δ`, `X(x_{−1}, e)` is a
+bounded adapted equilibrium with `‖X‖ < ε/2`, `X` is `C¹` there, and every equilibrium with
+`‖x‖ < ε` equals `X(x_{−1}, e)`. -/
+theorem local_determinacy_globalS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) :
+    ∃ ε > 0, ∃ δ > 0, δ ≤ ε ∧
+      (∀ u : ParS ι E Ω, ‖u‖ < δ →
+        ‖implicitSolS 𝔼 G hG hL u‖ < ε / 2 ∧ SolvesSV 𝔼 G u (implicitSolS 𝔼 G hG hL u) ∧
+          ContDiffAt ℝ 1 (implicitSolS 𝔼 G hG hL) u) ∧
+      (∀ u : ParS ι E Ω, ‖u‖ < δ → ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesSV 𝔼 G u x →
+        x = implicitSolS 𝔼 G hG hL u) := by
+  set H := homeoS 𝔼 G hG hL with hH
+  obtain ⟨ε, hε, hεsub⟩ :=
+    Metric.mem_nhds_iff.mp (H.open_source.mem_nhds (zero_mem_homeoS_source 𝔼 hG hL))
+  have hcd := contDiffAt_homeoS_symm 𝔼 hG h0 hL
+  have hsym0 := homeoS_symm_zero 𝔼 hG h0 hL
+  have hev1 : ∀ᶠ y in 𝓝 (0 : ParS ι E Ω × SProcV ι Ω), y ∈ H.target :=
+    H.open_target.mem_nhds (zero_mem_homeoS_target 𝔼 hG h0 hL)
+  have hev2 : ∀ᶠ y in 𝓝 (0 : ParS ι E Ω × SProcV ι Ω), ‖H.symm y‖ < ε / 2 := by
+    have ht := hcd.continuousAt.tendsto
+    rw [hsym0] at ht
+    exact (ht.eventually (Metric.ball_mem_nhds 0 (half_pos hε))).mono
+      (fun y hy => by simpa using hy)
+  have hev3 : ∀ᶠ y in 𝓝 (0 : ParS ι E Ω × SProcV ι Ω), ContDiffAt ℝ 1 H.symm y :=
+    hcd.eventually (by simp)
+  have hpull : Filter.Tendsto
+      (fun u : ParS ι E Ω => ((u, (0 : SProcV ι Ω)) : ParS ι E Ω × SProcV ι Ω))
+      (𝓝 0) (𝓝 0) := by
+    have hc : Continuous
+        (fun u : ParS ι E Ω => ((u, (0 : SProcV ι Ω)) : ParS ι E Ω × SProcV ι Ω)) :=
+      continuous_id.prodMk continuous_const
+    have h := hc.tendsto (0 : ParS ι E Ω)
+    rwa [Prod.mk_zero_zero] at h
+  obtain ⟨δ, hδ, hδP⟩ :=
+    Metric.eventually_nhds_iff.mp (hpull.eventually (hev1.and (hev2.and hev3)))
+  refine ⟨ε, hε, min δ ε, lt_min hδ hε, min_le_right _ _, fun u hu => ?_,
+    fun u hu x hx hsol => ?_⟩
+  · have huδ : dist u 0 < δ := by
+      rw [dist_zero_right]
+      exact lt_of_lt_of_le hu (min_le_left _ _)
+    obtain ⟨htar, hnorm, hcds⟩ := hδP huδ
+    have hright : H (H.symm (u, 0)) = (u, 0) := H.right_inv htar
+    have hfst : (H.symm (u, 0)).1 = u := congrArg Prod.fst hright
+    have hsnd : eqMapS 𝔼 G hG.continuous (H.symm (u, 0)) = 0 := congrArg Prod.snd hright
+    refine ⟨lt_of_le_of_lt (norm_snd_le _) hnorm, ?_, ?_⟩
+    · rw [← eqMapS_eq_zero_iff 𝔼 G hG.continuous]
+      have hq : ((u, implicitSolS 𝔼 G hG hL u) : ParS ι E Ω × SProcV ι Ω) = H.symm (u, 0) :=
+        Prod.ext hfst.symm rfl
+      rw [hq]
+      exact hsnd
+    · exact contDiffAt_snd.comp u (hcds.comp u (contDiffAt_id.prodMk contDiffAt_const))
+  · have hsrc : ((u, x) : ParS ι E Ω × SProcV ι Ω) ∈ H.source := by
+      apply hεsub
+      rw [Metric.mem_ball, dist_zero_right, Prod.norm_mk]
+      exact max_lt (lt_of_lt_of_le hu (min_le_right _ _)) hx
+    have hHx : H (u, x) = (u, 0) :=
+      Prod.ext rfl ((eqMapS_eq_zero_iff 𝔼 G hG.continuous u x).mpr hsol)
+    have h := H.left_inv hsrc
+    rw [hHx] at h
+    exact (congrArg Prod.snd h).symm
+
+/-! ### Only the behaviour near the steady state matters -/
+
+/-- Woodford (2003), App. A.3, p. 634: the bump cut-off has the same linearisation. -/
+theorem lin_cutoffS (G : Arg ι E → (ι → ℝ)) {r : ℝ} (hr : 0 < r) :
+    linOpS 𝔼 (cutoff G r hr) = linOpS 𝔼 G ∧ bOpS (Ω := Ω) (cutoff G r hr) = bOpS G ∧
+      linSolS 𝔼 (cutoff G r hr) = linSolS 𝔼 G ∧ dE (cutoff G r hr) = dE G := by
+  have h := fderiv_cutoff G hr
+  have h1 : linOpS 𝔼 (cutoff G r hr) = linOpS 𝔼 G := by
+    simp only [linOpS, M1, M2, M3, d1, d2, d3, h]
+  have hd1 : d1 (cutoff G r hr) = d1 G := by simp only [d1, h]
+  have hdE : dE (cutoff G r hr) = dE G := by simp only [dE, h]
+  have h2 : bOpS (Ω := Ω) (cutoff G r hr) = bOpS G :=
+    ContinuousLinearMap.ext fun u => lp.ext (funext fun p => by
+      rw [bOpS_apply, bOpS_apply, hd1, hdE])
+  refine ⟨h1, h2, ?_, hdE⟩
+  simp only [linSolS, linInvS, h1, h2]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: near the steady state the cut-off conditions and the
+original conditions have the same stochastic equilibria. -/
+theorem solvesSV_cutoff_iff {G : Arg ι E → (ι → ℝ)} {r : ℝ} (hr : 0 < r) {u : ParS ι E Ω}
+    {x : SProcV ι Ω} (hu : ‖u‖ ≤ r / 4) (hx : ‖x‖ ≤ r / 4) :
+    SolvesSV 𝔼 (cutoff G r hr) u x ↔ SolvesSV 𝔼 G u x := by
+  have hp : ∀ p, cutoff G r hr (ptS (u, x) p) = G (ptS (u, x) p) := fun p =>
+    cutoff_eq hr ((norm_ptS_le _ p).trans (by rw [Prod.norm_mk]; exact max_le hu hx))
+  unfold SolvesSV
+  simp only [hp]
+
+/-- **Woodford (2003), App. A.3, pp. 633–635: local determinacy of `n`-dimensional systems with
+predetermined variables under uncertainty.** For any expectation system: if `G` is `C¹` near the
+steady state, `G(0) = 0` and the operator (A.12) is invertible on `ℓ∞(ℕ × Ω, ℝⁿ)`
+(equivalently, for nonempty `Ω`, the exact root condition: `isUnit_linOpS_iff_roots`), there are
+`ε, δ > 0` (below any `η > 0`) and a map `X : (x_{−1}, e) ↦ x` with `X(0) = 0` whose derivative at
+`0` is the linear rational-expectations solution (A.13), such that for every initial condition
+and bounded disturbance process with `‖(x_{−1}, e)‖ < δ`: `X(x_{−1}, e)` is a bounded adapted
+equilibrium of `E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0` within `ε/2` of the steady state, `X` is
+`C¹` there, and every bounded adapted equilibrium within `ε` of the steady state equals it. -/
+theorem local_determinacyS {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) {η : ℝ} (hη : 0 < η) :
+    ∃ ε > 0, ε ≤ η ∧ ∃ δ > 0, δ ≤ η ∧ ∃ X : ParS ι E Ω → SProcV ι Ω, X 0 = 0 ∧
+      HasFDerivAt X (linSolS 𝔼 G) 0 ∧
+      ∀ u : ParS ι E Ω, ‖u‖ < δ → ‖X u‖ < ε / 2 ∧ SolvesSV 𝔼 G u (X u) ∧
+        ContDiffAt ℝ 1 X u ∧ ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesSV 𝔼 G u x → x = X u := by
+  obtain ⟨r₀, hr₀, hball₀⟩ := exists_ball_contDiffAt hG
+  set r := min r₀ η with hrdef
+  have hr : 0 < r := lt_min hr₀ hη
+  have hrη : r / 4 ≤ η := by linarith [min_le_right r₀ η]
+  have hball : ∀ p : Arg ι E, ‖p‖ < r → ContDiffAt ℝ 1 G p :=
+    fun p hp => hball₀ p (lt_of_lt_of_le hp (min_le_left _ _))
+  set F := cutoff G r hr with hF
+  have hF1 : ContDiff ℝ 1 F := contDiff_cutoff hr hball
+  obtain ⟨hlo, -, hls, -⟩ := lin_cutoffS 𝔼 G hr
+  have hL' : IsUnit (linOpS 𝔼 F) := by rw [hlo]; exact hL
+  have hF0 : F 0 = 0 := by rw [hF, cutoff_eq hr (by rw [norm_zero]; positivity), h0]
+  obtain ⟨ε₀, hε₀, δ₀, hδ₀, -, hex, huniq⟩ := local_determinacy_globalS 𝔼 hF1 hF0 hL'
+  set X := implicitSolS 𝔼 F hF1 hL' with hX
+  have hX0 : X 0 = 0 := implicitSolS_zero 𝔼 hF1 hF0 hL'
+  have hcont : ContinuousAt X 0 := (hasFDerivAt_implicitSolS 𝔼 hF1 hF0 hL').continuousAt
+  have hev : ∀ᶠ u in 𝓝 (0 : ParS ι E Ω), ‖X u‖ < r / 8 := by
+    have ht := hcont.tendsto
+    rw [hX0] at ht
+    exact (ht.eventually (Metric.ball_mem_nhds (0 : SProcV ι Ω)
+      (by positivity : (0 : ℝ) < r / 8))).mono (fun u hu => by simpa using hu)
+  obtain ⟨δ₁, hδ₁, hδ₁P⟩ := Metric.eventually_nhds_iff.mp hev
+  refine ⟨min ε₀ (r / 4), lt_min hε₀ (by positivity), (min_le_right _ _).trans hrη,
+    min (min δ₀ δ₁) (r / 4), lt_min (lt_min hδ₀ hδ₁) (by positivity),
+    (min_le_right _ _).trans hrη, X, hX0, ?_, fun u hu => ?_⟩
+  · rw [← hls]
+    exact hasFDerivAt_implicitSolS 𝔼 hF1 hF0 hL'
+  have hu0 : ‖u‖ < δ₀ := lt_of_lt_of_le hu ((min_le_left _ _).trans (min_le_left _ _))
+  have hu1 : dist u 0 < δ₁ := by
+    rw [dist_zero_right]
+    exact lt_of_lt_of_le hu ((min_le_left _ _).trans (min_le_right _ _))
+  have hu4 : ‖u‖ ≤ r / 4 := (lt_of_lt_of_le hu (min_le_right _ _)).le
+  obtain ⟨hXn, hXs, hXc⟩ := hex u hu0
+  have hXr := hδ₁P hu1
+  have hXr4 : ‖X u‖ ≤ r / 4 := by linarith
+  refine ⟨by rw [lt_div_iff₀ two_pos]; exact lt_min (by linarith) (by linarith),
+    (solvesSV_cutoff_iff 𝔼 hr hu4 hXr4).mp hXs, hXc, fun x hx hsol => ?_⟩
+  have hx4 : ‖x‖ ≤ r / 4 := (lt_of_lt_of_le hx (min_le_right _ _)).le
+  exact huniq u hu0 x (lt_of_lt_of_le hx (min_le_left _ _))
+    ((solvesSV_cutoff_iff 𝔼 hr hu4 hx4).mpr hsol)
+
+omit [FiniteDimensional ℝ E] in
+/-- **The invertibility condition under uncertainty is the exact root condition** (Woodford
+(2003), App. A.3, eqs. (A.9), (A.12), pp. 632–634): for a nonempty state space, with
+`f_j = D_jG(0)`, (A.12) is invertible iff `det(f₃λ² + f₂λ + f₁) ≢ 0`, no root lies on the unit
+circle, exactly `n` lie inside, and genericity holds — the same condition as for the
+perfect-foresight operator (A.8) (`isUnit_linOpS_iff_linOp`). -/
+theorem isUnit_linOpS_iff_roots [Nonempty Ω] (G : Arg ι E → (ι → ℝ)) :
+    IsUnit (linOpS 𝔼 G) ↔ quadPoly (M1 G) (M2 G) (M3 G) ≠ 0 ∧
+      (∀ μ ∈ ((quadPoly (M1 G) (M2 G) (M3 G)).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card (((quadPoly (M1 G) (M2 G) (M3 G)).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card ι ∧ HomInjective (M1 G) (M2 G) (M3 G) :=
+  isUnit_opS_iff_roots 𝔼 _ _ _
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, pp. 632–634: the stochastic operator (A.12) is invertible iff
+the perfect-foresight operator (A.8) of `LocalIFTSystems` is. -/
+theorem isUnit_linOpS_iff_linOp [Nonempty Ω] (G : Arg ι E → (ι → ℝ)) :
+    IsUnit (linOpS 𝔼 G) ↔ IsUnit (LocalIFTSystems.linOp G) :=
+  isUnit_opS_iff_sysOp 𝔼 _ _ _
+
+/-- **Woodford (2003), App. A.3, pp. 633–635, with the root condition made exact**: for a
+nonempty state space, the conclusions of `local_determinacyS` hold whenever
+`det(f₃λ² + f₂λ + f₁)` (`f_j = D_jG(0)`) is not identically zero, has no root on the unit circle
+and exactly `n` roots inside it, and genericity holds. -/
+theorem local_determinacyS_of_roots [Nonempty Ω] {G : Arg ι E → (ι → ℝ)}
+    (hG : ContDiffAt ℝ 1 G 0) (h0 : G 0 = 0) (hreg : quadPoly (M1 G) (M2 G) (M3 G) ≠ 0)
+    (hnu : ∀ μ ∈ ((quadPoly (M1 G) (M2 G) (M3 G)).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1)
+    (hcount : Multiset.card (((quadPoly (M1 G) (M2 G) (M3 G)).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card ι)
+    (hgen : HomInjective (M1 G) (M2 G) (M3 G)) {η : ℝ} (hη : 0 < η) :
+    ∃ ε > 0, ε ≤ η ∧ ∃ δ > 0, δ ≤ η ∧ ∃ X : ParS ι E Ω → SProcV ι Ω, X 0 = 0 ∧
+      HasFDerivAt X (linSolS 𝔼 G) 0 ∧
+      ∀ u : ParS ι E Ω, ‖u‖ < δ → ‖X u‖ < ε / 2 ∧ SolvesSV 𝔼 G u (X u) ∧
+        ContDiffAt ℝ 1 X u ∧ ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesSV 𝔼 G u x → x = X u :=
+  local_determinacyS 𝔼 hG h0 ((isUnit_linOpS_iff_roots 𝔼 G).mpr ⟨hreg, hnu, hcount, hgen⟩) hη
+
+/-! ### Accuracy of the linear approximation (erratum E18) -/
+
+/-- Woodford (2003), App. A.3, p. 634, E18 (**first order under `C¹`**): every stochastic
+equilibrium near the steady state is within `c ‖(x_{−1}, e)‖` of the linear RE solution, for
+every `c > 0` once the disturbances are small enough — an `o(‖u‖)` error. -/
+theorem first_order_locS {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) :
+    ∃ ε > 0, ∀ c > 0, ∃ δ > 0, ∀ u : ParS ι E Ω, ‖u‖ < δ → ∀ x : SProcV ι Ω, ‖x‖ < ε →
+      SolvesSV 𝔼 G u x → ‖x - linSolS 𝔼 G u‖ ≤ c * ‖u‖ := by
+  obtain ⟨ε, hε, -, δ₀, hδ₀, -, X, hX0, hXd, hX⟩ := local_determinacyS 𝔼 hG h0 hL one_pos
+  refine ⟨ε, hε, fun c hc => ?_⟩
+  obtain ⟨δ₁, hδ₁, hδ₁P⟩ := Metric.eventually_nhds_iff.mp (hXd.isLittleO.def hc)
+  refine ⟨min δ₀ δ₁, lt_min hδ₀ hδ₁, fun u hu x hx hsol => ?_⟩
+  have h1 := hδ₁P (by rw [dist_zero_right]; exact lt_of_lt_of_le hu (min_le_right _ _))
+  simp only [hX0, sub_zero] at h1
+  rw [(hX u (lt_of_lt_of_le hu (min_le_left _ _))).2.2.2 x hx hsol]
+  exact h1
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): for an equilibrium `x`,
+`(A.12)(x − x̂) = −E_t[G(π_t) − DG(0) π_t]` — the linearisation error is the conditional
+expectation of the pointwise Taylor remainder. -/
+theorem linOpS_sub_linSolS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G)
+    (hL : IsUnit (linOpS 𝔼 G)) {u : ParS ι E Ω} {x : SProcV ι Ω}
+    (hsol : eqMapS 𝔼 G hG.continuous (u, x) = 0) :
+    linOpS 𝔼 G (x - linSolS 𝔼 G u) = -condEV 𝔼 (nemI G hG.continuous ptSL norm_ptSL_le (u, x) -
+      nemID G hG ptSL norm_ptSL_le 0 (u, x)) := by
+  have hD : eqD0S 𝔼 G (u, x) = eqDS 𝔼 G hG 0 (u, x) := by rw [eqDS_zero 𝔼 hG]
+  have e1 : linOpS 𝔼 G (x - linSolS 𝔼 G u) = eqD0S 𝔼 G (u, x) := by
+    rw [map_sub, linOpS_linSolS 𝔼 hL, sub_neg_eq_add]
+    rfl
+  rw [e1, hD, ← sub_zero (eqDS 𝔼 G hG 0 (u, x)), ← hsol]
+  change condEV 𝔼 (nemID G hG ptSL norm_ptSL_le 0 (u, x)) + (x - condEV 𝔼 x) -
+    (condEV 𝔼 (nemI G hG.continuous ptSL norm_ptSL_le (u, x)) + (x - condEV 𝔼 x)) = _
+  rw [map_sub]
+  abel
+
+/-- Woodford (2003), App. A.3, p. 634, corrected per E18 (**global form**): if `DG` is Lipschitz
+near the steady state, the exact stochastic equilibrium differs from the linear RE solution by
+at most `C ‖(x_{−1}, e)‖²`. -/
+theorem second_order_globalS {G : Arg ι E → (ι → ℝ)} (hG : ContDiff ℝ 1 G) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) {K r : ℝ} (hK : 0 ≤ K)
+    (hLip : ∀ z : Arg ι E, ‖z‖ ≤ r → ‖fderiv ℝ G z - fderiv ℝ G 0‖ ≤ K * ‖z‖) (hr : 0 < r) :
+    ∃ C δ : ℝ, 0 < δ ∧ ∀ u : ParS ι E Ω, ‖u‖ < δ →
+      ‖implicitSolS 𝔼 G hG hL u - linSolS 𝔼 G u‖ ≤ C * ‖u‖ ^ 2 := by
+  obtain ⟨ε, hε, δ₁, hδ₁, -, hex, -⟩ := local_determinacy_globalS 𝔼 hG h0 hL
+  obtain ⟨δ₂, hδ₂, hδ₂P⟩ :=
+    Metric.eventually_nhds_iff.mp ((hasFDerivAt_implicitSolS 𝔼 hG h0 hL).isLittleO.def one_pos)
+  set C1 := ‖linSolS 𝔼 G‖ + 1 with hC1
+  have hC1pos : 0 < C1 := by positivity
+  have hC1one : 1 ≤ C1 := le_add_of_nonneg_left (norm_nonneg _)
+  refine ⟨‖linInvS 𝔼 G‖ * (K * C1 ^ 2), min (min δ₁ δ₂) (r / C1), by positivity,
+    fun u hu => ?_⟩
+  have hu1 : ‖u‖ < δ₁ := lt_of_lt_of_le hu ((min_le_left _ _).trans (min_le_left _ _))
+  have hu2 : dist u 0 < δ₂ := by
+    rw [dist_zero_right]
+    exact lt_of_lt_of_le hu ((min_le_left _ _).trans (min_le_right _ _))
+  have hu3 : C1 * ‖u‖ ≤ r := by
+    have h : ‖u‖ < r / C1 := lt_of_lt_of_le hu (min_le_right _ _)
+    rw [lt_div_iff₀ hC1pos] at h
+    linarith
+  obtain ⟨-, hsol, -⟩ := hex u hu1
+  set x := implicitSolS 𝔼 G hG hL u with hx
+  have hxb : ‖x‖ ≤ C1 * ‖u‖ := by
+    have h := hδ₂P hu2
+    rw [implicitSolS_zero 𝔼 hG h0 hL, sub_zero, sub_zero, one_mul] at h
+    calc ‖x‖ = ‖(x - linSolS 𝔼 G u) + linSolS 𝔼 G u‖ := by rw [sub_add_cancel]
+      _ ≤ ‖x - linSolS 𝔼 G u‖ + ‖linSolS 𝔼 G u‖ := norm_add_le _ _
+      _ ≤ ‖u‖ + ‖linSolS 𝔼 G‖ * ‖u‖ := add_le_add h ((linSolS 𝔼 G).le_opNorm u)
+      _ = C1 * ‖u‖ := by rw [hC1]; ring
+  have hzero := (eqMapS_eq_zero_iff 𝔼 G hG.continuous u x).mpr hsol
+  have hrem : ‖nemI G hG.continuous ptSL norm_ptSL_le (u, x) -
+      nemID G hG ptSL norm_ptSL_le 0 (u, x)‖ ≤ K * (C1 * ‖u‖) ^ 2 := by
+    refine LocalIFTStochastic.norm_le_of_forall (by positivity) fun p => ?_
+    have hz : ‖ptS (u, x) p‖ ≤ C1 * ‖u‖ := by
+      refine (norm_ptS_le _ p).trans ?_
+      rw [Prod.norm_mk]
+      exact max_le (le_mul_of_one_le_left (norm_nonneg _) hC1one) hxb
+    have h := norm_remainder_le hG hK hLip _ (hz.trans hu3)
+    rw [h0, sub_zero] at h
+    have e : (nemI G hG.continuous ptSL norm_ptSL_le (u, x) -
+        nemID G hG ptSL norm_ptSL_le 0 (u, x)) p =
+        G (ptS (u, x) p) - fderiv ℝ G 0 (ptS (u, x) p) := by
+      rw [lp.coeFn_sub, Pi.sub_apply, nemI_apply, nemID_apply, map_zero, ptSL_apply]
+    rw [e]
+    calc _ ≤ K * ‖ptS (u, x) p‖ ^ 2 := h
+      _ ≤ K * (C1 * ‖u‖) ^ 2 :=
+        mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (norm_nonneg _) hz 2) hK
+  have hlin : ‖linOpS 𝔼 G (x - linSolS 𝔼 G u)‖ ≤ K * (C1 * ‖u‖) ^ 2 := by
+    rw [linOpS_sub_linSolS 𝔼 hG hL hzero, norm_neg]
+    exact (norm_condEV_le 𝔼 _).trans hrem
+  calc ‖x - linSolS 𝔼 G u‖ = ‖linInvS 𝔼 G (linOpS 𝔼 G (x - linSolS 𝔼 G u))‖ := by
+        rw [linInvS_linOpS 𝔼 hL]
+    _ ≤ ‖linInvS 𝔼 G‖ * ‖linOpS 𝔼 G (x - linSolS 𝔼 G u)‖ := (linInvS 𝔼 G).le_opNorm _
+    _ ≤ ‖linInvS 𝔼 G‖ * (K * (C1 * ‖u‖) ^ 2) := mul_le_mul_of_nonneg_left hlin (norm_nonneg _)
+    _ = ‖linInvS 𝔼 G‖ * (K * C1 ^ 2) * ‖u‖ ^ 2 := by ring
+
+/-- Woodford (2003), App. A.3, p. 634 ("coincides with this solution … up to an error term of
+order `O(‖u‖²)`"), **local form**, corrected per E18: if `G` is `C²` near the steady state, every
+bounded adapted equilibrium within `ε` of the steady state satisfies
+`‖x − x̂(x_{−1}, e)‖ ≤ C ‖(x_{−1}, e)‖²` for `‖(x_{−1}, e)‖ < δ`, `x̂` the linear RE solution. -/
+theorem second_order_locS {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 2 G 0) (h0 : G 0 = 0)
+    (hL : IsUnit (linOpS 𝔼 G)) {η : ℝ} (hη : 0 < η) :
+    ∃ ε > 0, ε ≤ η ∧ ∃ δ > 0, δ ≤ η ∧ ∃ C : ℝ, ∀ u : ParS ι E Ω, ‖u‖ < δ →
+      ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesSV 𝔼 G u x → ‖x - linSolS 𝔼 G u‖ ≤ C * ‖u‖ ^ 2 := by
+  obtain ⟨r₀, hr₀, hball₀⟩ := exists_ball_contDiffAt hG
+  set r := min r₀ η with hrdef
+  have hr : 0 < r := lt_min hr₀ hη
+  have hrη : r / 4 ≤ η := by linarith [min_le_right r₀ η]
+  have hball : ∀ p : Arg ι E, ‖p‖ < r → ContDiffAt ℝ 2 G p :=
+    fun p hp => hball₀ p (lt_of_lt_of_le hp (min_le_left _ _))
+  set F := cutoff G r hr with hF
+  have hF2 : ContDiff ℝ 2 F := contDiff_cutoff hr hball
+  have hF1 : ContDiff ℝ 1 F := hF2.of_le (by norm_num)
+  obtain ⟨hlo, -, hls, -⟩ := lin_cutoffS 𝔼 G hr
+  have hL' : IsUnit (linOpS 𝔼 F) := by rw [hlo]; exact hL
+  have hF0 : F 0 = 0 := by rw [hF, cutoff_eq hr (by rw [norm_zero]; positivity), h0]
+  obtain ⟨ε₀, hε₀, δ₀, hδ₀, -, -, huniq⟩ := local_determinacy_globalS 𝔼 hF1 hF0 hL'
+  obtain ⟨K, r', hK, hr', hLip⟩ := lipschitz_fderiv hF2
+  obtain ⟨C, δ₂, hδ₂, hC⟩ := second_order_globalS 𝔼 hF1 hF0 hL' hK hLip hr'
+  refine ⟨min ε₀ (r / 4), lt_min hε₀ (by positivity), (min_le_right _ _).trans hrη,
+    min (min δ₀ δ₂) (r / 4), lt_min (lt_min hδ₀ hδ₂) (by positivity),
+    (min_le_right _ _).trans hrη, C, fun u hu x hx hsol => ?_⟩
+  have hu0 : ‖u‖ < δ₀ := lt_of_lt_of_le hu ((min_le_left _ _).trans (min_le_left _ _))
+  have hu2 : ‖u‖ < δ₂ := lt_of_lt_of_le hu ((min_le_left _ _).trans (min_le_right _ _))
+  have hu4 : ‖u‖ ≤ r / 4 := (lt_of_lt_of_le hu (min_le_right _ _)).le
+  have hx4 : ‖x‖ ≤ r / 4 := (lt_of_lt_of_le hx (min_le_right _ _)).le
+  have hxX := huniq u hu0 x (lt_of_lt_of_le hx (min_le_left _ _))
+    ((solvesSV_cutoff_iff 𝔼 hr hu4 hx4).mpr hsol)
+  rw [← hls, hxX]
+  exact hC u hu2
+
+/-! ### Perfect foresight inside uncertainty: deterministic paths -/
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `E_t` applied twice, `E_t(y_t − E_t y_t) = 0`. -/
+theorem condEV_sub_condEV (y : SProcV ι Ω) : condEV 𝔼 (y - condEV 𝔼 y) = 0 := by
+  ext ⟨t, ω⟩ i
+  change 𝔼.E t (toP y t i - 𝔼.E t (toP y t i)) ω = 0
+  rw [map_sub, 𝔼.E_E_self, sub_self]
+  rfl
+
+/-- Woodford (2003), App. A.3, p. 634: a deterministic bounded sequence as a bounded process (the
+same value in every state). -/
+noncomputable def embG (V : Type*) [NormedAddCommGroup V] [NormedSpace ℝ V] :
+    LocalIFT.Seq V →L[ℝ] LocalIFTStochastic.BFun (ℕ × Ω) V :=
+  LinearMap.mkContinuous
+    { toFun := fun z => LocalIFTStochastic.mkB (fun p => z p.1)
+        ⟨‖z‖, fun p => LocalIFT.norm_seq_apply_le z p.1⟩
+      map_add' := fun z z' => lp.ext (funext fun p => rfl)
+      map_smul' := fun c z => lp.ext (funext fun p => rfl) }
+    1 (fun z => by
+      rw [one_mul]
+      exact LocalIFTStochastic.norm_le_of_forall (norm_nonneg _) fun p =>
+        LocalIFT.norm_seq_apply_le z p.1)
+
+/-- Woodford (2003), App. A.3, p. 634: values of the deterministic embedding. -/
+@[simp] theorem embG_apply (V : Type*) [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (z : LocalIFT.Seq V) (p : ℕ × Ω) : embG V z p = z p.1 := rfl
+
+/-- Woodford (2003), App. A.3, p. 634: on a nonempty state space the deterministic embedding is
+an isometry. -/
+theorem norm_embG [Nonempty Ω] (V : Type*) [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (z : LocalIFT.Seq V) : ‖embG (Ω := Ω) V z‖ = ‖z‖ := by
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  refine le_antisymm (LocalIFTStochastic.norm_le_of_forall (norm_nonneg _) fun p =>
+    LocalIFT.norm_seq_apply_le z p.1) (LocalIFT.norm_seq_le (norm_nonneg _) fun t => ?_)
+  have h := LocalIFTStochastic.norm_apply_le (embG (Ω := Ω) V z) (t, ω₀)
+  rwa [embG_apply] at h
+
+/-- Woodford (2003), App. A.3, p. 634: deterministic parameters `(x_{−1}, e)` as stochastic
+ones. -/
+noncomputable def embPar : LocalIFTSystems.Par ι E →L[ℝ] ParS ι E Ω :=
+  (ContinuousLinearMap.fst ℝ (ι → ℝ) (LocalIFT.Seq E)).prod
+    ((embG E).comp (ContinuousLinearMap.snd ℝ (ι → ℝ) (LocalIFT.Seq E)))
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: the embedding of parameters does not increase norms. -/
+theorem norm_embPar_le (u : LocalIFTSystems.Par ι E) : ‖embPar (Ω := Ω) u‖ ≤ ‖u‖ := by
+  change ‖((u.1, embG E u.2) : ParS ι E Ω)‖ ≤ ‖u‖
+  rw [Prod.norm_mk, Prod.norm_def]
+  refine max_le_max le_rfl (LocalIFTStochastic.norm_le_of_forall (norm_nonneg _) fun p =>
+    LocalIFT.norm_seq_apply_le u.2 p.1)
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): the process of an embedded sequence. -/
+theorem toP_embG (z : SeqV ι) : toP (embG (Ω := Ω) (ι → ℝ) z) = fun t i _ => z t i := rfl
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): embedded sequences are adapted. -/
+theorem adaptedV_embG (z : SeqV ι) : AdaptedV 𝔼 (toP (embG (Ω := Ω) (ι → ℝ) z)) := by
+  rw [toP_embG]
+  exact fun t i => 𝔼.const t _
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, pp. 631–634: **a deterministic path is a stochastic equilibrium
+with deterministic parameters iff it is a perfect-foresight equilibrium** (`LocalIFTSystems`),
+for every expectation system on a nonempty state space. -/
+theorem solvesSV_embG_iff [Nonempty Ω] (G : Arg ι E → (ι → ℝ)) (u : LocalIFTSystems.Par ι E)
+    (z : SeqV ι) :
+    SolvesSV 𝔼 G (embPar u) (embG (ι → ℝ) z) ↔ LocalIFTSystems.Solves G u z := by
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  have hp : ∀ t (ω : Ω), ptS (embPar u, embG (ι → ℝ) z) (t, ω) =
+      (lagV u.1 (fun s => z s) t, z t, z (t + 1), u.2 t) := by
+    intro t ω
+    cases t <;> rfl
+  constructor
+  · rintro ⟨-, h⟩ t
+    funext i
+    have := congrFun (h t i) ω₀
+    simp only [hp] at this
+    rw [𝔼.const] at this
+    exact this
+  · intro h
+    refine ⟨adaptedV_embG 𝔼 z, fun t i => ?_⟩
+    simp only [hp, h t, Pi.zero_apply]
+    exact 𝔼.const t 0
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, pp. 632–634: (A.12) onto implies (A.8) onto (a deterministic
+forcing with no bounded perfect-foresight solution has no stochastic one). -/
+theorem sysOp_surjective_of_opS [Nonempty Ω] {f₁ f₂ f₃ : Matrix ι ι ℝ}
+    (hs : Function.Surjective (opS 𝔼 f₁ f₂ f₃)) : Function.Surjective (sysOp f₁ f₂ f₃) := by
+  by_contra hns
+  obtain ⟨W, hWb, hno⟩ := (nonexistS_iff 𝔼 f₁ f₂ f₃).mpr hns
+  obtain ⟨x, hx⟩ := hs (ofP (detP W) (boundedV_detP hWb))
+  have hxp : toP (opS 𝔼 f₁ f₂ f₃ x) = detP W := by rw [hx]; rfl
+  have ha := adapted_of_opS 𝔼 f₁ f₂ f₃ x (by rw [hxp]; exact adaptedV_detP 𝔼 W)
+  exact hno (toP x) (boundedV_toP x) fun t => by
+    rw [← toP_opS_of_adapted 𝔼 f₁ f₂ f₃ x ha t, hxp]
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, pp. 632–634: (A.12) not one-to-one implies (A.8) not one-to-one
+(a nonzero adapted solution of the homogeneous system projects to a perfect-foresight one). -/
+theorem sysOp_not_injective_of_opS [Nonempty Ω] {f₁ f₂ f₃ : Matrix ι ι ℝ}
+    (h : ¬ Function.Injective (opS 𝔼 f₁ f₂ f₃)) : ¬ Function.Injective (sysOp f₁ f₂ f₃) := by
+  rw [← nonuniqueS_iff 𝔼]
+  simp only [Function.Injective, not_forall] at h
+  obtain ⟨a, b, hab, hne⟩ := h
+  have hd : opS 𝔼 f₁ f₂ f₃ (a - b) = 0 := by rw [map_sub, hab, sub_self]
+  have hdp : toP (opS 𝔼 f₁ f₂ f₃ (a - b)) = 0 := by rw [hd]; rfl
+  have ha := adapted_of_opS 𝔼 f₁ f₂ f₃ (a - b) (by rw [hdp]; exact fun _ _ => map_zero _)
+  refine ⟨toP (a - b), boundedV_toP _, ha, fun t => ?_, fun h0 => hne ?_⟩
+  · rw [← toP_opS_of_adapted 𝔼 _ _ _ (a - b) ha t, hdp]
+  · exact sub_eq_zero.mp (toP_injective (h0.trans toP_zero.symm))
+
+/-! ### Necessity: what fails when the root condition fails -/
+
+/-- Woodford (2003), App. A.3, p. 634 (**necessity, existence half**): if the disturbances can
+move every equation independently (`D₄G(0)` onto) and there is a solution map `X` with
+`X(0) = 0`, differentiable at the steady state, then the operator (A.12) is onto: differentiating
+`Φ(u, X(u)) = 0` puts every `E_t y` in its range, and the adaptedness term covers the rest. -/
+theorem surjective_of_solution_mapS {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (hE : Function.Surjective (dE G)) {X : ParS ι E Ω → SProcV ι Ω} {δ : ℝ}
+    (hδ : 0 < δ) (hX0 : X 0 = 0) (hXd : DifferentiableAt ℝ X 0)
+    (hX : ∀ u : ParS ι E Ω, ‖u‖ < δ → SolvesSV 𝔼 G u (X u)) :
+    Function.Surjective (linOpS 𝔼 G) := by
+  obtain ⟨r, hr, hball⟩ := exists_ball_contDiffAt hG
+  set F := cutoff G r hr with hF
+  have hF1 : ContDiff ℝ 1 F := contDiff_cutoff hr hball
+  obtain ⟨hlo, hbo, -, -⟩ := lin_cutoffS 𝔼 G hr
+  have hev : (fun u => eqMapS 𝔼 F hF1.continuous (u, X u)) =ᶠ[𝓝 0] fun _ => 0 := by
+    have h1 : ∀ᶠ u in 𝓝 (0 : ParS ι E Ω), ‖X u‖ < r / 4 := by
+      have ht := hXd.continuousAt.tendsto
+      rw [hX0] at ht
+      exact (ht.eventually (Metric.ball_mem_nhds (0 : SProcV ι Ω)
+        (by positivity : (0 : ℝ) < r / 4))).mono (fun u hu => by simpa using hu)
+    have h2 : ∀ᶠ u in 𝓝 (0 : ParS ι E Ω), ‖u‖ < min δ (r / 4) := by
+      filter_upwards [Metric.ball_mem_nhds (0 : ParS ι E Ω)
+        (lt_min hδ (by positivity : (0 : ℝ) < r / 4))] with u hu
+      rwa [mem_ball_zero_iff] at hu
+    filter_upwards [h1, h2] with u hu1 hu2
+    rw [eqMapS_eq_zero_iff]
+    exact (solvesSV_cutoff_iff 𝔼 hr (hu2.le.trans (min_le_right _ _)) hu1.le).mpr
+      (hX u (hu2.trans_le (min_le_left _ _)))
+  have hn := (hasStrictFDerivAt_eqMapS 𝔼 hF1 0).hasFDerivAt
+  rw [eqDS_zero 𝔼 hF1] at hn
+  have hp : HasFDerivAt (fun u : ParS ι E Ω => ((u, X u) : ParS ι E Ω × SProcV ι Ω))
+      ((ContinuousLinearMap.id ℝ (ParS ι E Ω)).prod (fderiv ℝ X 0)) 0 :=
+    (hasFDerivAt_id (0 : ParS ι E Ω)).prodMk hXd.hasFDerivAt
+  have hp0 : ((0 : ParS ι E Ω), X 0) = (0 : ParS ι E Ω × SProcV ι Ω) := by rw [hX0]; rfl
+  rw [← hp0] at hn
+  have hD := hn.comp (0 : ParS ι E Ω) hp
+  have hc : HasFDerivAt (fun u => eqMapS 𝔼 F hF1.continuous (u, X u))
+      (0 : ParS ι E Ω →L[ℝ] SProcV ι Ω) 0 :=
+    (hasFDerivAt_const (0 : SProcV ι Ω) (0 : ParS ι E Ω)).congr_of_eventuallyEq hev
+  have hzero := hD.unique hc
+  obtain ⟨g, hg⟩ := (dE G : E →ₗ[ℝ] (ι → ℝ)).exists_rightInverse_of_surjective
+    (LinearMap.range_eq_top.mpr hE)
+  set R : (ι → ℝ) →L[ℝ] E := LinearMap.toContinuousLinearMap g with hR
+  have hRinv : ∀ v, dE G (R v) = v := fun v => by
+    have := congrArg (fun φ : (ι → ℝ) →ₗ[ℝ] (ι → ℝ) => φ v) hg
+    simpa [hR] using this
+  have hrange : ∀ y : SProcV ι Ω, ∃ z, linOpS 𝔼 G z = condEV 𝔼 y := by
+    intro y
+    set e : LocalIFTStochastic.BFun (ℕ × Ω) E := LocalIFTStochastic.mkB (fun p => R (-y p))
+      ⟨‖R‖ * ‖y‖, fun p => (R.le_opNorm _).trans (mul_le_mul_of_nonneg_left
+        (by rw [norm_neg]; exact LocalIFTStochastic.norm_apply_le y p) (norm_nonneg _))⟩ with he
+    set du : ParS ι E Ω := (0, e) with hdu
+    refine ⟨fderiv ℝ X 0 du, ?_⟩
+    have h1 := congrArg (fun T : ParS ι E Ω →L[ℝ] SProcV ι Ω => T du) hzero
+    change linOpS 𝔼 F (fderiv ℝ X 0 du) + condEV 𝔼 (bOpS F du) = 0 at h1
+    rw [hlo, hbo] at h1
+    have hb : bOpS G du = -y := by
+      refine lp.ext (funext fun p => ?_)
+      rw [bOpS_apply]
+      have hl : lagV (0 : ι → ℝ) (0 : ℕ → ι → ℝ) p.1 = 0 := by cases p.1 <;> rfl
+      simp only [hdu, he, hl, map_zero, zero_add, LocalIFTStochastic.mkB_apply, hRinv,
+        lp.coeFn_neg, Pi.neg_apply]
+    rw [hb, map_neg] at h1
+    exact add_neg_eq_zero.mp h1
+  intro y
+  obtain ⟨z₁, hz₁⟩ := hrange y
+  have hPb : condEV 𝔼 (y - condEV 𝔼 y) = 0 := condEV_sub_condEV 𝔼 y
+  obtain ⟨z₂, hz₂⟩ := hrange (linS (M1 G) (M2 G) (M3 G) (y - condEV 𝔼 y))
+  refine ⟨z₁ + (y - condEV 𝔼 y) - z₂, ?_⟩
+  have hb' : linOpS 𝔼 G (y - condEV 𝔼 y) =
+      condEV 𝔼 (linS (M1 G) (M2 G) (M3 G) (y - condEV 𝔼 y)) + (y - condEV 𝔼 y) := by
+    change condEV 𝔼 (linS (M1 G) (M2 G) (M3 G) (y - condEV 𝔼 y)) +
+      ((y - condEV 𝔼 y) - condEV 𝔼 (y - condEV 𝔼 y)) = _
+    rw [hPb, sub_zero]
+  rw [map_sub, map_add, hz₁, hb', hz₂]
+  abel
+
+/-- Woodford (2003), App. A.3, pp. 633–634 (**necessity, uniqueness half**): on a nonempty
+state space, if (A.12) is onto but not one-to-one, local uniqueness fails — there are bounded
+adapted equilibria other than the steady state, with `x_{−1} = x̄` and no disturbances,
+arbitrarily close to it (deterministic ones: the perfect-foresight manifold of
+`LocalIFTSystems.not_locally_unique`, through `sysOp_surjective_of_opS` and
+`sysOp_not_injective_of_opS`). -/
+theorem not_locally_uniqueS [Nonempty Ω] {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (h0 : G 0 = 0) (hs : Function.Surjective (linOpS 𝔼 G))
+    (hni : ¬ Function.Injective (linOpS 𝔼 G)) :
+    ∀ ε > 0, ∃ x : SProcV ι Ω, x ≠ 0 ∧ ‖x‖ < ε ∧ SolvesSV 𝔼 G 0 x := by
+  intro ε hε
+  obtain ⟨z, hz0, hzε, hzs⟩ := LocalIFTSystems.not_locally_unique hG h0
+    (sysOp_surjective_of_opS 𝔼 hs) (sysOp_not_injective_of_opS 𝔼 hni) ε hε
+  refine ⟨embG (ι → ℝ) z, fun h => hz0 ?_, by rw [norm_embG]; exact hzε, ?_⟩
+  · rw [← norm_eq_zero, ← norm_embG (Ω := Ω), h, norm_zero]
+  · have e : (0 : ParS ι E Ω) = embPar 0 := (map_zero _).symm
+    rw [e]
+    exact (solvesSV_embG_iff 𝔼 G 0 z).mpr hzs
+
+/-- **The converse of the stochastic local determinacy theorem** (Woodford (2003), App. A.3,
+pp. 633–634): on a nonempty state space, if the disturbances move every equation independently
+(`D₄G(0)` onto) and the exact model is locally determinate *with a solution map differentiable at
+the steady state* — some `X` with `X(0) = 0`, differentiable at `0`, solving the conditions for
+small `(x_{−1}, e)`, and the steady state the only equilibrium within `ε` when `x_{−1} = x̄`,
+`e = 0` — then (A.12) is invertible, i.e. the root condition holds. -/
+theorem isUnit_of_local_determinacyS [Nonempty Ω] {G : Arg ι E → (ι → ℝ)}
+    (hG : ContDiffAt ℝ 1 G 0) (h0 : G 0 = 0) (hE : Function.Surjective (dE G))
+    {X : ParS ι E Ω → SProcV ι Ω} {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ) (hX0 : X 0 = 0)
+    (hXd : DifferentiableAt ℝ X 0) (hX : ∀ u : ParS ι E Ω, ‖u‖ < δ → SolvesSV 𝔼 G u (X u))
+    (huniq : ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesSV 𝔼 G 0 x → x = 0) : IsUnit (linOpS 𝔼 G) := by
+  have hs := surjective_of_solution_mapS 𝔼 hG hE hδ hX0 hXd hX
+  rw [ContinuousLinearMap.isUnit_iff_bijective]
+  refine ⟨?_, hs⟩
+  by_contra hni
+  obtain ⟨x, hx0, hxε, hxs⟩ := not_locally_uniqueS 𝔼 hG h0 hs hni ε hε
+  exact hx0 (huniq x hxε hxs)
+
+/-- **Stochastic local determinacy with a first-order approximation holds exactly under the
+root condition** (Woodford (2003), App. A.3, pp. 633–634): on a nonempty state space, for `G`
+`C¹` near the steady state with `G(0) = 0` and `D₄G(0)` onto, (A.12) is invertible —
+equivalently the exact root condition (`isUnit_linOpS_iff_roots`) — iff there are `ε, δ > 0` and
+a solution map `X` with `X(0) = 0`, differentiable at `0`, giving for every `‖(x_{−1}, e)‖ < δ`
+a bounded adapted equilibrium which is the only one within `ε` of the steady state. -/
+theorem isUnit_linOpS_iff_local_determinacyS [Nonempty Ω] {G : Arg ι E → (ι → ℝ)}
+    (hG : ContDiffAt ℝ 1 G 0) (h0 : G 0 = 0) (hE : Function.Surjective (dE G)) :
+    IsUnit (linOpS 𝔼 G) ↔ ∃ ε > 0, ∃ δ > 0, ∃ X : ParS ι E Ω → SProcV ι Ω, X 0 = 0 ∧
+      DifferentiableAt ℝ X 0 ∧ ∀ u : ParS ι E Ω, ‖u‖ < δ → SolvesSV 𝔼 G u (X u) ∧
+        ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesSV 𝔼 G u x → x = X u := by
+  constructor
+  · intro hL
+    obtain ⟨ε, hε, -, δ, hδ, -, X, hX0, hXd, hX⟩ := local_determinacyS 𝔼 hG h0 hL one_pos
+    exact ⟨ε, hε, δ, hδ, X, hX0, hXd.differentiableAt, fun u hu =>
+      ⟨(hX u hu).2.1, (hX u hu).2.2.2⟩⟩
+  · rintro ⟨ε, hε, δ, hδ, X, hX0, hXd, hX⟩
+    refine isUnit_of_local_determinacyS 𝔼 hG h0 hE hε hδ hX0 hXd (fun u hu => (hX u hu).1)
+      fun x hx hsol => ?_
+    rw [(hX 0 (by rw [norm_zero]; exact hδ)).2 x hx hsol, hX0]
+
+/-! ### Perfect foresight recovers `LocalIFTSystems` -/
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, pp. 632–634: with deterministic parameters the linear RE solution
+is the deterministic solution of (A.10), `LocalIFTSystems.linSol`. -/
+theorem linSolS_embPar [Nonempty Ω] {G : Arg ι E → (ι → ℝ)} (hL : IsUnit (linOpS 𝔼 G))
+    (u : LocalIFTSystems.Par ι E) :
+    linSolS 𝔼 G (embPar u) = embG (ι → ℝ) (LocalIFTSystems.linSol G u) := by
+  have hLP : IsUnit (LocalIFTSystems.linOp G) := (isUnit_linOpS_iff_linOp 𝔼 G).mp hL
+  set z := LocalIFTSystems.linSol G u with hz
+  symm
+  refine eq_linSolS 𝔼 hL (adaptedV_embG 𝔼 z) fun t => ?_
+  have hPF := LocalIFTSystems.linSol_solves hLP u t
+  have hl : lagP (embPar (Ω := Ω) u).1 (toP (embG (ι → ℝ) z)) t =
+      fun i (_ : Ω) => lagV u.1 (fun s => z s) t i := by
+    cases t <;> rfl
+  have hx : toP (embG (Ω := Ω) (ι → ℝ) z) t = fun i _ => z t i := rfl
+  have hE1 : (fun i => 𝔼.E t (toP (embG (Ω := Ω) (ι → ℝ) z) (t + 1) i)) =
+      fun i _ => z (t + 1) i := by
+    rw [toP_embG]
+    exact funext fun i => 𝔼.const t _
+  have hE2 : (fun i => 𝔼.E t (fun ω => dE G ((embPar (Ω := Ω) u).2 (t, ω)) i)) =
+      fun i _ => dE G (u.2 t) i := funext fun i => by
+    change 𝔼.E t (fun _ => dE G (u.2 t) i) = _
+    exact 𝔼.const t _
+  rw [hl, hx, hE1]
+  beta_reduce
+  rw [hE2, mv_cst, mv_cst, mv_cst]
+  funext i ω
+  have h := congrFun hPF i
+  simp only [Pi.add_apply, Pi.zero_apply] at h
+  simp only [Pi.add_apply, Pi.neg_apply, (mulVec_M G _).1, (mulVec_M G _).2.1,
+    (mulVec_M G _).2.2]
+  linarith
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a process on the one-state space as a sequence. -/
+noncomputable def unembS : SProcV ι Unit →L[ℝ] SeqV ι :=
+  LinearMap.mkContinuous
+    { toFun := fun x => LocalIFT.mkS (fun t => x (t, ()))
+        ⟨‖x‖, fun t => LocalIFTStochastic.norm_apply_le x (t, ())⟩
+      map_add' := fun x y => lp.ext (funext fun t => rfl)
+      map_smul' := fun c x => lp.ext (funext fun t => rfl) }
+    1 (fun x => by
+      rw [one_mul]
+      exact LocalIFT.norm_seq_le (norm_nonneg _) fun t => LocalIFTStochastic.norm_apply_le x _)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): under perfect foresight every process is
+deterministic. -/
+theorem embG_unembS (x : SProcV ι Unit) : embG (ι → ℝ) (unembS x) = x :=
+  lp.ext (funext fun p => by obtain ⟨t, ⟨⟩⟩ := p; rfl)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `unembS` inverts the embedding. -/
+theorem unembS_embG (z : SeqV ι) : unembS (embG (Ω := Unit) (ι → ℝ) z) = z :=
+  lp.ext (funext fun _ => rfl)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `unembS` does not increase norms. -/
+theorem norm_unembS_le (x : SProcV ι Unit) : ‖unembS x‖ ≤ ‖x‖ :=
+  LocalIFT.norm_seq_le (norm_nonneg _) fun t => LocalIFTStochastic.norm_apply_le x (t, ())
+
+/-- **Perfect foresight recovers `LocalIFTSystems`** (Woodford (2003), App. A.3, pp. 631–633):
+the perfect-foresight local determinacy theorem `LocalIFTSystems.local_determinacy` follows from
+the stochastic theorem `local_determinacyS` applied to the `perfectForesight` expectation
+system. -/
+theorem pf_local_determinacy_recovered {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (h0 : G 0 = 0) (hL : IsUnit (LocalIFTSystems.linOp G)) {η : ℝ} (hη : 0 < η) :
+    ∃ ε > 0, ε ≤ η ∧ ∃ δ > 0, δ ≤ η ∧ ∃ X : LocalIFTSystems.Par ι E → SeqV ι, X 0 = 0 ∧
+      HasFDerivAt X (LocalIFTSystems.linSol G) 0 ∧
+      ∀ u : LocalIFTSystems.Par ι E, ‖u‖ < δ → ‖X u‖ < ε / 2 ∧ LocalIFTSystems.Solves G u (X u) ∧
+        ContDiffAt ℝ 1 X u ∧
+        ∀ x : SeqV ι, ‖x‖ < ε → LocalIFTSystems.Solves G u x → x = X u := by
+  have hLS : IsUnit (linOpS perfectForesight G) :=
+    (isUnit_linOpS_iff_linOp perfectForesight G).mpr hL
+  obtain ⟨ε, hε, hεη, δ, hδ, hδη, XS, hX0, hXd, hX⟩ :=
+    local_determinacyS perfectForesight hG h0 hLS hη
+  set P := embPar (ι := ι) (E := E) (Ω := Unit) with hP
+  refine ⟨ε, hε, hεη, δ, hδ, hδη, fun u => unembS (XS (P u)), ?_, ?_, fun u hu => ?_⟩
+  · simp only [map_zero, hX0]
+  · have hd : HasFDerivAt XS (linSolS perfectForesight G) (P 0) := by rw [map_zero]; exact hXd
+    have h := unembS.hasFDerivAt.comp (0 : LocalIFTSystems.Par ι E) (hd.comp 0 P.hasFDerivAt)
+    refine h.congr_fderiv (ContinuousLinearMap.ext fun v => ?_)
+    change unembS (linSolS perfectForesight G (P v)) = _
+    rw [linSolS_embPar perfectForesight hLS, unembS_embG]
+  · have hPu : ‖P u‖ < δ := lt_of_le_of_lt (norm_embPar_le u) hu
+    obtain ⟨hn, hs, hc, hun⟩ := hX (P u) hPu
+    have hXe : XS (P u) = embG (ι → ℝ) (unembS (XS (P u))) := (embG_unembS _).symm
+    refine ⟨lt_of_le_of_lt (norm_unembS_le _) hn, ?_, ?_, fun x hx hsol => ?_⟩
+    · rw [hXe] at hs
+      exact (solvesSV_embG_iff perfectForesight G u _).mp hs
+    · exact unembS.contDiff.contDiffAt.comp u (hc.comp u P.contDiff.contDiffAt)
+    · have hxs := (solvesSV_embG_iff perfectForesight G u x).mpr hsol
+      have he := hun (embG (ι → ℝ) x) (by rw [norm_embG]; exact hx) hxs
+      rw [← unembS_embG x, he]
+
+/-! ### An arbitrary steady state `x̄` -/
+
+/-- Woodford (2003), App. A.3, p. 634: the steady-state parameters `(x̄, 0)`. -/
+noncomputable def ssParS (xbar : ι → ℝ) : ParS ι E Ω := (xbar, 0)
+
+/-- Woodford (2003), App. A.3, p. 634: the steady-state path `x_t(ω) = x̄`. -/
+noncomputable def constS (xbar : ι → ℝ) : SProcV ι Ω :=
+  LocalIFTStochastic.mkB (fun _ => xbar) ⟨‖xbar‖, fun _ => le_rfl⟩
+
+omit [DecidableEq ι] [NormedSpace ℝ E] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: `x` is a stochastic equilibrium of the level conditions
+with parameters `u` iff `x − x̄` is one of the deviation conditions `shiftF G x̄` with parameters
+`u − (x̄, 0)`. -/
+theorem solvesSV_shift_iff (G : Arg ι E → (ι → ℝ)) (xbar : ι → ℝ) (u : ParS ι E Ω)
+    (x : SProcV ι Ω) :
+    SolvesSV 𝔼 G u x ↔
+      SolvesSV 𝔼 (LocalIFTSystemsBar.shiftF G xbar) (u - ssParS xbar) (x - constS xbar) := by
+  have hp : ∀ p, LocalIFTSystemsBar.shiftF G xbar (ptS (u - ssParS xbar, x - constS xbar) p) =
+      G (ptS (u, x) p) := by
+    intro p
+    obtain ⟨t, ω⟩ := p
+    rw [LocalIFTSystemsBar.shiftF]
+    congr 1
+    cases t <;> simp [ptS, ssParS, constS, LocalIFTSystemsBar.ssArg]
+  have hc : toP (constS (Ω := Ω) xbar) = fun _ i _ => xbar i := rfl
+  have ha : AdaptedV 𝔼 (toP x) ↔ AdaptedV 𝔼 (toP (x - constS xbar)) := by
+    rw [toP_sub, hc]
+    constructor
+    · intro h t i
+      change 𝔼.E t (toP x t i - fun _ => xbar i) = toP x t i - fun _ => xbar i
+      rw [map_sub, h t i, 𝔼.const]
+    · intro h t i
+      have e := h t i
+      change 𝔼.E t (toP x t i - fun _ => xbar i) = toP x t i - fun _ => xbar i at e
+      rw [map_sub, 𝔼.const] at e
+      exact sub_left_injective e
+  unfold SolvesSV
+  simp only [hp]
+  rw [ha]
+
+/-- **Stochastic local determinacy at an arbitrary steady state** (Woodford (2003), App. A.3,
+pp. 633–635): if `G` is `C¹` near `(x̄, x̄, x̄, 0)`, `G(x̄, x̄, x̄, 0) = 0` and the operator (A.12)
+built from `f_j = D_jG(x̄, x̄, x̄, 0)` is invertible (for nonempty `Ω`: the exact root condition,
+`isUnit_linOpS_iff_roots` applied to `shiftF G x̄`), then for every `(x_{−1}, e)` within `δ` of
+`(x̄, 0)` there is a bounded adapted equilibrium `X(x_{−1}, e)` within `ε/2` of the steady-state
+path, it is the only one within `ε` of that path, `X` is `C¹`, `X(x̄, 0) = x̄`, and its derivative
+at `(x̄, 0)` is the linear RE solution. -/
+theorem local_determinacyS_at {G : Arg ι E → (ι → ℝ)} {xbar : ι → ℝ}
+    (hG : ContDiffAt ℝ 1 G (LocalIFTSystemsBar.ssArg E xbar))
+    (h0 : G (LocalIFTSystemsBar.ssArg E xbar) = 0)
+    (hL : IsUnit (linOpS 𝔼 (LocalIFTSystemsBar.shiftF G xbar))) :
+    ∃ ε > 0, ∃ δ > 0, ∃ X : ParS ι E Ω → SProcV ι Ω, X (ssParS xbar) = constS xbar ∧
+      HasFDerivAt X (linSolS 𝔼 (LocalIFTSystemsBar.shiftF G xbar)) (ssParS xbar) ∧
+      ∀ u : ParS ι E Ω, ‖u - ssParS xbar‖ < δ → ‖X u - constS xbar‖ < ε / 2 ∧
+        SolvesSV 𝔼 G u (X u) ∧ ContDiffAt ℝ 1 X u ∧
+        ∀ x : SProcV ι Ω, ‖x - constS xbar‖ < ε → SolvesSV 𝔼 G u x → x = X u := by
+  obtain ⟨ε, hε, -, δ, hδ, -, X0, hX00, hX0d, hX0⟩ := local_determinacyS 𝔼
+    (LocalIFTSystemsBar.contDiffAt_shiftF hG) (LocalIFTSystemsBar.shiftF_zero h0) hL one_pos
+  refine ⟨ε, hε, δ, hδ, fun u => constS xbar + X0 (u - ssParS xbar), ?_, ?_, fun u hu => ?_⟩
+  · simp only [sub_self, hX00, add_zero]
+  · have hd : HasFDerivAt X0 (linSolS 𝔼 (LocalIFTSystemsBar.shiftF G xbar))
+        (ssParS (E := E) (Ω := Ω) xbar - ssParS xbar) := by rw [sub_self]; exact hX0d
+    have hsub : HasFDerivAt (fun u : ParS ι E Ω => u - ssParS xbar)
+        (ContinuousLinearMap.id ℝ (ParS ι E Ω)) (ssParS xbar) := (hasFDerivAt_id _).sub_const _
+    have h2 := (HasFDerivAt.comp (f := fun u : ParS ι E Ω => u - ssParS xbar) (ssParS xbar) hd
+      hsub).const_add (constS xbar)
+    rw [ContinuousLinearMap.comp_id] at h2
+    exact h2
+  obtain ⟨hn, hs, hc, hun⟩ := hX0 (u - ssParS xbar) hu
+  refine ⟨by rw [add_sub_cancel_left]; exact hn, ?_, ?_, fun x hx hsol => ?_⟩
+  · rw [solvesSV_shift_iff 𝔼 G xbar, add_sub_cancel_left]
+    exact hs
+  · exact contDiffAt_const.add (hc.comp u (contDiffAt_id.sub contDiffAt_const))
+  · have h := hun (x - constS xbar) hx ((solvesSV_shift_iff 𝔼 G xbar u x).mp hsol)
+    change x = constS xbar + X0 (u - ssParS xbar)
+    rw [← h, add_sub_cancel]
+
+/-- Woodford (2003), App. A.3, pp. 633–634 (**the converse at an arbitrary steady state**): on a
+nonempty state space, with the disturbances moving every equation, (A.12) at `(x̄, x̄, x̄, 0)` is
+invertible iff the level conditions are locally determinate around `x̄` with a solution map
+differentiable at `(x̄, 0)`. -/
+theorem isUnit_iff_local_determinacyS_at [Nonempty Ω] {G : Arg ι E → (ι → ℝ)} {xbar : ι → ℝ}
+    (hG : ContDiffAt ℝ 1 G (LocalIFTSystemsBar.ssArg E xbar))
+    (h0 : G (LocalIFTSystemsBar.ssArg E xbar) = 0)
+    (hE : Function.Surjective (dE (LocalIFTSystemsBar.shiftF G xbar))) :
+    IsUnit (linOpS 𝔼 (LocalIFTSystemsBar.shiftF G xbar)) ↔ ∃ ε > 0, ∃ δ > 0,
+      ∃ X : ParS ι E Ω → SProcV ι Ω, X (ssParS xbar) = constS xbar ∧
+        DifferentiableAt ℝ X (ssParS xbar) ∧ ∀ u : ParS ι E Ω, ‖u - ssParS xbar‖ < δ →
+          SolvesSV 𝔼 G u (X u) ∧
+          ∀ x : SProcV ι Ω, ‖x - constS xbar‖ < ε → SolvesSV 𝔼 G u x → x = X u := by
+  rw [isUnit_linOpS_iff_local_determinacyS 𝔼 (LocalIFTSystemsBar.contDiffAt_shiftF hG)
+    (LocalIFTSystemsBar.shiftF_zero h0) hE]
+  constructor
+  · rintro ⟨ε, hε, δ, hδ, X0, hX00, hX0d, hX0⟩
+    refine ⟨ε, hε, δ, hδ, fun u => constS xbar + X0 (u - ssParS xbar), ?_, ?_, fun u hu => ?_⟩
+    · simp only [sub_self, hX00, add_zero]
+    · have hd : DifferentiableAt ℝ X0 (ssParS (E := E) (Ω := Ω) xbar - ssParS xbar) := by
+        rw [sub_self]; exact hX0d
+      have hsub : DifferentiableAt ℝ (fun u : ParS ι E Ω => u - ssParS xbar) (ssParS xbar) :=
+        differentiableAt_id.sub_const _
+      exact (differentiableAt_const _).add
+        (DifferentiableAt.comp (f := fun u : ParS ι E Ω => u - ssParS xbar) (ssParS xbar) hd hsub)
+    · obtain ⟨hs, hun⟩ := hX0 (u - ssParS xbar) hu
+      refine ⟨by rw [solvesSV_shift_iff 𝔼 G xbar, add_sub_cancel_left]; exact hs,
+        fun x hx hsol => ?_⟩
+      have h := hun (x - constS xbar) hx ((solvesSV_shift_iff 𝔼 G xbar u x).mp hsol)
+      change x = constS xbar + X0 (u - ssParS xbar)
+      rw [← h, add_sub_cancel]
+  · rintro ⟨ε, hε, δ, hδ, X, hX0, hXd, hX⟩
+    refine ⟨ε, hε, δ, hδ, fun v => X (v + ssParS xbar) - constS xbar, ?_, ?_, fun v hv => ?_⟩
+    · simp only [zero_add, hX0, sub_self]
+    · have hd : DifferentiableAt ℝ X (0 + ssParS (E := E) (Ω := Ω) xbar) := by
+        rw [zero_add]; exact hXd
+      have hadd : DifferentiableAt ℝ (fun v : ParS ι E Ω => v + ssParS xbar) 0 :=
+        differentiableAt_id.add_const _
+      exact (hd.comp (0 : ParS ι E Ω) hadd).sub_const _
+    · have hv' : ‖v + ssParS xbar - ssParS xbar‖ < δ := by rwa [add_sub_cancel_right]
+      obtain ⟨hs, hun⟩ := hX (v + ssParS xbar) hv'
+      refine ⟨?_, fun x hx hsol => ?_⟩
+      · have := (solvesSV_shift_iff 𝔼 G xbar _ _).mp hs
+        rwa [add_sub_cancel_right] at this
+      · have hsol' : SolvesSV 𝔼 G (v + ssParS xbar) (x + constS xbar) := by
+          rw [solvesSV_shift_iff 𝔼 G xbar, add_sub_cancel_right, add_sub_cancel_right]
+          exact hsol
+        have h := hun (x + constS xbar) (by rwa [add_sub_cancel_right]) hsol'
+        change x = X (v + ssParS xbar) - constS xbar
+        rw [← h, add_sub_cancel_right]
+
+/-- Woodford (2003), App. A.3, p. 634, E18 **at an arbitrary steady state**: if `G` is `C²` near
+`(x̄, x̄, x̄, 0)` and (A.12) there is invertible, every bounded adapted equilibrium within `ε` of
+the steady-state path satisfies `‖x − (x̄ + x̂(u − (x̄, 0)))‖ ≤ C ‖u − (x̄, 0)‖²` for
+`‖u − (x̄, 0)‖ < δ`, `x̂` the linear RE solution. -/
+theorem second_order_locS_at {G : Arg ι E → (ι → ℝ)} {xbar : ι → ℝ}
+    (hG : ContDiffAt ℝ 2 G (LocalIFTSystemsBar.ssArg E xbar))
+    (h0 : G (LocalIFTSystemsBar.ssArg E xbar) = 0)
+    (hL : IsUnit (linOpS 𝔼 (LocalIFTSystemsBar.shiftF G xbar))) :
+    ∃ ε > 0, ∃ δ > 0, ∃ C : ℝ, ∀ u : ParS ι E Ω, ‖u - ssParS xbar‖ < δ →
+      ∀ x : SProcV ι Ω, ‖x - constS xbar‖ < ε → SolvesSV 𝔼 G u x →
+        ‖x - (constS xbar + linSolS 𝔼 (LocalIFTSystemsBar.shiftF G xbar) (u - ssParS xbar))‖ ≤
+          C * ‖u - ssParS xbar‖ ^ 2 := by
+  obtain ⟨ε, hε, -, δ, hδ, -, C, hC⟩ := second_order_locS 𝔼
+    (LocalIFTSystemsBar.contDiffAt_shiftF hG) (LocalIFTSystemsBar.shiftF_zero h0) hL one_pos
+  refine ⟨ε, hε, δ, hδ, C, fun u hu x hx hsol => ?_⟩
+  have h := hC (u - ssParS xbar) hu (x - constS xbar) hx
+    ((solvesSV_shift_iff 𝔼 G xbar u x).mp hsol)
+  rwa [sub_sub] at h
+
+end Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Applications of the stochastic `n`-dimensional theory
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 633–635 (eqs. (A.11)–(A.13)), applied
+to a model of the book with a predetermined variable, and linked to the scalar stochastic theory
+of `LocalIFTStochastic`.
+
+## The inertial rule (2.12) under uncertainty (Prop. 2.8, p. 96; (A.22))
+
+The exact conditions in the book's stochastic form (A.11), with `x_t = (π_t, î_t)` and
+disturbances `e_t = (r̂_t, ν_t)` (not necessarily adapted), are
+`E_t[î_t − π_{t+1} − r̂_t] = 0` and `E_t[î_t − Ψ(π_t, î_{t−1}) − ν_t] = 0`
+(`LocalIFTSystemsApps.Finert` inside `E_t`); `î_{t−1}` is predetermined.
+
+* `isUnit_linOpS_inert_iff`, `inert_linDeterminateS_iff`: for every expectation system on a
+  nonempty state space the exact root condition is `φ_π ≠ 0` and `|φ_π + ρ| > 1` — condition
+  (A.22), unchanged by uncertainty.
+* `inertial_local_determinacyS`, `inertial_second_orderS`, `inertial_iffS`: stochastic local
+  determinacy of the exact model under (A.22), the `O(‖u‖²)` bound for a `C²` rule, and the
+  converse.
+* Indeterminacy: `inert_nonuniqueS` (outside (A.22), nonzero bounded adapted solutions of the
+  linear model), `inert_nonexistS_of_unit` (`|φ_π + ρ| = 1`: non-existence),
+  `inert_coin_random_sunspot` (genuinely random linear sunspots on the coin tree), and
+  `inertial_random_sunspot` (**genuinely random sunspot equilibria of the exact nonlinear model**
+  on the coin tree, arbitrarily close to the steady state, for `|φ_π + ρ| < 1`).
+
+## The scalar case `n = 1`
+
+* `solvesSV_embedF_iff`: the book form `E_t[F(x_t, x_{t+1}, e_t)] = 0` of `LocalIFTStochastic`
+  (`Ops.SolvesS (Ops.liftII F)`) is the `n = 1` case of `SolvesSV`;
+  `isUnit_linOpS_embedF_iff`: the operator (A.12) is invertible iff the scalar operator
+  `Ops.TOpS a b` is (`|b| < |a|`); `linSolS_embedF`: the linear RE solutions agree;
+  `scalar_local_determinacyS_recovered`: the statement of `Ops.local_determinacyII` follows from
+  the `n`-dimensional theorem.
+-/
+
+namespace Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SystemsBK.GeneralBKForward
+open LocalIFTSystems (Arg d1 d2 d3 dE M1 M2 M3 mulVec_M)
+open LocalIFTSystemsApps (Finert ruleD inF1 inF2 inF3 contDiffAt_Finert Finert_zero)
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### The inertial rule under uncertainty -/
+
+/-- **Prop. 2.8 / (A.22) under uncertainty** (Woodford (2003), Prop. 2.8, p. 96, and App. A.3,
+pp. 633–634): for every expectation system on a nonempty state space, the operator (A.12) of the
+exact inertial system is invertible iff `φ_π ≠ 0` and `|φ_π + ρ| > 1`. -/
+theorem isUnit_linOpS_inert_iff [Nonempty Ω] {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ}
+    (hΨ : HasFDerivAt Ψ (ruleD φ ρ) 0) :
+    IsUnit (linOpS 𝔼 (Finert Ψ)) ↔ φ ≠ 0 ∧ 1 < |φ + ρ| := by
+  rw [isUnit_linOpS_iff_linOp, LocalIFTSystemsApps.isUnit_linOp_inert_iff hΨ]
+
+/-- Woodford (2003), Prop. 2.8, p. 96, (1.32) and (2.12) under uncertainty: the linear model
+`î_t = E_t π_{t+1} + r̂_t`, `î_t = φ_π π_t + ρ î_{t−1} + ν_t` has a unique bounded adapted solution
+for every bounded adapted forcing and every `î_{−1}` iff `φ_π ≠ 0` and `|φ_π + ρ| > 1`. -/
+theorem inert_linDeterminateS_iff [Nonempty Ω] (φ ρ : ℝ) :
+    LinDeterminateS 𝔼 (inF1 ρ) (inF2 φ) inF3 ↔ φ ≠ 0 ∧ 1 < |φ + ρ| := by
+  rw [linDeterminateS_iff_roots]
+  exact LocalIFTSystemsApps.rootCondition_inert_iff φ ρ
+
+/-- **Stochastic local determinacy of the exact inertial-rule model** (Woodford (2003),
+Prop. 2.8, p. 96, and App. A.3, pp. 633–635): for any expectation system on a nonempty state
+space and a rule `C¹` near the steady state with slopes `φ_π ≠ 0`, `ρ`, `|φ_π + ρ| > 1`: for
+every `î_{−1}` near the steady state and all small bounded disturbance processes there is a
+unique bounded adapted equilibrium near the steady state, `C¹` in `(î_{−1}, r̂, ν)`, whose
+derivative is the linear RE solution. -/
+theorem inertial_local_determinacyS [Nonempty Ω] {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ}
+    (hΨc : ContDiffAt ℝ 1 Ψ 0) (hΨ0 : Ψ 0 = 0) (hΨ : HasFDerivAt Ψ (ruleD φ ρ) 0) (hφ : φ ≠ 0)
+    (ha : 1 < |φ + ρ|) {η : ℝ} (hη : 0 < η) :
+    ∃ ε > 0, ε ≤ η ∧ ∃ δ > 0, δ ≤ η ∧
+      ∃ X : ParS (Fin 2) (Fin 2 → ℝ) Ω → SProcV (Fin 2) Ω, X 0 = 0 ∧
+      HasFDerivAt X (linSolS 𝔼 (Finert Ψ)) 0 ∧
+      ∀ u : ParS (Fin 2) (Fin 2 → ℝ) Ω, ‖u‖ < δ → ‖X u‖ < ε / 2 ∧
+        SolvesSV 𝔼 (Finert Ψ) u (X u) ∧ ContDiffAt ℝ 1 X u ∧
+        ∀ x : SProcV (Fin 2) Ω, ‖x‖ < ε → SolvesSV 𝔼 (Finert Ψ) u x → x = X u :=
+  local_determinacyS 𝔼 (contDiffAt_Finert hΨc) (Finert_zero hΨ0)
+    ((isUnit_linOpS_inert_iff 𝔼 hΨ).mpr ⟨hφ, ha⟩) hη
+
+/-- Woodford (2003), Prop. 2.8, p. 96, and App. A.3, p. 634, E18, under uncertainty: for a `C²`
+rule under (A.22), every bounded adapted equilibrium near the steady state is within
+`C ‖(î_{−1}, e)‖²` of the linear RE solution. -/
+theorem inertial_second_orderS [Nonempty Ω] {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ}
+    (hΨc : ContDiffAt ℝ 2 Ψ 0) (hΨ0 : Ψ 0 = 0) (hΨ : HasFDerivAt Ψ (ruleD φ ρ) 0) (hφ : φ ≠ 0)
+    (ha : 1 < |φ + ρ|) :
+    ∃ ε > 0, ∃ δ > 0, ∃ C : ℝ, ∀ u : ParS (Fin 2) (Fin 2 → ℝ) Ω, ‖u‖ < δ →
+      ∀ x : SProcV (Fin 2) Ω, ‖x‖ < ε → SolvesSV 𝔼 (Finert Ψ) u x →
+        ‖x - linSolS 𝔼 (Finert Ψ) u‖ ≤ C * ‖u‖ ^ 2 := by
+  obtain ⟨ε, hε, -, δ, hδ, -, C, hC⟩ := second_order_locS 𝔼 (contDiffAt_Finert hΨc)
+    (Finert_zero hΨ0) ((isUnit_linOpS_inert_iff 𝔼 hΨ).mpr ⟨hφ, ha⟩) one_pos
+  exact ⟨ε, hε, δ, hδ, C, hC⟩
+
+/-- **Prop. 2.8 under uncertainty, both directions** (Woodford (2003), Prop. 2.8, p. 96, and
+App. A.3, pp. 633–634): on a nonempty state space, (A.22) holds iff the exact inertial model is
+locally determinate with a solution map differentiable at the steady state. -/
+theorem inertial_iffS [Nonempty Ω] {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ} (hΨc : ContDiffAt ℝ 1 Ψ 0)
+    (hΨ0 : Ψ 0 = 0) (hΨ : HasFDerivAt Ψ (ruleD φ ρ) 0) :
+    (φ ≠ 0 ∧ 1 < |φ + ρ|) ↔ ∃ ε > 0, ∃ δ > 0,
+      ∃ X : ParS (Fin 2) (Fin 2 → ℝ) Ω → SProcV (Fin 2) Ω, X 0 = 0 ∧ DifferentiableAt ℝ X 0 ∧
+        ∀ u : ParS (Fin 2) (Fin 2 → ℝ) Ω, ‖u‖ < δ → SolvesSV 𝔼 (Finert Ψ) u (X u) ∧
+          ∀ x : SProcV (Fin 2) Ω, ‖x‖ < ε → SolvesSV 𝔼 (Finert Ψ) u x → x = X u := by
+  rw [← isUnit_linOpS_inert_iff 𝔼 hΨ]
+  refine isUnit_linOpS_iff_local_determinacyS 𝔼 (contDiffAt_Finert hΨc) (Finert_zero hΨ0) ?_
+  intro y
+  exact ⟨-y, by rw [LocalIFTSystemsApps.dE_Finert hΨ, neg_neg]⟩
+
+/-- Woodford (2003), Prop. 2.8, p. 96, under uncertainty (**indeterminacy**): outside (A.22) the
+linear model has nonzero bounded adapted solutions with no fundamental shocks and `î_{−1} = 0`,
+for every expectation system on a nonempty state space. -/
+theorem inert_nonuniqueS [Nonempty Ω] {φ ρ : ℝ} (h : ¬ (φ ≠ 0 ∧ 1 < |φ + ρ|)) :
+    NonuniqueS 𝔼 (inF1 ρ) (inF2 φ) inF3 := by
+  rw [nonuniqueS_iff, ← homInjective_iff_injective, LocalIFTSystemsApps.homInjective_inert_iff]
+  exact h
+
+/-- Woodford (2003), Prop. 2.8, p. 96, under uncertainty: when `|φ_π + ρ| = 1` the root
+`φ_π + ρ` of (A.9) lies on the unit circle and some bounded deterministic forcing admits no
+bounded solution at all. -/
+theorem inert_nonexistS_of_unit [Nonempty Ω] {φ ρ : ℝ} (h1 : |φ + ρ| = 1) :
+    NonexistS 𝔼 (inF1 ρ) (inF2 φ) inF3 := by
+  refine stoch_nonexist_of_unit_root 𝔼 (μ := ((φ + ρ : ℝ) : ℂ)) ?_ ?_
+  · rw [LocalIFTSystemsApps.roots_inert]
+    exact Multiset.mem_add.mpr (Or.inr (Multiset.mem_singleton_self _))
+  · rw [Complex.norm_real, Real.norm_eq_abs, h1]
+
+/-- **Random linear sunspots for the inertial rule** (Woodford (2003), Prop. 2.8, p. 96, under
+uncertainty): outside (A.22), on the core two-coin tree, the linear model with no fundamental
+shocks and `î_{−1} = 0` has bounded adapted solutions of every scale whose date-1 value differs
+across the first coin flip. -/
+theorem inert_coin_random_sunspot {φ ρ : ℝ} (h : ¬ (φ ≠ 0 ∧ 1 < |φ + ρ|)) {c : ℝ}
+    (hc : c ≠ 0) :
+    ∃ x : ℕ → Fin 2 → Bool × Bool → ℝ, BoundedV x ∧
+      AdaptedV ExpectationsFiniteTree.coinSystem x ∧
+      SolvesLinS ExpectationsFiniteTree.coinSystem (inF1 ρ) (inF2 φ) inF3 0 0 x ∧ x 0 = 0 ∧
+      (fun i => x 1 i (true, true)) ≠ fun i => x 1 i (false, true) :=
+  coin_random_sunspot (by rw [LocalIFTSystemsApps.homInjective_inert_iff]; exact h) hc
+
+/-! ### Random sunspot equilibria of the exact inertial model -/
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction): the interest-rate path after a
+date-1 inflation surprise `s`, `i_1 = Ψ(s, 0)`, `i_{t+1} = Ψ(i_t, i_t)` (from date 1 on,
+`π_{t+1} = i_t`). -/
+noncomputable def inertIter (Ψ : ℝ × ℝ → ℝ) (s : ℝ) : ℕ → ℝ
+  | 0 => Ψ (s, 0)
+  | t + 1 => Ψ (inertIter Ψ s t, inertIter Ψ s t)
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction): the interest rate,
+`î_0 = 0`, `î_{t+1} = inertIter t`. -/
+noncomputable def inertI (Ψ : ℝ × ℝ → ℝ) (s : ℝ) : ℕ → ℝ
+  | 0 => 0
+  | t + 1 => inertIter Ψ s t
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction): inflation, `π_0 = 0`, `π_1 = s`
+(the sunspot innovation), `π_{t+2} = î_{t+1}`. -/
+noncomputable def inertPi (Ψ : ℝ × ℝ → ℝ) (s : ℝ) : ℕ → ℝ
+  | 0 => 0
+  | 1 => s
+  | t + 2 => inertIter Ψ s t
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction): the sunspot path in state `ω`
+of the two-coin tree, driven by the first flip (`π_1 = ±a`). -/
+noncomputable def inertSun (Ψ : ℝ × ℝ → ℝ) (a : ℝ) (t : ℕ) (ω : Bool × Bool) : Fin 2 → ℝ :=
+  ![inertPi Ψ (if ω.1 then a else -a) t, inertI Ψ (if ω.1 then a else -a) t]
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): if `|Ψ(i, i)| ≤ |i|` on `[−r, r]` and
+`|Ψ(s, 0)| ≤ m ≤ r`, the interest-rate path stays in `[−m, m]`. -/
+theorem abs_inertIter_le {Ψ : ℝ × ℝ → ℝ} {r m s : ℝ} (hmr : m ≤ r)
+    (hc : ∀ i : ℝ, |i| ≤ r → |Ψ (i, i)| ≤ |i|) (h1 : |Ψ (s, 0)| ≤ m) (t : ℕ) :
+    |inertIter Ψ s t| ≤ m := by
+  induction t with
+  | zero => exact h1
+  | succ t ih => exact (hc _ (ih.trans hmr)).trans ih
+
+/-- **Genuinely random sunspot equilibria of the exact inertial model** (Woodford (2003),
+Prop. 2.8, p. 96, indeterminacy half, under uncertainty; App. A.3, pp. 633–634): for a rule `Ψ`
+differentiable at the steady state with slopes `φ_π`, `ρ`, `|φ_π + ρ| < 1` and `Ψ(0) = 0`, on the
+core two-coin tree, for every `ε > 0` there is a bounded adapted solution of the exact stochastic
+conditions `E_t[î_t − π_{t+1}] = 0`, `î_t = Ψ(π_t, î_{t−1})` with no fundamental shocks and
+`î_{−1} = 0`, within `ε` of the steady state, starting at the steady state, whose date-1 value
+differs across the first coin flip (inflation jumps to `±a` with the sunspot, and the nominal
+rate then converges back since `|φ_π + ρ| < 1`). -/
+theorem inertial_random_sunspot {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ} (hΨ : HasFDerivAt Ψ (ruleD φ ρ) 0)
+    (hΨ0 : Ψ 0 = 0) (hind : |φ + ρ| < 1) {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV (Fin 2) (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem (Finert Ψ) 0 x ∧ ‖x‖ ≤ ε ∧
+      (∀ ω, x (0, ω) = 0) ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  set k := |φ + ρ| with hk
+  have h00 : Ψ ((0 : ℝ), (0 : ℝ)) = 0 := by rw [Prod.mk_zero_zero]; exact hΨ0
+  -- the diagonal map `i ↦ Ψ(i, i)` has slope `φ_π + ρ`
+  have hdiag : HasDerivAt (fun i : ℝ => Ψ (i, i)) (φ + ρ) 0 := by
+    have hd : HasFDerivAt (fun i : ℝ => ((i, i) : ℝ × ℝ))
+        ((ContinuousLinearMap.id ℝ ℝ).prod (ContinuousLinearMap.id ℝ ℝ)) 0 :=
+      (hasFDerivAt_id 0).prodMk (hasFDerivAt_id 0)
+    have hΨ' : HasFDerivAt Ψ (ruleD φ ρ) ((fun i : ℝ => ((i, i) : ℝ × ℝ)) 0) := hΨ
+    have h := (HasFDerivAt.comp (f := fun i : ℝ => ((i, i) : ℝ × ℝ)) (0 : ℝ) hΨ' hd).hasDerivAt
+    have e : ((ruleD φ ρ).comp ((ContinuousLinearMap.id ℝ ℝ).prod
+        (ContinuousLinearMap.id ℝ ℝ))) 1 = φ + ρ := by
+      simp [ruleD]
+    rw [e] at h
+    exact h
+  -- a contraction near the steady state
+  obtain ⟨r, hr, hrP⟩ : ∃ r > 0, ∀ i : ℝ, |i| ≤ r → |Ψ (i, i)| ≤ |i| := by
+    have hc : 0 < (1 - k) / 2 := by linarith
+    obtain ⟨r, hr, hP⟩ :=
+      Metric.eventually_nhds_iff.mp ((hasDerivAt_iff_isLittleO.mp hdiag).def hc)
+    refine ⟨r / 2, by positivity, fun i hi => ?_⟩
+    have h := hP (show dist i 0 < r by rw [Real.dist_0_eq_abs]; linarith)
+    simp only [sub_zero, smul_eq_mul, Real.norm_eq_abs, h00] at h
+    have hk0 : 0 ≤ k := abs_nonneg _
+    calc |Ψ (i, i)| = |(Ψ (i, i) - i * (φ + ρ)) + i * (φ + ρ)| := by ring_nf
+      _ ≤ |Ψ (i, i) - i * (φ + ρ)| + |i * (φ + ρ)| := abs_add_le _ _
+      _ ≤ (1 - k) / 2 * |i| + |i| * k := by rw [abs_mul, ← hk]; linarith
+      _ ≤ |i| := by nlinarith [abs_nonneg i]
+  -- a small sunspot innovation
+  set m := min r ε with hm
+  have hm0 : 0 < m := lt_min hr hε
+  obtain ⟨d, hd, hdP⟩ := Metric.continuousAt_iff.mp hΨ.continuousAt m hm0
+  set a := min (d / 2) ε with ha
+  have ha0 : 0 < a := lt_min (by positivity) hε
+  have haε : a ≤ ε := min_le_right _ _
+  have hsmall : ∀ b : Bool, |Ψ ((if b then a else -a), 0)| ≤ m := by
+    intro b
+    have hdist : dist (((if b then a else -a), (0 : ℝ)) : ℝ × ℝ) 0 < d := by
+      rw [dist_zero_right, Prod.norm_mk, norm_zero, max_eq_left (norm_nonneg _),
+        Real.norm_eq_abs]
+      have : |(if b then a else -a)| = a := by cases b <;> simp [abs_of_pos ha0]
+      rw [this]
+      linarith [min_le_left (d / 2) ε]
+    have h := hdP hdist
+    rw [hΨ0, dist_zero_right, Real.norm_eq_abs] at h
+    simpa using h.le
+  have hiter : ∀ (b : Bool) (t : ℕ), |inertIter Ψ (if b then a else -a) t| ≤ m := fun b t =>
+    abs_inertIter_le (min_le_left r ε) hrP (hsmall b) t
+  have hmε : m ≤ ε := min_le_right _ _
+  have hbound : ∀ t ω, ‖inertSun Ψ a t ω‖ ≤ ε := by
+    intro t ω
+    refine (pi_norm_le_iff_of_nonneg hε.le).mpr fun i => ?_
+    rw [Real.norm_eq_abs]
+    fin_cases i
+    · change |inertPi Ψ (if ω.1 then a else -a) t| ≤ ε
+      rcases t with _ | _ | t
+      · change |(0 : ℝ)| ≤ ε
+        rw [abs_zero]
+        exact hε.le
+      · change |(if ω.1 then a else -a)| ≤ ε
+        cases ω.1 <;> simp [abs_of_pos ha0, haε]
+      · exact (hiter ω.1 t).trans hmε
+    · change |inertI Ψ (if ω.1 then a else -a) t| ≤ ε
+      rcases t with _ | t
+      · change |(0 : ℝ)| ≤ ε
+        rw [abs_zero]
+        exact hε.le
+      · exact (hiter ω.1 t).trans hmε
+  set x : SProcV (Fin 2) (Bool × Bool) :=
+    LocalIFTStochastic.mkB (fun p => inertSun Ψ a p.1 p.2) ⟨ε, fun p => hbound p.1 p.2⟩ with hx
+  have hxv : ∀ t ω, x (t, ω) = inertSun Ψ a t ω := fun _ _ => rfl
+  refine ⟨x, ⟨?_, ?_⟩, LocalIFTStochastic.norm_le_of_forall hε.le fun p => hbound p.1 p.2,
+    fun ω => ?_, ?_⟩
+  · -- adaptedness
+    intro t i
+    rcases t with _ | t
+    · have h0 : toP x 0 i = fun _ => 0 := by
+        funext ω
+        fin_cases i <;> rfl
+      rw [h0]
+      exact ExpectationsFiniteTree.coinSystem.const 0 0
+    · have h1 : toP x (t + 1) i = fun ω => (fun b : Bool => inertSun Ψ a (t + 1) (b, b) i) ω.1 :=
+        by funext ω; rfl
+      rw [h1]
+      exact LocalIFTStochasticModels.coin_known_fst t
+        (fun b : Bool => inertSun Ψ a (t + 1) (b, b) i)
+  · -- the two book conditions
+    have hfis0 : ∀ t, ExpectationsFiniteTree.coinSystem.E t (fun ω => Finert Ψ
+        (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t, ω)) 0) = 0 := by
+      intro t
+      rcases t with _ | t
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (0, ω)) 0) = fun ω => -(if ω.1 then a else -a) := by
+          funext ω
+          simp [Finert, ptS, hxv, inertSun, inertI, inertPi]
+        rw [hf]
+        funext ω
+        rw [LocalIFTStochasticModels.coin_E0]
+        simp
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (t + 1, ω)) 0) = 0 := by
+          funext ω
+          simp [Finert, ptS, hxv, inertSun, inertI, inertPi]
+        rw [hf]
+        exact map_zero _
+    have hfis1 : ∀ t, ExpectationsFiniteTree.coinSystem.E t (fun ω => Finert Ψ
+        (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t, ω)) 1) = 0 := by
+      intro t
+      have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+          (t, ω)) 1) = 0 := by
+        funext ω
+        rcases t with _ | _ | t
+        · simp [Finert, ptS, hxv, inertSun, inertI, inertPi, h00]
+        · simp [Finert, ptS, hxv, inertSun, inertI, inertPi, inertIter]
+        · simp [Finert, ptS, hxv, inertSun, inertI, inertPi, inertIter]
+      rw [hf]
+      exact map_zero _
+    intro t i
+    fin_cases i
+    · exact hfis0 t
+    · exact hfis1 t
+  · funext i
+    fin_cases i <;> rfl
+  · intro h
+    have := congrFun h 0
+    simp only [hxv, inertSun] at this
+    change a = -a at this
+    linarith
+
+/-! ### The scalar case `n = 1` -/
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the scalar process of a one-dimensional vector
+process. -/
+noncomputable def scal1 : SProcV (Fin 1) Ω →L[ℝ] LocalIFTStochastic.Proc Ω :=
+  LinearMap.mkContinuous
+    { toFun := fun x => LocalIFTStochastic.mkB (fun p => x p 0) ⟨‖x‖, fun p =>
+        (norm_le_pi_norm (x p) 0).trans (LocalIFTStochastic.norm_apply_le x p)⟩
+      map_add' := fun x y => lp.ext (funext fun p => rfl)
+      map_smul' := fun c x => lp.ext (funext fun p => rfl) }
+    1 (fun x => by
+      rw [one_mul]
+      exact LocalIFTStochastic.norm_le_of_forall (norm_nonneg _) fun p =>
+        (norm_le_pi_norm (x p) 0).trans (LocalIFTStochastic.norm_apply_le x p))
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a scalar process as a one-dimensional vector
+process. -/
+noncomputable def vec1 : LocalIFTStochastic.Proc Ω →L[ℝ] SProcV (Fin 1) Ω :=
+  LinearMap.mkContinuous
+    { toFun := fun x => LocalIFTStochastic.mkB (fun p _ => x p) ⟨‖x‖, fun p =>
+        (pi_norm_le_iff_of_nonneg (norm_nonneg x)).mpr fun _ =>
+          LocalIFTStochastic.norm_apply_le x p⟩
+      map_add' := fun x y => lp.ext (funext fun p => rfl)
+      map_smul' := fun c x => lp.ext (funext fun p => rfl) }
+    1 (fun x => by
+      rw [one_mul]
+      exact LocalIFTStochastic.norm_le_of_forall (norm_nonneg _) fun p =>
+        (pi_norm_le_iff_of_nonneg (norm_nonneg x)).mpr fun _ =>
+          LocalIFTStochastic.norm_apply_le x p)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `scal1 ∘ vec1 = id`. -/
+theorem scal1_vec1 (x : LocalIFTStochastic.Proc Ω) : scal1 (vec1 x) = x := lp.ext rfl
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `vec1 ∘ scal1 = id`. -/
+theorem vec1_scal1 (x : SProcV (Fin 1) Ω) : vec1 (scal1 x) = x := by
+  ext p i
+  fin_cases i
+  rfl
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `vec1` does not increase norms. -/
+theorem norm_vec1_le (x : LocalIFTStochastic.Proc Ω) : ‖vec1 x‖ ≤ ‖x‖ :=
+  LocalIFTStochastic.norm_le_of_forall (norm_nonneg _) fun p =>
+    (pi_norm_le_iff_of_nonneg (norm_nonneg x)).mpr fun _ => LocalIFTStochastic.norm_apply_le x p
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `scal1` does not increase norms. -/
+theorem norm_scal1_le (x : SProcV (Fin 1) Ω) : ‖scal1 x‖ ≤ ‖x‖ :=
+  LocalIFTStochastic.norm_le_of_forall (norm_nonneg _) fun p =>
+    (norm_le_pi_norm (x p) 0).trans (LocalIFTStochastic.norm_apply_le x p)
+
+/-- Woodford (2003), eq. (A.11), p. 633: **the scalar book form is the case `n = 1`**: `x`
+solves `E_t[F(x_t, x_{t+1}, e_t)] = 0` (`LocalIFTStochastic`) iff the one-dimensional process
+`vec1 x` solves the `n`-dimensional stochastic conditions for `embedF F` (no predetermined
+variable enters). -/
+theorem solvesSV_embedF_iff (F : ℝ × ℝ × E → ℝ) (e : LocalIFTStochastic.SProc Ω E)
+    (x : LocalIFTStochastic.Proc Ω) :
+    SolvesSV 𝔼 (LocalIFTSystemsApps.embedF F) (0, e) (vec1 x) ↔
+      LocalIFTStochastic.Ops.SolvesS 𝔼 (LocalIFTStochastic.Ops.liftII F) e x := by
+  rw [LocalIFTStochastic.Ops.solvesS_liftII_iff]
+  constructor
+  · rintro ⟨ha, hb⟩
+    exact ⟨fun t => ha t 0, fun t => hb t 0⟩
+  · rintro ⟨ha, hb⟩
+    exact ⟨fun t _ => ha t, fun t _ => hb t⟩
+
+omit [NormedSpace ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): the derivative of the embedded condition in
+blocks. -/
+theorem fderiv_embedF_blocks {F : ℝ × ℝ × E → ℝ} [NormedSpace ℝ E]
+    (hF : DifferentiableAt ℝ F 0) (v : Fin 1 → ℝ) (w : E) :
+    d1 (LocalIFTSystemsApps.embedF F) v = 0 ∧
+      d2 (LocalIFTSystemsApps.embedF F) v = (fun _ => LocalIFT.slopeA F * v 0) ∧
+      d3 (LocalIFTSystemsApps.embedF F) v = (fun _ => LocalIFT.slopeB F * v 0) ∧
+      dE (LocalIFTSystemsApps.embedF F) w = (fun _ => LocalIFT.slopeC F w) := by
+  simp only [d1, d2, d3, dE, ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
+    ContinuousLinearMap.inr_apply, LocalIFTSystemsApps.fderiv_embedF_apply hF]
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> funext i <;> simp
+
+/-- **The operator criterion for `n = 1` is the scalar one** (Woodford (2003), eq. (A.12),
+p. 634): on a nonempty state space, the operator (A.12) of `embedF F` is invertible iff the
+scalar stochastic operator `a + b L` of `LocalIFTStochastic` is, i.e. iff `|b| < |a|`. -/
+theorem isUnit_linOpS_embedF_iff [Nonempty Ω] {F : ℝ × ℝ × E → ℝ} [FiniteDimensional ℝ E]
+    (hF : DifferentiableAt ℝ F 0) :
+    IsUnit (linOpS 𝔼 (LocalIFTSystemsApps.embedF F)) ↔
+      IsUnit (LocalIFTStochastic.Ops.TOpS 𝔼 (LocalIFT.slopeA F) (LocalIFT.slopeB F)) := by
+  rw [isUnit_linOpS_iff_linOp, LocalIFTSystemsApps.isUnit_linOp_embedF_iff hF,
+    LocalIFTStochastic.Ops.isUnit_TOpS_iff]
+
+/-- Woodford (2003), eq. (A.13), p. 634: **the linear RE solutions agree for `n = 1`**: the
+`n`-dimensional solution of the embedded condition with `x_{−1} = 0` is the scalar solution
+`LocalIFTStochastic.Ops.linSolS a b c` (`−a⁻¹` times the core `forwardSeries`). -/
+theorem linSolS_embedF [Nonempty Ω] {F : ℝ × ℝ × E → ℝ} [FiniteDimensional ℝ E]
+    (hF : DifferentiableAt ℝ F 0)
+    (hab : |LocalIFT.slopeB F| < |LocalIFT.slopeA F|) (e : LocalIFTStochastic.SProc Ω E) :
+    scal1 (linSolS 𝔼 (LocalIFTSystemsApps.embedF F) (0, e)) =
+      LocalIFTStochastic.Ops.linSolS 𝔼 (LocalIFT.slopeA F) (LocalIFT.slopeB F)
+        (LocalIFT.slopeC F) e := by
+  set a := LocalIFT.slopeA F
+  set b := LocalIFT.slopeB F
+  set c := LocalIFT.slopeC F
+  have hL : IsUnit (linOpS 𝔼 (LocalIFTSystemsApps.embedF F)) :=
+    (isUnit_linOpS_embedF_iff 𝔼 hF).mpr (LocalIFTStochastic.Ops.isUnit_TOpS 𝔼 hab)
+  obtain ⟨ha, hs⟩ := linSolS_solves 𝔼 hL (0, e)
+  set y := linSolS 𝔼 (LocalIFTSystemsApps.embedF F) (0, e) with hy
+  have hT : LocalIFTStochastic.Ops.TOpS 𝔼 a b (scal1 y) +
+      LocalIFTStochastic.Ops.cOpS 𝔼 c e = 0 := by
+    ext ⟨t, ω⟩
+    have h := congrFun (congrFun (hs t) 0) ω
+    have hmv : ∀ (M : Matrix (Fin 1) (Fin 1) ℝ) (V : Fin 1 → Ω → ℝ),
+        mv M V 0 ω = (M *ᵥ fun j => V j ω) 0 := fun M V => mv_apply M V 0 ω
+    simp only [Pi.add_apply, hmv, (mulVec_M _ _).1, (mulVec_M _ _).2.1, (mulVec_M _ _).2.2,
+      (fderiv_embedF_blocks hF _ (0 : E)).1, (fderiv_embedF_blocks hF _ (0 : E)).2.1,
+      (fderiv_embedF_blocks hF _ (0 : E)).2.2.1, Pi.zero_apply, zero_add, Pi.neg_apply] at h
+    have hdE : (fun ω => dE (LocalIFTSystemsApps.embedF F) ((0, e).2 (t, ω)) 0) =
+        fun ω => c (e (t, ω)) := by
+      funext ω
+      rw [(fderiv_embedF_blocks hF (0 : Fin 1 → ℝ) _).2.2.2]
+    rw [hdE] at h
+    change a * scal1 y (t, ω) + b * 𝔼.E t (LocalIFTStochastic.slice (scal1 y) (t + 1)) ω +
+      𝔼.E t (LocalIFTStochastic.slice (LocalIFTStochastic.Ops.ptc c e) t) ω = 0
+    have hs1 : LocalIFTStochastic.slice (LocalIFTStochastic.Ops.ptc c e) t =
+        fun ω => c (e (t, ω)) := rfl
+    rw [hs1]
+    change a * toP y t 0 ω + b * 𝔼.E t (toP y (t + 1) 0) ω + _ = 0
+    linarith
+  have hT2 := LocalIFTStochastic.Ops.linSolS_solves 𝔼 hab c e
+  have hinj := (ContinuousLinearMap.isUnit_iff_bijective.mp
+    (LocalIFTStochastic.Ops.isUnit_TOpS 𝔼 hab)).1
+  apply hinj
+  rw [← sub_eq_zero, ← map_sub]
+  have := congrArg₂ (· - ·) hT hT2
+  simp only [sub_self, add_sub_add_right_eq_sub] at this
+  rw [map_sub]
+  exact this
+
+/-- **`n = 1` recovers `LocalIFTStochastic`** (Woodford (2003), App. A.3, pp. 633–635): the
+statement of `LocalIFTStochastic.Ops.local_determinacyII` (the scalar book form
+`E_t[F(x_t, x_{t+1}, e_t)] = 0` with `|∂F/∂x_{t+1}| < |∂F/∂x_t|`) follows from the
+`n`-dimensional stochastic theorem `local_determinacyS` applied to `embedF F`. -/
+theorem scalar_local_determinacyS_recovered [Nonempty Ω] [FiniteDimensional ℝ E]
+    {F : ℝ × ℝ × E → ℝ} (hF : ContDiffAt ℝ 1 F 0) (h0 : F 0 = 0)
+    (hab : |LocalIFT.slopeB F| < |LocalIFT.slopeA F|) :
+    ∃ ε > 0, ∃ δ > 0, ∃ X : LocalIFTStochastic.SProc Ω E → LocalIFTStochastic.Proc Ω, X 0 = 0 ∧
+      HasFDerivAt X (LocalIFTStochastic.Ops.linSolS 𝔼 (LocalIFT.slopeA F) (LocalIFT.slopeB F)
+        (LocalIFT.slopeC F)) 0 ∧
+      ∀ e : LocalIFTStochastic.SProc Ω E, ‖e‖ < δ →
+        LocalIFTStochastic.Ops.SolvesS 𝔼 (LocalIFTStochastic.Ops.liftII F) e (X e) ∧
+        ‖X e‖ < ε ∧ ContDiffAt ℝ 1 X e ∧
+        ∀ x : LocalIFTStochastic.Proc Ω, ‖x‖ < ε →
+          LocalIFTStochastic.Ops.SolvesS 𝔼 (LocalIFTStochastic.Ops.liftII F) e x → x = X e := by
+  have hFd : DifferentiableAt ℝ F 0 := hF.differentiableAt (by norm_num)
+  have hG : ContDiffAt ℝ 1 (LocalIFTSystemsApps.embedF F) 0 := by
+    rw [LocalIFTSystemsApps.embedF_eq]
+    have h0' : LocalIFTSystemsApps.scalarArg (0 : Arg (Fin 1) E) = 0 := map_zero _
+    have hF' : ContDiffAt ℝ 1 F (LocalIFTSystemsApps.scalarArg (0 : Arg (Fin 1) E)) := by
+      rw [h0']; exact hF
+    exact LocalIFTSystemsApps.constEmb.contDiff.contDiffAt.comp 0
+      (hF'.comp 0 (LocalIFTSystemsApps.scalarArg (E := E)).contDiff.contDiffAt)
+  have hG0 : LocalIFTSystemsApps.embedF F 0 = 0 := by
+    funext i
+    exact h0
+  have hL : IsUnit (linOpS 𝔼 (LocalIFTSystemsApps.embedF F)) :=
+    (isUnit_linOpS_embedF_iff 𝔼 hFd).mpr (LocalIFTStochastic.Ops.isUnit_TOpS 𝔼 hab)
+  obtain ⟨ε, hε, -, δ, hδ, -, XS, hX0, hXd, hX⟩ := local_determinacyS 𝔼 hG hG0 hL one_pos
+  set P := ContinuousLinearMap.inr ℝ (Fin 1 → ℝ) (LocalIFTStochastic.SProc Ω E) with hP
+  refine ⟨ε, hε, δ, hδ, fun e => scal1 (XS (P e)), ?_, ?_, fun e he => ?_⟩
+  · simp only [map_zero, hX0]
+  · have hd : HasFDerivAt XS (linSolS 𝔼 (LocalIFTSystemsApps.embedF F)) (P 0) := by
+      rw [map_zero]; exact hXd
+    have h := scal1.hasFDerivAt.comp (0 : LocalIFTStochastic.SProc Ω E) (hd.comp 0 P.hasFDerivAt)
+    refine h.congr_fderiv (ContinuousLinearMap.ext fun v => ?_)
+    change scal1 (linSolS 𝔼 (LocalIFTSystemsApps.embedF F) (0, v)) = _
+    exact linSolS_embedF 𝔼 hFd hab v
+  · have hPe : ‖P e‖ < δ := by
+      rw [hP, ContinuousLinearMap.inr_apply, Prod.norm_mk, norm_zero, max_eq_right (norm_nonneg _)]
+      exact he
+    obtain ⟨hn, hs, hc, hun⟩ := hX (P e) hPe
+    have hXe : XS (P e) = vec1 (scal1 (XS (P e))) := (vec1_scal1 _).symm
+    refine ⟨?_, lt_of_le_of_lt (norm_scal1_le _) (by linarith), ?_, fun x hx hsol => ?_⟩
+    · rw [hXe] at hs
+      exact (solvesSV_embedF_iff 𝔼 F e _).mp hs
+    · exact scal1.contDiff.contDiffAt.comp e (hc.comp e P.contDiff.contDiffAt)
+    · have hxs := (solvesSV_embedF_iff 𝔼 F e x).mpr hsol
+      have h := hun (vec1 x) (lt_of_le_of_lt (norm_vec1_le x) hx) hxs
+      change x = scal1 (XS (P e))
+      rw [← h, scal1_vec1]
+
+/-! ### E18 under uncertainty: `C¹` gives only `o(‖u‖)` -/
+
+/-- **E18 under uncertainty** (Woodford (2003), App. A.3, p. 634): for every expectation system
+on a nonempty state space, the `C¹` (not `C²`) condition `F0g` of
+`LocalIFTSystemsApps.not_second_order_C1` gives an invertible operator (A.12), but no bound
+`‖x − x̂‖ ≤ C ‖(x_{−1}, e)‖²` holds near the steady state: deterministic disturbances already
+violate it. So `second_order_locS` needs `C²`; for `C¹` only `first_order_locS` holds. -/
+theorem not_second_order_C1S [Nonempty Ω] :
+    IsUnit (linOpS 𝔼 (LocalIFTSystemsApps.embedF LocalIFTSystemsApps.F0g)) ∧
+      ¬ ∃ ε > 0, ∃ δ > 0, ∃ C : ℝ, ∀ u : ParS (Fin 1) ℝ Ω, ‖u‖ < δ → ∀ x : SProcV (Fin 1) Ω,
+        ‖x‖ < ε → SolvesSV 𝔼 (LocalIFTSystemsApps.embedF LocalIFTSystemsApps.F0g) u x →
+          ‖x - linSolS 𝔼 (LocalIFTSystemsApps.embedF LocalIFTSystemsApps.F0g) u‖ ≤
+            C * ‖u‖ ^ 2 := by
+  obtain ⟨-, -, hLP, hno⟩ := LocalIFTSystemsApps.not_second_order_C1
+  have hL : IsUnit (linOpS 𝔼 (LocalIFTSystemsApps.embedF LocalIFTSystemsApps.F0g)) :=
+    (isUnit_linOpS_iff_linOp 𝔼 _).mpr hLP
+  refine ⟨hL, fun ⟨ε, hε, δ, hδ, C, hC⟩ => hno ⟨ε, hε, δ, hδ, |C|, fun u hu x hx hsol => ?_⟩⟩
+  have hPu : ‖embPar (Ω := Ω) u‖ ≤ ‖u‖ := norm_embPar_le u
+  have h := hC (embPar u) (lt_of_le_of_lt hPu hu) (embG (Fin 1 → ℝ) x)
+    (by rw [norm_embG]; exact hx) ((solvesSV_embG_iff 𝔼 _ u x).mpr hsol)
+  rw [linSolS_embPar 𝔼 hL, ← map_sub, norm_embG] at h
+  calc _ ≤ C * ‖embPar (Ω := Ω) u‖ ^ 2 := h
+    _ ≤ |C| * ‖embPar (Ω := Ω) u‖ ^ 2 :=
+        mul_le_mul_of_nonneg_right (le_abs_self C) (by positivity)
+    _ ≤ |C| * ‖u‖ ^ 2 :=
+        mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (norm_nonneg _) hPu 2) (abs_nonneg C)
+
+end Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The form `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` for `n`-dimensional systems
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 633–634: besides the book form (A.11)
+`E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0`, equilibrium conditions are often written with the
+forecast as an argument, `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0`. This module reduces that form
+to the book form of `LocalIFTSystemsStochastic` by adding the forecast as a new adapted variable
+`z_t = E_t x_{t+1}`: the augmented `2n`-dimensional book-form system is
+`E_t[(F(x_{t−1}, x_t, z_t, e_t), z_t − x_{t+1})] = 0` (`Gaug`). The reduction needs
+**informational closure** (`LocalIFTStochastic.Ops.InfoClosed`, proved for perfect foresight and
+every finite tree) and disturbances known at `t` (`EKnown`): then `F(…)` is known at `t`, so
+`E_t[F(…)] = 0` iff `F(…) = 0`. Without closure the form can have no adapted solution at all
+(`LocalIFTStochastic.formI_needs_closure`).
+
+## Main results
+
+* `solvesFS_iff`, `eq_augS_of_solvesSV`: under closure, equilibria of the form `F` are exactly
+  the first blocks of book-form equilibria of `Gaug F`.
+* `linDeterminateS_Gaug_iff`, `isUnit_linOpS_Gaug_iff`: the augmented linear system is
+  determinate iff the `n`-dimensional linear RE system `f₁x_{t−1} + f₂x_t + f₃E_t x_{t+1} = w_t`
+  (`f_j = D_jF(0)`) is — so the invertibility condition is the exact root condition on `F`
+  (`isUnit_linOpS_Gaug_iff_roots`).
+* `local_determinacyF` (**the theorem**), `linSolF_spec`, `first_order_locF`,
+  `second_order_locF` (E18).
+* The converse: `isUnit_of_local_determinacyF`, `isUnit_iff_local_determinacyF`.
+-/
+
+namespace Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SystemsBK.GeneralBKForward
+open SystemsBK.GeneralBK (boundedV_add boundedV_sub adaptedV_sub)
+open LocalIFTSystems (Arg d1 d2 d3 dE M1 M2 M3 mulVec_M fderiv_zero_apply4 cutoff cutoff_eq
+  contDiff_cutoff fderiv_cutoff exists_ball_contDiffAt)
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### The augmented book-form system -/
+
+/-- Woodford (2003), App. A.3, p. 634: the arguments `(x_{t−1}, x_t, z_t, e_t)` of `F` read off
+the augmented argument `((x_{t−1}, z_{t−1}), (x_t, z_t), (x_{t+1}, z_{t+1}), e_t)`. -/
+noncomputable def projF : Arg (ι ⊕ ι) E →L[ℝ] Arg ι E :=
+  LinearMap.toContinuousLinearMap
+    { toFun := fun p => (fun i => p.1 (Sum.inl i), fun i => p.2.1 (Sum.inl i),
+        fun i => p.2.1 (Sum.inr i), p.2.2.2)
+      map_add' := fun _ _ => rfl
+      map_smul' := fun _ _ => rfl }
+
+/-- Woodford (2003), App. A.3, p. 634: the forecast condition `z_t − x_{t+1}` (whose
+conditional expectation vanishes iff `z_t = E_t x_{t+1}`). -/
+noncomputable def lz : Arg (ι ⊕ ι) E →L[ℝ] (ι → ℝ) :=
+  LinearMap.toContinuousLinearMap
+    { toFun := fun p => fun i => p.2.1 (Sum.inr i) - p.2.2.1 (Sum.inl i)
+      map_add' := fun p q => by funext i; simp only [Prod.fst_add, Prod.snd_add, Pi.add_apply]; ring
+      map_smul' := fun c p => by
+        funext i
+        simp only [Prod.smul_fst, Prod.smul_snd, Pi.smul_apply, smul_eq_mul, RingHom.id_apply]
+        ring }
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): two blocks of `n` equations as `2n` equations. -/
+noncomputable def joinL : ((ι → ℝ) × (ι → ℝ)) →L[ℝ] (ι ⊕ ι → ℝ) :=
+  LinearMap.toContinuousLinearMap
+    { toFun := fun q => Sum.elim q.1 q.2
+      map_add' := fun p q => by funext k; cases k <;> rfl
+      map_smul' := fun c p => by funext k; cases k <;> rfl }
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): values of `projF`. -/
+theorem projF_apply (p : Arg (ι ⊕ ι) E) : projF p = (fun i => p.1 (Sum.inl i),
+    fun i => p.2.1 (Sum.inl i), fun i => p.2.1 (Sum.inr i), p.2.2.2) := by
+  rw [projF, LinearMap.coe_toContinuousLinearMap']
+  rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): values of `lz`. -/
+theorem lz_apply (p : Arg (ι ⊕ ι) E) :
+    lz p = fun i => p.2.1 (Sum.inr i) - p.2.2.1 (Sum.inl i) := by
+  rw [lz, LinearMap.coe_toContinuousLinearMap']
+  rfl
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): values of `joinL`. -/
+theorem joinL_apply (q : (ι → ℝ) × (ι → ℝ)) : joinL q = Sum.elim q.1 q.2 := by
+  rw [joinL, LinearMap.coe_toContinuousLinearMap']
+  rfl
+
+/-- Woodford (2003), App. A.3, p. 634: **the augmented book-form system**
+`G̃((x, z)_{t−1}, (x, z)_t, (x, z)_{t+1}, e_t) = (F(x_{t−1}, x_t, z_t, e_t), z_t − x_{t+1})`;
+`E_t[G̃] = 0` with `z` adapted means `F(x_{t−1}, x_t, z_t, e_t)` has conditional mean zero and
+`z_t = E_t x_{t+1}`. -/
+noncomputable def Gaug (F : Arg ι E → (ι → ℝ)) (p : Arg (ι ⊕ ι) E) : ι ⊕ ι → ℝ :=
+  joinL (F (projF p), lz p)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the first block of `G̃` is `F`. -/
+theorem Gaug_inl (F : Arg ι E → (ι → ℝ)) (p : Arg (ι ⊕ ι) E) (i : ι) :
+    Gaug F p (Sum.inl i) = F (projF p) i := by
+  rw [Gaug, joinL_apply]
+  rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the second block of `G̃` is `z_t − x_{t+1}`. -/
+theorem Gaug_inr (F : Arg ι E → (ι → ℝ)) (p : Arg (ι ⊕ ι) E) (i : ι) :
+    Gaug F p (Sum.inr i) = p.2.1 (Sum.inr i) - p.2.2.1 (Sum.inl i) := by
+  rw [Gaug, joinL_apply, lz_apply]
+  rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: `G̃` vanishes at the steady state. -/
+theorem Gaug_zero {F : Arg ι E → (ι → ℝ)} (h0 : F 0 = 0) : Gaug F 0 = 0 := by
+  funext k
+  cases k with
+  | inl i => rw [Gaug_inl, map_zero, h0]; rfl
+  | inr i => rw [Gaug_inr]; exact sub_self _
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: `G̃` is as smooth at the steady state as `F`. -/
+theorem contDiffAt_Gaug {F : Arg ι E → (ι → ℝ)} {k : ℕ} (hF : ContDiffAt ℝ k F 0) :
+    ContDiffAt ℝ k (Gaug F) 0 := by
+  have hF' : ContDiffAt ℝ k F (projF (0 : Arg (ι ⊕ ι) E)) := by rw [map_zero]; exact hF
+  exact joinL.contDiff.contDiffAt.comp 0
+    ((hF'.comp 0 (projF (ι := ι) (E := E)).contDiff.contDiffAt).prodMk
+      (lz (ι := ι) (E := E)).contDiff.contDiffAt)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the derivative of `G̃` at the steady state. -/
+theorem fderiv_Gaug {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0)
+    (p : Arg (ι ⊕ ι) E) :
+    fderiv ℝ (Gaug F) 0 p = joinL (fderiv ℝ F 0 (projF p), lz p) := by
+  have hF' : HasFDerivAt F (fderiv ℝ F 0) (projF (0 : Arg (ι ⊕ ι) E)) := by
+    rw [map_zero]; exact hF.hasFDerivAt
+  have h := joinL.hasFDerivAt.comp (0 : Arg (ι ⊕ ι) E)
+    ((hF'.comp 0 (projF (ι := ι) (E := E)).hasFDerivAt).prodMk
+      (lz (ι := ι) (E := E)).hasFDerivAt)
+  rw [show Gaug F = ⇑joinL ∘ fun x => ((F ∘ ⇑projF) x, lz x) from rfl, h.fderiv]
+  rfl
+
+/-- Woodford (2003), App. A.3, p. 634: the coefficient matrices of the linearised augmented
+system in blocks: `f̃₁ = [[f₁, 0], [0, 0]]`, `f̃₂ = [[f₂, f₃], [0, 1]]`, `f̃₃ = [[0, 0], [−1, 0]]`,
+`D₄G̃ = (D₄F, 0)`. -/
+theorem mulVec_M_Gaug {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0)
+    (v : ι ⊕ ι → ℝ) :
+    M1 (Gaug F) *ᵥ v = Sum.elim (M1 F *ᵥ fun i => v (Sum.inl i)) (0 : ι → ℝ) ∧
+      M2 (Gaug F) *ᵥ v = Sum.elim ((M2 F *ᵥ fun i => v (Sum.inl i)) +
+        M3 F *ᵥ fun i => v (Sum.inr i)) (fun i => v (Sum.inr i)) ∧
+      M3 (Gaug F) *ᵥ v = Sum.elim (0 : ι → ℝ) (-fun i => v (Sum.inl i)) := by
+  have e1 : ∀ w : ι → ℝ, M1 F *ᵥ w = fderiv ℝ F 0 (w, 0, 0, 0) := fun w => by
+    rw [(mulVec_M F w).1]; rfl
+  have e2 : ∀ w : ι → ℝ, M2 F *ᵥ w = fderiv ℝ F 0 (0, w, 0, 0) := fun w => by
+    rw [(mulVec_M F w).2.1]; rfl
+  have e3 : ∀ w : ι → ℝ, M3 F *ᵥ w = fderiv ℝ F 0 (0, 0, w, 0) := fun w => by
+    rw [(mulVec_M F w).2.2]; rfl
+  refine ⟨?_, ?_, ?_⟩
+  · rw [(mulVec_M _ v).1]
+    change fderiv ℝ (Gaug F) 0 (v, 0, 0, 0) = _
+    rw [fderiv_Gaug hF, e1, joinL_apply, projF_apply, lz_apply]
+    funext k
+    cases k with
+    | inl i => rfl
+    | inr i => exact sub_self _
+  · rw [(mulVec_M _ v).2.1]
+    change fderiv ℝ (Gaug F) 0 (0, v, 0, 0) = _
+    rw [fderiv_Gaug hF, e2, e3, ← map_add, joinL_apply, projF_apply, lz_apply]
+    have hs : ((0, fun i => v (Sum.inl i), 0, 0) : Arg ι E) + (0, 0, fun i => v (Sum.inr i), 0) =
+        (0, fun i => v (Sum.inl i), fun i => v (Sum.inr i), 0) := by simp
+    rw [hs]
+    funext k
+    cases k with
+    | inl i => rfl
+    | inr i => exact sub_zero _
+  · rw [(mulVec_M _ v).2.2]
+    change fderiv ℝ (Gaug F) 0 (0, 0, v, 0) = _
+    rw [fderiv_Gaug hF, joinL_apply, projF_apply, lz_apply]
+    funext k
+    cases k with
+    | inl i =>
+      change fderiv ℝ F 0 (0, 0, 0, 0) i = 0
+      rw [show ((0, 0, 0, 0) : Arg ι E) = 0 from rfl, map_zero]
+      rfl
+    | inr i => exact zero_sub _
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: `D₄G̃ = (D₄F, 0)`. -/
+theorem dE_Gaug {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0) (w : E) :
+    dE (Gaug F) w = Sum.elim (dE F w) (0 : ι → ℝ) := by
+  change fderiv ℝ (Gaug F) 0 (0, 0, 0, w) = _
+  rw [fderiv_Gaug hF, joinL_apply, projF_apply, lz_apply]
+  funext k
+  cases k with
+  | inl i => rfl
+  | inr i => exact sub_self _
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the augmented matrices acting on vector
+processes, in blocks. -/
+theorem mv_Gaug {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0) (a : ι ⊕ ι → Ω → ℝ) :
+    (∀ i, mv (M1 (Gaug F)) a (Sum.inl i) = mv (M1 F) (fun j => a (Sum.inl j)) i) ∧
+      (∀ i, mv (M1 (Gaug F)) a (Sum.inr i) = 0) ∧
+      (∀ i, mv (M2 (Gaug F)) a (Sum.inl i) =
+        mv (M2 F) (fun j => a (Sum.inl j)) i + mv (M3 F) (fun j => a (Sum.inr j)) i) ∧
+      (∀ i, mv (M2 (Gaug F)) a (Sum.inr i) = a (Sum.inr i)) ∧
+      (∀ i, mv (M3 (Gaug F)) a (Sum.inl i) = 0) ∧
+      (∀ i, mv (M3 (Gaug F)) a (Sum.inr i) = -a (Sum.inl i)) := by
+  have h := fun ω => mulVec_M_Gaug hF (fun k => a k ω)
+  refine ⟨fun i => ?_, fun i => ?_, fun i => ?_, fun i => ?_, fun i => ?_, fun i => ?_⟩ <;>
+    funext ω <;> simp only [mv_apply, (h ω).1, (h ω).2.1, (h ω).2.2, Sum.elim_inl, Sum.elim_inr,
+      Pi.add_apply, Pi.zero_apply, Pi.neg_apply]
+
+/-! ### The augmented linear system is the `n`-dimensional linear RE system -/
+
+omit [Fintype ι] [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): an equation between stacked vectors is the pair of
+block equations. -/
+theorem sumElim_eq_iff {α : Type*} (a b : ι → α) (W : ι ⊕ ι → α) :
+    Sum.elim a b = W ↔ a = (fun i => W (Sum.inl i)) ∧ b = fun i => W (Sum.inr i) := by
+  constructor
+  · rintro rfl
+    exact ⟨rfl, rfl⟩
+  · rintro ⟨rfl, rfl⟩
+    funext k
+    cases k <;> rfl
+
+/-- Woodford (2003), App. A.3, p. 634: **the linearised augmented system in blocks**:
+`f₁ x_{t−1} + f₂ x_t + f₃ z_t = W¹_t` and `z_t − E_t x_{t+1} = W²_t`. -/
+theorem solvesLinS_Gaug_iff {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0)
+    (W : ℕ → ι ⊕ ι → Ω → ℝ) (ym : ι ⊕ ι → ℝ) (Y : ℕ → ι ⊕ ι → Ω → ℝ) :
+    SolvesLinS 𝔼 (M1 (Gaug F)) (M2 (Gaug F)) (M3 (Gaug F)) W ym Y ↔
+      (∀ t, mv (M1 F) (lagP (fun i => ym (Sum.inl i)) (fun s i => Y s (Sum.inl i)) t) +
+          mv (M2 F) (fun i => Y t (Sum.inl i)) + mv (M3 F) (fun i => Y t (Sum.inr i)) =
+            fun i => W t (Sum.inl i)) ∧
+        ∀ t, (fun i => Y t (Sum.inr i) - 𝔼.E t (Y (t + 1) (Sum.inl i))) =
+          fun i => W t (Sum.inr i) := by
+  obtain h := fun a => mv_Gaug hF (Ω := Ω) a
+  have key : ∀ t, mv (M1 (Gaug F)) (lagP ym Y t) + mv (M2 (Gaug F)) (Y t) +
+      mv (M3 (Gaug F)) (fun k => 𝔼.E t (Y (t + 1) k)) =
+      Sum.elim (mv (M1 F) (lagP (fun i => ym (Sum.inl i)) (fun s i => Y s (Sum.inl i)) t) +
+          mv (M2 F) (fun i => Y t (Sum.inl i)) + mv (M3 F) (fun i => Y t (Sum.inr i)))
+        (fun i => Y t (Sum.inr i) - 𝔼.E t (Y (t + 1) (Sum.inl i))) := by
+    intro t
+    have hl : (fun j => lagP ym Y t (Sum.inl j)) =
+        lagP (fun i => ym (Sum.inl i)) (fun s i => Y s (Sum.inl i)) t := by
+      cases t <;> rfl
+    funext k
+    cases k with
+    | inl i =>
+      simp only [Pi.add_apply, (h _).1, (h _).2.2.1, (h _).2.2.2.2.1, hl, Sum.elim_inl,
+        add_zero]
+      ring
+    | inr i =>
+      simp only [Pi.add_apply, (h _).2.1, (h _).2.2.2.1, (h _).2.2.2.2.2, Sum.elim_inr]
+      ring
+  unfold SolvesLinS
+  simp only [key, sumElim_eq_iff]
+  exact ⟨fun h => ⟨fun t => (h t).1, fun t => (h t).2⟩, fun h t => ⟨h.1 t, h.2 t⟩⟩
+
+/-- **The augmented linear system is determinate iff the `n`-dimensional linear RE system is**
+(Woodford (2003), App. A.3, pp. 633–634): for any expectation system, the linearisation of
+`G̃ = Gaug F` is determinate iff `f₁ x_{t−1} + f₂ x_t + f₃ E_t x_{t+1} = w_t` with
+`f_j = D_jF(0)` is (substitute `z_t = E_t x_{t+1} + w²_t`). -/
+theorem linDeterminateS_Gaug_iff {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0) :
+    LinDeterminateS 𝔼 (M1 (Gaug F)) (M2 (Gaug F)) (M3 (Gaug F)) ↔
+      LinDeterminateS 𝔼 (M1 F) (M2 F) (M3 F) := by
+  have hEb : ∀ {X : ℕ → ι → Ω → ℝ}, BoundedV X →
+      BoundedV (fun t i => 𝔼.E t (X (t + 1) i)) := fun {X} hX => by
+    obtain ⟨M, hM⟩ := hX
+    exact ⟨M, fun t i ω => 𝔼.abs_E_le (hM (t + 1) i) t ω⟩
+  have hblk : ∀ {a b : ℕ → ι → Ω → ℝ}, BoundedV a → BoundedV b →
+      BoundedV (fun t => Sum.elim (a t) (b t)) := fun {a b} ha hb => by
+    obtain ⟨A, hA⟩ := ha
+    obtain ⟨B, hB⟩ := hb
+    refine ⟨max A B, fun t k ω => ?_⟩
+    cases k with
+    | inl i => exact (hA t i ω).trans (le_max_left _ _)
+    | inr i => exact (hB t i ω).trans (le_max_right _ _)
+  have hinl : ∀ {Y : ℕ → ι ⊕ ι → Ω → ℝ}, BoundedV Y → BoundedV (fun t i => Y t (Sum.inl i)) :=
+    fun {Y} hY => by obtain ⟨M, hM⟩ := hY; exact ⟨M, fun t i ω => hM t _ ω⟩
+  have hinr : ∀ {Y : ℕ → ι ⊕ ι → Ω → ℝ}, BoundedV Y → BoundedV (fun t i => Y t (Sum.inr i)) :=
+    fun {Y} hY => by obtain ⟨M, hM⟩ := hY; exact ⟨M, fun t i ω => hM t _ ω⟩
+  constructor
+  · intro hA w hwb hwa xm
+    set W : ℕ → ι ⊕ ι → Ω → ℝ := fun t => Sum.elim (w t) 0 with hW
+    have hWb : BoundedV W := hblk hwb ⟨0, fun _ _ _ => by simp⟩
+    have hWa : AdaptedV 𝔼 W := fun t k => by
+      cases k with
+      | inl i => exact hwa t i
+      | inr i => exact map_zero _
+    obtain ⟨Y, ⟨hYb, hYa, hY⟩, hYu⟩ := hA W hWb hWa (Sum.elim xm 0)
+    obtain ⟨h1, h2⟩ := (solvesLinS_Gaug_iff 𝔼 hF W _ Y).mp hY
+    have hZ : ∀ t, (fun i => Y t (Sum.inr i)) = fun i => 𝔼.E t (Y (t + 1) (Sum.inl i)) := by
+      intro t
+      funext i
+      have := congrFun (h2 t) i
+      simp only [hW, Sum.elim_inr, Pi.zero_apply] at this
+      exact sub_eq_zero.mp this
+    refine ⟨fun t i => Y t (Sum.inl i), ⟨hinl hYb, fun t i => hYa t _, fun t => ?_⟩,
+      fun X' ⟨hX'b, hX'a, hX'⟩ => ?_⟩
+    · have := h1 t
+      rw [hZ t] at this
+      exact this
+    · set Y' : ℕ → ι ⊕ ι → Ω → ℝ :=
+        fun t => Sum.elim (X' t) (fun i => 𝔼.E t (X' (t + 1) i)) with hY'
+      have hs : SolvesLinS 𝔼 (M1 (Gaug F)) (M2 (Gaug F)) (M3 (Gaug F)) W (Sum.elim xm 0) Y' := by
+        refine (solvesLinS_Gaug_iff 𝔼 hF W _ Y').mpr ⟨fun t => ?_, fun t => ?_⟩
+        · exact hX' t
+        · funext i
+          simp only [hY', hW, Sum.elim_inr, Sum.elim_inl, Pi.zero_apply, sub_self]
+      have he := hYu Y' ⟨hblk hX'b (hEb hX'b), fun t k => by
+        cases k with
+        | inl i => exact hX'a t i
+        | inr i => exact 𝔼.E_E_self t _, hs⟩
+      funext t i
+      rw [← he]
+      rfl
+  · intro hO W hWb hWa ym
+    set w : ℕ → ι → Ω → ℝ := fun t => (fun i => W t (Sum.inl i)) -
+      mv (M3 F) (fun i => W t (Sum.inr i)) with hw
+    have hwb : BoundedV w := boundedV_sub (hinl hWb) (boundedV_mv _ (hinr hWb))
+    have hwa : AdaptedV 𝔼 w :=
+      adaptedV_sub 𝔼 (fun t i => hWa t _) (adaptedV_mv 𝔼 _ (fun t i => hWa t _))
+    obtain ⟨X, ⟨hXb, hXa, hX⟩, hXu⟩ := hO w hwb hwa (fun i => ym (Sum.inl i))
+    set Y : ℕ → ι ⊕ ι → Ω → ℝ := fun t => Sum.elim (X t)
+      (fun i => 𝔼.E t (X (t + 1) i) + W t (Sum.inr i)) with hY
+    have hsolve : ∀ X' : ℕ → ι → Ω → ℝ, SolvesLinS 𝔼 (M1 F) (M2 F) (M3 F) w
+        (fun i => ym (Sum.inl i)) X' → SolvesLinS 𝔼 (M1 (Gaug F)) (M2 (Gaug F))
+          (M3 (Gaug F)) W ym (fun t => Sum.elim (X' t)
+            (fun i => 𝔼.E t (X' (t + 1) i) + W t (Sum.inr i))) := by
+      intro X' hX'
+      refine (solvesLinS_Gaug_iff 𝔼 hF W _ _).mpr ⟨fun t => ?_, fun t => ?_⟩
+      · have e := hX' t
+        have hz : (fun i => (fun t => Sum.elim (X' t)
+            (fun i => 𝔼.E t (X' (t + 1) i) + W t (Sum.inr i))) t (Sum.inr i)) =
+            (fun i => 𝔼.E t (X' (t + 1) i)) + fun i => W t (Sum.inr i) := rfl
+        rw [hz, mv_add, ← add_assoc]
+        change mv (M1 F) (lagP _ X' t) + mv (M2 F) (X' t) + _ + _ = _
+        rw [e, hw]
+        funext i
+        simp
+      · funext i
+        simp
+    refine ⟨Y, ⟨hblk hXb (boundedV_add (hEb hXb) (hinr hWb)), fun t k => ?_, hsolve X hX⟩,
+      fun Y' ⟨hY'b, hY'a, hY'⟩ => ?_⟩
+    · cases k with
+      | inl i => exact hXa t i
+      | inr i =>
+        change 𝔼.E t (𝔼.E t (X (t + 1) i) + W t (Sum.inr i)) = _
+        rw [map_add, 𝔼.E_E_self, hWa t]
+        rfl
+    · obtain ⟨h1, h2⟩ := (solvesLinS_Gaug_iff 𝔼 hF W _ Y').mp hY'
+      have hZ : ∀ t, (fun i => Y' t (Sum.inr i)) =
+          (fun i => 𝔼.E t (Y' (t + 1) (Sum.inl i))) + fun i => W t (Sum.inr i) := by
+        intro t
+        funext i
+        have := congrFun (h2 t) i
+        simp only [Pi.add_apply]
+        rw [← this]
+        abel
+      have hX' : SolvesLinS 𝔼 (M1 F) (M2 F) (M3 F) w (fun i => ym (Sum.inl i))
+          (fun t i => Y' t (Sum.inl i)) := by
+        intro t
+        have e := h1 t
+        rw [hZ t, mv_add, ← add_assoc] at e
+        exact eq_sub_of_add_eq e
+      have he := hXu _ ⟨hinl hY'b, fun t i => hY'a t _, hX'⟩
+      funext t k
+      cases k with
+      | inl i => exact congrFun (congrFun he t) i
+      | inr i =>
+        have := congrFun (hZ t) i
+        simp only [Pi.add_apply] at this
+        have h' : Y' (t + 1) (Sum.inl i) = X (t + 1) i := congrFun (congrFun he (t + 1)) i
+        rw [this, h']
+        rfl
+
+/-- Woodford (2003), App. A.3, pp. 633–634: **the operator (A.12) of `G̃` is invertible iff the
+operator (A.12) built from `f_j = D_jF(0)` is**, for any expectation system. -/
+theorem isUnit_linOpS_Gaug_iff {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0) :
+    IsUnit (linOpS 𝔼 (Gaug F)) ↔ IsUnit (opS 𝔼 (M1 F) (M2 F) (M3 F)) := by
+  rw [linOpS, isUnit_opS_iff, isUnit_opS_iff, linDeterminateS_Gaug_iff 𝔼 hF]
+
+/-- Woodford (2003), App. A.3, eqs. (A.9), (A.12), pp. 632–634: for a nonempty state space, the
+invertibility condition for the form `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` is the exact root
+condition on `f_j = D_jF(0)` (`f₃` the coefficient of the forecast). -/
+theorem isUnit_linOpS_Gaug_iff_roots [Nonempty Ω] {F : Arg ι E → (ι → ℝ)}
+    (hF : DifferentiableAt ℝ F 0) :
+    IsUnit (linOpS 𝔼 (Gaug F)) ↔ quadPoly (M1 F) (M2 F) (M3 F) ≠ 0 ∧
+      (∀ μ ∈ ((quadPoly (M1 F) (M2 F) (M3 F)).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card (((quadPoly (M1 F) (M2 F) (M3 F)).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card ι ∧ HomInjective (M1 F) (M2 F) (M3 F) := by
+  rw [isUnit_linOpS_Gaug_iff 𝔼 hF, isUnit_opS_iff_roots]
+
+/-! ### Equilibria of the form `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` -/
+
+/-- Woodford (2003), App. A.3, p. 634: the disturbances are known at each date (`e_t` constant on
+date-`t` information cells). -/
+def EKnown (e : LocalIFTStochastic.BFun (ℕ × Ω) E) : Prop :=
+  ∀ t, LocalIFTStochastic.Ops.CellConst 𝔼 t (fun ω => e (t, ω))
+
+/-- Woodford (2003), App. A.3, p. 634: `x` is an equilibrium of
+`F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` given `u = (x_{−1}, e)`: `x` is adapted and the
+conditions hold at every date and in every state. -/
+def SolvesFS (F : Arg ι E → (ι → ℝ)) (u : ParS ι E Ω) (x : SProcV ι Ω) : Prop :=
+  AdaptedV 𝔼 (toP x) ∧ ∀ t ω, F (lagV u.1 (fun s => x (s, ω)) t, x (t, ω),
+    (fun i => 𝔼.E t (toP x (t + 1) i) ω), u.2 (t, ω)) = 0
+
+/-- Woodford (2003), App. A.3, p. 634: the augmented process `(x_t, E_t x_{t+1})`. -/
+noncomputable def augS : SProcV ι Ω →L[ℝ] SProcV (ι ⊕ ι) Ω :=
+  LinearMap.mkContinuous
+    { toFun := fun x => LocalIFTStochastic.mkB
+        (fun p => Sum.elim (x p) (fun i => 𝔼.E p.1 (toP x (p.1 + 1) i) p.2))
+        ⟨‖x‖, fun p => (pi_norm_le_iff_of_nonneg (norm_nonneg x)).mpr fun k => by
+          rw [Real.norm_eq_abs]
+          cases k with
+          | inl i => exact abs_apply_le x p.1 p.2 i
+          | inr i => exact 𝔼.abs_E_le (fun ω => abs_apply_le x (p.1 + 1) ω i) p.1 p.2⟩
+      map_add' := fun x y => lp.ext (funext fun p => funext fun k => by
+        cases k with
+        | inl i => rfl
+        | inr i =>
+          change 𝔼.E p.1 (toP x (p.1 + 1) i + toP y (p.1 + 1) i) p.2 = _
+          rw [map_add]
+          rfl)
+      map_smul' := fun c x => lp.ext (funext fun p => funext fun k => by
+        cases k with
+        | inl i => rfl
+        | inr i =>
+          change 𝔼.E p.1 (c • toP x (p.1 + 1) i) p.2 = _
+          rw [map_smul]
+          rfl) }
+    1 (fun x => by
+      rw [one_mul]
+      exact LocalIFTStochastic.norm_le_of_forall (norm_nonneg x) fun p =>
+        (pi_norm_le_iff_of_nonneg (norm_nonneg x)).mpr fun k => by
+          rw [Real.norm_eq_abs]
+          cases k with
+          | inl i => exact abs_apply_le x p.1 p.2 i
+          | inr i => exact 𝔼.abs_E_le (fun ω => abs_apply_le x (p.1 + 1) ω i) p.1 p.2)
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: values of `augS`. -/
+theorem augS_apply (x : SProcV ι Ω) (p : ℕ × Ω) :
+    augS 𝔼 x p = Sum.elim (x p) (fun i => 𝔼.E p.1 (toP x (p.1 + 1) i) p.2) := rfl
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the first block of a stacked process. -/
+noncomputable def projS : SProcV (ι ⊕ ι) Ω →L[ℝ] SProcV ι Ω :=
+  LinearMap.mkContinuous
+    { toFun := fun y => LocalIFTStochastic.mkB (fun p i => y p (Sum.inl i))
+        ⟨‖y‖, fun p => (pi_norm_le_iff_of_nonneg (norm_nonneg y)).mpr fun i =>
+          (norm_le_pi_norm (y p) (Sum.inl i)).trans (LocalIFTStochastic.norm_apply_le y p)⟩
+      map_add' := fun _ _ => lp.ext rfl
+      map_smul' := fun _ _ => lp.ext rfl }
+    1 (fun y => by
+      rw [one_mul]
+      exact LocalIFTStochastic.norm_le_of_forall (norm_nonneg y) fun p =>
+        (pi_norm_le_iff_of_nonneg (norm_nonneg y)).mpr fun i =>
+          (norm_le_pi_norm (y p) (Sum.inl i)).trans (LocalIFTStochastic.norm_apply_le y p))
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `projS ∘ augS = id`. -/
+theorem projS_augS (x : SProcV ι Ω) : projS (augS 𝔼 x) = x := lp.ext rfl
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `‖augS x‖ ≤ ‖x‖` (`|E_t| ≤ 1`). -/
+theorem norm_augS_le (x : SProcV ι Ω) : ‖augS 𝔼 x‖ ≤ ‖x‖ :=
+  LocalIFTStochastic.norm_le_of_forall (norm_nonneg x) fun p =>
+    (pi_norm_le_iff_of_nonneg (norm_nonneg x)).mpr fun k => by
+      rw [Real.norm_eq_abs, augS_apply]
+      cases k with
+      | inl i => exact abs_apply_le x p.1 p.2 i
+      | inr i => exact 𝔼.abs_E_le (fun ω => abs_apply_le x (p.1 + 1) ω i) p.1 p.2
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `‖projS y‖ ≤ ‖y‖`. -/
+theorem norm_projS_le (y : SProcV (ι ⊕ ι) Ω) : ‖projS y‖ ≤ ‖y‖ :=
+  LocalIFTStochastic.norm_le_of_forall (norm_nonneg y) fun p =>
+    (pi_norm_le_iff_of_nonneg (norm_nonneg y)).mpr fun i =>
+      (norm_le_pi_norm (y p) (Sum.inl i)).trans (LocalIFTStochastic.norm_apply_le y p)
+
+/-- Woodford (2003), App. A.3, p. 634: the parameters of the augmented system,
+`((x_{−1}, 0), e)`. -/
+noncomputable def augPar : ParS ι E Ω →L[ℝ] ParS (ι ⊕ ι) E Ω :=
+  ((joinL.comp (ContinuousLinearMap.inl ℝ (ι → ℝ) (ι → ℝ))).comp
+    (ContinuousLinearMap.fst ℝ (ι → ℝ) (LocalIFTStochastic.BFun (ℕ × Ω) E))).prod
+      (ContinuousLinearMap.snd ℝ (ι → ℝ) (LocalIFTStochastic.BFun (ℕ × Ω) E))
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: values of `augPar`. -/
+theorem augPar_apply (u : ParS ι E Ω) : augPar u = (Sum.elim u.1 0, u.2) := by
+  change (joinL (u.1, 0), u.2) = _
+  rw [joinL_apply]
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `‖augPar u‖ ≤ ‖u‖`. -/
+theorem norm_augPar_le (u : ParS ι E Ω) : ‖augPar u‖ ≤ ‖u‖ := by
+  rw [augPar_apply, Prod.norm_mk, Prod.norm_def]
+  refine max_le_max ((pi_norm_le_iff_of_nonneg (norm_nonneg _)).mpr fun k => ?_) le_rfl
+  cases k with
+  | inl i => exact norm_le_pi_norm u.1 i
+  | inr i => simp
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: the arguments of `F` inside the augmented system are
+`(x_{t−1}, x_t, E_t x_{t+1}, e_t)`. -/
+theorem projF_ptS_aug (u : ParS ι E Ω) (x : SProcV ι Ω) (t : ℕ) (ω : Ω) :
+    projF (ptS (augPar u, augS 𝔼 x) (t, ω)) = (lagV u.1 (fun s => x (s, ω)) t, x (t, ω),
+      (fun i => 𝔼.E t (toP x (t + 1) i) ω), u.2 (t, ω)) := by
+  rw [projF_apply, augPar_apply]
+  cases t <;> rfl
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: **an equilibrium of the form `F` gives a book-form
+equilibrium of the augmented system** (no closure needed). -/
+theorem solvesSV_of_solvesFS {F : Arg ι E → (ι → ℝ)} {u : ParS ι E Ω} {x : SProcV ι Ω}
+    (h : SolvesFS 𝔼 F u x) : SolvesSV 𝔼 (Gaug F) (augPar u) (augS 𝔼 x) := by
+  obtain ⟨ha, hF⟩ := h
+  refine ⟨fun t k => ?_, fun t k => ?_⟩
+  · cases k with
+    | inl i => exact ha t i
+    | inr i =>
+      change 𝔼.E t (𝔼.E t (toP x (t + 1) i)) = 𝔼.E t (toP x (t + 1) i)
+      exact 𝔼.E_E_self t _
+  · cases k with
+    | inl i =>
+      have hz : (fun ω => Gaug F (ptS (augPar u, augS 𝔼 x) (t, ω)) (Sum.inl i)) = 0 := by
+        funext ω
+        rw [Gaug_inl, projF_ptS_aug, hF t ω]
+        rfl
+      rw [hz]
+      exact map_zero _
+    | inr i =>
+      have hz : (fun ω => Gaug F (ptS (augPar u, augS 𝔼 x) (t, ω)) (Sum.inr i)) =
+          𝔼.E t (toP x (t + 1) i) - toP x (t + 1) i := by
+        funext ω
+        rw [Gaug_inr]
+        rfl
+      rw [hz, map_sub, 𝔼.E_E_self, sub_self]
+
+omit [Fintype ι] [DecidableEq ι] [NormedSpace ℝ E] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): a vector function with cell-constant coordinates
+is cell-constant. -/
+theorem cellConst_pi {t : ℕ} {v : Ω → ι → ℝ}
+    (h : ∀ i, LocalIFTStochastic.Ops.CellConst 𝔼 t (fun ω => v ω i)) :
+    LocalIFTStochastic.Ops.CellConst 𝔼 t v :=
+  fun ω ω' hw => funext fun i => h i ω ω' hw
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: **under informational closure and known disturbances, a
+book-form equilibrium of the augmented system is `(x, E_t x_{t+1})` for an equilibrium `x` of
+the form `F`** (the second block forces `z_t = E_t x_{t+1}`; closure makes `F(…)` known). -/
+theorem eq_augS_of_solvesSV (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {F : Arg ι E → (ι → ℝ)} {u : ParS ι E Ω} (he : EKnown 𝔼 u.2) {y : SProcV (ι ⊕ ι) Ω}
+    (h : SolvesSV 𝔼 (Gaug F) (augPar u) y) :
+    y = augS 𝔼 (projS y) ∧ SolvesFS 𝔼 F u (projS y) := by
+  obtain ⟨ha, hb⟩ := h
+  have hy : y = augS 𝔼 (projS y) := by
+    apply toP_injective
+    funext t k
+    cases k with
+    | inl i => rfl
+    | inr i =>
+      have h2 := hb t (Sum.inr i)
+      have hz : (fun ω => Gaug F (ptS (augPar u, y) (t, ω)) (Sum.inr i)) =
+          toP y t (Sum.inr i) - toP y (t + 1) (Sum.inl i) := by
+        funext ω
+        rw [Gaug_inr]
+        rfl
+      rw [hz, map_sub, ha t (Sum.inr i)] at h2
+      rw [sub_eq_zero.mp h2]
+      rfl
+  refine ⟨hy, fun t i => ha t (Sum.inl i), fun t ω => ?_⟩
+  set x := projS y with hx
+  have hxa : AdaptedV 𝔼 (toP x) := fun t i => ha t (Sum.inl i)
+  funext i
+  have h1 := hb t (Sum.inl i)
+  rw [hy] at h1
+  have hf : (fun ω => Gaug F (ptS (augPar u, augS 𝔼 x) (t, ω)) (Sum.inl i)) =
+      fun ω => F (lagV u.1 (fun s => x (s, ω)) t, x (t, ω),
+        (fun i => 𝔼.E t (toP x (t + 1) i) ω), u.2 (t, ω)) i := by
+    funext ω
+    rw [Gaug_inl, projF_ptS_aug]
+  rw [hf] at h1
+  have hc : LocalIFTStochastic.Ops.CellConst 𝔼 t (fun ω => F (lagV u.1 (fun s => x (s, ω)) t,
+      x (t, ω), (fun i => 𝔼.E t (toP x (t + 1) i) ω), u.2 (t, ω)) i) := by
+    intro ω ω' hw
+    have hl : lagV u.1 (fun s => x (s, ω)) t = lagV u.1 (fun s => x (s, ω')) t := by
+      refine cellConst_pi 𝔼 (v := fun ω => lagV u.1 (fun s => x (s, ω)) t) (fun j => ?_) ω ω' hw
+      have := LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (adaptedV_lagP 𝔼 u.1 hxa t j)
+      cases t with
+      | zero => exact fun _ _ _ => rfl
+      | succ t => exact this
+    have hxx : x (t, ω) = x (t, ω') :=
+      cellConst_pi 𝔼 (v := fun ω => x (t, ω))
+        (fun j => LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (hxa t j)) ω ω' hw
+    have hz : (fun i => 𝔼.E t (toP x (t + 1) i) ω) = fun i => 𝔼.E t (toP x (t + 1) i) ω' :=
+      funext fun j => LocalIFTStochastic.Ops.cellConst_E 𝔼 t _ ω ω' hw
+    have hee := he t ω ω' hw
+    simp only at hee
+    simp only [hl, hxx, hz, hee]
+  have := hcl t _ hc
+  rw [this] at h1
+  exact congrFun h1 ω
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634: **under informational closure and known disturbances, `x`
+solves `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` iff `(x, E_t x_{t+1})` solves the book form of the
+augmented system** — the `n`-dimensional analogue of `LocalIFTStochastic.Ops.solvesS_liftI_iff`. -/
+theorem solvesFS_iff (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {F : Arg ι E → (ι → ℝ)}
+    {u : ParS ι E Ω} (he : EKnown 𝔼 u.2) (x : SProcV ι Ω) :
+    SolvesFS 𝔼 F u x ↔ SolvesSV 𝔼 (Gaug F) (augPar u) (augS 𝔼 x) := by
+  refine ⟨solvesSV_of_solvesFS 𝔼, fun h => ?_⟩
+  have := (eq_augS_of_solvesSV 𝔼 hcl he h).2
+  rwa [projS_augS] at this
+
+/-! ### Local determinacy of the form `F` -/
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: the linear RE solution operator for the form
+`F`: the first block of the augmented linear solution. -/
+noncomputable def linSolF (F : Arg ι E → (ι → ℝ)) : ParS ι E Ω →L[ℝ] SProcV ι Ω :=
+  projS.comp ((linSolS 𝔼 (Gaug F)).comp augPar)
+
+/-- Woodford (2003), App. A.3, eq. (A.13), p. 634: **`linSolF u` is the bounded adapted
+solution of the linear RE system `f₁ x̂_{t−1} + f₂ x̂_t + f₃ E_t x̂_{t+1} + E_t[D₄F e_t] = 0`,
+`x̂_{−1} = x_{−1}`** (`f_j = D_jF(0)`), and it is the only one. -/
+theorem linSolF_spec {F : Arg ι E → (ι → ℝ)}
+    (hF : DifferentiableAt ℝ F 0) (hL : IsUnit (opS 𝔼 (M1 F) (M2 F) (M3 F))) (u : ParS ι E Ω) :
+    (AdaptedV 𝔼 (toP (linSolF 𝔼 F u)) ∧
+      SolvesLinS 𝔼 (M1 F) (M2 F) (M3 F)
+        (fun t => -fun i => 𝔼.E t (fun ω => dE F (u.2 (t, ω)) i)) u.1 (toP (linSolF 𝔼 F u))) ∧
+    ∀ x : SProcV ι Ω, AdaptedV 𝔼 (toP x) →
+      SolvesLinS 𝔼 (M1 F) (M2 F) (M3 F)
+        (fun t => -fun i => 𝔼.E t (fun ω => dE F (u.2 (t, ω)) i)) u.1 (toP x) →
+      x = linSolF 𝔼 F u := by
+  have hLG : IsUnit (linOpS 𝔼 (Gaug F)) := (isUnit_linOpS_Gaug_iff 𝔼 hF).mpr hL
+  have hdE : ∀ t ω, dE (Gaug F) ((augPar u).2 (t, ω)) = Sum.elim (dE F (u.2 (t, ω))) 0 := by
+    intro t ω
+    rw [dE_Gaug hF, augPar_apply]
+  have hR : ∀ t i,
+      (-fun k => 𝔼.E t (fun ω => dE (Gaug F) ((augPar u).2 (t, ω)) k)) (Sum.inr i) = 0 := by
+    intro t i
+    rw [Pi.neg_apply]
+    have : (fun ω => dE (Gaug F) ((augPar u).2 (t, ω)) (Sum.inr i)) = 0 :=
+      funext fun ω => by rw [hdE]; rfl
+    rw [this, map_zero, neg_zero]
+  have hLl : ∀ t, (fun i => (-fun k => 𝔼.E t (fun ω => dE (Gaug F) ((augPar u).2 (t, ω)) k))
+      (Sum.inl i)) = -fun i => 𝔼.E t (fun ω => dE F (u.2 (t, ω)) i) := by
+    intro t
+    funext i
+    rw [Pi.neg_apply, Pi.neg_apply]
+    congr 2
+    funext ω
+    rw [hdE]
+    rfl
+  have hym : (fun i => (augPar u).1 (Sum.inl i)) = u.1 := by rw [augPar_apply]; rfl
+  obtain ⟨ha, hs⟩ := linSolS_solves 𝔼 hLG (augPar u)
+  obtain ⟨h1, h2⟩ := (solvesLinS_Gaug_iff 𝔼 hF _ _ _).mp hs
+  refine ⟨⟨fun t i => ha t (Sum.inl i), fun t => ?_⟩, fun x hxa hx => ?_⟩
+  · have hz : (fun i => toP (linSolS 𝔼 (Gaug F) (augPar u)) t (Sum.inr i)) =
+        fun i => 𝔼.E t (toP (linSolS 𝔼 (Gaug F) (augPar u)) (t + 1) (Sum.inl i)) := by
+      funext i
+      have := congrFun (h2 t) i
+      beta_reduce at this
+      rw [hR] at this
+      exact sub_eq_zero.mp this
+    have e := h1 t
+    rw [hz, hym, hLl t] at e
+    exact e
+  · have hs' : SolvesLinS 𝔼 (M1 (Gaug F)) (M2 (Gaug F)) (M3 (Gaug F))
+        (fun t => -fun k => 𝔼.E t (fun ω => dE (Gaug F) ((augPar u).2 (t, ω)) k))
+        (augPar u).1 (toP (augS 𝔼 x)) := by
+      refine (solvesLinS_Gaug_iff 𝔼 hF _ _ _).mpr ⟨fun t => ?_, fun t => ?_⟩
+      · rw [hym, hLl t]
+        exact hx t
+      · funext i
+        beta_reduce
+        rw [hR]
+        change 𝔼.E t (toP x (t + 1) i) - 𝔼.E t (toP x (t + 1) i) = 0
+        exact sub_self _
+    have hya : AdaptedV 𝔼 (toP (augS 𝔼 x)) := fun t k => by
+      cases k with
+      | inl i => exact hxa t i
+      | inr i =>
+        change 𝔼.E t (𝔼.E t (toP x (t + 1) i)) = 𝔼.E t (toP x (t + 1) i)
+        exact 𝔼.E_E_self t _
+    have he := eq_linSolS 𝔼 hLG hya hs'
+    rw [← projS_augS 𝔼 x, he]
+    rfl
+
+/-- **Woodford (2003), App. A.3, pp. 633–635: local determinacy of `n`-dimensional systems
+`F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` with predetermined variables under uncertainty.** For an
+informationally closed expectation system (e.g. perfect foresight or any finite event tree): if
+`F` is `C¹` near the steady state, `F(0) = 0` and the operator (A.12) built from `f_j = D_jF(0)`
+is invertible (for nonempty `Ω`: the root condition, `isUnit_linOpS_Gaug_iff_roots`), there are
+`ε, δ > 0` (below any `η > 0`) and a map `X : (x_{−1}, e) ↦ x` with `X(0) = 0`, whose derivative
+at `0` is the linear RE solution `linSolF` (`linSolF_spec`), such that for every `x_{−1}` and
+every bounded disturbance process known at each date with `‖(x_{−1}, e)‖ < δ`, `X(x_{−1}, e)` is
+a bounded adapted equilibrium within `ε/2` of the steady state, `X` is `C¹` there, and every
+bounded adapted equilibrium within `ε` of the steady state equals it. -/
+theorem local_determinacyF (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {F : Arg ι E → (ι → ℝ)} (hF : ContDiffAt ℝ 1 F 0) (h0 : F 0 = 0)
+    (hL : IsUnit (opS 𝔼 (M1 F) (M2 F) (M3 F))) {η : ℝ} (hη : 0 < η) :
+    ∃ ε > 0, ε ≤ η ∧ ∃ δ > 0, δ ≤ η ∧ ∃ X : ParS ι E Ω → SProcV ι Ω, X 0 = 0 ∧
+      HasFDerivAt X (linSolF 𝔼 F) 0 ∧
+      ∀ u : ParS ι E Ω, ‖u‖ < δ → EKnown 𝔼 u.2 → ‖X u‖ < ε / 2 ∧ SolvesFS 𝔼 F u (X u) ∧
+        ContDiffAt ℝ 1 X u ∧ ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesFS 𝔼 F u x → x = X u := by
+  have hLG : IsUnit (linOpS 𝔼 (Gaug F)) :=
+    (isUnit_linOpS_Gaug_iff 𝔼 (hF.differentiableAt one_ne_zero)).mpr hL
+  obtain ⟨ε, hε, hεη, δ, hδ, hδη, XS, hX0, hXd, hX⟩ :=
+    local_determinacyS 𝔼 (contDiffAt_Gaug hF) (Gaug_zero h0) hLG hη
+  refine ⟨ε, hε, hεη, δ, hδ, hδη, fun u => projS (XS (augPar u)), ?_, ?_, fun u hu he => ?_⟩
+  · simp only [map_zero, hX0]
+  · have hd : HasFDerivAt XS (linSolS 𝔼 (Gaug F)) (augPar (0 : ParS ι E Ω)) := by
+      rw [map_zero]; exact hXd
+    change HasFDerivAt _ ((projS (ι := ι) (Ω := Ω)).comp
+      ((linSolS 𝔼 (Gaug F)).comp (augPar (ι := ι) (E := E) (Ω := Ω)))) 0
+    exact (projS (ι := ι) (Ω := Ω)).hasFDerivAt.comp (0 : ParS ι E Ω)
+      (hd.comp 0 (augPar (ι := ι) (E := E) (Ω := Ω)).hasFDerivAt)
+  have hPu : ‖augPar u‖ < δ := lt_of_le_of_lt (norm_augPar_le u) hu
+  obtain ⟨hn, hs, hc, hun⟩ := hX (augPar u) hPu
+  refine ⟨lt_of_le_of_lt (norm_projS_le _) hn, (eq_augS_of_solvesSV 𝔼 hcl he hs).2,
+    (projS (ι := ι) (Ω := Ω)).contDiff.contDiffAt.comp u
+      (hc.comp u (augPar (ι := ι) (E := E) (Ω := Ω)).contDiff.contDiffAt),
+    fun x hx hsol => ?_⟩
+  have h := hun (augS 𝔼 x) (lt_of_le_of_lt (norm_augS_le 𝔼 x) hx) (solvesSV_of_solvesFS 𝔼 hsol)
+  change x = projS (XS (augPar u))
+  rw [← h, projS_augS]
+
+/-- Woodford (2003), App. A.3, p. 634, E18 (**first order under `C¹`**), form `F`: every
+equilibrium near the steady state is within `c ‖(x_{−1}, e)‖` of the linear RE solution, for
+every `c > 0` once the disturbances are small. -/
+theorem first_order_locF {F : Arg ι E → (ι → ℝ)} (hF : ContDiffAt ℝ 1 F 0) (h0 : F 0 = 0)
+    (hL : IsUnit (opS 𝔼 (M1 F) (M2 F) (M3 F))) :
+    ∃ ε > 0, ∀ c > 0, ∃ δ > 0, ∀ u : ParS ι E Ω, ‖u‖ < δ → ∀ x : SProcV ι Ω, ‖x‖ < ε →
+      SolvesFS 𝔼 F u x → ‖x - linSolF 𝔼 F u‖ ≤ c * ‖u‖ := by
+  have hLG : IsUnit (linOpS 𝔼 (Gaug F)) :=
+    (isUnit_linOpS_Gaug_iff 𝔼 (hF.differentiableAt one_ne_zero)).mpr hL
+  obtain ⟨ε, hε, hP⟩ := first_order_locS 𝔼 (contDiffAt_Gaug hF) (Gaug_zero h0) hLG
+  refine ⟨ε, hε, fun c hc => ?_⟩
+  obtain ⟨δ, hδ, hb⟩ := hP c hc
+  refine ⟨δ, hδ, fun u hu x hx hsol => ?_⟩
+  have h := hb (augPar u) (lt_of_le_of_lt (norm_augPar_le u) hu) (augS 𝔼 x)
+    (lt_of_le_of_lt (norm_augS_le 𝔼 x) hx) (solvesSV_of_solvesFS 𝔼 hsol)
+  have e : x - linSolF 𝔼 F u = projS (augS 𝔼 x - linSolS 𝔼 (Gaug F) (augPar u)) := by
+    rw [map_sub, projS_augS]
+    rfl
+  rw [e]
+  exact (norm_projS_le _).trans (h.trans (mul_le_mul_of_nonneg_left (norm_augPar_le u) hc.le))
+
+/-- Woodford (2003), App. A.3, p. 634, corrected per E18, form `F`: if `F` is `C²` near the
+steady state, every equilibrium within `ε` of the steady state is within
+`C ‖(x_{−1}, e)‖²` of the linear RE solution for `‖(x_{−1}, e)‖ < δ`. -/
+theorem second_order_locF {F : Arg ι E → (ι → ℝ)} (hF : ContDiffAt ℝ 2 F 0) (h0 : F 0 = 0)
+    (hL : IsUnit (opS 𝔼 (M1 F) (M2 F) (M3 F))) {η : ℝ} (hη : 0 < η) :
+    ∃ ε > 0, ε ≤ η ∧ ∃ δ > 0, δ ≤ η ∧ ∃ C : ℝ, ∀ u : ParS ι E Ω, ‖u‖ < δ →
+      ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesFS 𝔼 F u x → ‖x - linSolF 𝔼 F u‖ ≤ C * ‖u‖ ^ 2 := by
+  have hLG : IsUnit (linOpS 𝔼 (Gaug F)) :=
+    (isUnit_linOpS_Gaug_iff 𝔼 (hF.differentiableAt (by norm_num))).mpr hL
+  obtain ⟨ε, hε, hεη, δ, hδ, hδη, C, hC⟩ :=
+    second_order_locS 𝔼 (contDiffAt_Gaug hF) (Gaug_zero h0) hLG hη
+  refine ⟨ε, hε, hεη, δ, hδ, hδη, |C|, fun u hu x hx hsol => ?_⟩
+  have h := hC (augPar u) (lt_of_le_of_lt (norm_augPar_le u) hu) (augS 𝔼 x)
+    (lt_of_le_of_lt (norm_augS_le 𝔼 x) hx) (solvesSV_of_solvesFS 𝔼 hsol)
+  have e : x - linSolF 𝔼 F u = projS (augS 𝔼 x - linSolS 𝔼 (Gaug F) (augPar u)) := by
+    rw [map_sub, projS_augS]
+    rfl
+  rw [e]
+  calc _ ≤ ‖augS 𝔼 x - linSolS 𝔼 (Gaug F) (augPar u)‖ := norm_projS_le _
+    _ ≤ C * ‖augPar u‖ ^ 2 := h
+    _ ≤ |C| * ‖augPar u‖ ^ 2 := mul_le_mul_of_nonneg_right (le_abs_self C) (by positivity)
+    _ ≤ |C| * ‖u‖ ^ 2 :=
+        mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (norm_nonneg _) (norm_augPar_le u) 2)
+          (abs_nonneg C)
+
+/-! ### The converse for the form `F` -/
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, pp. 631–634: a perfect-foresight equilibrium of
+`F(x_{t−1}, x_t, x_{t+1}, e_t) = 0` (`LocalIFTSystems.Solves`) is a deterministic equilibrium of
+the form `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` for every expectation system. -/
+theorem solvesFS_embG {F : Arg ι E → (ι → ℝ)} {u : LocalIFTSystems.Par ι E} {z : SeqV ι}
+    (h : LocalIFTSystems.Solves F u z) :
+    SolvesFS 𝔼 F (embPar u) (embG (ι → ℝ) z) := by
+  refine ⟨adaptedV_embG 𝔼 z, fun t ω => ?_⟩
+  have hE : (fun i => 𝔼.E t (toP (embG (Ω := Ω) (ι → ℝ) z) (t + 1) i) ω) = z (t + 1) := by
+    rw [toP_embG]
+    funext i
+    rw [𝔼.const]
+  rw [hE]
+  change F (lagV u.1 (fun s => z s) t, z t, z (t + 1), u.2 t) = 0
+  exact h t
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `E_t E_t = E_t` on vector processes. -/
+theorem condEV_condEV (y : SProcV ι Ω) : condEV 𝔼 (condEV 𝔼 y) = condEV 𝔼 y := by
+  ext ⟨t, ω⟩ i
+  change 𝔼.E t (𝔼.E t (toP y t i)) ω = 𝔼.E t (toP y t i) ω
+  rw [𝔼.E_E_self]
+
+/-- Woodford (2003), App. A.3, eq. (A.12), p. 634: **the first block of the augmented
+derivative at `(x, E_t x_{t+1})` is the derivative (A.12) of the form `F`**,
+`opS(f₁, f₂, f₃) x + E_t[B u]`. -/
+theorem projS_eqD0S_Gaug {F : Arg ι E → (ι → ℝ)} (hF : DifferentiableAt ℝ F 0)
+    (u : ParS ι E Ω) (x : SProcV ι Ω) :
+    projS (eqD0S 𝔼 (Gaug F) (augPar u, augS 𝔼 x)) = eqD0S 𝔼 F (u, x) := by
+  apply toP_injective
+  funext t
+  funext i
+  have hm := mv_Gaug hF (Ω := Ω)
+  have hy : ∀ s, toP (augS 𝔼 x) s =
+      Sum.elim (toP x s) (fun j => 𝔼.E s (toP x (s + 1) j)) := fun s => by
+    funext k
+    cases k <;> rfl
+  have L : toP (projS (eqD0S 𝔼 (Gaug F) (augPar u, augS 𝔼 x))) t i =
+      toP (opS 𝔼 (M1 (Gaug F)) (M2 (Gaug F)) (M3 (Gaug F)) (augS 𝔼 x)) t (Sum.inl i) +
+        toP (condEV 𝔼 (bOpS (Gaug F) (augPar u))) t (Sum.inl i) := rfl
+  have R : toP (eqD0S 𝔼 F (u, x)) t i =
+      toP (opS 𝔼 (M1 F) (M2 F) (M3 F) x) t i + toP (condEV 𝔼 (bOpS F u)) t i := rfl
+  rw [L, R, toP_opS, toP_opS, toP_condEV_bOpS, toP_condEV_bOpS]
+  have hl : (fun j => 𝔼.E t (lagP 0 (toP (augS 𝔼 x)) t (Sum.inl j))) =
+      fun j => 𝔼.E t (lagP 0 (toP x) t j) := by
+    funext j
+    cases t <;> rfl
+  have hl2 : (fun j => lagP (Ω := Ω) (augPar u).1 0 t (Sum.inl j)) = lagP u.1 0 t := by
+    rw [augPar_apply]
+    funext j
+    cases t <;> rfl
+  have h3 : (fun j => 𝔼.E t (toP (augS 𝔼 x) t (Sum.inr j))) =
+      fun j => 𝔼.E t (toP x (t + 1) j) := by
+    funext j
+    rw [hy t]
+    exact 𝔼.E_E_self t _
+  have hdE : (fun ω => dE (Gaug F) ((augPar u).2 (t, ω)) (Sum.inl i)) =
+      fun ω => dE F (u.2 (t, ω)) i := by
+    funext ω
+    rw [dE_Gaug hF, augPar_apply]
+    rfl
+  have hyl : ∀ s j, toP (augS 𝔼 x) s (Sum.inl j) = toP x s j := fun _ _ => rfl
+  simp only [Pi.add_apply, Pi.sub_apply, (hm _).1, (hm _).2.2.1, (hm _).2.2.2.2.1, hl, hl2, h3,
+    hdE, add_zero, hyl]
+  ring
+
+/-- Woodford (2003), App. A.3, p. 634 (**necessity, existence half**, form `F`): if the
+disturbances move every equation (`D₄F(0)` onto) and a solution map `X`, differentiable at `0`
+with `X(0) = 0`, gives equilibria for all small `(x_{−1}, e)` with `e` known at each date, then
+(A.12) built from `f_j = D_jF(0)` is onto. (No closure is needed in this direction.) -/
+theorem surjective_of_solution_mapF {F : Arg ι E → (ι → ℝ)} (hF : ContDiffAt ℝ 1 F 0)
+    (hE : Function.Surjective (dE F)) {X : ParS ι E Ω → SProcV ι Ω} {δ : ℝ} (hδ : 0 < δ)
+    (hX0 : X 0 = 0) (hXd : DifferentiableAt ℝ X 0)
+    (hX : ∀ u : ParS ι E Ω, ‖u‖ < δ → EKnown 𝔼 u.2 → SolvesFS 𝔼 F u (X u)) :
+    Function.Surjective (opS 𝔼 (M1 F) (M2 F) (M3 F)) := by
+  have hFd : DifferentiableAt ℝ F 0 := hF.differentiableAt one_ne_zero
+  obtain ⟨r, hr, hball⟩ := exists_ball_contDiffAt (contDiffAt_Gaug hF)
+  set Gc := cutoff (Gaug F) r hr with hGc
+  have hGc1 : ContDiff ℝ 1 Gc := contDiff_cutoff hr hball
+  obtain ⟨hlo, hbo, -, -⟩ := lin_cutoffS 𝔼 (Gaug F) hr
+  have key : ∀ du : ParS ι E Ω, EKnown 𝔼 du.2 →
+      eqD0S 𝔼 (Gaug F) (augPar du, augS 𝔼 (fderiv ℝ X 0 du)) = 0 := by
+    intro du hdu
+    set ℓ := ContinuousLinearMap.toSpanSingleton ℝ du with hℓ
+    set P := augPar (ι := ι) (E := E) (Ω := Ω) with hP
+    set A := augS (ι := ι) 𝔼 with hA
+    have hℓ0 : ℓ 0 = 0 := map_zero _
+    have hXd' : HasFDerivAt X (fderiv ℝ X 0) (ℓ 0) := by rw [hℓ0]; exact hXd.hasFDerivAt
+    have hpath : HasFDerivAt (fun s : ℝ => ((P (ℓ s), A (X (ℓ s))) :
+        ParS (ι ⊕ ι) E Ω × SProcV (ι ⊕ ι) Ω))
+        ((P.comp ℓ).prod (A.comp ((fderiv ℝ X 0).comp ℓ))) 0 :=
+      (P.hasFDerivAt.comp 0 ℓ.hasFDerivAt).prodMk
+        (A.hasFDerivAt.comp 0 (hXd'.comp 0 ℓ.hasFDerivAt))
+    have hp0 : ((P (ℓ 0), A (X (ℓ 0))) : ParS (ι ⊕ ι) E Ω × SProcV (ι ⊕ ι) Ω) =
+        0 := by
+      rw [hℓ0, hX0, map_zero, map_zero]
+      rfl
+    have hn := (hasStrictFDerivAt_eqMapS 𝔼 hGc1 0).hasFDerivAt
+    rw [eqDS_zero 𝔼 hGc1, ← hp0] at hn
+    have hD := hn.comp (0 : ℝ) hpath
+    have hev : (fun s : ℝ => eqMapS 𝔼 Gc hGc1.continuous (augPar (ℓ s), augS 𝔼 (X (ℓ s))))
+        =ᶠ[𝓝 0] fun _ => 0 := by
+      have hcℓ : Filter.Tendsto ℓ (𝓝 0) (𝓝 0) := by
+        have := ℓ.continuous.tendsto 0
+        rwa [hℓ0] at this
+      have h1 : ∀ᶠ s in 𝓝 (0 : ℝ), ‖X (ℓ s)‖ < r / 4 := by
+        have ht := hXd.continuousAt.tendsto.comp hcℓ
+        rw [Function.comp_def, hX0] at ht
+        exact (ht.eventually (Metric.ball_mem_nhds (0 : SProcV ι Ω)
+          (by positivity : (0 : ℝ) < r / 4))).mono (fun s hs => by simpa using hs)
+      have h2 : ∀ᶠ s in 𝓝 (0 : ℝ), ‖ℓ s‖ < min δ (r / 4) :=
+        (hcℓ.eventually (Metric.ball_mem_nhds (0 : ParS ι E Ω)
+          (lt_min hδ (by positivity : (0 : ℝ) < r / 4)))).mono (fun s hs => by simpa using hs)
+      filter_upwards [h1, h2] with s hs1 hs2
+      have hk : EKnown 𝔼 (ℓ s).2 := by
+        intro t ω ω' hw
+        change s • du.2 (t, ω) = s • du.2 (t, ω')
+        have h := hdu t ω ω' hw
+        simp only at h
+        rw [h]
+      have hsol := solvesSV_of_solvesFS 𝔼 (hX (ℓ s) (hs2.trans_le (min_le_left _ _)) hk)
+      rw [eqMapS_eq_zero_iff]
+      exact (solvesSV_cutoff_iff 𝔼 hr ((norm_augPar_le _).trans
+        (hs2.le.trans (min_le_right _ _))) ((norm_augS_le 𝔼 _).trans hs1.le)).mpr hsol
+    have hc : HasFDerivAt (fun s : ℝ => eqMapS 𝔼 Gc hGc1.continuous
+        (augPar (ℓ s), augS 𝔼 (X (ℓ s)))) (0 : ℝ →L[ℝ] SProcV (ι ⊕ ι) Ω) 0 :=
+      (hasFDerivAt_const (0 : SProcV (ι ⊕ ι) Ω) (0 : ℝ)).congr_of_eventuallyEq hev
+    have hz := congrArg (fun T : ℝ →L[ℝ] SProcV (ι ⊕ ι) Ω => T 1) (hD.unique hc)
+    change eqD0S 𝔼 Gc (augPar (ℓ 1), augS 𝔼 (fderiv ℝ X 0 (ℓ 1))) = 0 at hz
+    have h1 : ℓ 1 = du := by rw [hℓ, ContinuousLinearMap.toSpanSingleton_apply, one_smul]
+    rw [h1] at hz
+    have he : eqD0S 𝔼 Gc = eqD0S 𝔼 (Gaug F) := by
+      simp only [eqD0S, hGc, hlo, hbo]
+    rw [he] at hz
+    exact hz
+  obtain ⟨g, hg⟩ := (dE F : E →ₗ[ℝ] (ι → ℝ)).exists_rightInverse_of_surjective
+    (LinearMap.range_eq_top.mpr hE)
+  set R : (ι → ℝ) →L[ℝ] E := LinearMap.toContinuousLinearMap g with hR
+  have hRinv : ∀ v, dE F (R v) = v := fun v => by
+    have := congrArg (fun φ : (ι → ℝ) →ₗ[ℝ] (ι → ℝ) => φ v) hg
+    simpa [hR] using this
+  have hrange : ∀ y : SProcV ι Ω, ∃ z, opS 𝔼 (M1 F) (M2 F) (M3 F) z = condEV 𝔼 y := by
+    intro y
+    set e : LocalIFTStochastic.BFun (ℕ × Ω) E :=
+      LocalIFTStochastic.mkB (fun p => R (-(condEV 𝔼 y) p))
+        ⟨‖R‖ * ‖y‖, fun p => (R.le_opNorm _).trans (mul_le_mul_of_nonneg_left (by
+          rw [norm_neg]
+          exact (LocalIFTStochastic.norm_apply_le _ p).trans (norm_condEV_le 𝔼 y))
+          (norm_nonneg _))⟩ with he
+    have hek : EKnown 𝔼 e := by
+      intro t ω ω' hw
+      have hc : (condEV 𝔼 y) (t, ω) = (condEV 𝔼 y) (t, ω') :=
+        cellConst_pi 𝔼 (v := fun ω => (condEV 𝔼 y) (t, ω))
+          (fun j => by
+            change LocalIFTStochastic.Ops.CellConst 𝔼 t (𝔼.E t (toP y t j))
+            exact LocalIFTStochastic.Ops.cellConst_E 𝔼 t _) ω ω' hw
+      change R (-(condEV 𝔼 y) (t, ω)) = R (-(condEV 𝔼 y) (t, ω'))
+      rw [hc]
+    set du : ParS ι E Ω := (0, e) with hdu
+    refine ⟨fderiv ℝ X 0 du, ?_⟩
+    have hk := congrArg projS (key du hek)
+    rw [projS_eqD0S_Gaug 𝔼 hFd, map_zero] at hk
+    change opS 𝔼 (M1 F) (M2 F) (M3 F) (fderiv ℝ X 0 du) + condEV 𝔼 (bOpS F du) = 0 at hk
+    have hb : bOpS F du = -condEV 𝔼 y := by
+      refine lp.ext (funext fun p => ?_)
+      rw [bOpS_apply]
+      have hl : lagV (0 : ι → ℝ) (0 : ℕ → ι → ℝ) p.1 = 0 := by cases p.1 <;> rfl
+      simp only [hdu, he, hl, map_zero, zero_add, LocalIFTStochastic.mkB_apply, hRinv,
+        lp.coeFn_neg, Pi.neg_apply]
+    rw [hb, map_neg, condEV_condEV] at hk
+    exact add_neg_eq_zero.mp hk
+  intro y
+  obtain ⟨z₁, hz₁⟩ := hrange y
+  have hPb : condEV 𝔼 (y - condEV 𝔼 y) = 0 := condEV_sub_condEV 𝔼 y
+  obtain ⟨z₂, hz₂⟩ := hrange (linS (M1 F) (M2 F) (M3 F) (y - condEV 𝔼 y))
+  refine ⟨z₁ + (y - condEV 𝔼 y) - z₂, ?_⟩
+  have hb' : opS 𝔼 (M1 F) (M2 F) (M3 F) (y - condEV 𝔼 y) =
+      condEV 𝔼 (linS (M1 F) (M2 F) (M3 F) (y - condEV 𝔼 y)) + (y - condEV 𝔼 y) := by
+    change condEV 𝔼 (linS (M1 F) (M2 F) (M3 F) (y - condEV 𝔼 y)) +
+      ((y - condEV 𝔼 y) - condEV 𝔼 (y - condEV 𝔼 y)) = _
+    rw [hPb, sub_zero]
+  rw [map_sub, map_add, hz₁, hb', hz₂]
+  abel
+
+/-- **The converse for the form `F`** (Woodford (2003), App. A.3, pp. 633–634): on a nonempty
+state space, if `D₄F(0)` is onto and the form `F` is locally determinate with a solution map
+differentiable at the steady state (for disturbances known at each date), then (A.12) built from
+`f_j = D_jF(0)` is invertible. (No closure is needed in this direction; non-uniqueness comes from
+the deterministic perfect-foresight manifold of `LocalIFTSystems.not_locally_unique`.) -/
+theorem isUnit_of_local_determinacyF [Nonempty Ω] {F : Arg ι E → (ι → ℝ)}
+    (hF : ContDiffAt ℝ 1 F 0) (h0 : F 0 = 0) (hE : Function.Surjective (dE F))
+    {X : ParS ι E Ω → SProcV ι Ω} {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ) (hX0 : X 0 = 0)
+    (hXd : DifferentiableAt ℝ X 0)
+    (hX : ∀ u : ParS ι E Ω, ‖u‖ < δ → EKnown 𝔼 u.2 → SolvesFS 𝔼 F u (X u))
+    (huniq : ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesFS 𝔼 F 0 x → x = 0) :
+    IsUnit (opS 𝔼 (M1 F) (M2 F) (M3 F)) := by
+  have hs := surjective_of_solution_mapF 𝔼 hF hE hδ hX0 hXd hX
+  rw [ContinuousLinearMap.isUnit_iff_bijective]
+  refine ⟨?_, hs⟩
+  by_contra hni
+  obtain ⟨z, hz0, hzε, hzs⟩ := LocalIFTSystems.not_locally_unique hF h0
+    (sysOp_surjective_of_opS 𝔼 hs) (sysOp_not_injective_of_opS 𝔼 hni) ε hε
+  have hxs := solvesFS_embG 𝔼 hzs
+  rw [map_zero] at hxs
+  have := huniq _ (by rw [norm_embG]; exact hzε) hxs
+  apply hz0
+  rw [← norm_eq_zero, ← norm_embG (Ω := Ω), this, norm_zero]
+
+/-- **Local determinacy of the form `F` holds exactly under the root condition** (Woodford
+(2003), App. A.3, pp. 633–634): for an informationally closed expectation system on a nonempty
+state space, `F` `C¹` near the steady state with `F(0) = 0` and `D₄F(0)` onto, (A.12) built from
+`f_j = D_jF(0)` is invertible (the exact root condition) iff there are `ε, δ > 0` and a solution
+map `X` with `X(0) = 0`, differentiable at `0`, giving for every `‖(x_{−1}, e)‖ < δ` (with `e`
+known at each date) a bounded adapted equilibrium which is the only one within `ε` of the steady
+state. -/
+theorem isUnit_iff_local_determinacyF [Nonempty Ω] (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {F : Arg ι E → (ι → ℝ)} (hF : ContDiffAt ℝ 1 F 0) (h0 : F 0 = 0)
+    (hE : Function.Surjective (dE F)) :
+    IsUnit (opS 𝔼 (M1 F) (M2 F) (M3 F)) ↔ ∃ ε > 0, ∃ δ > 0, ∃ X : ParS ι E Ω → SProcV ι Ω,
+      X 0 = 0 ∧ DifferentiableAt ℝ X 0 ∧ ∀ u : ParS ι E Ω, ‖u‖ < δ → EKnown 𝔼 u.2 →
+        SolvesFS 𝔼 F u (X u) ∧ ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesFS 𝔼 F u x → x = X u := by
+  constructor
+  · intro hL
+    obtain ⟨ε, hε, -, δ, hδ, -, X, hX0, hXd, hX⟩ := local_determinacyF 𝔼 hcl hF h0 hL one_pos
+    exact ⟨ε, hε, δ, hδ, X, hX0, hXd.differentiableAt, fun u hu he =>
+      ⟨(hX u hu he).2.1, (hX u hu he).2.2.2⟩⟩
+  · rintro ⟨ε, hε, δ, hδ, X, hX0, hXd, hX⟩
+    have hk0 : EKnown 𝔼 (0 : ParS ι E Ω).2 := fun _ _ _ _ => rfl
+    refine isUnit_of_local_determinacyF 𝔼 hF h0 hE hε hδ hX0 hXd
+      (fun u hu he => (hX u hu he).1) fun x hx hsol => ?_
+    rw [(hX 0 (by rw [norm_zero]; exact hδ) hk0).2 x hx hsol, hX0]
+
+end Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Random sunspot equilibria of nonlinear `n`-dimensional systems
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 632–634 (indeterminacy). When the
+operator (A.8) of the linearisation of `E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0` is onto but not
+one-to-one (too many stable roots, or genericity failure, without a unit root), the exact
+nonlinear model has **genuinely random** bounded adapted equilibria on the core two-coin tree,
+arbitrarily close to the steady state, with no fundamental shocks and `x_{−1} = x̄`. This
+generalises `LocalIFTSystemsStochasticApps.inertial_random_sunspot` to any `C¹` condition.
+
+## Construction
+
+Look for equilibria of the form `x_0 = c` (deterministic) and, from date 1 on, one of two
+perfect-foresight paths `y⁺`, `y⁻` according to the first coin flip. Such an `x` is an equilibrium
+iff each branch solves the perfect-foresight conditions from the initial condition `c`, and the
+date-0 condition holds on average:
+`½ [G(0, c, y⁺_0, 0) + G(0, c, y⁻_0, 0)] = 0` (`branchMap`). Its derivative at `0` (`branchD`) is
+onto when (A.8) is onto (`range_branchD`), and its kernel is finite-dimensional because the
+pencil is regular (`finiteDimensional_ker_branchD`), hence complemented; the kernel contains the
+antisymmetric direction `(0, k, −k)` for a nonzero kernel element `k` of (A.8). The implicit
+function theorem with complemented kernel (Mathlib's `implicitFunctionOfComplemented`) gives a
+curve of solutions tangent to `(0, k, −k)`, whose two branches differ at date 1.
+
+## Main results
+
+* `random_sunspot_nonlinear` (**the theorem**): `G` `C¹` near the steady state, `G(0) = 0`, (A.8)
+  onto and not one-to-one ⟹ for every `ε > 0`, a bounded adapted equilibrium on the coin tree
+  with `‖x‖ ≤ ε`, deterministic at date 0, whose date-1 value differs across the first flip.
+* `random_sunspot_of_count_gt`: the same when more than `n` roots of `det(f₃λ² + f₂λ + f₁)` lie
+  inside the unit circle and (A.8) is onto.
+* `random_sunspot_of_opS`: the hypotheses stated for the stochastic operator (A.12) of any
+  expectation system on a nonempty state space.
+
+**On the extra hypothesis "(A.8) onto".** Non-injectivity alone does not suffice for this
+argument: without surjectivity the linearised map has no right inverse and the implicit-function
+theorem is unavailable (and existence can fail outright: a root on the unit circle destroys
+existence, `LinearSystemsUnit.not_surjective_of_unit_root`). Surjectivity is the same hypothesis
+as in the perfect-foresight non-uniqueness theorem `LocalIFTSystems.not_locally_unique`; it
+excludes unit roots and singular pencils and gives the regularity used for the kernel. The
+condition on `D₄G` is not needed (no disturbances are used).
+-/
+
+namespace Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic
+open LocalIFTSystems (Arg Par Solves eqMap linOp bOp eqD0 d1 d2 d3 dE M1 M2 M3
+  fderiv_zero_apply4 cutoff cutoff_eq contDiff_cutoff exists_ball_contDiffAt lin_cutoff
+  solves_cutoff_iff eqMap_eq_zero_iff hasStrictFDerivAt_nem nemD_zero ptL norm_ptL_le linOp_apply
+  bOp_apply impOp impOp_apply)
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
+
+/-- Woodford (2003), App. A.3, p. 634: the unknowns of the two-branch sunspot problem, the
+date-0 value `c` and the two continuation paths `y⁺`, `y⁻`. -/
+abbrev Br (ι : Type*) [Fintype ι] : Type _ := (ι → ℝ) × SeqV ι × SeqV ι
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the date-0 value of a sequence as a continuous
+linear map. -/
+noncomputable def ev0 : SeqV ι →L[ℝ] (ι → ℝ) :=
+  LinearMap.mkContinuous
+    { toFun := fun y => y 0
+      map_add' := fun _ _ => rfl
+      map_smul' := fun _ _ => rfl }
+    1 (fun y => by rw [one_mul]; exact LocalIFT.norm_seq_apply_le y 0)
+
+/-- Woodford (2003), App. A.3, p. 634: the date-0 argument `(0, c, y_0, 0)` along branch `b`. -/
+noncomputable def arg0 (b : Bool) : Br ι →L[ℝ] Arg ι E :=
+  (0 : Br ι →L[ℝ] (ι → ℝ)).prod ((ContinuousLinearMap.fst ℝ (ι → ℝ) (SeqV ι × SeqV ι)).prod
+    ((ev0.comp (if b then (ContinuousLinearMap.fst ℝ (SeqV ι) (SeqV ι)).comp
+        (ContinuousLinearMap.snd ℝ (ι → ℝ) (SeqV ι × SeqV ι))
+      else (ContinuousLinearMap.snd ℝ (SeqV ι) (SeqV ι)).comp
+        (ContinuousLinearMap.snd ℝ (ι → ℝ) (SeqV ι × SeqV ι)))).prod (0 : Br ι →L[ℝ] E)))
+
+/-- Woodford (2003), App. A.3, p. 634: the perfect-foresight problem of branch `b`,
+`((c, 0), y^b)`. -/
+noncomputable def parB (b : Bool) : Br ι →L[ℝ] Par ι E × SeqV ι :=
+  ((ContinuousLinearMap.fst ℝ (ι → ℝ) (SeqV ι × SeqV ι)).prod
+    (0 : Br ι →L[ℝ] LocalIFT.Seq E)).prod
+    (if b then (ContinuousLinearMap.fst ℝ (SeqV ι) (SeqV ι)).comp
+        (ContinuousLinearMap.snd ℝ (ι → ℝ) (SeqV ι × SeqV ι))
+      else (ContinuousLinearMap.snd ℝ (SeqV ι) (SeqV ι)).comp
+        (ContinuousLinearMap.snd ℝ (ι → ℝ) (SeqV ι × SeqV ι)))
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): values of `arg0`. -/
+theorem arg0_apply (q : Br ι) :
+    arg0 (E := E) true q = (0, q.1, q.2.1 0, 0) ∧ arg0 (E := E) false q = (0, q.1, q.2.2 0, 0) :=
+  ⟨rfl, rfl⟩
+
+omit [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): values of `parB`. -/
+theorem parB_apply (q : Br ι) :
+    parB (E := E) true q = ((q.1, 0), q.2.1) ∧ parB (E := E) false q = ((q.1, 0), q.2.2) :=
+  ⟨rfl, rfl⟩
+
+/-- Woodford (2003), App. A.3, p. 634: **the two-branch sunspot map**: the averaged date-0
+condition and the perfect-foresight conditions of both branches (`G` in the cut-off form). -/
+noncomputable def branchMap (F : Arg ι E → (ι → ℝ)) (hF : Continuous F) (q : Br ι) : Br ι :=
+  ((1 / 2 : ℝ) • (F (arg0 true q) + F (arg0 false q)),
+    eqMap F hF (parB true q), eqMap F hF (parB false q))
+
+/-- Woodford (2003), App. A.3, p. 634: the derivative of the two-branch map at `0`. -/
+noncomputable def branchD (F : Arg ι E → (ι → ℝ)) : Br ι →L[ℝ] Br ι :=
+  ((1 / 2 : ℝ) • ((fderiv ℝ F 0).comp (arg0 true) + (fderiv ℝ F 0).comp (arg0 false))).prod
+    (((eqD0 F).comp (parB true)).prod ((eqD0 F).comp (parB false)))
+
+/-- Woodford (2003), App. A.3, p. 634: the two-branch map is strictly differentiable at `0`. -/
+theorem hasStrictFDerivAt_branchMap {F : Arg ι E → (ι → ℝ)} (hF : ContDiff ℝ 1 F) :
+    HasStrictFDerivAt (branchMap F hF.continuous) (branchD F) 0 := by
+  have h0 : ∀ b : Bool, HasStrictFDerivAt (fun q : Br ι => F (arg0 b q))
+      ((fderiv ℝ F 0).comp (arg0 b)) 0 := by
+    intro b
+    have hs : HasStrictFDerivAt F (fderiv ℝ F 0) (arg0 (E := E) b (0 : Br ι)) := by
+      rw [map_zero]
+      exact hF.contDiffAt.hasStrictFDerivAt one_ne_zero
+    exact hs.comp (0 : Br ι) ((arg0 (E := E) b).hasStrictFDerivAt (x := (0 : Br ι)))
+  have hE : ∀ b : Bool, HasStrictFDerivAt (fun q : Br ι => eqMap F hF.continuous (parB b q))
+      ((eqD0 F).comp (parB b)) 0 := by
+    intro b
+    have hn := hasStrictFDerivAt_nem hF ptL norm_ptL_le (0 : Par ι E × SeqV ι)
+    rw [nemD_zero hF] at hn
+    have hn' : HasStrictFDerivAt (eqMap F hF.continuous) (eqD0 F) (parB (E := E) b (0 : Br ι)) := by
+      rw [map_zero]; exact hn
+    exact hn'.comp (0 : Br ι) ((parB (E := E) b).hasStrictFDerivAt (x := (0 : Br ι)))
+  exact (((h0 true).add (h0 false)).const_smul (1 / 2 : ℝ)).prodMk ((hE true).prodMk (hE false))
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 632 (tool): `eqD0` at `((v_0, 0), (v_{t+1})_t)` is the lead
+of `(A.8) v`. -/
+theorem eqD0_lead (F : Arg ι E → (ι → ℝ)) (v : SeqV ι) :
+    eqD0 F ((v 0, 0), leadOp (ι → ℝ) v) = leadOp (ι → ℝ) (linOp F v) := by
+  refine seq_ext fun t => ?_
+  change linOp F (leadOp (ι → ℝ) v) t + bOp F (v 0, 0) t = linOp F v (t + 1)
+  rw [linOp_apply, linOp_apply, bOp_apply]
+  have h : lagV 0 (fun s => leadOp (ι → ℝ) v s) t + lagV (v 0) 0 t =
+      lagV 0 (fun s => v s) (t + 1) := by
+    cases t <;> simp
+  rw [← h, map_add, show ((0 : LocalIFT.Seq E) t) = 0 from rfl, map_zero, add_zero]
+  change d1 F _ + d2 F (v (t + 1)) + d3 F (v (t + 1 + 1)) + d1 F _ = _
+  abel
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 632 (tool): with `x_{−1} = 0` and no disturbances the
+derivative is the operator (A.8). -/
+theorem eqD0_zeroPar (F : Arg ι E → (ι → ℝ)) (y : SeqV ι) :
+    eqD0 F ((0, 0), y) = linOp F y := by
+  change linOp F y + bOp F 0 = linOp F y
+  rw [map_zero, add_zero]
+
+omit [DecidableEq ι] [NormedSpace ℝ E] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 632 (tool): the impulse has zero lead. -/
+theorem leadOp_impOp (w : ι → ℝ) : leadOp (ι → ℝ) (impOp ι w) = 0 :=
+  seq_ext fun t => by simp
+
+omit [Fintype ι] [DecidableEq ι] [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 632 (tool): the derivative at the steady state on the date-0
+argument `(0, c, y, 0)`. -/
+theorem fderiv_arg0 (F : Arg ι E → (ι → ℝ)) (c y : ι → ℝ) :
+    fderiv ℝ F 0 ((0, c, y, 0) : Arg ι E) = d2 F c + d3 F y := by
+  rw [fderiv_zero_apply4, map_zero, map_zero, zero_add, add_zero]
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: **the two-branch derivative is onto when (A.8) is onto**
+(solve each branch with (A.8), then correct the averaged date-0 condition with the date-0 value
+of a solution of (A.8) for an impulse forcing). -/
+theorem range_branchD {F : Arg ι E → (ι → ℝ)} (hs : Function.Surjective (linOp F)) :
+    (branchD F).range = ⊤ := by
+  refine LinearMap.range_eq_top.mpr fun target => ?_
+  obtain ⟨r, a₁, a₂⟩ := target
+  obtain ⟨q₁, hq₁⟩ := hs a₁
+  obtain ⟨q₂, hq₂⟩ := hs a₂
+  set r₀ : ι → ℝ := (1 / 2 : ℝ) • (d3 F (q₁ 0) + d3 F (q₂ 0)) with hr₀
+  obtain ⟨v, hv⟩ := hs (impOp ι (r - r₀))
+  have hv0 : d2 F (v 0) + d3 F (v 1) = r - r₀ := by
+    have := congrArg (fun y : SeqV ι => y 0) hv
+    simp only [linOp_apply, impOp_apply, lagV_zero] at this
+    rw [map_zero, zero_add] at this
+    exact this
+  refine ⟨(v 0, q₁ + leadOp (ι → ℝ) v, q₂ + leadOp (ι → ℝ) v), ?_⟩
+  have hb : ∀ (q a : SeqV ι), linOp F q = a →
+      eqD0 F ((v 0, 0), q + leadOp (ι → ℝ) v) = a := by
+    intro q a hq
+    have e : (((v 0, 0), q + leadOp (ι → ℝ) v) : Par ι E × SeqV ι) =
+        ((0, 0), q) + ((v 0, 0), leadOp (ι → ℝ) v) := by simp
+    rw [e, map_add, eqD0_zeroPar, eqD0_lead, hv, leadOp_impOp, hq, add_zero]
+  refine Prod.ext ?_ (Prod.ext (hb q₁ a₁ hq₁) (hb q₂ a₂ hq₂))
+  change (1 / 2 : ℝ) • (fderiv ℝ F 0 ((0, v 0, (q₁ + leadOp (ι → ℝ) v) 0, 0) : Arg ι E) +
+    fderiv ℝ F 0 ((0, v 0, (q₂ + leadOp (ι → ℝ) v) 0, 0) : Arg ι E)) = r
+  rw [fderiv_arg0, fderiv_arg0]
+  funext i
+  have h1 := congrFun hv0 i
+  simp only [hr₀, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, lp.coeFn_add,
+    leadOp_apply, map_add] at h1 ⊢
+  linarith
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 632 (tool): when (A.8) is onto, a nonzero element of its
+kernel is nonzero at date 0 (the pencil is regular). -/
+theorem kernel_ne_zero_at_zero {F : Arg ι E → (ι → ℝ)} (hs : Function.Surjective (linOp F))
+    {k : SeqV ι} (hk : linOp F k = 0) (hk0 : k ≠ 0) : k 0 ≠ 0 := by
+  intro h
+  have hreg := quadPoly_ne_zero_of_surjective (f₁ := M1 F) (f₂ := M2 F) (f₃ := M3 F) hs
+  have hsol : SolvesLin (M1 F) (M2 F) (M3 F) 0 0 (fun t => k t) := by
+    intro t
+    have := (sysOp_eq_iff _ _ _ _ _).mp hk t
+    simpa using this
+  exact hk0 (seq_ext fun t => congrFun (eq_zero_of_regular hreg (boundedSeq_coe k) hsol h) t)
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: when (A.8) is onto, **the kernel of the two-branch
+derivative is finite-dimensional** (an element is determined by `(c, y⁺_0, y⁻_0)`, by
+regularity of the pencil). -/
+theorem finiteDimensional_ker_branchD {F : Arg ι E → (ι → ℝ)}
+    (hs : Function.Surjective (linOp F)) : FiniteDimensional ℝ (branchD F).ker := by
+  have hreg := quadPoly_ne_zero_of_surjective (f₁ := M1 F) (f₂ := M2 F) (f₃ := M3 F) hs
+  let ev : (branchD F).ker →ₗ[ℝ] (ι → ℝ) × (ι → ℝ) × (ι → ℝ) :=
+    { toFun := fun κ => ((κ : Br ι).1, (κ : Br ι).2.1 0, (κ : Br ι).2.2 0)
+      map_add' := fun _ _ => rfl
+      map_smul' := fun _ _ => rfl }
+  have hinj : Function.Injective ev := by
+    rw [← LinearMap.ker_eq_bot, LinearMap.ker_eq_bot']
+    intro κ hκ
+    have h1 : (κ : Br ι).1 = 0 := congrArg Prod.fst hκ
+    have h2 : (κ : Br ι).2.1 0 = 0 := congrArg (fun q => q.2.1) hκ
+    have h3 : (κ : Br ι).2.2 0 = 0 := congrArg (fun q => q.2.2) hκ
+    have hD : branchD F (κ : Br ι) = 0 := LinearMap.mem_ker.mp κ.2
+    have hb : ∀ y : SeqV ι, eqD0 F (((κ : Br ι).1, 0), y) = 0 → y 0 = 0 → y = 0 := by
+      intro y hy hy0
+      rw [h1, eqD0_zeroPar] at hy
+      have hsol : SolvesLin (M1 F) (M2 F) (M3 F) 0 0 (fun t => y t) := by
+        intro t
+        have := (sysOp_eq_iff _ _ _ _ _).mp hy t
+        simpa using this
+      exact seq_ext fun t => congrFun (eq_zero_of_regular hreg (boundedSeq_coe y) hsol hy0) t
+    have hy1 := hb _ (congrArg (fun q => q.2.1) hD) h2
+    have hy2 := hb _ (congrArg (fun q => q.2.2) hD) h3
+    exact Subtype.ext (Prod.ext h1 (Prod.ext hy1 hy2))
+  exact Module.Finite.of_injective ev hinj
+
+omit [FiniteDimensional ℝ E] in
+/-- Woodford (2003), App. A.3, p. 634: **the antisymmetric direction `(0, k, −k)` lies in the
+kernel** of the two-branch derivative for every `k` in the kernel of (A.8). -/
+theorem branchD_anti {F : Arg ι E → (ι → ℝ)} {k : SeqV ι} (hk : linOp F k = 0) :
+    branchD F ((0, k, -k) : Br ι) = 0 := by
+  refine Prod.ext ?_ (Prod.ext ?_ ?_)
+  · change (1 / 2 : ℝ) • (fderiv ℝ F 0 ((0, 0, k 0, 0) : Arg ι E) +
+      fderiv ℝ F 0 ((0, 0, (-k) 0, 0) : Arg ι E)) = 0
+    rw [fderiv_arg0, fderiv_arg0, lp.coeFn_neg, Pi.neg_apply, map_neg]
+    simp
+  · change eqD0 F ((0, 0), k) = 0
+    rw [eqD0_zeroPar, hk]
+  · change eqD0 F ((0, 0), -k) = 0
+    rw [eqD0_zeroPar, map_neg, hk, neg_zero]
+
+set_option maxHeartbeats 1600000 in
+-- the proof unfolds the coin-tree processes and the cut-off conditions definitionally
+/-- **Genuinely random sunspot equilibria of nonlinear `n`-dimensional systems** (Woodford
+(2003), App. A.3, pp. 632–634, indeterminacy, under uncertainty): if `G` is `C¹` near the steady
+state, `G(0) = 0`, and the operator (A.8) of its linearisation is onto but not one-to-one, then
+on the core two-coin tree, for every `ε > 0`, the book-form conditions
+`E_t[G(x_{t−1}, x_t, x_{t+1}, 0)] = 0` with `x_{−1} = x̄` have a bounded adapted solution with
+`‖x‖ ≤ ε`, deterministic at date 0, whose date-1 value differs across the first coin flip. -/
+theorem random_sunspot_nonlinear {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (h0 : G 0 = 0) (hs : Function.Surjective (linOp G)) (hni : ¬ Function.Injective (linOp G))
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV ι (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem G 0 x ∧ ‖x‖ ≤ ε ∧
+      (∀ ω ω', x (0, ω) = x (0, ω')) ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  obtain ⟨r, hr, hball⟩ := exists_ball_contDiffAt hG
+  set F := cutoff G r hr with hFdef
+  have hF1 : ContDiff ℝ 1 F := contDiff_cutoff hr hball
+  obtain ⟨hlo, -, -⟩ := lin_cutoff G hr
+  have hF0 : F 0 = 0 := by rw [hFdef, cutoff_eq hr (by rw [norm_zero]; positivity), h0]
+  have hsF : Function.Surjective (linOp F) := by rw [hlo]; exact hs
+  have hniF : ¬ Function.Injective (linOp F) := by rw [hlo]; exact hni
+  obtain ⟨k, hk0, hk⟩ : ∃ k : SeqV ι, k ≠ 0 ∧ linOp F k = 0 := by
+    simp only [Function.Injective, not_forall] at hniF
+    obtain ⟨a, b, hab, hne⟩ := hniF
+    exact ⟨a - b, sub_ne_zero.mpr hne, by rw [map_sub, hab, sub_self]⟩
+  have hk00 : k 0 ≠ 0 := kernel_ne_zero_at_zero hsF hk hk0
+  have hkn : 0 < ‖k 0‖ := norm_pos_iff.mpr hk00
+  have hf := hasStrictFDerivAt_branchMap hF1
+  have hrange := range_branchD hsF
+  have := finiteDimensional_ker_branchD hsF
+  have hker : (branchD F).ker.ClosedComplemented :=
+    Submodule.ClosedComplemented.of_finiteDimensional _
+  set κ : (branchD F).ker := ⟨((0, k, -k) : Br ι), branchD_anti hk⟩ with hκ
+  set g := hf.implicitFunctionOfComplemented (branchMap F hF1.continuous) (branchD F) hrange hker
+    with hgdef
+  set f0 := branchMap F hF1.continuous 0 with hf0def
+  have hf0 : f0 = 0 := by
+    refine Prod.ext ?_ (Prod.ext ?_ ?_)
+    · change (1 / 2 : ℝ) • (F (arg0 true (0 : Br ι)) + F (arg0 false (0 : Br ι))) = 0
+      rw [map_zero, map_zero, hF0, add_zero, smul_zero]
+    · change eqMap F hF1.continuous (parB true (0 : Br ι)) = 0
+      rw [map_zero, eqMap_eq_zero_iff]
+      exact LocalIFTSystems.solves_zero hF0
+    · change eqMap F hF1.continuous (parB false (0 : Br ι)) = 0
+      rw [map_zero, eqMap_eq_zero_iff]
+      exact LocalIFTSystems.solves_zero hF0
+  set h : ℝ → Br ι := fun s => g f0 (s • κ) with hh
+  have hg0 : g f0 0 = 0 := hf.implicitFunctionOfComplemented_apply_image hrange hker
+  have hh0 : h 0 = 0 := by simp only [hh, zero_smul, hg0]
+  have hderiv : HasDerivAt h (κ : Br ι) 0 := by
+    have hs' := (hf.to_implicitFunctionOfComplemented hrange hker).hasFDerivAt
+    have hline : HasDerivAt (fun s : ℝ => s • κ) κ 0 := by
+      simpa using (hasDerivAt_id (0 : ℝ)).smul_const κ
+    have hs'' : HasFDerivAt (g f0) (branchD F).ker.subtypeL ((fun s : ℝ => s • κ) 0) := by
+      simpa using hs'
+    exact (hs''.comp_hasDerivAt (0 : ℝ) hline).congr_deriv rfl
+  have hsol : ∀ᶠ s in 𝓝 (0 : ℝ), branchMap F hF1.continuous (h s) = 0 := by
+    have hmap := hf.map_implicitFunctionOfComplemented_eq hrange hker
+    have ht : Filter.Tendsto (fun s : ℝ => (f0, s • κ)) (𝓝 0) (𝓝 (f0, 0)) := by
+      have hc : Continuous (fun s : ℝ => (f0, s • κ)) :=
+        continuous_const.prodMk (continuous_id.smul continuous_const)
+      simpa using hc.tendsto 0
+    filter_upwards [ht.eventually hmap] with s hs
+    rw [← hf0]
+    exact hs
+  have hsmall : ∀ᶠ s in 𝓝 (0 : ℝ), ‖h s‖ < min (r / 4) ε := by
+    have ht := hderiv.continuousAt.tendsto
+    rw [hh0] at ht
+    exact (ht.eventually (Metric.ball_mem_nhds (0 : Br ι)
+      (lt_min (by positivity : (0 : ℝ) < r / 4) hε))).mono
+        (fun s hs => by rwa [dist_zero_right] at hs)
+  have hclose : ∀ᶠ s in 𝓝 (0 : ℝ), ‖h s - s • (κ : Br ι)‖ ≤ (‖k 0‖ / 2) * ‖s‖ := by
+    have hl := (hasDerivAt_iff_isLittleO.mp hderiv).def (by positivity : (0 : ℝ) < ‖k 0‖ / 2)
+    filter_upwards [hl] with s hs
+    simp only [hh0, sub_zero] at hs
+    exact hs
+  obtain ⟨ρ, hρ, hρP⟩ := Metric.eventually_nhds_iff.mp (hsol.and (hsmall.and hclose))
+  set s : ℝ := ρ / 2 with hsdef
+  have hs0 : 0 < s := by positivity
+  obtain ⟨hs1, hs2, hs3⟩ := hρP (show dist s 0 < ρ by
+    rw [dist_zero_right, Real.norm_eq_abs, abs_of_pos hs0]
+    linarith)
+  set p := h s with hp
+  set c := p.1 with hc
+  set y₁ := p.2.1 with hy₁
+  set y₂ := p.2.2 with hy₂
+  have hpr : ‖p‖ ≤ r / 4 := hs2.le.trans (min_le_left _ _)
+  have hpε : ‖p‖ ≤ ε := hs2.le.trans (min_le_right _ _)
+  have hcn : ‖c‖ ≤ ‖p‖ := norm_fst_le p
+  have hy₁n : ‖y₁‖ ≤ ‖p‖ := (norm_fst_le p.2).trans (norm_snd_le p)
+  have hy₂n : ‖y₂‖ ≤ ‖p‖ := (norm_snd_le p.2).trans (norm_snd_le p)
+  -- the branches solve the exact conditions
+  have hbr : ∀ y : SeqV ι, ‖y‖ ≤ ‖p‖ → eqMap F hF1.continuous ((c, 0), y) = 0 →
+      Solves G (c, 0) y := by
+    intro y hy hy0
+    have hu : ‖((c, 0) : Par ι E)‖ ≤ r / 4 := by
+      rw [Prod.norm_mk, norm_zero, max_eq_left (norm_nonneg _)]
+      exact hcn.trans hpr
+    exact (solves_cutoff_iff hr hu (hy.trans hpr)).mp ((eqMap_eq_zero_iff _ _ _ _).mp hy0)
+  have hS₁ : Solves G (c, 0) y₁ := hbr y₁ hy₁n (congrArg (fun q => q.2.1) hs1)
+  have hS₂ : Solves G (c, 0) y₂ := hbr y₂ hy₂n (congrArg (fun q => q.2.2) hs1)
+  have harg : ∀ y : SeqV ι, ‖y‖ ≤ ‖p‖ → ‖((0, c, y 0, 0) : Arg ι E)‖ ≤ r / 4 := by
+    intro y hy
+    refine (norm_prod_le_iff.mpr ⟨by rw [norm_zero]; positivity, norm_prod_le_iff.mpr
+      ⟨hcn.trans hpr, norm_prod_le_iff.mpr ⟨(LocalIFT.norm_seq_apply_le y 0).trans
+        (hy.trans hpr), by rw [norm_zero]; positivity⟩⟩⟩)
+  have hdate0 : (1 / 2 : ℝ) • (G ((0, c, y₁ 0, 0) : Arg ι E) + G ((0, c, y₂ 0, 0) : Arg ι E)) =
+      0 := by
+    have e := congrArg Prod.fst hs1
+    change (1 / 2 : ℝ) • (F ((0, c, y₁ 0, 0) : Arg ι E) + F ((0, c, y₂ 0, 0) : Arg ι E)) = 0
+      at e
+    rwa [hFdef, cutoff_eq hr (harg y₁ hy₁n), cutoff_eq hr (harg y₂ hy₂n)] at e
+  -- the stochastic sunspot process
+  set x : SProcV ι (Bool × Bool) := LocalIFTStochastic.mkB
+    (fun q => lagV c (fun t => if q.2.1 then y₁ t else y₂ t) q.1) ⟨‖p‖, fun q => by
+      rcases q with ⟨t, b, b'⟩
+      cases t with
+      | zero => exact hcn
+      | succ t =>
+        cases b
+        · exact (LocalIFT.norm_seq_apply_le y₂ t).trans hy₂n
+        · exact (LocalIFT.norm_seq_apply_le y₁ t).trans hy₁n⟩ with hx
+  have hxv : ∀ t ω, x (t, ω) = lagV c (fun t => if ω.1 then y₁ t else y₂ t) t :=
+    fun _ _ => rfl
+  refine ⟨x, ⟨fun t i => ?_, fun t i => ?_⟩, ?_, fun _ _ => rfl, ?_⟩
+  · -- adaptedness
+    cases t with
+    | zero =>
+      change ExpectationsFiniteTree.coinSystem.E 0 (fun _ => c i) = fun _ => c i
+      exact ExpectationsFiniteTree.coinSystem.const 0 _
+    | succ t =>
+      change ExpectationsFiniteTree.coinSystem.E (t + 1)
+        (fun ω => (fun b : Bool => (if b then y₁ t else y₂ t) i) ω.1) =
+          fun ω => (fun b : Bool => (if b then y₁ t else y₂ t) i) ω.1
+      exact LocalIFTStochasticModels.coin_known_fst t
+        (fun b : Bool => (if b then y₁ t else y₂ t) i)
+  · -- the book-form conditions
+    cases t with
+    | zero =>
+      have hf : (fun ω => G (ptS ((0 : ParS ι E (Bool × Bool)), x) (0, ω)) i) =
+          fun ω => (fun b : Bool => G ((0, c, (if b then y₁ 0 else y₂ 0), 0) : Arg ι E) i) ω.1 :=
+        funext fun ω => rfl
+      rw [hf]
+      funext ω
+      rw [LocalIFTStochasticModels.coin_E0]
+      have hi := congrFun hdate0 i
+      simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul, Pi.zero_apply] at hi
+      simp only [↓reduceIte, Bool.false_eq_true, Pi.zero_apply]
+      linarith
+    | succ t =>
+      have hf : (fun ω => G (ptS ((0 : ParS ι E (Bool × Bool)), x) (t + 1, ω)) i) = 0 := by
+        funext ω
+        rcases ω with ⟨b, b'⟩
+        cases b
+        · change G (lagV c (fun s => y₂ s) t, y₂ t, y₂ (t + 1), (0 : LocalIFT.Seq E) t) i = 0
+          exact congrFun (hS₂ t) i
+        · change G (lagV c (fun s => y₁ s) t, y₁ t, y₁ (t + 1), (0 : LocalIFT.Seq E) t) i = 0
+          exact congrFun (hS₁ t) i
+      rw [hf]
+      exact map_zero _
+  · -- the bound
+    refine LocalIFTStochastic.norm_le_of_forall hε.le fun q => ?_
+    rcases q with ⟨t, b, b'⟩
+    cases t with
+    | zero => exact hcn.trans hpε
+    | succ t =>
+      cases b
+      · exact ((LocalIFT.norm_seq_apply_le y₂ t).trans hy₂n).trans hpε
+      · exact ((LocalIFT.norm_seq_apply_le y₁ t).trans hy₁n).trans hpε
+  · -- randomness
+    change y₁ 0 ≠ y₂ 0
+    intro hxy
+    set err : Br ι := p - s • (κ : Br ι) with herr
+    have hpe : p = s • (κ : Br ι) + err := by rw [herr]; abel
+    have hy1 : y₁ = s • k + err.2.1 := by
+      have := congrArg (fun q : Br ι => q.2.1) hpe
+      simpa [hκ] using this
+    have hy2 : y₂ = -(s • k) + err.2.2 := by
+      have := congrArg (fun q : Br ι => q.2.2) hpe
+      simpa [hκ] using this
+    have e0 : (2 * s) • k 0 = err.2.2 0 - err.2.1 0 := by
+      have h1 := congrArg (fun y : SeqV ι => y 0) hy1
+      have h2 := congrArg (fun y : SeqV ι => y 0) hy2
+      simp only [lp.coeFn_add, lp.coeFn_smul, lp.coeFn_neg, Pi.add_apply, Pi.smul_apply,
+        Pi.neg_apply] at h1 h2
+      rw [hxy] at h1
+      rw [h1] at h2
+      rw [two_mul, add_smul]
+      linear_combination h2
+    have hen : ‖err‖ ≤ ‖k 0‖ / 2 * s := by
+      have := hs3
+      rwa [Real.norm_eq_abs, abs_of_pos hs0] at this
+    have hb : ‖err.2.2 0 - err.2.1 0‖ ≤ ‖k 0‖ * s := by
+      refine (norm_sub_le _ _).trans ?_
+      have a1 : ‖err.2.2 0‖ ≤ ‖err‖ :=
+        (LocalIFT.norm_seq_apply_le _ 0).trans ((norm_snd_le err.2).trans (norm_snd_le err))
+      have a2 : ‖err.2.1 0‖ ≤ ‖err‖ :=
+        (LocalIFT.norm_seq_apply_le _ 0).trans ((norm_fst_le err.2).trans (norm_snd_le err))
+      linarith
+    rw [← e0, norm_smul, Real.norm_eq_abs, abs_of_pos (by positivity)] at hb
+    nlinarith
+
+/-- Woodford (2003), App. A.3, pp. 632–634 (**too many stable roots**): if (A.8) is onto and more
+than `n` roots of `det(f₃λ² + f₂λ + f₁)` lie inside the unit circle, the conclusion of
+`random_sunspot_nonlinear` holds. -/
+theorem random_sunspot_of_count_gt {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (h0 : G 0 = 0) (hs : Function.Surjective (linOp G))
+    (hcount : Fintype.card ι < Multiset.card (((quadPoly (M1 G) (M2 G) (M3 G)).map
+      Complex.ofRealHom).roots.filter (fun μ => ‖μ‖ < 1))) {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV ι (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem G 0 x ∧ ‖x‖ ≤ ε ∧
+      (∀ ω ω', x (0, ω) = x (0, ω')) ∧ x (1, (true, true)) ≠ x (1, (false, true)) :=
+  random_sunspot_nonlinear hG h0 hs (not_injective_of_count_gt hcount) hε
+
+/-- Woodford (2003), App. A.3, pp. 632–634: the hypotheses of `random_sunspot_nonlinear` stated
+for the stochastic operator (A.12) of any expectation system on a nonempty state space (onto and
+not one-to-one there implies the same for (A.8)). -/
+theorem random_sunspot_of_opS {Ω : Type*} [Nonempty Ω] (𝔼 : ExpectationSystem Ω)
+    {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0) (h0 : G 0 = 0)
+    (hs : Function.Surjective (linOpS 𝔼 G)) (hni : ¬ Function.Injective (linOpS 𝔼 G))
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV ι (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem G 0 x ∧ ‖x‖ ≤ ε ∧
+      (∀ ω ω', x (0, ω) = x (0, ω')) ∧ x (1, (true, true)) ≠ x (1, (false, true)) :=
+  random_sunspot_nonlinear hG h0 (sysOp_surjective_of_opS 𝔼 hs)
+    (sysOp_not_injective_of_opS 𝔼 hni) hε
+
+end Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots
+
 set_option linter.style.longLine false
 #print axioms Woodford.PriceLevelDetermination.SchurStable
 #print axioms Woodford.PriceLevelDetermination.disc
@@ -34289,3 +39464,273 @@ set_option linter.style.longLine false
 #print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsApps.hasFDerivAt_F0g
 #print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsApps.slopes_F0g
 #print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsApps.not_second_order_C1
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_zero
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_succ
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.SolvesLinS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.LinDeterminateS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_lagP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.adaptedV_lagP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_zero_zero
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.lagP_split
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.comp_stepS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.lin_of_pencilS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.pencil_of_linS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_pencil
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_pf
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.linDeterminateS_iff_roots
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_sysOp_iff_stoch
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.detP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.adaptedV_detP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_detP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.mv_cst
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvesLinS_detP_iff
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.proj_solves
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedSeq_proj
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.HomInjectiveS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.homInjectiveS_iff
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.NonexistS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.NonuniqueS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.nonuniqueS_iff
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.nonexistS_iff
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.stoch_nonexist_of_unit_root
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.failure_cases_stoch
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.sunP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.mv_mul_xi
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.random_sunspot
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_homog_head
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.coinShock_one_known
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.coin_random_sunspot
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.coin_random_sunspot_of_count_gt
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_solvent
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.quadMat_mulVec_of_solvent
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvent_stable
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_solventD
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.solventJ_stable
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_decision_rule
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.fwdV
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.fwdV_spec
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_eq
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_adapted
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkRec_bounded
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkSol
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.bkSol_solves_book
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.decision_rule
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.book_form_iff
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.SProcV
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.abs_apply_le
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.boundedV_toP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.exists_norm_boundV
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.ofP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_ofP
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_injective
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_add
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_sub
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_zero
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.mkOp
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.mkOp_apply
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.condEV
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_condEV
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.linS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_linS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.opS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_mv_EV
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_opS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_toP_opS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.adapted_of_opS
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.EV_adapted
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.toP_opS_of_adapted
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.solvesLinS_shift
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff_roots
+#print axioms Woodford.PriceLevelDetermination.LinearSystemsStochastic.isUnit_opS_iff_sysOp
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemI
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemI_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasStrictFDerivAt_nemI
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.continuous_nemID
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_nemI
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ParS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_ptS_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptSL
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ptSL_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_ptSL_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.SolvesSV
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqMapS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqMapS_eq_zero_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqDS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasStrictFDerivAt_eqMapS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_eqMapS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bOpS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bOpS_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linS_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqD0S
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.nemID_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eqDS_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.adaptedV_condEV
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_condEV_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.toP_condEV_bOpS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linInvS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_linInvS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linInvS_linOpS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_linSolS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_eq_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS_solves
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.eq_linSolS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigMapS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiff_bigMapS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDInvS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDInvS_bigDS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDS_bigDInvS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigDEquivS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_bigMapS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.implicitSolS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.zero_mem_homeoS_source
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.bigMapS_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.zero_mem_homeoS_target
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.homeoS_symm_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.contDiffAt_homeoS_symm
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_homeoS_symm
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.implicitSolS_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.hasFDerivAt_implicitSolS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacy_globalS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.lin_cutoffS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_cutoff_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_roots
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_linOp
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS_of_roots
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.first_order_locS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linOpS_sub_linSolS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_globalS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_locS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.condEV_sub_condEV
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_embG
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embPar
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_embPar_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.toP_embG
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.adaptedV_embG
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_embG_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.sysOp_surjective_of_opS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.sysOp_not_injective_of_opS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.surjective_of_solution_mapS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.not_locally_uniqueS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_of_local_determinacyS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_linOpS_iff_local_determinacyS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.linSolS_embPar
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.unembS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.embG_unembS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.unembS_embG
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.norm_unembS_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.pf_local_determinacy_recovered
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.ssParS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.constS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.solvesSV_shift_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.local_determinacyS_at
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.isUnit_iff_local_determinacyS_at
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochastic.second_order_locS_at
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.isUnit_linOpS_inert_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_linDeterminateS_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_local_determinacyS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_second_orderS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_iffS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_nonuniqueS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_nonexistS_of_unit
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inert_coin_random_sunspot
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertIter
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertI
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertPi
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertSun
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.abs_inertIter_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.inertial_random_sunspot
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scal1
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.vec1
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scal1_vec1
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.vec1_scal1
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.norm_vec1_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.norm_scal1_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.solvesSV_embedF_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.fderiv_embedF_blocks
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.isUnit_linOpS_embedF_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.linSolS_embedF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.scalar_local_determinacyS_recovered
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticApps.not_second_order_C1S
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.lz
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.joinL
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.lz_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.joinL_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_inl
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_inr
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.Gaug_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.contDiffAt_Gaug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.fderiv_Gaug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.mulVec_M_Gaug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.dE_Gaug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.mv_Gaug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.sumElim_eq_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesLinS_Gaug_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linDeterminateS_Gaug_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_linOpS_Gaug_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_linOpS_Gaug_iff_roots
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.EKnown
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.SolvesFS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augS_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS_augS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_augS_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_projS_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augPar
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.augPar_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.norm_augPar_le
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projF_ptS_aug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesSV_of_solvesFS
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.cellConst_pi
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.eq_augS_of_solvesSV
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesFS_iff
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linSolF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.linSolF_spec
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.local_determinacyF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.first_order_locF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.second_order_locF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.solvesFS_embG
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.condEV_condEV
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.projS_eqD0S_Gaug
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.surjective_of_solution_mapF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_of_local_determinacyF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticFormI.isUnit_iff_local_determinacyF
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.Br
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.ev0
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.arg0
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.parB
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.arg0_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.parB_apply
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchMap
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchD
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.hasStrictFDerivAt_branchMap
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.eqD0_lead
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.eqD0_zeroPar
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.leadOp_impOp
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.fderiv_arg0
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.range_branchD
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.kernel_ne_zero_at_zero
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.finiteDimensional_ker_branchD
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.branchD_anti
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_nonlinear
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_count_gt
+#print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_opS
