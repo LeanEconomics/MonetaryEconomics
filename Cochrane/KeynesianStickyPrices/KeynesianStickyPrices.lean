@@ -19,3 +19,4 @@ import KeynesianStickyPrices.OptimalPolicy
 import KeynesianStickyPrices.TaylorDeterminacy
 import KeynesianStickyPrices.History
 import KeynesianStickyPrices.Links
+import KeynesianStickyPrices.FullModelTidy

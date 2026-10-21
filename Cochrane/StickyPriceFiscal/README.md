@@ -12,8 +12,8 @@ discrete-time models (§§5.1–5.6) are stated for an arbitrary `ExpectationSys
 holds under perfect foresight and under genuine uncertainty. The continuous-time models (§5.7)
 are about deterministic paths after a date-0 shock, which is how the book computes its responses.
 "Determinate" means that exactly one bounded equilibrium exists for every admissible forcing and
-initial condition. The library contains **933 theorems**, including the shared core; 825 of them
-are in the nineteen chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
+initial condition. The library contains **958 theorems**, including the shared core; 850 of them
+are in the twenty chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
 Blanchard–Kahn theorem (`BKCopy`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
@@ -218,6 +218,20 @@ passive in the §5.4 sense (`Links.alpha_iff_pf_gRoot`, `Links.determinate_regio
 `FiscalNK` determinacy is not derived from `PolicyRules.policyRules_determinate`, which assumes
 `|1 − α| < ρ` and so excludes the `α = 0` of §5.1.2.
 
+`LinksTidy` closes two links that were previously stated by docstring only.
+* **The bond weight.** The return `omega·q_{t+1} − q_t` of (5.60) is the exact derivative of the
+  portfolio return iff `omega = ω/(1 + i)`, the `ω̃` of `LongTermDebt`; the printed `ω` is not
+  (`LinksTidy.exact_weight_iff`, `LinksTidy.printed_weight_not_exact`, E23). Under the
+  identification map `LinksTidy.idParams` (all rule coefficients zero, `omega := ω̃`) the
+  long-term-debt model is the §5.5 reduced model equation by equation and equilibrium by
+  equilibrium, and the unique equilibrium carries over (`LinksTidy.ltd_iff_redCore`,
+  `LinksTidy.redEquil_iff_ltdEquil`, `LinksTidy.redEquil_eq_ltd`).
+* **The two continuous-time transversality theorems.** `NonlinearCT.tvc_iff_integral` (relative
+  time) is re-derived from `CTSimple.tvc_iff_forward` (absolute time) by a change of variables,
+  without its continuity hypothesis on the surplus (`LinksTidy.tvc_iff_integral_of_forward`).
+  Conversely `CTSimple.tvc_iff_forward` is re-derived from `NonlinearCT.tvc_iff_integral` for
+  forcing continuous on `[t, ∞)` (`LinksTidy.tvc_iff_forward_of_integral`).
+
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise. The main corrections are:
@@ -260,9 +274,11 @@ Not formalised:
   the book's responses, not diffusions;
 * the full discrete-to-continuous limit of the peg path: only the roots, the impact coefficient
   and the decay factor are shown to converge (`Links`);
-* a formal link between `LongTermDebt`'s exact weight `ω̃` and the `omega` of `PolicyRules.Params`
-  (the same parameter by docstring only), and between `NonlinearCT.tvc_iff_integral` and
-  `CTSimple.tvc_iff_forward`, which use different time conventions.
+* `CTSimple.tvc_iff_forward` derived from `NonlinearCT.tvc_iff_integral` for discontinuous forcing.
+  `NonlinearCT` assumes a continuous surplus, so its theorem says nothing about `CTSimple` data
+  whose forcing `av − v′` is discontinuous, and `CTSimple`'s hypotheses allow that
+  (`LinksTidy.forward_hyps_discontinuous`). The witness is discontinuous only at the endpoint `t`;
+  no interior (Darboux-type) witness is built. The other direction holds in full.
 
 ## Library map
 
@@ -291,6 +307,7 @@ Not formalised:
 | [CTRulesEquilibrium](StickyPriceFiscal/CTRulesEquilibrium.lean) | 21 | §§5.7.3–5.7.5: existence and uniqueness of the rules equilibrium for every `α`, and the certified Fig. 5.11 and Table 5.2 numbers |
 | [CTMatrixMethod](StickyPriceFiscal/CTMatrixMethod.lean) | 17 | App. §1.13 with complex and defective eigenvalues, given a Jordan decomposition |
 | [Links](StickyPriceFiscal/Links.lean) | 25 | Links between the sections: innovations, discrete and continuous roots, the §5.5 model without rules as the §§5.1.2 and 5.2 models, fiscal-rule roots, ODE solutions |
+| [LinksTidy](StickyPriceFiscal/LinksTidy.lean) | 25 | The exact bond weight `ω̃` as the `omega` of `PolicyRules.Params` (identification map, equations, equilibria; E23), and the two continuous-time transversality theorems derived from each other |
 
 ## Modelling conventions
 
@@ -313,8 +330,9 @@ Not formalised:
   one pre-sample term `λ₁^{−t}K` with `K` known at date 0, and moving averages of shocks start
   from zero pre-sample states (`TwoSidedMA.piMA`, `SurplusProcess.ma`).
 * **Long-term debt.** The model uses the exact first-order weight `ω̃ = ω/(1 + i)` of App. (1.22),
-  not the `ω` of (1.24) (E23). In §5.5 the parameter `omega` of `PolicyRules.Params` is documented
-  as this weight, and the book's parameters set it to `0.9` (`PolicyRules.bookRules`).
+  not the `ω` of (1.24) (E23). In §5.5 the parameter `omega` of `PolicyRules.Params` is this
+  weight (`LinksTidy.exact_weight_iff`), and the book's parameters set it to `0.9`
+  (`PolicyRules.bookRules`).
 * **Continuous time.** Paths are functions `ℝ → ℝ` after a date-0 shock: the model holds as exact
   `HasDerivAt` equations on `(0, ∞)`, paths are continuous on `[0, ∞)` with the right limits as
   initial values, and the `dε`, `dδ` terms are the jumps at date 0. Infinite-horizon integrals are

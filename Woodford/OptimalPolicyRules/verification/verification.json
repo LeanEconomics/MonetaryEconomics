@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T06:13:54.918291+00:00",
-  "theorems": 1827,
+  "checked_at_utc": "2026-10-21T05:16:17.056688+00:00",
+  "theorems": 1877,
   "module_theorems": {
     "OptimalPolicyRules/Determinacy.lean": 23,
     "OptimalPolicyRules/Expectations.lean": 20,
@@ -56,9 +56,11 @@
     "OptimalPolicyRules/InertiaFOCRoots.lean": 10,
     "OptimalPolicyRules/InertiaFOCSystem.lean": 19,
     "OptimalPolicyRules/InertiaAssumption81.lean": 22,
-    "OptimalPolicyRules/InertiaProp82Complex.lean": 7
+    "OptimalPolicyRules/InertiaProp82Complex.lean": 7,
+    "OptimalPolicyRules/TidyRuleSystem.lean": 14,
+    "OptimalPolicyRules/Tidy.lean": 36
   },
-  "audited_declarations": 2667,
+  "audited_declarations": 2739,
   "declarations": [
     {
       "name": "Woodford.OptimalPolicyRules.SchurStable",
@@ -13394,6 +13396,366 @@
       "name": "Woodford.OptimalPolicyRules.InertiaProp82Complex.in_prop82_all_finite",
       "kind": "theorem",
       "module": "OptimalPolicyRules/InertiaProp82Complex.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.History",
+      "kind": "def",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.RuleSol",
+      "kind": "def",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.known_lin3",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.bdd_lin3",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.xi1_adapted",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.E_qd",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.euler_of_focs",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.cNK_bounded",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.cNK_adapted",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.bnd_glue",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.exists_pos",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.exists_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.rule_system_exists",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.history_of_sol",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.rule_system_exists_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.TidyRuleSystem.rule_system_existsUnique",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/TidyRuleSystem.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.discC",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.discJ",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_eq_disc",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.dc4",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.dc3",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.dc2",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.dc1",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.dc0",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaDeriv",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.eval_deltaPoly",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.eval_derivative_deltaPoly",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaDeriv_eq",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.discJ_double",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.Precip_sub",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.discQ_pos_of_Precip_neg",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.root_gt_inv_beta",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.discQ_pos_of_lt",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_neg_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_eq_zero_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_pos_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaDeriv_pos",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.delta_unique_root",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly_ne_zero",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly_roots_Ioo",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly_card_roots_Ioo",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.GenRule",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rhoSum",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.coefSum",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.GTP",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gap",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_iff_gap_pos",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.symOne",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.det_symOne",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_iff_det_pos",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.symOne_ker",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.eq_zero_of_symOne",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.unit_root_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.shift",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.shift_solves_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.const_solution",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_iff_longrun",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_of_superinertial",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rho37",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.pi37",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.x37",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_iff_genRule",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.sums37",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gap37",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp37_iff",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_gtp",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_gtp_determinate",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.stepResp",
+      "kind": "def",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.stepResp_bounds",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_step_rule",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
+    },
+    {
+      "name": "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_step_tendsto",
+      "kind": "theorem",
+      "module": "OptimalPolicyRules/Tidy.lean"
     }
   ],
   "full_build": "passed",
@@ -26706,6 +27068,366 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.History": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.RuleSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.known_lin3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.bdd_lin3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.xi1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.E_qd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.euler_of_focs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.cNK_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.cNK_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.bnd_glue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.exists_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.exists_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.rule_system_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.history_of_sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.rule_system_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.TidyRuleSystem.rule_system_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.discC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.discJ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_eq_disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.dc4": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.dc3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.dc2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.dc1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.dc0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaDeriv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.eval_deltaPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.eval_derivative_deltaPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaDeriv_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.discJ_double": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.Precip_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.discQ_pos_of_Precip_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.root_gt_inv_beta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.discQ_pos_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_neg_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_eq_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaQuartic_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaDeriv_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.delta_unique_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly_roots_Ioo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.Parity.deltaPoly_card_roots_Ioo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.GenRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rhoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.coefSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.GTP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_iff_gap_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.symOne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.det_symOne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_iff_det_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.symOne_ker": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.eq_zero_of_symOne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.unit_root_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.shift_solves_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.const_solution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_iff_longrun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp_of_superinertial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rho37": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.pi37": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.x37": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_iff_genRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.sums37": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gap37": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.gtp37_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_gtp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_gtp_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.stepResp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.stepResp_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_step_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.OptimalPolicyRules.Tidy.TaylorPrinciple.rule37_step_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -26764,15 +27486,17 @@
     "OptimalPolicyRules/InertiaFOCSystem.lean": "5e871f8dc08df564fc1161dbc155acd8601a890b576aa71f4f4246bbdb99fd62",
     "OptimalPolicyRules/InertiaAssumption81.lean": "060c0b09f9c15aad0a5657ebcab3628c6eb9f201246deceaf326ebaff60c4aaa",
     "OptimalPolicyRules/InertiaProp82Complex.lean": "bb39db5684218a4bd754c7ccebe656ed8c1e3b93997ab9a9f8e6e27e39edc18a",
-    "OptimalPolicyRules.lean": "1a237694562b05cd5d516fb581728f7c761d57062aef6b6eea25d83e9b745f2d",
+    "OptimalPolicyRules/TidyRuleSystem.lean": "55aae44bb3b76fa2c135c3406ec8c48da0db4ce1ca6f6245f8eda2f5b6caad85",
+    "OptimalPolicyRules/Tidy.lean": "1955b7ad7f4c5f994b7ab2e9c55ecff54febd6ef7b2017e86f4d42a92cd8119f",
+    "OptimalPolicyRules.lean": "900707fa5c55b9c9c0428249279d3dac70470a62ebbe7946975ad3588c664159",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "d7644dbc7a4e68c3122bb56a2e0be511e8d9c9237c9f5c9f4a5301939c130326",
     "lake-manifest.json": "23325d240e3f6390165c682a5f99cb54ca838f1f31fa4b194ab3cc4de39dad67",
-    "proof-manifest.json": "507ec2e874ecfb4abd224373ae488d6f55d003617d4cdf82c35fe128465f2862",
+    "proof-manifest.json": "3983bd9581fe25c2c2c4f836ce559dd3d22382c4b7d1b6d68806884f8f68f40a",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "041e2704404cc60844a847c0dad3984b824cf0d5601f280c04fd310512d9a07d",
+  "fresh_audit_sha256": "aa45e06dd990a6eb347fce4f9dc240101e6dc2f29e78dd9849e7b9cf78a6e94b",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Woodford, Interest and Prices, Chapter 8: Optimal Policy Rules, with Appendix G. The general LQ setup and first-order conditions with the target-criterion construction via adjugates; Propositions 8.1-8.4 proved in general (Giannoni-Woodford theory the book does not prove): Prop 8.1 from Assumptions 8.2-8.4 via deflating subspaces of the pencil (1.15), corrected so multipliers are known at their date, with repeated roots and a normalisation-free case (ii); Prop 8.2 without a multiplier-stability hypothesis (Assumption 8.5 suffices) and with Assumption 8.1 corrected, robust optimality; Prop 8.3 superinertia with the no-circle hypothesis it needs (counterexample otherwise); Prop 8.4 unconditional; worked instances for the basic and inflation-inertia models (the latter with Assumption 8.1 and Prop 8.2 at every admissible calibration, via a copy of the general Blanchard-Kahn theorem and a root count for the degree-6 FOC polynomial). Optimal inflation targeting under inflation inertia, sticky wages (exact determinacy region for kappa_w /= kappa_p, with a counterexample), habit persistence, predetermined pricing, the Giannoni-Woodford model and imperfect information; Prop 8.5 determinacy for every admissible parameter and Prop 8.6; the inflation-inertia model: Prop 8.7 roots, Lemmas G.1-G.2, Prop 8.8 Rules I-III over the complex numbers with determinacy of the rule system, Props 8.9-8.11 unconditional with their limits, Figs 8.3-8.5 numbers (Fig 8.4 .39 enclosed). Book misprints and false claims are corrected with Lean counterexamples.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 8, pp. 534-623, and Appendix G, pp. 716-745; Giannoni and Woodford (2002a)."

@@ -311,6 +311,26 @@ under genuine uncertainty. Continuous-time statements are about deterministic pa
 | Cochrane (5.71), p. 149; pp. 135, 137–138 | the §5.5 debt root is the §5.4 root `g`; perfect-foresight determinacy iff `\|g\| ≤ 1`; in the region `\|1 − α\| < ρ` the rule is passive in the §5.4 sense | `Links.debtRoot_eq_gRoot`, `Links.alpha_iff_pf_gRoot`, `Links.determinate_region_passive` |
 | Cochrane p. 142; App. p. 580 | the §5.4.2 ODE solution is the App. §1.12 backward integral | `Links.odeSol_eq_bwdInt` |
 
+## Links between modules: the bond weight and the continuous-time transversality conditions (LinksTidy)
+
+Two links that were previously stated by docstring only. The identification map `idParams` sends
+the §5.2 parameters into those of §5.5 with all rule coefficients zero and `omega := ω̃`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §§5.2, 5.5, pp. 127, 147 | the identification map and its components; a §5.5 parameter set is in its image iff all rule coefficients are zero | `LinksTidy.idParams`, `LinksTidy.idParams_rules`, `LinksTidy.zeroRules_iff_idParams` |
+| Cochrane (5.53), (5.54), (5.60), p. 147; (5.21), p. 127 | at the identified parameters the rate rule is `i = u_i`, the surplus rule `s̃ = u_s`, and the bond return is `ω̃q_{t+1} − q_t`; the return as a linear map | `LinksTidy.iRule_idParams`, `LinksTidy.sNext_idParams`, `LinksTidy.rnNext_idParams`, `LinksTidy.rnNext_eq_linear` |
+| Cochrane (5.60), p. 147; App. (1.22), p. 563 | **the (5.60) return is the exact derivative of the portfolio return iff `omega = ω/(1 + i)`**; both modules' returns are the same exact derivative | `LinksTidy.exact_weight_iff`, `LinksTidy.same_exact_return` |
+| Cochrane App. (1.24), p. 563 (E23) | with the printed `omega = ω` (`ω, i > 0`) the return is not the exact derivative | `LinksTidy.printed_weight_not_exact` |
+| Cochrane (5.64)–(5.73), pp. 148–149 | the reduced model without (5.68), and the reduced model as that core plus (5.68); at the identified parameters the core is the new-Keynesian model, the long-term-debt flow and the expectations hypothesis | `LinksTidy.RedCore`, `LinksTidy.redSys_iff_core`, `LinksTidy.redCore_idParams` |
+| Cochrane (5.17)–(5.21), p. 127; (5.64)–(5.73), pp. 148–149 | **the long-term-debt model is the reduced model with rules switched off**, with the returns of (5.21) and the date-0 flow | `LinksTidy.ltd_iff_redCore` |
+| Cochrane pp. 127–129, 147–149 | the long-term-debt equilibrium; the pre-sample debt that makes the date-0 flow hold; **the equilibria coincide**; under the hypotheses of `LongTermDebt.ltd_determinate` the reduced-model equilibrium is the unique long-term-debt one | `LinksTidy.LTDEquil`, `LinksTidy.vm1Of`, `LinksTidy.redEquil_iff_ltdEquil`, `LinksTidy.redEquil_eq_ltd` |
+| Cochrane (5.44), p. 140; (5.95), p. 165 | the change of variables `T ↦ t + T` between relative and absolute time: the discounted value, the transversality condition, integrability and the valuation integral | `LinksTidy.tvc_rel_eq`, `LinksTidy.tvc_rel_iff_abs`, `LinksTidy.integrable_rel_iff_abs`, `LinksTidy.valuation_rel_eq` |
+| Cochrane (5.44), p. 140; (5.95), p. 165 | the statements of `CTSimple.tvc_iff_forward`, of the same for continuous forcing, and of `NonlinearCT.tvc_iff_integral`, as propositions | `LinksTidy.ForwardStmt`, `LinksTidy.ForwardContStmt`, `LinksTidy.IntegralStmt` |
+| Cochrane (5.44), p. 140 | **the NonlinearCT form follows from the CTSimple form**, without the continuity of the surplus | `LinksTidy.integral_of_forward`, `LinksTidy.integralStmt_of_forwardStmt`, `LinksTidy.tvc_iff_integral_of_forward` |
+| Cochrane (5.95), p. 165 | **the CTSimple form follows from the NonlinearCT form for forcing continuous on `[t, ∞)`**: the path shifted to the valuation date and extended linearly to the left satisfies NonlinearCT's flow | `LinksTidy.shiftExt`, `LinksTidy.shiftExt_flow`, `LinksTidy.forwardContStmt_of_integralStmt`, `LinksTidy.tvc_iff_forward_of_integral` |
+| Cochrane (5.95), p. 165 | CTSimple's hypotheses do not force continuous forcing on `[t, ∞)` | `LinksTidy.forward_hyps_discontinuous` |
+
 ## The general Blanchard–Kahn theorem (BKCopy)
 
 The book uses the Blanchard–Kahn counting rule without proof (App. §1.9, pp. 573–576; p. 148).

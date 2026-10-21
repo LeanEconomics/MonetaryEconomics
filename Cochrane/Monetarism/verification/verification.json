@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T22:05:01.714694+00:00",
-  "theorems": 656,
+  "checked_at_utc": "2026-10-21T04:55:29.610513+00:00",
+  "theorems": 686,
   "module_theorems": {
     "Monetarism/Determinacy.lean": 23,
     "Monetarism/Expectations.lean": 20,
@@ -18,9 +18,10 @@
     "Monetarism/Nonseparable.lean": 33,
     "Monetarism/CashInAdvance.lean": 78,
     "Monetarism/ContinuousTime.lean": 82,
-    "Monetarism/Links.lean": 24
+    "Monetarism/Links.lean": 24,
+    "Monetarism/LinksTidy.lean": 30
   },
-  "audited_declarations": 797,
+  "audited_declarations": 846,
   "declarations": [
     {
       "name": "Cochrane.Monetarism.SchurStable",
@@ -4006,6 +4007,251 @@
       "name": "Cochrane.Monetarism.Links.passiveSurplus_regimes_eq_cia",
       "kind": "theorem",
       "module": "Monetarism/Links.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.ExitsStatement",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.ExplosionStatement",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.explosion_of_exits",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.exits_of_explosion",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.exits_iff_explosion",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.exitsStatement_holds",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.explosionStatement_holds",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.finite_time_explosion_of_power_exits",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.power_exits_of_finite_time_explosion",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.dateCost_eq_pvCost",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.dateUtil_eq",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.admissible_iff_tFeasible",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.isOptimal_iff_tOptimal_of_adapted",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.isOptimal_iff_tOptimal",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.tree_euler_necessary_general",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.tree_foc_cc_of_cia_euler",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.tree_optimal_of_foc_of_cia",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.pvCost_condE",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.isOptimal_condE_iff",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.TreeBridge.euler_sufficient_of_tree_optimal_of_foc",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.NKPC",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.Eq32",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.RealBalanceId",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.Predetermined",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.AM0",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.AM1",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.BM",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.stateVec",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.expVec",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.shockVec",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.System34",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.system34_iff",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.Equil34",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.FlexBlock",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.FlexSystem",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.FlexEquil",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.eq32_zero_gap_iff",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.system34_zero_gap_iff",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.equil34_zero_gap_iff",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flexForcing",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_scalar",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.shiftIn",
+      "kind": "def",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_existsUnique",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flexBlock_iff_cagan",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_constant_money",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_constant_money_steady",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34",
+      "kind": "theorem",
+      "module": "Monetarism/LinksTidy.lean"
     }
   ],
   "full_build": "passed",
@@ -7995,6 +8241,251 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.ExitsStatement": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.ExplosionStatement": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.explosion_of_exits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.exits_of_explosion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.exits_iff_explosion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.exitsStatement_holds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.explosionStatement_holds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.finite_time_explosion_of_power_exits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.power_exits_of_finite_time_explosion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.dateCost_eq_pvCost": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.dateUtil_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.admissible_iff_tFeasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.isOptimal_iff_tOptimal_of_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.isOptimal_iff_tOptimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.tree_euler_necessary_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.tree_foc_cc_of_cia_euler": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.tree_optimal_of_foc_of_cia": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.pvCost_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.isOptimal_condE_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.TreeBridge.euler_sufficient_of_tree_optimal_of_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.NKPC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.Eq32": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.RealBalanceId": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.Predetermined": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.AM0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.AM1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.BM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.stateVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.expVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.shockVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.System34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.system34_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.Equil34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.FlexBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.FlexSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.FlexEquil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.eq32_zero_gap_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.system34_zero_gap_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.equil34_zero_gap_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flexForcing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_scalar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.shiftIn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flexBlock_iff_cagan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_constant_money": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_constant_money_steady": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -8015,15 +8506,16 @@
     "Monetarism/CashInAdvance.lean": "a61340fca706fb261143738f87c5ce8d56b9ce23bec928799958c52653f7d211",
     "Monetarism/ContinuousTime.lean": "6b02044be009b4a17966bf45edfdc85ebf09f8b7786d6849616657ba84087d66",
     "Monetarism/Links.lean": "ae6494cc046698cf2e822e762b1df69749aa78b070a7370108b09cb52516427c",
-    "Monetarism.lean": "68de395c93b589bfe7c9318f7c7d2a0bea295a1e0784105fde8d71c7c1142709",
+    "Monetarism/LinksTidy.lean": "ff648feb61e64d82671416c44d14b0138c67f786a93aef4c8c0c75d7ddcfaaf9",
+    "Monetarism.lean": "28abded867c0044d11b8f37b6513bfacfb15606548ca04c91a97e1af957b1154",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "f9126750f6439e08fceda3b5fd0df208cfdf0d7ef86ced2b8445258e9cfce056",
     "lake-manifest.json": "b124474aabfdc4f64ec7c7e39cb487344df2e915bd40177bde034e3daecf6ff5",
-    "proof-manifest.json": "ce138458b7a38581c61605425ece744b85aa07f26267821cf75c4efeaeed2b6c",
+    "proof-manifest.json": "37b517834bccec61674263084f86641052e767c2c569c2fe1c2c9597a185741f",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "93b99f27b806a5494eb382b86d809424623c4833afe12a38bdaa7a5852f1d00a",
+  "fresh_audit_sha256": "315b78e77500169deca4d132eef878f3eb63f49f2a668806f67f97e47944dd5a",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 19 (with Chapter 11 and 14 claims and Online Appendix A1.6, A3 and A4): Monetarism. Monetary and fiscal regimes, NI-7 observational equivalence and double-passive indeterminacy; open-market-operation claims of Chapter 11 and the helicopter arithmetic; Cagan money demand under rational expectations with the full solution family, sunspots and fiscal selection of the price level; money in the utility function with FOCs derived from optimisation under perfect foresight and on a finite event tree, the value of money, power utility and certified Figure 19.1 numbers (E13: 1 + mu > beta); global money-targeting dynamics; unpleasant arithmetic; seigniorage, the Laffer peak (E16) and Baumol-Tobin elasticities; pruning deflations (E17: TVC fails iff mu >= 0) and inflations (finite-time explosion, countably many equilibria, modified utility); Obstfeld-Rogoff redemption and Cochrane's demonetised equilibrium (E18 caption corrected); nonseparable utility (E19: stable iff b > 1 + i/2); cash in advance with the stochastic Euler equation derived from optimality ((19.29) needs the money TVC, (19.38) corrected, E14, E15); continuous-time money with CES limits (E20) and the IS curve with money (E21). Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 19, pp. 433-464, Chapter 11, pp. 315-318, Section 14.1, p. 342, and Online Appendix A1.6, A3.1-A3.2 and A4, pp. 567-569, 612-632 and 635-641."

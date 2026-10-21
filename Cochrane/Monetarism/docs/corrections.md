@@ -87,6 +87,14 @@ adaptedness (`MoneyInUtility.eq1911_iff_tvc_adapted`, `MoneyInUtility.eq1912_of_
 therefore hold on any state space. On a finite state space every function of a known variable is
 known (`MoneyInUtility.functionsKnown_of_fintype`).
 
+## Precisions from the links between modules (not book errors)
+
+| Where | Library statement or earlier record | Finding |
+| --- | --- | --- |
+| (19.31), p. 450 | `CashInAdvance.TreeEuler.euler_necessary` assumes positive state prices `Λ > 0`. | Positivity is not needed: the tree Euler equation follows from the footnote-tree perturbation lemma with differentiability at the two nodes only (`LinksTidy.TreeBridge.tree_euler_necessary_general`). |
+| p. 453; footnote 1, p. 440 | An earlier stage of the work recorded that the cash-in-advance and money-in-utility tree sufficiency theorems could not be bridged, because the CIA theorem (node-indexed supergradients, state prices not measurable) is more general in form. | Superseded. The full CIA theorem is derived from the MIU one by averaging the supergradients and state prices over each information cell, which keeps the supergradient inequality and the first-order conditions (`LinksTidy.TreeBridge.euler_sufficient_of_tree_optimal_of_foc`, through `LinksTidy.TreeBridge.isOptimal_condE_iff`). The MIU results for the money-free problem also follow from the CIA ones (`LinksTidy.TreeBridge.tree_foc_cc_of_cia_euler`, `LinksTidy.TreeBridge.tree_optimal_of_foc_of_cia`). |
+| §19.2, pp. 436–437; Galí (2015), (34), p. 75 | Galí's money rule and Cochrane's Cagan model describe the same money block. | They are linked exactly only with flexible prices: with a zero gap (32) is the Cagan equation with `a = η` (`LinksTidy.GaliMoneyRule.flexBlock_iff_cagan`), but with sticky prices the flexible-price path is not a zero-gap equilibrium of (34) unless `β = 1` (`LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34`). Galí's determinacy needs bounded money growth only (`LinksTidy.GaliMoneyRule.flex_existsUnique`), while `CaganRE.bounded_existsUnique` assumes bounded money; the two coincide with constant money (`LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff`). |
+
 ## Claims confirmed correct
 
 | Where | Claim | Lean |

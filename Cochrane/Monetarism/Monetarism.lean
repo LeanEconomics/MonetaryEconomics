@@ -20,3 +20,4 @@ import Monetarism.Nonseparable
 import Monetarism.CashInAdvance
 import Monetarism.ContinuousTime
 import Monetarism.Links
+import Monetarism.LinksTidy

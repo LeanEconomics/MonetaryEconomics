@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T21:58:37.880657+00:00",
-  "theorems": 454,
+  "checked_at_utc": "2026-10-21T04:56:48.431906+00:00",
+  "theorems": 508,
   "module_theorems": {
     "KeynesianStickyPrices/Determinacy.lean": 23,
     "KeynesianStickyPrices/Expectations.lean": 20,
@@ -17,9 +17,10 @@
     "KeynesianStickyPrices/OptimalPolicy.lean": 20,
     "KeynesianStickyPrices/TaylorDeterminacy.lean": 36,
     "KeynesianStickyPrices/History.lean": 11,
-    "KeynesianStickyPrices/Links.lean": 28
+    "KeynesianStickyPrices/Links.lean": 28,
+    "KeynesianStickyPrices/FullModelTidy.lean": 54
   },
-  "audited_declarations": 572,
+  "audited_declarations": 634,
   "declarations": [
     {
       "name": "Cochrane.KeynesianStickyPrices.SchurStable",
@@ -2880,6 +2881,316 @@
       "name": "Cochrane.KeynesianStickyPrices.Links.rule182_determinate_iff_determinate",
       "kind": "theorem",
       "module": "KeynesianStickyPrices/Links.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ_summable",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ_summable",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ_rec",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ_rec",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ_bound",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ_bound",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_factor",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_second",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_bounded",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.secondZ_existsUnique",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.eq_piZ",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.kernel",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_hasSum",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_eq_tsum_int",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.zPath_eq_piZ",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.PFEqmZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.pfEqmZ_iff_secondZ",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.eqmZ_existsUnique",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.PFDev",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.deviation_iff_pfDev",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.exists_deviation_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.pfDev_neg",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.scaled_of_pfDev",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.y_rec",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.y_at_inv_beta",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf_step",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf_pow",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf_lower",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.bounded_of_tendsto",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.complex_bounded",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.complex_tendsto_zero",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.real_tendsto_zero",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.unbounded_of_Q",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.not_tendsto_zero_of_Q",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.complex_not_atTop",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.eigen_pfDev",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.eigen_scaled",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.explode_of_root",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.root_of_lt",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.root_of_disc",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath_pfDev",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath_scaled",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.not_atTop_of_bounded",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.all_tendsto_zero",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.all_bounded",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath_Q",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.explodes_pf_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.unbounded_pf_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.tvc_fails_pf_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.explodes_atTop_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.explodes_atBot_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.unbounded_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.tvc_fails_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.book_calibration_oscillates",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.fig17_7_calibration_oscillates",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.tvc_cannot_rule_out",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.FullModelTidy.nominal_only_at_inv_beta",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/FullModelTidy.lean"
     }
   ],
   "full_build": "passed",
@@ -5744,6 +6055,316 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.FZ_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.BZ_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_second": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.secondZ_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.eq_piZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.kernel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.piZ_eq_tsum_int": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.zPath_eq_piZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.PFEqmZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.pfEqmZ_iff_secondZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.eqmZ_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.PFDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.deviation_iff_pfDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.exists_deviation_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.pfDev_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.scaled_of_pfDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.y_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.y_at_inv_beta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.Qf_lower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.bounded_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.complex_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.complex_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.real_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.unbounded_of_Q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.not_tendsto_zero_of_Q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.complex_not_atTop": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.eigen_pfDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.eigen_scaled": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.explode_of_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.root_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.root_of_disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath_pfDev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath_scaled": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.not_atTop_of_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.all_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.all_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.sPath_Q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.explodes_pf_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.unbounded_pf_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.tvc_fails_pf_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.explodes_atTop_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.explodes_atBot_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.unbounded_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.tvc_fails_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.book_calibration_oscillates": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.fig17_7_calibration_oscillates": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.tvc_cannot_rule_out": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.FullModelTidy.nominal_only_at_inv_beta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -5763,15 +6384,16 @@
     "KeynesianStickyPrices/TaylorDeterminacy.lean": "f9d96d7e02b57a6751149f16cf669f087c1eacfb6f4fa0ee2e5c315ad6fc37ee",
     "KeynesianStickyPrices/History.lean": "af49322d1529e6f72f85d8cae55e2978c55a4a120993db300ecbc494bfa222fc",
     "KeynesianStickyPrices/Links.lean": "5b8e772b43a9098e822c1fa24425a2d2824e4b00ed60bbb5c2f1199df18bf826",
-    "KeynesianStickyPrices.lean": "6d12b61bdee95fa5eb7a8b3265bfa9d03e06369e17f2970b2982fdcb674517ae",
+    "KeynesianStickyPrices/FullModelTidy.lean": "c6d31dae627f4ee03be62809006b236c2dd42e5be2a739cf6afecba35b9a9e80",
+    "KeynesianStickyPrices.lean": "66a139f65c379b5653ed2a478b52576349906d319a8b6ff2ba8cc625fa09b52c",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "24bb1f005fe115c78a07d8cc5b15c6d15f9e11ad4a479e4dd4e4e959934a880c",
     "lake-manifest.json": "c0baa78083a5dfe2090a39406fa93c4def9f368ef3b593822d7873ebc1009e45",
-    "proof-manifest.json": "e2e8e6b1b418286f0d553d810a64d909781f49691b7393b42b0ab0a948a84855",
+    "proof-manifest.json": "abb1e420e0bd4d73d091a4674c05f7418f503d2a8a8e0eea32ca90793d5608b3",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "f2db26d4f8a500af26aa76081ba727ce67e9f01b77eaf1f804ab037a9d8ac369",
+  "fresh_audit_sha256": "8c2e2d971cd34da2e887e694cbd150a11c589ff607fdb829f7e6626fccb02343",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 17-18 (with Online Appendix A1.7, A1.8 and A1.13.1): Keynesian models with sticky prices. The static IS-Phillips model with adaptive versus rational expectations, the RE solution family and its infinite-past form (17.8); policy rules in both models with the stability and determinacy sets corrected (E7: phi > 1 or phi < -1 - 2/(sigma kappa)); AR(1) responses, super-Fisherian and open-mouth cases and the root eta*; any persistence with any sign and a long-run response of one ((17.14) inverse corrected, E8); the adaptive Taylor rule; the full model with its two-sided solution, the anticipated rate rise from minus infinity (Figure 17.5) and Figure 17.6 surplus changes (labels shown inconsistent); fiscal underpinnings (17.19) with the dating correction and Figure 17.7 numbers certified (E10); optimal policy with the x* = 0 intercept corrected (E9); Taylor determinacy with phi_x ((1.58); phi > 1 neither necessary nor sufficient only once phi_x < 0 is allowed; complex roots, E11; (1.55) entry corrected); Chapter 18 rules; links showing the simple model is exactly the beta = 0 case of the full model. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 17, pp. 397-421, Chapter 18, pp. 422-432, and Online Appendix A1.7, A1.8 and A1.13.1, pp. 569-572 and 586-588."

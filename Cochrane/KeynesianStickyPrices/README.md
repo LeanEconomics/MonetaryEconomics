@@ -15,8 +15,8 @@ paths of §17.4 are perfect-foresight sequences after the announcement or shock,
 figures, and statements about an infinite past are ℤ-indexed and pathwise. The central objects
 are the simple sticky-price model (17.1)–(17.14), under adaptive and under rational expectations,
 and the three-equation model (17.15)–(17.33); "determinate" means exactly one bounded equilibrium
-for every bounded adapted disturbance. The library contains **454 theorems**, including the
-shared core; 346 of them are in the twelve chapter modules.
+for every bounded adapted disturbance. The library contains **508 theorems**, including the
+shared core; 400 of them are in the thirteen chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E7–E11 and E24 refer to
@@ -109,6 +109,23 @@ Headline results, in the namespace `Cochrane.KeynesianStickyPrices`:
   `Links.determinate_beta_zero_iff_reDeterminate`). MSV uniqueness holds on the whole
   determinacy region, including the oscillating branch of (1.58)
   (`Links.msv_unique_of_determinate`).
+* **The full model on ℤ for any rate path.** For every bounded rate path `i : ℤ → ℝ` and `β > 0`,
+  (17.18) has exactly one bounded solution, the two-sided moving average (5.5) with the stable
+  root solved backward over the infinite past and the unstable one forward, also as a genuine
+  two-sided sum over ℤ (`FullModelTidy.secondZ_existsUnique`, `FullModelTidy.eq_piZ`,
+  `FullModelTidy.piZ_eq_tsum_int`). The Figure 17.5 path is the special case of the step
+  (`FullModelTidy.zPath_eq_piZ`), and the bounded `(x, π)` equilibrium on ℤ exists and is unique
+  (`FullModelTidy.eqmZ_existsUnique`).
+* **Real explosions for every `φ` (p. 421).** Under perfect foresight, some deviation has
+  `βᵗx̃_t → +∞` iff `φ < 1/β`, or `β + σκ > 1` with real roots, `4β(1 + σκφ) ≤ (1 + β + σκ)²`
+  (`FullModelTidy.explodes_atTop_iff`); `βᵗx̃_t` is unbounded for some deviation iff `φ < 1/β` or
+  `β(1 + σκφ) > 1`, and the real transversality condition fails for some deviation iff `φ < 1/β`
+  or `β(1 + σκφ) ≥ 1` (`FullModelTidy.unbounded_iff`, `FullModelTidy.tvc_fails_iff`). At the
+  book's own calibrations the roots are complex: real explosions exist but oscillate, and none
+  tends to `±∞` (`FullModelTidy.book_calibration_oscillates`,
+  `FullModelTidy.fig17_7_calibration_oscillates`). At `β = 0.95`, `σ = 1`, `κ = 1/25`, `φ = 1.2`
+  the system is determinate, yet every deviation satisfies the real transversality condition
+  (`FullModelTidy.tvc_cannot_rule_out`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -125,10 +142,10 @@ Three further errors were found: the `u_x` entry of the shock matrix in A1 (1.55
 dating of the real rate in (17.19), p. 411; and the labels of equilibria A and E in Figure 17.6,
 p. 410, which cannot match the printed `Δs` values (the survey's E24 left these values unchecked).
 In addition, the formalisation makes precise "`φ > 1` is neither necessary nor sufficient"
-(p. 420, A1 p. 587), "with `φ < 1` we have multiple equilibria" (A1 p. 587), the
-Clarida–Galí–Gertler reading (p. 428), the output response of Figure 17.5 (p. 409), the infinite
-past of (17.8) (p. 400), the cross-reference to (1.62) for (1.60) (A1 p. 588) and the rounding
-`η* ≈ 0.51` (p. 416).
+(p. 420, A1 p. 587), the real explosions "`E_tβʲx_{t+j} → ∞`" for `φ ≥ 1/β` (p. 421), "with
+`φ < 1` we have multiple equilibria" (A1 p. 587), the Clarida–Galí–Gertler reading (p. 428), the
+output response of Figure 17.5 (p. 409), the infinite past of (17.8) (p. 400), the
+cross-reference to (1.62) for (1.60) (A1 p. 588) and the rounding `η* ≈ 0.51` (p. 416).
 
 Not formalised:
 * the verbal and historical parts of Chapter 18 (§§18.1–18.3, beyond footnote 1 and
@@ -139,17 +156,15 @@ Not formalised:
   equilibrium conditions;
 * the Figure 17.6 numbers 0.67, 1.66, −1.53 and 2.99: the book gives no `σ, κ, β, ρ` for the
   figure. Only the `Δs` formula, B, C and D, and the inconsistency of A and E are proved;
-* existence of a bounded path on ℤ for (17.18) with `β > 0` and an arbitrary bounded rate path:
-  uniqueness is proved in general (`FullModel.secondZ_unique`), existence only for the step of
-  Figure 17.5 (`FullModel.zPath_existsUnique`);
 * stochastic versions of the full-model paths of §17.4: Figures 17.5–17.7, the reverse-engineered
   disturbances and `Δs` are under perfect foresight after the announcement or shock, with
   pre-shock expectations at the steady state. The infinite-past statements ((17.8), the corrected
-  inverse of (17.14), `zPath`) are pathwise, because the core `ExpectationSystem` has no infinite
-  past;
+  inverse of (17.14), `zPath`, and the bounded paths and equilibria on ℤ of `FullModelTidy`) are
+  pathwise under perfect foresight, because the core `ExpectationSystem` has no infinite past;
 * (18.2) with inertia `φ_i ≠ 0`, a three-dimensional system with a predetermined variable; the
   book makes no determinacy claim about it;
-* real explosions for `φ ≥ 1/β`: `TaylorDeterminacy.real_explosion` covers `φ < 1/β`;
+* real explosions under uncertainty or with an output response: the characterisations of
+  `FullModelTidy` are for the perfect-foresight deviation system with `φ_x = 0`, as in (17.32);
 * the likelihood of (18.3) as a statistical object: `History.likelihood_flat` is a statement about
   every function of the equilibrium paths;
 * A1 §1.9 (matrix and state-variable methods, pp. 573–578) and the continuous-time parts of
@@ -176,6 +191,7 @@ Not formalised:
 | [TaylorDeterminacy](KeynesianStickyPrices/TaylorDeterminacy.lean) | 36 | §17.5.2 and A1 (1.55)–(1.58): structural systems, determinacy with `φ_x`, (1.58), Bullard–Mitra, "neither necessary nor sufficient", (1.55) corrected, (1.57) and E11, `φ` irrelevance, real explosions |
 | [History](KeynesianStickyPrices/History.lean) | 11 | Chapter 18: the PIH footnote, (18.1)–(18.3), the Clarida–Galí–Gertler reading |
 | [Links](KeynesianStickyPrices/Links.lean) | 28 | Links between the two chains: the simple model as the `β = 0` case of the full model, (1.55) and (17.33), MSV uniqueness on the whole determinacy region, lag roots and eigenvalues, `zPath` and the `full_any_sign` family, (18.1)–(18.2) |
+| [FullModelTidy](KeynesianStickyPrices/FullModelTidy.lean) | 54 | §17.4.1 and §17.5.2: (17.18) and the equilibrium on ℤ for every bounded rate path, the two-sided ℤ-sum (5.5); real explosions (17.29)–(17.33) for every `φ`, as `→ ±∞`, unboundedness and failure of the transversality condition, with the book's calibrations as counterexamples (p. 421) |
 
 ## Modelling conventions
 

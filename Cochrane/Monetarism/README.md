@@ -13,8 +13,8 @@ time" (pp. 635–641). The present-value and Cagan results hold for an arbitrary
 operator, so they cover perfect foresight and genuine uncertainty. The nonlinear phase dynamics
 are perfect-foresight, as in the book. The household first-order conditions are derived by
 optimisation, under perfect foresight and on a finite event tree. Continuous time is
-deterministic. The library contains **656 theorems**, including the shared core; 548 of them are
-in the thirteen chapter modules.
+deterministic. The library contains **686 theorems**, including the shared core; 578 of them are
+in the fourteen chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -123,6 +123,22 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   with money is stated exactly, restoring the dropped `−δσ` (E21, `ContinuousTime.is_curve_exact`,
   `ContinuousTime.E21_steady_state`). The valuation equations of Online Appendix §1.6 are restated
   (`ContinuousTime.money_interest_iff`).
+* **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
+  Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
+  (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
+  footnote-1 tree problem with `ι = 0` (`LinksTidy.TreeBridge.isOptimal_iff_tOptimal`), so the
+  Euler results pass both ways: the tree Euler equation needs no positivity of the state prices
+  (`LinksTidy.TreeBridge.tree_euler_necessary_general`), and the full cash-in-advance sufficiency
+  theorem follows from the footnote-tree one by averaging over information cells
+  (`LinksTidy.TreeBridge.euler_sufficient_of_tree_optimal_of_foc`). Galí's (2015) money-rule
+  system (34) with a zero output gap is the flexible-price Cagan model plus `π_t = βE_tπ_{t+1}`
+  (`LinksTidy.GaliMoneyRule.system34_zero_gap_iff`), whose money block is (19.5) with `a = η`
+  (`LinksTidy.GaliMoneyRule.flexBlock_iff_cagan`). The flexible-price model is determinate in
+  Galí's sense with bounded money growth (`LinksTidy.GaliMoneyRule.flex_existsUnique`), and
+  Galí's boundedness requirement is exactly Cochrane's selection of the steady state
+  (`LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff`). With sticky prices the
+  flexible-price path is not a zero-gap equilibrium
+  (`LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -159,13 +175,13 @@ Not formalised:
   (`CashInAdvance.PF.active_fiscal_prunes`);
 * the suspected one-period shift of the time axis of Figure 3.2 (E18);
 * Woodford's Taylor-rule transversality section, its Obstfeld–Rogoff section and its convexity
-  counterexample, which are not restated in `MoneyTargetingDynamics`; and the optional link to
-  Galí's money rule;
-* some bridges between modules: `MoneyTargetingDynamics.power_inflation_exits` and
-  `PruningInflation.finite_time_explosion` are not derived from each other (they are linked on
-  the same path by `Links.explosion_same_path`), and the tree admissibility of `CashInAdvance` is
-  not bridged to `MoneyInUtility.FootnoteTree.TOptimal` (only the node notion is,
-  `Links.meas_iff_tAdapted`).
+  counterexample, which are not restated in `MoneyTargetingDynamics`;
+* Galí's sticky-price determinacy theorem for the money rule (`system34_existsUnique` of the Galí
+  Chapter 4 project): only the system (34), its row equivalence and its equilibrium notion are
+  restated in `LinksTidy.GaliMoneyRule`; its proof needs the general Blanchard–Kahn chain, which
+  this project does not carry. The flexible-price model is proved determinate in full, and the
+  zero-gap results relate the two. The `κ → ∞` limit of the sticky-price equilibria is not
+  formalised.
 
 ## Library map
 
@@ -188,6 +204,7 @@ Not formalised:
 | [CashInAdvance](Monetarism/CashInAdvance.lean) | 78 | §19.5, (19.24)–(19.38): stochastic present-value budgets, money demand by optimisation, the Euler equation (perfect foresight and finite tree), frictionless and monetary equilibria, E14, E15 |
 | [ContinuousTime](Monetarism/ContinuousTime.lean) | 82 | Online Appendix §1.6 (restated from the `Generality` project) and Chapter 4, (4.1)–(4.17): the present-value budget, first-order conditions, CES and E20, the IS curve with money and E21, the Hamiltonian |
 | [Links](Monetarism/Links.lean) | 24 | The same objects across modules: coordinates `x` and `m`, E13 = E17, MIU and CIA deflations, discrete and continuous first-order conditions, CES, Cagan and seigniorage |
+| [LinksTidy](Monetarism/LinksTidy.lean) | 30 | Further links: the finite-time exit and explosion derived from each other; the cash-in-advance tree problem as the footnote-1 tree problem, with the Euler results both ways; Galí's (2015) money rule (34) restated and related to the flexible-price Cagan model |
 
 ## Modelling conventions
 
@@ -209,7 +226,9 @@ Not formalised:
   first-order conditions are derived, not imposed: `MoneyInUtility.Optimal`,
   `MoneyInUtility.FootnoteTree.TOptimal`, `CashInAdvance.Euler.IsOptimalPlan` and
   `CashInAdvance.TreeEuler.IsOptimal`. The cash-in-advance consumption problem is the
-  money-in-utility problem without money (`CashInAdvance.Euler.isOptimalPlan_iff_optimal`), and
+  money-in-utility problem without money, under perfect foresight
+  (`CashInAdvance.Euler.isOptimalPlan_iff_optimal`) and on a finite tree
+  (`LinksTidy.TreeBridge.isOptimal_iff_tOptimal`), and
   overnight money is a linear programme (`CashInAdvance.MoneyDemand.IsOptimalMoney`).
 * **Coordinates.** Chapter 19 writes (19.23) in `x = Py/M` (`MoneyInUtility.nextX`); the Online
   Appendix writes it in real balances `m = M/(Py) = 1/x` (`PruningDeflation.ratioMap`). Both are

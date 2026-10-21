@@ -26,3 +26,4 @@ import StickyPriceFiscal.CTRules
 import StickyPriceFiscal.CTRulesEquilibrium
 import StickyPriceFiscal.CTMatrixMethod
 import StickyPriceFiscal.Links
+import StickyPriceFiscal.LinksTidy

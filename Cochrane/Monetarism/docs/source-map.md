@@ -301,6 +301,32 @@ next three sections.
 | Cochrane (19.39)–(19.40), p. 456; p. 458 | discrete seigniorage is steady-state revenue | `Links.seig_eq_revenue` |
 | Cochrane p. 435; p. 453 | the `Regimes` and cash-in-advance passive surplus rules agree | `Links.passiveSurplus_regimes_eq_cia` |
 
+## Further links: finite-time explosion, the tree household problem, and Galí's money rule (LinksTidy)
+
+Three bridges left open by `Links`. Galí's (2015) money-rule system (34) is restated, with its row
+equivalence and equilibrium notion; Galí's sticky-price determinacy theorem itself is not
+re-proved here.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Figure 19.1, p. 444; A3 (3.3), p. 619 | the statements of `MoneyTargetingDynamics.power_inflation_exits` (in `x = Py/M`) and `PruningInflation.finite_time_explosion` (in `m = M/(Py)`) as propositions; each is supplied by its original theorem | `LinksTidy.ExitsStatement`, `LinksTidy.ExplosionStatement`, `LinksTidy.exitsStatement_holds`, `LinksTidy.explosionStatement_holds` |
+| Figure 19.1, p. 444 ↔ A3 (3.3), p. 619 | **the finite-time exit and the finite-time explosion are each derived from the other** | `LinksTidy.explosion_of_exits`, `LinksTidy.exits_of_explosion`, `LinksTidy.exits_iff_explosion` |
+| A3 (3.3), p. 619; Figure 19.1, p. 444 | `finite_time_explosion` from `power_inflation_exits` alone, and conversely | `LinksTidy.finite_time_explosion_of_power_exits`, `LinksTidy.power_exits_of_finite_time_explosion` |
+| Cochrane (19.30), p. 449; §19.5.1, p. 448; footnote 1, p. 440 | with `ι = 0` and utility independent of money, the footnote-tree date cost and date utility are the cash-in-advance ones; CIA admissibility is footnote-tree feasibility plus convergent utility | `LinksTidy.TreeBridge.dateCost_eq_pvCost`, `LinksTidy.TreeBridge.dateUtil_eq`, `LinksTidy.TreeBridge.admissible_iff_tFeasible` |
+| Cochrane §19.5.1, p. 449; footnote 1, p. 440 | **the tree bridge**: `CashInAdvance.TreeEuler.IsOptimal` (`V = 1`) is `MoneyInUtility.FootnoteTree.TOptimal` with `ι = 0` and any adapted money plan, in particular `m = 0` | `LinksTidy.TreeBridge.isOptimal_iff_tOptimal_of_adapted`, `LinksTidy.TreeBridge.isOptimal_iff_tOptimal` |
+| Cochrane (19.31), p. 450 | the tree Euler equation from the footnote-tree perturbation lemma, differentiable only at the two nodes and with no positivity of the state prices | `LinksTidy.TreeBridge.tree_euler_necessary_general` |
+| Cochrane (19.13)–(19.14), p. 440 | the footnote-tree first-order condition and sufficiency for the money-free problem, from the cash-in-advance Euler equation and sufficiency theorem | `LinksTidy.TreeBridge.tree_foc_cc_of_cia_euler`, `LinksTidy.TreeBridge.tree_optimal_of_foc_of_cia` |
+| Cochrane (19.30), p. 449; §19.5.1, p. 448 | only `E_tΛ_t` matters: `E[E_t h] = E[h]` on a finite tree; the present-value cost and the problem are unchanged when `Λ_t` is replaced by `E_tΛ_t` | `LinksTidy.TreeBridge.sum_prob_condE`, `LinksTidy.TreeBridge.pvCost_condE`, `LinksTidy.TreeBridge.isOptimal_condE_iff` |
+| Cochrane p. 453 | **the full cash-in-advance tree sufficiency theorem** (node-indexed supergradients, state prices not measurable) from `MoneyInUtility.FootnoteTree.tree_optimal_of_foc`, by averaging over information cells | `LinksTidy.TreeBridge.euler_sufficient_of_tree_optimal_of_foc` |
+| Galí (2015), (22), (32)–(34), pp. 63, 74–75 (restated from the Galí Chapter 3 and 4 projects); Cochrane §19.1, p. 435 | the Phillips curve, (32), the real-balance identity (33), predetermined real balances, the matrices and vectors of (34), the system (34) and its equivalence with (32), the Phillips curve and (33), and the equilibrium notion | `LinksTidy.GaliMoneyRule.NKPC`, `LinksTidy.GaliMoneyRule.Eq32`, `LinksTidy.GaliMoneyRule.RealBalanceId`, `LinksTidy.GaliMoneyRule.Predetermined`, `LinksTidy.GaliMoneyRule.AM0`, `LinksTidy.GaliMoneyRule.AM1`, `LinksTidy.GaliMoneyRule.BM`, `LinksTidy.GaliMoneyRule.stateVec`, `LinksTidy.GaliMoneyRule.expVec`, `LinksTidy.GaliMoneyRule.shockVec`, `LinksTidy.GaliMoneyRule.System34`, `LinksTidy.GaliMoneyRule.system34_iff`, `LinksTidy.GaliMoneyRule.Equil34` |
+| Cochrane (19.4)–(19.5), p. 436 ↔ Galí (32)–(33), p. 74 | the flexible-price money block, the flexible-price system and its equilibrium notion (`ỹ ≡ 0`, Phillips-curve row dropped); with a zero gap (32) is the money block, for every `σ` | `LinksTidy.GaliMoneyRule.FlexBlock`, `LinksTidy.GaliMoneyRule.FlexSystem`, `LinksTidy.GaliMoneyRule.FlexEquil`, `LinksTidy.GaliMoneyRule.eq32_zero_gap_iff` |
+| Galí (34), p. 75 ↔ Cochrane §19.2, p. 436 | zero-gap solutions and equilibria of (34) are exactly the flexible-price ones that also satisfy `π_t = βE_tπ_{t+1}` | `LinksTidy.GaliMoneyRule.system34_zero_gap_iff`, `LinksTidy.GaliMoneyRule.equil34_zero_gap_iff` |
+| Cochrane §19.2, pp. 436–437, (19.8); Galí p. 75, fn. 14 | **determinacy of the flexible-price money-growth model in Galí's sense**: for `η ≥ 0`, bounded adapted shocks and bounded money growth there is exactly one bounded adapted equilibrium with predetermined real balances, for every `ExpectationSystem`; the forcing, the scalar forward equation and the initial condition | `LinksTidy.GaliMoneyRule.flexForcing`, `LinksTidy.GaliMoneyRule.flex_scalar`, `LinksTidy.GaliMoneyRule.shiftIn`, `LinksTidy.GaliMoneyRule.flex_existsUnique` |
+| Cochrane (19.5), p. 436 ↔ Galí (32), p. 74 | in levels, the zero-gap money block is the Cagan equation with `a = η` | `LinksTidy.GaliMoneyRule.flexBlock_iff_cagan` |
+| Cochrane (19.5)–(19.6), p. 436 | with constant money Galí's equilibrium has constant real balances, and its price level is Cochrane's steady state `p̄` | `LinksTidy.GaliMoneyRule.flex_constant_money`, `LinksTidy.GaliMoneyRule.flex_constant_money_steady` |
+| Cochrane pp. 436–437 ↔ Galí p. 75 | for `η > 0` a Cagan solution has bounded real balances iff it is the steady state: Galí's selection is Cochrane's bounded selection (`CaganRE.bounded_iff_steady`) | `LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff` |
+| Galí (34), p. 75 vs Cochrane §19.2 | the link is not exact: under perfect foresight with `Δm ≡ 1` the flexible-price equilibrium `π ≡ 1`, `l̂ ≡ −η` is not a zero-gap equilibrium of (34) unless `β = 1` | `LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34` |
+
 ## Shared tools
 
 | Book | Claim | Lean |

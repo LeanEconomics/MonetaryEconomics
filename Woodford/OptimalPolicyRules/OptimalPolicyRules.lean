@@ -58,3 +58,5 @@ import OptimalPolicyRules.InertiaFOCRoots
 import OptimalPolicyRules.InertiaFOCSystem
 import OptimalPolicyRules.InertiaAssumption81
 import OptimalPolicyRules.InertiaProp82Complex
+import OptimalPolicyRules.TidyRuleSystem
+import OptimalPolicyRules.Tidy

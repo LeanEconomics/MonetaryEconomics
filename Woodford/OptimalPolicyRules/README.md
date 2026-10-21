@@ -12,7 +12,7 @@ sums over bounded plans. Every optimality claim is proved as optimality: a feasi
 the first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Optimal from a timeless perspective" and
 "robustly optimal" are given precise definitions and proved. "Unique equilibrium" means unique
-among bounded adapted processes. The library contains **1827 theorems**, including the shared
+among bounded adapted processes. The library contains **1877 theorems**, including the shared
 core.
 
 The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4), which the book states
@@ -53,15 +53,31 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
   the rule equilibrium is the unique optimum (`IRuleBasic.rule_eqm_unique_optimum`);
   Proposition 8.6 and the target criterion (3.13) (`IRuleForwardIntegrated.prop_8_6`,
   `IRuleForwardIntegrated.rule_iff_crit313`); Proposition 8.7 (`CubicRoots.prop_8_7`); the
-  rule system of p. 593 is determinate (uniqueness) for every admissible parameter vector, by
-  strict convexity rather than a root count (`InflationInertiaRules.rule_system_unique`,
-  `InflationInertiaRules.rule_system_determinate`); Propositions 8.8–8.11, unconditional
+  rule system of p. 593 has at most one bounded solution for every admissible parameter vector,
+  by strict convexity rather than a root count (`InflationInertiaRules.rule_system_unique`,
+  `InflationInertiaRules.rule_system_determinate`), and for every `0 ≤ γ ≤ 1` exactly one for
+  every bounded disturbance and history, built from the bounded optimal plan
+  (`TidyRuleSystem.rule_system_existsUnique`, `TidyRuleSystem.rule_system_exists_iff`);
+  Propositions 8.8–8.11, unconditional
   (`InflationInertiaRules.prop_8_8_ruleIII`, `Links.prop_8_9_ruleIII_standing`,
   `Links.prop_8_10_standing`, `Links.prop_8_11_standing`), with their limits as `γ → 0` and
   `γ → 1` along the actual roots (`Links.prop_8_9_ruleI_limit_standing`,
   `Links.prop_8_11_limit_one_standing`); the delayed-information versions (3.29)–(3.31)
   (`Links.eq316_delay_iff_target331`); the reaction function (4.1) implements the optimal policy
   (`Reflections.rule41_timelesslyOptimal`).
+* **The generalised Taylor principle (p. 585; Ch. 4, (2.9) and fn 27).** For a general rule with
+  any number of lags the principle `φπ(1) + (1 − β)φₓ(1)/(4κ) > 1 − ρ(1)` holds iff the symbol of
+  the system at `μ = 1` has positive determinant, `det = κσ · gap`, and its boundary is exactly
+  where the system has the eigenvalue 1 (`Tidy.TaylorPrinciple.det_symOne`,
+  `Tidy.TaylorPrinciple.unit_root_iff`, `Tidy.TaylorPrinciple.shift_solves_iff`). For rules of the
+  form (3.7) it reduces to `φπ + ρ₁ > 1` (`Tidy.TaylorPrinciple.gtp37_iff`); the optimal rule
+  satisfies it at every admissible calibration, with slack `κσ/λᵢ + κσ/β`, and its cumulative
+  response to a permanent rise in inflation tends to `+∞` (`Tidy.TaylorPrinciple.rule37_gtp`,
+  `Tidy.TaylorPrinciple.rule37_gtp_determinate`, `Tidy.TaylorPrinciple.rule37_step_tendsto`).
+* **The parity remark of p. 727, exact.** `Δ(γ) = −β⁴` times the discriminant of the cubic, and
+  `Δ` has exactly one root in `(0, 1)`, a simple one, with `Δ < 0` below it and `Δ > 0` above it
+  up to 1: the book's "one or three roots" never has three (`Tidy.Parity.deltaQuartic_eq_disc`,
+  `Tidy.Parity.delta_unique_root`, `Tidy.Parity.deltaPoly_roots_Ioo`).
 * **Numbers.** `γ̄ ∈ (.3533, .3534)` (`CubicRoots.calib_gamma_bar`); the Fig. 8.4 mean horizon in
   `(2.2, 2.25)` and the relative weight `∑|α_j|/α₀ ∈ (.386, .389)`, by interval arithmetic
   (`Links.fig_8_4_mean_horizon_standing`, `Links.fig_8_4_abs_weight_ratio_standing`); the
@@ -186,7 +202,12 @@ the printed text precise. The main corrections and results:
   region under perfect foresight); the admissible parameters P1 violate it, and then neither the
   optimal plan nor commitment to the criterion is determinate;
 * Proposition 8.5 holds for all admissible parameters (E21), and the p. 593 determinacy claim
-  holds for all parameters by strict convexity;
+  holds for all parameters, uniqueness by strict convexity and existence from the bounded optimal
+  plan;
+* Δ(γ) has exactly one root in `(0, 1)`, a simple one, not "one or three" (p. 727); the
+  eigenvector of Ch. 4 fn 27 has output-gap entry `(1 − β)/κ`; for (3.7) the generalised Taylor
+  principle is exactly `φπ + ρ₁ > 1`, so "`φπ > 0` and `ρ₁ > 1`" is sufficient, not necessary
+  (p. 585);
 * the gaps in Appendix G.6 and Lemma G.2 (E20, E22) and the `γ → 1` limits of Propositions 8.9
   and 8.11, closed;
 * the printed `φ_x = .15` of pp. 590–591 is `.164` (S2), and `φ_x = .33` of p. 586 is `.3226`;
@@ -228,14 +249,10 @@ Not formalised:
   also asserts without proof; consequently the direction "original ⇒ restated" of (1.11)–(1.12)
   is conditional (`GeneralFOC.LQ.timeless_restated`), and the necessity of the (2.5) criterion is
   proved under perfect foresight only (`InflTargetInertia.timeless_criterion_pf`);
-* existence of a bounded solution of the p. 593 rule system (3.16) itself for every disturbance and
-  history beyond `γ = 0`: uniqueness is proved for all parameters, and at `γ = 0` existence is
-  supplied by `Links.inertia_system_gamma_zero`. The bounded optimal plan that p. 593 assumes is
-  supplied for `0 < γ ≤ 1` by `InertiaAssumption81.in_focSolvableMB`, but it is not linked to the
-  `InflationInertiaRules` formulation of the rule system;
-* the parity remark of p. 727 ("one or three roots" of `Δ` in `(0, 1)`), which nothing uses;
-  a root in `(0, 1)` and one in `(1, ∞)` are proved, and at the calibration the root in `(0, 1)` is
-  unique;
+* existence for the p. 593 rule system at `λₓ = 0`: `TidyRuleSystem` takes the admissible
+  calibrations (`λₓ > 0`, as the book assumes), because the solvability results it builds on
+  (`InertiaAssumption81.in_focSolvableMB`, `NKAssumption81.NK.nk_focSolvableM`) need `λₓ > 0`;
+  uniqueness also covers `λₓ = 0`;
 * the "only if" half of the exact determinacy region for `κ_w ≠ κ_p` on the ellipse boundary,
   proved under perfect foresight only (`InflTargetStickyWages.foc_not_exists_boundary`); existence
   inside the region and failure strictly inside the ellipse hold for every expectation system;
@@ -245,9 +262,9 @@ Not formalised:
   earlier, verified for the IS block;
 * convergence of the equilibrium paths as `λ_i → 0` (p. 591): the coefficient limits, the limiting
   criterion and a fixed-plan limit theorem are proved;
-* the remark of p. 585 that the rule satisfies the generalised Taylor principle, as a separate
-  inequality (determinacy is proved directly); pre-sample values in §3.1 are numbers, not random
-  variables;
+* necessity of the generalised Taylor principle for determinacy within the (3.7) family, which
+  the book does not claim (fn 27): what is proved is that its boundary is exactly where an
+  eigenvalue equals 1; pre-sample values in §3.1 are numbers, not random variables;
 * Kalman filtering and Svensson–Woodford certainty equivalence beyond (3.32)–(3.35);
 * the plotted curves of Figures 8.1–8.6, beyond the specific numbers listed above; and §4 apart
   from (4.1).
@@ -311,6 +328,8 @@ Not formalised:
 | [InertiaFOCSystem](OptimalPolicyRules/InertiaFOCSystem.lean) | 19 | The inflation-inertia FOC system (1.1) + (1.9) as a Blanchard–Kahn system: regular pencil, roots, and the equivalence of solutions |
 | [InertiaAssumption81](OptimalPolicyRules/InertiaAssumption81.lean) | 22 | Assumption 8.1 for the inflation-inertia model at every calibration (bounded initial conditions; finite `Ω`; perfect foresight), the unbounded counterexample, Prop 8.2 in the real case |
 | [InertiaProp82Complex](OptimalPolicyRules/InertiaProp82Complex.lean) | 7 | Assumption 8.5 for the case-(ii) `Λ`; Prop 8.2 for the inflation-inertia model in the complex case and at every calibration |
+| [TidyRuleSystem](OptimalPolicyRules/TidyRuleSystem.lean) | 14 | p. 593: existence for the rule system (2.6), (3.1), (3.16) for every `0 ≤ γ ≤ 1` and every bounded history, from the bounded optimal plan; existence iff the history is bounded and known; exactly one solution |
+| [Tidy](OptimalPolicyRules/Tidy.lean) | 36 | p. 585 with Ch. 4 (2.9) and fn 27: the generalised Taylor principle for general rules, its boundary as the unit eigenvalue, (3.7) satisfies it; App. G.6 p. 727: `Δ(γ)` has exactly one root in `(0, 1)`, simple |
 
 ## Modelling conventions
 
