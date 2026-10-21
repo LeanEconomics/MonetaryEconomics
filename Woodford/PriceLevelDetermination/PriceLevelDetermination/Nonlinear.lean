@@ -76,7 +76,7 @@ equation `(1 − R(Ȳe^{ŷ}, m̄eˣ, ξ)) e^{x + w} − β(1 + īᵐ) e^{x'} = 0
 `w_t = r̂_t + μ_{t+1} − îᵐ_t` (`r̂_t = log(u_c(t)/u_c(t+1))`, `μ_{t+1} = log(M_{t+1}/M_t)`,
 `îᵐ_t = log((1 + iᵐ_t)/(1 + īᵐ))`). `R = u_m/u_c` is the inverse of `L` in `Δ`. -/
 
-/-- Woodford (2003), (3.3) and (1.21), pp. 72, 104, A.11 p. 644: the exact period equilibrium
+/-- Woodford (2003), (3.3) and (1.21), pp. 71, 104, A.11 p. 644: the exact period equilibrium
 condition of money-growth targeting in `(x_t, x_{t+1}, (ŷ_t, ξ_t, w_t))`. -/
 noncomputable def FMG (β ibm Ybar mbar : ℝ) (R : ℝ × ℝ × ℝ → ℝ) (p : ℝ × ℝ × (ℝ × ℝ × ℝ)) :
     ℝ :=
@@ -1077,7 +1077,7 @@ noncomputable def inflPath (θ0 : ℝ) (x r : ℕ → ℝ) : ℕ → ℝ
   | 0 => Real.exp θ0
   | t + 1 => Real.exp (x t - r t)
 
-/-- Woodford (2003), (1.21), p. 72: in logs the Fisher relation is `ĵ_t = r̂_t + π_{t+1}`. -/
+/-- Woodford (2003), (1.21), p. 71: in logs the Fisher relation is `ĵ_t = r̂_t + π_{t+1}`. -/
 theorem fisher_log {β u0 u1 Q1 i : ℝ} (hβ : 0 < β) (hu0 : 0 < u0) (hu1 : 0 < u1) (hQ : 0 < Q1)
     (h : 1 + i = u0 / (β * u1) * Q1) :
     Real.log (β * (1 + i)) = Real.log (u0 / u1) + Real.log Q1 := by
@@ -1474,7 +1474,7 @@ log Euler equation `log(β(1 + i_t)) = λ_t − λ_{t+1} + π_{t+1}` as a functi
 noncomputable def euler311 (Uc : ℝ × ℝ → ℝ) (Ybar mbar : ℝ) (v : (ℝ × ℝ) × (ℝ × ℝ) × ℝ) : ℝ :=
   NonSeparable.logMU Uc Ybar mbar v.1 - NonSeparable.logMU Uc Ybar mbar v.2.1 + v.2.2
 
-/-- Woodford (2003), (1.21), p. 72 with `u_c(Y, m)`: the exact perfect-foresight Euler equation
+/-- Woodford (2003), (1.21), p. 71 with `u_c(Y, m)`: the exact perfect-foresight Euler equation
 `1 + i_t = u_c(t)/(β u_c(t+1)) Π_{t+1}` is `log(β(1 + i_t)) = euler311(…)` in log deviations. -/
 theorem euler_iff_euler311 {Uc : ℝ × ℝ → ℝ} {β Ybar mbar Y0 Y1 m0 m1 Q1 i : ℝ} (hβ : 0 < β)
     (hY : 0 < Ybar) (hm : 0 < mbar) (hY0 : 0 < Y0) (hY1 : 0 < Y1) (hm0 : 0 < m0) (hm1 : 0 < m1)
@@ -2613,7 +2613,7 @@ theorem nsi_solves {β ibm Ybar ρ ρΘ : ℝ} {L Uc ψ : ℝ × ℝ × ℝ → 
   rw [hl0, hl1, h1, hfl]
   ring
 
-/-- Woodford (2003), (1.21), p. 72: the algebra of the Fisher relation in levels,
+/-- Woodford (2003), (1.21), p. 71: the algebra of the Fisher relation in levels,
 `β⁻¹eᵃ = U₀/(β U₁) · e^{a − (log U₀ − log U₁)}`. -/
 theorem fisher_aux {β a U0 U1 : ℝ} (hβ : 0 < β) (hU0 : 0 < U0) (hU1 : 0 < U1) :
     1 + (Real.exp a / β - 1) = U0 / (β * U1) * Real.exp (a - (Real.log U0 - Real.log U1)) := by

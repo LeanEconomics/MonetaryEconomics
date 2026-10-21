@@ -1831,7 +1831,7 @@ theorem rule_iff {β : ℝ} {φ : ℝ × ℝ → ℝ} (hpos : ∀ A : ℝ, 0 < A
     have h' : Real.log (1 + φ (A, ν)) = Real.log B := by linarith
     exact Real.log_injOn_pos (Set.mem_Ioi.mpr (hpos A hA ν)) (Set.mem_Ioi.mpr hB) h'
 
-/-- Woodford (2003), eq. (1.21), p. 72 (perfect foresight, `C = Y`) and (1.30), p. 77: a
+/-- Woodford (2003), eq. (1.21), p. 71 (perfect foresight, `C = Y`) and (1.30), p. 77: a
 **Wicksellian perfect-foresight equilibrium**: positive prices `P` and interest rates `i` with
 `1 + i_t = u_c(t)/(β u_c(t+1)) · P_{t+1}/P_t` and `i_t = φ(P_t/P_t^*; ν_t)` for all `t ≥ 0`,
 given the marginal-utility path `u_c(t) = u_c(Y_t; ξ_t) > 0`, the target `P^* > 0` and `ν`. -/

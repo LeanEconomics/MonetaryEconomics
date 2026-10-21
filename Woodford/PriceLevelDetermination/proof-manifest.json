@@ -24,7 +24,18 @@
     "PriceLevelDetermination/Timing.lean",
     "PriceLevelDetermination/SchmittGroheUribe.lean",
     "PriceLevelDetermination/LocalIFT.lean",
-    "PriceLevelDetermination/Nonlinear.lean"
+    "PriceLevelDetermination/Nonlinear.lean",
+    "PriceLevelDetermination/LocalIFTStochastic.lean",
+    "PriceLevelDetermination/LocalIFTStochasticModels.lean",
+    "PriceLevelDetermination/SGUStochastic.lean",
+    "PriceLevelDetermination/SGUStochasticMeasure.lean",
+    "PriceLevelDetermination/SystemsBK.lean",
+    "PriceLevelDetermination/SystemsBKPencil.lean",
+    "PriceLevelDetermination/LinearSystems.lean",
+    "PriceLevelDetermination/LinearSystemsUnit.lean",
+    "PriceLevelDetermination/LocalIFTSystems.lean",
+    "PriceLevelDetermination/LocalIFTSystemsBar.lean",
+    "PriceLevelDetermination/LocalIFTSystemsApps.lean"
   ],
   "theorem_counts": {
     "PriceLevelDetermination/Determinacy.lean": 23,
@@ -50,8 +61,19 @@
     "PriceLevelDetermination/Timing.lean": 22,
     "PriceLevelDetermination/SchmittGroheUribe.lean": 37,
     "PriceLevelDetermination/LocalIFT.lean": 143,
-    "PriceLevelDetermination/Nonlinear.lean": 110
+    "PriceLevelDetermination/Nonlinear.lean": 110,
+    "PriceLevelDetermination/LocalIFTStochastic.lean": 118,
+    "PriceLevelDetermination/LocalIFTStochasticModels.lean": 38,
+    "PriceLevelDetermination/SGUStochastic.lean": 39,
+    "PriceLevelDetermination/SGUStochasticMeasure.lean": 15,
+    "PriceLevelDetermination/SystemsBK.lean": 108,
+    "PriceLevelDetermination/SystemsBKPencil.lean": 56,
+    "PriceLevelDetermination/LinearSystems.lean": 61,
+    "PriceLevelDetermination/LinearSystemsUnit.lean": 8,
+    "PriceLevelDetermination/LocalIFTSystems.lean": 65,
+    "PriceLevelDetermination/LocalIFTSystemsBar.lean": 7,
+    "PriceLevelDetermination/LocalIFTSystemsApps.lean": 38
   },
-  "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example.",
+  "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example. Post-book: the stochastic (L-infinity processes with E_t) version of the Appendix A.3 implicit-function theorem with the C1 vs C2 accuracy distinction (E18), stochastic local (in)determinacy of Propositions 2.3, 2.6-2.8 and 2.11-2.13 with genuinely random sunspots, the stochastic transversality condition and the level forms; the p.137 claim that the target is the unique stochastic equilibrium in the Schmitt-Grohe-Uribe example is true on finite trees but refuted by a perpetual sunspot on a geometric probability space with Mathlib conditional expectation; n-dimensional systems with predetermined variables: the (A.9) root condition made exact (generically iff fails in exactly two ways; unit-circle roots always destroy existence), the nonlinear local theorem at any steady state with its converse and second-order bound, a copy of the general Blanchard-Kahn theorem, and the inertial rule (Proposition 2.8) as a two-dimensional application.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 2, pp. 61-138, and Appendix A, pp. 627-655."
 }
