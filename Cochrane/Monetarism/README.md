@@ -12,9 +12,10 @@ multiple monetary equilibria" (§§3.1–3.2.4, pp. 612–632), and Chapter 4, "
 time" (pp. 635–641). The present-value and Cagan results hold for an arbitrary expectation
 operator, so they cover perfect foresight and genuine uncertainty. The nonlinear phase dynamics
 are perfect-foresight, as in the book. The household first-order conditions are derived by
-optimisation, under perfect foresight and on a finite event tree. Continuous time is
-deterministic. The library contains **686 theorems**, including the shared core; 578 of them are
-in the fourteen chapter modules.
+optimisation, under perfect foresight, on a finite event tree and on a genuine probability space
+whose information grows forever. Continuous time is deterministic. The library contains
+**969 theorems**, including the shared core; 578 of them are in the fourteen chapter modules and
+175 in the six measure-theoretic household modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -111,9 +112,11 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `CashInAdvance.PF.printed_19_38_counterexample`). The nominal rate is non-negative iff `Q ≤ 1`
   (E14, `CashInAdvance.MoneyDemand.Q_le_one_iff`), and `Q = β` only with a constant price level
   (E15, `CashInAdvance.PF.bondPrice_eq_beta_iff`). For `V ≠ 1` the constraint drives a wedge into
-  asset pricing, a suspected imprecision (`CashInAdvance.MoneyDemand.binding_cost_wedge`,
-  `CashInAdvance.Euler.sdf_wedge`). The boundary between the cash-in-advance and money-in-utility
-  deflations is `1 + µ = β` (`Links.cia_boundary_deflation`).
+  asset pricing (`CashInAdvance.MoneyDemand.binding_cost_wedge`,
+  `CashInAdvance.Euler.sdf_wedge`), and on a probability space the printed (19.32) fails for every
+  `V ≠ 1` (`CashInAdvanceMeasure.printed_1932_counterexample`). The boundary between the
+  cash-in-advance and money-in-utility deflations is `1 + µ = β`
+  (`Links.cia_boundary_deflation`).
 * **Continuous time.** The present-value budget of Online Appendix Chapter 4 is the present-value
   form of the flow constraint (`ContinuousTime.pv_budget_iff`), and the first-order conditions
   follow by the chain rule (`ContinuousTime.foc_4_1`, `ContinuousTime.foc_4_2`). The CES limits
@@ -139,6 +142,38 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   (`LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff`). With sticky prices the
   flexible-price path is not a zero-gap equilibrium
   (`LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34`).
+* **Genuine probability models.** On a probability space with a filtration, where `E_t` is
+  Mathlib's conditional expectation and every budget constraint holds almost surely
+  (`ExpectationsMeasure.MeasExpectationSystem`), the Chapter 19 household problem with complete
+  contingent-claim markets is posed and solved (`HouseholdMeasure.Optimal`). Bounded budget-neutral
+  deviations give the first-order condition (`HouseholdMeasure.pair_foc`), and concavity with the
+  transversality condition gives sufficiency (`HouseholdMeasure.optimal_of_supergradient`). In
+  money in utility, (19.13)–(19.16) and the value-of-money recursion are derived from optimality
+  (`MoneyInUtilityMeasure.foc_1913`, `MoneyInUtilityMeasure.foc_1914`,
+  `MoneyInUtilityMeasure.money_demand_1916`, `MoneyInUtilityMeasure.value_recursion`). The
+  transversality condition is necessary, so the first-order conditions and the transversality
+  condition characterise the optimum (`MoneyInUtilityMeasureTVC.tvc_necessary`,
+  `MoneyInUtilityMeasureTVC.optimal_iff_foc_tvc`), and the value of a dollar is the present value
+  of its liquidity dividends iff `βᴶE_t[u_c(t+J)/P_{t+J}] → 0`
+  (`MoneyInUtilityMeasureTVC.value_of_money_limit_iff`). The date-`t` present-value budgets
+  (19.11)–(19.12) hold almost surely iff the conditional transversality conditions do
+  (`HouseholdMeasureTVC.pv_1911_iff`, `HouseholdMeasureTVC.pv_1912_iff`). In cash in advance, for
+  every velocity `V`, `Λ_tw_t = βᵗu′(y_t)` and the bond price with the wedge
+  `w = 1 + (1/V − 1)ι` are derived (`CashInAdvanceMeasure.lambda_derived`,
+  `CashInAdvanceMeasure.bond_1932`); the printed (19.32) holds for `V = 1` and fails for every
+  `V ≠ 1` (`CashInAdvanceMeasure.bond_1932_V1`, `CashInAdvanceMeasure.printed_1932_counterexample`).
+  The transversality condition is necessary there too, and Fact 2 (19.33) holds almost surely
+  wherever `i > 0` (`CashInAdvanceMeasureTVC.tvc_necessary`, `CashInAdvanceMeasureTVC.money_binds`,
+  `CashInAdvanceMeasureTVC.money_binds_1933`). The i.i.d. economies of `ExpectationsMeasureIID`, in
+  which every history has probability zero, carry optimal plans of both models
+  (`MoneyInUtilityMeasure.IID.coin_economy`, `CashInAdvanceMeasure.IID.iid_sdf`); with coin shocks
+  and `V ≠ 1` the bond price and the wedge are genuinely random and the printed (19.32) fails
+  almost surely at every date (`CashInAdvanceMeasureTVC.IIDWedge.coin_wedge`). On a finite event
+  tree the measure-theoretic optima are the tree optima of `MoneyInUtility.FootnoteTree` and
+  `CashInAdvance.TreeEuler`, in both directions
+  (`MoneyInUtilityMeasure.Link.link_tOptimal_of_optimal`,
+  `MoneyInUtilityMeasure.Link.link_optimal_of_tOptimal`, `CashInAdvanceMeasure.Link.link_isOptimal`,
+  `CashInAdvanceMeasure.Link.link_optimal_of_isOptimal`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -156,18 +191,27 @@ the printed text precise. The main corrections are:
 * 28.6%, not 40%, on p. 462 (E23).
 
 In addition, the formalisation shows that (19.29) needs the money transversality condition, that
-(19.38) must include money, that the partial derivatives on p. 631 have sign typos, and that the
-calibration of p. 444 holds only for `γ = 1`.
+(19.32) fails for `V ≠ 1`, that (19.38) must include money, that the partial derivatives on
+p. 631 have sign typos, and that the calibration of p. 444 holds only for `γ = 1`.
 
 Not formalised:
 * the verbal and historical parts of the chapter: §19.4 beyond the Online Appendix claims, §19.8
   beyond Baumol–Tobin, the LM slope, cash-in-advance elasticities and E23, the literature survey
   of Online Appendix §3.1.4 (including the Buiter–Siebert notation clash of E17), the
   interpretation of §3.2.3, and §3.3 on uniqueness in cash-in-advance models;
-* the household problem under uncertainty beyond finite event trees: for a general
-  `ExpectationSystem` the first-order conditions and `Λ_t = βᵗu′(y_t)` are equilibrium hypotheses
-  (`CashInAdvance.Stochastic.bond_price_19_32`, `MoneyInUtility.value_recursion`); the tree
-  derivation of (19.31) takes `V = 1`;
+* the household problem under uncertainty without regularity hypotheses: on a probability space
+  the first-order conditions assume consumption and real balances essentially bounded at each
+  date, prices bounded and bounded away from zero (`HouseholdMeasure.PriceRegular`) and smooth
+  utility; necessity of the transversality condition (`HouseholdMeasureTVC.tvc_of_optimal`) also
+  assumes claims, endowment and taxes bounded at each date, utility concave and increasing along
+  the bundle direction, an admissible reference plan and the normalised first-order condition
+  (`Λ_0 = u_c(0)`, or `Λ_0w_0 = u′(c_0)`), and in the cash-in-advance model `u′ > 0`, nonnegative
+  reference money, `Q ≤ 1` and overnight money bounded away from zero
+  (`CashInAdvanceMeasureTVC.tvc_necessary`); cash-in-advance sufficiency assumes a binding cash
+  constraint (`CashInAdvanceMeasure.optimal_of_foc`). For a general `ExpectationSystem` the
+  first-order conditions and `Λ_t = βᵗu′(y_t)` remain equilibrium hypotheses
+  (`CashInAdvance.Stochastic.bond_price_19_32`, `MoneyInUtility.value_recursion`), since no
+  household problem can be posed there without a measure;
 * Pontryagin necessity for the Hamiltonian conditions (4.16)–(4.17): only their consequences are
   proved; and the stochastic `E_td(·)` forms of Online Appendix §1.6;
 * uniqueness of the monetary-model price level under active fiscal policy across all paths: it is
@@ -205,6 +249,14 @@ Not formalised:
 | [ContinuousTime](Monetarism/ContinuousTime.lean) | 82 | Online Appendix §1.6 (restated from the `Generality` project) and Chapter 4, (4.1)–(4.17): the present-value budget, first-order conditions, CES and E20, the IS curve with money and E21, the Hamiltonian |
 | [Links](Monetarism/Links.lean) | 24 | The same objects across modules: coordinates `x` and `m`, E13 = E17, MIU and CIA deflations, discrete and continuous first-order conditions, CES, Cagan and seigniorage |
 | [LinksTidy](Monetarism/LinksTidy.lean) | 30 | Further links: the finite-time exit and explosion derived from each other; the cash-in-advance tree problem as the footnote-1 tree problem, with the Euler results both ways; Galí's (2015) money rule (34) restated and related to the flexible-price Cagan model |
+| [ExpectationsMeasure](Monetarism/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](Monetarism/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [HouseholdMeasure](Monetarism/HouseholdMeasure.lean) | 61 | §§19.3.1, 19.5.1 on a probability space: complete contingent-claim markets, the flow budget almost surely, no-Ponzi, expected utility as a genuine integral; budget-neutral deviations and the first-order condition; the date-0 present-value budget; sufficiency; the bundle Euler equation; finite trees as probability spaces |
+| [MoneyInUtilityMeasure](Monetarism/MoneyInUtilityMeasure.lean) | 32 | §19.3.1, (19.13)–(19.16) on a probability space: the first-order conditions necessary and sufficient, the bond price, money demand and value recursion derived; links to `MoneyInUtility.FootnoteTree`; the i.i.d. and coin economies |
+| [CashInAdvanceMeasure](Monetarism/CashInAdvanceMeasure.lean) | 36 | §19.5, (19.24)–(19.32) on a probability space for every `V`: the velocity wedge, `Λ` and (19.31)–(19.32) derived, the counterexample to the printed (19.32) for `V ≠ 1`, sufficiency; links to `CashInAdvance.TreeEuler`; the i.i.d. economy with `V = 1` |
+| [HouseholdMeasureTVC](Monetarism/HouseholdMeasureTVC.lean) | 23 | (19.11)–(19.12), (19.28): the date-`t` present-value budgets iff the conditional transversality conditions; the transversality condition is necessary (Kamihigashi deviation) |
+| [MoneyInUtilityMeasureTVC](Monetarism/MoneyInUtilityMeasureTVC.lean) | 6 | §19.3.1, p. 441: transversality necessary; first-order conditions and transversality iff optimal; the iterated value of money and its limit |
+| [CashInAdvanceMeasureTVC](Monetarism/CashInAdvanceMeasureTVC.lean) | 17 | §19.5, (19.28), (19.33): transversality necessary for every `V`; Fact 2 under uncertainty; the i.i.d. economy with `V ≠ 1`, a random wedge and the printed (19.32) failing |
 
 ## Modelling conventions
 
@@ -238,6 +290,28 @@ Not formalised:
   an infinite price level is `q_t = 0` (`PruningInflation.IsEqm`, `ObstfeldRogoff.IsORPath`).
 * **Continuous time.** Paths are `ℝ → ℝ` with `HasDerivAt`; present values are integrals over
   `(t, ∞)` with `IntegrableOn`; transversality conditions are explicit limits.
+* **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+  functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
+  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so it
+  cannot carry an infinite-horizon household problem with nondegenerate shocks.
+  `ExpectationsMeasure` adds, alongside it, a probability space with a filtration
+  (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is Mathlib's conditional expectation
+  `condExp`, variables are bounded measurable functions and processes, and equations hold almost
+  everywhere. The bridge is additive and runs both ways: a finite event tree is a measure system
+  with the same `E_t` at every state (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a
+  measure system on a finite discrete state space with full support is a core system with the
+  pull-out property (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instance
+  is the i.i.d. economy on `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
+  (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`). The
+  household modules add complete markets with the nominal state-price density `pk = Λ/P`
+  (`HouseholdMeasure.pk`, `HouseholdMeasure.bondPrice`, `HouseholdMeasure.iota`), contingent
+  claims `a_t` in place of `B_{t−1}`, the flow constraint almost surely
+  (`HouseholdMeasure.Flow`), a no-Ponzi condition (`HouseholdMeasure.Feasible`), essentially
+  bounded variables (`HouseholdMeasure.BddAt`) and regular prices
+  (`HouseholdMeasure.PriceRegular`). Optimality is `HouseholdMeasure.Optimal` with an extra
+  constraint, none for money in utility and the cash-in-advance constraints in real overnight
+  balances for cash in advance (`CashInAdvanceMeasure.CIACon`).
 * **Explicit hypotheses.** Positivity of prices, money, output and velocity, `0 < β < 1`,
   summability of discounted flows, concavity for sufficiency, and the domain `θx^γ < 1` of the
   power map are stated in each theorem.

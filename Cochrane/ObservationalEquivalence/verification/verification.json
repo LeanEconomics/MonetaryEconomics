@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T21:36:08.085284+00:00",
-  "theorems": 484,
+  "checked_at_utc": "2026-10-21T19:39:59.441099+00:00",
+  "theorems": 760,
   "module_theorems": {
     "ObservationalEquivalence/Determinacy.lean": 23,
     "ObservationalEquivalence/Expectations.lean": 20,
@@ -20,9 +20,17 @@
     "ObservationalEquivalence/PresentValueIdentity.lean": 47,
     "ObservationalEquivalence/AssetPricingOE.lean": 11,
     "ObservationalEquivalence/MarkovRegimes.lean": 27,
-    "ObservationalEquivalence/Links.lean": 20
+    "ObservationalEquivalence/Links.lean": 20,
+    "ObservationalEquivalence/ExpectationsMeasure.lean": 71,
+    "ObservationalEquivalence/ExpectationsMeasureIID.lean": 37,
+    "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean": 17,
+    "ObservationalEquivalence/SurplusRegressionMeasure.lean": 44,
+    "ObservationalEquivalence/GrangerMeasure.lean": 17,
+    "ObservationalEquivalence/MarkovRegimesMeasure.lean": 35,
+    "ObservationalEquivalence/SquareSummableRG.lean": 26,
+    "ObservationalEquivalence/SurplusRegressionL2.lean": 29
   },
-  "audited_declarations": 659,
+  "audited_declarations": 1005,
   "declarations": [
     {
       "name": "Cochrane.ObservationalEquivalence.SchurStable",
@@ -3318,6 +3326,1736 @@
       "name": "Cochrane.ObservationalEquivalence.Links.powDecay_of_schur",
       "kind": "theorem",
       "module": "ObservationalEquivalence/Links.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddProc",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.const",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.add",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum_rec",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.Solves",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.iterate_homog",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.solves_add",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.solves_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.unique_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ELin",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.trivialFirst",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeMeasure",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeMeasure_singleton",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeMeasure_univ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeProb",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.integral_treeProb",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeFiltration",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iidProb",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iidSystem",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.shock",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.measurable_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coordSigma",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.futureSigma",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coordSigma_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.futureSigma_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iIndep_coord",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.filtration_le_past",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.indep_future",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_future",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.measurable_future_fun",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.integral_shock_fun",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_fun",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.shock_ae_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_sq_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.condVar_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.shock_not_ae_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.singleton_lt_one",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.exists_singleton_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_singleton",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_countable_null",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_not_finitely_supported",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_news",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_existsUnique_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_sunspot",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_ar1_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_ar1_condVar",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coinMeasure",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.integral_coin",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_mean",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_var",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_economy",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.iidZProb",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.coordZ",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.coordZ_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.sigmaOf",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.sigmaOf_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.sigmaOf_mono",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.filtrationZ",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.iidZSystem",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ",
+      "kind": "def",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.measurable_shockZ_sigmaOf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.measurable_shockZ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.measurable_shockZ_pi",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.iIndep_coordZ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.indep_sigmaOf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.indep_futureZ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.integral_shockZ_fun",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.E_shockZ_fun",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ_ae_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.E_shockZ_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.condExp_shockZ_sigmaOf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.integral_shockZ_mul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ_not_ae_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ_not_ae_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.adapted",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.mds",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.bdd",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.var",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.presampleMean",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.presampleOrth",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.aesm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integrable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.ae_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.E_future",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.E_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integral_mul_of_lt",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integral_mul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integral_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.maInf",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.surplusInf",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.valueM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.bCoeff",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.abs_maInf_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.aesm_maInf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_tsum_mul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_maInf_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_maInf_mul_maInf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_maInf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.tsum_geom_tsum_comm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.valueM_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.bCoeff_abs_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_surplusInf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_valueM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_surplus_valueM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.cov_surplus_valueM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.var_valueM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.two_covM_eq_kms",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_pos_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM_pos_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ar1_covM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.summable_of_finite",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.surplus_eq_maInf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.bCoeff_eq_vCoeff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covInf_eq_finite",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.maInf_bCoeff_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.valueM_eq_finite",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_finite",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.two_covM_finite",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM_finite_pos_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_finite_eq_abstract",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_finite_eq_trunc",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_eq_lim_abstract",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.iidZ_shockMDS",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.coinZ_shockMDS",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.coinZ_theoremRG",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.coinZ_regM_pos",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.iidZ_not_certainty_equivalent",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.histSigma",
+      "kind": "abbrev",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.measurable_hist",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.histSigma_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.GrangerNonCausal",
+      "kind": "def",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.newsS",
+      "kind": "def",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.newsV",
+      "kind": "def",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.newsS_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.measurable_newsS",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.newsV_ae",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.stronglyMeasurable_newsV",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.surplus_eq_value",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.condExp_shockZ_hist",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.histS_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.histV_le_filtration",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.histS_le_filtration",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.forecast_own",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.forecast_joint",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.debt_granger_causes_surplus",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.surplus_not_granger_cause_debt",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.granger_matches_var",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.GrangerMeasure.coin_news_granger",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/GrangerMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.regime",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.adapted",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.markov",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MSolves",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.sm_comp",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.abs_fin_two_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.bddRV_comp",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.integrable_of_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.abs_E_le_markov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.regM_pow_nonneg",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_homog_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM_sm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM_bound_const",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.summable_const",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_hasSum",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.perron_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.msolves_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_determinate_iff_tree",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unifProb",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unif_Iio",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unif_Ici",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unif_singleton",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.stepFn",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.measurable_stepFn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.integral_stepFn",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_measurable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.P_le_one",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_markov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chainRegime",
+      "kind": "def",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_initial",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_initial_pos",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_singleton_null",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_transition",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_temporarily_passive",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_locally_active",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/MarkovRegimesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_mul_le_half",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_mul_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_sq_shift",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.tsum_shift_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_pow_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.sq_tsum_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_bterm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.bInf_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_bInf_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_weighted_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.bInf_sq_summable_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.covInf_summable_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.two_covInf_ldl",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_kmsKernel",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_kmsKernel_le_one",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_abs_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_mul_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.kmsInf_eq_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.two_covInf_eq_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.kmsInf_nonneg_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.covInf_pos_iff_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.regInf_pos_iff_of_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SquareSummableRG.harmonic_sq_not_abs",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SquareSummableRG.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.memLp_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.var_nonneg",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.shockL2",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_shockL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.norm_sq_finset",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.summable_ma",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.maL2",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_tsum_right",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_tsum_left",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_maL2_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_maL2_maL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_ae",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_shock",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_maL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.surplusL2",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.norm_maL2_sq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.pvL2",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.summable_pv",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.valueL2",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.bCoeff_sq_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_pvL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.valueL2_ae",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.integral_mul_eq_inner",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.integral_maL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.integral_valueL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.cov_surplus_valueL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.var_valueL2",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.two_covL2_eq_kms",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.covL2_pos_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.regL2_eq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.regL2_pos_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.maL2_ae_maInf",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.valueL2_ae_valueM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.harmonicCoeff",
+      "kind": "def",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.SurplusRegressionL2.coinZ_harmonic_regL2_pos",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/SurplusRegressionL2.lean"
     }
   ],
   "full_build": "passed",
@@ -6613,6 +8351,1736 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.discSum_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.iterate_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.solves_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.solves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.unique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.ELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.trivialFirst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.integral_treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iidProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iidSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.measurable_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coordSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.futureSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coordSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.futureSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iIndep_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.filtration_le_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.indep_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.measurable_future_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.integral_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.shock_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.E_shock_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.condVar_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.shock_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.singleton_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.exists_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_countable_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.ar1_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.iid_ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.integral_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIID.coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.iidZProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.coordZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.coordZ_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.sigmaOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.sigmaOf_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.sigmaOf_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.filtrationZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.iidZSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.measurable_shockZ_sigmaOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.measurable_shockZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.measurable_shockZ_pi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.iIndep_coordZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.indep_sigmaOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.indep_futureZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.integral_shockZ_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.E_shockZ_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.E_shockZ_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.condExp_shockZ_sigmaOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.integral_shockZ_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.ExpectationsMeasureIIDZ.shockZ_not_ae_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.mds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.presampleMean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.presampleOrth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.aesm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integral_mul_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integral_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ShockMDS.integral_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.maInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.surplusInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.valueM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.bCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.abs_maInf_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.aesm_maInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_tsum_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_maInf_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_maInf_mul_maInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_maInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.tsum_geom_tsum_comm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.valueM_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.bCoeff_abs_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_surplusInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_valueM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.integral_surplus_valueM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.cov_surplus_valueM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.var_valueM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.two_covM_eq_kms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.ar1_covM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.summable_of_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.surplus_eq_maInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.bCoeff_eq_vCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covInf_eq_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.maInf_bCoeff_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.valueM_eq_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.two_covM_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.regM_finite_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_finite_eq_abstract": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_finite_eq_trunc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.covM_eq_lim_abstract": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.iidZ_shockMDS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.coinZ_shockMDS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.coinZ_theoremRG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.coinZ_regM_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionMeasure.iidZ_not_certainty_equivalent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.histSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.measurable_hist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.histSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.GrangerNonCausal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.newsS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.newsV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.newsS_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.measurable_newsS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.newsV_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.stronglyMeasurable_newsV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.surplus_eq_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.condExp_shockZ_hist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.histS_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.histV_le_filtration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.histS_le_filtration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.forecast_own": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.forecast_joint": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.debt_granger_causes_surplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.surplus_not_granger_cause_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.granger_matches_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.GrangerMeasure.coin_news_granger": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MeasMarkovRegime.markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.MSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.sm_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.abs_fin_two_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.bddRV_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.integrable_of_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.abs_E_le_markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.regM_pow_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_homog_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdM_bound_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.summable_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.fwdSolM_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.perron_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.msolves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.meas_determinate_iff_tree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unifProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unif_Iio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unif_Ici": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.unif_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.measurable_stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.integral_stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.P_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chainRegime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_initial_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_singleton_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_transition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_temporarily_passive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.MarkovRegimesMeasure.chain_locally_active": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_mul_le_half": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_mul_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_sq_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.tsum_shift_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_pow_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.sq_tsum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_bterm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.bInf_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_bInf_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.summable_weighted_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.bInf_sq_summable_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.covInf_summable_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.two_covInf_ldl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_kmsKernel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.abs_kmsKernel_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_abs_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_mul_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.kms_row_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.kmsInf_eq_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.two_covInf_eq_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.kmsInf_nonneg_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.covInf_pos_iff_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.regInf_pos_iff_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SquareSummableRG.harmonic_sq_not_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.memLp_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.var_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.shockL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_shockL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.norm_sq_finset": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.summable_ma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.maL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_tsum_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_tsum_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_maL2_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.inner_maL2_maL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_maL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.surplusL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.norm_maL2_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.pvL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.summable_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.valueL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.bCoeff_sq_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.proj_pvL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.valueL2_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.integral_mul_eq_inner": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.integral_maL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.integral_valueL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.cov_surplus_valueL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.var_valueL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.two_covL2_eq_kms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.covL2_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.regL2_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.regL2_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.maL2_ae_maInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.valueL2_ae_valueM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.harmonicCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.SurplusRegressionL2.coinZ_harmonic_regL2_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -6635,16 +10103,24 @@
     "ObservationalEquivalence/AssetPricingOE.lean": "2bce8671c8b12707f4a135cface44b0a44b4c15e5effac2bb6306e96105366d3",
     "ObservationalEquivalence/MarkovRegimes.lean": "945da04dceb41bf529a2cd4b14d054cad553fca32dec57d1fd9a0a161eee92e3",
     "ObservationalEquivalence/Links.lean": "0006cb87fb992799b04c8d1ddac9132f805e42291ecf1a1e481b0709e3755ae6",
-    "ObservationalEquivalence.lean": "069db384f90a221566a23231fc39fd89ccfb629be0e490e9c74ea2dd136858fb",
+    "ObservationalEquivalence/ExpectationsMeasure.lean": "514e19da2d6afbe9d9affe3735e69fecce0dca12b2339a74ff25026440a68e7d",
+    "ObservationalEquivalence/ExpectationsMeasureIID.lean": "ccde4e7c6ffce56227659e6ca6427e408dde64c23e83b5747eaabe7e72f48b28",
+    "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean": "118ccd3072808d618d4fe4d9aa40a8fef45481230353d511929764ae7ef0ceb0",
+    "ObservationalEquivalence/SurplusRegressionMeasure.lean": "caa7b5f3a00d5acf2b3564ac954412b8503077fce8ae1b614135c2ef87ed21f4",
+    "ObservationalEquivalence/GrangerMeasure.lean": "b05ed709ee744c82191dd942cc5d1c27a379fa49d73653ba0a9437d013a23d8b",
+    "ObservationalEquivalence/MarkovRegimesMeasure.lean": "a2d3e6d4a3ff609f789410a0fe05c454000f501d6d6383116927fbd10d9904a8",
+    "ObservationalEquivalence/SquareSummableRG.lean": "8f810e45740f1f82d59c55622c394766895161b61b9224006cac2879226ea812",
+    "ObservationalEquivalence/SurplusRegressionL2.lean": "93fd9b756e2a9ebf08b6ffde7b88f6f32014f17b195d4481c9d0f6858a0519a3",
+    "ObservationalEquivalence.lean": "a703ebbbbbfdf4bd3d171b3a3023ef226777ee717dd1a3f355a65ecd5a4756e0",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "e9a8ce4a923efde2eabf9122c4657e5949c19a57522bca9b3464526d9be97f5f",
     "lake-manifest.json": "3a3e594142289109ad51938546e449e9216f9f32d46221ec741c00aeda0a5d92",
-    "proof-manifest.json": "b334b8d716846429d965575d356cb76dd3a4dbf00c3727cdd3f3cbe6f123c499",
+    "proof-manifest.json": "c33cf0c43d9c92c0fc5a870e169c31e0f9687b8c4e827dc991f18a0c3d5aa74c",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "69124980720a399ae016f4b2751d922f79abd656fde11671e59828fc238f3883",
+  "fresh_audit_sha256": "e9a6f6a5936d56fbacdf6bfe254e608b527c54a650b2690b5203ad2f234efa6b",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 22 (with Chapters 23-24 claims and Online Appendix A2): Observational equivalence of fiscal and new Keynesian regimes. Valuation equation in all regimes and the unexpected-inflation formula; the starred model (16.20)-(16.24), (22.7)-(22.11), (23.4); OE-1 (existence, uniqueness in both determinate regions, continuum and sunspots in double-passive; E12 corrected labels under the TVC and bounded-debt criteria); non-identification NI-1 to NI-3 and reverse engineering; Leeper regions (a)-(d) with the |phi| = 1 boundary and the unstarred double-active non-existence (E19); OE-2 money regimes; the surplus-on-debt regression is positive for any non-iid exogenous surplus, finite and infinite MA (E16); Granger-causality definitions coincide only bivariately (E17); VAR present-value identities and singular shocks; ex-post SDF and finite-state FTAP; Davig-Leeper Markov-switching determinacy; links to Woodford Prop 4.11. Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 22 (with Chapters 23-24 claims and Online Appendix A2): Observational equivalence of fiscal and new Keynesian regimes. Valuation equation in all regimes and the unexpected-inflation formula; the starred model (16.20)-(16.24), (22.7)-(22.11), (23.4); OE-1 (existence, uniqueness in both determinate regions, continuum and sunspots in double-passive; E12 corrected labels under the TVC and bounded-debt criteria); non-identification NI-1 to NI-3 and reverse engineering; Leeper regions (a)-(d) with the |phi| = 1 boundary and the unstarred double-active non-existence (E19); OE-2 money regimes; the surplus-on-debt regression is positive for any non-iid exogenous surplus, finite and infinite MA (E16); Granger-causality definitions coincide only bivariately (E17); VAR present-value identities and singular shocks; ex-post SDF and finite-state FTAP; Davig-Leeper Markov-switching determinacy; links to Woodford Prop 4.11. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 22, pp. 495-510, Chapters 23-24, pp. 512-523, and Online Appendix A2, pp. 593-611."
 }

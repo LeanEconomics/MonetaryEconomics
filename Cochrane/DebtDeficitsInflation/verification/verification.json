@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T11:24:11.562690+00:00",
-  "theorems": 493,
+  "checked_at_utc": "2026-10-21T19:30:30.638992+00:00",
+  "theorems": 686,
   "module_theorems": {
     "DebtDeficitsInflation/Determinacy.lean": 23,
     "DebtDeficitsInflation/Expectations.lean": 20,
@@ -17,9 +17,14 @@
     "DebtDeficitsInflation/ConditioningDown.lean": 17,
     "DebtDeficitsInflation/Invertibility.lean": 74,
     "DebtDeficitsInflation/PermanentTransitory.lean": 32,
-    "DebtDeficitsInflation/Links.lean": 19
+    "DebtDeficitsInflation/Links.lean": 19,
+    "DebtDeficitsInflation/ExpectationsMeasure.lean": 71,
+    "DebtDeficitsInflation/ExpectationsMeasureIID.lean": 37,
+    "DebtDeficitsInflation/ConditioningDownMeasure.lean": 36,
+    "DebtDeficitsInflation/InvertibilityMeasure.lean": 38,
+    "DebtDeficitsInflation/InvertibilityMeasureL2.lean": 11
   },
-  "audited_declarations": 611,
+  "audited_declarations": 847,
   "declarations": [
     {
       "name": "Cochrane.DebtDeficitsInflation.SchurStable",
@@ -3075,6 +3080,1186 @@
       "name": "Cochrane.DebtDeficitsInflation.Links.condDown_flow",
       "kind": "theorem",
       "module": "DebtDeficitsInflation/Links.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem",
+      "kind": "structure",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddProc",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_zero",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.const",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.add",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_succ",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_rec",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.Solves",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.iterate_homog",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.solves_add",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.solves_zero",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.unique_iff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ELin",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.trivialFirst",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure_singleton",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure_univ",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeProb",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.integral_treeProb",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeFiltration",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iidProb",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iidSystem",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.measurable_shock",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coordSigma",
+      "kind": "abbrev",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.futureSigma",
+      "kind": "abbrev",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coordSigma_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.futureSigma_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iIndep_coord",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.filtration_le_past",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.indep_future",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_future",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.measurable_future_fun",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.integral_shock_fun",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_fun",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_sq",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock_ae_bdd",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_zero",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_sq_eq",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.condVar_shock",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock_not_ae_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.singleton_lt_one",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.exists_singleton_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_singleton",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_countable_null",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_not_finitely_supported",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_news",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_existsUnique_iff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_sunspot",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_succ",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_adapted",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_bdd",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_condVar",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coinMeasure",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.integral_coin",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_mean",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_var",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_bdd",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_economy",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Nested",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.MeasCoarser",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.eq_coarsen",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.KnownAE",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_\u03bc",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.E_coarsen_tower",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_general",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.known_iff_E_eq",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_iff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.known_of_same",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.E_coarsen_innov",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_valuation",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_valuation_iff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_ex_post",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_agents",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_flow_iff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.abs_innov_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.summable_innov",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_pv",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_any",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_agents",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_coarsen_of_known",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.constExp_condDown",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_return_condDown",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_any",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_agents",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_econ_iff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.lagFiltration",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.nested_lag",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exS",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exV",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exR",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exInfl",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exRn",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.ex_flow",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.ex_fisher",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.econ_decomp_counterexample",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarser_core",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_iff_core",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.forall_of_ae",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.core_innov_eq",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_core",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/ConditioningDownMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eSpan",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_e_maProc_future",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_e_maProc_int",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hasSum_mem_eSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.e_mem_eSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_mem_eSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eq_of_inner_e",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.norm_maProc_le",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.cconv",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_cconv",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_cconv",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hasSum_filter_maProc",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.not_filter_of_aRho_eq_zero",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_armaCoeff_zero",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_sum_e",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mem_pastSpan_unit_root",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.factorCoeff",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_factorCoeff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_factorCoeff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.gen_factorCoeff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_mul_eq_one",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_geom_factor",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eq_of_mk_eq",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.wold_factor",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_abs_hsCoeff",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_hasSum_expost",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_delta",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hsCoeff_factor",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.shock_mem_debtSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_not_invertible_example",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.exists_shift",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.jointSpan",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.pastSpan_le_jointSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_mem_jointSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.pastSpan_debt_le_jointSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.map_pastSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.granger_general",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mem_orthogonal_jointSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.granger_factor",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.factorCoeff_delta",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.recoverable_delta",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.wold_factor_ma1",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasure.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.memLp_coord",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.shockL2",
+      "kind": "def",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.integral_coord_mul",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_whiteNoise",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_not_filter",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_unit_root",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_wold_factor",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_granger_general",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_granger_factor",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.coin_L2",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_not_mem_pastSpan",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
+    },
+    {
+      "name": "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.closedSpan_fails_at_unit_root",
+      "kind": "theorem",
+      "module": "DebtDeficitsInflation/InvertibilityMeasureL2.lean"
     }
   ],
   "full_build": "passed",
@@ -6134,6 +7319,1186 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.iterate_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.solves_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.solves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.unique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.trivialFirst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.integral_treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iidProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iidSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.measurable_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coordSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.futureSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coordSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.futureSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iIndep_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.filtration_le_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.indep_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.measurable_future_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.integral_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.condVar_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.singleton_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.exists_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_countable_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.integral_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Nested": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.MeasCoarser": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.eq_coarsen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.KnownAE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.E_coarsen_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.known_iff_E_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.known_of_same": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.E_coarsen_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_valuation_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_ex_post": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_agents": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_flow_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.abs_innov_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.summable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_any": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_agents": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_coarsen_of_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.constExp_condDown": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_return_condDown": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_any": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_agents": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_econ_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.lagFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.nested_lag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exRn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.ex_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.ex_fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.econ_decomp_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarser_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.forall_of_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.core_innov_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_e_maProc_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_e_maProc_int": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hasSum_mem_eSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.e_mem_eSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_mem_eSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eq_of_inner_e": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.norm_maProc_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.cconv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_cconv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_cconv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hasSum_filter_maProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.not_filter_of_aRho_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_armaCoeff_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_sum_e": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mem_pastSpan_unit_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.factorCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_factorCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_factorCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.gen_factorCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_mul_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_geom_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eq_of_mk_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.wold_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_abs_hsCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_hasSum_expost": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_delta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hsCoeff_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.shock_mem_debtSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_not_invertible_example": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.exists_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.jointSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.pastSpan_le_jointSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_mem_jointSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.pastSpan_debt_le_jointSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.map_pastSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.granger_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mem_orthogonal_jointSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.granger_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.factorCoeff_delta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.recoverable_delta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasure.wold_factor_ma1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.memLp_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.shockL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.integral_coord_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_whiteNoise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_not_filter": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_unit_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_wold_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_granger_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_granger_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.coin_L2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_not_mem_pastSpan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.closedSpan_fails_at_unit_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -6153,16 +8518,21 @@
     "DebtDeficitsInflation/Invertibility.lean": "f8a0c88df0aae5dd915dc20f903510a76fba8ccd33ac63cfe6fc9b4a62ed002c",
     "DebtDeficitsInflation/PermanentTransitory.lean": "cab7e594262e9bb3fb84782e81235f4ddd42907f321ab18e3e19dadc34cde9f8",
     "DebtDeficitsInflation/Links.lean": "219590891098a8cf4aae097fe35f56bde7c0cd4e2b82ed6196d7143cc4db9a2a",
-    "DebtDeficitsInflation.lean": "f8090674986b55df3cf62f1c7a6ec87dcc0534abab9feb45f7f58293fd63fd52",
+    "DebtDeficitsInflation/ExpectationsMeasure.lean": "77150c965e61b5634373b24fe1aa365f2e204b029be1e2c263bf59c63f950b0a",
+    "DebtDeficitsInflation/ExpectationsMeasureIID.lean": "aa063c16cbf467f86f8c7f0f6e285c97d6575906c638031915c5267aa2ac4aeb",
+    "DebtDeficitsInflation/ConditioningDownMeasure.lean": "7897f01b3f03549ffeb71f423f19d4f5fd876b0dc8579f1c73bb9f027de1322f",
+    "DebtDeficitsInflation/InvertibilityMeasure.lean": "7b450ba8e097e1d06a3d89732ea57fa76d1dff8810f82b28091a58a96c60c193",
+    "DebtDeficitsInflation/InvertibilityMeasureL2.lean": "9a7ba6b3d010f342faf0c91b8e520dc90287ea7793a090a97fa125a0e21a7b45",
+    "DebtDeficitsInflation.lean": "4594954944ae09c08f99bed3009a46bd30ff1b5dcb1de13a2143a757f7773177",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "bc41b6866c94149d79d5b7bd82c9653df4767250f39f85ed91773b785a04e91c",
     "lake-manifest.json": "47794b25102c60672f0271fcbe7dd6da6113f760dfd6c561f4ba324399e92179",
-    "proof-manifest.json": "e8d8f1dde89a09fd35e0b35f2e2b2c44f58d5dd069544df05f4881a09bae67ba",
+    "proof-manifest.json": "0430d1db79e68fc0e7f9fd1d4fd9941fbda4bec56ed245ea69e0157b20c4ef22",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "5e0d84480c1014244ea03264cf89a2068fc71c79310965fb4bed51ca59eb1ff2",
+  "fresh_audit_sha256": "0056be5f978e3d11ed3991ae0c54951f31cb7220f387652b5b16dc1ea4a7181a",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 4 (with Online Appendix A2): Debt, deficits, discount rates and inflation. Innovations, martingale-difference shocks and moving-average representations; the linearised flow and present-value identities, derived as exact derivatives; unexpected inflation equals minus a(rho) times the surplus shock, with the AR(1), MA(1), ARMA and permanent-transitory cases; the surplus-process facts and debt feedback; the generalised decompositions (4.11)-(4.13) with Campbell-Shiller and Campbell-Ammer; VAR identities, Cholesky ordering and the present-value tautology; conditioning down; invertibility and Hilbert-space Wold statements; Hansen-Sargent. Data, estimates and figures are out of scope. Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 4 (with Online Appendix A2): Debt, deficits, discount rates and inflation. Innovations, martingale-difference shocks and moving-average representations; the linearised flow and present-value identities, derived as exact derivatives; unexpected inflation equals minus a(rho) times the surplus shock, with the AR(1), MA(1), ARMA and permanent-transitory cases; the surplus-process facts and debt feedback; the generalised decompositions (4.11)-(4.13) with Campbell-Shiller and Campbell-Ammer; VAR identities, Cholesky ordering and the present-value tautology; conditioning down; invertibility and Hilbert-space Wold statements; Hansen-Sargent. Data, estimates and figures are out of scope. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 4, pp. 81-116, and Online Appendix A2, pp. 593-611."
 }

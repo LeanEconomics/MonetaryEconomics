@@ -11,7 +11,9 @@ perfect foresight and genuine uncertainty. Losses are genuine infinite discounte
 bounded plans, and every optimality claim is proved as optimality: a feasible plan satisfying the
 first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Unique equilibrium" means unique among
-bounded adapted processes. The library contains **946 theorems**, including the shared core.
+bounded adapted processes. The variance results of §3 and Appendix F.4 are also proved with
+Mathlib's conditional expectation on a genuine probability space, almost surely. The library
+contains **1119 theorems**, including the shared core.
 
 Every proposition is stated for the exact linear-quadratic problem. The book's qualifiers "up to an
 error of order `O(‖·‖²)`" belong to the second-order welfare approximation of Chapter 6 (the
@@ -68,6 +70,20 @@ Headline results, in the namespace `Woodford.GainsFromCommitment`:
   date-zero, timeless, impulse-response and instrument-path plans are all the optimal
   commitment equilibrium of §5 (`Links.dateZero_isT0Opt`, `Links.timeless_plan_eq_star`,
   `Links.impulsePlan_eq_star`, `Links.instrumentPath_isConstrainedOpt`).
+* **Genuine probability models.** With `E_t` Mathlib's conditional expectation and conditional
+  variances Mathlib's `Var[·; μ | 𝓕 t]`, the stabilization loss is almost surely (3.4) and
+  `L_stab,r + L_stab,u` (3.7)–(3.8) (`NoninertialMeasure.lstab12_eq`,
+  `NoninertialMeasure.lstab_eq`), and Proposition 7.11 and the F.4 optimality hold almost surely,
+  with no pull-out or non-degeneracy hypothesis (`NoninertialMeasure.prop_7_11_lstab`,
+  `NoninertialMeasure.f4_lstab`). The hypotheses are met by the i.i.d. economy under `ν^ℕ`, in
+  which every history is null, including a two-coin economy with two independent disturbances
+  (`NoninertialMeasureIID.iid_prop_7_11`, `NoninertialMeasureIID.iid2_f4_lstab`,
+  `NoninertialMeasureIID.twoCoin_f4_lstab`). On a finite state space, and on every finite event
+  tree, the innovation variance must be zero, so the core variance theorems have content only on
+  such a model (`NoninertialMeasure.finite_innov_degenerate`,
+  `NoninertialMeasure.tree_innov_degenerate`); on a finite fully supported space the measure
+  hypotheses imply the core ones and the two losses agree (`NoninertialMeasure.prop_7_11_link`,
+  `NoninertialMeasure.f4_link`, `NoninertialMeasure.lstab12_agree`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -91,11 +107,11 @@ Not formalised:
 * an exact determinacy criterion for forecast-based rules with horizon `k ≥ 2` in
   Proposition 7.13: indeterminacy is proved beyond an explicit critical horizon, the exact
   criterion only for `k = 1`;
-* an expectation system carrying infinitely many nondegenerate innovations: the variance
-  results ((3.4), (3.7)–(3.8), Proposition 7.11's `L_stab` form, F.4's `L_stab` optimality) assume
-  AR(1) innovations with constant conditional variance and the pull-out property, which hold for
-  genuine probability models, but no such instance is built (finite trees cannot carry one;
-  `VarianceFrontier.coin_AR1Innov` shows a time-varying-variance version is satisfiable);
+* a single null set for the measure-theoretic variance results ((3.4), (3.7)–(3.8),
+  Proposition 7.11, F.4): the ranking and the equality case hold almost surely for each competing
+  plan, not off one null set uniform over all plans; and the "independent" disturbances of p. 512
+  are formalised as uncorrelated innovations (the two coins of the concrete economy are
+  independent, but only their moments are proved);
 * the ℤ→ℕ translation of whole plans between the integer-dated Propositions 7.6–7.8 and the
   `ℕ`-dated equilibrium of §5 (only the AS relation is linked), and a common `L_stab` ranking of
   the inertial commitment plan against the optimal noninertial plan;
@@ -137,6 +153,10 @@ Not formalised:
 | [TargetingRule](GainsFromCommitment/TargetingRule.lean) | 64 | §5.1, App. F.5–F.6: (5.1)–(5.3), Propositions 7.15–7.16, the timeless perspective |
 | [Implementation](GainsFromCommitment/Implementation.lean) | 40 | §5.2: private forecasts, the projection of p. 529, (5.4)–(5.5), Proposition 7.17, indeterminacy of (5.4) |
 | [Links](GainsFromCommitment/Links.lean) | 40 | Proofs that the different formalisations of the same book objects agree |
+| [ExpectationsMeasure](GainsFromCommitment/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](GainsFromCommitment/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [NoninertialMeasure](GainsFromCommitment/NoninertialMeasure.lean) | 43 | §3, App. F.4 with genuine conditional expectations: AR(1) disturbances, conditional variances of the plans, (3.2)–(3.8), Proposition 7.11 and F.4 optimality a.s.; finite spaces force zero innovation variance; links to the core statements |
+| [NoninertialMeasureIID](GainsFromCommitment/NoninertialMeasureIID.lean) | 22 | The variance results on the i.i.d. economy: one disturbance, two disturbances driven by functions of the shock, the fair-coin and two-coin economies |
 
 ## Modelling conventions
 
@@ -147,11 +167,26 @@ Not formalised:
   (`ExpectationsFiniteTree.FiniteTree.toExpectationSystem`) are instances. Propositions 7.6–7.8
   use an integer-dated system (`CostPushCommitment.ExpSysZ`), because (2.9) needs `E_{t₀−k}` for
   every `k ≥ 1`; any `ExpectationSystem` extends to one (`CostPushCommitment.ExpSysZ.ofNat`).
+  The variance results of §3 and F.4 are also stated for a measure-theoretic system (see below).
+* **Measure-theoretic expectations.** The core `ExpectationSystem` is kept unchanged, and every
+  result above still holds for it; but on a finite state space it cannot carry AR(1) innovations
+  with positive conditional variance. `ExpectationsMeasure` adds, alongside it, a probability
+  space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is Mathlib's
+  `condExp`, variables are bounded measurable functions and processes, and equations hold almost
+  everywhere. The bridge is additive and runs both ways: a finite event tree is a measure system
+  with the same `E_t` (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a measure system on a
+  finite discrete space with full support is a core system with the pull-out property
+  (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instance
+  is the i.i.d. economy under `ν^ℕ` (`ExpectationsMeasureIID.iidSystem`,
+  `ExpectationsMeasureIID.iid_not_finitely_supported`). AR(1) disturbances with constant
+  conditional innovation variance are `NoninertialMeasure.MeasAR1Innov`, and `L_stab` is built
+  from Mathlib's conditional variance (`NoninertialMeasure.mLstab12`, `NoninertialMeasure.mLstab`).
 * **Bounded adapted processes.** Plans and disturbances are bounded and adapted; pre-sample
   values (`x_{t₀−1}`, `p_{t₀−1}`, `φ_{t₀−1}`, the shock history) are bounded and known at `t₀`.
   Uniqueness is uniqueness among bounded adapted processes.
 * **Explicit hypotheses.** The optimality theorems take the pull-out property
-  (`ExpectationSystem.PullOut`, true for perfect foresight and every finite tree) as a hypothesis.
+  (`ExpectationSystem.PullOut`, true for perfect foresight and every finite tree) as a hypothesis;
+  in the measure-theoretic versions it is a theorem of `condExp`.
   Exact uniqueness of an optimum takes faithfulness of `E_{t₀}` (`TargetingRule.Faithful`,
   `CostPushCommitment.ExpSysZ.Faithful`); without it the optimum is unique up to null events
   (`CostPushCommitment.optimal_unique_ae`). Parameter restrictions the book leaves implicit

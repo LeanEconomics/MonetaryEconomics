@@ -9,13 +9,15 @@ University Press, 2023), Chapter 2, "An intertemporal model" (pp. 20–51), with
 A1.1, "The transversality condition" (pp. 554–556). Model equations hold for an arbitrary
 expectation operator, so every result covers perfect foresight and genuine uncertainty: random
 variables are functions `Ω → ℝ`, processes are `ℕ → Ω → ℝ`, and every equation holds state by
-state. Present values are genuine infinite sums, and surpluses are signed. The central object is
+state. The household problem is also solved on a genuine probability space, with Mathlib's
+conditional expectation, information that grows forever and equations holding almost surely.
+Present values are genuine infinite sums, and surpluses are signed. The central object is
 the fiscal-theory equilibrium: given nominal debt and surpluses, a positive adapted price level
 satisfying the bond-pricing equation (2.3), the flow condition (2.4) and the transversality
 condition (2.6), or equivalently the valuation equation (2.7) at every date. "The price level is
 determined" means that there is exactly one such price level. This is not uniqueness of bounded
-solutions, the notion of the Woodford projects. The library contains **437 theorems**, including
-the shared core; 329 of them are in the nine chapter modules.
+solutions, the notion of the Woodford projects. The library contains **609 theorems**, including
+the shared core; 393 of them are in the eleven chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -75,6 +77,23 @@ Headline results, in the namespace `Cochrane.IntertemporalModel`:
   equation but exactly one fiscal-theory equilibrium (`Links.peg_contrast`), and a rule with
   `|θ| < 1` has uncountably many bounded solutions of Woodford's (2.6) but exactly one equilibrium
   (`Links.taylor_contrast_coin`).
+* **Genuine probability models.** The household problem of §2.1 and A1.1 is proved on a
+  probability space with a filtration, where `E_t` is Mathlib's conditional expectation and
+  information may grow forever (`HouseholdMeasure.Feasible`, `HouseholdMeasure.Optimal`). An
+  optimal plan satisfies the Euler inequality almost surely at every date and the Euler equation
+  almost surely where bonds are held (`HouseholdMeasure.euler_kkt`,
+  `HouseholdMeasure.euler_interior`), and optimisation forces a positive bond price
+  (`HouseholdMeasure.bondPrice_pos`, `HouseholdMeasure.bondPrice_formula`,
+  `HouseholdMeasure.rate_gt_neg_one_of_formula`). For concave increasing utility, optimisation
+  implies the transversality condition with no `Valuation.InfoStable`
+  (`HouseholdMeasureTVC.tvc_of_optimal`), the Euler equation plus the transversality condition
+  is optimal (`HouseholdMeasureTVC.optimal_of_euler_tvc`), and at `c = y` (2.6) and (2.7) hold
+  almost surely at every date (`HouseholdMeasureTVC.valuation_of_optimal_eqm`). In the i.i.d.
+  economy, where every history has probability zero, the price level
+  `P_t = B̄/(s̄/(1 − β) + σε_t)` is a genuine equilibrium in which real debt carries news
+  (`HouseholdMeasureTVC.IID.iid_equilibrium`). On a finite event tree these results return the
+  finite-state statements of `Valuation` (`HouseholdMeasureTVC.Link.link_euler`,
+  `HouseholdMeasureTVC.Link.link_tvc_valuation`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -97,10 +116,17 @@ Not formalised:
   Atkeson–Chari–Kehoe (pp. 28–29), the Ricardian debate and the data (pp. 43–44), the
   institutional history of §2.8, the Federal Reserve's operating procedures (§2.9), and the
   historical episodes of §2.10;
-* household optimisation under uncertainty on an infinite state space: the stochastic Euler
-  equation and transversality condition are proved on a finite state space, the latter when
-  information stops growing (`Valuation.InfoStable`, true on every finite event tree), and the
-  Euler equation in the interior case `B_t > 0`;
+* the rest of the chapter on a genuine probability space: only the household problem and the
+  i.i.d. equilibrium are measure-theoretic, while the equilibrium notions, policy, the linear
+  model and the links are stated for an `ExpectationSystem`;
+* the measure-theoretic household problem without its regularity hypotheses: the Euler equation
+  assumes that consumption, the bond price and `1/P` are essentially bounded at the dates
+  involved (`HouseholdMeasure.EulerRegular`, per date, automatic on a finite tree) and holds with
+  equality only on `{B_t > 0}`; necessity of the transversality condition assumes concave
+  increasing utility with continuous `u'`, an admissible after-tax endowment plan and
+  integrability of the debt terms (the finite-state proof needs only strictly increasing `u`,
+  with `Valuation.InfoStable`); (2.6) and (2.7) at every date assume uniformly essentially
+  bounded surpluses;
 * the stochastic-discount-factor form of the transversality condition remarked in A1.1, which
   belongs to Chapter 3 (§3.3);
 * "an announcement only affects long-term nominal bond prices" (p. 36), since the model has no
@@ -112,8 +138,9 @@ Not formalised:
   equilibrium are proved to be those whose derivatives give the linear model
   (`GeneralLinks.isEqm_fisher_log`, `GeneralLinks.equilibrium_pvNews`), but no theorem builds
   such a family and differentiates it;
-* positivity of the bond price is not derived from the abstract expectation axioms: the link
-  between the equilibrium notions takes `i > −1` as a hypothesis.
+* positivity of the bond price from the abstract expectation axioms: the link between the
+  equilibrium notions takes `i > −1` as a hypothesis. On a probability space it is derived from
+  optimisation (`HouseholdMeasure.bondPrice_pos`, `HouseholdMeasure.rate_gt_neg_one_of_formula`).
 
 ## Library map
 
@@ -132,6 +159,10 @@ Not formalised:
 | [LinearFTMP](IntertemporalModel/LinearFTMP.lean) | 57 | §§2.5–2.6: (2.16)–(2.19) exact and linear, Figure 2.1, price-level targets, passive fiscal policy, the rule (2.20)–(2.25) for every `θ`, Figure 2.2 and the hump |
 | [Links](IntertemporalModel/Links.lean) | 28 | Woodford's Propositions 2.5 and 2.6, Ricardian transversality (4.2) and budget timing (4.1), restated and contrasted with the fiscal theory |
 | [GeneralLinks](IntertemporalModel/GeneralLinks.lean) | 16 | The three equilibrium notions and the two present values proved equivalent; the linear model as the derivative of the exact one |
+| [ExpectationsMeasure](IntertemporalModel/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](IntertemporalModel/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [HouseholdMeasure](IntertemporalModel/HouseholdMeasure.lean) | 32 | §2.1 on a probability space: feasible, admissible and optimal plans, differentiation under the integral, the Euler inequality at every date and the Euler equation on `{B_t > 0}`, the bond price (2.3) derived positive |
+| [HouseholdMeasureTVC](IntertemporalModel/HouseholdMeasureTVC.lean) | 32 | §2.1 and A1.1 on a probability space with information growing forever: the TVC from optimisation (Kamihigashi's scaling deviation), sufficiency of Euler plus TVC, (2.5)–(2.7) almost surely at `c = y`, the i.i.d. equilibrium, links to the finite-state `Valuation` results |
 
 ## Modelling conventions
 
@@ -152,7 +183,33 @@ Not formalised:
     project; it implies `FunctionsKnown` (`ExpectationTools.functionsKnown_of_closed`);
   * `ExpectationTools.MonotoneConvergence`: `E_t` commutes with sums of nonnegative terms;
   * `Valuation.Faithful` and `Valuation.InfoStable`: every state has positive probability, and
-    information stops growing; used only for optimisation under uncertainty.
+    information stops growing; used only for optimisation under uncertainty on a finite state
+    space.
+
+  On a probability space these properties are theorems about `condExp` rather than hypotheses
+  (pull-out, monotone convergence, strict positivity:
+  `ExpectationsMeasure.MeasExpectationSystem.E_pullOut`,
+  `HouseholdMeasureTVC.integrable_mul_of_E`, `HouseholdMeasure.E_pos`), and the household
+  results of `HouseholdMeasure` and `HouseholdMeasureTVC` use neither `Faithful` nor `InfoStable`.
+* **Measure-theoretic expectations.** The core `ExpectationSystem` is kept unchanged, and every
+  result above stated for it still holds. On a countable `Ω` it forces finitely supported
+  forecasts, so it cannot carry an infinite-horizon model with nondegenerate shocks.
+  `ExpectationsMeasure` adds, alongside it, a probability space with a filtration
+  (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is Mathlib's conditional expectation
+  `condExp`, variables are measurable functions, processes are adapted (Mathlib's
+  `StronglyAdapted`) and equations hold almost everywhere. The bridge is additive and runs both
+  ways: a finite event tree is a measure system with the same `E_t` at every state
+  (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a measure system on a finite discrete
+  state space with full support is a core system with the pull-out property
+  (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The household
+  problem on this space is `HouseholdMeasure.Feasible`, `HouseholdMeasure.Admissible`
+  (`E∑βⁿ|u(c_n)| < ∞`) and `HouseholdMeasure.Optimal`, with constraints holding almost surely;
+  on a finite tree feasibility is the core `Valuation.SFeasible`
+  (`HouseholdMeasureTVC.Link.feasible_iff`) and core optimality implies measure optimality
+  (`HouseholdMeasureTVC.Link.optimal_of_core`). The genuine instance is the i.i.d. economy on
+  `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
+  (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`).
 * **Timing of debt.** The book's `B_t` is sold at the end of date `t` and matures at `t + 1`.
   `Environment`, `Valuation` and `EquilibriumFormation` index debt by maturity date,
   `Bm t = B_{t−1}`. `FiscalMonetary`, `FlatSupply` and `GeneralLinks` index it by issue date,
@@ -216,6 +273,15 @@ The equivalences are:
 So every result of `FiscalMonetary` and `FlatSupply` is a result about the equilibria derived
 from optimisation, flow and transversality in `Valuation`, and the peg results of `Links` are
 results about the same equilibria.
+
+The three notions are stated for an `ExpectationSystem`, and the equivalences take an adapted
+`i > −1` as a hypothesis. On a genuine probability space `HouseholdMeasureTVC` proves the
+household side of `Valuation.IsEqm` without `Valuation.InfoStable`: at `c = y`, optimisation
+gives (2.6) and (2.7) almost surely at every date (`HouseholdMeasureTVC.valuation_of_optimal_eqm`),
+and a bond price of the form (2.3) is positive with `i > −1`
+(`HouseholdMeasure.rate_gt_neg_one_of_formula`). On a finite event tree this returns the core
+`Valuation.TVC` and valuation equation in every state
+(`HouseholdMeasureTVC.Link.link_tvc_valuation`).
 
 ## Relation to the Woodford projects
 

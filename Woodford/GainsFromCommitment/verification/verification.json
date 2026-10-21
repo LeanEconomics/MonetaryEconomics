@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-19T22:59:50.749098+00:00",
-  "theorems": 946,
+  "checked_at_utc": "2026-10-21T19:03:41.239057+00:00",
+  "theorems": 1119,
   "module_theorems": {
     "GainsFromCommitment/Determinacy.lean": 23,
     "GainsFromCommitment/Expectations.lean": 20,
@@ -24,9 +24,13 @@
     "GainsFromCommitment/InstrumentPath.lean": 31,
     "GainsFromCommitment/TargetingRule.lean": 64,
     "GainsFromCommitment/Implementation.lean": 40,
-    "GainsFromCommitment/Links.lean": 40
+    "GainsFromCommitment/Links.lean": 40,
+    "GainsFromCommitment/ExpectationsMeasure.lean": 71,
+    "GainsFromCommitment/ExpectationsMeasureIID.lean": 37,
+    "GainsFromCommitment/NoninertialMeasure.lean": 43,
+    "GainsFromCommitment/NoninertialMeasureIID.lean": 22
   },
-  "audited_declarations": 1346,
+  "audited_declarations": 1558,
   "declarations": [
     {
       "name": "Woodford.GainsFromCommitment.SchurStable",
@@ -6757,6 +6761,1066 @@
       "name": "Woodford.GainsFromCommitment.Links.zero_gap_unique_faithful",
       "kind": "theorem",
       "module": "GainsFromCommitment/Links.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem",
+      "kind": "structure",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddProc",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.const",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.add",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_succ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_rec",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.Solves",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.iterate_homog",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_add",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.unique_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ELin",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.trivialFirst",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_singleton",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_univ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeProb",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.integral_treeProb",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeFiltration",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidProb",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidSystem",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_shock",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma",
+      "kind": "abbrev",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma",
+      "kind": "abbrev",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iIndep_coord",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.filtration_le_past",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.indep_future",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_future",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_future_fun",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_shock_fun",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_fun",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_ae_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.condVar_shock",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_not_ae_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.singleton_lt_one",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.exists_singleton_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_singleton",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_countable_null",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_not_finitely_supported",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_news",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_existsUnique_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_sunspot",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_succ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_E",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin",
+      "kind": "def",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_coin",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_mean",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_var",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_economy",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.bddRV",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_bddRV",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_meas",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.E_u",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.const_eq_of_ae",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.E_known_mul_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.E_cross_dev",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan2",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.plan1_eq_plan2",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan1",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.mLstab12",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.mLstab",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.sq_lt_one_of_abs",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_hasSum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_hasSum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MAS",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.MIS",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.E_plan2",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.E_plan1",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero1",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero2",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.plan_AS_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.plan2_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_lstab",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.f4_lstab",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.filtration_stabilizes",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.finite_innov_degenerate",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.finite_ar1Innov_degenerate",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.tree_innov_degenerate",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_AR1Innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_VF_AR1Innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg1",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg2",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.mAS_iff_core",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.mIS_iff_core",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.condVar_eq_condCov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_agree",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_agree",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_link",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_link",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_ar1_link",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_two_shocks_link",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_link",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasure.f4_link",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_lstab12",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_prop_7_11",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.coin_prop_7_11",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.fnShock",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_succ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_fnShock",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.E_fnShock_mul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov_fn",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_lstab",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_f4_lstab",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure_univ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.quad",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.integral_quad",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB",
+      "kind": "def",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinA",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinB",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.quad_moments",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_economy",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_f4_lstab",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_lstab",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
     }
   ],
   "full_build": "passed",
@@ -13475,6 +14539,1066 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.iterate_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.unique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.trivialFirst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.integral_treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iIndep_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.filtration_le_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.indep_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_future_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.condVar_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.singleton_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.exists_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_countable_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.bddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_bddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.E_u": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.const_eq_of_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.E_known_mul_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.E_cross_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.plan1_eq_plan2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.mLstab12": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.mLstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.sq_lt_one_of_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MAS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.MIS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.E_plan2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.E_plan1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.plan_AS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.plan2_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_lstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.f4_lstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.filtration_stabilizes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.finite_innov_degenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.finite_ar1Innov_degenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.tree_innov_degenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_AR1Innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_VF_AR1Innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.mAS_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.mIS_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.condVar_eq_condCov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_agree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_agree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.lstab_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_ar1_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_two_shocks_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasure.f4_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_lstab12": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_prop_7_11": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.coin_prop_7_11": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.fnShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_fnShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.E_fnShock_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov_fn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_lstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_f4_lstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.quad": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.integral_quad": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.quad_moments": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_f4_lstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_lstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -13501,16 +15625,20 @@
     "GainsFromCommitment/TargetingRule.lean": "c3a5dcfd76d259ced1bb26b78bca73b83a4410159ccb5b8632ab2aa505469a3f",
     "GainsFromCommitment/Implementation.lean": "a084808874259b533240359145b9cf4300fde99f293ae40e483c6463b73118ea",
     "GainsFromCommitment/Links.lean": "1b0db70aafa5a40bd7e7d8629424bc4e64eb3e33e847f77929aada6beccf29a4",
-    "GainsFromCommitment.lean": "7e2b7fa7703059dfef1b88aba9c517dc45b772821874191e9e13b861d98f98b6",
+    "GainsFromCommitment/ExpectationsMeasure.lean": "128421e3ae48bdb3196fe61ca760d571e5bef9bd18d0395abd8a98a8f9299ab8",
+    "GainsFromCommitment/ExpectationsMeasureIID.lean": "2d51ec4c2ee0d557b64c6a2d9b917d9b375f97751aca4cdda91cd90178dae8b5",
+    "GainsFromCommitment/NoninertialMeasure.lean": "86386e7ed1b8d34468d7ced952b7b38b71a63f419029cd8ae4868c1d59d52280",
+    "GainsFromCommitment/NoninertialMeasureIID.lean": "5ef2ed42cc8036e3aecf8ca51878cbdf3c26ab315b4c279e52ac4659413a0f53",
+    "GainsFromCommitment.lean": "b78a920a08f0690b902fd6216208ea7a293eefa4d91b1618a11ecbcf8e1e0291",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "c8c39eb9a73522720ccf71196d84f4a083999583313a1d210d3d9d6fe7cb4962",
     "lake-manifest.json": "241d46895339d68fcad24a66415945de8c61e8bb400d1b13305a84242814babd",
-    "proof-manifest.json": "2a692f2fe38efac71f4cd575a85fc4d92c996e5f0d537d6b4a25a2ad4b817800",
+    "proof-manifest.json": "3c7a523320a387ea61b16771c37829c37e3aea42477609666c249b0b62583986",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "cbe44f53713bc0e6213ed89dbbf5a8f6f5c93d56374906c4b061de3bd915d0d9",
+  "fresh_audit_sha256": "1f709f03ac61b1ce1708be0cd088376d7ef87723b50fc37c86c35376bb7f64bf",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Woodford, Interest and Prices, Chapter 7: Gains from Commitment, with Appendix F. The second-order rational-expectations workhorse and Lagrangian sufficiency for LQ problems; the inflation bias of discretion and date-0 commitment (Props 7.1-7.3); timeless optimality; monetary frictions and indexation; discretion and optimal commitment under cost-push shocks (Props 7.4-7.8) with impulse responses, variance frontiers and natural-rate disturbances (Props 7.9-7.10); optimal noninertial plans, the optimal Taylor rule and forecast-based rules (Props 7.11-7.13); the optimal instrument path and sunspot continuum under an exogenous path (Prop 7.14); the targeting rule and its implementation (Props 7.15-7.17). Book misprints and false claims are corrected with Lean counterexamples.",
-  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 7, pp. 464-531, and Appendix F, pp. 709-718."
+  "scope": "Woodford, Interest and Prices, Chapter 7: Gains from Commitment, with Appendix F. The second-order rational-expectations workhorse and Lagrangian sufficiency for LQ problems; the inflation bias of discretion and date-0 commitment (Props 7.1-7.3); timeless optimality; monetary frictions and indexation; discretion and optimal commitment under cost-push shocks (Props 7.4-7.8) with impulse responses, variance frontiers and natural-rate disturbances (Props 7.9-7.10); optimal noninertial plans, the optimal Taylor rule and forecast-based rules (Props 7.11-7.13); the optimal instrument path and sunspot continuum under an exogenous path (Prop 7.14); the targeting rule and its implementation (Props 7.15-7.17). Book misprints and false claims are corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
+  "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 7, pp. 464-533, and Appendix F, pp. 709-715."
 }

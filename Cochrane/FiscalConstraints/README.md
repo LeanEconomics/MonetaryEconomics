@@ -12,8 +12,11 @@ calls infinite is proved to be a non-integrable integrand, not a junk value. The
 use two different tools. The debt limit with random surpluses (§6.4.1) is proved on a probability
 space with independent surpluses and the second Borel–Cantelli lemma. Aggregate uncertainty
 (§§6.4.6–6.4.7) is stated for an arbitrary `ExpectationSystem` with the pull-out property, with a
-two-state i.i.d. coin tree as a witness under genuine uncertainty. The library contains
-**393 theorems**, including the shared core; 285 of them are in the twelve chapter modules.
+two-state i.i.d. coin tree as a witness under genuine uncertainty. Both are then re-proved on
+genuine infinite-horizon i.i.d. processes with Mathlib's conditional expectation: i.i.d. surplus
+processes for §6.4.1, and i.i.d. growth processes, including a constructed lognormal process and
+an infinite coin process for Bohn's example, for §6.4.7. The library contains **593 theorems**,
+including the shared core; 377 of them are in the fifteen chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -40,9 +43,15 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   surpluses bounded above and a probability of a deficit of size `c` bounded away from zero, debt
   exceeds every level below `c/(1 − γ)` infinitely often, almost surely
   (`DebtLimitStochastic.frequently_exceeds`), so no initial debt is sustainable
-  (`DebtLimitStochastic.not_sustainable`). With Gaussian surpluses debt is almost surely unbounded
-  (`DebtLimitStochastic.gaussian_iid_unbounded`). The book's claim that bounded support still
-  breaks any bound is false (`DebtLimitStochastic.bounded_support_counterexample`).
+  (`DebtLimitStochastic.not_sustainable`). With i.i.d. integrable surpluses that allow deficits of
+  every size, and no upper bound on surpluses, debt is almost surely unbounded
+  (`DebtLimitStochasticMeasure.iid_unbounded_of_integrable`), in particular with i.i.d. Gaussian
+  surpluses (`DebtLimitStochasticMeasure.gaussian_process_unbounded`,
+  `DebtLimitStochasticMeasure.gaussian_process_not_sustainable`). The earlier Gaussian theorem
+  `DebtLimitStochastic.gaussian_iid_unbounded` is vacuous: it also assumes surpluses bounded
+  above, which no non-degenerate Gaussian is
+  (`DebtLimitStochasticMeasure.gaussian_iid_unbounded_vacuous`). The book's claim that bounded
+  support still breaks any bound is false (`DebtLimitStochastic.bounded_support_counterexample`).
 * **The present-value Laffer curve.** The present value of revenue `τy/(r − g)` and its elasticity
   are exact, for the improper integral itself (`Laffer.pv_tax_eq`,
   `Laffer.pv_integral_elasticity`), and the book's example is exactly at the top of the curve
@@ -75,6 +84,23 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   coin tree with `r_f ≈ 0.83% < E g = 5%` satisfies (6.17) and (6.18) under genuine uncertainty
   (`AggregateUncertainty.bohn_numbers`, `AggregateUncertainty.bohn_witness_6_17`,
   `AggregateUncertainty.bohn_witness_6_18`).
+* **Genuine probability models.** §6.4.7 holds on a genuine i.i.d. growth process on `ℕ → ℝ`
+  under `ν^ℕ`, with consumption `c_t = ∏_{i<t} g(ε_{i+1})` and Mathlib's `condExp`: the process has
+  i.i.d. growth at every date (`AggregateUncertaintyMeasure.meas_iidGrowth`), (6.15) and (6.16)
+  converge or explode almost surely under the same conditions
+  (`AggregateUncertaintyMeasure.correct_finite_incorrect_explodes`), and the present values are
+  expectations of genuine infinite sums, `E_t Σ_{j≥1} = qκ/(1 − q)` for (6.15) and
+  `c_t = E_t Σ_{j≥1} β^j (c_{t+j}/c_t)^{−γ} s_{t+j}` for (6.17) when `βE[G^{1−γ}] < 1`
+  (`AggregateUncertaintyMeasure.E_tsum_correct_pv`, `AggregateUncertaintyMeasure.E_tsum_bohn_pv`).
+  Bohn's example runs on an infinite i.i.d. coin process in which every history has probability
+  zero (`AggregateUncertaintyMeasure.bohn_infinite_witness`), and agrees with the coin tree
+  (`AggregateUncertaintyMeasure.bohnTree_measIIDGrowth`, `AggregateUncertaintyMeasure.link_pv_term_c`).
+  Growth `G = exp ε` with `ε` i.i.d. `N(μ, v)` is a constructed lognormal process
+  (`LognormalGrowthMeasure.map_growth`, `LognormalGrowthMeasure.iIndepFun_growth`) on which the
+  region "true present value finite, mistaken one explodes" is non-empty iff `γ > 0`
+  (`LognormalGrowthMeasure.lognormal_region_iff`). For §6.4.1, Theorem S holds for i.i.d.
+  coordinate surpluses (`DebtLimitStochasticMeasure.iid_frequently_exceeds`), and i.i.d. Gaussian
+  surpluses make debt almost surely unbounded (`DebtLimitStochasticMeasure.gaussian_process_unbounded`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -96,23 +122,23 @@ In addition, the typos E6.4 (`B₁` for `B₋₁`, p. 194) and E6.6 (a missing `
 corrected, the rounding in E6.3 (a 20% rise is a log change of 18.2%) and in "e^{−0.2} = 80%"
 (81.9%) is made exact, the §6.3 regime claims are shown to need outstanding debt `B₀ ≠ 0`, and the
 slogan "indeterminacy, not infinity" is shown to use two different criteria for its two halves.
+One correction concerns this formalisation rather than the book: the earlier Gaussian debt
+theorem `DebtLimitStochastic.gaussian_iid_unbounded` (and `Links.gaussian_not_bddD`, which uses
+its hypotheses) is vacuous, and is replaced by
+`DebtLimitStochasticMeasure.iid_unbounded_of_integrable` and
+`DebtLimitStochasticMeasure.gaussian_process_unbounded`.
 
 Not formalised:
 * Miller's learning model (p. 195), a verbal summary of another paper;
 * the claim that a managed surplus restores global determinacy (p. 197; survey E6.9): no surplus
   rule is specified. Only the boundary-avoiding management itself is formalised
-  (`DebtLimitStochastic.managedPath_le`), and Theorem S shows that without management no debt is
-  sustainable;
+  (`DebtLimitStochastic.managedPath_le`), as an adapted policy on the i.i.d. process
+  (`DebtLimitStochasticMeasure.managed_adapted`, `DebtLimitStochasticMeasure.managedPath_le_process`),
+  and Theorem S shows that without management no debt is sustainable;
 * the continuous-time AR(1) surplus of p. 197, which needs Itô or Gaussian-process calculus. It is
-  replaced by the discrete i.i.d. version, including i.i.d. Gaussian surpluses
-  (`DebtLimitStochastic.gaussian_iid_unbounded`);
-* a genuine infinite-horizon i.i.d. expectation system for §6.4.7. The infinite-horizon theorems
-  (`AggregateUncertainty.correct_pv_summable_iff`, `AggregateUncertainty.bohn_pv_hasSum_iff`) hold
-  for any system with i.i.d. growth at every date (`AggregateUncertainty.IIDGrowth`); the witness
-  is a coin tree of every finite horizon (`AggregateUncertainty.bohnTree`), and limits are taken
-  over its closed forms. The lognormal results are about lognormal moments, proved from the
-  Gaussian moment generating function (`AggregateUncertainty.lognormalMoment_eq_integral`), not
-  about a constructed lognormal process;
+  replaced by the discrete i.i.d. version, including a genuine i.i.d. Gaussian surplus process
+  (`DebtLimitStochasticMeasure.gaussian_process_unbounded`); a discrete Gaussian AR(1) surplus
+  process is not built either;
 * temporary `r < g` for a general piecewise-constant `r − g`: the corrected 20-year formula is
   proved for the book's two-regime case (any sign before `T₀`, `r > g` after);
 * existence of a solution of the money-and-debt flow equation with the forward-integral value
@@ -136,12 +162,17 @@ Not formalised:
 | [Crash](FiscalConstraints/Crash.lean) | 28 | §6.3: Miller's two-period model with a surplus cap; both regimes, the endogenous boundary, the global price formula, existence and uniqueness, monotonicity, continuity and exact comparative statics; the `B₀ = 0` equilibrium |
 | [LinearODE](FiscalConstraints/LinearODE.lean) | 12 | (6.4)–(6.5): the debt-to-GDP equation as an exact derivative, variation of constants and uniqueness, (6.5) corrected (E6.1), the finite-horizon identity and the forward present value |
 | [RvsG](FiscalConstraints/RvsG.lean) | 69 | §§6.4.1–6.4.3, (6.3): the r-versus-g dichotomy in continuous and discrete time, the TVC, nominal determinacy and indeterminacy, temporary `r < g` with the 20-year formula corrected (E6.2), steady states and the book's numbers |
-| [DebtLimitStochastic](FiscalConstraints/DebtLimitStochastic.lean) | 20 | §6.4.1, p. 197: Theorem S by the second Borel–Cantelli lemma, Gaussian surpluses, the bounded-support counterexample, the managed surplus |
+| [DebtLimitStochastic](FiscalConstraints/DebtLimitStochastic.lean) | 20 | §6.4.1, p. 197: Theorem S by the second Borel–Cantelli lemma, Gaussian surpluses (vacuous, see `DebtLimitStochasticMeasure`), the bounded-support counterexample, the managed surplus |
 | [GrowthTheoryTVC](FiscalConstraints/GrowthTheoryTVC.lean) | 18 | §6.4.4: (6.6) as an exact derivative, when `r > g`, the transversality condition iff `r > g` (iff `γ > 1` at `δ = 0`), population growth |
 | [MoneyLiquidity](FiscalConstraints/MoneyLiquidity.lean) | 17 | §6.4.5, (6.7)–(6.13): steady-state seigniorage, the money/GDP law of motion, both finite-horizon representations, (6.9) as an improper integral, explosion of (6.12) and convergence of (6.13), the TVC with the marginal rate of substitution |
 | [ReturnDiscounting](FiscalConstraints/ReturnDiscounting.lean) | 8 | §6.4.6, (6.14): the return-discounted identity state by state and under `E_t`, the SDF version, when the return-discounted present value is correct, the linear discount factor |
 | [AggregateUncertainty](FiscalConstraints/AggregateUncertainty.lean) | 52 | §6.4.7, (6.15)–(6.18): correct and mistaken present values under i.i.d. growth, lognormal moments with E6.5–E6.7 corrected, (6.17) and (6.18), the two-state coin-tree witness |
 | [Links](FiscalConstraints/Links.lean) | 16 | Agreement between the two formalisation chains: (6.9) is the §6.4.1 present value, (6.1) = (6.6), the growth TVC is the levels TVC, Theorem S paths are discrete solutions of (6.4), and `r_f < g` with a finite present value needs risk |
+| [ExpectationsMeasure](FiscalConstraints/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](FiscalConstraints/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [AggregateUncertaintyMeasure](FiscalConstraints/AggregateUncertaintyMeasure.lean) | 49 | §6.4.7, (6.15)–(6.18) on a genuine i.i.d. growth process: independence of past and future, i.i.d. growth a.e., `E_t` through infinite sums, (6.15) and (6.17) as expectations of infinite sums, (6.18) diverging a.s., Bohn's example as an infinite coin process, links to `IIDGrowth` and the coin tree |
+| [LognormalGrowthMeasure](FiscalConstraints/LognormalGrowthMeasure.lean) | 19 | §6.4.7: a constructed lognormal growth process (`exp` of i.i.d. `N(μ, v)`), its law, independence and moments; (6.15)–(6.18) on it, the printed exponent wrong (E6.5), the region non-empty iff `γ > 0`, the corrected risk-free rate (E6.7) |
+| [DebtLimitStochasticMeasure](FiscalConstraints/DebtLimitStochasticMeasure.lean) | 24 | §6.4.1, p. 197, on i.i.d. surplus processes: Theorem S, the bounded-support dichotomy for coin surpluses, `DebtLimitStochastic.gaussian_iid_unbounded` shown vacuous, debt a.s. unbounded for integrable surpluses with deficits of every size (Kolmogorov's 0-1 law), Gaussian surplus processes, the managed surplus as an adapted policy |
 
 ## Modelling conventions
 
@@ -162,7 +193,15 @@ Not formalised:
   budget, the bond price and `B₀/P₁ = s₁` under the capped rule `Crash.surplus1`.
 * **Probability for Theorem S.** `DebtLimitStochastic` works on a measure space with a probability
   measure; surpluses are measurable and independent (`iIndepFun`), and the debt path is, state by
-  state, the discrete backward solution of `RvsG` (`DebtLimitStochastic.debtPath`).
+  state, the discrete backward solution of `RvsG` (`DebtLimitStochastic.debtPath`). Its theorems
+  assume surpluses bounded above almost surely, so its Gaussian case
+  (`DebtLimitStochastic.gaussian_iid_unbounded`) has inconsistent hypotheses and proves nothing
+  about Gaussian surpluses. `DebtLimitStochasticMeasure` takes the surpluses to be the coordinates
+  of `ℕ → ℝ` under `ν^ℕ`, with the natural filtration, so the debt ratio is an adapted process
+  (`DebtLimitStochasticMeasure.debtPath_adapted`); there unboundedness needs only integrable
+  surpluses with deficits of every size
+  (`DebtLimitStochasticMeasure.iid_unbounded_of_integrable`), which covers i.i.d. Gaussian
+  surpluses (`DebtLimitStochasticMeasure.gaussian_process_unbounded`).
 * **Expectations for §§6.4.6–6.4.7.** Random variables are `Ω → ℝ` under an arbitrary
   `ExpectationSystem` with the pull-out property (`ExpectationSystem.PullOut`). I.i.d. growth is the
   hypothesis `E_t[G_{t+1}^a] = mom a` for every real `a` (`AggregateUncertainty.IIDGrowth`), and
@@ -170,9 +209,30 @@ Not formalised:
   the expectation axioms do not imply that functions of known variables are known. Both are proved
   for the coin tree (`AggregateUncertainty.bohnSystem_iid`,
   `AggregateUncertainty.bohnSystem_knownPowers`).
+* **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+  functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
+  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so it
+  cannot carry an infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure` adds,
+  alongside it, a probability space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`):
+  `E_t` is Mathlib's conditional expectation `condExp`, and equations hold almost everywhere. The
+  bridge is additive and runs both ways: a finite event tree is a measure system with the same
+  `E_t` at every state (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a measure system on a
+  finite discrete state space with full support is a core system with the pull-out property
+  (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instance
+  is the i.i.d. economy on `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
+  (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`). For
+  §6.4.7, consumption is `c_t = ∏_{i<t} g(ε_{i+1})` for a growth law `g` with every moment finite
+  (`AggregateUncertaintyMeasure.GrowthLaw`, `AggregateUncertaintyMeasure.cons`), present values
+  are genuine infinite sums with `E_t` taken through them
+  (`AggregateUncertaintyMeasure.E_tsum_of_summable_integral`, from Mathlib's `condExp_tsum`), and
+  the a.e. form of i.i.d. growth (`AggregateUncertaintyMeasure.MeasIIDGrowth`) gives the core
+  `AggregateUncertainty.IIDGrowth` on finite full-support systems
+  (`AggregateUncertaintyMeasure.MeasIIDGrowth.toCore`).
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem: `r > g`
   for every closed-form present value; `B₀ ≠ 0`, `1 + i₀ > 0` and `s₀ + βs^max > 0` in §6.3;
-  `0 ≤ γ < 1` and surpluses bounded above for Theorem S; `βE[G^{1−γ}] < 1` for the infinite-horizon
+  `0 ≤ γ < 1` and surpluses bounded above for Theorem S (integrable surpluses for the
+  unbounded-debt theorem); `βE[G^{1−γ}] < 1` for the infinite-horizon
   present value of §6.4.7; `p_{s+1} + d_{s+1} ≠ 0` for (6.14).
 
 ## Relation to the Woodford and Galí projects
@@ -185,7 +245,10 @@ Nothing is imported from those projects. The chapter modules use only part of th
 `AggregateUncertainty`, the finite event tree (`ExpectationsFiniteTree.FiniteTree`,
 `ExpectationsFiniteTree.finiteTree_pullOut`) for the Bohn witness, and `ForwardSolution.E_of_known`
 in `AggregateUncertainty`. `Determinacy` and the forward-series theory are carried for the later
-Cochrane projects.
+Cochrane projects. The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`)
+is copied, with only the namespace renamed, from the Cochrane `ObservationalEquivalence` project;
+the three measure modules use its i.i.d. economy (`ExpectationsMeasureIID.iidSystem`) and its
+bridge from finite event trees (`ExpectationsMeasure.TreeBridge.treeSystem`).
 
 Unlike the Chapter 1 project, no Woodford or Galí result is restated in a chapter module, and
 `Links` links the chapter's own two formalisation chains rather than other books. Two

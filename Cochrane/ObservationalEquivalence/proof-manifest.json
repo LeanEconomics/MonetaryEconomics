@@ -19,7 +19,15 @@
     "ObservationalEquivalence/PresentValueIdentity.lean",
     "ObservationalEquivalence/AssetPricingOE.lean",
     "ObservationalEquivalence/MarkovRegimes.lean",
-    "ObservationalEquivalence/Links.lean"
+    "ObservationalEquivalence/Links.lean",
+    "ObservationalEquivalence/ExpectationsMeasure.lean",
+    "ObservationalEquivalence/ExpectationsMeasureIID.lean",
+    "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean",
+    "ObservationalEquivalence/SurplusRegressionMeasure.lean",
+    "ObservationalEquivalence/GrangerMeasure.lean",
+    "ObservationalEquivalence/MarkovRegimesMeasure.lean",
+    "ObservationalEquivalence/SquareSummableRG.lean",
+    "ObservationalEquivalence/SurplusRegressionL2.lean"
   ],
   "theorem_counts": {
     "ObservationalEquivalence/Determinacy.lean": 23,
@@ -40,8 +48,16 @@
     "ObservationalEquivalence/PresentValueIdentity.lean": 47,
     "ObservationalEquivalence/AssetPricingOE.lean": 11,
     "ObservationalEquivalence/MarkovRegimes.lean": 27,
-    "ObservationalEquivalence/Links.lean": 20
+    "ObservationalEquivalence/Links.lean": 20,
+    "ObservationalEquivalence/ExpectationsMeasure.lean": 71,
+    "ObservationalEquivalence/ExpectationsMeasureIID.lean": 37,
+    "ObservationalEquivalence/ExpectationsMeasureIIDZ.lean": 17,
+    "ObservationalEquivalence/SurplusRegressionMeasure.lean": 44,
+    "ObservationalEquivalence/GrangerMeasure.lean": 17,
+    "ObservationalEquivalence/MarkovRegimesMeasure.lean": 35,
+    "ObservationalEquivalence/SquareSummableRG.lean": 26,
+    "ObservationalEquivalence/SurplusRegressionL2.lean": 29
   },
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 22 (with Chapters 23-24 claims and Online Appendix A2): Observational equivalence of fiscal and new Keynesian regimes. Valuation equation in all regimes and the unexpected-inflation formula; the starred model (16.20)-(16.24), (22.7)-(22.11), (23.4); OE-1 (existence, uniqueness in both determinate regions, continuum and sunspots in double-passive; E12 corrected labels under the TVC and bounded-debt criteria); non-identification NI-1 to NI-3 and reverse engineering; Leeper regions (a)-(d) with the |phi| = 1 boundary and the unstarred double-active non-existence (E19); OE-2 money regimes; the surplus-on-debt regression is positive for any non-iid exogenous surplus, finite and infinite MA (E16); Granger-causality definitions coincide only bivariately (E17); VAR present-value identities and singular shocks; ex-post SDF and finite-state FTAP; Davig-Leeper Markov-switching determinacy; links to Woodford Prop 4.11. Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 22 (with Chapters 23-24 claims and Online Appendix A2): Observational equivalence of fiscal and new Keynesian regimes. Valuation equation in all regimes and the unexpected-inflation formula; the starred model (16.20)-(16.24), (22.7)-(22.11), (23.4); OE-1 (existence, uniqueness in both determinate regions, continuum and sunspots in double-passive; E12 corrected labels under the TVC and bounded-debt criteria); non-identification NI-1 to NI-3 and reverse engineering; Leeper regions (a)-(d) with the |phi| = 1 boundary and the unstarred double-active non-existence (E19); OE-2 money regimes; the surplus-on-debt regression is positive for any non-iid exogenous surplus, finite and infinite MA (E16); Granger-causality definitions coincide only bivariately (E17); VAR present-value identities and singular shocks; ex-post SDF and finite-state FTAP; Davig-Leeper Markov-switching determinacy; links to Woodford Prop 4.11. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 22, pp. 495-510, Chapters 23-24, pp. 512-523, and Online Appendix A2, pp. 593-611."
 }

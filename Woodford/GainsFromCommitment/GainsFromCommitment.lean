@@ -26,3 +26,7 @@ import GainsFromCommitment.InstrumentPath
 import GainsFromCommitment.TargetingRule
 import GainsFromCommitment.Implementation
 import GainsFromCommitment.Links
+import GainsFromCommitment.ExpectationsMeasure
+import GainsFromCommitment.ExpectationsMeasureIID
+import GainsFromCommitment.NoninertialMeasure
+import GainsFromCommitment.NoninertialMeasureIID

@@ -14,8 +14,10 @@ value of debt and the return on debt. Every identity and model claim is proved f
 `ExpectationSystem`, so under perfect foresight and under genuine uncertainty, with an explicit
 innovation operator `Δ_{t+1} = E_{t+1} − E_t` and moving averages in a martingale-difference
 shock. The invertibility and Wold statements of §4.3 and A2 are proved in a real Hilbert space of
-second moments. The library contains **493 theorems**, including the shared core; 385 of them are
-in the twelve chapter modules.
+second moments. Conditioning down, invertibility, Wold and Granger causality are also proved on a
+genuine probability space, with Mathlib conditional expectations and in `L²` of an i.i.d. economy.
+The library contains **686 theorems**, including the shared core; 385 of them are in the twelve
+chapter modules and 85 in the three measure-theoretic chapter modules.
 
 **Scope.** The data, the estimates, the tables and the figures of Chapter 4 are out of scope:
 §4.1's U.S. surplus and debt series (Figures 4.1–4.2), the surplus-process estimates of §4.3
@@ -57,6 +59,23 @@ Headline results, in the namespace `Cochrane.DebtDeficitsInflation`:
   (`LinearizationDerivation.flowLog_hasFDerivAt`, `LinearizationDerivation.flow_iff_first_order`),
   and the bond-return identity is the exact expansion with weight `ω/(1+i)`
   (`LinearizationDerivation.bondReturn_iff_first_order`).
+* **Genuine probability models.** On a probability space with nested filtrations and Mathlib
+  conditional expectations, the present value conditions down to `E(v_t|I_t)`, and to `v_t` iff
+  `v_t ∈ I_t` (`ConditioningDownMeasure.condDown_iff`, `ConditioningDownMeasure.condDown_valuation_iff`,
+  `ConditioningDownMeasure.condDown_flow_iff`); the unexpected-inflation decomposition with the
+  econometrician's news carries an extra term `Δ^I_{t+1}v_t` and holds in the book's form iff it
+  vanishes (`ConditioningDownMeasure.unexpected_inflation_any`,
+  `ConditioningDownMeasure.simple_model_econ_iff`, with the counterexample
+  `ConditioningDownMeasure.Example.econ_decomp_counterexample`). In a Hilbert space, and in `L²` of
+  the i.i.d. economy: `a(ρ) = 0` with `|ρ| ≤ 1` rules out recovery of the shock by any summable
+  filter (`InvertibilityMeasure.not_filter_of_aRho_eq_zero`, `InvertibilityMeasureL2.iid_not_filter`);
+  the factorised Wold statement `a = (1 − ρ⁻¹L)g` with the root flipped, for every invertible `g`
+  (`InvertibilityMeasure.wold_factor`, `InvertibilityMeasureL2.iid_wold_factor`); debt is the ex-post
+  present value and reveals the shock (`InvertibilityMeasure.debt_hasSum_expost`,
+  `InvertibilityMeasure.shock_mem_debtSpan`); and debt Granger-causes surpluses for an arbitrary
+  absolutely summable moving average (`InvertibilityMeasure.granger_general`,
+  `InvertibilityMeasureL2.iid_granger_general`), with error variances `σ²` versus `θ²σ²` in the
+  factorised case (`InvertibilityMeasure.granger_factor`).
 
 ## (4.11) is an identity, not a repayment condition
 
@@ -103,7 +122,11 @@ including its `j = 0` term, as in (4.12), (4.13) and A2 §2.3:
   (`Invertibility.factor_of_aRho_zero`, `Invertibility.factor_value`), and then no summable filter
   of current and past surpluses recovers the shock (`Invertibility.not_recoverable_of_aRho_eq_zero`,
   `|ρ| ≤ 1`), nor does any element of their closed span
-  (`Invertibility.Hilbert.not_mem_pastSpan_of_aRho_eq_zero`, `|ρ| < 1`). An autoregression recovers
+  (`Invertibility.Hilbert.not_mem_pastSpan_of_aRho_eq_zero`, `|ρ| < 1`). The closed-span statement
+  is false at `|ρ| = 1`: for `s_t = e_t − ρe_{t−1}`, `ρ = ±1`, the shock is a mean-square limit of
+  linear combinations of current and past surpluses, though of no summable filter
+  (`InvertibilityMeasure.mem_pastSpan_unit_root`, `InvertibilityMeasureL2.closedSpan_fails_at_unit_root`).
+  An autoregression recovers
   the Wold representation with the root flipped from `ρ⁻¹` to `ρ`
   (`Invertibility.Hilbert.wold_innovation`), and so estimates a non-zero `a(ρ)`: `1 − ρ²` for the
   MA(1), `(1 − ρ²)/α` for the ARMA(1,1), `(1 − ρ²)/((1 − η_xρ)(1 − η_zρ))` for the
@@ -131,8 +154,14 @@ the printed text precise. Besides E4, the confirmed errors of the chapter survey
 * in A1: `q_t = −∑ω^{j−1}rⁿ_{t+j}`, not `−∑ωʲrⁿ_{t+j}`, p. 564 (E22), and the bond-return weight
   `ω/(1+i)`, which (1.24) replaces by `ω` (E23).
 
-In addition, A2's ARMA(1,1) is non-invertible not only for `β_s < (1 − ρ)/α` but also for
-`β_s > (1 + ρ)/α` (found during formalisation; `Invertibility.arma11_noninvertible_iff`).
+In addition, found during formalisation: A2's ARMA(1,1) is non-invertible not only for
+`β_s < (1 − ρ)/α` but also for `β_s > (1 + ρ)/α` (`Invertibility.arma11_noninvertible_iff`); the
+recovery of the shock from an autoregression of debt, A2 p. 601, needs the other roots of `a(L)`
+outside the unit circle (`InvertibilityMeasure.debt_not_invertible_example`); and the
+unexpected-inflation decomposition conditions down only up to the term `Δ^I_{t+1}v_t`
+(`ConditioningDownMeasure.Example.econ_decomp_counterexample`). An earlier version of this README
+listed the closed-span non-invertibility statement at `ρ = 1` as unproved; it is false (see
+[corrections](docs/corrections.md)).
 
 Not formalised:
 * the data, estimates, tables and figures (see Scope), and with them the survey items that concern
@@ -150,16 +179,15 @@ Not formalised:
 * the cross-reference "Section 5.5" of A2 p. 594 (E17);
 * statistical claims: "OLS is consistent" for (2.16), and the regressions of (4.17)–(4.18) as
   estimators (they are proved as population covariance algebra);
-* the general "debt Granger-causes surpluses" claim of (2.21) for an arbitrary moving average:
-  it is covered by the factorisation `Invertibility.factor_value` and the explicit VARs (2.16)
-  and (2.34) (`Invertibility.ma1_debt_var`, `PermanentTransitory.pt_coeff_pos`);
-* a general Wold decomposition theorem. The Wold statements are proved for every MA(∞) with a
-  root at `θ⁻¹`, `|θ| > 1`, that is an AR filter of `e_t − θe_{t−1}`, which covers the MA(1), the
-  ARMA(1,1) and the permanent–transitory ARMA(2,1);
-* the Hilbert-space non-invertibility statement at `ρ = 1` (the filter version covers `|ρ| ≤ 1`);
-* conditioning down for general measure spaces: the Mathlib instance is on finite probability
-  spaces with full support; the abstract statement holds for any pair of nested expectation
-  systems.
+* the general Wold decomposition theorem (any stationary process is a deterministic part plus a
+  moving average in its innovations). What is proved is the book's factorised claim (2.17) for
+  every absolutely summable `g` with an absolutely summable inverse
+  (`InvertibilityMeasure.wold_factor`), not only the MA(1), ARMA(1,1) and ARMA(2,1) cases;
+* Wold and Granger causality as statements about conditional expectations given the σ-algebra of
+  past surpluses: they are proved for best linear forecasts (closed linear spans and orthogonal
+  projections in `L²`), which is what Wold and a VAR mean; for non-Gaussian shocks the two differ;
+* conditioning down without bounded processes or with `|ρ| = 1`: the measure-theoretic results
+  assume bounded measurable processes and `|ρ| < 1`, which the ex-post present value needs.
 
 ## Library map
 
@@ -181,6 +209,11 @@ Not formalised:
 | [Invertibility](DebtDeficitsInflation/Invertibility.lean) | 74 | §4.3 p. 102, A2 §§2.1.1–2.1.6, (2.1)–(2.21): autocovariance and spectral flips, non-recoverability when `a(ρ) = 0`, the ARMA(1,1) and its threshold, the debt VARs, the MA(1) debt examples, Hansen–Sargent, the factorisation, Hilbert-space Wold statements; E12–E14 |
 | [PermanentTransitory](DebtDeficitsInflation/PermanentTransitory.lean) | 32 | A2 §2.4, (2.27)–(2.34): the permanent–transitory surplus, `a(ρ) = β_s`, the ARMA(2,1), the fitted representation and its Wold statement, the corrected value of debt and the VAR (2.34); E16 |
 | [Links](DebtDeficitsInflation/Links.lean) | 19 | Links between the innovation and the VAR/invertibility modules: the ARMA family and the §4.2 examples, `ℕ`- and `ℤ`-indexed shocks, Hansen–Sargent news, `Δπ = −β_sε` for the A2 processes, conditioning down with the flow identity |
+| [ExpectationsMeasure](DebtDeficitsInflation/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](DebtDeficitsInflation/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [ConditioningDownMeasure](DebtDeficitsInflation/ConditioningDownMeasure.lean) | 36 | §4.3 pp. 101–102, A2 (2.22)–(2.23) on a general probability space: nested filtrations, conditioning down iff `v_t ∈ I_t`, the valuation and flow identities, (3.20) and (4.2) under any information with the extra term `Δ^I_{t+1}v_t`, the lagged-econometrician counterexample, links to `ConditioningDown` |
+| [InvertibilityMeasure](DebtDeficitsInflation/InvertibilityMeasure.lean) | 38 | §4.3 p. 102, A2 (2.17)–(2.21) in a Hilbert space: no summable filter at `\|ρ\| ≤ 1`, the closed-span correction at `\|ρ\| = 1`, the factorised Wold statement, debt as ex-post PV and its invertibility (with a counterexample), Granger causality for an arbitrary moving average |
+| [InvertibilityMeasureL2](DebtDeficitsInflation/InvertibilityMeasureL2.lean) | 11 | The invertibility, Wold and Granger statements in `L²` of the i.i.d. economy (`e_t = ε_{φ(t)}`, `φ : ℤ ≃ ℕ`), the unit-root counterexample, the fair-coin instance |
 
 ## Modelling conventions
 
@@ -214,12 +247,32 @@ Not formalised:
   implied by all complex eigenvalues in the open unit disc.
 * **Two information sets.** Conditioning down uses two expectation systems, the second coarser
   than the first (`ConditioningDown.Coarser`), with the Mathlib conditional expectation on nested
-  filtrations as an instance.
+  filtrations of a finite space as an instance. On a general probability space the econometrician's
+  system is the agents' system with a coarser filtration (`ConditioningDownMeasure.coarsen`,
+  `ConditioningDownMeasure.Nested`), and `v_t ∈ I_t` means a.e. measurability
+  (`ConditioningDownMeasure.KnownAE`).
 * **Second moments.** Autocovariances and spectral densities are stated as identities of coefficient
   sequences. Wold and invertibility statements live in a real Hilbert space: white noise is an
   orthogonal family with equal norms (`Invertibility.Hilbert.WhiteNoise`), and "computable from the
   surplus history" means membership of the closed linear span of current and past surpluses
-  (`Invertibility.Hilbert.pastSpan`).
+  (`Invertibility.Hilbert.pastSpan`). The genuine instance is `L²` of the i.i.d. economy
+  (`InvertibilityMeasureL2.shockL2`, `InvertibilityMeasureL2.iid_whiteNoise`), where inner products
+  are covariances and projections are best linear forecasts.
+* **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+  functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above stated for it
+  still holds. On a countable `Ω` it forces finitely supported forecasts, so it cannot carry an
+  infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure` adds, alongside it, a
+  probability space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is
+  Mathlib's `condExp`, variables are bounded measurable functions and processes (`BddRV`, `BddProc`),
+  and equations hold almost everywhere. The bridge is additive and runs both ways: a finite event
+  tree is a measure system with the same `E_t` (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and
+  a measure system on a finite space with full support is a core system with pull-out
+  (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`);
+  `ConditioningDownMeasure` links its results to `ConditioningDown` this way
+  (`ConditioningDownMeasure.condDown_iff_core`). The genuine instance is the i.i.d. economy on
+  `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
+  (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`).
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem:
   `|ρ| ≤ 1` (or `< 1`), `|β| < 1` in the exact model, bounded shocks, non-degenerate shocks for
   the coefficient forms of (4.11)–(4.13) (`GeneralizedHRS.Nondeg`), a state with a non-zero shock
@@ -231,7 +284,9 @@ Not formalised:
 The shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is
 restated from the Woodford projects (the first three from `Woodford/ReturnOfMonetaryRules`,
 `ForwardSolution` from the Woodford Chapter 2 and 3 projects), so the project builds on its own.
-Nothing is imported from those projects. The chapter modules use `ExpectationSystem`,
+Nothing is imported from those projects. The measure core (`ExpectationsMeasure`,
+`ExpectationsMeasureIID`) is copied, with the namespace renamed, from the Cochrane Chapter 22
+project `ObservationalEquivalence`. The chapter modules use `ExpectationSystem`,
 `ExpectationSystem.Adapted`, `ExpectationSystem.IsAR1`, `ExpectationSystem.PullOut`,
 `ExpectationSystem.E_tsum`, `ForwardSolution.E_tsum_dom`, the coin-flip tree
 (`ExpectationsFiniteTree.coinSystem`) for the counterexamples, and the Schur–Cohn condition

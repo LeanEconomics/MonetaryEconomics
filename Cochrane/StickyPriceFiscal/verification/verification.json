@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T04:49:52.634709+00:00",
-  "theorems": 958,
+  "checked_at_utc": "2026-10-21T19:33:07.088416+00:00",
+  "theorems": 1155,
   "module_theorems": {
     "StickyPriceFiscal/Determinacy.lean": 23,
     "StickyPriceFiscal/Expectations.lean": 20,
@@ -25,9 +25,14 @@
     "StickyPriceFiscal/CTRulesEquilibrium.lean": 21,
     "StickyPriceFiscal/CTMatrixMethod.lean": 17,
     "StickyPriceFiscal/Links.lean": 25,
-    "StickyPriceFiscal/LinksTidy.lean": 25
+    "StickyPriceFiscal/LinksTidy.lean": 25,
+    "StickyPriceFiscal/ExpectationsMeasure.lean": 71,
+    "StickyPriceFiscal/ExpectationsMeasureIID.lean": 37,
+    "StickyPriceFiscal/PolicyRulesMeasure.lean": 53,
+    "StickyPriceFiscal/PolicyRulesMeasureNews.lean": 27,
+    "StickyPriceFiscal/PolicyRulesMeasureStationary.lean": 9
   },
-  "audited_declarations": 1222,
+  "audited_declarations": 1465,
   "declarations": [
     {
       "name": "Cochrane.StickyPriceFiscal.SchurStable",
@@ -6138,6 +6143,1221 @@
       "name": "Cochrane.StickyPriceFiscal.LinksTidy.forward_hyps_discontinuous",
       "kind": "theorem",
       "module": "StickyPriceFiscal/LinksTidy.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem",
+      "kind": "structure",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddProc",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_zero",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.const",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.add",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum_succ",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum_rec",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.Solves",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.iterate_homog",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.solves_add",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.solves_zero",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.unique_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ELin",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.trivialFirst",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeMeasure",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeMeasure_singleton",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeMeasure_univ",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeProb",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.integral_treeProb",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeFiltration",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iidProb",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iidSystem",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.shock",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.measurable_shock",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coordSigma",
+      "kind": "abbrev",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.futureSigma",
+      "kind": "abbrev",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coordSigma_le",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.futureSigma_le",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iIndep_coord",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.filtration_le_past",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.indep_future",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_future",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.measurable_future_fun",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.integral_shock_fun",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_fun",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_sq",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.shock_ae_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_zero",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_sq_eq",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.condVar_shock",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.shock_not_ae_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.singleton_lt_one",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.exists_singleton_le",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_singleton",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_countable_null",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_not_finitely_supported",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_news",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_existsUnique_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_sunspot",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1_succ",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1_adapted",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_ar1_E",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_ar1_condVar",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coinMeasure",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin",
+      "kind": "def",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.integral_coin",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_mean",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_var",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_economy",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MShocks",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MRedSys",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MRedEquil",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.AESame",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MModelDeterminate",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MBlock",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.int_of",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_self",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_comb",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_sub_smul",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_add_smul",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_known_add",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_add",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_sub",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_smul",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_shift",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_zero",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.xi_adaptedM",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.xi_bddM",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_xiM",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K1",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K2",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K3",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K4",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.blk_pt",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.blk_exist_pt",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.fwd",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.fwd_adapted",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.fwd_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mblock_props",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mblock_unique",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_of_pred",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mblock_of",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_rnNext",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.meq572_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mq_exists",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mdebt_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_gV",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.gV_meas",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.backRec_adaptedM",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.backRec_bddM",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.munique_of_factor",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mpolicyRules_unique",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.munitroot_unique",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mexists_block",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mexists_of_block",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mpolicyRules_determinate",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mmodelDeterminate_of",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_ar1M",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mfwd_cand",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mfwd_closed",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mclosed",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mq_closed",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.gV_decomp_pt",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.hProc_adaptedM",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.hProc_bddM",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mgV_decomp",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.malpha_exists_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.munitroot_exists_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mnonexist_of_alpha",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_zero",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_bdd",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_shocks",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_equil",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mshocks_zero",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mnonexist_of_active",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.RecurringNews",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.integral_sq_step",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.not_bdd_of_news",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.news_shocks",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.news_scale",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iff_news",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iff_news",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.iid_recurringNews",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iff_iid",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iff_iid",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iid_iff_trunc",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iid_iff_trunc",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iff_coin",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iff_coin",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_boundary_pf_vs_iid",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_pf_vs_iid",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.ae_iff_eq",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.adapted_iff_core",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.bdd_iff_core",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mshocks_iff_core",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mredEquil_iff_core",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mmodelDeterminate_iff_core",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureNews.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.StrictlyStationary",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.StrictlyStationaryFrom",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.map_eq_of_stationary",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.integral_sq_of_stationary",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.stationary_martingale",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.MFullSys",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_gap",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_stationary_iff",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_stationary_const",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rhoOne",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_stationary_not_select",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exParams",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exP",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exPs",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exVs",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exV",
+      "kind": "def",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.ex_gap",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
+    },
+    {
+      "name": "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.iid_stationary_from_one",
+      "kind": "theorem",
+      "module": "StickyPriceFiscal/PolicyRulesMeasureStationary.lean"
     }
   ],
   "full_build": "passed",
@@ -12246,6 +13466,1221 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.discSum_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.iterate_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.solves_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.solves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.unique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.ELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.trivialFirst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.integral_treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iidProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iidSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.measurable_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coordSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.futureSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coordSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.futureSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iIndep_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.filtration_le_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.indep_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.measurable_future_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.integral_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.shock_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.E_shock_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.condVar_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.shock_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.singleton_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.exists_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_countable_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.ar1_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.iid_ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.integral_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.ExpectationsMeasureIID.coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MShocks": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MRedSys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MRedEquil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.AESame": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MModelDeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.MBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.int_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_sub_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_add_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_known_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.xi_adaptedM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.xi_bddM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_xiM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.alg_K4": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.blk_pt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.blk_exist_pt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.fwd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.fwd_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.fwd_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mblock_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mblock_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_of_pred": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mblock_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_rnNext": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.meq572_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mq_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mdebt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mbdd_gV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.gV_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.backRec_adaptedM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.backRec_bddM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.munique_of_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mpolicyRules_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.munitroot_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mexists_block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mexists_of_block": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mpolicyRules_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mmodelDeterminate_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.E_ar1M": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mfwd_cand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mfwd_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mclosed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mq_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.gV_decomp_pt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.hProc_adaptedM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.hProc_bddM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mgV_decomp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.malpha_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.munitroot_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasure.mnonexist_of_alpha": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_shocks": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mean_equil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mshocks_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mnonexist_of_active": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.RecurringNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.integral_sq_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.not_bdd_of_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.news_shocks": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.news_scale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iff_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iff_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.iid_recurringNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iff_iid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iff_iid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iid_iff_trunc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iid_iff_trunc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_iff_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_iff_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.alpha_boundary_pf_vs_iid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.unitroot_pf_vs_iid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.ae_iff_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.adapted_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.bdd_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mshocks_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mredEquil_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureNews.mmodelDeterminate_iff_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.StrictlyStationary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.StrictlyStationaryFrom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.map_eq_of_stationary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.integral_sq_of_stationary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.stationary_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.MFullSys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_stationary_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_stationary_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rhoOne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.rho_one_stationary_not_select": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exParams": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exPs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exVs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.ex_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.iid_stationary_from_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -12273,16 +14708,21 @@
     "StickyPriceFiscal/CTMatrixMethod.lean": "91d7e7d9154289c4210b62625a0cc33e83fbf346ebfd6a3df267da1e8ce59b56",
     "StickyPriceFiscal/Links.lean": "aca44062f56bf7461fc6ffe76ddf78d0dda1ca7fef82dc2b28bdd903cb4e2f0c",
     "StickyPriceFiscal/LinksTidy.lean": "1001db71f494220be888e43863eabf3cf0b917f943cf76fc9fc8a5b89e6a22bd",
-    "StickyPriceFiscal.lean": "4a2c6dc6cb6a9655dccce80a6d74a47f651cac45b5ac68e96c216cf33f3d43b1",
+    "StickyPriceFiscal/ExpectationsMeasure.lean": "6a2d53bb32738ea92d41271d2d18b8fac506a9f2d2dedccdabaff625afbe008d",
+    "StickyPriceFiscal/ExpectationsMeasureIID.lean": "f32c6dc6c27ec33fb9b4fb834497557c98f67055007347210e442f4599332b58",
+    "StickyPriceFiscal/PolicyRulesMeasure.lean": "bcce1726048d8b64f09d65ede1ebff2f8eb38f0302fab67ba50e5cec28611009",
+    "StickyPriceFiscal/PolicyRulesMeasureNews.lean": "d8c78cd6d404962ce382dab38f7c9d2b50e36f6992ef78d633feb616054bc8b0",
+    "StickyPriceFiscal/PolicyRulesMeasureStationary.lean": "c0d2177688c0680c97aced0855e84568e82061a50bf8566b98e6f37a8e62c530",
+    "StickyPriceFiscal.lean": "122ee71db9d0f27beebc1774bc0d43fab5282adff34dbba34cd3bca59805a165",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "55131ec57d837e108dc129c686f59e361bab7f44d7364931628a53101ed71c76",
     "lake-manifest.json": "c411ec1488f869d7d18243eb43a1bd22826154c5a362cbcaa7925a9d3380449d",
-    "proof-manifest.json": "5163bc31a0cc8f621cc2ea3c94737c5a1374305b413a87d810f85a143352f544",
+    "proof-manifest.json": "33ad60128c935097ec430c5de8af6aeddcb87cbad12dda0ab7c24b4bc7284760",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "3c6de5577f0de9e8c9e3de1f09b00eb0ce8d88ca925374436da299d4b40a5461",
+  "fresh_audit_sha256": "dafef4cbde87b61e67bdbbae4d1b97a8bfc0207688a8745af63fbca062668fc7",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 5 (with Online Appendix A1.7-A1.13): Fiscal theory in sticky-price models. The new Keynesian model with the Euler equation as an exact derivative and the two-sided moving-average characterisation; determinacy of the fiscal-theory NK model with the real value of debt as the predetermined state (rho < 1; at rho = 1 only the transversality condition selects); peg closed forms for permanent, anticipated and AR(1) rate rises and fiscal shocks; long-term debt and the impact-disinflation condition; surplus processes, the s-shape and active versus passive fiscal policy ((5.38) corrected: passive iff gamma = alpha); nonlinear continuous time; policy rules with a copy of the general Blanchard-Kahn theorem, an exact model-level determinacy iff including boundaries, Table 5.1 corrected; the Sims model; continuous-time simple model, surplus responses and rules with Figure 5.10, Figure 5.11 and Table 5.2 values certified; bounded solutions of linear ODE systems. Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 5 (with Online Appendix A1.7-A1.13): Fiscal theory in sticky-price models. The new Keynesian model with the Euler equation as an exact derivative and the two-sided moving-average characterisation; determinacy of the fiscal-theory NK model with the real value of debt as the predetermined state (rho < 1; at rho = 1 only the transversality condition selects); peg closed forms for permanent, anticipated and AR(1) rate rises and fiscal shocks; long-term debt and the impact-disinflation condition; surplus processes, the s-shape and active versus passive fiscal policy ((5.38) corrected: passive iff gamma = alpha); nonlinear continuous time; policy rules with a copy of the general Blanchard-Kahn theorem, an exact model-level determinacy iff including boundaries, Table 5.1 corrected; the Sims model; continuous-time simple model, surplus responses and rules with Figure 5.10, Figure 5.11 and Table 5.2 values certified; bounded solutions of linear ODE systems. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 5, pp. 117-186, and Online Appendix A1.7-A1.13, pp. 569-585."
 }

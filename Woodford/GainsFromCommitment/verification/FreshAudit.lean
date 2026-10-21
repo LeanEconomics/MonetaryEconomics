@@ -28,6 +28,15 @@ import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
 import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
 import Mathlib.Analysis.Complex.Polynomial.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.PullOut
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.Probability.Process.Filtration
+import Mathlib.Probability.Process.Adapted
+import Mathlib.Probability.CondVar
+import Mathlib.Probability.ProductMeasure
+import Mathlib.Probability.Independence.InfinitePi
+import Mathlib.Probability.ConditionalExpectation
 set_option autoImplicit false
 
 /-
@@ -21601,6 +21610,3050 @@ theorem zero_gap_unique_faithful (hf : TargetingRule.Faithful 𝔼) {β lam : �
 
 end Woodford.GainsFromCommitment.Links
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Measure-theoretic conditional expectations
+
+Cochrane (2023), Ch. 2, §2.3–2.4, pp. 29–30 (expectations `E_t`, the news operator
+`ΔE_{t+1} = E_{t+1} − E_t` of eq. (2.13), forward-looking present values) and §2.7, p. 42 (AR(1)
+surpluses). The core `ExpectationSystem` defines `E_t` on **all** functions `Ω → ℝ` with exact
+equalities; on a countable `Ω` this forces finitely supported forecasts (proved in the Woodford
+Chapter 2 project, `SGUStochasticMeasure.expectationSystem_finite_support`), so no genuine
+infinite-horizon model with nondegenerate shocks fits it. This module is an **additive bridge**:
+a probability space with a filtration and Mathlib's `condExp`, with every property stated in its
+almost-everywhere form. Existing core theorems are untouched.
+
+## How to use (API)
+
+* `MeasExpectationSystem Ω` (fields `P : ProbabilityMeasure Ω`, `𝓕 : Filtration ℕ _`);
+  `S.μ` the measure, `S.E t x = S.μ[x | S.𝓕 t]`.
+* Carriers: plain functions `Ω → ℝ` and processes `ℕ → Ω → ℝ`; `S.BddRV x` (a.e. measurable,
+  essentially bounded; closed under `add`, `sub`, `smul`, `mul`, `sq`, `E`; `.integrable`),
+  `S.BddProc x` (uniform essential bound), Mathlib's `StronglyAdapted S.𝓕 x` (adapted).
+* Axioms (a.e.): `E_add`, `E_sub`, `E_smul`, `E_const` (exact), `E_zero`, `E_mono`, `E_tower`,
+  `E_known` (exact), `E_E_self`, `E_of_stronglyMeasurable` (exact), `E_of_aestronglyMeasurable`,
+  `E_congr`, `E_pullOut`, `abs_E_le`, `integral_E`, `stronglyMeasurable_E`, `integrable_E`.
+* News: `innov t x = ΔE_{t+1} x`, `E_innov` (martingale difference), `E_mul_innov`,
+  `E_sub_E_eq_sum_innov`, `eq_E_add_innov`.
+* Series: `E_hasSum` (`E_t` through a dominated `tsum`).
+* Forward equation `z_t = a E_t z_{t+1} + u_t` (`Solves`): `forwardSol` (with `forwardSol_hasSum`:
+  it is `∑ aᵏ E_t u_{t+k}`), `forwardSol_solves`, `forward_unique`, `existsUnique_forward`;
+  for `|a| ≥ 1`: `sunspot`, `sunspot_solves`, `not_unique_of_one_le`, `sunspot_not_predictable`;
+  criteria `unique_iff`, `existsUnique_iff`.
+* AR(1) with martingale-difference shocks: `ar1_E`, `ar1_E_sq_dev`, `ar1_condVar`,
+  `ar1_condVar_closed`.
+* Bridges: `toExpectationSystem` (finite discrete full-support `Ω` → core system, with
+  `toExpectationSystem_E`, `toExpectationSystem_pullOut`) and `TreeBridge.treeSystem` (core
+  `FiniteTree` → measure system, `TreeBridge.treeSystem_E`: `E_t` equals the cell average at every
+  state, `TreeBridge.treeSystem_toExpectationSystem_E`: round trip).
+
+The genuine infinite-horizon instance (i.i.d. shocks on `ℕ → ℝ`) is `ExpectationsMeasureIID`.
+To copy into another project: rename the namespace prefix and the `import` of
+`ExpectationsFiniteTree`; the module uses the core only through `ExpectationSystem`,
+`ExpectationSystem.PullOut`, `ExpectationsFiniteTree.FiniteTree` and its `condE`,
+`condE_of_trivial`, `condE_tower`, `condE_congr`, `condE_of_const_on_cell`,
+`toExpectationSystem_E`, `finiteTree_pullOut`.
+-/
+
+namespace Woodford.GainsFromCommitment.ExpectationsMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+
+variable (Ω : Type*) [mΩ : MeasurableSpace Ω]
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30 (the conditional expectations `E_t`): a probability space
+`(Ω, P)` with a filtration `𝓕 : ℕ → MeasurableSpace Ω`; `E_t x := P[x | 𝓕 t]`. -/
+structure MeasExpectationSystem where
+  /-- The probability measure. -/
+  P : ProbabilityMeasure Ω
+  /-- The information available at each date. -/
+  𝓕 : Filtration ℕ mΩ
+
+namespace MeasExpectationSystem
+
+variable {Ω} (S : MeasExpectationSystem Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the probability measure as a measure. -/
+abbrev μ : Measure Ω := S.P
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x = μ[x | 𝓕 t]`, Mathlib's conditional expectation. -/
+noncomputable abbrev E (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.μ[x | S.𝓕 t]
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable (a.e. strongly measurable and
+essentially bounded). -/
+def BddRV (x : Ω → ℝ) : Prop := AEStronglyMeasurable x S.μ ∧ ∃ M, ∀ᵐ ω ∂S.μ, |x ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a uniformly (essentially) bounded process. -/
+def BddProc (x : ℕ → Ω → ℝ) : Prop := ∃ M, ∀ t, ∀ᵐ ω ∂S.μ, |x t ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable is integrable. -/
+theorem BddRV.integrable {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) : Integrable x S.μ := by
+  obtain ⟨hm, M, hM⟩ := hx
+  exact Integrable.of_bound hm M (hM.mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is additive (a.e.). -/
+theorem E_add {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x + y) =ᵐ[S.μ] S.E t x + S.E t y := condExp_add hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` commutes with differences (a.e.). -/
+theorem E_sub {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x - y) =ᵐ[S.μ] S.E t x - S.E t y := condExp_sub hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is homogeneous (a.e.). -/
+theorem E_smul (c : ℝ) (x : Ω → ℝ) (t : ℕ) : S.E t (c • x) =ᵐ[S.μ] c • S.E t x :=
+  condExp_smul c x _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: constants are known (exactly). -/
+theorem E_const (t : ℕ) (c : ℝ) : S.E t (fun _ => c) = fun _ => c :=
+  condExp_const (S.𝓕.le t) c
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t 0 = 0`. -/
+theorem E_zero (t : ℕ) : S.E t 0 = 0 := condExp_zero
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is monotone (a.e.). -/
+theorem E_mono {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ)
+    (hxy : x ≤ᵐ[S.μ] y) (t : ℕ) : S.E t x ≤ᵐ[S.μ] S.E t y := condExp_mono hx hy hxy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the law of iterated expectations `E_s E_t = E_s`, `s ≤ t`
+(a.e.). -/
+theorem E_tower {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.E t x) =ᵐ[S.μ] S.E s x :=
+  condExp_condExp_of_le (S.𝓕.mono hst) (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is `𝓕 t`-strongly measurable. -/
+theorem stronglyMeasurable_E (t : ℕ) (x : Ω → ℝ) : StronglyMeasurable[S.𝓕 t] (S.E t x) :=
+  stronglyMeasurable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is integrable. -/
+theorem integrable_E (t : ℕ) (x : Ω → ℝ) : Integrable (S.E t x) S.μ := integrable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is known at `t` is its own forecast (exactly). -/
+theorem E_of_stronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    (hi : Integrable x S.μ) : S.E t x = x :=
+  condExp_of_stronglyMeasurable (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is a.e. known at `t` is a.e. its own forecast. -/
+theorem E_of_aestronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : AEStronglyMeasurable[S.𝓕 t] x S.μ)
+    (hi : Integrable x S.μ) : S.E t x =ᵐ[S.μ] x :=
+  condExp_of_aestronglyMeasurable' (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: earlier forecasts are known later, `E_t E_s = E_s` for
+`s ≤ t` (exactly). -/
+theorem E_known {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E t (S.E s x) = S.E s x :=
+  S.E_of_stronglyMeasurable ((S.stronglyMeasurable_E s x).mono (S.𝓕.mono hst))
+    (S.integrable_E s x)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is idempotent (exactly). -/
+theorem E_E_self (t : ℕ) (x : Ω → ℝ) : S.E t (S.E t x) = S.E t x := S.E_known le_rfl x
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` respects a.e. equality. -/
+theorem E_congr {x y : Ω → ℝ} (h : x =ᵐ[S.μ] y) (t : ℕ) : S.E t x =ᵐ[S.μ] S.E t y :=
+  condExp_congr_ae h
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the unconditional mean of a forecast is the mean. -/
+theorem integral_E (t : ℕ) (x : Ω → ℝ) : ∫ ω, S.E t x ω ∂S.μ = ∫ ω, x ω ∂S.μ :=
+  integral_condExp (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: **pull-out** — a bounded factor known at `t` comes out of
+`E_t` (a.e.). -/
+theorem E_pullOut {t : ℕ} {f y : Ω → ℝ} (hf : StronglyMeasurable[S.𝓕 t] f) {C : ℝ}
+    (hfC : ∀ᵐ ω ∂S.μ, |f ω| ≤ C) (hy : Integrable y S.μ) :
+    S.E t (f * y) =ᵐ[S.μ] f * S.E t y := by
+  have hint : Integrable (f * y) S.μ :=
+    hy.bdd_mul (hf.mono (S.𝓕.le t)).aestronglyMeasurable
+      (hfC.mono fun ω h => by rwa [Real.norm_eq_abs])
+  exact condExp_mul_of_stronglyMeasurable_left hf hint hy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `|E_t x| ≤ M` a.e. whenever `|x| ≤ M` a.e. -/
+theorem abs_E_le {x : Ω → ℝ} {M : ℝ} (hx : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |S.E t x ω| ≤ M :=
+  ae_bdd_abs_condExp_of_ae_bdd_abs hx
+
+/-! ### Bounded random variables -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: a variable known at `t` with an a.e. bound is bounded. -/
+theorem BddRV.of_stronglyMeasurable {S : MeasExpectationSystem Ω}
+    {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    {M : ℝ} (hM : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) : S.BddRV x :=
+  ⟨(hx.mono (S.𝓕.le t)).aestronglyMeasurable, M, hM⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: constants are bounded. -/
+theorem BddRV.const {S : MeasExpectationSystem Ω} (c : ℝ) : S.BddRV (fun _ => c) :=
+  ⟨aestronglyMeasurable_const, |c|, Eventually.of_forall fun _ => le_rfl⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: sums of bounded variables are bounded. -/
+theorem BddRV.add {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x + y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.add hym, M + N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  exact (abs_add_le _ _).trans (add_le_add h1 h2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: multiples of bounded variables are bounded. -/
+theorem BddRV.smul {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (c : ℝ) : S.BddRV (c • x) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  refine ⟨hxm.const_smul c, |c| * M, ?_⟩
+  filter_upwards [hM] with ω h1
+  rw [Pi.smul_apply, smul_eq_mul, abs_mul]
+  exact mul_le_mul_of_nonneg_left h1 (abs_nonneg c)
+
+/-- Cochrane (2023), Ch. 2, p. 29: differences of bounded variables are bounded. -/
+theorem BddRV.sub {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x - y) := by
+  have h := hx.add (hy.smul (-1))
+  rwa [neg_one_smul, ← sub_eq_add_neg] at h
+
+/-- Cochrane (2023), Ch. 2, p. 29: products of bounded variables are bounded. -/
+theorem BddRV.mul {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x * y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.mul hym, M * N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  rw [Pi.mul_apply, abs_mul]
+  exact mul_le_mul h1 h2 (abs_nonneg _) ((abs_nonneg _).trans h1)
+
+/-- Cochrane (2023), Ch. 2, p. 29: forecasts of bounded variables are bounded. -/
+theorem BddRV.E {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (t : ℕ) : S.BddRV (S.E t x) := by
+  obtain ⟨-, M, hM⟩ := hx
+  exact ⟨(S.integrable_E t x).aestronglyMeasurable, M, S.abs_E_le hM t⟩
+
+/-! ### Innovations (news) -/
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation `ΔE_{t+1} x = E_{t+1} x − E_t x`. -/
+noncomputable def innov (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.E (t + 1) x - S.E t x
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation is known at `t + 1`. -/
+theorem stronglyMeasurable_innov (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (S.innov t x) :=
+  (S.stronglyMeasurable_E (t + 1) x).sub
+    ((S.stronglyMeasurable_E t x).mono (S.𝓕.mono (Nat.le_succ t)))
+
+/-- Cochrane (2023), eq. (2.13), p. 30: **innovations are martingale differences**,
+`E_s ΔE_{t+1} x = 0` a.e. for every `s ≤ t`. -/
+theorem E_innov {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.innov t x) =ᵐ[S.μ] 0 := by
+  filter_upwards [S.E_sub (S.integrable_E (t + 1) x) (S.integrable_E t x) s,
+    S.E_tower (hst.trans (Nat.le_succ t)) x, S.E_tower hst x] with ω h1 h2 h3
+  rw [innov, h1, Pi.sub_apply, h2, h3, sub_self, Pi.zero_apply]
+
+/-- Cochrane (2023), eq. (2.13), p. 30: news is uncorrelated with anything known before it,
+`E_t (w ΔE_{t+1} x) = 0` for bounded `w` known at `t` and bounded `x`. -/
+theorem E_mul_innov {t : ℕ} {w : Ω → ℝ} (hw : StronglyMeasurable[S.𝓕 t] w) {C : ℝ}
+    (hwC : ∀ᵐ ω ∂S.μ, |w ω| ≤ C) (x : Ω → ℝ) :
+    S.E t (w * S.innov t x) =ᵐ[S.μ] 0 := by
+  have hi : Integrable (S.innov t x) S.μ := (S.integrable_E _ x).sub (S.integrable_E _ x)
+  filter_upwards [S.E_pullOut hw hwC hi, S.E_innov le_rfl x] with ω h1 h2
+  rw [h1, Pi.mul_apply, h2]
+  simp
+
+/-- Cochrane (2023), eq. (2.13), p. 30: forecast revisions telescope into news,
+`E_{t+n} x − E_t x = ∑_{i<n} ΔE_{t+i+1} x` (exactly). -/
+theorem E_sub_E_eq_sum_innov (t n : ℕ) (x : Ω → ℝ) :
+    S.E (t + n) x - S.E t x = ∑ i ∈ Finset.range n, S.innov (t + i) x := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ← ih, innov, ← add_assoc]
+    abel
+
+/-- Cochrane (2023), eq. (2.17), p. 35: a variable known at `t + 1` is its forecast plus its
+news, `x = E_t x + ΔE_{t+1} x` (exactly). -/
+theorem eq_E_add_innov {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 (t + 1)] x)
+    (hi : Integrable x S.μ) : x = S.E t x + S.innov t x := by
+  rw [innov, S.E_of_stronglyMeasurable hx hi]
+  abel
+
+/-! ### `E_t` and dominated infinite sums -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values as infinite sums): **`E_t` passes through a
+dominated series** — if `|f_k| ≤ c_k` a.e. with `∑ c_k < ∞`, then a.e.
+`∑_k E_t f_k = E_t ∑_k f_k` (as a genuine `HasSum`). -/
+theorem E_hasSum {f : ℕ → Ω → ℝ} {c : ℕ → ℝ} (hc : Summable c)
+    (hm : ∀ k, AEStronglyMeasurable (f k) S.μ) (hf : ∀ k, ∀ᵐ ω ∂S.μ, |f k ω| ≤ c k) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => S.E t (f k) ω) (S.E t (fun ω' => ∑' k, f k ω') ω) := by
+  set F : Ω → ℝ := fun ω' => ∑' k, f k ω' with hF
+  have hall : ∀ᵐ ω ∂S.μ, ∀ k, |f k ω| ≤ c k := ae_all_iff.2 hf
+  have hsum : ∀ᵐ ω ∂S.μ, Summable (fun k => f k ω) := hall.mono fun ω h =>
+    Summable.of_norm_bounded hc (fun k => by rw [Real.norm_eq_abs]; exact h k)
+  have hFm : AEStronglyMeasurable F S.μ := by
+    refine aestronglyMeasurable_of_tendsto_ae atTop
+      (f := fun N ω => ∑ k ∈ Finset.range N, f k ω)
+      (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => hm k) ?_
+    filter_upwards [hsum] with ω h
+    exact h.hasSum.tendsto_sum_nat
+  -- the tail bound
+  have htail : ∀ N, ∀ᵐ ω ∂S.μ,
+      |F ω - ∑ k ∈ Finset.range N, f k ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    filter_upwards [hall, hsum] with ω h hs
+    change |∑' k, f k ω - ∑ k ∈ Finset.range N, f k ω| ≤ _
+    rw [← hs.sum_add_tsum_nat_add N, add_sub_cancel_left, ← Real.norm_eq_abs]
+    exact tsum_of_norm_bounded ((summable_nat_add_iff N).2 hc).hasSum
+      (fun k => by rw [Real.norm_eq_abs]; exact h (k + N))
+  have hbF : ∀ᵐ ω ∂S.μ, |F ω| ≤ ∑' k, c k := by
+    filter_upwards [htail 0] with ω h
+    simpa using h
+  have hint : ∀ k, Integrable (f k) S.μ := fun k => BddRV.integrable (S := S) ⟨hm k, c k, hf k⟩
+  have hFi : Integrable F S.μ := BddRV.integrable (S := S) ⟨hFm, _, hbF⟩
+  have hdiff : ∀ N, ∀ᵐ ω ∂S.μ,
+      |S.E t F ω - ∑ k ∈ Finset.range N, S.E t (f k) ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    have hpi : Integrable (∑ k ∈ Finset.range N, f k) S.μ :=
+      integrable_finsetSum' _ fun k _ => hint k
+    have hEs : S.E t (∑ k ∈ Finset.range N, f k) =ᵐ[S.μ] ∑ k ∈ Finset.range N, S.E t (f k) :=
+      condExp_finsetSum (fun k _ => hint k) (S.𝓕 t)
+    filter_upwards [S.E_sub hFi hpi t, hEs,
+      S.abs_E_le (x := F - ∑ k ∈ Finset.range N, f k) (by
+        filter_upwards [htail N] with ω h
+        simpa [Finset.sum_apply] using h) t] with ω h1 h2 h3
+    rw [h1, Pi.sub_apply, h2, Finset.sum_apply] at h3
+    exact h3
+  have hEb : ∀ᵐ ω ∂S.μ, ∀ k, |S.E t (f k) ω| ≤ c k :=
+    ae_all_iff.2 fun k => S.abs_E_le (hf k) t
+  filter_upwards [ae_all_iff.2 hdiff, hEb] with ω hd hb
+  have hs : Summable fun k => ‖S.E t (f k) ω‖ :=
+    Summable.of_nonneg_of_le (fun _ => norm_nonneg _)
+      (fun k => by rw [Real.norm_eq_abs]; exact hb k) hc
+  rw [hasSum_iff_tendsto_nat_of_summable_norm hs, tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero_norm (fun N => ?_) (tendsto_sum_nat_add c)
+  rw [norm_norm, Real.norm_eq_abs, abs_sub_comm]
+  exact hd N
+
+/-! ### Forward solutions: existence and uniqueness for `|a| < 1` -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values): the realised discounted sum
+`∑_k aᵏ u_{t+k}`. -/
+noncomputable def discSum (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => ∑' k, a ^ k * u (t + k) ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: a geometric series with bounded terms is summable. -/
+theorem summable_geom_mul {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    Summable (fun k => a ^ k * x k) :=
+  Summable.of_norm_bounded ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the bound `|∑ aᵏ x_k| ≤ M / (1 − |a|)`. -/
+theorem abs_tsum_geom_mul_le {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    |∑' k, a ^ k * x k| ≤ M / (1 - |a|) := by
+  rw [← Real.norm_eq_abs, div_eq_inv_mul]
+  refine tsum_of_norm_bounded ((hasSum_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => ?_)
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+  exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k)
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum satisfies `U_t = u_t + a U_{t+1}` wherever
+it converges. -/
+theorem discSum_succ {a : ℝ} {u : ℕ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (hs : Summable (fun k => a ^ k * u (t + k) ω)) :
+    discSum a u t ω = u t ω + a * discSum a u (t + 1) ω := by
+  unfold discSum
+  rw [hs.tsum_eq_zero_add, pow_zero, one_mul, add_zero, ← tsum_mul_left]
+  congr 1
+  refine tsum_congr fun k => ?_
+  rw [show t + (k + 1) = t + 1 + k by omega, pow_succ]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum of a bounded process is bounded a.e. -/
+theorem discSum_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |discSum a u t ω| ≤ M / (1 - |a|) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact abs_tsum_geom_mul_le ha fun k => h (t + k)
+
+/-- Cochrane (2023), Ch. 2, p. 29: `U_t = u_t + a U_{t+1}` a.e. -/
+theorem discSum_rec {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    discSum a u t =ᵐ[S.μ] u t + a • discSum a u (t + 1) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  rw [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+  exact discSum_succ (summable_geom_mul ha fun k => h (t + k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum is a.e. strongly measurable. -/
+theorem aestronglyMeasurable_discSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    AEStronglyMeasurable (discSum a u t) S.μ := by
+  refine aestronglyMeasurable_of_tendsto_ae atTop
+    (f := fun N ω => ∑ k ∈ Finset.range N, a ^ k * u (t + k) ω)
+    (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => (hm (t + k)).const_mul _) ?_
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact (summable_geom_mul ha fun k => h (t + k)).hasSum.tendsto_sum_nat
+
+/-- Cochrane (2023), Ch. 2, p. 29: `z` solves `z_t = a E_t z_{t+1} + u_t` (a.e. at every
+date). -/
+def Solves (a : ℝ) (u z : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, z t =ᵐ[S.μ] a • S.E t (z (t + 1)) + u t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution `z_t = E_t ∑_k aᵏ u_{t+k}`. -/
+noncomputable def forwardSol (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ := S.E t (discSum a u t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is adapted. -/
+theorem forwardSol_adapted (a : ℝ) (u : ℕ → Ω → ℝ) : StronglyAdapted S.𝓕 (S.forwardSol a u) :=
+  fun t => S.stronglyMeasurable_E t _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is bounded by `M / (1 − |a|)`. -/
+theorem forwardSol_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) : S.BddProc (S.forwardSol a u) :=
+  ⟨M / (1 - |a|), fun t => S.abs_E_le (S.discSum_bdd ha hb t) t⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence** — for `|a| < 1` and bounded adapted `u`, the
+forward solution solves `z_t = a E_t z_{t+1} + u_t`. -/
+theorem forwardSol_solves {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) :
+    S.Solves a u (S.forwardSol a u) := by
+  intro t
+  have hm : ∀ t, AEStronglyMeasurable (u t) S.μ :=
+    fun t => ((hua t).mono (S.𝓕.le t)).aestronglyMeasurable
+  have hDi : ∀ s, Integrable (discSum a u s) S.μ := fun s =>
+    BddRV.integrable ⟨S.aestronglyMeasurable_discSum ha hm hb s, _, S.discSum_bdd ha hb s⟩
+  have hui : Integrable (u t) S.μ := BddRV.integrable ⟨hm t, M, hb t⟩
+  have hEu : S.E t (u t) = u t := S.E_of_stronglyMeasurable (hua t) hui
+  filter_upwards [S.E_congr (S.discSum_rec ha hb t) t, S.E_add hui ((hDi (t + 1)).smul a) t,
+    S.E_smul a (discSum a u (t + 1)) t, S.E_tower (Nat.le_succ t) (discSum a u (t + 1))]
+    with ω h1 h2 h3 h4
+  change S.E t (discSum a u t) ω = (a • S.E t (S.E (t + 1) (discSum a u (t + 1))) + u t) ω
+  rw [h1, h2, Pi.add_apply, hEu, h3, Pi.add_apply, Pi.smul_apply, Pi.smul_apply, h4,
+    add_comm]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is the genuine forward sum
+`z_t = ∑_k aᵏ E_t u_{t+k}` (a.e., as a convergent series). -/
+theorem forwardSol_hasSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => a ^ k * S.E t (u (t + k)) ω) (S.forwardSol a u t ω) := by
+  have hsm : ∀ k, S.E t (fun ω => a ^ k * u (t + k) ω) =ᵐ[S.μ] a ^ k • S.E t (u (t + k)) :=
+    fun k => S.E_smul (a ^ k) (u (t + k)) t
+  filter_upwards [S.E_hasSum (f := fun k ω => a ^ k * u (t + k) ω)
+    ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => (hm (t + k)).const_mul _) (fun k => by
+      filter_upwards [hb (t + k)] with ω h
+      rw [abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left h (pow_nonneg (abs_nonneg a) k)) t,
+    ae_all_iff.2 hsm] with ω h1 h2
+  have e : (fun k => a ^ k * S.E t (u (t + k)) ω) =
+      fun k => S.E t (fun ω => a ^ k * u (t + k) ω) ω := by
+    funext k
+    rw [h2 k, Pi.smul_apply, smul_eq_mul]
+  rw [e]
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: iterating a homogeneous forward equation,
+`d_t = a^{k+1} E_t d_{t+k+1}` a.e. -/
+theorem iterate_homog {a : ℝ} {d : ℕ → Ω → ℝ} (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)))
+    (t k : ℕ) : d t =ᵐ[S.μ] a ^ (k + 1) • S.E t (d (t + (k + 1))) := by
+  induction k with
+  | zero => simpa using hd t
+  | succ k ih =>
+    have h2 := hd (t + (k + 1))
+    have e : t + (k + 1) + 1 = t + (k + 1 + 1) := rfl
+    rw [e] at h2
+    filter_upwards [ih, S.E_congr h2 t, S.E_smul a (S.E (t + (k + 1)) (d (t + (k + 1 + 1)))) t,
+      S.E_tower (Nat.le_add_right t (k + 1)) (d (t + (k + 1 + 1)))] with ω e1 e2 e3 e4
+    rw [e1, Pi.smul_apply, e2, e3, Pi.smul_apply, e4, Pi.smul_apply, smul_eq_mul, smul_eq_mul,
+      smul_eq_mul, pow_succ]
+    ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: **uniqueness** — for `|a| < 1` the equation
+`z_t = a E_t z_{t+1} + u_t` has at most one bounded (a.e. measurable) solution, up to a.e.
+equality at every date. -/
+theorem forward_unique {a : ℝ} (ha : |a| < 1) {u z₁ z₂ : ℕ → Ω → ℝ} (h₁ : S.Solves a u z₁)
+    (h₂ : S.Solves a u z₂) (hm₁ : ∀ t, AEStronglyMeasurable (z₁ t) S.μ)
+    (hm₂ : ∀ t, AEStronglyMeasurable (z₂ t) S.μ) (hb₁ : S.BddProc z₁) (hb₂ : S.BddProc z₂) :
+    ∀ t, z₁ t =ᵐ[S.μ] z₂ t := by
+  obtain ⟨M₁, hM₁⟩ := hb₁
+  obtain ⟨M₂, hM₂⟩ := hb₂
+  have hi₁ : ∀ t, Integrable (z₁ t) S.μ := fun t => BddRV.integrable ⟨hm₁ t, M₁, hM₁ t⟩
+  have hi₂ : ∀ t, Integrable (z₂ t) S.μ := fun t => BddRV.integrable ⟨hm₂ t, M₂, hM₂ t⟩
+  set d : ℕ → Ω → ℝ := fun t => z₁ t - z₂ t with hd_def
+  have hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)) := by
+    intro t
+    filter_upwards [h₁ t, h₂ t, S.E_sub (hi₁ (t + 1)) (hi₂ (t + 1)) t] with ω e1 e2 e3
+    simp only [hd_def, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    rw [e1, e2, e3]
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    ring
+  have hdb : ∀ s, ∀ᵐ ω ∂S.μ, |d s ω| ≤ M₁ + M₂ := fun s => by
+    filter_upwards [hM₁ s, hM₂ s] with ω e1 e2
+    exact (abs_sub _ _).trans (add_le_add e1 e2)
+  intro t
+  have hk : ∀ k : ℕ, ∀ᵐ ω ∂S.μ, |d t ω| ≤ |a| ^ (k + 1) * (M₁ + M₂) := by
+    intro k
+    filter_upwards [S.iterate_homog hd t k, S.abs_E_le (hdb (t + (k + 1))) t] with ω e1 e2
+    rw [e1, Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow]
+    exact mul_le_mul_of_nonneg_left e2 (pow_nonneg (abs_nonneg a) _)
+  filter_upwards [ae_all_iff.2 hk] with ω h
+  have hlim : Tendsto (fun k : ℕ => |a| ^ (k + 1) * (M₁ + M₂)) atTop (𝓝 0) := by
+    have := ((tendsto_pow_atTop_nhds_zero_of_lt_one (abs_nonneg a) ha).comp
+      (tendsto_add_atTop_nat 1)).mul_const (M₁ + M₂)
+    simpa using this
+  have h0 : d t ω = 0 := abs_nonpos_iff.mp (ge_of_tendsto' hlim h)
+  simpa [hd_def, sub_eq_zero] using h0
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness** of the bounded adapted solution
+of `z_t = a E_t z_{t+1} + u_t` for `|a| < 1` and bounded adapted `u`: it is the forward solution
+`∑ aᵏ E_t u_{t+k}` (`forwardSol_hasSum`), and every bounded a.e.-measurable solution equals it
+a.e. at every date. -/
+theorem existsUnique_forward {a : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u) :
+    (S.Solves a u (S.forwardSol a u) ∧ StronglyAdapted S.𝓕 (S.forwardSol a u) ∧
+      S.BddProc (S.forwardSol a u)) ∧
+    ∀ z, S.Solves a u z → (∀ t, AEStronglyMeasurable (z t) S.μ) → S.BddProc z →
+      ∀ t, z t =ᵐ[S.μ] S.forwardSol a u t := by
+  obtain ⟨M, hb⟩ := hub
+  refine ⟨⟨S.forwardSol_solves ha hua hb, S.forwardSol_adapted a u, S.forwardSol_bdd ha hb⟩,
+    fun z hz hzm hzb => S.forward_unique ha hz (S.forwardSol_solves ha hua hb) hzm
+      (fun t => ((S.forwardSol_adapted a u t).mono (S.𝓕.le t)).aestronglyMeasurable) hzb
+      (S.forwardSol_bdd ha hb)⟩
+
+/-! ### Nonuniqueness for `|a| ≥ 1`: genuinely random sunspots -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (multiple equilibria when the root is not stable): the sunspot
+started by a date-`s+1` shock `η`: `d_t = 0` for `t ≤ s` and `d_t = a^{-(t-s-1)} (η − E_s η)`
+for `t > s`. -/
+noncomputable def sunspot (a : ℝ) (s : ℕ) (η : Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  if t ≤ s then 0 else a⁻¹ ^ (t - (s + 1)) • (η - S.E s η)
+
+/-- Cochrane (2023), Ch. 2, p. 29: at date `s + 1` the sunspot is the news `η − E_s η`. -/
+theorem sunspot_succ (a : ℝ) (s : ℕ) (η : Ω → ℝ) : S.sunspot a s η (s + 1) = η - S.E s η := by
+  simp [sunspot]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot is adapted. -/
+theorem sunspot_adapted (a : ℝ) {s : ℕ} {η : Ω → ℝ} (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) :
+    StronglyAdapted S.𝓕 (S.sunspot a s η) := by
+  intro t
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact stronglyMeasurable_zero
+  · simp only [h, ↓reduceIte]
+    have h1 : s + 1 ≤ t := by omega
+    exact ((hη.mono (S.𝓕.mono h1)).sub
+      ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono (by omega)))).const_smul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the sunspot of a bounded shock is bounded. -/
+theorem sunspot_bdd {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B) : S.BddProc (S.sunspot a s η) := by
+  obtain ⟨ω₀, hω₀⟩ := hηb.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hω₀
+  refine ⟨B + B, fun t => ?_⟩
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact Eventually.of_forall fun ω => by simp; linarith
+  · simp only [h, ↓reduceIte]
+    filter_upwards [hηb, S.abs_E_le hηb s] with ω h1 h2
+    rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow, Pi.sub_apply]
+    have hp : |a⁻¹| ^ (t - (s + 1)) ≤ 1 :=
+      pow_le_one₀ (abs_nonneg _) (by rw [abs_inv]; exact inv_le_one_of_one_le₀ ha)
+    have hs : |η ω - S.E s η ω| ≤ B + B := (abs_sub _ _).trans (add_le_add h1 h2)
+    calc |a⁻¹| ^ (t - (s + 1)) * |η ω - S.E s η ω| ≤ 1 * (B + B) :=
+          mul_le_mul hp hs (abs_nonneg _) zero_le_one
+      _ = B + B := one_mul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot solves the homogeneous equation
+`d_t = a E_t d_{t+1}` (a.e.) for every `a ≠ 0`. -/
+theorem sunspot_solves {a : ℝ} (ha : a ≠ 0) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηi : Integrable η S.μ) (t : ℕ) :
+    S.sunspot a s η t =ᵐ[S.μ] a • S.E t (S.sunspot a s η (t + 1)) := by
+  rcases lt_trichotomy t s with h | rfl | h
+  · have h1 : t ≤ s := h.le
+    have h2 : t + 1 ≤ s := h
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte, S.E_zero, smul_zero]
+    rfl
+  · rw [S.sunspot_succ]
+    unfold sunspot
+    simp only [le_refl, ↓reduceIte]
+    filter_upwards [S.E_sub hηi (S.integrable_E t η) t] with ω h1
+    rw [Pi.smul_apply, h1, Pi.sub_apply, S.E_E_self, sub_self, smul_zero, Pi.zero_apply]
+  · have h1 : ¬ t ≤ s := by omega
+    have h2 : ¬ t + 1 ≤ s := by omega
+    have hν : StronglyMeasurable[S.𝓕 t] (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) :=
+      ((hη.mono (S.𝓕.mono h)).sub
+        ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono h.le))).const_smul _
+    have hνi : Integrable (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) S.μ :=
+      (hηi.sub (S.integrable_E s η)).smul _
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte]
+    rw [S.E_of_stronglyMeasurable hν hνi, smul_smul]
+    have e : t + 1 - (s + 1) = t - (s + 1) + 1 := by omega
+    rw [e, pow_succ, ← mul_assoc, mul_comm a, mul_assoc, mul_inv_cancel₀ ha, mul_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: adding a solution of the homogeneous equation to a solution
+gives a solution. -/
+theorem solves_add {a : ℝ} {u z d : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1))) (hzi : ∀ t, Integrable (z t) S.μ)
+    (hdi : ∀ t, Integrable (d t) S.μ) : S.Solves a u (fun t => z t + d t) := by
+  intro t
+  filter_upwards [hz t, hd t, S.E_add (hzi (t + 1)) (hdi (t + 1)) t] with ω e1 e2 e3
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 e3 ⊢
+  rw [e1, e2, e3]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot shock is genuinely random — `η − E_s η` is not
+a.e. equal to any variable known at date `s` — unless `η` is a.e. its own date-`s` forecast. -/
+theorem sunspot_not_predictable {s : ℕ} {η : Ω → ℝ} (hηi : Integrable η S.μ)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {g : Ω → ℝ} (hg : StronglyMeasurable[S.𝓕 s] g) :
+    ¬ (η - S.E s η) =ᵐ[S.μ] g := by
+  intro h
+  have hνi : Integrable (η - S.E s η) S.μ := hηi.sub (S.integrable_E s η)
+  have hgi : Integrable g S.μ := hνi.congr h
+  have h0 : S.E s (η - S.E s η) =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_sub hηi (S.integrable_E s η) s] with ω h1
+    rw [h1, Pi.sub_apply, S.E_E_self, sub_self, Pi.zero_apply]
+  have hg0 : g =ᵐ[S.μ] 0 := by
+    have := (S.E_congr h s).symm.trans h0
+    rwa [S.E_of_stronglyMeasurable hg hgi] at this
+  apply hηr
+  filter_upwards [h.trans hg0] with ω h1
+  rw [Pi.sub_apply, Pi.zero_apply, sub_eq_zero] at h1
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: **nonuniqueness for `|a| ≥ 1`** — next to every bounded
+adapted solution of `z_t = a E_t z_{t+1} + u_t` there is another one, `z + d` with the sunspot
+`d` driven by any bounded date-`s+1` shock `η` that is not a.e. its own date-`s` forecast; the
+two differ with positive probability at date `s + 1`. -/
+theorem not_unique_of_one_le {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {u z : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hza : StronglyAdapted S.𝓕 z) (hzb : S.BddProc z) :
+    ∃ z', S.Solves a u z' ∧ StronglyAdapted S.𝓕 z' ∧ S.BddProc z' ∧
+      ¬ z' (s + 1) =ᵐ[S.μ] z (s + 1) := by
+  have ha0 : a ≠ 0 := fun h => by rw [h, abs_zero] at ha; linarith
+  have hηi : Integrable η S.μ := BddRV.integrable (BddRV.of_stronglyMeasurable hη hηb)
+  obtain ⟨M, hM⟩ := hzb
+  obtain ⟨M', hM'⟩ := S.sunspot_bdd (s := s) ha hηb
+  have hzi : ∀ t, Integrable (z t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hza t) (hM t))
+  have hdi : ∀ t, Integrable (S.sunspot a s η t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (S.sunspot_adapted a hη t) (hM' t))
+  refine ⟨fun t => z t + S.sunspot a s η t,
+    S.solves_add hz (S.sunspot_solves ha0 hη hηi) hzi hdi,
+    fun t => (hza t).add (S.sunspot_adapted a hη t), ⟨M + M', fun t => ?_⟩, ?_⟩
+  · filter_upwards [hM t, hM' t] with ω h1 h2
+    exact (abs_add_le _ _).trans (add_le_add h1 h2)
+  · intro h
+    apply hηr
+    filter_upwards [h] with ω h1
+    rw [S.sunspot_succ, Pi.add_apply, Pi.sub_apply, add_eq_left, sub_eq_zero] at h1
+    exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: the zero process solves `z_t = a E_t z_{t+1}`. -/
+theorem solves_zero (a : ℝ) : S.Solves a 0 0 := fun t => by
+  rw [Pi.zero_apply, Pi.zero_apply, S.E_zero, smul_zero, add_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy criterion** — on a filtration carrying some
+genuinely random bounded news (a bounded date-`s+1` variable that is not a.e. its own date-`s`
+forecast), bounded adapted solutions of `z_t = a E_t z_{t+1} + u_t` are unique (for every
+bounded adapted `u`) if and only if `|a| < 1`. -/
+theorem unique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+      StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h 0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂
+    exact S.forward_unique ha h₁ h₂ (fun t => ((ha₁ t).mono (S.𝓕.le t)).aestronglyMeasurable)
+      (fun t => ((ha₂ t).mono (S.𝓕.le t)).aestronglyMeasurable) hb₁ hb₂
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness iff `|a| < 1`** — under genuinely
+random news, every bounded adapted `u` has a bounded adapted solution, unique up to a.e.
+equality, exactly when `|a| < 1`. -/
+theorem existsUnique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 u → S.BddProc u →
+      (∃ z, S.Solves a u z ∧ StronglyAdapted S.𝓕 z ∧ S.BddProc z) ∧
+      ∀ z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+        StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    have h0 := (h 0 (fun _ => stronglyMeasurable_zero)
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩).2
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u hua hub
+    obtain ⟨⟨h1, h2, h3⟩, -⟩ := S.existsUnique_forward ha hua hub
+    exact ⟨⟨_, h1, h2, h3⟩, fun z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂ =>
+      (S.unique_iff hnd a).2 ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂⟩
+
+/-! ### AR(1) processes driven by martingale-difference shocks -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the square of a bounded variable is bounded. -/
+theorem BddRV.sq {S : MeasExpectationSystem Ω} {x : Ω → ℝ} (hx : S.BddRV x) : S.BddRV (x ^ 2) := by
+  rw [pow_two]
+  exact hx.mul hx
+
+/-- Cochrane (2023), p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`): for
+`u_{t+1} = ρ u_t + ε_{t+1}` with bounded adapted `u` and martingale-difference shocks
+(`E_t ε_{t+1} = 0`), `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem ar1_E {ρ : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0) (t j : ℕ) :
+    S.E t (u (t + j)) =ᵐ[S.μ] ρ ^ j • u t := by
+  obtain ⟨M, hM⟩ := hub
+  have hui : ∀ s, Integrable (u s) S.μ := fun s =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hua s) (hM s))
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεi : ∀ s, Integrable (ε (s + 1)) S.μ := fun s => by
+    rw [hεe]
+    exact (hui _).sub ((hui s).smul ρ)
+  induction j with
+  | zero =>
+    rw [add_zero, pow_zero, one_smul, S.E_of_stronglyMeasurable (hua t) (hui t)]
+  | succ j ih =>
+    have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+    have hz : S.E t (ε (t + j + 1)) =ᵐ[S.μ] 0 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (ε (t + j + 1))).symm,
+        S.E_congr (hmd (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_zero]
+    rw [e]
+    filter_upwards [S.E_add ((hui _).smul ρ) (hεi (t + j)) t, S.E_smul ρ (u (t + j)) t, ih, hz]
+      with ω h1 h2 h3 h4
+    rw [h1, Pi.add_apply, h2, h4, Pi.smul_apply, h3, Pi.smul_apply, Pi.smul_apply, smul_eq_mul,
+      smul_eq_mul, smul_eq_mul, Pi.zero_apply, add_zero, pow_succ]
+    ring
+
+/-- Cochrane (2023), p. 42: with conditionally homoskedastic shocks (`E_t ε_{t+1}² = σ²`), the
+squared forecast error of an AR(1) has conditional mean `σ² ∑_{i<j} ρ^{2i}`. -/
+theorem ar1_E_sq_dev {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    S.E t ((u (t + j) - ρ ^ j • u t) ^ 2) =ᵐ[S.μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  obtain ⟨M, hM⟩ := hub
+  have hB : ∀ s, S.BddRV (u s) := fun s => BddRV.of_stronglyMeasurable (hua s) (hM s)
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεB : ∀ s, S.BddRV (ε (s + 1)) := fun s => by
+    rw [hεe]
+    exact (hB _).sub ((hB s).smul ρ)
+  induction j with
+  | zero =>
+    have h0 : (u (t + 0) - ρ ^ 0 • u t) ^ 2 = 0 := by
+      funext ω
+      simp
+    rw [h0, S.E_zero]
+    exact Eventually.of_forall fun ω => by simp
+  | succ j ih =>
+    set w := u (t + j) - ρ ^ j • u t with hw
+    set e' := ε (t + j + 1) with he'
+    have hwB : S.BddRV w := (hB _).sub ((hB t).smul _)
+    have hwm : StronglyMeasurable[S.𝓕 (t + j)] w :=
+      (hua (t + j)).sub (((hua t).mono (S.𝓕.mono (Nat.le_add_right t j))).const_smul _)
+    have hsplit : (u (t + (j + 1)) - ρ ^ (j + 1) • u t) ^ 2 =
+        ρ ^ 2 • w ^ 2 + (2 * ρ) • (w * e') + e' ^ 2 := by
+      have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+      rw [e]
+      funext ω
+      simp only [hw, he', Pi.add_apply, Pi.smul_apply, Pi.pow_apply, Pi.sub_apply, Pi.mul_apply,
+        smul_eq_mul]
+      ring
+    have hcross : S.E t (w * e') =ᵐ[S.μ] 0 := by
+      obtain ⟨-, C, hC⟩ := hwB
+      have hz : w * S.E (t + j) e' =ᵐ[S.μ] 0 := by
+        filter_upwards [hmd (t + j)] with ω h
+        rw [Pi.mul_apply, he', h, Pi.zero_apply, mul_zero]
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (w * e')).symm,
+        S.E_congr (S.E_pullOut hwm hC (hεB (t + j)).integrable) t, S.E_congr hz t]
+        with ω h1 h2 h3
+      rw [h1, h2, h3, S.E_zero]
+    have hsq : S.E t (e' ^ 2) =ᵐ[S.μ] fun _ => σ2 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (e' ^ 2)).symm,
+        S.E_congr (hvar (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_const]
+    have I1 : Integrable (ρ ^ 2 • w ^ 2) S.μ := hwB.sq.integrable.smul _
+    have I2 : Integrable ((2 * ρ) • (w * e')) S.μ := (hwB.mul (hεB (t + j))).integrable.smul _
+    have I3 : Integrable (e' ^ 2) S.μ := (hεB (t + j)).sq.integrable
+    have hs : ∑ i ∈ Finset.range (j + 1), ρ ^ (2 * i) =
+        ρ ^ 2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) + 1 := by
+      rw [Finset.sum_range_succ', Finset.mul_sum]
+      congr 1
+      exact Finset.sum_congr rfl fun i _ => by ring
+    rw [hsplit]
+    filter_upwards [S.E_add (I1.add I2) I3 t, S.E_add I1 I2 t, S.E_smul (ρ ^ 2) (w ^ 2) t,
+      S.E_smul (2 * ρ) (w * e') t, ih, hcross, hsq] with ω h1 h2 h3 h4 h5 h6 h7
+    rw [h1, Pi.add_apply, h2, Pi.add_apply, h3, h4, Pi.smul_apply, Pi.smul_apply, h5, h6, h7, hs,
+      Pi.zero_apply, smul_eq_mul, smul_eq_mul]
+    ring
+
+/-- Cochrane (2023), p. 42: **conditional variance of an AR(1)** —
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. (Mathlib's `condVar`). -/
+theorem ar1_condVar {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  change S.E t ((u (t + j) - S.E t (u (t + j))) ^ 2) =ᵐ[S.μ] _
+  refine (S.E_congr ?_ t).trans (S.ar1_E_sq_dev hrec hua hub hmd hvar t j)
+  filter_upwards [S.ar1_E hrec hua hub hmd t j] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, Pi.sub_apply, h]
+
+/-- Cochrane (2023), p. 42: the closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)` for
+`ρ² ≠ 1`. -/
+theorem ar1_condVar_closed {ρ σ2 : ℝ} (hρ : ρ ^ 2 ≠ 1) {u ε : ℕ → Ω → ℝ}
+    (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  refine (S.ar1_condVar hrec hua hub hmd hvar t j).trans (Eventually.of_forall fun _ => ?_)
+  have h1 : 1 - ρ ^ 2 ≠ 0 := sub_ne_zero.mpr (Ne.symm hρ)
+  have hs : ∑ i ∈ Finset.range j, ρ ^ (2 * i) = (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+    simp_rw [pow_mul]
+    rw [geom_sum_eq hρ, eq_div_iff h1, div_mul_eq_mul_div, div_eq_iff (sub_ne_zero.mpr hρ)]
+    ring
+  change σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) = σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)
+  rw [hs, mul_div_assoc]
+
+/-! ### Bridge to the core `ExpectationSystem` on a finite, fully supported state space -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. equality is
+equality. -/
+theorem eq_of_ae_eq (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f =ᵐ[S.μ] g) : f = g := by
+  funext ω
+  by_contra hne
+  have h0 : S.μ {ω' | f ω' ≠ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. inequality is
+inequality. -/
+theorem le_of_ae_le (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f ≤ᵐ[S.μ] g) : f ≤ g := by
+  intro ω
+  by_contra hne
+  have h0 : S.μ {ω' | ¬ f ω' ≤ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t` as a linear map on all of `Ω → ℝ`, for a finite discrete
+state space with full support. -/
+noncomputable def ELin [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (t : ℕ) : (Ω → ℝ) →ₗ[ℝ] (Ω → ℝ) where
+  toFun := S.E t
+  map_add' _ _ := S.eq_of_ae_eq hfull (S.E_add Integrable.of_finite Integrable.of_finite t)
+  map_smul' c x := S.eq_of_ae_eq hfull (S.E_smul c x t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (b)** — on a finite discrete state space with full
+support, a measure-theoretic expectation system is a core `ExpectationSystem`, with the same
+`E_t` at every state, so every core theorem applies to it. -/
+noncomputable def toExpectationSystem [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : ExpectationSystem Ω where
+  E := S.ELin hfull
+  const := S.E_const
+  mono t _ _ h := S.le_of_ae_le hfull
+    (S.E_mono Integrable.of_finite Integrable.of_finite (Eventually.of_forall h) t)
+  tower hst x := S.eq_of_ae_eq hfull (S.E_tower hst x)
+  known hst x := S.E_known hst x
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system's `E_t` is Mathlib's conditional
+expectation, exactly. -/
+theorem toExpectationSystem_E [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) (t : ℕ) (x : Ω → ℝ) :
+    (S.toExpectationSystem hfull).E t x = S.E t x := rfl
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system obtained from a measure-theoretic one has the
+pull-out property, so `PullOut`-hypothesis theorems of the core apply too. -/
+theorem toExpectationSystem_pullOut [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : (S.toExpectationSystem hfull).PullOut := by
+  have := Fintype.ofFinite Ω
+  intro t a y ha
+  rw [toExpectationSystem_E] at ha ⊢
+  rw [toExpectationSystem_E]
+  have hm : StronglyMeasurable[S.𝓕 t] a := ha ▸ S.stronglyMeasurable_E t a
+  refine S.eq_of_ae_eq hfull (S.E_pullOut hm (C := ∑ ω, |a ω|)
+    (Eventually.of_forall fun ω => ?_) Integrable.of_finite)
+  exact Finset.single_le_sum (f := fun ω => |a ω|) (fun _ _ => abs_nonneg _)
+    (Finset.mem_univ ω)
+
+end MeasExpectationSystem
+
+/-! ### Bridge (a): every finite event tree is a measure-theoretic expectation system -/
+
+namespace TreeBridge
+
+open ExpectationsFiniteTree
+
+variable {Ω} [Fintype Ω] (T : FiniteTree Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree with an uninformative date prepended (date `0`
+knows nothing, date `t + 1` knows what the original tree knows at `t`). -/
+def trivialFirst : FiniteTree Ω where
+  prob := T.prob
+  prob_pos := T.prob_pos
+  prob_sum := T.prob_sum
+  info n := match n with
+    | 0 => Setoid.ker (fun _ : Ω => ())
+    | n + 1 => T.info n
+  refines := by
+    intro s t hst a b h
+    cases s with
+    | zero => exact Setoid.ker_def.2 rfl
+    | succ s =>
+      cases t with
+      | zero => omega
+      | succ t => exact T.refines (by omega) a b h
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: **the law of total expectation on a finite tree**,
+`∑ p(ω) E_t x(ω) = ∑ p(ω) x(ω)`. -/
+theorem sum_prob_condE (t : ℕ) (x : Ω → ℝ) :
+    ∑ ω, T.prob ω * T.condE t x ω = ∑ ω, T.prob ω * x ω := by
+  obtain ⟨ω₀⟩ : Nonempty Ω := by
+    by_contra h
+    rw [not_nonempty_iff] at h
+    have := T.prob_sum
+    simp at this
+  have htriv : ∀ a b, (trivialFirst T).info 0 a b := fun _ _ => Setoid.ker_def.2 rfl
+  have h1 := (trivialFirst T).condE_of_trivial htriv ((trivialFirst T).condE (t + 1) x) ω₀
+  have h2 := (trivialFirst T).condE_of_trivial htriv x ω₀
+  rw [(trivialFirst T).condE_tower (Nat.zero_le (t + 1)) x] at h1
+  exact h1.symm.trans h2
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probabilities as a measure,
+`μ = ∑_ω p(ω) δ_ω`. -/
+noncomputable def treeMeasure : Measure Ω := ∑ ω, ENNReal.ofReal (T.prob ω) • Measure.dirac ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: `μ{ω} = p(ω)`. -/
+theorem treeMeasure_singleton [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    treeMeasure T {ω} = ENNReal.ofReal (T.prob ω) := by
+  classical
+  rw [treeMeasure, Measure.finsetSum_apply, Finset.sum_eq_single ω]
+  · rw [Measure.smul_apply, Measure.dirac_apply_of_mem (Set.mem_singleton ω), smul_eq_mul,
+      mul_one]
+  · intro b _ hb
+    rw [Measure.smul_apply, Measure.dirac_apply, Set.indicator_of_notMem (by simpa using hb),
+      smul_eq_mul, mul_zero]
+  · intro h
+    exact absurd (Finset.mem_univ ω) h
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree measure is a probability measure. -/
+theorem treeMeasure_univ : treeMeasure T Set.univ = 1 := by
+  rw [treeMeasure, Measure.finsetSum_apply]
+  simp only [Measure.smul_apply, measure_univ, smul_eq_mul, mul_one]
+  rw [← ENNReal.ofReal_sum_of_nonneg (fun ω _ => (T.prob_pos ω).le), T.prob_sum,
+    ENNReal.ofReal_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probability measure. -/
+noncomputable def treeProb : ProbabilityMeasure Ω := ⟨treeMeasure T, ⟨treeMeasure_univ T⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the tree measure are weighted sums. -/
+theorem integral_treeProb [DiscreteMeasurableSpace Ω] (f : Ω → ℝ) :
+    ∫ ω, f ω ∂(treeProb T : Measure Ω) = ∑ ω, T.prob ω * f ω := by
+  rw [integral_fintype Integrable.of_finite]
+  refine Finset.sum_congr rfl fun ω _ => ?_
+  have h : (treeProb T : Measure Ω) {ω} = ENNReal.ofReal (T.prob ω) := treeMeasure_singleton T ω
+  rw [measureReal_def, h, ENNReal.toReal_ofReal (T.prob_pos ω).le, smul_eq_mul]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's information as a filtration, `𝓕_t = σ(cell_t)`. -/
+def treeFiltration [DiscreteMeasurableSpace Ω] : Filtration ℕ mΩ where
+  seq t := MeasurableSpace.comap (Quotient.mk (T.info t)) ⊤
+  mono' s t hst := by
+    intro A hA
+    obtain ⟨B, -, rfl⟩ := MeasurableSpace.measurableSet_comap.1 hA
+    exact MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (Quotient.mk (T.info s)) (fun a b h => Quotient.sound (T.refines hst a b h))
+        ⁻¹' B, MeasurableSpace.measurableSet_top, rfl⟩
+  le' _ _ _ := MeasurableSet.of_discrete
+
+/-- Cochrane (2023), Ch. 2, p. 29: the cell average `E_t x` is `𝓕_t`-measurable. -/
+theorem stronglyMeasurable_condE [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[treeFiltration T t] (T.condE t x) := by
+  have hm : Measurable[treeFiltration T t] (T.condE t x) := fun U _ =>
+    MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (T.condE t x) (fun _ _ h => T.condE_congr x h) ⁻¹' U,
+        MeasurableSpace.measurableSet_top, rfl⟩
+  exact hm.stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: the finite tree as a measure-theoretic expectation system. -/
+noncomputable def treeSystem [DiscreteMeasurableSpace Ω] : MeasExpectationSystem Ω :=
+  ⟨treeProb T, treeFiltration T⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: every state of the tree has positive probability. -/
+theorem treeSystem_fullSupport [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    (treeSystem T).μ {ω} ≠ 0 := by
+  change treeMeasure T {ω} ≠ 0
+  rw [treeMeasure_singleton, ne_eq, ENNReal.ofReal_eq_zero, not_le]
+  exact T.prob_pos ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (a)** — the tree's cell average is Mathlib's
+conditional expectation `μ[x | 𝓕_t]`, at every state and for every `x`. -/
+theorem treeSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    (treeSystem T).E t x = T.condE t x := by
+  classical
+  set S := treeSystem T
+  refine (S.eq_of_ae_eq (treeSystem_fullSupport T)
+    (ae_eq_condExp_of_forall_setIntegral_eq (S.𝓕.le t) Integrable.of_finite
+      (fun _ _ _ => Integrable.of_finite.integrableOn) (fun A hA _ => ?_)
+      (stronglyMeasurable_condE T t x).aestronglyMeasurable)).symm
+  obtain ⟨B, -, hB⟩ := MeasurableSpace.measurableSet_comap.1 hA
+  set a : Ω → ℝ := A.indicator fun _ => 1 with ha
+  have hcell : ∀ ω ω', T.info t ω' ω → (ω' ∈ A ↔ ω ∈ A) := fun ω ω' h => by
+    rw [← hB, Set.mem_preimage, Set.mem_preimage, Quotient.sound h]
+  have hacell : T.condE t a = a := by
+    funext ω
+    refine T.condE_of_const_on_cell fun ω' h => ?_
+    simp only [ha, Set.indicator, hcell ω ω' h]
+  have hind : ∀ y : Ω → ℝ, A.indicator y = a * y := fun y => by
+    funext ω
+    by_cases h : ω ∈ A <;> simp [ha, Set.indicator, h]
+  have hpo := finiteTree_pullOut T t a x hacell
+  rw [FiniteTree.toExpectationSystem_E, FiniteTree.toExpectationSystem_E] at hpo
+  rw [← integral_indicator MeasurableSet.of_discrete,
+    ← integral_indicator MeasurableSet.of_discrete]
+  change ∫ ω, A.indicator (T.condE t x) ω ∂(treeProb T : Measure Ω) =
+    ∫ ω, A.indicator x ω ∂(treeProb T : Measure Ω)
+  rw [integral_treeProb, integral_treeProb, hind, hind, ← hpo, sum_prob_condE]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the round trip — the core system obtained from the tree's
+measure-theoretic system (bridge (b)) is the tree's own core system. -/
+theorem treeSystem_toExpectationSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    ((treeSystem T).toExpectationSystem (treeSystem_fullSupport T)).E t x =
+      T.toExpectationSystem.E t x := by
+  rw [MeasExpectationSystem.toExpectationSystem_E, treeSystem_E,
+    FiniteTree.toExpectationSystem_E]
+
+end TreeBridge
+
+end Woodford.GainsFromCommitment.ExpectationsMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A genuine infinite-horizon expectation system: i.i.d. shocks
+
+Cochrane (2023), Ch. 2, §2.4, pp. 29–30 (unexpected inflation driven by news `ΔE_{t+1}`) and
+§2.7, p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`). The state space is `Ω = ℕ → ℝ` with the
+infinite product `ν^ℕ` of a law `ν` on `ℝ` (Mathlib's `Measure.infinitePi`, built by
+Ionescu-Tulcea/Carathéodory), the shocks are the coordinates `ε_t(ω) = ω_t`, and the filtration is
+the natural one, `𝓕_t = σ(ε_0, …, ε_t)` (Mathlib's `Filtration.piLE`).
+
+## How to use (API)
+
+* `iidSystem ν : MeasExpectationSystem (ℕ → ℝ)` for any `ν : ProbabilityMeasure ℝ`; `shock t`.
+* Independence: `indep_future` (future shocks ⟂ `𝓕_t`), `E_future` (`E_t g = E g` for `g`
+  measurable w.r.t. the future), `E_shock_fun` (`E_t f(ε_{t+1}) = ∫ f dν`), `integral_shock_fun`.
+* Moments (mean `0`, variance `σ² > 0`): `E_shock_zero`, `E_shock_sq_eq`, `condVar_shock`
+  (`Var_t ε_{t+1} = σ²`).
+* Nondegeneracy, not finitely supported: `shock_not_ae_E`, `singleton_lt_one`, `iid_singleton`
+  (every history is null), `iid_countable_null`, `iid_not_finitely_supported`.
+* Determinacy: `iid_news`, `iid_existsUnique_iff`, `iid_sunspot`.
+* AR(1): `ar1`, `ar1_succ`, `ar1_adapted`, `ar1_bdd`, `iid_ar1_E`, `iid_ar1_condVar`,
+  `iid_ar1_condVar_closed`.
+* The fair `±1` coin: `coin`, `coin_mean`, `coin_var`, `coin_bdd`, `coin_economy`.
+-/
+
+namespace Woodford.GainsFromCommitment.ExpectationsMeasureIID
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure
+
+variable (ν : ProbabilityMeasure ℝ)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the law of the i.i.d. shock sequence, the infinite product
+`ν^ℕ` on `Ω = ℕ → ℝ`. -/
+noncomputable def iidProb : ProbabilityMeasure (ℕ → ℝ) :=
+  ⟨Measure.infinitePi (fun _ => (ν : Measure ℝ)), inferInstance⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. expectation system — `Ω = ℕ → ℝ`, `μ = ν^ℕ`, and the
+natural filtration `𝓕_t = σ(ε_0, …, ε_t)`. -/
+noncomputable def iidSystem : MeasExpectationSystem (ℕ → ℝ) := ⟨iidProb ν, Filtration.piLE⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock `ε_t(ω) = ω_t`. -/
+def shock (t : ℕ) (ω : ℕ → ℝ) : ℝ := ω t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock of date `s ≤ t` is known at `t`. -/
+theorem measurable_shock {s t : ℕ} (hst : s ≤ t) : Measurable[(iidSystem ν).𝓕 t] (shock s) := by
+  change Measurable[MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi] (fun ω => Preorder.restrictLe (π := fun _ : ℕ => ℝ) t ω ⟨s, hst⟩)
+  exact (measurable_pi_apply (⟨s, hst⟩ : Set.Iic t)).comp (comap_measurable _)
+
+/-! ### Independence: the future is independent of the present information -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra generated by the date-`j` shock. -/
+abbrev coordSigma (j : ℕ) : MeasurableSpace (ℕ → ℝ) :=
+  MeasurableSpace.comap (fun ω : ℕ → ℝ => ω j) inferInstance
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra of the future shocks `ε_{t+1}, ε_{t+2}, …`. -/
+abbrev futureSigma (t : ℕ) : MeasurableSpace (ℕ → ℝ) := ⨆ j ∈ Set.Ioi t, coordSigma j
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock σ-algebra is a sub-σ-algebra. -/
+theorem coordSigma_le (j : ℕ) : coordSigma j ≤ MeasurableSpace.pi :=
+  (measurable_pi_apply j).comap_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: the future σ-algebra is a sub-σ-algebra. -/
+theorem futureSigma_le (t : ℕ) : futureSigma t ≤ MeasurableSpace.pi :=
+  iSup₂_le fun j _ => coordSigma_le j
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shocks are mutually independent under `ν^ℕ`. -/
+theorem iIndep_coord : iIndep coordSigma (iidSystem ν).μ :=
+  (iIndepFun_infinitePi (P := fun _ => (ν : Measure ℝ)) (X := fun _ => id)
+    (fun _ => measurable_id)).iIndep
+
+/-- Cochrane (2023), Ch. 2, p. 29: date-`t` information is generated by `ε_0, …, ε_t`. -/
+theorem filtration_le_past (t : ℕ) :
+    (iidSystem ν).𝓕 t ≤ ⨆ j ∈ Set.Iic t, coordSigma j := by
+  change MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi ≤ _
+  simp only [MeasurableSpace.pi, MeasurableSpace.comap_iSup, MeasurableSpace.comap_comp]
+  refine iSup_le fun j => ?_
+  exact le_iSup₂ (f := fun i (_ : i ∈ Set.Iic t) => coordSigma i) j.1 j.2
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the future shocks are independent of date-`t` information**.
+-/
+theorem indep_future (t : ℕ) : Indep (futureSigma t) ((iidSystem ν).𝓕 t) (iidSystem ν).μ :=
+  indep_of_indep_of_le_right (indep_iSup_of_disjoint coordSigma_le (iIndep_coord ν)
+    (Set.disjoint_left.2 fun _ h1 h2 => absurd (Set.mem_Ioi.1 h1) (not_lt.2 (Set.mem_Iic.1 h2))))
+    (filtration_le_past ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **independence ⇒ the forecast of a function of the future is its
+unconditional mean**, `E_t g = E g` a.e. -/
+theorem E_future (t : ℕ) {g : (ℕ → ℝ) → ℝ} (hg : StronglyMeasurable[futureSigma t] g) :
+    (iidSystem ν).E t g =ᵐ[(iidSystem ν).μ] fun _ => ∫ ω, g ω ∂(iidSystem ν).μ :=
+  condExp_indep_eq (futureSigma_le t) ((iidSystem ν).𝓕.le t) hg (indep_future ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: a function of the next shock is measurable for the future. -/
+theorem measurable_future_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    Measurable[futureSigma t] (fun ω : ℕ → ℝ => f (ω (t + 1))) :=
+  hf.comp (Measurable.of_comap_le
+    (le_iSup₂ (f := fun i (_ : i ∈ Set.Ioi t) => coordSigma i) (t + 1) (Nat.lt_succ_self t)))
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock has law `ν`, so `E f(ε_i) = ∫ f dν`. -/
+theorem integral_shock_fun (i : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    ∫ ω, f (ω i) ∂(iidSystem ν).μ = ∫ x, f x ∂(ν : Measure ℝ) := by
+  have h := integral_map (μ := Measure.infinitePi (fun _ => (ν : Measure ℝ)))
+    (φ := fun ω : ℕ → ℝ => ω i) (measurable_pi_apply i).aemeasurable
+    (f := f) hf.aestronglyMeasurable
+  rw [Measure.infinitePi_map_eval] at h
+  exact h.symm
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t f(ε_{t+1}) = ∫ f dν` a.e. -/
+theorem E_shock_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    (iidSystem ν).E t (fun ω => f (ω (t + 1))) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, f x ∂(ν : Measure ℝ) := by
+  rw [← integral_shock_fun ν (t + 1) hf]
+  exact E_future ν t (measurable_future_fun t hf).stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1} = E ε` a.e. -/
+theorem E_shock (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] fun _ => ∫ x, x ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t measurable_id
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1}² = E ε²` a.e. -/
+theorem E_shock_sq (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, x ^ 2 ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t (measurable_id.pow_const 2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock is bounded when `ν` has bounded support. -/
+theorem shock_ae_bdd {B : ℝ} (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |shock t ω| ≤ B :=
+  (measurePreserving_eval_infinitePi (fun _ => (ν : Measure ℝ)) t).quasiMeasurePreserving.ae hbdd
+
+/-! ### Mean-zero, nondegenerate shocks -/
+
+variable {ν}
+
+/-- Cochrane (2023), Ch. 2, p. 29: with mean-zero shocks, `E_t ε_{t+1} = 0` a.e. -/
+theorem E_shock_zero (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] 0 := by
+  filter_upwards [E_shock ν t] with ω h
+  rw [h, hmean, Pi.zero_apply]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **constant conditional variance**, `E_t ε_{t+1}² = σ²` a.e. -/
+theorem E_shock_sq_eq {σ2 : ℝ} (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  filter_upwards [E_shock_sq ν t] with ω h
+  rw [h, hvar]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the conditional variance of the next shock is `σ²`. -/
+theorem condVar_shock {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    Var[shock (t + 1); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  change (iidSystem ν).E t ((shock (t + 1) - (iidSystem ν).E t (shock (t + 1))) ^ 2) =ᵐ[_] _
+  refine ((iidSystem ν).E_congr ?_ t).trans (E_shock_sq_eq hvar t)
+  filter_upwards [E_shock_zero hmean t] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, h, Pi.zero_apply, sub_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the shocks are nondegenerate at every date** — `ε_{t+1}` is
+not a.e. equal to its date-`t` forecast (a fortiori not known at `t`). -/
+theorem shock_not_ae_E {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (t : ℕ) :
+    ¬ shock (t + 1) =ᵐ[(iidSystem ν).μ] (iidSystem ν).E t (shock (t + 1)) := by
+  intro h
+  have h0 := h.trans (E_shock_zero hmean t)
+  have hi : ∫ ω, (ω (t + 1)) ^ 2 ∂(iidSystem ν).μ = 0 := by
+    refine integral_eq_zero_of_ae ?_
+    filter_upwards [h0] with ω h1
+    simp only [shock, Pi.zero_apply] at h1
+    simp [h1]
+  rw [integral_shock_fun ν (t + 1) (f := fun x => x ^ 2) (measurable_id.pow_const 2), hvar] at hi
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: a nondegenerate mean-zero law has no atom of mass one. -/
+theorem singleton_lt_one {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (x : ℝ) :
+    (ν : Measure ℝ) {x} < 1 := by
+  refine lt_of_le_of_ne prob_le_one fun h1 => ?_
+  have hae : ∀ᵐ y ∂(ν : Measure ℝ), y = x := by
+    rw [ae_iff]
+    have hs : {y : ℝ | ¬ y = x} = {x}ᶜ := by
+      ext y
+      simp
+    rw [hs, prob_compl_eq_zero_iff (measurableSet_singleton x)]
+    exact h1
+  have hm : ∫ y, y ∂(ν : Measure ℝ) = x := by
+    rw [integral_congr_ae (f := fun y => y) (g := fun _ => x) hae]
+    simp
+  have hv : ∫ y, y ^ 2 ∂(ν : Measure ℝ) = x ^ 2 := by
+    rw [integral_congr_ae (f := fun y => y ^ 2) (g := fun _ => x ^ 2)
+      (hae.mono fun y h => by rw [h])]
+    simp
+  rw [hmean] at hm
+  rw [hvar, ← hm] at hv
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: the atoms of a nondegenerate mean-zero law are uniformly below
+one: `ν{x} ≤ q < 1` for all `x`. -/
+theorem exists_singleton_le {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) :
+    ∃ q < 1, ∀ x, (ν : Measure ℝ) {x} ≤ q := by
+  by_cases h : ∃ x₀, 2⁻¹ < (ν : Measure ℝ) {x₀}
+  · obtain ⟨x₀, hx₀⟩ := h
+    refine ⟨max 2⁻¹ ((ν : Measure ℝ) {x₀}),
+      max_lt (ENNReal.inv_lt_one.2 ENNReal.one_lt_two) (singleton_lt_one hmean hvar hσ x₀),
+      fun x => ?_⟩
+    by_cases hx : x = x₀
+    · rw [hx]
+      exact le_max_right _ _
+    · by_contra hlt
+      push Not at hlt
+      have h1 : (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} ≤ 1 := by
+        rw [← measure_union (Set.disjoint_singleton.2 hx) (measurableSet_singleton _)]
+        exact prob_le_one
+      have h2 : 1 < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} := by
+        calc (1 : ENNReal) = 2⁻¹ + 2⁻¹ := ENNReal.inv_two_add_inv_two.symm
+          _ < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} :=
+            ENNReal.add_lt_add (lt_of_le_of_lt (le_max_left _ _) hlt) hx₀
+      exact absurd h1 (not_le.2 h2)
+  · push Not at h
+    exact ⟨2⁻¹, ENNReal.inv_lt_one.2 ENNReal.one_lt_two, h⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **every single history has probability zero** under `ν^ℕ`. -/
+theorem iid_singleton {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (ω : ℕ → ℝ) :
+    (iidSystem ν).μ {ω} = 0 := by
+  obtain ⟨q, hq, hle⟩ := exists_singleton_le hmean hvar hσ
+  have hb : ∀ n, (iidSystem ν).μ {ω} ≤ q ^ n := by
+    intro n
+    calc (iidSystem ν).μ {ω}
+        ≤ Measure.infinitePi (fun _ => (ν : Measure ℝ))
+            (Set.pi ↑(Finset.range n) fun i => {ω i}) :=
+          measure_mono fun ω' h i _ => by rw [Set.mem_singleton_iff.mp h]; rfl
+      _ = ∏ i ∈ Finset.range n, (ν : Measure ℝ) {ω i} :=
+          Measure.infinitePi_pi (fun _ => (ν : Measure ℝ)) fun i _ => measurableSet_singleton _
+      _ ≤ q ^ n := by
+          simpa using Finset.prod_le_pow_card (Finset.range n) _ q fun i _ => hle (ω i)
+  exact le_antisymm (ge_of_tendsto' (ENNReal.tendsto_pow_atTop_nhds_zero_of_lt_one hq) hb)
+    bot_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: **not finitely (or countably) supported** — every countable set
+of histories is null, in contrast with a finite event tree. -/
+theorem iid_countable_null {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) {F : Set (ℕ → ℝ)}
+    (hF : F.Countable) : (iidSystem ν).μ F = 0 := by
+  have : NullSingletonClass (iidSystem ν).μ := ⟨iid_singleton hmean hvar hσ⟩
+  exact hF.measure_zero _
+
+/-- Cochrane (2023), Ch. 2, p. 29: no finite set of histories carries the probability. -/
+theorem iid_not_finitely_supported {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (F : Finset (ℕ → ℝ)) :
+    (iidSystem ν).μ ↑F ≠ 1 := by
+  rw [iid_countable_null hmean hvar hσ F.countable_toSet]
+  exact zero_ne_one
+
+/-! ### Determinacy with i.i.d. news -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. filtration carries genuinely random bounded news. -/
+theorem iid_news {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) :
+    ∃ s η B, StronglyMeasurable[(iidSystem ν).𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂(iidSystem ν).μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[(iidSystem ν).μ] (iidSystem ν).E s η :=
+  ⟨0, shock 1, B, (measurable_shock ν le_rfl).stronglyMeasurable, shock_ae_bdd ν hbdd 1,
+    shock_not_ae_E hmean hvar hσ 0⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy in the i.i.d. economy** — bounded adapted
+solutions of `z_t = a E_t z_{t+1} + u_t` exist and are unique for every bounded adapted `u` iff
+`|a| < 1`. -/
+theorem iid_existsUnique_iff {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (a : ℝ) :
+    (∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem ν).𝓕 u → (iidSystem ν).BddProc u →
+      (∃ z, (iidSystem ν).Solves a u z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+        (iidSystem ν).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem ν).Solves a u z₁ → (iidSystem ν).Solves a u z₂ →
+        StronglyAdapted (iidSystem ν).𝓕 z₁ → StronglyAdapted (iidSystem ν).𝓕 z₂ →
+        (iidSystem ν).BddProc z₁ → (iidSystem ν).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem ν).μ] z₂ t) ↔ |a| < 1 :=
+  (iidSystem ν).existsUnique_iff (iid_news hmean hvar hσ hbdd) a
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the i.i.d. economy has a bounded, genuinely random
+sunspot solution of `z_t = a E_t z_{t+1}` next to `z = 0`, driven by the date-1 shock. -/
+theorem iid_sunspot {σ2 B a : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (ha : 1 ≤ |a|) :
+    ∃ z, (iidSystem ν).Solves a 0 z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+      (iidSystem ν).BddProc z ∧ ¬ z 1 =ᵐ[(iidSystem ν).μ] 0 :=
+  (iidSystem ν).not_unique_of_one_le ha (measurable_shock ν le_rfl).stronglyMeasurable
+    (shock_ae_bdd ν hbdd 1) (shock_not_ae_E hmean hvar hσ 0) ((iidSystem ν).solves_zero a)
+    (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+
+/-! ### AR(1) with i.i.d. innovations -/
+
+/-- Cochrane (2023), p. 42: the AR(1) `u_0 = ε_0`, `u_{t+1} = ρ u_t + ε_{t+1}`. -/
+def ar1 (ρ : ℝ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => shock 0
+  | t + 1 => fun ω => ρ * ar1 ρ t ω + shock (t + 1) ω
+
+/-- Cochrane (2023), p. 42: the AR(1) law of motion. -/
+theorem ar1_succ (ρ : ℝ) (t : ℕ) : ar1 ρ (t + 1) = ρ • ar1 ρ t + shock (t + 1) := rfl
+
+variable (ν) in
+/-- Cochrane (2023), p. 42: the AR(1) is adapted. -/
+theorem ar1_adapted (ρ : ℝ) : StronglyAdapted (iidSystem ν).𝓕 (ar1 ρ) := by
+  intro t
+  induction t with
+  | zero => exact (measurable_shock ν le_rfl).stronglyMeasurable
+  | succ t ih =>
+    rw [ar1_succ]
+    exact ((ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t))).const_smul ρ).add
+      (measurable_shock ν le_rfl).stronglyMeasurable
+
+/-- Cochrane (2023), p. 42: for `|ρ| < 1` and shocks bounded by `B`, `|u_t| ≤ B / (1 − |ρ|)`. -/
+theorem ar1_bdd {ρ B : ℝ} (hρ : |ρ| < 1) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |ar1 ρ t ω| ≤ B / (1 - |ρ|) := by
+  obtain ⟨x₀, hx₀⟩ := hbdd.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hx₀
+  have h1 : 0 < 1 - |ρ| := by linarith
+  filter_upwards [ae_all_iff.2 (shock_ae_bdd ν hbdd)] with ω h
+  induction t with
+  | zero =>
+    refine (h 0).trans ?_
+    rw [le_div_iff₀ h1]
+    nlinarith [abs_nonneg ρ]
+  | succ t ih =>
+    change |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ _
+    have key : |ρ| * (B / (1 - |ρ|)) + B = B / (1 - |ρ|) := by
+      field_simp
+      ring
+    calc |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ |ρ| * |ar1 ρ t ω| + |shock (t + 1) ω| := by
+          rw [← abs_mul]
+          exact abs_add_le _ _
+      _ ≤ |ρ| * (B / (1 - |ρ|)) + B :=
+          add_le_add (mul_le_mul_of_nonneg_left ih (abs_nonneg ρ)) (h (t + 1))
+      _ = B / (1 - |ρ|) := key
+
+/-- Cochrane (2023), p. 42: **AR(1) forecasts**, `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem iid_ar1_E {ρ B : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    (iidSystem ν).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem ν).μ] ρ ^ j • ar1 ρ t :=
+  (iidSystem ν).ar1_E (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) t j
+
+/-- Cochrane (2023), p. 42: **AR(1) conditional variance**,
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. -/
+theorem iid_ar1_condVar {ρ B σ2 : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B)
+    (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) :=
+  (iidSystem ν).ar1_condVar (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-- Cochrane (2023), p. 42: closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem iid_ar1_condVar_closed {ρ B σ2 : ℝ} (hρ : |ρ| < 1)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  have hρ2 : ρ ^ 2 ≠ 1 := by
+    intro h
+    have : |ρ| ^ 2 = 1 := by rw [sq_abs]; exact h
+    nlinarith [abs_nonneg ρ]
+  exact (iidSystem ν).ar1_condVar_closed hρ2 (ar1_succ ρ) (ar1_adapted ν ρ)
+    ⟨_, ar1_bdd hρ hbdd⟩ (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-! ### A concrete law: the fair `±1` coin -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin `ν = ½ δ₁ + ½ δ₋₁` as a measure. -/
+noncomputable def coinMeasure : Measure ℝ :=
+  (2⁻¹ : ENNReal) • (Measure.dirac 1 + Measure.dirac (-1))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin has total mass one. -/
+theorem coinMeasure_univ : coinMeasure Set.univ = 1 := by
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+  rw [one_add_one_eq_two, ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin as a probability measure. -/
+noncomputable def coin : ProbabilityMeasure ℝ := ⟨coinMeasure, ⟨coinMeasure_univ⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the coin, `∫ f dν = (f 1 + f (−1)) / 2`. -/
+theorem integral_coin (f : ℝ → ℝ) :
+    ∫ x, f x ∂(coin : Measure ℝ) = (f 1 + f (-1)) / 2 := by
+  change ∫ x, f x ∂coinMeasure = _
+  rw [coinMeasure, integral_smul_measure, integral_add_measure (integrable_dirac enorm_lt_top)
+    (integrable_dirac enorm_lt_top), integral_dirac, integral_dirac, ENNReal.toReal_inv,
+    ENNReal.toReal_ofNat, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has mean zero. -/
+theorem coin_mean : ∫ x, x ∂(coin : Measure ℝ) = 0 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has variance one. -/
+theorem coin_var : ∫ x, x ^ 2 ∂(coin : Measure ℝ) = 1 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin is bounded by one. -/
+theorem coin_bdd : ∀ᵐ x ∂(coin : Measure ℝ), |x| ≤ 1 := by
+  change ∀ᵐ x ∂coinMeasure, |x| ≤ 1
+  rw [ae_iff]
+  have hs : MeasurableSet {x : ℝ | ¬ |x| ≤ 1} :=
+    (measurableSet_le continuous_abs.measurable measurable_const).compl
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, Measure.dirac_apply' _ hs,
+    Set.indicator, Set.mem_ofPred_eq]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29 and p. 42: **the coin economy** — `ε_t = ±1` i.i.d. fair coins —
+satisfies everything: `E_t ε_{t+1} = 0`, `Var_t ε_{t+1} = 1`, every history is null, the shock is
+never predictable, determinacy holds iff `|a| < 1`, and the AR(1) has
+`Var_t(u_{t+j}) = (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem coin_economy (ρ a : ℝ) (hρ : |ρ| < 1) :
+    (∀ t, (iidSystem coin).E t (shock (t + 1)) =ᵐ[(iidSystem coin).μ] 0) ∧
+    (∀ t, Var[shock (t + 1); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1) ∧
+    (∀ ω, (iidSystem coin).μ {ω} = 0) ∧
+    (∀ t, ¬ shock (t + 1) =ᵐ[(iidSystem coin).μ] (iidSystem coin).E t (shock (t + 1))) ∧
+    ((∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem coin).𝓕 u →
+      (iidSystem coin).BddProc u →
+      (∃ z, (iidSystem coin).Solves a u z ∧ StronglyAdapted (iidSystem coin).𝓕 z ∧
+        (iidSystem coin).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem coin).Solves a u z₁ → (iidSystem coin).Solves a u z₂ →
+        StronglyAdapted (iidSystem coin).𝓕 z₁ → StronglyAdapted (iidSystem coin).𝓕 z₂ →
+        (iidSystem coin).BddProc z₁ → (iidSystem coin).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem coin).μ] z₂ t) ↔ |a| < 1) ∧
+    (∀ t j, (iidSystem coin).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem coin).μ] ρ ^ j • ar1 ρ t) ∧
+    (∀ t j, Var[ar1 ρ (t + j); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)) :=
+  ⟨E_shock_zero coin_mean, condVar_shock coin_mean coin_var,
+    iid_singleton coin_mean coin_var one_pos, shock_not_ae_E coin_mean coin_var one_pos,
+    iid_existsUnique_iff coin_mean coin_var one_pos coin_bdd a,
+    iid_ar1_E hρ coin_mean coin_bdd, iid_ar1_condVar_closed hρ coin_mean coin_var coin_bdd⟩
+
+end Woodford.GainsFromCommitment.ExpectationsMeasureIID
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Stabilization losses with genuine conditional expectations
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3, pp. 507–513 (the stabilization loss
+`L^stab = ∑_{t ≥ t₀} β^{t−t₀} [var_{t₀}(π_t) + λ var_{t₀}(x_t)]` of p. 509, eqs. (3.2)–(3.8),
+Proposition 7.11) and Appendix F.4, pp. 713–714.
+
+The variance results of `VarianceFrontier` and `Noninertial` are stated for the core
+`ExpectationSystem` and assume AR(1) disturbances whose innovations have constant conditional
+variance, together with the pull-out property. On a finite state space such disturbances are
+degenerate (`finite_innov_degenerate`, `tree_innov_degenerate`: the conditional variance must be
+`0`), so those statements only have content for genuine probability models. Here they are proved
+again for a `MeasExpectationSystem` (Mathlib's `condExp` on a filtered probability space): the
+conditional variances are Mathlib's `Var[X; μ | 𝓕 t]` (genuine conditional expectations of
+squared deviations), every identity holds almost everywhere, and the pull-out property is a
+theorem, not a hypothesis. The genuine i.i.d. instance is in `NoninertialMeasureIID`.
+
+## Main results
+
+* `MeasAR1Innov` ((2.18), (2.27)): bounded adapted AR(1) disturbances with martingale-difference
+  innovations of constant conditional variance.
+* `E_cross_dev`, `condVar_plan2`, `condVar_plan1` (p. 509, p. 512): conditional (co)variances of
+  AR(1) disturbances and of the plans (2.19), (3.6).
+* `lstab12_hasSum`, `lstab12_eq` ((3.4)) and `lstab_hasSum`, `lstab_eq` ((3.7)–(3.8)): the
+  stabilization loss as a genuine discounted sum of conditional variances, almost surely.
+* `affine_zero1`, `affine_zero2`, `plan_AS_iff` ((3.2)–(3.3)), `plan2_iff` ((3.6) and the six
+  restrictions): non-degeneracy is now a consequence of a positive innovation variance.
+* `prop_7_11_lstab` (**Proposition 7.11**, stabilization form) and `f4_lstab` (**Appendix F.4**,
+  stabilization optimality).
+* Links to the core statements: on a finite fully supported space `toCore_AR1Innov`,
+  `toCore_VF_AR1Innov`, `toCore_nondeg1`, `toCore_nondeg2`, `mAS_iff_core`, `mIS_iff_core`,
+  `condVar_eq_condCov`, `lstab12_agree`, `lstab_agree`, and the core theorems applied through the
+  bridge (`lstab12_link`, `lstab_link`, `prop_7_11_link`, `f4_link`, `Lstab_ar1_link`,
+  `Lstab_two_shocks_link`); `finite_innov_degenerate`, `tree_innov_degenerate` show why the
+  bridge cannot carry a nondegenerate disturbance.
+-/
+
+namespace Woodford.GainsFromCommitment.NoninertialMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure
+open VarianceFrontier (plan2 plan2_apply)
+open Noninertial (plan1 fpiOni fxOni uncondVar)
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-! ### AR(1) disturbances with innovations of constant conditional variance -/
+
+/-- Woodford (2003), eqs. (2.18) and (2.27), pp. 496 and 504, with genuine conditional
+expectations: `u` is a bounded adapted AR(1) process `u_{t+1} = ρ u_t + ε_{t+1}` whose innovation
+is unforecastable, `E_t ε_{t+1} = 0`, with constant conditional variance `E_t ε_{t+1}² = s`
+(both almost surely). -/
+def MeasAR1Innov (ρ s : ℝ) (u ε : ℕ → Ω → ℝ) : Prop :=
+  StronglyAdapted S.𝓕 u ∧ S.BddProc u ∧ (∀ t, u (t + 1) = ρ • u t + ε (t + 1)) ∧
+    (∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0) ∧
+    ∀ t, S.E t (ε (t + 1) * ε (t + 1)) =ᵐ[S.μ] fun _ => s
+
+namespace MeasAR1Innov
+
+variable {S} {ρ s : ℝ} {u ε : ℕ → Ω → ℝ}
+
+/-- Woodford (2003), eq. (2.18), p. 496: each `u_t` is a bounded random variable. -/
+theorem bddRV (h : MeasAR1Innov S ρ s u ε) (t : ℕ) : S.BddRV (u t) := by
+  obtain ⟨M, hM⟩ := h.2.1
+  exact MeasExpectationSystem.BddRV.of_stronglyMeasurable (h.1 t) (hM t)
+
+/-- Woodford (2003), eq. (2.18), p. 496: the innovation is `ε_{t+1} = u_{t+1} − ρ u_t`. -/
+theorem innov_eq (h : MeasAR1Innov S ρ s u ε) (t : ℕ) : ε (t + 1) = u (t + 1) - ρ • u t := by
+  rw [h.2.2.1 t, add_sub_cancel_left]
+
+/-- Woodford (2003), eq. (2.18), p. 496: the innovation is a bounded random variable. -/
+theorem innov_bddRV (h : MeasAR1Innov S ρ s u ε) (t : ℕ) : S.BddRV (ε (t + 1)) := by
+  rw [h.innov_eq t]
+  exact (h.bddRV _).sub ((h.bddRV t).smul ρ)
+
+/-- Woodford (2003), eq. (2.18), p. 496: the innovation `ε_{t+1}` is known at `t + 1`. -/
+theorem innov_meas (h : MeasAR1Innov S ρ s u ε) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (ε (t + 1)) := by
+  rw [h.innov_eq t]
+  exact (h.1 (t + 1)).sub (((h.1 t).mono (S.𝓕.mono (Nat.le_succ t))).const_smul ρ)
+
+/-- Woodford (2003), eq. (2.18), p. 496: `E_t u_{t+j} = ρʲ u_t` almost surely. -/
+theorem E_u (h : MeasAR1Innov S ρ s u ε) (t j : ℕ) :
+    S.E t (u (t + j)) =ᵐ[S.μ] ρ ^ j • u t :=
+  S.ar1_E h.2.2.1 h.1 h.2.1 h.2.2.2.1 t j
+
+end MeasAR1Innov
+
+/-- Woodford (2003), p. 509 (tool): on a probability space two constants that agree almost
+surely are equal. -/
+theorem const_eq_of_ae {c d : ℝ} (h : (fun _ : Ω => c) =ᵐ[S.μ] fun _ => d) : c = d := by
+  obtain ⟨ω, hω⟩ := h.exists
+  exact hω
+
+/-- Woodford (2003), p. 509 (tool): if `W` is known at `t + k` and the bounded `e` has
+`E_{t+k} e = 0`, then `E_t (W e) = 0` almost surely (pull-out, then iterated expectations). -/
+theorem E_known_mul_zero {t k : ℕ} {W e : Ω → ℝ} (hWm : StronglyMeasurable[S.𝓕 (t + k)] W)
+    (hWB : S.BddRV W) (heB : S.BddRV e) (he0 : S.E (t + k) e =ᵐ[S.μ] 0) :
+    S.E t (W * e) =ᵐ[S.μ] 0 := by
+  obtain ⟨-, C, hC⟩ := hWB
+  have hz : W * S.E (t + k) e =ᵐ[S.μ] 0 := by
+    filter_upwards [he0] with ω h
+    rw [Pi.mul_apply, h, Pi.zero_apply, mul_zero]
+  filter_upwards [(S.E_tower (Nat.le_add_right t k) (W * e)).symm,
+    S.E_congr (S.E_pullOut hWm hC heB.integrable) t, S.E_congr hz t] with ω h1 h2 h3
+  rw [h1, h2, h3, S.E_zero]
+
+/-- Woodford (2003), pp. 509, 512 (the conditional covariance of two AR(1) disturbances): if the
+innovations have constant conditional covariance `E_t(εᵘ_{t+1} εʳ_{t+1}) = c`, then the
+`k`-step forecast errors satisfy
+`E_t[(u_{t+k} − ρ_uᵏ u_t)(r_{t+k} − ρ_rᵏ r_t)] = c ∑_{j<k} (ρ_u ρ_r)ʲ` almost surely. -/
+theorem E_cross_dev {ρu ρr su sr c : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hc : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => c) (t k : ℕ) :
+    S.E t ((u (t + k) - ρu ^ k • u t) * (r (t + k) - ρr ^ k • r t)) =ᵐ[S.μ]
+      fun _ => c * ∑ j ∈ Finset.range k, (ρu * ρr) ^ j := by
+  induction k with
+  | zero =>
+    have h0 : (u (t + 0) - ρu ^ 0 • u t) * (r (t + 0) - ρr ^ 0 • r t) = 0 := by
+      funext ω
+      simp
+    rw [h0, S.E_zero]
+    exact Eventually.of_forall fun ω => by simp
+  | succ k ih =>
+    set U := u (t + k) - ρu ^ k • u t with hU
+    set R := r (t + k) - ρr ^ k • r t with hR
+    set eu := εu (t + k + 1) with heu
+    set er := εr (t + k + 1) with her
+    have hUB : S.BddRV U := (hu.bddRV _).sub ((hu.bddRV t).smul _)
+    have hRB : S.BddRV R := (hr.bddRV _).sub ((hr.bddRV t).smul _)
+    have hUm : StronglyMeasurable[S.𝓕 (t + k)] U :=
+      (hu.1 (t + k)).sub (((hu.1 t).mono (S.𝓕.mono (Nat.le_add_right t k))).const_smul _)
+    have hRm : StronglyMeasurable[S.𝓕 (t + k)] R :=
+      (hr.1 (t + k)).sub (((hr.1 t).mono (S.𝓕.mono (Nat.le_add_right t k))).const_smul _)
+    have heuB : S.BddRV eu := hu.innov_bddRV (t + k)
+    have herB : S.BddRV er := hr.innov_bddRV (t + k)
+    have hsplit : (u (t + (k + 1)) - ρu ^ (k + 1) • u t) * (r (t + (k + 1)) - ρr ^ (k + 1) • r t)
+        = (ρu * ρr) • (U * R) + ρu • (U * er) + ρr • (R * eu) + eu * er := by
+      have e1 : u (t + (k + 1)) = ρu • u (t + k) + εu (t + k + 1) := hu.2.2.1 (t + k)
+      have e2 : r (t + (k + 1)) = ρr • r (t + k) + εr (t + k + 1) := hr.2.2.1 (t + k)
+      rw [e1, e2]
+      funext ω
+      simp only [hU, hR, heu, her, Pi.add_apply, Pi.smul_apply, Pi.sub_apply, Pi.mul_apply,
+        smul_eq_mul]
+      ring
+    have hc1 : S.E t (U * er) =ᵐ[S.μ] 0 :=
+      E_known_mul_zero S hUm hUB herB (hr.2.2.2.1 (t + k))
+    have hc2 : S.E t (R * eu) =ᵐ[S.μ] 0 :=
+      E_known_mul_zero S hRm hRB heuB (hu.2.2.2.1 (t + k))
+    have hee : S.E t (eu * er) =ᵐ[S.μ] fun _ => c := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t k) (eu * er)).symm,
+        S.E_congr (hc (t + k)) t] with ω h1 h2
+      rw [h1, h2, S.E_const]
+    have I1 : Integrable ((ρu * ρr) • (U * R)) S.μ := (hUB.mul hRB).integrable.smul _
+    have I2 : Integrable (ρu • (U * er)) S.μ := (hUB.mul herB).integrable.smul _
+    have I3 : Integrable (ρr • (R * eu)) S.μ := (hRB.mul heuB).integrable.smul _
+    have I4 : Integrable (eu * er) S.μ := (heuB.mul herB).integrable
+    have hs : ∑ j ∈ Finset.range (k + 1), (ρu * ρr) ^ j =
+        (ρu * ρr) * ∑ j ∈ Finset.range k, (ρu * ρr) ^ j + 1 := by
+      rw [Finset.sum_range_succ', Finset.mul_sum]
+      congr 1
+      exact Finset.sum_congr rfl fun j _ => by ring
+    rw [hsplit]
+    filter_upwards [S.E_add ((I1.add I2).add I3) I4 t, S.E_add (I1.add I2) I3 t,
+      S.E_add I1 I2 t, S.E_smul (ρu * ρr) (U * R) t, S.E_smul ρu (U * er) t,
+      S.E_smul ρr (R * eu) t, ih, hc1, hc2, hee] with ω h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
+    rw [h1, Pi.add_apply, h2, Pi.add_apply, h3, Pi.add_apply, h4, h5, h6]
+    simp only [Pi.smul_apply, smul_eq_mul]
+    rw [h7, h8, h9, h10, hs]
+    simp only [Pi.zero_apply]
+    ring
+
+/-! ### Conditional variances of the plans (2.19) and (3.6) -/
+
+/-- Woodford (2003), p. 509 and p. 512: for a plan (3.6) `y_t = ȳ + f u_t + g r_t` with AR(1)
+disturbances whose innovations have conditional covariance `c`, the conditional variance at `t` of
+`y_{t+k}` is `f² s_u ∑_{j<k} ρ_u^{2j} + 2 f g c ∑_{j<k} (ρ_u ρ_r)ʲ + g² s_r ∑_{j<k} ρ_r^{2j}`
+almost surely (Mathlib's `Var[· ; μ | 𝓕 t]`). -/
+theorem condVar_plan2 {ρu ρr su sr c : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hc : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => c) (ybar f g : ℝ) (t k : ℕ) :
+    Var[plan2 ybar f g u r (t + k); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ =>
+      f ^ 2 * (su * ∑ j ∈ Finset.range k, (ρu * ρu) ^ j) +
+        2 * f * g * (c * ∑ j ∈ Finset.range k, (ρu * ρr) ^ j) +
+        g ^ 2 * (sr * ∑ j ∈ Finset.range k, (ρr * ρr) ^ j) := by
+  set U := u (t + k) - ρu ^ k • u t with hU
+  set R := r (t + k) - ρr ^ k • r t with hR
+  have hUB : S.BddRV U := (hu.bddRV _).sub ((hu.bddRV t).smul _)
+  have hRB : S.BddRV R := (hr.bddRV _).sub ((hr.bddRV t).smul _)
+  have Iu := (hu.bddRV (t + k)).integrable
+  have Ir := (hr.bddRV (t + k)).integrable
+  have hp : plan2 ybar f g u r (t + k) = (fun _ => ybar) + f • u (t + k) + g • r (t + k) := rfl
+  have hdev : plan2 ybar f g u r (t + k) - S.E t (plan2 ybar f g u r (t + k)) =ᵐ[S.μ]
+      f • U + g • R := by
+    rw [hp]
+    filter_upwards [S.E_add ((integrable_const ybar).add (Iu.smul f)) (Ir.smul g) t,
+      S.E_add (integrable_const ybar) (Iu.smul f) t, S.E_smul f (u (t + k)) t,
+      S.E_smul g (r (t + k)) t, hu.E_u t k, hr.E_u t k] with ω h1 h2 h3 h4 h5 h6
+    rw [Pi.sub_apply, h1]
+    simp only [Pi.add_apply]
+    rw [h2]
+    simp only [Pi.add_apply]
+    rw [h3, h4]
+    simp only [Pi.smul_apply, smul_eq_mul]
+    rw [h5, h6, S.E_const]
+    simp only [hU, hR, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hsq : (plan2 ybar f g u r (t + k) - S.E t (plan2 ybar f g u r (t + k))) ^ 2 =ᵐ[S.μ]
+      f ^ 2 • (U * U) + (2 * f * g) • (U * R) + g ^ 2 • (R * R) := by
+    filter_upwards [hdev] with ω h
+    rw [Pi.pow_apply, h]
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.mul_apply, smul_eq_mul]
+    ring
+  have J1 : Integrable (f ^ 2 • (U * U)) S.μ := (hUB.mul hUB).integrable.smul _
+  have J2 : Integrable ((2 * f * g) • (U * R)) S.μ := (hUB.mul hRB).integrable.smul _
+  have J3 : Integrable (g ^ 2 • (R * R)) S.μ := (hRB.mul hRB).integrable.smul _
+  change S.E t ((plan2 ybar f g u r (t + k) - S.E t (plan2 ybar f g u r (t + k))) ^ 2) =ᵐ[S.μ] _
+  filter_upwards [S.E_congr hsq t, S.E_add (J1.add J2) J3 t, S.E_add J1 J2 t,
+    S.E_smul (f ^ 2) (U * U) t, S.E_smul (2 * f * g) (U * R) t, S.E_smul (g ^ 2) (R * R) t,
+    E_cross_dev S hu hu hu.2.2.2.2 t k, E_cross_dev S hu hr hc t k,
+    E_cross_dev S hr hr hr.2.2.2.2 t k] with ω h1 h2 h3 h4 h5 h6 h7 h8 h9
+  rw [h1, h2, Pi.add_apply, h3, Pi.add_apply, h4, h5, h6]
+  simp only [Pi.smul_apply, smul_eq_mul]
+  rw [h7, h8, h9]
+
+omit mΩ in
+/-- Woodford (2003), eq. (2.19), p. 497: the plan (2.19) is the plan (3.6) with `g = 0`. -/
+theorem plan1_eq_plan2 (ybar f : ℝ) (u : ℕ → Ω → ℝ) : plan1 ybar f u = plan2 ybar f 0 u u := by
+  funext t ω
+  simp [plan1, plan2_apply]
+
+/-- Woodford (2003), p. 511: for a plan (2.19) `y_t = ȳ + f u_t`, the conditional variance at
+`t` of `y_{t+k}` is `f² s ∑_{j<k} ρ^{2j}` almost surely. -/
+theorem condVar_plan1 {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (ybar f : ℝ)
+    (t k : ℕ) :
+    Var[plan1 ybar f u (t + k); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ =>
+      f ^ 2 * (s * ∑ j ∈ Finset.range k, (ρ * ρ) ^ j) := by
+  rw [plan1_eq_plan2]
+  filter_upwards [condVar_plan2 S hu hu hu.2.2.2.2 ybar f 0 t k] with ω h
+  rw [h]
+  ring
+
+/-! ### The stabilization loss (3.4), (3.7), (3.8) -/
+
+/-- Woodford (2003), p. 509 (definition of `L^stab` for the loss (1.2)), with genuine conditional
+variances: `∑_k βᵏ [var_{t₀}(π_{t₀+k}) + λ var_{t₀}(x_{t₀+k})]` in state `ω` at date `t₀`. -/
+noncomputable def mLstab12 (β lam : ℝ) (t₀ : ℕ) (π x : ℕ → Ω → ℝ) (ω : Ω) : ℝ :=
+  ∑' k, β ^ k * (Var[π (t₀ + k); S.μ | S.𝓕 t₀] ω + lam * Var[x (t₀ + k); S.μ | S.𝓕 t₀] ω)
+
+/-- Woodford (2003), p. 512 (definition of `L^stab` for the loss (2.24)), with genuine conditional
+variances: `∑_k βᵏ [var_{t₀}(π) + λₓ var_{t₀}(x) + λᵢ var_{t₀}(i)]` in state `ω` at date `t₀`. -/
+noncomputable def mLstab (β lx li : ℝ) (t₀ : ℕ) (π x i : ℕ → Ω → ℝ) (ω : Ω) : ℝ :=
+  ∑' k, β ^ k * (Var[π (t₀ + k); S.μ | S.𝓕 t₀] ω + lx * Var[x (t₀ + k); S.μ | S.𝓕 t₀] ω +
+    li * Var[i (t₀ + k); S.μ | S.𝓕 t₀] ω)
+
+/-- Woodford (2003), p. 511 (tool): `|ρ| < 1` gives `0 ≤ ρ² < 1`. -/
+theorem sq_lt_one_of_abs {ρ : ℝ} (hρ : |ρ| < 1) : 0 ≤ ρ ^ 2 ∧ ρ ^ 2 < 1 :=
+  ⟨sq_nonneg ρ, sq_abs ρ ▸ (pow_lt_one₀ (abs_nonneg ρ) hρ two_ne_zero)⟩
+
+/-- **Equation (3.4)** (Woodford (2003), p. 511), with genuine conditional variances: for a plan
+(2.19) and an AR(1) disturbance with innovation variance `s` (`|ρ| < 1`), almost surely the
+stabilization loss is the genuine discounted sum
+`β/(1 − β) · (1 − ρ²)/(1 − βρ²) · (f_π² + λ f_x²) σ_u²`, `σ_u² = s/(1 − ρ²)`. -/
+theorem lstab12_hasSum {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1)
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (πbar xbar fπ fx : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => β ^ k * (Var[plan1 πbar fπ u (t₀ + k); S.μ | S.𝓕 t₀] ω +
+      lam * Var[plan1 xbar fx u (t₀ + k); S.μ | S.𝓕 t₀] ω))
+      (β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s) := by
+  obtain ⟨hq0, hq1⟩ := sq_lt_one_of_abs hρ
+  have hG := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hq0 hq1).mul_left
+    (s * (fπ ^ 2 + lam * fx ^ 2))
+  filter_upwards [ae_all_iff.2 fun k => condVar_plan1 S hu πbar fπ t₀ k,
+    ae_all_iff.2 fun k => condVar_plan1 S hu xbar fx t₀ k] with ω h1 h2
+  convert hG using 1
+  · funext k
+    rw [h1 k, h2 k]
+    simp only [← pow_two]
+    ring
+  · unfold uncondVar
+    have : 1 - ρ ^ 2 ≠ 0 := by linarith
+    have : 1 - β ≠ 0 := by linarith
+    have : 1 - β * ρ ^ 2 ≠ 0 := by nlinarith
+    field_simp
+
+/-- Woodford (2003), eq. (3.4), p. 511: almost surely `L^stab` of a plan (2.19) equals
+`β/(1 − β) · (1 − ρ²)/(1 − βρ²) · (f_π² + λ f_x²) σ_u²`. -/
+theorem lstab12_eq {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1)
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (πbar xbar fπ fx : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) ω =
+      β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s := by
+  filter_upwards [lstab12_hasSum S hβ0 hβ1 hρ hu πbar xbar fπ fx t₀ (lam := lam)] with ω h
+  exact h.tsum_eq
+
+/-- **Equations (3.7)–(3.8)** (Woodford (2003), p. 513), with genuine conditional variances: for a
+plan (3.6) and AR(1) disturbances with uncorrelated innovations (`E_t(εᵘ_{t+1} εʳ_{t+1}) = 0`)
+of variances `s_u`, `s_r`, almost surely `L^stab = L^{stab,r} + L^{stab,u}` with
+`L^{stab,j} = β/(1 − β) · (1 − ρ_j²)/(1 − βρ_j²) · (π_j² + λₓ x_j² + λᵢ i_j²) σ_j²`. -/
+theorem lstab_hasSum {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => β ^ k *
+      (Var[plan2 πbar fπ gπ u r (t₀ + k); S.μ | S.𝓕 t₀] ω +
+      lx * Var[plan2 xbar fx gx u r (t₀ + k); S.μ | S.𝓕 t₀] ω +
+      li * Var[plan2 ibar fi gi u r (t₀ + k); S.μ | S.𝓕 t₀] ω))
+      (β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su) := by
+  obtain ⟨hu0, hu1⟩ := sq_lt_one_of_abs hρu
+  obtain ⟨hr0, hr1⟩ := sq_lt_one_of_abs hρr
+  have hGu := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hu0 hu1).mul_left
+    (su * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2))
+  have hGr := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hr0 hr1).mul_left
+    (sr * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2))
+  filter_upwards [ae_all_iff.2 fun k => condVar_plan2 S hu hr hind πbar fπ gπ t₀ k,
+    ae_all_iff.2 fun k => condVar_plan2 S hu hr hind xbar fx gx t₀ k,
+    ae_all_iff.2 fun k => condVar_plan2 S hu hr hind ibar fi gi t₀ k] with ω h1 h2 h3
+  convert hGr.add hGu using 1
+  · funext k
+    rw [h1 k, h2 k, h3 k]
+    simp only [← pow_two]
+    ring
+  · unfold uncondVar
+    have : 1 - ρu ^ 2 ≠ 0 := by linarith
+    have : 1 - ρr ^ 2 ≠ 0 := by linarith
+    have : 1 - β ≠ 0 := by linarith
+    have : 1 - β * ρu ^ 2 ≠ 0 := by nlinarith
+    have : 1 - β * ρr ^ 2 ≠ 0 := by nlinarith
+    field_simp
+
+/-- Woodford (2003), eqs. (3.7)–(3.8), p. 513: almost surely `L^stab` of a plan (3.6) equals
+`L^{stab,r} + L^{stab,u}`. -/
+theorem lstab_eq {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+      (plan2 ibar fi gi u r) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su := by
+  filter_upwards [lstab_hasSum S hβ0 hβ1 hρu hρr hu hr hind πbar xbar ibar fπ fx fi gπ gx gi t₀
+    (lx := lx) (li := li)] with ω h
+  exact h.tsum_eq
+
+
+/-! ### The model equations and purely forward-looking plans -/
+
+/-- Woodford (2003), eq. (2.1), p. 486, with genuine conditional expectations: the
+aggregate-supply relation `π_t = κ x_t + β E_t π_{t+1} + u_t`, almost surely at every date. -/
+def MAS (β κ : ℝ) (π x u : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, π t =ᵐ[S.μ] κ • x t + β • S.E t (π (t + 1)) + u t
+
+/-- Woodford (2003), eq. (2.23), p. 502, with genuine conditional expectations: the IS relation
+`x_t = E_t x_{t+1} − σ (i_t − E_t π_{t+1} − r^n_t)`, almost surely at every date. -/
+def MIS (σ : ℝ) (π x i rn : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, x t =ᵐ[S.μ] S.E t (x (t + 1)) - σ • (i t - S.E t (π (t + 1)) - rn t)
+
+/-- Woodford (2003), eqs. (2.18) and (2.27), pp. 496 and 504: under AR(1) disturbances,
+`E_t (ȳ + f u_{t+1} + g r_{t+1}) = ȳ + f ρ_u u_t + g ρ_r r_t` almost surely. -/
+theorem E_plan2 {ρu ρr su sr : ℝ} {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr) (ybar f g : ℝ) (t : ℕ) :
+    S.E t (plan2 ybar f g u r (t + 1)) =ᵐ[S.μ] plan2 ybar (f * ρu) (g * ρr) u r t := by
+  have Iu := (hu.bddRV (t + 1)).integrable
+  have Ir := (hr.bddRV (t + 1)).integrable
+  have hp : plan2 ybar f g u r (t + 1) = (fun _ => ybar) + f • u (t + 1) + g • r (t + 1) := rfl
+  rw [hp]
+  filter_upwards [S.E_add ((integrable_const ybar).add (Iu.smul f)) (Ir.smul g) t,
+    S.E_add (integrable_const ybar) (Iu.smul f) t, S.E_smul f (u (t + 1)) t,
+    S.E_smul g (r (t + 1)) t, hu.E_u t 1, hr.E_u t 1] with ω h1 h2 h3 h4 h5 h6
+  rw [h1]
+  simp only [Pi.add_apply]
+  rw [h2]
+  simp only [Pi.add_apply]
+  rw [h3, h4]
+  simp only [Pi.smul_apply, smul_eq_mul]
+  rw [h5, h6, S.E_const]
+  simp only [plan2_apply, Pi.smul_apply, smul_eq_mul, pow_one]
+  ring
+
+/-- Woodford (2003), eq. (2.18), p. 496: under an AR(1) disturbance,
+`E_t (ȳ + f u_{t+1}) = ȳ + f ρ u_t` almost surely. -/
+theorem E_plan1 {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (ybar f : ℝ)
+    (t : ℕ) : S.E t (plan1 ybar f u (t + 1)) =ᵐ[S.μ] plan1 ybar (f * ρ) u t := by
+  have h := E_plan2 S hu hu ybar f 0 t
+  rw [zero_mul, ← plan1_eq_plan2, ← plan1_eq_plan2] at h
+  exact h
+
+/-- Woodford (2003), p. 511 (non-degeneracy from a positive innovation variance): if
+`a + b u_t = 0` almost surely at every date, and the innovation variance is `s ≠ 0`, then
+`a = b = 0`. (The core statement needs the separate hypothesis `Noninertial.Nondeg1`.) -/
+theorem affine_zero1 {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (hs : s ≠ 0)
+    {a b : ℝ} (h : ∀ t, (fun ω => a + b * u t ω) =ᵐ[S.μ] 0) : a = 0 ∧ b = 0 := by
+  set K : Ω → ℝ := (fun _ => a) + (b * ρ) • u 0 with hK
+  set D : Ω → ℝ := b • ε (0 + 1) with hD
+  have hWKD : (fun ω => a + b * u (0 + 1) ω) = K + D := by
+    funext ω
+    rw [hu.2.2.1 0]
+    simp only [hK, hD, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hKB : S.BddRV K := (MeasExpectationSystem.BddRV.const a).add ((hu.bddRV 0).smul _)
+  have hKm : StronglyMeasurable[S.𝓕 0] K :=
+    stronglyMeasurable_const.add ((hu.1 0).const_smul _)
+  have hDB : S.BddRV D := (hu.innov_bddRV 0).smul b
+  have hEK : S.E 0 K = K := S.E_of_stronglyMeasurable hKm hKB.integrable
+  have hED : S.E 0 D =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_smul b (ε (0 + 1)) 0, hu.2.2.2.1 0] with ω h1 h2
+    rw [h1, Pi.smul_apply, h2]
+    simp
+  have hW := h (0 + 1)
+  rw [hWKD] at hW
+  have hEW : S.E 0 (K + D) =ᵐ[S.μ] 0 := by
+    have := S.E_congr hW 0
+    rwa [S.E_zero] at this
+  have hK0 : K =ᵐ[S.μ] 0 := by
+    filter_upwards [hEW, S.E_add hKB.integrable hDB.integrable 0, hED] with ω h1 h2 h3
+    rw [h2, Pi.add_apply, hEK, h3] at h1
+    simpa using h1
+  have hD0 : D =ᵐ[S.μ] 0 := by
+    filter_upwards [hW, hK0] with ω h1 h2
+    rw [Pi.add_apply, h2] at h1
+    simpa using h1
+  have hz : S.E 0 (ε (0 + 1) * D) =ᵐ[S.μ] 0 := by
+    have hz : ε (0 + 1) * D =ᵐ[S.μ] 0 := by
+      filter_upwards [hD0] with ω h
+      simp [h]
+    have := S.E_congr hz 0
+    rwa [S.E_zero] at this
+  have hεD : ε (0 + 1) * D = b • (ε (0 + 1) * ε (0 + 1)) := by
+    funext ω
+    simp only [hD, Pi.mul_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hb : b * s = 0 := by
+    apply const_eq_of_ae S
+    filter_upwards [hz, S.E_smul b (ε (0 + 1) * ε (0 + 1)) 0, hu.2.2.2.2 0] with ω h1 h2 h3
+    rw [hεD, h2, Pi.smul_apply, h3] at h1
+    simpa using h1
+  have hb0 : b = 0 := (mul_eq_zero.mp hb).resolve_right hs
+  refine ⟨?_, hb0⟩
+  apply const_eq_of_ae S
+  filter_upwards [h 0] with ω h1
+  rw [hb0] at h1
+  simpa using h1
+
+/-- Woodford (2003), p. 512 (non-degeneracy from positive, uncorrelated innovations): if
+`a + b u_t + c r_t = 0` almost surely at every date, the innovation variances are nonzero and the
+innovations are uncorrelated, then `a = b = c = 0`. (The core statement needs the separate
+hypothesis `Noninertial.Nondeg2`.) -/
+theorem affine_zero2 {ρu ρr su sr : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr) (hsu : su ≠ 0)
+    (hsr : sr ≠ 0) (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) {a b c : ℝ}
+    (h : ∀ t, (fun ω => a + b * u t ω + c * r t ω) =ᵐ[S.μ] 0) : a = 0 ∧ b = 0 ∧ c = 0 := by
+  set K : Ω → ℝ := (fun _ => a) + (b * ρu) • u 0 + (c * ρr) • r 0 with hK
+  set D : Ω → ℝ := b • εu (0 + 1) + c • εr (0 + 1) with hD
+  have hWKD : (fun ω => a + b * u (0 + 1) ω + c * r (0 + 1) ω) = K + D := by
+    funext ω
+    rw [hu.2.2.1 0, hr.2.2.1 0]
+    simp only [hK, hD, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hKB : S.BddRV K :=
+    ((MeasExpectationSystem.BddRV.const a).add ((hu.bddRV 0).smul _)).add ((hr.bddRV 0).smul _)
+  have hKm : StronglyMeasurable[S.𝓕 0] K :=
+    (stronglyMeasurable_const.add ((hu.1 0).const_smul _)).add ((hr.1 0).const_smul _)
+  have Iu := (hu.innov_bddRV 0).integrable
+  have Ir := (hr.innov_bddRV 0).integrable
+  have hDB : S.BddRV D := ((hu.innov_bddRV 0).smul b).add ((hr.innov_bddRV 0).smul c)
+  have hEK : S.E 0 K = K := S.E_of_stronglyMeasurable hKm hKB.integrable
+  have hED : S.E 0 D =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_add (Iu.smul b) (Ir.smul c) 0, S.E_smul b (εu (0 + 1)) 0,
+      S.E_smul c (εr (0 + 1)) 0, hu.2.2.2.1 0, hr.2.2.2.1 0] with ω h1 h2 h3 h4 h5
+    rw [h1, Pi.add_apply, h2, h3]
+    simp only [Pi.smul_apply]
+    rw [h4, h5]
+    simp
+  have hW := h (0 + 1)
+  rw [hWKD] at hW
+  have hEW : S.E 0 (K + D) =ᵐ[S.μ] 0 := by
+    have := S.E_congr hW 0
+    rwa [S.E_zero] at this
+  have hK0 : K =ᵐ[S.μ] 0 := by
+    filter_upwards [hEW, S.E_add hKB.integrable hDB.integrable 0, hED] with ω h1 h2 h3
+    rw [h2, Pi.add_apply, hEK, h3] at h1
+    simpa using h1
+  have hD0 : D =ᵐ[S.μ] 0 := by
+    filter_upwards [hW, hK0] with ω h1 h2
+    rw [Pi.add_apply, h2] at h1
+    simpa using h1
+  have hzero : ∀ e : Ω → ℝ, S.E 0 (e * D) =ᵐ[S.μ] 0 := by
+    intro e
+    have hz : e * D =ᵐ[S.μ] 0 := by
+      filter_upwards [hD0] with ω h
+      simp [h]
+    have := S.E_congr hz 0
+    rwa [S.E_zero] at this
+  have Iuu := ((hu.innov_bddRV 0).mul (hu.innov_bddRV 0)).integrable
+  have Iur := ((hu.innov_bddRV 0).mul (hr.innov_bddRV 0)).integrable
+  have Irr := ((hr.innov_bddRV 0).mul (hr.innov_bddRV 0)).integrable
+  have hb : b * su = 0 := by
+    have hsplit : εu (0 + 1) * D =
+        b • (εu (0 + 1) * εu (0 + 1)) + c • (εu (0 + 1) * εr (0 + 1)) := by
+      funext ω
+      simp only [hD, Pi.add_apply, Pi.mul_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    apply const_eq_of_ae S
+    filter_upwards [hzero (εu (0 + 1)), S.E_add (Iuu.smul b) (Iur.smul c) 0,
+      S.E_smul b (εu (0 + 1) * εu (0 + 1)) 0, S.E_smul c (εu (0 + 1) * εr (0 + 1)) 0,
+      hu.2.2.2.2 0, hind 0] with ω h1 h2 h3 h4 h5 h6
+    rw [hsplit, h2, Pi.add_apply, h3, h4] at h1
+    simp only [Pi.smul_apply] at h1
+    rw [h5, h6] at h1
+    simpa using h1
+  have hc : c * sr = 0 := by
+    have hsplit : εr (0 + 1) * D =
+        b • (εu (0 + 1) * εr (0 + 1)) + c • (εr (0 + 1) * εr (0 + 1)) := by
+      funext ω
+      simp only [hD, Pi.add_apply, Pi.mul_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    apply const_eq_of_ae S
+    filter_upwards [hzero (εr (0 + 1)), S.E_add (Iur.smul b) (Irr.smul c) 0,
+      S.E_smul b (εu (0 + 1) * εr (0 + 1)) 0, S.E_smul c (εr (0 + 1) * εr (0 + 1)) 0,
+      hind 0, hr.2.2.2.2 0] with ω h1 h2 h3 h4 h5 h6
+    rw [hsplit, h2, Pi.add_apply, h3, h4] at h1
+    simp only [Pi.smul_apply] at h1
+    rw [h5, h6] at h1
+    simpa using h1
+  have hb0 : b = 0 := (mul_eq_zero.mp hb).resolve_right hsu
+  have hc0 : c = 0 := (mul_eq_zero.mp hc).resolve_right hsr
+  refine ⟨?_, hb0, hc0⟩
+  apply const_eq_of_ae S
+  filter_upwards [h 0] with ω h1
+  rw [hb0, hc0] at h1
+  simpa using h1
+
+/-- Woodford (2003), eqs. (3.2)–(3.3), p. 511, with genuine conditional expectations: with an
+AR(1) cost-push disturbance of innovation variance `s ≠ 0`, a plan `π = π̄ + f_π u`,
+`x = x̄ + f_x u` satisfies (2.1) almost surely at every date iff `(1 − β) π̄ = κ x̄` and
+`(1 − βρ) f_π = κ f_x + 1`. -/
+theorem plan_AS_iff {β κ ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (hs : s ≠ 0)
+    (πbar xbar fπ fx : ℝ) :
+    MAS S β κ (plan1 πbar fπ u) (plan1 xbar fx u) u ↔
+      (1 - β) * πbar = κ * xbar ∧ (1 - β * ρ) * fπ = κ * fx + 1 := by
+  constructor
+  · intro h
+    have key : ∀ t, (fun ω => ((1 - β) * πbar - κ * xbar) +
+        ((1 - β * ρ) * fπ - κ * fx - 1) * u t ω) =ᵐ[S.μ] 0 := by
+      intro t
+      filter_upwards [h t, E_plan1 S hu πbar fπ t] with ω h1 h2
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h1
+      rw [h2] at h1
+      simp only [plan1, Pi.zero_apply] at h1 ⊢
+      linear_combination h1
+    obtain ⟨a1, a2⟩ := affine_zero1 S hu hs key
+    constructor <;> linarith
+  · rintro ⟨h1, h2⟩ t
+    filter_upwards [E_plan1 S hu πbar fπ t] with ω h
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [h]
+    simp only [plan1]
+    linear_combination h1 + u t ω * h2
+
+/-- Woodford (2003), eq. (3.6), p. 512 and App. F.4, with genuine conditional expectations: with
+AR(1) disturbances `u`, `r̂ⁿ` of nonzero innovation variances and uncorrelated innovations,
+`r^n_t = r̄ + r̂ⁿ_t`, a plan (3.6) for `(π, x, i)` satisfies (2.1) and (2.23) almost surely at
+every date iff `(1 − β) π̄ = κ x̄`, `ī = r̄ + π̄`, `(1 − β ρ_u) f_π = κ f_x + 1`,
+`(1 − ρ_u) f_x = −σ (f_i − ρ_u f_π)`, `(1 − β ρ_r) g_π = κ g_x` and
+`(1 − ρ_r) g_x = −σ (g_i − ρ_r g_π − 1)`. -/
+theorem plan2_iff {β κ σ ρu ρr su sr rbar : ℝ} (hσ : σ ≠ 0) {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr) (hsu : su ≠ 0)
+    (hsr : sr ≠ 0) (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) :
+    (MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u ∧
+      MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+        (fun t ω => rbar + r t ω)) ↔
+      ((1 - β) * πbar = κ * xbar ∧ ibar = rbar + πbar) ∧
+      ((1 - β * ρu) * fπ = κ * fx + 1 ∧ (1 - ρu) * fx = -σ * (fi - ρu * fπ)) ∧
+      ((1 - β * ρr) * gπ = κ * gx ∧ (1 - ρr) * gx = -σ * (gi - ρr * gπ - 1)) := by
+  constructor
+  · rintro ⟨hA, hI⟩
+    have kAS : ∀ t, (fun ω => ((1 - β) * πbar - κ * xbar) +
+        ((1 - β * ρu) * fπ - κ * fx - 1) * u t ω + ((1 - β * ρr) * gπ - κ * gx) * r t ω)
+        =ᵐ[S.μ] 0 := by
+      intro t
+      filter_upwards [hA t, E_plan2 S hu hr πbar fπ gπ t] with ω h1 h2
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h1
+      rw [h2] at h1
+      simp only [plan2_apply, Pi.zero_apply] at h1 ⊢
+      linear_combination h1
+    have kIS : ∀ t, (fun ω => σ * (ibar - πbar - rbar) +
+        ((1 - ρu) * fx + σ * (fi - ρu * fπ)) * u t ω +
+        ((1 - ρr) * gx + σ * (gi - ρr * gπ - 1)) * r t ω) =ᵐ[S.μ] 0 := by
+      intro t
+      filter_upwards [hI t, E_plan2 S hu hr xbar fx gx t, E_plan2 S hu hr πbar fπ gπ t]
+        with ω h1 h2 h3
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at h1
+      rw [h2, h3] at h1
+      simp only [plan2_apply, Pi.zero_apply] at h1 ⊢
+      linear_combination h1
+    obtain ⟨a1, a2, a3⟩ := affine_zero2 S hu hr hsu hsr hind kAS
+    obtain ⟨i1, i2, i3⟩ := affine_zero2 S hu hr hsu hsr hind kIS
+    have hi : ibar - πbar - rbar = 0 := (mul_eq_zero.mp i1).resolve_left hσ
+    exact ⟨⟨by linarith, by linarith⟩, ⟨by linarith, by linarith⟩, ⟨by linarith, by linarith⟩⟩
+  · rintro ⟨⟨h1, h2⟩, ⟨h3, h4⟩, ⟨h5, h6⟩⟩
+    refine ⟨fun t => ?_, fun t => ?_⟩
+    · filter_upwards [E_plan2 S hu hr πbar fπ gπ t] with ω h
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rw [h]
+      simp only [plan2_apply]
+      linear_combination h1 + u t ω * h3 + r t ω * h5
+    · filter_upwards [E_plan2 S hu hr xbar fx gx t, E_plan2 S hu hr πbar fπ gπ t] with ω h h'
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      rw [h, h']
+      simp only [plan2_apply]
+      linear_combination σ * h2 + u t ω * h4 + r t ω * h6
+
+/-! ### Proposition 7.11 and Appendix F.4: stabilization optimality -/
+
+/-- **Proposition 7.11, stabilization form** (Woodford (2003), pp. 509–511), with genuine
+conditional expectations: let the cost-push disturbance be AR(1) with innovations of conditional
+variance `s > 0` (`|ρ| < 1`). The plan `π = f_π^oni u`, `x = f_x^oni u` satisfies (2.1), and for
+every plan (2.19) that satisfies (2.1), almost surely its stabilization loss `L^stab` (a genuine
+discounted sum of conditional variances) is at least that of the optimal noninertial plan; the
+two losses agree almost surely iff the plan has the responses (3.5). No pull-out or
+non-degeneracy hypothesis is needed. -/
+theorem prop_7_11_lstab {β κ lam ρ s : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hlam : 0 < lam) (hρ : |ρ| < 1) (hs : 0 < s) {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) :
+    MAS S β κ (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) u ∧
+    ∀ πbar xbar gπ gx, MAS S β κ (plan1 πbar gπ u) (plan1 xbar gx u) u →
+      (∀ᵐ ω ∂S.μ,
+        mLstab12 S β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) ω ≤
+          mLstab12 S β lam t₀ (plan1 πbar gπ u) (plan1 xbar gx u) ω) ∧
+      (mLstab12 S β lam t₀ (plan1 πbar gπ u) (plan1 xbar gx u) =ᵐ[S.μ]
+          mLstab12 S β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) := by
+  have hq1 : ρ ^ 2 < 1 := (sq_lt_one_of_abs hρ).2
+  have hK : 0 < β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s := by
+    have : 0 < 1 - β := by linarith
+    have : 0 < 1 - ρ ^ 2 := by linarith
+    have : 0 < 1 - β * ρ ^ 2 := by nlinarith [sq_nonneg ρ]
+    unfold uncondVar
+    positivity
+  set K := β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s
+  have hL : ∀ πbar xbar fπ fx, ∀ᵐ ω ∂S.μ,
+      mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) ω = K * (fπ ^ 2 + lam * fx ^ 2) := by
+    intro πbar xbar fπ fx
+    filter_upwards [lstab12_eq S hβ0.le hβ1 hρ hu πbar xbar fπ fx t₀ (lam := lam)] with ω h
+    rw [h]
+    ring
+  refine ⟨(plan_AS_iff S hu hs.ne' 0 0 _ _).mpr ⟨by ring, Noninertial.oni_constraint hκ hlam⟩, ?_⟩
+  intro πbar xbar gπ gx hAS
+  have hg := ((plan_AS_iff S hu hs.ne' πbar xbar gπ gx).mp hAS).2
+  have e := Noninertial.oni_objective_eq hκ hlam hg
+  have hd : 0 ≤ (gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2 := by positivity
+  refine ⟨?_, ⟨fun heq => ?_, fun ⟨h1, h2⟩ => ?_⟩⟩
+  · filter_upwards [hL 0 0 (fpiOni β κ lam ρ) (fxOni β κ lam ρ), hL πbar xbar gπ gx]
+      with ω h1 h2
+    rw [h1, h2, e]
+    nlinarith
+  · obtain ⟨ω, h1, h2, h3⟩ :=
+      ((hL πbar xbar gπ gx).and ((hL 0 0 (fpiOni β κ lam ρ) (fxOni β κ lam ρ)).and heq)).exists
+    rw [h1, h2, e] at h3
+    have hz : (gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+      have : K * ((gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2) = 0 := by
+        linarith
+      exact (mul_eq_zero.mp this).resolve_left hK.ne'
+    have a2 : 0 ≤ lam * (gx - fxOni β κ lam ρ) ^ 2 := by positivity
+    have e1 : (gπ - fpiOni β κ lam ρ) ^ 2 = 0 := by
+      nlinarith [sq_nonneg (gπ - fpiOni β κ lam ρ)]
+    have e2 : (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+      have : lam * (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+        nlinarith [sq_nonneg (gπ - fpiOni β κ lam ρ)]
+      exact (mul_eq_zero.mp this).resolve_left hlam.ne'
+    exact ⟨by linarith [pow_eq_zero_iff two_ne_zero |>.mp e1],
+      by linarith [pow_eq_zero_iff two_ne_zero |>.mp e2]⟩
+  · filter_upwards [hL πbar xbar gπ gx, hL 0 0 (fpiOni β κ lam ρ) (fxOni β κ lam ρ)]
+      with ω a1 a2
+    rw [a1, a2, h1, h2]
+
+/-- **Appendix F.4, stabilization optimality** (Woodford (2003), pp. 512–513 and 713–714), with
+genuine conditional expectations: with AR(1) disturbances `u`, `r̂ⁿ` (innovation variances
+`s_u, s_r > 0`, uncorrelated innovations, `|ρ_j| < 1`), the corrected optimal noninertial plan
+(long-run values (3.11), F.4 responses) satisfies (2.1) and (2.23), and every plan (3.6) satisfying
+(2.1) and (2.23) has almost surely a stabilization loss at least as large; the two losses agree
+almost surely iff the plan has the F.4 response coefficients. No pull-out or non-degeneracy
+hypothesis is needed. -/
+theorem f4_lstab {β κ σ rbar lx li istar ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (hsu : 0 < su) (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (MAS S β κ (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) u ∧
+      MIS S σ (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r)
+        (fun t ω => rbar + r t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u →
+      MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+        (fun t ω => rbar + r t ω) →
+      (∀ᵐ ω ∂S.μ, mLstab S β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ≤
+        mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+          (plan2 ibar fi gi u r) ω) ∧
+      (mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+          (plan2 ibar fi gi u r) =ᵐ[S.μ]
+        mLstab S β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) := by
+  have hρu1 : ρu < 1 := (abs_lt.mp hρu).2
+  have hρr1 : ρr < 1 := (abs_lt.mp hρr).2
+  have hK : ∀ ρ s : ℝ, |ρ| < 1 → 0 < s →
+      0 < β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s := by
+    intro ρ s hρ hs
+    have hq1 : ρ ^ 2 < 1 := (sq_lt_one_of_abs hρ).2
+    have : 0 < 1 - β := by linarith
+    have : 0 < 1 - ρ ^ 2 := by linarith
+    have : 0 < 1 - β * ρ ^ 2 := by nlinarith [sq_nonneg ρ]
+    unfold uncondVar
+    positivity
+  have hKu := hK ρu su hρu hsu
+  have hKr := hK ρr sr hρr hsr
+  set Ku := β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * uncondVar ρu su
+  set Kr := β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * uncondVar ρr sr
+  have hL : ∀ πbar xbar ibar fπ fx fi gπ gx gi, ∀ᵐ ω ∂S.μ, mLstab S β lx li t₀
+      (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω =
+      Kr * Noninertial.objF4 lx li gπ gx gi + Ku * Noninertial.objF4 lx li fπ fx fi := by
+    intro πbar xbar ibar fπ fx fi gπ gx gi
+    filter_upwards [lstab_eq S hβ0.le hβ1 hρu hρr hu hr hind πbar xbar ibar fπ fx fi gπ gx gi t₀
+      (lx := lx) (li := li)] with ω h
+    rw [h]
+    unfold Noninertial.objF4
+    ring
+  obtain ⟨cu1, cu2⟩ := Noninertial.f4_u_feasible (β := β) (ρ := ρu) hκ hσ hlx.le hli
+  obtain ⟨cr1, cr2⟩ := Noninertial.f4_r_feasible (β := β) (ρ := ρr) hκ hσ hlx.le hli
+  have hx2 : (1 - β) * Noninertial.piBar119 β li rbar istar = κ * xs := by
+    rw [hxs]
+    field_simp
+  have hiff := plan2_iff S hσ.ne' hu hr hsu.ne' hsr.ne' hind (rbar := rbar) (β := β) (κ := κ)
+  refine ⟨(hiff (Noninertial.piBar119 β li rbar istar) xs is _ _ _ _ _ _).mpr
+    ⟨⟨hx2, his⟩, ⟨cu1, cu2⟩, ⟨cr1, cr2⟩⟩, ?_⟩
+  intro πbar xbar ibar fπ fx fi gπ gx gi hA hI
+  obtain ⟨-, ⟨f1, f2⟩, ⟨g1, g2⟩⟩ := (hiff πbar xbar ibar fπ fx fi gπ gx gi).mp ⟨hA, hI⟩
+  have hfu := (Noninertial.f4_u_optimal hβ0 hβ1 hρu1 hκ hσ hlx hli
+    (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.xUF4 β κ σ lx li ρu)
+    (Noninertial.iUF4 β κ σ lx li ρu)).mpr ⟨rfl, rfl, rfl⟩
+  have hgr := (Noninertial.f4_r_optimal hβ0 hβ1 hρr1 hκ hσ hlx hli
+    (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+    (Noninertial.iRF4 β κ σ lx li ρr)).mpr ⟨rfl, rfl, rfl⟩
+  have e1 := hfu.2 fπ fx fi ⟨f1, f2⟩
+  have e2 := hgr.2 gπ gx gi ⟨g1, g2⟩
+  set Pu := Noninertial.objF4 lx li (Noninertial.piUF4 β κ σ lx li ρu)
+    (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+  set Pr := Noninertial.objF4 lx li (Noninertial.piRF4 β κ σ lx li ρr)
+    (Noninertial.xRF4 β κ σ lx li ρr) (Noninertial.iRF4 β κ σ lx li ρr)
+  set Fu := Noninertial.objF4 lx li fπ fx fi
+  set Fr := Noninertial.objF4 lx li gπ gx gi
+  have m1 : 0 ≤ Ku * (Fu - Pu) := mul_nonneg hKu.le (by linarith)
+  have m2 : 0 ≤ Kr * (Fr - Pr) := mul_nonneg hKr.le (by linarith)
+  have hLo := hL (Noninertial.piBar119 β li rbar istar) xs is (Noninertial.piUF4 β κ σ lx li ρu)
+    (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+    (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+    (Noninertial.iRF4 β κ σ lx li ρr)
+  have hLp := hL πbar xbar ibar fπ fx fi gπ gx gi
+  refine ⟨?_, ⟨fun heq => ?_, fun ⟨⟨a1, a2, a3⟩, ⟨b1, b2, b3⟩⟩ => ?_⟩⟩
+  · filter_upwards [hLo, hLp] with ω h1 h2
+    rw [h1, h2]
+    linarith
+  · obtain ⟨ω, h1, h2, h3⟩ := (hLp.and (hLo.and heq)).exists
+    rw [h1, h2] at h3
+    have z1 : Ku * (Fu - Pu) = 0 := by linarith
+    have z2 : Kr * (Fr - Pr) = 0 := by linarith
+    have hu0 : Fu = Pu := by linarith [(mul_eq_zero.mp z1).resolve_left hKu.ne']
+    have hr0 : Fr = Pr := by linarith [(mul_eq_zero.mp z2).resolve_left hKr.ne']
+    refine ⟨(Noninertial.f4_u_optimal hβ0 hβ1 hρu1 hκ hσ hlx hli fπ fx fi).mp
+      ⟨⟨f1, f2⟩, fun a b c h => ?_⟩,
+      (Noninertial.f4_r_optimal hβ0 hβ1 hρr1 hκ hσ hlx hli gπ gx gi).mp
+      ⟨⟨g1, g2⟩, fun a b c h => ?_⟩⟩
+    · change Fu ≤ _
+      rw [hu0]
+      exact hfu.2 a b c h
+    · change Fr ≤ _
+      rw [hr0]
+      exact hgr.2 a b c h
+  · filter_upwards [hLo, hLp] with ω h1 h2
+    rw [h1, h2, a1, a2, a3, b1, b2, b3]
+
+
+/-! ### Finite state spaces cannot carry a nondegenerate disturbance -/
+
+/-- Woodford (2003), p. 509 (tool; the information structure behind `E_t`): on a finite state
+space the filtration is eventually constant. -/
+theorem filtration_stabilizes [Finite Ω] : ∃ T, ∀ t, T ≤ t → S.𝓕 T = S.𝓕 t := by
+  have hinj : Function.Injective
+      (fun m : MeasurableSpace Ω => {A : Set Ω | MeasurableSet[m] A}) := by
+    intro m₁ m₂ h
+    ext A
+    exact Set.ext_iff.mp h A
+  have : Finite (MeasurableSpace Ω) := Finite.of_injective _ hinj
+  exact WellFoundedGT.monotone_chain_condition ⟨fun t => S.𝓕 t, fun _ _ h => S.𝓕.mono h⟩
+
+/-- Woodford (2003), pp. 509–511 (why the variance results need a genuine probability model): on
+a finite state space, innovations `ε_{t+1}` known at `t + 1` with `E_t ε_{t+1} = 0` and constant
+conditional variance `E_t ε²_{t+1} = s` must have `s = 0` (once information stops arriving,
+the innovation is known one period early). -/
+theorem finite_innov_degenerate [Finite Ω] [MeasurableSingletonClass Ω] {s : ℝ}
+    {ε : ℕ → Ω → ℝ} (hε : ∀ t, StronglyMeasurable[S.𝓕 (t + 1)] (ε (t + 1)))
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) * ε (t + 1)) =ᵐ[S.μ] fun _ => s) : s = 0 := by
+  obtain ⟨T, hT⟩ := filtration_stabilizes S
+  have hm : StronglyMeasurable[S.𝓕 T] (ε (T + 1)) := by
+    rw [hT (T + 1) (Nat.le_succ T)]
+    exact hε T
+  have h1 : S.E T (ε (T + 1)) = ε (T + 1) := S.E_of_stronglyMeasurable hm Integrable.of_finite
+  have h2 : S.E T (ε (T + 1) * ε (T + 1)) = ε (T + 1) * ε (T + 1) :=
+    S.E_of_stronglyMeasurable (hm.mul hm) Integrable.of_finite
+  obtain ⟨ω, a, b⟩ := ((hmd T).and (hvar T)).exists
+  rw [h1] at a
+  rw [h2] at b
+  simp only [Pi.zero_apply, Pi.mul_apply] at a b
+  rw [a] at b
+  linarith
+
+/-- Woodford (2003), pp. 509–511: on a finite state space every `MeasAR1Innov` disturbance has
+innovation variance `0`. -/
+theorem finite_ar1Innov_degenerate [Finite Ω] [MeasurableSingletonClass Ω] {ρ s : ℝ}
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) : s = 0 :=
+  finite_innov_degenerate S hu.innov_meas hu.2.2.2.1 hu.2.2.2.2
+
+omit mΩ in
+/-- Woodford (2003), pp. 509–511 (the core statements on event trees): no finite event tree
+carries an AR(1) disturbance `Noninertial.AR1Innov` with innovation variance `s ≠ 0`, so the core
+`lstab12_hasSum`, `prop_7_11_lstab`, `f4_lstab` have content on trees only at `s = 0`. -/
+theorem tree_innov_degenerate {Ω' : Type*} [Fintype Ω'] (T : ExpectationsFiniteTree.FiniteTree Ω')
+    {ρ s : ℝ} {u ε : ℕ → Ω' → ℝ} (h : Noninertial.AR1Innov T.toExpectationSystem ρ s u ε) :
+    s = 0 := by
+  let _ : MeasurableSpace Ω' := ⊤
+  have : DiscreteMeasurableSpace Ω' := ⟨fun _ => MeasurableSpace.measurableSet_top⟩
+  have hE : ∀ t x, (TreeBridge.treeSystem T).E t x = T.condE t x := TreeBridge.treeSystem_E T
+  refine finite_innov_degenerate (TreeBridge.treeSystem T) (ε := ε) (fun t => ?_)
+    (fun t => ?_) (fun t => ?_)
+  · have hεe : ε (t + 1) = u (t + 1) - ρ • u t := by rw [h.2.1 t, add_sub_cancel_left]
+    have hk : T.toExpectationSystem.E (t + 1) (ε (t + 1)) = ε (t + 1) := by
+      rw [hεe, map_sub, map_smul, h.1 (t + 1), ← h.1 t,
+        T.toExpectationSystem.known (Nat.le_succ t)]
+    rw [← hk]
+    exact TreeBridge.stronglyMeasurable_condE T (t + 1) _
+  · rw [hE]
+    exact Eventually.of_forall (congrFun (h.2.2.1 t))
+  · rw [hE]
+    exact Eventually.of_forall (congrFun (h.2.2.2 t))
+
+/-! ### Links to the core statements on finite, fully supported state spaces -/
+
+/-- Woodford (2003), eqs. (2.18) and (2.27): on a finite fully supported space a `MeasAR1Innov`
+disturbance is a core `Noninertial.AR1Innov` disturbance of the bridged core system. -/
+theorem toCore_AR1Innov [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) :
+    Noninertial.AR1Innov (S.toExpectationSystem hfull) ρ s u ε :=
+  ⟨fun t => S.E_of_stronglyMeasurable (hu.1 t) Integrable.of_finite, hu.2.2.1,
+    fun t => S.eq_of_ae_eq hfull (hu.2.2.2.1 t), fun t => S.eq_of_ae_eq hfull (hu.2.2.2.2 t)⟩
+
+/-- Woodford (2003), eq. (2.18): on a finite fully supported space a `MeasAR1Innov` disturbance
+whose date-0 innovation is known at 0 is a core `VarianceFrontier.AR1Innov` disturbance with
+constant innovation variances. -/
+theorem toCore_VF_AR1Innov [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε)
+    (hε0 : StronglyMeasurable[S.𝓕 0] (ε 0)) :
+    VarianceFrontier.AR1Innov (S.toExpectationSystem hfull) ρ (fun _ => s) u ε := by
+  refine ⟨fun t => S.E_of_stronglyMeasurable (hu.1 t) Integrable.of_finite, fun t => ?_,
+    hu.2.2.1, fun t => S.eq_of_ae_eq hfull (hu.2.2.2.1 t),
+    fun t => S.eq_of_ae_eq hfull (hu.2.2.2.2 t)⟩
+  cases t with
+  | zero => exact S.E_of_stronglyMeasurable hε0 Integrable.of_finite
+  | succ t => exact S.E_of_stronglyMeasurable (hu.innov_meas t) Integrable.of_finite
+
+/-- Woodford (2003), p. 511: on a finite fully supported space a disturbance with innovation
+variance `s ≠ 0` is non-degenerate in the core sense `Noninertial.Nondeg1`. -/
+theorem toCore_nondeg1 [Finite Ω] [DiscreteMeasurableSpace Ω] {ρ s : ℝ} {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (hs : s ≠ 0) : Noninertial.Nondeg1 u := by
+  by_contra hcon
+  simp only [Noninertial.Nondeg1, not_exists, ne_eq, not_not] at hcon
+  obtain ⟨ω₀, -⟩ := (Eventually.of_forall (f := ae S.μ) fun _ : Ω => True.intro).exists
+  have key := affine_zero1 S hu hs (a := -u 0 ω₀) (b := 1) fun t =>
+    Eventually.of_forall fun ω => by
+      change -u 0 ω₀ + 1 * u t ω = 0
+      rw [hcon t ω 0 ω₀]
+      ring
+  exact one_ne_zero key.2
+
+/-- Woodford (2003), p. 512: on a finite fully supported space two disturbances with nonzero,
+uncorrelated innovation variances are non-degenerate as a pair in the core sense
+`Noninertial.Nondeg2`. -/
+theorem toCore_nondeg2 [Finite Ω] [DiscreteMeasurableSpace Ω] {ρu ρr su sr : ℝ}
+    {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hsu : su ≠ 0) (hsr : sr ≠ 0)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) :
+    Noninertial.Nondeg2 u r := by
+  by_contra hcon
+  simp only [Noninertial.Nondeg2, not_exists, ne_eq, not_not] at hcon
+  obtain ⟨ω₀, -⟩ := (Eventually.of_forall (f := ae S.μ) fun _ : Ω => True.intro).exists
+  by_cases hex : ∃ t₂ ω₂, u t₂ ω₂ ≠ u 0 ω₀ ∨ r t₂ ω₂ ≠ r 0 ω₀
+  · obtain ⟨t₂, ω₂, hne⟩ := hex
+    have key := affine_zero2 S hu hr hsu hsr hind
+      (a := -((r t₂ ω₂ - r 0 ω₀) * u 0 ω₀ - (u t₂ ω₂ - u 0 ω₀) * r 0 ω₀))
+      (b := r t₂ ω₂ - r 0 ω₀) (c := -(u t₂ ω₂ - u 0 ω₀)) fun t =>
+        Eventually.of_forall fun ω => by
+          change -((r t₂ ω₂ - r 0 ω₀) * u 0 ω₀ - (u t₂ ω₂ - u 0 ω₀) * r 0 ω₀) +
+            (r t₂ ω₂ - r 0 ω₀) * u t ω + -(u t₂ ω₂ - u 0 ω₀) * r t ω = 0
+          linear_combination -hcon 0 ω₀ t₂ ω₂ t ω
+    rcases hne with h | h
+    · exact h (by linarith [key.2.2])
+    · exact h (by linarith [key.2.1])
+  · simp only [not_exists, not_or, ne_eq, not_not] at hex
+    have key := affine_zero2 S hu hr hsu hsr hind (a := -u 0 ω₀) (b := 1) (c := 0) fun t =>
+      Eventually.of_forall fun ω => by
+        change -u 0 ω₀ + 1 * u t ω + 0 * r t ω = 0
+        rw [(hex t ω).1]
+        ring
+    exact one_ne_zero key.2.1
+
+/-- Woodford (2003), eq. (2.1), p. 486: on a finite fully supported space the almost-sure
+aggregate-supply relation is the core relation `Noninertial.AS` of the bridged core system. -/
+theorem mAS_iff_core [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (β κ : ℝ) (π x u : ℕ → Ω → ℝ) :
+    MAS S β κ π x u ↔ Noninertial.AS (S.toExpectationSystem hfull) β κ π x u :=
+  ⟨fun h t => S.eq_of_ae_eq hfull (h t), fun h t => Eventually.of_forall (congrFun (h t))⟩
+
+/-- Woodford (2003), eq. (2.23), p. 502: on a finite fully supported space the almost-sure IS
+relation is the core relation `Noninertial.IS` of the bridged core system. -/
+theorem mIS_iff_core [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (σ : ℝ) (π x i rn : ℕ → Ω → ℝ) :
+    MIS S σ π x i rn ↔ Noninertial.IS (S.toExpectationSystem hfull) σ π x i rn :=
+  ⟨fun h t => S.eq_of_ae_eq hfull (h t), fun h t => Eventually.of_forall (congrFun (h t))⟩
+
+/-- Woodford (2003), p. 509: on a finite fully supported space Mathlib's conditional variance
+`Var[X; μ | 𝓕 t]` is, at every state, the core conditional variance
+`E_t X² − (E_t X)²` (`VarianceFrontier.condCov`) of the bridged core system. -/
+theorem condVar_eq_condCov [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (t : ℕ) (X : Ω → ℝ) :
+    Var[X; S.μ | S.𝓕 t] = VarianceFrontier.condCov (S.toExpectationSystem hfull) t X X := by
+  refine S.eq_of_ae_eq hfull ?_
+  filter_upwards [condVar_ae_eq_condExp_sq_sub_sq_condExp (S.𝓕.le t)
+    (MemLp.of_discrete (f := X) (p := 2) (μ := S.μ))] with ω h
+  rw [h]
+  simp only [VarianceFrontier.condCov, MeasExpectationSystem.toExpectationSystem_E, Pi.sub_apply,
+    Pi.mul_apply, sq]
+
+/-- Woodford (2003), p. 509: on a finite fully supported space the stabilization loss with
+genuine conditional variances is, at every state, the core loss `Noninertial.Lstab12`. -/
+theorem lstab12_agree [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (β lam : ℝ) (t₀ : ℕ) (π x : ℕ → Ω → ℝ) (ω : Ω) :
+    mLstab12 S β lam t₀ π x ω = Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ π x ω
+    := by
+  unfold mLstab12 Noninertial.Lstab12
+  simp only [condVar_eq_condCov S hfull]
+
+/-- Woodford (2003), p. 512: on a finite fully supported space the three-variable stabilization
+loss with genuine conditional variances is, at every state, the core loss `Noninertial.Lstab`. -/
+theorem lstab_agree [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (β lx li : ℝ) (t₀ : ℕ) (π x i : ℕ → Ω → ℝ) (ω : Ω) :
+    mLstab S β lx li t₀ π x i ω =
+      Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀ π x i ω := by
+  unfold mLstab Noninertial.Lstab
+  simp only [condVar_eq_condCov S hfull]
+
+/-- Woodford (2003), eq. (3.4), p. 511, through the bridge: on a finite fully supported space the
+core theorem `Noninertial.lstab12_hasSum` applies to a `MeasAR1Innov` disturbance and gives
+`L^stab` at every state (agreeing with the almost-sure `lstab12_eq`). -/
+theorem lstab12_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1) {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (πbar xbar fπ fx : ℝ) (t₀ : ℕ) (ω : Ω) :
+    mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) ω =
+      β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s := by
+  rw [lstab12_agree S hfull]
+  exact (Noninertial.lstab12_hasSum _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρ
+    (toCore_AR1Innov S hfull hu) πbar xbar fπ fx t₀ ω).tsum_eq
+
+/-- Woodford (2003), eqs. (3.7)–(3.8), p. 513, through the bridge: on a finite fully supported
+space the core theorem `Noninertial.lstab_hasSum` applies and gives `L^stab` at every state. -/
+theorem lstab_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) (ω : Ω) :
+    mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su := by
+  rw [lstab_agree S hfull]
+  exact (Noninertial.lstab_hasSum _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρu hρr
+    (toCore_AR1Innov S hfull hu) (toCore_AR1Innov S hfull hr)
+    (fun t => S.eq_of_ae_eq hfull (hind t)) πbar xbar ibar fπ fx fi gπ gx gi t₀ ω).tsum_eq
+
+/-- Woodford (2003), eq. (3.4), p. 511, through the bridge to `VarianceFrontier.Lstab_ar1`: on a
+finite fully supported space the stabilization loss of a plan (2.19) is, at every state, the
+closed form (3.4). -/
+theorem Lstab_ar1_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β ρ s lam pibar xbar fπ fx : ℝ} {u ε : ℕ → Ω → ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρ : ρ ^ 2 < 1) (hu : MeasAR1Innov S ρ s u ε) (hε0 : StronglyMeasurable[S.𝓕 0] (ε 0))
+    (t₀ : ℕ) (ω : Ω) :
+    mLstab12 S β lam t₀ (VarianceFrontier.fwdPlan pibar fπ u) (VarianceFrontier.fwdPlan xbar fx u)
+      ω = β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        (s / (1 - ρ ^ 2)) := by
+  unfold mLstab12
+  simp only [condVar_eq_condCov S hfull]
+  exact VarianceFrontier.Lstab_ar1 _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρ
+    (toCore_VF_AR1Innov S hfull hu hε0) (fun _ => rfl) t₀ ω
+
+/-- Woodford (2003), eqs. (3.7)–(3.8), pp. 512–513, through the bridge to
+`VarianceFrontier.Lstab_two_shocks`: on a finite fully supported space the stabilization loss of a
+plan (3.6) splits, at every state, as `L^{stab,r} + L^{stab,u}`. -/
+theorem Lstab_two_shocks_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β ρu ρr su sr lamx lami : ℝ} {u εu r εr : ℕ → Ω → ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρu : ρu ^ 2 < 1) (hρr : ρr ^ 2 < 1) (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr) (hεu0 : StronglyMeasurable[S.𝓕 0] (εu 0))
+    (hεr0 : StronglyMeasurable[S.𝓕 0] (εr 0))
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (pibar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) (ω : Ω) :
+    mLstab S β lamx lami t₀ (plan2 pibar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+      ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lamx * gx ^ 2 + lami * gi ^ 2) *
+          (sr / (1 - ρr ^ 2)) +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) *
+          (fπ ^ 2 + lamx * fx ^ 2 + lami * fi ^ 2) * (su / (1 - ρu ^ 2)) := by
+  unfold mLstab
+  simp only [condVar_eq_condCov S hfull]
+  exact VarianceFrontier.Lstab_two_shocks _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρu hρr
+    (toCore_VF_AR1Innov S hfull hu hεu0) (toCore_VF_AR1Innov S hfull hr hεr0) (fun _ => rfl)
+    (fun _ => rfl) (fun t => S.eq_of_ae_eq hfull (hind t)) pibar xbar ibar fπ fx fi gπ gx gi t₀ ω
+
+/-- **Proposition 7.11**, stabilization form, through the bridge (Woodford (2003), pp. 509–511):
+on a finite fully supported space the measure-theoretic hypotheses (with `s > 0`) give every
+hypothesis of the core `Noninertial.prop_7_11_lstab` (pull-out, `AR1Innov`, `Nondeg1`), so its
+conclusion holds for the bridged core system. By `finite_ar1Innov_degenerate` these hypotheses
+are never met on a finite space; the genuine content is `prop_7_11_lstab`. -/
+theorem prop_7_11_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β κ lam ρ s : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hlam : 0 < lam) (hρ : |ρ| < 1)
+    (hs : 0 < s) {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) (ω : Ω) :
+    Noninertial.AS (S.toExpectationSystem hfull) β κ (plan1 0 (fpiOni β κ lam ρ) u)
+      (plan1 0 (fxOni β κ lam ρ) u) u ∧
+    ∀ πbar xbar gπ gx, Noninertial.AS (S.toExpectationSystem hfull) β κ (plan1 πbar gπ u)
+        (plan1 xbar gx u) u →
+      Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u)
+          (plan1 0 (fxOni β κ lam ρ) u) ω ≤
+        Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 πbar gπ u)
+          (plan1 xbar gx u) ω ∧
+      (Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 πbar gπ u)
+          (plan1 xbar gx u) ω =
+        Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u)
+          (plan1 0 (fxOni β κ lam ρ) u) ω ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) :=
+  Noninertial.prop_7_11_lstab _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hκ hlam hρ hs
+    (toCore_AR1Innov S hfull hu) (toCore_nondeg1 S hu hs.ne') t₀ ω
+
+/-- **Appendix F.4**, stabilization optimality, through the bridge (Woodford (2003),
+pp. 512–513, 713–714): on a finite fully supported space the measure-theoretic hypotheses give
+every hypothesis of the core `Noninertial.f4_lstab` (pull-out, two `AR1Innov`, uncorrelated
+innovations, `Nondeg2`), so its conclusion holds for the bridged core system. By
+`finite_ar1Innov_degenerate` these hypotheses are never met on a finite space; the genuine content
+is `f4_lstab`. -/
+theorem f4_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β κ σ rbar lx li istar ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1) (hsu : 0 < su)
+    (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) (ω : Ω)
+    {xs is : ℝ} (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (Noninertial.AS (S.toExpectationSystem hfull) β κ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) u ∧
+      Noninertial.IS (S.toExpectationSystem hfull) σ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r)
+        (fun t ω => rbar + r t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      Noninertial.AS (S.toExpectationSystem hfull) β κ (plan2 πbar fπ gπ u r)
+        (plan2 xbar fx gx u r) u →
+      Noninertial.IS (S.toExpectationSystem hfull) σ (plan2 πbar fπ gπ u r)
+        (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) (fun t ω => rbar + r t ω) →
+      Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ≤
+        Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀ (plan2 πbar fπ gπ u r)
+          (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω ∧
+      (Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀ (plan2 πbar fπ gπ u r)
+          (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω =
+        Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) :=
+  Noninertial.f4_lstab _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hκ hσ hlx hli hρu hρr
+    hsu hsr (toCore_AR1Innov S hfull hu) (toCore_AR1Innov S hfull hr)
+    (fun t => S.eq_of_ae_eq hfull (hind t)) (toCore_nondeg2 S hu hr hsu.ne' hsr.ne' hind) t₀ ω
+    hxs his
+
+end Woodford.GainsFromCommitment.NoninertialMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The variance results on a genuine i.i.d. probability model
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3, pp. 507–513 ((3.4), (3.7)–(3.8),
+Proposition 7.11) and Appendix F.4, pp. 713–714, instantiated on the i.i.d. infinite-product
+economy of `ExpectationsMeasureIID` (`Ω = ℕ → ℝ`, `μ = ν^ℕ`, natural filtration), which is not
+finitely supported (every history is null). This shows that the hypotheses of
+`NoninertialMeasure` (AR(1) disturbances with innovations of constant, positive conditional
+variance, uncorrelated across the two disturbances) are satisfied by a genuine probability model
+with infinitely many nondegenerate innovations.
+
+## Main results
+
+* One disturbance: `iid_measAR1Innov` (the AR(1) of the coordinate shocks), `iid_lstab12`
+  ((3.4)), `iid_prop_7_11` (Proposition 7.11), and for fair `±1` coins `coin_prop_7_11`.
+* Two disturbances driven by functions `f(ε_t)`, `g(ε_t)` of the shock: `ar1fn`,
+  `iid_measAR1Innov_fn`, `E_fnShock_mul`, `iid2_lstab` ((3.7)–(3.8)), `iid2_f4_lstab`
+  (Appendix F.4).
+* A concrete law: `quad` (uniform on `{±1, ±3}`) with the two independent fair coins
+  `coinA`, `coinB` it encodes; `twoCoin_economy` (all moment conditions, every history null) and
+  `twoCoin_f4_lstab`.
+-/
+
+namespace Woodford.GainsFromCommitment.NoninertialMeasureIID
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure ExpectationsMeasureIID NoninertialMeasure
+open VarianceFrontier (plan2)
+open Noninertial (plan1 fpiOni fxOni uncondVar)
+
+/-! ### One disturbance: the AR(1) of the coordinate shocks -/
+
+/-- Woodford (2003), eq. (2.18), p. 496, on the i.i.d. economy: the AR(1) `u_{t+1} = ρu_t + ε_{t+1}`
+of mean-zero shocks with variance `σ²` and bounded support (`|ρ| < 1`) satisfies `MeasAR1Innov`
+with innovation variance `σ²`. -/
+theorem iid_measAR1Innov {ν : ProbabilityMeasure ℝ} {ρ B σ2 : ℝ} (hρ : |ρ| < 1)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) :
+    MeasAR1Innov (iidSystem ν) ρ σ2 (ar1 ρ) shock := by
+  refine ⟨ar1_adapted ν ρ, ⟨_, ar1_bdd hρ hbdd⟩, ar1_succ ρ, E_shock_zero hmean, fun t => ?_⟩
+  have h : shock (t + 1) * shock (t + 1) = shock (t + 1) ^ 2 := (sq _).symm
+  rw [h]
+  exact E_shock_sq_eq hvar t
+
+/-- **Equation (3.4)** (Woodford (2003), p. 511) on the i.i.d. economy: almost surely the
+stabilization loss of a plan (2.19) is `β/(1 − β) · (1 − ρ²)/(1 − βρ²) · (f_π² + λ f_x²) σ_u²`
+with `σ_u² = σ²/(1 − ρ²)`. -/
+theorem iid_lstab12 {ν : ProbabilityMeasure ℝ} {β lam ρ B σ2 : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B)
+    (πbar xbar fπ fx : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ,
+      mLstab12 (iidSystem ν) β lam t₀ (plan1 πbar fπ (ar1 ρ)) (plan1 xbar fx (ar1 ρ)) ω =
+        β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+          uncondVar ρ σ2 :=
+  lstab12_eq _ hβ0 hβ1 hρ (iid_measAR1Innov hρ hmean hvar hbdd) πbar xbar fπ fx t₀
+
+/-- **Proposition 7.11, stabilization form** (Woodford (2003), pp. 509–511) on the i.i.d.
+economy with shock variance `σ² > 0`: the optimal noninertial plan satisfies (2.1), and every
+plan (2.19) satisfying (2.1) has almost surely at least its stabilization loss, with almost-sure
+equality iff it has the responses (3.5). -/
+theorem iid_prop_7_11 {ν : ProbabilityMeasure ℝ} {β κ lam ρ B σ2 : ℝ} (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hκ : 0 < κ) (hlam : 0 < lam) (hρ : |ρ| < 1) (hσ : 0 < σ2)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t₀ : ℕ) :
+    MAS (iidSystem ν) β κ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ)) (plan1 0 (fxOni β κ lam ρ) (ar1 ρ))
+      (ar1 ρ) ∧
+    ∀ πbar xbar gπ gx, MAS (iidSystem ν) β κ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+        (ar1 ρ) →
+      (∀ᵐ ω ∂(iidSystem ν).μ,
+        mLstab12 (iidSystem ν) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ω ≤
+          mLstab12 (iidSystem ν) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ)) ω) ∧
+      (mLstab12 (iidSystem ν) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+          =ᵐ[(iidSystem ν).μ]
+          mLstab12 (iidSystem ν) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) :=
+  prop_7_11_lstab _ hβ0 hβ1 hκ hlam hρ hσ (iid_measAR1Innov hρ hmean hvar hbdd) t₀
+
+/-- **Proposition 7.11** (Woodford (2003), pp. 509–511) on the fair-coin economy (`ε_t = ±1`
+i.i.d., innovation variance `1`): every history is null (the model is not finitely supported),
+and the optimal noninertial plan minimises the stabilization loss almost surely among all plans
+(2.19) satisfying (2.1), uniquely up to almost-sure equality of losses. -/
+theorem coin_prop_7_11 {β κ lam ρ : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hlam : 0 < lam) (hρ : |ρ| < 1) (t₀ : ℕ) :
+    (∀ ω, (iidSystem coin).μ {ω} = 0) ∧
+    MAS (iidSystem coin) β κ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+      (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) (ar1 ρ) ∧
+    ∀ πbar xbar gπ gx, MAS (iidSystem coin) β κ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+        (ar1 ρ) →
+      (∀ᵐ ω ∂(iidSystem coin).μ,
+        mLstab12 (iidSystem coin) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ω ≤
+          mLstab12 (iidSystem coin) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ)) ω) ∧
+      (mLstab12 (iidSystem coin) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+          =ᵐ[(iidSystem coin).μ]
+          mLstab12 (iidSystem coin) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) :=
+  ⟨iid_singleton coin_mean coin_var one_pos,
+    iid_prop_7_11 hβ0 hβ1 hκ hlam hρ one_pos coin_mean coin_var coin_bdd t₀⟩
+
+/-! ### Two disturbances driven by functions of the shock -/
+
+/-- Woodford (2003), eq. (2.27), p. 504 (tool): the innovation `f(ε_t)`, a function of the date-`t`
+shock. -/
+def fnShock (f : ℝ → ℝ) (t : ℕ) (ω : ℕ → ℝ) : ℝ := f (ω t)
+
+/-- Woodford (2003), eqs. (2.18) and (2.27): the AR(1) `u_0 = f(ε_0)`,
+`u_{t+1} = ρ u_t + f(ε_{t+1})`. -/
+def ar1fn (ρ : ℝ) (f : ℝ → ℝ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => fnShock f 0
+  | t + 1 => fun ω => ρ * ar1fn ρ f t ω + fnShock f (t + 1) ω
+
+/-- Woodford (2003), eq. (2.18): the AR(1) law of motion of `ar1fn`. -/
+theorem ar1fn_succ (ρ : ℝ) (f : ℝ → ℝ) (t : ℕ) :
+    ar1fn ρ f (t + 1) = ρ • ar1fn ρ f t + fnShock f (t + 1) := rfl
+
+/-- Woodford (2003), eq. (2.18): a measurable function of the date-`s` shock is known at every
+`t ≥ s`. -/
+theorem measurable_fnShock (ν : ProbabilityMeasure ℝ) {f : ℝ → ℝ} (hf : Measurable f) {s t : ℕ}
+    (hst : s ≤ t) : Measurable[(iidSystem ν).𝓕 t] (fnShock f s) :=
+  hf.comp (measurable_shock ν hst)
+
+/-- Woodford (2003), eq. (2.18): `ar1fn` is adapted. -/
+theorem ar1fn_adapted (ν : ProbabilityMeasure ℝ) (ρ : ℝ) {f : ℝ → ℝ} (hf : Measurable f) :
+    StronglyAdapted (iidSystem ν).𝓕 (ar1fn ρ f) := by
+  intro t
+  induction t with
+  | zero => exact (measurable_fnShock ν hf le_rfl).stronglyMeasurable
+  | succ t ih =>
+    rw [ar1fn_succ]
+    exact ((ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t))).const_smul ρ).add
+      (measurable_fnShock ν hf le_rfl).stronglyMeasurable
+
+/-- Woodford (2003), eq. (2.18): for `|ρ| < 1` and `|f| ≤ B`, `|u_t| ≤ B/(1 − |ρ|)` everywhere. -/
+theorem ar1fn_bdd {ρ B : ℝ} (hρ : |ρ| < 1) {f : ℝ → ℝ} (hB : ∀ x, |f x| ≤ B) (t : ℕ)
+    (ω : ℕ → ℝ) : |ar1fn ρ f t ω| ≤ B / (1 - |ρ|) := by
+  have hB0 : 0 ≤ B := (abs_nonneg _).trans (hB 0)
+  have h1 : 0 < 1 - |ρ| := by linarith
+  induction t with
+  | zero =>
+    refine (hB (ω 0)).trans ?_
+    rw [le_div_iff₀ h1]
+    nlinarith [abs_nonneg ρ]
+  | succ t ih =>
+    change |ρ * ar1fn ρ f t ω + f (ω (t + 1))| ≤ _
+    have key : |ρ| * (B / (1 - |ρ|)) + B = B / (1 - |ρ|) := by
+      field_simp
+      ring
+    calc |ρ * ar1fn ρ f t ω + f (ω (t + 1))| ≤ |ρ| * |ar1fn ρ f t ω| + |f (ω (t + 1))| := by
+          rw [← abs_mul]
+          exact abs_add_le _ _
+      _ ≤ |ρ| * (B / (1 - |ρ|)) + B :=
+          add_le_add (mul_le_mul_of_nonneg_left ih (abs_nonneg ρ)) (hB _)
+      _ = B / (1 - |ρ|) := key
+
+/-- Woodford (2003), p. 512 (the conditional moments of the innovations): on the i.i.d. economy
+`E_t[f(ε_{t+1}) g(ε_{t+1})] = ∫ f g dν` almost surely. -/
+theorem E_fnShock_mul {ν : ProbabilityMeasure ℝ} {f g : ℝ → ℝ} (hf : Measurable f)
+    (hg : Measurable g) (t : ℕ) :
+    (iidSystem ν).E t (fnShock f (t + 1) * fnShock g (t + 1)) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, f x * g x ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t (hf.mul hg)
+
+/-- Woodford (2003), eqs. (2.18) and (2.27) on the i.i.d. economy: the AR(1) driven by `f(ε_t)`,
+with `f` measurable, bounded, `∫ f dν = 0` and `∫ f² dν = s`, satisfies `MeasAR1Innov` with
+innovation variance `s`. -/
+theorem iid_measAR1Innov_fn {ν : ProbabilityMeasure ℝ} {ρ B s : ℝ} (hρ : |ρ| < 1) {f : ℝ → ℝ}
+    (hf : Measurable f) (hB : ∀ x, |f x| ≤ B) (hmean : ∫ x, f x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, f x * f x ∂(ν : Measure ℝ) = s) :
+    MeasAR1Innov (iidSystem ν) ρ s (ar1fn ρ f) (fnShock f) := by
+  refine ⟨ar1fn_adapted ν ρ hf, ⟨_, fun t => Eventually.of_forall (ar1fn_bdd hρ hB t)⟩,
+    ar1fn_succ ρ f, fun t => ?_, fun t => ?_⟩
+  · filter_upwards [E_shock_fun ν t hf] with ω h
+    change (iidSystem ν).E t (fun ω => f (ω (t + 1))) ω = 0
+    rw [h, hmean]
+  · filter_upwards [E_fnShock_mul (ν := ν) hf hf t] with ω h
+    rw [h, hvar]
+
+/-- **Equations (3.7)–(3.8)** (Woodford (2003), p. 513) on the i.i.d. economy: with disturbances
+`u`, `r̂ⁿ` driven by `f(ε_t)`, `g(ε_t)` (measurable, bounded, mean zero, `∫ f² = s_u`,
+`∫ g² = s_r`, `∫ f g = 0`), almost surely `L^stab = L^{stab,r} + L^{stab,u}` for every plan
+(3.6). -/
+theorem iid2_lstab {ν : ProbabilityMeasure ℝ} {β lx li ρu ρr Bu Br su sr : ℝ} (hβ0 : 0 ≤ β)
+    (hβ1 : β < 1) (hρu : |ρu| < 1) (hρr : |ρr| < 1) {f g : ℝ → ℝ} (hf : Measurable f)
+    (hg : Measurable g) (hBf : ∀ x, |f x| ≤ Bu) (hBg : ∀ x, |g x| ≤ Br)
+    (hfm : ∫ x, f x ∂(ν : Measure ℝ) = 0) (hgm : ∫ x, g x ∂(ν : Measure ℝ) = 0)
+    (hfv : ∫ x, f x * f x ∂(ν : Measure ℝ) = su) (hgv : ∫ x, g x * g x ∂(ν : Measure ℝ) = sr)
+    (hfg : ∫ x, f x * g x ∂(ν : Measure ℝ) = 0) (πbar xbar ibar fπ fx fi gπ gx gi : ℝ)
+    (t₀ : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, mLstab (iidSystem ν) β lx li t₀
+      (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g)) (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g))
+      (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g)) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su :=
+  lstab_eq _ hβ0 hβ1 hρu hρr (iid_measAR1Innov_fn hρu hf hBf hfm hfv)
+    (iid_measAR1Innov_fn hρr hg hBg hgm hgv)
+    (fun t => (E_fnShock_mul hf hg t).trans (by rw [hfg])) πbar xbar ibar fπ fx fi gπ gx gi t₀
+
+/-- **Appendix F.4, stabilization optimality** (Woodford (2003), pp. 512–513, 713–714) on the
+i.i.d. economy with disturbances driven by `f(ε_t)`, `g(ε_t)` (measurable, bounded, mean zero,
+`∫ f² = s_u > 0`, `∫ g² = s_r > 0`, `∫ f g = 0`): the conclusion of `NoninertialMeasure.f4_lstab`
+holds. -/
+theorem iid2_f4_lstab {ν : ProbabilityMeasure ℝ} {β κ σ rbar lx li istar ρu ρr Bu Br su sr : ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li)
+    (hρu : |ρu| < 1) (hρr : |ρr| < 1) (hsu : 0 < su) (hsr : 0 < sr) {f g : ℝ → ℝ}
+    (hf : Measurable f) (hg : Measurable g) (hBf : ∀ x, |f x| ≤ Bu) (hBg : ∀ x, |g x| ≤ Br)
+    (hfm : ∫ x, f x ∂(ν : Measure ℝ) = 0) (hgm : ∫ x, g x ∂(ν : Measure ℝ) = 0)
+    (hfv : ∫ x, f x * f x ∂(ν : Measure ℝ) = su) (hgv : ∫ x, g x * g x ∂(ν : Measure ℝ) = sr)
+    (hfg : ∫ x, f x * g x ∂(ν : Measure ℝ) = 0) (t₀ : ℕ) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (MAS (iidSystem ν) β κ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu f) (ar1fn ρr g)) (ar1fn ρu f) ∧
+      MIS (iidSystem ν) σ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+          (ar1fn ρu f) (ar1fn ρr g))
+        (fun t ω => rbar + ar1fn ρr g t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS (iidSystem ν) β κ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g)) (ar1fn ρu f) →
+      MIS (iidSystem ν) σ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g)) (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g))
+        (fun t ω => rbar + ar1fn ρr g t ω) →
+      (∀ᵐ ω ∂(iidSystem ν).μ, mLstab (iidSystem ν) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g)) ω ≤
+        mLstab (iidSystem ν) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g)) ω) ∧
+      (mLstab (iidSystem ν) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g)) =ᵐ[(iidSystem ν).μ]
+        mLstab (iidSystem ν) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g)) ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) :=
+  f4_lstab _ hβ0 hβ1 hκ hσ hlx hli hρu hρr hsu hsr (iid_measAR1Innov_fn hρu hf hBf hfm hfv)
+    (iid_measAR1Innov_fn hρr hg hBg hgm hgv)
+    (fun t => (E_fnShock_mul hf hg t).trans (by rw [hfg])) t₀ hxs his
+
+/-! ### A concrete law: two independent fair coins encoded in one shock -/
+
+/-- Woodford (2003), p. 512 (two independent disturbances; concrete law): the uniform law on
+`{3, 1, −1, −3}`, which encodes two independent fair coins, as a measure. -/
+noncomputable def quadMeasure : Measure ℝ :=
+  (4⁻¹ : ENNReal) • (Measure.dirac 3 + Measure.dirac 1 + Measure.dirac (-1) + Measure.dirac (-3))
+
+/-- Woodford (2003), p. 512 (concrete law): the uniform law on `{±1, ±3}` has total mass one. -/
+theorem quadMeasure_univ : quadMeasure Set.univ = 1 := by
+  simp only [quadMeasure, Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+  have h4 : (1 + 1 + 1 + 1 : ENNReal) = 4 := by norm_num
+  rw [h4, ENNReal.inv_mul_cancel (by norm_num) ENNReal.ofNat_ne_top]
+
+/-- Woodford (2003), p. 512 (concrete law): the uniform law on `{±1, ±3}`. -/
+noncomputable def quad : ProbabilityMeasure ℝ := ⟨quadMeasure, ⟨quadMeasure_univ⟩⟩
+
+/-- Woodford (2003), p. 512 (concrete law): `∫ f d quad = (f 3 + f 1 + f(−1) + f(−3))/4`. -/
+theorem integral_quad (f : ℝ → ℝ) :
+    ∫ x, f x ∂(quad : Measure ℝ) = (f 3 + f 1 + f (-1) + f (-3)) / 4 := by
+  change ∫ x, f x ∂quadMeasure = _
+  have i : ∀ a : ℝ, Integrable f (Measure.dirac a) := fun _ => integrable_dirac enorm_lt_top
+  rw [quadMeasure, integral_smul_measure,
+    integral_add_measure (((i 3).add_measure (i 1)).add_measure (i (-1))) (i (-3)),
+    integral_add_measure ((i 3).add_measure (i 1)) (i (-1)), integral_add_measure (i 3) (i 1),
+    integral_dirac, integral_dirac, integral_dirac, integral_dirac, ENNReal.toReal_inv,
+    ENNReal.toReal_ofNat, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), p. 512 (concrete law): the first coin, `+1` on `{3, 1}`, `−1` on
+`{−1, −3}`. -/
+noncomputable def coinA (x : ℝ) : ℝ := if 0 < x then 1 else -1
+
+/-- Woodford (2003), p. 512 (concrete law): the second coin, `+1` on `{3, −1}`, `−1` on
+`{1, −3}`. -/
+noncomputable def coinB (x : ℝ) : ℝ := if 2 < x ∨ (-2 < x ∧ x < 0) then 1 else -1
+
+/-- Woodford (2003), p. 512 (concrete law): the first coin is measurable. -/
+theorem measurable_coinA : Measurable coinA :=
+  Measurable.ite measurableSet_Ioi measurable_const measurable_const
+
+/-- Woodford (2003), p. 512 (concrete law): the second coin is measurable. -/
+theorem measurable_coinB : Measurable coinB :=
+  Measurable.ite (measurableSet_Ioi.union (measurableSet_Ioi.inter measurableSet_Iio))
+    measurable_const measurable_const
+
+/-- Woodford (2003), p. 512 (concrete law): the first coin is bounded by one. -/
+theorem coinA_bdd (x : ℝ) : |coinA x| ≤ 1 := by
+  unfold coinA
+  split_ifs <;> norm_num
+
+/-- Woodford (2003), p. 512 (concrete law): the second coin is bounded by one. -/
+theorem coinB_bdd (x : ℝ) : |coinB x| ≤ 1 := by
+  unfold coinB
+  split_ifs <;> norm_num
+
+/-- Woodford (2003), p. 512 (concrete law): the moments of the two coins under `quad`: both
+have mean `0` and variance `1`, they are uncorrelated, and the underlying shock has mean `0` and
+variance `5`. -/
+theorem quad_moments :
+    ∫ x, coinA x ∂(quad : Measure ℝ) = 0 ∧ ∫ x, coinB x ∂(quad : Measure ℝ) = 0 ∧
+    ∫ x, coinA x * coinA x ∂(quad : Measure ℝ) = 1 ∧
+    ∫ x, coinB x * coinB x ∂(quad : Measure ℝ) = 1 ∧
+    ∫ x, coinA x * coinB x ∂(quad : Measure ℝ) = 0 ∧ ∫ x, x ∂(quad : Measure ℝ) = 0 ∧
+    ∫ x, x ^ 2 ∂(quad : Measure ℝ) = 5 := by
+  simp only [integral_quad]
+  norm_num [coinA, coinB]
+
+/-- Woodford (2003), pp. 512–513 (the two-disturbance economy is a genuine probability model):
+with `ε_t` i.i.d. uniform on `{±1, ±3}`, `εᵘ_t = coinA(ε_t)`, `εʳ_t = coinB(ε_t)`, every history
+is null, and the innovations are unforecastable with unit conditional variances and zero
+conditional covariance. -/
+theorem twoCoin_economy :
+    (∀ ω, (iidSystem quad).μ {ω} = 0) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinA (t + 1)) =ᵐ[(iidSystem quad).μ] 0) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinB (t + 1)) =ᵐ[(iidSystem quad).μ] 0) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinA (t + 1) * fnShock coinA (t + 1))
+      =ᵐ[(iidSystem quad).μ] fun _ => 1) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinB (t + 1) * fnShock coinB (t + 1))
+      =ᵐ[(iidSystem quad).μ] fun _ => 1) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinA (t + 1) * fnShock coinB (t + 1))
+      =ᵐ[(iidSystem quad).μ] fun _ => 0) := by
+  obtain ⟨hA, hB, hAA, hBB, hAB, hm, hv⟩ := quad_moments
+  have uA := iid_measAR1Innov_fn (ν := quad) (ρ := 0) (by norm_num) measurable_coinA coinA_bdd
+    hA hAA
+  have uB := iid_measAR1Innov_fn (ν := quad) (ρ := 0) (by norm_num) measurable_coinB coinB_bdd
+    hB hBB
+  exact ⟨iid_singleton hm hv (by norm_num), uA.2.2.2.1, uB.2.2.2.1, uA.2.2.2.2, uB.2.2.2.2,
+    fun t => (E_fnShock_mul measurable_coinA measurable_coinB t).trans (by rw [hAB])⟩
+
+/-- **Appendix F.4, stabilization optimality** (Woodford (2003), pp. 512–513, 713–714) on the
+two-coin economy (`twoCoin_economy`): with `u` and `r̂ⁿ` AR(1) disturbances driven by the two
+independent fair coins (`|ρ_u|, |ρ_r| < 1`), the corrected optimal noninertial plan satisfies
+(2.1) and (2.23), and every plan (3.6) satisfying them has almost surely at least its
+stabilization loss, with almost-sure equality iff it has the F.4 responses. -/
+theorem twoCoin_f4_lstab {β κ σ rbar lx li istar ρu ρr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (t₀ : ℕ) {xs is : ℝ} (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (MAS (iidSystem quad) β κ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu coinA) (ar1fn ρr coinB)) (ar1fn ρu coinA) ∧
+      MIS (iidSystem quad) σ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+          (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (fun t ω => rbar + ar1fn ρr coinB t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS (iidSystem quad) β κ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB)) (ar1fn ρu coinA) →
+      MIS (iidSystem quad) σ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (fun t ω => rbar + ar1fn ρr coinB t ω) →
+      (∀ᵐ ω ∂(iidSystem quad).μ, mLstab (iidSystem quad) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB)) ω ≤
+        mLstab (iidSystem quad) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB)) ω) ∧
+      (mLstab (iidSystem quad) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB)) =ᵐ[(iidSystem quad).μ]
+        mLstab (iidSystem quad) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB)) ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) := by
+  obtain ⟨hA, hB, hAA, hBB, hAB, -, -⟩ := quad_moments
+  exact iid2_f4_lstab hβ0 hβ1 hκ hσ hlx hli hρu hρr one_pos one_pos measurable_coinA
+    measurable_coinB coinA_bdd coinB_bdd hA hB hAA hBB hAB t₀ hxs his
+
+/-- **Equations (3.7)–(3.8)** (Woodford (2003), p. 513) on the two-coin economy: almost surely
+`L^stab = L^{stab,r} + L^{stab,u}` with unit innovation variances. -/
+theorem twoCoin_lstab {β lx li ρu ρr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂(iidSystem quad).μ, mLstab (iidSystem quad) β lx li t₀
+      (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+      (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+      (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB)) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr 1 +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu 1 := by
+  obtain ⟨hA, hB, hAA, hBB, hAB, -, -⟩ := quad_moments
+  exact iid2_lstab hβ0 hβ1 hρu hρr measurable_coinA measurable_coinB coinA_bdd coinB_bdd hA hB
+    hAA hBB hAB πbar xbar ibar fπ fx fi gπ gx gi t₀
+
+end Woodford.GainsFromCommitment.NoninertialMeasureIID
+
 set_option linter.style.longLine false
 #print axioms Woodford.GainsFromCommitment.SchurStable
 #print axioms Woodford.GainsFromCommitment.disc
@@ -22948,3 +26001,215 @@ set_option linter.style.longLine false
 #print axioms Woodford.GainsFromCommitment.Links.timelessOpt114_iff_basic
 #print axioms Woodford.GainsFromCommitment.Links.instrumentPath_no_costPush
 #print axioms Woodford.GainsFromCommitment.Links.zero_gap_unique_faithful
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.mk
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.P
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.𝓕
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.μ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddProc
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_add
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_smul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_const
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_zero
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mono
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_tower
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integrable_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_known
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_E_self
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_congr
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integral_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_pullOut
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_E_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.const
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.add
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_hasSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_succ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_rec
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.Solves
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.iterate_homog
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forward_unique
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_add
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_zero
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.unique_iff
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ELin
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.trivialFirst
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.sum_prob_condE
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_singleton
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_univ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeProb
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.integral_treeProb
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeFiltration
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidProb
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iIndep_coord
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.filtration_le_past
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.indep_future
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_future
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_future_fun
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_shock_fun
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_fun
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_ae_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_zero
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq_eq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.condVar_shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_not_ae_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.singleton_lt_one
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.exists_singleton_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_singleton
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_countable_null
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_not_finitely_supported
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_news
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_existsUnique_iff
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_sunspot
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_succ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_adapted
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar_closed
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure_univ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_coin
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_mean
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_var
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_economy
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.bddRV
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_eq
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_bddRV
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_meas
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.E_u
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.const_eq_of_ae
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_known_mul_zero
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_cross_dev
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.plan1_eq_plan2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mLstab12
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mLstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.sq_lt_one_of_abs
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_hasSum
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_eq
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_hasSum
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_eq
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MAS
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MIS
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_plan2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_plan1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.plan_AS_iff
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.plan2_iff
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.f4_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.filtration_stabilizes
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.finite_innov_degenerate
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.finite_ar1Innov_degenerate
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.tree_innov_degenerate
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_AR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_VF_AR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mAS_iff_core
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mIS_iff_core
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.condVar_eq_condCov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_agree
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_agree
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_ar1_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_two_shocks_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.f4_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_lstab12
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_prop_7_11
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coin_prop_7_11
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.fnShock
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_succ
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_fnShock
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_adapted
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_bdd
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.E_fnShock_mul
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov_fn
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_f4_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure_univ
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quad
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.integral_quad
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinA
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinB
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA_bdd
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB_bdd
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quad_moments
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_economy
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_f4_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_lstab

@@ -60,3 +60,9 @@ import OptimalPolicyRules.InertiaAssumption81
 import OptimalPolicyRules.InertiaProp82Complex
 import OptimalPolicyRules.TidyRuleSystem
 import OptimalPolicyRules.Tidy
+import OptimalPolicyRules.ExpectationsMeasure
+import OptimalPolicyRules.ExpectationsMeasureIID
+import OptimalPolicyRules.OptimalRulesMeasure
+import OptimalPolicyRules.OptimalRulesMeasureMarkov
+import OptimalPolicyRules.OptimalRulesMeasureIID
+import OptimalPolicyRules.OptimalRulesMeasureStatic

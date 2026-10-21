@@ -7,15 +7,18 @@ Run the commands below from this directory. [Return to the library index](../../
 A checked formalisation of John H. Cochrane, *The Fiscal Theory of the Price Level* (Princeton
 University Press, 2023), Chapter 22, "Observational equivalence" (pp. 495–510), together with the
 precise claims of Chapters 23–24 (pp. 512–523) and of Online Appendix Chapter 2, "How not to test
-fiscal theory" (pp. 593–611). The linear models are stated for an arbitrary expectation operator,
-so every result covers perfect foresight and genuine uncertainty: processes are `ℕ → Ω → ℝ` and
-every equation holds state by state. The central object is the frictionless model
+fiscal theory" (pp. 593–611). The linear models of the chapter modules are stated for an
+arbitrary expectation operator, so every result covers perfect foresight and genuine uncertainty:
+processes are `ℕ → Ω → ℝ` and every equation holds state by state. Theorem RG, Granger causality
+and Markov switching are also proved on genuine probability spaces, with equations holding almost
+everywhere. The central object is the frictionless model
 `i_t = E_tπ_{t+1}`, `ρv_{t+1} = v_t + i_t − π_{t+1} − s̃_{t+1}` (22.2), closed by monetary and
 fiscal rules written around a target path, the "starred" form (16.20)–(16.24), (22.1),
 (22.7)–(22.11). Its equilibria are judged by the book's criterion: adapted, bounded inflation and
 the transversality condition for debt. "Unique" means that the target is the only such
-equilibrium. The library contains **484 theorems**, including the shared core; 376 of them are in
-the fifteen chapter modules.
+equilibrium. The library contains **760 theorems**: 376 in the fifteen chapter modules, 108 in the
+shared core restated from the earlier projects, and 276 in the eight measure-theoretic modules
+(`ExpectationsMeasure` onward).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E12–E19 refer to the
@@ -114,6 +117,25 @@ Headline results, in the namespace `Cochrane.ObservationalEquivalence`:
   (`MarkovRegimes.determinate_iff`, `MarkovRegimes.dl_iff_schur`). A temporarily passive regime
   can be determinate and a locally active one indeterminate
   (`MarkovRegimes.temporarily_passive_determinate`, `MarkovRegimes.locally_active_indeterminate`).
+* **Genuine probability models.** Theorem RG holds with Mathlib's `covariance` and `variance` for
+  martingale-difference shocks on a probability space with a filtration: the valuation equation
+  with Mathlib's `condExp` gives `v_t = b(L)ε_t` a.e., and
+  `2Cov(s_{t+1}, v_t) = σ²(∑a_k² + ∑∑ρ^{|k−l|}a_ka_l)` (`SurplusRegressionMeasure.valueM_eq`,
+  `SurplusRegressionMeasure.two_covM_eq_kms`, `SurplusRegressionMeasure.regM_pos_iff`); the genuine
+  covariance is `σ²` times the abstract one (`SurplusRegressionMeasure.covM_finite_eq_abstract`).
+  The hypotheses hold in the i.i.d. coin economy with an infinite past, which is not
+  certainty-equivalent (`SurplusRegressionMeasure.coinZ_theoremRG`,
+  `SurplusRegressionMeasure.iidZ_not_certainty_equivalent`). Theorem RG extends to square-summable
+  moving averages in `L²` (`SquareSummableRG.two_covInf_eq_of_sq`,
+  `SurplusRegressionL2.two_covL2_eq_kms`, `SurplusRegressionL2.regL2_pos_iff`), and the surplus
+  `∑ε_{t−k}/k`, not absolutely summable, has a positive coefficient
+  (`SurplusRegressionL2.coinZ_harmonic_regL2_pos`). With Granger causality defined by conditional
+  expectations on observed histories, debt Granger-causes exogenous news surpluses and not
+  conversely, as in the VAR version (`GrangerMeasure.debt_granger_causes_surplus`,
+  `GrangerMeasure.surplus_not_granger_cause_debt`, `GrangerMeasure.granger_matches_var`). The
+  Davig–Leeper theorem holds on a genuine Markov chain built from i.i.d. uniforms, in which every
+  path has probability zero (`MarkovRegimesMeasure.meas_determinate_iff`,
+  `MarkovRegimesMeasure.chain_determinate_iff`, `MarkovRegimesMeasure.chain_singleton_null`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -144,14 +166,15 @@ Not formalised:
   the label swap in Beck-Friis–Willems (p. 525, E15) and the two-currency results (p. 527);
 * Online Appendix §§2.1.1–2.1.6 and the permanent-transitory model of §2.4 (pp. 607–611), which
   belong to the `DebtDeficitsInflation` project;
-* Theorem RG for square-summable but not absolutely summable moving averages: the covariance is an
-  abstract bilinear form with no `L²` structure to control the Toeplitz operator;
-* covariances as genuine probability covariances: they are a symmetric bilinear form for which the
-  shocks are orthonormal, and the model that shows the hypotheses consistent
-  (`SurplusRegression.truncSystem`) is certainty-equivalent;
-* Markov switching with more than two regimes, with `φ_i ≤ 0`, or with a non-degenerate chain in
-  an abstract `ExpectationSystem` (no pointwise-linear expectation carries one; the abstract
-  results are stated for any system that does);
+* Theorem RG with unbounded shocks: the genuine versions (`SurplusRegressionMeasure`,
+  `SurplusRegressionL2`) assume essentially bounded martingale-difference shocks of variance `σ²`
+  (`SurplusRegressionMeasure.ShockMDS`); square summability is allowed for the moving-average
+  coefficients, not relaxed for the shocks;
+* the genuine Granger results for a general martingale-difference system: they are proved in the
+  i.i.d. economy with an infinite past (`ExpectationsMeasureIIDZ.iidZSystem`), the coin included;
+* Markov switching with more than two regimes or with `φ_i ≤ 0`, on the regime tree or on a
+  probability space (`MarkovRegimesMeasure` covers two regimes with `φ_i > 0`); in an abstract
+  `ExpectationSystem` no pointwise-linear expectation carries a non-degenerate chain;
 * region (d) sunspot families in the unstarred model at `|φ| = 1` (they exist exactly when the
   monetary equation has a bounded solution, `LeeperRegions.region_d_of_solution`);
 * the money model under uncertainty: OE-2 is proved under perfect foresight, as in the book;
@@ -181,6 +204,14 @@ Not formalised:
 | [AssetPricingOE](ObservationalEquivalence/AssetPricingOE.lean) | 11 | §22.2.4: rational and behavioural pricing, the risk-neutral measure, the finite-state FTAP |
 | [MarkovRegimes](ObservationalEquivalence/MarkovRegimes.lean) | 27 | §24.2: Davig–Leeper Markov switching, determinacy iff the long-run Taylor principle, examples |
 | [Links](ObservationalEquivalence/Links.lean) | 20 | Agreement between the two halves of the project; OE-2 with OE-1; links to Woodford Prop. 4.11 |
+| [ExpectationsMeasure](ObservationalEquivalence/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, built here and copied to the other projects): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](ObservationalEquivalence/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core, built here): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [ExpectationsMeasureIIDZ](ObservationalEquivalence/ExpectationsMeasureIIDZ.lean) | 17 | p. 501: the i.i.d. economy on `ℤ → ℝ` under `ν^ℤ`, with the whole past known at date 0; independence, `E[ε_jε_k] = σ²1{j = k}` |
+| [SurplusRegressionMeasure](ObservationalEquivalence/SurplusRegressionMeasure.lean) | 44 | p. 501, §24.1, A2 pp. 593, 602, 604: Theorem RG with genuine covariances for martingale-difference shocks, the link to the abstract version, the coin economy |
+| [GrangerMeasure](ObservationalEquivalence/GrangerMeasure.lean) | 17 | p. 501 footnote 1, pp. 501–502: Granger causality with genuine conditional expectations; debt causes exogenous news surpluses |
+| [MarkovRegimesMeasure](ObservationalEquivalence/MarkovRegimesMeasure.lean) | 35 | §24.2: Davig–Leeper determinacy on a probability space; a genuine Markov chain from i.i.d. uniforms |
+| [SquareSummableRG](ObservationalEquivalence/SquareSummableRG.lean) | 26 | p. 501, §24.1: the coefficient identities of Theorem RG for square-summable moving averages; the Kac–Murdock–Szegő form on `ℓ²` |
+| [SurplusRegressionL2](ObservationalEquivalence/SurplusRegressionL2.lean) | 29 | p. 501, §24.1: Theorem RG in `L²` for square-summable moving averages; `E_t` as Mathlib's `condExpL2`; the harmonic surplus |
 
 ## Modelling conventions
 
@@ -192,6 +223,23 @@ Not formalised:
   instances; the coin-flip tree (`ExpectationsFiniteTree.coinSystem`) makes the sunspot and
   non-existence examples genuinely random. The innovation `ΔE_{t+1} = E_{t+1} − E_t` is the
   linear map `ExpectationTools.innov`.
+* **Measure-theoretic expectations.** The core `ExpectationSystem` is kept unchanged, and every
+  result stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so
+  it cannot carry an infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure`, built
+  in this project and copied to the others, adds alongside it a probability space with a filtration
+  (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is Mathlib's `condExp`, variables are
+  bounded measurable functions and processes (`BddRV`, `BddProc`, Mathlib's `StronglyAdapted`), and
+  equations hold almost everywhere. The bridge is additive and runs both ways: a finite event tree
+  is a measure system with the same `E_t` at every state
+  (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a measure system on a finite discrete state
+  space with full support is a core system with the pull-out property
+  (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instances
+  are the i.i.d. economies on `ℕ → ℝ` under `ν^ℕ` (`ExpectationsMeasureIID.iidSystem`, every
+  history null by `ExpectationsMeasureIID.iid_not_finitely_supported`) and on `ℤ → ℝ` under `ν^ℤ`
+  with the whole past known at date 0 (`ExpectationsMeasureIIDZ.iidZSystem`), which carries the
+  stationary moving averages. Moving averages with square-summable coefficients live in `L²`
+  (`SurplusRegressionL2.maL2`), where `E_t` is Mathlib's `condExpL2` (`SurplusRegressionL2.proj`).
 * **The starred model.** A path is `StarredModel.Outcome` `(π, i, v, s̃)`. The target obeys the
   Fisher equation and the flow condition (`StarredModel.Consistent`), and its debt is driven by
   the target surplus `s̃*_{t+1} = αv*_t + u_{s,t+1}` (`StarredModel.StarredSurplus`). The printed
@@ -217,7 +265,9 @@ Not formalised:
   variables for which the shocks are orthonormal (`MACovariance.WhiteNoise`); the shocks are a
   martingale difference sequence for the agents (`SurplusRegression.ShockInfo`). Every `L²` model
   is an instance, and `SurplusRegression.truncSystem` with `SurplusRegression.truncCov` satisfies
-  all the hypotheses with nonzero bounded shocks.
+  all the hypotheses with nonzero bounded shocks. Genuine covariances are Mathlib's `covariance`
+  for shocks satisfying `SurplusRegressionMeasure.ShockMDS`; they are `σ²` times the abstract ones
+  (`SurplusRegressionMeasure.covM_finite_eq_abstract`).
 * **VARs.** `z_{t+1} = Az_t + ε_{t+1}` with `E_tε_{t+1} = 0` (`Granger.IsVAR`,
   `Granger.ShockMDS`); stability is geometric decay of the powers of `A`
   (`PresentValueIdentity.PowDecay`), implied by eigenvalues in the open unit disc
@@ -228,16 +278,22 @@ Not formalised:
 * **Markov switching.** All uncertainty comes from the regimes, so a process is a function of the
   regime history (`MarkovRegimes.Node`) and bounded means bounded over all histories
   (`MarkovRegimes.BoundedFn`). The same uniqueness dichotomy is proved for any `ExpectationSystem`
-  carrying a Markov regime process (`MarkovRegimes.MarkovRegime`).
+  carrying a Markov regime process (`MarkovRegimes.MarkovRegime`), and, with a.e. statements, for
+  any `MeasExpectationSystem` carrying one (`MarkovRegimesMeasure.MeasMarkovRegime`), such as the
+  chain `MarkovRegimesMeasure.chainRegime`, where bounded means essentially bounded.
 * **Explicit hypotheses.** Bounded adapted disturbances, `0 < ρ < 1` (or `|ρ| < 1`, or `ρ ≠ 0`,
   as each proof needs), bounded inherited debt in region (b), absolute summability of
-  infinite moving averages and `φ_i > 0` for Markov switching are stated in each theorem.
+  infinite moving averages (square summability in `SquareSummableRG` and `SurplusRegressionL2`),
+  essentially bounded shocks in the measure-theoretic modules, and `φ_i > 0` for Markov switching,
+  with both regimes of positive probability at date 0 on a probability space, are stated in each
+  theorem.
 
 ## Relation to the Woodford projects
 
 The shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is
 restated from the Woodford projects, so the project builds on its own. Nothing is imported from
-those projects. Two further blocks are restated from the Woodford Chapter 4 project
+those projects. The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`) goes
+the other way: it was built here and copied, with the namespace renamed, into the other projects. Two further blocks are restated from the Woodford Chapter 4 project
 (`NeoWicksellianFramework`), and their docstrings say so:
 * `FiscalRec`, from its `Fiscal` and `BlanchardKahn` modules: Woodford's (4.2), (4.4) and (4.5)
   (`FiscalRec.Debt42`, `FiscalRec.Tax44`, `FiscalRec.Debt45`, `FiscalRec.debt42_iff_45`), the

@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T10:22:07.471725+00:00",
-  "theorems": 449,
+  "checked_at_utc": "2026-10-21T19:35:00.416392+00:00",
+  "theorems": 631,
   "module_theorems": {
     "AssetsRulesBalanceSheets/Determinacy.lean": 23,
     "AssetsRulesBalanceSheets/Expectations.lean": 20,
@@ -24,9 +24,13 @@
     "AssetsRulesBalanceSheets/SpreadSwap.lean": 14,
     "AssetsRulesBalanceSheets/IndexedDebtPeg.lean": 13,
     "AssetsRulesBalanceSheets/CPIStandard.lean": 7,
-    "AssetsRulesBalanceSheets/Links.lean": 17
+    "AssetsRulesBalanceSheets/Links.lean": 17,
+    "AssetsRulesBalanceSheets/ExpectationsMeasure.lean": 71,
+    "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean": 37,
+    "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean": 39,
+    "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean": 35
   },
-  "audited_declarations": 569,
+  "audited_declarations": 799,
   "declarations": [
     {
       "name": "Cochrane.AssetsRulesBalanceSheets.SchurStable",
@@ -2872,6 +2876,1156 @@
       "name": "Cochrane.AssetsRulesBalanceSheets.Links.pv_one_eq_one_add_perpetuity",
       "kind": "theorem",
       "module": "AssetsRulesBalanceSheets/Links.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem",
+      "kind": "structure",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddProc",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.const",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.add",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum_rec",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.Solves",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.iterate_homog",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.solves_add",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.solves_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.unique_iff",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ELin",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.trivialFirst",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeMeasure",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeMeasure_singleton",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeMeasure_univ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeProb",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.integral_treeProb",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeFiltration",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iidProb",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iidSystem",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.shock",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.measurable_shock",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coordSigma",
+      "kind": "abbrev",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.futureSigma",
+      "kind": "abbrev",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coordSigma_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.futureSigma_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iIndep_coord",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.filtration_le_past",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.indep_future",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_future",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.measurable_future_fun",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.integral_shock_fun",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_fun",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_sq",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.shock_ae_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_sq_eq",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.condVar_shock",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.shock_not_ae_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.singleton_lt_one",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.exists_singleton_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_singleton",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_countable_null",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_not_finitely_supported",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_news",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_existsUnique_iff",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_sunspot",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1_adapted",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_ar1_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_ar1_condVar",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coinMeasure",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.integral_coin",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_mean",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_var",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_bdd",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_economy",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.RuleEqm",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.target_ruleEqm",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.contProb_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.contProb_add",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.contProb_pos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.weight",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.weight_eq",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.weight_pos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sum_weight",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.hasSum_weight",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure_apply",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure_singleton",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure_univ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.node",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.node_of_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.node_of_lt",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.nodeBack",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.nodeBack_node",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunFiltration",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunProb",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunSystem",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunSystem_\u03bc",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunSystem_fullSupport",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.measureReal_singleton",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.measureReal_Ici",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.integrable_of_eventually_const",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.cellAvg",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_E",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.integrable_node",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.setIntegral_Ici_node",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.cellAvg_node",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_E_node",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.condE_congr",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.stronglyMeasurable_node",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunPrice",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunDebt",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.price_pos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunDebt_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_flow",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_rate",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_valuation",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_tvc",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunspot_ruleEqm",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunPrice_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunDebt_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_not_finitely_supported",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_price_unbounded",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.fr_b_measure",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.fr_b_not_pinned",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.iterate_beta",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.zero_of_iterate",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.deflated_martingale",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.value_partial",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.value_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.targetValue_ge",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.zero_of_iterate'",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.value_nonneg",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_stochastic",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_stochastic_below",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_stochastic_target",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.initial_debt_of_target",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.deterministic_target",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.lag",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sTarget",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sValue",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sTarget_props",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolInfo",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolTree",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolSystem",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolSystem_fullSupport",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolE_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolE_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_stronglyMeasurable_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Ps",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Pc",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bc",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Ps_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_adapted",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_ruleEqm",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Pc_not_proportional",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.no_targetValue",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_counterexample",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_ruleEqm",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_initial_debt",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_bounded_link",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_bounded_link_core",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sTarget_news",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_sShaped",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.targetValue_adapted",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.hasSum_E_target",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.exists_proportional",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.deterministic_deflator",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_deterministic",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean"
     }
   ],
   "full_build": "passed",
@@ -5717,6 +6871,1141 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.discSum_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.iterate_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.solves_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.solves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.unique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.ELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.trivialFirst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.integral_treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iidProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iidSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.measurable_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coordSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.futureSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coordSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.futureSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iIndep_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.filtration_le_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.indep_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.measurable_future_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.integral_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.shock_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.E_shock_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.condVar_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.shock_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.singleton_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.exists_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_countable_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.ar1_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.iid_ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.integral_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.ExpectationsMeasureIID.coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.RuleEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.target_ruleEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.contProb_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.contProb_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.contProb_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.weight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.weight_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.weight_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sum_weight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.hasSum_weight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.node": [],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.node_of_le": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.node_of_lt": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.nodeBack": [],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.nodeBack_node": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunSystem_\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.measureReal_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.measureReal_Ici": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.integrable_of_eventually_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.cellAvg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.integrable_node": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.setIntegral_Ici_node": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.cellAvg_node": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_E_node": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.condE_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.stronglyMeasurable_node": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.price_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunDebt_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunspot_ruleEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunPrice_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sunDebt_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.sun_price_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.fr_b_measure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesMeasure.SunspotMeasure.fr_b_not_pinned": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.iterate_beta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.zero_of_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.deflated_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.value_partial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.value_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.targetValue_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.zero_of_iterate'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.value_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_stochastic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_stochastic_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_stochastic_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.initial_debt_of_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.deterministic_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.lag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sTarget": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sTarget_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolInfo": [],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolE_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.boolE_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_stronglyMeasurable_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Ps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Ps_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_ruleEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.Pc_not_proportional": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.no_targetValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.BoolExample.bool_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_ruleEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_initial_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_bounded_link": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_bounded_link_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.sTarget_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_sShaped": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.targetValue_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.hasSum_E_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.exists_proportional": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.deterministic_deflator": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.FiscalRulesTargetMeasure.fr_unique_deterministic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -5743,16 +8032,20 @@
     "AssetsRulesBalanceSheets/IndexedDebtPeg.lean": "d2a18ea874870db124b5c9e2352a1ca04d7fdbc63dcc8f12688d57ea6641ca9a",
     "AssetsRulesBalanceSheets/CPIStandard.lean": "1173b8923acfd375adee6ddf82496e0431741cc7f09807a88c52d506a6d7a982",
     "AssetsRulesBalanceSheets/Links.lean": "f93e165a5d46f108638129cc7ba9b34fb0d026c51d7ffaa507a0bf5019319b2c",
-    "AssetsRulesBalanceSheets.lean": "39738b6401746f763c90b5c02ffd777f2b319be4564e4184cb9e5fff9b35a7b3",
+    "AssetsRulesBalanceSheets/ExpectationsMeasure.lean": "84885082197ec765ec6eeae60fb061807d0095502ace77960f49c0e34d4a16ce",
+    "AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean": "84dbf42e8ad506345a6b98a12fd295b233d4df1dda48175fdcfd80711304255e",
+    "AssetsRulesBalanceSheets/FiscalRulesMeasure.lean": "3fa25a787875a8843b4253d2a05df468bc83312d2286ca647accb695bf098ef3",
+    "AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean": "8d6d996782edda2eb9d7a8467b94d8d5e65d1cd1f352c1764a9a4206e2afa210",
+    "AssetsRulesBalanceSheets.lean": "1c24dd33e45b7ae79173f6bff000aacf5915d2b465510d2f7d4d896fe6ef1a59",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "4459cee1a6f920870caaa72e93b085ab3e3641fb9cfdbcf3001b24a887fc013d",
     "lake-manifest.json": "8e19a4aeec76fb6856c5d793c1eb5fef1657b0af91f8c50e4bd582de963d31d0",
-    "proof-manifest.json": "bb3036521056ab5765e4a26f86439dc26c64f3f2d6b21db80afa5c708a04bd46",
+    "proof-manifest.json": "1cdb94e033c68d7a8ac5e93dbd0965c5072c4315b5f07963793aad91c17abe84",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "ec51a26baae66448864b60de855d7574e03d9920925af3eb927e2c52ccad1c9b",
+  "fresh_audit_sha256": "de52e4e78cf98333d9bc5a326e302388770a0f3f1629ed1ba755eca195efeb41",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 8-10 (Part II: Assets, rules, and institutions), with the exchange-rate claims of Ch24 and the real-bills claim of Ch11. Indexed and foreign debt, currency pegs and the gold standard; capital structure and the cashless limit; maturity as a buffer; default and haircuts; central-bank independence; better rules: inflation targets (0 < alpha < 2), fiscal rules (only P = P* under perfect foresight; false in general under uncertainty with an explicit sunspot tree; restored for prices bounded on one side), the fiscal Taylor rule, mixed debt rules, spread targets and swaps, an indexed-debt peg and a CPI standard; pots of assets, shares as money, balance sheets; separate versus common surplus pools and the exchange rate. Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 8-10 (Part II: Assets, rules, and institutions), with the exchange-rate claims of Ch24 and the real-bills claim of Ch11. Indexed and foreign debt, currency pegs and the gold standard; capital structure and the cashless limit; maturity as a buffer; default and haircuts; central-bank independence; better rules: inflation targets (0 < alpha < 2), fiscal rules (only P = P* under perfect foresight; false in general under uncertainty with an explicit sunspot tree; restored for prices bounded on one side), the fiscal Taylor rule, mixed debt rules, spread targets and swaps, an indexed-debt peg and a CPI standard; pots of assets, shares as money, balance sheets; separate versus common surplus pools and the exchange rate. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapters 8-10, pp. 238-311; also pp. 322 and 527."
 }

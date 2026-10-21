@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T09:32:09.451313+00:00",
-  "theorems": 393,
+  "checked_at_utc": "2026-10-21T19:33:57.877584+00:00",
+  "theorems": 593,
   "module_theorems": {
     "FiscalConstraints/Determinacy.lean": 23,
     "FiscalConstraints/Expectations.lean": 20,
@@ -17,9 +17,14 @@
     "FiscalConstraints/MoneyLiquidity.lean": 17,
     "FiscalConstraints/ReturnDiscounting.lean": 8,
     "FiscalConstraints/AggregateUncertainty.lean": 52,
-    "FiscalConstraints/Links.lean": 16
+    "FiscalConstraints/Links.lean": 16,
+    "FiscalConstraints/ExpectationsMeasure.lean": 71,
+    "FiscalConstraints/ExpectationsMeasureIID.lean": 37,
+    "FiscalConstraints/AggregateUncertaintyMeasure.lean": 49,
+    "FiscalConstraints/LognormalGrowthMeasure.lean": 19,
+    "FiscalConstraints/DebtLimitStochasticMeasure.lean": 24
   },
-  "audited_declarations": 488,
+  "audited_declarations": 730,
   "declarations": [
     {
       "name": "Cochrane.FiscalConstraints.SchurStable",
@@ -2460,6 +2465,1216 @@
       "name": "Cochrane.FiscalConstraints.Links.rf_lt_g_pv_finite_needs_risk",
       "kind": "theorem",
       "module": "FiscalConstraints/Links.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem",
+      "kind": "structure",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddProc",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum_rec",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.Solves",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.iterate_homog",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.solves_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.solves_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.unique_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ELin",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.trivialFirst",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeMeasure",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeMeasure_singleton",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeMeasure_univ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeProb",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.integral_treeProb",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeFiltration",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iidProb",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iidSystem",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.shock",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.measurable_shock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coordSigma",
+      "kind": "abbrev",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.futureSigma",
+      "kind": "abbrev",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coordSigma_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.futureSigma_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iIndep_coord",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.filtration_le_past",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.indep_future",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_future",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.measurable_future_fun",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.integral_shock_fun",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_fun",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.shock_ae_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_sq_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.condVar_shock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.shock_not_ae_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.singleton_lt_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.exists_singleton_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_singleton",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_countable_null",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_not_finitely_supported",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_news",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_existsUnique_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_sunspot",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_ar1_E",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_ar1_condVar",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coinMeasure",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin",
+      "kind": "def",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.integral_coin",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_mean",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_var",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_economy",
+      "kind": "theorem",
+      "module": "FiscalConstraints/ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw",
+      "kind": "structure",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.mk",
+      "kind": "constructor",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.meas",
+      "kind": "projection",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.pos",
+      "kind": "projection",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.integrable",
+      "kind": "projection",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.mom",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratioPow",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.growth_cons",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratio_cons",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratio_rpow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_rpow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratioPow_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_ratioPow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_cons",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_coord_future",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_ratioPow_future",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integrable_coord_fun",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_past_mul_future",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integral_ratioPow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integrable_cons_rpow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_ratio_rpow_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.meas_iidGrowth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_ratio_rpow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_tsum_of_summable_integral",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integrable_pvTerm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.correct_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.incorrect_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.correct_pv_summable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.incorrect_pv_summable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.correct_finite_incorrect_explodes",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.mom_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_tsum_correct_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.rollover_step",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.eq_6_17",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.terminal_c",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.pv_term_c",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.hasSum_geom_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_pv_hasSum_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_tsum_bohn_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.riskFree_prices",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.eq_6_18",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.eq_6_18_diverges_ae",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohnG",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohnGrowthLaw",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_mom",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_hR",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_infinite_witness",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_infinite_6_18",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.MeasIIDGrowth",
+      "kind": "def",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.MeasIIDGrowth.toCore",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.iid_measIIDGrowth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohnTree_measIIDGrowth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.link_correct_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.link_terminal_c",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.link_pv_term_c",
+      "kind": "theorem",
+      "module": "FiscalConstraints/AggregateUncertaintyMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.gaussianProb",
+      "kind": "def",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormalLaw",
+      "kind": "def",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormalGrowthLaw",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_mom",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.cons_exp",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.map_log_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.map_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.iIndepFun_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_E_growth",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_correct_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_incorrect_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_printed_incorrect_wrong",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_correct_pv_summable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_incorrect_pv_summable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.Explodes",
+      "kind": "def",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_explodes_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_region_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_bohn_region",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_riskFree_prices",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_log_riskFree",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_E_tsum_bohn_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_eq_6_18_diverges",
+      "kind": "theorem",
+      "module": "FiscalConstraints/LognormalGrowthMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.measurable_debtPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.debtPath_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.frequently_shift_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.frequently_near_of_tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.measurableSet_frequently_near",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.debtPath_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iIndepFun_shock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.measure_shock_preimage",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_frequently_exceeds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.coin_debt_dichotomy",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_unbounded_core",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_not_ae_bounded_above",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_iid_unbounded_vacuous",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.integral_abs_debtPath_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.prob_exceeds_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.le_measure_frequently",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_unbounded_of_integrable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_Iic_ne_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_process_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_process_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_process_law",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managedSurplus",
+      "kind": "def",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managed_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managedPath_le_process",
+      "kind": "theorem",
+      "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
     }
   ],
   "full_build": "passed",
@@ -4899,6 +6114,1216 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.discSum_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.iterate_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.solves_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.solves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.unique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.ELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.trivialFirst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.integral_treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iidProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iidSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.measurable_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coordSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.futureSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coordSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.futureSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iIndep_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.filtration_le_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.indep_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.measurable_future_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.integral_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.shock_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.E_shock_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.condVar_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.shock_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.singleton_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.exists_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_countable_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.ar1_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.iid_ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.integral_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.ExpectationsMeasureIID.coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.GrowthLaw.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.mom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratioPow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.growth_cons": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratio_cons": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratio_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.cons_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.ratioPow_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_ratioPow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_cons": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_coord_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.measurable_ratioPow_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integrable_coord_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_past_mul_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integral_ratioPow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integrable_cons_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_ratio_rpow_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.meas_iidGrowth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_ratio_rpow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_tsum_of_summable_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.integrable_pvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.correct_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.incorrect_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.correct_pv_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.incorrect_pv_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.correct_finite_incorrect_explodes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.mom_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_tsum_correct_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.rollover_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.eq_6_17": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.terminal_c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.pv_term_c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.hasSum_geom_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_pv_hasSum_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.E_tsum_bohn_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.riskFree_prices": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.eq_6_18": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.eq_6_18_diverges_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohnG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohnGrowthLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_mom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_hR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_infinite_witness": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohn_infinite_6_18": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.MeasIIDGrowth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.MeasIIDGrowth.toCore": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.iid_measIIDGrowth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.bohnTree_measIIDGrowth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.link_correct_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.link_terminal_c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.AggregateUncertaintyMeasure.link_pv_term_c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.gaussianProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormalLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormalGrowthLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_mom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.cons_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.map_log_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.map_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.iIndepFun_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_E_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_correct_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_incorrect_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_printed_incorrect_wrong": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_correct_pv_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_incorrect_pv_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.Explodes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_explodes_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_region_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_bohn_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_riskFree_prices": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_log_riskFree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_E_tsum_bohn_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.LognormalGrowthMeasure.lognormal_eq_6_18_diverges": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.measurable_debtPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.debtPath_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.frequently_shift_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.frequently_near_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.measurableSet_frequently_near": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.debtPath_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iIndepFun_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.measure_shock_preimage": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_frequently_exceeds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.coin_debt_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_unbounded_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_not_ae_bounded_above": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_iid_unbounded_vacuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.integral_abs_debtPath_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.prob_exceeds_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.le_measure_frequently": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.iid_unbounded_of_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_Iic_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_process_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_process_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.gaussian_process_law": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managedSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managed_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managedPath_le_process": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -4918,16 +7343,21 @@
     "FiscalConstraints/ReturnDiscounting.lean": "9e2698f2d19031ec2a6f703962ec89f1d7053190b31c53da24c804b53845021e",
     "FiscalConstraints/AggregateUncertainty.lean": "95d4b12ee3a420ff0379cab9cf762c9ed575a822ad8a24fce9afa2fb11684a7f",
     "FiscalConstraints/Links.lean": "7b3eab121f0f95822edae71608f4f905296540dfe1d2fc58660b44ba778c0519",
-    "FiscalConstraints.lean": "bcc06c1be5b0c211c60ddc72bfbdfdac8f93d74dcf89283217b0c4135e2b9762",
+    "FiscalConstraints/ExpectationsMeasure.lean": "0ca610e43deb8e432de91179b865ca93093c31ce9532003206702e28512c685a",
+    "FiscalConstraints/ExpectationsMeasureIID.lean": "6958c714cbe4c86f312b0574650a08d135f054d96af0e2b9c27a08e124394e3a",
+    "FiscalConstraints/AggregateUncertaintyMeasure.lean": "3ea7d889b0b1eead06a98e7c1e9df3fdc1ea0d9c2482213a51447f25a0423d67",
+    "FiscalConstraints/LognormalGrowthMeasure.lean": "f47d856e98565ef5b0d9a4a49cfbe8f0eb9aa1b8107149487a0c773888515672",
+    "FiscalConstraints/DebtLimitStochasticMeasure.lean": "3eb7619b2109e9463ef5ae04a06183e2789cfb60cde3d984dc9f8d48a162fd5a",
+    "FiscalConstraints.lean": "dca9ed344a0e53140a798797a00275bdc089f7537ecdced71744d9c18b6ef488",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "2316afb07e737873c291196c3982b4bdd8780e7da7c3353143daebcc265883ed",
     "lake-manifest.json": "471395732f51621c043128672558300d914c17f1f7b01d12949738d21f9aac5f",
-    "proof-manifest.json": "e391951ff5e4abd4edb5305c5825488d14658b235d60b3306bb17e5020d90970",
+    "proof-manifest.json": "232f2907160bbe78e622fb0a42533e2eafc27322e187f3736f9f0a5a4c2726af",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "1e92e18aaa052d437f5ed8a1dcc2eca9bcc3f0cea7d7cd6efaa15c6880d77e14",
+  "fresh_audit_sha256": "939b289f9dc689675c6303e2ad72160e36be9971caf8f6705ab5b126d7d8e9b5",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
-  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples.",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."
 }

@@ -12,7 +12,7 @@ sums over bounded plans. Every optimality claim is proved as optimality: a feasi
 the first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Optimal from a timeless perspective" and
 "robustly optimal" are given precise definitions and proved. "Unique equilibrium" means unique
-among bounded adapted processes. The library contains **1877 theorems**, including the shared
+among bounded adapted processes. The library contains **2120 theorems**, including the shared
 core.
 
 The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4), which the book states
@@ -83,6 +83,28 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
   (`Links.fig_8_4_mean_horizon_standing`, `Links.fig_8_4_abs_weight_ratio_standing`); the
   p. 586 and pp. 590–591 coefficients (`IRuleBasic.p586_numbers`,
   `IRuleForwardIntegrated.p590_numbers`).
+* **Genuine probability models.** The general problem (1.1)–(1.4) is restated on a probability
+  space with a filtration, `E_t` Mathlib's conditional expectation and every equation holding
+  almost surely. Lagrangian sufficiency holds as an exact identity and the optimal target path is
+  a.s. unique (`OptimalRulesMeasure.m_lagrangian_gap`, `OptimalRulesMeasure.m_lagrangian_sufficiency`,
+  `OptimalRulesMeasure.m_targets_eq_of_J_eq`). Proposition 8.2's linear form (1.5) is proved for a
+  VAR(1) exogenous state, `E_t s_{t+1} = A s_t`: under the perfect-foresight Assumption 8.1, every
+  bounded solution of (1.1) + (1.9) on every probability space has `z_t = f⁰ + f_Z Z̄_t + f_s s_t`
+  a.s. with `Z̄_t = (Z_t, M_{t−1})`, the coefficients fixed before the probability space
+  (`OptimalRulesMeasureMarkov.prop82_linear_form`), and also with the `Z̄_t` of (1.24)
+  (`OptimalRulesMeasureMarkov.prop82_linear_form_124`); the target criterion (1.23) holds a.s.
+  (`OptimalRulesMeasureMarkov.criterion_var`); and when the endogenous state transition `H_n` is
+  stable the solution exists, is a.s. unique and is optimal from a timeless perspective
+  (`OptimalRulesMeasureMarkov.m_existsUnique_var`, `OptimalRulesMeasureIID.iid_prop82`). The
+  book's Assumption 8.1 holds iff the corrected bounded form holds and date-`t₀` information is
+  a.s. bounded and a.s. predictable (`OptimalRulesMeasure.assumption81_iff`; for robust
+  optimality `OptimalRulesMeasure.robustlyOptimal_iff`). So it fails on the infinite fair-coin
+  economy at every `t₀ ≥ 1` and on Gaussian i.i.d. economies
+  (`OptimalRulesMeasureIID.coin_not_assumption81`, `OptimalRulesMeasureIID.gauss_not_assumption81`),
+  and holds as stated for a static problem on the coin economy at `t₀ = 0`
+  (`OptimalRulesMeasureStatic.static_coin_assumption81`). On a finite, fully supported space every
+  notion agrees with the core one, and the one-point space is perfect foresight
+  (`OptimalRulesMeasure.Bridge.mAssumption81_iff`, `OptimalRulesMeasure.Bridge.unitSystem_pf`).
 * **Cross-links.** The formalisations of the same objects in different modules are proved to
   agree: the canonical roots of Proposition 8.7 satisfy the hypotheses of Propositions 8.9–8.11
   (`Links.inertiaRoots_of_standing`); the two Euler equations, `A(z)` and discriminants coincide
@@ -217,7 +239,9 @@ the printed text precise. The main corrections and results:
   remark of p. 553; Assumption 8.4(ii) is normalisation-dependent in case (ii) and is replaced;
   Assumption 8.3 is sufficient but not necessary; the `MultStable` hypothesis is unnecessary.
   Assumption 8.1 with a predetermined variable needs a bounded initial condition `Z_{t₀}`
-  (counterexample on an infinite sample space); the bounded optimal plan that p. 593 assumes
+  (counterexample on an infinite sample space). On a genuine probability space the book's
+  Assumption 8.1 holds exactly when the corrected form does and date-`t₀` information is a.s.
+  bounded and a.s. predictable at `t₀ − 1`; the bounded optimal plan that p. 593 assumes
   exists at every calibration, by a root count for the degree-6 FOC polynomial, not the
   Proposition 8.7 cubic. Separately, two hypothesis structures of the earlier formalisation (the original Proposition
   8.1 conclusion and Assumption 8.1) were found unsatisfiable under uncertainty and corrected;
@@ -226,13 +250,21 @@ the printed text precise. The main corrections and results:
 Not formalised:
 * in the general theory:
   * the inflation-inertia results at `γ = 0` (Assumption 8.1 and Proposition 8.2 there), where the
-    FOC system's leading matrix is singular; and the original-sense Assumption 8.1 and robust
-    optimality on an infinite sample space, which are false there (counterexamples above);
+    FOC system's leading matrix is singular;
   * Rule III at the full stochastic level. Only the homogeneous level (`Prop83.HomEquiv`), which is
     all Proposition 8.3 uses, is proved;
-  * the claim of Proposition 8.2 that the equilibrium has the linear form (1.5) in `(Z̄_t, s_t)`.
-    This needs a finite-dimensional exogenous state and a time-invariant expectation system,
-    neither of which is in the framework;
+  * on a genuine probability space (`OptimalRulesMeasureMarkov`), where the linear form (1.5) of
+    Proposition 8.2 is proved for a VAR(1) exogenous state (`OptimalRulesMeasureMarkov.IsVAR`):
+    determinacy under (1.23), that a bounded plan satisfying (1.23) a.s. is the FOC solution
+    (the converse of `OptimalRulesMeasureMarkov.criterion_var`; the core
+    `Prop82General.Prop82M.prop82M_unique` covers only an `ExpectationSystem`); Assumption 8.1 for
+    a dynamic model with an arbitrary bounded adapted disturbance, which is proved only for VAR
+    disturbances (and for every disturbance in the static problem,
+    `OptimalRulesMeasureStatic.static_assumption81MB`); and that the stability of `H_n` assumed
+    by the existence theorem follows from the perfect-foresight Assumption 8.1. Power-boundedness
+    follows, but the absence of eigenvalues of modulus one is not shown; stability is verified for
+    the static problem (`OptimalRulesMeasureStatic.static_Hn`), not for the basic or
+    inflation-inertia models;
   * repeated roots when the selection takes only part of a root class (`PencilRepeated.SelWhole`
     fails);
   * ∃ ⇒ ∀ for `CaseIIBasis.Assumption84II` when the zero root is not semisimple. It is proved when
@@ -330,6 +362,12 @@ Not formalised:
 | [InertiaProp82Complex](OptimalPolicyRules/InertiaProp82Complex.lean) | 7 | Assumption 8.5 for the case-(ii) `Λ`; Prop 8.2 for the inflation-inertia model in the complex case and at every calibration |
 | [TidyRuleSystem](OptimalPolicyRules/TidyRuleSystem.lean) | 14 | p. 593: existence for the rule system (2.6), (3.1), (3.16) for every `0 ≤ γ ≤ 1` and every bounded history, from the bounded optimal plan; existence iff the history is bounded and known; exactly one solution |
 | [Tidy](OptimalPolicyRules/Tidy.lean) | 36 | p. 585 with Ch. 4 (2.9) and fn 27: the generalised Taylor principle for general rules, its boundary as the unit eigenvalue, (3.7) satisfies it; App. G.6 p. 727: `Δ(γ)` has exactly one root in `(0, 1)`, simple |
+| [ExpectationsMeasure](OptimalPolicyRules/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](OptimalPolicyRules/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [OptimalRulesMeasure](OptimalPolicyRules/OptimalRulesMeasure.lean) | 47 | §§1.1–1.4 on a probability space: (1.1), (1.2), (1.9), Lagrangian sufficiency a.s., Assumption 8.1 in the book's and the corrected forms, robust optimality; the book's form ⇔ the bounded form + `BddInfo` + `PredInfo`; bridges to the core on a finite space and to perfect foresight on one point |
+| [OptimalRulesMeasureMarkov](OptimalPolicyRules/OptimalRulesMeasureMarkov.lean) | 55 | Prop 8.2 on VAR economies: the perfect-foresight solution map and its time-invariant coefficient matrices; conditional forecasts of any solution; the linear form (1.5) and with (1.24); (1.19)–(1.20) and (1.23) a.s.; Assumption 8.1 (uniqueness; existence under stable `H_n`); timeless optimality |
+| [OptimalRulesMeasureIID](OptimalPolicyRules/OptimalRulesMeasureIID.lean) | 19 | The i.i.d.-driven VAR and Prop 8.2 on it; the fair-coin economy (`BddInfo` holds, `PredInfo` fails) and the Gaussian economy (`BddInfo` fails): the book's Assumption 8.1 and robust optimality there |
+| [OptimalRulesMeasureStatic](OptimalPolicyRules/OptimalRulesMeasureStatic.lean) | 14 | A static problem: the corrected Assumption 8.1 on every probability space; the book's form holds on the coin economy at `t₀ = 0` and fails at `t₀ ≥ 1`; `H_n = 0`, so the existence theorem applies |
 
 ## Modelling conventions
 
@@ -341,7 +379,28 @@ Not formalised:
   theorems of §2 have finite-tree corollaries (`InflTargetInertia.baseline_robustlyOptimal_finiteTree`,
   `InflTargetStickyWages.sym_robustlyOptimal_finiteTree`). Complex roots are handled by the complexified
   expectation `ExpectationTools.EC`. Shifted and delayed information sets are themselves
-  expectation systems (`InflTargetPredetermined.shift`, `IRulePredetermined.delay`).
+  expectation systems (`InflTargetPredetermined.shift`, `IRulePredetermined.delay`). The
+  measure-theoretic restatement is described in the next bullet.
+* **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+  functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
+  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so it
+  cannot carry an infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure` adds,
+  alongside it, a probability space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`):
+  `E_t` is Mathlib's conditional expectation `condExp`, variables are bounded measurable functions
+  and processes (`BddRV`, `BddProc`, Mathlib's `StronglyAdapted`), and equations hold almost
+  everywhere. The bridge is additive and runs both ways: a finite event tree is a measure system
+  with the same `E_t` at every state (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a
+  measure system on a finite discrete state space with full support is a core system with the
+  pull-out property (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instance
+  is the i.i.d. economy on `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
+  (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`). The
+  Chapter 8 objects are restated on it with `E_t` applied componentwise
+  (`OptimalRulesMeasure.EVm`) and essentially bounded vector processes
+  (`OptimalRulesMeasure.MBoundedV`); the exogenous state is a VAR(1) in the conditional-expectation
+  sense (`OptimalRulesMeasureMarkov.IsVAR`). On a finite, fully supported space each notion is the
+  core one (`OptimalRulesMeasure.Bridge.mFOCSystem_iff`, `OptimalRulesMeasure.Bridge.mAssumption81_iff`),
+  and the one-point space is perfect foresight (`OptimalRulesMeasure.Bridge.unitSystem_pf`).
 * **Bounded adapted processes.** Plans, multipliers and disturbances are bounded and adapted;
   pre-sample values (`x_{t₀−1}`, `π_{t₀−1}`, `i_{t₀−1}`, the multiplier history) are bounded and
   known at `t₀`. Uniqueness is uniqueness among bounded adapted processes.

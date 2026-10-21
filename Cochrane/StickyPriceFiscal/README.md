@@ -9,11 +9,13 @@ University Press, 2023), Chapter 5, "Fiscal theory in sticky-price models" (pp. 
 with the parts of the Online Appendix that the chapter relies on: §§A1.7–A1.13 (pp. 569–585),
 §A1.3 on the geometric maturity structure (pp. 561–564) and §A2, (2.1)–(2.3) (p. 595). The
 discrete-time models (§§5.1–5.6) are stated for an arbitrary `ExpectationSystem`, so every result
-holds under perfect foresight and under genuine uncertainty. The continuous-time models (§5.7)
+holds under perfect foresight and under genuine uncertainty. The §5.5 model is also restated in a
+genuine probability model, with Mathlib's conditional expectation (`PolicyRulesMeasure`,
+`PolicyRulesMeasureNews`, `PolicyRulesMeasureStationary`). The continuous-time models (§5.7)
 are about deterministic paths after a date-0 shock, which is how the book computes its responses.
 "Determinate" means that exactly one bounded equilibrium exists for every admissible forcing and
-initial condition. The library contains **958 theorems**, including the shared core; 850 of them
-are in the twenty chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
+initial condition. The library contains **1155 theorems**, including the shared core; 939 of them
+are in the twenty-three chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
 Blanchard–Kahn theorem (`BKCopy`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
@@ -146,8 +148,10 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   coins and sets the later ones to tails. It satisfies every `ExpectationSystem` axiom and makes
   coin-driven shocks unpredictable, but it is a point-mass belief. The non-existence happens on the
   all-heads path (`PolicyRules.bump_unbounded`), to which this belief gives probability zero. The
-  core has no infinite-horizon full-support coin system, so whether a full-support i.i.d. system
-  gives the same verdict is not proved.
+  core has no infinite-horizon full-support coin system. In a genuine probability model the
+  verdicts are the same: the full-support i.i.d. economy gives exactly the `truncSystem` answers
+  (`PolicyRulesMeasureNews.alpha_iid_iff_trunc`, `PolicyRulesMeasureNews.unitroot_iid_iff_trunc`;
+  see "Genuine probability models" below).
 * **Responses and Table 5.1.** The closed form `x_t = gπ_t − σ/(λ_u − η_i)u_{i,t}`,
   `E_tπ_{t+1} = λ_sπ_t + …` (`PolicyRules.closed_form`); the identities (3.20)–(3.22) for every
   bounded solution (`PolicyRules.identity_320`, `PolicyRules.identity_321`,
@@ -206,6 +210,38 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   long run" (`Sims.fisherian_inflation`, `Sims.steady_state_peg`); the habit roots
   (`Sims.habit_roots`).
 
+### Genuine probability models (§§5.4.1, 5.5, App. §1.9)
+
+* **Genuine probability models.** The §5.5 model is restated for any filtered probability space,
+  with `E_t` Mathlib's conditional expectation and every equation holding almost everywhere
+  (`PolicyRulesMeasure.MRedEquil`). Under passive money, `|ω| < 1`, `ρ > 0` and `|1 − α| < ρ`
+  there is exactly one bounded equilibrium, up to null sets, for every admissible shock process and
+  initial inflation and debt (`PolicyRulesMeasure.mpolicyRules_determinate`); at most one for every
+  `α` and on the unit root (`PolicyRulesMeasure.mpolicyRules_unique`,
+  `PolicyRulesMeasure.munitroot_unique`), with the boundary existence criteria
+  (`PolicyRulesMeasure.malpha_exists_iff`, `PolicyRulesMeasure.munitroot_exists_iff`). No
+  Blanchard–Kahn theorem is used: the forward combination `f = x − g(λ_S)π` solves a scalar forward
+  equation (`PolicyRulesMeasure.mblock_props`). For every system with recurring nondegenerate news
+  (`PolicyRulesMeasureNews.RecurringNews`) the model is determinate iff `|1 − α| < ρ`, or
+  `|1 − α| = ρ` with `κ_s = κ_i = 0`, and on the unit root iff `β_s = 0` and `β_i = k`
+  (`PolicyRulesMeasureNews.alpha_iff_news`, `PolicyRulesMeasureNews.unitroot_iff_news`), in
+  particular in the i.i.d. economy, in which every history is null, and for fair coins
+  (`PolicyRulesMeasureNews.alpha_iff_iid`, `PolicyRulesMeasureNews.alpha_iff_coin`). Non-existence
+  comes from second moments, `E W_t² ≥ tc`, not from a single path
+  (`PolicyRulesMeasureNews.not_bdd_of_news`). Active money leaves some initial inflation without an
+  equilibrium in every probability model, because the means of an equilibrium form a
+  perfect-foresight one (`PolicyRulesMeasureNews.mnonexist_of_active`,
+  `PolicyRulesMeasureNews.mean_equil`). On a finite fully supported state space all of this is the
+  core model (`PolicyRulesMeasureNews.mmodelDeterminate_iff_core`).
+* **Strict stationarity at `ρ = 1`.** With laws available, "the unique stationary equilibrium"
+  (p. 148) is stated as strict stationarity (`PolicyRulesMeasureStationary.StrictlyStationary`). A
+  bounded strictly stationary martingale is constant (`PolicyRulesMeasureStationary.stationary_martingale`),
+  so the gap `d = v* − v` of a bounded solution is strictly stationary iff `π* = π` from date 1, and
+  then `d` is constant (`PolicyRulesMeasureStationary.rho_one_stationary_iff`,
+  `PolicyRulesMeasureStationary.rho_one_stationary_const`). Stationarity does **not** select
+  `v* = v`: a constant gap is strictly stationary (`PolicyRulesMeasureStationary.rho_one_stationary_not_select`).
+  The survey's E32 example is stationary from date 1 only (`PolicyRulesMeasureStationary.iid_stationary_from_one`).
+
 ### Links between the sections
 
 `Links` proves that the separately formalised sections agree: the §5.5 model without rules is the
@@ -240,6 +276,8 @@ the printed text precise. The main corrections are:
 * p. 131: persistence is not needed for a disinflationary rate rise (found during formalisation);
 * p. 121, pp. 136–137, 148 and App. pp. 574–576: `ρ = 1` and unit eigenvalues are not
   forward-looking roots; the exact model-level answers above (E20, E32);
+* p. 148 at `ρ = 1`: strict stationarity selects `π* = π` but not `v = v*`, and the survey's E32
+  example is stationary only from date 1 (`PolicyRulesMeasureStationary`);
 * the missing upper bounds `α < 2`, `α < 1 + ρ`, `γ < 2`, `γ < 1 + ρ`, and the exact condition in
   `α` (E31, E54, E6 of Chapters 11–19);
 * Table 5.1 (`2.58` should be `0.26`, E41; `η_s = 0.5`, not `0.4`, E40) and Table 5.2
@@ -260,10 +298,11 @@ Not formalised:
   not formalised, only the facts it plots;
 * for `ρ ≠ β`, the dependence of the AR(1) impact response on persistence beyond the closed form
   `LongTermDebt.ar1_impact`; the resonant case `λ₁η = 1` is excluded;
-* determinacy with recurring news under a full-support system: the boundary results use the
-  point-mass `PolicyRules.truncSystem` (see the caveat above);
-* the survey's "strict stationarity" at `ρ = 1`: there is no stationarity notion for an abstract
-  `ExpectationSystem`; boundedness and the transversality condition are treated instead;
+* the other discrete-time sections in a genuine probability model: only the §5.5 model
+  (existence, uniqueness, the closed form, the boundaries) and the `ρ = 1` stationarity question are
+  restated with measure-theoretic expectations; §§5.1–5.4 and 5.6, the responses and Table 5.1 are
+  proved for the abstract `ExpectationSystem` only. Strict stationarity is stated for the gap
+  `v* − v` of a bounded solution, not for the equilibrium as a whole;
 * the matrix method for every matrix without the Jordan-decomposition hypothesis. A
   hypothesis-free version needs the generalised-eigenspace projections and the asymptotics of
   `exp(tA)`, which Mathlib does not provide in that form. The P/M selector notation of App. §1.13 is
@@ -308,6 +347,11 @@ Not formalised:
 | [CTMatrixMethod](StickyPriceFiscal/CTMatrixMethod.lean) | 17 | App. §1.13 with complex and defective eigenvalues, given a Jordan decomposition |
 | [Links](StickyPriceFiscal/Links.lean) | 25 | Links between the sections: innovations, discrete and continuous roots, the §5.5 model without rules as the §§5.1.2 and 5.2 models, fiscal-rule roots, ODE solutions |
 | [LinksTidy](StickyPriceFiscal/LinksTidy.lean) | 25 | The exact bond weight `ω̃` as the `omega` of `PolicyRules.Params` (identification map, equations, equilibria; E23), and the two continuous-time transversality theorems derived from each other |
+| [ExpectationsMeasure](StickyPriceFiscal/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](StickyPriceFiscal/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [PolicyRulesMeasure](StickyPriceFiscal/PolicyRulesMeasure.lean) | 53 | §5.5, (5.61)–(5.73), App. §§1.9, 1.11, in a probability model: the block without Blanchard–Kahn, uniqueness for every `α` and on the unit root, determinacy, the closed form, existence at the boundaries |
+| [PolicyRulesMeasureNews](StickyPriceFiscal/PolicyRulesMeasureNews.lean) | 27 | §5.5 with recurring news: exact determinacy in `α` and on the unit root for every such system, the i.i.d. and coin economies, equality with the `truncSystem` verdicts, means of equilibria, the finite-space bridge to `PolicyRules` |
+| [PolicyRulesMeasureStationary](StickyPriceFiscal/PolicyRulesMeasureStationary.lean) | 9 | §§5.4.1, 5.5, p. 148: strict stationarity at `ρ = 1`; it selects `π* = π`, not `v* = v`; the survey's example (E32) |
 
 ## Modelling conventions
 
@@ -317,7 +361,24 @@ Not formalised:
   genuine uncertainty use the coin-flip tree (`ExpectationsFiniteTree.coinSystem`) or, for
   shocks that recur at every date, `PolicyRules.truncSystem`. The innovation `ΔE_{t+1}` is
   `SharedTools.innov`; statements in §§5.1–5.4 write `E_{t+1} − E_t` explicitly, which is the same
-  by `SharedTools.innov_apply`.
+  by `SharedTools.innov_apply`. Full-support versions with recurring news are in
+  `PolicyRulesMeasureNews` (next item).
+* **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+  functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
+  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so it
+  cannot carry an infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure` adds,
+  alongside it, a probability space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`):
+  `E_t` is Mathlib's conditional expectation `condExp`, variables are bounded measurable functions
+  and processes (`BddRV`, `BddProc`, Mathlib's `StronglyAdapted`), and equations hold almost
+  everywhere. Uniqueness means agreement almost everywhere at every date
+  (`PolicyRulesMeasure.AESame`). The bridge is additive and runs both ways: a finite event tree is
+  a measure system with the same `E_t` at every state (`ExpectationsMeasure.TreeBridge.treeSystem_E`),
+  and a measure system on a finite discrete state space with full support is a core system with
+  the pull-out property (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`); there §5.5 equilibria
+  and determinacy are exactly the core ones (`PolicyRulesMeasureNews.mredEquil_iff_core`). The
+  genuine instance is the i.i.d. economy on `ℕ → ℝ` under `ν^ℕ`, in which every history has
+  probability zero (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`).
 * **Equilibrium and determinacy.** An equilibrium is a bounded adapted solution from given
   predetermined values: the real value of nominal debt `b_0 = v_{−1} + i_{−1}` in §5.1.2
   (`FiscalNK.Eqm`), pre-sample debt and bond price in §5.2 (`LongTermDebt.LTD`), initial inflation
@@ -355,7 +416,9 @@ Nothing is imported from those projects. The chapter modules use `ExpectationSys
 `ExpectationSystem.forward_unique`, `ExpectationSystem.forwardSeries`, `ForwardSolution.Solves`,
 `ForwardSolution.existsUnique_bounded`, the coin-flip tree, and the quadratic roots `root₁` and
 `root₂` of `Determinacy`; the Schur–Cohn theorem itself (`schurStable_iff_roots`) is carried for
-the later projects.
+the later projects. The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`)
+is a verbatim copy, with the namespace renamed, of the modules built in the Cochrane
+`ObservationalEquivalence` project.
 
 **`BKCopy` is a verbatim copy of the Woodford Chapter 4 general Blanchard–Kahn theorem.** It
 consists of the three modules `InvariantSplit`, `GeneralBKForward` and `GeneralBK` of the
