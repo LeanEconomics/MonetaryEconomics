@@ -12,11 +12,14 @@ standard new-Keynesian model" (pp. 586–588). The linear models are stated for 
 expectation operator, so every result about them covers perfect foresight and genuine
 uncertainty: processes are `ℕ → Ω → ℝ` and every equation holds state by state. The full-model
 paths of §17.4 are perfect-foresight sequences after the announcement or shock, as in the book's
-figures, and statements about an infinite past are ℤ-indexed and pathwise. The central objects
+figures; their expected-path and news forms are also proved for every expectation system and,
+almost surely, on genuine probability spaces with Mathlib's conditional expectation. Statements
+about an infinite past are ℤ-indexed and pathwise. The central objects
 are the simple sticky-price model (17.1)–(17.14), under adaptive and under rational expectations,
 and the three-equation model (17.15)–(17.33); "determinate" means exactly one bounded equilibrium
-for every bounded adapted disturbance. The library contains **508 theorems**, including the
-shared core; 400 of them are in the thirteen chapter modules.
+for every bounded adapted disturbance. The library contains **1143 theorems**, including the
+shared core and the infrastructure restated from the Woodford Chapter 4 and Cochrane Chapter 22
+projects; 600 of them are in the twenty-seven chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E7–E11 and E24 refer to
@@ -69,8 +72,11 @@ Headline results, in the namespace `Cochrane.KeynesianStickyPrices`:
   `FullModel.antPath_x_neg`, `FullModel.rise_raises_inflation`); the rise anticipated from the
   infinite past has exactly one bounded path on ℤ, `FullModel.zPath`, to which every response
   converges as the announcement recedes (`FullModel.zPath_existsUnique`,
-  `FullModel.tendsto_zPath`). For Figure 17.6, `Δs(p) = (1 − p)/(λ₁ − ρ) − p` and B has
-  `Δs = −1` exactly (`FiscalUnderpinnings.deltaS_closed`, `FiscalUnderpinnings.deltaS_B`); the
+  `FullModel.tendsto_zPath`). For Figure 17.6, the surplus news implied by the flow condition is
+  `ρ(1 − p)/(λ₁ − ρ) − p` (`TidyR5StochasticFiscal.surplus_news_rise`;
+  `FiscalUnderpinnings.deltaS`, `(1 − p)/(λ₁ − ρ) − p`, omits the factor `ρ` and agrees only for
+  `ρ = 1` or `p = 1`), and B has `Δs = −1` exactly (`FiscalUnderpinnings.deltaS_closed`,
+  `FiscalUnderpinnings.deltaS_B`); the
   labels `δ₁ = ±1%` of A and E are inconsistent with the printed `Δs` values for any parameters
   (`FiscalUnderpinnings.fig17_6_inconsistent`).
 * **Fiscal underpinnings.** (17.19) is exact with `r_{t+1+j}` the real rate earned between
@@ -126,6 +132,50 @@ Headline results, in the namespace `Cochrane.KeynesianStickyPrices`:
   `FullModelTidy.fig17_7_calibration_oscillates`). At `β = 0.95`, `σ = 1`, `κ = 1/25`, `φ = 1.2`
   the system is determinate, yet every deviation satisfies the real transversality condition
   (`FullModelTidy.tvc_cannot_rule_out`).
+* **Real explosions with an output response and under uncertainty (p. 421).** With
+  `ĩ = φπ̃ + φ_xx̃`, `T = 1 + β + σκ + βσφ_x` and `B = β(1 + σφ_x + σκφ)`, for every `φ` and `φ_x`:
+  some deviation has `βᵗx̃_t → +∞` iff `φ < 1/β` or (`T > 2` and `4B ≤ T²`); `βᵗx̃_t` is unbounded
+  for some deviation iff `φ < 1/β`, `|B| > 1`, `1 + B + T < 0` or `B = 1 ∧ T = −2`; the real
+  transversality condition fails iff `φ < 1/β`, `|B| ≥ 1` or `1 + B + T ≤ 0`
+  (`TidyR5RealExplosions.explodesX_iff`, `TidyR5RealExplosions.unboundedX_iff`,
+  `TidyR5RealExplosions.tvcX_fails_iff`), from the characterisation of
+  `y_{t+2} = Ay_{t+1} − By_t` for all real `A`, `B` (`TidyR5Recurrence.exists_atTop_iff`,
+  `TidyR5Recurrence.exists_unbounded_iff`, `TidyR5Recurrence.exists_not_tendsto_zero_iff`). At the
+  Figure 17.8 calibration the output response `φ_x = 1/2` keeps the system determinate and
+  produces a monotone real explosion (`TidyR5RealExplosions.book_calibration_output_response`).
+  The same conditions characterise `E_tβʲx̃_{t+j}` under every expectation system and, with
+  positive probability or for the mean, on every probability space
+  (`TidyR5RealExplosions.explodes_uncertainty_iff`,
+  `TidyR5ExplosionsMeasure.explodes_measure_iff`, `TidyR5ExplosionsMeasure.explodes_mean_iff`).
+  Read pathwise the claim fails: on the i.i.d. coin space every deviation satisfies the expected
+  real transversality condition, yet a deviation's realised `βᵗx̃_t` is unbounded almost surely
+  (`TidyR5PathwiseExplosion.pathwise_explosion`).
+* **The full-model paths under uncertainty (§17.4).** For every expectation system, and almost
+  surely on a probability space, expected paths and the news `ΔE_{s+1}` about the whole future are
+  perfect-foresight equilibria, so Figures 17.5–17.6 are impulse responses
+  (`TidyR5StochasticPaths.expected_path`, `TidyR5StochasticPaths.news_path`,
+  `TidyR5StochasticPaths.news_rise`, `TidyR5StochasticPathsMeasure.news_path_ae`). The equilibria
+  of Figure 17.6 are indexed by initial inflation and an arbitrary bounded innovation process,
+  with existence and uniqueness (`TidyR5StochasticPaths.innov_eqm_existsUnique`,
+  `TidyR5InnovEqmMeasure.piM_equilibrium`, `TidyR5InnovEqmMeasure.eq_piM`); each is the unique
+  equilibrium under its reverse-engineered disturbance
+  (`TidyR5StochasticPaths.reverse_engineer_innov`, `TidyR5ReverseMeasure.reverse_engineer_piM`).
+  The surplus news of Figures 17.6–17.7, including `Σs` per unit rate shock, follows from (17.19)
+  (`TidyR5StochasticFiscal.surplus_news_rise`,
+  `TidyR5StochasticFiscal.surplus_news_ar1_eq_sigmaS`,
+  `TidyR5StochasticFiscalMeasure.surplus_news_rise_ae`).
+* **(18.2) with inertia, a completion.** The book makes no determinacy claim. For all parameters
+  with `σ, κ, β > 0`, under any expectation system: with `1 − σφ_{x,1} ≠ 0`, determinate iff
+  exactly one root of `det(λM − N)` is inside the unit circle and two outside, and the rule
+  responds along the peg's stable direction, `κ(φ_π + φ_{π,1}μ) + (φ_x + φ_{x,1}μ)(1 − βμ) ≠ 0`
+  at `μ = 1/λ₁` (`TidyR5Inertia.determinate182_iff`), with a closed form in the eight
+  parameters (`TidyR5InertiaForward.determinate182_closed_iff`); with `σφ_{x,1} = 1` the system
+  drops an order and is determinate iff `D₁D₋₁ < 0` and the same response condition holds
+  (`TidyR5InertiaSingular.determinate182_singular_iff`, through the singular-pencil
+  Blanchard–Kahn theorem). With backward-looking responses it is determinate iff
+  `κ(φ_π + φ_i − 1) + (1 − β)φ_x > 0` and `φ_π > 0 ∨ φ_x > 0`
+  (`TidyR5Inertia.determinate182_noForward_iff`): the long-run Taylor principle with inertia is
+  not sufficient on its own (`TidyR5Inertia.not_determinate182_no_response`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -145,7 +195,15 @@ In addition, the formalisation makes precise "`φ > 1` is neither necessary nor 
 (p. 420, A1 p. 587), the real explosions "`E_tβʲx_{t+j} → ∞`" for `φ ≥ 1/β` (p. 421), "with
 `φ < 1` we have multiple equilibria" (A1 p. 587), the Clarida–Galí–Gertler reading (p. 428), the
 output response of Figure 17.5 (p. 409), the infinite past of (17.8) (p. 400), the
-cross-reference to (1.62) for (1.60) (A1 p. 588) and the rounding `η* ≈ 0.51` (p. 416).
+cross-reference to (1.62) for (1.60) (A1 p. 588) and the rounding `η* ≈ 0.51` (p. 416). With
+an output response the real-explosion claim of p. 421 is no longer decided by the determinant
+condition, and at the Figure 17.8 calibration with `φ_x = 1/2` the explosions are monotone; under
+genuine uncertainty the claim holds only in its expectational form, not pathwise. For (18.2),
+where the book makes no claim, the long-run Taylor principle with inertia is not sufficient.
+One correction concerns the earlier formalisation, not the book: `FiscalUnderpinnings.deltaS`
+omits the factor `ρ` on real-rate news, so the corrected D is `ρ/(λ₁ − ρ)` and C is at
+`δ = ρ/λ₁` (`TidyR5StochasticFiscal.surplus_news_D`,
+`TidyR5StochasticFiscal.surplus_news_zero_iff`).
 
 Not formalised:
 * the verbal and historical parts of Chapter 18 (§§18.1–18.3, beyond footnote 1 and
@@ -155,21 +213,23 @@ Not formalised:
 * the household problems behind (17.15)–(17.17): the IS and Phillips curves are imposed as
   equilibrium conditions;
 * the Figure 17.6 numbers 0.67, 1.66, −1.53 and 2.99: the book gives no `σ, κ, β, ρ` for the
-  figure. Only the `Δs` formula, B, C and D, and the inconsistency of A and E are proved;
-* stochastic versions of the full-model paths of §17.4: Figures 17.5–17.7, the reverse-engineered
-  disturbances and `Δs` are under perfect foresight after the announcement or shock, with
-  pre-shock expectations at the steady state. The infinite-past statements ((17.8), the corrected
-  inverse of (17.14), `zPath`, and the bounded paths and equilibria on ℤ of `FullModelTidy`) are
-  pathwise under perfect foresight, because the core `ExpectationSystem` has no infinite past;
-* (18.2) with inertia `φ_i ≠ 0`, a three-dimensional system with a predetermined variable; the
-  book makes no determinacy claim about it;
-* real explosions under uncertainty or with an output response: the characterisations of
-  `FullModelTidy` are for the perfect-foresight deviation system with `φ_x = 0`, as in (17.32);
+  figure. Only the `Δs` formula (with the factor `ρ`, `TidyR5StochasticFiscal.surplus_news_rise`),
+  B, C and D, and the inconsistency of A and E (`FiscalUnderpinnings.fig17_6_inconsistent`,
+  `TidyR5StochasticFiscal.fig17_6_inconsistent_corrected`) are proved;
+* the infinite past under uncertainty: the stochastic versions of §17.4 (expected paths, news,
+  Figures 17.5–17.7, the equilibrium set, `Δs`, `Σs` and the reverse-engineered disturbances) are
+  stated in news form from a date `s` on, since both expectation systems are ℕ-indexed; the
+  infinite-past statements ((17.8), the corrected inverse of (17.14), `zPath`, and the bounded
+  paths and equilibria on ℤ of `FullModelTidy`) remain pathwise under perfect foresight;
+* for (18.2), the genericity condition is stated at the explicit root `μ = λ₂/β` of (5.6), not
+  reduced to a polynomial inequality in the parameters;
 * the likelihood of (18.3) as a statistical object: `History.likelihood_flat` is a statement about
   every function of the equilibrium paths;
-* A1 §1.9 (matrix and state-variable methods, pp. 573–578) and the continuous-time parts of
-  §1.13 (pp. 580–585), which the chapter only points to; the survey's E11 items on pp. 574–575
-  belong there.
+* A1 §1.9 (matrix and state-variable methods, pp. 573–578) as an exposition, and the
+  continuous-time parts of §1.13 (pp. 580–585), which the chapter only points to; the survey's E11
+  items on pp. 574–575 belong there. The Blanchard–Kahn theorems that §1.9 describes are restated
+  from the Woodford Chapter 4 project and used for (18.2), with the degree-two root count
+  `TidyR5QuadRoots.count_one_iff`.
 
 ## Library map
 
@@ -186,12 +246,36 @@ Not formalised:
 | [FullModel](KeynesianStickyPrices/FullModel.lean) | 61 | §§17.4–17.4.1: (17.15)–(17.18), the roots (restated from the Chapter 5 project), the two-sided moving average, equilibria indexed by `π_0`, Figure 17.5 including the path anticipated from the infinite past, Figure 17.6 |
 | [PersistenceFreedom](KeynesianStickyPrices/PersistenceFreedom.lean) | 16 | §17.3.1, §17.4.1, §17.4.3: (17.14) and its corrected inverse (E8), any persistence with any sign, long-run response one, `η* = 1/λ₁` |
 | [AdaptiveTaylor](KeynesianStickyPrices/AdaptiveTaylor.lean) | 12 | §17.3.2: the AR(2), Figure 17.4, stability, the peg spiral |
-| [FiscalUnderpinnings](KeynesianStickyPrices/FiscalUnderpinnings.lean) | 39 | §17.4.2: (17.19) with the dating correction, the fiscal contraction, reverse engineering, Figure 17.7 numbers, E10, the `Δs` of Figure 17.6 and its label inconsistency |
+| [FiscalUnderpinnings](KeynesianStickyPrices/FiscalUnderpinnings.lean) | 39 | §17.4.2: (17.19) with the dating correction, the fiscal contraction, reverse engineering, Figure 17.7 numbers, E10, the `Δs` of Figure 17.6 (without the factor `ρ` on real-rate news; corrected in `TidyR5StochasticFiscal`) and its label inconsistency |
 | [OptimalPolicy](KeynesianStickyPrices/OptimalPolicy.lean) | 20 | §17.5.1: (17.22)–(17.28), any path attainable, E9 corrected, Woodford's loss, constant intercepts |
 | [TaylorDeterminacy](KeynesianStickyPrices/TaylorDeterminacy.lean) | 36 | §17.5.2 and A1 (1.55)–(1.58): structural systems, determinacy with `φ_x`, (1.58), Bullard–Mitra, "neither necessary nor sufficient", (1.55) corrected, (1.57) and E11, `φ` irrelevance, real explosions |
 | [History](KeynesianStickyPrices/History.lean) | 11 | Chapter 18: the PIH footnote, (18.1)–(18.3), the Clarida–Galí–Gertler reading |
 | [Links](KeynesianStickyPrices/Links.lean) | 28 | Links between the two chains: the simple model as the `β = 0` case of the full model, (1.55) and (17.33), MSV uniqueness on the whole determinacy region, lag roots and eigenvalues, `zPath` and the `full_any_sign` family, (18.1)–(18.2) |
 | [FullModelTidy](KeynesianStickyPrices/FullModelTidy.lean) | 54 | §17.4.1 and §17.5.2: (17.18) and the equilibrium on ℤ for every bounded rate path, the two-sided ℤ-sum (5.5); real explosions (17.29)–(17.33) for every `φ`, as `→ ±∞`, unboundedness and failure of the transversality condition, with the book's calibrations as counterexamples (p. 421) |
+| [TidyR5SchurCohn](KeynesianStickyPrices/TidyR5SchurCohn.lean) | 45 | Woodford App. C.1, Props. C.1–C.2: root location for real quadratics and cubics, Cases I, II, III′ (restated from the Woodford Chapter 4 project) |
+| [TidyR5BlanchardKahn](KeynesianStickyPrices/TidyR5BlanchardKahn.lean) | 90 | Woodford App. C.1: `2 × 2` forward systems and the `3 × 3` Blanchard–Kahn theorem with one predetermined variable, `determinate3_iff` (restated from the Woodford Chapter 4 project) |
+| [TidyR5ExpectationsMeasure](KeynesianStickyPrices/TidyR5ExpectationsMeasure.lean) | 71 | Conditional expectations on a probability space with a filtration (Mathlib `condExp`), a.e. axioms, news, forward solutions, bridges to the core (restated from the Chapter 22 project) |
+| [TidyR5ExpectationsMeasureIID](KeynesianStickyPrices/TidyR5ExpectationsMeasureIID.lean) | 37 | The i.i.d. economy on `ℕ → ℝ` and the fair-coin economy (restated from the Chapter 22 project) |
+| [TidyR5Recurrence](KeynesianStickyPrices/TidyR5Recurrence.lean) | 20 | p. 421, A1 (1.57): `y_{t+2} = Ay_{t+1} − By_t` for all real `A`, `B`: explosions to `±∞`, unboundedness, failure to tend to zero |
+| [TidyR5RealExplosions](KeynesianStickyPrices/TidyR5RealExplosions.lean) | 33 | p. 421 with the output response of (18.1): real explosions, unboundedness and the real transversality condition for every `φ`, `φ_x`, under perfect foresight and every expectation system; the Fig. 17.8 calibration with `φ_x = 1/2`; the determinant condition no longer decides |
+| [TidyR5ExplosionsMeasure](KeynesianStickyPrices/TidyR5ExplosionsMeasure.lean) | 12 | p. 421 on a probability space: the same characterisations with positive probability and for the mean |
+| [TidyR5InvariantSplit](KeynesianStickyPrices/TidyR5InvariantSplit.lean) | 52 | Woodford App. C.1: eigenvalue counts and the stable invariant subspace (restated from the Woodford Chapter 4 project) |
+| [TidyR5GeneralBKForward](KeynesianStickyPrices/TidyR5GeneralBKForward.lean) | 17 | Woodford App. C.1, fn. 1: forward systems over a finite index type (restated from the Woodford Chapter 4 project) |
+| [TidyR5GeneralBK](KeynesianStickyPrices/TidyR5GeneralBK.lean) | 39 | Woodford App. C.1: the general Blanchard–Kahn theorem (restated from the Woodford Chapter 4 project) |
+| [TidyR5GeneralBKPencil](KeynesianStickyPrices/TidyR5GeneralBKPencil.lean) | 7 | Woodford App. C.1: Blanchard–Kahn for systems in pencil form with `A₀` invertible (restated from the Woodford Chapter 4 project) |
+| [TidyR5GeneralBKSingular](KeynesianStickyPrices/TidyR5GeneralBKSingular.lean) | 49 | Woodford App. C.1, fn. 2; King–Watson, Klein: Blanchard–Kahn for singular pencils (restated from the Woodford Chapter 4 project) |
+| [TidyR5ThreeByThree](KeynesianStickyPrices/TidyR5ThreeByThree.lean) | 28 | Woodford Prop. 4.4 and App. C.3: the inertial rule `A44`, corrected (restated from the Woodford Chapter 4 project) |
+| [TidyR5Inertia](KeynesianStickyPrices/TidyR5Inertia.lean) | 16 | (18.2), p. 427, with inertia: the `3 × 3` system, the characteristic polynomial, genericity, determinacy through Prop. C.2; backward-looking responses; inertia alone not determinate |
+| [TidyR5InertiaForward](KeynesianStickyPrices/TidyR5InertiaForward.lean) | 11 | (18.2) with forward responses: `P(±1)`, (C.15), `\|A₂\|` in closed form and the closed-form determinacy condition |
+| [TidyR5QuadRoots](KeynesianStickyPrices/TidyR5QuadRoots.lean) | 4 | A1 §1.9: one root inside the unit circle for a real polynomial of degree at most two iff `p(1)p(−1) < 0` |
+| [TidyR5InertiaSingular](KeynesianStickyPrices/TidyR5InertiaSingular.lean) | 17 | (18.2) with `σφ_{x,1} = 1`: the pencil form for all parameters, `det(λM − N)`, determinacy iff `D₁D₋₁ < 0` and the response condition |
+| [TidyR5StochasticPaths](KeynesianStickyPrices/TidyR5StochasticPaths.lean) | 17 | §17.4, Figs. 17.5–17.6 and p. 414 under any expectation system: expected paths and news as perfect-foresight equilibria, equilibria indexed by innovations, reverse-engineered disturbances |
+| [TidyR5StochasticPathsMeasure](KeynesianStickyPrices/TidyR5StochasticPathsMeasure.lean) | 8 | §17.4, Figs. 17.5–17.6 on a probability space: expected paths and news a.s. |
+| [TidyR5InnovEqmMeasure](KeynesianStickyPrices/TidyR5InnovEqmMeasure.lean) | 8 | Fig. 17.6 on a probability space: (17.18) and its factored form a.e.; existence and a.s. uniqueness of the equilibrium for every innovation process |
+| [TidyR5PathwiseExplosion](KeynesianStickyPrices/TidyR5PathwiseExplosion.lean) | 17 | p. 421: on the i.i.d. coin space the expected real transversality condition holds for every deviation, yet realised `βᵗx̃_t` is unbounded a.s. for some deviation |
+| [TidyR5ReverseMeasure](KeynesianStickyPrices/TidyR5ReverseMeasure.lean) | 6 | pp. 414, 420 on a probability space: uniqueness under a rule a.s., reverse-engineered disturbances |
+| [TidyR5StochasticFiscal](KeynesianStickyPrices/TidyR5StochasticFiscal.lean) | 16 | Figs. 17.6–17.7, (17.19) under any expectation system: surplus news `ρ(1 − δ)/(λ₁ − ρ) − δ` correcting `FiscalUnderpinnings.deltaS`, AR(1) news, `Σs`, `u` news not geometric |
+| [TidyR5StochasticFiscalMeasure](KeynesianStickyPrices/TidyR5StochasticFiscalMeasure.lean) | 15 | Figs. 17.6–17.7, (17.19) on a probability space: (17.19) a.s., surplus news, AR(1) news, `Σs` |
 
 ## Modelling conventions
 
@@ -202,6 +286,11 @@ Not formalised:
   (`ExpectationsFiniteTree.FiniteTree.toExpectationSystem`) are instances; the coin-flip tree
   makes the any-sign result genuinely random (`PersistenceFreedom.any_sign_coin`). No chapter
   result needs the pull-out property.
+* **Probability spaces.** The `…Measure` modules and `TidyR5PathwiseExplosion` pose the models
+  on a probability space with a filtration and Mathlib's conditional expectation
+  (`TidyR5ExpectationsMeasure.MeasExpectationSystem`): equations hold almost everywhere, variables
+  are integrable, and boundedness is essential boundedness. The i.i.d. coin economy
+  (`TidyR5ExpectationsMeasureIID`) has no finitely supported description.
 * **Timing.** Dates are natural numbers. In the adaptive model `π_{−1}` is an initial value
   (`StaticIS.lagged`); in Figure 17.7 the book's dates `1, 2, …` are `n = 0, 1, …`. The
   perfect-foresight full model works with sequences `ℕ → ℝ` (`FullModel.PFEqm`,
@@ -236,7 +325,15 @@ Not formalised:
 
 The shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is
 restated from the Woodford projects, so the project builds on its own. Nothing is imported from
-the Galí or Woodford projects.
+the Galí or Woodford projects. For (18.2) with inertia, the Woodford Chapter 4 project's
+Schur–Cohn, Blanchard–Kahn and singular-pencil modules, and the Proposition 4.4 part of its
+`ThreeByThree`, are restated as `TidyR5SchurCohn`, `TidyR5BlanchardKahn`, `TidyR5InvariantSplit`,
+`TidyR5GeneralBKForward`, `TidyR5GeneralBK`, `TidyR5GeneralBKPencil`, `TidyR5GeneralBKSingular`
+and `TidyR5ThreeByThree`. With backward-looking responses the matrix of (18.2) is Woodford's
+`A44` with the output response in his annualised units (`TidyR5Inertia.A182_noForward`), and the
+condition is his Proposition 4.4 as corrected there (`TidyR5ThreeByThree.prop44`). The
+measure-theoretic expectations are restated from the Chapter 22 project
+(`ObservationalEquivalence`) as `TidyR5ExpectationsMeasure` and `TidyR5ExpectationsMeasureIID`.
 
 The Taylor-rule determinacy pieces are adapted from the Galí Chapter 3 project
 (`BasicNewKeynesianModel`). There, `TaylorRuleSystem.determinate_iff_BM` proves that the system
