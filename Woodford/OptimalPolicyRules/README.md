@@ -12,7 +12,7 @@ sums over bounded plans. Every optimality claim is proved as optimality: a feasi
 the first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Optimal from a timeless perspective" and
 "robustly optimal" are given precise definitions and proved. "Unique equilibrium" means unique
-among bounded adapted processes. The library contains **2357 theorems**, including the shared
+among bounded adapted processes. The library contains **2417 theorems**, including the shared
 core.
 
 The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4), which the book states
@@ -144,7 +144,25 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
   `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_var`) and at every admissible calibration
   `0 < γ ≤ 1`, with no hypothesis left (`OptimalRulesMeasureInertiaComplex.in_m_prop82_all_general`,
   `OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var`); Assumption 8.5 holds for the `Λ` of
-  every quasi-split of the model (`OptimalRulesMeasureInertiaComplex.in_h85_quasi`).
+  every quasi-split of the model (`OptimalRulesMeasureInertiaComplex.in_h85_quasi`). The
+  spectral relation holds with multiplicities: the Euler pencil `det(νF − G)` factors as
+  `det(νI − H) · R(ν)`, and the eigenvalues of `H`, with algebraic multiplicity, are exactly the
+  roots of the pencil in the closed unit disc, the unit circle included
+  (`OptimalRulesMeasureMultiplicity.eulerPoly_factor`,
+  `OptimalRulesMeasureMultiplicity.roots_charpoly_eq`,
+  `OptimalRulesMeasureMultiplicity.rootMultiplicity_charpoly`). The pencil pairs `ν` with
+  `1/(βν)` with equal multiplicities (`OptimalRulesMeasureEulerPencil.rootMultiplicity_pairMap`,
+  `OptimalRulesMeasureEulerPencil.card_lower_eq_upper`); the perfect-foresight Assumption 8.1
+  makes it regular, puts exactly `n` roots in the closed disc (the Blanchard–Kahn count) and none
+  in `1 < |ν| < β⁻¹` (`OptimalRulesMeasureMultiplicity.eulerPoly_ne_zero`,
+  `OptimalRulesMeasureMultiplicity.card_closedDisk_eq`,
+  `OptimalRulesMeasureMultiplicity.eulerRoot_gap`). The same involution maps the unselected roots
+  of (1.15) to the eigenvalues of `Λ`, so the remark after Proposition 8.1 becomes an iff
+  (`OptimalRulesMeasureMultiplicity.prop81_eig_pairMap`,
+  `OptimalRulesMeasureMultiplicity.powDecay_Λ_iff_outside`). In Example B every horizon of news
+  feeds the unit-root direction, `e'K^N_k ≠ 0`, while the total forcing sums to zero
+  (`OptimalRulesMeasureKernelB.eB_KN`, `OptimalRulesMeasureKernelB.eB_eKN_ne_zero`,
+  `OptimalRulesMeasureKernelB.eB_eKN_hasSum`).
 * **Cross-links.** The formalisations of the same objects in different modules are proved to
   agree: the canonical roots of Proposition 8.7 satisfy the hypotheses of Propositions 8.9–8.11
   (`Links.inertiaRoots_of_standing`); the two Euler equations, `A(z)` and discriminants coincide
@@ -297,9 +315,9 @@ Not formalised:
     FOC system's leading matrix is singular;
   * Rule III at the full stochastic level. Only the homogeneous level (`Prop83.HomEquiv`), which is
     all Proposition 8.3 uses, is proved;
-  * on a genuine probability space: the algebraic multiplicities in
-    `OptimalRulesMeasureSpectrum.eig_Hgen_iff` (a set equality only) and the pairing `ν ↔ 1/(βν)` of the Euler pencil; and the full next-state kernel of Example B, of
-    which only `K^N_0` is computed (`OptimalRulesMeasureCounterexample.eB_KN0`);
+  * a formal instantiation of `GeneralBKCopy.determinate_of` for the stacked system (1.1) + (1.9):
+    its leading matrix `F` is singular, so the system is not in Blanchard–Kahn form, and the link
+    is through the root count `OptimalRulesMeasureMultiplicity.card_closedDisk_eq` only;
   * repeated roots when the selection takes only part of a root class (`PencilRepeated.SelWhole`
     fails);
   * ∃ ⇒ ∀ for `CaseIIBasis.Assumption84II` when the zero root is not semisimple. It is proved when
@@ -414,6 +432,9 @@ Not formalised:
 | [OptimalRulesMeasureSpectrum](OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean) | 23 | The spectrum of `H` = roots of the Euler pencil of (1.1) + (1.9) in the closed unit disc; the root condition on the pencil; not the selected roots of (1.15) |
 | [OptimalRulesMeasureQuasiSplit](OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean) | 32 | Prop 8.2 from a quasi-split (case (ii)) with conditional expectations: (1.19)–(1.20) and (1.23) a.s., the converse by a.s. forward uniqueness, every disturbance and VAR economies; the real split as a special case; link to the core criterion |
 | [OptimalRulesMeasureInertiaComplex](OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean) | 12 | Assumption 8.5 for every quasi-split of the inflation-inertia model; measure Prop 8.2 in the complex case and at every calibration, with no hypothesis left; links to the core |
+| [OptimalRulesMeasureEulerPencil](OptimalPolicyRules/OptimalRulesMeasureEulerPencil.lean) | 27 | The Euler pencil `det(νF − G)` of (1.1) + (1.9) as a polynomial; the symplectic pairing `ν ↔ 1/(βν)` with multiplicities; coefficient symmetry; equal halves at `β^{−1/2}`; at most `n` roots in the closed unit disc |
+| [OptimalRulesMeasureMultiplicity](OptimalPolicyRules/OptimalRulesMeasureMultiplicity.lean) | 22 | The factorisation `det(νF − G) = det(νI − H) · R(ν)`; the eigenvalues of `H` with multiplicity are the closed-disc roots; regularity, the Blanchard–Kahn count and the spectral gap under Assumption 8.1; `Λ` stable iff every unselected root has `\|μ\| > β⁻¹` |
+| [OptimalRulesMeasureKernelB](OptimalPolicyRules/OptimalRulesMeasureKernelB.lean) | 11 | Example B: the next-state kernel `K^N_k` at every lag; the forcing of the unit-root direction, nonzero at every lag with zero sum; the partner root `2 = β⁻¹` |
 
 ## Modelling conventions
 
@@ -484,4 +505,5 @@ python3 scripts/verify.py
 
 The verifier builds the library, freshly recompiles every contributed proof,
 and audits each named declaration's axioms (only `propext`, `Classical.choice`
-and `Quot.sound` are allowed). Warnings fail the check.
+and `Quot.sound` are allowed). Warnings fail the check. Each compiler run (the build and the
+fresh audit) has a timeout of 3600 s.

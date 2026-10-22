@@ -8,8 +8,8 @@ pages. The book has no labelled propositions, so rows are keyed by equation numb
 table or page. Rows follow the book section by section, and each heading names the modules that
 formalise the section: §20.1, §20.2.1 with the Chapter 24 claims, §§20.2.2–20.2.6, §20.3,
 Chapter 21, then the links between the modules, the links with Galí (2015) and Woodford (2003),
-Galí's commitment optimum (lift-off timing, existence and the shape of the zero-rate spell), the
-restated Woodford block and the shared tools.
+Galí's commitment optimum (lift-off timing, existence and the shape of the zero-rate spell, the
+zero post-shock natural rate), the restated Woodford block and the shared tools.
 
 The discrete-time results (§20.1, §20.2.1, §20.2.6, Chapter 24) hold for an arbitrary
 `ExpectationSystem`, so under perfect foresight and under uncertainty, except where a row says
@@ -317,6 +317,28 @@ dichotomy and shows `ρ > 0` cannot be dropped.
 | Cochrane §20.2.4; Galí §5.4.2, at `ρ = 0` | either the rate is zero at every date, or `σκ ≠ ϑ` and the zero-rate spell is `[0, t_C]`, `t_C ≥ t_Z`, with `i > 0` after | `LiftoffStructure.rho_zero_structure` |
 | same, `ρ = 0` and `σκ = ϑ` | the optimal rate is zero at every date: it never lifts off | `LiftoffStructure.rho_zero_unit_ratio` |
 | correction to `LiftoffStructure.commitment_characterisation` | `ρ > 0` cannot be dropped: for every `β ∈ (0,1)`, `κ, σ, η > 0` and `t_Z`, with `ρ = 0` and `ϑ = σκ` the optimum exists and is unique but never lifts off; exact instance `β = 1/2`, `κ = σ = ϑ = η = 1`, `t_Z = 0` | `LiftoffStructure.rho_zero_no_liftoff`, `LiftoffStructure.rho_zero_instance` |
+
+## A zero post-shock natural rate: the lift-off classification (LiftoffRhoZero)
+
+Continues `LiftoffStructure` at `ρ = 0`, where `LiftoffStructure.rho_zero_structure` leaves two
+branches: (a) the rate is zero at every date, or (b) it lifts off at a finite `t_C ≥ t_Z`.
+`t_B` is the last binding date.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §20.2.4, p. 479 (tools) | with `ρ = 0` every rate gap is nonnegative; a rise `π_M < π_{M+1} ≤ 0` propagates back to date 0; such a rise means a negative output gap | `LiftoffRhoZero.gap_nonneg_zero`, `LiftoffRhoZero.back_rise`, `LiftoffRhoZero.x_neg_of_rise` |
+| Cochrane p. 479; Galí p. 149 | an optimum is never nonpositive throughout: the loss derivative along the bounded peg mode vanishes | `LiftoffRhoZero.nonpos_contra` |
+| Cochrane p. 479 (transversality of the bound's multipliers) | a resonantly forced multiplier recursion `ξ_{n+2} − ccξ_{n+1} + ξ_n/β = Fμⁿ`, `F > 0`, `μ` a root, has no solution with `ξ ≥ 0` and `βⁿξ_n → 0` | `LiftoffRhoZero.forced_mult_contra` |
+| Cochrane §20.1, p. 467; §20.2.2, p. 475 (`ρ = 0`) | after the shock a zero-rate optimum decays at the stable peg root `μ`, and its promise `π_{t_Z+1}` is positive | `LiftoffRhoZero.peg_geometric`, `LiftoffRhoZero.zero_rate_pi_pos` |
+| Cochrane §20.2.4, p. 479; Galí §5.4.2 (`ρ = 0`) | if `σκ < ϑ` the optimal rate is not zero at every date; if `ϑ < σκ` no post-shock date has a zero multiplier, so the rate never lifts off | `LiftoffRhoZero.rho_zero_lt_not_zero`, `LiftoffRhoZero.rho_zero_gt_no_slack` |
+| Cochrane §20.2.4, pp. 478–480; Galí §5.4.2, p. 152 (`ρ = 0`) | **the case classified**: rate zero at every date iff `ϑ ≤ σκ`; lift-off at a finite `t_C ≥ t_Z` with `i = 0` exactly on `[0, t_C]` and `i > 0` after iff `σκ < ϑ`; existence, uniqueness and both cases, independent of `η`, `β` and `t_Z` | `LiftoffRhoZero.rho_zero_zero_iff`, `LiftoffRhoZero.rho_zero_liftoff_iff`, `LiftoffRhoZero.rho_zero_classification` |
+| Cochrane §20.2.2, p. 475; §20.2.4, p. 479 (`ρ = 0`, `ϑ ≤ σκ`) | the optimum is the zero-rate (Werning) path with a positive promise decaying at `μ` | `LiftoffRhoZero.rho_zero_branch_a` |
+| Galí pp. 149–152 (`ρ = 0`, `σκ < ϑ`) | Galí's sign condition `ξ₁,t_B+1 > 0` holds automatically, `A > 0`, and `i_{t_B+2+k} = Aδ^{k+1} > 0` | `LiftoffRhoZero.rho_zero_branch_b` |
+| Galí p. 152, the verification theorem, `ρ = 0` | a candidate of the algorithm with `i_{t_C+1} ≥ 0` and `A ≥ 0` (in place of `ρ > 0`) satisfies the KKT system and is the unique optimum | `LiftoffRhoZero.verification_zero` |
+| Galí (15), p. 136 (certificate tool) | `δ = 1/2` when `β = 1/2` and `κ² = (3/4)ϑ` | `LiftoffRhoZero.del_half` |
+| exact instance, `t_C = t_Z = 0` (`β = 1/2`, `κ = 3`, `σ = 1`, `ϑ = 12`, `η = 1`) | the unique optimum lifts off at once: `i₀ = 0`, `i₁ = 61/1242`, `i_{k+2} = (7/46)(1/2)^{k+1}` | `LiftoffRhoZero.nowX`, `LiftoffRhoZero.nowP`, `LiftoffRhoZero.nowXi1`, `LiftoffRhoZero.nowXi2`, `LiftoffRhoZero.cert_liftoff_now` |
+| exact instance, `t_C = 1 > t_Z = 0` (`β = 1/2`, `κ = 1`, `σ = 1/2`, `ϑ = 4/3`, `η = 1`) | the unique optimum keeps `i₀ = i₁ = 0`, then `i₂ = 1514/48863`, `i_{k+3} = (2350/48863)(1/2)^{k+1}` | `LiftoffRhoZero.lateX`, `LiftoffRhoZero.lateP`, `LiftoffRhoZero.lateXi1`, `LiftoffRhoZero.lateXi2`, `LiftoffRhoZero.cert_liftoff_late` |
+| exact instance, zero rate forever (`β = 1/2`, `κ = 3/4`, `σ = 1`, `ϑ = 1/2`, `η = 1`, `t_Z = 0`; correction) | `σκ/ϑ = 3/2 ≠ 1` and the rate is zero at every date: `x₀ = −13/48`, `π₀ = −1/48`, `x_t = π_t = (35/48)(1/2)ᵗ` after, with `ξ₂,t = (29 + 5t)/192·(1/2)ᵗ > 0`; `t(1/2)ᵗ ≤ 1` | `LiftoffRhoZero.zfX`, `LiftoffRhoZero.zfP`, `LiftoffRhoZero.zfXi1`, `LiftoffRhoZero.zfXi2`, `LiftoffRhoZero.nat_mul_half_pow_le`, `LiftoffRhoZero.cert_zero_forever` |
 
 ## Restated Woodford block (GlobalDynamics)
 

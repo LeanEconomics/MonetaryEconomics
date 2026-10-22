@@ -13,9 +13,9 @@ real rate `1/β`, and nominal, indexed, foreign-currency or defaultable one-peri
 variables are `Ω → ℝ` under an arbitrary `ExpectationSystem`, so the structural results hold under
 perfect foresight and under genuine uncertainty; comparative statics, numbers and some witnesses
 are deterministic. Theorem FR is also proved on genuine probability spaces, with Mathlib's
-conditional expectation. The library contains **735 theorems**, including the shared core; 519 of
-them are in the twenty-four chapter modules (seventeen for the book's sections, plus the shared
-`PresentValue`, the cross-chapter `Links` and the five measure-theoretic Theorem FR modules).
+conditional expectation. The library contains **773 theorems**, including the shared core; 557 of
+them are in the twenty-five chapter modules (seventeen for the book's sections, plus the shared
+`PresentValue`, the cross-chapter `Links` and the six measure-theoretic Theorem FR modules).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. "Theorem IT", "Theorem FR",
@@ -107,7 +107,25 @@ Headline results, in the namespace `Cochrane.AssetsRulesBalanceSheets`:
   plus the debt gap is positive on every path (`FiscalRulesTargetClose.NoExist.oneShot_no_eqm`);
   for news at one date the exact existence condition is proved
   (`FiscalRulesTargetClose.oneShot_eqm_form`, `FiscalRulesTargetClose.oneShot_eqm_exists`,
-  `FiscalRulesTargetClose.oneShot_exists_iff_atom`).
+  `FiscalRulesTargetClose.oneShot_exists_iff_atom`). With news at every date, a bounded-above
+  equilibrium exists iff some price path meets (9.12) and its realised discounted deviations from
+  the target sum to `d₀` on almost every path, equivalently iff the forward valuation is
+  predictable and starts at `d₀` (`FiscalRulesTargetFinal.exists_iff_pathwise`,
+  `FiscalRulesTargetFinal.exists_iff_forward`); positivity of `d₀` plus the realised present value
+  of the target is necessary, and sufficient when that value is predetermined
+  (`FiscalRulesTargetFinal.exists_imp_pos`, `FiscalRulesTargetFinal.predetermined_exists_iff`),
+  and the date-0 price level is nondecreasing in initial debt
+  (`FiscalRulesTargetFinal.price_monotone`). A comparison identity, a submartingale whose drift
+  is `βᵗN_t⁻¹(P'_t − P_t)²/(P_tP'_t) ≥ 0`, shows that two equilibria bounded away from zero, both
+  possibly unbounded above, with the same initial debt (`b̄` or not) coincide under the date-0
+  deflator bound alone (`FiscalRulesTargetFinal.compare_identity_below`,
+  `FiscalRulesTargetFinal.fr_unique_below_pair`, `FiscalRulesTargetFinal.fr_unique_below_rule`).
+  If no news arrives after some date `T` the deflator is bounded by `(M*/m)^{2T+1}`, so every
+  finite system, and every bridged core finite tree, satisfies the bounded-away-from-zero theorem
+  without further hypotheses, and the counterexample needs news at infinitely many dates
+  (`FiscalRulesTargetFinal.resolved_hL`, `FiscalRulesTargetFinal.fr_d_resolved`,
+  `FiscalRulesTargetFinal.finite_resolved`, `FiscalRulesTargetFinal.iid_not_resolved`,
+  `FiscalRulesTargetFinal.tree_fr_d`).
 
 ## The §9.3.2 uniqueness question (E9.9), settled
 
@@ -176,7 +194,10 @@ bounded-above equilibrium for that debt (`FiscalRulesTargetOpen.BoolNews.bool_ne
 equal `P*` (`FiscalRulesTargetOpen.fr_compare`, `FiscalRulesTargetOpen.fr_d_news`). Prices bounded
 away from zero give the same only under the bounded cumulative target real-rate factor
 (`FiscalRulesTargetClose.fr_d_news_below`), and that hypothesis cannot be dropped
-(`FiscalRulesBelowCounter.fr_below_counterexample`).
+(`FiscalRulesBelowCounter.fr_below_counterexample`). The factor is needed only from date 0, for
+any initial debt (`FiscalRulesTargetFinal.fr_unique_below_pair`), and it holds automatically when
+no news arrives after some date (`FiscalRulesTargetFinal.fr_d_resolved`), so the counterexample
+needs news at infinitely many dates (`FiscalRulesTargetFinal.iid_not_resolved`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -215,16 +236,17 @@ Not formalised:
   continuous time, but its necessity only in discrete time, with real rates bounded below by some
   `r̲ > 0` (`MaturityBuffer.matching_necessary`); the continuous version needs uniqueness of
   Laplace-type transforms;
-* in Theorem FR (d) with a stochastic target: an exact existence condition when the target's news
-  arrives at infinitely many dates and `b₀ ≠ b̄` (it is proved for news at one date, and existence
-  can fail, `FiscalRulesTargetClose.NoExist.oneShot_no_eqm`); uniqueness between two equilibria
-  bounded away from zero that are both unbounded above when `b₀ ≠ b̄` (proved when one of them is
-  bounded above, and always for `b₀ = b̄`); and a link theorem from the bounded-away-from-zero news
-  case `FiscalRulesTargetClose.fr_d_news_below` to the core (the bridged core hypotheses do not give
-  the valuation `HasSum` when prices are unbounded above; the constant-target case is
-  `FiscalRulesBelowCounter.fr_below_link`);
-* the remark that any counterexample to the bounded-away-from-zero case needs news at infinitely
-  many dates (on a finite tree the real-rate factor is automatically bounded);
+* in Theorem FR (d) with a stochastic target and `b₀ ≠ b̄`: a closed-form existence condition in
+  terms of primitives when the target's present value has news at infinitely many dates (the exact
+  condition is the implicit one of `FiscalRulesTargetFinal.exists_iff_pathwise` and
+  `FiscalRulesTargetFinal.exists_iff_forward`; explicit iffs are proved only for a predetermined
+  target value and for one-shot news, and sufficiency of `d₀ ≥ 0` in general is conjectured, not
+  proved); strict comparative statics (`d₀ < d₀'` ⇒ `P₀ < P'₀`; the weak version is
+  `FiscalRulesTargetFinal.price_monotone`); and a link theorem from
+  `FiscalRulesTargetClose.fr_d_news_below` to the hypotheses of the core `ExpectationSystem` (the
+  bridged core hypotheses do not give the valuation `HasSum` when prices are unbounded above;
+  `FiscalRulesTargetFinal.tree_fr_d` states the result on the bridged measure system of a core
+  finite tree, and the constant-target case is `FiscalRulesBelowCounter.fr_below_link`);
 * a general surplus process `s₀` with `a(β) = 0` in the core `FiscalRules`, which takes
   `s₀ = (1 − β)b̄` constant; the measure modules allow it (`FiscalRulesTargetOpen.RuleEqmGen`);
 * §9.4.1's claim that the IS shock does not appear in equilibrium output is proved given
@@ -267,6 +289,7 @@ Not formalised:
 | [FiscalRulesTargetOpen](AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean) | 32 | §9.3.2: Theorem FR (d) with a general surplus `s₀`; the comparison theorem; uniqueness with a news-bearing target; finite and infinite moving averages with `a(β) = 0`; the link to the core theorem |
 | [FiscalRulesBelowCounter](AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean) | 48 | §9.3.2: the counterexample on i.i.d. biased coins showing the bounded real-rate factor is needed when prices are only bounded away from zero; the dividing line; the link for a constant target |
 | [FiscalRulesTargetClose](AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean) | 24 | §9.3.2: the bounded-away-from-zero case with news, random date-0 data without a band, existence with one-shot news and a nonexistence example |
+| [FiscalRulesTargetFinal](AssetsRulesBalanceSheets/FiscalRulesTargetFinal.lean) | 38 | §9.3.2: the comparison identity; uniqueness for two equilibria bounded away from zero and unbounded above, any initial debt; the exact existence condition with news at every date; comparative statics in initial debt; finite-horizon information bounds the deflator; the link to core finite trees |
 
 ## Modelling conventions
 
@@ -328,12 +351,15 @@ Not formalised:
   general-`s₀` results use `FiscalRulesTargetOpen.RuleEqmGen`, the rule equilibrium with a general
   underlying surplus; their counterexamples live on i.i.d. biased coins
   (`FiscalRulesBelowCounter.Sys`), on a one-shot news system (`FiscalRulesTargetClose.oneShot`) and
-  on `ℕ` with geometric weights (`FiscalRulesTargetClose.NoExist.wProb`).
+  on `ℕ` with geometric weights (`FiscalRulesTargetClose.NoExist.wProb`). The exact existence
+  condition builds candidate equilibria from the debt generated forward, path by path
+  (`FiscalRulesTargetFinal.fwdDebt`).
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem: positive
   price levels, positive debts and present values wherever a formula divides by them, `0 ≤ β < 1`,
   bounded surpluses, `0 < α < 2` (§9.2), `V*_t ≠ s_t` under uncertainty (§9.2), `θ ≠ 0` for
   the fiscal rules, a bounded cumulative target real-rate factor for prices bounded away from zero
-  with a stochastic target (§9.3.2), `|βθ_{iπ}| < 1` and `|βη| < 1` (§9.3.4), `θ ∈ [0, 1]`, `σκ > 0`, `0 ≤ ρ < 1`
+  with a stochastic target (§9.3.2; from date 0 only, and automatic when news stops at a finite
+  date, `FiscalRulesTargetFinal.EventuallyResolved`), `|βθ_{iπ}| < 1` and `|βη| < 1` (§9.3.4), `θ ∈ [0, 1]`, `σκ > 0`, `0 ≤ ρ < 1`
   (§9.4.1), and strictly decreasing marginal utility (§9.5).
 
 ## Relation to the Woodford and Galí projects

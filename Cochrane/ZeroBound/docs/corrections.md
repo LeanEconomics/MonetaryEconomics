@@ -10,16 +10,17 @@ Codes E1–E11 and E20 are the Chapter 20–21 items of the survey of Chapters 2
 recorded here, and an entry is revised if formalisation shows the finding itself to be wrong.
 The survey had E9 as suspected; formalisation confirmed it as a missing qualifier. Several
 claims that the book asserts without proof, including one it marks "not shown", turned out to be
-correct; they are listed in the last section.
+correct; they are listed under "Claims confirmed correct". A conjecture in this project's own
+development record is corrected in the last section; it is not a book error.
 
-Out of scope are the empirical and discursive passages: the U.S. and Japanese experience and the
-QE operations (§20.1), the Occam discussion and the list of patches (§§20.1.1, 20.2.6), the 2020
-FOMC strategy, the interpretation of multipliers, secular stagnation, and the Covid narrative
-(Chapter 21) beyond its model claims and arithmetic. Lean names are relative to the namespace
+Out of scope are the empirical and discursive passages: the U.S. and Japanese experience and the QE
+operations (§20.1), the Occam discussion and the list of patches (§§20.1.1, 20.2.6), the 2020 FOMC
+strategy, the interpretation of multipliers, secular stagnation, and the Covid narrative (Chapter
+21) beyond its model claims and arithmetic. Lean names are relative to the namespace
 `Cochrane.ZeroBound`. The comparison with Galí (2015) and Woodford (2003) in `LinksGaliWoodford`
-also gives two corrections to Galí's treatment of commitment at the bound, and `LiftoffTiming`
-and `LiftoffStructure` settle his guess `t_C ≥ t_Z` and the role of `ρ > 0`; these are listed in
-their own section.
+also gives two corrections to Galí's treatment of commitment at the bound, and `LiftoffTiming`,
+`LiftoffStructure` and `LiftoffRhoZero` settle his guess `t_C ≥ t_Z` and the role of `ρ > 0`; these
+are listed in their own section.
 
 ## Claims that are false as printed
 
@@ -67,7 +68,8 @@ their own section.
 The module `LinksGaliWoodford` restates Galí's (2015) optimal commitment policy at the zero bound
 (§5.4.2, pp. 148–152) to compare it with Cochrane's forward guidance. Two features of Galí's
 solution are not properties of every commitment optimum. His guess `t_C ≥ t_Z` is proved
-(`LiftoffTiming`), and the shape of the zero-rate spell needs `ρ > 0` (`LiftoffStructure`).
+(`LiftoffTiming`), and the shape of the zero-rate spell needs `ρ > 0` (`LiftoffStructure`); with
+`ρ = 0` it holds iff `σκ < ϑ` (`LiftoffRhoZero`).
 Galí's `ϑ` is the weight on the output gap, and `ξ₁`, `ξ₂` are the multipliers of the Phillips
 curve and of the bound.
 
@@ -75,7 +77,8 @@ curve and of the bound.
 | --- | --- | --- |
 | Galí (2015) (42)–(43), p. 150 | After lift-off at `t_C + 1` the output gap and inflation follow (42)–(43), positive under the assumption `ξ₁,t_C+1 > 0`. | Positivity holds iff `ξ₁,t_C+1 > 0` (`LinksGaliWoodford.post_eq42_pos`, `LinksGaliWoodford.post_eq43_pos`, `LinksGaliWoodford.post_neg`), and the assumption is a condition on the optimum, not a property of it: `ξ₁,t_C+1 > 0` iff the price level at lift-off is below its long-run level `(βσ)⁻¹∑_{s≤t_C}ξ₂,s` (`LinksGaliWoodford.xi1_eq`, `LinksGaliWoodford.xi_pos_iff`, `LinksGaliWoodford.longrun_price`). It can fail at the optimum: at `β = 9/10`, `κ = 1/10`, `ϑ = 1/819`, `σ = 1`, `ρ = 1/10`, `η = 1/100`, `t_Z = 0` the verified, unique optimum has `ξ₁,1 < 0`, and output and inflation are strictly negative at every date from 2 on (`LinksGaliWoodford.cex_optimal`, `LinksGaliWoodford.cex_xi_neg`). Commitment still lies strictly above discretion on the zero-rate spell whenever the lift-off state is weakly positive and nonzero (`LinksGaliWoodford.comm_gt_disc_of_state`); dominance at every date, `LinksGaliWoodford.comm_gt_disc`, needs `ξ₁,t_C+1 > 0`. Because it fails at some optima, the condition stays a genuine hypothesis of the versions without `t_C ≥ t_Z` (`LiftoffTiming.comm_gt_disc_opt`, `LiftoffTiming.comm_loss_lt_opt`, `LiftoffTiming.comm_loss_lt_alg_gen`), while every other hypothesis of Galí's algorithm is derived (`LiftoffStructure.optimal_algorithm_form`). |
 | Galí (2015) pp. 151–152 | Under commitment the rate is kept at zero beyond the end of the shock; the algorithm guesses a lift-off date `t_C ≥ t_Z`. | Strictly later lift-off, `t_C > t_Z`, is not a property of every optimum: at the same exact point the optimum lifts off at the end of the shock, `t_C = t_Z = 0`, with `i₀ = 0` and `i_t > 0` for every `t ≥ 1` (`LinksGaliWoodford.cex_liftoff_at_shock_end`). The weak inequality `t_C ≥ t_Z` holds at every optimum, so Galí's guess is without loss of generality (proved): for all `β ∈ (0,1)`, `κ, σ, ϑ, η > 0` and `ρ ≥ 0` the optimum has `i_t = 0` and `ξ₂,t > 0` on all of `[0, t_Z]` (`LiftoffTiming.optimal_trap_binds`, `LiftoffTiming.liftoff_ge`, `LiftoffTiming.liftoff_after_shock`), and every candidate passing the algorithm's checks for an arbitrary guess has `t_Z ≤ t_C` (`LiftoffTiming.algorithm_verification_gen`). The proof shows the KKT conditions necessary (`LiftoffTiming.kkt_necessary`) and then uses maximum principles on inflation, with `π_t ≤ η` at the optimum (`LiftoffTiming.optimal_pi_le`); it does not use the sign pattern of the response of the rate gap to the multipliers, which does have positive entries two or more periods apart. The commitment theorems therefore hold without the hypothesis (`LiftoffTiming.comm_gt_disc_opt`, `LiftoffTiming.comm_loss_lt_opt`, `LiftoffTiming.comm_promise_opt`, `LiftoffTiming.comm_gt_disc_of_state_opt`), and the optimum always satisfies every hypothesis of the algorithm (`LiftoffStructure.optimal_algorithm_form`). Earlier numerical "counterexamples" to `t_C ≥ t_Z` at small `β` and long `t_Z` were round-off: with weights `β^t` near `10⁻¹⁷` double precision cannot resolve the late dates, and a 60-digit KKT solver gives `t_C = t_Z` in every flagged case. |
-| Galí (2015) p. 152; Cochrane pp. 478–479 | The rate is held at zero until a lift-off date and is positive afterwards. | True for `ρ > 0`: the optimum exists, is unique, and is zero exactly on `[0, t_C]` with `t_C ≥ t_Z` and positive after, with no re-binding (`LiftoffStructure.commitment_characterisation`, `LiftoffStructure.no_return`, `LiftoffStructure.exists_slack_after`). The hypothesis `ρ > 0` is needed: with `ρ = 0` and `σκ = ϑ` the unique optimum keeps the rate at zero forever (`LiftoffStructure.rho_zero_unit_ratio`, `LiftoffStructure.rho_zero_no_liftoff`, `LiftoffStructure.rho_zero_instance`). At `ρ = 0` the optimum either never lifts off or, with `σκ ≠ ϑ`, has the shape above (`LiftoffStructure.rho_zero_structure`); which `σκ ≠ ϑ` calibrations never lift off is not settled. |
+| Galí (2015) p. 152; Cochrane pp. 478–479 | The rate is held at zero until a lift-off date and is positive afterwards. | True for `ρ > 0`: the optimum exists, is unique, and is zero exactly on `[0, t_C]` with `t_C ≥ t_Z` and positive after, with no re-binding (`LiftoffStructure.commitment_characterisation`, `LiftoffStructure.no_return`, `LiftoffStructure.exists_slack_after`). The hypothesis `ρ > 0` is needed: with `ρ = 0` and `σκ = ϑ` the unique optimum keeps the rate at zero forever (`LiftoffStructure.rho_zero_unit_ratio`, `LiftoffStructure.rho_zero_no_liftoff`, `LiftoffStructure.rho_zero_instance`). At `ρ = 0` the optimum either never lifts off or, with `σκ ≠ ϑ`, has the shape above (`LiftoffStructure.rho_zero_structure`). |
+| Galí (2015) §5.4.2, pp. 148–152; Cochrane §20.2.4, pp. 478–480, with `ρ = 0` | The same, with a zero natural rate after the shock. | Fully classified, for every `β ∈ (0, 1)`, `κ, σ, ϑ, η > 0` and `t_Z`: the optimum exists and is unique; its rate is zero at every date iff `ϑ ≤ σκ`, and it lifts off at a finite `t_C ≥ t_Z`, with `i = 0` exactly on `[0, t_C]` and `i > 0` after, iff `σκ < ϑ` (`LiftoffRhoZero.rho_zero_zero_iff`, `LiftoffRhoZero.rho_zero_liftoff_iff`, `LiftoffRhoZero.rho_zero_classification`). The depth `η`, the discount factor `β` and the length `t_Z` of the shock play no role. On the zero-rate branch the optimum is the Werning zero-rate path with a positive promise `π_{t_Z+1} > 0` decaying at the stable peg root (`LiftoffRhoZero.rho_zero_branch_a`). On the lift-off branch Galí's sign condition `ξ₁,t_B+1 > 0` holds automatically, and `i_{t_B+2+k} = Aδ^{k+1} > 0` (`LiftoffRhoZero.rho_zero_branch_b`). Galí's verification theorem, which needs `ρ > 0`, holds for `ρ = 0` with `i_{t_C+2} ≥ 0` replaced by `A ≥ 0` (`LiftoffRhoZero.verification_zero`). Exact optima: lift-off at the end of the shock (`σκ/ϑ = 1/4`), one period after it (`σκ/ϑ = 3/8`), and a zero rate forever with `σκ/ϑ = 3/2` (`LiftoffRhoZero.cert_liftoff_now`, `LiftoffRhoZero.cert_liftoff_late`, `LiftoffRhoZero.cert_zero_forever`). |
 
 ## Cosmetic errors (no Lean statement)
 
@@ -100,3 +103,9 @@ curve and of the bound.
 | p. 472; Ch. 24, p. 523 | Expected future policy, monetary or fiscal, selects equilibria; fiscal shocks then move inflation even while money is active | `FutureSelection.future_selection`, `FutureSelection.fiscal_switch_selects`, `FutureSelection.fiscal_switch_unexpected_inflation`, `FutureSelection.fiscal_switch_example` |
 | pp. 487, 490–493 | The helicopter drop; more backing, less inflation; fiscal news moves only unexpected inflation; inflation returns under a peg; Phillips-curve disinflation; "four times larger" interest costs | `Covid.helicopter_exact`, `Covid.priceRatio_strictAnti`, `Covid.fiscal_news_only_unexpected`, `Covid.peg_inflation_returns`, `Covid.joint_less_painful`, `Covid.interest_cost_four_times` |
 | pp. 486, 488 | The CPI arithmetic, Table 21.1 and "nearly 30%" | `Covid.cpi_rise`, `Covid.table_21_1`, `Covid.debt_increase_nearly_30` |
+
+## A correction to the formalisation record (not a book error)
+
+| Where | Earlier record said | Finding |
+| --- | --- | --- |
+| The `ρ = 0` open question left by `LiftoffStructure` (development record) | The rate is zero forever ("never lifts off") iff `σκ = ϑ`; 108 numerical draws with `σκ ≠ ϑ` and no lift-off were left unexplained. | False: the rate is zero forever iff `σκ ≥ ϑ` (`LiftoffRhoZero.rho_zero_zero_iff`); `LiftoffRhoZero.cert_zero_forever` is an exact instance with `σκ/ϑ = 3/2`. Of the draws, every apparent double-precision lift-off with `σκ > ϑ` has `i_{t_B+1} < 0` of order `10⁻¹⁷` to `10⁻²¹` in high-precision arithmetic (round-off), and with `σκ < ϑ` lift-off always exists but can be late, up to `t_B ≈ 190` when `σκ/ϑ` is near 1 or `β` is small. |

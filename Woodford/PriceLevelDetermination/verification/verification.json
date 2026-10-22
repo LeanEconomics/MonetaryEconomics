@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T02:41:31.264605+00:00",
-  "theorems": 1610,
+  "checked_at_utc": "2026-10-22T02:31:48.896666+00:00",
+  "theorems": 1732,
   "module_theorems": {
     "PriceLevelDetermination/Determinacy.lean": 23,
     "PriceLevelDetermination/Expectations.lean": 20,
@@ -41,9 +41,15 @@
     "PriceLevelDetermination/LocalIFTSystemsStochastic.lean": 71,
     "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean": 20,
     "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean": 37,
-    "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean": 14
+    "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean": 14,
+    "PriceLevelDetermination/SunspotsBoundedBelow.lean": 14,
+    "PriceLevelDetermination/SunspotsNotOntoExamples.lean": 26,
+    "PriceLevelDetermination/InertialBoundary.lean": 19,
+    "PriceLevelDetermination/SunspotsNotOntoMore.lean": 27,
+    "PriceLevelDetermination/InertialBoundaryExist.lean": 16,
+    "PriceLevelDetermination/InertialBoundaryExistCube.lean": 20
   },
-  "audited_declarations": 2155,
+  "audited_declarations": 2317,
   "declarations": [
     {
       "name": "Woodford.PriceLevelDetermination.SchurStable",
@@ -10819,6 +10825,816 @@
       "name": "Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_opS",
       "kind": "theorem",
       "module": "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.BoundedBelow",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.boundedBelow_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.boundedBelow_of_isUnit",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.eq_zero_of_push",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.phi_mv",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.phi_identity",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.pf_bound",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.abs_innov_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.innov_bound",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.opS_boundedBelow",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.sysOp_boundedBelow_of_opS",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.opS_boundedBelow_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.unique_of_boundedBelow",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.no_sunspot_of_boundedBelow",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.sunspot_iff_of_surjective",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsBoundedBelow.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.known_comp",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.pA",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.pC",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_of_fderiv",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.brProc",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.norm_brProc_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.solvesSV_brProc",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Glag",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.contDiff_Glag",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.fderiv_Glag",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Glag",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.boundedBelow_linOp_Glag",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_surjective_linOp_Glag",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Glag_unique",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gatt",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.contDiff_Gatt_Grep",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.fderiv_Gatt_Grep",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Gatt_Grep",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_injective_linOp_unit",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_surjective_linOp_unit",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_isClosed_range_unit",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.abs_att_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.attPath",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.abs_attPath_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gatt_random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep_E",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep_unique",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.unit_root_undecided",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gcub",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gsta",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Gcub_Gsta",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gcub_random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gsta_unique",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.singular_pencil_undecided",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoExamples.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.eq0_of_solves",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.eq1_of_solves",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.lag_known",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.random_sunspot_of_diag",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.flatSun",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.random_sunspot_of_flat",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.jumpSeq",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.jumpP",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.solvesSV_jump",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.unique_affine",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.cube_gap",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.cbrt_nonneg",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.sub_le_cbrt",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.pow_le_of_le_cbrt",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.unique_cube",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.no_eq_flat",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.resShock",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.norm_resShock_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.no_eq_unit",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.ruleLin",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.ruleCubI",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.ruleCubPi",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.rules_slopes",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.expand_cubic",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.boundary_unit_circle",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundary.boundary_flat",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundary.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prL",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prN",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.brProc2",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.norm_brProc2_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.solvesSV_brProc2",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hgrow",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.LH",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.hasFDerivAt_H",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_H",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.injective_linOp_H",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.not_boundedBelow_linOp_H",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.not_isClosed_range_linOp_H",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.dampXY",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.dampXY_bound",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp_odd",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp_random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hgrow_unique",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.injective_nonclosed_undecided",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fnone",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.LF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.hasFDerivAt_F",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.kF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.ker_linOp_F",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.geom_sum",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.abs_apply_le_seq",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.phiF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F_x",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F_y",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.xsF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.abs_xsF_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.ysF",
+      "kind": "def",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fwd_split",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.range_linOp_F",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fredholm_linOp_F",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun_odd",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun_random_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fnone_unique",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fredholm_undecided",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/SunspotsNotOntoMore.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.phi_mono",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.injective_of_expanding",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.surjective_of_expanding",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.gInv",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.gInv_spec",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_spec",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.abs_backW_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_known",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.dist_k",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_cauchy",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_expanding",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.unique_expanding",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.forceA",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.forceA_known",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.abs_forceA_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.affine_i_rec",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_unique_affine",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.resonant_cube_root",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_unique_cube_pf",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_strictMono",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_cube",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_neg",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_le_of_le_pow",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.abs_cbrt_sub_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.E_eq_of_eqOn_cell",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.iterB",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.exists_limit_backward",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_anti",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_lip",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_continuous",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_root",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_inj",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_spec",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_cell",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.abs_Tcube_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.contract_aux",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_contract",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.rel_Tcube",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.exists_unique_cube",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.zRes",
+      "kind": "def",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.resonant_cube_root_pi",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
     }
   ],
   "full_build": "passed",
@@ -21562,6 +22378,816 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.BoundedBelow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.boundedBelow_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.boundedBelow_of_isUnit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.eq_zero_of_push": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.phi_mv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.phi_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.pf_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.abs_innov_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.innov_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.opS_boundedBelow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.sysOp_boundedBelow_of_opS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.opS_boundedBelow_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.unique_of_boundedBelow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.no_sunspot_of_boundedBelow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsBoundedBelow.sunspot_iff_of_surjective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.known_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.pA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.pC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_of_fderiv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.brProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.norm_brProc_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.solvesSV_brProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Glag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.contDiff_Glag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.fderiv_Glag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Glag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.boundedBelow_linOp_Glag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_surjective_linOp_Glag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Glag_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gatt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.contDiff_Gatt_Grep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.fderiv_Gatt_Grep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Gatt_Grep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_injective_linOp_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_surjective_linOp_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_isClosed_range_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.abs_att_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.attPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.abs_attPath_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gatt_random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.unit_root_undecided": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gcub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gsta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Gcub_Gsta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gcub_random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gsta_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.singular_pencil_undecided": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.eq0_of_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.eq1_of_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.lag_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.random_sunspot_of_diag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.flatSun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.random_sunspot_of_flat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.jumpSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.jumpP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.solvesSV_jump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.unique_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.cube_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.cbrt_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.sub_le_cbrt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.pow_le_of_le_cbrt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.unique_cube": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.no_eq_flat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.resShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.norm_resShock_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.no_eq_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.ruleLin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.ruleCubI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.ruleCubPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.rules_slopes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.expand_cubic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.boundary_unit_circle": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundary.boundary_flat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.brProc2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.norm_brProc2_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.solvesSV_brProc2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hgrow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.LH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.hasFDerivAt_H": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_H": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.injective_linOp_H": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.not_boundedBelow_linOp_H": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.not_isClosed_range_linOp_H": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.dampXY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.dampXY_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp_odd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp_random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hgrow_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.injective_nonclosed_undecided": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fnone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.LF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.hasFDerivAt_F": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.kF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.ker_linOp_F": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.geom_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.abs_apply_le_seq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.phiF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F_x": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F_y": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.xsF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.abs_xsF_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.ysF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fwd_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.range_linOp_F": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fredholm_linOp_F": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun_odd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun_random_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fnone_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fredholm_undecided": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.phi_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.injective_of_expanding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.surjective_of_expanding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.gInv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.gInv_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.abs_backW_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.dist_k": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_cauchy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_expanding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.unique_expanding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.forceA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.forceA_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.abs_forceA_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.affine_i_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_unique_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.resonant_cube_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_unique_cube_pf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_strictMono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_cube": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_le_of_le_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.abs_cbrt_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.E_eq_of_eqOn_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.iterB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.exists_limit_backward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_anti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_lip": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_inj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.abs_Tcube_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.contract_aux": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_contract": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.rel_Tcube": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.exists_unique_cube": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.zRes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.resonant_cube_root_pi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -21605,15 +23231,21 @@
     "PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean": "651d783553c477e7b6c3d6fcc56e95d4370ea1b54cc200a23c9df866843288e1",
     "PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean": "d9a59810291c71ef4cb0373cc70863b1c526c80c89697f6b3bb5a854b96ba2f0",
     "PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean": "3a8c117a3b6c641f08f5aa8fa567783181b1c2381dac3cc20095dccd560979cd",
-    "PriceLevelDetermination.lean": "b4debc34505d29674b377a11677f0ac046352cee925917797681cdddf55bc9bf",
+    "PriceLevelDetermination/SunspotsBoundedBelow.lean": "8af78a723c75633e2c3782de78c5336a0f703850e0fb98612d44c28a3fa1f49d",
+    "PriceLevelDetermination/SunspotsNotOntoExamples.lean": "f08ad38e3765e30b913066c523029bdcc027997fcd55d43a8989641f00e35285",
+    "PriceLevelDetermination/InertialBoundary.lean": "f32e4599f97e055bfe9f325f18f738c5ce7255d80620d4734bd15af1e512b4bc",
+    "PriceLevelDetermination/SunspotsNotOntoMore.lean": "e70605ad5da0166b6b238adbded8cc67c4cca2b13c97008bec98eef7f4ecdec1",
+    "PriceLevelDetermination/InertialBoundaryExist.lean": "cee3f562f406980e295a6cf01d8b62819e60ec8b1e972d57aec0b07eae7885cd",
+    "PriceLevelDetermination/InertialBoundaryExistCube.lean": "a1cd2d9ba457fa5f49155eacfc8d0deed3f6a2c7bef485732460572238c926f3",
+    "PriceLevelDetermination.lean": "62cacd45f5dcb92b32d2b103b27e92737e7139ed657a74344cf348ef475c4323",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "54d71d0b018bbe74721b0737c8a3763e33c31272978e97950f95f9e182e5a59a",
     "lake-manifest.json": "e908365bf29aa95e2d844a30e95f4e926befe3dfe9ea1a75c7d7824102fe2090",
-    "proof-manifest.json": "b22db611f907994b23b4b7aabbbafb626f2bb254e0c4e79ffd651b6aa5cd8d98",
-    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "proof-manifest.json": "828025834e72f24cd8ce12e67122e8de738c3a511e666565a7e121af2a4f0261",
+    "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "1ea5ed372a007ed86ff384425ad579e75c71a8f5ea2d1f0f4d7033077c07912c",
+  "fresh_audit_sha256": "84ace355a1dfd693e4e015963b7e41f5f4aa026fc4557c44ebe21dce5bd7d8fe",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example. Post-book: the stochastic (L-infinity processes with E_t) version of the Appendix A.3 implicit-function theorem with the C1 vs C2 accuracy distinction (E18), stochastic local (in)determinacy of Propositions 2.3, 2.6-2.8 and 2.11-2.13 with genuinely random sunspots, the stochastic transversality condition and the level forms; the p.137 claim that the target is the unique stochastic equilibrium in the Schmitt-Grohe-Uribe example is true on finite trees but refuted by a perpetual sunspot on a geometric probability space with Mathlib conditional expectation; n-dimensional systems with predetermined variables: the (A.9) root condition made exact (generically iff fails in exactly two ways; unit-circle roots always destroy existence), the nonlinear local theorem at any steady state with its converse and second-order bound, a copy of the general Blanchard-Kahn theorem, and the inertial rule (Proposition 2.8) as a two-dimensional application. Under uncertainty, n-dimensional systems with predetermined variables: the determinacy criterion is unchanged (the same exact root condition), explicit decision rule, failure modes identical to perfect foresight, random sunspots (linear, and nonlinear whenever (A.8) is onto but not one-to-one), the nonlinear local theorem in the book form (A.11) and in the forecast form under informational closure, at any steady state with converse and second-order bound, and the inertial rule under uncertainty.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 2, pp. 61-138, and Appendix A, pp. 627-655."

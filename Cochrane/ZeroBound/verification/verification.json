@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T02:52:02.631987+00:00",
-  "theorems": 761,
+  "checked_at_utc": "2026-10-22T00:50:55.963482+00:00",
+  "theorems": 781,
   "module_theorems": {
     "ZeroBound/Determinacy.lean": 23,
     "ZeroBound/Expectations.lean": 20,
@@ -22,9 +22,10 @@
     "ZeroBound/LinksGaliWoodford.lean": 123,
     "ZeroBound/LinksGaliWoodfordLimit.lean": 19,
     "ZeroBound/LiftoffTiming.lean": 69,
-    "ZeroBound/LiftoffStructure.lean": 30
+    "ZeroBound/LiftoffStructure.lean": 30,
+    "ZeroBound/LiftoffRhoZero.lean": 20
   },
-  "audited_declarations": 960,
+  "audited_declarations": 992,
   "declarations": [
     {
       "name": "Cochrane.ZeroBound.SchurStable",
@@ -4825,6 +4826,166 @@
       "name": "Cochrane.ZeroBound.LiftoffStructure.rho_zero_instance",
       "kind": "theorem",
       "module": "ZeroBound/LiftoffStructure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.gap_nonneg_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.back_rise",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.x_neg_of_rise",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.nonpos_contra",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.forced_mult_contra",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.peg_geometric",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.zero_rate_pi_pos",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_lt_not_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_gt_no_slack",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_zero_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_liftoff_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_classification",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_branch_a",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_branch_b",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.verification_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.del_half",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.nowX",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.nowP",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.nowXi1",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.nowXi2",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.cert_liftoff_now",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.lateX",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.lateP",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.lateXi1",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.lateXi2",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.cert_liftoff_late",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.zfX",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.zfP",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.zfXi1",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.zfXi2",
+      "kind": "def",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.nat_mul_half_pow_le",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.LiftoffRhoZero.cert_zero_forever",
+      "kind": "theorem",
+      "module": "ZeroBound/LiftoffRhoZero.lean"
     }
   ],
   "full_build": "passed",
@@ -9628,6 +9789,166 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.gap_nonneg_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.back_rise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.x_neg_of_rise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.nonpos_contra": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.forced_mult_contra": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.peg_geometric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.zero_rate_pi_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_lt_not_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_gt_no_slack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_liftoff_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_classification": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_branch_a": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.rho_zero_branch_b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.verification_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.del_half": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.nowX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.nowP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.nowXi1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.nowXi2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.cert_liftoff_now": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.lateX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.lateP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.lateXi1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.lateXi2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.cert_liftoff_late": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.zfX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.zfP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.zfXi1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.zfXi2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.nat_mul_half_pow_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.LiftoffRhoZero.cert_zero_forever": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -9652,15 +9973,16 @@
     "ZeroBound/LinksGaliWoodfordLimit.lean": "60376ed50a91199204615bce194856eac19edf7abec2617e2d0105976f6990d9",
     "ZeroBound/LiftoffTiming.lean": "7b9b24e71f07943afc71273e5f64dbef7f36c3358fdadb2647459c897b604633",
     "ZeroBound/LiftoffStructure.lean": "d6a526b268826f95c310e2e9033eac5d7eef18e0935d436ccdc671c52c73f3aa",
-    "ZeroBound.lean": "de342d8780824f3e2d7204c81995f70e73dbf3d6879c6f3600b55e37b3a409fc",
+    "ZeroBound/LiftoffRhoZero.lean": "6ebbd63b5158d7875880e9faca1476c1fb9eda511b0d068885a309d9cf348e2f",
+    "ZeroBound.lean": "0d517c68c903547140fa232361e66c247af566a8f6d0fa061f865e963b2c8be5",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "7ef77f0cb3da29c46a8a062c4c8b974cf418e49cf41e435f74ac0f4ddfacc5ed",
     "lake-manifest.json": "b69d55f3c11b62b0f7b40bcc8cbee17a9071adc355272601c2b0faddab148f14",
-    "proof-manifest.json": "eaa2126c08378f946b8348a226a11076c3b9d8e2537a5def88f7bf0f631f5e3a",
+    "proof-manifest.json": "197899cd25a670c0c490afa112c871366abbf9929d28841f97605ef583d6f524",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "12c746d7dd8eeae9b8bfe5090e6ce318ccc8ef7a8e12da4e43506d57c01b995b",
+  "fresh_audit_sha256": "af18251eb1f83053c8f9da6d0f08f5e209aa254608ae00d40402eeae78c96648",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models; links to Gali (optimal commitment at the zero bound as delayed lift-off, the discretionary path as the end-of-shock lift-off, the commitment path strictly above both, the sign condition behind Gali (42)-(43) characterised and shown to fail at an exact optimum, discrete trap paths converging to the continuous Werning paths) and to Woodford (his interest-rate-variance constraint and the pathwise zero bound: neither implies the other; the zero-bound steady state under Woodford welfare). The Gali commitment optimum is fully characterised: it exists and is unique, the optimality conditions are necessary, the zero bound binds on the whole shock (t_C >= t_Z), the zero-rate spell is an initial interval with a positive rate after lift-off (rho > 0; at rho = 0 a dichotomy, and the rate never lifts off when sigma kappa = vartheta), and every hypothesis of Gali algorithm holds at the optimum. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 20, pp. 465-485, Chapter 21, pp. 486-494, and Chapter 24, pp. 522-524."

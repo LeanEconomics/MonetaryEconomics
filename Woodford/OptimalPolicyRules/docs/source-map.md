@@ -15,11 +15,12 @@ claim, and what the chapter derives from them is proved there; the general proof
 8.1–8.4 (Appendix G.1–G.2), in corrected form where needed, and their specialisation to the
 models of §3 are listed in the section "General theory (Props 8.1–8.4)" after §1.5.
 The general problem is also restated on a genuine probability space, with Mathlib's conditional
-expectation and equations holding almost surely (`OptimalRulesMeasure` and the fourteen modules
+expectation and equations holding almost surely (`OptimalRulesMeasure` and the seventeen modules
 after it: VAR economies, i.i.d. economies, a static problem, then arbitrary bounded adapted
 disturbances, the converse of Proposition 8.1, the perfect-foresight kernel, the stability of `H_n`,
 Proposition 8.2 for the two models, Example B, the spectrum of `H`, Proposition 8.2 from a
-quasi-split and the inflation-inertia model in the complex case); those rows follow the
+quasi-split, the inflation-inertia model in the complex case, the Euler pencil and its
+multiplicities, and Example B's full kernel); those rows follow the
 general theory, and the copied measure-theoretic core
 (`ExpectationsMeasure`, `ExpectationsMeasureIID`) is listed just before the shared tools.
 Results restated from earlier chapters (the Chapter 3 quadratic roots, the Chapter 4
@@ -405,6 +406,46 @@ block), a real `P` with `J = J⁺P`, and a residual map `H` on `ker P'` with `(�
 | Prop 8.2 + A8.5 (G.2, p. 719), §3.2 complex case `S² < 4P₂₃` | measure Prop 8.2 with the quasi-split `InertiaProp82Complex.inQ`, for every disturbance and on every VAR economy, unconditional | `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_general`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_var` |
 | Same, every calibration `0 < γ ≤ 1`; App. G.1 | a quasi-split exists at every calibration (the real split when `discQ ≥ 0`, `inQ` when `discQ < 0`), and measure Prop 8.2 holds for it | `OptimalRulesMeasureInertiaComplex.in_exists_quasi`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_all_general`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var` |
 | (1.23), Prop 8.2 (links) | on the one-point space the criterion is the core criterion of `InertiaProp82Complex.in_prop82_complex_B`, and the measure theorem holds there with sure equality; in the real case the quasi-split criterion is that of `OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_general` | `OptimalRulesMeasureInertiaComplex.in_mCriterion_unit_iff`, `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_unit`, `OptimalRulesMeasureInertiaComplex.in_real_criterion_iff` |
+
+## The Euler pencil and the symplectic pairing, (1.1) + (1.9), App. G.1 (OptimalRulesMeasureEulerPencil)
+
+The plan and the multipliers are stacked as `x_t = (y_t, φ_t)`; under perfect foresight with no
+disturbance and `τ* = 0`, (1.1) + (1.9) read `F x_{t+1} = G x_t`, and `n = n_Z + n_z`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.3), (1.1) + (1.9), pp. 537–541 | the loss matrix `Q = T'WT`; the matrices `F`, `G` of the stacked system; the Euler pencil `νF − G` and its polynomial `det(νF − G)`; evaluation, the block form `[[T'WT, νÃ' − β⁻¹Ĩ'], [νĨ − Ã, 0]]` and its action on `(u, p)` | `OptimalRulesMeasureEulerPencil.Qmat`, `OptimalRulesMeasureEulerPencil.Fm`, `OptimalRulesMeasureEulerPencil.Gm`, `OptimalRulesMeasureEulerPencil.pencilC`, `OptimalRulesMeasureEulerPencil.eulerPoly`, `OptimalRulesMeasureEulerPencil.eulerPoly_eval`, `OptimalRulesMeasureEulerPencil.pencilC_eq`, `OptimalRulesMeasureEulerPencil.pencilC_mulVec` |
+| (1.1) + (1.9), pp. 537–541 | `ν` is a root of the Euler pencil (`OptimalRulesMeasureSpectrum.EulerRoot`) iff `det(νF − G) = 0` | `OptimalRulesMeasureEulerPencil.eulerRoot_iff` |
+| App. G.1, pp. 716–718 (tools) | the involution `ν ↦ 1/(βν)`: involutive, injective, nonzero off zero, `\|1/(βν)\| = 1/(β\|ν\|)`, `β\|1/(βν)\|² = (β\|ν\|²)⁻¹` | `OptimalRulesMeasureEulerPencil.pairMap`, `OptimalRulesMeasureEulerPencil.pairMap_pairMap`, `OptimalRulesMeasureEulerPencil.pairMap_injective`, `OptimalRulesMeasureEulerPencil.pairMap_ne_zero`, `OptimalRulesMeasureEulerPencil.norm_pairMap`, `OptimalRulesMeasureEulerPencil.beta_norm_sq_pairMap` |
+| App. G.1 | the pencil at `1/(βν)` is a block rescaling of the transpose of the pencil at `ν`: `det(μF − G) = (βν²)^{−n}det(νF − G)` (uses `W = W'`); `ν ≠ 0` is a root iff `1/(βν)` is, with no nondegeneracy | `OptimalRulesMeasureEulerPencil.pencilC_recip`, `OptimalRulesMeasureEulerPencil.eulerRoot_pairMap_iff` |
+| (1.1) + (1.9), App. G.1 | `2n + 1` coordinates and `deg E ≤ 2n + 1`; the reciprocity identity `(X^{2n+1}E(1/X))∘(βX) = β^{n+1}XE`; the top coefficient vanishes; `β^{i+1}e_{2n−i} = β^{n+1}e_i`; for a regular pencil `deg E + mult₀ E = 2n` | `OptimalRulesMeasureEulerPencil.card_idx`, `OptimalRulesMeasureEulerPencil.natDegree_eulerPoly_le`, `OptimalRulesMeasureEulerPencil.eulerPoly_reflect`, `OptimalRulesMeasureEulerPencil.eulerPoly_coeff_top`, `OptimalRulesMeasureEulerPencil.eulerPoly_coeff_symm`, `OptimalRulesMeasureEulerPencil.natDegree_add_rootMultiplicity_zero` |
+| App. G.1 | for a regular pencil (`E ≢ 0`) `ν ≠ 0` and `1/(βν)` have the same multiplicity; the multiset of nonzero roots is invariant; the general reflection bound on multiplicities | `OptimalRulesMeasureEulerPencil.rootMultiplicity_le_reflect`, `OptimalRulesMeasureEulerPencil.rootMultiplicity_pairMap`, `OptimalRulesMeasureEulerPencil.nzRoots`, `OptimalRulesMeasureEulerPencil.count_nzRoots_pairMap`, `OptimalRulesMeasureEulerPencil.nzRoots_map_pairMap`, `OptimalRulesMeasureEulerPencil.card_filter_pairMap` |
+| App. G.1 | the halves: as many nonzero roots with `\|ν\| < β^{−1/2}` as with `\|ν\| > β^{−1/2}`, with multiplicity, and likewise for the closed halves | `OptimalRulesMeasureEulerPencil.card_lower_eq_upper`, `OptimalRulesMeasureEulerPencil.card_lower_le_eq_upper` |
+| App. G.1; Assumption 8.1, p. 541 (root count) | at most `n` roots in `\|ν\| ≤ 1` (zero root included), since `β < 1`; if exactly `n`, every other root has `\|ν\| ≥ β⁻¹` | `OptimalRulesMeasureEulerPencil.disk_split`, `OptimalRulesMeasureEulerPencil.card_closedDisk_le`, `OptimalRulesMeasureEulerPencil.ge_inv_beta_of_card` |
+
+## The spectrum of `H` with multiplicities, p. 539, Assumption 8.1 (OptimalRulesMeasureMultiplicity)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.1) + (1.9) | the pencil is singular (`E ≡ 0`) iff every `ν` is a root | `OptimalRulesMeasureMultiplicity.eulerPoly_eq_zero_iff` |
+| p. 539 (tools) | the selection `S` of the state `(Z_0, M_{−1})` from `x = (y, φ)`, `SS' = I`; the responses `V = [D_Y(0); D_Φ(0)]`, `SV = I`; `FVH = GV`; the projector `I − S'S`, the cofactor matrix `N(ν)` and the cofactor polynomial `R(ν) = det N(ν)` | `OptimalRulesMeasureMultiplicity.sel`, `OptimalRulesMeasureMultiplicity.sel_injective`, `OptimalRulesMeasureMultiplicity.Smat`, `OptimalRulesMeasureMultiplicity.Smat_mul_transpose`, `OptimalRulesMeasureMultiplicity.Vmat`, `OptimalRulesMeasureMultiplicity.Smat_mul_Vmat`, `OptimalRulesMeasureMultiplicity.Fm_Vmat_Hgen`, `OptimalRulesMeasureMultiplicity.Dc`, `OptimalRulesMeasureMultiplicity.Nmat`, `OptimalRulesMeasureMultiplicity.Rpoly`, `OptimalRulesMeasureMultiplicity.Rpoly_eval` |
+| p. 539, (1.1) + (1.9) | `det(νF − G) = det(νI − H) · R(ν)`, via the unimodular `I + (V − S')S` and Weinstein–Aronszajn | `OptimalRulesMeasureMultiplicity.pencil_factor`, `OptimalRulesMeasureMultiplicity.eulerPoly_factor` |
+| Assumption 8.1, p. 541 | the perfect-foresight Assumption 8.1 makes the pencil regular | `OptimalRulesMeasureMultiplicity.eulerPoly_ne_zero` |
+| p. 539 (tools) | the eigenvalues of `H` lie in the closed disc and `χ_H` has `n` roots; `R` has no root there and `roots E = roots χ_H + roots R` | `OptimalRulesMeasureMultiplicity.charpoly_roots_disk`, `OptimalRulesMeasureMultiplicity.roots_split` |
+| p. 539 + (1.1)/(1.9) | the eigenvalues of `H` with algebraic multiplicity are exactly the roots of the pencil with `\|ν\| ≤ 1`, with multiplicity, the unit circle included: `χ_H = ∏_{\|νᵢ\|≤1}(X − νᵢ)`, and `mult_H(ν) = mult_E(ν)` for `\|ν\| ≤ 1`, `0` otherwise | `OptimalRulesMeasureMultiplicity.roots_charpoly_eq`, `OptimalRulesMeasureMultiplicity.charpoly_eq_prod`, `OptimalRulesMeasureMultiplicity.rootMultiplicity_charpoly` |
+| Assumption 8.1, p. 541; App. C.1 | exactly `n` roots in the closed disc, the number of predetermined variables `(Z_t, M_{t−1})` (the Blanchard–Kahn count, cf. `GeneralBKCopy.determinate_of`); under the root condition exactly `n` in the open disc | `OptimalRulesMeasureMultiplicity.card_closedDisk_eq`, `OptimalRulesMeasureMultiplicity.card_openDisk_eq_of_noEulerRoot` |
+| App. G.1 | the spectral gap: every root has `\|ν\| ≤ 1` or `\|ν\| ≥ β⁻¹`; every root of `R` has `\|ν\| ≥ β⁻¹`; the eigenvalues of `H` are the roots with `β\|ν\|² < 1` | `OptimalRulesMeasureMultiplicity.eulerRoot_gap`, `OptimalRulesMeasureMultiplicity.Rpoly_root_ge`, `OptimalRulesMeasureMultiplicity.roots_charpoly_eq_lower_half` |
+| p. 539 | `OptimalRulesMeasureSpectrum.eig_Hgen_iff` recovered from the multiplicity statement | `OptimalRulesMeasureMultiplicity.eig_Hgen_iff'` |
+| p. 553, Prop 8.1; App. G.1 (links) | the nonzero eigenvalues of `Λ` are `pairMap β μ` for the unselected roots `μ` of (1.15); `Λ` is stable iff every unselected root has `\|μ\| > β⁻¹` (the core `Prop81Unique.powDecay_Λ_of_outside` is `⇐`) | `OptimalRulesMeasureMultiplicity.prop81_eig_pairMap`, `OptimalRulesMeasureMultiplicity.powDecay_Λ_iff_outside` |
+
+## Example B: the full next-state kernel, p. 539, Assumption 8.1 (OptimalRulesMeasureKernelB)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. G (tools) | the unit impulse at date `k`; its forward sum `U_0 = −2^{−k}` and `U_1 = −2·2^{−k} + 2[k = 0]` | `OptimalRulesMeasureKernelB.imp_apply`, `OptimalRulesMeasureKernelB.fwd_imp_zero`, `OptimalRulesMeasureKernelB.fwd_imp_one` |
+| p. 539, Example B | `K^N_k = (−2^{−k}/3, 2^{−k}/15 + [k = 0]/5)'` for every `k`, agreeing with `OptimalRulesMeasureCounterexample.eB_KN0` at `k = 0` | `OptimalRulesMeasureKernelB.eB_KN`, `OptimalRulesMeasureKernelB.eB_KN_zero_eq` |
+| p. 539; Assumption 8.1, p. 541, Example B | along `e = (1, 2)`: `e'K^N_0 = 1/5` and `e'K^N_k = −2^{−k}/5` for `k ≥ 1`, nonzero at every lag; partial sums `2^{−k}/5`, total `0`; `∑\|e'K^N_k\| = 2/5` and the absolute partial sums sum to `2/5` | `OptimalRulesMeasureKernelB.eB_eKN_all`, `OptimalRulesMeasureKernelB.eB_eKN_ne_zero`, `OptimalRulesMeasureKernelB.eB_eKN_partial`, `OptimalRulesMeasureKernelB.eB_eKN_hasSum`, `OptimalRulesMeasureKernelB.eB_eKN_abs_hasSum` |
+| App. G.1, Example B | the pencil has the root `2 = β⁻¹`, the partner of the unit root `1` | `OptimalRulesMeasureKernelB.eB_eulerRoot_two` |
 
 ## §2.1 A model with inflation inertia, pp. 560–565 (InflTargetInertia)
 

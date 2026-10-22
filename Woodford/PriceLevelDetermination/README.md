@@ -10,7 +10,7 @@ Determination under Interest-Rate Rules" (pp. 61–138), together with the proof
 perfect foresight and genuine uncertainty; log-linear equations are exact derivatives of the
 nonlinear model, and the exact nonlinear model is linked to them by implicit-function theorems
 on bounded sequences and on bounded processes under uncertainty, for scalar equations and for
-`n`-dimensional systems with predetermined variables. The library contains **1610 theorems**,
+`n`-dimensional systems with predetermined variables. The library contains **1732 theorems**,
 including the shared core.
 
 Headline results, in the namespace `Woodford.PriceLevelDetermination`:
@@ -97,16 +97,40 @@ Headline results, in the namespace `Woodford.PriceLevelDetermination`:
   perfect-foresight theorem are recovered
   (`LocalIFTSystemsStochasticApps.scalar_local_determinacyS_recovered`,
   `LocalIFTSystemsStochastic.pf_local_determinacy_recovered`).
+* **Nonlinear sunspots when (A.8) is not onto, and the boundary of Proposition 2.8.** The
+  linearisation decides whether random sunspots exist near the steady state exactly when (A.8) is
+  onto (they exist iff it is not one-to-one, `SunspotsBoundedBelow.sunspot_iff_of_surjective`)
+  or bounded below, onto or not (never, with at most one bounded equilibrium near the steady state
+  for every small `(x_{−1}, e)`, `SunspotsBoundedBelow.unique_of_boundedBelow`,
+  `SunspotsBoundedBelow.no_sunspot_of_boundedBelow`). The key step transfers the bound from (A.8)
+  to (A.12) on every expectation system (`SunspotsBoundedBelow.opS_boundedBelow_iff`). Every
+  other shape of (A.8) is undecided, shown by pairs of systems with the same linearisation and
+  opposite answers: a unit root, whose range is not closed
+  (`SunspotsNotOntoExamples.unit_root_undecided`,
+  `SunspotsNotOntoExamples.not_isClosed_range_unit`), a singular pencil
+  (`SunspotsNotOntoExamples.singular_pencil_undecided`), one-to-one with non-closed range
+  (`SunspotsNotOntoMore.injective_nonclosed_undecided`), and Fredholm but neither one-to-one nor
+  onto (`SunspotsNotOntoMore.fredholm_undecided`). On the boundary of Proposition 2.8 for the
+  exact inertial rule (`|φ_π + ρ| = 1`, or `φ_π = 0` with `|ρ| > 1`), rules with identical
+  slopes give sunspots, non-existence, or a unique equilibrium
+  (`InertialBoundary.boundary_unit_circle`, `InertialBoundary.boundary_flat`). The repelling
+  rules have exactly one bounded equilibrium for small disturbances under every informationally
+  closed expectation system, of order `‖e‖^{1/3}`, so the first-order approximation fails
+  (`InertialBoundaryExist.exists_unique_affine`, `InertialBoundaryExistCube.exists_unique_cube`).
+  For a resonant shock `ν_t = δσᵗ` the equilibrium is exactly `î_t = σᵗ∛(−δ)`
+  (`InertialBoundaryExist.resonant_cube_root`, `InertialBoundaryExistCube.resonant_cube_root_pi`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: nonlinear sunspot equilibria of `n`-dimensional systems are constructed only when
-(A.8) is onto, and whether they exist otherwise is open; the exact models are not decided on the
-boundary of the root condition (for the inertial rule, `φ_π = 0` or `|φ_π + ρ| = 1`, where only
-linear sunspots and non-existence are proved). Figures 2.1–2.5 are formalised only through their
-closed forms and spot values.
+Not covered: outside the cases where (A.8) is onto or bounded below, the existence of nonlinear
+sunspots of `n`-dimensional systems is not characterised in terms of the higher-order terms; it
+is only shown, by explicit pairs, that the linearisation does not decide it. The uniqueness and
+existence results on the boundary of Proposition 2.8 assume informational closure (perfect
+foresight, every finite event tree), and they cover the specific expanding rules stated
+(`InertialBoundary.unique_affine`, `InertialBoundary.unique_cube`), not every rule with those
+slopes. Figures 2.1–2.5 are formalised only through their closed forms and spot values.
 
 ## Library map
 
@@ -152,6 +176,12 @@ closed forms and spot values.
 | [LocalIFTSystemsStochasticApps](PriceLevelDetermination/LocalIFTSystemsStochasticApps.lean) | 20 | A.3 applied under uncertainty: the inertial rule (2.12), including random sunspots of the exact model; the scalar stochastic theorem as `n = 1`; E18 |
 | [LocalIFTSystemsStochasticFormI](PriceLevelDetermination/LocalIFTSystemsStochasticFormI.lean) | 37 | A.3: the form `F(x_{t−1}, x_t, E_t x_{t+1}, e_t) = 0` under informational closure and known disturbances, via the forecast as a variable; local determinacy, first and second order, the converse |
 | [LocalIFTSystemsStochasticSunspots](PriceLevelDetermination/LocalIFTSystemsStochasticSunspots.lean) | 14 | A.3: random sunspot equilibria of nonlinear `n`-dimensional systems on the coin-flip tree when (A.8) is onto but not one-to-one |
+| [SunspotsBoundedBelow](PriceLevelDetermination/SunspotsBoundedBelow.lean) | 14 | A.3: (A.8) bounded below iff (A.12) bounded below on adapted processes, for every expectation system; local uniqueness and no sunspots when (A.8) is bounded below, onto or not; sunspots iff not one-to-one when onto |
+| [SunspotsNotOntoExamples](PriceLevelDetermination/SunspotsNotOntoExamples.lean) | 26 | A.3, scalar examples: bounded below but not onto (unique); a unit root (range not closed) and a singular pencil, each with the same (A.8) and opposite sunspot answers |
+| [InertialBoundary](PriceLevelDetermination/InertialBoundary.lean) | 19 | Prop. 2.8 on the boundary `\|φ_π + ρ\| = 1` or `φ_π = 0`, `\|ρ\| > 1`, exact model: sunspots, uniqueness under informational closure and non-existence for rules with identical slopes |
+| [SunspotsNotOntoMore](PriceLevelDetermination/SunspotsNotOntoMore.lean) | 27 | A.3, two-dimensional examples: (A.8) one-to-one with non-closed range, and Fredholm neither one-to-one nor onto, each undecided by the linearisation |
+| [InertialBoundaryExist](PriceLevelDetermination/InertialBoundaryExist.lean) | 16 | Prop. 2.8 boundary: existence and uniqueness for expanding forward recursions; the affine rule has exactly one equilibrium for small shocks, of order `‖e‖^{1/3}`; the resonant cube root; the cubic-in-π rule under perfect foresight |
+| [InertialBoundaryExistCube](PriceLevelDetermination/InertialBoundaryExistCube.lean) | 20 | Prop. 2.8 boundary, `φ_π = 0`: the rule `ρî_{−1} + σπ³` has exactly one equilibrium for small shocks on every informationally closed expectation system; the resonant cube root under uncertainty |
 
 ## Relation to the Woodford Chapter 4 project
 
@@ -176,4 +206,5 @@ python scripts/verify.py
 
 The verifier builds the library, freshly recompiles every contributed proof,
 and audits each named declaration's axioms (only `propext`, `Classical.choice`
-and `Quot.sound` are allowed). Warnings fail the check.
+and `Quot.sound` are allowed). Warnings fail the check. Each compiler run (the build and the
+fresh audit) has a timeout of 3600 s.

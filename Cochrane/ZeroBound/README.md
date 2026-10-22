@@ -15,10 +15,11 @@ every equation holds state by state. The continuous-time Werning model of §§20
 deterministic paths `ℝ → ℝ`, exact derivatives off a countable set of dates, and genuine
 improper integrals. In both, an equilibrium is a solution of the model equations, "determinate"
 means exactly one bounded solution, and the fiscal theory selects instead through the valuation
-equation. The library contains **761 theorems**, including the shared core; 653 of them are in
-the seventeen chapter modules, 49 of these in a verbatim copy of Woodford Chapter 2 results
-(`GlobalDynamics`), and 241 in the four modules on Galí's and Woodford's treatments of the bound
-(`LinksGaliWoodford`, `LinksGaliWoodfordLimit`, `LiftoffTiming`, `LiftoffStructure`).
+equation. The library contains **781 theorems**, including the shared core; 673 of them are in
+the eighteen chapter modules, 49 of these in a verbatim copy of Woodford Chapter 2 results
+(`GlobalDynamics`), and 261 in the five modules on Galí's and Woodford's treatments of the bound
+(`LinksGaliWoodford`, `LinksGaliWoodfordLimit`, `LiftoffTiming`, `LiftoffStructure`,
+`LiftoffRhoZero`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E1–E11 and E20 refer to
@@ -115,8 +116,14 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   shock (`LiftoffTiming.optimal_pi_le`). For `ρ > 0` the optimum exists, is unique, and keeps the
   rate at zero exactly on `[0, t_C]` and positive after
   (`LiftoffStructure.commitment_characterisation`); it is always the path of Galí's algorithm
-  (`LiftoffStructure.optimal_algorithm_form`). With `ρ = 0` and `σκ = ϑ` the rate never lifts off
-  (`LiftoffStructure.rho_zero_no_liftoff`).
+  (`LiftoffStructure.optimal_algorithm_form`). With a zero post-shock natural rate, `ρ = 0`, the
+  case is fully classified for every `β ∈ (0, 1)`, `κ, σ, ϑ, η > 0` and `t_Z`: the optimum exists
+  and is unique, its rate is zero forever iff `ϑ ≤ σκ`, and it lifts off at a finite
+  `t_C ≥ t_Z` with `i > 0` afterwards iff `σκ < ϑ`; `η`, `β` and `t_Z` play no role
+  (`LiftoffRhoZero.rho_zero_zero_iff`, `LiftoffRhoZero.rho_zero_liftoff_iff`,
+  `LiftoffRhoZero.rho_zero_classification`). Exact rational optima certify both sides
+  (`LiftoffRhoZero.cert_liftoff_now`, `LiftoffRhoZero.cert_liftoff_late`,
+  `LiftoffRhoZero.cert_zero_forever`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -138,7 +145,8 @@ two features of his commitment solution: the positivity of (42)–(43), p. 150, 
 `ξ₁,t_C+1 > 0`, which fails at an exact optimum (`LinksGaliWoodford.cex_xi_neg`), and strictly
 later lift-off is not a property of every optimum (`LinksGaliWoodford.cex_liftoff_at_shock_end`).
 The weak inequality `t_C ≥ t_Z`, Galí's guess, holds at every optimum (`LiftoffTiming.liftoff_ge`),
-and lift-off needs a positive post-shock natural rate (`LiftoffStructure.rho_zero_no_liftoff`).
+and with a zero post-shock natural rate the rate lifts off iff `σκ < ϑ`
+(`LiftoffStructure.rho_zero_no_liftoff`, `LiftoffRhoZero.rho_zero_liftoff_iff`).
 
 Not formalised:
 * the empirical and narrative parts of Chapters 20–21: the U.S. and Japanese experience, QE, the
@@ -162,9 +170,6 @@ Not formalised:
   delayed lift-off, whose models and parameters do not match, and between the nonlinear Covid
   helicopter `P = B/S` and the linearised valuation equations, beyond the frictionless limit of
   the impact coefficient (`Links.fiscal_impact_frictionless`);
-* which calibrations with `ρ = 0` and `σκ ≠ ϑ` never lift off: the exact dichotomy is proved
-  (`LiftoffStructure.rho_zero_structure`), and `σκ = ϑ` always lands in the never-lift-off branch,
-  but the converse is not (see the relation to the Woodford and Galí projects below);
 * a structural link with Woodford's Proposition 6.9, which shares no model equations with
   Chapter 20; the link is at the level of the constraint;
 * stochastic versions of the continuous-time results, and of the global orbit results of
@@ -196,6 +201,7 @@ Not formalised:
 | [LinksGaliWoodfordLimit](ZeroBound/LinksGaliWoodfordLimit.lean) | 19 | Exact two-mode closed form of the discrete trap path; convergence of whole trap paths to the continuous-time Werning paths |
 | [LiftoffTiming](ZeroBound/LiftoffTiming.lean) | 69 | Galí's commitment optimum: necessity of the KKT conditions with transversality, `π_t ≤ η`, the bound binds on the whole shock, `t_C ≥ t_Z`; the commitment theorems without that hypothesis |
 | [LiftoffStructure](ZeroBound/LiftoffStructure.lean) | 30 | Existence (Hilbert projection in a weighted `ℓ²`) and uniqueness of the optimum; no re-binding, finite lift-off, the post-lift-off closed form; the full characterisation; the `ρ = 0` dichotomy and `ρ > 0` necessary |
+| [LiftoffRhoZero](ZeroBound/LiftoffRhoZero.lean) | 20 | The `ρ = 0` case classified: rate zero forever iff `ϑ ≤ σκ`, finite lift-off iff `σκ < ϑ`; the shapes of both branches; the verification theorem for `ρ = 0`; exact certificates on each side |
 
 ## Modelling conventions
 
@@ -241,8 +247,9 @@ Not formalised:
   `t_C ≥ t_Z` and, where positivity after lift-off is used, `ξ₁,t_C+1 > 0` as hypotheses.
   `t_C ≥ t_Z` is proved for every optimum (`LiftoffTiming.liftoff_ge`), and versions for the
   optimum drop it (`LiftoffTiming.comm_gt_disc_opt`); `ξ₁,t_C+1 > 0` remains a hypothesis of
-  (42)–(43), because it fails at some optima. The shape of the zero-rate spell assumes `ρ > 0`, which is
-  necessary (`LiftoffStructure.rho_zero_no_liftoff`).
+  (42)–(43), because it fails at some optima. The shape of the zero-rate spell assumes `ρ > 0`; with `ρ = 0`
+  it holds iff `σκ < ϑ` (`LiftoffStructure.rho_zero_no_liftoff`,
+  `LiftoffRhoZero.rho_zero_liftoff_iff`).
 
 ## Relation to the Woodford and Galí projects
 
@@ -257,7 +264,8 @@ lemmas (`ZLBRule.lower_attracting`, `ZLBRule.upper_repelling`), and `Links` uses
 with `Π_L = β` (`Links.map46_fixed_beta_iff`, `Links.zlb_fixed_point_eq_beta`).
 
 `LinksGaliWoodford` and `LinksGaliWoodfordLimit` link Chapter 20 to two other treatments of the
-bound, and `LiftoffTiming` and `LiftoffStructure` solve Galí's commitment problem in that setting.
+bound, and `LiftoffTiming`, `LiftoffStructure` and `LiftoffRhoZero` solve Galí's commitment
+problem in that setting.
 The definitions they need are restated, with docstrings "restated from the Galí Chapter 5
 project" or "restated from the Woodford Chapter 6 project", and every result is proved here.
 
@@ -331,10 +339,22 @@ and a lift-off date `t_C + 1`, in the discrete model `π_t = βπ_{t+1} + κx_t`
   post-lift-off rates of `LiftoffStructure.liftoff_rates`). At `σκ = ϑ` it never lifts off
   (`LiftoffStructure.rho_zero_unit_ratio`, `LiftoffStructure.rho_zero_no_liftoff`, exact instance
   `LiftoffStructure.rho_zero_instance`), so `ρ > 0` in the characterisation is necessary.
-* *What remains open.* Which calibrations with `ρ = 0` and `σκ ≠ ϑ` never lift off is not
-  settled; the dichotomy is exact, but "never lifts off iff `σκ = ϑ`" is not claimed. Galí's sign
-  condition `ξ₁,t_C+1 > 0` remains a genuine hypothesis of the positivity of (42)–(43) and of the
-  results that use it, because it fails at some optima (`LinksGaliWoodford.cex_xi_neg`).
+  `LiftoffRhoZero` classifies the case completely: the rate is zero forever iff `ϑ ≤ σκ`
+  (`LiftoffRhoZero.rho_zero_zero_iff`), not only at `σκ = ϑ`, and lifts off iff `σκ < ϑ`
+  (`LiftoffRhoZero.rho_zero_liftoff_iff`). If `σκ < ϑ`, a zero-rate optimum would have post-shock
+  inflation `μʲπ_{t_Z+1}` with `π_{t_Z+1} > 0`, decaying at the stable peg root `μ`
+  (`LiftoffRhoZero.peg_geometric`, `LiftoffRhoZero.zero_rate_pi_pos`). This forces the bound's
+  multipliers resonantly, so they explode or turn negative (`LiftoffRhoZero.forced_mult_contra`,
+  `LiftoffRhoZero.rho_zero_lt_not_zero`). If `ϑ < σκ`, a lift-off would bring deflation and a
+  recession, and nonnegative rate gaps would carry the fall back to date 0. The whole path would
+  then be nonpositive, which no optimum is (`LiftoffRhoZero.back_rise`,
+  `LiftoffRhoZero.nonpos_contra`, `LiftoffRhoZero.rho_zero_gt_no_slack`). On the lift-off
+  branch Galí's sign condition `ξ₁,t_B+1 > 0` holds automatically
+  (`LiftoffRhoZero.rho_zero_branch_b`), and a verification theorem for `ρ = 0`
+  (`LiftoffRhoZero.verification_zero`) certifies exact optima on both sides.
+* *What remains open.* Galí's sign condition `ξ₁,t_C+1 > 0` remains a genuine hypothesis of the
+  positivity of (42)–(43) and of the results that use it, because it fails at some optima with
+  `ρ > 0` (`LinksGaliWoodford.cex_xi_neg`).
 
 **Woodford (2003), Chapter 6, §4.2, in the `StabilizationWelfare` project (`ZLB.lean`).**
 Proposition 6.9 replaces the bound by a constraint on the discounted mean and second moment of
