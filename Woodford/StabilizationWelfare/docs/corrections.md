@@ -12,8 +12,20 @@ p. 700 hold exactly at the steady state, not merely up to `O(Δ̄)` (`Transactio
 `Transactions.chi_etaI_vbar_eq`); `V[i] = 13.83` against `3.72² = 13.8384` is rounding of the
 standard deviation (`Transactions.vi_rounding`); footnote 26's "on the order of .05" is right
 (`PriceDispersion.fn26_value`); the weights of Proposition 6.13, whose proof the book omits, are
-confirmed (`StickyWageWelfare.prop_6_13`). Out of scope: the Chapter 7 optimal-policy material
-(existence and convergence of the optimal commitment path behind p. 415, the optimality claim of
+confirmed (`StickyWageWelfare.prop_6_13`). The new equilibrium modules confirm, and in places
+strengthen, what the chapter takes for granted: the family of equilibria behind every Layer B
+statement exists and is smooth in the amplitude (`NonlinearNKMarkov.markov_equilibrium`,
+`SmoothInSigma.Model.exists_smooth_solution`); under the exact timeless Ramsey policy the
+first-order targeting rule `ŷ_t − ŷ_{t−1} + θπ_t = ` (decaying predetermined terms) and
+`λ_x = κ/θ` hold for every distortion `Φ`, not only `Φ = 0`, because `a(λ̄₄ − λ̄₁)/Γ = θ` exactly
+(`NonlinearNKMarkovRamseyLin.key_theta`, `NonlinearNKMarkovRamseyLin.commitment_system`); the
+Markov representation for AR(1) shocks needs no finite-support assumption, for the Taylor rule and
+for the Ramsey policy alike (`NonlinearNKMarkovAR1Markov.ar1_markov_representation`,
+`NonlinearNKMarkovRamseyAR1.ramsey_ar1_markov`); the timeless Ramsey equilibrium is unique among
+all bounded processes, adapted or not (`NonlinearNKMarkovRamseyNonAdapted.ramsey_unique_all`); and
+Proposition 6.15's Layer B holds over any probability space of goods, including the continuum of
+Calvo reset histories (`NonlinearNKMarkovGoodsLayerB.prop615_goods_layerBM`). Out of scope: the Chapter 7 optimal-policy material
+(existence and convergence of the date-0 optimal commitment path behind p. 415, the optimality claim of
 footnote 71, and "optimal long-run inflation is zero for any `Φ`" on pp. 460 and 462–463); the
 numerical Figures 6.1–6.6; and the outputs of numerical optimisation behind Figure 6.1 and
 Table 6.2 (the values of `λ̂` and `λ̃`, and footnote 57). Only the exact arithmetic claims of the
@@ -95,3 +107,15 @@ statements are listed at the end. Lean names are relative to the namespace
 | (5.4), p. 458 | Expectations pull out known quantities; `F` and `K` are dominated sums; a common steady-state level | Pull-out, knownness of date-`t` quantities, domination by `Cρᵏ` with `αβρ < 1`, and `F̄ = K̄` (`LargeDistortions.fwdSum_rec`, `LargeDistortions.recEq_of_fwdSum`, `LargeDistortions.calvoAS_of_primitives`); term-by-term differentiation regularity only for `LargeDistortions.resetPrice_of_isLocalMax` |
 | Props 6.7, 6.10, 6.12 (Layer B) | The expansion point | Expanded at the efficient steady state (`Φ_y = 0`, and `Δ̄ = 0` for 6.7), with `x*` and `Δ̄` absorbed into the variables (`BridgeExtensions.prop67_actual`, `BridgeExtensions.prop610_actual`, `BridgeExtensions.prop612_actual`); the change of variables to the distorted steady state is not formalised for these three |
 | Props 6.8, 6.11, 6.13, 6.14, 6.15 (Layer B) | Coefficient definitions and bounded exogenous processes | `σ⁻¹`, `ω`, `χ`, `η_i`, `v̄ = Ȳ/m̄`, `η_y = χη_iv̄`, `ν`, `φ_h` and the composite disturbances are equations on the actual derivatives at the base point; exogenous processes are bounded for each amplitude (`BridgeLinks.prop68_primitive`, `BridgeLinks.prop611_primitive`, `BridgeLinks.prop613_primitive`, `BridgeLinks.goods_state_package`) |
+| Prop. 4.3, p. 254, in Markov form; Ch. 6 §1 | The Taylor principle gives a determinate equilibrium near the steady state | It is exactly the condition for the linearised Markov operator to be injective on every finite chain: otherwise a two-state chain with an eigenvalue in `[0, 1]` that is a root of `det(B₀ − λB₁)` makes it singular (`NonlinearNKMarkovLinks.taylor_necessary`, `NonlinearNKMarkovLinks.lop_injective_iff`). This rules out the implicit-function argument; it does not show that equilibria fail to exist. (2.7) carries a factor 4 for annualised rates; in quarterly rates the condition is `κ(φ_π − 1) + (1 − β)φ_y > 0` (`NonlinearNKMarkov.Par.Std`) |
+| App. E.2 (perturbation) | Certainty equivalence: the first-order decision rule does not depend on the shock scale | Proved with mean-zero innovations when `A + B + C` is injective (`SmoothInSigma.Model.certainty_equivalence`); this needs no extra hypothesis, since determinacy forces `A + B + C` to be injective, with lags as well (`SmoothInSigmaCE.injective_ABC_of_isInvertible`, `SmoothInSigmaCE.certainty_equivalence_det`). A precision, not a book error. Under regime switching it needs each regime's shock mean to be zero (`SmoothInSigmaRegimes.certainty_equivalence_regimes`) |
+| Props. 6.7–6.15 along the equilibrium | The equilibrium of the perturbed economy satisfies the model and stays near the steady state | Along the perturbation equilibrium on `(ℕ → ℝ, ν^ℕ)` the model's equations (for Proposition 6.15 the exact Calvo conditions `hM`) are hypotheses, while `D = O(ε²)` and `π̄ − π = O(ε²)` are derived (`SmoothInSigmaMeasureProps.dispersion_first_order_zero`, `SmoothInSigmaMeasureProps.disc_second_order`); Proposition 6.15 needs globally `C²` readouts (`SmoothInSigmaMeasure615.prop615_measure`); Propositions 6.7–6.8 assume real balances approach satiation from below, `hleft` (`SmoothInSigmaMeasureProps.prop67_measure`, `SmoothInSigmaMeasureProps.prop68_measure`) |
+| Ch. 6 §1, §5; Ch. 7 | The exact models have equilibria | For the Taylor rule: no government purchases (`s_C = 1`) and the Taylor principle (`NonlinearNKMarkov.Par.Std`). For the timeless Ramsey policy: `A_uG ≠ 0`, automatic for `A_u > 0`, `0 ≤ Φ ≤ 1` (`NonlinearNKMarkovRamseyLin.AuGw_pos`), small disturbances and a small predetermined initial value (`NonlinearNKMarkovRamseyAEIFT.ramsey_existence_ae`) |
+
+## Corrections to the earlier formalisation (not errors in the book)
+
+| Where | Earlier record | Finding |
+| --- | --- | --- |
+| Layer B, Props. 6.1–6.15 | The family of equilibria of amplitude `ε`, `C²` in `ε` with `O(ε)` and `O(ε²)` orders uniform in the date and the state, was a hypothesis | It is proved for the exact Calvo model under a Taylor rule (`NonlinearNKMarkovLinks.layerB_discharged`, `NonlinearNKMarkovGeneral.layerB_general`) and for every model in the `SmoothInSigma` class (`SmoothInSigmaWelfare.family_readout`, `SmoothInSigmaMeasureWelfare.readout_first`); Propositions 6.1 and 6.7–6.15 are re-proved along it |
+| (1.3), p. 386; Props. 6.1–6.15 | Expectations were over a finite state space or an abstract `ExpectationSystem` | The equilibrium and welfare results also hold on genuine filtered probability spaces with Mathlib's `condExp`, where every history is null (`NonlinearNKMarkovAE.seq_existence_ae`, `SmoothInSigmaMeasurePath.exists_equilibrium_iid`, `SmoothInSigmaMeasure615.prop615_measure`) |
+| Prop. 6.15, App. E.2 | Layer B was stated for a finite weighted cross-section of goods | It holds over any goods probability space; the finite statement `BridgeLinks.prop615_goods_layerB` is the special case `γ = BridgeLinks.wMeasure w` (`NonlinearNKMarkovGoodsLayerB.special_case`, `NonlinearNKMarkovGoodsLayerBFin.prop615_goods_layerB_of_M`) |

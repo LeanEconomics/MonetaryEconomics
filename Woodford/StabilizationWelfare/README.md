@@ -9,7 +9,7 @@ Stabilization and Welfare" (pp. 381–463), together with the proofs in Appendix
 (pp. 692–708). Model equations hold for an arbitrary expectation operator where the book uses
 one, discounted sums are genuine infinite sums with proved summability, and every welfare
 approximation is stated with its terms independent of policy and its remainder written out
-rather than left as "t.i.p." and "O(3)". The library contains **1069 theorems**, including the
+rather than left as "t.i.p." and "O(3)". The library contains **1993 theorems**, including the
 shared core.
 
 Each welfare approximation is stated in two layers. **Layer A** is an exact identity: the Taylor
@@ -19,7 +19,23 @@ that a scaling lemma shows to have weighted degree at least three. **Layer B** i
 about actual utility: along a one-parameter family of economies of amplitude `ε` (distortions,
 shocks and policy deviations all scaled by `ε`), utility equals terms independent of policy
 minus `ε²/2` times the loss evaluated at the first-order solution, plus `O(ε³)` uniformly in the
-date, and a policy with lower loss gives strictly higher welfare for every small `ε > 0`.
+date, and a policy with lower loss gives strictly higher welfare for every small `ε > 0`. The
+family itself is not assumed: it is proved to exist, smooth in `ε`, for the exact nonlinear model
+and for a general class of models, and the Layer B statements are re-proved along it.
+
+**Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result stated for it still
+holds; on a countable `Ω` it forces finitely supported forecasts. `ExpectationsMeasure` adds,
+alongside it, a probability space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`):
+`E_t` is Mathlib's conditional expectation `condExp`, variables are bounded measurable functions and
+processes, and equations hold almost everywhere. The bridge runs both ways: a finite event tree is
+a measure system with the same `E_t` (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a measure
+system on a finite discrete space with full support is a core system with the pull-out property
+(`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instance is
+the i.i.d. economy on `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
+(`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`). The
+modules below also use event trees and general Markov operators (`NonlinearNKMarkov.IsMarkov`) as
+carriers of `E_t`, and goods probability spaces for the cross-section.
 
 Headline results, in the namespace `Woodford.StabilizationWelfare`:
 * **Approximation theory.** (1.2) needs `C³`: twice differentiability gives only `o(‖·‖²)`,
@@ -62,17 +78,64 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   `LargeDistortions.eq54`); Propositions 6.14–6.15 in both layers, with the first-order term of
   6.14 that prevents ranking and its removal in 6.15 (`BridgeExtensions.prop614_first_order`,
   `BridgeExtensions.prop615_layerB`, `BridgeLinks.prop615_goods_layerB`).
+* **Markov equilibrium of the nonlinear model.** The exact Calvo model with the Euler equation,
+  the recursions for `F` and `K` and the exact dispersion law has, under a Taylor rule satisfying
+  the Taylor principle, an equilibrium that exists, is locally unique and is `C²` in the amplitude,
+  on finite chains and on any state space with radii uniform across them
+  (`NonlinearNKMarkov.markov_equilibrium`, `NonlinearNKMarkovGeneral.markov_equilibrium_general`),
+  and the Taylor principle is exactly the condition for the linearised operator to be invertible
+  on every finite chain (`NonlinearNKMarkovLinks.lop_injective_iff`). On general filtered
+  probability spaces with Mathlib's `condExp` the equilibrium is adapted and unique among all
+  bounded processes (`NonlinearNKMarkovAE.seq_existence_ae`,
+  `NonlinearNKMarkovAEAdapted.seq_existence_ae_adapted`,
+  `NonlinearNKMarkovRamseyNonAdapted.taylor_solution_adapted`), with a Markov representation
+  `z_t = g(x_t)` for an AR(1) with any bounded innovation law
+  (`NonlinearNKMarkovAR1Markov.ar1_markov_representation`); it discharges the Layer B family
+  hypothesis (`NonlinearNKMarkovLinks.layerB_discharged`). The same holds for the timeless Ramsey
+  policy: the nine exact conditions are Lagrangian derivatives, the linearisation is the
+  commitment system with `λ_x = κ/θ` for every distortion `Φ` and roots `0 < z₁ < 1 < z₂`
+  (`NonlinearNKMarkovRamseyLin.key_theta`, `NonlinearNKMarkovRamseyLin.ramsey_root_condition`), and
+  the equilibrium exists on every event tree and every filtered probability space, is unique among
+  all bounded processes and has a Markov representation in `(Δ_{t−1}, λ_{t−1}, x_t)`
+  (`NonlinearNKMarkovRamseyIFT.ramsey_existence`, `NonlinearNKMarkovRamseyAEIFT.ramsey_existence_ae`,
+  `NonlinearNKMarkovRamseyNonAdapted.ramsey_unique_all`,
+  `NonlinearNKMarkovRamseyAR1.ramsey_ar1_markov`). Proposition 6.15's Layer B holds over any
+  probability space of goods, including the continuum of Calvo reset histories
+  (`NonlinearNKMarkovGoodsLayerB.prop615_goods_layerBM`,
+  `NonlinearNKMarkovGoodsLayerBFin.prop615_goods_layerB_of_M`).
+* **Smooth dependence on the shock scale.** For `E_tf(y_{t+1}, y_t, y_{t−1}, x_t, σε_{t+1}) = 0`
+  with an invertible linearisation the equilibrium is `Cᵏ` in `σ` and Markov
+  (`SmoothInSigma.Model.exists_smooth_solution`, `SmoothInSigma.Model.exists_smooth_policy`);
+  certainty equivalence holds, including with lags because determinacy forces `A + B + C` to be
+  injective, and under regime switching (`SmoothInSigmaCE.certainty_equivalence_det`,
+  `SmoothInSigmaRegimes.certainty_equivalence_regimes`); the `σ²` correction is explicit
+  (`SmoothInSigma.Model.second_order_sigma`), in closed form for an illustration
+  (`SmoothInSigmaCE.exModel_closed_form`), and nonlinear exogenous laws are covered
+  (`SmoothInSigmaExog.exists_exog_solution`). On the genuine i.i.d. space the equilibrium solves
+  the model almost surely and is unique among adapted solutions
+  (`SmoothInSigmaUnique.exists_unique_equilibrium_iid`), and Propositions 6.1 and 6.7–6.15 hold
+  along it (`SmoothInSigmaWelfare.prop61_of_primitives`, `SmoothInSigmaMeasureProps.prop67_measure`,
+  `SmoothInSigmaMeasureWelfare.prop610_measure`, `SmoothInSigmaMeasureProps.prop614_measure`,
+  `SmoothInSigmaMeasure615.prop615_measure`).
+* **Genuine probability models.** All of the above holds on infinite-horizon probability spaces
+  with nondegenerate shocks, where every history is null (`NonlinearNKMarkovMeasure.coin_markov_equilibrium`,
+  `SmoothInSigmaMeasurePath.exists_equilibrium_iid`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
 Not covered: the Chapter 7 material the chapter anticipates (existence and convergence of the
-optimal commitment path behind p. 415, the optimality claim of footnote 71, and optimal long-run
-inflation for any `Φ`); the numerical Figures 6.1–6.6 and the optimisation outputs behind
+date-0 optimal commitment path behind p. 415, the optimality claim of footnote 71, and optimal
+long-run inflation for any `Φ`; only the timeless-perspective Ramsey equilibrium near the
+zero-inflation steady state is formalised); the numerical Figures 6.1–6.6 and the optimisation outputs behind
 Figure 6.1 and Table 6.2, of which only the exact arithmetic claims are formalised; and, for the
 Layer B forms of Propositions 6.7, 6.10 and 6.12, the change of variables from the efficient to
-the distorted steady state.
+the distorted steady state. The equilibrium results assume no government purchases (`s_C = 1`)
+for the exact Calvo model, and `A_uG ≠ 0` (true for `A_u > 0`, `0 ≤ Φ ≤ 1`) for the Ramsey policy.
+Along the perturbation equilibrium, Propositions 6.8, 6.14 and 6.15 take the exact model equations
+(for 6.15 the Calvo conditions `hM`) as hypotheses, Proposition 6.15 needs globally `C²`
+readouts, and Propositions 6.7–6.8 assume real balances approach satiation from below (`hleft`).
 
 ## Library map
 
@@ -102,6 +165,39 @@ the distorted steady state.
 | [BridgeCore](StabilizationWelfare/BridgeCore.lean) | 108 | Layer B for Propositions 6.1–6.6: uniform-in-`t` orders, the Taylor step at the efficient steady state, actual utility, discounted and expected forms, rankings |
 | [BridgeExtensions](StabilizationWelfare/BridgeExtensions.lean) | 93 | Layer B for (5.1), (5.4) and Propositions 6.7–6.15 along any family, the one-sided expansion at satiation, the first-order term of Proposition 6.14 |
 | [BridgeLinks](StabilizationWelfare/BridgeLinks.lean) | 42 | Layer B from primitives: `π̄ − π = O(ε²)` uniformly, Propositions 6.4–6.5 from a goods population, the money-demand residual, Propositions 6.8, 6.11, 6.13–6.15 discharged, Proposition 6.6 under uncertainty |
+| [ExpectationsMeasure](StabilizationWelfare/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](StabilizationWelfare/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [NonlinearNKMarkov](StabilizationWelfare/NonlinearNKMarkov.lean) | 55 | §1, §5, App. A.3: the exact NK model under a Taylor rule on a Markov state, the a-priori bound, existence and local uniqueness on a finite chain, the first-order solution |
+| [NonlinearNKMarkovLinks](StabilizationWelfare/NonlinearNKMarkovLinks.lean) | 29 | The exact dispersion law, uniqueness uniform over Markov operators, the state `(Δ_{t−1}, s)`, necessity of the Taylor principle, the Layer B family hypothesis discharged |
+| [NonlinearNKMarkovGeneral](StabilizationWelfare/NonlinearNKMarkovGeneral.lean) | 40 | Existence on any state space, second-order accuracy, an AR(1) instance, sequence-space determinacy for any `ExpectationSystem` |
+| [NonlinearNKMarkovAE](StabilizationWelfare/NonlinearNKMarkovAE.lean) | 52 | The same on a general filtered probability space with `condExp`: the a-priori bound, existence and uniqueness almost surely, an AR(1) with any bounded law |
+| [NonlinearNKMarkovAEAdapted](StabilizationWelfare/NonlinearNKMarkovAEAdapted.lean) | 12 | The almost surely unique equilibrium is adapted |
+| [NonlinearNKMarkovAR1Markov](StabilizationWelfare/NonlinearNKMarkovAR1Markov.lean) | 20 | The freezing lemma, measurable Markov equilibria, the Markov representation for an AR(1) with any bounded innovation law |
+| [NonlinearNKMarkovAdapted](StabilizationWelfare/NonlinearNKMarkovAdapted.lean) | 13 | p. 633: the sequence-space equilibrium is cell-constant, and adapted under informational closure |
+| [NonlinearNKMarkovMeasure](StabilizationWelfare/NonlinearNKMarkovMeasure.lean) | 13 | The equilibrium conditions almost surely, the bridge to the core, a Markov equilibrium on the i.i.d. coin space |
+| [NonlinearNKMarkovGoods](StabilizationWelfare/NonlinearNKMarkovGoods.lean) | 24 | The Calvo goods population on reset histories: `hD`, `hV`, the price index and dispersion law; why Ramsey needs `Δ_{t−1}` |
+| [NonlinearNKMarkovGoodsLayerB](StabilizationWelfare/NonlinearNKMarkovGoodsLayerB.lean) | 18 | (5.1) and Proposition 6.15 (Layer B) over a goods probability space; the finite cross-section as a special case |
+| [NonlinearNKMarkovGoodsLayerBFin](StabilizationWelfare/NonlinearNKMarkovGoodsLayerBFin.lean) | 1 | `BridgeLinks.prop615_goods_layerB` derived from the goods-space theorem |
+| [NonlinearNKMarkovRamsey](StabilizationWelfare/NonlinearNKMarkovRamsey.lean) | 8 | §5, Ch. 7: the exact timeless Ramsey conditions as Lagrangian derivatives, the zero-inflation steady state for every `Φ` |
+| [NonlinearNKMarkovRamseyLin](StabilizationWelfare/NonlinearNKMarkovRamseyLin.lean) | 21 | The linearisation, `λ_x = κ/θ` for every `Φ`, the commitment system and its root condition |
+| [NonlinearNKMarkovRamseyTree](StabilizationWelfare/NonlinearNKMarkovRamseyTree.lean) | 42 | Event trees with a lag; the linearised Ramsey operator is invertible with a bound uniform over trees |
+| [NonlinearNKMarkovRamseyAE](StabilizationWelfare/NonlinearNKMarkovRamseyAE.lean) | 43 | The same on adapted processes of a filtered probability space |
+| [NonlinearNKMarkovRamseyIFT](StabilizationWelfare/NonlinearNKMarkovRamseyIFT.lean) | 7 | Existence and uniqueness of the timeless Ramsey equilibrium on every event tree |
+| [NonlinearNKMarkovRamseyAEIFT](StabilizationWelfare/NonlinearNKMarkovRamseyAEIFT.lean) | 6 | Existence, adaptedness and uniqueness on a filtered probability space |
+| [NonlinearNKMarkovRamseyAR1](StabilizationWelfare/NonlinearNKMarkovRamseyAR1.lean) | 36 | The Markov representation `G(z_{t−1}, x_t)` for an AR(1) with any bounded law |
+| [NonlinearNKMarkovRamseyMarkov](StabilizationWelfare/NonlinearNKMarkovRamseyMarkov.lean) | 5 | The Markov representation on a finite chain, through `(Δ̂, λ̂₁, λ̂₂)` |
+| [NonlinearNKMarkovRamseyNonAdapted](StabilizationWelfare/NonlinearNKMarkovRamseyNonAdapted.lean) | 4 | Every bounded solution is adapted; uniqueness among all bounded processes (Ramsey and Taylor rule) |
+| [SmoothInSigma](StabilizationWelfare/SmoothInSigma.lean) | 100 | App. E.2: the class `E_tf(·, σε_{t+1}) = 0` on an event tree; `Cᵏ` dependence on `σ`, the Markov policy, certainty equivalence, the `σ²` correction, determinacy, the cut-off |
+| [SmoothInSigmaCE](StabilizationWelfare/SmoothInSigmaCE.lean) | 18 | Determinacy implies `A + B + C` injective, so certainty equivalence with lags; the illustration in closed form |
+| [SmoothInSigmaMeasure](StabilizationWelfare/SmoothInSigmaMeasure.lean) | 63 | Regime chains and arbitrary bounded-support shock laws on histories; existence, `Cᵏ`, Markov; i.i.d. certainty equivalence and `σ²` |
+| [SmoothInSigmaMeasurePath](StabilizationWelfare/SmoothInSigmaMeasurePath.lean) | 19 | The equilibrium on `ν^ℕ` with `condExp`: the freezing lemma, solutions almost surely; finite laws as a special case |
+| [SmoothInSigmaExog](StabilizationWelfare/SmoothInSigmaExog.lean) | 13 | Nonlinear exogenous laws with Markov-switching innovations |
+| [SmoothInSigmaWelfare](StabilizationWelfare/SmoothInSigmaWelfare.lean) | 23 | Proposition 6.1 (Layer B) along the equilibrium policy on the tree, discounted and from primitives |
+| [SmoothInSigmaMeasureWelfare](StabilizationWelfare/SmoothInSigmaMeasureWelfare.lean) | 14 | Bounded fluctuations proved on `ν^ℕ`; Propositions 6.10 and 6.12 along the equilibrium |
+| [SmoothInSigmaMeasureProps](StabilizationWelfare/SmoothInSigmaMeasureProps.lean) | 24 | `D = O(ε²)` and `π̄ − π = O(ε²)` derived; Propositions 6.7, 6.8, 6.10 (discounted), 6.11, 6.13, 6.14 along the equilibrium |
+| [SmoothInSigmaMeasure615](StabilizationWelfare/SmoothInSigmaMeasure615.lean) | 25 | (5.4) and Propositions 6.14–6.15 with genuine conditional expectations; 6.15 along the equilibrium |
+| [SmoothInSigmaRegimes](StabilizationWelfare/SmoothInSigmaRegimes.lean) | 25 | Certainty equivalence and the coupled `σ²` system under regime switching |
+| [SmoothInSigmaUnique](StabilizationWelfare/SmoothInSigmaUnique.lean) | 43 | Uniqueness among adapted almost-sure solutions on `ν^ℕ` |
 
 ## Build and verify
 
