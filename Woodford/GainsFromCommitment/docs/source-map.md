@@ -14,7 +14,9 @@ where `E_t` is Mathlib's conditional expectation and statements hold almost sure
 bounded adapted processes. Results restated from earlier chapters (the Chapter 4 IS and
 real-balance relations, the determinacy theory behind (3.9)) are listed where Chapter 7 uses them.
 The shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is
-cited where a row uses it. Dates: `CostPushCommitment` runs on `ℤ`; in `ImpulseResponses` and
+cited where a row uses it. The `TidyR5` modules complete items the earlier formalisation left
+open; each has its own section after the section it extends, and `TidyR5KappaPosCore` (copied from
+the Chapter 8 project) is listed with the copied core. Dates: `CostPushCommitment` runs on `ℤ`; in `ImpulseResponses` and
 `NaturalRateCommitment` Lean date 0 is the economic date `t₀ − 1`; elsewhere `t₀ = 0`.
 
 ## §1.1 The inflationary bias of discretionary policy, pp. 468–476 (SecondOrderRE, LQSufficiency, InflationBias, DateZeroCommitment, Timeless)
@@ -69,6 +71,16 @@ cited where a row uses it. Dates: `CostPushCommitment` runs on `ℤ`; in `Impuls
 | Woodford p. 483 | the printed first-order condition omits `βγ(φ_{2t} − φ_{2,t+1})` and is not the derivative | `Indexation.focPiPrinted`, `Indexation.focPiI_sub_printed`, `Indexation.printed_foc_not_derivative` |
 | Woodford p. 484 | the unique steady state consistent with the first-order conditions, `π̄ = −λ_i(r̄ − iᵐ)/(λ_i + β(1 − γ)(1 − βγ)) < 0`, the Friedman rate at `γ = 1`, determinacy at `λ_i = 0` only for `γ ≠ 1`, and its optimality | `Indexation.SSCondI`, `Indexation.focI_const_iff`, `Indexation.constI_feasible_iff`, `Indexation.ss_ind_iff`, `Indexation.piBar_ind_neg`, `Indexation.piBar_ind_gamma_one`, `Indexation.ssCondI_cashless_iff`, `Indexation.ss_ind_optimal` |
 
+## §1.2 Necessity of the indexation steady state, p. 484 (TidyR5IndexationNecessity)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford p. 484 | an explicit perturbation: quasi-differenced inflation rises by `1` at date 2, the gap moves at dates 1 and 2 only, the rate follows from (1.15); bounded | `TidyR5IndexationNecessity.dPi`, `TidyR5IndexationNecessity.dX`, `TidyR5IndexationNecessity.dI`, `TidyR5IndexationNecessity.dPi_bdd`, `TidyR5IndexationNecessity.dX_bdd`, `TidyR5IndexationNecessity.dI_bdd` |
+| Woodford (1.21), (1.15), p. 484 | the perturbation solves the homogeneous (1.21) and (1.15), so the perturbed constant plan is feasible with the same `π_0, x_0` | `TidyR5IndexationNecessity.pert_AS`, `TidyR5IndexationNecessity.pert_IS`, `TidyR5IndexationNecessity.pert_feasible` |
+| Woodford p. 484 | its discounted sums: `∑βᵗdπ_t = β²/(1 − βγ)`, `∑βᵗdπ_{t+1} = ∑βᵗdi_t = β/(1 − βγ)`, `∑βᵗdx_t = ∑βᵗdx_{t+1} = 0` | `TidyR5IndexationNecessity.dsum_dPi`, `TidyR5IndexationNecessity.dsum_dPi_succ`, `TidyR5IndexationNecessity.dsum_dX`, `TidyR5IndexationNecessity.dsum_dX_succ`, `TidyR5IndexationNecessity.dsum_dI` |
+| Woodford pp. 483–484 | with zero multipliers the Lagrangian is half the loss; the exact expansion `L(ȳ + εd) = L(ȳ) + 2εG + ε²Q`, with `G = β/(1 − βγ)·[β(1 − γ)(1 − βγ)π̄ + λ_i(ı̄ − iᵐ)]` | `TidyR5IndexationNecessity.lagrI_zero`, `TidyR5IndexationNecessity.gradI`, `TidyR5IndexationNecessity.lossI_pert`, `TidyR5IndexationNecessity.gradI_eq` |
+| Woodford p. 484 | necessity: a timelessly optimal constant plan satisfies `λ_i(ı̄ − iᵐ) = −β(1 − γ)(1 − βγ)π̄`, with no multiplier assumed; so it is timelessly optimal iff `π̄ = −λ_i(r̄ − iᵐ)/(λ_i + β(1 − γ)(1 − βγ))`, `ı̄ = r̄ + π̄`, `κx̄ = (1 − β)(1 − γ)π̄` | `TidyR5IndexationNecessity.ss_ind_necessary`, `TidyR5IndexationNecessity.ss_ind_timeless_iff` |
+
 ## §2.1 Cost-push shocks, pp. 486–501 (Discretion, CostPushCommitment, ImpulseResponses, VarianceFrontier)
 
 | Book | Claim | Lean |
@@ -116,6 +128,23 @@ cited where a row uses it. Dates: `CostPushCommitment` runs on `ℤ`; in `Impuls
 | Woodford (2.27), p. 504; p. 506 | for AR(1) `rⁿ`, `ī_t = r̄ + s(rⁿ_t − r̄)` with `0 < s < 1`, `s` increasing in `ρ`, `s → 1` as `ρ → 1` | `NaturalRateCommitment.ibar_ar1`, `NaturalRateCommitment.slope_pos_lt_one`, `NaturalRateCommitment.slope_strictMono`, `NaturalRateCommitment.slope_tendsto_one` |
 | Woodford p. 506; n. 26, p. 505 | (2.29) with the first-order-condition gap minimises (2.24) (with `κ = 0`) subject to (2.23) and the timeless constraint (2.26), or as the `t₀`-optimal plan (2.25) | `NaturalRateCommitment.sufficiency_kappa0`, `NaturalRateCommitment.xFromFoc`, `NaturalRateCommitment.optimal_plan_kappa0`, `NaturalRateCommitment.optimal_plan_kappa0_t0` |
 
+## §2.2 Natural-rate disturbances with `κ > 0`, and uniqueness at `κ = 0`, pp. 502–507 (TidyR5NaturalRateKappa)
+
+Built on the copied multiplier-system core `TidyR5KappaPosCore` (below). Lean date 0 is the
+economic date `t₀ − 1` in the `κ = 0` rows, as in `NaturalRateCommitment`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford (1.16)–(1.18), p. 478; (2.25), p. 503 | the multiplier vector `Φ_t = (φ_{1t}, φ_{2t})` and its initial value; lags coordinatewise | `TidyR5NaturalRateKappa.vecOf`, `TidyR5NaturalRateKappa.vecH`, `TidyR5NaturalRateKappa.lag_vec0`, `TidyR5NaturalRateKappa.lag_vec1`, `TidyR5NaturalRateKappa.lagV_coords` |
+| Woodford (1.16)–(1.18) with (2.1), (2.23), pp. 478, 502–503 | the first-order conditions determine the plan from the multipliers; feasible plans satisfying them correspond one to one to adapted solutions of `P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t` | `TidyR5NaturalRateKappa.plan_eq_of_foc`, `TidyR5NaturalRateKappa.sys_of_foc`, `TidyR5NaturalRateKappa.foc_of_sys` |
+| Woodford App. G.4, p. 722, for §2.2 | for every admissible calibration a real solvent `X`, Schur-stable with `det X > 0`, with `B` invertible and `K = −B⁻¹P` Schur-stable | `TidyR5NaturalRateKappa.exists_solvent` |
+| Woodford pp. 478, 502–505; Fig. 7.6 | for every bounded adapted `rⁿ`, `u` and every pair of initial multipliers, (2.1), (2.23), (1.16)–(1.18) have exactly one bounded adapted solution | `TidyR5NaturalRateKappa.foc_system_existsUnique` |
+| Woodford (2.24)–(2.26), p. 503 | with (2.25) it is the `t₀`-optimal commitment; with any initial multipliers it is timelessly optimal; unique when the system is faithful | `TidyR5NaturalRateKappa.t0_optimal`, `TidyR5NaturalRateKappa.timeless_optimal`, `TidyR5NaturalRateKappa.optimum_unique` |
+| Woodford pp. 503–505; Fig. 7.6 | history dependence, the `κ > 0` analogue of (2.29): `Φ_t = XΦ_{t−1} + ψ_t`, `X` Schur-stable with `det X > 0`, `ψ` the forward solution in current and expected disturbances | `TidyR5NaturalRateKappa.partial_adjustment` |
+| Woodford (2.24), p. 503, with `κ = 0` | the realised discounted loss, summable on bounded plans, and the midpoint identity behind strict convexity | `TidyR5NaturalRateKappa.kloss`, `TidyR5NaturalRateKappa.summable_kloss`, `TidyR5NaturalRateKappa.kloss_midpoint` |
+| Woodford (2.28)–(2.30), p. 506, n. 26 | the `κ = 0` optimum (2.29) is the only optimum when `E_{t₀}` is faithful | `TidyR5NaturalRateKappa.kappa0_unique_faithful` |
+| Woodford p. 506, n. 26 (counterexample) | a two-state system whose second state is null at `t₀` and revealed at `t₀ + 1`, with pull-out; a deviation in the null state attains the same expected loss, so (2.29) is not unique for a general expectation system | `TidyR5NaturalRateKappa.evalTrue`, `TidyR5NaturalRateKappa.lateInfo`, `TidyR5NaturalRateKappa.lateInfo_pullOut`, `TidyR5NaturalRateKappa.lateInfo_E_le`, `TidyR5NaturalRateKappa.lateInfo_E_ge`, `TidyR5NaturalRateKappa.devFalse`, `TidyR5NaturalRateKappa.kappa0_not_unique` |
+
 ## §3 Optimal simple policy rules, pp. 507–517 (Noninertial, VarianceFrontier, OptimalTaylor)
 
 | Book | Claim | Lean |
@@ -141,6 +170,32 @@ cited where a row uses it. Dates: `CostPushCommitment` runs on `ℤ`; in `Impuls
 | Prop 7.13, p. 516 | a root with `0 < \|λ\| ≤ 1` gives a second bounded equilibrium; by Vieta a root lies inside the disc when the leading coefficient exceeds one, so the rule is indeterminate beyond an explicit horizon; the exact criterion for `k = 1` | `OptimalTaylor.chiC`, `OptimalTaylor.indeterminate_of_root`, `OptimalTaylor.exists_root_lt_one`, `OptimalTaylor.leadingCoeff_top`, `OptimalTaylor.exists_root_inside`, `OptimalTaylor.exists_root_inside_one`, `OptimalTaylor.prop_7_13`, `OptimalTaylor.fcB1`, `OptimalTaylor.fcW1`, `OptimalTaylor.fc1_pt`, `OptimalTaylor.forecastEqm_one_iff_solves`, `OptimalTaylor.forecast1_determinate_iff` |
 | Woodford n. 37, p. 516 | at the calibration the rule is indeterminate for every `k ≥ 1` and every `ρ ∈ (0, 1)` with `D(ρ) > 0` | `OptimalTaylor.fn37_ineq`, `OptimalTaylor.fn37` |
 
+## §3 Taylor rules with coefficients of any sign, pp. 513–515, n. 33 (TidyR5TaylorRegion)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford (3.9), p. 514; App. C.2, p. 677; n. 33 | `A = κ(φ_π − 1) + (1 − β)φ_x/4`, `C = 2(1 + β) + σκ(1 + φ_π) + (1 + β)σφ_x/4`; the region `(β < Δ ∧ A > 0 ∧ C > 0) ∨ (Δ < −β ∧ A < 0 ∧ C < 0)` | `TidyR5TaylorRegion.regA`, `TidyR5TaylorRegion.regC`, `TidyR5TaylorRegion.TaylorRegion` |
+| Woodford Ch. 4 (2.18), p. 263; App. C.2 | `tr B`, `det B = β/Δ`; for `Δ ≠ 0`, `B` is Schur–Cohn stable iff `(φ_π, φ_x)` is in the region, which excludes `Δ = 0` | `TidyR5TaylorRegion.taylorB_tr`, `TidyR5TaylorRegion.taylorB_det`, `TidyR5TaylorRegion.schurStable_iff_region`, `TidyR5TaylorRegion.delta_ne_zero_of_region` |
+| Woodford (3.9), p. 514; n. 33 | for `φ_π, φ_x ≥ 0` the region is (3.9); at `Δ = 0` a second bounded equilibrium always exists | `TidyR5TaylorRegion.region_iff_taylorLHS`, `TidyR5TaylorRegion.not_modelDet_of_delta_zero` |
+| n. 33, p. 515; Ch. 4 Prop 4.3 | for real `φ_π, φ_x` of any sign, determinate iff in the region; only the combined intercept matters, so the same holds for arbitrary intercepts | `TidyR5TaylorRegion.taylor_determinate_iff_region`, `TidyR5TaylorRegion.taylorRule_recenter`, `TidyR5TaylorRegion.taylor_determinate_iff_region_any` |
+| Woodford p. 514 | `detT(ρ) = Δ det(I − ρB)`, nonzero for `\|ρ\| ≤ 1` under a determinate rule; `A ≠ 0` in the region; every determinate rule, of any sign, has an equilibrium of the form (3.6) | `TidyR5TaylorRegion.one_sub_mul_add_pos`, `TidyR5TaylorRegion.detT_eq`, `TidyR5TaylorRegion.detT_ne_zero_of_region`, `TidyR5TaylorRegion.regA_ne_zero_of_region`, `TidyR5TaylorRegion.taylor_eqm_plan2_of_ne`, `TidyR5TaylorRegion.taylor_eqm_plan2_region` |
+| Prop 7.12, p. 514; n. 33 | no determinate Taylor rule of any sign beats the optimal noninertial plan | `TidyR5TaylorRegion.prop_7_12_optimal_region` |
+| Prop 7.12, pp. 514–515; n. 33 | where the consistency system is nonsingular: the optimal noninertial plan is the equilibrium of some determinate Taylor rule iff `(φ_π, φ_x)(ρ_r, ρ_u)` is in the region, and then it is the unique equilibrium; on the diagonal with `D(ρ)λ_i ≠ 0` the coefficients are (3.12) | `TidyR5TaylorRegion.prop_7_12_region`, `TidyR5TaylorRegion.oni_implementable_iff`, `TidyR5TaylorRegion.phiG_diag_ne`, `TidyR5TaylorRegion.oni_implementable_diag_iff` |
+| n. 32–33, p. 515 | at the fn 32 calibration, `ρ = .7` (outside (3.10)) is implemented by a rule with `φ_π ≈ −49.3`, `φ_x ≈ −7.6`; at `ρ = .9` by no rule of any sign | `TidyR5TaylorRegion.negative_rule_region`, `TidyR5TaylorRegion.negative_rule_implements`, `TidyR5TaylorRegion.no_rule_region`, `TidyR5TaylorRegion.no_rule_implements` |
+| App. F.4, p. 713; p. 515 | the singular set is the zero set of `F(ρ_r, ρ_u) = λ_iσ⁻¹G(ρ_r)(A(ρ_u)(1 − βρ_r) + B(ρ_u))` | `TidyR5TaylorRegion.polyG`, `TidyR5TaylorRegion.polyA`, `TidyR5TaylorRegion.polyB`, `TidyR5TaylorRegion.detGpoly`, `TidyR5TaylorRegion.polyG_eval`, `TidyR5TaylorRegion.detG_eq_poly`, `TidyR5TaylorRegion.detG_zero_subset` |
+| Woodford p. 515, "almost all parameter values" | for `λ_i > 0`, `F(0, 0) > 0` and the singular set is closed, Lebesgue-null, with empty interior; for `λ_i = 0` it is all of `ℝ²` | `TidyR5TaylorRegion.detGpoly_zero_zero_pos`, `TidyR5TaylorRegion.polyG_ne_zero`, `TidyR5TaylorRegion.polyA_ne_zero`, `TidyR5TaylorRegion.detG_continuous`, `TidyR5TaylorRegion.detG_zero_null`, `TidyR5TaylorRegion.detG_zero_interior_empty`, `TidyR5TaylorRegion.detG_li_zero` |
+
+## §3 Forecast-based rules: the exact criterion for every horizon, p. 516 (TidyR5ForecastHorizon)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Prop 7.13, p. 516 (reduced form) | scalar expectational equations `∑_{j ≤ n+1} c_jE_tp_{t+j} = g_t` and their determinacy | `TidyR5ForecastHorizon.ScalarSolves`, `TidyR5ForecastHorizon.ScalarDet` |
+| Prop 7.13 (tools) | the companion forward system of the stacked forecasts; solutions correspond both ways; bounded and adapted | `TidyR5ForecastHorizon.companion`, `TidyR5ForecastHorizon.companion_row_zero`, `TidyR5ForecastHorizon.companion_row_succ`, `TidyR5ForecastHorizon.compForcing`, `TidyR5ForecastHorizon.stackP`, `TidyR5ForecastHorizon.stackP_fsolves`, `TidyR5ForecastHorizon.fsolves_stack`, `TidyR5ForecastHorizon.scalar_of_fsolves`, `TidyR5ForecastHorizon.stackP_bounded`, `TidyR5ForecastHorizon.stackP_adapted` |
+| Prop 7.13; App. C for one equation of any order | roots of `P` outside the closed disc put the companion eigenvalues inside the open disc; determinate iff every root of `P` has modulus `> 1` | `TidyR5ForecastHorizon.companion_eig`, `TidyR5ForecastHorizon.scalarDet_of_roots`, `TidyR5ForecastHorizon.roots_of_scalarDet`, `TidyR5ForecastHorizon.scalarDet_iff` |
+| Prop 7.13, p. 516 | the coefficients of `χ`, with `c_0 = 1`, and the forcing of the reduced form | `TidyR5ForecastHorizon.fcCoef`, `TidyR5ForecastHorizon.fcCoef_zero`, `TidyR5ForecastHorizon.fcCoef_sum`, `TidyR5ForecastHorizon.fcCoef_chiC`, `TidyR5ForecastHorizon.fcG`, `TidyR5ForecastHorizon.fcG_bdd_adapted` |
+| Woodford (2.1), (3.13), p. 516 | equilibria under the forecast rule are exactly the solutions of the reduced scalar equation | `TidyR5ForecastHorizon.AS_forecast`, `TidyR5ForecastHorizon.forecastEqm_iff_scalar` |
+| Prop 7.13, p. 516, any `k ≥ 1` | determinate iff every root of `χ` has `\|λ\| > 1`, for any real `φ_π, φ_x`; for the rule (3.14) | `TidyR5ForecastHorizon.forecast_determinate_iff`, `TidyR5ForecastHorizon.oni_forecast_determinate_iff` |
+
 ## §4 The optimal state-contingent instrument path, pp. 517–521 (InstrumentPath)
 
 | Book | Claim | Lean |
@@ -150,6 +205,16 @@ cited where a row uses it. Dates: `CostPushCommitment` runs on `ℤ`; in `Impuls
 | Prop 7.14, (4.2), p. 518 | the interest rate satisfying (2.23) is `rⁿ_t + (1 − κ/(λσ))[(μ₁ + ρ − 1)u_t − (1 − μ₁)∑_{k≥1}μ₁ᵏu_{t−k}]/(β(μ₂ − ρ))`; the printed (4.2) differs and violates (2.23) | `InstrumentPath.iPath`, `InstrumentPath.prop_7_14`, `InstrumentPath.iPrinted`, `InstrumentPath.e12_printed_sub`, `InstrumentPath.e12_printed_ne`, `InstrumentPath.e12_printed_not_IS` |
 | Woodford p. 519; Ch. 4 Prop 4.2 | under an exogenous rate path the matrix fails Schur–Cohn and the optimal equilibrium is one of a continuum; martingale-difference sunspots give distinct equilibria, injectively, and exist under genuine uncertainty | `InstrumentPath.exoM`, `InstrumentPath.exoM_not_schurStable`, `InstrumentPath.p519_continuum`, `InstrumentPath.p519_optimal`, `InstrumentPath.lamL`, `InstrumentPath.lamL_facts`, `InstrumentPath.sunS`, `InstrumentPath.sunS_adapted`, `InstrumentPath.sunS_E`, `InstrumentPath.sunS_bdd`, `InstrumentPath.sunS_injective`, `InstrumentPath.p519_sunspot`, `InstrumentPath.p519_sunspot_coin` |
 | Woodford (4.3), p. 520 | composite disturbances are bounded for absolutely summable weights (finitely many shock types); AR(1) is a special case | `InstrumentPath.compositeShock`, `InstrumentPath.compositeShock_bdd`, `InstrumentPath.ar1_as_composite` |
+
+## §4 Composite disturbances with infinitely many shock types, pp. 520–521 (TidyR5CompositeShocks)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford (4.3), p. 520; p. 521, "not necessarily finite" | each type `u^j_t = ∑_kψ_{jk}ε^j_{t−k}` and the composite over countably many types, for an absolutely summable family: convergent and bounded | `TidyR5CompositeShocks.typeShock`, `TidyR5CompositeShocks.compositeInf`, `TidyR5CompositeShocks.SummableFamily`, `TidyR5CompositeShocks.typeShock_summable`, `TidyR5CompositeShocks.typeShock_bdd`, `TidyR5CompositeShocks.compositeInf_summable`, `TidyR5CompositeShocks.compositeInf_bdd` |
+| Woodford (4.3), p. 520 | every finite composite, AR(1) included, extended by zero, is one with countably many types | `TidyR5CompositeShocks.extendPsi`, `TidyR5CompositeShocks.extendEps`, `TidyR5CompositeShocks.summableFamily_fin`, `TidyR5CompositeShocks.compositeShock_eq_inf` |
+| Woodford (4.3); p. 488 | the composite is adapted when every shock is known from its date on | `TidyR5CompositeShocks.compositeInf_adapted` |
+| Woodford pp. 520–521 | superposition: the forward component is the sum over types; `x_t = μ₁x_{t−1} − (κ/λ)∑_jF^j_t`, `π_t = (1 − μ₁)(λ/κ)x_{t−1} + ∑_jF^j_t` | `TidyR5CompositeShocks.fwdU_composite`, `TidyR5CompositeShocks.star_composite` |
+| Woodford p. 521; Prop 7.15, p. 523 | (5.1), with coefficients independent of the weights, is determinate and solves Proposition 7.7's problem for every composite | `TidyR5CompositeShocks.targeting_rule_composite` |
 
 ## §5 Optimal targeting rules, pp. 521–531 (TargetingRule, Implementation)
 
@@ -228,6 +293,28 @@ every history is null.
 | Woodford p. 512 (concrete law) | the uniform law on `{±1, ±3}` and the two fair coins it encodes: measurable, bounded, mean zero, variance one, uncorrelated | `NoninertialMeasureIID.quadMeasure`, `NoninertialMeasureIID.quadMeasure_univ`, `NoninertialMeasureIID.quad`, `NoninertialMeasureIID.integral_quad`, `NoninertialMeasureIID.coinA`, `NoninertialMeasureIID.coinB`, `NoninertialMeasureIID.measurable_coinA`, `NoninertialMeasureIID.measurable_coinB`, `NoninertialMeasureIID.coinA_bdd`, `NoninertialMeasureIID.coinB_bdd`, `NoninertialMeasureIID.quad_moments` |
 | Woodford pp. 512–513; App. F.4 | the two-coin economy: every history null, unit conditional variances, zero conditional covariance; (3.7)–(3.8) and F.4 optimality a.s. | `NoninertialMeasureIID.twoCoin_economy`, `NoninertialMeasureIID.twoCoin_lstab`, `NoninertialMeasureIID.twoCoin_f4_lstab` |
 
+## §3 and App. F.4: one null set for all plans (TidyR5UniformNull)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford pp. 509, 512 | the regular version: every plan's conditional variance and `L_stab` built bilinearly from three basis conditional covariances; one null set, fixed before any plan, gives their closed forms at every horizon | `TidyR5UniformNull.bCov`, `TidyR5UniformNull.regVar`, `TidyR5UniformNull.regLstab`, `TidyR5UniformNull.regLstab12`, `TidyR5UniformNull.bCov_good` |
+| Woodford pp. 509, 512 | the regular `L_stab` is a version of Mathlib's, plan by plan | `TidyR5UniformNull.regLstab_version`, `TidyR5UniformNull.regLstab12_version` |
+| Woodford (3.4), p. 511; (3.7)–(3.8), p. 513 | off one null set, for every plan simultaneously, the regular `L_stab` has the closed forms | `TidyR5UniformNull.regLstab12_uniform`, `TidyR5UniformNull.regLstab_uniform`, `TidyR5UniformNull.regLstab_eq_uniform` |
+| Woodford (3.5), p. 511; App. F.4 (numerical cores) | the weighted objectives are minimised exactly at (3.5) and at the F.4 responses; the weight is positive | `TidyR5UniformNull.oni_numeric`, `TidyR5UniformNull.f4_numeric`, `TidyR5UniformNull.weight_pos` |
+| Prop 7.11, pp. 509–511; App. F.4 | off one null set, for every plan simultaneously, the ranking and the equality case | `TidyR5UniformNull.prop_7_11_uniform`, `TidyR5UniformNull.f4_uniform` |
+| Woodford (3.4), (3.7)–(3.8); Prop 7.11; App. F.4 | as numbers: `∫L_stab dμ` equals the closed forms, and the rankings and equality cases hold with no null set | `TidyR5UniformNull.lstab12_integral`, `TidyR5UniformNull.lstab_integral`, `TidyR5UniformNull.prop_7_11_integral`, `TidyR5UniformNull.f4_integral` |
+| Prop 7.11, pp. 509–511 (counterexample) | on the fair-coin economy, versions of `L_stab` built from an injection of the states into `ℝ` have, at every state, a feasible plan beating the optimal noninertial plan, so no uniform null set exists for them | `TidyR5UniformNull.exists_stateToReal_injective`, `TidyR5UniformNull.stateToReal`, `TidyR5UniformNull.stateToReal_injective`, `TidyR5UniformNull.badPlan`, `TidyR5UniformNull.coinL`, `TidyR5UniformNull.badVersion`, `TidyR5UniformNull.versions_no_uniform_null` |
+
+## §3 and App. F.4 with genuinely independent disturbances, p. 512 (TidyR5Independence)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford p. 512, "independent" | innovations independent of the date-`t` information and of each other; disturbance processes independent as random elements of `ℝ^ℕ` | `TidyR5Independence.IndepInnov`, `TidyR5Independence.IndepDisturbances` |
+| Woodford p. 512 | independence gives `E_t(XY) = 0` a.s., hence uncorrelated innovations | `TidyR5Independence.condCov_zero_of_indep`, `TidyR5Independence.indepInnov_uncorrelated` |
+| Woodford (3.7)–(3.8), p. 513; App. F.4 | (3.7)–(3.8) and F.4 optimality for independent disturbances, also off one null set | `TidyR5Independence.lstab_eq_indep`, `TidyR5Independence.f4_lstab_indep`, `TidyR5Independence.f4_uniform_indep` |
+| Woodford p. 512 (concrete law) | the coins by date and type; the law `quad` and the independence of the two coins under it | `TidyR5Independence.coinFam`, `TidyR5Independence.measurable_coinFam`, `TidyR5Independence.twoCoin_eval`, `TidyR5Independence.quad_apply`, `TidyR5Independence.quad_coins_indep`, `TidyR5Independence.finset_bool_cases`, `TidyR5Independence.coinSigma` |
+| Woodford p. 512; App. F.4 | the two-coin economy: all coins mutually independent, innovations satisfy `IndepInnov`, the processes `u` and `r̂ⁿ` independent; F.4 derived from independence | `TidyR5Independence.twoCoin_iIndepFun`, `TidyR5Independence.twoCoin_indepInnov`, `TidyR5Independence.twoCoin_indepDisturbances`, `TidyR5Independence.twoCoin_f4_indep` |
+
 ## Cross-links between the formalisations (Links)
 
 | Book | Claim | Lean |
@@ -249,6 +336,16 @@ every history is null.
 | Prop 7.2, p. 475; Prop 7.3, p. 478; (3.11), p. 514 | the two formalisations of timeless optimality of a constant target, and of (1.19), agree | `Links.timelessOpt12_iff_timelesslyOptimal`, `Links.piBar119_eq_piBar_basic`, `Links.timelessOpt114_iff_basic` |
 | Prop 7.14 vs p. 501 | without cost-push shocks the instrument path is `i = rⁿ` with `π = x = 0` | `Links.instrumentPath_no_costPush` |
 | Woodford p. 501 | zero-gap uniqueness holds for every faithful expectation system | `Links.zero_gap_unique_faithful` |
+
+## Integer-dated plans as `ℕ`-dated plans, and a common `L_stab` ranking (TidyR5PlanTranslation)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford pp. 488–489; App. F.1 | restriction from `t₀` and extension of processes, inverse to each other | `TidyR5PlanTranslation.restrictZ`, `TidyR5PlanTranslation.extendN`, `TidyR5PlanTranslation.restrict_extend`, `TidyR5PlanTranslation.extendN_t0`, `TidyR5PlanTranslation.exists_nat_of_le` |
+| Props 7.6–7.8 vs §5, pp. 488–491, 523 | feasibility, the loss, constrained optimality and `t₀`-optimality agree exactly after re-indexing | `TidyR5PlanTranslation.feasible_iff`, `TidyR5PlanTranslation.loss_eq`, `TidyR5PlanTranslation.isOptimal_iff`, `TidyR5PlanTranslation.isOptimal_free_iff` |
+| Woodford (2.7), p. 489; Props 7.6–7.8 vs Prop 7.15 | each plan, re-indexed, is the (5.1) equilibrium, with pre-sample gap `x* + (κ/λ)φ_{t₀−1}`, `x_{t₀−1}`, or the fictitious `(κ/λ)(p̄ − p_{t₀−1})` | `TidyR5PlanTranslation.rec27_plan_eq_star`, `TidyR5PlanTranslation.prop_7_6_eq_star`, `TidyR5PlanTranslation.prop_7_7_eq_star`, `TidyR5PlanTranslation.prop_7_8_eq_star` |
+| Woodford p. 509 | the innovation component satisfies (2.1) and the first-order conditions with target and initial multiplier `0`; `L_stab` is its expected loss | `TidyR5PlanTranslation.dev`, `TidyR5PlanTranslation.as_dev`, `TidyR5PlanTranslation.foc_dev`, `TidyR5PlanTranslation.lstab12_eq_loss_dev` |
+| Woodford pp. 509–511 | `L_stab = L_stab(inertial) + E∑βᵗ[(Δπ̃)² + λ(Δx̃)²]` for every bounded plan satisfying (2.1); so the inertial plan, also the integer-dated Prop 7.7 plan, beats the optimal noninertial plan | `TidyR5PlanTranslation.inertial_lstab_gap`, `TidyR5PlanTranslation.inertial_lstab_le`, `TidyR5PlanTranslation.inertial_lstab_le_oni`, `TidyR5PlanTranslation.prop_7_7_lstab_le_oni` |
 
 ## Measure-theoretic expectations: the copied core (ExpectationsMeasure, ExpectationsMeasureIID)
 
@@ -272,6 +369,28 @@ exact.
 | Ch. 2, p. 29 (shared core) | mean-zero shocks with constant conditional variance `σ² > 0`, nondegenerate at every date; every history is null, so the system is not finitely (or countably) supported | `ExpectationsMeasureIID.E_shock_zero`, `ExpectationsMeasureIID.E_shock_sq_eq`, `ExpectationsMeasureIID.condVar_shock`, `ExpectationsMeasureIID.shock_not_ae_E`, `ExpectationsMeasureIID.singleton_lt_one`, `ExpectationsMeasureIID.exists_singleton_le`, `ExpectationsMeasureIID.iid_singleton`, `ExpectationsMeasureIID.iid_countable_null`, `ExpectationsMeasureIID.iid_not_finitely_supported` |
 | Ch. 2, p. 29; §2.7, p. 42 (shared core) | determinacy in the i.i.d. economy iff `\|a\| < 1`, with a random sunspot otherwise; the bounded AR(1), its forecasts and conditional variance | `ExpectationsMeasureIID.iid_news`, `ExpectationsMeasureIID.iid_existsUnique_iff`, `ExpectationsMeasureIID.iid_sunspot`, `ExpectationsMeasureIID.ar1`, `ExpectationsMeasureIID.ar1_succ`, `ExpectationsMeasureIID.ar1_adapted`, `ExpectationsMeasureIID.ar1_bdd`, `ExpectationsMeasureIID.iid_ar1_E`, `ExpectationsMeasureIID.iid_ar1_condVar`, `ExpectationsMeasureIID.iid_ar1_condVar_closed` |
 | Ch. 2, p. 29; §2.7, p. 42 (shared core) | the fair `±1` coin economy: mean zero, variance one, bounded, and every property above at once | `ExpectationsMeasureIID.coinMeasure`, `ExpectationsMeasureIID.coinMeasure_univ`, `ExpectationsMeasureIID.coin`, `ExpectationsMeasureIID.integral_coin`, `ExpectationsMeasureIID.coin_mean`, `ExpectationsMeasureIID.coin_var`, `ExpectationsMeasureIID.coin_bdd`, `ExpectationsMeasureIID.coin_economy` |
+
+## The `κ > 0` multiplier system: the copied Chapter 8 core (TidyR5KappaPosCore)
+
+Restated from the Woodford Chapter 8 project (`OptimalPolicyRules.IRuleBasic` with
+`ExpectationTools.Faithful`, whose forward-system tools come from the Chapter 4 project), namespace
+renamed. The instrument-rule parts of Chapter 8 are omitted, and the Lagrangian identity is
+generalised: its boundary term vanishes either under the commitments (2.26) or with zero initial
+multipliers (2.25). Its docstrings cite Chapter 8 equation numbers ((3.1), (3.2), (3.3)–(3.5) and (3.6)
+there are (2.23), (2.24), (1.16)–(1.18) and (2.26) here) and Appendix G.4 (pp. 721–722). Lean date 0 is `t₀`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. C.1, p. 670; fn 1 (forward-system tools, Chapter 4 project) | matrices acting on random vectors; the forward system `s_t = KE_ts_{t+1} + w_t` with geometrically decaying `Kᵏ` has exactly one bounded adapted solution | `TidyR5KappaPosCore.pow_entry_bound`, `TidyR5KappaPosCore.rvMul`, `TidyR5KappaPosCore.rvMul_rvMul`, `TidyR5KappaPosCore.rvMul_add`, `TidyR5KappaPosCore.rvMul_sub`, `TidyR5KappaPosCore.rvMul_one`, `TidyR5KappaPosCore.add_rvMul`, `TidyR5KappaPosCore.sub_rvMul`, `TidyR5KappaPosCore.neg_rvMul`, `TidyR5KappaPosCore.rvMul_apply`, `TidyR5KappaPosCore.rvMul_two`, `TidyR5KappaPosCore.E_rvMul`, `TidyR5KappaPosCore.FSolves`, `TidyR5KappaPosCore.VAdapted`, `TidyR5KappaPosCore.VBounded`, `TidyR5KappaPosCore.fsolves_iterate`, `TidyR5KappaPosCore.abs_rvMul_pow_le`, `TidyR5KappaPosCore.fsolves_unique`, `TidyR5KappaPosCore.fsolves_exists` |
+| App. C.1, Prop C.1, pp. 670–671; (C.19), p. 677 | `2 × 2` eigenvalues, inverses and Schur–Cohn stability; constant matrices preserve boundedness and adaptedness | `TidyR5KappaPosCore.det_scalar_sub_two`, `TidyR5KappaPosCore.pow_bound_of_schurStable`, `TidyR5KappaPosCore.inv2`, `TidyR5KappaPosCore.inv2_mul`, `TidyR5KappaPosCore.mul_inv2`, `TidyR5KappaPosCore.vBounded_rvMul`, `TidyR5KappaPosCore.vAdapted_rvMul`, `TidyR5KappaPosCore.schurStable_of_factor` |
+| Ch. 8, p. 541 | faithful expectation systems | `TidyR5KappaPosCore.Faithful` |
+| (G.12)–(G.13), p. 722 | the `β`-palindromic quartic `p(µ)`, its root pairing `µ ↔ (βµ)⁻¹` and factorisation | `TidyR5KappaPosCore.aG`, `TidyR5KappaPosCore.bG`, `TidyR5KappaPosCore.pR`, `TidyR5KappaPosCore.palin`, `TidyR5KappaPosCore.palinPoly`, `TidyR5KappaPosCore.eval_palinPoly`, `TidyR5KappaPosCore.palin_inv`, `TidyR5KappaPosCore.palin_inv_eq_zero_iff`, `TidyR5KappaPosCore.palin_zero`, `TidyR5KappaPosCore.palin_factor`, `TidyR5KappaPosCore.exists_sum_prod`, `TidyR5KappaPosCore.palin_split`, `TidyR5KappaPosCore.palinPoly_eq_prod`, `TidyR5KappaPosCore.palinPoly_roots` |
+| App. G.4, p. 722 (root counting) | at most two roots in the open unit disc, exactly two iff none in the annulus `1 ≤ \|µ\| ≤ β⁻¹` | `TidyR5KappaPosCore.insideCard`, `TidyR5KappaPosCore.ind`, `TidyR5KappaPosCore.card_filter_cons`, `TidyR5KappaPosCore.Annulus`, `TidyR5KappaPosCore.norm_pair`, `TidyR5KappaPosCore.ind_pair_le`, `TidyR5KappaPosCore.ind_pair_eq_one_iff`, `TidyR5KappaPosCore.annulus_pair`, `TidyR5KappaPosCore.palin_insideCard_le`, `TidyR5KappaPosCore.palin_insideCard_eq_two_iff` |
+| (G.12), App. G.4, p. 722 | the model's `p` has no root in the annulus, so exactly two inside, and its stable factor is real | `TidyR5KappaPosCore.pG`, `TidyR5KappaPosCore.pGPoly`, `TidyR5KappaPosCore.pG_ofReal`, `TidyR5KappaPosCore.Qs`, `TidyR5KappaPosCore.pG_eq_Qs`, `TidyR5KappaPosCore.nu_quad_eq_Qs`, `TidyR5KappaPosCore.quad_ne_zero_of_re_nonpos`, `TidyR5KappaPosCore.re_s_nonpos`, `TidyR5KappaPosCore.pG_ne_zero_of_annulus`, `TidyR5KappaPosCore.nu_re_pos`, `TidyR5KappaPosCore.pG_insideCard_eq_two`, `TidyR5KappaPosCore.pair_split`, `TidyR5KappaPosCore.inside_root_unique`, `TidyR5KappaPosCore.pair_root`, `TidyR5KappaPosCore.conj_pair_root`, `TidyR5KappaPosCore.pos_of_real_pair`, `TidyR5KappaPosCore.exists_real_split` |
+| App. G.4, pp. 721–722 | the second-order Blanchard–Kahn theorem: `PE_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t` has exactly one bounded adapted solution `Φ_t = XΦ_{t−1} + ψ_t` | `TidyR5KappaPosCore.lagV`, `TidyR5KappaPosCore.Sys2`, `TidyR5KappaPosCore.psiOf`, `TidyR5KappaPosCore.E_rvMul_vec`, `TidyR5KappaPosCore.sys2_step_iff`, `TidyR5KappaPosCore.backRec`, `TidyR5KappaPosCore.backRec_eq`, `TidyR5KappaPosCore.rvMul_sum`, `TidyR5KappaPosCore.backRec_closed`, `TidyR5KappaPosCore.backRec_bounded`, `TidyR5KappaPosCore.backRec_adapted`, `TidyR5KappaPosCore.lagV_known`, `TidyR5KappaPosCore.lagV_bounded`, `TidyR5KappaPosCore.sys2_existsUnique` |
+| (G.10)–(G.11), p. 722 | the matrices of the multiplier system, `det M(µ) = β²p(µ)`, and the real solvent `X = (A₁ − TP)⁻¹(A₂ − DP)` | `TidyR5KappaPosCore.cpG`, `TidyR5KappaPosCore.c1G`, `TidyR5KappaPosCore.c2G`, `TidyR5KappaPosCore.PmG`, `TidyR5KappaPosCore.A1G`, `TidyR5KappaPosCore.A2G`, `TidyR5KappaPosCore.MphiG`, `TidyR5KappaPosCore.det_Mphi`, `TidyR5KappaPosCore.cross2`, `TidyR5KappaPosCore.det2_smul_add`, `TidyR5KappaPosCore.coeff_match`, `TidyR5KappaPosCore.tr2_inv2_mul`, `TidyR5KappaPosCore.det2_inv2_mul`, `TidyR5KappaPosCore.det2_neg`, `TidyR5KappaPosCore.tr2_neg`, `TidyR5KappaPosCore.det2_scalar_sub`, `TidyR5KappaPosCore.det2_mul`, `TidyR5KappaPosCore.schurStable_scale`, `TidyR5KappaPosCore.solvent_eq` |
+| Woodford (2.1), (2.23), (1.16)–(1.18) (Ch. 8 (2.1), (3.1), (3.3)–(3.5)) | the calibration, the model and first-order conditions, the multiplier-system rows and forcing, the plan built from multipliers | `TidyR5KappaPosCore.Calib`, `TidyR5KappaPosCore.Calib.Adm`, `TidyR5KappaPosCore.lag`, `TidyR5KappaPosCore.AS`, `TidyR5KappaPosCore.IS`, `TidyR5KappaPosCore.FOC3`, `TidyR5KappaPosCore.FOC4`, `TidyR5KappaPosCore.FOC5`, `TidyR5KappaPosCore.rows_real`, `TidyR5KappaPosCore.Fphi`, `TidyR5KappaPosCore.piOf`, `TidyR5KappaPosCore.xOf`, `TidyR5KappaPosCore.iOf`, `TidyR5KappaPosCore.lag_known`, `TidyR5KappaPosCore.Fphi_adapted`, `TidyR5KappaPosCore.Fphi_bounded`, `TidyR5KappaPosCore.sys_row`, `TidyR5KappaPosCore.planOf_bounded`, `TidyR5KappaPosCore.planOf_adapted` |
+| Woodford (2.24)–(2.26), p. 503 | the loss, feasibility, first-order conditions and optimality given initial commitments; the Lagrangian identity with boundary term vanishing under (2.25) or (2.26), sufficiency and uniqueness under faithfulness | `TidyR5KappaPosCore.periodLoss`, `TidyR5KappaPosCore.Jloss`, `TidyR5KappaPosCore.Feasible`, `TidyR5KappaPosCore.FOC`, `TidyR5KappaPosCore.OptimalGiven`, `TidyR5KappaPosCore.tsum_telescope`, `TidyR5KappaPosCore.summable_disc`, `TidyR5KappaPosCore.periodLoss_bounded`, `TidyR5KappaPosCore.lagrangian_identity`, `TidyR5KappaPosCore.plan_optimal`, `TidyR5KappaPosCore.unique_optimum` |
 
 ## Shared tools
 

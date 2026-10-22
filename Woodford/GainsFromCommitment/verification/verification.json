@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T19:03:41.239057+00:00",
-  "theorems": 1119,
+  "checked_at_utc": "2026-10-22T09:51:11.387429+00:00",
+  "theorems": 1353,
   "module_theorems": {
     "GainsFromCommitment/Determinacy.lean": 23,
     "GainsFromCommitment/Expectations.lean": 20,
@@ -28,9 +28,18 @@
     "GainsFromCommitment/ExpectationsMeasure.lean": 71,
     "GainsFromCommitment/ExpectationsMeasureIID.lean": 37,
     "GainsFromCommitment/NoninertialMeasure.lean": 43,
-    "GainsFromCommitment/NoninertialMeasureIID.lean": 22
+    "GainsFromCommitment/NoninertialMeasureIID.lean": 22,
+    "GainsFromCommitment/TidyR5TaylorRegion.lean": 34,
+    "GainsFromCommitment/TidyR5ForecastHorizon.lean": 19,
+    "GainsFromCommitment/TidyR5UniformNull.lean": 18,
+    "GainsFromCommitment/TidyR5Independence.lean": 14,
+    "GainsFromCommitment/TidyR5PlanTranslation.lean": 18,
+    "GainsFromCommitment/TidyR5KappaPosCore.lean": 86,
+    "GainsFromCommitment/TidyR5NaturalRateKappa.lean": 19,
+    "GainsFromCommitment/TidyR5IndexationNecessity.lean": 16,
+    "GainsFromCommitment/TidyR5CompositeShocks.lean": 10
   },
-  "audited_declarations": 1558,
+  "audited_declarations": 1890,
   "declarations": [
     {
       "name": "Woodford.GainsFromCommitment.SchurStable",
@@ -7821,6 +7830,1666 @@
       "name": "Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_lstab",
       "kind": "theorem",
       "module": "GainsFromCommitment/NoninertialMeasureIID.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.regA",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.regC",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.TaylorRegion",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorB_tr",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorB_det",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.schurStable_iff_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.delta_ne_zero_of_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.region_iff_taylorLHS",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.not_modelDet_of_delta_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_determinate_iff_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.one_sub_mul_add_pos",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detT_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detT_ne_zero_of_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.regA_ne_zero_of_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_eqm_plan2_of_ne",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_eqm_plan2_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.prop_7_12_optimal_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorRule_recenter",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_determinate_iff_region_any",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.prop_7_12_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.oni_implementable_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.phiG_diag_ne",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.oni_implementable_diag_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.negative_rule_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.no_rule_region",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.negative_rule_implements",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.no_rule_implements",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyA",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyB",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detGpoly",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG_eval",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_eq_poly",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_subset",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detGpoly_zero_zero_pos",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_li_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG_ne_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyA_ne_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_continuous",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_null",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_interior_empty",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5TaylorRegion.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.ScalarSolves",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.ScalarDet",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_row_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_row_succ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.compForcing",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_fsolves",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fsolves_stack",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalar_of_fsolves",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_eig",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_bounded",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalarDet_of_roots",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.roots_of_scalarDet",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalarDet_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_sum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_chiC",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.AS_forecast",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.forecastEqm_iff_scalar",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcG_bdd_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.forecast_determinate_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.oni_forecast_determinate_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5ForecastHorizon.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.bCov",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regVar",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.bCov_good",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_uniform",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_eq_uniform",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_version",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12_uniform",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12_version",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.oni_numeric",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.f4_numeric",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.weight_pos",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.prop_7_11_uniform",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.f4_uniform",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.lstab12_integral",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.lstab_integral",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.prop_7_11_integral",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.f4_integral",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.exists_stateToReal_injective",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.stateToReal",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.stateToReal_injective",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.badPlan",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.coinL",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.badVersion",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5UniformNull.versions_no_uniform_null",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5UniformNull.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.IndepInnov",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.IndepDisturbances",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.condCov_zero_of_indep",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.indepInnov_uncorrelated",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.lstab_eq_indep",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.f4_lstab_indep",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.f4_uniform_indep",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.coinFam",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.measurable_coinFam",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_eval",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.quad_apply",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.quad_coins_indep",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.finset_bool_cases",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_iIndepFun",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_indepInnov",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.coinSigma",
+      "kind": "abbrev",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_indepDisturbances",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_f4_indep",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5Independence.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.restrictZ",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.extendN",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.restrict_extend",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.extendN_t0",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.exists_nat_of_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.feasible_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.loss_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.isOptimal_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.isOptimal_free_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.rec27_plan_eq_star",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_6_eq_star",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_7_eq_star",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_8_eq_star",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.dev",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.as_dev",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.foc_dev",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.lstab12_eq_loss_dev",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_gap",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_le_oni",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_7_lstab_le_oni",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5PlanTranslation.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pow_entry_bound",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_rvMul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_add",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_sub",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_one",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.add_rvMul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sub_rvMul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.neg_rvMul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_apply",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_two",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Faithful",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.E_rvMul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FSolves",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.VAdapted",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.VBounded",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_iterate",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.abs_rvMul_pow_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_unique",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_exists",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det_scalar_sub_two",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pow_bound_of_schurStable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.inv2",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.inv2_mul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.mul_inv2",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.vBounded_rvMul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.vAdapted_rvMul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.schurStable_of_factor",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.aG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.bG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pR",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.eval_palinPoly",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_inv",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_inv_eq_zero_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_factor",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.exists_sum_prod",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_split",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly_eq_prod",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly_roots",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.insideCard",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.card_filter_cons",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Annulus",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.norm_pair",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind_pair_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind_pair_eq_one_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.annulus_pair",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_insideCard_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_insideCard_eq_two_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pGPoly",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_ofReal",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Qs",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_eq_Qs",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.nu_quad_eq_Qs",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.quad_ne_zero_of_re_nonpos",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.re_s_nonpos",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_ne_zero_of_annulus",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.nu_re_pos",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_insideCard_eq_two",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pair_split",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.inside_root_unique",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pair_root",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.conj_pair_root",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pos_of_real_pair",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.exists_real_split",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Sys2",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.psiOf",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.E_rvMul_vec",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys2_step_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_sum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_closed",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_bounded",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV_known",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV_bounded",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys2_existsUnique",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.cpG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.c1G",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.c2G",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.PmG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.A1G",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.A2G",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.MphiG",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det_Mphi",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.cross2",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_smul_add",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.coeff_match",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.tr2_inv2_mul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_inv2_mul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_neg",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.tr2_neg",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_scalar_sub",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_mul",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.schurStable_scale",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.solvent_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib",
+      "kind": "structure",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.mk",
+      "kind": "constructor",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.\u03b2",
+      "kind": "projection",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.\u03c3",
+      "kind": "projection",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.\u03ba",
+      "kind": "projection",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.lx",
+      "kind": "projection",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.li",
+      "kind": "projection",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.xstar",
+      "kind": "projection",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.istar",
+      "kind": "projection",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.Adm",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lag",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.AS",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.IS",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC3",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC4",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC5",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rows_real",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.piOf",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.xOf",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.iOf",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lag_known",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi_bounded",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys_row",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.planOf_bounded",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.planOf_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.periodLoss",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Jloss",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Feasible",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.OptimalGiven",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.tsum_telescope",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.summable_disc",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.periodLoss_bounded",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagrangian_identity",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.plan_optimal",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5KappaPosCore.unique_optimum",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5KappaPosCore.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.vecOf",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.vecH",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lag_vec0",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lag_vec1",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lagV_coords",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.plan_eq_of_foc",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.sys_of_foc",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.foc_of_sys",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.exists_solvent",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.foc_system_existsUnique",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.t0_optimal",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.timeless_optimal",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.optimum_unique",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.partial_adjustment",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kloss",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.summable_kloss",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kloss_midpoint",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kappa0_unique_faithful",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.evalTrue",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_pullOut",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_E_le",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_E_ge",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.devFalse",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kappa0_not_unique",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5NaturalRateKappa.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dPi",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dX",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dI",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dPi_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dX_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dI_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_AS",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_IS",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_feasible",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dPi",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dPi_succ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dX",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dX_succ",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dI",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.lagrI_zero",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.gradI",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.lossI_pert",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.gradI_eq",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.ss_ind_necessary",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.ss_ind_timeless_iff",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5IndexationNecessity.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.SummableFamily",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock_summable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_summable",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_bdd",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.extendPsi",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.extendEps",
+      "kind": "def",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.summableFamily_fin",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeShock_eq_inf",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_adapted",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.fwdU_composite",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.star_composite",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    },
+    {
+      "name": "Woodford.GainsFromCommitment.TidyR5CompositeShocks.targeting_rule_composite",
+      "kind": "theorem",
+      "module": "GainsFromCommitment/TidyR5CompositeShocks.lean"
     }
   ],
   "full_build": "passed",
@@ -15599,6 +17268,1665 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.regA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.regC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.TaylorRegion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorB_tr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorB_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.schurStable_iff_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.delta_ne_zero_of_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.region_iff_taylorLHS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.not_modelDet_of_delta_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_determinate_iff_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.one_sub_mul_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detT_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detT_ne_zero_of_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.regA_ne_zero_of_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_eqm_plan2_of_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_eqm_plan2_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.prop_7_12_optimal_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorRule_recenter": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_determinate_iff_region_any": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.prop_7_12_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.oni_implementable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.phiG_diag_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.oni_implementable_diag_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.negative_rule_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.no_rule_region": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.negative_rule_implements": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.no_rule_implements": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detGpoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG_eval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_eq_poly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_subset": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detGpoly_zero_zero_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_li_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyA_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_interior_empty": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.ScalarSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.ScalarDet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_row_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_row_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.compForcing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_fsolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fsolves_stack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalar_of_fsolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_eig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalarDet_of_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.roots_of_scalarDet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalarDet_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_chiC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.AS_forecast": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.forecastEqm_iff_scalar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcG_bdd_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.forecast_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5ForecastHorizon.oni_forecast_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.bCov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.bCov_good": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_uniform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_eq_uniform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_version": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12_uniform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12_version": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.oni_numeric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.f4_numeric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.weight_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.prop_7_11_uniform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.f4_uniform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.lstab12_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.lstab_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.prop_7_11_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.f4_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.exists_stateToReal_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.stateToReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.stateToReal_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.badPlan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.coinL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.badVersion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5UniformNull.versions_no_uniform_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.IndepInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.IndepDisturbances": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.condCov_zero_of_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.indepInnov_uncorrelated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.lstab_eq_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.f4_lstab_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.f4_uniform_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.coinFam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.measurable_coinFam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_eval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.quad_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.quad_coins_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.finset_bool_cases": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_iIndepFun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_indepInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.coinSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_indepDisturbances": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_f4_indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.restrictZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.extendN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.restrict_extend": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.extendN_t0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.exists_nat_of_le": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.feasible_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.loss_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.isOptimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.isOptimal_free_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.rec27_plan_eq_star": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_6_eq_star": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_7_eq_star": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_8_eq_star": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.as_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.foc_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.lstab12_eq_loss_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_le_oni": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_7_lstab_le_oni": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pow_entry_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.add_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sub_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.neg_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Faithful": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.E_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.VAdapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.VBounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.abs_rvMul_pow_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det_scalar_sub_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pow_bound_of_schurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.inv2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.inv2_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.mul_inv2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.vBounded_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.vAdapted_rvMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.schurStable_of_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.aG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.bG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.eval_palinPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_inv_eq_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.exists_sum_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly_eq_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.insideCard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.card_filter_cons": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Annulus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.norm_pair": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind_pair_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind_pair_eq_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.annulus_pair": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_insideCard_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_insideCard_eq_two_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pGPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_ofReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Qs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_eq_Qs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.nu_quad_eq_Qs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.quad_ne_zero_of_re_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.re_s_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_ne_zero_of_annulus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.nu_re_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_insideCard_eq_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pair_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.inside_root_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pair_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.conj_pair_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.pos_of_real_pair": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.exists_real_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Sys2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.psiOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.E_rvMul_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys2_step_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys2_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.cpG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.c1G": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.c2G": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.PmG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.A1G": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.A2G": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.MphiG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det_Mphi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.cross2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_smul_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.coeff_match": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.tr2_inv2_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_inv2_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.tr2_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_scalar_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.schurStable_scale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.solvent_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.\u03b2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.\u03c3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.\u03ba": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.lx": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.li": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.xstar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.istar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.Adm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.AS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.IS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC4": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.rows_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.piOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.xOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.iOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lag_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys_row": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.planOf_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.planOf_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.periodLoss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Jloss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.Feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.OptimalGiven": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.tsum_telescope": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.summable_disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.periodLoss_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagrangian_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.plan_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5KappaPosCore.unique_optimum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.vecOf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.vecH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lag_vec0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lag_vec1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lagV_coords": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.plan_eq_of_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.sys_of_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.foc_of_sys": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.exists_solvent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.foc_system_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.t0_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.timeless_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.optimum_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.partial_adjustment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kloss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.summable_kloss": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kloss_midpoint": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kappa0_unique_faithful": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.evalTrue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_E_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.devFalse": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kappa0_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dPi_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dX_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dI_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_AS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_IS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dPi_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dX_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.lagrI_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.gradI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.lossI_pert": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.gradI_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.ss_ind_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5IndexationNecessity.ss_ind_timeless_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.SummableFamily": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.extendPsi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.extendEps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.summableFamily_fin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeShock_eq_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.fwdU_composite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.star_composite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.GainsFromCommitment.TidyR5CompositeShocks.targeting_rule_composite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -15629,15 +18957,24 @@
     "GainsFromCommitment/ExpectationsMeasureIID.lean": "2d51ec4c2ee0d557b64c6a2d9b917d9b375f97751aca4cdda91cd90178dae8b5",
     "GainsFromCommitment/NoninertialMeasure.lean": "86386e7ed1b8d34468d7ced952b7b38b71a63f419029cd8ae4868c1d59d52280",
     "GainsFromCommitment/NoninertialMeasureIID.lean": "5ef2ed42cc8036e3aecf8ca51878cbdf3c26ab315b4c279e52ac4659413a0f53",
-    "GainsFromCommitment.lean": "b78a920a08f0690b902fd6216208ea7a293eefa4d91b1618a11ecbcf8e1e0291",
+    "GainsFromCommitment/TidyR5TaylorRegion.lean": "6b964988d07ba96328f00935472deaa725cd81d1eebd497ebaed681d4d369ce8",
+    "GainsFromCommitment/TidyR5ForecastHorizon.lean": "c43e99ca7501b04d207b6a09c8c555acd2d9ebf2da798c1b7b4306eaf6335809",
+    "GainsFromCommitment/TidyR5UniformNull.lean": "7584a7b596c10174acbefeca031a7338beaccbb46241033099e9c358bd18808c",
+    "GainsFromCommitment/TidyR5Independence.lean": "3f9edf4244af1632eb65a5b35e9444a017a085d40a89c11c17581d2b8b032489",
+    "GainsFromCommitment/TidyR5PlanTranslation.lean": "1c471588bfecb2ede42f3fc41f5c6d7c8ce6513f8d8903d44a31e1e14564bb75",
+    "GainsFromCommitment/TidyR5KappaPosCore.lean": "66aae28561ef07c798d75f9d9778cf7eecc794a21631b28a1b3059c0ab7a9a9e",
+    "GainsFromCommitment/TidyR5NaturalRateKappa.lean": "2caab7aae95a5023bb52f19473688e462f705c7db46add761845399f83cba210",
+    "GainsFromCommitment/TidyR5IndexationNecessity.lean": "b29013a774030dc63ffa14540ae6b86118ba8dbd01603588399bdf06a68d75e5",
+    "GainsFromCommitment/TidyR5CompositeShocks.lean": "3758158deb56b8f829995c02622840ddf71185e7941f17cd1a3ea84ca90460e5",
+    "GainsFromCommitment.lean": "4c05599d33872db23ae8f2fd05e0fcd87f9285b006ae335c8a33cbcd8c3365f7",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "c8c39eb9a73522720ccf71196d84f4a083999583313a1d210d3d9d6fe7cb4962",
     "lake-manifest.json": "241d46895339d68fcad24a66415945de8c61e8bb400d1b13305a84242814babd",
-    "proof-manifest.json": "3c7a523320a387ea61b16771c37829c37e3aea42477609666c249b0b62583986",
-    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "proof-manifest.json": "d59d01fa889a93ad2aaa95d09368d50e85debc98fb73bd5505f792f353aa6fe6",
+    "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "1f709f03ac61b1ce1708be0cd088376d7ef87723b50fc37c86c35376bb7f64bf",
+  "fresh_audit_sha256": "911f55cdcb0f426babf91f1c307e2e4a94fe95d03d60efdea6278f4aa8c15f78",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Woodford, Interest and Prices, Chapter 7: Gains from Commitment, with Appendix F. The second-order rational-expectations workhorse and Lagrangian sufficiency for LQ problems; the inflation bias of discretion and date-0 commitment (Props 7.1-7.3); timeless optimality; monetary frictions and indexation; discretion and optimal commitment under cost-push shocks (Props 7.4-7.8) with impulse responses, variance frontiers and natural-rate disturbances (Props 7.9-7.10); optimal noninertial plans, the optimal Taylor rule and forecast-based rules (Props 7.11-7.13); the optimal instrument path and sunspot continuum under an exogenous path (Prop 7.14); the targeting rule and its implementation (Props 7.15-7.17). Book misprints and false claims are corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 7, pp. 464-533, and Appendix F, pp. 709-715."

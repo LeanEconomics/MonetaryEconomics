@@ -13,7 +13,7 @@ first-order conditions minimises the expected loss over all bounded feasible pla
 sufficiency), with uniqueness from strict convexity. "Unique equilibrium" means unique among
 bounded adapted processes. The variance results of §3 and Appendix F.4 are also proved with
 Mathlib's conditional expectation on a genuine probability space, almost surely. The library
-contains **1119 theorems**, including the shared core.
+contains **1353 theorems**, including the shared core.
 
 Every proposition is stated for the exact linear-quadratic problem. The book's qualifiers "up to an
 error of order `O(‖·‖²)`" belong to the second-order welfare approximation of Chapter 6 (the
@@ -39,7 +39,10 @@ Headline results, in the namespace `Woodford.GainsFromCommitment`:
   `MonetaryFrictions.prop_7_3_uncertainty`, `MonetaryFrictions.eq_1_20`); Proposition 7.4 by a
   change of variables that is bounded only for `γ < 1` (`Indexation.prop_7_4`,
   `Indexation.not_bdd_unqd_one`); the generalised first-order condition of p. 483 corrected
-  (`Indexation.hasDerivAt_lagrI_pi`, `Indexation.printed_foc_not_derivative`).
+  (`Indexation.hasDerivAt_lagrI_pi`, `Indexation.printed_foc_not_derivative`); the p. 484 steady
+  state with indexation and frictions is necessary as well as sufficient for timeless optimality
+  of a constant plan, with no multiplier assumed (`TidyR5IndexationNecessity.ss_ind_necessary`,
+  `TidyR5IndexationNecessity.ss_ind_timeless_iff`).
 * **Cost-push shocks.** Proposition 7.5 (`Discretion.prop_7_5`); Propositions 7.6–7.8 on
   integer dates, so that the forecasts `E_{t₀−k}u` of (2.9) exist, with (2.9) the only bounded
   self-consistent specification (`CostPushCommitment.prop_7_6`, `CostPushCommitment.prop_7_7`,
@@ -52,24 +55,49 @@ Headline results, in the namespace `Woodford.GainsFromCommitment`:
   (`NaturalRateCommitment.zero_gap_optimal`), and with an interest-rate term and `κ = 0` the
   partial-adjustment rule (2.29) with (2.30) corrected is optimal
   (`NaturalRateCommitment.eq228_iff_229`, `NaturalRateCommitment.not_printed_230`,
-  `NaturalRateCommitment.optimal_plan_kappa0`).
+  `NaturalRateCommitment.optimal_plan_kappa0`), unique when `E_{t₀}` is faithful and not unique
+  for a general expectation system (`TidyR5NaturalRateKappa.kappa0_unique_faithful`,
+  `TidyR5NaturalRateKappa.kappa0_not_unique`). With `κ > 0` the general system (2.1), (2.23),
+  (1.16)–(1.18) has exactly one bounded adapted solution for every bounded adapted `rⁿ`, `u` and
+  initial multipliers; it is the `t₀`-optimal and the timelessly optimal commitment, and its
+  multipliers follow the partial-adjustment law `Φ_t = XΦ_{t−1} + ψ_t` with `X` Schur-stable and
+  `det X > 0` (`TidyR5NaturalRateKappa.foc_system_existsUnique`,
+  `TidyR5NaturalRateKappa.t0_optimal`, `TidyR5NaturalRateKappa.timeless_optimal`,
+  `TidyR5NaturalRateKappa.partial_adjustment`).
 * **Simple rules.** Proposition 7.11 (`Noninertial.prop_7_11`); the F.4 response coefficients
   confirmed and its long-run values corrected (`Noninertial.f4_u_optimal`,
   `Noninertial.f4_corrected`); Proposition 7.12 including the optimality of the Taylor rule among
   determinate Taylor rules and the open set of `(ρ_r, ρ_u)` of p. 515
   (`OptimalTaylor.prop_7_12_optimal`, `OptimalTaylor.prop_7_12_optimal_general`); the false
   claim `φ_π > 1` of p. 515 refuted (`OptimalTaylor.e9_counterexample`); Proposition 7.13
-  (`OptimalTaylor.prop_7_13`, `OptimalTaylor.fn37`).
+  (`OptimalTaylor.prop_7_13`, `OptimalTaylor.fn37`). For Taylor rules with coefficients of any
+  sign (fn 33): the exact determinacy region (`TidyR5TaylorRegion.taylor_determinate_iff_region`),
+  no determinate rule beats the optimal noninertial plan
+  (`TidyR5TaylorRegion.prop_7_12_optimal_region`), and the plan is implementable by a determinate
+  rule iff the consistent coefficients lie in the region (`TidyR5TaylorRegion.oni_implementable_iff`),
+  so (3.10) is sufficient but not necessary (`TidyR5TaylorRegion.negative_rule_implements`,
+  `TidyR5TaylorRegion.no_rule_implements`); for `λ_i > 0` the singular set of `(ρ_r, ρ_u)` is
+  closed and Lebesgue-null (`TidyR5TaylorRegion.detG_zero_null`). Proposition 7.13 exactly for
+  every horizon `k ≥ 1`: determinate iff every root of `χ` has `|λ| > 1`
+  (`TidyR5ForecastHorizon.forecast_determinate_iff`, `TidyR5ForecastHorizon.scalarDet_iff`).
 * **Instrument path and targeting rules.** Proposition 7.14 with (4.2) corrected and a continuum
   of stochastic sunspot equilibria under an exogenous rate path (`InstrumentPath.prop_7_14`,
   `InstrumentPath.p519_sunspot`); Propositions 7.15–7.17 with the identification with
   Proposition 7.7 filled in (`TargetingRule.prop_7_15`, `TargetingRule.foc_eq211_eq_star`,
   `TargetingRule.prop_7_16`, `Implementation.prop_7_17`); the indeterminacy of (5.4) proved for
-  every `σλ < κ` (`Implementation.eq54_indeterminate`).
+  every `σλ < κ` (`Implementation.eq54_indeterminate`); composite disturbances (4.3) with
+  countably many shock types, for which (5.1) is still determinate and optimal
+  (`TidyR5CompositeShocks.compositeInf_bdd`, `TidyR5CompositeShocks.targeting_rule_composite`).
 * **Cross-links.** The formalisations from different angles are proved to agree: the
   date-zero, timeless, impulse-response and instrument-path plans are all the optimal
   commitment equilibrium of §5 (`Links.dateZero_isT0Opt`, `Links.timeless_plan_eq_star`,
-  `Links.impulsePlan_eq_star`, `Links.instrumentPath_isConstrainedOpt`).
+  `Links.impulsePlan_eq_star`, `Links.instrumentPath_isConstrainedOpt`); the integer-dated
+  plans of Propositions 7.6–7.8, re-indexed, are the §5 equilibrium, with feasibility, loss and
+  optimality translated exactly (`TidyR5PlanTranslation.isOptimal_iff`,
+  `TidyR5PlanTranslation.prop_7_6_eq_star`, `TidyR5PlanTranslation.prop_7_7_eq_star`,
+  `TidyR5PlanTranslation.prop_7_8_eq_star`), and the inertial commitment plan has an `L_stab` no
+  larger than any bounded feasible plan, the optimal noninertial plan included
+  (`TidyR5PlanTranslation.inertial_lstab_gap`, `TidyR5PlanTranslation.prop_7_7_lstab_le_oni`).
 * **Genuine probability models.** With `E_t` Mathlib's conditional expectation and conditional
   variances Mathlib's `Var[·; μ | 𝓕 t]`, the stabilization loss is almost surely (3.4) and
   `L_stab,r + L_stab,u` (3.7)–(3.8) (`NoninertialMeasure.lstab12_eq`,
@@ -83,7 +111,15 @@ Headline results, in the namespace `Woodford.GainsFromCommitment`:
   such a model (`NoninertialMeasure.finite_innov_degenerate`,
   `NoninertialMeasure.tree_innov_degenerate`); on a finite fully supported space the measure
   hypotheses imply the core ones and the two losses agree (`NoninertialMeasure.prop_7_11_link`,
-  `NoninertialMeasure.f4_link`, `NoninertialMeasure.lstab12_agree`).
+  `NoninertialMeasure.f4_link`, `NoninertialMeasure.lstab12_agree`). One null set, fixed before
+  any plan is chosen, serves every plan for the regular (bilinear) version of `L_stab`
+  (`TidyR5UniformNull.regLstab12_uniform`, `TidyR5UniformNull.prop_7_11_uniform`,
+  `TidyR5UniformNull.f4_uniform`); the expected losses rank plans with no null set at all
+  (`TidyR5UniformNull.prop_7_11_integral`, `TidyR5UniformNull.f4_integral`); but some choice of
+  versions admits no uniform null set (`TidyR5UniformNull.versions_no_uniform_null`). The
+  "independent" disturbances of p. 512 are genuinely independent processes in the two-coin
+  economy, and F.4 follows from independence (`TidyR5Independence.twoCoin_indepDisturbances`,
+  `TidyR5Independence.f4_lstab_indep`, `TidyR5Independence.twoCoin_f4_indep`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -101,27 +137,19 @@ Not formalised:
   Chapter 6 welfare approximation; `λ = κ/θ` (Chapter 6) is a hypothesis where used;
 * least-squares learnability and E-stability (pp. 519, 528, 532–533; Evans and Honkapohja,
   Preston), which concern adaptive learning, not rational-expectations equilibria;
-* Taylor rules with negative feedback coefficients (fn 33): Proposition 7.12 is stated for
-  `φ_π, φ_x ≥ 0`; and the "almost all parameter values" remark of p. 515 beyond the open-set
-  statement;
-* an exact determinacy criterion for forecast-based rules with horizon `k ≥ 2` in
-  Proposition 7.13: indeterminacy is proved beyond an explicit critical horizon, the exact
-  criterion only for `k = 1`;
-* a single null set for the measure-theoretic variance results ((3.4), (3.7)–(3.8),
-  Proposition 7.11, F.4): the ranking and the equality case hold almost surely for each competing
-  plan, not off one null set uniform over all plans; and the "independent" disturbances of p. 512
-  are formalised as uncorrelated innovations (the two coins of the concrete economy are
-  independent, but only their moments are proved);
-* the ℤ→ℕ translation of whole plans between the integer-dated Propositions 7.6–7.8 and the
-  `ℕ`-dated equilibrium of §5 (only the AS relation is linked), and a common `L_stab` ranking of
-  the inertial commitment plan against the optimal noninertial plan;
-* uniqueness of the `κ = 0` natural-rate optimum (2.29) under a general expectation system (only
-  optimality; zero-gap uniqueness is proved for faithful systems), the `κ > 0` natural-rate
-  dynamics behind Figure 7.6, and the general system (1.16)–(1.18) under natural-rate shocks;
-  "I(1)" and "I(2)" on p. 501 are formalised as root multiplicities at `z = 1`;
-* necessity in the p. 484 steady state with indexation and frictions (only that it is the unique
-  steady state consistent with the first-order conditions, and optimal);
-* composite disturbances (4.3) with infinitely many shock types;
+* Proposition 7.12 for coefficients of any sign at the `(ρ_r, ρ_u)` where the consistency system
+  for `(φ_π, φ_x)` is singular: the exact criterion is proved off that set, which for `λ_i > 0` is
+  closed, Lebesgue-null and has empty interior, and for `λ_i = 0` is all of `ℝ²`;
+* a single null set for arbitrary versions of `L_stab`: one null set uniform over all plans is
+  proved for the regular (bilinear) version, and the expected losses need none, but some choice of
+  versions admits no uniform null set (`TidyR5UniformNull.versions_no_uniform_null`); Mathlib's
+  own `condExp` representative is chosen by `Classical.choice`, so neither statement can be
+  proved for that specific function;
+* uniqueness of the `κ = 0` natural-rate optimum (2.29) without faithfulness, which is false
+  (`TidyR5NaturalRateKappa.kappa0_not_unique`; with faithfulness it is proved); "I(1)" and "I(2)"
+  on p. 501 are formalised as root multiplicities at `z = 1`;
+* the `κ > 0` dynamics of Figure 7.6 as numerical curves: existence, uniqueness, optimality and
+  the partial-adjustment law are proved structurally, not the plotted paths;
 * the numerical Figures 7.1–7.6, the calibrated rates −0.4% and −0.2% a year (fn 13), and the
   discretionary and date-zero paths under indexation discussed with Figure 7.2; for Figure 7.1
   only the ordering of the three inflation paths is formalised.
@@ -157,6 +185,15 @@ Not formalised:
 | [ExpectationsMeasureIID](GainsFromCommitment/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
 | [NoninertialMeasure](GainsFromCommitment/NoninertialMeasure.lean) | 43 | §3, App. F.4 with genuine conditional expectations: AR(1) disturbances, conditional variances of the plans, (3.2)–(3.8), Proposition 7.11 and F.4 optimality a.s.; finite spaces force zero innovation variance; links to the core statements |
 | [NoninertialMeasureIID](GainsFromCommitment/NoninertialMeasureIID.lean) | 22 | The variance results on the i.i.d. economy: one disturbance, two disturbances driven by functions of the shock, the fair-coin and two-coin economies |
+| [TidyR5TaylorRegion](GainsFromCommitment/TidyR5TaylorRegion.lean) | 34 | §3, fn 33, p. 515: the determinacy region for Taylor coefficients of any sign, Proposition 7.12 exactly for any sign, (3.10) sufficient but not necessary, the singular set Lebesgue-null for `λ_i > 0` |
+| [TidyR5ForecastHorizon](GainsFromCommitment/TidyR5ForecastHorizon.lean) | 19 | §3, Proposition 7.13: scalar expectational equations of any order, determinate iff all roots lie outside the unit circle; the exact criterion for every horizon `k ≥ 1` |
+| [TidyR5UniformNull](GainsFromCommitment/TidyR5UniformNull.lean) | 18 | §3, App. F.4: one null set for all plans (regular version), the expected-loss rankings with no null set, and versions with no uniform null set |
+| [TidyR5Independence](GainsFromCommitment/TidyR5Independence.lean) | 14 | p. 512: genuinely independent innovations and disturbances; (3.7)–(3.8) and F.4 from independence; the two-coin economy is independent |
+| [TidyR5PlanTranslation](GainsFromCommitment/TidyR5PlanTranslation.lean) | 18 | Propositions 7.6–7.8 re-indexed to `ℕ`: feasibility, loss and optimality agree with §5, the plans are the §5 equilibrium; the common `L_stab` ranking of the inertial plan |
+| [TidyR5KappaPosCore](GainsFromCommitment/TidyR5KappaPosCore.lean) | 86 | The `κ > 0` multiplier system (restated from the Chapter 8 project): the palindromic quartic, the real solvent, the second-order Blanchard–Kahn theorem, Lagrangian sufficiency |
+| [TidyR5NaturalRateKappa](GainsFromCommitment/TidyR5NaturalRateKappa.lean) | 19 | §2.2 with `κ > 0`: existence and uniqueness for (1.16)–(1.18), `t₀`- and timeless optimality, the partial-adjustment law; uniqueness of (2.29) at `κ = 0` decided |
+| [TidyR5IndexationNecessity](GainsFromCommitment/TidyR5IndexationNecessity.lean) | 16 | §1.2, p. 484: necessity of the steady state with indexation and frictions, by an explicit feasible perturbation |
+| [TidyR5CompositeShocks](GainsFromCommitment/TidyR5CompositeShocks.lean) | 10 | §4, (4.3): composite disturbances with countably many shock types; superposition; robust optimality of (5.1) |
 
 ## Modelling conventions
 
@@ -190,7 +227,8 @@ Not formalised:
   Exact uniqueness of an optimum takes faithfulness of `E_{t₀}` (`TargetingRule.Faithful`,
   `CostPushCommitment.ExpSysZ.Faithful`); without it the optimum is unique up to null events
   (`CostPushCommitment.optimal_unique_ae`). Parameter restrictions the book leaves implicit
-  (`0 < β < 1`, `κ, λ, σ > 0`, nondegenerate shocks, `φ ≥ 0`) are hypotheses.
+  (`0 < β < 1`, `κ, λ, σ > 0`, nondegenerate shocks, `φ ≥ 0` in `OptimalTaylor`) are
+  hypotheses; `TidyR5TaylorRegion` allows Taylor coefficients of any sign.
 * **Timeless optimality** is given a precise definition in each setting
   (`Timeless.TimelesslyOptimal`, `MonetaryFrictions.TimelesslyOptimal`,
   `CostPushCommitment.TimelesslyOptimal`, `TargetingRule.TimelesslyOptimal`) and proved.
