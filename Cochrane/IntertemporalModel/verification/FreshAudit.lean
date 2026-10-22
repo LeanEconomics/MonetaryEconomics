@@ -38,6 +38,8 @@ import Mathlib.Probability.Independence.InfinitePi
 import Mathlib.Probability.ConditionalExpectation
 import Mathlib.Analysis.Calculus.ParametricIntegral
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
+import Mathlib.Analysis.Calculus.ContDiff.Operations
+import Mathlib.MeasureTheory.Function.SpecialFunctions.Basic
 set_option autoImplicit false
 
 /-
@@ -12485,6 +12487,3842 @@ end Link
 
 end Cochrane.IntertemporalModel.HouseholdMeasureTVC
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The bond price is positive: `i > −1` from the expectation axioms
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 2, §2.1, eq. (2.3), p. 22
+(`1/(1 + i_t) = β E_t(P_t/P_{t+1})`), and the equilibrium notions of §§2.1–2.4, pp. 21–33.
+
+The link between the equilibrium notions (`GeneralLinks.equilibrium_iff_isEqm`) takes an
+adapted rate `i > −1` as a hypothesis, and `FiscalMonetary.Equilibrium` lists `i > −1` among its
+conditions. This module decides the question: for `β > 0` both are consequences of the bond-pricing
+condition (2.3) and the core `ExpectationSystem` axioms, with no extra property of expectations
+(only the pull-out property, already assumed by the link, for adaptedness).
+
+## Main results
+
+* `E_pos_of_pos`: **strict positivity from the axioms alone.** If `X > 0` in every state then
+  `E_t X > 0` in every state, for every `ExpectationSystem` on every state space. The proof uses
+  only linearity, constants and monotonicity: with `k(ω)` the least `n` such that
+  `(n + 1) X(ω) ≥ 1`, one has `1 ≤ (n + 1) X + k/(n + 1)` pointwise for every `n`, so
+  `E_t X = 0` would force `E_t k ≥ n + 1` for every `n`.
+* `bondPrice_pos`, `isEqm_bondPrice_pos`, `isEqm_rate_gt`: in every equilibrium derived in
+  `Valuation` with `β > 0`, `Q_t > 0` and `i_t = 1/Q_t − 1 > −1` in every state.
+* `bondPricing_rate_gt`, `bondPricing_rate_adapted`: the bond-pricing condition alone forces
+  `i > −1`, and (with pull-out) an adapted rate.
+* `equilibrium_iff_reduced`: `FiscalMonetary.Equilibrium` without its rate conditions is the same
+  notion (`β > 0`, pull-out).
+* `equilibrium_iff_isEqm_pos`: `GeneralLinks.equilibrium_iff_isEqm` without the hypotheses
+  `i > −1` and `i` adapted (`β > 0`).
+* `isEqm_fisher_log_pos`: `GeneralLinks.isEqm_fisher_log` without the hypothesis `Q > 0`.
+* `no_eqm_of_rate_le`: a rate target with `i_t ≤ −1` in some state has no equilibrium in either
+  sense.
+* `beta_zero_counterexample`: the hypothesis is needed at `β = 0`: under perfect foresight with
+  `β = 0` the data `i ≡ −1`, `P ≡ 1`, no debt and no surpluses satisfy every other hypothesis of
+  `GeneralLinks.equilibrium_iff_isEqm` and are an equilibrium derived from flow plus
+  transversality, but not a `FiscalMonetary.Equilibrium`.
+-/
+
+namespace Cochrane.IntertemporalModel.TidyR5BondPrice
+
+open Filter Topology ExpectationTools
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### Strict positivity of `E_t` -/
+
+/-- Cochrane (2023), eq. (2.3), p. 22 (`E_t` of a positive payoff is positive), from the core
+axioms alone: if `X > 0` in every state, then `E_t X > 0` in every state. No faithfulness,
+finiteness or countability of `Ω` is needed. -/
+theorem E_pos_of_pos {X : Ω → ℝ} (hX : ∀ ω, 0 < X ω) (t : ℕ) (ω : Ω) : 0 < 𝔼.E t X ω := by
+  classical
+  have hex : ∀ ω', ∃ n : ℕ, 1 ≤ ((n : ℝ) + 1) * X ω' := fun ω' => by
+    obtain ⟨n, hn⟩ := exists_nat_gt (X ω')⁻¹
+    refine ⟨n, ?_⟩
+    have hx := hX ω'
+    have h1 : (X ω')⁻¹ * X ω' = 1 := inv_mul_cancel₀ hx.ne'
+    nlinarith
+  set K : Ω → ℝ := fun ω' => (Nat.find (hex ω') : ℝ) with hK
+  have hbound : ∀ n : ℕ, (fun _ => (1 : ℝ)) ≤ ((n : ℝ) + 1) • X + ((n : ℝ) + 1)⁻¹ • K := by
+    intro n ω'
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    have hpos : 0 < (n : ℝ) + 1 := by positivity
+    have hK0 : 0 ≤ K ω' := Nat.cast_nonneg _
+    by_cases h : 1 ≤ ((n : ℝ) + 1) * X ω'
+    · have : 0 ≤ ((n : ℝ) + 1)⁻¹ * K ω' := mul_nonneg (inv_nonneg.mpr hpos.le) hK0
+      linarith
+    · have hlt : n < Nat.find (hex ω') := by
+        by_contra hle
+        push Not at hle
+        have hs := Nat.find_spec (hex ω')
+        have hmono : ((Nat.find (hex ω') : ℝ) + 1) * X ω' ≤ ((n : ℝ) + 1) * X ω' := by
+          refine mul_le_mul_of_nonneg_right ?_ (hX ω').le
+          have : (Nat.find (hex ω') : ℝ) ≤ n := by exact_mod_cast hle
+          linarith
+        exact h (hs.trans hmono)
+      have hKn : (n : ℝ) + 1 ≤ K ω' := by
+        simp only [hK]
+        exact_mod_cast hlt
+      have e : ((n : ℝ) + 1)⁻¹ * ((n : ℝ) + 1) = 1 := inv_mul_cancel₀ hpos.ne'
+      have h2 : 1 ≤ ((n : ℝ) + 1)⁻¹ * K ω' := by
+        calc (1 : ℝ) = ((n : ℝ) + 1)⁻¹ * ((n : ℝ) + 1) := e.symm
+          _ ≤ ((n : ℝ) + 1)⁻¹ * K ω' :=
+            mul_le_mul_of_nonneg_left hKn (inv_nonneg.mpr hpos.le)
+      have : 0 ≤ ((n : ℝ) + 1) * X ω' := mul_nonneg hpos.le (hX ω').le
+      linarith
+  have hE : ∀ n : ℕ, 1 ≤ ((n : ℝ) + 1) * 𝔼.E t X ω + ((n : ℝ) + 1)⁻¹ * 𝔼.E t K ω := by
+    intro n
+    have h := 𝔼.mono t (hbound n) ω
+    rw [𝔼.const, map_add, map_smul, map_smul] at h
+    simpa only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] using h
+  have h0 : 0 ≤ 𝔼.E t X ω := E_nonneg 𝔼 (fun ω' => (hX ω').le) ω
+  rcases h0.lt_or_eq with h | h
+  · exact h
+  · exfalso
+    obtain ⟨n, hn⟩ := exists_nat_gt (𝔼.E t K ω)
+    have h1 := hE n
+    rw [← h, mul_zero, zero_add] at h1
+    have hpos : 0 < (n : ℝ) + 1 := by positivity
+    have h2 := mul_le_mul_of_nonneg_left h1 hpos.le
+    rw [mul_one, ← mul_assoc, mul_inv_cancel₀ hpos.ne', one_mul] at h2
+    linarith
+
+/-! ### The bond price and the nominal rate -/
+
+/-- Cochrane (2023), eq. (2.3), p. 22: with `β > 0` and a positive price level, the bond price
+`β E_t(P_t/P_{t+1})` is positive in every state. -/
+theorem bondPrice_pos {β : ℝ} (hβ : 0 < β) {P : ℕ → Ω → ℝ} (hP : ∀ t ω, 0 < P t ω) (t : ℕ)
+    (ω : Ω) : 0 < (β • 𝔼.E t (fun ω' => P t ω' / P (t + 1) ω')) ω :=
+  mul_pos hβ (E_pos_of_pos 𝔼 (fun ω' => div_pos (hP t ω') (hP (t + 1) ω')) t ω)
+
+/-- Cochrane (2023), eq. (2.3), p. 22: in every equilibrium derived in `Valuation`
+(`Valuation.IsEqm`) with `β > 0`, the bond price is positive in every state. -/
+theorem isEqm_bondPrice_pos {β : ℝ} (hβ : 0 < β) {Bm s P Q : ℕ → Ω → ℝ}
+    (h : Valuation.IsEqm 𝔼 β Bm s P Q) (t : ℕ) (ω : Ω) : 0 < Q t ω := by
+  rw [h.2.2.1 t]
+  exact bondPrice_pos 𝔼 hβ h.1 t ω
+
+/-- Cochrane (2023), eq. (2.3), p. 22: in every equilibrium derived in `Valuation` with `β > 0`,
+the nominal rate `i_t = 1/Q_t − 1` (`Environment.rate`) exceeds `−1` in every state. -/
+theorem isEqm_rate_gt {β : ℝ} (hβ : 0 < β) {Bm s P Q : ℕ → Ω → ℝ}
+    (h : Valuation.IsEqm 𝔼 β Bm s P Q) (t : ℕ) (ω : Ω) : -1 < Environment.rate Q t ω := by
+  simp only [Environment.rate]
+  linarith [inv_pos.mpr (isEqm_bondPrice_pos 𝔼 hβ h t ω)]
+
+/-- Cochrane (2023), eqs. (2.3) and (2.14), pp. 22, 31: the bond-pricing condition
+`(1 + i_t)⁻¹ = β E_t(P_t/P_{t+1})` at a date, with `β > 0` and positive prices, forces
+`i_t > −1` in every state. -/
+theorem rate_gt_of_pricing {β : ℝ} (hβ : 0 < β) {P i : ℕ → Ω → ℝ} (hP : ∀ t ω, 0 < P t ω)
+    {t : ℕ} (hbp : (1 + i t)⁻¹ = β • 𝔼.E t (fun ω' => P t ω' / P (t + 1) ω')) (ω : Ω) :
+    -1 < i t ω := by
+  have h := bondPrice_pos 𝔼 hβ hP t ω
+  rw [← hbp] at h
+  have h' : 0 < 1 + i t ω := inv_pos.mp h
+  linarith
+
+/-- Cochrane (2023), eqs. (2.3) and (2.14), pp. 22, 31: with the pull-out property, the
+bond-pricing condition at a date, `β > 0` and positive prices make the rate `i_t` known at `t`
+(the bond price is a forecast, hence known, and nonzero). -/
+theorem rate_adapted_of_pricing (hPO : 𝔼.PullOut) {β : ℝ} (hβ : 0 < β) {P i : ℕ → Ω → ℝ}
+    (hP : ∀ t ω, 0 < P t ω) {t : ℕ}
+    (hbp : (1 + i t)⁻¹ = β • 𝔼.E t (fun ω' => P t ω' / P (t + 1) ω')) :
+    𝔼.E t (i t) = i t := by
+  have hQ : 𝔼.E t (1 + i t)⁻¹ = (1 + i t)⁻¹ := by
+    rw [hbp, map_smul, 𝔼.E_E_self]
+  have hne : ∀ ω, (1 + i t)⁻¹ ω ≠ 0 := fun ω => by
+    rw [hbp]
+    exact (bondPrice_pos 𝔼 hβ hP t ω).ne'
+  have hinv := E_inv_known 𝔼 hPO hQ hne
+  rw [inv_inv, map_add] at hinv
+  have h1 : 𝔼.E t (1 : Ω → ℝ) = 1 := 𝔼.const t 1
+  rw [h1] at hinv
+  exact add_left_cancel hinv
+
+/-- Cochrane (2023), eqs. (2.3) and (2.14), pp. 22, 31: `FiscalMonetary.BondPricing` with
+`β > 0` and a positive price level forces `i > −1` at every date and in every state. -/
+theorem bondPricing_rate_gt {β : ℝ} (hβ : 0 < β) {P i : ℕ → Ω → ℝ} (hP : ∀ t ω, 0 < P t ω)
+    (hbp : FiscalMonetary.BondPricing 𝔼 β P i) (t : ℕ) (ω : Ω) : -1 < i t ω :=
+  rate_gt_of_pricing 𝔼 hβ hP (hbp t) ω
+
+/-- Cochrane (2023), eqs. (2.3) and (2.14), pp. 22, 31: with pull-out, `FiscalMonetary.BondPricing`
+with `β > 0` and a positive price level makes the rate adapted. -/
+theorem bondPricing_rate_adapted (hPO : 𝔼.PullOut) {β : ℝ} (hβ : 0 < β) {P i : ℕ → Ω → ℝ}
+    (hP : ∀ t ω, 0 < P t ω) (hbp : FiscalMonetary.BondPricing 𝔼 β P i) : 𝔼.Adapted i :=
+  fun t => rate_adapted_of_pricing 𝔼 hPO hβ hP (hbp t)
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33: for `β > 0` and with pull-out, the conditions
+"`i` adapted" and "`i > −1`" in `FiscalMonetary.Equilibrium` are redundant: an equilibrium is an
+adapted positive price level, adapted debt, the valuation equation and the bond-pricing
+condition. -/
+theorem equilibrium_iff_reduced (hPO : 𝔼.PullOut) {β : ℝ} (hβ : 0 < β) {Bm1 : Ω → ℝ}
+    {s B P i : ℕ → Ω → ℝ} :
+    FiscalMonetary.Equilibrium 𝔼 β Bm1 s B P i ↔
+      𝔼.Adapted P ∧ (∀ t ω, 0 < P t ω) ∧ 𝔼.Adapted B ∧ FiscalMonetary.Valuation 𝔼 β Bm1 s B P ∧
+        FiscalMonetary.BondPricing 𝔼 β P i := by
+  constructor
+  · rintro ⟨hPa, hP, hBa, -, -, hv, hbp⟩
+    exact ⟨hPa, hP, hBa, hv, hbp⟩
+  · rintro ⟨hPa, hP, hBa, hv, hbp⟩
+    exact ⟨hPa, hP, hBa, bondPricing_rate_adapted 𝔼 hPO hβ hP hbp,
+      bondPricing_rate_gt 𝔼 hβ hP hbp, hv, hbp⟩
+
+/-- Cochrane (2023), eq. (2.3), p. 22: in an equilibrium derived in `Valuation` with bond price
+`Q = 1/(1 + i)` and `β > 0`, the rate exceeds `−1` in every state. -/
+theorem isEqm_inv_rate_gt {β : ℝ} (hβ : 0 < β) {Bm s P i : ℕ → Ω → ℝ}
+    (h : Valuation.IsEqm 𝔼 β Bm s P (fun t => (1 + i t)⁻¹)) (t : ℕ) (ω : Ω) : -1 < i t ω :=
+  rate_gt_of_pricing 𝔼 hβ h.1 (h.2.2.1 t) ω
+
+/-- Cochrane (2023), eq. (2.3), p. 22: in an equilibrium derived in `Valuation` with bond price
+`Q = 1/(1 + i)`, `β > 0` and pull-out, the rate is adapted. -/
+theorem isEqm_inv_rate_adapted (hPO : 𝔼.PullOut) {β : ℝ} (hβ : 0 < β) {Bm s P i : ℕ → Ω → ℝ}
+    (h : Valuation.IsEqm 𝔼 β Bm s P (fun t => (1 + i t)⁻¹)) : 𝔼.Adapted i :=
+  fun t => rate_adapted_of_pricing 𝔼 hPO hβ h.1 (h.2.2.1 t)
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33: `GeneralLinks.equilibrium_iff_isEqm` **without** the
+hypotheses that the rate is adapted and exceeds `−1`, for `β > 0`: the valuation-equation
+equilibrium of `FiscalMonetary` is exactly the equilibrium of `Valuation` with maturing debt
+`GeneralLinks.debtPath B_{−1} B` and bond price `1/(1 + i)`. -/
+theorem equilibrium_iff_isEqm_pos (hPO : 𝔼.PullOut) (hMC : MonotoneConvergence 𝔼) {β : ℝ}
+    (hβ : 0 < β) {Bm1 : Ω → ℝ} {s B P i : ℕ → Ω → ℝ} (hs : Valuation.AbsSummable 𝔼 β s)
+    (hsad : 𝔼.Adapted s) (hex : ∀ t ω, Summable fun j => β ^ j * |s (t + j) ω|)
+    (hBa : 𝔼.Adapted B) :
+    FiscalMonetary.Equilibrium 𝔼 β Bm1 s B P i ↔
+      Valuation.IsEqm 𝔼 β (GeneralLinks.debtPath Bm1 B) s P (fun t => (1 + i t)⁻¹) := by
+  constructor
+  · intro h
+    exact (GeneralLinks.equilibrium_iff_isEqm 𝔼 hPO hMC hβ.le hs hsad hex hBa h.2.2.2.1
+      h.2.2.2.2.1).mp h
+  · intro h
+    exact (GeneralLinks.equilibrium_iff_isEqm 𝔼 hPO hMC hβ.le hs hsad hex hBa
+      (isEqm_inv_rate_adapted 𝔼 hPO hβ h) (isEqm_inv_rate_gt 𝔼 hβ h)).mpr h
+
+/-- Cochrane (2023), eq. (2.16), p. 35: `GeneralLinks.isEqm_fisher_log` without the hypothesis
+that the bond price is positive: in every equilibrium derived in `Valuation` with `β > 0`, the
+exact Fisher equation holds in logs. -/
+theorem isEqm_fisher_log_pos {β : ℝ} (hβ : 0 < β) {Bm s P Q : ℕ → Ω → ℝ}
+    (h : Valuation.IsEqm 𝔼 β Bm s P Q) (t : ℕ) (ω : Ω) :
+    Real.log (1 + Environment.rate Q t ω) = -Real.log β -
+      Real.log (𝔼.E t (fun ω' => Real.exp (-Real.log (P (t + 1) ω' / P t ω'))) ω) :=
+  GeneralLinks.isEqm_fisher_log 𝔼 hβ h (isEqm_bondPrice_pos 𝔼 hβ h) t ω
+
+/-- Cochrane (2023), pp. 31–33 (interest-rate targets): a target with `i_t ≤ −1` in some state
+has no equilibrium in either sense, for `β > 0`: no `FiscalMonetary.Equilibrium` and no
+`Valuation.IsEqm` with bond price `1/(1 + i)` (whatever the debt). -/
+theorem no_eqm_of_rate_le {β : ℝ} (hβ : 0 < β) {s i : ℕ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (hle : i t ω ≤ -1) :
+    (∀ (Bm1 : Ω → ℝ) (B P : ℕ → Ω → ℝ), ¬ FiscalMonetary.Equilibrium 𝔼 β Bm1 s B P i) ∧
+      ∀ Bm P : ℕ → Ω → ℝ, ¬ Valuation.IsEqm 𝔼 β Bm s P (fun t => (1 + i t)⁻¹) := by
+  refine ⟨fun Bm1 B P h => ?_, fun Bm P h => ?_⟩
+  · linarith [h.2.2.2.2.1 t ω]
+  · linarith [isEqm_inv_rate_gt 𝔼 hβ h t ω]
+
+/-! ### The hypothesis is needed at `β = 0` -/
+
+/-- Cochrane (2023), §2.1, p. 21: the data of the `β = 0` counterexample — the rate `i ≡ −1`. -/
+def rateNegOne : ℕ → Unit → ℝ := fun _ _ => -1
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33: **the hypothesis `i > −1` cannot be dropped at
+`β = 0`.** Under perfect foresight with `β = 0`, no initial debt, no debt sold, no surpluses,
+`P ≡ 1` and `i ≡ −1`, every other hypothesis of `GeneralLinks.equilibrium_iff_isEqm` holds
+(pull-out, monotone convergence, `β ≥ 0`, absolute summability in expectation and ex post,
+adapted surpluses, debt and rate), the economy is an equilibrium derived from flow plus
+transversality (`Valuation.IsEqm`, bond price `1/(1 + i) = 0`), but it is not a
+`FiscalMonetary.Equilibrium`. -/
+theorem beta_zero_counterexample :
+    perfectForesight.PullOut ∧ MonotoneConvergence perfectForesight ∧
+      Valuation.AbsSummable perfectForesight 0 (fun _ _ => 0) ∧
+      perfectForesight.Adapted (fun _ _ => 0) ∧
+      (∀ t ω, Summable fun j => (0 : ℝ) ^ j * |(fun (_ : ℕ) (_ : Unit) => (0 : ℝ)) (t + j) ω|) ∧
+      perfectForesight.Adapted rateNegOne ∧
+      Valuation.IsEqm perfectForesight 0 (GeneralLinks.debtPath (fun _ => 0) (fun _ _ => 0))
+        (fun _ _ => 0) (fun _ _ => 1) (fun t => (1 + rateNegOne t)⁻¹) ∧
+      ¬ FiscalMonetary.Equilibrium perfectForesight 0 (fun _ => 0) (fun _ _ => 0)
+        (fun _ _ => 0) (fun _ _ => 1) rateNegOne := by
+  refine ⟨perfectForesight_pullOut, perfectForesight_monotoneConvergence,
+    fun t ω => by
+      change Summable fun j : ℕ => (0 : ℝ) ^ j * |(0 : ℝ)|
+      simp, fun _ => rfl, fun t ω => by simp, fun _ => rfl,
+    ⟨fun _ _ => one_pos, fun _ => rfl, fun t => ?_, fun t ω => ?_, fun t ω => ?_⟩, ?_⟩
+  · funext ω
+    simp [rateNegOne]
+  · cases t <;> simp [GeneralLinks.debtPath]
+  · have e : (fun N : ℕ => (0 : ℝ) ^ N * perfectForesight.E t
+        ((fun t ω => GeneralLinks.debtPath (fun _ => (0 : ℝ)) (fun _ _ => 0) t ω /
+          (fun (_ : ℕ) (_ : Unit) => (1 : ℝ)) t ω) (t + N)) ω) = fun _ => 0 := by
+      funext N
+      cases N with
+      | zero =>
+        change (0 : ℝ) ^ 0 * (GeneralLinks.debtPath (fun _ => (0 : ℝ)) (fun _ _ => 0) (t + 0) ω
+          / 1) = 0
+        cases t <;> simp [GeneralLinks.debtPath]
+      | succ N => simp
+    rw [e]
+    exact tendsto_const_nhds
+  · intro h
+    have := h.2.2.2.2.1 0 ()
+    simp [rateNegOne] at this
+
+end Cochrane.IntertemporalModel.TidyR5BondPrice
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A smooth family of exact nonlinear equilibria and its derivative: the peg
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 2, §2.4, pp. 29–33 (the exact
+model under an interest-rate target) and §2.5, pp. 34–37 (the linear model (2.16)–(2.19) as its
+linearisation).
+
+`LinearFTMP.fisher_deriv`, `LinearFTMP.linear_217`, `GeneralLinks.isEqm_fisher_log` and
+`GeneralLinks.equilibrium_pvNews` show that the exact equations of every equilibrium have the
+linear model as their derivatives, along a family assumed to exist. This module **builds** the
+family and differentiates it. Shocks of size `ε` hit the steady state: surpluses
+`s_t(ε) = s̄ + ε ŝ_t` (`surpFam`) with `ŝ` bounded and adapted, and a rate target `i(ε)` with
+`i(0) = 1/β − 1` and `ε ↦ log(1 + i_t(ε))` differentiable at `0` with derivative `î_t` (an
+arbitrary family; `rateExp`, `1 + i_t(ε) = β⁻¹ exp(ε î_t)`, is the canonical case).
+
+## Main results
+
+* Explicit solution: `pv_surpFam`, `pvEx_surpFam` (present values are affine in `ε`), so the
+  equilibrium is in closed form. On the open interval `famDom` (`|ε| M < s̄`, containing `0`)
+  `fam_equilibrium` (for every `ε` the target path `priceFam`, `debtFam` is an exact
+  equilibrium, `FiscalMonetary.Equilibrium`) and `fam_unique`, `family_unique` (it is the only
+  one, so any family of equilibria is this family).
+* `fam_steady`: at `ε = 0` it is the steady state `P_t = B_{−1}/V`, `B_t = B_{−1}`,
+  `V = s̄/(1 − β)`.
+* Smoothness: `price_contDiffOn`, `debt_contDiffOn`, `infl_contDiffOn` (`C^n` on `famDom` for
+  every `n`, including `C^∞` and analytic, whenever the rate family is).
+* The derivative: `infl_hasDerivAt` (the derivative at `ε = 0` of inflation
+  `π_t(ε) = log(P_t(ε)/P_{t−1}(ε))`, with `P_{−1}` the steady state, is the solution (2.19)
+  `LinearFTMP.pegSol î ε_{Σs} π̂_0` of the linear model, with the fiscal shock of (2.17)
+  `fiscShock` (news about the present value of surpluses scaled by steady-state debt) and
+  `π̂_0 = −pv(ŝ)_0/V`), and `fam_linearization` (the derivative is the unique adapted solution of
+  the linear model `LinearFTMP.PegModel` with that `π̂_0`).
+* The canonical case: `rateExp` and `exp_family_linearization` (pull-out and
+  `FunctionsKnown`), and on every finite event tree `tree_family_linearization`.
+-/
+
+namespace Cochrane.IntertemporalModel.TidyR5Family
+
+open Filter Topology ExpectationTools
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### The family of economies -/
+
+/-- Cochrane (2023), §2.5, p. 35 (shocks of size `ε` to a constant surplus): the surplus
+family `s_t(ε) = s̄ + ε ŝ_t`. -/
+def surpFam (sbar : ℝ) (shat : ℕ → Ω → ℝ) (ε : ℝ) : ℕ → Ω → ℝ :=
+  fun t ω => sbar + ε * shat t ω
+
+/-- Cochrane (2023), §2.5, p. 35: the steady-state real value of the debt,
+`V = s̄/(1 − β) = ∑ βʲ s̄`. -/
+noncomputable def ssV (β sbar : ℝ) : ℝ := (1 - β)⁻¹ * sbar
+
+/-- Cochrane (2023), §2.5, p. 35: the shock sizes `ε` with `|ε| M < s̄`, on which surpluses stay
+positive (`M` bounds `|ŝ|`). -/
+def famDom (sbar M : ℝ) : Set ℝ := {ε | |ε| * M < sbar}
+
+/-- Cochrane (2023), §2.5, p. 35: the domain of shock sizes is open. -/
+theorem famDom_isOpen (sbar M : ℝ) : IsOpen (famDom sbar M) :=
+  isOpen_lt ((continuous_abs).mul continuous_const) continuous_const
+
+/-- Cochrane (2023), §2.5, p. 35: the steady state `ε = 0` is in the domain when `s̄ > 0`. -/
+theorem zero_mem_famDom {sbar : ℝ} (hs : 0 < sbar) (M : ℝ) : (0 : ℝ) ∈ famDom sbar M := by
+  simp only [famDom, Set.mem_ofPred_eq, abs_zero, zero_mul]
+  exact hs
+
+/-- Cochrane (2023), §2.5, p. 35: the domain is a neighbourhood of the steady state. -/
+theorem famDom_mem_nhds {sbar : ℝ} (hs : 0 < sbar) (M : ℝ) : famDom sbar M ∈ 𝓝 (0 : ℝ) :=
+  (famDom_isOpen sbar M).mem_nhds (zero_mem_famDom hs M)
+
+/-! ### Present values are affine in `ε` -/
+
+variable {β sbar M : ℝ} {shat : ℕ → Ω → ℝ}
+
+omit 𝔼 in
+/-- Cochrane (2023), eq. (2.7), p. 22: the ex-post discounted sum of the surplus family is
+`V + ε ∑ βʲ ŝ_{t+j}` (bounded `ŝ`, `0 ≤ β < 1`). -/
+theorem epv_surpFam (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ)
+    (t : ℕ) : FiscalMonetary.epv β (surpFam sbar shat ε) t =
+      fun ω => ssV β sbar + ε * FiscalMonetary.epv β shat t ω := by
+  funext ω
+  have h1 : HasSum (fun j : ℕ => β ^ j * sbar) ((1 - β)⁻¹ * sbar) :=
+    (hasSum_geometric_of_lt_one hβ0 hβ1).mul_right sbar
+  have h2 : Summable fun j => β ^ j * shat (t + j) ω :=
+    FiscalMonetary.surplusSummable_of_bounded hβ0 hβ1 hs t ω
+  simp only [FiscalMonetary.epv, surpFam, ssV]
+  calc ∑' j, β ^ j * (sbar + ε * shat (t + j) ω)
+      = ∑' j, (β ^ j * sbar + ε * (β ^ j * shat (t + j) ω)) :=
+        tsum_congr fun j => by ring
+    _ = (1 - β)⁻¹ * sbar + ε * ∑' j, β ^ j * shat (t + j) ω := by
+        rw [h1.summable.tsum_add (h2.mul_left ε), tsum_mul_left, h1.tsum_eq]
+
+/-- Cochrane (2023), eq. (2.7), p. 22: the present value of the surplus family is affine in
+`ε`, `PV_t(ε) = V + ε PV_t(ŝ)`. -/
+theorem pv_surpFam (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ)
+    (t : ℕ) : FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t =
+      fun ω => ssV β sbar + ε * FiscalMonetary.pv 𝔼 β shat t ω := by
+  unfold FiscalMonetary.pv
+  rw [epv_surpFam hβ0 hβ1 hs]
+  have e : (fun ω => ssV β sbar + ε * FiscalMonetary.epv β shat t ω) =
+      (fun _ => ssV β sbar) + ε • FiscalMonetary.epv β shat t := by
+    funext ω
+    simp
+  rw [e, map_add, map_smul, 𝔼.const]
+  funext ω
+  simp
+
+/-- Cochrane (2023), eq. (2.15), p. 31: the ex-dividend present value of the surplus family is
+affine in `ε`, `PVex_t(ε) = βV + ε PVex_t(ŝ)`. -/
+theorem pvEx_surpFam (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ)
+    (t : ℕ) : FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t =
+      fun ω => β * ssV β sbar + ε * FiscalMonetary.pvEx 𝔼 β shat t ω := by
+  rw [FiscalMonetary.pvEx_eq, pv_surpFam 𝔼 hβ0 hβ1 hs, FiscalMonetary.pvEx_eq]
+  have e : (fun ω => ssV β sbar + ε * FiscalMonetary.pv 𝔼 β shat (t + 1) ω) =
+      (fun _ => ssV β sbar) + ε • FiscalMonetary.pv 𝔼 β shat (t + 1) := by
+    funext ω
+    simp
+  rw [e, map_add, map_smul, 𝔼.const]
+  funext ω
+  simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), eq. (2.7), p. 22: `|PV_t(ŝ)| ≤ M/(1 − β)` for `|ŝ| ≤ M`. -/
+theorem abs_pv_le (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (t : ℕ) (ω : Ω) :
+    |FiscalMonetary.pv 𝔼 β shat t ω| ≤ (1 - β)⁻¹ * M := by
+  have hb : ∀ ω', |FiscalMonetary.epv β shat t ω'| ≤ (1 - β)⁻¹ * M := by
+    intro ω'
+    rw [← Real.norm_eq_abs]
+    refine tsum_of_norm_bounded ((hasSum_geometric_of_lt_one hβ0 hβ1).mul_right M)
+      (fun j => ?_)
+    rw [Real.norm_eq_abs, abs_mul, abs_pow, abs_of_nonneg hβ0]
+    exact mul_le_mul_of_nonneg_left (hs (t + j) ω') (pow_nonneg hβ0 j)
+  exact 𝔼.abs_E_le hb t ω
+
+/-- Cochrane (2023), eq. (2.7), p. 22: the uniform lower bound
+`PV_t(ε) ≥ (s̄ − |ε| M)/(1 − β)` for every `ε`. -/
+theorem pv_surpFam_ge (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ)
+    (t : ℕ) (ω : Ω) :
+    (1 - β)⁻¹ * (sbar - |ε| * M) ≤ FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t ω := by
+  rw [pv_surpFam 𝔼 hβ0 hβ1 hs]
+  have hY := abs_pv_le 𝔼 hβ0 hβ1 hs t ω
+  have hc : 0 ≤ (1 - β)⁻¹ := inv_nonneg.mpr (by linarith)
+  have h1 : |ε * FiscalMonetary.pv 𝔼 β shat t ω| ≤ |ε| * ((1 - β)⁻¹ * M) := by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left hY (abs_nonneg ε)
+  have h2 := neg_abs_le (ε * FiscalMonetary.pv 𝔼 β shat t ω)
+  simp only [ssV]
+  nlinarith
+
+/-- Cochrane (2023), eq. (2.7), p. 22: on `famDom` the present value is positive. -/
+theorem pv_surpFam_pos (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) {ε : ℝ}
+    (hε : ε ∈ famDom sbar M) (t : ℕ) (ω : Ω) :
+    0 < FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t ω := by
+  refine lt_of_lt_of_le ?_ (pv_surpFam_ge 𝔼 hβ0 hβ1 hs ε t ω)
+  have hε' : |ε| * M < sbar := hε
+  have : 0 < (1 - β)⁻¹ := inv_pos.mpr (by linarith)
+  exact mul_pos this (by linarith)
+
+/-- Cochrane (2023), eq. (2.15), p. 31: on `famDom` the ex-dividend present value is positive
+(`β > 0`). -/
+theorem pvEx_surpFam_pos (hβ0 : 0 < β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) {ε : ℝ}
+    (hε : ε ∈ famDom sbar M) (t : ℕ) (ω : Ω) :
+    0 < FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω := by
+  have hε' : |ε| * M < sbar := hε
+  have hc : 0 < (1 - β)⁻¹ * (sbar - |ε| * M) := mul_pos (inv_pos.mpr (by linarith)) (by linarith)
+  have h := FiscalMonetary.pvEx_ge (𝔼 := 𝔼) hβ0.le
+    (fun t' ω' => pv_surpFam_ge 𝔼 (sbar := sbar) hβ0.le hβ1 hs ε t' ω') t ω
+  exact lt_of_lt_of_le (mul_pos hβ0 hc) h
+
+/-! ### The equilibrium family -/
+
+/-- Cochrane (2023), §2.4.3, p. 31: the price level of the family, the target equilibrium
+`FiscalMonetary.pegP` for surpluses `s(ε)` and the rate target `i(ε)`. -/
+noncomputable def priceFam (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (Bm1 : Ω → ℝ)
+    (iF : ℝ → ℕ → Ω → ℝ) (ε : ℝ) : ℕ → Ω → ℝ :=
+  FiscalMonetary.pegP 𝔼 β Bm1 (surpFam sbar shat ε) (iF ε)
+
+/-- Cochrane (2023), eq. (2.15), p. 31: the debt sold along the family, `FiscalMonetary.pegB`. -/
+noncomputable def debtFam (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (Bm1 : Ω → ℝ)
+    (iF : ℝ → ℕ → Ω → ℝ) (ε : ℝ) : ℕ → Ω → ℝ :=
+  FiscalMonetary.pegB 𝔼 β Bm1 (surpFam sbar shat ε) (iF ε)
+
+/-- Cochrane (2023), §2.5, p. 35: inflation along the family, `π_t(ε) = log(P_t(ε)/P_{t−1}(ε))`,
+with `P_{−1} = B_{−1}/V` the steady-state price level. -/
+noncomputable def inflFam (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (Bm1 : Ω → ℝ)
+    (iF : ℝ → ℕ → Ω → ℝ) (ε : ℝ) : ℕ → Ω → ℝ
+  | 0 => fun ω => Real.log (priceFam 𝔼 β sbar shat Bm1 iF ε 0 ω / (Bm1 ω / ssV β sbar))
+  | t + 1 => fun ω => Real.log (priceFam 𝔼 β sbar shat Bm1 iF ε (t + 1) ω /
+      priceFam 𝔼 β sbar shat Bm1 iF ε t ω)
+
+variable {Bm1 : Ω → ℝ} {iF : ℝ → ℕ → Ω → ℝ}
+
+/-- Cochrane (2023), §2.4.3, p. 31: for every shock size in `famDom` the family is an exact
+equilibrium (`FiscalMonetary.Equilibrium`): pull-out, `0 < β < 1`, bounded `ŝ`, positive initial
+debt known at `0`, and an adapted rate family exceeding `−1` on the domain. -/
+theorem fam_equilibrium (hPO : 𝔼.PullOut) (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hBm1 : 𝔼.E 0 Bm1 = Bm1) (hB : ∀ ω, 0 < Bm1 ω)
+    (hiA : ∀ ε ∈ famDom sbar M, 𝔼.Adapted (iF ε))
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω) {ε : ℝ} (hε : ε ∈ famDom sbar M) :
+    FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε)
+      (debtFam 𝔼 β sbar shat Bm1 iF ε) (priceFam 𝔼 β sbar shat Bm1 iF ε) (iF ε) :=
+  FiscalMonetary.peg_equilibrium hPO hBm1 hB (hiA ε hε) (hiG ε hε)
+    (pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε) (pvEx_surpFam_pos 𝔼 hβ0 hβ1 hs hε)
+
+/-- Cochrane (2023), p. 33 (determinacy under a target): for every shock size in `famDom`, any
+equilibrium with the surpluses `s(ε)` and the target `i(ε)` is the family member. -/
+theorem fam_unique (hPO : 𝔼.PullOut) (hβ1 : β < 1) (hβ0 : 0 ≤ β)
+    (hs : ∀ t ω, |shat t ω| ≤ M) {ε : ℝ} (hε : ε ∈ famDom sbar M) {B P : ℕ → Ω → ℝ}
+    (h : FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε) B P (iF ε)) :
+    P = priceFam 𝔼 β sbar shat Bm1 iF ε ∧ B = debtFam 𝔼 β sbar shat Bm1 iF ε :=
+  FiscalMonetary.peg_unique hPO (fun t ω => (pv_surpFam_pos 𝔼 hβ0 hβ1 hs hε t ω).ne') h
+
+/-- Cochrane (2023), §§2.4–2.5, pp. 33–35: **uniqueness of the family**: any family of
+equilibria `ε ↦ (P(ε), B(ε))` for the surpluses `s(ε)` and the targets `i(ε)` on `famDom` is
+`(priceFam, debtFam)`. -/
+theorem family_unique (hPO : 𝔼.PullOut) (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hs : ∀ t ω, |shat t ω| ≤ M) {PF BF : ℝ → ℕ → Ω → ℝ}
+    (h : ∀ ε ∈ famDom sbar M,
+      FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε) (BF ε) (PF ε) (iF ε)) :
+    ∀ ε ∈ famDom sbar M,
+      PF ε = priceFam 𝔼 β sbar shat Bm1 iF ε ∧ BF ε = debtFam 𝔼 β sbar shat Bm1 iF ε :=
+  fun ε hε => fam_unique 𝔼 hPO hβ1 hβ0 hs hε (h ε hε)
+
+/-- Cochrane (2023), §2.4.3, p. 31: the recursion of the family's price level, state by state,
+`P_{t+1}(ε) = (1 + i_t(ε)) P_t(ε) PVex_t(ε)/PV_{t+1}(ε)`. -/
+theorem priceFam_succ (ε : ℝ) (t : ℕ) (ω : Ω) :
+    priceFam 𝔼 β sbar shat Bm1 iF ε (t + 1) ω = (1 + iF ε t ω) *
+      priceFam 𝔼 β sbar shat Bm1 iF ε t ω *
+        FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω /
+          FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω := rfl
+
+/-- Cochrane (2023), §2.4.3, p. 31: the family's initial price level `P_0(ε) = B_{−1}/PV_0(ε)`. -/
+theorem priceFam_zero (ε : ℝ) (ω : Ω) :
+    priceFam 𝔼 β sbar shat Bm1 iF ε 0 ω =
+      Bm1 ω / FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω := rfl
+
+/-- Cochrane (2023), §2.4.3, p. 31: on `famDom` the family's price level is positive. -/
+theorem priceFam_pos (hβ0 : 0 < β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    (hB : ∀ ω, 0 < Bm1 ω) (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω) {ε : ℝ}
+    (hε : ε ∈ famDom sbar M) (t : ℕ) (ω : Ω) : 0 < priceFam 𝔼 β sbar shat Bm1 iF ε t ω :=
+  FiscalMonetary.pegP_pos hB (hiG ε hε) (pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε)
+    (pvEx_surpFam_pos 𝔼 hβ0 hβ1 hs hε) t ω
+
+/-- Cochrane (2023), §2.5, p. 35 (variables as deviations from the steady state): at `ε = 0`,
+with `i(0) = 1/β − 1`, the family is the steady state, `P_t = B_{−1}/V` and `B_t = B_{−1}`. -/
+theorem fam_steady (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hi0 : ∀ t ω, iF 0 t ω = β⁻¹ - 1) (t : ℕ) :
+    priceFam 𝔼 β sbar shat Bm1 iF 0 t = (fun ω => Bm1 ω / ssV β sbar) ∧
+      debtFam 𝔼 β sbar shat Bm1 iF 0 t = Bm1 := by
+  have hV : ssV β sbar ≠ 0 := mul_ne_zero (inv_ne_zero (by linarith)) hsbar.ne'
+  have hpv : ∀ t ω, FiscalMonetary.pv 𝔼 β (surpFam sbar shat 0) t ω = ssV β sbar := by
+    intro t ω
+    rw [pv_surpFam 𝔼 hβ0.le hβ1 hs]
+    ring
+  have hpvEx : ∀ t ω, FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat 0) t ω = β * ssV β sbar := by
+    intro t ω
+    rw [pvEx_surpFam 𝔼 hβ0.le hβ1 hs]
+    ring
+  have hP : ∀ t, priceFam 𝔼 β sbar shat Bm1 iF 0 t = fun ω => Bm1 ω / ssV β sbar := by
+    intro t
+    induction t with
+    | zero =>
+      funext ω
+      rw [priceFam_zero, hpv]
+    | succ t ih =>
+      funext ω
+      rw [priceFam_succ, hpv, hpvEx, hi0, ih]
+      field_simp
+      ring
+  refine ⟨hP t, ?_⟩
+  funext ω
+  change (1 + iF 0 t ω) * priceFam 𝔼 β sbar shat Bm1 iF 0 t ω *
+    FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat 0) t ω = Bm1 ω
+  rw [hP t, hpvEx, hi0]
+  field_simp
+  ring
+
+/-! ### Smoothness in the shock size -/
+
+/-- Cochrane (2023), eq. (2.7), p. 22: the present value of the surplus family is a smooth
+(affine) function of `ε` in every state. -/
+theorem pv_contDiff (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    {n : WithTop ℕ∞} (t : ℕ) (ω : Ω) :
+    ContDiff ℝ n (fun ε => FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t ω) := by
+  have e : (fun ε => FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t ω) =
+      fun ε => ssV β sbar + ε * FiscalMonetary.pv 𝔼 β shat t ω :=
+    funext fun ε => by rw [pv_surpFam 𝔼 hβ0 hβ1 hs]
+  rw [e]
+  exact contDiff_const.add (contDiff_id.mul contDiff_const)
+
+/-- Cochrane (2023), eq. (2.15), p. 31: the ex-dividend present value of the surplus family is a
+smooth (affine) function of `ε` in every state. -/
+theorem pvEx_contDiff (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    {n : WithTop ℕ∞} (t : ℕ) (ω : Ω) :
+    ContDiff ℝ n (fun ε => FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω) := by
+  have e : (fun ε => FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω) =
+      fun ε => β * ssV β sbar + ε * FiscalMonetary.pvEx 𝔼 β shat t ω :=
+    funext fun ε => by rw [pvEx_surpFam 𝔼 hβ0 hβ1 hs]
+  rw [e]
+  exact contDiff_const.add (contDiff_id.mul contDiff_const)
+
+/-- Cochrane (2023), §2.4.3, p. 31: if the rate family is `C^n` in `ε` on `famDom` (any
+`n`, including `∞` and analytic), so is the price level of the equilibrium family, in every
+state at every date. -/
+theorem price_contDiffOn (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    {n : WithTop ℕ∞} (hiC : ∀ t ω, ContDiffOn ℝ n (fun ε => iF ε t ω) (famDom sbar M))
+    (t : ℕ) (ω : Ω) :
+    ContDiffOn ℝ n (fun ε => priceFam 𝔼 β sbar shat Bm1 iF ε t ω) (famDom sbar M) := by
+  induction t with
+  | zero =>
+    exact contDiffOn_const.div (pv_contDiff 𝔼 hβ0 hβ1 hs 0 ω).contDiffOn
+      (fun ε hε => (pv_surpFam_pos 𝔼 hβ0 hβ1 hs hε 0 ω).ne')
+  | succ t ih =>
+    exact (((contDiffOn_const.add (hiC t ω)).mul ih).mul
+      (pvEx_contDiff 𝔼 hβ0 hβ1 hs t ω).contDiffOn).div
+      (pv_contDiff 𝔼 hβ0 hβ1 hs (t + 1) ω).contDiffOn
+      (fun ε hε => (pv_surpFam_pos 𝔼 hβ0 hβ1 hs hε (t + 1) ω).ne')
+
+/-- Cochrane (2023), eq. (2.15), p. 31: if the rate family is `C^n` on `famDom`, so is the debt
+sold along the equilibrium family. -/
+theorem debt_contDiffOn (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    {n : WithTop ℕ∞} (hiC : ∀ t ω, ContDiffOn ℝ n (fun ε => iF ε t ω) (famDom sbar M))
+    (t : ℕ) (ω : Ω) :
+    ContDiffOn ℝ n (fun ε => debtFam 𝔼 β sbar shat Bm1 iF ε t ω) (famDom sbar M) :=
+  ((contDiffOn_const.add (hiC t ω)).mul (price_contDiffOn 𝔼 hβ0 hβ1 hs hiC t ω)).mul
+    (pvEx_contDiff 𝔼 hβ0 hβ1 hs t ω).contDiffOn
+
+/-- Cochrane (2023), §2.5, p. 35: if the rate family is `C^n` on `famDom` and exceeds `−1`
+there, inflation along the equilibrium family is `C^n` on `famDom` in every state at every
+date. -/
+theorem infl_contDiffOn (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω)
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω) {n : WithTop ℕ∞}
+    (hiC : ∀ t ω, ContDiffOn ℝ n (fun ε => iF ε t ω) (famDom sbar M)) (t : ℕ) (ω : Ω) :
+    ContDiffOn ℝ n (fun ε => inflFam 𝔼 β sbar shat Bm1 iF ε t ω) (famDom sbar M) := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  cases t with
+  | zero =>
+    refine ((price_contDiffOn 𝔼 hβ0.le hβ1 hs hiC 0 ω).div_const _).log fun ε hε => ?_
+    exact (div_pos (priceFam_pos 𝔼 hβ0 hβ1 hs hB hiG hε 0 ω) (div_pos (hB ω) hV)).ne'
+  | succ t =>
+    refine ((price_contDiffOn 𝔼 hβ0.le hβ1 hs hiC (t + 1) ω).div
+      (price_contDiffOn 𝔼 hβ0.le hβ1 hs hiC t ω)
+      (fun ε hε => (priceFam_pos 𝔼 hβ0 hβ1 hs hB hiG hε t ω).ne')).log fun ε hε => ?_
+    exact (div_pos (priceFam_pos 𝔼 hβ0 hβ1 hs hB hiG hε (t + 1) ω)
+      (priceFam_pos 𝔼 hβ0 hβ1 hs hB hiG hε t ω)).ne'
+
+/-! ### The derivative at the steady state is the linear model -/
+
+/-- Cochrane (2023), eq. (2.17), p. 35: the fiscal shock of the linear model for the family,
+`ε_{Σs,t+1} = ΔE_{t+1} ∑ βʲ s̃_{t+1+j}` with surpluses scaled by steady-state debt,
+`s̃ = ŝ/V`; zero at date `0`. -/
+noncomputable def fiscShock (β sbar : ℝ) (shat : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => 0
+  | t + 1 => LinearFTMP.pvNews 𝔼 β (fun t ω => (ssV β sbar)⁻¹ * shat t ω) t
+
+/-- Cochrane (2023), eq. (2.17), p. 35, at date `0`: the initial inflation of the linear model,
+`π̂_0 = −PV_0(ŝ)/V` (all of the date-`0` present value is news relative to the steady state). -/
+noncomputable def infl0 (β sbar : ℝ) (shat : ℕ → Ω → ℝ) : Ω → ℝ :=
+  fun ω => -((ssV β sbar)⁻¹ * FiscalMonetary.pv 𝔼 β shat 0 ω)
+
+/-- Cochrane (2023), eq. (2.17), p. 35: the news about the present value of `ŝ`, scaled by
+steady-state debt, is the fiscal shock `ε_{Σs,t+1}` (bounded `ŝ`, `0 ≤ β < 1`). -/
+theorem scaled_innov_pv (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (t : ℕ)
+    (ω : Ω) : (ssV β sbar)⁻¹ * innov 𝔼 t (FiscalMonetary.pv 𝔼 β shat (t + 1)) ω =
+      fiscShock 𝔼 β sbar shat (t + 1) ω := by
+  change _ = ∑' k, β ^ k * innov 𝔼 t (fun ω => (ssV β sbar)⁻¹ * shat (t + 1 + k) ω) ω
+  rw [FiscalMonetary.news_pv_succ, GeneralLinks.innov_epv_eq_pvNews 𝔼 hβ0 hβ1 hs t]
+  unfold LinearFTMP.pvNews
+  rw [← tsum_mul_left]
+  refine tsum_congr fun k => ?_
+  have e : (fun ω => (ssV β sbar)⁻¹ * shat (t + 1 + k) ω) = (ssV β sbar)⁻¹ • shat (t + 1 + k) :=
+    rfl
+  rw [e, innov_smul, Pi.smul_apply, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), eq. (2.17), p. 35: the fiscal shock is a shock (known on arrival, zero
+forecast). -/
+theorem fiscShock_isShock (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) :
+    LinearFTMP.IsShock 𝔼 (fiscShock 𝔼 β sbar shat) := by
+  have hb : ∀ t ω, |(fun t ω => (ssV β sbar)⁻¹ * shat t ω) t ω| ≤ |(ssV β sbar)⁻¹| * M :=
+    fun t ω => by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hs t ω) (abs_nonneg _)
+  have h := LinearFTMP.pvNews_isShock 𝔼 hβ0 hβ1 hb
+  exact ⟨fun t => h.1 t, fun t => h.2 t⟩
+
+/-- Cochrane (2023), eq. (2.17), p. 35: the initial inflation `π̂_0` is known at date `0`. -/
+theorem infl0_known : 𝔼.E 0 (infl0 𝔼 β sbar shat) = infl0 𝔼 β sbar shat := by
+  have e : infl0 𝔼 β sbar shat = (-(ssV β sbar)⁻¹) • FiscalMonetary.pv 𝔼 β shat 0 := by
+    funext ω
+    simp only [infl0, Pi.smul_apply, smul_eq_mul]
+    ring
+  rw [e, map_smul, FiscalMonetary.pv_adapted 𝔼 β shat 0]
+
+/-- Cochrane (2023), eqs. (2.16)–(2.17), p. 35, **the derivative of inflation along the family
+of exact equilibria**: for `0 < β < 1`, `s̄ > 0`, bounded `ŝ`, positive `B_{−1}`, a rate family
+exceeding `−1` on `famDom` whose log gross rate has derivative `î_t` at `ε = 0`, the derivative
+of `π_t(ε)` at the steady state `ε = 0` is the solution (2.19) of the linear model,
+`π̂_0 = −PV_0(ŝ)/V` and `π̂_{t+1} = î_t − ε_{Σs,t+1}`. -/
+theorem infl_hasDerivAt (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω)
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω) {ihat : ℕ → Ω → ℝ}
+    (hiD : ∀ t ω, HasDerivAt (fun ε => Real.log (1 + iF ε t ω)) (ihat t ω) 0) (t : ℕ)
+    (ω : Ω) : HasDerivAt (fun ε => inflFam 𝔼 β sbar shat Bm1 iF ε t ω)
+      (LinearFTMP.pegSol ihat (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat) t ω) 0 := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hnhds := famDom_mem_nhds hsbar M
+  cases t with
+  | zero =>
+    set Y := FiscalMonetary.pv 𝔼 β shat 0 ω with hY
+    have hev : (fun ε => inflFam 𝔼 β sbar shat Bm1 iF ε 0 ω) =ᶠ[𝓝 0]
+        fun ε => Real.log (ssV β sbar) - Real.log (ssV β sbar + ε * Y) := by
+      filter_upwards [hnhds] with ε hε
+      have h3 := pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε 0 ω
+      rw [pv_surpFam 𝔼 hβ0.le hβ1 hs] at h3
+      change Real.log (priceFam 𝔼 β sbar shat Bm1 iF ε 0 ω / (Bm1 ω / ssV β sbar)) = _
+      rw [priceFam_zero, pv_surpFam 𝔼 hβ0.le hβ1 hs]
+      have hB' := (hB ω).ne'
+      rw [show Bm1 ω / (ssV β sbar + ε * Y) / (Bm1 ω / ssV β sbar) =
+          ssV β sbar / (ssV β sbar + ε * Y) by field_simp,
+        Real.log_div hV.ne' h3.ne']
+    have hA : HasDerivAt (fun ε : ℝ => ssV β sbar + ε * Y) Y 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const Y).const_add (ssV β sbar)
+    have hL := (hA.log (by simpa using hV.ne')).const_sub (Real.log (ssV β sbar))
+    refine (hL.congr_of_eventuallyEq hev).congr_deriv ?_
+    change -(Y / (ssV β sbar + 0 * Y)) = -((ssV β sbar)⁻¹ * Y)
+    rw [zero_mul, add_zero, div_eq_inv_mul]
+  | succ t =>
+    set X := FiscalMonetary.pvEx 𝔼 β shat t ω with hX
+    set Y := FiscalMonetary.pv 𝔼 β shat (t + 1) ω with hY
+    have hev : (fun ε => inflFam 𝔼 β sbar shat Bm1 iF ε (t + 1) ω) =ᶠ[𝓝 0]
+        fun ε => Real.log (1 + iF ε t ω) + Real.log (β * ssV β sbar + ε * X) -
+          Real.log (ssV β sbar + ε * Y) := by
+      filter_upwards [hnhds] with ε hε
+      have hP := priceFam_pos 𝔼 hβ0 hβ1 hs hB hiG hε t ω
+      have h1 : 0 < 1 + iF ε t ω := by linarith [hiG ε hε t ω]
+      have h2 := pvEx_surpFam_pos 𝔼 hβ0 hβ1 hs hε t ω
+      rw [pvEx_surpFam 𝔼 hβ0.le hβ1 hs] at h2
+      have h3 := pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε (t + 1) ω
+      rw [pv_surpFam 𝔼 hβ0.le hβ1 hs] at h3
+      change Real.log (priceFam 𝔼 β sbar shat Bm1 iF ε (t + 1) ω /
+        priceFam 𝔼 β sbar shat Bm1 iF ε t ω) = _
+      rw [priceFam_succ, pvEx_surpFam 𝔼 hβ0.le hβ1 hs, pv_surpFam 𝔼 hβ0.le hβ1 hs]
+      have hP' := hP.ne'
+      rw [show (1 + iF ε t ω) * priceFam 𝔼 β sbar shat Bm1 iF ε t ω *
+          (β * ssV β sbar + ε * X) / (ssV β sbar + ε * Y) /
+            priceFam 𝔼 β sbar shat Bm1 iF ε t ω =
+          (1 + iF ε t ω) * (β * ssV β sbar + ε * X) / (ssV β sbar + ε * Y) by field_simp,
+        Real.log_div (mul_pos h1 h2).ne' h3.ne', Real.log_mul h1.ne' h2.ne']
+    have hA : HasDerivAt (fun ε : ℝ => β * ssV β sbar + ε * X) X 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const X).const_add (β * ssV β sbar)
+    have hC : HasDerivAt (fun ε : ℝ => ssV β sbar + ε * Y) Y 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const Y).const_add (ssV β sbar)
+    have hbV : β * ssV β sbar ≠ 0 := (mul_pos hβ0 hV).ne'
+    have hL := HasDerivAt.sub (HasDerivAt.add (hiD t ω) (hA.log (by simpa using hbV)))
+      (hC.log (by simpa using hV.ne'))
+    refine (hL.congr_of_eventuallyEq hev).congr_deriv ?_
+    have hshock := scaled_innov_pv 𝔼 (sbar := sbar) hβ0.le hβ1 hs t ω
+    have hXe : X = β * 𝔼.E t (FiscalMonetary.pv 𝔼 β shat (t + 1)) ω := by
+      rw [hX, FiscalMonetary.pvEx_eq]
+      rfl
+    have hin : innov 𝔼 t (FiscalMonetary.pv 𝔼 β shat (t + 1)) ω =
+        Y - 𝔼.E t (FiscalMonetary.pv 𝔼 β shat (t + 1)) ω := by
+      unfold innov
+      rw [FiscalMonetary.pv_adapted 𝔼 β shat (t + 1)]
+      rfl
+    change ihat t ω + X / (β * ssV β sbar + 0 * X) - Y / (ssV β sbar + 0 * Y) =
+      ihat t ω - fiscShock 𝔼 β sbar shat (t + 1) ω
+    rw [← hshock, hin, hXe, zero_mul, add_zero, zero_mul, add_zero]
+    field_simp
+    ring
+
+/-- Cochrane (2023), §2.5, pp. 35–36, (2.16)–(2.19), **the linear model is the derivative of the
+family of exact equilibria**: under the hypotheses of `infl_hasDerivAt` with pull-out, an
+adapted `î` and positive initial debt known at `0`, the linear model `LinearFTMP.PegModel` with
+the rate `î`, the fiscal shock `ε_{Σs}` and `π̂_0 = −PV_0(ŝ)/V` has exactly one adapted
+solution, and every adapted solution is the derivative at `ε = 0` of inflation along the
+family. -/
+theorem fam_linearization (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω)
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω) {ihat : ℕ → Ω → ℝ}
+    (hihat : 𝔼.Adapted ihat)
+    (hiD : ∀ t ω, HasDerivAt (fun ε => Real.log (1 + iF ε t ω)) (ihat t ω) 0) :
+    (∃! π : ℕ → Ω → ℝ, 𝔼.Adapted π ∧ π 0 = infl0 𝔼 β sbar shat ∧
+      LinearFTMP.PegModel 𝔼 ihat (fiscShock 𝔼 β sbar shat) π) ∧
+    ∀ π : ℕ → Ω → ℝ, 𝔼.Adapted π → π 0 = infl0 𝔼 β sbar shat →
+      LinearFTMP.PegModel 𝔼 ihat (fiscShock 𝔼 β sbar shat) π →
+        ∀ t ω, HasDerivAt (fun ε => inflFam 𝔼 β sbar shat Bm1 iF ε t ω) (π t ω) 0 := by
+  have hk := infl0_known 𝔼 (β := β) (sbar := sbar) (shat := shat)
+  have hex := LinearFTMP.peg_existsUnique 𝔼 hk hihat
+    (fiscShock_isShock 𝔼 (sbar := sbar) hβ0.le hβ1 hs)
+  refine ⟨hex, fun π hπ hπ0 hm t ω => ?_⟩
+  obtain ⟨π', hπ', hu⟩ := hex
+  have e1 := hu π ⟨hπ, hπ0, hm⟩
+  have e2 := hu (LinearFTMP.pegSol ihat (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat))
+    ⟨LinearFTMP.pegSol_adapted 𝔼 hk hihat
+      (fiscShock_isShock 𝔼 (sbar := sbar) hβ0.le hβ1 hs), rfl,
+      (LinearFTMP.pegModel_iff 𝔼 (LinearFTMP.pegSol_adapted 𝔼 hk hihat
+        (fiscShock_isShock 𝔼 (sbar := sbar) hβ0.le hβ1 hs)) hihat
+        (fiscShock_isShock 𝔼 (sbar := sbar) hβ0.le hβ1 hs)).mpr fun _ => rfl⟩
+  rw [e1, ← e2]
+  exact infl_hasDerivAt 𝔼 hβ0 hβ1 hsbar hs hB hiG hiD t ω
+
+/-! ### The canonical rate family `1 + i_t(ε) = β⁻¹ exp(ε î_t)` -/
+
+/-- Cochrane (2023), eq. (2.16), p. 35 (`i_t` as the log deviation of the gross rate from
+`r = −log β`): the rate family `1 + i_t(ε) = β⁻¹ exp(ε î_t)`. -/
+noncomputable def rateExp (β : ℝ) (ihat : ℕ → Ω → ℝ) (ε : ℝ) : ℕ → Ω → ℝ :=
+  fun t ω => β⁻¹ * Real.exp (ε * ihat t ω) - 1
+
+omit 𝔼 in
+/-- Cochrane (2023), eq. (2.16), p. 35: the canonical rate family exceeds `−1` (`β > 0`). -/
+theorem rateExp_gt (hβ0 : 0 < β) (ihat : ℕ → Ω → ℝ) (ε : ℝ) (t : ℕ) (ω : Ω) :
+    -1 < rateExp β ihat ε t ω := by
+  simp only [rateExp]
+  have := mul_pos (inv_pos.mpr hβ0) (Real.exp_pos (ε * ihat t ω))
+  linarith
+
+omit 𝔼 in
+/-- Cochrane (2023), eq. (2.16), p. 35: at `ε = 0` the canonical rate is the steady-state rate
+`1/β − 1`. -/
+theorem rateExp_zero (ihat : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) : rateExp β ihat 0 t ω = β⁻¹ - 1 := by
+  simp [rateExp]
+
+/-- Cochrane (2023), eq. (2.16), p. 35: with `FunctionsKnown`, the canonical rate family is
+adapted when `î` is. -/
+theorem rateExp_adapted (hFK : FunctionsKnown 𝔼) {ihat : ℕ → Ω → ℝ} (hihat : 𝔼.Adapted ihat)
+    (ε : ℝ) : 𝔼.Adapted (rateExp β ihat ε) :=
+  fun t => hFK t (ihat t) (fun x => β⁻¹ * Real.exp (ε * x) - 1) (hihat t)
+
+omit 𝔼 in
+/-- Cochrane (2023), eq. (2.16), p. 35: `log(1 + i_t(ε)) = r + ε î_t` exactly, so its derivative
+at `ε = 0` is `î_t` (`β > 0`). -/
+theorem rateExp_log_hasDerivAt (hβ0 : 0 < β) (ihat : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    HasDerivAt (fun ε => Real.log (1 + rateExp β ihat ε t ω)) (ihat t ω) 0 := by
+  have e : (fun ε => Real.log (1 + rateExp β ihat ε t ω)) =
+      fun ε => Real.log β⁻¹ + ε * ihat t ω := by
+    funext ε
+    simp only [rateExp, add_sub_cancel]
+    rw [Real.log_mul (inv_pos.mpr hβ0).ne' (Real.exp_pos _).ne', Real.log_exp]
+  rw [e]
+  simpa using ((hasDerivAt_id (0 : ℝ)).mul_const (ihat t ω)).const_add (Real.log β⁻¹)
+
+omit 𝔼 in
+/-- Cochrane (2023), eq. (2.16), p. 35: the canonical rate family is `C^n` in `ε` for every
+`n` (including `∞` and analytic). -/
+theorem rateExp_contDiff (ihat : ℕ → Ω → ℝ) {n : WithTop ℕ∞} (t : ℕ) (ω : Ω) :
+    ContDiff ℝ n (fun ε => rateExp β ihat ε t ω) :=
+  (contDiff_const.mul ((contDiff_id.mul contDiff_const).exp)).sub contDiff_const
+
+/-- Cochrane (2023), §§2.4–2.5, pp. 31–36, **the family of exact equilibria under the canonical
+target**, all in one statement. With pull-out, `FunctionsKnown`, `0 < β < 1`, `s̄ > 0`, bounded
+adapted `ŝ`, adapted `î` and positive initial debt known at `0`, on the open neighbourhood
+`famDom` of `ε = 0`:
+* for each `ε` the family member is an equilibrium, and the only one;
+* at `ε = 0` it is the steady state;
+* price level, debt and inflation are `C^n` in `ε` for every `n`;
+* the linear model (2.16)–(2.19) with `π̂_0 = −PV_0(ŝ)/V` has exactly one adapted solution, and
+  it is the derivative at `ε = 0` of inflation along the family. -/
+theorem exp_family_linearization (hPO : 𝔼.PullOut) (hFK : FunctionsKnown 𝔼) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hsbar : 0 < sbar) (hs : ∀ t ω, |shat t ω| ≤ M)
+    (hBm1 : 𝔼.E 0 Bm1 = Bm1) (hB : ∀ ω, 0 < Bm1 ω) {ihat : ℕ → Ω → ℝ}
+    (hihat : 𝔼.Adapted ihat) :
+    (0 : ℝ) ∈ famDom sbar M ∧ IsOpen (famDom sbar M) ∧
+    (∀ ε ∈ famDom sbar M, FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε)
+      (debtFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε)
+      (priceFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε) (rateExp β ihat ε)) ∧
+    (∀ ε ∈ famDom sbar M, ∀ B P : ℕ → Ω → ℝ,
+      FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε) B P (rateExp β ihat ε) →
+        P = priceFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε ∧
+          B = debtFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε) ∧
+    (∀ t, priceFam 𝔼 β sbar shat Bm1 (rateExp β ihat) 0 t = (fun ω => Bm1 ω / ssV β sbar) ∧
+      debtFam 𝔼 β sbar shat Bm1 (rateExp β ihat) 0 t = Bm1) ∧
+    (∀ (n : WithTop ℕ∞) t ω,
+      ContDiffOn ℝ n (fun ε => priceFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => debtFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => inflFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε t ω)
+        (famDom sbar M)) ∧
+    (∃! π : ℕ → Ω → ℝ, 𝔼.Adapted π ∧ π 0 = infl0 𝔼 β sbar shat ∧
+      LinearFTMP.PegModel 𝔼 ihat (fiscShock 𝔼 β sbar shat) π) ∧
+    ∀ π : ℕ → Ω → ℝ, 𝔼.Adapted π → π 0 = infl0 𝔼 β sbar shat →
+      LinearFTMP.PegModel 𝔼 ihat (fiscShock 𝔼 β sbar shat) π →
+        ∀ t ω, HasDerivAt (fun ε => inflFam 𝔼 β sbar shat Bm1 (rateExp β ihat) ε t ω)
+          (π t ω) 0 := by
+  have hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < rateExp β ihat ε t ω :=
+    fun ε _ t ω => rateExp_gt hβ0 ihat ε t ω
+  have hiC : ∀ (n : WithTop ℕ∞) t ω,
+      ContDiffOn ℝ n (fun ε => rateExp β ihat ε t ω) (famDom sbar M) :=
+    fun n t ω => (rateExp_contDiff ihat t ω).contDiffOn
+  obtain ⟨hlin1, hlin2⟩ := fam_linearization 𝔼 (Bm1 := Bm1) hβ0 hβ1 hsbar hs hB hiG hihat
+    (rateExp_log_hasDerivAt hβ0 ihat)
+  refine ⟨zero_mem_famDom hsbar M, famDom_isOpen sbar M, fun ε hε => ?_, fun ε hε B P h => ?_,
+    fun t => ?_, fun n t ω => ⟨?_, ?_, ?_⟩, hlin1, hlin2⟩
+  · exact fam_equilibrium 𝔼 hPO hβ0 hβ1 hs hBm1 hB
+      (fun ε _ => rateExp_adapted 𝔼 hFK hihat ε) hiG hε
+  · exact fam_unique 𝔼 hPO hβ1 hβ0.le hs hε h
+  · exact fam_steady 𝔼 hβ0 hβ1 hsbar hs (rateExp_zero ihat) t
+  · exact price_contDiffOn 𝔼 hβ0.le hβ1 hs (hiC n) t ω
+  · exact debt_contDiffOn 𝔼 hβ0.le hβ1 hs (hiC n) t ω
+  · exact infl_contDiffOn 𝔼 hβ0 hβ1 hsbar hs hB hiG (hiC n) t ω
+
+/-- Cochrane (2023), §§2.4–2.5, pp. 31–36, on every finite event tree (genuine uncertainty):
+the family of exact equilibria under the canonical target exists on a neighbourhood of `ε = 0`,
+is unique, is the steady state at `0`, is smooth, and its derivative at `0` is the unique
+adapted solution of the linear model (`exp_family_linearization` with the tree's pull-out and
+`FunctionsKnown`). -/
+theorem tree_family_linearization {Ω' : Type*} [Fintype Ω']
+    (T : ExpectationsFiniteTree.FiniteTree Ω') (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    {shat' : ℕ → Ω' → ℝ} (hs : ∀ t ω, |shat' t ω| ≤ M) {Bm1' : Ω' → ℝ}
+    (hBm1 : T.toExpectationSystem.E 0 Bm1' = Bm1') (hB : ∀ ω, 0 < Bm1' ω)
+    {ihat : ℕ → Ω' → ℝ} (hihat : T.toExpectationSystem.Adapted ihat) (ε : ℝ)
+    (hε : ε ∈ famDom sbar M) :
+    FiscalMonetary.Equilibrium T.toExpectationSystem β Bm1' (surpFam sbar shat' ε)
+      (debtFam T.toExpectationSystem β sbar shat' Bm1' (rateExp β ihat) ε)
+      (priceFam T.toExpectationSystem β sbar shat' Bm1' (rateExp β ihat) ε)
+      (rateExp β ihat ε) ∧
+    ∀ π : ℕ → Ω' → ℝ, T.toExpectationSystem.Adapted π →
+      π 0 = infl0 T.toExpectationSystem β sbar shat' →
+      LinearFTMP.PegModel T.toExpectationSystem ihat
+        (fiscShock T.toExpectationSystem β sbar shat') π →
+        ∀ t ω, HasDerivAt (fun ε =>
+          inflFam T.toExpectationSystem β sbar shat' Bm1' (rateExp β ihat) ε t ω) (π t ω) 0 := by
+  have h := exp_family_linearization T.toExpectationSystem
+    (ExpectationsFiniteTree.finiteTree_pullOut T) (finiteTree_functionsKnown T) hβ0 hβ1 hsbar hs
+    hBm1 hB hihat
+  exact ⟨h.2.2.1 ε hε, h.2.2.2.2.2.2.2⟩
+
+end Cochrane.IntertemporalModel.TidyR5Family
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A smooth family of exact nonlinear equilibria under an interest-rate rule
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 2, §2.6 "Interest-rate rules",
+pp. 39–42, eqs. (2.20)–(2.25): the linear model `i_t = E_t π_{t+1}`,
+`ΔE_{t+1} π_{t+1} = −ε_{Σs,t+1}`, `i_t = θ π_t + u_t`, as the derivative of a family of exact
+nonlinear equilibria.
+
+The exact rule is `log(1 + i_t) = r + θ π_t + ε u_t` with `r = −log β`, `π_t = log(P_t/P_{t−1})`
+and `P_{−1} = B_{−1}/V` the steady-state price level (`RuleExact`), for every `θ ∈ ℝ` and a
+disturbance `u` scaled by the shock size `ε`; surpluses are `s_t(ε) = s̄ + ε ŝ_t`
+(`TidyR5Family.surpFam`).
+
+## Main results
+
+* `ruleInfl`, `ruleRate`: inflation and the rate of the family in closed form (the recursion
+  `π_{t+1} = r + θ π_t + ε u_t + log PVex_t(ε) − log PV_{t+1}(ε)`).
+* `rule_equilibrium`, `rule_exact`: for every `ε` in `TidyR5Family.famDom` the target path for
+  the rate `ruleRate ε` is an exact equilibrium (`FiscalMonetary.Equilibrium`) and satisfies the
+  exact rule; `rule_unique`: every equilibrium satisfying the exact rule is this one, so the
+  family is unique.
+* `ruleInfl_contDiffOn`, `ruleRate_contDiffOn`, `rule_price_contDiffOn`: smooth in `ε` (every
+  `n`, including `∞` and analytic).
+* `ruleInfl_hasDerivAt`, `rule_infl_hasDerivAt`, `rule_rate_hasDerivAt`: the derivatives at
+  `ε = 0` of inflation and of the log gross rate are the solution (2.25) of the linear model,
+  `LinearFTMP.ruleSol θ u ε_{Σs} π̂_0`, and its rate `θ π̂_t + u_t`;
+  `rule_family_linearization`: everything together, with uniqueness of the linear solution
+  (`LinearFTMP.rule_existsUnique`, every `θ`: no Taylor principle in the nonlinear model's
+  linearisation either); `tree_rule_linearization` on every finite event tree.
+
+Hypotheses: pull-out and `FunctionsKnown` (the rate depends on the price level through the
+logarithm), both true for perfect foresight and every finite event tree.
+-/
+
+namespace Cochrane.IntertemporalModel.TidyR5FamilyRule
+
+open Filter Topology ExpectationTools TidyR5Family
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), p. 40: inflation `π_t = log(P_t/P_{t−1})` of a price path, with
+`P_{−1} = B_{−1}/V` (the steady-state price level) at date `0`. -/
+noncomputable def logInfl (Bm1 : Ω → ℝ) (V : ℝ) (P : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => fun ω => Real.log (P 0 ω / (Bm1 ω / V))
+  | t + 1 => fun ω => Real.log (P (t + 1) ω / P t ω)
+
+/-- Cochrane (2023), eq. (2.22), p. 40, exact form: the rule
+`log(1 + i_t) = −log β + θ π_t + ε u_t` at every date and state. -/
+def RuleExact (β θ : ℝ) (Bm1 : Ω → ℝ) (V : ℝ) (u : ℕ → Ω → ℝ) (ε : ℝ) (P i : ℕ → Ω → ℝ) :
+    Prop :=
+  ∀ t ω, Real.log (1 + i t ω) = -Real.log β + θ * logInfl Bm1 V P t ω + ε * u t ω
+
+/-- Cochrane (2023), eqs. (2.20)–(2.22), p. 40: inflation along the family under the rule, in
+closed form: `π_0 = log V − log PV_0(ε)`,
+`π_{t+1} = −log β + θ π_t + ε u_t + log PVex_t(ε) − log PV_{t+1}(ε)`. -/
+noncomputable def ruleInfl (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (θ : ℝ) (u : ℕ → Ω → ℝ) (ε : ℝ) :
+    ℕ → Ω → ℝ
+  | 0 => fun ω => Real.log (ssV β sbar) -
+      Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω)
+  | t + 1 => fun ω => -Real.log β + θ * ruleInfl β sbar shat θ u ε t ω + ε * u t ω +
+      Real.log (FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω) -
+      Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω)
+
+/-- Cochrane (2023), eq. (2.22), p. 40: the rate of the family, from the exact rule,
+`1 + i_t(ε) = β⁻¹ exp(θ π_t(ε) + ε u_t)`. -/
+noncomputable def ruleRate (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (θ : ℝ) (u : ℕ → Ω → ℝ) (ε : ℝ) :
+    ℕ → Ω → ℝ :=
+  fun t ω => β⁻¹ * Real.exp (θ * ruleInfl 𝔼 β sbar shat θ u ε t ω + ε * u t ω) - 1
+
+variable {β sbar M θ : ℝ} {shat u : ℕ → Ω → ℝ} {Bm1 : Ω → ℝ}
+
+omit 𝔼 in
+/-- Cochrane (2023), p. 40: `logInfl` of the family's price level is the family's inflation
+`TidyR5Family.inflFam`. -/
+theorem logInfl_priceFam (iF : ℝ → ℕ → Ω → ℝ) (ε : ℝ) (𝔼' : ExpectationSystem Ω) (t : ℕ) :
+    logInfl Bm1 (ssV β sbar) (priceFam 𝔼' β sbar shat Bm1 iF ε) t =
+      inflFam 𝔼' β sbar shat Bm1 iF ε t := by
+  cases t <;> rfl
+
+/-- Cochrane (2023), eq. (2.22), p. 40: the rule's rate exceeds `−1` (`β > 0`). -/
+theorem ruleRate_gt (hβ0 : 0 < β) (ε : ℝ) (t : ℕ) (ω : Ω) :
+    -1 < ruleRate 𝔼 β sbar shat θ u ε t ω := by
+  simp only [ruleRate]
+  have := mul_pos (inv_pos.mpr hβ0) (Real.exp_pos (θ * ruleInfl 𝔼 β sbar shat θ u ε t ω +
+    ε * u t ω))
+  linarith
+
+/-- Cochrane (2023), eq. (2.22), p. 40: `log(1 + i_t(ε)) = −log β + θ π_t(ε) + ε u_t`
+exactly (`β > 0`). -/
+theorem log_one_add_ruleRate (hβ0 : 0 < β) (ε : ℝ) (t : ℕ) (ω : Ω) :
+    Real.log (1 + ruleRate 𝔼 β sbar shat θ u ε t ω) =
+      -Real.log β + θ * ruleInfl 𝔼 β sbar shat θ u ε t ω + ε * u t ω := by
+  simp only [ruleRate, add_sub_cancel]
+  rw [Real.log_mul (inv_pos.mpr hβ0).ne' (Real.exp_pos _).ne', Real.log_exp, Real.log_inv]
+  ring
+
+/-- Cochrane (2023), p. 40: with `FunctionsKnown`, inflation along the family is
+adapted (bounded `ŝ`, adapted `u`, `0 ≤ β < 1`). -/
+theorem ruleInfl_adapted (hFK : FunctionsKnown 𝔼) (hu : 𝔼.Adapted u)
+    (ε : ℝ) : 𝔼.Adapted (ruleInfl 𝔼 β sbar shat θ u ε) := by
+  have hlog : ∀ {t : ℕ} {x : Ω → ℝ}, 𝔼.E t x = x →
+      𝔼.E t (fun ω => Real.log (x ω)) = fun ω => Real.log (x ω) :=
+    fun {t} {x} hx => hFK t x Real.log hx
+  intro t
+  induction t with
+  | zero =>
+    have e : ruleInfl 𝔼 β sbar shat θ u ε 0 = (fun _ => Real.log (ssV β sbar)) -
+        fun ω => Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω) := rfl
+    rw [e, map_sub, 𝔼.const, hlog (FiscalMonetary.pv_adapted 𝔼 β _ 0)]
+  | succ t ih =>
+    have hk : ∀ {x : Ω → ℝ}, 𝔼.E t x = x → 𝔼.E (t + 1) x = x :=
+      fun hx => ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) hx
+    have e : ruleInfl 𝔼 β sbar shat θ u ε (t + 1) = (fun _ => -Real.log β) +
+        θ • ruleInfl 𝔼 β sbar shat θ u ε t + ε • u t +
+        (fun ω => Real.log (FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω)) -
+        (fun ω => Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω)) := rfl
+    rw [e, map_sub, map_add, map_add, map_add, 𝔼.const, map_smul, map_smul, hk ih, hk (hu t),
+      hk (hlog (FiscalMonetary.pvEx_adapted 𝔼 β _ t)),
+      hlog (FiscalMonetary.pv_adapted 𝔼 β _ (t + 1))]
+
+/-- Cochrane (2023), eq. (2.22), p. 40: with `FunctionsKnown`, the rule's rate is adapted. -/
+theorem ruleRate_adapted (hFK : FunctionsKnown 𝔼) (hu : 𝔼.Adapted u)
+    (ε : ℝ) : 𝔼.Adapted (ruleRate 𝔼 β sbar shat θ u ε) := by
+  intro t
+  have hg : 𝔼.E t (θ • ruleInfl 𝔼 β sbar shat θ u ε t + ε • u t) =
+      θ • ruleInfl 𝔼 β sbar shat θ u ε t + ε • u t := by
+    rw [map_add, map_smul, map_smul, ruleInfl_adapted 𝔼 hFK hu ε t, hu t]
+  exact hFK t _ (fun y => β⁻¹ * Real.exp y - 1) hg
+
+/-- Cochrane (2023), p. 40: on `famDom` the family's inflation `TidyR5Family.inflFam` (for the
+rate `ruleRate`) is the closed form `ruleInfl`. -/
+theorem inflFam_eq_ruleInfl (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω) {ε : ℝ} (hε : ε ∈ famDom sbar M)
+    (t : ℕ) (ω : Ω) :
+    inflFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω =
+      ruleInfl 𝔼 β sbar shat θ u ε t ω := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < ruleRate 𝔼 β sbar shat θ u ε t ω :=
+    fun ε _ t ω => ruleRate_gt 𝔼 hβ0 ε t ω
+  cases t with
+  | zero =>
+    change Real.log (priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε 0 ω /
+      (Bm1 ω / ssV β sbar)) = Real.log (ssV β sbar) -
+        Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω)
+    have h3 := pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε 0 ω
+    rw [priceFam_zero]
+    have hB' := (hB ω).ne'
+    rw [show Bm1 ω / FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω / (Bm1 ω / ssV β sbar) =
+        ssV β sbar / FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω by field_simp,
+      Real.log_div hV.ne' h3.ne']
+  | succ t =>
+    change Real.log (priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε (t + 1) ω /
+      priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω) = _
+    have hP := priceFam_pos 𝔼 hβ0 hβ1 hs hB hiG hε t ω
+    have h1 : 0 < 1 + ruleRate 𝔼 β sbar shat θ u ε t ω := by linarith [hiG ε hε t ω]
+    have h2 := pvEx_surpFam_pos 𝔼 hβ0 hβ1 hs hε t ω
+    have h3 := pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε (t + 1) ω
+    rw [priceFam_succ]
+    have hP' := hP.ne'
+    rw [show (1 + ruleRate 𝔼 β sbar shat θ u ε t ω) *
+        priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω *
+        FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω /
+        FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω /
+        priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω =
+        (1 + ruleRate 𝔼 β sbar shat θ u ε t ω) *
+        FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω /
+        FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω by field_simp,
+      Real.log_div (mul_pos h1 h2).ne' h3.ne', Real.log_mul h1.ne' h2.ne',
+      log_one_add_ruleRate 𝔼 hβ0]
+    rfl
+
+/-- Cochrane (2023), eqs. (2.20)–(2.22), p. 40: for every shock size in `famDom` (and every
+`θ`), the family is an exact equilibrium (pull-out, `FunctionsKnown`, `0 < β < 1`, bounded `ŝ`,
+adapted `u`, positive initial debt known at `0`). -/
+theorem rule_equilibrium (hPO : 𝔼.PullOut) (hFK : FunctionsKnown 𝔼) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (hu : 𝔼.Adapted u) (hBm1 : 𝔼.E 0 Bm1 = Bm1)
+    (hB : ∀ ω, 0 < Bm1 ω) {ε : ℝ} (hε : ε ∈ famDom sbar M) :
+    FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε)
+      (debtFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε)
+      (priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε)
+      (ruleRate 𝔼 β sbar shat θ u ε) :=
+  fam_equilibrium 𝔼 hPO hβ0 hβ1 hs hBm1 hB (fun ε _ => ruleRate_adapted 𝔼 hFK hu ε)
+    (fun ε _ t ω => ruleRate_gt 𝔼 hβ0 ε t ω) hε
+
+/-- Cochrane (2023), eq. (2.22), p. 40: the family satisfies the exact rule
+`log(1 + i_t) = −log β + θ π_t + ε u_t` on `famDom`. -/
+theorem rule_exact (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω) {ε : ℝ} (hε : ε ∈ famDom sbar M) :
+    RuleExact β θ Bm1 (ssV β sbar) u ε
+      (priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε)
+      (ruleRate 𝔼 β sbar shat θ u ε) := by
+  intro t ω
+  rw [log_one_add_ruleRate 𝔼 hβ0, logInfl_priceFam,
+    inflFam_eq_ruleInfl 𝔼 hβ0 hβ1 hsbar hs hB hε t ω]
+
+/-- Cochrane (2023), §2.6, p. 40 (the rule's equilibrium is unique, for every `θ`): for every
+shock size in `famDom`, any equilibrium `(B, P, i)` with surpluses `s(ε)` whose rate satisfies
+the exact rule is the family member. -/
+theorem rule_unique (hPO : 𝔼.PullOut) (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω) {ε : ℝ} (hε : ε ∈ famDom sbar M)
+    {B P i : ℕ → Ω → ℝ} (h : FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε) B P i)
+    (hr : RuleExact β θ Bm1 (ssV β sbar) u ε P i) :
+    i = ruleRate 𝔼 β sbar shat θ u ε ∧
+      P = priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε ∧
+      B = debtFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hpv := pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε
+  have hpvEx := pvEx_surpFam_pos 𝔼 hβ0 hβ1 hs hε
+  have hinfl : ∀ t ω, logInfl Bm1 (ssV β sbar) P t ω = ruleInfl 𝔼 β sbar shat θ u ε t ω := by
+    intro t
+    induction t with
+    | zero =>
+      intro ω
+      change Real.log (P 0 ω / (Bm1 ω / ssV β sbar)) = Real.log (ssV β sbar) -
+        Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω)
+      rw [FiscalMonetary.price_zero h ω (hpv 0 ω).ne']
+      have hB' := (hB ω).ne'
+      rw [show Bm1 ω / FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω /
+          (Bm1 ω / ssV β sbar) = ssV β sbar / FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) 0 ω
+          by field_simp, Real.log_div hV.ne' (hpv 0 ω).ne']
+    | succ t ih =>
+      intro ω
+      change Real.log (P (t + 1) ω / P t ω) = -Real.log β +
+        θ * ruleInfl 𝔼 β sbar shat θ u ε t ω + ε * u t ω +
+        Real.log (FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω) -
+        Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω)
+      have hP := (h.2.1 t ω).ne'
+      have h1 : 0 < 1 + i t ω := by linarith [h.2.2.2.2.1 t ω]
+      rw [FiscalMonetary.price_succ h t ω (hpv (t + 1) ω).ne', FiscalMonetary.debt_eq hPO h t ω,
+        show (1 + i t ω) * P t ω * FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω /
+          FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω / P t ω =
+          (1 + i t ω) * FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω /
+          FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) (t + 1) ω by field_simp,
+        Real.log_div (mul_pos h1 (hpvEx t ω)).ne' (hpv (t + 1) ω).ne',
+        Real.log_mul h1.ne' (hpvEx t ω).ne', hr t ω, ih ω]
+  have hi : i = ruleRate 𝔼 β sbar shat θ u ε := by
+    funext t ω
+    have h1 : 0 < 1 + i t ω := by linarith [h.2.2.2.2.1 t ω]
+    have e := hr t ω
+    rw [hinfl t ω] at e
+    have e2 := congrArg Real.exp e
+    rw [Real.exp_log h1, Real.exp_add, Real.exp_add, Real.exp_neg, Real.exp_log hβ0] at e2
+    simp only [ruleRate]
+    rw [mul_assoc, ← Real.exp_add] at e2
+    linarith
+  subst hi
+  obtain ⟨hP, hBB⟩ := FiscalMonetary.peg_unique hPO (fun t ω => (hpv t ω).ne') h
+  exact ⟨rfl, hP, hBB⟩
+
+/-! ### Smoothness and the derivative -/
+
+/-- Cochrane (2023), p. 40: inflation of the rule family is `C^n` in `ε` on `famDom`, for every
+`n` (including `∞` and analytic). -/
+theorem ruleInfl_contDiffOn (hβ0 : 0 < β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    {n : WithTop ℕ∞} (t : ℕ) (ω : Ω) :
+    ContDiffOn ℝ n (fun ε => ruleInfl 𝔼 β sbar shat θ u ε t ω) (famDom sbar M) := by
+  induction t with
+  | zero =>
+    exact contDiffOn_const.sub ((pv_contDiff 𝔼 hβ0.le hβ1 hs 0 ω).contDiffOn.log
+      fun ε hε => (pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε 0 ω).ne')
+  | succ t ih =>
+    exact ((((contDiffOn_const.add (contDiffOn_const.mul ih)).add
+      (contDiffOn_id.mul contDiffOn_const)).add
+      ((pvEx_contDiff 𝔼 hβ0.le hβ1 hs t ω).contDiffOn.log
+        fun ε hε => (pvEx_surpFam_pos 𝔼 hβ0 hβ1 hs hε t ω).ne')).sub
+      ((pv_contDiff 𝔼 hβ0.le hβ1 hs (t + 1) ω).contDiffOn.log
+        fun ε hε => (pv_surpFam_pos 𝔼 hβ0.le hβ1 hs hε (t + 1) ω).ne'))
+
+/-- Cochrane (2023), eq. (2.22), p. 40: the rule family's rate is `C^n` in `ε` on `famDom`. -/
+theorem ruleRate_contDiffOn (hβ0 : 0 < β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    {n : WithTop ℕ∞} (t : ℕ) (ω : Ω) :
+    ContDiffOn ℝ n (fun ε => ruleRate 𝔼 β sbar shat θ u ε t ω) (famDom sbar M) :=
+  (contDiffOn_const.mul ((contDiffOn_const.mul (ruleInfl_contDiffOn 𝔼 hβ0 hβ1 hs t ω)).add
+    (contDiffOn_id.mul contDiffOn_const)).exp).sub contDiffOn_const
+
+/-- Cochrane (2023), §2.6, p. 40: the price level, the debt and the inflation of the rule family
+are `C^n` in `ε` on `famDom`, for every `n`. -/
+theorem rule_price_contDiffOn (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω) (n : WithTop ℕ∞) (t : ℕ) (ω : Ω) :
+    ContDiffOn ℝ n (fun ε => priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+      (famDom sbar M) ∧
+    ContDiffOn ℝ n (fun ε => debtFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+      (famDom sbar M) ∧
+    ContDiffOn ℝ n (fun ε => inflFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+      (famDom sbar M) := by
+  have hiC := fun t ω =>
+    ruleRate_contDiffOn 𝔼 (sbar := sbar) (θ := θ) (u := u) (n := n) hβ0 hβ1 hs t ω
+  exact ⟨price_contDiffOn 𝔼 hβ0.le hβ1 hs hiC t ω, debt_contDiffOn 𝔼 hβ0.le hβ1 hs hiC t ω,
+    infl_contDiffOn 𝔼 hβ0 hβ1 hsbar hs hB (fun ε _ t ω => ruleRate_gt 𝔼 hβ0 ε t ω) hiC t ω⟩
+
+/-- Cochrane (2023), eq. (2.25), p. 40: the derivative at `ε = 0` of the closed-form inflation of
+the rule family is the solution of the linear model, `π̂_0 = −PV_0(ŝ)/V` and
+`π̂_{t+1} = θ π̂_t + u_t − ε_{Σs,t+1}` (`LinearFTMP.ruleSol`), for every `θ`. -/
+theorem ruleInfl_hasDerivAt (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (t : ℕ) (ω : Ω) :
+    HasDerivAt (fun ε => ruleInfl 𝔼 β sbar shat θ u ε t ω)
+      (LinearFTMP.ruleSol θ u (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat) t ω) 0 := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hpvF : ∀ t, (fun ε => FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t ω) =
+      fun ε => ssV β sbar + ε * FiscalMonetary.pv 𝔼 β shat t ω :=
+    fun t => funext fun ε => by rw [pv_surpFam 𝔼 hβ0.le hβ1 hs]
+  have hpvExF : ∀ t, (fun ε => FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω) =
+      fun ε => β * ssV β sbar + ε * FiscalMonetary.pvEx 𝔼 β shat t ω :=
+    fun t => funext fun ε => by rw [pvEx_surpFam 𝔼 hβ0.le hβ1 hs]
+  have hlogpv : ∀ t, HasDerivAt
+      (fun ε => Real.log (FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t ω))
+      (FiscalMonetary.pv 𝔼 β shat t ω / ssV β sbar) 0 := by
+    intro t
+    have hA : HasDerivAt (fun ε => FiscalMonetary.pv 𝔼 β (surpFam sbar shat ε) t ω)
+        (FiscalMonetary.pv 𝔼 β shat t ω) 0 := by
+      rw [hpvF t]
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const (FiscalMonetary.pv 𝔼 β shat t ω)).const_add
+        (ssV β sbar)
+    have h0 : FiscalMonetary.pv 𝔼 β (surpFam sbar shat 0) t ω = ssV β sbar := by
+      rw [pv_surpFam 𝔼 hβ0.le hβ1 hs]
+      ring
+    have := hA.log (by rw [h0]; exact hV.ne')
+    rwa [h0] at this
+  have hlogpvEx : ∀ t, HasDerivAt
+      (fun ε => Real.log (FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω))
+      (FiscalMonetary.pvEx 𝔼 β shat t ω / (β * ssV β sbar)) 0 := by
+    intro t
+    have hA : HasDerivAt (fun ε => FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat ε) t ω)
+        (FiscalMonetary.pvEx 𝔼 β shat t ω) 0 := by
+      rw [hpvExF t]
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const
+        (FiscalMonetary.pvEx 𝔼 β shat t ω)).const_add (β * ssV β sbar)
+    have h0 : FiscalMonetary.pvEx 𝔼 β (surpFam sbar shat 0) t ω = β * ssV β sbar := by
+      rw [pvEx_surpFam 𝔼 hβ0.le hβ1 hs]
+      ring
+    have := hA.log (by rw [h0]; exact (mul_pos hβ0 hV).ne')
+    rwa [h0] at this
+  induction t with
+  | zero =>
+    refine ((hlogpv 0).const_sub (Real.log (ssV β sbar))).congr_deriv ?_
+    change -(FiscalMonetary.pv 𝔼 β shat 0 ω / ssV β sbar) =
+      -((ssV β sbar)⁻¹ * FiscalMonetary.pv 𝔼 β shat 0 ω)
+    rw [div_eq_inv_mul]
+  | succ t ih =>
+    have hL := HasDerivAt.sub (HasDerivAt.add (HasDerivAt.add (HasDerivAt.const_add
+      (-Real.log β) (ih.const_mul θ)) ((hasDerivAt_id (0 : ℝ)).mul_const (u t ω)))
+      (hlogpvEx t)) (hlogpv (t + 1))
+    refine hL.congr_deriv ?_
+    have hshock := scaled_innov_pv 𝔼 (sbar := sbar) hβ0.le hβ1 hs t ω
+    have hXe : FiscalMonetary.pvEx 𝔼 β shat t ω =
+        β * 𝔼.E t (FiscalMonetary.pv 𝔼 β shat (t + 1)) ω := by
+      rw [FiscalMonetary.pvEx_eq]
+      rfl
+    have hin : innov 𝔼 t (FiscalMonetary.pv 𝔼 β shat (t + 1)) ω =
+        FiscalMonetary.pv 𝔼 β shat (t + 1) ω -
+          𝔼.E t (FiscalMonetary.pv 𝔼 β shat (t + 1)) ω := by
+      unfold innov
+      rw [FiscalMonetary.pv_adapted 𝔼 β shat (t + 1)]
+      rfl
+    change θ * LinearFTMP.ruleSol θ u (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat) t ω +
+        id 1 * u t ω + FiscalMonetary.pvEx 𝔼 β shat t ω / (β * ssV β sbar) -
+        FiscalMonetary.pv 𝔼 β shat (t + 1) ω / ssV β sbar =
+      θ * LinearFTMP.ruleSol θ u (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat) t ω +
+        u t ω - fiscShock 𝔼 β sbar shat (t + 1) ω
+    rw [← hshock, hin, hXe, id]
+    have := hV.ne'
+    have := hβ0.ne'
+    field_simp
+    ring
+
+/-- Cochrane (2023), eq. (2.25), p. 40: the derivative at `ε = 0` of inflation along the rule
+family of exact equilibria (`TidyR5Family.inflFam` for the rate `ruleRate`) is the solution
+`LinearFTMP.ruleSol θ u ε_{Σs} π̂_0` of the linear model. -/
+theorem rule_infl_hasDerivAt (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ ω, 0 < Bm1 ω) (t : ℕ) (ω : Ω) :
+    HasDerivAt (fun ε => inflFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+      (LinearFTMP.ruleSol θ u (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat) t ω) 0 := by
+  refine (ruleInfl_hasDerivAt 𝔼 hβ0 hβ1 hsbar hs t ω).congr_of_eventuallyEq ?_
+  filter_upwards [famDom_mem_nhds hsbar M] with ε hε
+  exact inflFam_eq_ruleInfl 𝔼 hβ0 hβ1 hsbar hs hB hε t ω
+
+/-- Cochrane (2023), eqs. (2.22) and (2.25), p. 40: the derivative at `ε = 0` of the log gross
+rate `log(1 + i_t(ε))` of the rule family is the linear model's rate `θ π̂_t + u_t`. -/
+theorem rule_rate_hasDerivAt (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (t : ℕ) (ω : Ω) :
+    HasDerivAt (fun ε => Real.log (1 + ruleRate 𝔼 β sbar shat θ u ε t ω))
+      (θ * LinearFTMP.ruleSol θ u (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat) t ω +
+        u t ω) 0 := by
+  have e : (fun ε => Real.log (1 + ruleRate 𝔼 β sbar shat θ u ε t ω)) =
+      fun ε => -Real.log β + θ * ruleInfl 𝔼 β sbar shat θ u ε t ω + ε * u t ω :=
+    funext fun ε => log_one_add_ruleRate 𝔼 hβ0 ε t ω
+  rw [e]
+  have h := HasDerivAt.add (((ruleInfl_hasDerivAt 𝔼 (θ := θ) (u := u) hβ0 hβ1 hsbar hs t
+    ω).const_mul θ).const_add (-Real.log β)) ((hasDerivAt_id (0 : ℝ)).mul_const (u t ω))
+  exact h.congr_deriv (by simp)
+
+/-- Cochrane (2023), §2.6, pp. 39–42, **the linear rule model is the derivative of the family of
+exact equilibria**, for every `θ ∈ ℝ`. With pull-out, `FunctionsKnown`, `0 < β < 1`, `s̄ > 0`,
+bounded adapted `ŝ`, adapted `u` and positive initial debt known at `0`, on the open
+neighbourhood `famDom` of `ε = 0`:
+* for each `ε` the family member is an equilibrium satisfying the exact rule, and the only one;
+* price level, debt and inflation are `C^n` in `ε` for every `n`;
+* the linear model (2.20)–(2.22) with `π̂_0 = −PV_0(ŝ)/V` has exactly one solution `(π̂, î)`
+  with `π̂` adapted, and it is the derivative at `ε = 0` of (inflation, log gross rate) along the
+  family. -/
+theorem rule_family_linearization (hPO : 𝔼.PullOut) (hFK : FunctionsKnown 𝔼) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hsbar : 0 < sbar) (hs : ∀ t ω, |shat t ω| ≤ M) (hu : 𝔼.Adapted u)
+    (hBm1 : 𝔼.E 0 Bm1 = Bm1) (hB : ∀ ω, 0 < Bm1 ω) :
+    (∀ ε ∈ famDom sbar M, FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε)
+      (debtFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε)
+      (priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε)
+      (ruleRate 𝔼 β sbar shat θ u ε) ∧
+      RuleExact β θ Bm1 (ssV β sbar) u ε
+        (priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε)
+        (ruleRate 𝔼 β sbar shat θ u ε)) ∧
+    (∀ ε ∈ famDom sbar M, ∀ B P i : ℕ → Ω → ℝ,
+      FiscalMonetary.Equilibrium 𝔼 β Bm1 (surpFam sbar shat ε) B P i →
+      RuleExact β θ Bm1 (ssV β sbar) u ε P i →
+        i = ruleRate 𝔼 β sbar shat θ u ε ∧
+        P = priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε ∧
+        B = debtFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε) ∧
+    (∀ (n : WithTop ℕ∞) t ω,
+      ContDiffOn ℝ n (fun ε => priceFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => debtFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => inflFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+        (famDom sbar M)) ∧
+    (∃! q : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ), 𝔼.Adapted q.1 ∧ q.1 0 = infl0 𝔼 β sbar shat ∧
+      LinearFTMP.RuleModel 𝔼 θ q.2 u (fiscShock 𝔼 β sbar shat) q.1) ∧
+    ∀ q : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ), 𝔼.Adapted q.1 → q.1 0 = infl0 𝔼 β sbar shat →
+      LinearFTMP.RuleModel 𝔼 θ q.2 u (fiscShock 𝔼 β sbar shat) q.1 →
+        ∀ t ω,
+          HasDerivAt (fun ε => inflFam 𝔼 β sbar shat Bm1 (ruleRate 𝔼 β sbar shat θ u) ε t ω)
+            (q.1 t ω) 0 ∧
+          HasDerivAt (fun ε => Real.log (1 + ruleRate 𝔼 β sbar shat θ u ε t ω)) (q.2 t ω) 0 := by
+  have hk := infl0_known 𝔼 (β := β) (sbar := sbar) (shat := shat)
+  have hsh := fiscShock_isShock 𝔼 (sbar := sbar) hβ0.le hβ1 hs
+  have hex := LinearFTMP.rule_existsUnique 𝔼 θ hk hu hsh
+  refine ⟨fun ε hε => ⟨rule_equilibrium 𝔼 hPO hFK hβ0 hβ1 hs hu hBm1 hB hε,
+      rule_exact 𝔼 hβ0 hβ1 hsbar hs hB hε⟩,
+    fun ε hε B P i h hr => rule_unique 𝔼 hPO hβ0 hβ1 hsbar hs hB hε h hr,
+    fun n t ω => rule_price_contDiffOn 𝔼 hβ0 hβ1 hsbar hs hB n t ω, hex, ?_⟩
+  rintro ⟨π, i⟩ hπ hπ0 hm t ω
+  obtain ⟨hi, h224⟩ := (LinearFTMP.ruleModel_iff 𝔼).mp hm
+  have h := (LinearFTMP.eq224_iff 𝔼 hπ hu hsh).mp h224
+  dsimp only at hπ0 hi h
+  have hπeq : π = LinearFTMP.ruleSol θ u (fiscShock 𝔼 β sbar shat) (infl0 𝔼 β sbar shat) := by
+    funext t
+    induction t with
+    | zero => exact hπ0
+    | succ t ih =>
+      rw [h t, ih]
+      rfl
+  refine ⟨?_, ?_⟩
+  · dsimp only
+    rw [hπeq]
+    exact rule_infl_hasDerivAt 𝔼 hβ0 hβ1 hsbar hs hB t ω
+  · dsimp only
+    rw [hi t, hπeq]
+    exact rule_rate_hasDerivAt 𝔼 hβ0 hβ1 hsbar hs t ω
+
+/-- Cochrane (2023), §2.6, pp. 39–42, on every finite event tree: for every `θ`, the rule family
+of exact equilibria exists on `famDom`, and every adapted solution of the linear rule model
+with `π̂_0 = −PV_0(ŝ)/V` is the derivative at `ε = 0` of inflation and of the log gross rate
+along it. -/
+theorem tree_rule_linearization {Ω' : Type*} [Fintype Ω']
+    (T : ExpectationsFiniteTree.FiniteTree Ω') (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    {shat' u' : ℕ → Ω' → ℝ} (hs : ∀ t ω, |shat' t ω| ≤ M) (hu : T.toExpectationSystem.Adapted u')
+    {Bm1' : Ω' → ℝ} (hBm1 : T.toExpectationSystem.E 0 Bm1' = Bm1') (hB : ∀ ω, 0 < Bm1' ω)
+    (ε : ℝ) (hε : ε ∈ famDom sbar M) :
+    FiscalMonetary.Equilibrium T.toExpectationSystem β Bm1' (surpFam sbar shat' ε)
+      (debtFam T.toExpectationSystem β sbar shat' Bm1'
+        (ruleRate T.toExpectationSystem β sbar shat' θ u') ε)
+      (priceFam T.toExpectationSystem β sbar shat' Bm1'
+        (ruleRate T.toExpectationSystem β sbar shat' θ u') ε)
+      (ruleRate T.toExpectationSystem β sbar shat' θ u' ε) ∧
+    ∀ q : (ℕ → Ω' → ℝ) × (ℕ → Ω' → ℝ), T.toExpectationSystem.Adapted q.1 →
+      q.1 0 = infl0 T.toExpectationSystem β sbar shat' →
+      LinearFTMP.RuleModel T.toExpectationSystem θ q.2 u'
+        (fiscShock T.toExpectationSystem β sbar shat') q.1 →
+        ∀ t ω, HasDerivAt (fun ε => inflFam T.toExpectationSystem β sbar shat' Bm1'
+          (ruleRate T.toExpectationSystem β sbar shat' θ u') ε t ω) (q.1 t ω) 0 := by
+  have h := rule_family_linearization T.toExpectationSystem (θ := θ)
+    (ExpectationsFiniteTree.finiteTree_pullOut T) (finiteTree_functionsKnown T) hβ0 hβ1 hsbar
+    hs hu hBm1 hB
+  exact ⟨(h.1 ε hε).1, fun q h1 h2 h3 t ω => (h.2.2.2.2 q h1 h2 h3 t ω).1⟩
+
+end Cochrane.IntertemporalModel.TidyR5FamilyRule
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The equilibrium of Chapter 2 on a genuine probability space
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 2, §2.1, pp. 21–23 (the
+valuation equation (2.7), the bond price (2.3), the flow condition (2.4) and the transversality
+condition (2.6)) and §2.4, pp. 29–33 (unexpected inflation (2.13), interest-rate targets,
+(2.14)–(2.15)), on a probability space with a filtration (`MeasExpectationSystem`), where `E_t`
+is Mathlib's conditional expectation, information may grow forever and equations hold almost
+surely.
+
+## Equilibrium notions
+
+* `MEquilibrium` (the valuation-equation notion, `FiscalMonetary.Equilibrium` on a probability
+  space): adapted price level, positive almost surely, adapted debt and rate, integrable
+  `P_t/P_{t+1}` (so that `E_t(P_t/P_{t+1})` is a genuine conditional expectation), the valuation
+  equation (2.7)/(2.12) almost surely at every date (`MValuation`, present value
+  `E_t ∑ βʲ s_{t+j}` = `MeasExpectationSystem.forwardSol`) and the bond price (2.3) almost
+  surely (`MBondPricing`). The condition `i > −1` is not part of the definition: it is a theorem
+  (`mEqm_rate_gt`).
+* `MIsEqm` (the derived notion, `Valuation.IsEqm` on a probability space): positive adapted price
+  level, bond price (2.3), nominal flow condition (2.4) and transversality condition (2.6),
+  almost surely.
+
+## Main results
+
+* Interest-rate targets: `mPegP`, `mPegB`; `mPeg_equilibrium` (existence for every adapted
+  target `i > −1` with integrable bond price, surpluses bounded and with present value bounded
+  away from zero), `mPeg_unique` (every equilibrium with that target equals it almost surely at
+  every date).
+* Price-level results: `mPrice_zero`, `mPrice_succ` (`P_t = B_{t−1}/PV_t` a.s.), `mDebt_eq`
+  ((2.15)), `mExpected_inflation` (the target sets expected inflation), `mUnexpected_inflation`
+  ((2.13): fiscal news sets unexpected inflation), `mInflation_decomposition`,
+  `mNo_surprise_iff`, `mFlow` ((2.4)/(2.26)), `mEqm_rate_gt` (`i > −1` a.s., from `β > 0`).
+* `mFlowTvc_iff_valuation` and `mEquilibrium_iff_mIsEqm`: the two notions agree (the measure
+  version of `GeneralLinks.equilibrium_iff_isEqm`), with no `i > −1` hypothesis.
+
+The linear model and the links to the abstract `ExpectationSystem` versions on finite trees are
+in `TidyR5MeasLinear`.
+-/
+
+namespace Cochrane.IntertemporalModel.TidyR5Meas
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-! ### Present values -/
+
+/-- Cochrane (2023), eq. (2.15), p. 31, on a probability space: the ex-dividend present value
+`PVex_t = β E_t PV_{t+1}` (`= E_t ∑_{j ≥ 1} βʲ s_{t+j}`), with `PV = forwardSol`. -/
+noncomputable def pvExM (β : ℝ) (s : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  β • S.E t (S.forwardSol β s (t + 1))
+
+/-- Cochrane (2023), eq. (2.15), p. 31: the ex-dividend present value is known at `t`. -/
+theorem pvExM_sm (β : ℝ) (s : ℕ → Ω → ℝ) (t : ℕ) : StronglyMeasurable[S.𝓕 t] (pvExM S β s t) :=
+  (S.stronglyMeasurable_E t _).const_smul β
+
+/-- Cochrane (2023), eq. (2.7), p. 22: for `|β| < 1` and `|s| ≤ M` a.s., `|PV_t| ≤ M/(1 − |β|)`
+almost surely. -/
+theorem pv_bdd {β M : ℝ} (hβ : |β| < 1) {s : ℕ → Ω → ℝ} (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M)
+    (t : ℕ) : ∀ᵐ ω ∂S.μ, |S.forwardSol β s t ω| ≤ M / (1 - |β|) :=
+  S.abs_E_le (S.discSum_bdd hβ hsM t) t
+
+/-- Cochrane (2023), eq. (2.15), p. 31: a lower bound `PV ≥ c` a.s. at every date gives
+`PVex_t ≥ β c` a.s. (`β ≥ 0`). -/
+theorem pvExM_ge {β c : ℝ} (hβ : 0 ≤ β) {s : ℕ → Ω → ℝ}
+    (hc : ∀ t, ∀ᵐ ω ∂S.μ, c ≤ S.forwardSol β s t ω) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, β * c ≤ pvExM S β s t ω := by
+  have h := S.E_mono (integrable_const c) (S.integrable_E (t + 1) _) (hc (t + 1)) t
+  rw [S.E_const] at h
+  filter_upwards [h] with ω h
+  simp only [pvExM, Pi.smul_apply, smul_eq_mul]
+  exact mul_le_mul_of_nonneg_left h hβ
+
+/-- Cochrane (2023), eq. (2.26), p. 42, on a probability space: `PV_t = s_t + PVex_t` almost
+surely (`|β| < 1`, bounded adapted surpluses). -/
+theorem pv_eq_add_pvEx {β M : ℝ} (hβ : |β| < 1) {s : ℕ → Ω → ℝ} (hsad : StronglyAdapted S.𝓕 s)
+    (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M) (t : ℕ) :
+    S.forwardSol β s t =ᵐ[S.μ] s t + pvExM S β s t := by
+  filter_upwards [S.forwardSol_solves hβ hsad hsM t] with ω h
+  rw [h, Pi.add_apply, Pi.add_apply]
+  simp only [pvExM]
+  ring
+
+/-! ### The two equilibrium notions -/
+
+/-- Cochrane (2023), eqs. (2.7) and (2.12), pp. 22, 30, on a probability space: the valuation
+equation almost surely at every date, `B_{−1}/P_0 = PV_0` and `B_t/P_{t+1} = PV_{t+1}`. -/
+def MValuation (β : ℝ) (Bm1 : Ω → ℝ) (s B P : ℕ → Ω → ℝ) : Prop :=
+  (fun ω => Bm1 ω / P 0 ω) =ᵐ[S.μ] S.forwardSol β s 0 ∧
+    ∀ t, (fun ω => B t ω / P (t + 1) ω) =ᵐ[S.μ] S.forwardSol β s (t + 1)
+
+/-- Cochrane (2023), eqs. (2.3) and (2.14), pp. 22, 31, on a probability space: the bond price
+`1/(1 + i_t) = β E_t(P_t/P_{t+1})` almost surely at every date. -/
+def MBondPricing (β : ℝ) (P i : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, (fun ω => (1 + i t ω)⁻¹) =ᵐ[S.μ] β • S.E t (fun ω => P t ω / P (t + 1) ω)
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33, on a probability space: an equilibrium given
+surpluses `s` and initial debt `B_{−1}` — adapted price level positive a.s., adapted debt sold
+`B`, adapted rate `i`, integrable `P_t/P_{t+1}`, the valuation equation and the bond price
+(2.3) almost surely at every date. -/
+def MEquilibrium (β : ℝ) (Bm1 : Ω → ℝ) (s B P i : ℕ → Ω → ℝ) : Prop :=
+  StronglyAdapted S.𝓕 P ∧ (∀ t, ∀ᵐ ω ∂S.μ, 0 < P t ω) ∧ StronglyAdapted S.𝓕 B ∧
+    StronglyAdapted S.𝓕 i ∧ (∀ t, Integrable (fun ω => P t ω / P (t + 1) ω) S.μ) ∧
+    MValuation S β Bm1 s B P ∧ MBondPricing S β P i
+
+/-- Cochrane (2023), §2.1, pp. 21–22, eqs. (2.3), (2.4), (2.6), on a probability space: the
+derived equilibrium given maturing debt `Bm t = B_{t−1}`, surpluses and a bond price `Q` —
+price level positive a.s. and adapted, `Q_t = β E_t(P_t/P_{t+1})` a.s., the nominal flow
+condition `B_{t−1} = P_t s_t + Q_t B_t` a.s. and the transversality condition
+`β^N E_t(B_{t+N−1}/P_{t+N}) → 0` a.s., at every date. -/
+def MIsEqm (β : ℝ) (Bm s P Q : ℕ → Ω → ℝ) : Prop :=
+  (∀ t, ∀ᵐ ω ∂S.μ, 0 < P t ω) ∧ StronglyAdapted S.𝓕 P ∧
+    (∀ t, Q t =ᵐ[S.μ] β • S.E t (fun ω => P t ω / P (t + 1) ω)) ∧
+    (∀ t, ∀ᵐ ω ∂S.μ, Bm t ω = P t ω * s t ω + Q t ω * Bm (t + 1) ω) ∧
+    ∀ t, ∀ᵐ ω ∂S.μ,
+      Tendsto (fun N => β ^ N * S.E t (fun ω => Bm (t + N) ω / P (t + N) ω) ω) atTop (𝓝 0)
+
+/-! ### The bond price is positive -/
+
+/-- Cochrane (2023), eq. (2.3), p. 22, on a probability space: in every equilibrium with
+`β > 0`, the bond price is positive and `i_t > −1` almost surely at every date (no hypothesis on
+`i`). -/
+theorem mEqm_rate_gt {β : ℝ} (hβ : 0 < β) {Bm1 : Ω → ℝ} {s B P i : ℕ → Ω → ℝ}
+    (h : MEquilibrium S β Bm1 s B P i) (t : ℕ) : ∀ᵐ ω ∂S.μ, -1 < i t ω := by
+  have hpos : ∀ᵐ ω ∂S.μ, 0 < P t ω / P (t + 1) ω := by
+    filter_upwards [h.2.1 t, h.2.1 (t + 1)] with ω h1 h2
+    exact div_pos h1 h2
+  filter_upwards [h.2.2.2.2.2.2 t, HouseholdMeasure.E_pos (h.2.2.2.2.1 t) hpos t] with ω h1 h2
+  have h3 : 0 < (1 + i t ω)⁻¹ := by
+    rw [h1, Pi.smul_apply, smul_eq_mul]
+    exact mul_pos hβ h2
+  have h4 : 0 < 1 + i t ω := inv_pos.mp h3
+  linarith
+
+/-! ### Price-level results -/
+
+variable {β M c : ℝ} {Bm1 : Ω → ℝ} {s B P i : ℕ → Ω → ℝ}
+
+/-- Cochrane (2023), eq. (2.7), p. 22, on a probability space: in equilibrium
+`P_0 = B_{−1}/PV_0` almost surely, when `PV_0 > 0` a.s. -/
+theorem mPrice_zero (h : MEquilibrium S β Bm1 s B P i)
+    (hpv : ∀ᵐ ω ∂S.μ, 0 < S.forwardSol β s 0 ω) :
+    P 0 =ᵐ[S.μ] fun ω => Bm1 ω / S.forwardSol β s 0 ω := by
+  filter_upwards [h.2.2.2.2.2.1.1, h.2.1 0, hpv] with ω h1 h2 h3
+  rw [← h1]
+  have : Bm1 ω ≠ 0 := by
+    intro h0
+    rw [← h1, h0, zero_div] at h3
+    exact lt_irrefl _ h3
+  field_simp
+
+/-- Cochrane (2023), eq. (2.12), p. 30, on a probability space: in equilibrium
+`P_{t+1} = B_t/PV_{t+1}` almost surely, when `PV_{t+1} > 0` a.s. -/
+theorem mPrice_succ (h : MEquilibrium S β Bm1 s B P i) (t : ℕ)
+    (hpv : ∀ᵐ ω ∂S.μ, 0 < S.forwardSol β s (t + 1) ω) :
+    P (t + 1) =ᵐ[S.μ] fun ω => B t ω / S.forwardSol β s (t + 1) ω := by
+  filter_upwards [h.2.2.2.2.2.1.2 t, h.2.1 (t + 1), hpv] with ω h1 h2 h3
+  rw [← h1]
+  have : B t ω ≠ 0 := by
+    intro h0
+    rw [← h1, h0, zero_div] at h3
+    exact lt_irrefl _ h3
+  field_simp
+
+/-- Cochrane (2023), eq. (2.15), p. 31, and p. 43, on a probability space: in equilibrium the
+debt sold is `B_t = (1 + i_t) P_t PVex_t` almost surely, when `β > 0` and `PV_{t+1} > 0` a.s. -/
+theorem mDebt_eq (hβ0 : 0 < β) (h : MEquilibrium S β Bm1 s B P i) (t : ℕ)
+    (hpv : ∀ᵐ ω ∂S.μ, 0 < S.forwardSol β s (t + 1) ω) :
+    B t =ᵐ[S.μ] fun ω => (1 + i t ω) * P t ω * pvExM S β s t ω := by
+  obtain ⟨hPa, hP, hBa, -, hint, ⟨-, hv⟩, hbp⟩ := h
+  set f : Ω → ℝ := fun ω => P t ω / B t ω with hf
+  set g : Ω → ℝ := S.forwardSol β s (t + 1) with hg
+  have hfm : StronglyMeasurable[S.𝓕 t] f :=
+    ((hPa t).measurable.div (hBa t).measurable).stronglyMeasurable
+  have hBpos : ∀ᵐ ω ∂S.μ, 0 < B t ω := by
+    filter_upwards [hv t, hP (t + 1), hpv] with ω h1 h2 h3
+    have e : B t ω = P (t + 1) ω * S.forwardSol β s (t + 1) ω := by
+      have := h2.ne'
+      have e1 : B t ω / P (t + 1) ω = S.forwardSol β s (t + 1) ω := h1
+      field_simp at e1
+      linarith
+    rw [e]
+    exact mul_pos h2 h3
+  have hfg : (fun ω => P t ω / P (t + 1) ω) =ᵐ[S.μ] f * g := by
+    filter_upwards [hv t, hP (t + 1), hBpos] with ω h1 h2 h3
+    have e1 : B t ω / P (t + 1) ω = S.forwardSol β s (t + 1) ω := h1
+    simp only [hf, hg, Pi.mul_apply]
+    rw [← e1]
+    have := h2.ne'
+    have := h3.ne'
+    field_simp
+  have hgi : Integrable g S.μ := S.integrable_E _ _
+  have hpo := condExp_mul_of_stronglyMeasurable_left hfm ((hint t).congr hfg) hgi
+  have hEpos := HouseholdMeasure.E_pos hgi hpv t
+  filter_upwards [hbp t, S.E_congr hfg t, hpo, hBpos, hP t, hEpos] with ω h1 h2 h3 h4 h5 h6
+  have e : (1 + i t ω)⁻¹ = f ω * pvExM S β s t ω := by
+    rw [h1, Pi.smul_apply, smul_eq_mul, h2]
+    have h3' : S.E t (f * g) ω = f ω * S.E t g ω := h3
+    rw [h3']
+    simp only [pvExM, Pi.smul_apply, smul_eq_mul, hg]
+    ring
+  have hpe : 0 < pvExM S β s t ω := by
+    simp only [pvExM, Pi.smul_apply, smul_eq_mul]
+    exact mul_pos hβ0 h6
+  have hpos : 0 < (1 + i t ω)⁻¹ := by
+    rw [e]
+    exact mul_pos (div_pos h5 h4) hpe
+  have hne : 1 + i t ω ≠ 0 := (inv_pos.mp hpos).ne'
+  simp only [hf] at e
+  have := h4.ne'
+  field_simp at e
+  linear_combination e
+
+/-- Cochrane (2023), p. 32, bullet "the nominal interest-rate target determines expected
+inflation", on a probability space: in every equilibrium `E_t(P_t/P_{t+1}) = 1/(β(1 + i_t))`
+almost surely (`β ≠ 0`). -/
+theorem mExpected_inflation (hβ : β ≠ 0) (h : MEquilibrium S β Bm1 s B P i) (t : ℕ) :
+    S.E t (fun ω => P t ω / P (t + 1) ω) =ᵐ[S.μ] fun ω => β⁻¹ * (1 + i t ω)⁻¹ := by
+  filter_upwards [h.2.2.2.2.2.2 t] with ω h1
+  rw [h1, Pi.smul_apply, smul_eq_mul, ← mul_assoc, inv_mul_cancel₀ hβ, one_mul]
+
+/-- Cochrane (2023), eq. (2.13), p. 30, **unexpected inflation** on a probability space: in
+every equilibrium, `(B_t/P_t) ΔE_{t+1}(P_t/P_{t+1}) = ΔE_{t+1} PV_{t+1}` almost surely. -/
+theorem mUnexpected_inflation (h : MEquilibrium S β Bm1 s B P i) (t : ℕ) :
+    (fun ω => B t ω / P t ω * S.innov t (fun ω => P t ω / P (t + 1) ω) ω) =ᵐ[S.μ]
+      S.innov t (S.forwardSol β s (t + 1)) := by
+  obtain ⟨hPa, hP, hBa, -, hint, ⟨-, hv⟩, -⟩ := h
+  set f : Ω → ℝ := fun ω => B t ω / P t ω with hf
+  set g : Ω → ℝ := fun ω => P t ω / P (t + 1) ω with hg
+  have hfm : StronglyMeasurable[S.𝓕 t] f :=
+    ((hBa t).measurable.div (hPa t).measurable).stronglyMeasurable
+  have hfm1 : StronglyMeasurable[S.𝓕 (t + 1)] f := hfm.mono (S.𝓕.mono (Nat.le_succ t))
+  have hfg : f * g =ᵐ[S.μ] S.forwardSol β s (t + 1) := by
+    filter_upwards [hv t, hP t] with ω h1 h2
+    rw [← h1]
+    simp only [hf, hg, Pi.mul_apply]
+    have := h2.ne'
+    field_simp
+  have hfgi : Integrable (f * g) S.μ := (S.integrable_E _ _).congr hfg.symm
+  have hpo0 := condExp_mul_of_stronglyMeasurable_left hfm hfgi (hint t)
+  have hpo1 := condExp_mul_of_stronglyMeasurable_left hfm1 hfgi (hint t)
+  filter_upwards [hpo0, hpo1, S.E_congr hfg t, S.E_congr hfg (t + 1)] with ω h0 h1 h2 h3
+  have h0' : S.E t (f * g) ω = f ω * S.E t g ω := h0
+  have h1' : S.E (t + 1) (f * g) ω = f ω * S.E (t + 1) g ω := h1
+  simp only [MeasExpectationSystem.innov, Pi.sub_apply]
+  rw [← h2, ← h3, h0', h1']
+  ring
+
+/-- Cochrane (2023), p. 33, bullet "monetary policy ... determines expected inflation ...
+fiscal policy determines unexpected inflation", on a probability space: in every equilibrium
+`P_t/P_{t+1} = 1/(β(1 + i_t)) + ΔE_{t+1} PV_{t+1}/(B_t/P_t)` almost surely, where `B_t ≠ 0`
+(`β ≠ 0`). -/
+theorem mInflation_decomposition (hβ0 : β ≠ 0) (h : MEquilibrium S β Bm1 s B P i) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, B t ω ≠ 0 → P t ω / P (t + 1) ω =
+      β⁻¹ * (1 + i t ω)⁻¹ + S.innov t (S.forwardSol β s (t + 1)) ω / (B t ω / P t ω) := by
+  have hm : StronglyMeasurable[S.𝓕 (t + 1)] (fun ω => P t ω / P (t + 1) ω) :=
+    (((h.1 t).mono (S.𝓕.mono (Nat.le_succ t))).measurable.div
+      (h.1 (t + 1)).measurable).stronglyMeasurable
+  have e := S.eq_E_add_innov hm (h.2.2.2.2.1 t)
+  filter_upwards [mExpected_inflation S hβ0 h t, mUnexpected_inflation S h t, h.2.1 t]
+    with ω h1 h2 h3 hB
+  have e' := congrFun e ω
+  rw [Pi.add_apply, h1] at e'
+  rw [e', ← h2]
+  have := h3.ne'
+  field_simp
+
+/-- Cochrane (2023), p. 30, bullet "unexpected inflation is determined entirely by changing
+expectations of the present value of fiscal surpluses", on a probability space: almost surely,
+where debt is outstanding (`B_t ≠ 0`), unexpected inflation is zero exactly when the
+present-value news is zero. -/
+theorem mNo_surprise_iff (h : MEquilibrium S β Bm1 s B P i) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, B t ω ≠ 0 → (S.innov t (fun ω => P t ω / P (t + 1) ω) ω = 0 ↔
+      S.innov t (S.forwardSol β s (t + 1)) ω = 0) := by
+  filter_upwards [mUnexpected_inflation S h t, h.2.1 t] with ω h1 h2 hB
+  rw [← h1]
+  have hV : B t ω / P t ω ≠ 0 := div_ne_zero hB h2.ne'
+  constructor
+  · intro h0
+    rw [h0, mul_zero]
+  · intro h0
+    exact (mul_eq_zero.mp h0).resolve_left hV
+
+/-- Cochrane (2023), eqs. (2.4) and (2.26), pp. 22, 42, on a probability space: in every
+equilibrium the flow condition `B_t/P_{t+1} = s_{t+1} + (B_{t+1}/P_{t+1})/(1 + i_{t+1})` holds
+almost surely (bounded adapted surpluses, `0 < β < 1`, `PV > 0` a.s.). -/
+theorem mFlow (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 s)
+    (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M) (h : MEquilibrium S β Bm1 s B P i)
+    (hpv : ∀ t, ∀ᵐ ω ∂S.μ, 0 < S.forwardSol β s t ω) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, B t ω / P (t + 1) ω =
+      s (t + 1) ω + B (t + 1) ω / P (t + 1) ω * (1 + i (t + 1) ω)⁻¹ := by
+  have hβ : |β| < 1 := by rwa [abs_of_pos hβ0]
+  filter_upwards [h.2.2.2.2.2.1.2 t, pv_eq_add_pvEx S hβ hsad hsM (t + 1),
+    mDebt_eq S hβ0 h (t + 1) (hpv (t + 2)), h.2.1 (t + 1),
+    mEqm_rate_gt S hβ0 h (t + 1)] with ω h1 h2 h3 h4 h5
+  have e1 : B t ω / P (t + 1) ω = S.forwardSol β s (t + 1) ω := h1
+  rw [e1, h2, Pi.add_apply, h3]
+  have := h4.ne'
+  have : 1 + i (t + 1) ω ≠ 0 := by linarith
+  field_simp
+
+/-! ### Interest-rate targets: existence and uniqueness -/
+
+/-- Cochrane (2023), §2.4.3, p. 31, on a probability space: the price level of the
+interest-rate-target equilibrium, `P_0 = B_{−1}/PV_0`,
+`P_{t+1} = (1 + i_t) P_t PVex_t/PV_{t+1}`. -/
+noncomputable def mPegP (β : ℝ) (Bm1 : Ω → ℝ) (s i : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => fun ω => Bm1 ω / S.forwardSol β s 0 ω
+  | t + 1 => fun ω => (1 + i t ω) * mPegP β Bm1 s i t ω * pvExM S β s t ω /
+      S.forwardSol β s (t + 1) ω
+
+/-- Cochrane (2023), eq. (2.15), p. 31, on a probability space: the debt sold at the target,
+`B_t = (1 + i_t) P_t PVex_t`. -/
+noncomputable def mPegB (β : ℝ) (Bm1 : Ω → ℝ) (s i : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => (1 + i t ω) * mPegP S β Bm1 s i t ω * pvExM S β s t ω
+
+/-- Cochrane (2023), §2.4.3, p. 31: the target price level is adapted. -/
+theorem mPegP_sm (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) (hia : StronglyAdapted S.𝓕 i)
+    (t : ℕ) : StronglyMeasurable[S.𝓕 t] (mPegP S β Bm1 s i t) := by
+  induction t with
+  | zero =>
+    exact (hBm1.measurable.div (S.forwardSol_adapted β s 0).measurable).stronglyMeasurable
+  | succ t ih =>
+    have hmono : S.𝓕 t ≤ S.𝓕 (t + 1) := S.𝓕.mono (Nat.le_succ t)
+    exact (((((hia t).mono hmono).measurable.const_add 1).mul (ih.mono hmono).measurable).mul
+      ((pvExM_sm S β s t).mono hmono).measurable).div
+      (S.forwardSol_adapted β s (t + 1)).measurable |>.stronglyMeasurable
+
+/-- Cochrane (2023), eq. (2.15), p. 31: the target debt is adapted. -/
+theorem mPegB_sm (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) (hia : StronglyAdapted S.𝓕 i)
+    (t : ℕ) : StronglyMeasurable[S.𝓕 t] (mPegB S β Bm1 s i t) :=
+  ((((hia t).measurable.const_add 1).mul (mPegP_sm S hBm1 hia t).measurable).mul
+    (pvExM_sm S β s t).measurable).stronglyMeasurable
+
+/-- Cochrane (2023), §2.4.3, p. 31: with `β > 0`, positive initial debt, a target `i > −1` and
+present values bounded below by `c > 0`, the target price level is positive almost surely. -/
+theorem mPegP_pos (hβ0 : 0 < β) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) (hi : ∀ t ω, -1 < i t ω)
+    (hc0 : 0 < c) (hc : ∀ t, ∀ᵐ ω ∂S.μ, c ≤ S.forwardSol β s t ω) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, 0 < mPegP S β Bm1 s i t ω := by
+  induction t with
+  | zero =>
+    filter_upwards [hB, hc 0] with ω h1 h2
+    exact div_pos h1 (lt_of_lt_of_le hc0 h2)
+  | succ t ih =>
+    filter_upwards [ih, pvExM_ge S hβ0.le hc t, hc (t + 1)] with ω h1 h2 h3
+    change 0 < (1 + i t ω) * mPegP S β Bm1 s i t ω * pvExM S β s t ω /
+      S.forwardSol β s (t + 1) ω
+    have h4 : 0 < 1 + i t ω := by linarith [hi t ω]
+    have h5 : 0 < pvExM S β s t ω := lt_of_lt_of_le (mul_pos hβ0 hc0) h2
+    have h6 : 0 < S.forwardSol β s (t + 1) ω := lt_of_lt_of_le hc0 h3
+    positivity
+
+/-- Cochrane (2023), bullets pp. 31–33, "the government can target nominal interest rates", on a
+probability space: for `0 < β < 1`, surpluses bounded a.s. with present value bounded below by
+`c > 0` a.s., positive initial debt known at `0`, and every adapted target `i > −1` whose bond
+price `1/(1 + i_t)` is integrable, the target path `(mPegP, mPegB)` is an equilibrium. -/
+theorem mPeg_equilibrium (hβ0 : 0 < β) (hβ1 : β < 1) (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M)
+    (hc0 : 0 < c) (hc : ∀ t, ∀ᵐ ω ∂S.μ, c ≤ S.forwardSol β s t ω)
+    (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω)
+    (hia : StronglyAdapted S.𝓕 i) (hi : ∀ t ω, -1 < i t ω)
+    (hQi : ∀ t, Integrable (fun ω => (1 + i t ω)⁻¹) S.μ) :
+    MEquilibrium S β Bm1 s (mPegB S β Bm1 s i) (mPegP S β Bm1 s i) i := by
+  have ha : |β| < 1 := by rwa [abs_of_pos hβ0]
+  have hPpos := mPegP_pos S hβ0 hB hi hc0 hc
+  have hpe := pvExM_ge S hβ0.le hc
+  have hBpos : ∀ t, ∀ᵐ ω ∂S.μ, 0 < mPegB S β Bm1 s i t ω := fun t => by
+    filter_upwards [hPpos t, hpe t] with ω h1 h2
+    change 0 < (1 + i t ω) * mPegP S β Bm1 s i t ω * pvExM S β s t ω
+    have h4 : 0 < 1 + i t ω := by linarith [hi t ω]
+    have h5 : 0 < pvExM S β s t ω := lt_of_lt_of_le (mul_pos hβ0 hc0) h2
+    positivity
+  have hratio : ∀ t, (fun ω => mPegP S β Bm1 s i t ω / mPegP S β Bm1 s i (t + 1) ω) =ᵐ[S.μ]
+      fun ω => (1 + i t ω)⁻¹ * (S.forwardSol β s (t + 1) ω / pvExM S β s t ω) := fun t => by
+    filter_upwards [hPpos t, hpe t, hc (t + 1)] with ω h1 h2 h3
+    change mPegP S β Bm1 s i t ω / ((1 + i t ω) * mPegP S β Bm1 s i t ω * pvExM S β s t ω /
+      S.forwardSol β s (t + 1) ω) = _
+    have h4 : 1 + i t ω ≠ 0 := by linarith [hi t ω]
+    have h5 : pvExM S β s t ω ≠ 0 := (lt_of_lt_of_le (mul_pos hβ0 hc0) h2).ne'
+    have h6 : S.forwardSol β s (t + 1) ω ≠ 0 := (lt_of_lt_of_le hc0 h3).ne'
+    have h7 := h1.ne'
+    field_simp
+  have hint : ∀ t, Integrable
+      (fun ω => mPegP S β Bm1 s i t ω / mPegP S β Bm1 s i (t + 1) ω) S.μ := fun t => by
+    refine Integrable.congr ?_ (hratio t).symm
+    refine (hQi t).mul_bdd (c := M / (1 - |β|) / (β * c)) ?_ ?_
+    · exact ((((S.forwardSol_adapted β s (t + 1)).mono (S.𝓕.le (t + 1))).measurable.div
+        ((pvExM_sm S β s t).mono (S.𝓕.le t)).measurable)).aestronglyMeasurable
+    · filter_upwards [pv_bdd S ha hsM (t + 1), hpe t] with ω h1 h2
+      have h5 : 0 < pvExM S β s t ω := lt_of_lt_of_le (mul_pos hβ0 hc0) h2
+      rw [Real.norm_eq_abs, abs_div, abs_of_pos h5]
+      exact div_le_div₀ ((abs_nonneg _).trans h1) h1 (mul_pos hβ0 hc0) h2
+  refine ⟨mPegP_sm S hBm1 hia, hPpos, mPegB_sm S hBm1 hia, hia, hint, ⟨?_, fun t => ?_⟩,
+    fun t => ?_⟩
+  · filter_upwards [hB] with ω h1
+    change Bm1 ω / (Bm1 ω / S.forwardSol β s 0 ω) = S.forwardSol β s 0 ω
+    rw [div_div_cancel₀ h1.ne']
+  · filter_upwards [hBpos t] with ω h1
+    change mPegB S β Bm1 s i t ω / (mPegB S β Bm1 s i t ω / S.forwardSol β s (t + 1) ω) =
+      S.forwardSol β s (t + 1) ω
+    rw [div_div_cancel₀ h1.ne']
+  · set cc : Ω → ℝ := fun ω => ((1 + i t ω) * pvExM S β s t ω)⁻¹ with hcc
+    have hccm : StronglyMeasurable[S.𝓕 t] cc :=
+      ((((hia t).measurable.const_add 1).mul (pvExM_sm S β s t).measurable).inv).stronglyMeasurable
+    have hr2 : (fun ω => mPegP S β Bm1 s i t ω / mPegP S β Bm1 s i (t + 1) ω) =ᵐ[S.μ]
+        cc * S.forwardSol β s (t + 1) := by
+      filter_upwards [hratio t] with ω h
+      rw [h]
+      simp only [hcc, Pi.mul_apply, mul_inv]
+      ring
+    have hpo := condExp_mul_of_stronglyMeasurable_left hccm ((hint t).congr hr2)
+      (S.integrable_E (t + 1) _)
+    filter_upwards [S.E_congr hr2 t, hpo, hpe t] with ω h1 h2 h3
+    rw [Pi.smul_apply, smul_eq_mul, h1]
+    have h2' : S.E t (cc * S.forwardSol β s (t + 1)) ω =
+        cc ω * S.E t (S.forwardSol β s (t + 1)) ω := h2
+    rw [h2']
+    have h5 : 0 < pvExM S β s t ω := lt_of_lt_of_le (mul_pos hβ0 hc0) h3
+    have e : pvExM S β s t ω = β * S.E t (S.forwardSol β s (t + 1)) ω := rfl
+    have h4 : 1 + i t ω ≠ 0 := by linarith [hi t ω]
+    rw [e] at h5
+    simp only [hcc, e]
+    have hE : S.E t (S.forwardSol β s (t + 1)) ω ≠ 0 := by
+      intro h0
+      rw [h0, mul_zero] at h5
+      exact lt_irrefl _ h5
+    have := h5.ne'
+    field_simp
+
+/-- Cochrane (2023), bullet p. 33, "inflation can be stable and determinate under an interest
+rate target", on a probability space: with `β > 0` and present values bounded below by `c > 0`,
+every equilibrium with the target `i` is the target path, almost surely at every date. -/
+theorem mPeg_unique (hβ0 : 0 < β) (hc0 : 0 < c) (hc : ∀ t, ∀ᵐ ω ∂S.μ, c ≤ S.forwardSol β s t ω)
+    (h : MEquilibrium S β Bm1 s B P i) (t : ℕ) :
+    P t =ᵐ[S.μ] mPegP S β Bm1 s i t ∧ B t =ᵐ[S.μ] mPegB S β Bm1 s i t := by
+  have hpv : ∀ t, ∀ᵐ ω ∂S.μ, 0 < S.forwardSol β s t ω := fun t =>
+    (hc t).mono fun ω h => lt_of_lt_of_le hc0 h
+  have hP : ∀ t, P t =ᵐ[S.μ] mPegP S β Bm1 s i t := by
+    intro t
+    induction t with
+    | zero => exact mPrice_zero S h (hpv 0)
+    | succ t ih =>
+      filter_upwards [mPrice_succ S h t (hpv (t + 1)), mDebt_eq S hβ0 h t (hpv (t + 1)), ih]
+        with ω h1 h2 h3
+      have h2' : B t ω = (1 + i t ω) * P t ω * pvExM S β s t ω := h2
+      rw [h1]
+      change B t ω / S.forwardSol β s (t + 1) ω = (1 + i t ω) * mPegP S β Bm1 s i t ω *
+        pvExM S β s t ω / S.forwardSol β s (t + 1) ω
+      rw [h2', h3]
+  refine ⟨hP t, ?_⟩
+  filter_upwards [mDebt_eq S hβ0 h t (hpv (t + 1)), hP t] with ω h1 h2
+  have h1' : B t ω = (1 + i t ω) * P t ω * pvExM S β s t ω := h1
+  rw [h1', h2]
+  rfl
+
+/-- Cochrane (2023), §§2.4.3–2.4.4, pp. 31–33, on a probability space: **existence and
+uniqueness under an interest-rate target** (time-varying, state-contingent `i`): under the
+hypotheses of `mPeg_equilibrium` there is an equilibrium, and every equilibrium with the target
+equals it almost surely at every date. -/
+theorem mPeg_existsUnique (hβ0 : 0 < β) (hβ1 : β < 1) (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M)
+    (hc0 : 0 < c) (hc : ∀ t, ∀ᵐ ω ∂S.μ, c ≤ S.forwardSol β s t ω)
+    (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω)
+    (hia : StronglyAdapted S.𝓕 i) (hi : ∀ t ω, -1 < i t ω)
+    (hQi : ∀ t, Integrable (fun ω => (1 + i t ω)⁻¹) S.μ) :
+    ∃ x : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ), MEquilibrium S β Bm1 s x.2 x.1 i ∧
+      ∀ y : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ), MEquilibrium S β Bm1 s y.2 y.1 i →
+        ∀ t, y.1 t =ᵐ[S.μ] x.1 t ∧ y.2 t =ᵐ[S.μ] x.2 t :=
+  ⟨(mPegP S β Bm1 s i, mPegB S β Bm1 s i),
+    mPeg_equilibrium S hβ0 hβ1 hsM hc0 hc hBm1 hB hia hi hQi,
+    fun _ hy t => mPeg_unique S hβ0 hc0 hc hy t⟩
+
+/-! ### The derived equilibrium: flow plus transversality is the valuation equation -/
+
+/-- Cochrane (2023), eqs. (2.3)–(2.4), p. 22, on a probability space: with the bond price (2.3)
+`Q_t = β E_t(P_t/P_{t+1})` a.s., debt sold at `t` known at `t`, positive prices and integrable
+`P_t/P_{t+1}` and real debt, the real value of the debt carried out of date `t` is
+`Q_t B_t/P_t = β E_t(B_t/P_{t+1})` almost surely. -/
+theorem endDebt {Bm Q : ℕ → Ω → ℝ} (hPa : StronglyAdapted S.𝓕 P)
+    (hBm : ∀ t, StronglyMeasurable[S.𝓕 t] (Bm (t + 1))) (hP : ∀ t, ∀ᵐ ω ∂S.μ, 0 < P t ω)
+    (hQ : ∀ t, Q t =ᵐ[S.μ] β • S.E t (fun ω => P t ω / P (t + 1) ω))
+    (hPP : ∀ t, Integrable (fun ω => P t ω / P (t + 1) ω) S.μ)
+    (hx : ∀ t, Integrable (fun ω => Bm t ω / P t ω) S.μ) (t : ℕ) :
+    (fun ω => Q t ω * Bm (t + 1) ω / P t ω) =ᵐ[S.μ]
+      β • S.E t (fun ω => Bm (t + 1) ω / P (t + 1) ω) := by
+  set f : Ω → ℝ := fun ω => Bm (t + 1) ω / P t ω with hfdef
+  set g : Ω → ℝ := fun ω => P t ω / P (t + 1) ω with hgdef
+  have hfm : StronglyMeasurable[S.𝓕 t] f :=
+    ((hBm t).measurable.div (hPa t).measurable).stronglyMeasurable
+  have hfg : f * g =ᵐ[S.μ] fun ω => Bm (t + 1) ω / P (t + 1) ω := by
+    filter_upwards [hP t] with ω hp
+    have := hp.ne'
+    simp only [hfdef, hgdef, Pi.mul_apply]
+    field_simp
+  have hpo := condExp_mul_of_stronglyMeasurable_left hfm ((hx (t + 1)).congr hfg.symm) (hPP t)
+  filter_upwards [hQ t, hpo, S.E_congr hfg t] with ω hq h2 h3
+  have h2' : S.E t (f * g) ω = f ω * S.E t g ω := h2
+  rw [Pi.smul_apply, smul_eq_mul, ← h3, h2', hq, Pi.smul_apply, smul_eq_mul]
+  simp only [hfdef]
+  ring
+
+/-- Cochrane (2023), eqs. (2.4)–(2.5), p. 22, on a probability space: under the hypotheses of
+`endDebt`, the nominal flow condition `B_{t−1} = P_t s_t + Q_t B_t` a.s. at every date is the
+real flow condition `x_t = s_t + β E_t x_{t+1}` a.s. at every date, `x_t = B_{t−1}/P_t`. -/
+theorem nominal_iff_real {Bm Q : ℕ → Ω → ℝ} (hPa : StronglyAdapted S.𝓕 P)
+    (hBm : ∀ t, StronglyMeasurable[S.𝓕 t] (Bm (t + 1))) (hP : ∀ t, ∀ᵐ ω ∂S.μ, 0 < P t ω)
+    (hQ : ∀ t, Q t =ᵐ[S.μ] β • S.E t (fun ω => P t ω / P (t + 1) ω))
+    (hPP : ∀ t, Integrable (fun ω => P t ω / P (t + 1) ω) S.μ)
+    (hx : ∀ t, Integrable (fun ω => Bm t ω / P t ω) S.μ) :
+    (∀ t, ∀ᵐ ω ∂S.μ, Bm t ω = P t ω * s t ω + Q t ω * Bm (t + 1) ω) ↔
+      ∀ t, (fun ω => Bm t ω / P t ω) =ᵐ[S.μ]
+        s t + β • S.E t (fun ω => Bm (t + 1) ω / P (t + 1) ω) := by
+  constructor
+  · intro h t
+    filter_upwards [h t, hP t, endDebt S hPa hBm hP hQ hPP hx t] with ω h1 hp h2
+    rw [Pi.add_apply, ← h2, h1]
+    have := hp.ne'
+    field_simp
+  · intro h t
+    filter_upwards [h t, hP t, endDebt S hPa hBm hP hQ hPP hx t] with ω h1 hp h2
+    have h1' : Bm t ω / P t ω = s t ω + (β • S.E t (fun ω => Bm (t + 1) ω / P (t + 1) ω)) ω :=
+      h1
+    have h2' : Q t ω * Bm (t + 1) ω / P t ω =
+        (β • S.E t (fun ω => Bm (t + 1) ω / P (t + 1) ω)) ω := h2
+    rw [← h2'] at h1'
+    have := hp.ne'
+    field_simp at h1'
+    linarith
+
+/-- Cochrane (2023), eqs. (2.4)–(2.7), p. 22, on a probability space with information growing
+forever, **both directions**: for `0 < β < 1`, adapted surpluses bounded a.s., positive adapted
+prices, the bond price (2.3) a.s., debt sold at `t` known at `t`, and integrable `P_t/P_{t+1}`
+and real debt `x_t = B_{t−1}/P_t`, the nominal flow condition (2.4) and the transversality
+condition (2.6) hold a.s. at every date iff the valuation equation (2.7) `x_t = PV_t` holds a.s.
+at every date. -/
+theorem mFlowTvc_iff_valuation (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 s)
+    (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M) {Bm Q : ℕ → Ω → ℝ} (hPa : StronglyAdapted S.𝓕 P)
+    (hBm : ∀ t, StronglyMeasurable[S.𝓕 t] (Bm (t + 1))) (hP : ∀ t, ∀ᵐ ω ∂S.μ, 0 < P t ω)
+    (hQ : ∀ t, Q t =ᵐ[S.μ] β • S.E t (fun ω => P t ω / P (t + 1) ω))
+    (hPP : ∀ t, Integrable (fun ω => P t ω / P (t + 1) ω) S.μ)
+    (hx : ∀ t, Integrable (fun ω => Bm t ω / P t ω) S.μ) :
+    ((∀ t, ∀ᵐ ω ∂S.μ, Bm t ω = P t ω * s t ω + Q t ω * Bm (t + 1) ω) ∧
+      ∀ t, ∀ᵐ ω ∂S.μ, Tendsto (fun N => β ^ N * S.E t (fun ω => Bm (t + N) ω / P (t + N) ω) ω)
+        atTop (𝓝 0)) ↔
+      ∀ t, (fun ω => Bm t ω / P t ω) =ᵐ[S.μ] S.forwardSol β s t := by
+  have ha : |β| < 1 := by rwa [abs_of_pos hβ0]
+  have hsm : ∀ n, AEStronglyMeasurable (s n) S.μ := fun n =>
+    ((hsad n).mono (S.𝓕.le n)).aestronglyMeasurable
+  have hsi : ∀ n, Integrable (s n) S.μ := fun n =>
+    MeasExpectationSystem.BddRV.integrable ⟨hsm n, M, hsM n⟩
+  rw [nominal_iff_real S hPa hBm hP hQ hPP hx]
+  constructor
+  · rintro ⟨hflow, htvc⟩ t
+    have htel := ae_all_iff.2 (HouseholdMeasureTVC.telescope_ae hflow hsad hsi t)
+    filter_upwards [htel, htvc t, S.forwardSol_hasSum ha hsm hsM t] with ω h1 h2 h3
+    have hlim1 : Tendsto (fun N => ∑ j ∈ Finset.range (N + 1), β ^ j * S.E t (s (t + j)) ω)
+        atTop (𝓝 (S.forwardSol β s t ω)) :=
+      h3.tendsto_sum_nat.comp (tendsto_add_atTop_nat 1)
+    have h2' : Tendsto (fun N => β ^ (N + 1) *
+        S.E t (fun ω => Bm (t + N + 1) ω / P (t + N + 1) ω) ω) atTop (𝓝 0) :=
+      h2.comp (tendsto_add_atTop_nat 1)
+    have hlim2 : Tendsto (fun N => ∑ j ∈ Finset.range (N + 1), β ^ j * S.E t (s (t + j)) ω)
+        atTop (𝓝 (Bm t ω / P t ω)) := by
+      have e : ∀ N, ∑ j ∈ Finset.range (N + 1), β ^ j * S.E t (s (t + j)) ω =
+          Bm t ω / P t ω - β ^ (N + 1) *
+            S.E t (fun ω => Bm (t + N + 1) ω / P (t + N + 1) ω) ω := fun N => by
+        rw [h1 N]
+        ring
+      simp_rw [e]
+      simpa using (tendsto_const_nhds (x := Bm t ω / P t ω)).sub h2'
+    exact tendsto_nhds_unique hlim2 hlim1
+  · intro hv
+    have hflow : ∀ t, (fun ω => Bm t ω / P t ω) =ᵐ[S.μ]
+        s t + β • S.E t (fun ω => Bm (t + 1) ω / P (t + 1) ω) := fun t => by
+      filter_upwards [hv t, S.forwardSol_solves ha hsad hsM t, S.E_congr (hv (t + 1)) t]
+        with ω h1 h2 h3
+      rw [h1, h2, Pi.add_apply, Pi.add_apply, Pi.smul_apply, Pi.smul_apply, smul_eq_mul,
+        smul_eq_mul, h3]
+      ring
+    refine ⟨hflow, fun t => ?_⟩
+    have hE : ∀ᵐ ω ∂S.μ, ∀ N,
+        S.E t (fun ω => Bm (t + N) ω / P (t + N) ω) ω = S.E t (S.forwardSol β s (t + N)) ω ∧
+          |S.E t (S.forwardSol β s (t + N)) ω| ≤ M / (1 - |β|) :=
+      ae_all_iff.2 fun N => by
+        filter_upwards [S.E_congr (hv (t + N)) t,
+          S.abs_E_le (pv_bdd S ha hsM (t + N)) t] with ω h1 h2
+        exact ⟨h1, h2⟩
+    filter_upwards [hE] with ω h
+    have hb : Tendsto (fun N : ℕ => β ^ N * (M / (1 - |β|))) atTop (𝓝 0) := by
+      simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hβ0.le hβ1).mul_const (M / (1 - |β|))
+    refine squeeze_zero_norm (fun N => ?_) hb
+    have hbN : |β| ^ N = β ^ N := by rw [abs_of_pos hβ0]
+    rw [Real.norm_eq_abs, abs_mul, abs_pow, hbN, (h N).1]
+    exact mul_le_mul_of_nonneg_left (h N).2 (pow_nonneg hβ0.le N)
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33, on a probability space: **the two equilibrium notions
+agree** (the measure version of `GeneralLinks.equilibrium_iff_isEqm`, with no hypothesis
+`i > −1`). For `0 < β < 1`, adapted surpluses bounded a.s., adapted debt and rate, integrable
+`P_t/P_{t+1}` and integrable real debt, `MEquilibrium` holds iff `MIsEqm` holds with maturing
+debt `GeneralLinks.debtPath B_{−1} B` and bond price `1/(1 + i)`, together with the adaptedness
+of `P`. -/
+theorem mEquilibrium_iff_mIsEqm (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 s)
+    (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M) (hBa : StronglyAdapted S.𝓕 B)
+    (hia : StronglyAdapted S.𝓕 i) (hPP : ∀ t, Integrable (fun ω => P t ω / P (t + 1) ω) S.μ)
+    (hx : ∀ t, Integrable (fun ω => GeneralLinks.debtPath Bm1 B t ω / P t ω) S.μ) :
+    MEquilibrium S β Bm1 s B P i ↔
+      MIsEqm S β (GeneralLinks.debtPath Bm1 B) s P (fun t ω => (1 + i t ω)⁻¹) := by
+  have hBm : ∀ t, StronglyMeasurable[S.𝓕 t] (GeneralLinks.debtPath Bm1 B (t + 1)) := hBa
+  constructor
+  · rintro ⟨hPa, hP, -, -, -, ⟨hv0, hv⟩, hbp⟩
+    have hval : ∀ t, (fun ω => GeneralLinks.debtPath Bm1 B t ω / P t ω) =ᵐ[S.μ]
+        S.forwardSol β s t := fun t => by
+      cases t with
+      | zero => exact hv0
+      | succ t => exact hv t
+    obtain ⟨hflow, htvc⟩ := (mFlowTvc_iff_valuation S hβ0 hβ1 hsad hsM hPa hBm hP hbp hPP hx).mpr
+      hval
+    exact ⟨hP, hPa, hbp, hflow, htvc⟩
+  · rintro ⟨hP, hPa, hbp, hflow, htvc⟩
+    have hval := (mFlowTvc_iff_valuation S hβ0 hβ1 hsad hsM hPa hBm hP hbp hPP hx).mp
+      ⟨hflow, htvc⟩
+    exact ⟨hPa, hP, hBa, hia, hPP, ⟨hval 0, fun t => hval (t + 1)⟩, hbp⟩
+
+/-- Cochrane (2023), eq. (2.7), p. 22, on a probability space: in every derived equilibrium
+(`MIsEqm`) with positive debt and present values a.s., the price level is `P_t = B_{t−1}/PV_t`
+almost surely at every date (hypotheses of `mFlowTvc_iff_valuation`). -/
+theorem mIsEqm_price_eq (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 s)
+    (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M) {Bm Q : ℕ → Ω → ℝ}
+    (hBm : ∀ t, StronglyMeasurable[S.𝓕 t] (Bm (t + 1)))
+    (hPP : ∀ t, Integrable (fun ω => P t ω / P (t + 1) ω) S.μ)
+    (hx : ∀ t, Integrable (fun ω => Bm t ω / P t ω) S.μ) (h : MIsEqm S β Bm s P Q)
+    (hBpos : ∀ t, ∀ᵐ ω ∂S.μ, 0 < Bm t ω) (t : ℕ) :
+    P t =ᵐ[S.μ] fun ω => Bm t ω / S.forwardSol β s t ω := by
+  obtain ⟨hP, hPa, hQ, hflow, htvc⟩ := h
+  have hval := (mFlowTvc_iff_valuation S hβ0 hβ1 hsad hsM hPa hBm hP hQ hPP hx).mp
+    ⟨hflow, htvc⟩
+  filter_upwards [hval t, hP t, hBpos t] with ω h1 h2 h3
+  rw [← h1]
+  have := h2.ne'
+  have := h3.ne'
+  field_simp
+
+/-- Cochrane (2023), pp. 31–33, in the language of the derived equilibrium on a probability
+space: under the hypotheses of `mPeg_equilibrium` (with adapted surpluses), the target path is
+a derived equilibrium (`MIsEqm`, maturing debt `GeneralLinks.debtPath B_{−1} (mPegB)`, bond price
+`1/(1 + i)`), and every derived equilibrium with that bond price, adapted debt sold, integrable
+`P_t/P_{t+1}` and integrable real debt equals it almost surely at every date. -/
+theorem mPeg_existsUnique_mIsEqm (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 s)
+    (hsM : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ M) (hc0 : 0 < c)
+    (hc : ∀ t, ∀ᵐ ω ∂S.μ, c ≤ S.forwardSol β s t ω) (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1)
+    (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) (hia : StronglyAdapted S.𝓕 i) (hi : ∀ t ω, -1 < i t ω)
+    (hQi : ∀ t, Integrable (fun ω => (1 + i t ω)⁻¹) S.μ) :
+    MIsEqm S β (GeneralLinks.debtPath Bm1 (mPegB S β Bm1 s i)) s (mPegP S β Bm1 s i)
+      (fun t ω => (1 + i t ω)⁻¹) ∧
+    ∀ B' P' : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 B' →
+      (∀ t, Integrable (fun ω => P' t ω / P' (t + 1) ω) S.μ) →
+      (∀ t, Integrable (fun ω => GeneralLinks.debtPath Bm1 B' t ω / P' t ω) S.μ) →
+      MIsEqm S β (GeneralLinks.debtPath Bm1 B') s P' (fun t ω => (1 + i t ω)⁻¹) →
+        ∀ t, P' t =ᵐ[S.μ] mPegP S β Bm1 s i t ∧ B' t =ᵐ[S.μ] mPegB S β Bm1 s i t := by
+  have hE := mPeg_equilibrium S hβ0 hβ1 hsM hc0 hc hBm1 hB hia hi hQi
+  have hx : ∀ t, Integrable
+      (fun ω => GeneralLinks.debtPath Bm1 (mPegB S β Bm1 s i) t ω / mPegP S β Bm1 s i t ω)
+      S.μ := fun t => by
+    refine (S.integrable_E t (MeasExpectationSystem.discSum β s t)).congr ?_
+    cases t with
+    | zero => exact hE.2.2.2.2.2.1.1.symm
+    | succ t => exact (hE.2.2.2.2.2.1.2 t).symm
+  refine ⟨(mEquilibrium_iff_mIsEqm S hβ0 hβ1 hsad hsM hE.2.2.1 hia hE.2.2.2.2.1 hx).mp hE,
+    fun B' P' hB'a hPP' hx' h' t => ?_⟩
+  exact mPeg_unique S hβ0 hc0 hc
+    ((mEquilibrium_iff_mIsEqm S hβ0 hβ1 hsad hsM hB'a hia hPP' hx').mpr h') t
+
+end Cochrane.IntertemporalModel.TidyR5Meas
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The linear model on a genuine probability space, and the links to the abstract versions
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 2, §2.5, pp. 34–37 (the linear
+model (2.16)–(2.19) under an interest-rate peg) and §2.6, pp. 39–42 (the rule (2.20)–(2.25)),
+on a probability space with Mathlib's conditional expectation (`MeasExpectationSystem`), with
+equations holding almost surely; and the links of every measure-theoretic notion of this module
+and of `TidyR5Meas` to its abstract `ExpectationSystem` counterpart on finite event trees.
+
+## Main results
+
+* `MIsShock`, `MPegModel`, `MRuleModel`: shocks, the peg model (2.16)–(2.17) and the rule model
+  (2.20)–(2.22) almost surely.
+* `mPegModel_iff`, `mPeg_linear_existsUnique` ((2.19): for every adapted integrable rate path
+  and every shock, exactly one solution given `π_0`, up to null sets), `mRule_iff`,
+  `mRule_linear_existsUnique` ((2.25): for every `θ ∈ ℝ`, no Taylor principle).
+* `mFiscShock`, `mFiscShock_isShock`: the fiscal shock `ΔE_{t+1} PV_{t+1}` of the equilibria of
+  `TidyR5Meas` is a shock, and it is the shock of the exact (2.17),
+  `TidyR5Meas.mUnexpected_inflation`.
+* Links on every finite event tree (`ExpectationsMeasure.TreeBridge.treeSystem`):
+  `tree_forwardSol` (present values agree), `tree_mPegP` (the target equilibria agree),
+  `tree_mEquilibrium_iff` (`MEquilibrium` is `FiscalMonetary.Equilibrium`, for `β > 0`),
+  `tree_mIsEqm_iff` (`MIsEqm` is `Valuation.IsEqm`), `tree_mIsShock_iff`,
+  `tree_mPegModel_iff`, `tree_mRuleModel_iff` (the linear models agree), `tree_mFiscShock`
+  (the fiscal shocks agree, and are `LinearFTMP.pvNews` for bounded surpluses).
+-/
+
+namespace Cochrane.IntertemporalModel.TidyR5MeasLinear
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure TidyR5Meas
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-! ### The linear model -/
+
+/-- Cochrane (2023), p. 40, on a probability space: a shock is known on arrival, integrable,
+and has zero forecast, `E_t ε_{t+1} = 0` a.s. -/
+def MIsShock (ε : ℕ → Ω → ℝ) : Prop :=
+  (∀ t, StronglyMeasurable[S.𝓕 (t + 1)] (ε (t + 1))) ∧ (∀ t, Integrable (ε (t + 1)) S.μ) ∧
+    ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0
+
+/-- Cochrane (2023), eqs. (2.16)–(2.17), p. 35, on a probability space: `i_t = E_t π_{t+1}` and
+`ΔE_{t+1} π_{t+1} = −ε_{Σs,t+1}` almost surely at every date. -/
+def MPegModel (i ε π : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, i t =ᵐ[S.μ] S.E t (π (t + 1)) ∧ S.innov t (π (t + 1)) =ᵐ[S.μ] -ε (t + 1)
+
+/-- Cochrane (2023), eqs. (2.20)–(2.22), p. 40, on a probability space: `i_t = E_t π_{t+1}`,
+`ΔE_{t+1} π_{t+1} = −ε_{Σs,t+1}` and the rule `i_t = θ π_t + u_t`, almost surely at every
+date. -/
+def MRuleModel (θ : ℝ) (i u ε π : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, i t =ᵐ[S.μ] S.E t (π (t + 1)) ∧ S.innov t (π (t + 1)) =ᵐ[S.μ] -ε (t + 1) ∧
+    i t =ᵐ[S.μ] θ • π t + u t
+
+variable {i ε π u : ℕ → Ω → ℝ}
+
+/-- Cochrane (2023), p. 35: a variable `x` known and integrable at `t` with a shock `ε_{t+1}`:
+`E_t(x − ε_{t+1}) = x` and `ΔE_{t+1}(x − ε_{t+1}) = −ε_{t+1}` almost surely. -/
+theorem E_innov_known_sub_shock {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    (hxi : Integrable x S.μ) (hε : MIsShock S ε) :
+    S.E t (x - ε (t + 1)) =ᵐ[S.μ] x ∧ S.innov t (x - ε (t + 1)) =ᵐ[S.μ] -ε (t + 1) := by
+  have hE : S.E t (x - ε (t + 1)) =ᵐ[S.μ] x := by
+    filter_upwards [S.E_sub hxi (hε.2.1 t) t, hε.2.2 t] with ω h1 h2
+    rw [h1, Pi.sub_apply, S.E_of_stronglyMeasurable hx hxi, h2, Pi.zero_apply, sub_zero]
+  refine ⟨hE, ?_⟩
+  have hm : StronglyMeasurable[S.𝓕 (t + 1)] (x - ε (t + 1)) :=
+    (hx.mono (S.𝓕.mono (Nat.le_succ t))).sub (hε.1 t)
+  have hk := S.E_of_stronglyMeasurable hm (hxi.sub (hε.2.1 t))
+  filter_upwards [hE] with ω h
+  simp only [MeasExpectationSystem.innov, Pi.sub_apply, Pi.neg_apply]
+  rw [hk, h, Pi.sub_apply]
+  ring
+
+/-- Cochrane (2023), eq. (2.19), p. 36, on a probability space: for adapted inflation integrable
+at every date, an adapted integrable rate and a shock, the model (2.16)–(2.17) holds iff
+`π_{t+1} = i_t − ε_{Σs,t+1}` almost surely at every date. -/
+theorem mPegModel_iff (hπ : StronglyAdapted S.𝓕 π) (hπi : ∀ t, Integrable (π t) S.μ)
+    (hia : StronglyAdapted S.𝓕 i) (hii : ∀ t, Integrable (i t) S.μ) (hε : MIsShock S ε) :
+    MPegModel S i ε π ↔ ∀ t, π (t + 1) =ᵐ[S.μ] i t - ε (t + 1) := by
+  constructor
+  · intro h t
+    have e := S.eq_E_add_innov (hπ (t + 1)) (hπi (t + 1))
+    filter_upwards [(h t).1, (h t).2] with ω h1 h2
+    rw [congrFun e ω, Pi.add_apply, ← h1, h2, Pi.sub_apply, Pi.neg_apply]
+    ring
+  · intro h t
+    obtain ⟨hE, hN⟩ := E_innov_known_sub_shock S (hia t) (hii t) hε
+    have hc1 := S.E_congr (h t) t
+    have hc2 := S.E_congr (h t) (t + 1)
+    refine ⟨?_, ?_⟩
+    · filter_upwards [hc1, hE] with ω h1 h2
+      rw [h1, h2]
+    · filter_upwards [hc1, hc2, hN] with ω h1 h2 h3
+      simp only [MeasExpectationSystem.innov, Pi.sub_apply] at h3 ⊢
+      rw [h1, h2]
+      exact h3
+
+/-- Cochrane (2023), eq. (2.19), p. 36, on a probability space, **existence and uniqueness**: for
+every adapted integrable rate path and every shock, given an integrable `π_0` known at `0`, the
+solution `π_{t+1} = i_t − ε_{Σs,t+1}` (`LinearFTMP.pegSol`) is adapted, integrable and solves the
+model, and every adapted integrable solution with the same `π_0` equals it almost surely at
+every date. No boundedness is imposed. -/
+theorem mPeg_linear_existsUnique (hia : StronglyAdapted S.𝓕 i) (hii : ∀ t, Integrable (i t) S.μ)
+    (hε : MIsShock S ε) {π0 : Ω → ℝ} (h0 : StronglyMeasurable[S.𝓕 0] π0)
+    (h0i : Integrable π0 S.μ) :
+    (StronglyAdapted S.𝓕 (LinearFTMP.pegSol i ε π0) ∧
+      (∀ t, Integrable (LinearFTMP.pegSol i ε π0 t) S.μ) ∧
+      MPegModel S i ε (LinearFTMP.pegSol i ε π0)) ∧
+    ∀ π : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 π → (∀ t, Integrable (π t) S.μ) → π 0 =ᵐ[S.μ] π0 →
+      MPegModel S i ε π → ∀ t, π t =ᵐ[S.μ] LinearFTMP.pegSol i ε π0 t := by
+  have ha : StronglyAdapted S.𝓕 (LinearFTMP.pegSol i ε π0) := fun t => by
+    cases t with
+    | zero => exact h0
+    | succ t => exact ((hia t).mono (S.𝓕.mono (Nat.le_succ t))).sub (hε.1 t)
+  have hint : ∀ t, Integrable (LinearFTMP.pegSol i ε π0 t) S.μ := fun t => by
+    cases t with
+    | zero => exact h0i
+    | succ t => exact (hii t).sub (hε.2.1 t)
+  refine ⟨⟨ha, hint, (mPegModel_iff S ha hint hia hii hε).mpr fun t =>
+    Eventually.of_forall fun ω => rfl⟩, fun π hπ hπi hπ0 hm t => ?_⟩
+  have h := (mPegModel_iff S hπ hπi hia hii hε).mp hm
+  cases t with
+  | zero => exact hπ0
+  | succ t => exact h t
+
+/-- Cochrane (2023), eq. (2.25), p. 40, on a probability space: for adapted integrable inflation
+and disturbance and a shock, the rule model holds iff `π_{t+1} = θ π_t + u_t − ε_{Σs,t+1}` and
+`i_t = θ π_t + u_t` almost surely at every date. -/
+theorem mRule_iff {θ : ℝ} (hπ : StronglyAdapted S.𝓕 π) (hπi : ∀ t, Integrable (π t) S.μ)
+    (hu : StronglyAdapted S.𝓕 u) (hui : ∀ t, Integrable (u t) S.μ) (hε : MIsShock S ε) :
+    MRuleModel S θ i u ε π ↔
+      ∀ t, π (t + 1) =ᵐ[S.μ] θ • π t + u t - ε (t + 1) ∧ i t =ᵐ[S.μ] θ • π t + u t := by
+  have hk : ∀ t, StronglyMeasurable[S.𝓕 t] (θ • π t + u t) := fun t =>
+    ((hπ t).const_smul θ).add (hu t)
+  have hki : ∀ t, Integrable (θ • π t + u t) S.μ := fun t => ((hπi t).smul θ).add (hui t)
+  constructor
+  · intro h t
+    refine ⟨?_, (h t).2.2⟩
+    have e := S.eq_E_add_innov (hπ (t + 1)) (hπi (t + 1))
+    filter_upwards [(h t).1, (h t).2.1, (h t).2.2] with ω h1 h2 h3
+    rw [congrFun e ω, Pi.add_apply, ← h1, h2, h3, Pi.sub_apply, Pi.neg_apply]
+    ring
+  · intro h t
+    obtain ⟨hE, hN⟩ := E_innov_known_sub_shock S (hk t) (hki t) hε
+    have hc1 := S.E_congr (h t).1 t
+    have hc2 := S.E_congr (h t).1 (t + 1)
+    refine ⟨?_, ?_, (h t).2⟩
+    · filter_upwards [hc1, hE, (h t).2] with ω h1 h2 h3
+      rw [h1, h2, h3]
+    · filter_upwards [hc1, hc2, hN] with ω h1 h2 h3
+      simp only [MeasExpectationSystem.innov, Pi.sub_apply] at h3 ⊢
+      rw [h1, h2]
+      exact h3
+
+/-- Cochrane (2023), eqs. (2.20)–(2.25), p. 40, on a probability space, the fiscal-theory point
+of §2.6: for **every** `θ ∈ ℝ`, every adapted integrable disturbance and every shock, given an
+integrable `π_0` known at `0`, the solution (2.25) `LinearFTMP.ruleSol` with the rate
+`θ π_t + u_t` is adapted, integrable and solves the rule model, and every adapted integrable
+solution with the same `π_0` equals it almost surely at every date. -/
+theorem mRule_linear_existsUnique (θ : ℝ) (hu : StronglyAdapted S.𝓕 u)
+    (hui : ∀ t, Integrable (u t) S.μ) (hε : MIsShock S ε) {π0 : Ω → ℝ}
+    (h0 : StronglyMeasurable[S.𝓕 0] π0) (h0i : Integrable π0 S.μ) :
+    (StronglyAdapted S.𝓕 (LinearFTMP.ruleSol θ u ε π0) ∧
+      (∀ t, Integrable (LinearFTMP.ruleSol θ u ε π0 t) S.μ) ∧
+      MRuleModel S θ (fun t => θ • LinearFTMP.ruleSol θ u ε π0 t + u t) u ε
+        (LinearFTMP.ruleSol θ u ε π0)) ∧
+    ∀ q : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ), StronglyAdapted S.𝓕 q.1 →
+      (∀ t, Integrable (q.1 t) S.μ) → q.1 0 =ᵐ[S.μ] π0 → MRuleModel S θ q.2 u ε q.1 →
+        ∀ t, q.1 t =ᵐ[S.μ] LinearFTMP.ruleSol θ u ε π0 t ∧
+          q.2 t =ᵐ[S.μ] θ • LinearFTMP.ruleSol θ u ε π0 t + u t := by
+  have ha : StronglyAdapted S.𝓕 (LinearFTMP.ruleSol θ u ε π0) := fun t => by
+    induction t with
+    | zero => exact h0
+    | succ t ih =>
+      exact (((ih.const_smul θ).add (hu t)).mono (S.𝓕.mono (Nat.le_succ t))).sub (hε.1 t)
+  have hint : ∀ t, Integrable (LinearFTMP.ruleSol θ u ε π0 t) S.μ := fun t => by
+    induction t with
+    | zero => exact h0i
+    | succ t ih => exact ((ih.smul θ).add (hui t)).sub (hε.2.1 t)
+  refine ⟨⟨ha, hint, (mRule_iff S ha hint hu hui hε).mpr fun t =>
+    ⟨Eventually.of_forall fun ω => rfl, Eventually.of_forall fun ω => rfl⟩⟩,
+    fun q hπ hπi hπ0 hm => ?_⟩
+  have h := (mRule_iff S hπ hπi hu hui hε).mp hm
+  have hπeq : ∀ t, q.1 t =ᵐ[S.μ] LinearFTMP.ruleSol θ u ε π0 t := by
+    intro t
+    induction t with
+    | zero => exact hπ0
+    | succ t ih =>
+      filter_upwards [(h t).1, ih] with ω h1 h2
+      rw [h1]
+      change (θ • q.1 t + u t - ε (t + 1)) ω =
+        (θ • LinearFTMP.ruleSol θ u ε π0 t + u t - ε (t + 1)) ω
+      simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, h2]
+  intro t
+  refine ⟨hπeq t, ?_⟩
+  filter_upwards [(h t).2, hπeq t] with ω h1 h2
+  rw [h1]
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, h2]
+
+/-! ### The fiscal shock -/
+
+/-- Cochrane (2023), eq. (2.17), p. 35, on a probability space: the fiscal shock
+`ε_{Σs,t+1} = ΔE_{t+1} PV_{t+1}`, zero at date `0`. -/
+noncomputable def mFiscShock (β : ℝ) (s : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => 0
+  | t + 1 => S.innov t (S.forwardSol β s (t + 1))
+
+/-- Cochrane (2023), eq. (2.17), p. 35, on a probability space: the fiscal shock is a shock. -/
+theorem mFiscShock_isShock (β : ℝ) (s : ℕ → Ω → ℝ) : MIsShock S (mFiscShock S β s) :=
+  ⟨fun t => S.stronglyMeasurable_innov t _,
+    fun _ => (S.integrable_E _ _).sub (S.integrable_E _ _), fun _ => S.E_innov le_rfl _⟩
+
+/-- Cochrane (2023), eqs. (2.13) and (2.17), pp. 30, 35, on a probability space: in every
+equilibrium of `TidyR5Meas`, `(B_t/P_t) ΔE_{t+1}(P_t/P_{t+1}) = ε_{Σs,t+1}` almost surely, with
+the fiscal shock `mFiscShock` (the exact (2.17)). -/
+theorem mEquilibrium_fiscShock {β : ℝ} {Bm1 : Ω → ℝ} {s B P : ℕ → Ω → ℝ}
+    (h : MEquilibrium S β Bm1 s B P i) (t : ℕ) :
+    (fun ω => B t ω / P t ω * S.innov t (fun ω => P t ω / P (t + 1) ω) ω) =ᵐ[S.μ]
+      mFiscShock S β s (t + 1) :=
+  mUnexpected_inflation S h t
+
+/-! ### Links to the abstract versions on finite event trees -/
+
+namespace Link
+
+open ExpectationsFiniteTree TreeBridge HouseholdMeasureTVC.Link
+
+variable {Ω' : Type*} [Fintype Ω'] [MeasurableSpace Ω'] [DiscreteMeasurableSpace Ω']
+  (T : FiniteTree Ω')
+
+/-- Cochrane (2023), p. 21: on a finite tree an almost-sure equality is an equality. -/
+theorem eq_of_ae {f g : Ω' → ℝ} (h : f =ᵐ[(treeSystem T).μ] g) : f = g :=
+  funext (forall_of_ae T h)
+
+/-- Cochrane (2023), eq. (2.7), p. 22: on a finite tree the measure-theoretic present value
+`E_t ∑ βʲ s_{t+j}` is `FiscalMonetary.pv`. -/
+theorem tree_forwardSol (β : ℝ) (s : ℕ → Ω' → ℝ) (t : ℕ) :
+    (treeSystem T).forwardSol β s t = FiscalMonetary.pv T.toExpectationSystem β s t := by
+  change (treeSystem T).E t (MeasExpectationSystem.discSum β s t) = _
+  rw [treeE]
+  rfl
+
+/-- Cochrane (2023), eq. (2.13), p. 30: on a finite tree the measure-theoretic news operator is
+`ExpectationTools.innov`. -/
+theorem tree_innov (t : ℕ) (x : Ω' → ℝ) :
+    (treeSystem T).innov t x = ExpectationTools.innov T.toExpectationSystem t x := by
+  simp only [MeasExpectationSystem.innov, ExpectationTools.innov, treeE]
+
+/-- Cochrane (2023), p. 21: on a finite tree a process is adapted in the measure sense iff it
+is adapted in the core sense. -/
+theorem tree_adapted_iff (x : ℕ → Ω' → ℝ) :
+    StronglyAdapted (treeSystem T).𝓕 x ↔ T.toExpectationSystem.Adapted x :=
+  forall_congr' fun t => sm_iff_known T t (x t)
+
+/-- Cochrane (2023), eq. (2.15), p. 31: on a finite tree the measure-theoretic ex-dividend
+present value is `FiscalMonetary.pvEx`. -/
+theorem tree_pvExM (β : ℝ) (s : ℕ → Ω' → ℝ) (t : ℕ) :
+    pvExM (treeSystem T) β s t = FiscalMonetary.pvEx T.toExpectationSystem β s t := by
+  rw [FiscalMonetary.pvEx_eq, pvExM, tree_forwardSol, treeE]
+
+/-- Cochrane (2023), §2.4.3, p. 31: on a finite tree the measure-theoretic target equilibrium is
+the core one, `mPegP = FiscalMonetary.pegP` and `mPegB = FiscalMonetary.pegB` (no hypotheses). -/
+theorem tree_mPegP (β : ℝ) (Bm1 : Ω' → ℝ) (s i : ℕ → Ω' → ℝ) (t : ℕ) :
+    mPegP (treeSystem T) β Bm1 s i t = FiscalMonetary.pegP T.toExpectationSystem β Bm1 s i t ∧
+      mPegB (treeSystem T) β Bm1 s i t = FiscalMonetary.pegB T.toExpectationSystem β Bm1 s i t := by
+  have hP : ∀ t, mPegP (treeSystem T) β Bm1 s i t =
+      FiscalMonetary.pegP T.toExpectationSystem β Bm1 s i t := by
+    intro t
+    induction t with
+    | zero =>
+      funext ω
+      change Bm1 ω / (treeSystem T).forwardSol β s 0 ω = _
+      rw [tree_forwardSol]
+      rfl
+    | succ t ih =>
+      funext ω
+      change (1 + i t ω) * mPegP (treeSystem T) β Bm1 s i t ω * pvExM (treeSystem T) β s t ω /
+        (treeSystem T).forwardSol β s (t + 1) ω = _
+      rw [ih, tree_pvExM, tree_forwardSol]
+      rfl
+  refine ⟨hP t, ?_⟩
+  funext ω
+  change (1 + i t ω) * mPegP (treeSystem T) β Bm1 s i t ω * pvExM (treeSystem T) β s t ω = _
+  rw [hP t, tree_pvExM]
+  rfl
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33: on a finite tree, with `β > 0`, the measure-theoretic
+equilibrium `MEquilibrium` is exactly the core `FiscalMonetary.Equilibrium` (its condition
+`i > −1` is a consequence, `TidyR5BondPrice.bondPricing_rate_gt`). -/
+theorem tree_mEquilibrium_iff {β : ℝ} (hβ : 0 < β) {Bm1 : Ω' → ℝ} {s B P i : ℕ → Ω' → ℝ} :
+    MEquilibrium (treeSystem T) β Bm1 s B P i ↔
+      FiscalMonetary.Equilibrium T.toExpectationSystem β Bm1 s B P i := by
+  constructor
+  · rintro ⟨hPa, hP, hBa, hia, -, ⟨hv0, hv⟩, hbp⟩
+    have hP' : ∀ t ω, 0 < P t ω := fun t => forall_of_ae T (hP t)
+    have hbp' : FiscalMonetary.BondPricing T.toExpectationSystem β P i := fun t => by
+      have e := eq_of_ae T (hbp t)
+      rw [treeE] at e
+      exact e
+    refine ⟨(tree_adapted_iff T P).1 hPa, hP', (tree_adapted_iff T B).1 hBa,
+      (tree_adapted_iff T i).1 hia,
+      TidyR5BondPrice.bondPricing_rate_gt T.toExpectationSystem hβ hP' hbp', ⟨?_, fun t => ?_⟩,
+      hbp'⟩
+    · have e := eq_of_ae T hv0
+      rw [tree_forwardSol] at e
+      exact e
+    · have e := eq_of_ae T (hv t)
+      rw [tree_forwardSol] at e
+      exact e
+  · rintro ⟨hPa, hP, hBa, hia, -, ⟨hv0, hv⟩, hbp⟩
+    refine ⟨(tree_adapted_iff T P).2 hPa, fun t => Eventually.of_forall (hP t),
+      (tree_adapted_iff T B).2 hBa, (tree_adapted_iff T i).2 hia,
+      fun t => Integrable.of_finite, ⟨?_, fun t => ?_⟩, fun t => ?_⟩
+    · rw [tree_forwardSol]
+      exact Eventually.of_forall fun ω => congrFun hv0 ω
+    · rw [tree_forwardSol]
+      exact Eventually.of_forall fun ω => congrFun (hv t) ω
+    · rw [treeE]
+      exact Eventually.of_forall fun ω => congrFun (hbp t) ω
+
+/-- Cochrane (2023), §2.1, pp. 21–22: on a finite tree the measure-theoretic derived equilibrium
+`MIsEqm` is exactly the core `Valuation.IsEqm`. -/
+theorem tree_mIsEqm_iff {β : ℝ} {Bm s P Q : ℕ → Ω' → ℝ} :
+    MIsEqm (treeSystem T) β Bm s P Q ↔ Valuation.IsEqm T.toExpectationSystem β Bm s P Q := by
+  constructor
+  · rintro ⟨hP, hPa, hQ, hflow, htvc⟩
+    refine ⟨fun t => forall_of_ae T (hP t), (tree_adapted_iff T P).1 hPa, fun t => ?_,
+      fun t => forall_of_ae T (hflow t), fun t ω => ?_⟩
+    · have e := eq_of_ae T (hQ t)
+      rw [treeE] at e
+      exact e
+    · have e := forall_of_ae T (htvc t) ω
+      simp only [treeE] at e
+      exact e
+  · rintro ⟨hP, hPa, hQ, hflow, htvc⟩
+    refine ⟨fun t => Eventually.of_forall (hP t), (tree_adapted_iff T P).2 hPa, fun t => ?_,
+      fun t => Eventually.of_forall (hflow t), fun t => Eventually.of_forall fun ω => ?_⟩
+    · rw [treeE]
+      exact Eventually.of_forall fun ω => congrFun (hQ t) ω
+    · simp only [treeE]
+      exact htvc t ω
+
+/-- Cochrane (2023), p. 40: on a finite tree a measure-theoretic shock is a core shock
+(`LinearFTMP.IsShock`). -/
+theorem tree_mIsShock_iff (ε : ℕ → Ω' → ℝ) :
+    MIsShock (treeSystem T) ε ↔ LinearFTMP.IsShock T.toExpectationSystem ε := by
+  constructor
+  · rintro ⟨hm, -, hE⟩
+    refine ⟨fun t => (sm_iff_known T (t + 1) _).1 (hm t), fun t => ?_⟩
+    have e := eq_of_ae T (hE t)
+    rw [treeE] at e
+    exact e
+  · rintro ⟨hm, hE⟩
+    refine ⟨fun t => (sm_iff_known T (t + 1) _).2 (hm t), fun t => Integrable.of_finite,
+      fun t => ?_⟩
+    rw [treeE, hE t]
+
+/-- Cochrane (2023), eqs. (2.16)–(2.17), p. 35: on a finite tree the measure-theoretic peg model
+is `LinearFTMP.PegModel`. -/
+theorem tree_mPegModel_iff (i ε π : ℕ → Ω' → ℝ) :
+    MPegModel (treeSystem T) i ε π ↔ LinearFTMP.PegModel T.toExpectationSystem i ε π := by
+  constructor
+  · intro h t
+    have e1 := eq_of_ae T (h t).1
+    have e2 := eq_of_ae T (h t).2
+    rw [treeE] at e1
+    rw [tree_innov] at e2
+    exact ⟨e1, e2⟩
+  · intro h t
+    rw [treeE, tree_innov]
+    exact ⟨Eventually.of_forall fun ω => congrFun (h t).1 ω,
+      Eventually.of_forall fun ω => congrFun (h t).2 ω⟩
+
+/-- Cochrane (2023), eqs. (2.20)–(2.22), p. 40: on a finite tree the measure-theoretic rule model
+is `LinearFTMP.RuleModel`. -/
+theorem tree_mRuleModel_iff (θ : ℝ) (i u ε π : ℕ → Ω' → ℝ) :
+    MRuleModel (treeSystem T) θ i u ε π ↔ LinearFTMP.RuleModel T.toExpectationSystem θ i u ε π := by
+  constructor
+  · intro h t
+    have e1 := eq_of_ae T (h t).1
+    have e2 := eq_of_ae T (h t).2.1
+    rw [treeE] at e1
+    rw [tree_innov] at e2
+    exact ⟨e1, e2, eq_of_ae T (h t).2.2⟩
+  · intro h t
+    rw [treeE, tree_innov]
+    exact ⟨Eventually.of_forall fun ω => congrFun (h t).1 ω,
+      Eventually.of_forall fun ω => congrFun (h t).2.1 ω,
+      Eventually.of_forall fun ω => congrFun (h t).2.2 ω⟩
+
+/-- Cochrane (2023), eq. (2.17), p. 35: on a finite tree the measure-theoretic fiscal shock is
+the core news about the present value, and for bounded surpluses (`0 ≤ β < 1`) it is the core
+fiscal shock `LinearFTMP.pvNews`. -/
+theorem tree_mFiscShock {β M : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {s : ℕ → Ω' → ℝ}
+    (hs : ∀ t ω, |s t ω| ≤ M) (t : ℕ) :
+    mFiscShock (treeSystem T) β s (t + 1) =
+        ExpectationTools.innov T.toExpectationSystem t
+          (FiscalMonetary.pv T.toExpectationSystem β s (t + 1)) ∧
+      mFiscShock (treeSystem T) β s (t + 1) = LinearFTMP.pvNews T.toExpectationSystem β s t := by
+  have e : mFiscShock (treeSystem T) β s (t + 1) =
+      ExpectationTools.innov T.toExpectationSystem t
+        (FiscalMonetary.pv T.toExpectationSystem β s (t + 1)) := by
+    change (treeSystem T).innov t ((treeSystem T).forwardSol β s (t + 1)) = _
+    rw [tree_innov, tree_forwardSol]
+  refine ⟨e, ?_⟩
+  rw [e, FiscalMonetary.news_pv_succ,
+    GeneralLinks.innov_epv_eq_pvNews T.toExpectationSystem hβ0 hβ1 hs t]
+
+end Link
+
+end Cochrane.IntertemporalModel.TidyR5MeasLinear
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The family of exact equilibria on a genuine probability space
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 2, §2.4, pp. 29–33, and §2.5,
+pp. 34–37: the family of exact nonlinear equilibria of `TidyR5Family` (surpluses
+`s_t(ε) = s̄ + ε ŝ_t`, a rate family `i(ε)`, canonically `1 + i_t(ε) = β⁻¹ exp(ε î_t)`,
+`TidyR5Family.rateExp`) on a probability space with
+Mathlib's conditional expectation, where information may grow forever and no history need have
+positive probability.
+
+The family is written with one fixed version of the present values of `ŝ`
+(`MeasExpectationSystem.forwardSol` and `TidyR5Meas.pvExM`): `pvAff`, `pvExAff`, `mFamP`,
+`mFamB`. For each `ε` it is an equilibrium in the sense of `TidyR5Meas.MEquilibrium`, and as a
+function of `ε` it is smooth in almost every state, so it can be differentiated state by
+state.
+
+## Main results
+
+* `forwardSol_surpFam`, `pvExM_surpFam`: present values of `s(ε)` are affine in `ε` almost
+  surely.
+* `mEquilibrium_congr`: `MEquilibrium` only depends on prices and debt up to null sets.
+* `mFam_equilibrium`, `mFam_unique`: for every `ε` in `TidyR5Family.famDom` the family member is
+  an equilibrium, and every equilibrium with the same surpluses and target equals it almost
+  surely at every date; `mFam_steady`: the steady state at `ε = 0`.
+* `mFam_contDiffOn`: almost surely, price level, debt and inflation are `C^n` in `ε` on
+  `famDom` for every `n`.
+* `mFamInfl_hasDerivAt_gen` (any rate family) and `mFamInfl_hasDerivAt` (canonical target):
+  almost surely, the derivative at `ε = 0` of inflation is the solution (2.19) of the linear
+  model, with the fiscal shock `mShock` (news about the present value of
+  `ŝ` scaled by steady-state debt) and `π̂_0 = mInfl0`; `meas_family_linearization`: everything
+  together, with existence and almost-sure uniqueness of the linear solution
+  (`TidyR5MeasLinear.mPeg_linear_existsUnique`).
+* `tree_mFamP`, `tree_mFamInfl`: on a finite event tree the family is `TidyR5Family.priceFam`
+  and its inflation `TidyR5Family.inflFam`, for every rate family.
+
+The rule family on a probability space is in `TidyR5MeasFamilyRule`.
+-/
+
+namespace Cochrane.IntertemporalModel.TidyR5MeasFamily
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure TidyR5Meas
+  TidyR5MeasLinear TidyR5Family
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33, on a probability space: an equilibrium remains an
+equilibrium when its price level and debt are replaced by adapted processes equal to them almost
+surely at every date. -/
+theorem mEquilibrium_congr {β : ℝ} {Bm1 : Ω → ℝ} {s B P i B' P' : ℕ → Ω → ℝ}
+    (h : MEquilibrium S β Bm1 s B P i) (hP'a : StronglyAdapted S.𝓕 P')
+    (hB'a : StronglyAdapted S.𝓕 B') (hP : ∀ t, P' t =ᵐ[S.μ] P t) (hB : ∀ t, B' t =ᵐ[S.μ] B t) :
+    MEquilibrium S β Bm1 s B' P' i := by
+  obtain ⟨-, hpos, -, hia, hint, ⟨hv0, hv⟩, hbp⟩ := h
+  have hr : ∀ t, (fun ω => P' t ω / P' (t + 1) ω) =ᵐ[S.μ] fun ω => P t ω / P (t + 1) ω :=
+    fun t => by
+      filter_upwards [hP t, hP (t + 1)] with ω h1 h2
+      rw [h1, h2]
+  refine ⟨hP'a, fun t => ?_, hB'a, hia, fun t => (hint t).congr (hr t).symm,
+    ⟨?_, fun t => ?_⟩, fun t => ?_⟩
+  · filter_upwards [hpos t, hP t] with ω h1 h2
+    rw [h2]
+    exact h1
+  · filter_upwards [hv0, hP 0] with ω h1 h2
+    rw [h2]
+    exact h1
+  · filter_upwards [hv t, hP (t + 1), hB t] with ω h1 h2 h3
+    rw [h2, h3]
+    exact h1
+  · filter_upwards [hbp t, S.E_congr (hr t) t] with ω h1 h2
+    rw [h1, Pi.smul_apply, Pi.smul_apply, h2]
+
+/-! ### The family -/
+
+/-- Cochrane (2023), eq. (2.7), p. 22: the affine present value of the family,
+`V + ε PV_t(ŝ)`, for the fixed version `PV(ŝ) = forwardSol`. -/
+noncomputable def pvAff (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (ε : ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => ssV β sbar + ε * S.forwardSol β shat t ω
+
+/-- Cochrane (2023), eq. (2.15), p. 31: the affine ex-dividend present value of the family,
+`βV + ε PVex_t(ŝ)`. -/
+noncomputable def pvExAff (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (ε : ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => β * ssV β sbar + ε * pvExM S β shat t ω
+
+/-- Cochrane (2023), §2.4.3, p. 31, on a probability space: the price level of the family,
+`P_0 = B_{−1}/PV_0(ε)`, `P_{t+1} = (1 + i_t(ε)) P_t PVex_t(ε)/PV_{t+1}(ε)`, for an arbitrary rate
+family `iF` (e.g. the canonical target `TidyR5Family.rateExp`). -/
+noncomputable def mFamP (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (Bm1 : Ω → ℝ) (iF : ℝ → ℕ → Ω → ℝ)
+    (ε : ℝ) : ℕ → Ω → ℝ
+  | 0 => fun ω => Bm1 ω / pvAff S β sbar shat ε 0 ω
+  | t + 1 => fun ω => (1 + iF ε t ω) * mFamP β sbar shat Bm1 iF ε t ω *
+      pvExAff S β sbar shat ε t ω / pvAff S β sbar shat ε (t + 1) ω
+
+/-- Cochrane (2023), eq. (2.15), p. 31, on a probability space: the debt sold along the family,
+`B_t = (1 + i_t(ε)) P_t PVex_t(ε)`. -/
+noncomputable def mFamB (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (Bm1 : Ω → ℝ) (iF : ℝ → ℕ → Ω → ℝ)
+    (ε : ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => (1 + iF ε t ω) * mFamP S β sbar shat Bm1 iF ε t ω *
+    pvExAff S β sbar shat ε t ω
+
+/-- Cochrane (2023), §2.5, p. 35, on a probability space: inflation along the family,
+`π_t(ε) = log(P_t(ε)/P_{t−1}(ε))`, with `P_{−1} = B_{−1}/V`. -/
+noncomputable def mFamInfl (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (Bm1 : Ω → ℝ)
+    (iF : ℝ → ℕ → Ω → ℝ) (ε : ℝ) : ℕ → Ω → ℝ
+  | 0 => fun ω => Real.log (mFamP S β sbar shat Bm1 iF ε 0 ω / (Bm1 ω / ssV β sbar))
+  | t + 1 => fun ω => Real.log (mFamP S β sbar shat Bm1 iF ε (t + 1) ω /
+      mFamP S β sbar shat Bm1 iF ε t ω)
+
+/-- Cochrane (2023), eq. (2.17), p. 35, on a probability space: the fiscal shock of the linear
+model for the family, the news about `PV(ŝ)` scaled by steady-state debt,
+`ε_{Σs,t+1} = V⁻¹ ΔE_{t+1} PV_{t+1}(ŝ)`. -/
+noncomputable def mShock (β sbar : ℝ) (shat : ℕ → Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun t => (ssV β sbar)⁻¹ • mFiscShock S β shat t
+
+/-- Cochrane (2023), eq. (2.17), p. 35, on a probability space: the initial inflation of the
+linear model, `π̂_0 = −PV_0(ŝ)/V`. -/
+noncomputable def mInfl0 (β sbar : ℝ) (shat : ℕ → Ω → ℝ) : Ω → ℝ :=
+  fun ω => -((ssV β sbar)⁻¹ * S.forwardSol β shat 0 ω)
+
+variable {β sbar M Mi : ℝ} {shat ihat : ℕ → Ω → ℝ} {Bm1 : Ω → ℝ} {iF : ℝ → ℕ → Ω → ℝ}
+
+/-! ### Present values of the family -/
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (2.7), p. 22: the realised discounted sum of `s(ε)` is
+`V + ε ∑ βʲ ŝ_{t+j}` in every state. -/
+theorem discSum_surpFam (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ)
+    (t : ℕ) : MeasExpectationSystem.discSum β (surpFam sbar shat ε) t =
+      (fun _ => ssV β sbar) + ε • MeasExpectationSystem.discSum β shat t := by
+  funext ω
+  exact congrFun (epv_surpFam (sbar := sbar) hβ0 hβ1 hs ε t) ω
+
+/-- Cochrane (2023), eq. (2.7), p. 22: the realised discounted sum of a bounded adapted `ŝ` is
+integrable. -/
+theorem discSum_integrable (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (t : ℕ) :
+    Integrable (MeasExpectationSystem.discSum β shat t) S.μ := by
+  have ha : |β| < 1 := by rwa [abs_of_nonneg hβ0]
+  exact MeasExpectationSystem.BddRV.integrable
+    ⟨S.aestronglyMeasurable_discSum ha
+      (fun t => ((hsad t).mono (S.𝓕.le t)).aestronglyMeasurable)
+      (fun t => Eventually.of_forall (hs t)) t, M / (1 - |β|),
+      S.discSum_bdd ha (fun t => Eventually.of_forall (hs t)) t⟩
+
+/-- Cochrane (2023), eq. (2.7), p. 22, on a probability space: `PV_t(s(ε)) = V + ε PV_t(ŝ)`
+almost surely. -/
+theorem forwardSol_surpFam (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ) (t : ℕ) :
+    S.forwardSol β (surpFam sbar shat ε) t =ᵐ[S.μ] pvAff S β sbar shat ε t := by
+  change S.E t (MeasExpectationSystem.discSum β (surpFam sbar shat ε) t) =ᵐ[S.μ] _
+  rw [discSum_surpFam hβ0 hβ1 hs]
+  filter_upwards [S.E_add (integrable_const (ssV β sbar))
+    ((discSum_integrable S hβ0 hβ1 hsad hs t).smul ε) t,
+    S.E_smul ε (MeasExpectationSystem.discSum β shat t) t] with ω h1 h2
+  rw [h1, Pi.add_apply, S.E_const, h2]
+  rfl
+
+/-- Cochrane (2023), eq. (2.15), p. 31, on a probability space: `PVex_t(s(ε)) = βV + ε PVex_t(ŝ)`
+almost surely. -/
+theorem pvExM_surpFam (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ) (t : ℕ) :
+    pvExM S β (surpFam sbar shat ε) t =ᵐ[S.μ] pvExAff S β sbar shat ε t := by
+  have h1 := S.E_congr (forwardSol_surpFam S (sbar := sbar) hβ0 hβ1 hsad hs ε (t + 1)) t
+  have e : pvAff S β sbar shat ε (t + 1) =
+      (fun _ => ssV β sbar) + ε • S.forwardSol β shat (t + 1) := rfl
+  rw [e] at h1
+  have h2 : S.E t ((fun _ => ssV β sbar) + ε • S.forwardSol β shat (t + 1)) =ᵐ[S.μ]
+      S.E t (fun _ => ssV β sbar) + S.E t (ε • S.forwardSol β shat (t + 1)) :=
+    S.E_add (integrable_const (ssV β sbar)) ((S.integrable_E (t + 1) _).smul ε) t
+  filter_upwards [h1, h2, S.E_smul ε (S.forwardSol β shat (t + 1)) t] with ω e1 e2 e3
+  simp only [pvExM, pvExAff, Pi.smul_apply, smul_eq_mul]
+  rw [e1, e2, Pi.add_apply, S.E_const, e3, Pi.smul_apply, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), eqs. (2.7) and (2.15), pp. 22, 31: almost surely, at every date,
+`B_{−1} > 0`, `|PV_t(ŝ)| ≤ M/(1 − β)` and `|PVex_t(ŝ)| ≤ β M/(1 − β)`. -/
+theorem good_ae (hβ0 : 0 < β) (hβ1 : β < 1) (hs : ∀ t ω, |shat t ω| ≤ M)
+    (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) :
+    ∀ᵐ ω ∂S.μ, 0 < Bm1 ω ∧ ∀ t, |S.forwardSol β shat t ω| ≤ (1 - β)⁻¹ * M ∧
+      |pvExM S β shat t ω| ≤ β * ((1 - β)⁻¹ * M) := by
+  have ha : |β| < 1 := by rwa [abs_of_pos hβ0]
+  have hK : M / (1 - |β|) = (1 - β)⁻¹ * M := by
+    rw [abs_of_pos hβ0, div_eq_inv_mul]
+  have hb : ∀ t, ∀ᵐ ω ∂S.μ, |S.forwardSol β shat t ω| ≤ (1 - β)⁻¹ * M := fun t => by
+    rw [← hK]
+    exact pv_bdd S ha (fun t => Eventually.of_forall (hs t)) t
+  have hbE : ∀ t, ∀ᵐ ω ∂S.μ, |pvExM S β shat t ω| ≤ β * ((1 - β)⁻¹ * M) := fun t => by
+    filter_upwards [S.abs_E_le (hb (t + 1)) t] with ω h
+    simp only [pvExM, Pi.smul_apply, smul_eq_mul]
+    rw [abs_mul, abs_of_pos hβ0]
+    exact mul_le_mul_of_nonneg_left h hβ0.le
+  filter_upwards [hB, ae_all_iff.2 hb, ae_all_iff.2 hbE] with ω h1 h2 h3
+  exact ⟨h1, fun t => ⟨h2 t, h3 t⟩⟩
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (2.7), p. 22: on `famDom`, `V + ε Y > 0` whenever
+`|Y| ≤ M/(1 − β)`. -/
+theorem aff_pos (hβ1 : β < 1) {Y ε : ℝ} (hY : |Y| ≤ (1 - β)⁻¹ * M)
+    (hε : ε ∈ famDom sbar M) : 0 < ssV β sbar + ε * Y := by
+  have hε' : |ε| * M < sbar := hε
+  have hc : 0 < (1 - β)⁻¹ := inv_pos.mpr (by linarith)
+  have h1 : |ε * Y| ≤ |ε| * ((1 - β)⁻¹ * M) := by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left hY (abs_nonneg ε)
+  have h2 := neg_abs_le (ε * Y)
+  have h3 : 0 < (1 - β)⁻¹ * (sbar - |ε| * M) := mul_pos hc (by linarith)
+  simp only [ssV]
+  nlinarith
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (2.15), p. 31: on `famDom`, `βV + ε X > 0` whenever
+`|X| ≤ β M/(1 − β)` (`β > 0`). -/
+theorem affEx_pos (hβ0 : 0 < β) (hβ1 : β < 1) {X ε : ℝ} (hX : |X| ≤ β * ((1 - β)⁻¹ * M))
+    (hε : ε ∈ famDom sbar M) : 0 < β * ssV β sbar + ε * X := by
+  have hY : |X / β| ≤ (1 - β)⁻¹ * M := by
+    rw [abs_div, abs_of_pos hβ0, div_le_iff₀ hβ0]
+    linarith
+  have h := mul_pos hβ0 (aff_pos (sbar := sbar) hβ1 hY hε)
+  have e : β * (ssV β sbar + ε * (X / β)) = β * ssV β sbar + ε * X := by
+    field_simp
+  rwa [e] at h
+
+/-- Cochrane (2023), §2.4.3, p. 31: in every state where the bounds of `good_ae` hold, the
+family's price level is positive on `famDom` (for a rate family exceeding `−1` there). -/
+theorem mFamP_pos (hβ0 : 0 < β) (hβ1 : β < 1) {ω : Ω} (hω : 0 < Bm1 ω ∧
+      ∀ t, |S.forwardSol β shat t ω| ≤ (1 - β)⁻¹ * M ∧
+        |pvExM S β shat t ω| ≤ β * ((1 - β)⁻¹ * M))
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω)
+    {ε : ℝ} (hε : ε ∈ famDom sbar M) (t : ℕ) : 0 < mFamP S β sbar shat Bm1 iF ε t ω := by
+  induction t with
+  | zero => exact div_pos hω.1 (aff_pos hβ1 (hω.2 0).1 hε)
+  | succ t ih =>
+    change 0 < (1 + iF ε t ω) * mFamP S β sbar shat Bm1 iF ε t ω *
+      pvExAff S β sbar shat ε t ω / pvAff S β sbar shat ε (t + 1) ω
+    have h1 : 0 < 1 + iF ε t ω := by linarith [hiG ε hε t ω]
+    have h2 : 0 < pvExAff S β sbar shat ε t ω := affEx_pos hβ0 hβ1 (hω.2 t).2 hε
+    have h3 : 0 < pvAff S β sbar shat ε (t + 1) ω := aff_pos hβ1 (hω.2 (t + 1)).1 hε
+    positivity
+
+/-! ### Each member is an equilibrium, and the only one -/
+
+/-- Cochrane (2023), eq. (2.16), p. 35: the canonical rate is adapted when `î` is (on a
+probability space no `FunctionsKnown` hypothesis is needed). -/
+theorem rateExp_sm (hihat : StronglyAdapted S.𝓕 ihat) (ε : ℝ) :
+    StronglyAdapted S.𝓕 (rateExp β ihat ε) := fun t =>
+  ((((hihat t).measurable.const_mul ε).exp.const_mul β⁻¹).sub_const 1).stronglyMeasurable
+
+/-- Cochrane (2023), eq. (2.3), p. 22: with `|î| ≤ Mi`, the bond price of the canonical target,
+`1/(1 + i_t(ε)) = β exp(−ε î_t)`, is integrable. -/
+theorem rateExp_bondPrice_integrable (hβ0 : 0 < β) (hihat : StronglyAdapted S.𝓕 ihat)
+    (hib : ∀ t ω, |ihat t ω| ≤ Mi) (ε : ℝ) (t : ℕ) :
+    Integrable (fun ω => (1 + rateExp β ihat ε t ω)⁻¹) S.μ := by
+  refine Integrable.of_bound (C := β * Real.exp (|ε| * Mi)) ?_ (Eventually.of_forall fun ω => ?_)
+  · exact ((((rateExp_sm S hihat ε t).mono (S.𝓕.le t)).measurable.const_add 1).inv
+      ).aestronglyMeasurable
+  · have e : (1 + rateExp β ihat ε t ω)⁻¹ = β * Real.exp (-(ε * ihat t ω)) := by
+      simp only [rateExp, add_sub_cancel]
+      rw [mul_inv, inv_inv, Real.exp_neg]
+    rw [e, Real.norm_eq_abs, abs_mul, abs_of_pos hβ0, abs_of_pos (Real.exp_pos _)]
+    refine mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr ?_) hβ0.le
+    have h1 : |ε * ihat t ω| ≤ |ε| * Mi := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hib t ω) (abs_nonneg ε)
+    linarith [neg_abs_le (ε * ihat t ω)]
+
+/-- Cochrane (2023), §2.4.3, p. 31: the family's price level is adapted when the rate is. -/
+theorem mFamP_sm (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) {ε : ℝ}
+    (hiA : StronglyAdapted S.𝓕 (iF ε)) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 t] (mFamP S β sbar shat Bm1 iF ε t) := by
+  have hpv : ∀ t, Measurable[S.𝓕 t] (pvAff S β sbar shat ε t) := fun t =>
+    ((S.forwardSol_adapted β shat t).measurable.const_mul ε).const_add _
+  have hpvE : ∀ t, Measurable[S.𝓕 t] (pvExAff S β sbar shat ε t) := fun t =>
+    ((pvExM_sm S β shat t).measurable.const_mul ε).const_add _
+  induction t with
+  | zero => exact (hBm1.measurable.div (hpv 0)).stronglyMeasurable
+  | succ t ih =>
+    have hmono : S.𝓕 t ≤ S.𝓕 (t + 1) := S.𝓕.mono (Nat.le_succ t)
+    exact (((((hiA t).mono hmono).measurable.const_add 1).mul
+      (ih.mono hmono).measurable).mul ((hpvE t).mono hmono le_rfl)).div (hpv (t + 1))
+      |>.stronglyMeasurable
+
+/-- Cochrane (2023), eq. (2.15), p. 31: the family's debt is adapted when the rate is. -/
+theorem mFamB_sm (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) {ε : ℝ}
+    (hiA : StronglyAdapted S.𝓕 (iF ε)) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 t] (mFamB S β sbar shat Bm1 iF ε t) :=
+  (((((hiA t)).measurable.const_add 1).mul (mFamP_sm S hBm1 hiA t).measurable).mul
+    (((pvExM_sm S β shat t).measurable.const_mul ε).const_add _)).stronglyMeasurable
+
+/-- Cochrane (2023), §2.4.3, p. 31: the family is almost surely the target equilibrium
+`TidyR5Meas.mPegP`, `mPegB` of the economy with surpluses `s(ε)` and target `i(ε)`. -/
+theorem mFam_ae_mPeg (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ) (t : ℕ) :
+    mFamP S β sbar shat Bm1 iF ε t =ᵐ[S.μ] mPegP S β Bm1 (surpFam sbar shat ε) (iF ε) t ∧
+      mFamB S β sbar shat Bm1 iF ε t =ᵐ[S.μ] mPegB S β Bm1 (surpFam sbar shat ε) (iF ε) t := by
+  have hP : ∀ t, mFamP S β sbar shat Bm1 iF ε t =ᵐ[S.μ]
+      mPegP S β Bm1 (surpFam sbar shat ε) (iF ε) t := by
+    intro t
+    induction t with
+    | zero =>
+      filter_upwards [forwardSol_surpFam S (sbar := sbar) hβ0 hβ1 hsad hs ε 0] with ω h
+      change Bm1 ω / pvAff S β sbar shat ε 0 ω =
+        Bm1 ω / S.forwardSol β (surpFam sbar shat ε) 0 ω
+      rw [h]
+    | succ t ih =>
+      filter_upwards [ih, forwardSol_surpFam S (sbar := sbar) hβ0 hβ1 hsad hs ε (t + 1),
+        pvExM_surpFam S (sbar := sbar) hβ0 hβ1 hsad hs ε t] with ω h1 h2 h3
+      change (1 + iF ε t ω) * mFamP S β sbar shat Bm1 iF ε t ω *
+        pvExAff S β sbar shat ε t ω / pvAff S β sbar shat ε (t + 1) ω =
+        (1 + iF ε t ω) * mPegP S β Bm1 (surpFam sbar shat ε) (iF ε) t ω *
+          pvExM S β (surpFam sbar shat ε) t ω /
+            S.forwardSol β (surpFam sbar shat ε) (t + 1) ω
+      rw [h1, h2, h3]
+  refine ⟨hP t, ?_⟩
+  filter_upwards [hP t, pvExM_surpFam S (sbar := sbar) hβ0 hβ1 hsad hs ε t] with ω h1 h3
+  change (1 + iF ε t ω) * mFamP S β sbar shat Bm1 iF ε t ω *
+      pvExAff S β sbar shat ε t ω = (1 + iF ε t ω) *
+        mPegP S β Bm1 (surpFam sbar shat ε) (iF ε) t ω * pvExM S β (surpFam sbar shat ε) t ω
+  rw [h1, h3]
+
+/-- Cochrane (2023), eq. (2.7), p. 22, on a probability space: the present value of `s(ε)` is
+bounded below by `(s̄ − |ε| M)/(1 − β)` almost surely at every date. -/
+theorem forwardSol_surpFam_ge (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (ε : ℝ) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, (1 - β)⁻¹ * (sbar - |ε| * M) ≤ S.forwardSol β (surpFam sbar shat ε) t ω := by
+  have ha : |β| < 1 := by rwa [abs_of_pos hβ0]
+  have hb := pv_bdd S ha (fun t => Eventually.of_forall (hs t)) t
+  filter_upwards [forwardSol_surpFam S (sbar := sbar) hβ0.le hβ1 hsad hs ε t, hb] with ω h1 h2
+  rw [h1]
+  simp only [pvAff, ssV]
+  rw [abs_of_pos hβ0, div_eq_inv_mul] at h2
+  have hc : 0 ≤ (1 - β)⁻¹ := inv_nonneg.mpr (by linarith)
+  have h3 : |ε * S.forwardSol β shat t ω| ≤ |ε| * ((1 - β)⁻¹ * M) := by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left h2 (abs_nonneg ε)
+  have h4 := neg_abs_le (ε * S.forwardSol β shat t ω)
+  nlinarith
+
+/-- Cochrane (2023), §2.4.3, p. 31, on a probability space: for every `ε ∈ famDom` the family
+member is an equilibrium (`TidyR5Meas.MEquilibrium`): `0 < β < 1`, bounded adapted `ŝ`,
+positive initial debt known at `0`, and a rate family that is adapted, exceeds `−1` and has an
+integrable bond price on the domain. -/
+theorem mFam_equilibrium (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1)
+    (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) (hiA : ∀ ε ∈ famDom sbar M, StronglyAdapted S.𝓕 (iF ε))
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω)
+    (hiQ : ∀ ε ∈ famDom sbar M, ∀ t, Integrable (fun ω => (1 + iF ε t ω)⁻¹) S.μ)
+    {ε : ℝ} (hε : ε ∈ famDom sbar M) :
+    MEquilibrium S β Bm1 (surpFam sbar shat ε) (mFamB S β sbar shat Bm1 iF ε)
+      (mFamP S β sbar shat Bm1 iF ε) (iF ε) := by
+  have hε' : |ε| * M < sbar := hε
+  have hc0 : 0 < (1 - β)⁻¹ * (sbar - |ε| * M) := mul_pos (inv_pos.mpr (by linarith))
+    (by linarith)
+  have hsM : ∀ t, ∀ᵐ ω ∂S.μ, |surpFam sbar shat ε t ω| ≤ |sbar| + |ε| * M := fun t =>
+    Eventually.of_forall fun ω => by
+      simp only [surpFam]
+      refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hs t ω) (abs_nonneg ε)
+  have hE := mPeg_equilibrium S hβ0 hβ1 hsM hc0
+    (fun t => forwardSol_surpFam_ge S hβ0 hβ1 hsad hs ε t) hBm1 hB (hiA ε hε) (hiG ε hε)
+    (hiQ ε hε)
+  exact mEquilibrium_congr S hE (fun t => mFamP_sm S hBm1 (hiA ε hε) t)
+    (fun t => mFamB_sm S hBm1 (hiA ε hε) t)
+    (fun t => (mFam_ae_mPeg S hβ0.le hβ1 hsad hs ε t).1)
+    (fun t => (mFam_ae_mPeg S hβ0.le hβ1 hsad hs ε t).2)
+
+/-- Cochrane (2023), p. 33 (determinacy under a target), on a probability space: for every
+`ε ∈ famDom`, every equilibrium with surpluses `s(ε)` and the target `i(ε)` equals the family
+member almost surely at every date. -/
+theorem mFam_unique (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) {ε : ℝ} (hε : ε ∈ famDom sbar M) {B P : ℕ → Ω → ℝ}
+    (h : MEquilibrium S β Bm1 (surpFam sbar shat ε) B P (iF ε)) (t : ℕ) :
+    P t =ᵐ[S.μ] mFamP S β sbar shat Bm1 iF ε t ∧
+      B t =ᵐ[S.μ] mFamB S β sbar shat Bm1 iF ε t := by
+  have hε' : |ε| * M < sbar := hε
+  have hc0 : 0 < (1 - β)⁻¹ * (sbar - |ε| * M) := mul_pos (inv_pos.mpr (by linarith))
+    (by linarith)
+  obtain ⟨h1, h2⟩ := mPeg_unique S hβ0 hc0
+    (fun t => forwardSol_surpFam_ge S hβ0 hβ1 hsad hs ε t) h t
+  obtain ⟨h3, h4⟩ := mFam_ae_mPeg S (Bm1 := Bm1) (iF := iF) hβ0.le hβ1 hsad hs ε t
+  exact ⟨h1.trans h3.symm, h2.trans h4.symm⟩
+
+/-- Cochrane (2023), §2.5, p. 35: at `ε = 0`, with `i(0) = 1/β − 1`, the family is the steady
+state, `P_t = B_{−1}/V` and `B_t = B_{−1}`, in every state (`0 < β < 1`, `s̄ > 0`). -/
+theorem mFam_steady (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hi0 : ∀ t ω, iF 0 t ω = β⁻¹ - 1) (t : ℕ) :
+    mFamP S β sbar shat Bm1 iF 0 t = (fun ω => Bm1 ω / ssV β sbar) ∧
+      mFamB S β sbar shat Bm1 iF 0 t = Bm1 := by
+  have hV : ssV β sbar ≠ 0 := mul_ne_zero (inv_ne_zero (by linarith)) hsbar.ne'
+  have hP : ∀ t, mFamP S β sbar shat Bm1 iF 0 t = fun ω => Bm1 ω / ssV β sbar := by
+    intro t
+    induction t with
+    | zero =>
+      funext ω
+      change Bm1 ω / (ssV β sbar + 0 * S.forwardSol β shat 0 ω) = _
+      rw [zero_mul, add_zero]
+    | succ t ih =>
+      funext ω
+      change (1 + iF 0 t ω) * mFamP S β sbar shat Bm1 iF 0 t ω *
+        (β * ssV β sbar + 0 * pvExM S β shat t ω) /
+          (ssV β sbar + 0 * S.forwardSol β shat (t + 1) ω) = _
+      rw [ih, hi0]
+      simp only [zero_mul, add_zero]
+      have := hβ0.ne'
+      field_simp
+      ring
+  refine ⟨hP t, ?_⟩
+  funext ω
+  change (1 + iF 0 t ω) * mFamP S β sbar shat Bm1 iF 0 t ω *
+    (β * ssV β sbar + 0 * pvExM S β shat t ω) = Bm1 ω
+  rw [hP t, hi0]
+  field_simp
+  ring
+
+/-! ### Smoothness and the derivative, almost surely -/
+
+/-- Cochrane (2023), §§2.4–2.5, pp. 31–35, on a probability space: if almost surely the rate
+family is `C^n` in `ε` on `famDom` (any `n`, including `∞` and analytic), then almost surely the
+family's price level, debt and inflation are `C^n` in `ε` on `famDom` at every date. -/
+theorem mFam_contDiffOn (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω)
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω) {n : WithTop ℕ∞}
+    (hiC : ∀ᵐ ω ∂S.μ, ∀ t, ContDiffOn ℝ n (fun ε => iF ε t ω) (famDom sbar M)) :
+    ∀ᵐ ω ∂S.μ, ∀ t : ℕ,
+      ContDiffOn ℝ n (fun ε => mFamP S β sbar shat Bm1 iF ε t ω) (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => mFamB S β sbar shat Bm1 iF ε t ω) (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => mFamInfl S β sbar shat Bm1 iF ε t ω) (famDom sbar M) := by
+  filter_upwards [good_ae S hβ0 hβ1 hs hB, hiC] with ω hω hC t
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hpv : ∀ t, ContDiff ℝ n (fun ε => pvAff S β sbar shat ε t ω) := fun t =>
+    contDiff_const.add (contDiff_id.mul contDiff_const)
+  have hpvE : ∀ t, ContDiff ℝ n (fun ε => pvExAff S β sbar shat ε t ω) := fun t =>
+    contDiff_const.add (contDiff_id.mul contDiff_const)
+  have hP : ∀ t, ContDiffOn ℝ n (fun ε => mFamP S β sbar shat Bm1 iF ε t ω)
+      (famDom sbar M) := by
+    intro t
+    induction t with
+    | zero =>
+      exact contDiffOn_const.div (hpv 0).contDiffOn
+        (fun ε hε => (aff_pos hβ1 (hω.2 0).1 hε).ne')
+    | succ t ih =>
+      exact (((contDiffOn_const.add (hC t)).mul ih).mul
+        (hpvE t).contDiffOn).div (hpv (t + 1)).contDiffOn
+        (fun ε hε => (aff_pos hβ1 (hω.2 (t + 1)).1 hε).ne')
+  refine ⟨hP t, ((contDiffOn_const.add (hC t)).mul (hP t)).mul (hpvE t).contDiffOn, ?_⟩
+  cases t with
+  | zero =>
+    refine ((hP 0).div_const _).log fun ε hε => ?_
+    exact (div_pos (mFamP_pos S hβ0 hβ1 hω hiG hε 0) (div_pos hω.1 hV)).ne'
+  | succ t =>
+    refine ((hP (t + 1)).div (hP t) (fun ε hε => (mFamP_pos S hβ0 hβ1 hω hiG hε t).ne')).log
+      fun ε hε => ?_
+    exact (div_pos (mFamP_pos S hβ0 hβ1 hω hiG hε (t + 1))
+      (mFamP_pos S hβ0 hβ1 hω hiG hε t)).ne'
+
+/-- Cochrane (2023), eqs. (2.16)–(2.17), p. 35, on a probability space, the derivative of
+inflation along the family, state by state: almost surely, at every date,
+`π̂_0 = −PV_0(ŝ)/V` and `π̂_{t+1} = d/dε log(1 + i_t(ε))|₀ − ε_{Σs,t+1}` with
+`ε_{Σs,t+1} = V⁻¹ ΔE_{t+1} PV_{t+1}(ŝ)` (`mShock`), for any rate family exceeding `−1` on
+`famDom` whose log gross rate has an almost-sure derivative `î` at `0`. -/
+theorem mFamInfl_hasDerivAt_gen (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω)
+    (hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < iF ε t ω) {ihat' : ℕ → Ω → ℝ}
+    (hiD : ∀ᵐ ω ∂S.μ, ∀ t, HasDerivAt (fun ε => Real.log (1 + iF ε t ω)) (ihat' t ω) 0) :
+    ∀ᵐ ω ∂S.μ, HasDerivAt (fun ε => mFamInfl S β sbar shat Bm1 iF ε 0 ω)
+        (mInfl0 S β sbar shat ω) 0 ∧
+      ∀ t, HasDerivAt (fun ε => mFamInfl S β sbar shat Bm1 iF ε (t + 1) ω)
+        (ihat' t ω - mShock S β sbar shat (t + 1) ω) 0 := by
+  filter_upwards [good_ae S hβ0 hβ1 hs hB, hiD] with ω hω hD
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hnhds := famDom_mem_nhds hsbar M
+  refine ⟨?_, fun t => ?_⟩
+  · set Y := S.forwardSol β shat 0 ω with hY
+    have hev : (fun ε => mFamInfl S β sbar shat Bm1 iF ε 0 ω) =ᶠ[𝓝 0]
+        fun ε => Real.log (ssV β sbar) - Real.log (ssV β sbar + ε * Y) := by
+      filter_upwards [hnhds] with ε hε
+      have h3 := aff_pos hβ1 (hω.2 0).1 hε
+      change Real.log (Bm1 ω / (ssV β sbar + ε * Y) / (Bm1 ω / ssV β sbar)) = _
+      have hB' := hω.1.ne'
+      rw [show Bm1 ω / (ssV β sbar + ε * Y) / (Bm1 ω / ssV β sbar) =
+          ssV β sbar / (ssV β sbar + ε * Y) by field_simp,
+        Real.log_div hV.ne' h3.ne']
+    have hA : HasDerivAt (fun ε : ℝ => ssV β sbar + ε * Y) Y 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const Y).const_add (ssV β sbar)
+    have hL := (hA.log (by simpa using hV.ne')).const_sub (Real.log (ssV β sbar))
+    refine (hL.congr_of_eventuallyEq hev).congr_deriv ?_
+    change -(Y / (ssV β sbar + 0 * Y)) = -((ssV β sbar)⁻¹ * Y)
+    rw [zero_mul, add_zero, div_eq_inv_mul]
+  · set X := pvExM S β shat t ω with hX
+    set Y := S.forwardSol β shat (t + 1) ω with hY
+    have hev : (fun ε => mFamInfl S β sbar shat Bm1 iF ε (t + 1) ω) =ᶠ[𝓝 0]
+        fun ε => Real.log (1 + iF ε t ω) + Real.log (β * ssV β sbar + ε * X) -
+          Real.log (ssV β sbar + ε * Y) := by
+      filter_upwards [hnhds] with ε hε
+      have hP := mFamP_pos S hβ0 hβ1 hω hiG hε t
+      have h1 : 0 < 1 + iF ε t ω := by linarith [hiG ε hε t ω]
+      have h2 : 0 < β * ssV β sbar + ε * X := affEx_pos hβ0 hβ1 (hω.2 t).2 hε
+      have h3 : 0 < ssV β sbar + ε * Y := aff_pos hβ1 (hω.2 (t + 1)).1 hε
+      change Real.log ((1 + iF ε t ω) * mFamP S β sbar shat Bm1 iF ε t ω *
+        (β * ssV β sbar + ε * X) / (ssV β sbar + ε * Y) /
+          mFamP S β sbar shat Bm1 iF ε t ω) = _
+      have hP' := hP.ne'
+      rw [show (1 + iF ε t ω) * mFamP S β sbar shat Bm1 iF ε t ω *
+          (β * ssV β sbar + ε * X) / (ssV β sbar + ε * Y) /
+            mFamP S β sbar shat Bm1 iF ε t ω =
+          (1 + iF ε t ω) * (β * ssV β sbar + ε * X) / (ssV β sbar + ε * Y) by
+          field_simp,
+        Real.log_div (mul_pos h1 h2).ne' h3.ne', Real.log_mul h1.ne' h2.ne']
+    have hA : HasDerivAt (fun ε : ℝ => β * ssV β sbar + ε * X) X 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const X).const_add (β * ssV β sbar)
+    have hC : HasDerivAt (fun ε : ℝ => ssV β sbar + ε * Y) Y 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const Y).const_add (ssV β sbar)
+    have hbV : β * ssV β sbar ≠ 0 := (mul_pos hβ0 hV).ne'
+    have hL := HasDerivAt.sub (HasDerivAt.add (hD t) (hA.log (by simpa using hbV)))
+      (hC.log (by simpa using hV.ne'))
+    refine (hL.congr_of_eventuallyEq hev).congr_deriv ?_
+    have hXe : X = β * S.E t (S.forwardSol β shat (t + 1)) ω := rfl
+    have hsh : mShock S β sbar shat (t + 1) ω = (ssV β sbar)⁻¹ *
+        (Y - S.E t (S.forwardSol β shat (t + 1)) ω) := by
+      change (ssV β sbar)⁻¹ * (S.E (t + 1) (S.forwardSol β shat (t + 1)) ω -
+        S.E t (S.forwardSol β shat (t + 1)) ω) = _
+      rw [show S.E (t + 1) (S.forwardSol β shat (t + 1)) = S.forwardSol β shat (t + 1) from
+        S.E_E_self (t + 1) _]
+    change ihat' t ω + X / (β * ssV β sbar + 0 * X) - Y / (ssV β sbar + 0 * Y) =
+      ihat' t ω - mShock S β sbar shat (t + 1) ω
+    rw [hsh, hXe, zero_mul, add_zero, zero_mul, add_zero]
+    field_simp
+    ring
+
+/-- Cochrane (2023), eqs. (2.16)–(2.19), pp. 35–36, on a probability space, for the canonical
+target: **almost surely the derivative at `ε = 0` of inflation along the family of exact
+equilibria is the solution (2.19) of the linear model**, `π̂_0 = −PV_0(ŝ)/V`,
+`π̂_{t+1} = î_t − ε_{Σs,t+1}`. -/
+theorem mFamInfl_hasDerivAt (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) :
+    ∀ᵐ ω ∂S.μ, ∀ t, HasDerivAt (fun ε => mFamInfl S β sbar shat Bm1 (rateExp β ihat) ε t ω)
+      (LinearFTMP.pegSol ihat (mShock S β sbar shat) (mInfl0 S β sbar shat) t ω) 0 := by
+  filter_upwards [mFamInfl_hasDerivAt_gen S hβ0 hβ1 hsbar hs hB
+    (fun ε _ t ω => rateExp_gt hβ0 ihat ε t ω)
+    (Eventually.of_forall fun ω t => rateExp_log_hasDerivAt hβ0 ihat t ω)] with ω h t
+  cases t with
+  | zero => exact h.1
+  | succ t => exact h.2 t
+
+/-- Cochrane (2023), eq. (2.17), p. 35, on a probability space: the scaled fiscal shock is a
+shock (`TidyR5MeasLinear.MIsShock`). -/
+theorem mShock_isShock : MIsShock S (mShock S β sbar shat) := by
+  obtain ⟨h1, h2, h3⟩ := mFiscShock_isShock S β shat
+  refine ⟨fun t => (h1 t).const_smul _, fun t => (h2 t).smul _, fun t => ?_⟩
+  filter_upwards [S.E_smul (ssV β sbar)⁻¹ (mFiscShock S β shat (t + 1)) t, h3 t] with ω e1 e2
+  change S.E t ((ssV β sbar)⁻¹ • mFiscShock S β shat (t + 1)) ω = 0
+  rw [e1, Pi.smul_apply, e2, Pi.zero_apply, smul_zero]
+
+/-- Cochrane (2023), eq. (2.17), p. 35, on a probability space: the initial inflation of the
+linear model is known at `0` and integrable. -/
+theorem mInfl0_sm_integrable : StronglyMeasurable[S.𝓕 0] (mInfl0 S β sbar shat) ∧
+    Integrable (mInfl0 S β sbar shat) S.μ :=
+  ⟨((S.forwardSol_adapted β shat 0).measurable.const_mul _).neg.stronglyMeasurable,
+    ((S.integrable_E 0 _).const_mul _).neg⟩
+
+/-- Cochrane (2023), §§2.4–2.5, pp. 31–36, **the family of exact equilibria on a genuine
+probability space**, for the canonical target, all in one statement. For `0 < β < 1`, `s̄ > 0`,
+bounded adapted `ŝ` and `î`, and a positive initial debt known at `0`, on the open
+neighbourhood `famDom` of `ε = 0`:
+* for each `ε` the family member is an equilibrium, and every equilibrium with the same
+  surpluses and target equals it almost surely at every date;
+* at `ε = 0` it is the steady state;
+* almost surely, price level, debt and inflation are `C^n` in `ε` for every `n`;
+* the linear model (2.16)–(2.19) with the fiscal shock `mShock` and `π̂_0 = mInfl0` has an
+  adapted integrable solution, unique up to null sets at every date, and every adapted
+  integrable solution is, at every date and almost surely, the derivative at `ε = 0` of
+  inflation along the family. -/
+theorem meas_family_linearization (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hsad : StronglyAdapted S.𝓕 shat) (hs : ∀ t ω, |shat t ω| ≤ M)
+    (hihat : StronglyAdapted S.𝓕 ihat) (hib : ∀ t ω, |ihat t ω| ≤ Mi)
+    (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) :
+    (∀ ε ∈ famDom sbar M, MEquilibrium S β Bm1 (surpFam sbar shat ε)
+      (mFamB S β sbar shat Bm1 (rateExp β ihat) ε)
+      (mFamP S β sbar shat Bm1 (rateExp β ihat) ε) (rateExp β ihat ε)) ∧
+    (∀ ε ∈ famDom sbar M, ∀ B P : ℕ → Ω → ℝ,
+      MEquilibrium S β Bm1 (surpFam sbar shat ε) B P (rateExp β ihat ε) →
+        ∀ t, P t =ᵐ[S.μ] mFamP S β sbar shat Bm1 (rateExp β ihat) ε t ∧
+          B t =ᵐ[S.μ] mFamB S β sbar shat Bm1 (rateExp β ihat) ε t) ∧
+    (∀ t, mFamP S β sbar shat Bm1 (rateExp β ihat) 0 t = (fun ω => Bm1 ω / ssV β sbar) ∧
+      mFamB S β sbar shat Bm1 (rateExp β ihat) 0 t = Bm1) ∧
+    (∀ n : WithTop ℕ∞, ∀ᵐ ω ∂S.μ, ∀ t : ℕ,
+      ContDiffOn ℝ n (fun ε => mFamP S β sbar shat Bm1 (rateExp β ihat) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => mFamB S β sbar shat Bm1 (rateExp β ihat) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => mFamInfl S β sbar shat Bm1 (rateExp β ihat) ε t ω)
+        (famDom sbar M)) ∧
+    (StronglyAdapted S.𝓕 (LinearFTMP.pegSol ihat (mShock S β sbar shat) (mInfl0 S β sbar shat)) ∧
+      (∀ t, Integrable
+        (LinearFTMP.pegSol ihat (mShock S β sbar shat) (mInfl0 S β sbar shat) t) S.μ) ∧
+      MPegModel S ihat (mShock S β sbar shat)
+        (LinearFTMP.pegSol ihat (mShock S β sbar shat) (mInfl0 S β sbar shat))) ∧
+    ∀ π : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 π → (∀ t, Integrable (π t) S.μ) →
+      π 0 =ᵐ[S.μ] mInfl0 S β sbar shat → MPegModel S ihat (mShock S β sbar shat) π →
+        ∀ t, ∀ᵐ ω ∂S.μ, HasDerivAt
+          (fun ε => mFamInfl S β sbar shat Bm1 (rateExp β ihat) ε t ω) (π t ω) 0 := by
+  have hii : ∀ t, Integrable (ihat t) S.μ := fun t =>
+    MeasExpectationSystem.BddRV.integrable
+      ⟨((hihat t).mono (S.𝓕.le t)).aestronglyMeasurable, Mi, Eventually.of_forall (hib t)⟩
+  have hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < rateExp β ihat ε t ω :=
+    fun ε _ t ω => rateExp_gt hβ0 ihat ε t ω
+  obtain ⟨h0, h0i⟩ := mInfl0_sm_integrable S (β := β) (sbar := sbar) (shat := shat)
+  obtain ⟨hex, huniq⟩ := mPeg_linear_existsUnique S hihat hii (mShock_isShock S) h0 h0i
+  refine ⟨fun ε hε => mFam_equilibrium S hβ0 hβ1 hsad hs hBm1 hB
+      (fun ε _ => rateExp_sm S hihat ε) hiG
+      (fun ε _ t => rateExp_bondPrice_integrable S hβ0 hihat hib ε t) hε,
+    fun ε hε B P h t => mFam_unique S hβ0 hβ1 hsad hs hε h t,
+    fun t => mFam_steady S hβ0 hβ1 hsbar (rateExp_zero ihat) t,
+    fun n => mFam_contDiffOn S hβ0 hβ1 hsbar hs hB hiG
+      (Eventually.of_forall fun ω t => (rateExp_contDiff ihat t ω).contDiffOn), hex,
+    fun π hπ hπi hπ0 hm t => ?_⟩
+  filter_upwards [huniq π hπ hπi hπ0 hm t, mFamInfl_hasDerivAt S (ihat := ihat) hβ0 hβ1 hsbar
+    hs hB] with ω h1 h2
+  rw [h1]
+  exact h2 t
+
+/-! ### The link to the family on a finite tree -/
+
+namespace Link
+
+open ExpectationsFiniteTree TreeBridge TidyR5MeasLinear.Link
+
+variable {Ω' : Type*} [Fintype Ω'] [MeasurableSpace Ω'] [DiscreteMeasurableSpace Ω']
+  (T : FiniteTree Ω')
+
+/-- Cochrane (2023), §2.4.3, p. 31: on a finite tree the measure-theoretic family is the family
+`TidyR5Family.priceFam` (and `debtFam`) of the core model, in every
+state, for every `ε` and every rate family (bounded `ŝ`, `0 ≤ β < 1`). -/
+theorem tree_mFamP (hβ0 : 0 ≤ β) (hβ1 : β < 1) {shat' : ℕ → Ω' → ℝ}
+    (hs : ∀ t ω, |shat' t ω| ≤ M) (Bm1' : Ω' → ℝ) (iF' : ℝ → ℕ → Ω' → ℝ) (ε : ℝ) (t : ℕ) :
+    mFamP (treeSystem T) β sbar shat' Bm1' iF' ε t =
+        priceFam T.toExpectationSystem β sbar shat' Bm1' iF' ε t ∧
+      mFamB (treeSystem T) β sbar shat' Bm1' iF' ε t =
+        debtFam T.toExpectationSystem β sbar shat' Bm1' iF' ε t := by
+  have hpv : ∀ t, pvAff (treeSystem T) β sbar shat' ε t =
+      FiscalMonetary.pv T.toExpectationSystem β (surpFam sbar shat' ε) t := fun t => by
+    rw [pv_surpFam T.toExpectationSystem hβ0 hβ1 hs]
+    funext ω
+    simp only [pvAff, tree_forwardSol]
+  have hpvE : ∀ t, pvExAff (treeSystem T) β sbar shat' ε t =
+      FiscalMonetary.pvEx T.toExpectationSystem β (surpFam sbar shat' ε) t := fun t => by
+    rw [pvEx_surpFam T.toExpectationSystem hβ0 hβ1 hs]
+    funext ω
+    simp only [pvExAff, tree_pvExM]
+  have hP : ∀ t, mFamP (treeSystem T) β sbar shat' Bm1' iF' ε t =
+      priceFam T.toExpectationSystem β sbar shat' Bm1' iF' ε t := by
+    intro t
+    induction t with
+    | zero =>
+      funext ω
+      change Bm1' ω / pvAff (treeSystem T) β sbar shat' ε 0 ω = _
+      rw [hpv]
+      rfl
+    | succ t ih =>
+      funext ω
+      change (1 + iF' ε t ω) * mFamP (treeSystem T) β sbar shat' Bm1' iF' ε t ω *
+        pvExAff (treeSystem T) β sbar shat' ε t ω / pvAff (treeSystem T) β sbar shat' ε (t + 1) ω
+        = _
+      rw [ih, hpv, hpvE]
+      rfl
+  refine ⟨hP t, ?_⟩
+  funext ω
+  change (1 + iF' ε t ω) * mFamP (treeSystem T) β sbar shat' Bm1' iF' ε t ω *
+    pvExAff (treeSystem T) β sbar shat' ε t ω = _
+  rw [hP t, hpvE]
+  rfl
+
+/-- Cochrane (2023), §2.5, p. 35: on a finite tree the measure-theoretic family's inflation is
+`TidyR5Family.inflFam`. -/
+theorem tree_mFamInfl (hβ0 : 0 ≤ β) (hβ1 : β < 1) {shat' : ℕ → Ω' → ℝ}
+    (hs : ∀ t ω, |shat' t ω| ≤ M) (Bm1' : Ω' → ℝ) (iF' : ℝ → ℕ → Ω' → ℝ) (ε : ℝ) (t : ℕ) :
+    mFamInfl (treeSystem T) β sbar shat' Bm1' iF' ε t =
+      inflFam T.toExpectationSystem β sbar shat' Bm1' iF' ε t := by
+  have hP := fun t => (tree_mFamP (sbar := sbar) T hβ0 hβ1 hs Bm1' iF' ε t).1
+  cases t with
+  | zero =>
+    funext ω
+    change Real.log (mFamP (treeSystem T) β sbar shat' Bm1' iF' ε 0 ω / (Bm1' ω / ssV β sbar))
+      = _
+    rw [hP 0]
+    rfl
+  | succ t =>
+    funext ω
+    change Real.log (mFamP (treeSystem T) β sbar shat' Bm1' iF' ε (t + 1) ω /
+      mFamP (treeSystem T) β sbar shat' Bm1' iF' ε t ω) = _
+    rw [hP (t + 1), hP t]
+    rfl
+
+end Link
+
+end Cochrane.IntertemporalModel.TidyR5MeasFamily
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The family of exact equilibria under an interest-rate rule on a probability space
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 2, §2.6 "Interest-rate rules",
+pp. 39–42, eqs. (2.20)–(2.25), on a probability space with Mathlib's conditional expectation:
+the family of exact equilibria under the exact rule `log(1 + i_t) = −log β + θ π_t + ε u_t`
+(`TidyR5FamilyRule`), built with the fixed versions of present values of
+`TidyR5MeasFamily` (`TidyR5MeasFamily.pvAff`, `TidyR5MeasFamily.pvExAff`), for every `θ ∈ ℝ`.
+
+## Main results
+
+* `mRuleInfl`, `mRuleRate`: inflation and the rate of the family in closed form;
+  `mRuleInfl_bound`: they are bounded on `famDom` almost surely, so the bond price is integrable
+  (`mRuleRate_bondPrice_integrable`).
+* `mRule_equilibrium`, `mRule_exact`: for every `ε ∈ famDom` the family member is an equilibrium
+  (`TidyR5Meas.MEquilibrium`) satisfying the exact rule almost surely (`MRuleExact`);
+  `mRule_unique`: every equilibrium satisfying the exact rule equals it almost surely at every
+  date.
+* `mRuleInfl_hasDerivAt`, `mRule_rate_hasDerivAt`: the derivatives at `ε = 0` of inflation and
+  of the log gross rate are the solution (2.25) `LinearFTMP.ruleSol θ u ε_{Σs} π̂_0` of the linear
+  model and its rate, in every state for the closed form (almost surely for the family, whose
+  inflation is the closed form, `mFamInfl_eq`); `mRule_family_linearization`: everything
+  together with the existence and almost-sure uniqueness of the linear solution
+  (`TidyR5MeasLinear.mRule_linear_existsUnique`), for every `θ`.
+* `tree_mRuleRate`: on a finite tree the rate is `TidyR5FamilyRule.ruleRate`.
+-/
+
+namespace Cochrane.IntertemporalModel.TidyR5MeasFamilyRule
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure TidyR5Meas
+  TidyR5MeasLinear TidyR5Family TidyR5FamilyRule TidyR5MeasFamily
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-- Cochrane (2023), eqs. (2.20)–(2.22), p. 40, on a probability space: inflation along the rule
+family in closed form, `π_0 = log V − log PV_0(ε)`,
+`π_{t+1} = −log β + θ π_t + ε u_t + log PVex_t(ε) − log PV_{t+1}(ε)`. -/
+noncomputable def mRuleInfl (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (θ : ℝ) (u : ℕ → Ω → ℝ) (ε : ℝ) :
+    ℕ → Ω → ℝ
+  | 0 => fun ω => Real.log (ssV β sbar) - Real.log (pvAff S β sbar shat ε 0 ω)
+  | t + 1 => fun ω => -Real.log β + θ * mRuleInfl β sbar shat θ u ε t ω + ε * u t ω +
+      Real.log (pvExAff S β sbar shat ε t ω) - Real.log (pvAff S β sbar shat ε (t + 1) ω)
+
+/-- Cochrane (2023), eq. (2.22), p. 40, on a probability space: the rate of the rule family,
+`1 + i_t(ε) = β⁻¹ exp(θ π_t(ε) + ε u_t)`. -/
+noncomputable def mRuleRate (β sbar : ℝ) (shat : ℕ → Ω → ℝ) (θ : ℝ) (u : ℕ → Ω → ℝ) (ε : ℝ) :
+    ℕ → Ω → ℝ :=
+  fun t ω => β⁻¹ * Real.exp (θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω) - 1
+
+/-- Cochrane (2023), eq. (2.22), p. 40, exact form, on a probability space: the rule
+`log(1 + i_t) = −log β + θ π_t + ε u_t` almost surely at every date (`π` from
+`TidyR5FamilyRule.logInfl`, `P_{−1} = B_{−1}/V`). -/
+def MRuleExact (β θ : ℝ) (Bm1 : Ω → ℝ) (V : ℝ) (u : ℕ → Ω → ℝ) (ε : ℝ) (P i : ℕ → Ω → ℝ) :
+    Prop :=
+  ∀ t, ∀ᵐ ω ∂S.μ, Real.log (1 + i t ω) = -Real.log β + θ * logInfl Bm1 V P t ω + ε * u t ω
+
+variable {β sbar M θ Mu : ℝ} {shat u : ℕ → Ω → ℝ} {Bm1 : Ω → ℝ}
+
+/-- Cochrane (2023), eq. (2.22), p. 40: the rule family's rate exceeds `−1` (`β > 0`). -/
+theorem mRuleRate_gt (hβ0 : 0 < β) (ε : ℝ) (t : ℕ) (ω : Ω) :
+    -1 < mRuleRate S β sbar shat θ u ε t ω := by
+  simp only [mRuleRate]
+  have := mul_pos (inv_pos.mpr hβ0)
+    (Real.exp_pos (θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω))
+  linarith
+
+/-- Cochrane (2023), eq. (2.22), p. 40: `log(1 + i_t(ε)) = −log β + θ π_t(ε) + ε u_t` exactly
+(`β > 0`). -/
+theorem log_one_add_mRuleRate (hβ0 : 0 < β) (ε : ℝ) (t : ℕ) (ω : Ω) :
+    Real.log (1 + mRuleRate S β sbar shat θ u ε t ω) =
+      -Real.log β + θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω := by
+  simp only [mRuleRate, add_sub_cancel]
+  rw [Real.log_mul (inv_pos.mpr hβ0).ne' (Real.exp_pos _).ne', Real.log_exp, Real.log_inv]
+  ring
+
+/-- Cochrane (2023), p. 40: inflation of the rule family is adapted (adapted `u`). -/
+theorem mRuleInfl_sm (hu : StronglyAdapted S.𝓕 u) (ε : ℝ) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 t] (mRuleInfl S β sbar shat θ u ε t) := by
+  have hpv : ∀ t, Measurable[S.𝓕 t] (pvAff S β sbar shat ε t) := fun t =>
+    ((S.forwardSol_adapted β shat t).measurable.const_mul ε).const_add _
+  have hpvE : ∀ t, Measurable[S.𝓕 t] (pvExAff S β sbar shat ε t) := fun t =>
+    ((pvExM_sm S β shat t).measurable.const_mul ε).const_add _
+  induction t with
+  | zero => exact (measurable_const.sub (hpv 0).log).stronglyMeasurable
+  | succ t ih =>
+    have hmono : S.𝓕 t ≤ S.𝓕 (t + 1) := S.𝓕.mono (Nat.le_succ t)
+    exact ((((measurable_const.add ((ih.mono hmono).measurable.const_mul θ)).add
+      (((hu t).mono hmono).measurable.const_mul ε)).add ((hpvE t).log.mono hmono le_rfl)).sub
+      (hpv (t + 1)).log).stronglyMeasurable
+
+/-- Cochrane (2023), eq. (2.22), p. 40: the rule family's rate is adapted. -/
+theorem mRuleRate_sm (hu : StronglyAdapted S.𝓕 u) (ε : ℝ) :
+    StronglyAdapted S.𝓕 (mRuleRate S β sbar shat θ u ε) := fun t =>
+  (((((mRuleInfl_sm S hu ε t).measurable.const_mul θ).add
+    ((hu t).measurable.const_mul ε)).exp.const_mul β⁻¹).sub_const 1).stronglyMeasurable
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), p. 40: `|log x| ≤ |log a| + |log b|` for `0 < a ≤ x ≤ b`. -/
+theorem abs_log_le {a b x : ℝ} (ha : 0 < a) (h1 : a ≤ x) (h2 : x ≤ b) :
+    |Real.log x| ≤ |Real.log a| + |Real.log b| := by
+  have l1 := Real.log_le_log ha h1
+  have l2 := Real.log_le_log (ha.trans_le h1) h2
+  rw [abs_le]
+  constructor
+  · linarith [neg_abs_le (Real.log a), abs_nonneg (Real.log b)]
+  · linarith [le_abs_self (Real.log b), abs_nonneg (Real.log a)]
+
+/-- Cochrane (2023), p. 40: the bound on inflation of the rule family, with
+`L = (s̄ − |ε| M)/(1 − β)` and `U = (s̄ + |ε| M)/(1 − β)` bounding present values. -/
+noncomputable def ruleBound (β sbar M θ Mu ε : ℝ) : ℕ → ℝ
+  | 0 => |Real.log (ssV β sbar)| + (|Real.log ((1 - β)⁻¹ * (sbar - |ε| * M))| +
+      |Real.log ((1 - β)⁻¹ * (sbar + |ε| * M))|)
+  | t + 1 => |Real.log β| + |θ| * ruleBound β sbar M θ Mu ε t + |ε| * Mu +
+      (|Real.log (β * ((1 - β)⁻¹ * (sbar - |ε| * M)))| +
+        |Real.log (β * ((1 - β)⁻¹ * (sbar + |ε| * M)))|) +
+      (|Real.log ((1 - β)⁻¹ * (sbar - |ε| * M))| + |Real.log ((1 - β)⁻¹ * (sbar + |ε| * M))|)
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (2.7), p. 22: `V + ε Y ≤ (s̄ + |ε| M)/(1 − β)` when
+`|Y| ≤ M/(1 − β)`. -/
+theorem aff_le {Y ε : ℝ} (hY : |Y| ≤ (1 - β)⁻¹ * M) :
+    ssV β sbar + ε * Y ≤ (1 - β)⁻¹ * (sbar + |ε| * M) := by
+  have h1 : ε * Y ≤ |ε| * ((1 - β)⁻¹ * M) := by
+    refine (le_abs_self _).trans ?_
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left hY (abs_nonneg ε)
+  simp only [ssV]
+  nlinarith
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (2.7), p. 22: `V + ε Y ≥ (s̄ − |ε| M)/(1 − β)` when
+`|Y| ≤ M/(1 − β)`. -/
+theorem le_aff {Y ε : ℝ} (hY : |Y| ≤ (1 - β)⁻¹ * M) :
+    (1 - β)⁻¹ * (sbar - |ε| * M) ≤ ssV β sbar + ε * Y := by
+  have h1 : -(|ε| * ((1 - β)⁻¹ * M)) ≤ ε * Y := by
+    refine le_trans ?_ (neg_abs_le _)
+    rw [abs_mul, neg_le_neg_iff]
+    exact mul_le_mul_of_nonneg_left hY (abs_nonneg ε)
+  simp only [ssV]
+  nlinarith
+
+/-- Cochrane (2023), p. 40: in every state where the bounds of `TidyR5MeasFamily.good_ae` hold,
+for `ε ∈ famDom` and `|u| ≤ Mu`, `|π_t(ε)| ≤ ruleBound t`. -/
+theorem mRuleInfl_bound (hβ0 : 0 < β) (hβ1 : β < 1) (hu : ∀ t ω, |u t ω| ≤ Mu) {ω : Ω}
+    (hω : 0 < Bm1 ω ∧ ∀ t, |S.forwardSol β shat t ω| ≤ (1 - β)⁻¹ * M ∧
+      |pvExM S β shat t ω| ≤ β * ((1 - β)⁻¹ * M))
+    {ε : ℝ} (hε : ε ∈ famDom sbar M) (t : ℕ) :
+    |mRuleInfl S β sbar shat θ u ε t ω| ≤ ruleBound β sbar M θ Mu ε t := by
+  have hε' : |ε| * M < sbar := hε
+  have hL : 0 < (1 - β)⁻¹ * (sbar - |ε| * M) := mul_pos (inv_pos.mpr (by linarith))
+    (by linarith)
+  have hpv : ∀ t, |Real.log (pvAff S β sbar shat ε t ω)| ≤
+      |Real.log ((1 - β)⁻¹ * (sbar - |ε| * M))| +
+        |Real.log ((1 - β)⁻¹ * (sbar + |ε| * M))| := fun t =>
+    abs_log_le hL (le_aff (hω.2 t).1) (aff_le (hω.2 t).1)
+  have hpvE : ∀ t, |Real.log (pvExAff S β sbar shat ε t ω)| ≤
+      |Real.log (β * ((1 - β)⁻¹ * (sbar - |ε| * M)))| +
+        |Real.log (β * ((1 - β)⁻¹ * (sbar + |ε| * M)))| := by
+    intro t
+    have hX : |pvExM S β shat t ω / β| ≤ (1 - β)⁻¹ * M := by
+      rw [abs_div, abs_of_pos hβ0, div_le_iff₀ hβ0]
+      linarith [(hω.2 t).2]
+    have e : pvExAff S β sbar shat ε t ω =
+        β * (ssV β sbar + ε * (pvExM S β shat t ω / β)) := by
+      simp only [pvExAff]
+      field_simp
+    rw [e]
+    exact abs_log_le (mul_pos hβ0 hL) (mul_le_mul_of_nonneg_left (le_aff hX) hβ0.le)
+      (mul_le_mul_of_nonneg_left (aff_le hX) hβ0.le)
+  induction t with
+  | zero =>
+    change |Real.log (ssV β sbar) - Real.log (pvAff S β sbar shat ε 0 ω)| ≤ _
+    exact (abs_sub _ _).trans (add_le_add le_rfl (hpv 0))
+  | succ t ih =>
+    change |-Real.log β + θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω +
+      Real.log (pvExAff S β sbar shat ε t ω) - Real.log (pvAff S β sbar shat ε (t + 1) ω)| ≤ _
+    have h1 : |θ * mRuleInfl S β sbar shat θ u ε t ω| ≤ |θ| * ruleBound β sbar M θ Mu ε t := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left ih (abs_nonneg θ)
+    have h2 : |ε * u t ω| ≤ |ε| * Mu := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hu t ω) (abs_nonneg ε)
+    have h3 := hpvE t
+    have h4 := hpv (t + 1)
+    simp only [ruleBound]
+    calc _ ≤ |-Real.log β + θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω +
+          Real.log (pvExAff S β sbar shat ε t ω)| +
+          |Real.log (pvAff S β sbar shat ε (t + 1) ω)| := abs_sub _ _
+      _ ≤ |-Real.log β + θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω| +
+          |Real.log (pvExAff S β sbar shat ε t ω)| +
+          |Real.log (pvAff S β sbar shat ε (t + 1) ω)| := by
+        gcongr
+        exact abs_add_le _ _
+      _ ≤ |-Real.log β + θ * mRuleInfl S β sbar shat θ u ε t ω| + |ε * u t ω| +
+          |Real.log (pvExAff S β sbar shat ε t ω)| +
+          |Real.log (pvAff S β sbar shat ε (t + 1) ω)| := by
+        gcongr
+        exact abs_add_le _ _
+      _ ≤ |-Real.log β| + |θ * mRuleInfl S β sbar shat θ u ε t ω| + |ε * u t ω| +
+          |Real.log (pvExAff S β sbar shat ε t ω)| +
+          |Real.log (pvAff S β sbar shat ε (t + 1) ω)| := by
+        gcongr
+        exact abs_add_le _ _
+      _ ≤ _ := by
+        rw [abs_neg]
+        linarith
+
+/-- Cochrane (2023), eq. (2.3), p. 22, on a probability space: on `famDom`, with `|u| ≤ Mu`,
+the bond price `1/(1 + i_t(ε)) = β exp(−θ π_t − ε u_t)` of the rule family is integrable. -/
+theorem mRuleRate_bondPrice_integrable (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hua : StronglyAdapted S.𝓕 u) (hu : ∀ t ω, |u t ω| ≤ Mu)
+    (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) {ε : ℝ} (hε : ε ∈ famDom sbar M) (t : ℕ) :
+    Integrable (fun ω => (1 + mRuleRate S β sbar shat θ u ε t ω)⁻¹) S.μ := by
+  refine Integrable.of_bound
+    (C := β * Real.exp (|θ| * ruleBound β sbar M θ Mu ε t + |ε| * Mu)) ?_ ?_
+  · exact ((((mRuleRate_sm S hua ε t).mono (S.𝓕.le t)).measurable.const_add 1).inv
+      ).aestronglyMeasurable
+  · filter_upwards [good_ae S (Bm1 := Bm1) hβ0 hβ1 hs hB] with ω hω
+    have e : (1 + mRuleRate S β sbar shat θ u ε t ω)⁻¹ =
+        β * Real.exp (-(θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω)) := by
+      simp only [mRuleRate, add_sub_cancel]
+      rw [mul_inv, inv_inv, Real.exp_neg]
+    rw [e, Real.norm_eq_abs, abs_mul, abs_of_pos hβ0, abs_of_pos (Real.exp_pos _)]
+    refine mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr ?_) hβ0.le
+    have h1 : |θ * mRuleInfl S β sbar shat θ u ε t ω| ≤ |θ| * ruleBound β sbar M θ Mu ε t := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (mRuleInfl_bound S hβ0 hβ1 hu hω hε t) (abs_nonneg θ)
+    have h2 : |ε * u t ω| ≤ |ε| * Mu := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hu t ω) (abs_nonneg ε)
+    linarith [neg_abs_le (θ * mRuleInfl S β sbar shat θ u ε t ω), neg_abs_le (ε * u t ω)]
+
+/-! ### Each member is an equilibrium satisfying the exact rule, and the only one -/
+
+/-- Cochrane (2023), §2.6, p. 40, on a probability space: for every `ε ∈ famDom` the rule family
+member is an equilibrium (`0 < β < 1`, bounded adapted `ŝ` and `u`, positive initial debt known
+at `0`), for every `θ`. -/
+theorem mRule_equilibrium (hβ0 : 0 < β) (hβ1 : β < 1) (hsad : StronglyAdapted S.𝓕 shat)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hua : StronglyAdapted S.𝓕 u) (hu : ∀ t ω, |u t ω| ≤ Mu)
+    (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) {ε : ℝ}
+    (hε : ε ∈ famDom sbar M) :
+    MEquilibrium S β Bm1 (surpFam sbar shat ε)
+      (mFamB S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε)
+      (mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε)
+      (mRuleRate S β sbar shat θ u ε) :=
+  mFam_equilibrium S hβ0 hβ1 hsad hs hBm1 hB (fun ε _ => mRuleRate_sm S hua ε)
+    (fun ε _ t ω => mRuleRate_gt S hβ0 ε t ω)
+    (fun _ hε t => mRuleRate_bondPrice_integrable S hβ0 hβ1 hs hua hu hB hε t) hε
+
+/-- Cochrane (2023), p. 40: in every state where the bounds of `good_ae` hold, on `famDom` the
+family's inflation is the closed form `mRuleInfl`. -/
+theorem mFamInfl_eq (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar) {ω : Ω}
+    (hω : 0 < Bm1 ω ∧ ∀ t, |S.forwardSol β shat t ω| ≤ (1 - β)⁻¹ * M ∧
+      |pvExM S β shat t ω| ≤ β * ((1 - β)⁻¹ * M))
+    {ε : ℝ} (hε : ε ∈ famDom sbar M) (t : ℕ) :
+    mFamInfl S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω =
+      mRuleInfl S β sbar shat θ u ε t ω := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hiG : ∀ ε ∈ famDom sbar M, ∀ t ω, -1 < mRuleRate S β sbar shat θ u ε t ω :=
+    fun ε _ t ω => mRuleRate_gt S hβ0 ε t ω
+  cases t with
+  | zero =>
+    change Real.log (Bm1 ω / pvAff S β sbar shat ε 0 ω / (Bm1 ω / ssV β sbar)) =
+      Real.log (ssV β sbar) - Real.log (pvAff S β sbar shat ε 0 ω)
+    have h3 : 0 < pvAff S β sbar shat ε 0 ω := aff_pos (sbar := sbar) hβ1 (hω.2 0).1 hε
+    have hB' := hω.1.ne'
+    rw [show Bm1 ω / pvAff S β sbar shat ε 0 ω / (Bm1 ω / ssV β sbar) =
+        ssV β sbar / pvAff S β sbar shat ε 0 ω by field_simp,
+      Real.log_div hV.ne' h3.ne']
+  | succ t =>
+    have hP := mFamP_pos S hβ0 hβ1 hω hiG hε t
+    have h1 : 0 < 1 + mRuleRate S β sbar shat θ u ε t ω := by linarith [hiG ε hε t ω]
+    have h2 : 0 < pvExAff S β sbar shat ε t ω := affEx_pos hβ0 hβ1 (hω.2 t).2 hε
+    have h3 : 0 < pvAff S β sbar shat ε (t + 1) ω := aff_pos hβ1 (hω.2 (t + 1)).1 hε
+    change Real.log ((1 + mRuleRate S β sbar shat θ u ε t ω) *
+      mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω *
+      pvExAff S β sbar shat ε t ω / pvAff S β sbar shat ε (t + 1) ω /
+      mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω) = _
+    have hP' := hP.ne'
+    rw [show (1 + mRuleRate S β sbar shat θ u ε t ω) *
+        mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω *
+        pvExAff S β sbar shat ε t ω / pvAff S β sbar shat ε (t + 1) ω /
+        mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω =
+        (1 + mRuleRate S β sbar shat θ u ε t ω) * pvExAff S β sbar shat ε t ω /
+          pvAff S β sbar shat ε (t + 1) ω by field_simp,
+      Real.log_div (mul_pos h1 h2).ne' h3.ne', Real.log_mul h1.ne' h2.ne',
+      log_one_add_mRuleRate S hβ0]
+    rfl
+
+/-- Cochrane (2023), eq. (2.22), p. 40, on a probability space: on `famDom` the family satisfies
+the exact rule almost surely. -/
+theorem mRule_exact (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hs : ∀ t ω, |shat t ω| ≤ M) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) {ε : ℝ}
+    (hε : ε ∈ famDom sbar M) :
+    MRuleExact S β θ Bm1 (ssV β sbar) u ε
+      (mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε)
+      (mRuleRate S β sbar shat θ u ε) := by
+  intro t
+  filter_upwards [good_ae S hβ0 hβ1 hs hB] with ω hω
+  rw [log_one_add_mRuleRate S hβ0]
+  have e : logInfl Bm1 (ssV β sbar) (mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε)
+      t ω = mFamInfl S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω := by
+    cases t <;> rfl
+  rw [e, mFamInfl_eq S hβ0 hβ1 hsbar hω hε t]
+
+/-- Cochrane (2023), §§2.1–2.4, pp. 21–33, on a probability space: an equilibrium remains an
+equilibrium when its rate is replaced by an adapted rate equal to it almost surely at every
+date. -/
+theorem mEquilibrium_congr_rate {s B P i i' : ℕ → Ω → ℝ} (h : MEquilibrium S β Bm1 s B P i)
+    (hi'a : StronglyAdapted S.𝓕 i') (hi : ∀ t, i' t =ᵐ[S.μ] i t) :
+    MEquilibrium S β Bm1 s B P i' := by
+  obtain ⟨hPa, hP, hBa, -, hint, hv, hbp⟩ := h
+  refine ⟨hPa, hP, hBa, hi'a, hint, hv, fun t => ?_⟩
+  filter_upwards [hbp t, hi t] with ω h1 h2
+  rw [h2]
+  exact h1
+
+/-- Cochrane (2023), §2.6, p. 40 (the rule's equilibrium is unique, for every `θ`), on a
+probability space: for every `ε ∈ famDom`, any equilibrium `(B, P, i)` with surpluses `s(ε)`
+whose rate satisfies the exact rule almost surely equals the family member almost surely at
+every date. -/
+theorem mRule_unique (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hsad : StronglyAdapted S.𝓕 shat) (hs : ∀ t ω, |shat t ω| ≤ M)
+    (hua : StronglyAdapted S.𝓕 u) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) {ε : ℝ}
+    (hε : ε ∈ famDom sbar M) {B P i : ℕ → Ω → ℝ}
+    (h : MEquilibrium S β Bm1 (surpFam sbar shat ε) B P i)
+    (hr : MRuleExact S β θ Bm1 (ssV β sbar) u ε P i) (t : ℕ) :
+    i t =ᵐ[S.μ] mRuleRate S β sbar shat θ u ε t ∧
+      P t =ᵐ[S.μ] mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ∧
+      B t =ᵐ[S.μ] mFamB S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hε' : |ε| * M < sbar := hε
+  have hc0 : 0 < (1 - β)⁻¹ * (sbar - |ε| * M) := mul_pos (inv_pos.mpr (by linarith))
+    (by linarith)
+  have hpv : ∀ t, ∀ᵐ ω ∂S.μ, 0 < S.forwardSol β (surpFam sbar shat ε) t ω := fun t =>
+    (forwardSol_surpFam_ge S hβ0 hβ1 hsad hs ε t).mono fun ω h => lt_of_lt_of_le hc0 h
+  have hgood := good_ae S hβ0 hβ1 hs hB
+  have hinfl : ∀ t, ∀ᵐ ω ∂S.μ,
+      logInfl Bm1 (ssV β sbar) P t ω = mRuleInfl S β sbar shat θ u ε t ω := by
+    intro t
+    induction t with
+    | zero =>
+      filter_upwards [mPrice_zero S h (hpv 0),
+        forwardSol_surpFam S (sbar := sbar) hβ0.le hβ1 hsad hs ε 0, hgood] with ω h1 h2 hω
+      change Real.log (P 0 ω / (Bm1 ω / ssV β sbar)) = Real.log (ssV β sbar) -
+        Real.log (pvAff S β sbar shat ε 0 ω)
+      have h3 : 0 < pvAff S β sbar shat ε 0 ω := aff_pos (sbar := sbar) hβ1 (hω.2 0).1 hε
+      have hB' := hω.1.ne'
+      rw [h1, h2, show Bm1 ω / pvAff S β sbar shat ε 0 ω / (Bm1 ω / ssV β sbar) =
+          ssV β sbar / pvAff S β sbar shat ε 0 ω by field_simp, Real.log_div hV.ne' h3.ne']
+    | succ t ih =>
+      filter_upwards [ih, mPrice_succ S h t (hpv (t + 1)), mDebt_eq S hβ0 h t (hpv (t + 1)),
+        forwardSol_surpFam S (sbar := sbar) hβ0.le hβ1 hsad hs ε (t + 1),
+        pvExM_surpFam S (sbar := sbar) hβ0.le hβ1 hsad hs ε t, hgood, h.2.1 t,
+        mEqm_rate_gt S hβ0 h t, hr t] with ω h0 h1 h2 h3 h4 hω hPt hit hrt
+      have h2' : B t ω = (1 + i t ω) * P t ω * pvExM S β (surpFam sbar shat ε) t ω := h2
+      change Real.log (P (t + 1) ω / P t ω) = -Real.log β +
+        θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω +
+        Real.log (pvExAff S β sbar shat ε t ω) - Real.log (pvAff S β sbar shat ε (t + 1) ω)
+      have hA : 0 < pvExAff S β sbar shat ε t ω := affEx_pos hβ0 hβ1 (hω.2 t).2 hε
+      have hC : 0 < pvAff S β sbar shat ε (t + 1) ω := aff_pos hβ1 (hω.2 (t + 1)).1 hε
+      have hi1 : 0 < 1 + i t ω := by linarith
+      have hPt' := hPt.ne'
+      rw [h1, h2', h3, h4, show (1 + i t ω) * P t ω * pvExAff S β sbar shat ε t ω /
+          pvAff S β sbar shat ε (t + 1) ω / P t ω =
+          (1 + i t ω) * pvExAff S β sbar shat ε t ω / pvAff S β sbar shat ε (t + 1) ω by
+          field_simp, Real.log_div (mul_pos hi1 hA).ne' hC.ne', Real.log_mul hi1.ne' hA.ne',
+        hrt, h0]
+  have hi : ∀ t, i t =ᵐ[S.μ] mRuleRate S β sbar shat θ u ε t := fun t => by
+    filter_upwards [hinfl t, hr t, mEqm_rate_gt S hβ0 h t] with ω h1 h2 h3
+    have hi1 : 0 < 1 + i t ω := by linarith
+    rw [h1] at h2
+    have e2 := congrArg Real.exp h2
+    rw [Real.exp_log hi1, Real.exp_add, Real.exp_add, Real.exp_neg, Real.exp_log hβ0] at e2
+    change i t ω = β⁻¹ * Real.exp (θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω) - 1
+    rw [Real.exp_add]
+    linarith
+  have h' := mEquilibrium_congr_rate S h (mRuleRate_sm S hua ε) fun t => (hi t).symm
+  obtain ⟨h1, h2⟩ := mFam_unique S hβ0 hβ1 hsad hs hε h' t
+  exact ⟨hi t, h1, h2⟩
+
+/-! ### Smoothness and the derivative -/
+
+/-- Cochrane (2023), p. 40: in every state where the bounds of `good_ae` hold, inflation and the
+rate of the rule family are `C^n` in `ε` on `famDom` (every `n`). -/
+theorem mRule_contDiffOn (hβ0 : 0 < β) (hβ1 : β < 1) {n : WithTop ℕ∞} {ω : Ω}
+    (hω : 0 < Bm1 ω ∧ ∀ t, |S.forwardSol β shat t ω| ≤ (1 - β)⁻¹ * M ∧
+      |pvExM S β shat t ω| ≤ β * ((1 - β)⁻¹ * M)) (t : ℕ) :
+    ContDiffOn ℝ n (fun ε => mRuleInfl S β sbar shat θ u ε t ω) (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => mRuleRate S β sbar shat θ u ε t ω) (famDom sbar M) := by
+  have hpv : ∀ t, ContDiff ℝ n (fun ε => pvAff S β sbar shat ε t ω) := fun t =>
+    contDiff_const.add (contDiff_id.mul contDiff_const)
+  have hpvE : ∀ t, ContDiff ℝ n (fun ε => pvExAff S β sbar shat ε t ω) := fun t =>
+    contDiff_const.add (contDiff_id.mul contDiff_const)
+  have hI : ∀ t, ContDiffOn ℝ n (fun ε => mRuleInfl S β sbar shat θ u ε t ω)
+      (famDom sbar M) := by
+    intro t
+    induction t with
+    | zero =>
+      exact contDiffOn_const.sub ((hpv 0).contDiffOn.log
+        fun ε hε => (aff_pos hβ1 (hω.2 0).1 hε).ne')
+    | succ t ih =>
+      exact ((((contDiffOn_const.add (contDiffOn_const.mul ih)).add
+        (contDiffOn_id.mul contDiffOn_const)).add
+        ((hpvE t).contDiffOn.log fun ε hε => (affEx_pos hβ0 hβ1 (hω.2 t).2 hε).ne')).sub
+        ((hpv (t + 1)).contDiffOn.log fun ε hε => (aff_pos hβ1 (hω.2 (t + 1)).1 hε).ne'))
+  exact ⟨hI t, (contDiffOn_const.mul ((contDiffOn_const.mul (hI t)).add
+    (contDiffOn_id.mul contDiffOn_const)).exp).sub contDiffOn_const⟩
+
+/-- Cochrane (2023), eq. (2.25), p. 40, on a probability space: in every state, the derivative at
+`ε = 0` of the closed-form inflation of the rule family is the solution
+`LinearFTMP.ruleSol θ u ε_{Σs} π̂_0` of the linear model (`ε_{Σs}` = `TidyR5MeasFamily.mShock`,
+`π̂_0` = `TidyR5MeasFamily.mInfl0`), for every `θ`. -/
+theorem mRuleInfl_hasDerivAt (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar) (t : ℕ) (ω : Ω) :
+    HasDerivAt (fun ε => mRuleInfl S β sbar shat θ u ε t ω)
+      (LinearFTMP.ruleSol θ u (mShock S β sbar shat) (mInfl0 S β sbar shat) t ω) 0 := by
+  have hV : 0 < ssV β sbar := mul_pos (inv_pos.mpr (by linarith)) hsbar
+  have hlogpv : ∀ t, HasDerivAt (fun ε => Real.log (pvAff S β sbar shat ε t ω))
+      (S.forwardSol β shat t ω / ssV β sbar) 0 := by
+    intro t
+    have hA0 : HasDerivAt (fun ε => ssV β sbar + ε * S.forwardSol β shat t ω)
+        (S.forwardSol β shat t ω) 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const (S.forwardSol β shat t ω)).const_add
+        (ssV β sbar)
+    have hA : HasDerivAt (fun ε => pvAff S β sbar shat ε t ω) (S.forwardSol β shat t ω) 0 :=
+      hA0
+    have h0 : pvAff S β sbar shat 0 t ω = ssV β sbar := by
+      simp [pvAff]
+    have := hA.log (by rw [h0]; exact hV.ne')
+    rwa [h0] at this
+  have hlogpvE : ∀ t, HasDerivAt (fun ε => Real.log (pvExAff S β sbar shat ε t ω))
+      (pvExM S β shat t ω / (β * ssV β sbar)) 0 := by
+    intro t
+    have hA0 : HasDerivAt (fun ε => β * ssV β sbar + ε * pvExM S β shat t ω)
+        (pvExM S β shat t ω) 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).mul_const (pvExM S β shat t ω)).const_add
+        (β * ssV β sbar)
+    have hA : HasDerivAt (fun ε => pvExAff S β sbar shat ε t ω) (pvExM S β shat t ω) 0 := hA0
+    have h0 : pvExAff S β sbar shat 0 t ω = β * ssV β sbar := by
+      simp [pvExAff]
+    have := hA.log (by rw [h0]; exact (mul_pos hβ0 hV).ne')
+    rwa [h0] at this
+  induction t with
+  | zero =>
+    refine ((hlogpv 0).const_sub (Real.log (ssV β sbar))).congr_deriv ?_
+    change -(S.forwardSol β shat 0 ω / ssV β sbar) =
+      -((ssV β sbar)⁻¹ * S.forwardSol β shat 0 ω)
+    rw [div_eq_inv_mul]
+  | succ t ih =>
+    have hL := HasDerivAt.sub (HasDerivAt.add (HasDerivAt.add (HasDerivAt.const_add
+      (-Real.log β) (ih.const_mul θ)) ((hasDerivAt_id (0 : ℝ)).mul_const (u t ω)))
+      (hlogpvE t)) (hlogpv (t + 1))
+    refine hL.congr_deriv ?_
+    have hXe : pvExM S β shat t ω = β * S.E t (S.forwardSol β shat (t + 1)) ω := rfl
+    have hsh : mShock S β sbar shat (t + 1) ω = (ssV β sbar)⁻¹ *
+        (S.forwardSol β shat (t + 1) ω - S.E t (S.forwardSol β shat (t + 1)) ω) := by
+      change (ssV β sbar)⁻¹ * (S.E (t + 1) (S.forwardSol β shat (t + 1)) ω -
+        S.E t (S.forwardSol β shat (t + 1)) ω) = _
+      rw [show S.E (t + 1) (S.forwardSol β shat (t + 1)) = S.forwardSol β shat (t + 1) from
+        S.E_E_self (t + 1) _]
+    change θ * LinearFTMP.ruleSol θ u (mShock S β sbar shat) (mInfl0 S β sbar shat) t ω +
+        id 1 * u t ω + pvExM S β shat t ω / (β * ssV β sbar) -
+        S.forwardSol β shat (t + 1) ω / ssV β sbar =
+      θ * LinearFTMP.ruleSol θ u (mShock S β sbar shat) (mInfl0 S β sbar shat) t ω +
+        u t ω - mShock S β sbar shat (t + 1) ω
+    rw [hsh, hXe, id]
+    have := hV.ne'
+    have := hβ0.ne'
+    field_simp
+    ring
+
+/-- Cochrane (2023), eqs. (2.22) and (2.25), p. 40, on a probability space: in every state, the
+derivative at `ε = 0` of the log gross rate of the rule family is the linear model's rate
+`θ π̂_t + u_t`. -/
+theorem mRule_rate_hasDerivAt (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar) (t : ℕ)
+    (ω : Ω) : HasDerivAt (fun ε => Real.log (1 + mRuleRate S β sbar shat θ u ε t ω))
+      (θ * LinearFTMP.ruleSol θ u (mShock S β sbar shat) (mInfl0 S β sbar shat) t ω +
+        u t ω) 0 := by
+  have e : (fun ε => Real.log (1 + mRuleRate S β sbar shat θ u ε t ω)) =
+      fun ε => -Real.log β + θ * mRuleInfl S β sbar shat θ u ε t ω + ε * u t ω :=
+    funext fun ε => log_one_add_mRuleRate S hβ0 ε t ω
+  rw [e]
+  have h := HasDerivAt.add (((mRuleInfl_hasDerivAt S (shat := shat) (θ := θ) (u := u) hβ0 hβ1
+    hsbar t ω).const_mul θ).const_add (-Real.log β)) ((hasDerivAt_id (0 : ℝ)).mul_const (u t ω))
+  exact h.congr_deriv (by simp)
+
+/-- Cochrane (2023), §2.6, pp. 39–42, **the linear rule model is the derivative of the family of
+exact equilibria on a genuine probability space**, for every `θ ∈ ℝ`. With `0 < β < 1`,
+`s̄ > 0`, bounded adapted `ŝ` and `u`, and positive initial debt known at `0`, on `famDom`:
+* each family member is an equilibrium satisfying the exact rule almost surely, and every such
+  equilibrium equals it almost surely at every date;
+* almost surely, price level, debt and inflation are `C^n` in `ε` for every `n`;
+* the linear rule model with `ε_{Σs} = mShock` and `π̂_0 = mInfl0` has an adapted integrable
+  solution, unique up to null sets, and every adapted integrable solution `(π̂, î)` is, at every
+  date and almost surely, the derivative at `ε = 0` of inflation and of the log gross rate
+  along the family. -/
+theorem mRule_family_linearization (hβ0 : 0 < β) (hβ1 : β < 1) (hsbar : 0 < sbar)
+    (hsad : StronglyAdapted S.𝓕 shat) (hs : ∀ t ω, |shat t ω| ≤ M)
+    (hua : StronglyAdapted S.𝓕 u) (hu : ∀ t ω, |u t ω| ≤ Mu)
+    (hBm1 : StronglyMeasurable[S.𝓕 0] Bm1) (hB : ∀ᵐ ω ∂S.μ, 0 < Bm1 ω) :
+    (∀ ε ∈ famDom sbar M, MEquilibrium S β Bm1 (surpFam sbar shat ε)
+      (mFamB S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε)
+      (mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε)
+      (mRuleRate S β sbar shat θ u ε) ∧
+      MRuleExact S β θ Bm1 (ssV β sbar) u ε
+        (mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε)
+        (mRuleRate S β sbar shat θ u ε)) ∧
+    (∀ ε ∈ famDom sbar M, ∀ B P i : ℕ → Ω → ℝ,
+      MEquilibrium S β Bm1 (surpFam sbar shat ε) B P i →
+      MRuleExact S β θ Bm1 (ssV β sbar) u ε P i → ∀ t,
+        i t =ᵐ[S.μ] mRuleRate S β sbar shat θ u ε t ∧
+        P t =ᵐ[S.μ] mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ∧
+        B t =ᵐ[S.μ] mFamB S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t) ∧
+    (∀ n : WithTop ℕ∞, ∀ᵐ ω ∂S.μ, ∀ t : ℕ,
+      ContDiffOn ℝ n (fun ε => mFamP S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => mFamB S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω)
+        (famDom sbar M) ∧
+      ContDiffOn ℝ n (fun ε => mFamInfl S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω)
+        (famDom sbar M)) ∧
+    ((StronglyAdapted S.𝓕
+        (LinearFTMP.ruleSol θ u (mShock S β sbar shat) (mInfl0 S β sbar shat)) ∧
+      (∀ t, Integrable
+        (LinearFTMP.ruleSol θ u (mShock S β sbar shat) (mInfl0 S β sbar shat) t) S.μ) ∧
+      MRuleModel S θ (fun t => θ • LinearFTMP.ruleSol θ u (mShock S β sbar shat)
+        (mInfl0 S β sbar shat) t + u t) u (mShock S β sbar shat)
+        (LinearFTMP.ruleSol θ u (mShock S β sbar shat) (mInfl0 S β sbar shat))) ∧
+    ∀ q : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ), StronglyAdapted S.𝓕 q.1 →
+      (∀ t, Integrable (q.1 t) S.μ) → q.1 0 =ᵐ[S.μ] mInfl0 S β sbar shat →
+      MRuleModel S θ q.2 u (mShock S β sbar shat) q.1 → ∀ t, ∀ᵐ ω ∂S.μ,
+        HasDerivAt (fun ε => mFamInfl S β sbar shat Bm1 (mRuleRate S β sbar shat θ u) ε t ω)
+          (q.1 t ω) 0 ∧
+        HasDerivAt (fun ε => Real.log (1 + mRuleRate S β sbar shat θ u ε t ω)) (q.2 t ω) 0) := by
+  have hui : ∀ t, Integrable (u t) S.μ := fun t =>
+    MeasExpectationSystem.BddRV.integrable
+      ⟨((hua t).mono (S.𝓕.le t)).aestronglyMeasurable, Mu, Eventually.of_forall (hu t)⟩
+  obtain ⟨h0, h0i⟩ := mInfl0_sm_integrable S (β := β) (sbar := sbar) (shat := shat)
+  obtain ⟨hex, huniq⟩ := mRule_linear_existsUnique S θ hua hui (mShock_isShock S) h0 h0i
+  have hgood := good_ae S hβ0 hβ1 hs hB
+  refine ⟨fun ε hε => ⟨mRule_equilibrium S hβ0 hβ1 hsad hs hua hu hBm1 hB hε,
+      mRule_exact S hβ0 hβ1 hsbar hs hB hε⟩,
+    fun ε hε B P i h hr t => mRule_unique S hβ0 hβ1 hsbar hsad hs hua hB hε h hr t,
+    fun n => mFam_contDiffOn S hβ0 hβ1 hsbar hs hB (fun ε _ t ω => mRuleRate_gt S hβ0 ε t ω)
+      (hgood.mono fun ω hω t => (mRule_contDiffOn S hβ0 hβ1 hω t).2), ⟨hex, ?_⟩⟩
+  intro q hπ hπi hπ0 hm t
+  obtain ⟨h1, h2⟩ := huniq q hπ hπi hπ0 hm t
+  filter_upwards [h1, h2, hgood] with ω e1 e2 hω
+  refine ⟨?_, ?_⟩
+  · rw [e1]
+    refine (mRuleInfl_hasDerivAt S hβ0 hβ1 hsbar t ω).congr_of_eventuallyEq ?_
+    filter_upwards [famDom_mem_nhds hsbar M] with ε hε
+    exact mFamInfl_eq S hβ0 hβ1 hsbar hω hε t
+  · rw [e2]
+    change HasDerivAt _ (θ * LinearFTMP.ruleSol θ u (mShock S β sbar shat)
+      (mInfl0 S β sbar shat) t ω + u t ω) 0
+    exact mRule_rate_hasDerivAt S hβ0 hβ1 hsbar t ω
+
+/-! ### The link to the rule family on a finite tree -/
+
+namespace Link
+
+open ExpectationsFiniteTree TreeBridge TidyR5MeasLinear.Link
+
+variable {Ω' : Type*} [Fintype Ω'] [MeasurableSpace Ω'] [DiscreteMeasurableSpace Ω']
+  (T : FiniteTree Ω')
+
+/-- Cochrane (2023), §2.6, p. 40: on a finite tree the measure-theoretic rule family's inflation
+and rate are `TidyR5FamilyRule.ruleInfl` and `TidyR5FamilyRule.ruleRate`, so its price level is
+`TidyR5Family.priceFam` for the rate `ruleRate` (bounded `ŝ`, `0 ≤ β < 1`). -/
+theorem tree_mRuleRate (hβ0 : 0 ≤ β) (hβ1 : β < 1) {shat' u' : ℕ → Ω' → ℝ}
+    (hs : ∀ t ω, |shat' t ω| ≤ M) (Bm1' : Ω' → ℝ) (ε : ℝ) :
+    mRuleInfl (treeSystem T) β sbar shat' θ u' ε =
+        ruleInfl T.toExpectationSystem β sbar shat' θ u' ε ∧
+      mRuleRate (treeSystem T) β sbar shat' θ u' =
+        ruleRate T.toExpectationSystem β sbar shat' θ u' ∧
+      ∀ t, mFamP (treeSystem T) β sbar shat' Bm1' (mRuleRate (treeSystem T) β sbar shat' θ u') ε
+        t = priceFam T.toExpectationSystem β sbar shat' Bm1'
+          (ruleRate T.toExpectationSystem β sbar shat' θ u') ε t := by
+  have hpv : ∀ ε t, pvAff (treeSystem T) β sbar shat' ε t =
+      FiscalMonetary.pv T.toExpectationSystem β (surpFam sbar shat' ε) t := fun ε t => by
+    rw [pv_surpFam T.toExpectationSystem hβ0 hβ1 hs]
+    funext ω
+    simp only [pvAff, tree_forwardSol]
+  have hpvE : ∀ ε t, pvExAff (treeSystem T) β sbar shat' ε t =
+      FiscalMonetary.pvEx T.toExpectationSystem β (surpFam sbar shat' ε) t := fun ε t => by
+    rw [pvEx_surpFam T.toExpectationSystem hβ0 hβ1 hs]
+    funext ω
+    simp only [pvExAff, tree_pvExM]
+  have hI : ∀ ε, mRuleInfl (treeSystem T) β sbar shat' θ u' ε =
+      ruleInfl T.toExpectationSystem β sbar shat' θ u' ε := by
+    intro ε
+    funext t
+    induction t with
+    | zero =>
+      funext ω
+      change Real.log (ssV β sbar) - Real.log (pvAff (treeSystem T) β sbar shat' ε 0 ω) = _
+      rw [hpv]
+      rfl
+    | succ t ih =>
+      funext ω
+      change -Real.log β + θ * mRuleInfl (treeSystem T) β sbar shat' θ u' ε t ω + ε * u' t ω +
+        Real.log (pvExAff (treeSystem T) β sbar shat' ε t ω) -
+        Real.log (pvAff (treeSystem T) β sbar shat' ε (t + 1) ω) = _
+      rw [ih, hpv, hpvE]
+      rfl
+  have hR : mRuleRate (treeSystem T) β sbar shat' θ u' =
+      ruleRate T.toExpectationSystem β sbar shat' θ u' := by
+    funext ε t ω
+    change β⁻¹ * Real.exp (θ * mRuleInfl (treeSystem T) β sbar shat' θ u' ε t ω + ε * u' t ω) - 1
+      = _
+    rw [hI]
+    rfl
+  refine ⟨hI ε, hR, fun t => ?_⟩
+  rw [hR]
+  exact (TidyR5MeasFamily.Link.tree_mFamP (sbar := sbar) T hβ0 hβ1 hs Bm1' _ ε t).1
+
+end Link
+
+end Cochrane.IntertemporalModel.TidyR5MeasFamilyRule
+
 set_option linter.style.longLine false
 #print axioms Cochrane.IntertemporalModel.SchurStable
 #print axioms Cochrane.IntertemporalModel.disc
@@ -13249,3 +17087,194 @@ set_option linter.style.longLine false
 #print axioms Cochrane.IntertemporalModel.HouseholdMeasureTVC.Link.optimal_of_core
 #print axioms Cochrane.IntertemporalModel.HouseholdMeasureTVC.Link.link_euler
 #print axioms Cochrane.IntertemporalModel.HouseholdMeasureTVC.Link.link_tvc_valuation
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.E_pos_of_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.bondPrice_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.isEqm_bondPrice_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.isEqm_rate_gt
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.rate_gt_of_pricing
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.rate_adapted_of_pricing
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.bondPricing_rate_gt
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.bondPricing_rate_adapted
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.equilibrium_iff_reduced
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.isEqm_inv_rate_gt
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.isEqm_inv_rate_adapted
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.equilibrium_iff_isEqm_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.isEqm_fisher_log_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.no_eqm_of_rate_le
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.rateNegOne
+#print axioms Cochrane.IntertemporalModel.TidyR5BondPrice.beta_zero_counterexample
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.surpFam
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.ssV
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.famDom
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.famDom_isOpen
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.zero_mem_famDom
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.famDom_mem_nhds
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.epv_surpFam
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.pv_surpFam
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.pvEx_surpFam
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.abs_pv_le
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.pv_surpFam_ge
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.pv_surpFam_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.pvEx_surpFam_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.priceFam
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.debtFam
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.inflFam
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.fam_equilibrium
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.fam_unique
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.family_unique
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.priceFam_succ
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.priceFam_zero
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.priceFam_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.fam_steady
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.pv_contDiff
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.pvEx_contDiff
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.price_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.debt_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.infl_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.fiscShock
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.infl0
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.scaled_innov_pv
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.fiscShock_isShock
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.infl0_known
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.infl_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.fam_linearization
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.rateExp
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.rateExp_gt
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.rateExp_zero
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.rateExp_adapted
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.rateExp_log_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.rateExp_contDiff
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.exp_family_linearization
+#print axioms Cochrane.IntertemporalModel.TidyR5Family.tree_family_linearization
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.logInfl
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.RuleExact
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleInfl
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleRate
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.logInfl_priceFam
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleRate_gt
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.log_one_add_ruleRate
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleInfl_adapted
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleRate_adapted
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.inflFam_eq_ruleInfl
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.rule_equilibrium
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.rule_exact
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.rule_unique
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleInfl_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleRate_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.rule_price_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.ruleInfl_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.rule_infl_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.rule_rate_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.rule_family_linearization
+#print axioms Cochrane.IntertemporalModel.TidyR5FamilyRule.tree_rule_linearization
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.pvExM
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.pvExM_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.pv_bdd
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.pvExM_ge
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.pv_eq_add_pvEx
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.MValuation
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.MBondPricing
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.MEquilibrium
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.MIsEqm
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mEqm_rate_gt
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPrice_zero
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPrice_succ
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mDebt_eq
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mExpected_inflation
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mUnexpected_inflation
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mInflation_decomposition
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mNo_surprise_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mFlow
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPegP
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPegB
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPegP_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPegB_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPegP_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPeg_equilibrium
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPeg_unique
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPeg_existsUnique
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.endDebt
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.nominal_iff_real
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mFlowTvc_iff_valuation
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mEquilibrium_iff_mIsEqm
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mIsEqm_price_eq
+#print axioms Cochrane.IntertemporalModel.TidyR5Meas.mPeg_existsUnique_mIsEqm
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.MIsShock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.MPegModel
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.MRuleModel
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.E_innov_known_sub_shock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.mPegModel_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.mPeg_linear_existsUnique
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.mRule_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.mRule_linear_existsUnique
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.mFiscShock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.mFiscShock_isShock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.mEquilibrium_fiscShock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.eq_of_ae
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_forwardSol
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_innov
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_adapted_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_pvExM
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_mPegP
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_mEquilibrium_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_mIsEqm_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_mIsShock_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_mPegModel_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_mRuleModel_iff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasLinear.Link.tree_mFiscShock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mEquilibrium_congr
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.pvAff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.pvExAff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamP
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamB
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamInfl
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mShock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mInfl0
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.discSum_surpFam
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.discSum_integrable
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.forwardSol_surpFam
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.pvExM_surpFam
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.good_ae
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.aff_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.affEx_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamP_pos
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.rateExp_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.rateExp_bondPrice_integrable
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamP_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamB_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFam_ae_mPeg
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.forwardSol_surpFam_ge
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFam_equilibrium
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFam_unique
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFam_steady
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFam_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamInfl_hasDerivAt_gen
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mFamInfl_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mShock_isShock
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.mInfl0_sm_integrable
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.meas_family_linearization
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.Link.tree_mFamP
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamily.Link.tree_mFamInfl
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleInfl
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleRate
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.MRuleExact
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleRate_gt
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.log_one_add_mRuleRate
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleInfl_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleRate_sm
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.abs_log_le
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.ruleBound
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.aff_le
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.le_aff
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleInfl_bound
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleRate_bondPrice_integrable
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRule_equilibrium
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mFamInfl_eq
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRule_exact
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mEquilibrium_congr_rate
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRule_unique
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRule_contDiffOn
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRuleInfl_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRule_rate_hasDerivAt
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.mRule_family_linearization
+#print axioms Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.Link.tree_mRuleRate

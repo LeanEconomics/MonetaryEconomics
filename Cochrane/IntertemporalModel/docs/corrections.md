@@ -10,8 +10,9 @@ Codes E4–E10, E27 and E30 are the Chapter 2 and A1.1 items of the survey of Ch
 recorded here, and an entry is revised if formalisation shows the finding itself to be wrong (the
 survey's planned "rearrangement neutrality" theorem for p. 50 is one such revision, below). Two
 findings are new: the debt-sale formula of p. 24 and the stimulus claim of p. 50. Several claims
-that the book asserts without proof turned out to be correct; they are listed in the last
-section.
+that the book asserts without proof turned out to be correct; they are listed in "Claims confirmed
+correct". The final section records corrections to our own earlier formalisation, which are not
+errors in the book.
 
 Out of scope are the discursive passages: the Apple-share analogy and the run interpretation
 (§2.2), the equilibrium-formation philosophy and the debates of pp. 28–29, the Ricardian debate
@@ -62,7 +63,9 @@ are relative to the namespace `Cochrane.IntertemporalModel`.
 | p. 22 | `E_t` commutes with infinite sums | `ExpectationTools.MonotoneConvergence`, applied to positive and negative parts; for bounded surpluses the interchange needs no hypothesis (`FiscalMonetary.E_epv_tsum`, `GeneralLinks.fm_pv_eq_pv_of_bounded`) |
 | p. 22 | Signed surpluses have a well-defined present value | `Valuation.AbsSummable`, `FiscalMonetary.SurplusSummable` |
 | p. 22; pp. 31–33 | Positive initial debt and positive present values in every state; under a target also a positive ex-dividend value | Hypotheses of `Valuation.existsUnique_eqm` and `FiscalMonetary.peg_existsUnique`; `Links.peg_ftpl_existsUnique` takes present values bounded below by `c > 0` |
-| pp. 31–33 | The target is adapted with `i > −1`; debt and rate are adapted | Part of `FiscalMonetary.Equilibrium`; hypotheses of `GeneralLinks.equilibrium_iff_isEqm`. The positivity of the bond price is not derived from the expectation axioms; on a probability space it is derived from optimisation (`HouseholdMeasure.bondPrice_pos`, `HouseholdMeasure.rate_gt_neg_one_of_formula`) |
+| pp. 31–33 | The target is adapted with `i > −1`; debt and rate are adapted | Part of `FiscalMonetary.Equilibrium`; hypotheses of `GeneralLinks.equilibrium_iff_isEqm`. For `β > 0` the rate conditions are consequences of (2.3) and the core axioms (`TidyR5BondPrice.bondPricing_rate_gt`, `TidyR5BondPrice.bondPricing_rate_adapted`, `TidyR5BondPrice.equilibrium_iff_reduced`, `TidyR5BondPrice.equilibrium_iff_isEqm_pos`); they are needed only at `β = 0` (`TidyR5BondPrice.beta_zero_counterexample`). On a probability space `i > −1` almost surely is derived (`TidyR5Meas.mEqm_rate_gt`), but adaptedness of `i` is a hypothesis of `TidyR5Meas.mEquilibrium_iff_mIsEqm`: almost-sure bond pricing does not give it without a complete filtration |
+| pp. 31–33, on a probability space | A target has an equilibrium | Surpluses bounded almost surely, present values bounded below by `c > 0` almost surely and an integrable bond price `1/(1 + i_t)` (`TidyR5Meas.mPeg_equilibrium`); integrable real debt for the equivalence of the two notions (`TidyR5Meas.mEquilibrium_iff_mIsEqm`) |
+| pp. 31–36 | The linear model linearises a family of exact equilibria | Surpluses `s̄ + εŝ_t` with `ŝ` bounded, shock sizes in `TidyR5Family.famDom`, a rate family with `i(0) = 1/β − 1`; on a probability space `ŝ`, `î` and `u` bounded everywhere, smoothness and derivatives almost surely (`TidyR5MeasFamily.meas_family_linearization`, `TidyR5MeasFamilyRule.mRule_family_linearization`) |
 | (2.13), p. 30 | Debt outstanding is nonzero when dividing by `B_t/P_t` | Hypothesis of `FiscalMonetary.unexpected_inflation_eq` and `FiscalMonetary.no_surprise_iff` |
 | p. 43 | The AR(1) surplus is bounded and `\|βη\| < 1` | Hypotheses of `FiscalMonetary.ar1_pv_news` and its successors |
 | p. 21 | Every state has positive probability; in a finite economy information stops growing | `Valuation.Faithful`, `Valuation.InfoStable`, used only for optimisation under uncertainty on a finite state space; true on finite trees. The measure-theoretic household results need neither (`HouseholdMeasureTVC.tvc_of_optimal`, `HouseholdMeasureTVC.Link.link_tvc_valuation`) |
@@ -78,6 +81,9 @@ are relative to the namespace `Cochrane.IntertemporalModel`.
 | (2.2), p. 21 | The household constraint is the mirror image of the government's at `c = y` | `Environment.hhFlow_iff_govFlow` |
 | (2.3), p. 22 | `R = 1/β` and `Q_t = βE_t(P_t/P_{t+1})` | `Environment.realRate_eq_inv_beta`, `Environment.bondPrice_iff_euler`, `Environment.bondPrice_of_optimal` |
 | (2.3), p. 22 | The bond price is positive, derived from optimisation on a probability space | `HouseholdMeasure.bondPrice_pos`, `HouseholdMeasure.bondPrice_formula`, `HouseholdMeasure.rate_gt_neg_one_of_formula` |
+| (2.3), p. 22 | The bond price is positive and `i > −1` in every equilibrium (`β > 0`), from the core axioms on any state space | `TidyR5BondPrice.E_pos_of_pos`, `TidyR5BondPrice.isEqm_bondPrice_pos`, `TidyR5BondPrice.isEqm_rate_gt`, `TidyR5Meas.mEqm_rate_gt` |
+| pp. 31–36, 39–42 | The linear peg and rule models are the linearisation of the exact model | `TidyR5Family.exp_family_linearization`, `TidyR5FamilyRule.rule_family_linearization`, `TidyR5MeasFamily.meas_family_linearization`, `TidyR5MeasFamilyRule.mRule_family_linearization` |
+| pp. 31–33 | Existence and uniqueness under a target, (2.13) and the decomposition, on a probability space | `TidyR5Meas.mPeg_existsUnique`, `TidyR5Meas.mUnexpected_inflation`, `TidyR5Meas.mInflation_decomposition` |
 | p. 22; A1.1, pp. 554–556 | Household maximisation implies the TVC and, at `c = y`, (2.7), with information growing forever; Euler plus TVC is optimal | `HouseholdMeasureTVC.tvc_of_optimal`, `HouseholdMeasureTVC.valuation_of_optimal_eqm`, `HouseholdMeasureTVC.optimal_of_euler_tvc`, `HouseholdMeasureTVC.IID.iid_equilibrium` |
 | p. 22 | Money is dominated at `i > 0`; the rate cannot be negative; perfect substitutes at `i = 0` | `Environment.money_dominated`, `Environment.bonds_dominated_of_neg_rate`, `Environment.perfect_substitutes` |
 | (2.4)–(2.5), p. 22 | Eliminating money; the real flow | `Environment.govFlow_merge`, `Environment.flow_iff_real_x` |
@@ -97,3 +103,12 @@ are relative to the namespace `Cochrane.IntertemporalModel`.
 | (2.26)–(2.27), pp. 42–43 | The flow condition and its innovation form; the equity issue; the s-shape; the AR(1) value of debt falls with a deficit | `FiscalMonetary.eq_2_26`, `FiscalMonetary.eq_2_27`, `FiscalMonetary.equityIssue_finances_deficit`, `FiscalMonetary.sShape`, `FiscalMonetary.ar1_value_falls` |
 | §2.8, p. 44 | The Treasury/central-bank split is irrelevant | `FiscalMonetary.consolidation_irrelevant` |
 | (2.28), p. 48 | The Treasury rule and the flat supply curve | `FlatSupply.treasury_rule_iff`, `FlatSupply.flat_supply_revenue`, `FlatSupply.twoStep_equilibrium` |
+
+## Corrections to the earlier formalisation (not errors in the book)
+
+| Where | Earlier statement | Finding |
+| --- | --- | --- |
+| `GeneralLinks.equilibrium_iff_isEqm`, pp. 21–33 | The equivalence of the valuation-equation and derived equilibria takes an adapted rate with `i > −1` as hypotheses. | For `β > 0` both hypotheses are redundant: (2.3) and the core axioms give `i > −1` in every state and, with pull-out, an adapted rate (`TidyR5BondPrice.equilibrium_iff_isEqm_pos`, `TidyR5BondPrice.bondPricing_rate_gt`, `TidyR5BondPrice.bondPricing_rate_adapted`). They are needed only at `β = 0`: under perfect foresight with `i ≡ −1`, `P ≡ 1`, no debt and no surpluses every other hypothesis holds and `Valuation.IsEqm` holds, but `FiscalMonetary.Equilibrium` fails (`TidyR5BondPrice.beta_zero_counterexample`). |
+| `FiscalMonetary.Equilibrium`, pp. 31–33 | The definition lists "`i` adapted" and "`i > −1`" among its conditions. | Redundant for `β > 0` with pull-out (`TidyR5BondPrice.equilibrium_iff_reduced`); a target with `i_t ≤ −1` in some state has no equilibrium of either kind (`TidyR5BondPrice.no_eqm_of_rate_le`). The measure-theoretic notion `TidyR5Meas.MEquilibrium` omits `i > −1`. |
+| `GeneralLinks.isEqm_fisher_log`, (2.16), p. 35 | The exact Fisher equation in logs assumes a positive bond price. | The hypothesis is redundant for `β > 0` (`TidyR5BondPrice.isEqm_fisher_log_pos`). |
+| README, "Not formalised" | Positivity of the bond price is not derived from the abstract expectation axioms; on a probability space it is derived only from optimisation. | Outdated: for `β > 0` it follows from the core axioms alone, on any state space (`TidyR5BondPrice.E_pos_of_pos`, `TidyR5BondPrice.isEqm_bondPrice_pos`, `TidyR5BondPrice.isEqm_rate_gt`), and on a probability space from almost-sure bond pricing (`TidyR5Meas.mEqm_rate_gt`). |

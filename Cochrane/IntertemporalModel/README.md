@@ -10,14 +10,15 @@ A1.1, "The transversality condition" (pp. 554–556). Model equations hold for a
 expectation operator, so every result covers perfect foresight and genuine uncertainty: random
 variables are functions `Ω → ℝ`, processes are `ℕ → Ω → ℝ`, and every equation holds state by
 state. The household problem is also solved on a genuine probability space, with Mathlib's
-conditional expectation, information that grows forever and equations holding almost surely.
-Present values are genuine infinite sums, and surpluses are signed. The central object is
+conditional expectation, information that grows forever and equations holding almost surely, and
+so are the equilibrium notions, interest-rate targets, the linear model and the family of exact
+equilibria whose derivative it is. Present values are genuine infinite sums, and surpluses are signed. The central object is
 the fiscal-theory equilibrium: given nominal debt and surpluses, a positive adapted price level
 satisfying the bond-pricing equation (2.3), the flow condition (2.4) and the transversality
 condition (2.6), or equivalently the valuation equation (2.7) at every date. "The price level is
 determined" means that there is exactly one such price level. This is not uniqueness of bounded
-solutions, the notion of the Woodford projects. The library contains **609 theorems**, including
-the shared core; 393 of them are in the eleven chapter modules.
+solutions, the notion of the Woodford projects. The library contains **764 theorems**, including
+the shared core; 548 of them are in the eighteen chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -67,11 +68,30 @@ Headline results, in the namespace `Cochrane.IntertemporalModel`:
   proved in closed form, including the hump and its peak `π_5 = 1.695`
   (`LinearFTMP.fig21_expected_fiscal`, `LinearFTMP.irf_rule`, `LinearFTMP.hump_exists`,
   `LinearFTMP.fig22_peak`).
+* **The linear model is the derivative of a family of exact equilibria.** For surpluses
+  `s̄ + εŝ_t` and a rate target `i(ε)` the exact nonlinear equilibrium is built in closed form on
+  an open neighbourhood of `ε = 0` (`TidyR5Family.famDom`); it is unique, it is the steady state
+  at `ε = 0`, it is `C^n` in `ε` for every `n` (analytic included), and its derivative at `0` is
+  the unique solution (2.19) of the linear peg model (`TidyR5Family.exp_family_linearization`,
+  `TidyR5Family.infl_hasDerivAt`, `TidyR5Family.family_unique`). Under the exact rule
+  `log(1 + i_t) = −log β + θπ_t + εu_t` the same holds for every `θ`, with derivative the solution
+  (2.25) (`TidyR5FamilyRule.rule_family_linearization`, `TidyR5FamilyRule.rule_unique`). Both hold
+  on every finite event tree (`TidyR5Family.tree_family_linearization`,
+  `TidyR5FamilyRule.tree_rule_linearization`) and almost surely on a probability space
+  (`TidyR5MeasFamily.meas_family_linearization`,
+  `TidyR5MeasFamilyRule.mRule_family_linearization`).
+* **The bond price is positive.** For `β > 0` a positive payoff has a positive forecast under the
+  core `ExpectationSystem` axioms alone, on any state space (`TidyR5BondPrice.E_pos_of_pos`), so
+  every equilibrium has `Q_t > 0` and `i_t > −1`, and with pull-out the rate is adapted
+  (`TidyR5BondPrice.isEqm_rate_gt`, `TidyR5BondPrice.bondPricing_rate_gt`,
+  `TidyR5BondPrice.bondPricing_rate_adapted`). The hypothesis is needed only at `β = 0`
+  (`TidyR5BondPrice.beta_zero_counterexample`).
 * **One economy, three formalisations.** The equilibrium derived from flow plus transversality,
   the equilibrium defined by the valuation equation, and the peg equilibrium of the Woodford links
   are proved equivalent (`GeneralLinks.equilibrium_iff_isEqm`, `GeneralLinks.equilibrium_iff_pegEqm`),
   so every result about one of them applies to the others (see
-  [Three equilibrium notions](#three-equilibrium-notions)).
+  [Three equilibrium notions](#three-equilibrium-notions)); for `β > 0` the first equivalence
+  needs no hypothesis on the rate (`TidyR5BondPrice.equilibrium_iff_isEqm_pos`).
 * **Links to Woodford.** Woodford's Propositions 2.5 and 2.6 are restated and contrasted with the
   fiscal theory: in the same coin-flip economy a peg has uncountably many solutions of the Fisher
   equation but exactly one fiscal-theory equilibrium (`Links.peg_contrast`), and a rule with
@@ -94,6 +114,20 @@ Headline results, in the namespace `Cochrane.IntertemporalModel`:
   (`HouseholdMeasureTVC.IID.iid_equilibrium`). On a finite event tree these results return the
   finite-state statements of `Valuation` (`HouseholdMeasureTVC.Link.link_euler`,
   `HouseholdMeasureTVC.Link.link_tvc_valuation`).
+* **Equilibrium on a genuine probability space.** Both equilibrium notions are restated with
+  equations holding almost surely (`TidyR5Meas.MEquilibrium`, `TidyR5Meas.MIsEqm`), `i > −1`
+  almost surely is a theorem (`TidyR5Meas.mEqm_rate_gt`), and the two notions agree
+  (`TidyR5Meas.mFlowTvc_iff_valuation`, `TidyR5Meas.mEquilibrium_iff_mIsEqm`). An interest-rate
+  target has an equilibrium, unique almost surely at every date
+  (`TidyR5Meas.mPeg_existsUnique`, `TidyR5Meas.mPeg_existsUnique_mIsEqm`), with (2.13), (2.15),
+  (2.26) and the expected/unexpected inflation decomposition almost surely
+  (`TidyR5Meas.mUnexpected_inflation`, `TidyR5Meas.mDebt_eq`, `TidyR5Meas.mFlow`,
+  `TidyR5Meas.mInflation_decomposition`). The linear peg and rule models have a solution, unique
+  up to null sets, for every `θ` (`TidyR5MeasLinear.mPeg_linear_existsUnique`,
+  `TidyR5MeasLinear.mRule_linear_existsUnique`). On a finite event tree each notion is its
+  `ExpectationSystem` counterpart (`TidyR5MeasLinear.Link.tree_mEquilibrium_iff`,
+  `TidyR5MeasLinear.Link.tree_mIsEqm_iff`, `TidyR5MeasLinear.Link.tree_mPegModel_iff`,
+  `TidyR5MeasLinear.Link.tree_mRuleModel_iff`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -116,9 +150,23 @@ Not formalised:
   Atkeson–Chari–Kehoe (pp. 28–29), the Ricardian debate and the data (pp. 43–44), the
   institutional history of §2.8, the Federal Reserve's operating procedures (§2.9), and the
   historical episodes of §2.10;
-* the rest of the chapter on a genuine probability space: only the household problem and the
-  i.i.d. equilibrium are measure-theoretic, while the equilibrium notions, policy, the linear
-  model and the links are stated for an `ExpectationSystem`;
+* the rest of the chapter on a genuine probability space: the household problem, the i.i.d.
+  equilibrium, the equilibrium notions and their equivalence, interest-rate targets with the
+  price-level formulas, (2.13), (2.15), (2.26), the linear peg and rule models and the family of
+  exact equilibria are measure-theoretic, but the Woodford contrasts of `Links` (Propositions 2.5
+  and 2.6, Ricardian transversality), the remaining `FiscalMonetary` and `FlatSupply` corollaries
+  (share splits, equity issues, AR(1) surpluses, the s-shape, stimulus, the flat supply curve),
+  price-level targets and the impulse responses of Figures 2.1 and 2.2 are stated only for an
+  `ExpectationSystem`;
+* the measure-theoretic equilibrium results without their explicit hypotheses: target existence
+  assumes surpluses bounded almost surely, present values bounded below by `c > 0` almost surely
+  and an integrable bond price `1/(1 + i)` (`TidyR5Meas.mPeg_equilibrium`; Mathlib's `condExp`
+  is `0` on non-integrable functions); the equivalence of the two notions assumes integrable real
+  debt and keeps the rate adapted as a hypothesis, which almost-sure bond pricing does not give
+  without a complete filtration (`TidyR5Meas.mEquilibrium_iff_mIsEqm`); the `ε`-families assume
+  `ŝ`, `î` and `u` bounded everywhere, and their smoothness and derivatives hold for almost every
+  state, because versions of conditional expectations are bounded only almost surely
+  (`TidyR5MeasFamily.mFam_contDiffOn`, `TidyR5MeasFamilyRule.mRule_family_linearization`);
 * the measure-theoretic household problem without its regularity hypotheses: the Euler equation
   assumes that consumption, the bond price and `1/P` are essentially bounded at the dates
   involved (`HouseholdMeasure.EulerRegular`, per date, automatic on a finite tree) and holds with
@@ -133,14 +181,7 @@ Not formalised:
   long-term debt, and "the lagged-rate rule has much the same effect" (p. 40), which has no
   precise content;
 * Figure 2.1 on its calendar axis: the responses are stated as innovations at a general shock
-  date;
-* a differentiable family of genuine nonlinear equilibria: the exact equations satisfied by every
-  equilibrium are proved to be those whose derivatives give the linear model
-  (`GeneralLinks.isEqm_fisher_log`, `GeneralLinks.equilibrium_pvNews`), but no theorem builds
-  such a family and differentiates it;
-* positivity of the bond price from the abstract expectation axioms: the link between the
-  equilibrium notions takes `i > −1` as a hypothesis. On a probability space it is derived from
-  optimisation (`HouseholdMeasure.bondPrice_pos`, `HouseholdMeasure.rate_gt_neg_one_of_formula`).
+  date.
 
 ## Library map
 
@@ -163,6 +204,13 @@ Not formalised:
 | [ExpectationsMeasureIID](IntertemporalModel/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
 | [HouseholdMeasure](IntertemporalModel/HouseholdMeasure.lean) | 32 | §2.1 on a probability space: feasible, admissible and optimal plans, differentiation under the integral, the Euler inequality at every date and the Euler equation on `{B_t > 0}`, the bond price (2.3) derived positive |
 | [HouseholdMeasureTVC](IntertemporalModel/HouseholdMeasureTVC.lean) | 32 | §2.1 and A1.1 on a probability space with information growing forever: the TVC from optimisation (Kamihigashi's scaling deviation), sufficiency of Euler plus TVC, (2.5)–(2.7) almost surely at `c = y`, the i.i.d. equilibrium, links to the finite-state `Valuation` results |
+| [TidyR5BondPrice](IntertemporalModel/TidyR5BondPrice.lean) | 15 | (2.3): strict positivity of `E_t` from the core axioms; the bond price is positive and `i > −1` in every equilibrium (`β > 0`); the rate conditions of `FiscalMonetary.Equilibrium` and the rate hypotheses of `GeneralLinks.equilibrium_iff_isEqm` are redundant; the `β = 0` counterexample |
+| [TidyR5Family](IntertemporalModel/TidyR5Family.lean) | 34 | §§2.4–2.5: the family of exact peg equilibria for surpluses `s̄ + εŝ`, in closed form, unique, `C^n` for every `n`, with the solution (2.19) as its derivative; the canonical rate `β⁻¹exp(εî)`; finite trees |
+| [TidyR5FamilyRule](IntertemporalModel/TidyR5FamilyRule.lean) | 17 | §2.6: the same family under the exact rule `log(1 + i_t) = −log β + θπ_t + εu_t`, every `θ`, with the solution (2.25) as its derivative |
+| [TidyR5Meas](IntertemporalModel/TidyR5Meas.lean) | 25 | §2.1 and §2.4 on a probability space: both equilibrium notions a.s. and their equivalence, `i > −1` derived, interest-rate targets (existence, a.s. uniqueness), (2.13), (2.15), (2.26), the inflation decomposition |
+| [TidyR5MeasLinear](IntertemporalModel/TidyR5MeasLinear.lean) | 19 | §§2.5–2.6 on a probability space: the linear peg and rule models, existence and a.s. uniqueness, the fiscal shock; links of every measure-theoretic notion to its core version on finite trees |
+| [TidyR5MeasFamily](IntertemporalModel/TidyR5MeasFamily.lean) | 26 | The family of exact peg equilibria on a probability space: equilibrium and a.s. uniqueness for each `ε`, a.s. smoothness, the derivative (2.19) almost surely; links to `TidyR5Family` on finite trees |
+| [TidyR5MeasFamilyRule](IntertemporalModel/TidyR5MeasFamilyRule.lean) | 19 | The rule family on a probability space for every `θ`: bounds, equilibrium, a.s. uniqueness, smoothness, the derivative (2.25); link to `TidyR5FamilyRule` on finite trees |
 
 ## Modelling conventions
 
@@ -228,8 +276,8 @@ Not formalised:
   the model's date-0 information. No boundedness is imposed; boundedness is proved separately
   (`LinearFTMP.pegSol_bounded`, `LinearFTMP.ruleSol_bounded`, `LinearFTMP.ruleSol_unbounded`).
 * **Explicit hypotheses.** Positivity the book leaves implicit is stated in each theorem: positive
-  debt, positive present values in every state (and positive `pvEx` under a target), `i > −1`,
-  bounded surpluses where expectations and infinite sums are interchanged, and `|βη| < 1` for
+  debt, positive present values in every state (and positive `pvEx` under a target), `i > −1`
+  (a consequence of (2.3) when `β > 0`, `TidyR5BondPrice.bondPricing_rate_gt`), bounded surpluses where expectations and infinite sums are interchanged, and `|βη| < 1` for
   AR(1) surpluses.
 
 ## Three equilibrium notions
@@ -244,7 +292,9 @@ natural for part of the chapter, and `GeneralLinks` proves that they describe th
   and `B_{−1}`, it asks for an adapted positive price level, adapted debt sold `B` and an adapted
   rate `i > −1` satisfying the valuation equation (2.7)/(2.12) and the bond-pricing condition
   (2.3)/(2.14). Debt is indexed by issue date and the bond price is written through `i`, so
-  whether `B` or `i` is the policy instrument is a matter of which is given.
+  whether `B` or `i` is the policy instrument is a matter of which is given. For `β > 0` and with
+  pull-out the conditions "`i` adapted" and "`i > −1`" follow from the others
+  (`TidyR5BondPrice.equilibrium_iff_reduced`).
 * `Links.PegEqm` (p. 33) is the *peg* notion used against Woodford. It takes an arbitrary
   present-value process and a scalar `B_{−1}`, and asks for prices and debt satisfying Woodford's
   exact Fisher equation (`LinearFTMP.FisherExact`) and the valuation equation.
@@ -256,7 +306,9 @@ The equivalences are:
   and ex post, adapted `B` and an adapted `i > −1`. Consequences:
   `GeneralLinks.equilibrium_price_eq_eqmPrice`, `GeneralLinks.equilibrium_realRevenue` and
   `GeneralLinks.peg_existsUnique_isEqm` (an interest-rate target selects exactly one derived
-  equilibrium).
+  equilibrium). For `β > 0` the hypotheses on `i` are redundant
+  (`TidyR5BondPrice.equilibrium_iff_isEqm_pos`); at `β = 0` they are needed
+  (`TidyR5BondPrice.beta_zero_counterexample`).
 * `GeneralLinks.equilibrium_iff_pegEqm`: with present value `FiscalMonetary.pv` and a constant
   initial debt, `Links.PegEqm` is `FiscalMonetary.Equilibrium`, for an adapted `i > −1`. The two
   peg constructions coincide with no hypotheses (`GeneralLinks.ftplPrice_eq_pegP`,
@@ -274,8 +326,15 @@ So every result of `FiscalMonetary` and `FlatSupply` is a result about the equil
 from optimisation, flow and transversality in `Valuation`, and the peg results of `Links` are
 results about the same equilibria.
 
-The three notions are stated for an `ExpectationSystem`, and the equivalences take an adapted
-`i > −1` as a hypothesis. On a genuine probability space `HouseholdMeasureTVC` proves the
+The three notions are stated for an `ExpectationSystem`. The equivalences take an adapted
+`i > −1` as a hypothesis, but for `β > 0` it follows from the bond-pricing condition and the core
+axioms alone, on any state space (`TidyR5BondPrice.E_pos_of_pos`,
+`TidyR5BondPrice.bondPricing_rate_gt`, `TidyR5BondPrice.bondPricing_rate_adapted`). On a genuine
+probability space the valuation-equation and derived notions are restated almost surely
+(`TidyR5Meas.MEquilibrium`, `TidyR5Meas.MIsEqm`) and proved equivalent with no `i > −1`
+hypothesis (`TidyR5Meas.mEquilibrium_iff_mIsEqm`); on a finite event tree they are
+`FiscalMonetary.Equilibrium` and `Valuation.IsEqm` (`TidyR5MeasLinear.Link.tree_mEquilibrium_iff`,
+`TidyR5MeasLinear.Link.tree_mIsEqm_iff`). Separately, `HouseholdMeasureTVC` proves the
 household side of `Valuation.IsEqm` without `Valuation.InfoStable`: at `c = y`, optimisation
 gives (2.6) and (2.7) almost surely at every date (`HouseholdMeasureTVC.valuation_of_optimal_eqm`),
 and a bond price of the form (2.3) is positive with `i > −1`

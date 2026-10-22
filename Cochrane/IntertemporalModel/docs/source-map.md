@@ -7,12 +7,17 @@ numbers are book pages. The book has no labelled propositions, so rows are keyed
 number, figure, section or page; Online Appendix equations are written A1 (1.1)–(1.3). Rows follow
 the book section by section, and each heading names the modules that formalise the section:
 §2.1 with A1.1 (first for an `ExpectationSystem`, then on a genuine probability space), then
-§§2.2–2.10, then the links among the three formalisation chains, the links to the Woodford
+§§2.2–2.6, then the family of exact equilibria whose derivative is the linear model and the
+equilibrium results on a genuine probability space, then §§2.7–2.10, then the links among the
+three formalisation chains, the positivity of the bond price, the links to the Woodford
 projects, the measure-theoretic core and the shared tools. Every statement holds for an arbitrary
 `ExpectationSystem`, so under perfect foresight and under uncertainty, unless the row says
 otherwise. The exceptions are the modules `HouseholdMeasure` and `HouseholdMeasureTVC`, which
 solve the household problem on a probability space with Mathlib's conditional expectation and
-information that may grow forever (statements hold almost surely), and the measure-theoretic core
+information that may grow forever (statements hold almost surely), the modules `TidyR5Meas`,
+`TidyR5MeasLinear`, `TidyR5MeasFamily` and `TidyR5MeasFamilyRule`, which restate the
+equilibrium, targets, the linear model and the family of exact equilibria there, and the
+measure-theoretic core
 `ExpectationsMeasure`, `ExpectationsMeasureIID` they build on. Debt is `Bm t = B_{t−1}` in `Environment`, `Valuation` and `EquilibriumFormation`
 and `B t = B_t` (with `Bm1 = B_{−1}`) in `FiscalMonetary`, `FlatSupply` and `GeneralLinks`.
 Codes E4–E30 are the survey items recorded in [corrections](corrections.md). The shared core
@@ -185,6 +190,62 @@ No `Valuation.InfoStable` hypothesis is used: information may grow forever.
 | Cochrane p. 41 | fiscal policy alone sets impact inflation; a one-time price jump; the price level can return | `LinearFTMP.fiscal_sets_impact`, `LinearFTMP.one_time_price_jump`, `LinearFTMP.price_level_returns` |
 | Cochrane Fig. 2.2, p. 40, "hump-shaped" | for `0 < η < θ < 1` the response is unimodal; at `θ = 0.8`, `η = 0.7` the peak is `π_5 = 1.695` | `LinearFTMP.hump_step`, `LinearFTMP.hump_up`, `LinearFTMP.hump_down`, `LinearFTMP.hump_exists`, `LinearFTMP.fig22_peak` |
 
+## §§2.4–2.6 A smooth family of exact equilibria and its derivative, pp. 29–42 (TidyR5Family, TidyR5FamilyRule)
+
+Surpluses `s_t(ε) = s̄ + εŝ_t` with `ŝ` bounded and adapted, a rate family `i(ε)` with
+`i(0) = 1/β − 1`, and shock sizes in the open interval `famDom` (`|ε|M < s̄`). Statements hold for
+every `ExpectationSystem` with pull-out (and `FunctionsKnown` for the canonical and rule rates),
+state by state.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §2.5, p. 35 | the surplus family, the steady-state value of debt `V = s̄/(1 − β)`, the open domain of shock sizes containing `0` | `TidyR5Family.surpFam`, `TidyR5Family.ssV`, `TidyR5Family.famDom`, `TidyR5Family.famDom_isOpen`, `TidyR5Family.zero_mem_famDom`, `TidyR5Family.famDom_mem_nhds` |
+| Cochrane (2.7), p. 22; (2.15), p. 31 | present values of the family are affine in `ε`, bounded, and positive on `famDom` | `TidyR5Family.epv_surpFam`, `TidyR5Family.pv_surpFam`, `TidyR5Family.pvEx_surpFam`, `TidyR5Family.abs_pv_le`, `TidyR5Family.pv_surpFam_ge`, `TidyR5Family.pv_surpFam_pos`, `TidyR5Family.pvEx_surpFam_pos` |
+| Cochrane §2.4.3, p. 31; (2.15) | the price level, debt and inflation of the family in closed form, the price recursion, positivity | `TidyR5Family.priceFam`, `TidyR5Family.debtFam`, `TidyR5Family.inflFam`, `TidyR5Family.priceFam_succ`, `TidyR5Family.priceFam_zero`, `TidyR5Family.priceFam_pos` |
+| Cochrane pp. 31–35 | for every `ε` in `famDom` the family member is an exact equilibrium and the only one, so any family of equilibria is this one; at `ε = 0` it is the steady state | `TidyR5Family.fam_equilibrium`, `TidyR5Family.fam_unique`, `TidyR5Family.family_unique`, `TidyR5Family.fam_steady` |
+| Cochrane pp. 31–35 | price level, debt and inflation are `C^n` in `ε` for every `n` (analytic included) when the rate family is | `TidyR5Family.pv_contDiff`, `TidyR5Family.pvEx_contDiff`, `TidyR5Family.price_contDiffOn`, `TidyR5Family.debt_contDiffOn`, `TidyR5Family.infl_contDiffOn` |
+| Cochrane (2.17), p. 35 | the fiscal shock of (2.17) is the news about the present value of `ŝ` scaled by `V`; `π̂_0 = −PV_0(ŝ)/V` | `TidyR5Family.fiscShock`, `TidyR5Family.infl0`, `TidyR5Family.scaled_innov_pv`, `TidyR5Family.fiscShock_isShock`, `TidyR5Family.infl0_known` |
+| Cochrane (2.16)–(2.19), pp. 35–36 | the derivative at `ε = 0` of inflation along the family is the solution (2.19) of the linear peg model, its unique adapted solution | `TidyR5Family.infl_hasDerivAt`, `TidyR5Family.fam_linearization` |
+| Cochrane (2.16), p. 35 | the canonical rate family `1 + i_t(ε) = β⁻¹exp(εî_t)`: above `−1`, the steady state at `0`, adapted, exact in logs, smooth | `TidyR5Family.rateExp`, `TidyR5Family.rateExp_gt`, `TidyR5Family.rateExp_zero`, `TidyR5Family.rateExp_adapted`, `TidyR5Family.rateExp_log_hasDerivAt`, `TidyR5Family.rateExp_contDiff` |
+| Cochrane pp. 31–36 | everything at once for the canonical target, and on every finite event tree | `TidyR5Family.exp_family_linearization`, `TidyR5Family.tree_family_linearization` |
+| Cochrane (2.20)–(2.22), p. 40 | the exact rule `log(1 + i_t) = −log β + θπ_t + εu_t`; inflation and the rate of the rule family in closed form, above `−1`, adapted | `TidyR5FamilyRule.logInfl`, `TidyR5FamilyRule.RuleExact`, `TidyR5FamilyRule.ruleInfl`, `TidyR5FamilyRule.ruleRate`, `TidyR5FamilyRule.logInfl_priceFam`, `TidyR5FamilyRule.ruleRate_gt`, `TidyR5FamilyRule.log_one_add_ruleRate`, `TidyR5FamilyRule.ruleInfl_adapted`, `TidyR5FamilyRule.ruleRate_adapted`, `TidyR5FamilyRule.inflFam_eq_ruleInfl` |
+| Cochrane §2.6, p. 40 | for every `θ` the rule family is an exact equilibrium satisfying the exact rule, and the only one | `TidyR5FamilyRule.rule_equilibrium`, `TidyR5FamilyRule.rule_exact`, `TidyR5FamilyRule.rule_unique` |
+| Cochrane §2.6, p. 40 | inflation, rate, price level and debt of the rule family are `C^n` in `ε` for every `n` | `TidyR5FamilyRule.ruleInfl_contDiffOn`, `TidyR5FamilyRule.ruleRate_contDiffOn`, `TidyR5FamilyRule.rule_price_contDiffOn` |
+| Cochrane (2.22), (2.25), p. 40 | the derivatives at `ε = 0` of inflation and the log gross rate are the solution (2.25) and its rate `θπ̂_t + u_t`, for every `θ` | `TidyR5FamilyRule.ruleInfl_hasDerivAt`, `TidyR5FamilyRule.rule_infl_hasDerivAt`, `TidyR5FamilyRule.rule_rate_hasDerivAt` |
+| Cochrane §2.6, pp. 39–42 | everything at once for the rule, and on every finite event tree | `TidyR5FamilyRule.rule_family_linearization`, `TidyR5FamilyRule.tree_rule_linearization` |
+
+## §2.1 and §§2.4–2.6 Equilibrium, targets, the linear model and the family on a genuine probability space (TidyR5Meas, TidyR5MeasLinear, TidyR5MeasFamily, TidyR5MeasFamilyRule)
+
+On a `MeasExpectationSystem`: `E_t` is Mathlib's `condExp`, information may grow forever and
+statements hold almost surely unless marked otherwise.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (2.7), p. 22; (2.15), p. 31; (2.26), p. 42 | the ex-dividend present value, known at `t`; bounds; `PV_t = s_t + PVex_t` | `TidyR5Meas.pvExM`, `TidyR5Meas.pvExM_sm`, `TidyR5Meas.pv_bdd`, `TidyR5Meas.pvExM_ge`, `TidyR5Meas.pv_eq_add_pvEx` |
+| Cochrane §§2.1–2.4, pp. 21–33 | the valuation-equation equilibrium (no `i > −1` condition) and the derived equilibrium (2.3), (2.4), (2.6), almost surely | `TidyR5Meas.MValuation`, `TidyR5Meas.MBondPricing`, `TidyR5Meas.MEquilibrium`, `TidyR5Meas.MIsEqm` |
+| Cochrane (2.3), p. 22 | in every equilibrium with `β > 0` the bond price is positive and `i > −1` almost surely | `TidyR5Meas.mEqm_rate_gt` |
+| Cochrane (2.7), (2.12), (2.15), pp. 22, 30, 31 | `P_0 = B_{−1}/PV_0`, `P_{t+1} = B_t/PV_{t+1}`, `B_t = (1 + i_t)P_tPVex_t` | `TidyR5Meas.mPrice_zero`, `TidyR5Meas.mPrice_succ`, `TidyR5Meas.mDebt_eq` |
+| Cochrane (2.13), pp. 30–33 | the target sets expected inflation; fiscal news sets unexpected inflation; the decomposition; no surprise iff no news | `TidyR5Meas.mExpected_inflation`, `TidyR5Meas.mUnexpected_inflation`, `TidyR5Meas.mInflation_decomposition`, `TidyR5Meas.mNo_surprise_iff` |
+| Cochrane (2.4), (2.26), pp. 22, 42 | the flow condition holds in every equilibrium | `TidyR5Meas.mFlow` |
+| Cochrane pp. 31–33 | the target path is adapted and positive, an equilibrium, and every equilibrium with the target equals it almost surely at every date | `TidyR5Meas.mPegP`, `TidyR5Meas.mPegB`, `TidyR5Meas.mPegP_sm`, `TidyR5Meas.mPegB_sm`, `TidyR5Meas.mPegP_pos`, `TidyR5Meas.mPeg_equilibrium`, `TidyR5Meas.mPeg_unique`, `TidyR5Meas.mPeg_existsUnique` |
+| Cochrane (2.3)–(2.7), p. 22 | the real value of debt carried out; nominal vs real flow; (2.4) and (2.6) a.s. iff (2.7) a.s., both directions | `TidyR5Meas.endDebt`, `TidyR5Meas.nominal_iff_real`, `TidyR5Meas.mFlowTvc_iff_valuation` |
+| Cochrane §§2.1–2.4, pp. 21–33 | the two notions agree with no `i > −1` hypothesis; the derived equilibrium's price level; a target selects exactly one derived equilibrium up to null sets | `TidyR5Meas.mEquilibrium_iff_mIsEqm`, `TidyR5Meas.mIsEqm_price_eq`, `TidyR5Meas.mPeg_existsUnique_mIsEqm` |
+| Cochrane (2.16)–(2.19), pp. 35–36 | shocks; the linear peg model almost surely; existence and a.s. uniqueness given `π_0`, for every adapted integrable rate path | `TidyR5MeasLinear.MIsShock`, `TidyR5MeasLinear.MPegModel`, `TidyR5MeasLinear.E_innov_known_sub_shock`, `TidyR5MeasLinear.mPegModel_iff`, `TidyR5MeasLinear.mPeg_linear_existsUnique` |
+| Cochrane (2.20)–(2.25), p. 40 | the linear rule model almost surely; existence and a.s. uniqueness for every `θ` | `TidyR5MeasLinear.MRuleModel`, `TidyR5MeasLinear.mRule_iff`, `TidyR5MeasLinear.mRule_linear_existsUnique` |
+| Cochrane (2.13), (2.17), pp. 30, 35 | the fiscal shock `ΔE_{t+1}PV_{t+1}` is a shock and is the shock of the exact (2.17) | `TidyR5MeasLinear.mFiscShock`, `TidyR5MeasLinear.mFiscShock_isShock`, `TidyR5MeasLinear.mEquilibrium_fiscShock` |
+| Chapter 2 (finite trees) | on a finite tree a.s. equality is equality, and present values, news, adaptedness and the ex-dividend value are the core ones | `TidyR5MeasLinear.Link.eq_of_ae`, `TidyR5MeasLinear.Link.tree_forwardSol`, `TidyR5MeasLinear.Link.tree_innov`, `TidyR5MeasLinear.Link.tree_adapted_iff`, `TidyR5MeasLinear.Link.tree_pvExM` |
+| Chapter 2 (finite trees) | on a finite tree the target path, both equilibrium notions (for `β > 0`), shocks, the linear models and the fiscal shock are the core ones | `TidyR5MeasLinear.Link.tree_mPegP`, `TidyR5MeasLinear.Link.tree_mEquilibrium_iff`, `TidyR5MeasLinear.Link.tree_mIsEqm_iff`, `TidyR5MeasLinear.Link.tree_mIsShock_iff`, `TidyR5MeasLinear.Link.tree_mPegModel_iff`, `TidyR5MeasLinear.Link.tree_mRuleModel_iff`, `TidyR5MeasLinear.Link.tree_mFiscShock` |
+| Cochrane pp. 31–35 | the family with fixed versions of present values: price level, debt, inflation, the scaled fiscal shock, `π̂_0`; equilibria are invariant under a.s. changes of prices and debt | `TidyR5MeasFamily.mEquilibrium_congr`, `TidyR5MeasFamily.pvAff`, `TidyR5MeasFamily.pvExAff`, `TidyR5MeasFamily.mFamP`, `TidyR5MeasFamily.mFamB`, `TidyR5MeasFamily.mFamInfl`, `TidyR5MeasFamily.mShock`, `TidyR5MeasFamily.mInfl0` |
+| Cochrane (2.7), (2.15), pp. 22, 31 | present values of `s(ε)` are affine in `ε` a.s.; bounds and positivity on `famDom` | `TidyR5MeasFamily.discSum_surpFam`, `TidyR5MeasFamily.discSum_integrable`, `TidyR5MeasFamily.forwardSol_surpFam`, `TidyR5MeasFamily.pvExM_surpFam`, `TidyR5MeasFamily.good_ae`, `TidyR5MeasFamily.aff_pos`, `TidyR5MeasFamily.affEx_pos`, `TidyR5MeasFamily.mFamP_pos`, `TidyR5MeasFamily.forwardSol_surpFam_ge` |
+| Cochrane (2.3), (2.16), pp. 22, 35 | the canonical rate is adapted (no `FunctionsKnown`) with integrable bond price | `TidyR5MeasFamily.rateExp_sm`, `TidyR5MeasFamily.rateExp_bondPrice_integrable` |
+| Cochrane pp. 31–35 | the family is adapted, a.s. the target path, an equilibrium for each `ε`, unique a.s., the steady state at `0` | `TidyR5MeasFamily.mFamP_sm`, `TidyR5MeasFamily.mFamB_sm`, `TidyR5MeasFamily.mFam_ae_mPeg`, `TidyR5MeasFamily.mFam_equilibrium`, `TidyR5MeasFamily.mFam_unique`, `TidyR5MeasFamily.mFam_steady` |
+| Cochrane (2.16)–(2.19), pp. 35–36 | a.s. smoothness in `ε`; a.s. the derivative of inflation is the solution (2.19), for any rate family and for the canonical target; the shock and `π̂_0` | `TidyR5MeasFamily.mFam_contDiffOn`, `TidyR5MeasFamily.mFamInfl_hasDerivAt_gen`, `TidyR5MeasFamily.mFamInfl_hasDerivAt`, `TidyR5MeasFamily.mShock_isShock`, `TidyR5MeasFamily.mInfl0_sm_integrable` |
+| Cochrane pp. 31–36 | everything at once on a genuine probability space; on a finite tree the family is `TidyR5Family.priceFam` with inflation `TidyR5Family.inflFam` | `TidyR5MeasFamily.meas_family_linearization`, `TidyR5MeasFamily.Link.tree_mFamP`, `TidyR5MeasFamily.Link.tree_mFamInfl` |
+| Cochrane (2.20)–(2.22), p. 40 | the rule family on a probability space: inflation and the rate in closed form, the exact rule a.s., above `−1`, adapted | `TidyR5MeasFamilyRule.mRuleInfl`, `TidyR5MeasFamilyRule.mRuleRate`, `TidyR5MeasFamilyRule.MRuleExact`, `TidyR5MeasFamilyRule.mRuleRate_gt`, `TidyR5MeasFamilyRule.log_one_add_mRuleRate`, `TidyR5MeasFamilyRule.mRuleInfl_sm`, `TidyR5MeasFamilyRule.mRuleRate_sm` |
+| Cochrane (2.3), p. 22; p. 40 | inflation of the rule family is bounded on `famDom`, so its bond price is integrable | `TidyR5MeasFamilyRule.abs_log_le`, `TidyR5MeasFamilyRule.ruleBound`, `TidyR5MeasFamilyRule.aff_le`, `TidyR5MeasFamilyRule.le_aff`, `TidyR5MeasFamilyRule.mRuleInfl_bound`, `TidyR5MeasFamilyRule.mRuleRate_bondPrice_integrable` |
+| Cochrane §2.6, p. 40 | for every `θ` the rule family is an equilibrium satisfying the exact rule a.s., and every such equilibrium equals it a.s.; invariance under a.s. changes of the rate | `TidyR5MeasFamilyRule.mRule_equilibrium`, `TidyR5MeasFamilyRule.mFamInfl_eq`, `TidyR5MeasFamilyRule.mRule_exact`, `TidyR5MeasFamilyRule.mEquilibrium_congr_rate`, `TidyR5MeasFamilyRule.mRule_unique` |
+| Cochrane (2.22), (2.25), pp. 39–42 | smoothness; the derivatives at `0` are the solution (2.25) and its rate; everything at once; on a finite tree the rule family is `TidyR5FamilyRule.ruleRate` | `TidyR5MeasFamilyRule.mRule_contDiffOn`, `TidyR5MeasFamilyRule.mRuleInfl_hasDerivAt`, `TidyR5MeasFamilyRule.mRule_rate_hasDerivAt`, `TidyR5MeasFamilyRule.mRule_family_linearization`, `TidyR5MeasFamilyRule.Link.tree_mRuleRate` |
+
 ## §2.7 Fiscal policy and debt, (2.26)–(2.27), pp. 42–44 (FiscalMonetary)
 
 | Book | Claim | Lean |
@@ -237,6 +298,17 @@ No `Valuation.InfoStable` hypothesis is used: information may grow forever.
 | Cochrane (2.3), (2.16), pp. 22, 35 | bond pricing is the exact Fisher equation; every derived equilibrium satisfies it, also in logs | `GeneralLinks.bondPricing_iff_fisherExact`, `GeneralLinks.isEqm_fisherExact`, `GeneralLinks.isEqm_fisher_log` |
 | Cochrane pp. 22, 33 | `Links.PegEqm` with `FiscalMonetary.pv` is `FiscalMonetary.Equilibrium`; the two peg constructions coincide | `GeneralLinks.equilibrium_iff_pegEqm`, `GeneralLinks.ftplPrice_eq_pegP`, `GeneralLinks.ftplDebt_eq_pegB` |
 | Cochrane pp. 35, 43; (2.13), (2.17), (2.18) | the ex-post fiscal news is `ε_{Σs}`; every equilibrium satisfies the exact (2.17) and (2.18) | `GeneralLinks.innov_epv_eq_pvNews`, `GeneralLinks.equilibrium_pvNews`, `GeneralLinks.equilibrium_debt_218` |
+
+## (2.3) The bond price is positive: the rate conditions are redundant for `β > 0` (TidyR5BondPrice)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (2.3), p. 22 | a positive payoff has a positive forecast in every state, from the core axioms alone, on any `Ω` | `TidyR5BondPrice.E_pos_of_pos` |
+| Cochrane (2.3), p. 22 | in every derived equilibrium with `β > 0` the bond price is positive and `i > −1`; with `Q = 1/(1 + i)` the rate exceeds `−1` and (with pull-out) is adapted | `TidyR5BondPrice.bondPrice_pos`, `TidyR5BondPrice.isEqm_bondPrice_pos`, `TidyR5BondPrice.isEqm_rate_gt`, `TidyR5BondPrice.isEqm_inv_rate_gt`, `TidyR5BondPrice.isEqm_inv_rate_adapted` |
+| Cochrane (2.3), (2.14), pp. 22, 31 | the bond-pricing condition alone forces `i > −1` and, with pull-out, an adapted rate | `TidyR5BondPrice.rate_gt_of_pricing`, `TidyR5BondPrice.rate_adapted_of_pricing`, `TidyR5BondPrice.bondPricing_rate_gt`, `TidyR5BondPrice.bondPricing_rate_adapted` |
+| Cochrane §§2.1–2.4, pp. 21–33 | the rate conditions of `FiscalMonetary.Equilibrium` and the rate hypotheses of `GeneralLinks.equilibrium_iff_isEqm` are redundant for `β > 0`; so is `Q > 0` in `GeneralLinks.isEqm_fisher_log` | `TidyR5BondPrice.equilibrium_iff_reduced`, `TidyR5BondPrice.equilibrium_iff_isEqm_pos`, `TidyR5BondPrice.isEqm_fisher_log_pos` |
+| Cochrane pp. 31–33 | a target with `i_t ≤ −1` in some state has no equilibrium of either kind | `TidyR5BondPrice.no_eqm_of_rate_le` |
+| Cochrane §§2.1–2.4, pp. 21–33 | the hypothesis is needed at `β = 0`: with `i ≡ −1` every other hypothesis holds and `Valuation.IsEqm` holds, but `FiscalMonetary.Equilibrium` fails | `TidyR5BondPrice.rateNegOne`, `TidyR5BondPrice.beta_zero_counterexample` |
 
 ## Links to the Woodford projects (Links)
 
