@@ -11,7 +11,9 @@ non-identification, the asset-pricing analogy of §22.2.4, the regressions and G
 §22.3, the Leeper regions of §22.7 and Chapter 23, Markov switching in Chapter 24, the
 present-value identities of the Online Appendix, then the links between modules, the
 measure-theoretic core and the shared tools. The genuine-probability versions of Theorem RG,
-Granger causality and Markov switching follow the section they make genuine.
+Granger causality and Markov switching follow the section they make genuine, and so do the
+sections on the money model under uncertainty, Theorem RG and Granger causality with
+square-integrable shocks, and the boundary `|φ| = 1` (after the Leeper regions).
 
 The linear results hold for an arbitrary `ExpectationSystem`, so under perfect foresight and
 under uncertainty. The measure-theoretic modules (`ExpectationsMeasure` onward) restate Theorem RG,
@@ -87,6 +89,30 @@ proved in an earlier project, with the namespace adapted.
 | p. 496 (active fiscal) | surpluses and nominal debt determine `P_t = W_t/PV_t`, and money follows | `MoneyRegimes.activeFiscal_unique`, `MoneyRegimes.activeFiscal_exists` |
 | p. 496 (OE-2) | an equilibrium path is the unique equilibrium of both regimes | `MoneyRegimes.oe2` |
 | p. 508 ("fixes `M` and … surpluses at an inconsistent value") | with `M`, `s`, `W` fixed an equilibrium exists iff `W_ty_t/(M_tV_t) = PV_t`; halving `M` leaves none | `MoneyRegimes.inconsistent_iff`, `MoneyRegimes.halve_money_no_eqm` |
+
+## OE-2 under uncertainty, §22.1, pp. 495–496; §22.7, p. 508 (TidyR5MoneyUncertainty, TidyR5MoneyMeasure)
+
+`TidyR5MoneyUncertainty` states the money model state by state in any `ExpectationSystem`;
+`TidyR5MoneyMeasure` states it almost surely on any probability space with any filtration, with
+Mathlib's `condExp`, adapted (`StronglyAdapted`) processes and essentially bounded surpluses.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 496 | the ex-post present value `∑βʲs_{t+j}` state by state, the perfect-foresight one of each state's path; `E_tPV_t = ∑βʲE_ts_{t+j}`; `E_tPV_t = s_t + βE_tE_{t+1}PV_{t+1}` | `TidyR5MoneyUncertainty.pvS`, `TidyR5MoneyUncertainty.pvE`, `TidyR5MoneyUncertainty.pvS_apply`, `TidyR5MoneyUncertainty.pvE_eq_tsum`, `TidyR5MoneyUncertainty.pvE_succ` |
+| pp. 495–496 | the money model under uncertainty: `P > 0`, `M_tV_t = P_ty_t`, `W_t/P_t = E_t∑βʲs_{t+j}` in every state; under perfect foresight it is `MoneyRegimes.Eqm` | `TidyR5MoneyUncertainty.Eqm`, `TidyR5MoneyUncertainty.eqm_perfectForesight_iff` |
+| p. 496 | the valuation equation implies the flow constraint `W_t = P_ts_t + βP_tE_t[W_{t+1}/P_{t+1}]`; with `W_{t+1}` chosen at `t`, `W_t = P_ts_t + Q_tW_{t+1}` with the bond price `Q_t = βP_tE_t[1/P_{t+1}]` | `TidyR5MoneyUncertainty.flow_of_valuation`, `TidyR5MoneyUncertainty.flow_bond_price` |
+| p. 496 (active money) | `P = MV/y`; for every positive money supply the passive surpluses `s_t = x_t − βE_tx_{t+1}` complete an equilibrium | `TidyR5MoneyUncertainty.activeMoney_price`, `TidyR5MoneyUncertainty.activeMoney_exists` |
+| p. 496 (active fiscal) | `P_t = W_t/E_tPV_t` and money are unique, form an equilibrium when positive, and `P_t` is known at `t` (a reciprocal of a known nonzero variable is known) | `TidyR5MoneyUncertainty.activeFiscal_unique`, `TidyR5MoneyUncertainty.activeFiscal_exists`, `TidyR5MoneyUncertainty.E_inv_of_known`, `TidyR5MoneyUncertainty.activeFiscal_adapted` |
+| p. 496 (OE-2) | an equilibrium path is the unique equilibrium of the active-money regime given `M` and of the active-fiscal regime given `(W, s)` | `TidyR5MoneyUncertainty.oe2` |
+| p. 496 ("fiscal surprises control unexpected inflation") | the surprise in `1/P_{t+1}` equals the fiscal news `(PV_{t+1} − E_tPV_{t+1})/W_{t+1}` and the money news | `TidyR5MoneyUncertainty.unexpected_price_level` |
+| p. 508 | with `M`, `s`, `W` fixed an equilibrium exists iff `W_ty_t/(M_tV_t) = E_tPV_t` in every state; halving `M` leaves none | `TidyR5MoneyUncertainty.inconsistent_iff`, `TidyR5MoneyUncertainty.halve_money_no_eqm` |
+| p. 496 (coin-flip tree) | `M_t = 2 + ε_t`, `V = y = 1`, `W = M` is an equilibrium whose `P_1` is not known at date 0 | `TidyR5MoneyUncertainty.coin_random_eqm` |
+| p. 496 (probability space) | the present value `E_t∑βʲs_{t+j}` (Mathlib `condExp`); the equilibrium a.s. at every date; `PV_t = s_t + βE_tPV_{t+1}` and `PV_t = ∑βʲE_ts_{t+j}` a.s. | `TidyR5MoneyMeasure.pvM`, `TidyR5MoneyMeasure.EqmM`, `TidyR5MoneyMeasure.pvM_succ`, `TidyR5MoneyMeasure.pvM_hasSum` |
+| p. 496 (probability space) | the flow constraint, and with the bond price `Q_t = βP_tE_t[1/P_{t+1}]`, a.s. | `TidyR5MoneyMeasure.flow_of_valuation`, `TidyR5MoneyMeasure.flow_bond_price` |
+| p. 496 (probability space) | active money: `P = MV/y` and passive surpluses complete an equilibrium; active fiscal: uniqueness, existence and adaptedness of `P_t = W_t/E_tPV_t`; OE-2, all a.s. | `TidyR5MoneyMeasure.activeMoney_price`, `TidyR5MoneyMeasure.activeMoney_exists`, `TidyR5MoneyMeasure.activeFiscal_unique`, `TidyR5MoneyMeasure.activeFiscal_exists`, `TidyR5MoneyMeasure.activeFiscal_adapted`, `TidyR5MoneyMeasure.oe2` |
+| p. 496 (probability space) | fiscal news and money news both equal the surprise in `1/P_{t+1}`, a.s. | `TidyR5MoneyMeasure.unexpected_price_level` |
+| p. 508 (probability space) | inconsistent `M`, `s`, `W`; halving `M` leaves no equilibrium | `TidyR5MoneyMeasure.inconsistent_iff`, `TidyR5MoneyMeasure.halve_money_no_eqm` |
+| p. 496 (i.i.d. coin economy) | an equilibrium with `P = M = 2 + ε` whose `P_1` is not a.s. its date-0 forecast | `TidyR5MoneyMeasure.coin_random_eqmM` |
 
 ## Non-identification, §22.1, p. 496; §22.3, pp. 500–502; §16.5, p. 371 (NonIdentification)
 
@@ -170,6 +196,24 @@ proved in an earlier project, with the namespace adapted.
 | p. 501 (link) | for absolutely summable coefficients the `L²` moving average and value of debt agree a.e. with those of `SurplusRegressionMeasure` | `SurplusRegressionL2.maL2_ae_maInf`, `SurplusRegressionL2.valueL2_ae_valueM` |
 | p. 501, §24.1 p. 519 (beyond absolute summability) | in the coin economy the surplus `s_t = ∑_{k≥1}ε_{t−k}/k`, square-summable but not absolutely summable, has a strictly positive regression coefficient on debt | `SurplusRegressionL2.harmonicCoeff`, `SurplusRegressionL2.coinZ_harmonic_regL2_pos` |
 
+## Theorem RG with square-integrable shocks, §22.3, p. 501; §24.1, p. 519; Online Appendix pp. 593, 602 (TidyR5ShockL2)
+
+The shocks need no bound: `TidyR5ShockL2.ShockMDS2` asks only for adapted, square-integrable
+martingale-difference shocks of variance `σ²`, in any filtration.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 501; A2 p. 593 | shocks adapted, a martingale-difference sequence, square-integrable, `Eε_k² = σ²`, pre-sample shocks mean zero and uncorrelated; each shock integrable with mean zero; future shocks unforecastable (A2 p. 602); `E[ε_jε_k] = σ²1{j = k}` (Hölder pull-out); `σ² ≥ 0` | `TidyR5ShockL2.ShockMDS2`, `TidyR5ShockL2.ShockMDS2.integrable`, `TidyR5ShockL2.ShockMDS2.E_future`, `TidyR5ShockL2.ShockMDS2.integral_mul_of_lt`, `TidyR5ShockL2.ShockMDS2.integral_mul`, `TidyR5ShockL2.ShockMDS2.integral_eq_zero`, `TidyR5ShockL2.ShockMDS2.var_nonneg` |
+| p. 501 (link) | bounded shocks (`SurplusRegressionMeasure.ShockMDS`) satisfy `ShockMDS2` | `TidyR5ShockL2.ShockMDS.toShockMDS2` |
+| p. 501 | shocks in `L²`, orthogonal with `‖ε_k‖² = σ²`; Pythagoras; square-summable moving averages converge in `L²`; `E[c(L)ε_{τ+h}ε_{τ−m}] = σ²c_{m+h}`, `E[a(L)ε_{τ+h}·b(L)ε_τ] = σ²∑a_{m+h}b_m` | `TidyR5ShockL2.shockL2`, `TidyR5ShockL2.inner_shockL2`, `TidyR5ShockL2.norm_sq_finset`, `TidyR5ShockL2.summable_ma`, `TidyR5ShockL2.maL2`, `TidyR5ShockL2.inner_maL2_shock`, `TidyR5ShockL2.inner_maL2_maL2` |
+| A2 p. 602; p. 501 | `E_tε_k = ε_k1{k ≤ t}`; the forecast of a future surplus; the surplus `s_n ∈ L²` with `‖a(L)ε_τ‖² = σ²∑a_k²` | `TidyR5ShockL2.proj_shock`, `TidyR5ShockL2.proj_maL2`, `TidyR5ShockL2.surplusL2`, `TidyR5ShockL2.norm_maL2_sq` |
+| p. 501; A2 (2.22), p. 602 | the `L²` present value converges; the value of debt `v_t = E_tPV_t = b(L)ε_t` a.e. | `TidyR5ShockL2.pvL2`, `TidyR5ShockL2.summable_pv`, `TidyR5ShockL2.valueL2`, `TidyR5ShockL2.proj_pvL2`, `TidyR5ShockL2.valueL2_ae` |
+| p. 501 | surplus and debt have mean zero; `Cov(s_{t+1}, v_t) = σ²∑a_{m+1}b_m`, `Var(v_t) = σ²∑b_m²` (Mathlib `covariance`, `variance`) | `TidyR5ShockL2.integral_maL2`, `TidyR5ShockL2.integral_valueL2`, `TidyR5ShockL2.cov_surplus_valueL2`, `TidyR5ShockL2.var_valueL2` |
+| p. 501, §24.1 p. 519, A2 p. 593 (RG, square-integrable shocks) | `2Cov(s_{t+1}, v_t) = σ²(∑_{k≥1}a_k² + ∑_{k,l≥1}ρ^{\|k−l\|}a_ka_l)`; covariance and regression coefficient `∑a_{m+1}b_m/∑b_m²` positive iff the surplus is not white noise | `TidyR5ShockL2.two_covL2_eq_kms`, `TidyR5ShockL2.covL2_pos_iff`, `TidyR5ShockL2.regL2_eq`, `TidyR5ShockL2.regL2_pos_iff` |
+| p. 501 (link) | for bounded shocks the value of debt, surplus and coefficient are those of `SurplusRegressionL2` | `TidyR5ShockL2.valueL2_eq_bounded`, `TidyR5ShockL2.regL2_eq_bounded` |
+| p. 501 (i.i.d. shocks of finite variance) | shocks in `L²` and uncorrelated; the economy satisfies `ShockMDS2` with no bound on the support; with unbounded support `ShockMDS` fails | `TidyR5ShockL2.memLp_shockZ`, `TidyR5ShockL2.integral_shockZ_mul_L2`, `TidyR5ShockL2.iidZ_shockMDS2`, `TidyR5ShockL2.iidZ_not_shockMDS` |
+| p. 501, §24.1 p. 519 (normal shocks) | `N(0, v)` shocks satisfy `ShockMDS2`, are not essentially bounded, and obey Theorem RG; the harmonic surplus `∑ε_{t−k}/k` has a positive coefficient | `TidyR5ShockL2.gauss`, `TidyR5ShockL2.gaussZ_shockMDS2`, `TidyR5ShockL2.gaussZ_not_shockMDS`, `TidyR5ShockL2.gaussZ_theoremRG`, `TidyR5ShockL2.gaussZ_harmonic_regL2_pos` |
+
 ## Granger causality and information, §22.3, pp. 501–502; Online Appendix (2.22)–(2.23), p. 602 (Granger)
 
 | Book | Claim | Lean |
@@ -192,6 +236,22 @@ proved in an earlier project, with the namespace adapted.
 | pp. 501–502 | the surplus and debt histories are date-`t` information generated by shocks; conditioning a shock on a history generated by other shocks gives zero | `GrangerMeasure.condExp_shockZ_hist`, `GrangerMeasure.histS_le`, `GrangerMeasure.histV_le_filtration`, `GrangerMeasure.histS_le_filtration` |
 | pp. 501–502 | past surpluses do not forecast the surplus, `E[s_{t+1} \| s_{≤t}] = 0`; with the debt history the forecast is `v_t` | `GrangerMeasure.forecast_own`, `GrangerMeasure.forecast_joint` |
 | pp. 501–502; A2 p. 593 | debt Granger-causes exogenous surpluses and surpluses do not Granger-cause debt; agreement with the VAR statements of `Granger`; the coin economy | `GrangerMeasure.debt_granger_causes_surplus`, `GrangerMeasure.surplus_not_granger_cause_debt`, `GrangerMeasure.granger_matches_var`, `GrangerMeasure.coin_news_granger` |
+
+## Granger causality in any filtration with square-integrable shocks, p. 501, footnote 1; pp. 501–502; Online Appendix p. 593 (TidyR5GrangerL2)
+
+The news model `s_{t+1} = ε_t` in any `MeasExpectationSystem` with `TidyR5ShockL2.ShockMDS2`
+shocks: no independence and no bound.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| pp. 501–502; A2 (2.22), p. 602 | the news surplus `s_k = ε_{k−1}` and the `L²` value of debt; its coefficients `b_0 = 1`, `b_m = 0`; debt reveals the news, `v_t = ε_t` a.e., so `s_{t+1} = v_t` a.e.; `v_t` known at `t` | `TidyR5GrangerL2.newsS`, `TidyR5GrangerL2.newsV`, `TidyR5GrangerL2.newsCoeff_sq`, `TidyR5GrangerL2.bCoeff_news`, `TidyR5GrangerL2.newsV_ae`, `TidyR5GrangerL2.surplus_eq_value`, `TidyR5GrangerL2.stronglyMeasurable_newsV` |
+| pp. 501–502 | the debt and surplus histories are date-`t` information; a shock is unforecastable from histories observed by the previous date; a shock of positive variance is not a.e. zero | `TidyR5GrangerL2.histV_le`, `TidyR5GrangerL2.histS_le`, `TidyR5GrangerL2.histS_le'`, `TidyR5GrangerL2.condExp_shock_hist`, `TidyR5GrangerL2.shock_not_ae_zero` |
+| pp. 501–502 | with the debt history the forecast of `s_{t+1}` is `v_t`; past surpluses do not forecast from date 1 on; at date 0 under the pre-sample condition `E[ε_0 \| s_0] = 0` | `TidyR5GrangerL2.forecast_joint`, `TidyR5GrangerL2.forecast_own_succ`, `TidyR5GrangerL2.forecast_own_zero_of_presample` |
+| pp. 501–502; A2 p. 593 | debt Granger-causes exogenous surpluses, surpluses do not Granger-cause debt, agreement with the VAR statements of `Granger` | `TidyR5GrangerL2.debt_granger_causes_surplus`, `TidyR5GrangerL2.surplus_not_granger_cause_debt`, `TidyR5GrangerL2.granger_matches_var` |
+| pp. 501–502 (instances) | the i.i.d. economy satisfies the pre-sample condition; every i.i.d. economy of finite positive variance, and normal shocks, which `GrangerMeasure` does not cover | `TidyR5GrangerL2.iidZ_presample`, `TidyR5GrangerL2.iidZ_news_granger`, `TidyR5GrangerL2.gaussZ_news_granger` |
+| p. 501 (counterexample tools) | the coin economy with an infinite past; `ω_k² = 1` a.e.; bounded functions integrable; `E[ω_j] = 0`, `E[ω_jω_k] = 1{j = k}`; a coordinate is orthogonal to bounded functions of other coordinates | `TidyR5GrangerL2.Presample.coinZ`, `TidyR5GrangerL2.Presample.coin_sq`, `TidyR5GrangerL2.Presample.coinZ_sq`, `TidyR5GrangerL2.Presample.integrable_of_bdd`, `TidyR5GrangerL2.Presample.integral_coord`, `TidyR5GrangerL2.Presample.integral_coord_mul`, `TidyR5GrangerL2.Presample.integral_coord_mul_sigmaOf` |
+| p. 501 (the re-indexed shocks) | `ε_{−1} = (ω_{−1} + ω_{−2})/√2`, `ε_0 = ε_{−1}² − 1 = ω_{−1}ω_{−2}` a.e., `ε_k = ω_k` for `k ≥ 1`, `ε_k = ω_{k−1}` for `k ≤ −2`; measurable, bounded by 2, `E[ε_{−1}] = 0`; all of `ShockMDS` with `σ² = 1` | `TidyR5GrangerL2.Presample.epsM1`, `TidyR5GrangerL2.Presample.epsC`, `TidyR5GrangerL2.Presample.epsC_pos`, `TidyR5GrangerL2.Presample.epsC_zero`, `TidyR5GrangerL2.Presample.epsC_neg_one`, `TidyR5GrangerL2.Presample.epsC_le`, `TidyR5GrangerL2.Presample.measurable_epsM1`, `TidyR5GrangerL2.Presample.epsM1_sq`, `TidyR5GrangerL2.Presample.abs_epsM1`, `TidyR5GrangerL2.Presample.epsC_zero_ae`, `TidyR5GrangerL2.Presample.abs_epsC`, `TidyR5GrangerL2.Presample.measurable_epsC`, `TidyR5GrangerL2.Presample.integral_epsM1`, `TidyR5GrangerL2.Presample.epsC_shockMDS` |
+| pp. 501–502 (what fails at date 0) | under all of `ShockMDS2`, `E[s_1 \| s_0] = s_1 ≠ 0`: the date-0 claim needs `E[ε_0 \| ε_{−1}] = 0` | `TidyR5GrangerL2.Presample.forecast_own_zero_fails` |
 
 ## The Leeper regions, §22.3, p. 500; §22.7, pp. 508–509; (23.1)–(23.4), pp. 512–513 (LeeperRegions, FiscalRec)
 
@@ -224,6 +284,50 @@ proved in an earlier project, with the namespace adapted.
 | Woodford (2003) (4.2), (4.4), (4.5), pp. 312–313 (restated from the Woodford Chapter 4 project) | the debt law, the tax rule and the implied law of motion of real debt | `FiscalRec.Debt42`, `FiscalRec.Tax44`, `FiscalRec.Debt45`, `FiscalRec.debt42_iff_45` |
 | Woodford (2003) pp. 277, 313–314, Prop. C.2, App. C.8 (restated); Cochrane (23.4), p. 512 | the recursion `d_{t+1} = γd_t + u_t`: determined by `d_0`, bounded-input-bounded-state iff `\|γ\| < 1`, adapted | `FiscalRec.dRec`, `FiscalRec.eq_dRec`, `FiscalRec.abs_rec_le`, `FiscalRec.rec_bounded`, `FiscalRec.rec_unbounded`, `FiscalRec.pow_bounded_eq_zero`, `FiscalRec.dRec_adapted` |
 | Woodford (2003) pp. 312–314 (restated); Cochrane p. 508 | locally Ricardian tax rules: iff `\|β⁻¹(1 − τ_b)\| < 1`, iff `τ_b > 1 − β` for `τ_b ≤ 1` | `FiscalRec.LocallyRicardian`, `FiscalRec.locallyRicardian_iff`, `FiscalRec.ricardian_iff_taub` |
+
+## The boundary `|φ| = 1`, §22.7, pp. 508–509; (23.1)–(23.2), p. 512 (TidyR5UnitRoot, TidyR5UnitRootCompact)
+
+When does `E_tπ_{t+1} = φπ_t + u_{i,t}` with `φ² = 1` have a bounded adapted solution, so that
+region (d) has a continuum (`LeeperRegions.region_d_of_solution`)? With the conditional sums
+`∑_{j<T}φʲE_tu_{t+j}` and the realised sums `∑_{s<t}φˢu_s`, in a core `ExpectationSystem`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (23.1)–(23.2), p. 512; p. 508 | the monetary equation; a bounded adapted solution; the conditional sums and their uniform bound; the realised sums | `TidyR5UnitRoot.MonEq`, `TidyR5UnitRoot.HasBddSol`, `TidyR5UnitRoot.condSum`, `TidyR5UnitRoot.CondBdd`, `TidyR5UnitRoot.pathSum` |
+| p. 508 (tools) | with `φ² = 1`: `\|φ\| = 1`, `\|φⁿ\| = 1`, `φ^{n+2} = φⁿ`, `φ^{2n} = 1` | `TidyR5UnitRoot.abs_eq_one`, `TidyR5UnitRoot.abs_pow_eq_one`, `TidyR5UnitRoot.pow_add_two`, `TidyR5UnitRoot.pow_two_mul` |
+| (23.2), p. 512, iterated; p. 508 (necessity, any system) | `φᵀE_tπ_{t+T} = π_t + φ∑_{j<T}φʲE_tu_{t+j}`; a bounded solution bounds the conditional sums by twice its bound | `TidyR5UnitRoot.iterate_sol`, `TidyR5UnitRoot.condBdd_of_sol` |
+| p. 508 | the accumulated disturbance `D_{t+1} = φD_t + u_t` is adapted, solves, and is `φ^{t+1}` times the realised sum; the solution pinned at `π_N = 0` solves, is adapted, is `−φ` times a conditional sum before `N` and a realised sum after `N` once information stops | `TidyR5UnitRoot.accum`, `TidyR5UnitRoot.accum_adapted`, `TidyR5UnitRoot.accum_solves`, `TidyR5UnitRoot.accum_eq_pathSum`, `TidyR5UnitRoot.finSol`, `TidyR5UnitRoot.finSol_solves`, `TidyR5UnitRoot.finSol_adapted`, `TidyR5UnitRoot.finSol_eq_condSum`, `TidyR5UnitRoot.finSol_after` |
+| p. 508 (sufficiency, any system) | bounded realised sums give a bounded solution, `π = D` | `TidyR5UnitRoot.sol_of_pathBdd` |
+| p. 508 (information stops arriving) | `E_t = E_N` for `t ≥ N`; then a bounded solution exists iff the conditional sums are bounded; `φ = 1`: `\|E_t∑_{j<T}u_{t+j}\| ≤ C`; `φ = −1`: alternating sums; perfect foresight, full information and the coin tree are instances | `TidyR5UnitRoot.EventuallyConstant`, `TidyR5UnitRoot.exists_iff_of_eventually`, `TidyR5UnitRoot.exists_iff_phi_one`, `TidyR5UnitRoot.exists_iff_phi_neg_one`, `TidyR5UnitRoot.perfectForesight_eventually`, `TidyR5UnitRoot.fullInfo_eventually`, `TidyR5UnitRoot.coinSystem_eventually` |
+| p. 508 (disturbance known at date 0, any system) | a bounded solution exists iff the realised sums are bounded; `∑_{s<t}u_s` at `φ = 1`, `∑_{s<t}(−1)ˢu_s` at `φ = −1` | `TidyR5UnitRoot.exists_iff_known`, `TidyR5UnitRoot.exists_iff_known_phi_one`, `TidyR5UnitRoot.exists_iff_known_phi_neg_one` |
+| pp. 508–509, region (d) at `φ² = 1` | the admissible Leeper equilibria are empty or uncountable, nonempty iff the monetary equation has a bounded solution; in terms of the sums when information stops or `u_i` is known | `TidyR5UnitRoot.leeper_unit_dichotomy`, `TidyR5UnitRoot.leeper_unit_iff_eventually`, `TidyR5UnitRoot.leeper_unit_iff_known` |
+| p. 508 (deterministic disturbances) | a deterministic disturbance is adapted and known at date 0, with deterministic realised sums; a bounded solution exists iff the real partial sums `∑_{s<t}φˢc_s` are bounded | `TidyR5UnitRoot.det_known`, `TidyR5UnitRoot.pathSum_det`, `TidyR5UnitRoot.det_iff` |
+| p. 508 (`φ = 1` and `φ = −1` differ) | constant `u_i = c ≠ 0`: none at `φ = 1`, `π = c/2` at `φ = −1`; alternating `c(−1)ᵗ`: the reverse; `1/(t + 1)`: none at `φ = 1`; `(−1)ᵗ/(t + 1)`: bounded partial sums, a solution at `φ = 1`, none at `φ = −1` | `TidyR5UnitRoot.const_phi_one_none`, `TidyR5UnitRoot.const_phi_neg_one_sol`, `TidyR5UnitRoot.alt_phi_one_sol`, `TidyR5UnitRoot.alt_phi_neg_one_none`, `TidyR5UnitRoot.harmonic_phi_one_none`, `TidyR5UnitRoot.altHarmonic_bdd`, `TidyR5UnitRoot.altHarmonic_phi_one_sol`, `TidyR5UnitRoot.altHarmonic_phi_neg_one_none` |
+| pp. 508–509 (the Leeper model) | constant `u_i`: no equilibrium at `φ = 1`, uncountably many at `φ = −1`; `u_{i,t} = 1/(t + 1)`: none at `φ = 1` | `TidyR5UnitRoot.leeper_const`, `TidyR5UnitRoot.leeper_harmonic` |
+| p. 508 (finitely supported forecasts) | each forecast depends on finitely many states, and is then continuous in the product topology; the bounded paths solving up to date `n` form closed sets; by Tychonoff bounded conditional sums give a bounded solution, so the iff holds | `TidyR5UnitRootCompact.FinSupp`, `TidyR5UnitRootCompact.continuous_E_apply`, `TidyR5UnitRootCompact.Kc`, `TidyR5UnitRootCompact.isClosed_kc`, `TidyR5UnitRootCompact.sol_of_condBdd_finSupp`, `TidyR5UnitRootCompact.exists_iff_of_finSupp` |
+| p. 508 (countable state spaces) | a positive linear functional on `ℝ^ℕ` depends on finitely many coordinates (restated from the Woodford Chapter 2 project, module SGUStochasticMeasure), so every system on a countable `Ω` is finitely supported; the iff on every countable state space, at `φ = 1` and `φ = −1`; the Leeper model | `TidyR5UnitRootCompact.pos_functional_finite_support`, `TidyR5UnitRootCompact.finSupp_of_countable`, `TidyR5UnitRootCompact.exists_iff_countable`, `TidyR5UnitRootCompact.exists_iff_countable_phi_one`, `TidyR5UnitRootCompact.exists_iff_countable_phi_neg_one`, `TidyR5UnitRootCompact.leeper_unit_iff_countable` |
+
+## The boundary `|φ| = 1` and the Leeper model on a probability space, §22.7, pp. 508–509; (22.3)–(22.6), p. 500; (23.1)–(23.4), pp. 512–513 (TidyR5UnitRootMeasure, TidyR5LeeperMeasure)
+
+Any `MeasExpectationSystem`, with Mathlib's `condExp`, equations a.e. and bounded meaning
+essentially bounded. Core systems on an uncountable state space with forecasts that are not
+finitely supported are the one case left; the module docstring of `TidyR5LeeperMeasure` explains
+why it is a foundational limit.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 508 (tool) | in a real Hilbert space a decreasing sequence of nonempty closed convex sets with points of bounded norm has a common point | `TidyR5UnitRootMeasure.exists_mem_iInter_of_antitone` |
+| (23.1)–(23.2), p. 512; p. 508 | the monetary equation a.s.; an adapted essentially bounded solution; the conditional sums and their essential bound | `TidyR5UnitRootMeasure.MonEqM`, `TidyR5UnitRootMeasure.HasBddSolM`, `TidyR5UnitRootMeasure.condSumM`, `TidyR5UnitRootMeasure.CondBddM` |
+| (23.2), p. 512; p. 508 (necessity) | the iterated equation a.e.; a bounded solution bounds the conditional sums | `TidyR5UnitRootMeasure.iterate_solM`, `TidyR5UnitRootMeasure.condBddM_of_sol` |
+| p. 508 | the accumulated disturbance and the pinned solution: adapted, integrable, solving; the pinned path is a conditional sum before its date, bounded by `C`, and zero at its date | `TidyR5UnitRootMeasure.accumM`, `TidyR5UnitRootMeasure.accumM_meas`, `TidyR5UnitRootMeasure.accumM_integrable`, `TidyR5UnitRootMeasure.accumM_solves`, `TidyR5UnitRootMeasure.finSolM`, `TidyR5UnitRootMeasure.finSolM_meas`, `TidyR5UnitRootMeasure.finSolM_integrable`, `TidyR5UnitRootMeasure.finSolM_solves`, `TidyR5UnitRootMeasure.finSolM_eq`, `TidyR5UnitRootMeasure.finSolM_bound`, `TidyR5UnitRootMeasure.finSolM_self` |
+| p. 508 (the Hilbert construction) | `ℓ²(ℕ; L²(P))` with weights `2^{−t}`; continuous coordinates; essentially bounded `L²` variables form a closed convex set (`\|∫_Af\| ≤ cP(A)`); the sets `Kset n` decrease and are closed and convex; known elements are fixed by `E_t`; norm bounds; each pinned solution gives a point of `Kset n` | `TidyR5UnitRootMeasure.Hil`, `TidyR5UnitRootMeasure.wt`, `TidyR5UnitRootMeasure.wt_pos`, `TidyR5UnitRootMeasure.wt_succ`, `TidyR5UnitRootMeasure.continuous_coord`, `TidyR5UnitRootMeasure.BndSet`, `TidyR5UnitRootMeasure.mem_bndSet_iff`, `TidyR5UnitRootMeasure.isClosed_bndSet`, `TidyR5UnitRootMeasure.convex_bndSet`, `TidyR5UnitRootMeasure.Kset`, `TidyR5UnitRootMeasure.kset_antitone`, `TidyR5UnitRootMeasure.isClosed_kset`, `TidyR5UnitRootMeasure.convex_kset`, `TidyR5UnitRootMeasure.proj_toLp_of_meas`, `TidyR5UnitRootMeasure.norm_le_of_bnd`, `TidyR5UnitRootMeasure.kset_point` |
+| p. 508 (any probability space) | sufficiency; a bounded solution exists iff the conditional sums are essentially bounded; `E_t` of a finite sum; the `φ = 1` and `φ = −1` forms | `TidyR5UnitRootMeasure.sol_of_condBddM`, `TidyR5UnitRootMeasure.exists_iff_condBddM`, `TidyR5UnitRootMeasure.E_sum_ae`, `TidyR5UnitRootMeasure.exists_iff_phi_one_M`, `TidyR5UnitRootMeasure.exists_iff_phi_neg_one_M` |
+| pp. 508–509 (realised sums not necessary) | in the i.i.d. coin economy `u_{i,t} = φᵗε_t` has the bounded solution `−φ^{t+1}ε_t`, while the realised sums form a random walk with second moment `t`, not essentially bounded | `TidyR5UnitRootMeasure.integral_randomWalk_sq`, `TidyR5UnitRootMeasure.coin_realised_not_necessary` |
+| (22.3)–(22.6), p. 500; (23.1)–(23.4), p. 512; p. 508 | the Leeper model a.s.; admissible: adapted, integrable debt, essentially bounded inflation, the transversality condition a.s. | `TidyR5LeeperMeasure.LeeperEqmM`, `TidyR5LeeperMeasure.AdmissibleM` |
+| (23.1)–(23.4), p. 512; p. 513 | an admissible equilibrium gives a bounded solution (any `φ`); debt from the flow condition gives an equilibrium, is adapted and integrable, and satisfies the transversality condition a.s. when `\|1 − γ\| < 1`; so every bounded solution is an admissible equilibrium | `TidyR5LeeperMeasure.sol_of_eqmM`, `TidyR5LeeperMeasure.debtM`, `TidyR5LeeperMeasure.eqmM_of_sol`, `TidyR5LeeperMeasure.debtM_meas`, `TidyR5LeeperMeasure.debtM_integrable`, `TidyR5LeeperMeasure.debtM_tvc`, `TidyR5LeeperMeasure.admissibleM_of_sol` |
+| pp. 508–509 | an admissible equilibrium exists iff the monetary equation has a bounded solution (any `φ`); for `\|φ\| ≤ 1` one solution gives uncountably many (`π̄ + cφᵗ`) | `TidyR5LeeperMeasure.leeperM_exists_iff`, `TidyR5LeeperMeasure.leeperM_uncountable` |
+| pp. 508–509 (`φ² = 1`, every probability space) | equilibria exist iff the conditional sums are essentially bounded, then uncountably many; empty or uncountable; the `φ = 1` and `φ = −1` forms | `TidyR5LeeperMeasure.leeperM_unit_iff`, `TidyR5LeeperMeasure.leeperM_unit_dichotomy`, `TidyR5LeeperMeasure.leeperM_phi_one_iff`, `TidyR5LeeperMeasure.leeperM_phi_neg_one_iff` |
+| pp. 508–509, region (d) | `\|φ\| < 1`, `0 < γ < 2`: always uncountably many admissible equilibria | `TidyR5LeeperMeasure.leeperM_region_d` |
 
 ## Markov switching, §24.2, pp. 522–523; §22.3, p. 500 (MarkovRegimes)
 

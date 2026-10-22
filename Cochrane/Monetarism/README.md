@@ -14,8 +14,9 @@ operator, so they cover perfect foresight and genuine uncertainty. The nonlinear
 are perfect-foresight, as in the book. The household first-order conditions are derived by
 optimisation, under perfect foresight, on a finite event tree and on a genuine probability space
 whose information grows forever. Continuous time is deterministic. The library contains
-**969 theorems**, including the shared core; 578 of them are in the fourteen chapter modules and
-175 in the six measure-theoretic household modules.
+**1164 theorems**, including the shared core; 578 of them are in the fourteen chapter modules,
+175 in the six measure-theoretic household modules and 195 in the four `TidyR5…` modules, 108 of
+these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -116,7 +117,11 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `CashInAdvance.Euler.sdf_wedge`), and on a probability space the printed (19.32) fails for every
   `V ≠ 1` (`CashInAdvanceMeasure.printed_1932_counterexample`). The boundary between the
   cash-in-advance and money-in-utility deflations is `1 + µ = β`
-  (`Links.cia_boundary_deflation`).
+  (`Links.cia_boundary_deflation`). Active fiscal policy determines the price level across all
+  paths, late switches to the zero bound and partial deflations included, iff initial nominal
+  liabilities are nonnegative, `B_{−1} + M_{−1} ≥ 0`; otherwise a zero-rate deflation survives
+  (`TidyR5ActiveFiscal.active_fiscal_unique_iff`, `TidyR5ActiveFiscal.active_fiscal_price_unique`,
+  `TidyR5ActiveFiscal.active_fiscal_two_equilibria`).
 * **Continuous time.** The present-value budget of Online Appendix Chapter 4 is the present-value
   form of the flow constraint (`ContinuousTime.pv_budget_iff`), and the first-order conditions
   follow by the chain rule (`ContinuousTime.foc_4_1`, `ContinuousTime.foc_4_2`). The CES limits
@@ -141,7 +146,16 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   Galí's boundedness requirement is exactly Cochrane's selection of the steady state
   (`LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff`). With sticky prices the
   flexible-price path is not a zero-gap equilibrium
-  (`LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34`).
+  (`LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34`). Galí's sticky-price determinacy theorem
+  holds for the same equilibrium notion: for `σ > 0`, `η ≥ 0`, `κ > 0`, `0 < β ≤ 1`, (34) has
+  exactly one bounded adapted equilibrium in every `ExpectationSystem`
+  (`TidyR5MoneyRule.system34_existsUnique`, `TidyR5MoneyRule.system34_and_flex_existsUnique`),
+  proved from Galí's root count (`TidyR5MoneyRule.AM_root_location`) and the general
+  Blanchard–Kahn theorem (`TidyR5BK.GeneralBK.determinate_of`). As `κ → ∞` the sticky-price
+  equilibria converge to the flexible-price one uniformly over dates and states, at rate
+  `O(1/κ)` (`TidyR5KappaLimit.kappa_limit`, `TidyR5KappaLimit.sticky_flex_bound`); the limit is
+  attained at a finite `κ` iff `π^f_t = βE_tπ^f_{t+1}` (`TidyR5KappaLimit.sticky_eq_flex_iff`),
+  never in the `β ≠ 1` example (`TidyR5KappaLimit.gap_never_zero`).
 * **Genuine probability models.** On a probability space with a filtration, where `E_t` is
   Mathlib's conditional expectation and every budget constraint holds almost surely
   (`ExpectationsMeasure.MeasExpectationSystem`), the Chapter 19 household problem with complete
@@ -188,7 +202,9 @@ the printed text precise. The main corrections are:
   `1 + i` (E19);
 * the CES limits of Online Appendix Chapter 4 (E20) and the dropped `−δσ` in (4.13)–(4.14), with
   `E_tπ_{t+1}` in (4.15) (E21);
-* 28.6%, not 40%, on p. 462 (E23).
+* 28.6%, not 40%, on p. 462 (E23);
+* active fiscal policy rules out the multiple equilibria of p. 454 only when `B_{−1} + M_{−1} ≥ 0`,
+  the proviso of p. 453 (`TidyR5ActiveFiscal.active_fiscal_unique_iff`).
 
 In addition, the formalisation shows that (19.29) needs the money transversality condition, that
 (19.32) fails for `V ≠ 1`, that (19.38) must include money, that the partial derivatives on
@@ -214,18 +230,11 @@ Not formalised:
   household problem can be posed there without a measure;
 * Pontryagin necessity for the Hamiltonian conditions (4.16)–(4.17): only their consequences are
   proved; and the stochastic `E_td(·)` forms of Online Appendix §1.6;
-* uniqueness of the monetary-model price level under active fiscal policy across all paths: it is
-  proved only against the zero-rate deflations the book discusses
-  (`CashInAdvance.PF.active_fiscal_prunes`);
+* uniqueness under active fiscal policy outside the book's setting: `TidyR5ActiveFiscal` keeps
+  perfect foresight, constant money growth and the constant active surplus of the standard path;
 * the suspected one-period shift of the time axis of Figure 3.2 (E18);
 * Woodford's Taylor-rule transversality section, its Obstfeld–Rogoff section and its convexity
-  counterexample, which are not restated in `MoneyTargetingDynamics`;
-* Galí's sticky-price determinacy theorem for the money rule (`system34_existsUnique` of the Galí
-  Chapter 4 project): only the system (34), its row equivalence and its equilibrium notion are
-  restated in `LinksTidy.GaliMoneyRule`; its proof needs the general Blanchard–Kahn chain, which
-  this project does not carry. The flexible-price model is proved determinate in full, and the
-  zero-gap results relate the two. The `κ → ∞` limit of the sticky-price equilibria is not
-  formalised.
+  counterexample, which are not restated in `MoneyTargetingDynamics`.
 
 ## Library map
 
@@ -257,6 +266,10 @@ Not formalised:
 | [HouseholdMeasureTVC](Monetarism/HouseholdMeasureTVC.lean) | 23 | (19.11)–(19.12), (19.28): the date-`t` present-value budgets iff the conditional transversality conditions; the transversality condition is necessary (Kamihigashi deviation) |
 | [MoneyInUtilityMeasureTVC](Monetarism/MoneyInUtilityMeasureTVC.lean) | 6 | §19.3.1, p. 441: transversality necessary; first-order conditions and transversality iff optimal; the iterated value of money and its limit |
 | [CashInAdvanceMeasureTVC](Monetarism/CashInAdvanceMeasureTVC.lean) | 17 | §19.5, (19.28), (19.33): transversality necessary for every `V`; Fact 2 under uncertainty; the i.i.d. economy with `V ≠ 1`, a random wedge and the printed (19.32) failing |
+| [TidyR5BK](Monetarism/TidyR5BK.lean) | 108 | The general Blanchard–Kahn theorem, a verbatim copy of the `StickyPriceFiscal` project's `BKCopy` (itself the Woodford Chapter 4 project's `InvariantSplit`, `GeneralBKForward` and `GeneralBK`) |
+| [TidyR5MoneyRule](Monetarism/TidyR5MoneyRule.lean) | 67 | §19.1, p. 435, with Galí (2015), p. 75: Galí's determinacy theorem for the money rule (34), restated from the Galí Chapter 4 project for the equilibrium notion of `LinksTidy.GaliMoneyRule`; the root count, both `η > 0` and `η = 0` |
+| [TidyR5KappaLimit](Monetarism/TidyR5KappaLimit.lean) | 14 | §§19.1–19.2: the `O(1/κ)` bound and the uniform `κ → ∞` limit of the sticky-price equilibria; when it is attained |
+| [TidyR5ActiveFiscal](Monetarism/TidyR5ActiveFiscal.lean) | 6 | §19.5.5, pp. 453–454: active fiscal policy determines the cash-in-advance price level across all paths iff `B_{−1} + M_{−1} ≥ 0`; the counterexample otherwise |
 
 ## Modelling conventions
 
@@ -351,6 +364,13 @@ whether the offer is a one-time tender or a standing offer
   (`ContinuousTime.printed_index_counterexample`).
 * **Chapter 2 (`IntertemporalModel`).** The tangent-line inequality for concave functions is
   restated from it (`MoneyInUtility.concave_le_tangent`).
+* **Chapters 5 and 17 (`StickyPriceFiscal`).** `TidyR5BK` is a verbatim copy of that project's
+  `BKCopy`, the general Blanchard–Kahn theorem of the Woodford Chapter 4 project nested as
+  sub-namespaces: the same 129 declarations, only the namespace changed, with the Woodford
+  (2003) App. C.1 citations kept. The two projects' core `Expectations` modules are identical, so
+  no adaptation was needed. Here it serves Galí's money-rule theorem (`TidyR5MoneyRule`), which is
+  restated from the Galí Chapter 4 project with its system and equilibrium notion taken from
+  `LinksTidy.GaliMoneyRule` rather than copied.
 * **Chapter 22 (`ObservationalEquivalence`).** That project owns the general equivalence of money
   regimes, OE-2 (its `MoneyRegimes.oe2`). This project proves the §19.1 statement NI-7
   (`Regimes.ni7`) for the valuation equation `B_{t−1} + M_{t−1} = P_tW_t` with an arbitrary

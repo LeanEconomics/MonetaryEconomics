@@ -12,8 +12,9 @@ being recorded here, and an entry is revised if formalisation shows the finding 
 wrong. The survey marked E21's (4.15) item and E23 as suspected; formalisation confirms both.
 E13 and E17 turn out to be one misprinted condition (`Links.e13_iff_e17`). The formalisation also
 found the errors in (19.29), (19.32) for `V ≠ 1`, (19.38) and the partial derivatives of p. 631,
-which the survey did not list. Several claims that the book asserts without proof turned out to be correct; they are
-listed in the last section.
+and the missing proviso `B_{−1} + M_{−1} ≥ 0` in the active-fiscal claim of p. 454, which the
+survey did not list. Several claims that the book asserts without proof turned out to be correct;
+they are listed in the last section.
 
 Out of scope are the verbal passages: the discussion of §19.4 (pp. 445–447) beyond the claims
 formalised from Online Appendix Chapter 3, the history of §19.8 beyond Baumol–Tobin, the LM slope
@@ -60,7 +61,7 @@ not checked. Lean names are relative to the namespace `Cochrane.Monetarism`.
 | A3 p. 619 | "There is not a continuum of inflationary equilibria, but a countable number." | Proved as a complete classification: positive initial real balances start an equilibrium iff `m_0 ≥ m̄` or `m_0` is one of the backward values `z_T` (`PruningInflation.eqm_initial_iff`), so the inflationary ones are countable (`PruningInflation.inflationary_initial_countable`). |
 | p. 437 | "The solution picked in this way will generically be one of the explosive solutions." | The fiscally selected path is bounded iff `B_{−1} = e^{p̄}∑βʲs_j` (`CaganRE.fiscal_path_bounded_iff`), and that happens iff money and fiscal policy are coordinated as in NI-7 (`Links.cagan_ni7`). |
 | A4 p. 638 | The interest cost of money tends to zero as `i − i^m → 0` when `ξ < 1`. | Proved as an iff (`ContinuousTime.interest_cost_tendsto_iff`). |
-| p. 454 | An active fiscal policy prunes the deflationary equilibria. | Proved for the zero-rate family the book discusses: with the standard path's money, initial wealth and surplus held fixed, no equilibrium has a permanently zero rate (`CashInAdvance.PF.active_fiscal_prunes`). |
+| p. 454 | "Active fiscal policy can rule out these multiple equilibria." | Imprecise. With constant money growth `1 + µ > β` and the constant active surplus `s = (b(1 − β) − µy/V)/(1 + µ)` of the standard path, the price level is unique across all paths iff initial nominal government liabilities are nonnegative, `B_{−1} + M_{−1} ≥ 0` (`bV + y ≥ 0`), the book's own p. 453 proviso for the frictionless model (`TidyR5ActiveFiscal.active_fiscal_unique_iff`). Then every equilibrium, late switches to the zero bound and partial deflations included, has `P_t = M_tV/y` and the standard bonds (`TidyR5ActiveFiscal.active_fiscal_price_unique`, `TidyR5ActiveFiscal.active_fiscal_existsUnique`); the book's case `b ≥ 0` is `TidyR5ActiveFiscal.active_fiscal_prunes_all`, extending `CashInAdvance.PF.active_fiscal_prunes`, which excluded only permanently zero-rate paths. With `B_{−1} + M_{−1} < 0` the zero-rate deflation `P_t = βᵗP_0`, `P_0 = (B_{−1} + M_{−1})(1 − β)/s < M_0V/y`, survives the active surplus (`TidyR5ActiveFiscal.active_fiscal_two_equilibria`). The key step is that every equilibrium bond price is at least `β/(1 + µ)` (`TidyR5ActiveFiscal.bondPrice_ge`). |
 
 ## Hypotheses the book leaves implicit
 
@@ -78,6 +79,7 @@ not checked. Lean names are relative to the namespace `Cochrane.Monetarism`.
 | §19.3.2, A3 | Positive real balances and `θx^γ < 1` along equilibrium paths | Domain hypotheses of `MoneyInUtility.eq1923_iff` and `MoneyTargetingDynamics.nextX_pos`; demonetisation is `q = 1/P = 0` (`PruningInflation.IsEqm`) |
 | p. 437 | `B_{−1} > 0` and a positive present value of surpluses | Hypotheses of `CaganRE.fiscal_selects_P0` and `CaganRE.fiscal_path_existsUnique` |
 | p. 453 | `0 < B_{t−1} + M_{t−1}` and an absolutely summable surplus | Hypotheses of `CashInAdvance.PF.frictionless_price_unique` and `CashInAdvance.PF.frictionless_price_formula` |
+| p. 454 | The setting of "active fiscal policy can rule out these multiple equilibria" | Perfect foresight, constant money growth `M_{t−1} = M_{−1}(1 + µ)ᵗ` with `1 + µ > β`, and the constant active surplus of the standard path, as in the book; any bond path and any price path satisfying `CashInAdvance.PF.MonetaryEq` (`TidyR5ActiveFiscal.active_fiscal_price_unique`) |
 | A4 | Continuous paths and integrable present values | `HasDerivAt` and `IntegrableOn` hypotheses; continuity of `r` for the discount factor (`ContinuousTime.hasDerivAt_discount`) |
 
 ## A correction to the formalisation record (not a book error)
@@ -110,10 +112,13 @@ transversality condition are derived from optimality there (`MoneyInUtilityMeasu
 | p. 453; footnote 1, p. 440 | An earlier stage of the work recorded that the cash-in-advance and money-in-utility tree sufficiency theorems could not be bridged, because the CIA theorem (node-indexed supergradients, state prices not measurable) is more general in form. | Superseded. The full CIA theorem is derived from the MIU one by averaging the supergradients and state prices over each information cell, which keeps the supergradient inequality and the first-order conditions (`LinksTidy.TreeBridge.euler_sufficient_of_tree_optimal_of_foc`, through `LinksTidy.TreeBridge.isOptimal_condE_iff`). The MIU results for the money-free problem also follow from the CIA ones (`LinksTidy.TreeBridge.tree_foc_cc_of_cia_euler`, `LinksTidy.TreeBridge.tree_optimal_of_foc_of_cia`). |
 | §19.2, pp. 436–437; Galí (2015), (34), p. 75 | Galí's money rule and Cochrane's Cagan model describe the same money block. | They are linked exactly only with flexible prices: with a zero gap (32) is the Cagan equation with `a = η` (`LinksTidy.GaliMoneyRule.flexBlock_iff_cagan`), but with sticky prices the flexible-price path is not a zero-gap equilibrium of (34) unless `β = 1` (`LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34`). Galí's determinacy needs bounded money growth only (`LinksTidy.GaliMoneyRule.flex_existsUnique`), while `CaganRE.bounded_existsUnique` assumes bounded money; the two coincide with constant money (`LinksTidy.GaliMoneyRule.cagan_realBalances_bounded_iff`). |
 
+| §19.1, p. 435; §19.2, pp. 436–437; Galí (2015), (34), p. 75 | `LinksTidy.GaliMoneyRule` restated Galí's system (34) without his determinacy theorem, and the README listed the `κ → ∞` limit as not formalised. | Galí's theorem is proved for the same equilibrium notion (`TidyR5MoneyRule.system34_existsUnique`). The sticky-price equilibria converge to the flexible-price one uniformly over dates and states as `κ → ∞`, at rate `O(1/κ)` (`TidyR5KappaLimit.kappa_limit`, `TidyR5KappaLimit.sticky_flex_bound`). The limit is attained at a finite `κ` iff the flexible-price inflation path satisfies the zero-gap Phillips curve (`TidyR5KappaLimit.sticky_eq_flex_iff`), which fails in the `β ≠ 1` example of `LinksTidy.GaliMoneyRule.flex_not_zero_gap_eq34` at every `κ` (`TidyR5KappaLimit.gap_never_zero`). |
+
 ## Claims confirmed correct
 
 | Where | Claim | Lean |
 | --- | --- | --- |
+| §19.1, p. 435 (with Galí (2015), p. 75, fn. 14) | The sticky-price New-Keynesian model with an exogenous money supply is determinate; Galí's numerically supported root count (one unstable, two stable roots) holds for all `σ, η ≥ 0`, `κ > 0`, `0 ≤ β ≤ 1` | `TidyR5MoneyRule.system34_existsUnique`, `TidyR5MoneyRule.system34_and_flex_existsUnique`, `TidyR5MoneyRule.bookDeterminacyClaim_holds`, `TidyR5MoneyRule.AM_root_location` |
 | (19.2)–(19.3), p. 434 | The two forms of the valuation equation are equivalent under the money transversality condition | `Regimes.eq192_iff_eq193` |
 | p. 435 | NI-7, double-passive indeterminacy, coordination under double-active policy | `Regimes.ni7`, `Regimes.double_passive`, `Regimes.double_active_iff` |
 | pp. 315–318 | V1–V5: open-market irrelevance, seigniorage and the price level, the passive spread, observational equivalence of open-market operations, elastic currency | `Regimes.omo_irrelevant`, `Seigniorage.v2_cagan`, `Regimes.spread_existsUnique`, `Regimes.omo_equivalence`, `Regimes.elastic_currency` |
