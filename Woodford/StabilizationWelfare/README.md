@@ -9,7 +9,7 @@ Stabilization and Welfare" (pp. 381–463), together with the proofs in Appendix
 (pp. 692–708). Model equations hold for an arbitrary expectation operator where the book uses
 one, discounted sums are genuine infinite sums with proved summability, and every welfare
 approximation is stated with its terms independent of policy and its remainder written out
-rather than left as "t.i.p." and "O(3)". The library contains **1993 theorems**, including the
+rather than left as "t.i.p." and "O(3)". The library contains **2631 theorems**, including the
 shared core.
 
 Each welfare approximation is stated in two layers. **Layer A** is an exact identity: the Taylor
@@ -59,25 +59,45 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
 * **The case for price stability.** Zero dispersion iff no initial dispersion and a constant
   price level, exactly (`PriceStability.calvo_zero_dispersion_iff`); zero inflation is the unique
   optimum with an efficient natural rate (`PriceStability.zero_path_optimal`), and the long-run
-  claim of p. 415 in its precise form (`PriceStability.commit_limits`).
+  claim of p. 415 in its precise form (`PriceStability.commit_limits`); the date-0 optimal
+  commitment of p. 415 exists, is the unique bounded optimum, also under uncertainty, and
+  converges geometrically to the timeless plan with long-run inflation zero, unconditionally
+  (`TidyR5CommitLQ.date0_optimal`, `TidyR5CommitLQ.date0_optimal_stoch`,
+  `TidyR5CommitLQ.date0_geometric`, `TidyR5CommitLQ.longrun_zero`), and `π_t = 0` is optimal
+  from a timeless perspective (`TidyR5CommitLQ.timeless_zero_optimal`).
 * **Transactions frictions and the zero bound.** Money demand near satiation exists and is
   locally but not globally unique (`Transactions.Assumption61.moneyDemand_local`,
   `Transactions.cexA_two_solutions`); Propositions 6.7–6.8 with `s_m` and (4.17) corrected
-  (`Transactions.prop_6_7_layerA`, `Transactions.loss_4_17`, `BridgeLinks.prop68_primitive`);
+  (`Transactions.prop_6_7_layerA`, `Transactions.loss_4_17`, `BridgeLinks.prop68_primitive`), and
+  Proposition 6.7 in both layers around the distorted steady state `(Ȳ, m̄)`, constructed by the
+  inverse function theorem, with every coefficient evaluated there and small distortions
+  `Φ, Δ̄ = O(ε)` (`TidyR5DistortedBranch67.branch67`, `TidyR5DistortedBranch67.prop67_on_branch`,
+  `TidyR5DistortedLocal67.prop67_distorted_local`);
   Proposition 6.9 from a proved two-constraint Kuhn–Tucker theorem (`ZLB.kkt_exists`,
   `ZLB.envelope`, `ZLB.prop_6_9`).
 * **Asymmetric disturbances and sticky wages.** Propositions 6.10–6.13, with `κ` a harmonic,
   not geometric, mean and Proposition 6.13's omitted proof supplied
   (`TwoSectorWelfare.prop_6_11_calvo`, `TwoSectorWelfare.printed_geometric_average_false`,
   `StickyWageWelfare.prop_6_12_layerA`, `StickyWageWelfare.prop_6_13_calvo`,
-  `BridgeLinks.prop611_primitive`, `BridgeLinks.prop613_primitive`).
+  `BridgeLinks.prop611_primitive`, `BridgeLinks.prop613_primitive`); Propositions 6.10 and 6.12
+  in both layers around the constructed distorted steady state, with the coefficients of the
+  distorted point and `Φ = O(ε)` (`TidyR5DistortedBranch.prop610_on_branch`,
+  `TidyR5DistortedBranch.prop612_on_branch`, `TidyR5DistortedLocal.prop610_distorted_local`,
+  `TidyR5DistortedLocal612.prop612_distorted_local`).
 * **Cost-push shocks and large distortions.** Natural and efficient output from the implicit
   function theorem (`CostPush.implicit_natural_efficient`); (5.1) with its sign corrected
   (`LargeDistortions.eq51_exact`, `LargeDistortions.eq51_printed_false`); the second-order AS
   relation (5.4) derived from the Calvo model (`LargeDistortions.calvoAS_of_primitives`,
   `LargeDistortions.eq54`); Propositions 6.14–6.15 in both layers, with the first-order term of
   6.14 that prevents ranking and its removal in 6.15 (`BridgeExtensions.prop614_first_order`,
-  `BridgeExtensions.prop615_layerB`, `BridgeLinks.prop615_goods_layerB`).
+  `BridgeExtensions.prop615_layerB`, `BridgeLinks.prop615_goods_layerB`); footnote 71: complete
+  stabilisation of `log P_t + φx_t` is the date-0 and the timeless optimal policy for the
+  quarterly weight `λ = κφ` (`16κφ` annualised), on any expectation system with pull-out and on
+  any filtered probability space without it (`TidyR5CommitLQ.fn71_optimal`,
+  `TidyR5CommitLQ.fn71_annualized`, `TidyR5Fn71Measure.mfn71_optimal`,
+  `TidyR5Fn71Measure.mfn71_timeless_optimal`); and, for every `Φ ∈ [0, 1)`, the family whose
+  first-order component is the footnote-71 plan is optimal up to `O(ε³)`
+  (`TidyR5RamseySOC.lq_sufficiency615`).
 * **Markov equilibrium of the nonlinear model.** The exact Calvo model with the Euler equation,
   the recursions for `F` and `K` and the exact dispersion law has, under a Taylor rule satisfying
   the Taylor principle, an equilibrium that exists, is locally unique and is `C²` in the amplitude,
@@ -91,7 +111,11 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   `NonlinearNKMarkovRamseyNonAdapted.taylor_solution_adapted`), with a Markov representation
   `z_t = g(x_t)` for an AR(1) with any bounded innovation law
   (`NonlinearNKMarkovAR1Markov.ar1_markov_representation`); it discharges the Layer B family
-  hypothesis (`NonlinearNKMarkovLinks.layerB_discharged`). The same holds for the timeless Ramsey
+  hypothesis (`NonlinearNKMarkovLinks.layerB_discharged`). It also holds with government purchases,
+  `s_C < 1`, the solution satisfying the Calvo block `LargeDistortions.CalvoModel.CalvoAS` behind
+  (5.4) exactly (`TidyR5GovPurchases.gov_markov_equilibrium`,
+  `TidyR5GovPurchases.gov_seq_existence`, `TidyR5GovPurchases.gov_seq_existence_ae`,
+  `TidyR5GovPurchases.gov_calvoAS`). The same holds for the timeless Ramsey
   policy: the nine exact conditions are Lagrangian derivatives, the linearisation is the
   commitment system with `λ_x = κ/θ` for every distortion `Φ` and roots `0 < z₁ < 1 < z₂`
   (`NonlinearNKMarkovRamseyLin.key_theta`, `NonlinearNKMarkovRamseyLin.ramsey_root_condition`), and
@@ -99,10 +123,49 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   all bounded processes and has a Markov representation in `(Δ_{t−1}, λ_{t−1}, x_t)`
   (`NonlinearNKMarkovRamseyIFT.ramsey_existence`, `NonlinearNKMarkovRamseyAEIFT.ramsey_existence_ae`,
   `NonlinearNKMarkovRamseyNonAdapted.ramsey_unique_all`,
-  `NonlinearNKMarkovRamseyAR1.ramsey_ar1_markov`). Proposition 6.15's Layer B holds over any
+  `NonlinearNKMarkovRamseyAR1.ramsey_ar1_markov`). Every Ramsey steady state has zero inflation
+  iff `(1 − Φ)(1 − σ) ≠ 1 + ω`, which holds for every `0 ≤ Φ ≤ 1`, and every convergent Ramsey path
+  has long-run inflation zero (`TidyR5RamseyLongRun.ramsey_ss_pi_zero`,
+  `TidyR5RamseyLongRun.ramsey_longrun_zero`, `TidyR5RamseyLongRun.ramsey_ss_continuum`). Near the
+  steady state and for small `Φ`, the solution of the first-order conditions of the date-0 problem
+  exists, is locally unique and converges geometrically to the timeless plan and, without
+  disturbances, to zero inflation (`TidyR5RamseyDate0.date0_main`, `TidyR5RamseyDate0.date0_path`).
+  Proposition 6.15's Layer B holds over any
   probability space of goods, including the continuum of Calvo reset histories
   (`NonlinearNKMarkovGoodsLayerB.prop615_goods_layerBM`,
   `NonlinearNKMarkovGoodsLayerBFin.prop615_goods_layerB_of_M`).
+* **The exact Rotemberg (1982) model.** The quadratic-adjustment-cost model of Chapter 3,
+  footnote 44, stated exactly and treated to the same standard as Calvo. A Markov equilibrium
+  exists and is locally unique iff the Taylor principle holds in the Rotemberg slope
+  `κ_R = θm(σ + ω)/ψ`: on every state space and Markov chain, for every `ExpectationSystem`, and
+  almost surely on filtered probability spaces, with a Markov form `z_t = g(x_t)` for an AR(1)
+  of any bounded law (`NonlinearRotembergMarkov.markov_equilibrium_general`,
+  `NonlinearRotembergMarkov.seq_existence`, `NonlinearRotembergAE.seq_existence_ae_adapted`,
+  `NonlinearRotembergAR1.ar1_markov_representation`, `NonlinearRotembergSmooth.lop_injective_iff`).
+  Under strict failure there is a continuum of bounded equilibria and recurrent stationary
+  sunspot equilibria near the steady state (`NonlinearRotembergIndet.indeterminacy_every_system`,
+  `NonlinearRotembergSunspot.stationary_sunspots`). On the boundary no equilibrium is of the order
+  of the shock, there is a continuum at the corner `φ_π = 1`, `φ_y = 0`, and the linearisation
+  provably does not decide: two exact rules with the same linearisation give opposite answers
+  (`NonlinearRotembergBoundary.boundary_no_order_eps`, `NonlinearRotembergBoundary.corner_continuum`,
+  `NonlinearRotembergBoundaryPair.modelA_continuum`, `NonlinearRotembergBoundaryPair.modelB_unique`).
+  The equilibrium is `C^∞` in the eight parameters and the shock scale
+  (`NonlinearRotembergSmooth.markov_equilibrium_smooth`). The timeless Ramsey policy has
+  Lagrangian-derived conditions, a zero-inflation steady state for every `Φ` and none with
+  positive inflation, the targeting rule
+  `ŷ_t − ŷ_{t−1} + θ_Rπ_t = 0` with `θ_R = θ` iff `Φ = 0`, existence and uniqueness among all
+  bounded processes, and an AR(1) Markov form in `(λ_{t−1}, x_t)`
+  (`NonlinearRotembergRamsey.ramsey_ss_char`, `NonlinearRotembergRamseyLin.targeting_rule`,
+  `NonlinearRotembergRamseyLin.thR_eq_theta_iff`, `NonlinearRotembergNonAdapted.ramsey_unique_all`,
+  `NonlinearRotembergRamseyAR1.ramsey_ar1_markov`); for `G = 1 + ω − m(1 − σ) ≤ 0` (an
+  overshooting subsidy) the exact problem is solved case by case, including exact non-existence
+  (`NonlinearRotembergRamseyGenIFT.ramsey_existence_Gzero`,
+  `NonlinearRotembergRamseyGenIFT.ramsey_existence_Gneg`,
+  `NonlinearRotembergRamseyNonexist.ramsey_nonexist`). Against Calvo: the first-order solutions
+  agree state by state under the equivalence map, the discounted second-order costs of inflation
+  coincide, and total second-order welfare of trend inflation differs
+  (`NonlinearRotembergLinks.first_order_agree`, `NonlinearRotembergWelfare.discounted_cost_equiv`,
+  `NonlinearRotembergTrendWelfare.trend_welfare_differ`).
 * **Smooth dependence on the shock scale.** For `E_tf(y_{t+1}, y_t, y_{t−1}, x_t, σε_{t+1}) = 0`
   with an invertible linearisation the equilibrium is `Cᵏ` in `σ` and Markov
   (`SmoothInSigma.Model.exists_smooth_solution`, `SmoothInSigma.Model.exists_smooth_policy`);
@@ -125,14 +188,25 @@ See the [source map](docs/source-map.md) for the correspondence with the book an
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: the Chapter 7 material the chapter anticipates (existence and convergence of the
-date-0 optimal commitment path behind p. 415, the optimality claim of footnote 71, and optimal
-long-run inflation for any `Φ`; only the timeless-perspective Ramsey equilibrium near the
-zero-inflation steady state is formalised); the numerical Figures 6.1–6.6 and the optimisation outputs behind
-Figure 6.1 and Table 6.2, of which only the exact arithmetic claims are formalised; and, for the
-Layer B forms of Propositions 6.7, 6.10 and 6.12, the change of variables from the efficient to
-the distorted steady state. The equilibrium results assume no government purchases (`s_C = 1`)
-for the exact Calvo model, and `A_uG ≠ 0` (true for `A_u > 0`, `0 ≤ Φ ≤ 1`) for the Ramsey policy.
+Not covered: the numerical Figures 6.1–6.6 and the optimisation outputs behind Figure 6.1 and
+Table 6.2, of which only the exact arithmetic claims are formalised. For the nonlinear date-0
+Ramsey problem only the solution of the exact first-order conditions is constructed, near the
+steady state and for small `Φ` (`TidyR5RamseyDate0.date0_main`). Welfare optimality up to
+`O(ε³)` holds for every `Φ ∈ [0, 1)` (`TidyR5RamseySOC.lq_sufficiency615`), but assumes that the
+first-order component of the nonlinear date-0 solution is the footnote-71 plan and that the
+competitors' first-order components satisfy the linear AS relation. That link to the LQ plan,
+exact local maximality of the nonlinear plan, and existence and convergence for large `Φ` are
+not proved; full optimality is proved in the linear-quadratic model (`TidyR5CommitLQ`). Layer B of
+Proposition 6.7 around the distorted steady state with `Δ̄ = 0` uses the smooth extension `Ũ`,
+since the actual utility does not then determine `m̄` (`TidyR5DistortedBranch67.foc_actual_flat`).
+Government purchases (`s_C < 1`) are covered for the Taylor-rule equilibrium; the Ramsey results
+keep `s_C = 1`, and the Calvo Ramsey policy assumes `A_uG ≠ 0` (true for `A_u > 0`,
+`0 ≤ Φ ≤ 1`). For the Rotemberg model: under the linear Taylor rule on the boundary with
+`φ_y > 0`, whether the exact model has a one-sided continuum of equilibria and whether small-shock
+equilibria exist at all (a centre-manifold coefficient; the linearisation provably does not
+decide, `NonlinearRotembergBoundaryPair`); and the second-order welfare comparison with Calvo
+under stochastic fluctuations with second-order paths, the trend-inflation comparison excluding
+log utility (`σ = 1`).
 Along the perturbation equilibrium, Propositions 6.8, 6.14 and 6.15 take the exact model equations
 (for 6.15 the Calvo conditions `hM`) as hypotheses, Proposition 6.15 needs globally `C²`
 readouts, and Propositions 6.7–6.8 assume real balances approach satiation from below (`hleft`).
@@ -198,6 +272,54 @@ readouts, and Propositions 6.7–6.8 assume real balances approach satiation fro
 | [SmoothInSigmaMeasure615](StabilizationWelfare/SmoothInSigmaMeasure615.lean) | 25 | (5.4) and Propositions 6.14–6.15 with genuine conditional expectations; 6.15 along the equilibrium |
 | [SmoothInSigmaRegimes](StabilizationWelfare/SmoothInSigmaRegimes.lean) | 25 | Certainty equivalence and the coupled `σ²` system under regime switching |
 | [SmoothInSigmaUnique](StabilizationWelfare/SmoothInSigmaUnique.lean) | 43 | Uniqueness among adapted almost-sure solutions on `ν^ℕ` |
+| [NonlinearRotemberg](StabilizationWelfare/NonlinearRotemberg.lean) | 33 | Ch. 3 fn. 44, Ch. 4 §2.2: the exact Rotemberg (1982) model under a Taylor rule, the zero-inflation steady state, the linearisation with slope `κ_R = θm(σ + ω)/ψ`, the equivalence map to Calvo, the Taylor principle as Schur stability, the bounded inverse |
+| [NonlinearRotembergNewton](StabilizationWelfare/NonlinearRotembergNewton.lean) | 8 | App. A.3: a quantitative implicit function theorem for any `C¹` forward-looking maps on a Markov state, with an invariant class |
+| [NonlinearRotembergAENewton](StabilizationWelfare/NonlinearRotembergAENewton.lean) | 10 | The same on a filtered probability space, almost surely |
+| [NonlinearRotembergMarkov](StabilizationWelfare/NonlinearRotembergMarkov.lean) | 17 | Markov and sequence-space equilibria of the Rotemberg model: existence and local uniqueness on every state space and every `ExpectationSystem`, adaptedness, local uniqueness of the steady state, linear determinacy iff the Taylor principle |
+| [NonlinearRotembergAE](StabilizationWelfare/NonlinearRotembergAE.lean) | 18 | The Rotemberg model on a general filtered probability space: a.s. existence, uniqueness and adaptedness; an AR(1) with any bounded law |
+| [NonlinearRotembergAR1](StabilizationWelfare/NonlinearRotembergAR1.lean) | 4 | The Markov representation `z_t = g(x_t)` for an AR(1) with any bounded innovation law |
+| [NonlinearRotembergSmooth](StabilizationWelfare/NonlinearRotembergSmooth.lean) | 22 | The Markov equilibrium is `C^∞` in the parameters and the shock scale; the first-order solution; injectivity on every finite chain iff the Taylor principle |
+| [NonlinearRotembergLinks](StabilizationWelfare/NonlinearRotembergLinks.lean) | 8 | Rotemberg and Calvo: first-order agreement under the map, Calvo dispersion is second order, the Rotemberg resource wedge, an explicit second-order difference |
+| [NonlinearRotembergBoundary](StabilizationWelfare/NonlinearRotembergBoundary.lean) | 14 | The Taylor-principle boundary: a constant kernel, no exact equilibrium of the order of the shock, a continuum of steady states at the corner |
+| [NonlinearRotembergRamsey](StabilizationWelfare/NonlinearRotembergRamsey.lean) | 10 | Ch. 7: the exact Rotemberg Ramsey conditions as Lagrangian derivatives, the Ramsey steady states, the golden rule |
+| [NonlinearRotembergRamseyLin](StabilizationWelfare/NonlinearRotembergRamseyLin.lean) | 29 | The linearisation: the commitment system, the targeting rule with `θ_R`, the root condition, `θ_R = θ` iff `Φ = 0` |
+| [NonlinearRotembergRamseyTree](StabilizationWelfare/NonlinearRotembergRamseyTree.lean) | 17 | The linearised Rotemberg Ramsey operator on event trees: inverse with a uniform bound |
+| [NonlinearRotembergRamseyAE](StabilizationWelfare/NonlinearRotembergRamseyAE.lean) | 12 | The same on adapted processes of a filtered probability space |
+| [NonlinearRotembergRamseyDegenerate](StabilizationWelfare/NonlinearRotembergRamseyDegenerate.lean) | 21 | The linearised Ramsey system when `G ≤ 0`: when it occurs, `G = 0`, non-existence, oscillating determinacy and a unit root for `G < 0` |
+| [NonlinearRotembergBoundaryPair](StabilizationWelfare/NonlinearRotembergBoundaryPair.lean) | 11 | Two exact rules with the boundary Taylor rule's linearisation and opposite answers: the linearisation does not decide |
+| [NonlinearRotembergIndet](StabilizationWelfare/NonlinearRotembergIndet.lean) | 30 | Indeterminacy under strict failure of the Taylor principle: a continuum of bounded equilibria of the exact model, date-0 sunspots, on every expectation system |
+| [NonlinearRotembergJets](StabilizationWelfare/NonlinearRotembergJets.lean) | 16 | Second-order jets at zero: sums, products, composition |
+| [NonlinearRotembergLevels](StabilizationWelfare/NonlinearRotembergLevels.lean) | 14 | The level model and its equivalence to the log system, the firm's first-order condition, steady-state uniqueness and a second steady state when `φ_y > 0` |
+| [NonlinearRotembergRamseyIFT](StabilizationWelfare/NonlinearRotembergRamseyIFT.lean) | 6 | Existence and uniqueness of the timeless Rotemberg Ramsey equilibrium on every event tree |
+| [NonlinearRotembergRamseyAEIFT](StabilizationWelfare/NonlinearRotembergRamseyAEIFT.lean) | 6 | Existence, adaptedness and uniqueness on a filtered probability space |
+| [NonlinearRotembergNonAdapted](StabilizationWelfare/NonlinearRotembergNonAdapted.lean) | 3 | Every bounded solution is adapted; uniqueness among all bounded processes |
+| [NonlinearRotembergRamseyMarkov](StabilizationWelfare/NonlinearRotembergRamseyMarkov.lean) | 4 | The Markov representation on a finite chain, through `λ̂_{t−1}` |
+| [NonlinearRotembergRamseyAR1](StabilizationWelfare/NonlinearRotembergRamseyAR1.lean) | 30 | The Markov representation `G(z_{t−1}, x_t)` for an AR(1) with any bounded law, depending on the lag through `λ̂_{t−1}` |
+| [NonlinearRotembergRamseyRootsInv](StabilizationWelfare/NonlinearRotembergRamseyRootsInv.lean) | 12 | The linearised Ramsey inverse for any roots `\|z_s\| < 1 < \|z_u\|`, including the oscillating case `G < 0` |
+| [NonlinearRotembergRamseyZeroInv](StabilizationWelfare/NonlinearRotembergRamseyZeroInv.lean) | 3 | The linearised Ramsey inverse when `G = 0` |
+| [NonlinearRotembergRamseyGenIFT](StabilizationWelfare/NonlinearRotembergRamseyGenIFT.lean) | 5 | The Newton contraction for any inverse; exact existence for `G = 0` and for `G < 0`, `κθ_R < −2(1 + β)` |
+| [NonlinearRotembergRamseyNonexist](StabilizationWelfare/NonlinearRotembergRamseyNonexist.lean) | 5 | Exact non-existence near the steady state for `G < 0`, `−2(1 + β) < κθ_R < 0` |
+| [NonlinearRotembergSunspot](StabilizationWelfare/NonlinearRotembergSunspot.lean) | 29 | Recurrent stationary sunspot equilibria on a two-state chain under strict failure, by Lyapunov–Schmidt |
+| [NonlinearRotembergTrendWelfare](StabilizationWelfare/NonlinearRotembergTrendWelfare.lean) | 17 | Second-order welfare of trend inflation, Rotemberg against Calvo with a distorted steady state: the totals differ |
+| [NonlinearRotembergWelfare](StabilizationWelfare/NonlinearRotembergWelfare.lean) | 9 | The Calvo dispersion law in closed form; the discounted second-order costs of inflation coincide under the map |
+| [TidyR5CommitLQ](StabilizationWelfare/TidyR5CommitLQ.lean) | 37 | §3.2, p. 415, n. 71: the date-0 optimal commitment exists, is optimal and converges, long-run inflation zero (negative with a unit coefficient), the stochastic case; footnote 71's plan is optimal for `λ = κφ` |
+| [TidyR5DistortedTools](StabilizationWelfare/TidyR5DistortedTools.lean) | 14 | Tools for moving the expansion point to the distorted steady state; the distorted steady state to first order |
+| [TidyR5Distorted610](StabilizationWelfare/TidyR5Distorted610.lean) | 7 | Proposition 6.10 in both layers around the distorted steady state |
+| [TidyR5Distorted612](StabilizationWelfare/TidyR5Distorted612.lean) | 5 | Proposition 6.12 in both layers around the distorted steady state |
+| [TidyR5Distorted67](StabilizationWelfare/TidyR5Distorted67.lean) | 8 | The distorted steady state with transactions frictions; Proposition 6.7 in both layers around it |
+| [TidyR5DistortedBranch67](StabilizationWelfare/TidyR5DistortedBranch67.lean) | 7 | The branch `(Ȳ, m̄)` by the inverse function theorem; Proposition 6.7 on it; the smooth-extension caveat for the actual utility |
+| [TidyR5DistortedBranch](StabilizationWelfare/TidyR5DistortedBranch.lean) | 6 | The branches of distorted steady states by the inverse function theorem; Propositions 6.10 and 6.12 on them |
+| [TidyR5DistortedLocal](StabilizationWelfare/TidyR5DistortedLocal.lean) | 8 | Proposition 6.10 with every coefficient at the distorted steady state |
+| [TidyR5DistortedLocal612](StabilizationWelfare/TidyR5DistortedLocal612.lean) | 6 | Proposition 6.12 with every coefficient at the distorted steady state |
+| [TidyR5DistortedLocal67](StabilizationWelfare/TidyR5DistortedLocal67.lean) | 6 | Proposition 6.7 with every coefficient at the distorted steady state |
+| [TidyR5Fn71Measure](StabilizationWelfare/TidyR5Fn71Measure.lean) | 8 | Footnote 71 on any filtered probability space, almost surely, with no pull-out hypothesis |
+| [TidyR5GovNewton](StabilizationWelfare/TidyR5GovNewton.lean) | 14 | The Newton step for any model with the New Keynesian linearisation: Markov, sequence space, almost surely |
+| [TidyR5GovPurchases](StabilizationWelfare/TidyR5GovPurchases.lean) | 23 | §5: government purchases (`s_C < 1`) in the exact Calvo model: existence and uniqueness, the Euler equation with `C = Y − G`, the Calvo block of (5.4) |
+| [TidyR5RamseyWeighted](StabilizationWelfare/TidyR5RamseyWeighted.lean) | 25 | The inverse of the linearised Ramsey operator on spaces of geometrically decaying processes |
+| [TidyR5RamseyStability](StabilizationWelfare/TidyR5RamseyStability.lean) | 2 | The influence of the initial commitment on the exact Ramsey solution decays geometrically |
+| [TidyR5RamseyDate0](StabilizationWelfare/TidyR5RamseyDate0.lean) | 27 | pp. 413–415, Ch. 7: the date-0 plan of the exact model (first-order conditions) exists for small `Φ` and converges to the timeless plan and to zero inflation |
+| [TidyR5RamseyLongRun](StabilizationWelfare/TidyR5RamseyLongRun.lean) | 9 | Every Ramsey steady state has zero inflation iff `(1 − Φ)(1 − σ) ≠ 1 + ω`; convergent paths have long-run inflation zero; the exceptional continuum |
+| [TidyR5RamseySOC](StabilizationWelfare/TidyR5RamseySOC.lean) | 3 | Proposition 6.15 with footnote 71: the commitment plan is optimal up to `O(ε³)` for every `Φ ∈ [0, 1)` |
 
 ## Build and verify
 
