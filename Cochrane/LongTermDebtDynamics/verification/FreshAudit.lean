@@ -21,6 +21,8 @@ import Mathlib.Analysis.Normed.Ring.InfiniteSum
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 import Mathlib.Topology.Algebra.InfiniteSum.NatInt
 import Mathlib.Topology.Algebra.InfiniteSum.Constructions
+import Mathlib.Analysis.Asymptotics.Lemmas
+import Mathlib.Analysis.Calculus.Deriv.Mul
 set_option autoImplicit false
 
 /-
@@ -6495,6 +6497,3521 @@ theorem strong_qe {β P0 sj B lam : ℝ} (j : ℕ) (hs : sj ≠ 0) (hB : B ≠ 0
 
 end Cochrane.LongTermDebtDynamics.QuantitativeEasing
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The weighted present value state by state
+
+Cochrane (2023), §7.4, pp. 224–226, equations (7.14) and (7.17).
+
+The weighted present value (7.17) `y_t = E_t ∑_m β^m W_t^{(m)} s_{t+m}` is built from the
+*pathwise* weighted sum `Z_t = ∑_m β^m W_t^{(m)} s_{t+m}`, a series of real numbers at each state.
+This module proves two facts used by the existence results of the later TidyR5 modules:
+
+* `pathZ_solves`: state by state, `Z` solves the flow system (7.14) without expectations,
+  `Z_t = s_t + ∑_j β^{j+1} A_t^{(t+j+1)} Z_{t+j+1}`, whenever the weights are absolutely summable
+  along every row. This is the perfect-foresight content of (7.17), with no row or column
+  condition beyond absolute summability.
+* `formulaW_solves_of_exchange`: if `E_t` passes through the two series involved (the series
+  for `Z_t` and the series on the right of (7.14)), then `y_t = E_t Z_t` is (7.17) and solves the
+  flow system (7.14) under uncertainty.
+
+`weight_apply` evaluates Cochrane's weights at a state, and `hasSum_E_of_dom` is the dominated
+interchange of `E_t` and a series in `HasSum` form.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5Pathwise
+
+open Filter Topology MaturityStructure GeneralFormula
+
+/-- Cochrane (2023), §7.4, p. 226: the weights of random sale fractions, evaluated at a state, are
+the weights of the sale fractions at that state. -/
+theorem weight_apply {Ω : Type*} (A : ℕ → ℕ → Ω → ℝ) (ω : Ω) (m : ℕ) :
+    ∀ t, weight A t m ω = weight (fun u v => A u v ω) t m := by
+  induction m using Nat.strong_induction_on with
+  | _ m ih =>
+    intro t
+    rcases m with _ | k
+    · simp [weight_zero]
+    · rw [weight_succ, weight_succ, Finset.sum_apply]
+      refine Finset.sum_congr rfl fun n hn => ?_
+      rw [Pi.mul_apply, ih n (Finset.mem_range.mp hn) t]
+
+/-- Cochrane (2023), eq. (7.17), p. 225: the pathwise weighted present value
+`Z_t = ∑_m β^m W_t^{(m)} s_{t+m}` for deterministic sale fractions and surpluses. -/
+noncomputable def pathZ (β : ℝ) (A : ℕ → ℕ → ℝ) (s : ℕ → ℝ) (t : ℕ) : ℝ :=
+  ∑' m, β ^ m * (weight A t m * s (t + m))
+
+/-- Cochrane (2023), eq. (7.17), p. 225: the pathwise weighted present value at each state,
+`Z_t(ω) = ∑_m β^m W_t^{(m)}(ω) s_{t+m}(ω)`. -/
+noncomputable def pathZΩ {Ω : Type*} (β : ℝ) (A : ℕ → ℕ → Ω → ℝ) (s : ℕ → Ω → ℝ) (t : ℕ)
+    (ω : Ω) : ℝ :=
+  pathZ β (fun u v => A u v ω) (fun u => s u ω) t
+
+/-- Cochrane (2023), eq. (7.17), p. 225: with `0 ≤ β`, `|s| ≤ M` and `∑_m β^m |W_t^{(m)}| ≤ C`,
+the series for `Z_t` converges absolutely and `|Z_t| ≤ C M`. -/
+theorem pathZ_summable_bound {β M C : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → ℝ} {s : ℕ → ℝ}
+    (hsb : ∀ u, |s u| ≤ M) {t : ℕ} (hW : Summable (fun m => β ^ m * |weight A t m|))
+    (hWC : ∑' m, β ^ m * |weight A t m| ≤ C) :
+    Summable (fun m => |β ^ m * (weight A t m * s (t + m))|) ∧ |pathZ β A s t| ≤ C * M := by
+  have hM : 0 ≤ M := (abs_nonneg _).trans (hsb 0)
+  have hb : ∀ m, |β ^ m * (weight A t m * s (t + m))| ≤ β ^ m * |weight A t m| * M := by
+    intro m
+    rw [abs_mul, abs_mul, abs_pow, abs_of_nonneg hβ0, mul_assoc]
+    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (hsb _) (abs_nonneg _))
+      (pow_nonneg hβ0 m)
+  have hdom : Summable (fun m => β ^ m * |weight A t m| * M) := hW.mul_right M
+  have hs : Summable (fun m => |β ^ m * (weight A t m * s (t + m))|) :=
+    Summable.of_nonneg_of_le (fun m => abs_nonneg _) hb hdom
+  refine ⟨hs, ?_⟩
+  have h0 := norm_tsum_le_tsum_norm (f := fun m => β ^ m * (weight A t m * s (t + m)))
+    (by simpa only [Real.norm_eq_abs] using hs)
+  simp only [Real.norm_eq_abs] at h0
+  refine h0.trans ((Summable.tsum_le_tsum hb hs hdom).trans ?_)
+  rw [tsum_mul_right]
+  exact mul_le_mul_of_nonneg_right hWC hM
+
+/-- Cochrane (2023), eqs. (7.14), (7.17), pp. 225–226: **the pathwise weighted present value
+solves the flow system.** With `0 ≤ β`, bounded surpluses, weights absolutely summable along every
+row (`∑_m β^m |W_u^{(m)}| ≤ C`) and an absolutely summable row `∑_j β^{j+1}|A_t^{(t+j+1)}|`,
+`Z_t = s_t + ∑_j β^{j+1} A_t^{(t+j+1)} Z_{t+j+1}`. The proof regroups an absolutely convergent
+double series by antidiagonals, using `GeneralFormula.weight_first_step`. -/
+theorem pathZ_solves {β M C : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → ℝ} {s : ℕ → ℝ}
+    (hsb : ∀ u, |s u| ≤ M) (hW : ∀ u, Summable (fun m => β ^ m * |weight A u m|))
+    (hWC : ∀ u, ∑' m, β ^ m * |weight A u m| ≤ C) (t : ℕ)
+    (hrow : Summable (fun j : ℕ => β ^ (j + 1) * |A t (t + (j + 1))|)) :
+    HasSum (fun j : ℕ => β ^ (j + 1) * (A t (t + (j + 1)) * pathZ β A s (t + (j + 1))))
+      (pathZ β A s t - s t) := by
+  have hM : 0 ≤ M := (abs_nonneg _).trans (hsb 0)
+  have hC : 0 ≤ C := (tsum_nonneg fun m => mul_nonneg (pow_nonneg hβ0 m) (abs_nonneg _)).trans
+    (hWC 0)
+  set Gf : ℕ × ℕ → ℝ := fun p => β ^ (p.1 + 1) * (A t (t + (p.1 + 1)) *
+    (β ^ p.2 * (weight A (t + (p.1 + 1)) p.2 * s (t + (p.1 + 1) + p.2)))) with hGf
+  set g : ℕ × ℕ → ℝ := fun p => β ^ (p.1 + 1) * |A t (t + (p.1 + 1))| *
+    (β ^ p.2 * |weight A (t + (p.1 + 1)) p.2| * M) with hg
+  have hg0 : 0 ≤ g := fun p => mul_nonneg (mul_nonneg (pow_nonneg hβ0 _) (abs_nonneg _))
+    (mul_nonneg (mul_nonneg (pow_nonneg hβ0 _) (abs_nonneg _)) hM)
+  have hGb : ∀ p, ‖Gf p‖ ≤ g p := by
+    intro p
+    rw [Real.norm_eq_abs, hGf, hg]
+    simp only [abs_mul, abs_pow, abs_of_nonneg hβ0]
+    have h1 : |s (t + (p.1 + 1) + p.2)| ≤ M := hsb _
+    have h2 := mul_le_mul_of_nonneg_left h1 (mul_nonneg (mul_nonneg (pow_nonneg hβ0 (p.1 + 1))
+      (abs_nonneg (A t (t + (p.1 + 1))))) (mul_nonneg (pow_nonneg hβ0 p.2)
+        (abs_nonneg (weight A (t + (p.1 + 1)) p.2))))
+    refine le_trans (le_of_eq ?_) (h2.trans (le_of_eq ?_)) <;> ring
+  have hgsum : Summable g := by
+    rw [summable_prod_of_nonneg hg0]
+    refine ⟨fun j => ?_, ?_⟩
+    · simp only [hg]
+      exact ((hW (t + (j + 1))).mul_right M).mul_left (β ^ (j + 1) * |A t (t + (j + 1))|)
+    refine Summable.of_nonneg_of_le (fun j => tsum_nonneg fun m => hg0 (j, m)) (fun j => ?_)
+      (hrow.mul_right (C * M))
+    simp only [hg]
+    rw [tsum_mul_left, tsum_mul_right]
+    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right (hWC _) hM)
+      (mul_nonneg (pow_nonneg hβ0 _) (abs_nonneg _))
+  have hGsum : Summable Gf := Summable.of_norm_bounded hgsum hGb
+  -- (i) the fibres
+  have hfib : ∀ j, HasSum (fun m => Gf (j, m))
+      (β ^ (j + 1) * (A t (t + (j + 1)) * pathZ β A s (t + (j + 1)))) := by
+    intro j
+    have hin := (pathZ_summable_bound hβ0 hsb (hW (t + (j + 1))) (hWC _)).1
+    exact ((hin.of_abs).hasSum.mul_left (A t (t + (j + 1)))).mul_left (β ^ (j + 1))
+  have hrowsum := hGsum.hasSum.prod_fiberwise hfib
+  -- (ii) the antidiagonals
+  have hdiag : HasSum (fun k => β ^ (k + 1) * (weight A t (k + 1) * s (t + (k + 1))))
+      (∑' p, Gf p) := by
+    have h1 := (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd.hasSum_iff (f := Gf)).mpr
+      hGsum.hasSum
+    have h2 := h1.sigma (fun k => hasSum_fintype _)
+    convert h2 using 1
+    funext k
+    simp only [Function.comp_apply, Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd_apply]
+    rw [Finset.sum_coe_sort (Finset.antidiagonal k) Gf,
+      Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk, weight_first_step, Finset.sum_mul,
+      Finset.mul_sum]
+    refine Finset.sum_congr rfl fun j hj => ?_
+    have hjk : j ≤ k := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+    simp only [hGf]
+    rw [show t + (j + 1) + (k - j) = t + (k + 1) by omega,
+      show β ^ (k + 1) = β ^ (j + 1) * β ^ (k - j) by rw [← pow_add]; congr 1; omega]
+    ring
+  -- (iii) the value at `t`
+  have hzs := (pathZ_summable_bound hβ0 hsb (hW t) (hWC t)).1.of_abs
+  have hz : pathZ β A s t = s t + ∑' p, Gf p := by
+    rw [pathZ, hzs.tsum_eq_zero_add, hdiag.tsum_eq]
+    simp [weight_zero]
+  rw [hz, add_sub_cancel_left]
+  exact hrowsum
+
+/-- Cochrane (2023), §7.4 (used for (7.17)): `E_t` passes through a series of random variables
+dominated by a summable sequence, in `HasSum` form. -/
+theorem hasSum_E_of_dom {Ω : Type*} (𝔼 : ExpectationSystem Ω) {u : ℕ → ℝ} (hu : Summable u)
+    {f : ℕ → Ω → ℝ} (hf : ∀ k ω, |f k ω| ≤ u k) (t : ℕ) (ω : Ω) :
+    HasSum (fun k => 𝔼.E t (f k) ω) (𝔼.E t (fun ω' => ∑' k, f k ω') ω) := by
+  rw [ForwardSolution.E_tsum_dom 𝔼 hu hf t ω]
+  exact (Summable.of_norm_bounded hu (fun k => by
+    rw [Real.norm_eq_abs]; exact 𝔼.abs_E_le (hf k) t ω)).hasSum
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), eq. (7.17), p. 225: if `E_t` passes through the series for `Z_t`, the
+weighted present value (7.17) is `E_t Z_t`. -/
+theorem formulaW_eq_E {β : ℝ} {A : ℕ → ℕ → Ω → ℝ} {s Z : ℕ → Ω → ℝ}
+    (hex1 : ∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (𝔼.E t (Z t) ω)) (t : ℕ) :
+    formulaW 𝔼 β A s t = 𝔼.E t (Z t) :=
+  funext fun ω => (hex1 t ω).tsum_eq
+
+/-- Cochrane (2023), eq. (7.17), p. 225: if `E_t` passes through the series for `Z_t`, the
+weighted present value (7.17) is known at `t`. -/
+theorem formulaW_adapted_of_exchange {β : ℝ} {A : ℕ → ℕ → Ω → ℝ} {s Z : ℕ → Ω → ℝ}
+    (hex1 : ∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (𝔼.E t (Z t) ω)) (t : ℕ) :
+    𝔼.E t (formulaW 𝔼 β A s t) = formulaW 𝔼 β A s t := by
+  rw [formulaW_eq_E 𝔼 hex1, 𝔼.E_E_self]
+
+/-- Cochrane (2023), eqs. (7.14), (7.17), pp. 225–226: **(7.17) solves the flow system, given the
+two interchanges.** Let `Z` solve the flow system state by state, each sale fraction
+`A_t^{(t+j+1)}` be known at `t + j`, surpluses be adapted, and suppose `E_t` passes through the
+series for `Z_t` (hypothesis hex1) and through the series `∑_j β^{j+1} A_t^{(t+j+1)} Z_{t+j+1}`
+(hypothesis hex2).
+Then `y_t = E_t ∑_m β^m W_t^{(m)} s_{t+m}` satisfies (7.14) at `t`, under uncertainty. -/
+theorem formulaW_solves_of_exchange (hpo : 𝔼.PullOut) {β : ℝ} {A : ℕ → ℕ → Ω → ℝ}
+    {s Z : ℕ → Ω → ℝ} (hA : ∀ t j, 𝔼.E (t + j) (A t (t + (j + 1))) = A t (t + (j + 1)))
+    (hs : 𝔼.Adapted s)
+    (hpw : ∀ t ω, HasSum (fun j : ℕ => β ^ (j + 1) * (A t (t + (j + 1)) ω * Z (t + (j + 1)) ω))
+      (Z t ω - s t ω))
+    (hex1 : ∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (𝔼.E t (Z t) ω))
+    (hex2 : ∀ t ω, HasSum (fun j : ℕ => 𝔼.E t (fun ω' => β ^ (j + 1) *
+      (A t (t + (j + 1)) ω' * Z (t + (j + 1)) ω')) ω)
+      (𝔼.E t (fun ω' => ∑' j : ℕ, β ^ (j + 1) * (A t (t + (j + 1)) ω' * Z (t + (j + 1)) ω')) ω))
+    (t : ℕ) : MaturingSystem 𝔼 β A (formulaW 𝔼 β A s) s t := by
+  intro ω
+  have hfw := formulaW_eq_E 𝔼 hex1
+  have hterm : ∀ j, β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) * formulaW 𝔼 β A s (t + (j + 1))) ω =
+      𝔼.E t (fun ω' => β ^ (j + 1) * (A t (t + (j + 1)) ω' * Z (t + (j + 1)) ω')) ω := by
+    intro j
+    have hAk : 𝔼.E (t + (j + 1)) (A t (t + (j + 1))) = A t (t + (j + 1)) :=
+      ForwardSolution.E_of_known 𝔼 (by omega) (hA t j)
+    rw [hfw, ← hpo _ _ _ hAk, 𝔼.tower (by omega),
+      show (fun ω' => β ^ (j + 1) * (A t (t + (j + 1)) ω' * Z (t + (j + 1)) ω')) =
+        β ^ (j + 1) • (A t (t + (j + 1)) * Z (t + (j + 1))) from rfl, map_smul]
+    rfl
+  have hsum : (fun ω' => ∑' j : ℕ, β ^ (j + 1) * (A t (t + (j + 1)) ω' * Z (t + (j + 1)) ω')) =
+      Z t - s t := funext fun ω' => (hpw t ω').tsum_eq
+  have h := hex2 t ω
+  rw [hsum, map_sub, hs t] at h
+  simp only [hterm]
+  rw [hfw t]
+  exact h
+
+end Cochrane.LongTermDebtDynamics.TidyR5Pathwise
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Existence of a positive equilibrium without buy-backs
+
+Cochrane (2023), §7.4, pp. 224–226, equations (7.14)–(7.17), with the flow and present-value
+relations (7.1), (7.2), (7.5) of pp. 213 and 216.
+
+`GeneralFormula.price_unique_noBuyback` shows that without buy-backs at most one positive price
+path satisfies every flow and present-value relation. This module settles existence.
+
+* `weight_mem_unit`: without buy-backs every weight `W_t^{(m)}` of (7.17) lies in `[0, 1]`, because
+  each column of sale fractions sums to at most one. So (7.17) converges absolutely for bounded
+  surpluses whatever the rows of the sale fractions look like.
+* `formulaW_solves_noBuyback`: without buy-backs, (7.17) solves the flow system (7.14) for every
+  expectation system with the pull-out property (no row condition).
+* `equilibrium_of_formulaW_pos`, `maturing_eq_formulaW`, `exists_equilibrium_iff`: **the
+  exact condition.** Without buy-backs, a positive equilibrium price path exists if and only if
+  the weighted present value (7.17) is strictly positive at every date and state; it is then
+  `1/P_t = E_t ∑_m β^m W_t^{(m)} s_{t+m} / B_{t−1}^{(t)}`, and it is unique.
+* `existsUnique_of_pos_surplus`: positive bounded surpluses suffice.
+* `cb_*`: **no buy-backs alone do not give existence.** With debt of every maturity, no trading,
+  and surpluses `s_0 = −1`, `s_t = 1` for `t ≥ 1`, there is no positive price level at date 0,
+  although the present value of surpluses at date 0 is positive for `β > 1/2`.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence
+
+open Filter Topology MaturityStructure GeneralFormula TidyR5Pathwise
+
+/-- Cochrane (2023), §7.4, p. 226: with nonnegative sale fractions whose columns sum to at most
+one, every weight `W_t^{(m)}` lies in `[0, 1]`. -/
+theorem weight_mem_unit {A : ℕ → ℕ → ℝ} (hA0 : ∀ t m, t < m → 0 ≤ A t m)
+    (hcolA : ∀ m, ∑ t ∈ Finset.range m, A t m ≤ 1) (m : ℕ) :
+    ∀ t, 0 ≤ weight A t m ∧ weight A t m ≤ 1 := by
+  induction m using Nat.strong_induction_on with
+  | _ m ih =>
+    intro t
+    rcases m with _ | k
+    · simp [weight_zero]
+    · rw [weight_succ]
+      constructor
+      · exact Finset.sum_nonneg fun n hn =>
+          mul_nonneg (hA0 _ _ (by have := Finset.mem_range.mp hn; omega))
+            (ih n (Finset.mem_range.mp hn) t).1
+      · have h1 : ∑ n ∈ Finset.range (k + 1), A (t + n) (t + (k + 1)) * weight A t n ≤
+            ∑ n ∈ Finset.range (k + 1), A (t + n) (t + (k + 1)) :=
+          Finset.sum_le_sum fun n hn => mul_le_of_le_one_right
+            (hA0 _ _ (by have := Finset.mem_range.mp hn; omega))
+            (ih n (Finset.mem_range.mp hn) t).2
+        have h2 : ∑ n ∈ Finset.range (k + 1), A (t + n) (t + (k + 1)) =
+            ∑ u ∈ Finset.Ico t (t + (k + 1)), A u (t + (k + 1)) := by
+          rw [Finset.sum_Ico_eq_sum_range, Nat.add_sub_cancel_left]
+        have h3 : ∑ u ∈ Finset.Ico t (t + (k + 1)), A u (t + (k + 1)) ≤
+            ∑ u ∈ Finset.range (t + (k + 1)), A u (t + (k + 1)) :=
+          Finset.sum_le_sum_of_subset_of_nonneg
+            (fun u hu => Finset.mem_range.mpr (Finset.mem_Ico.mp hu).2)
+            fun u hu _ => hA0 _ _ (Finset.mem_range.mp hu)
+        linarith [hcolA (t + (k + 1))]
+
+/-- Cochrane (2023), §7.4: with nonnegative sale fractions whose columns sum to at most one, each
+fraction `A_t^{(m)}` (`t < m`) lies in `[0, 1]`. -/
+theorem frac_le_one {A : ℕ → ℕ → ℝ} (hA0 : ∀ t m, t < m → 0 ≤ A t m)
+    (hcolA : ∀ m, ∑ t ∈ Finset.range m, A t m ≤ 1) {t m : ℕ} (htm : t < m) : A t m ≤ 1 :=
+  (Finset.single_le_sum (fun i hi => hA0 i m (Finset.mem_range.mp hi))
+    (Finset.mem_range.mpr htm)).trans (hcolA m)
+
+/-- Cochrane (2023), eq. (7.17), p. 226: with weights in `[0, 1]` and `0 ≤ β < 1`,
+`∑_m β^m |W_t^{(m)}|` converges with sum at most `1/(1−β)`. -/
+theorem weight_series_le {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {A : ℕ → ℕ → ℝ}
+    (hA0 : ∀ t m, t < m → 0 ≤ A t m) (hcolA : ∀ m, ∑ t ∈ Finset.range m, A t m ≤ 1) (u : ℕ) :
+    Summable (fun m => β ^ m * |weight A u m|) ∧
+      ∑' m, β ^ m * |weight A u m| ≤ 1 / (1 - β) := by
+  have hb : ∀ m, β ^ m * |weight A u m| ≤ β ^ m := fun m => by
+    have h := weight_mem_unit hA0 hcolA m u
+    rw [abs_of_nonneg h.1]
+    exact mul_le_of_le_one_right (pow_nonneg hβ0 m) h.2
+  have hg := summable_geometric_of_lt_one hβ0 hβ1
+  have hs : Summable (fun m => β ^ m * |weight A u m|) :=
+    Summable.of_nonneg_of_le (fun m => mul_nonneg (pow_nonneg hβ0 m) (abs_nonneg _)) hb hg
+  refine ⟨hs, (Summable.tsum_le_tsum hb hs hg).trans ?_⟩
+  rw [tsum_geometric_of_lt_one hβ0 hβ1, one_div]
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), eqs. (7.14), (7.17), pp. 225–226: without buy-backs the pathwise weighted
+present value `Z` solves the flow system state by state, and `|Z_t| ≤ M/(1−β)`. -/
+theorem pathZΩ_noBuyback {β M : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {A : ℕ → ℕ → Ω → ℝ}
+    (hA0 : ∀ t m ω, t < m → 0 ≤ A t m ω) (hcolA : ∀ m ω, ∑ t ∈ Finset.range m, A t m ω ≤ 1)
+    {s : ℕ → Ω → ℝ} (hsb : ∀ t ω, |s t ω| ≤ M) :
+    (∀ t ω, HasSum (fun j : ℕ => β ^ (j + 1) * (A t (t + (j + 1)) ω *
+      pathZΩ β A s (t + (j + 1)) ω)) (pathZΩ β A s t ω - s t ω)) ∧
+      ∀ t ω, |pathZΩ β A s t ω| ≤ M / (1 - β) := by
+  have hW := fun ω => weight_series_le hβ0 hβ1 (A := fun u v => A u v ω)
+    (fun t m h => hA0 t m ω h) (fun m => hcolA m ω)
+  refine ⟨fun t ω => ?_, fun t ω => ?_⟩
+  · have hrow : Summable (fun j : ℕ => β ^ (j + 1) * |A t (t + (j + 1)) ω|) := by
+      refine Summable.of_nonneg_of_le (fun j => mul_nonneg (pow_nonneg hβ0 _) (abs_nonneg _))
+        (fun j => ?_) ((summable_geometric_of_lt_one hβ0 hβ1).comp_injective
+          (add_left_injective 1))
+      rw [abs_of_nonneg (hA0 _ _ ω (by omega))]
+      exact mul_le_of_le_one_right (pow_nonneg hβ0 _) (frac_le_one (A := fun u v => A u v ω)
+        (fun t m h => hA0 t m ω h) (fun m => hcolA m ω) (by omega))
+    exact pathZ_solves hβ0 (fun u => hsb u ω) (fun u => (hW ω u).1) (fun u => (hW ω u).2) t hrow
+  · have := (pathZ_summable_bound hβ0 (fun u => hsb u ω) (hW ω t).1 (hW ω t).2).2
+    rw [one_div_mul_eq_div] at this
+    exact this
+
+/-- Cochrane (2023), eqs. (7.14), (7.17), pp. 225–226: **without buy-backs, (7.17) solves the
+flow system**, with no row condition. Nonnegative sale fractions with column sums at most one,
+each `A_t^{(t+j+1)}` known at `t + j`, bounded adapted surpluses, `0 ≤ β < 1`: then
+`y_t = E_t ∑_m β^m W_t^{(m)} s_{t+m}` (an absolutely convergent series with `|y_t| ≤ M/(1−β)`)
+satisfies every flow condition (7.14), under uncertainty, and is known at `t`. -/
+theorem formulaW_solves_noBuyback (hpo : 𝔼.PullOut) {β M : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    {A : ℕ → ℕ → Ω → ℝ} (hA0 : ∀ t m ω, t < m → 0 ≤ A t m ω)
+    (hcolA : ∀ m ω, ∑ t ∈ Finset.range m, A t m ω ≤ 1)
+    (hA : ∀ t j, 𝔼.E (t + j) (A t (t + (j + 1))) = A t (t + (j + 1)))
+    {s : ℕ → Ω → ℝ} (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M) :
+    (∀ t, MaturingSystem 𝔼 β A (formulaW 𝔼 β A s) s t) ∧
+      (∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (formulaW 𝔼 β A s t ω)) ∧
+      (∀ t ω, |formulaW 𝔼 β A s t ω| ≤ M / (1 - β)) ∧
+      ∀ t, 𝔼.E t (formulaW 𝔼 β A s t) = formulaW 𝔼 β A s t := by
+  obtain ⟨hpw, hZb⟩ := pathZΩ_noBuyback hβ0 hβ1 hA0 hcolA hsb
+  have hex1 : ∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω)
+      (𝔼.E t (pathZΩ β A s t) ω) := by
+    intro t ω
+    have hf : ∀ m ω', |β ^ m * (weight A t m ω' * s (t + m) ω')| ≤ β ^ m * M := by
+      intro m ω'
+      have h := weight_mem_unit (A := fun u v => A u v ω') (fun t m h => hA0 t m ω' h)
+        (fun m => hcolA m ω') m t
+      rw [← weight_apply] at h
+      rw [abs_mul, abs_mul, abs_pow, abs_of_nonneg hβ0, abs_of_nonneg h.1]
+      exact mul_le_mul_of_nonneg_left ((mul_le_of_le_one_left (abs_nonneg _) h.2).trans
+        (hsb _ ω')) (pow_nonneg hβ0 m)
+    have h := hasSum_E_of_dom 𝔼 ((summable_geometric_of_lt_one hβ0 hβ1).mul_right M) hf t ω
+    have hZ : (fun ω' => ∑' m, β ^ m * (weight A t m ω' * s (t + m) ω')) = pathZΩ β A s t := by
+      funext ω'
+      simp only [pathZΩ, pathZ, weight_apply]
+    rw [hZ] at h
+    refine h.congr_fun fun m => ?_
+    rw [formulaTerm, show (fun ω' => β ^ m * (weight A t m ω' * s (t + m) ω')) =
+      β ^ m • (weight A t m * s (t + m)) from rfl, map_smul]
+    rfl
+  have hex2 : ∀ t ω, HasSum (fun j : ℕ => 𝔼.E t (fun ω' => β ^ (j + 1) *
+      (A t (t + (j + 1)) ω' * pathZΩ β A s (t + (j + 1)) ω')) ω)
+      (𝔼.E t (fun ω' => ∑' j : ℕ, β ^ (j + 1) *
+        (A t (t + (j + 1)) ω' * pathZΩ β A s (t + (j + 1)) ω')) ω) := by
+    intro t ω
+    refine hasSum_E_of_dom 𝔼 (((summable_geometric_of_lt_one hβ0 hβ1).comp_injective
+      (add_left_injective 1)).mul_right (M / (1 - β))) (fun j ω' => ?_) t ω
+    have hA1 : |A t (t + (j + 1)) ω'| ≤ 1 := by
+      rw [abs_of_nonneg (hA0 _ _ ω' (by omega))]
+      exact frac_le_one (A := fun u v => A u v ω') (fun t m h => hA0 t m ω' h)
+        (fun m => hcolA m ω') (by omega)
+    rw [abs_mul, abs_mul, abs_pow, abs_of_nonneg hβ0]
+    simp only [Function.comp_apply]
+    exact mul_le_mul_of_nonneg_left ((mul_le_of_le_one_left (abs_nonneg _) hA1).trans
+      (hZb _ ω')) (pow_nonneg hβ0 _)
+  have hfw := formulaW_eq_E 𝔼 hex1
+  refine ⟨formulaW_solves_of_exchange 𝔼 hpo hA hs hpw hex1 hex2, fun t ω => ?_,
+    fun t ω => ?_, formulaW_adapted_of_exchange 𝔼 hex1⟩
+  · rw [hfw t]; exact hex1 t ω
+  · rw [hfw t]; exact 𝔼.abs_E_le (hZb t) t ω
+
+/-! ### Positive equilibria without buy-backs -/
+
+/-- Cochrane (2023), §7.4: without buy-backs, debt due at `m` outstanding at `t ≤ m` is at most the
+debt coming due at `m`, `B_{t−1}^{(m)} ≤ B_{m−1}^{(m)}`. -/
+theorem noBuyback_le_maturing {D : ℕ → ℕ → Ω → ℝ} (h : NoBuyback D) (ω : Ω) (m : ℕ) :
+    ∀ k t, t + k = m → D t m ω ≤ D m m ω := by
+  intro k
+  induction k with
+  | zero => intro t htm; rw [← htm, add_zero]
+  | succ k ih =>
+    intro t htm
+    exact (h.2.1 t m ω (by omega)).trans (ih (t + 1) (by omega))
+
+/-- Cochrane (2023), §7.4, p. 225: with predetermined debt and quotients of known variables known,
+the sale fraction `A_t^{(t+j+1)}` is known at `t + j`, the date of the last sale before maturity. -/
+theorem fracSold_known (hdc : PolicyConstraints.DivClosed 𝔼) {D : ℕ → ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (t j : ℕ) :
+    𝔼.E (t + j) (fracSold D t (t + (j + 1))) = fracSold D t (t + (j + 1)) := by
+  unfold fracSold
+  apply hdc
+  · rw [map_sub, Predetermined.known_succ 𝔼 hD (by omega), Predetermined.known 𝔼 hD (by omega)]
+  · have := hD.2 (t + j) (t + (j + 1))
+    rwa [show t + j + 1 = t + (j + 1) by omega] at this
+
+/-- Cochrane (2023), eq. (7.17), p. 225: the candidate equilibrium,
+`1/P_t = E_t ∑_m β^m W_t^{(m)} s_{t+m} / B_{t−1}^{(t)}`. -/
+noncomputable def eqX (β : ℝ) (D : ℕ → ℕ → Ω → ℝ) (s : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  formulaW 𝔼 β (fracSold D) s t / D t t
+
+/-- Cochrane (2023), §7.4 and eq. (7.17), pp. 225–226: **sufficiency.** Without buy-backs
+(`GeneralFormula.NoBuyback`), with predetermined debt, quotients of known variables known,
+`0 < β < 1` and bounded adapted surpluses, if the weighted present value (7.17) is strictly
+positive at every date and state, then `1/P_t = eqX` is a positive equilibrium: adapted, positive,
+satisfying every flow condition (7.1) and every present-value relation (7.2)/(7.5). -/
+theorem equilibrium_of_formulaW_pos (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼)
+    {β M : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {D : ℕ → ℕ → Ω → ℝ} {s : ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (hnb : NoBuyback D) (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M)
+    (hpos : ∀ t ω, 0 < formulaW 𝔼 β (fracSold D) s t ω) :
+    𝔼.Adapted (eqX 𝔼 β D s) ∧ (∀ t ω, 0 < eqX 𝔼 β D s t ω) ∧
+      (∀ t, RealFlow 𝔼 β D (eqX 𝔼 β D s) s t) ∧ ∀ t, PresentValue 𝔼 β D (eqX 𝔼 β D s) s t := by
+  obtain ⟨hsys, -, hzb, hzad⟩ := formulaW_solves_noBuyback 𝔼 hpo hβ0.le hβ1
+    (A := fracSold D) (fun t m ω h => hnb.frac_nonneg t m ω h) (fun m ω => hnb.col_le_one m ω)
+    (fracSold_known 𝔼 hdc hD) hs hsb
+  have hDmm : ∀ m ω, D m m ω ≠ 0 := fun m ω => (hnb.2.2 m ω).ne'
+  set x := eqX 𝔼 β D s with hxdef
+  have hx : 𝔼.Adapted x := fun t => hdc t _ _ (hzad t) (Predetermined.known 𝔼 hD le_rfl t)
+  have hy : (fun u => D u u * x u) = formulaW 𝔼 β (fracSold D) s := by
+    funext u ω
+    simp only [hxdef, eqX, Pi.mul_apply, Pi.div_apply]
+    field_simp [hDmm u ω]
+  have hflow : ∀ t, RealFlow 𝔼 β D x s t := fun t =>
+    (realFlow_iff_maturingSystem 𝔼 hpo hD hDmm t).mpr (by rw [hy]; exact hsys t)
+  have hcore : ∀ t j ω, |D t (t + j) ω * 𝔼.E t (x (t + j)) ω| ≤ M / (1 - β) := by
+    intro t j ω
+    have hpull := congrFun (hpo t _ (x (t + j)) (Predetermined.known 𝔼 hD le_rfl (t + j))) ω
+    simp only [Pi.mul_apply] at hpull
+    rw [← hpull]
+    refine 𝔼.abs_E_le (fun ω' => ?_) t ω
+    have hr0 : 0 ≤ D t (t + j) ω' := hnb.nonneg t (t + j) (by omega) ω'
+    have hr1 : D t (t + j) ω' ≤ D (t + j) (t + j) ω' :=
+      noBuyback_le_maturing hnb ω' (t + j) j t rfl
+    have hpos' := hnb.2.2 (t + j) ω'
+    simp only [Pi.mul_apply, hxdef, eqX, Pi.div_apply]
+    rw [show D t (t + j) ω' * (formulaW 𝔼 β (fracSold D) s (t + j) ω' / D (t + j) (t + j) ω') =
+      D t (t + j) ω' / D (t + j) (t + j) ω' * formulaW 𝔼 β (fracSold D) s (t + j) ω' by ring,
+      abs_mul, abs_of_nonneg (div_nonneg hr0 hpos'.le)]
+    exact mul_le_of_le_one_left (abs_nonneg _) ((div_le_one hpos').mpr hr1) |>.trans (hzb _ ω')
+  have hdt : ∀ t j ω, |debtTerm 𝔼 β D x t j ω| ≤ β ^ j * (M / (1 - β)) := by
+    intro t j ω
+    rw [debtTerm, abs_mul, abs_pow, abs_of_pos hβ0]
+    exact mul_le_mul_of_nonneg_left (hcore t j ω) (pow_nonneg hβ0.le j)
+  have hgeo : Summable (fun j : ℕ => β ^ j * (M / (1 - β))) :=
+    (summable_geometric_of_lt_one hβ0.le hβ1).mul_right _
+  have hdom : ∀ t, DebtDominated 𝔼 β D x t := fun t => ⟨_, hgeo, hdt t⟩
+  have hsumm : ∀ t ω, Summable (fun j => debtTerm 𝔼 β D x t j ω) := fun t ω =>
+    Summable.of_norm_bounded hgeo (fun j => by rw [Real.norm_eq_abs]; exact hdt t j ω)
+  have hV : ∀ t ω, |debtValue 𝔼 β D x t ω| ≤ ∑' j : ℕ, β ^ j * (M / (1 - β)) := by
+    intro t ω
+    have h0 := norm_tsum_le_tsum_norm (f := fun j => debtTerm 𝔼 β D x t j ω)
+      (by simpa only [Real.norm_eq_abs] using (hsumm t ω).abs)
+    simp only [Real.norm_eq_abs] at h0
+    exact h0.trans (Summable.tsum_le_tsum (fun j => hdt t j ω) (hsumm t ω).abs hgeo)
+  refine ⟨hx, fun t ω => div_pos (hpos t ω) (hnb.2.2 t ω), hflow, fun t => ?_⟩
+  exact presentValue_of_bounded 𝔼 hpo hβ0.le hβ1 hD hx hs hsb hsumm hdom hflow hV t
+
+/-- Cochrane (2023), §7.4 and eq. (7.17), pp. 225–226: **necessity.** Without buy-backs, in every
+equilibrium with nonnegative `1/P` (adapted, every flow and present-value relation), the real
+value of maturing debt is the weighted present value: `B_{t−1}^{(t)}/P_t =
+E_t ∑_m β^m W_t^{(m)} s_{t+m}`. -/
+theorem maturing_eq_formulaW (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼)
+    {β M : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (hnb : NoBuyback D) (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M)
+    (hx : 𝔼.Adapted x) (hx0 : ∀ t ω, 0 ≤ x t ω) (hflow : ∀ t, RealFlow 𝔼 β D x s t)
+    (hpv : ∀ t, PresentValue 𝔼 β D x s t) (t : ℕ) (ω : Ω) :
+    D t t ω * x t ω = formulaW 𝔼 β (fracSold D) s t ω := by
+  obtain ⟨hsys, -, hzb, -⟩ := formulaW_solves_noBuyback 𝔼 hpo hβ0.le hβ1
+    (A := fracSold D) (fun t m ω h => hnb.frac_nonneg t m ω h) (fun m ω => hnb.col_le_one m ω)
+    (fracSold_known 𝔼 hdc hD) hs hsb
+  have hDmm : ∀ m ω, D m m ω ≠ 0 := fun m ω => (hnb.2.2 m ω).ne'
+  have hD0 : ∀ t j ω, 0 ≤ D t (t + j) ω := fun t j ω => hnb.nonneg t (t + j) (by omega) ω
+  have hy := fun t => (realFlow_iff_maturingSystem 𝔼 hpo hD hDmm t).mp (hflow t)
+  have hb : ∀ t ω, |D t t ω * x t ω| ≤ M / (1 - β) := fun t ω => by
+    obtain ⟨h1, h2⟩ := bounded_of_presentValue 𝔼 hβ0.le hβ1 hx hx0 hD0 hsb (hpv t) ω
+    rw [abs_of_nonneg h1]; exact h2
+  have hzero := unique_of_noBuyback 𝔼 hβ0 hβ1 (A := fracSold D)
+    (fun t m ω h => hnb.frac_nonneg t m ω h) (fun m ω => hnb.col_le_one m ω)
+    (homogeneous_of_two 𝔼 hy hsys) (K := M / (1 - β) + M / (1 - β))
+    (fun t ω => by
+      simp only [Pi.sub_apply]
+      exact (abs_sub _ _).trans (add_le_add (hb t ω) (hzb t ω)))
+  have := congrFun (congrFun hzero t) ω
+  simp only [Pi.sub_apply, Pi.zero_apply, sub_eq_zero] at this
+  exact this
+
+/-- Cochrane (2023), §7.4, pp. 225–226: **the exact condition for existence without buy-backs.**
+Without buy-backs, with predetermined debt, quotients of known variables known, `0 < β < 1` and
+bounded adapted surpluses, a positive equilibrium price path exists if and only if the weighted
+present value (7.17) is strictly positive at every date and state. -/
+theorem exists_equilibrium_iff (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼)
+    {β M : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {D : ℕ → ℕ → Ω → ℝ} {s : ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (hnb : NoBuyback D) (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M) :
+    (∃ x : ℕ → Ω → ℝ, 𝔼.Adapted x ∧ (∀ t ω, 0 < x t ω) ∧ (∀ t, RealFlow 𝔼 β D x s t) ∧
+      ∀ t, PresentValue 𝔼 β D x s t) ↔ ∀ t ω, 0 < formulaW 𝔼 β (fracSold D) s t ω := by
+  constructor
+  · rintro ⟨x, hx, hxpos, hflow, hpv⟩ t ω
+    rw [← maturing_eq_formulaW 𝔼 hpo hdc hβ0 hβ1 hD hnb hs hsb hx (fun t ω => (hxpos t ω).le)
+      hflow hpv t ω]
+    exact mul_pos (hnb.2.2 t ω) (hxpos t ω)
+  · intro hpos
+    exact ⟨eqX 𝔼 β D s, equilibrium_of_formulaW_pos 𝔼 hpo hdc hβ0 hβ1 hD hnb hs hsb hpos⟩
+
+/-- Cochrane (2023), eq. (7.17), p. 225: with weights in `[0, 1]` and nonnegative surpluses,
+(7.17) is at least the current surplus, `E_t ∑_m β^m W_t^{(m)} s_{t+m} ≥ s_t`. -/
+theorem formulaW_ge_surplus (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼)
+    {β M : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {D : ℕ → ℕ → Ω → ℝ} {s : ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (hnb : NoBuyback D) (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M)
+    (hs0 : ∀ t ω, 0 ≤ s t ω) (t : ℕ) (ω : Ω) : s t ω ≤ formulaW 𝔼 β (fracSold D) s t ω := by
+  obtain ⟨-, hsum, -, -⟩ := formulaW_solves_noBuyback 𝔼 hpo hβ0.le hβ1
+    (A := fracSold D) (fun t m ω h => hnb.frac_nonneg t m ω h) (fun m ω => hnb.col_le_one m ω)
+    (fracSold_known 𝔼 hdc hD) hs hsb
+  have h0 : formulaTerm 𝔼 β (fracSold D) s t 0 ω = s t ω := by
+    simp [formulaTerm, weight_zero, hs t]
+  rw [← h0]
+  refine le_hasSum (hsum t ω) 0 fun m _ => ?_
+  rw [formulaTerm]
+  refine mul_nonneg (pow_nonneg hβ0.le m) ?_
+  have hnn : (fun _ => (0 : ℝ)) ≤ weight (fracSold D) t m * s (t + m) := fun ω' => by
+    have h := weight_mem_unit (A := fun u v => fracSold D u v ω')
+      (fun t m h => hnb.frac_nonneg t m ω' h) (fun m => hnb.col_le_one m ω') m t
+    rw [← weight_apply] at h
+    exact mul_nonneg h.1 (hs0 _ ω')
+  have := 𝔼.mono t hnn ω
+  rwa [𝔼.const] at this
+
+/-- Cochrane (2023), §7.4, pp. 225–226: **positive surpluses suffice.** Without buy-backs, with
+predetermined debt, quotients of known variables known, `0 < β < 1` and bounded adapted strictly
+positive surpluses, there is exactly one positive equilibrium price path (every flow and
+present-value relation), and it is `1/P_t = E_t ∑_m β^m W_t^{(m)} s_{t+m} / B_{t−1}^{(t)}`. -/
+theorem existsUnique_of_pos_surplus (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼)
+    {β M : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {D : ℕ → ℕ → Ω → ℝ} {s : ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (hnb : NoBuyback D) (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M)
+    (hspos : ∀ t ω, 0 < s t ω) :
+    ∃! x : ℕ → Ω → ℝ, 𝔼.Adapted x ∧ (∀ t ω, 0 < x t ω) ∧ (∀ t, RealFlow 𝔼 β D x s t) ∧
+      ∀ t, PresentValue 𝔼 β D x s t := by
+  have hpos : ∀ t ω, 0 < formulaW 𝔼 β (fracSold D) s t ω := fun t ω =>
+    (hspos t ω).trans_le (formulaW_ge_surplus 𝔼 hpo hdc hβ0 hβ1 hD hnb hs hsb
+      (fun t ω => (hspos t ω).le) t ω)
+  refine ⟨eqX 𝔼 β D s, equilibrium_of_formulaW_pos 𝔼 hpo hdc hβ0 hβ1 hD hnb hs hsb hpos, ?_⟩
+  rintro x' ⟨hx', hxpos', hflow', hpv'⟩
+  obtain ⟨hx, hxpos, hflow, hpv⟩ := equilibrium_of_formulaW_pos 𝔼 hpo hdc hβ0 hβ1 hD hnb hs hsb
+    hpos
+  exact price_unique_noBuyback 𝔼 hpo hβ0 hβ1 hD hnb hx' hx (fun t ω => (hxpos' t ω).le)
+    (fun t ω => (hxpos t ω).le) hsb hflow' hflow hpv' hpv
+
+/-! ### No buy-backs alone do not give existence -/
+
+/-- Cochrane (2023), §7.4 (counterexample to existence): one unit of debt due at every date, never
+traded, `B_{t−1}^{(m)} = 1`. -/
+def cbD : ℕ → ℕ → Unit → ℝ := fun _ _ _ => 1
+
+/-- Cochrane (2023), §7.4 (counterexample to existence): a deficit at date 0 and surpluses after,
+`s_0 = −1`, `s_t = 1` for `t ≥ 1`. -/
+noncomputable def cbS : ℕ → Unit → ℝ := fun t _ => if t = 0 then -1 else 1
+
+/-- Cochrane (2023), §7.4: the counterexample never buys back debt. -/
+theorem cb_noBuyback : NoBuyback cbD :=
+  ⟨fun _ _ => zero_le_one, fun _ _ _ _ => le_rfl, fun _ _ => one_pos⟩
+
+/-- Cochrane (2023), §7.4: the counterexample's debt is predetermined (perfect foresight). -/
+theorem cb_predetermined : Predetermined perfectForesight cbD := ⟨fun _ => rfl, fun _ _ => rfl⟩
+
+/-- Cochrane (2023), §7.4: the counterexample's surpluses are bounded, `|s_t| ≤ 1`. -/
+theorem cb_bounded (t : ℕ) (u : Unit) : |cbS t u| ≤ 1 := by
+  unfold cbS; split_ifs <;> simp
+
+/-- Cochrane (2023), §7.4 (E7.4, existence): **no buy-backs alone do not give a positive
+equilibrium.** In the counterexample no positive price level satisfies even the date-0 flow
+condition (7.1), whatever `β`: with no sales it reads `B_{−1}^{(0)}/P_0 = s_0 = −1`. -/
+theorem cb_no_positive_price (β : ℝ) :
+    ¬ ∃ x : ℕ → Unit → ℝ, (∀ t u, 0 < x t u) ∧ RealFlow perfectForesight β cbD x cbS 0 := by
+  rintro ⟨x, hx, hflow⟩
+  have h := hflow ()
+  have hz : (fun j : ℕ => β ^ (j + 1) * (sales cbD 0 (0 + (j + 1)) () *
+      perfectForesight.E 0 (x (0 + (j + 1))) ())) = fun _ => 0 := by
+    funext j; simp [sales, cbD]
+  rw [hz] at h
+  have := h.unique hasSum_zero
+  simp only [cbD, cbS, one_mul, ↓reduceIte] at this
+  linarith [hx 0 ()]
+
+/-- Cochrane (2023), §7.4 (E7.4, existence): in the counterexample the present value of surpluses
+at date 0 is `(2β − 1)/(1 − β)`, positive for `1/2 < β < 1`: a positive present value of surpluses
+does not rescue existence. -/
+theorem cb_pv_pos {β : ℝ} (hβ : 1 / 2 < β) (hβ1 : β < 1) :
+    HasSum (fun k => surplusTerm perfectForesight β cbS 0 k ()) ((2 * β - 1) / (1 - β)) ∧
+      0 < (2 * β - 1) / (1 - β) := by
+  have hβ0 : 0 ≤ β := by linarith
+  have hg := hasSum_geometric_of_lt_one hβ0 hβ1
+  have h2 : HasSum (fun k : ℕ => (Pi.single 0 (2 : ℝ) : ℕ → ℝ) k) 2 := hasSum_pi_single 0 2
+  refine ⟨?_, div_pos (by linarith) (by linarith)⟩
+  have h := hg.sub h2
+  have hval : (1 - β)⁻¹ - 2 = (2 * β - 1) / (1 - β) := by
+    have : (1 : ℝ) - β ≠ 0 := by linarith
+    field_simp
+    ring
+  rw [hval] at h
+  refine h.congr_fun fun k => ?_
+  rcases k with _ | k
+  · simp [surplusTerm, perfectForesight, cbS]; norm_num
+  · simp [surplusTerm, perfectForesight, cbS]
+
+end Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Theorem W with random bounds on the sale fractions
+
+Cochrane (2023), §7.4, pp. 224–226, equations (7.14)–(7.17).
+
+`GeneralFormula.RowBound` bounds the sale fractions by a deterministic, date-independent sequence,
+`|A_t^{(t+j+1)}| ≤ a_j` with `∑_j β^{j+1} a_j ≤ ρ < 1`. This module replaces it by the row
+condition state by state and date by date,
+`∑_j β^{j+1} |A_t^{(t+j+1)}(ω)| ≤ ρ < 1` for every `t` and `ω` (`RowBoundR`), which is implied by
+any random bounds `a_{t,j}(ω)` (adapted or not) with `∑_j β^{j+1} a_{t,j}(ω) ≤ ρ`
+(`rowBoundR_of_randomBound`), and so by the deterministic row condition
+(`randomBound_of_rowBound`). It is strictly weaker than the deterministic condition even under
+perfect foresight (`sx_rowBoundR`, `sx_not_rowBound`).
+
+* `unique_of_rowR`: bounded solutions of the homogeneous system vanish, for every expectation
+  system.
+* `exists_bounded_solution`: the flow system (7.14) has a bounded solution, for every
+  expectation system, by a contraction argument (`iterY`, `opK`); with `unique_of_rowR` it is
+  the unique bounded solution (`existsUnique_bounded_solution`).
+* `theoremW_rowR`: **Theorem W with random bounds.** If in addition `E_t` passes through
+  absolutely convergent series (`SeriesExchange`, true for perfect foresight and every finite
+  event tree: `perfectForesight_seriesExchange`, `finiteTree_seriesExchange`), the bounded
+  solution is the weighted present value (7.17), an absolutely convergent series.
+
+Why `SeriesExchange` appears here: with deterministic bounds the series in (7.17) are dominated
+uniformly in the state, and `ForwardSolution.E_tsum_dom` interchanges `E_t` and the sum; with
+random bounds the domination is state by state only. Uniqueness and existence do not need the
+interchange; only the formula does. The hypothesis is in fact a theorem of the axioms (module
+TidyR5SeriesExchange, `TidyR5SeriesExchange.seriesExchange`), because `E_t` is monotone and
+linear on all random variables, unbounded ones included.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5RandomRow
+
+open Filter Topology MaturityStructure GeneralFormula TidyR5Pathwise
+
+/-! ### The weights under a row-by-row bound -/
+
+/-- Cochrane (2023), eq. (7.17), p. 226: if every row of (deterministic) sale fractions satisfies
+`∑_{j<N} β^{j+1}|A_t^{(t+j+1)}| ≤ ρ`, the partial sums of `β^m |W_u^{(m)}|` are at most
+`∑_{n<N} ρ^n`, for every start date `u`. -/
+theorem sum_abs_weight_le {β ρ : ℝ} (hβ0 : 0 ≤ β) (hρ0 : 0 ≤ ρ) {A : ℕ → ℕ → ℝ}
+    (hrow : ∀ t N, ∑ j ∈ Finset.range N, β ^ (j + 1) * |A t (t + (j + 1))| ≤ ρ) (N : ℕ) :
+    ∀ u, ∑ m ∈ Finset.range N, β ^ m * |weight A u m| ≤ ∑ n ∈ Finset.range N, ρ ^ n := by
+  induction N using Nat.strong_induction_on with
+  | _ N ih =>
+    intro u
+    rcases N with _ | N
+    · simp
+    · rw [Finset.sum_range_succ', Finset.sum_range_succ']
+      simp only [pow_zero, weight_zero, abs_one, mul_one]
+      have hk : ∀ k, β ^ (k + 1) * |weight A u (k + 1)| ≤
+          ∑ j ∈ Finset.range (k + 1), β ^ (j + 1) * |A u (u + (j + 1))| *
+            (β ^ (k - j) * |weight A (u + (j + 1)) (k - j)|) := by
+        intro k
+        rw [weight_first_step]
+        refine (mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _)
+          (pow_nonneg hβ0 _)).trans (le_of_eq ?_)
+        rw [Finset.mul_sum]
+        refine Finset.sum_congr rfl fun j hj => ?_
+        have : j ≤ k := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+        rw [abs_mul, show β ^ (k + 1) = β ^ (j + 1) * β ^ (k - j) by
+          rw [← pow_add]; congr 1; omega]
+        ring
+      have hsumk := Finset.sum_le_sum fun k (_ : k ∈ Finset.range N) => hk k
+      rw [← sum_triangle N (fun j m => β ^ (j + 1) * |A u (u + (j + 1))| *
+        (β ^ m * |weight A (u + (j + 1)) m|))] at hsumk
+      have hstep : ∑ j ∈ Finset.range N, ∑ m ∈ Finset.range (N - j),
+          β ^ (j + 1) * |A u (u + (j + 1))| * (β ^ m * |weight A (u + (j + 1)) m|) ≤
+          ∑ j ∈ Finset.range N, β ^ (j + 1) * |A u (u + (j + 1))| *
+            ∑ n ∈ Finset.range N, ρ ^ n := by
+        refine Finset.sum_le_sum fun j hj => ?_
+        rw [← Finset.mul_sum]
+        refine mul_le_mul_of_nonneg_left ((ih (N - j) (by omega) _).trans ?_)
+          (mul_nonneg (pow_nonneg hβ0 _) (abs_nonneg _))
+        exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono (Nat.sub_le N j))
+          fun n _ _ => pow_nonneg hρ0 n
+      rw [← Finset.sum_mul] at hstep
+      have hgeo : 0 ≤ ∑ n ∈ Finset.range N, ρ ^ n := Finset.sum_nonneg fun n _ => pow_nonneg hρ0 n
+      have h2 := mul_le_mul_of_nonneg_right (hrow u N) hgeo
+      have h3 : ∑ i ∈ Finset.range N, ρ ^ (i + 1) = ρ * ∑ n ∈ Finset.range N, ρ ^ n := by
+        rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun i _ => pow_succ' ρ i
+      rw [h3]
+      linarith
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), eq. (7.17), p. 225: **the row condition with random bounds**: at every date
+and state, `∑_j β^{j+1} |A_t^{(t+j+1)}(ω)| ≤ ρ` (a convergent series). -/
+def RowBoundR (β : ℝ) (A : ℕ → ℕ → Ω → ℝ) (ρ : ℝ) : Prop :=
+  ∀ t ω, Summable (fun j : ℕ => β ^ (j + 1) * |A t (t + (j + 1)) ω|) ∧
+    ∑' j : ℕ, β ^ (j + 1) * |A t (t + (j + 1)) ω| ≤ ρ
+
+/-- Cochrane (2023), eq. (7.17), p. 225: random bounds `|A_t^{(t+j+1)}(ω)| ≤ a_{t,j}(ω)` with
+`∑_j β^{j+1} a_{t,j}(ω) ≤ ρ` at every date and state. -/
+def RandomBound (β : ℝ) (A : ℕ → ℕ → Ω → ℝ) (a : ℕ → ℕ → Ω → ℝ) (ρ : ℝ) : Prop :=
+  (∀ t j ω, |A t (t + (j + 1)) ω| ≤ a t j ω) ∧
+    ∀ t ω, Summable (fun j : ℕ => β ^ (j + 1) * a t j ω) ∧ ∑' j : ℕ, β ^ (j + 1) * a t j ω ≤ ρ
+
+/-- Cochrane (2023), eq. (7.17), p. 225: random bounds imply the row condition `RowBoundR`. -/
+theorem rowBoundR_of_randomBound {β ρ : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → Ω → ℝ}
+    {a : ℕ → ℕ → Ω → ℝ} (h : RandomBound β A a ρ) : RowBoundR β A ρ := by
+  intro t ω
+  have hle : ∀ j : ℕ, β ^ (j + 1) * |A t (t + (j + 1)) ω| ≤ β ^ (j + 1) * a t j ω := fun j =>
+    mul_le_mul_of_nonneg_left (h.1 t j ω) (pow_nonneg hβ0 _)
+  have hs : Summable (fun j : ℕ => β ^ (j + 1) * |A t (t + (j + 1)) ω|) :=
+    Summable.of_nonneg_of_le (fun j => mul_nonneg (pow_nonneg hβ0 _) (abs_nonneg _)) hle
+      (h.2 t ω).1
+  exact ⟨hs, (Summable.tsum_le_tsum hle hs (h.2 t ω).1).trans (h.2 t ω).2⟩
+
+/-- Cochrane (2023), eq. (7.17), p. 225: the deterministic row condition
+`GeneralFormula.RowBound` is the special case of constant bounds `a_{t,j}(ω) = a_j`. -/
+theorem randomBound_of_rowBound {β ρ : ℝ} {A : ℕ → ℕ → Ω → ℝ} {a : ℕ → ℝ}
+    (h : RowBound β A a ρ) : RandomBound β A (fun _ j _ => a j) ρ :=
+  ⟨h.2.1, fun _ _ => ⟨h.2.2.1, h.2.2.2⟩⟩
+
+/-- Cochrane (2023), eq. (7.17), p. 225: the partial sums of each row are at most `ρ`. -/
+theorem RowBoundR.partial {β ρ : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (t : ℕ) (ω : Ω) (N : ℕ) :
+    ∑ j ∈ Finset.range N, β ^ (j + 1) * |A t (t + (j + 1)) ω| ≤ ρ :=
+  ((h t ω).1.sum_le_tsum _ fun _ _ => mul_nonneg (pow_nonneg hβ0 _) (abs_nonneg _)).trans
+    (h t ω).2
+
+/-- Cochrane (2023), eq. (7.17), p. 225: under the row condition `ρ ≥ 0` (given any state). -/
+theorem RowBoundR.nonneg {β ρ : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (ω : Ω) : 0 ≤ ρ := by
+  simpa using h.partial hβ0 0 ω 0
+
+/-- Cochrane (2023), eq. (7.17), p. 226: under the row condition with `ρ < 1`, at every state
+`∑_m β^m |W_u^{(m)}(ω)|` converges, with sum at most `1/(1−ρ)`. -/
+theorem weight_series_le {β ρ : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {A : ℕ → ℕ → Ω → ℝ}
+    (h : RowBoundR β A ρ) (ω : Ω) (u : ℕ) :
+    Summable (fun m => β ^ m * |weight (fun t v => A t v ω) u m|) ∧
+      ∑' m, β ^ m * |weight (fun t v => A t v ω) u m| ≤ 1 / (1 - ρ) := by
+  have hρ0 := h.nonneg hβ0 ω
+  have hb : ∀ N, ∑ m ∈ Finset.range N, β ^ m * |weight (fun t v => A t v ω) u m| ≤
+      1 / (1 - ρ) := by
+    intro N
+    refine (sum_abs_weight_le hβ0 hρ0 (fun t N => h.partial hβ0 t ω N) N u).trans ?_
+    have hg := summable_geometric_of_lt_one hρ0 hρ1
+    refine (hg.sum_le_tsum _ fun n _ => pow_nonneg hρ0 n).trans ?_
+    rw [tsum_geometric_of_lt_one hρ0 hρ1, one_div]
+  have hnn : ∀ m, 0 ≤ β ^ m * |weight (fun t v => A t v ω) u m| := fun m =>
+    mul_nonneg (pow_nonneg hβ0 m) (abs_nonneg _)
+  exact ⟨summable_of_sum_range_le hnn hb, Real.tsum_le_of_sum_range_le hnn hb⟩
+
+/-- Cochrane (2023), eqs. (7.14), (7.17), pp. 225–226: under the row condition with random bounds
+the pathwise weighted present value `Z` solves the flow system state by state, and
+`|Z_t| ≤ M/(1−ρ)`. -/
+theorem pathZΩ_rowR {β ρ M : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {A : ℕ → ℕ → Ω → ℝ}
+    (h : RowBoundR β A ρ) {s : ℕ → Ω → ℝ} (hsb : ∀ t ω, |s t ω| ≤ M) :
+    (∀ t ω, HasSum (fun j : ℕ => β ^ (j + 1) * (A t (t + (j + 1)) ω *
+      pathZΩ β A s (t + (j + 1)) ω)) (pathZΩ β A s t ω - s t ω)) ∧
+      ∀ t ω, |pathZΩ β A s t ω| ≤ M / (1 - ρ) := by
+  refine ⟨fun t ω => ?_, fun t ω => ?_⟩
+  · exact pathZ_solves hβ0 (fun u => hsb u ω) (fun u => (weight_series_le hβ0 hρ1 h ω u).1)
+      (fun u => (weight_series_le hβ0 hρ1 h ω u).2) t (h t ω).1
+  · have := (pathZ_summable_bound hβ0 (fun u => hsb u ω) (weight_series_le hβ0 hρ1 h ω t).1
+      (weight_series_le hβ0 hρ1 h ω t).2).2
+    rw [one_div_mul_eq_div] at this
+    exact this
+
+/-! ### Uniqueness, for every expectation system -/
+
+/-- Cochrane (2023), eq. (7.17), p. 225: under the row condition the expected rows satisfy
+`∑_{j<N} β^{j+1} E_t|A_t^{(t+j+1)}| ≤ ρ` (finite additivity of `E_t` suffices). -/
+theorem E_row_partial {β ρ : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (t : ℕ) (ω : Ω) (N : ℕ) :
+    ∑ j ∈ Finset.range N, β ^ (j + 1) * 𝔼.E t (fun ω' => |A t (t + (j + 1)) ω'|) ω ≤ ρ := by
+  have hle : (∑ j ∈ Finset.range N, β ^ (j + 1) • fun ω' => |A t (t + (j + 1)) ω'|) ≤
+      fun _ => ρ := fun ω' => by
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    exact h.partial hβ0 t ω' N
+  have := 𝔼.mono t hle ω
+  rw [𝔼.const, map_sum, Finset.sum_apply] at this
+  simpa only [map_smul, Pi.smul_apply, smul_eq_mul] using this
+
+/-- Cochrane (2023), §7.4: a term of the system is bounded through the expected absolute row,
+`|β^{j+1} E_t(A d)| ≤ β^{j+1} E_t|A| K` when `|d| ≤ K`. -/
+theorem abs_term_le {β K : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → Ω → ℝ} {d : ℕ → Ω → ℝ}
+    (hK : ∀ t ω, |d t ω| ≤ K) (t j : ℕ) (ω : Ω) :
+    |β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) * d (t + (j + 1))) ω| ≤
+      β ^ (j + 1) * 𝔼.E t (fun ω' => |A t (t + (j + 1)) ω'|) ω * K := by
+  rw [abs_mul, abs_pow, abs_of_nonneg hβ0, mul_assoc]
+  refine mul_le_mul_of_nonneg_left ((abs_E_le_E_abs 𝔼 _ _ ω).trans ?_) (pow_nonneg hβ0 _)
+  have hle : (fun ω' => |(A t (t + (j + 1)) * d (t + (j + 1))) ω'|) ≤
+      K • fun ω' => |A t (t + (j + 1)) ω'| := fun ω' => by
+    simp only [Pi.mul_apply, abs_mul, Pi.smul_apply, smul_eq_mul]
+    rw [mul_comm K]
+    exact mul_le_mul_of_nonneg_left (hK _ ω') (abs_nonneg _)
+  have := 𝔼.mono t hle ω
+  rw [map_smul, Pi.smul_apply, smul_eq_mul, mul_comm K] at this
+  exact this
+
+/-- Cochrane (2023), eq. (7.14), p. 225: under the row condition, for `|d| ≤ K` the series
+`∑_j β^{j+1} E_t(A_t^{(t+j+1)} d_{t+j+1})` converges absolutely and its sum is at most `ρ K` in
+absolute value. -/
+theorem row_series {β ρ K : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    {d : ℕ → Ω → ℝ} (hK : ∀ t ω, |d t ω| ≤ K) (t : ℕ) (ω : Ω) :
+    Summable (fun j : ℕ => β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) * d (t + (j + 1))) ω) ∧
+      |∑' j : ℕ, β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) * d (t + (j + 1))) ω| ≤ ρ * K := by
+  have hK0 : 0 ≤ K := (abs_nonneg _).trans (hK t ω)
+  set g : ℕ → ℝ := fun j => β ^ (j + 1) * 𝔼.E t (fun ω' => |A t (t + (j + 1)) ω'|) ω * K
+    with hg
+  have hEA : ∀ j, 0 ≤ 𝔼.E t (fun ω' => |A t (t + (j + 1)) ω'|) ω := fun j => by
+    have := 𝔼.mono t (show (fun _ => (0 : ℝ)) ≤ fun ω' => |A t (t + (j + 1)) ω'| from
+      fun ω' => abs_nonneg _) ω
+    rwa [𝔼.const] at this
+  have hg0 : ∀ j, 0 ≤ g j := fun j => mul_nonneg (mul_nonneg (pow_nonneg hβ0 _) (hEA j)) hK0
+  have hgN : ∀ N, ∑ j ∈ Finset.range N, g j ≤ ρ * K := fun N => by
+    simp only [hg]
+    rw [← Finset.sum_mul]
+    exact mul_le_mul_of_nonneg_right (E_row_partial 𝔼 hβ0 h t ω N) hK0
+  have hgs : Summable g := summable_of_sum_range_le hg0 hgN
+  have hb : ∀ j, ‖β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) * d (t + (j + 1))) ω‖ ≤ g j :=
+    fun j => by rw [Real.norm_eq_abs]; exact abs_term_le 𝔼 hβ0 hK t j ω
+  have hs := Summable.of_norm_bounded hgs hb
+  refine ⟨hs, ?_⟩
+  have hsn : Summable (fun j : ℕ => ‖β ^ (j + 1) *
+      𝔼.E t (A t (t + (j + 1)) * d (t + (j + 1))) ω‖) := by
+    simpa only [Real.norm_eq_abs] using hs.abs
+  have h0 := norm_tsum_le_tsum_norm hsn
+  rw [Real.norm_eq_abs] at h0
+  exact h0.trans ((Summable.tsum_le_tsum hb hsn hgs).trans
+    (Real.tsum_le_of_sum_range_le hg0 hgN))
+
+/-- Cochrane (2023), §7.4, p. 225: **uniqueness under the row condition with random bounds.** If
+`ρ < 1`, the only bounded solution of the homogeneous system
+`d_t = ∑_j β^{j+1} E_t(A_t^{(t+j+1)} d_{t+j+1})` is zero, for every expectation system. -/
+theorem unique_of_rowR {β ρ K : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {A : ℕ → ℕ → Ω → ℝ}
+    (h : RowBoundR β A ρ) {d : ℕ → Ω → ℝ}
+    (hd : ∀ t ω, HasSum (fun j : ℕ => β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) * d (t + (j + 1))) ω)
+      (d t ω)) (hK : ∀ t ω, |d t ω| ≤ K) : d = 0 := by
+  have hstep : ∀ n t ω, |d t ω| ≤ ρ ^ n * K := by
+    intro n
+    induction n with
+    | zero => intro t ω; simpa using hK t ω
+    | succ n ih =>
+      intro t ω
+      have := (row_series 𝔼 hβ0 h ih t ω).2
+      rw [(hd t ω).tsum_eq] at this
+      rw [pow_succ, mul_comm (ρ ^ n) ρ, mul_assoc]
+      exact this
+  funext t ω
+  have hρ0 := h.nonneg hβ0 ω
+  have hlim : Tendsto (fun n : ℕ => ρ ^ n * K) atTop (𝓝 0) := by
+    simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hρ0 hρ1).mul_const K
+  have := ge_of_tendsto' hlim (fun n => hstep n t ω)
+  simpa using abs_nonpos_iff.mp this
+
+/-! ### Existence, for every expectation system -/
+
+/-- Cochrane (2023), eq. (7.14), p. 225: the right-hand operator of the flow system,
+`(K y)_t = ∑_j β^{j+1} E_t(A_t^{(t+j+1)} y_{t+j+1})`. -/
+noncomputable def opK (β : ℝ) (A : ℕ → ℕ → Ω → ℝ) (y : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) : ℝ :=
+  ∑' j : ℕ, β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) * y (t + (j + 1))) ω
+
+/-- Cochrane (2023), eq. (7.14), p. 225: the iterates `y⁰ = 0`, `y^{n+1} = s + K yⁿ`. -/
+noncomputable def iterY (β : ℝ) (A : ℕ → ℕ → Ω → ℝ) (s : ℕ → Ω → ℝ) : ℕ → ℕ → Ω → ℝ
+  | 0 => fun _ _ => 0
+  | n + 1 => fun t ω => s t ω + opK 𝔼 β A (iterY β A s n) t ω
+
+/-- Cochrane (2023), eq. (7.14), p. 225: on bounded processes the operator is a difference
+operator, `K y − K y' = K(y − y')`. -/
+theorem opK_sub {β ρ K K' : ℝ} (hβ0 : 0 ≤ β) {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    {y y' : ℕ → Ω → ℝ} (hK : ∀ t ω, |y t ω| ≤ K) (hK' : ∀ t ω, |y' t ω| ≤ K') (t : ℕ)
+    (ω : Ω) : opK 𝔼 β A y t ω - opK 𝔼 β A y' t ω = opK 𝔼 β A (y - y') t ω := by
+  unfold opK
+  rw [← ((row_series 𝔼 hβ0 h hK t ω).1.hasSum.sub (row_series 𝔼 hβ0 h hK' t ω).1.hasSum).tsum_eq]
+  refine tsum_congr fun j => ?_
+  simp only [Pi.sub_apply, mul_sub, map_sub]
+
+/-- Cochrane (2023), eq. (7.14), p. 225: the iterates are bounded by `M/(1−ρ)` and successive
+iterates differ by at most `M ρ^n`. -/
+theorem iterY_bounds {β ρ M : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {A : ℕ → ℕ → Ω → ℝ}
+    (h : RowBoundR β A ρ) {s : ℕ → Ω → ℝ} (hsb : ∀ t ω, |s t ω| ≤ M) (n : ℕ) :
+    (∀ t ω, |iterY 𝔼 β A s n t ω| ≤ M / (1 - ρ)) ∧
+      ∀ t ω, |iterY 𝔼 β A s (n + 1) t ω - iterY 𝔼 β A s n t ω| ≤ M * ρ ^ n := by
+  have h1ρ : 0 < 1 - ρ := by linarith
+  have hb : ∀ n t ω, |iterY 𝔼 β A s n t ω| ≤ M / (1 - ρ) := by
+    intro n
+    induction n with
+    | zero =>
+      intro t ω
+      simp only [iterY, abs_zero]
+      exact div_nonneg ((abs_nonneg _).trans (hsb t ω)) h1ρ.le
+    | succ n ih =>
+      intro t ω
+      simp only [iterY]
+      have h2 := (row_series 𝔼 hβ0 h ih t ω).2
+      have : M + ρ * (M / (1 - ρ)) = M / (1 - ρ) := by field_simp; ring
+      refine (abs_add_le _ _).trans ?_
+      rw [← this]
+      exact add_le_add (hsb t ω) h2
+  refine ⟨hb n, ?_⟩
+  induction n with
+  | zero =>
+    intro t ω
+    have h0 : opK 𝔼 β A (fun _ _ => 0) t ω = 0 := by
+      unfold opK
+      have : (fun j : ℕ => β ^ (j + 1) * 𝔼.E t (A t (t + (j + 1)) *
+          (fun _ _ => (0 : ℝ)) (t + (j + 1))) ω) = fun _ => 0 := by
+        funext j
+        rw [show (A t (t + (j + 1)) * (fun _ _ => (0 : ℝ)) (t + (j + 1))) = 0 from
+          funext fun _ => mul_zero _, map_zero]
+        simp
+      rw [this, tsum_zero]
+    simp only [iterY, h0, add_zero, sub_zero, pow_zero, mul_one]
+    exact hsb t ω
+  | succ n ih =>
+    intro t ω
+    have hd : iterY 𝔼 β A s (n + 1 + 1) t ω - iterY 𝔼 β A s (n + 1) t ω =
+        opK 𝔼 β A (iterY 𝔼 β A s (n + 1) - iterY 𝔼 β A s n) t ω := by
+      rw [← opK_sub 𝔼 hβ0 h (hb (n + 1)) (hb n)]
+      simp only [iterY]
+      ring
+    rw [hd]
+    have h2 := (row_series 𝔼 hβ0 h (d := iterY 𝔼 β A s (n + 1) - iterY 𝔼 β A s n)
+      (fun t ω => by simpa only [Pi.sub_apply] using ih t ω) t ω).2
+    refine h2.trans (le_of_eq ?_)
+    ring
+
+/-- Cochrane (2023), eq. (7.14), p. 225: **existence under the row condition with random
+bounds**, for every expectation system: the flow system (7.14) has a solution with
+`|y_t| ≤ M/(1−ρ)` (the limit of the iterates `iterY`). -/
+theorem exists_bounded_solution {β ρ M : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {A : ℕ → ℕ → Ω → ℝ}
+    (h : RowBoundR β A ρ) {s : ℕ → Ω → ℝ} (hsb : ∀ t ω, |s t ω| ≤ M) :
+    ∃ y : ℕ → Ω → ℝ, (∀ t, GeneralFormula.MaturingSystem 𝔼 β A y s t) ∧
+      ∀ t ω, |y t ω| ≤ M / (1 - ρ) := by
+  have hbd := fun n => iterY_bounds 𝔼 hβ0 hρ1 h hsb n
+  have hcau : ∀ t ω, CauchySeq (fun n => iterY 𝔼 β A s n t ω) := fun t ω =>
+    cauchySeq_of_le_geometric ρ M hρ1 fun n => by
+      rw [Real.dist_eq, abs_sub_comm]; exact (hbd n).2 t ω
+  set y : ℕ → Ω → ℝ := fun t ω => limUnder atTop (fun n => iterY 𝔼 β A s n t ω) with hy
+  have hlim : ∀ t ω, Tendsto (fun n => iterY 𝔼 β A s n t ω) atTop (𝓝 (y t ω)) :=
+    fun t ω => (hcau t ω).tendsto_limUnder
+  have hyb : ∀ t ω, |y t ω| ≤ M / (1 - ρ) := fun t ω =>
+    le_of_tendsto' (hlim t ω).abs fun n => (hbd n).1 t ω
+  have hdist : ∀ n t ω, |iterY 𝔼 β A s n t ω - y t ω| ≤ M * ρ ^ n / (1 - ρ) := fun n t ω => by
+    rw [← Real.dist_eq]
+    exact dist_le_of_le_geometric_of_tendsto ρ M hρ1 (fun n => by
+      rw [Real.dist_eq, abs_sub_comm]; exact (hbd n).2 t ω) (hlim t ω) n
+  have hfix : ∀ t ω, y t ω = s t ω + opK 𝔼 β A y t ω := by
+    intro t ω
+    have hρ0 := h.nonneg hβ0 ω
+    have h1 : Tendsto (fun n => iterY 𝔼 β A s (n + 1) t ω) atTop (𝓝 (y t ω)) :=
+      (hlim t ω).comp (tendsto_add_atTop_nat 1)
+    have h2 : Tendsto (fun n => iterY 𝔼 β A s (n + 1) t ω) atTop
+        (𝓝 (s t ω + opK 𝔼 β A y t ω)) := by
+      have hc : Tendsto (fun n : ℕ => ρ * (M * ρ ^ n / (1 - ρ))) atTop (𝓝 0) := by
+        have := ((tendsto_pow_atTop_nhds_zero_of_lt_one hρ0 hρ1).const_mul M).div_const (1 - ρ)
+        simpa using this.const_mul ρ
+      rw [tendsto_iff_norm_sub_tendsto_zero]
+      refine squeeze_zero (fun n => norm_nonneg _) (fun n => ?_) hc
+      simp only [iterY, Real.norm_eq_abs]
+      rw [show s t ω + opK 𝔼 β A (iterY 𝔼 β A s n) t ω - (s t ω + opK 𝔼 β A y t ω) =
+        opK 𝔼 β A (iterY 𝔼 β A s n) t ω - opK 𝔼 β A y t ω by ring,
+        opK_sub 𝔼 hβ0 h ((hbd n).1) hyb]
+      exact (row_series 𝔼 hβ0 h (d := iterY 𝔼 β A s n - y)
+        (fun t ω => by simpa only [Pi.sub_apply] using hdist n t ω) t ω).2
+    exact tendsto_nhds_unique h1 h2
+  refine ⟨y, fun t ω => ?_, hyb⟩
+  have := (row_series 𝔼 hβ0 h hyb t ω).1.hasSum
+  convert this using 1
+  rw [hfix t ω, opK]
+  ring
+
+/-- Cochrane (2023), §7.4, p. 225: **existence and uniqueness under the row condition with random
+bounds**, for every expectation system: the flow system (7.14) has exactly one bounded
+solution. -/
+theorem existsUnique_bounded_solution {β ρ M : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1)
+    {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ) {s : ℕ → Ω → ℝ} (hsb : ∀ t ω, |s t ω| ≤ M) :
+    ∃! y : ℕ → Ω → ℝ, (∀ t, GeneralFormula.MaturingSystem 𝔼 β A y s t) ∧
+      ∃ K, ∀ t ω, |y t ω| ≤ K := by
+  obtain ⟨y, hy, hyb⟩ := exists_bounded_solution 𝔼 hβ0 hρ1 h hsb
+  refine ⟨y, ⟨hy, _, hyb⟩, ?_⟩
+  rintro y' ⟨hy', K, hK⟩
+  have := unique_of_rowR 𝔼 hβ0 hρ1 h (homogeneous_of_two 𝔼 hy' hy)
+    (K := K + M / (1 - ρ)) (fun t ω => by
+      simp only [Pi.sub_apply]
+      exact (abs_sub _ _).trans (add_le_add (hK t ω) (hyb t ω)))
+  exact sub_eq_zero.mp this
+
+/-! ### Theorem W with random bounds -/
+
+/-- Cochrane (2023), eq. (7.17), p. 225: `E_t` passes through absolutely convergent series of
+random variables (a theorem of the axioms: `TidyR5SeriesExchange.seriesExchange`). -/
+def SeriesExchange : Prop :=
+  ∀ f : ℕ → Ω → ℝ, (∀ ω, Summable (fun n => |f n ω|)) → ∀ t ω,
+    HasSum (fun n => 𝔼.E t (f n) ω) (𝔼.E t (fun ω' => ∑' n, f n ω') ω)
+
+/-- Cochrane (2023), eq. (7.17): perfect foresight passes through absolutely convergent series. -/
+theorem perfectForesight_seriesExchange : SeriesExchange perfectForesight := by
+  intro f hf t ω
+  exact ((hf ω).of_abs).hasSum
+
+/-- Cochrane (2023), eq. (7.17): every finite event tree passes through absolutely convergent
+series (a conditional expectation is a finite weighted sum). -/
+theorem finiteTree_seriesExchange {Ω' : Type*} [Fintype Ω']
+    (T : ExpectationsFiniteTree.FiniteTree Ω') : SeriesExchange T.toExpectationSystem := by
+  classical
+  intro f hf t ω
+  simp only [ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E,
+    ExpectationsFiniteTree.FiniteTree.condE, ExpectationsFiniteTree.FiniteTree.num]
+  refine HasSum.div_const ?_ _
+  refine hasSum_sum fun ω' _ => ?_
+  by_cases hω : T.info t ω' ω
+  · simp only [hω, ↓reduceIte]
+    exact ((hf ω').of_abs).hasSum.mul_left _
+  · simp only [hω, ↓reduceIte]
+    exact hasSum_zero
+
+/-- Cochrane (2023), eqs. (7.14), (7.17), pp. 225–226: under the row condition with random
+bounds, if `E_t` passes through absolutely convergent series, (7.17) converges absolutely,
+`|y_t| ≤ M/(1−ρ)`, it is known at `t`, and it solves the flow system (7.14). -/
+theorem formulaW_solves_rowR (hpo : 𝔼.PullOut) (hex : SeriesExchange 𝔼) {β ρ M : ℝ}
+    (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (hA : ∀ t j, 𝔼.E (t + j) (A t (t + (j + 1))) = A t (t + (j + 1)))
+    {s : ℕ → Ω → ℝ} (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M) :
+    (∀ t, MaturingSystem 𝔼 β A (formulaW 𝔼 β A s) s t) ∧
+      (∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (formulaW 𝔼 β A s t ω)) ∧
+      (∀ t ω, |formulaW 𝔼 β A s t ω| ≤ M / (1 - ρ)) ∧
+      ∀ t, 𝔼.E t (formulaW 𝔼 β A s t) = formulaW 𝔼 β A s t := by
+  obtain ⟨hpw, hZb⟩ := pathZΩ_rowR hβ0 hρ1 h hsb
+  have hex1 : ∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω)
+      (𝔼.E t (pathZΩ β A s t) ω) := by
+    intro t ω
+    have habs : ∀ ω', Summable (fun m => |β ^ m * (weight A t m ω' * s (t + m) ω')|) := by
+      intro ω'
+      have := (pathZ_summable_bound hβ0 (fun u => hsb u ω') (weight_series_le hβ0 hρ1 h ω' t).1
+        (weight_series_le hβ0 hρ1 h ω' t).2).1
+      simpa only [weight_apply] using this
+    have hh := hex (fun m ω' => β ^ m * (weight A t m ω' * s (t + m) ω')) habs t ω
+    have hZ : (fun ω' => ∑' m, β ^ m * (weight A t m ω' * s (t + m) ω')) = pathZΩ β A s t := by
+      funext ω'
+      simp only [pathZΩ, pathZ, weight_apply]
+    rw [hZ] at hh
+    refine hh.congr_fun fun m => ?_
+    rw [formulaTerm, show (fun ω' => β ^ m * (weight A t m ω' * s (t + m) ω')) =
+      β ^ m • (weight A t m * s (t + m)) from rfl, map_smul]
+    rfl
+  have hex2 : ∀ t ω, HasSum (fun j : ℕ => 𝔼.E t (fun ω' => β ^ (j + 1) *
+      (A t (t + (j + 1)) ω' * pathZΩ β A s (t + (j + 1)) ω')) ω)
+      (𝔼.E t (fun ω' => ∑' j : ℕ, β ^ (j + 1) *
+        (A t (t + (j + 1)) ω' * pathZΩ β A s (t + (j + 1)) ω')) ω) := by
+    intro t ω
+    refine hex _ (fun ω' => ?_) t ω
+    refine Summable.of_nonneg_of_le (fun j => abs_nonneg _) (fun j => ?_)
+      ((h t ω').1.mul_right (M / (1 - ρ)))
+    rw [abs_mul, abs_mul, abs_pow, abs_of_nonneg hβ0, mul_assoc]
+    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (hZb _ ω') (abs_nonneg _))
+      (pow_nonneg hβ0 _)
+  have hfw := formulaW_eq_E 𝔼 hex1
+  refine ⟨formulaW_solves_of_exchange 𝔼 hpo hA hs hpw hex1 hex2, fun t ω => ?_,
+    fun t ω => ?_, formulaW_adapted_of_exchange 𝔼 hex1⟩
+  · rw [hfw t]; exact hex1 t ω
+  · rw [hfw t]; exact 𝔼.abs_E_le (hZb t) t ω
+
+/-- Cochrane (2023), eq. (7.17), p. 225: **Theorem W with random bounds.** Under the row condition
+with random bounds (`ρ < 1`), with each `A_t^{(t+j+1)}` known at `t + j`, bounded adapted
+surpluses and an expectation system that passes through absolutely convergent series, every
+bounded solution of the flow conditions (7.14) is the weighted present value (7.17),
+`y_t = E_t ∑_m β^m W_t^{(m)} s_{t+m}`, an absolutely convergent series. -/
+theorem theoremW_rowR (hpo : 𝔼.PullOut) (hex : SeriesExchange 𝔼) {β ρ M K : ℝ}
+    (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (hA : ∀ t j, 𝔼.E (t + j) (A t (t + (j + 1))) = A t (t + (j + 1)))
+    {s y : ℕ → Ω → ℝ} (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M)
+    (hy : ∀ t, MaturingSystem 𝔼 β A y s t) (hyb : ∀ t ω, |y t ω| ≤ K) (t : ℕ) (ω : Ω) :
+    HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (y t ω) := by
+  obtain ⟨hz, hsum, hzb, -⟩ := formulaW_solves_rowR 𝔼 hpo hex hβ0 hρ1 h hA hs hsb
+  have hd := unique_of_rowR 𝔼 hβ0 hρ1 h (homogeneous_of_two 𝔼 hy hz)
+    (K := K + M / (1 - ρ)) (fun u ω' => by
+      simp only [Pi.sub_apply]
+      exact (abs_sub _ _).trans (add_le_add (hyb u ω') (hzb u ω')))
+  have hyz : y t ω = formulaW 𝔼 β A s t ω := by
+    have := congrFun (congrFun hd t) ω
+    simp only [Pi.sub_apply, Pi.zero_apply] at this
+    linarith
+  rw [hyz]
+  exact hsum t ω
+
+/-- Cochrane (2023), §7.4, p. 225: **the price level is determined under the row condition with
+random bounds**: two adapted price paths satisfying every flow condition (7.1) with bounded real
+values of maturing debt coincide, for every expectation system with the pull-out property. -/
+theorem price_unique_rowR (hpo : 𝔼.PullOut) {β ρ K : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1)
+    {D : ℕ → ℕ → Ω → ℝ} {x x' s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (hDmm : ∀ m ω, D m m ω ≠ 0) (h : RowBoundR β (fracSold D) ρ)
+    (hflow : ∀ t, RealFlow 𝔼 β D x s t) (hflow' : ∀ t, RealFlow 𝔼 β D x' s t)
+    (hb : ∀ t ω, |D t t ω * x t ω| ≤ K) (hb' : ∀ t ω, |D t t ω * x' t ω| ≤ K) : x = x' := by
+  have hy := fun t => (realFlow_iff_maturingSystem 𝔼 hpo hD hDmm t).mp (hflow t)
+  have hy' := fun t => (realFlow_iff_maturingSystem 𝔼 hpo hD hDmm t).mp (hflow' t)
+  have hzero := unique_of_rowR 𝔼 hβ0 hρ1 h (homogeneous_of_two 𝔼 hy hy') (K := K + K)
+    (fun t ω => by
+      simp only [Pi.sub_apply]
+      exact (abs_sub _ _).trans (add_le_add (hb t ω) (hb' t ω)))
+  funext t ω
+  have := congrFun (congrFun hzero t) ω
+  simp only [Pi.sub_apply, Pi.zero_apply, sub_eq_zero] at this
+  exact mul_left_cancel₀ (hDmm t ω) this
+
+/-- Cochrane (2023), eq. (7.17), p. 225: **(7.17) for the price level with random bounds.** In an
+equilibrium with bounded real maturing debt, under the row condition with random bounds, with
+each sale fraction known at the last sale date and an expectation system passing through
+absolutely convergent series, `B_{t−1}^{(t)}/P_t = E_t ∑_m β^m W_t^{(m)} s_{t+m}`. -/
+theorem price_formula_rowR (hpo : 𝔼.PullOut) (hex : SeriesExchange 𝔼) {β ρ M K : ℝ}
+    (hβ0 : 0 ≤ β) (hρ1 : ρ < 1) {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (hDmm : ∀ m ω, D m m ω ≠ 0) (h : RowBoundR β (fracSold D) ρ)
+    (hA : ∀ t j, 𝔼.E (t + j) (fracSold D t (t + (j + 1))) = fracSold D t (t + (j + 1)))
+    (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M) (hflow : ∀ t, RealFlow 𝔼 β D x s t)
+    (hb : ∀ t ω, |D t t ω * x t ω| ≤ K) (t : ℕ) (ω : Ω) :
+    HasSum (fun m => formulaTerm 𝔼 β (fracSold D) s t m ω) (D t t ω * x t ω) :=
+  theoremW_rowR 𝔼 hpo hex hβ0 hρ1 h hA hs hsb
+    (fun u => (realFlow_iff_maturingSystem 𝔼 hpo hD hDmm u).mp (hflow u)) hb t ω
+
+/-! ### The random row condition is strictly weaker than the deterministic one -/
+
+/-- Cochrane (2023), §7.4 (illustration): sale fractions whose row `t` has a single entry
+`ρ/β^{t+1}` at lag `t` (maturity `2t + 1`), perfect foresight. -/
+noncomputable def sxA (β ρ : ℝ) : ℕ → ℕ → Unit → ℝ :=
+  fun t m _ => if m = 2 * t + 1 then ρ / β ^ (t + 1) else 0
+
+/-- Cochrane (2023), §7.4: each row of `sxA` sums to exactly `ρ`, so `sxA` satisfies the row
+condition with (time-varying) bounds. -/
+theorem sx_rowBoundR {β ρ : ℝ} (hβ0 : 0 < β) (hρ0 : 0 ≤ ρ) : RowBoundR β (sxA β ρ) ρ := by
+  intro t u
+  have hfun : (fun j : ℕ => β ^ (j + 1) * |sxA β ρ t (t + (j + 1)) u|) =
+      Pi.single t ρ := by
+    funext j
+    by_cases hj : j = t
+    · subst hj
+      simp only [sxA, show j + (j + 1) = 2 * j + 1 by omega, ↓reduceIte, Pi.single_eq_same]
+      rw [abs_of_nonneg (div_nonneg hρ0 (pow_nonneg hβ0.le _))]
+      field_simp
+    · simp only [sxA, show ¬ (t + (j + 1) = 2 * t + 1) by omega, ↓reduceIte, abs_zero, mul_zero]
+      rw [Pi.single_eq_of_ne hj]
+  rw [hfun]
+  exact ⟨(hasSum_pi_single t ρ).summable, le_of_eq (hasSum_pi_single t ρ).tsum_eq⟩
+
+/-- Cochrane (2023), §7.4: **the deterministic row condition fails for `sxA`** (`ρ > 0`): any
+date-independent bound has `β^{j+1} a_j ≥ ρ` for every `j`, so `∑_j β^{j+1} a_j` diverges. -/
+theorem sx_not_rowBound {β ρ : ℝ} (hβ0 : 0 < β) (hρ : 0 < ρ) :
+    ¬ ∃ a ρ', RowBound β (sxA β ρ) a ρ' := by
+  rintro ⟨a, ρ', hrow⟩
+  have hge : ∀ j, ρ ≤ β ^ (j + 1) * a j := by
+    intro j
+    have := hrow.2.1 j j ()
+    simp only [sxA, show j + (j + 1) = 2 * j + 1 by omega, ↓reduceIte] at this
+    rw [abs_of_nonneg (div_nonneg hρ.le (pow_nonneg hβ0.le _)),
+      div_le_iff₀ (pow_pos hβ0 _)] at this
+    linarith
+  have hlim := hrow.2.2.1.tendsto_atTop_zero
+  obtain ⟨j, hj⟩ := (hlim.eventually (gt_mem_nhds hρ)).exists
+  exact absurd (hge j) (not_le.mpr hj)
+
+end Cochrane.LongTermDebtDynamics.TidyR5RandomRow
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Expected future bond sales with random debt
+
+Cochrane (2023), Online Appendix §A1.14, pp. 588–592, equations (1.63)–(1.68), and §7.3.3,
+p. 224.
+
+`FutureSales.x0Fun`, `FutureSales.hasDerivAt_x0` and `FutureSales.x1_formula` treat the expected
+date-1 sale `F = B_1^{(2)} − B_0^{(2)}` as a number. Here the sale is a random variable known at
+date 1 (a state-contingent sale), the date-0 positions `B_{−1}^{(j)}`, `B_0^{(j)}` are known at date
+0, and surpluses are random. The sale is perturbed in a random direction `G` known at date 1:
+`B_1^{(2)}(ε) = B_1^{(2)} + ε G` (`pertD`).
+
+* `x0_eq_x0R`, `x0R_pull`: in every equilibrium of the three-period economy, `1/P_0` is the closed
+  form (1.65)/(1.66) `x0R ε`, and with the date-0 quantities pulled out of `E_0`,
+  `B_{−1}^{(0)} x0R ε = s_0 + A₁ E_0(β s_1 + β² s_2) + E_0(β² s_2 B_0^{(2)}(A₂ − A₁)/B_1^{(2)}(ε))`
+  with `A_k = (B_0^{(k)} − B_{−1}^{(k)})/B_0^{(k)}`.
+* `hasDerivAt_x0R`: **the derivative with random debt**,
+  `d(1/P_0)/dε = β² B_0^{(2)} (A₁ − A₂) E_0(G s_2/(B_1^{(2)})²)/B_{−1}^{(0)}`, an exact `HasDerivAt`
+  (the deterministic `FutureSales.hasDerivAt_x0` is the case `G = 1`, `s_2` known).
+* `x0R_mono`, `x0R_strictMono`, `x0R_anti`, `x0R_const`: **the sign rule with random debt**: if
+  the government sells proportionally more time-1 than time-2 debt at date 0 (`A₁ ≥ A₂`), larger
+  state-contingent future sales (`G ≥ 0`) lower `P_0`; strictly under uniform bounds; the reverse
+  for `A₁ ≤ A₂`; no effect at all when `A₁ = A₂`. The hypothesis `s_2 ≥ 0` is not an extra
+  restriction: positive `P_2` requires `s_2 > 0` (`price_two_pos_iff`).
+* `E_x1_eq_x1R`, `hasDerivAt_x1R`, `x1R_mono`: (1.64) with random sales: expected future sales
+  raise `E_0(1/P_1)` (and the bond price `Q_0^{(1)}` with `P_0` fixed) when `B_0^{(2)} ≥ 0`.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom
+
+open Filter Topology MaturityStructure Asymptotics
+
+/-- Cochrane (2023), Online Appendix p. 592: the derivative of `ε ↦ E_t(h/(u + εG))` at `0` is
+`E_t(−hG/u²)`, for `u ≥ δ > 0`, `|G| ≤ Γ` and `|h| ≤ H` (the remainder is `O(ε²)` uniformly in
+the state, so it passes through `E_t`). -/
+theorem hasDerivAt_E_div {Ω : Type*} (𝔼 : ExpectationSystem Ω) {δ Γ H : ℝ} (hδ : 0 < δ)
+    {u G h : Ω → ℝ} (hu : ∀ ω, δ ≤ u ω) (hG : ∀ ω, |G ω| ≤ Γ) (hh : ∀ ω, |h ω| ≤ H) (t : ℕ)
+    (ω : Ω) :
+    HasDerivAt (fun ε : ℝ => 𝔼.E t (h / (u + ε • G)) ω) (𝔼.E t (-(h * G) / u ^ 2) ω) 0 := by
+  rw [hasDerivAt_iff_isLittleO_nhds_zero]
+  have hΓ : 0 ≤ Γ := (abs_nonneg _).trans (hG ω)
+  have hH : 0 ≤ H := (abs_nonneg _).trans (hh ω)
+  set η : ℝ := δ / (2 * (Γ + 1)) with hη
+  have hηpos : 0 < η := div_pos hδ (by linarith)
+  have hηΓ : η * Γ ≤ δ / 2 := by
+    rw [hη, div_mul_eq_mul_div, div_le_div_iff₀ (by linarith) (by norm_num)]
+    nlinarith
+  have hbig : (fun e : ℝ => 𝔼.E t (h / (u + (0 + e) • G)) ω - 𝔼.E t (h / (u + (0 : ℝ) • G)) ω -
+      e • 𝔼.E t (-(h * G) / u ^ 2) ω) =O[𝓝 0] (fun e : ℝ => e ^ 2) := by
+    refine IsBigO.of_bound (2 * H * Γ ^ 2 / δ ^ 3) ?_
+    filter_upwards [Metric.ball_mem_nhds (0 : ℝ) hηpos] with e he
+    rw [Metric.mem_ball, Real.dist_eq, sub_zero] at he
+    have heΓ : |e| * Γ ≤ δ / 2 :=
+      (mul_le_mul_of_nonneg_right he.le hΓ).trans hηΓ
+    have hw : ∀ ω', δ / 2 ≤ u ω' + e * G ω' := fun ω' => by
+      have h1 : |e * G ω'| ≤ δ / 2 := by
+        rw [abs_mul]; exact (mul_le_mul_of_nonneg_left (hG ω') (abs_nonneg e)).trans heΓ
+      have := neg_abs_le (e * G ω')
+      linarith [hu ω']
+    have hfun : h / (u + (0 + e) • G) - h / (u + (0 : ℝ) • G) - e • (-(h * G) / u ^ 2) =
+        fun ω' => h ω' * G ω' ^ 2 * e ^ 2 / (u ω' ^ 2 * (u ω' + e * G ω')) := by
+      funext ω'
+      have hv : 0 < u ω' := hδ.trans_le (hu ω')
+      have hw' : 0 < u ω' + e * G ω' := (half_pos hδ).trans_le (hw ω')
+      simp only [Pi.sub_apply, Pi.div_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+        Pi.neg_apply, Pi.mul_apply, Pi.pow_apply, zero_add, zero_mul, add_zero]
+      field_simp
+      ring
+    have hval : 𝔼.E t (h / (u + (0 + e) • G)) ω - 𝔼.E t (h / (u + (0 : ℝ) • G)) ω -
+        e • 𝔼.E t (-(h * G) / u ^ 2) ω =
+        𝔼.E t (fun ω' => h ω' * G ω' ^ 2 * e ^ 2 / (u ω' ^ 2 * (u ω' + e * G ω'))) ω := by
+      rw [← hfun, map_sub, map_sub, map_smul]
+      rfl
+    rw [hval, Real.norm_eq_abs, Real.norm_eq_abs, abs_pow, sq_abs]
+    refine 𝔼.abs_E_le (fun ω' => ?_) t ω
+    have hv : δ ≤ u ω' := hu ω'
+    have hv0 : 0 < u ω' := hδ.trans_le hv
+    have hw' := hw ω'
+    have hden : δ ^ 2 * (δ / 2) ≤ u ω' ^ 2 * (u ω' + e * G ω') :=
+      mul_le_mul (pow_le_pow_left₀ hδ.le hv 2) hw' (by positivity) (by positivity)
+    have hG2 : G ω' ^ 2 ≤ Γ ^ 2 := by
+      rw [← sq_abs]; exact pow_le_pow_left₀ (abs_nonneg _) (hG ω') 2
+    rw [abs_div, abs_mul, abs_mul, abs_of_nonneg (sq_nonneg (G ω')),
+      abs_of_nonneg (sq_nonneg e),
+      abs_of_pos (mul_pos (pow_pos hv0 2) ((half_pos hδ).trans_le hw'))]
+    calc |h ω'| * G ω' ^ 2 * e ^ 2 / (u ω' ^ 2 * (u ω' + e * G ω'))
+        ≤ H * Γ ^ 2 * e ^ 2 / (δ ^ 2 * (δ / 2)) := by
+          apply div_le_div₀ (by positivity) _ (by positivity) hden
+          exact mul_le_mul_of_nonneg_right (mul_le_mul (hh ω') hG2 (sq_nonneg _) hH)
+            (sq_nonneg e)
+      _ = 2 * H * Γ ^ 2 / δ ^ 3 * e ^ 2 := by field_simp
+  exact hbig.trans_isLittleO (isLittleO_pow_id (by norm_num))
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), Online Appendix p. 589: the policy with the date-1 sale of time-2 debt
+perturbed in the random direction `G`: `B_1^{(2)}(ε) = B_1^{(2)} + ε G`, all else unchanged. -/
+noncomputable def pertD (D : ℕ → ℕ → Ω → ℝ) (G : Ω → ℝ) (ε : ℝ) : ℕ → ℕ → Ω → ℝ :=
+  fun t m => if t = 2 ∧ m = 2 then D 2 2 + ε • G else D t m
+
+/-- Cochrane (2023), Online Appendix p. 589: the perturbed time-2 debt. -/
+theorem pertD_22 (D : ℕ → ℕ → Ω → ℝ) (G : Ω → ℝ) (ε : ℝ) :
+    pertD D G ε 2 2 = D 2 2 + ε • G := by simp [pertD]
+
+/-- Cochrane (2023), Online Appendix p. 589: the other positions are unchanged. -/
+theorem pertD_ne (D : ℕ → ℕ → Ω → ℝ) (G : Ω → ℝ) (ε : ℝ) {t m : ℕ} (h : ¬ (t = 2 ∧ m = 2)) :
+    pertD D G ε t m = D t m := by simp [pertD, h]
+
+/-- Cochrane (2023), Online Appendix p. 589: with the direction `G` known at date 1, the perturbed
+debt is predetermined whenever the original debt is. -/
+theorem pertD_predetermined {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (hG : 𝔼.E 1 G = G) (ε : ℝ) : Predetermined 𝔼 (pertD D G ε) := by
+  refine ⟨fun m => ?_, fun t m => ?_⟩
+  · rw [pertD_ne D G ε (by omega)]; exact hD.1 m
+  · by_cases h : t + 1 = 2 ∧ m = 2
+    · obtain ⟨h1, rfl⟩ := h
+      obtain rfl : t = 1 := by omega
+      rw [pertD_22, map_add, map_smul, hD.2 1 2, hG]
+    · rw [pertD_ne D G ε h]; exact hD.2 t m
+
+/-- Cochrane (2023), Online Appendix eq. (1.65)/(1.66), pp. 590–591: the closed form for `1/P_0`
+along the perturbation, with random debt. -/
+noncomputable def x0R (β : ℝ) (D : ℕ → ℕ → Ω → ℝ) (G : Ω → ℝ) (s : ℕ → Ω → ℝ) (ε : ℝ) :
+    Ω → ℝ :=
+  (s 0 + (D 1 1 - D 0 1) / D 1 1 *
+      𝔼.E 0 (β • s 1 + β ^ 2 • ((D 2 2 + ε • G - D 1 2) / (D 2 2 + ε • G) * s 2)) +
+    𝔼.E 0 (β ^ 2 • ((D 1 2 - D 0 2) / (D 2 2 + ε • G) * s 2))) / D 0 0
+
+/-- Cochrane (2023), Online Appendix eqs. (1.63)–(1.66), pp. 589–591: **in every equilibrium of
+the three-period economy with random debt**, `1/P_0 = x0R ε` (the flow conditions (7.1) at dates
+0, 1, 2 with the perturbed policy). -/
+theorem x0_eq_x0R (hpo : 𝔼.PullOut) {β ε : ℝ} {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ}
+    {x s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D) (hG : 𝔼.E 1 G = G)
+    (hD3 : ∀ t j, D t (j + 3) = 0) (h0 : RealFlow 𝔼 β (pertD D G ε) x s 0)
+    (h1 : RealFlow 𝔼 β (pertD D G ε) x s 1) (h2 : RealFlow 𝔼 β (pertD D G ε) x s 2)
+    (hD22 : ∀ ω, D 2 2 ω + ε * G ω ≠ 0) (hD11 : ∀ ω, D 1 1 ω ≠ 0) (hD00 : ∀ ω, D 0 0 ω ≠ 0) :
+    x 0 = x0R 𝔼 β D G s ε := by
+  have hD3' : ∀ t j, pertD D G ε t (j + 3) = 0 := fun t j => by
+    rw [pertD_ne D G ε (by omega)]; exact hD3 t j
+  obtain ⟨F2, F1, F0⟩ := FutureSales.flows_of_realFlow 𝔼 hD3' h0 h1 h2
+  have hp := pertD_predetermined 𝔼 hD hG ε
+  have h22 : ∀ ω, pertD D G ε 2 2 ω ≠ 0 := fun ω => by
+    rw [pertD_22]; simpa using hD22 ω
+  have h11 : ∀ ω, pertD D G ε 1 1 ω ≠ 0 := fun ω => by
+    rw [pertD_ne D G ε (by omega)]; exact hD11 ω
+  have hz := FutureSales.price_zero 𝔼 hpo hp F2 F1 F0 h22 h11
+  rw [pertD_22, pertD_ne D G ε (show ¬ (0 = 2 ∧ 0 = 2) by omega),
+    pertD_ne D G ε (show ¬ (1 = 2 ∧ 1 = 2) by omega),
+    pertD_ne D G ε (show ¬ (0 = 2 ∧ 1 = 2) by omega),
+    pertD_ne D G ε (show ¬ (1 = 2 ∧ 2 = 2) by omega),
+    pertD_ne D G ε (show ¬ (0 = 2 ∧ 2 = 2) by omega)] at hz
+  funext ω
+  have := congrFun hz ω
+  simp only [Pi.mul_apply, Pi.add_apply] at this
+  rw [x0R, Pi.div_apply, eq_div_iff (hD00 ω), mul_comm, this]
+  rfl
+
+/-- Cochrane (2023), Online Appendix p. 592: Cochrane's date-0 sale fractions
+`A₁ = (B_0^{(1)} − B_{−1}^{(1)})/B_0^{(1)}`, `A₂ = (B_0^{(2)} − B_{−1}^{(2)})/B_0^{(2)}`, random but
+known at date 0. -/
+noncomputable def fracA (D : ℕ → ℕ → Ω → ℝ) (k : ℕ) : Ω → ℝ := (D 1 k - D 0 k) / D 1 k
+
+/-- Cochrane (2023), Online Appendix p. 592: the coefficient of the dilution term,
+`β² s_2 B_0^{(2)}(A₂ − A₁)`, written as `β² s_2 ((B_0^{(2)} − B_{−1}^{(2)}) − A₁ B_0^{(2)})`. -/
+noncomputable def kCoef (β : ℝ) (D : ℕ → ℕ → Ω → ℝ) (s : ℕ → Ω → ℝ) : Ω → ℝ :=
+  β ^ 2 • (s 2 * ((D 1 2 - D 0 2) - fracA D 1 * D 1 2))
+
+/-- Cochrane (2023), Online Appendix eq. (1.66), p. 591, with the date-0 quantities pulled out of
+`E_0`: `B_{−1}^{(0)} x0R ε = s_0 + A₁ E_0(β s_1 + β² s_2) + E_0(k/B_1^{(2)}(ε))` with
+`k = β² s_2 B_0^{(2)}(A₂ − A₁)` (`kCoef`), whenever `B_1^{(2)}(ε) ≠ 0` in every state. -/
+theorem x0R_pull (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼) {β ε : ℝ}
+    {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (hD22 : ∀ ω, D 2 2 ω + ε * G ω ≠ 0) :
+    x0R 𝔼 β D G s ε = (s 0 + fracA D 1 * 𝔼.E 0 (β • s 1 + β ^ 2 • s 2) +
+      𝔼.E 0 (kCoef β D s / (D 2 2 + ε • G))) / D 0 0 := by
+  have hA1 : 𝔼.E 0 (fracA D 1) = fracA D 1 :=
+    hdc 0 _ _ (by rw [map_sub, hD.2 0, hD.1]) (hD.2 0 1)
+  have hsplit : β • s 1 + β ^ 2 • ((D 2 2 + ε • G - D 1 2) / (D 2 2 + ε • G) * s 2) =
+      (β • s 1 + β ^ 2 • s 2) - β ^ 2 • (D 1 2 * s 2 / (D 2 2 + ε • G)) := by
+    funext ω
+    have := hD22 ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.mul_apply, Pi.div_apply,
+      Pi.sub_apply]
+    field_simp
+    ring
+  have hk : 𝔼.E 0 (β ^ 2 • ((D 1 2 - D 0 2) / (D 2 2 + ε • G) * s 2)) -
+      fracA D 1 * 𝔼.E 0 (β ^ 2 • (D 1 2 * s 2 / (D 2 2 + ε • G))) =
+      𝔼.E 0 (kCoef β D s / (D 2 2 + ε • G)) := by
+    rw [← hpo 0 _ _ hA1, ← map_sub]
+    congr 1
+    funext ω
+    have := hD22 ω
+    simp only [kCoef, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.mul_apply, Pi.div_apply,
+      Pi.add_apply]
+    field_simp
+  rw [x0R]
+  unfold fracA at hk ⊢
+  rw [hsplit, map_sub, mul_sub, ← hk]
+  congr 1
+  ring
+
+/-- Cochrane (2023), Online Appendix p. 592: `kCoef = β² s_2 B_0^{(2)} (A₂ − A₁)` when
+`B_0^{(2)} ≠ 0`. -/
+theorem kCoef_eq {β : ℝ} {D : ℕ → ℕ → Ω → ℝ} {s : ℕ → Ω → ℝ} (h12 : ∀ ω, D 1 2 ω ≠ 0) :
+    kCoef β D s = β ^ 2 • (s 2 * (D 1 2 * (fracA D 2 - fracA D 1))) := by
+  funext ω
+  have := h12 ω
+  simp only [kCoef, fracA, Pi.smul_apply, smul_eq_mul, Pi.mul_apply, Pi.sub_apply,
+    Pi.div_apply]
+  field_simp
+
+/-- Cochrane (2023), Online Appendix p. 592: **the derivative of `1/P_0` with respect to expected
+future sales, with random debt.** For a state-contingent direction `G` known at date 1 with
+`|G| ≤ Γ`, `B_1^{(2)} ≥ δ > 0`, `|s_2| ≤ H` and the date-0 positions bounded,
+`d x0R/dε = β² B_0^{(2)} (A₁ − A₂) E_0(G s_2/(B_1^{(2)})²)/B_{−1}^{(0)}` at `ε = 0`. -/
+theorem hasDerivAt_x0R (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼)
+    {β δ Γ K : ℝ} (hδ : 0 < δ) {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (hu : ∀ ω, δ ≤ D 2 2 ω) (hG : ∀ ω, |G ω| ≤ Γ)
+    (hk : ∀ ω, |kCoef β D s ω| ≤ K) (h12 : ∀ ω, D 1 2 ω ≠ 0) (ω : Ω) :
+    HasDerivAt (fun ε => x0R 𝔼 β D G s ε ω)
+      (β ^ 2 * D 1 2 ω * (fracA D 1 ω - fracA D 2 ω) *
+        𝔼.E 0 (G * s 2 / D 2 2 ^ 2) ω / D 0 0 ω) 0 := by
+  have hΓ : 0 ≤ Γ := (abs_nonneg _).trans (hG ω)
+  have hd := ((hasDerivAt_E_div 𝔼 hδ hu hG hk 0 ω).const_add
+    (s 0 ω + fracA D 1 ω * 𝔼.E 0 (β • s 1 + β ^ 2 • s 2) ω)).div_const (D 0 0 ω)
+  have hηpos : 0 < δ / (2 * (Γ + 1)) := div_pos hδ (by linarith)
+  have hev : (fun ε => x0R 𝔼 β D G s ε ω) =ᶠ[𝓝 0] fun ε =>
+      (s 0 ω + fracA D 1 ω * 𝔼.E 0 (β • s 1 + β ^ 2 • s 2) ω +
+        𝔼.E 0 (kCoef β D s / (D 2 2 + ε • G)) ω) / D 0 0 ω := by
+    filter_upwards [Metric.ball_mem_nhds (0 : ℝ) hηpos] with e he
+    rw [Metric.mem_ball, Real.dist_eq, sub_zero] at he
+    have hne : ∀ ω', D 2 2 ω' + e * G ω' ≠ 0 := fun ω' => by
+      have h1 : |e * G ω'| ≤ δ / 2 := by
+        rw [abs_mul]
+        refine (mul_le_mul he.le (hG ω') (abs_nonneg _) hηpos.le).trans ?_
+        rw [div_mul_eq_mul_div, div_le_div_iff₀ (by linarith) (by norm_num)]
+        nlinarith
+      have := neg_abs_le (e * G ω')
+      have := hu ω'
+      intro h0
+      linarith
+    rw [x0R_pull 𝔼 hpo hdc hD hne]
+    rfl
+  refine (hd.congr_of_eventuallyEq hev).congr_deriv ?_
+  have hA1 : 𝔼.E 0 (D 1 2 * (fracA D 1 - fracA D 2)) = D 1 2 * (fracA D 1 - fracA D 2) := by
+    have k1 : 𝔼.E 0 (fracA D 1) = fracA D 1 :=
+      hdc 0 _ _ (by rw [map_sub, hD.2 0, hD.1]) (hD.2 0 1)
+    have k2 : 𝔼.E 0 (fracA D 2) = fracA D 2 :=
+      hdc 0 _ _ (by rw [map_sub, hD.2 0, hD.1]) (hD.2 0 2)
+    rw [hpo 0 _ _ (hD.2 0 2), map_sub, k1, k2]
+  have hfun : -(kCoef β D s * G) / D 2 2 ^ 2 =
+      β ^ 2 • ((D 1 2 * (fracA D 1 - fracA D 2)) * (G * s 2 / D 2 2 ^ 2)) := by
+    rw [kCoef_eq h12]
+    funext ω'
+    simp only [Pi.neg_apply, Pi.mul_apply, Pi.div_apply, Pi.smul_apply, smul_eq_mul,
+      Pi.sub_apply, Pi.pow_apply]
+    ring
+  rw [hfun, map_smul, hpo 0 _ _ hA1]
+  simp only [Pi.smul_apply, Pi.mul_apply, Pi.sub_apply, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), Online Appendix eq. (1.63), p. 589: with `B_1^{(2)} > 0`, the price level
+`P_2 = B_1^{(2)}/s_2` is positive if and only if `s_2 > 0`; so in an equilibrium with positive
+prices the time-2 surplus is positive in every state. -/
+theorem price_two_pos_iff {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ} (F2 : D 2 2 * x 2 = s 2)
+    (hD22 : ∀ ω, 0 < D 2 2 ω) (ω : Ω) : 0 < x 2 ω ↔ 0 < s 2 ω := by
+  have := congrFun F2 ω
+  simp only [Pi.mul_apply] at this
+  rw [← this]
+  exact ⟨fun h => mul_pos (hD22 ω) h, fun h => pos_of_mul_pos_right h (hD22 ω).le⟩
+
+/-- Cochrane (2023), Online Appendix p. 592 (bullet), with random debt: **if the government sells
+proportionally more time-1 than time-2 debt at date 0 (`A₁ ≥ A₂`, `B_0^{(2)} > 0`), larger
+state-contingent future sales lower `P_0`**: for `G ≥ 0`, `s_2 ≥ 0`, `B_{−1}^{(0)} > 0`, `1/P_0` is
+monotone in `ε` wherever `B_1^{(2)}(ε) > 0` in every state. -/
+theorem x0R_mono (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼) {β ε ε' : ℝ}
+    {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (hG0 : ∀ ω, 0 ≤ G ω) (hs2 : ∀ ω, 0 ≤ s 2 ω) (h12 : ∀ ω, 0 < D 1 2 ω)
+    (hA : ∀ ω, fracA D 2 ω ≤ fracA D 1 ω) (hD00 : ∀ ω, 0 < D 0 0 ω)
+    (hpos : ∀ ω, 0 < D 2 2 ω + ε * G ω) (hεε : ε ≤ ε') (ω : Ω) :
+    x0R 𝔼 β D G s ε ω ≤ x0R 𝔼 β D G s ε' ω := by
+  have hpos' : ∀ ω, 0 < D 2 2 ω + ε' * G ω := fun ω => by
+    nlinarith [hpos ω, hG0 ω]
+  rw [x0R_pull 𝔼 hpo hdc hD (fun ω => (hpos ω).ne'),
+    x0R_pull 𝔼 hpo hdc hD (fun ω => (hpos' ω).ne'), Pi.div_apply, Pi.div_apply]
+  apply div_le_div_of_nonneg_right _ (hD00 ω).le
+  simp only [Pi.add_apply]
+  have hle : kCoef β D s / (D 2 2 + ε • G) ≤ kCoef β D s / (D 2 2 + ε' • G) := fun ω' => by
+    have hk : kCoef β D s ω' ≤ 0 := by
+      rw [kCoef_eq (fun ω => (h12 ω).ne')]
+      simp only [Pi.smul_apply, Pi.mul_apply, Pi.sub_apply, smul_eq_mul]
+      exact mul_nonpos_of_nonneg_of_nonpos (sq_nonneg β) (mul_nonpos_of_nonneg_of_nonpos
+        (hs2 ω') (mul_nonpos_of_nonneg_of_nonpos (h12 ω').le (by linarith [hA ω'])))
+    simp only [Pi.div_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [div_le_div_iff₀ (hpos ω') (hpos' ω')]
+    nlinarith [mul_le_mul_of_nonneg_right hεε (hG0 ω')]
+  linarith [𝔼.mono 0 hle ω]
+
+/-- Cochrane (2023), Online Appendix p. 592: conversely, if `A₁ ≤ A₂`, larger state-contingent
+future sales raise `P_0`: `1/P_0` is antitone in `ε`. -/
+theorem x0R_anti (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼) {β ε ε' : ℝ}
+    {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (hG0 : ∀ ω, 0 ≤ G ω) (hs2 : ∀ ω, 0 ≤ s 2 ω) (h12 : ∀ ω, 0 < D 1 2 ω)
+    (hA : ∀ ω, fracA D 1 ω ≤ fracA D 2 ω) (hD00 : ∀ ω, 0 < D 0 0 ω)
+    (hpos : ∀ ω, 0 < D 2 2 ω + ε * G ω) (hεε : ε ≤ ε') (ω : Ω) :
+    x0R 𝔼 β D G s ε' ω ≤ x0R 𝔼 β D G s ε ω := by
+  have hpos' : ∀ ω, 0 < D 2 2 ω + ε' * G ω := fun ω => by
+    nlinarith [hpos ω, hG0 ω]
+  rw [x0R_pull 𝔼 hpo hdc hD (fun ω => (hpos ω).ne'),
+    x0R_pull 𝔼 hpo hdc hD (fun ω => (hpos' ω).ne'), Pi.div_apply, Pi.div_apply]
+  apply div_le_div_of_nonneg_right _ (hD00 ω).le
+  simp only [Pi.add_apply]
+  have hle : kCoef β D s / (D 2 2 + ε' • G) ≤ kCoef β D s / (D 2 2 + ε • G) := fun ω' => by
+    have hk : 0 ≤ kCoef β D s ω' := by
+      rw [kCoef_eq (fun ω => (h12 ω).ne')]
+      simp only [Pi.smul_apply, Pi.mul_apply, Pi.sub_apply, smul_eq_mul]
+      exact mul_nonneg (sq_nonneg β) (mul_nonneg (hs2 ω')
+        (mul_nonneg (h12 ω').le (by linarith [hA ω'])))
+    simp only [Pi.div_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [div_le_div_iff₀ (hpos' ω') (hpos ω')]
+    nlinarith [mul_le_mul_of_nonneg_right hεε (hG0 ω')]
+  linarith [𝔼.mono 0 hle ω]
+
+/-- Cochrane (2023), Online Appendix p. 592, with random debt: **when the two date-0 fractions
+are equal (`A₁ = A₂`), expected future sales have no effect on `P_0` at all**, in any direction
+`G` and for every `ε` with `B_1^{(2)}(ε) ≠ 0` in every state. -/
+theorem x0R_const (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼) {β ε : ℝ}
+    {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (h12 : ∀ ω, D 1 2 ω ≠ 0) (hA : fracA D 1 = fracA D 2)
+    (hne : ∀ ω, D 2 2 ω + ε * G ω ≠ 0) (hne0 : ∀ ω, D 2 2 ω ≠ 0) :
+    x0R 𝔼 β D G s ε = x0R 𝔼 β D G s 0 := by
+  have hk : kCoef β D s = 0 := by
+    rw [kCoef_eq h12, hA, sub_self]
+    funext ω
+    simp
+  have hz : ∀ f : Ω → ℝ, (0 : Ω → ℝ) / f = 0 := fun f => funext fun ω => by simp
+  rw [x0R_pull 𝔼 hpo hdc hD hne, x0R_pull 𝔼 hpo hdc hD (fun ω => by simpa using hne0 ω), hk,
+    hz, hz]
+
+/-- Cochrane (2023), Online Appendix p. 592 (bullet), with random debt, strict version: with
+`A₁ − A₂ ≥ a > 0`, `B_0^{(2)} ≥ b > 0`, a direction `G ≥ γ > 0`, `s_2 ≥ σ > 0` and
+`B_1^{(2)}(ε), B_1^{(2)}(ε') ≤ U`, larger future sales strictly lower `P_0`. -/
+theorem x0R_strictMono (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼)
+    {β ε ε' a b γ σ U : ℝ} (hβ : β ≠ 0) (ha : 0 < a) (hb : 0 < b) (hγ : 0 < γ) (hσ : 0 < σ)
+    {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (hG0 : ∀ ω, γ ≤ G ω) (hs2 : ∀ ω, σ ≤ s 2 ω) (h12 : ∀ ω, b ≤ D 1 2 ω)
+    (hA : ∀ ω, a ≤ fracA D 1 ω - fracA D 2 ω) (hD00 : ∀ ω, 0 < D 0 0 ω)
+    (hpos : ∀ ω, 0 < D 2 2 ω + ε * G ω) (hU : ∀ ω, D 2 2 ω + ε' * G ω ≤ U)
+    (hεε : ε < ε') (ω : Ω) :
+    x0R 𝔼 β D G s ε ω < x0R 𝔼 β D G s ε' ω := by
+  have hG0' : ∀ ω, 0 ≤ G ω := fun ω => hγ.le.trans (hG0 ω)
+  have hpos' : ∀ ω, 0 < D 2 2 ω + ε' * G ω := fun ω => by
+    nlinarith [hpos ω, hG0' ω]
+  have h12' : ∀ ω, D 1 2 ω ≠ 0 := fun ω => (hb.trans_le (h12 ω)).ne'
+  rw [x0R_pull 𝔼 hpo hdc hD (fun ω => (hpos ω).ne'),
+    x0R_pull 𝔼 hpo hdc hD (fun ω => (hpos' ω).ne'), Pi.div_apply, Pi.div_apply]
+  apply div_lt_div_of_pos_right _ (hD00 ω)
+  simp only [Pi.add_apply]
+  set c : ℝ := β ^ 2 * σ * b * a * γ * (ε' - ε) / U ^ 2 with hc
+  have hβ2 : 0 < β ^ 2 := by positivity
+  have hU0 : 0 < U := (hpos' ω).trans_le (hU ω)
+  have hcpos : 0 < c := by
+    have : 0 < ε' - ε := by linarith
+    positivity
+  have hle : (fun _ => c) ≤ kCoef β D s / (D 2 2 + ε' • G) - kCoef β D s / (D 2 2 + ε • G) :=
+    fun ω' => by
+    rw [kCoef_eq h12']
+    simp only [Pi.sub_apply, Pi.div_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+      Pi.mul_apply]
+    have hp := hpos ω'
+    have hp' := hpos' ω'
+    have hu' := hU ω'
+    have hu : D 2 2 ω' + ε * G ω' ≤ U := by nlinarith [hG0' ω']
+    set q : ℝ := β ^ 2 * (s 2 ω' * (D 1 2 ω' * (fracA D 1 ω' - fracA D 2 ω'))) with hq
+    have hq0 : β ^ 2 * σ * b * a ≤ q := by
+      rw [hq]
+      have h1 : σ * (b * a) ≤ s 2 ω' * (D 1 2 ω' * (fracA D 1 ω' - fracA D 2 ω')) :=
+        mul_le_mul (hs2 ω') (mul_le_mul (h12 ω') (hA ω') ha.le (hb.le.trans (h12 ω')))
+          (by positivity) (hσ.le.trans (hs2 ω'))
+      nlinarith
+    have hkey : β ^ 2 * (s 2 ω' * (D 1 2 ω' * (fracA D 2 ω' - fracA D 1 ω'))) /
+        (D 2 2 ω' + ε' * G ω') - β ^ 2 * (s 2 ω' * (D 1 2 ω' * (fracA D 2 ω' - fracA D 1 ω'))) /
+        (D 2 2 ω' + ε * G ω') = q * ((ε' - ε) * G ω') /
+          ((D 2 2 ω' + ε * G ω') * (D 2 2 ω' + ε' * G ω')) := by
+      rw [hq, div_sub_div _ _ hp'.ne' hp.ne', div_eq_div_iff (mul_ne_zero hp'.ne' hp.ne')
+        (mul_ne_zero hp.ne' hp'.ne')]
+      ring
+    rw [hkey, hc]
+    have hden : (D 2 2 ω' + ε * G ω') * (D 2 2 ω' + ε' * G ω') ≤ U ^ 2 := by
+      rw [sq]; exact mul_le_mul hu hu' hp'.le hU0.le
+    have hnum : β ^ 2 * σ * b * a * (γ * (ε' - ε)) ≤ q * ((ε' - ε) * G ω') := by
+      have : γ * (ε' - ε) ≤ (ε' - ε) * G ω' := by nlinarith [hG0 ω']
+      exact mul_le_mul hq0 this (by nlinarith)
+        ((by positivity : (0 : ℝ) ≤ β ^ 2 * σ * b * a).trans hq0)
+    rw [show β ^ 2 * σ * b * a * γ * (ε' - ε) / U ^ 2 =
+      β ^ 2 * σ * b * a * (γ * (ε' - ε)) / U ^ 2 by ring]
+    exact div_le_div₀ ((by positivity : (0 : ℝ) ≤ β ^ 2 * σ * b * a * (γ * (ε' - ε))).trans hnum)
+      hnum (by positivity) hden
+  have := 𝔼.mono 0 hle ω
+  rw [𝔼.const, map_sub, Pi.sub_apply] at this
+  linarith
+
+/-! ### (1.64): the expected price level at date 1 -/
+
+/-- Cochrane (2023), Online Appendix eq. (1.64), p. 590: `E_0(1/P_1)` along the perturbation,
+`E_0[s_1 + β ((B_1^{(2)}(ε) − B_0^{(2)})/B_1^{(2)}(ε)) s_2] / B_0^{(1)}`. -/
+noncomputable def x1R (β : ℝ) (D : ℕ → ℕ → Ω → ℝ) (G : Ω → ℝ) (s : ℕ → Ω → ℝ) (ε : ℝ) :
+    Ω → ℝ :=
+  𝔼.E 0 (s 1 + β • ((D 2 2 + ε • G - D 1 2) / (D 2 2 + ε • G) * s 2)) / D 1 1
+
+/-- Cochrane (2023), Online Appendix eq. (1.64), p. 590: in every equilibrium of the three-period
+economy with random debt, `E_0(1/P_1) = x1R ε`. -/
+theorem E_x1_eq_x1R (hpo : 𝔼.PullOut) {β ε : ℝ} {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ}
+    {x s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D) (hG : 𝔼.E 1 G = G)
+    (hD3 : ∀ t j, D t (j + 3) = 0) (h0 : RealFlow 𝔼 β (pertD D G ε) x s 0)
+    (h1 : RealFlow 𝔼 β (pertD D G ε) x s 1) (h2 : RealFlow 𝔼 β (pertD D G ε) x s 2)
+    (hD22 : ∀ ω, D 2 2 ω + ε * G ω ≠ 0) (hD11 : ∀ ω, D 1 1 ω ≠ 0) :
+    𝔼.E 0 (x 1) = x1R 𝔼 β D G s ε := by
+  have hD3' : ∀ t j, pertD D G ε t (j + 3) = 0 := fun t j => by
+    rw [pertD_ne D G ε (by omega)]; exact hD3 t j
+  obtain ⟨F2, F1, -⟩ := FutureSales.flows_of_realFlow 𝔼 hD3' h0 h1 h2
+  have hp := pertD_predetermined 𝔼 hD hG ε
+  have h22 : ∀ ω, pertD D G ε 2 2 ω ≠ 0 := fun ω => by
+    rw [pertD_22]; simpa using hD22 ω
+  have hz := FutureSales.E_price_one 𝔼 hpo hp F2 F1 h22
+  rw [pertD_22, pertD_ne D G ε (show ¬ (1 = 2 ∧ 1 = 2) by omega),
+    pertD_ne D G ε (show ¬ (1 = 2 ∧ 2 = 2) by omega)] at hz
+  funext ω
+  have := congrFun hz ω
+  simp only [Pi.mul_apply] at this
+  rw [x1R, Pi.div_apply, eq_div_iff (hD11 ω), mul_comm, this]
+
+/-- Cochrane (2023), Online Appendix eq. (1.64), p. 590, split: `x1R ε =
+(E_0(s_1 + β s_2) − E_0(β B_0^{(2)} s_2/B_1^{(2)}(ε)))/B_0^{(1)}` when `B_1^{(2)}(ε) ≠ 0`. -/
+theorem x1R_split {β ε : ℝ} {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ}
+    (hD22 : ∀ ω, D 2 2 ω + ε * G ω ≠ 0) :
+    x1R 𝔼 β D G s ε = (𝔼.E 0 (s 1 + β • s 2) -
+      𝔼.E 0 (β • (D 1 2 * s 2) / (D 2 2 + ε • G))) / D 1 1 := by
+  rw [x1R, ← map_sub]
+  congr 2
+  funext ω
+  have := hD22 ω
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.mul_apply, Pi.div_apply,
+    Pi.sub_apply]
+  field_simp
+  ring
+
+/-- Cochrane (2023), Online Appendix p. 591 (bullet), with random debt: the derivative of
+`E_0(1/P_1)` with respect to expected future sales in a state-contingent direction `G`,
+`β E_0(B_0^{(2)} G s_2/(B_1^{(2)})²)/B_0^{(1)}` (exact `HasDerivAt`, `B_1^{(2)} ≥ δ > 0`). -/
+theorem hasDerivAt_x1R {β δ Γ H : ℝ} (hδ : 0 < δ) {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ}
+    {s : ℕ → Ω → ℝ} (hu : ∀ ω, δ ≤ D 2 2 ω) (hG : ∀ ω, |G ω| ≤ Γ)
+    (hh : ∀ ω, |(β • (D 1 2 * s 2)) ω| ≤ H) (ω : Ω) :
+    HasDerivAt (fun ε => x1R 𝔼 β D G s ε ω)
+      (𝔼.E 0 (β • (D 1 2 * G * s 2 / D 2 2 ^ 2)) ω / D 1 1 ω) 0 := by
+  have hΓ : 0 ≤ Γ := (abs_nonneg _).trans (hG ω)
+  have hd := ((hasDerivAt_E_div 𝔼 hδ hu hG hh 0 ω).const_sub
+    (𝔼.E 0 (s 1 + β • s 2) ω)).div_const (D 1 1 ω)
+  have hηpos : 0 < δ / (2 * (Γ + 1)) := div_pos hδ (by linarith)
+  have hev : (fun ε => x1R 𝔼 β D G s ε ω) =ᶠ[𝓝 0] fun ε =>
+      (𝔼.E 0 (s 1 + β • s 2) ω - 𝔼.E 0 (β • (D 1 2 * s 2) / (D 2 2 + ε • G)) ω) / D 1 1 ω := by
+    filter_upwards [Metric.ball_mem_nhds (0 : ℝ) hηpos] with e he
+    rw [Metric.mem_ball, Real.dist_eq, sub_zero] at he
+    have hne : ∀ ω', D 2 2 ω' + e * G ω' ≠ 0 := fun ω' => by
+      have h1 : |e * G ω'| ≤ δ / 2 := by
+        rw [abs_mul]
+        refine (mul_le_mul he.le (hG ω') (abs_nonneg _) hηpos.le).trans ?_
+        rw [div_mul_eq_mul_div, div_le_div_iff₀ (by linarith) (by norm_num)]
+        nlinarith
+      have := neg_abs_le (e * G ω')
+      have := hu ω'
+      intro h0
+      linarith
+    rw [x1R_split 𝔼 hne]
+    rfl
+  refine (hd.congr_of_eventuallyEq hev).congr_deriv ?_
+  have hfun : -(β • (D 1 2 * s 2) * G) / D 2 2 ^ 2 = -(β • (D 1 2 * G * s 2 / D 2 2 ^ 2)) := by
+    funext ω'
+    simp only [Pi.neg_apply, Pi.mul_apply, Pi.div_apply, Pi.smul_apply, smul_eq_mul,
+      Pi.pow_apply]
+    ring
+  rw [hfun, map_neg, Pi.neg_apply]
+  ring
+
+/-- Cochrane (2023), Online Appendix p. 591 (bullet), with random debt: **if the government has
+sold time-2 debt at date 0 (`B_0^{(2)} ≥ 0`), larger state-contingent future sales (`G ≥ 0`)
+raise `E_0(1/P_1)`**, and so the bond price `Q_0^{(1)} = β P_0 E_0(1/P_1)` with `P_0` fixed
+(`s_2 ≥ 0`, `β ≥ 0`, `B_0^{(1)} > 0`, `B_1^{(2)}(ε) > 0`). -/
+theorem x1R_mono {β ε ε' : ℝ} (hβ : 0 ≤ β) {D : ℕ → ℕ → Ω → ℝ} {G : Ω → ℝ} {s : ℕ → Ω → ℝ}
+    (hG0 : ∀ ω, 0 ≤ G ω) (hs2 : ∀ ω, 0 ≤ s 2 ω) (h12 : ∀ ω, 0 ≤ D 1 2 ω)
+    (hD11 : ∀ ω, 0 < D 1 1 ω) (hpos : ∀ ω, 0 < D 2 2 ω + ε * G ω) (hεε : ε ≤ ε') (ω : Ω) :
+    x1R 𝔼 β D G s ε ω ≤ x1R 𝔼 β D G s ε' ω := by
+  have hpos' : ∀ ω, 0 < D 2 2 ω + ε' * G ω := fun ω => by
+    nlinarith [hpos ω, hG0 ω]
+  rw [x1R_split 𝔼 (fun ω => (hpos ω).ne'), x1R_split 𝔼 (fun ω => (hpos' ω).ne'),
+    Pi.div_apply, Pi.div_apply]
+  apply div_le_div_of_nonneg_right _ (hD11 ω).le
+  have hle : β • (D 1 2 * s 2) / (D 2 2 + ε' • G) ≤ β • (D 1 2 * s 2) / (D 2 2 + ε • G) :=
+    fun ω' => by
+    simp only [Pi.div_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.mul_apply]
+    have hk : 0 ≤ β * (D 1 2 ω' * s 2 ω') := mul_nonneg hβ (mul_nonneg (h12 ω') (hs2 ω'))
+    rw [div_le_div_iff₀ (hpos' ω') (hpos ω')]
+    nlinarith [mul_le_mul_of_nonneg_right hεε (hG0 ω')]
+  simp only [Pi.sub_apply]
+  linarith [𝔼.mono 0 hle ω]
+
+end Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Forward guidance under uncertainty
+
+Cochrane (2023), §7.1, pp. 213–215 (equation (7.3) and the bond-price display on p. 214), and
+Online Appendix §A1.2.1, pp. 559–561 (the discrete geometric formula).
+
+The book's forward-guidance analysis is deterministic. Here surpluses and price levels are
+random (an arbitrary `ExpectationSystem` with the pull-out property), and the central bank
+announces at date 0 a *known* path for the one-period nominal rate, `r` before `T` and `i` from
+`T` on, implemented through the Fisher relation under uncertainty
+`Q_t^{(t+1)} = β E_t(P_t/P_{t+1}) = 1/(1 + i_t)` (`FisherPath`), with `β = 1/(1+r)`.
+
+* `bondPrice_eq_prod`, `stoch_fgPrice`: **bond prices are exactly the book's display**,
+  `Q_0^{(j)} = ((1+r)^{min(j,T)}(1+i)^{j−T})^{-1}`, whatever the surplus uncertainty (the
+  risk-neutral expectations hypothesis with a known rate path).
+* `stoch_E0_path`: **the expected path**: `E_0(1/P_j) = 1/fgPath(P_0)`; the book's path is the
+  path of expected values of `1/P_j`.
+* `stoch_expected_inflation`, `stoch_no_expected_jump`, `stoch_expected_inflation_after`: the
+  innovation form of "no second jump": before and at the rate rise the expected price ratio is
+  one, `E_t(P_t/P_{t+1}) = 1` for `t < T`; from `T` on it is `(1+r)/(1+i) < 1`. Realised price
+  levels move only with unforecastable news.
+* `stoch_valuation`, `stoch_priceLevel`: the valuation equation (7.3) under uncertainty,
+  `P_0 = (∑_j Q_0^{(j)} B_{−1}^{(j)}) / E_0 ∑ β^j s_j`, state by state.
+* `stoch_fg_no_effect`, `stoch_fg_lowers`, `stoch_fg_mono`: the §7.1 claims under uncertainty:
+  guidance beyond the longest maturity (`T ≥ k`) has no effect on `P_0`; otherwise, with some
+  maturity `T < j₀ ≤ k` outstanding, nonnegative positions and `r < i`, it lowers `P_0`; the
+  effect falls with the horizon (and the immediate rise has the largest effect).
+* `stoch_geometric_value`, `stoch_fg_jump`: §A1.2.1 under uncertainty: with geometric
+  maturities, the proportional jump `P_0/P − 1` (guidance versus no guidance, same surpluses) is
+  the deterministic `ForwardGuidance.fgJump`, state by state.
+
+The continuous-time formula of p. 561 is not restated: under the project's conventions continuous
+time is deterministic (no stochastic calculus).
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty
+
+open Filter Topology MaturityStructure ForwardGuidance
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), §7.1, p. 213 (under uncertainty): the announced, known path of one-period
+nominal rates `i_t` is implemented: `Q_t^{(t+1)} = β E_t(P_t/P_{t+1}) = 1/(1 + i_t)` at every
+date and state. -/
+def FisherPath (β : ℝ) (P x : ℕ → Ω → ℝ) (i : ℕ → ℝ) : Prop :=
+  ∀ t, bondPrice 𝔼 β P x t 1 = fun _ => (1 + i t)⁻¹
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): **the expectations hypothesis with a known
+rate path.** If the announced rates `i_t` are implemented, every zero-coupon bond price is
+deterministic, `Q_t^{(t+j)} = ∏_{u<j} (1 + i_{t+u})^{-1}`, however uncertain the price level. -/
+theorem bondPrice_eq_prod (hpo : 𝔼.PullOut) {β : ℝ} {P x : ℕ → Ω → ℝ} {i : ℕ → ℝ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : FisherPath 𝔼 β P x i) (j : ℕ) :
+    ∀ t, bondPrice 𝔼 β P x t j = fun _ => ∏ u ∈ Finset.range j, (1 + i (t + u))⁻¹ := by
+  induction j with
+  | zero =>
+    intro t
+    have h1 : P t * x (t + 0) = fun _ => (1 : ℝ) := funext fun ω => by simpa using hPx t ω
+    simp only [bondPrice, pow_zero, one_smul, h1, 𝔼.const, Finset.range_zero, Finset.prod_empty]
+  | succ j ih =>
+    intro t
+    have hsplit : P t * x (t + (j + 1)) = (P t * x (t + 1)) * (P (t + 1) * x (t + 1 + j)) := by
+      funext ω
+      simp only [Pi.mul_apply]
+      rw [show t + 1 + j = t + (j + 1) by omega]
+      have := hPx (t + 1) ω
+      calc P t ω * x (t + (j + 1)) ω =
+          P t ω * x (t + (j + 1)) ω * (P (t + 1) ω * x (t + 1) ω) := by rw [this, mul_one]
+        _ = _ := by ring
+    have hknown : 𝔼.E (t + 1) (P t * x (t + 1)) = P t * x (t + 1) := by
+      rw [hpo _ _ _ (ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (hP t)), hx (t + 1)]
+    have ih' : β ^ j • 𝔼.E (t + 1) (P (t + 1) * x (t + 1 + j)) =
+        fun _ => ∏ u ∈ Finset.range j, (1 + i (t + 1 + u))⁻¹ := ih (t + 1)
+    have hF' : β • 𝔼.E t (P t * x (t + 1)) = fun _ => (1 + i t)⁻¹ := by
+      have := hF t
+      simpa [bondPrice] using this
+    have e1 : β ^ (j + 1) • 𝔼.E t (P t * x (t + (j + 1))) = β • 𝔼.E t ((P t * x (t + 1)) *
+        (β ^ j • 𝔼.E (t + 1) (P (t + 1) * x (t + 1 + j)))) := by
+      rw [hsplit, ← 𝔼.tower (Nat.le_succ t) ((P t * x (t + 1)) * (P (t + 1) * x (t + 1 + j))),
+        hpo _ _ _ hknown, mul_smul_comm, map_smul, smul_smul, ← pow_succ']
+    change β ^ (j + 1) • 𝔼.E t (P t * x (t + (j + 1))) = _
+    rw [e1, ih']
+    set c : ℝ := ∏ u ∈ Finset.range j, (1 + i (t + 1 + u))⁻¹ with hc
+    have h2 : (P t * x (t + 1)) * (fun _ => c) = c • (P t * x (t + 1)) := by
+      funext ω; simp only [Pi.mul_apply, Pi.smul_apply, smul_eq_mul]; ring
+    rw [h2, map_smul, smul_comm, hF']
+    funext ω
+    simp only [Pi.smul_apply, smul_eq_mul]
+    rw [Finset.prod_range_succ', hc, add_zero]
+    congr 1
+    refine Finset.prod_congr rfl fun u _ => ?_
+    rw [show t + (u + 1) = t + 1 + u by omega]
+
+/-- Cochrane (2023), §7.1, p. 214: the product of one-period discount factors along the announced
+path is the forward-guidance bond price, `∏_{u<j}(1 + i_u)^{-1} = fgPrice r i T j`. -/
+theorem prod_fgRate {r i : ℝ} (hr : -1 < r) (hi : -1 < i) (T j : ℕ) :
+    ∏ u ∈ Finset.range j, (1 + fgRate r i T (0 + u))⁻¹ = fgPrice r i T j := by
+  have h1 : (1 + r) ≠ 0 := by linarith
+  have h2 : (1 + i) ≠ 0 := by linarith
+  induction j with
+  | zero => simp [fgPrice]
+  | succ j ih =>
+    rw [Finset.prod_range_succ, ih, zero_add]
+    unfold fgPrice fgRate
+    by_cases hj : j < T
+    · simp only [hj, ↓reduceIte, min_eq_left (show j + 1 ≤ T by omega), min_eq_left hj.le,
+        Nat.sub_eq_zero_of_le (show j + 1 ≤ T by omega), Nat.sub_eq_zero_of_le hj.le, pow_succ]
+      field_simp
+    · simp only [hj, ↓reduceIte, min_eq_right (show T ≤ j + 1 by omega),
+        min_eq_right (show T ≤ j by omega), show j + 1 - T = j - T + 1 by omega, pow_succ]
+      field_simp
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): **the bond-price display holds under
+uncertainty**: with the announced path (`r` before `T`, `i` from `T` on) implemented and
+`β = 1/(1+r)`, `Q_0^{(j)} = β^j E_0(P_0/P_j) = ((1+r)^{min(j,T)}(1+i)^{j−T})^{-1}` in every
+state. -/
+theorem stoch_fgPrice (hpo : 𝔼.PullOut) {r i : ℝ} (hr : -1 < r) (hi : -1 < i) {T : ℕ}
+    {P x : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T)) (j : ℕ) :
+    bondPrice 𝔼 (1 + r)⁻¹ P x 0 j = fun _ => fgPrice r i T j := by
+  rw [bondPrice_eq_prod 𝔼 hpo hP hx hPx hF j 0, prod_fgRate hr hi T j]
+
+/-- Cochrane (2023), §7.1, pp. 214–215 (under uncertainty): **the expected path.** The book's
+price path is the path of expected values of `1/P`: `E_0(1/P_j) = 1/fgPath(P_0)_j`, so `E_0(1/P_j)`
+is flat until `T` and falls at the rate `(1+r)/(1+i)` afterwards. -/
+theorem stoch_E0_path (hpo : 𝔼.PullOut) {r i : ℝ} (hr : -1 < r) (hi : -1 < i) {T : ℕ}
+    {P x : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T)) (j : ℕ) (ω : Ω) :
+    𝔼.E 0 (x j) ω = (fgPath (P 0 ω) r i T j)⁻¹ := by
+  have hP0 : P 0 ω ≠ 0 := fun h => by have := hPx 0 ω; rw [h, zero_mul] at this; simp at this
+  have h1 : (1 + r) ≠ 0 := by linarith
+  have hb := congrFun (stoch_fgPrice 𝔼 hpo hr hi hP hx hPx hF j) ω
+  rw [bondPrice_eq 𝔼 hpo hP, fgPrice_eq_path hP0 hr hi] at hb
+  simp only [Pi.smul_apply, Pi.mul_apply, smul_eq_mul, zero_add] at hb
+  have hβ : ((1 + r)⁻¹) ^ j ≠ 0 := pow_ne_zero _ (inv_ne_zero h1)
+  have := mul_left_cancel₀ hβ hb
+  rw [div_eq_mul_inv] at this
+  exact mul_left_cancel₀ hP0 this
+
+/-- Cochrane (2023), §7.1, p. 215 (under uncertainty): the Fisher relation with the announced path,
+`E_t(P_t/P_{t+1}) = (1 + r)/(1 + i_t)`. -/
+theorem stoch_expected_inflation {r i : ℝ} (hr : -1 < r) {T : ℕ} {P x : ℕ → Ω → ℝ}
+    (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T)) (t : ℕ) :
+    𝔼.E t (P t * x (t + 1)) = fun _ => (1 + r) / (1 + fgRate r i T t) := by
+  have h1 : (1 + r) ≠ 0 := by linarith
+  have := hF t
+  simp only [bondPrice, pow_one] at this
+  funext ω
+  have hω := congrFun this ω
+  simp only [Pi.smul_apply, smul_eq_mul] at hω
+  rw [div_eq_mul_inv, ← hω]
+  field_simp
+
+/-- Cochrane (2023), §7.1, p. 215 (under uncertainty): **no predictable second jump**: up to and
+including the date of the rate rise there is no expected price change,
+`E_t(P_t/P_{t+1}) = 1` for every `t < T`; any change in the price level at `T` is news. -/
+theorem stoch_no_expected_jump {r i : ℝ} (hr : -1 < r) {T : ℕ} {P x : ℕ → Ω → ℝ}
+    (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T)) {t : ℕ} (ht : t < T) :
+    𝔼.E t (P t * x (t + 1)) = fun _ => 1 := by
+  have h1 : (1 + r) ≠ 0 := by linarith
+  rw [stoch_expected_inflation 𝔼 hr hF t]
+  funext ω
+  simp [fgRate, ht, div_self h1]
+
+/-- Cochrane (2023), §7.1, p. 215 (under uncertainty): **expected inflation starts when the rate
+rises**: for `t ≥ T`, `E_t(P_t/P_{t+1}) = (1+r)/(1+i) < 1` when `−1 < r < i`. -/
+theorem stoch_expected_inflation_after {r i : ℝ} (hr : -1 < r) (hri : r < i) {T : ℕ}
+    {P x : ℕ → Ω → ℝ} (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T)) {t : ℕ} (ht : T ≤ t)
+    (ω : Ω) : 𝔼.E t (P t * x (t + 1)) ω = (1 + r) / (1 + i) ∧ (1 + r) / (1 + i) < 1 := by
+  have hrate : fgRate r i T t = i := by simp [fgRate, show ¬ t < T by omega]
+  rw [stoch_expected_inflation 𝔼 hr hF t, hrate]
+  exact ⟨rfl, (div_lt_one (by linarith)).mpr (by linarith)⟩
+
+/-- Cochrane (2023), eq. (7.3), p. 214 (under uncertainty): **the valuation equation.** With
+deterministic outstanding debt `B_{−1}^{(j)} = B_j` (none beyond maturity `k`) and the announced
+path implemented, the date-0 present-value relation reads, state by state,
+`(∑_{j≤k} Q_0^{(j)} B_{−1}^{(j)})/P_0 = E_0 ∑_j β^j s_j` with the book's bond prices. -/
+theorem stoch_valuation (hpo : 𝔼.PullOut) {r i : ℝ} (hr : -1 < r) (hi : -1 < i) {T k : ℕ}
+    {B : ℕ → ℝ} (hBk : ∀ j, k < j → B j = 0) {P x s : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P)
+    (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T))
+    (hpv : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x s 0) (ω : Ω) :
+    (∑ j ∈ Finset.range (k + 1), fgPrice r i T j * B j) / P 0 ω =
+      pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω := by
+  have hterm : ∀ j, debtTerm 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x 0 j ω =
+      x 0 ω * (fgPrice r i T j * B j) := by
+    intro j
+    have hb := congrFun (stoch_fgPrice 𝔼 hpo hr hi hP hx hPx hF j) ω
+    rw [bondPrice_eq 𝔼 hpo hP] at hb
+    simp only [Pi.smul_apply, Pi.mul_apply, smul_eq_mul, zero_add] at hb
+    simp only [debtTerm, zero_add]
+    rw [← hb]
+    have := hPx 0 ω
+    linear_combination (-(B j * (1 + r)⁻¹ ^ j * 𝔼.E 0 (x j) ω)) * this
+  have hfin : HasSum (fun j => debtTerm 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x 0 j ω)
+      (∑ j ∈ Finset.range (k + 1), x 0 ω * (fgPrice r i T j * B j)) := by
+    simp only [hterm]
+    exact hasSum_sum_of_ne_finset_zero fun j hj => by
+      rw [hBk j (by simpa using hj), mul_zero, mul_zero]
+  have := (hpv ω).2.unique hfin
+  rw [this, ← Finset.mul_sum, div_eq_mul_inv, mul_comm]
+  congr 1
+  exact inv_eq_of_mul_eq_one_right (hPx 0 ω)
+
+/-- Cochrane (2023), eq. (7.3), p. 214 (under uncertainty): with a positive present value of
+surpluses, `P_0 = priceLevel (fgPrice r i T) B k (E_0 ∑ β^j s_j)` state by state. -/
+theorem stoch_priceLevel (hpo : 𝔼.PullOut) {r i : ℝ} (hr : -1 < r) (hi : -1 < i) {T k : ℕ}
+    {B : ℕ → ℝ} (hBk : ∀ j, k < j → B j = 0) {P x s : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P)
+    (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1) (hP0 : ∀ ω, 0 < P 0 ω)
+    (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T))
+    (hpv : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x s 0) (ω : Ω)
+    (hS : 0 < pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω) :
+    P 0 ω = priceLevel (fgPrice r i T) B k (pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω) :=
+  (valuation_iff _ B k hS (hP0 ω)).mp (stoch_valuation 𝔼 hpo hr hi hBk hP hx hPx hF hpv ω)
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): **guidance beyond the longest maturity
+has no effect**: if `T ≥ k`, the equilibrium `P_0` with guidance equals the one without any rate
+change, in every state (same surpluses and outstanding debt). -/
+theorem stoch_fg_no_effect (hpo : 𝔼.PullOut) {r i : ℝ} (hr : -1 < r) (hi : -1 < i) {T k : ℕ}
+    (hkT : k ≤ T) {B : ℕ → ℝ} (hBk : ∀ j, k < j → B j = 0) {P x P' x' s : ℕ → Ω → ℝ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hP0 : ∀ ω, 0 < P 0 ω) (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T))
+    (hpv : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x s 0)
+    (hP' : 𝔼.Adapted P') (hx' : 𝔼.Adapted x') (hPx' : ∀ t ω, P' t ω * x' t ω = 1)
+    (hP0' : ∀ ω, 0 < P' 0 ω) (hF' : FisherPath 𝔼 (1 + r)⁻¹ P' x' (fgRate r r T))
+    (hpv' : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x' s 0) (ω : Ω)
+    (hS : 0 < pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω) : P 0 ω = P' 0 ω := by
+  rw [stoch_priceLevel 𝔼 hpo hr hi hBk hP hx hPx hP0 hF hpv ω hS,
+    stoch_priceLevel 𝔼 hpo hr hr hBk hP' hx' hPx' hP0' hF' hpv' ω hS]
+  exact priceLevel_fg_of_le r i B hkT _
+
+/-- Cochrane (2023), §7.1, pp. 213–214 (under uncertainty): **guidance within the
+maturity structure lowers `P_0`**: if some maturity `j₀` with `T < j₀ ≤ k` is outstanding
+(nonnegative positions, `r < i`), `P_0` with guidance is strictly below `P_0` without, in every
+state. -/
+theorem stoch_fg_lowers (hpo : 𝔼.PullOut) {r i : ℝ} (hr : -1 < r) (hri : r < i) {T k j₀ : ℕ}
+    (hTj : T < j₀) (hjk : j₀ ≤ k) {B : ℕ → ℝ} (hB : ∀ j, 0 ≤ B j) (hBj : 0 < B j₀)
+    (hBk : ∀ j, k < j → B j = 0) {P x P' x' s : ℕ → Ω → ℝ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hP0 : ∀ ω, 0 < P 0 ω) (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T))
+    (hpv : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x s 0)
+    (hP' : 𝔼.Adapted P') (hx' : 𝔼.Adapted x') (hPx' : ∀ t ω, P' t ω * x' t ω = 1)
+    (hP0' : ∀ ω, 0 < P' 0 ω) (hF' : FisherPath 𝔼 (1 + r)⁻¹ P' x' (fgRate r r T))
+    (hpv' : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x' s 0) (ω : Ω)
+    (hS : 0 < pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω) : P 0 ω < P' 0 ω := by
+  rw [stoch_priceLevel 𝔼 hpo hr (by linarith) hBk hP hx hPx hP0 hF hpv ω hS,
+    stoch_priceLevel 𝔼 hpo hr hr hBk hP' hx' hPx' hP0' hF' hpv' ω hS]
+  exact priceLevel_fg_lt hr hri hB hTj hjk hBj hS
+
+/-- Cochrane (2023), §7.1, p. 213 (under uncertainty): **the effect of guidance falls with the
+horizon**: with nonnegative positions, `P_0` under horizon `T` is at most `P_0` under horizon
+`T' ≥ T`, in every state (`T = 0` is the immediate rise, the largest effect). -/
+theorem stoch_fg_mono (hpo : 𝔼.PullOut) {r i : ℝ} (hr : -1 < r) (hri : r ≤ i) {T T' k : ℕ}
+    (hTT' : T ≤ T') {B : ℕ → ℝ} (hB : ∀ j, 0 ≤ B j) (hBk : ∀ j, k < j → B j = 0)
+    {P x P' x' s : ℕ → Ω → ℝ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hP0 : ∀ ω, 0 < P 0 ω) (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T))
+    (hpv : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x s 0)
+    (hP' : 𝔼.Adapted P') (hx' : 𝔼.Adapted x') (hPx' : ∀ t ω, P' t ω * x' t ω = 1)
+    (hP0' : ∀ ω, 0 < P' 0 ω) (hF' : FisherPath 𝔼 (1 + r)⁻¹ P' x' (fgRate r i T'))
+    (hpv' : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => B j) x' s 0) (ω : Ω)
+    (hS : 0 < pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω) : P 0 ω ≤ P' 0 ω := by
+  have hi : -1 < i := by linarith
+  rw [stoch_priceLevel 𝔼 hpo hr hi hBk hP hx hPx hP0 hF hpv ω hS,
+    stoch_priceLevel 𝔼 hpo hr hi hBk hP' hx' hPx' hP0' hF' hpv' ω hS]
+  exact priceLevel_mono hr hri hB k hS hTT'
+
+/-! ### Geometric maturity structure (Online Appendix A1.2.1) under uncertainty -/
+
+/-- Cochrane (2023), Online Appendix p. 560 (under uncertainty): with a geometric
+maturity structure `B_{−1}^{(j)} = ϖ^j B` (`0 ≤ ϖ < 1 + r`, `r ≤ i`) and the announced path
+implemented,
+the date-0 present-value relation reads `B (1/P_0) fgSum = E_0 ∑ β^j s_j`, state by state. -/
+theorem stoch_geometric_value (hpo : 𝔼.PullOut) {r i om B : ℝ} (hr : -1 < r) (hri : r ≤ i)
+    (hom0 : 0 ≤ om) (hom1 : om < 1 + r) {T : ℕ} {P x s : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P)
+    (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T))
+    (hpv : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => om ^ j * B) x s 0) (ω : Ω) :
+    B * x 0 ω * fgSum r i om T = pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω := by
+  have hi : -1 < i := by linarith
+  have hterm : ∀ j, debtTerm 𝔼 (1 + r)⁻¹ (fun _ j _ => om ^ j * B) x 0 j ω =
+      B * x 0 ω * (fgPrice r i T j * om ^ j) := by
+    intro j
+    have hb := congrFun (stoch_fgPrice 𝔼 hpo hr hi hP hx hPx hF j) ω
+    rw [bondPrice_eq 𝔼 hpo hP] at hb
+    simp only [Pi.smul_apply, Pi.mul_apply, smul_eq_mul, zero_add] at hb
+    simp only [debtTerm, zero_add]
+    rw [← hb]
+    have := hPx 0 ω
+    linear_combination (-(om ^ j * B * (1 + r)⁻¹ ^ j * 𝔼.E 0 (x j) ω)) * this
+  have hs := (hasSum_fg_geometric hr hri hom0 hom1 T).mul_left (B * x 0 ω)
+  simp only [← hterm] at hs
+  exact hs.unique (hpv ω).2
+
+/-- Cochrane (2023), Online Appendix p. 560 (under uncertainty): **the discrete
+forward-guidance formula holds state by state.** Compare the equilibrium with guidance (rate `i`
+from `T`) with the one without any rate change, same surpluses and geometric debt. Then in every
+state `P_0/P − 1 = J_T = fgJump r i ϖ T`, the book's deterministic number. -/
+theorem stoch_fg_jump (hpo : 𝔼.PullOut) {r i om B : ℝ} (hr : -1 < r) (hri : r ≤ i)
+    (hom0 : 0 ≤ om) (hom1 : om < 1 + r) {T : ℕ} {P x P' x' s : ℕ → Ω → ℝ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hP0 : ∀ ω, 0 < P 0 ω) (hF : FisherPath 𝔼 (1 + r)⁻¹ P x (fgRate r i T))
+    (hpv : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => om ^ j * B) x s 0)
+    (hP' : 𝔼.Adapted P') (hx' : 𝔼.Adapted x') (hPx' : ∀ t ω, P' t ω * x' t ω = 1)
+    (hP0' : ∀ ω, 0 < P' 0 ω) (hF' : FisherPath 𝔼 (1 + r)⁻¹ P' x' (fgRate r r T))
+    (hpv' : PresentValue 𝔼 (1 + r)⁻¹ (fun _ j _ => om ^ j * B) x' s 0) (ω : Ω)
+    (hS : pvSurplus 𝔼 (1 + r)⁻¹ s 0 ω ≠ 0) :
+    P 0 ω / P' 0 ω - 1 = fgJump r i om T := by
+  have hx0 : ∀ {P x : ℕ → Ω → ℝ}, (∀ t ω, P t ω * x t ω = 1) → (∀ ω, 0 < P 0 ω) →
+      x 0 ω = 1 / P 0 ω := fun hPx hP0 => by
+    rw [eq_div_iff (hP0 ω).ne', mul_comm]; exact hPx 0 ω
+  have hfg := stoch_geometric_value 𝔼 hpo hr hri hom0 hom1 hP hx hPx hF hpv ω
+  have hss := stoch_geometric_value 𝔼 hpo hr le_rfl hom0 hom1 hP' hx' hPx' hF' hpv' ω
+  rw [hx0 hPx hP0, mul_one_div] at hfg
+  rw [hx0 hPx' hP0', mul_one_div] at hss
+  exact fg_jump_geometric hr hri hom1 (hP0' ω) (hP0 ω) T hss hfg hS
+
+end Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Quantitative easing with a separate Treasury and Fed, under uncertainty
+
+Cochrane (2023), §7.6.1, pp. 229–232, equations (7.22)–(7.24).
+
+In the book the path after the date-0 shock is perfect foresight ("I drop `E_0` in front of
+`1/P_j`", p. 230), and "for a desired price-level path and a choice of one of monetary `M` or QE
+purchases `B̃`, (7.23) gives us the other one". Here surpluses and price levels are random. The
+Treasury keeps the geometric structure `ϖ^{j−t} B`, the QE purchases `B̃_0^{(j)}` are fixed at
+date 0, and reserves `M_{t−1}^{(t)}` are chosen at `t − 1` (predetermined). At every `t ≥ 1` the
+present-value relation is
+`M_{t−1}^{(t)}/P_t + ∑_{j≥t} β^{j−t}(ϖ^{j−t}B + B̃_0^{(j)}) E_t(1/P_j) = E_t ∑_k β^k s_{t+k}`
+(`QEPV`).
+
+* `qe_iff`: given the price process, (7.23) determines the reserves state by state,
+  `M_{t−1}^{(t)} = (E_t ∑ β^k s_{t+k} − V_t) P_t` with `V_t` the value of Treasury and QE bonds.
+* `reserves_exist_iff`: **the reverse engineering under uncertainty.** Predetermined reserves
+  supporting a given random price path exist (and are then unique, `reserves_unique`) if and only
+  if `R_t = (E_t ∑ β^k s_{t+k} − V_t) P_t` is known at `t − 1` for every `t ≥ 1`. Under perfect
+  foresight the condition is automatic, which is the book's statement
+  (`perfectForesight_reserves_exist`).
+* `innovation_form`: the content of (7.23) under uncertainty is an innovation restriction:
+  `M_{t−1}^{(t)}(1/P_t − E_{t−1}(1/P_t)) = (news in the present value of surpluses) −
+  (news in the value of Treasury and QE bonds)`. The central bank sets the expected path;
+  fiscal news sets the surprises.
+* `no_reserves_of_news`, `coin_no_reserves`: a price path known one period ahead (a
+  deterministic one, say) cannot be supported when the present value of surpluses has news:
+  with a coin-flip surplus shock and a deterministic desired price path there are no
+  predetermined reserves at all.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty
+
+open Filter Topology MaturityStructure
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), §7.6.1, p. 230 (under uncertainty): the present-value relation at `t` with
+Treasury debt `ϖ^{j−t} B`, QE bonds `B̃_0^{(j)} = b j`, reserves `M_{t−1}^{(t)} = Mr t`:
+`∑_k β^k (ϖ^k B + B̃_0^{(t+k)}) E_t(1/P_{t+k}) = E_t ∑_k β^k s_{t+k} − M_{t−1}^{(t)}/P_t`. -/
+def QEPV (β om B : ℝ) (b Mr x s : ℕ → Ω → ℝ) (t : ℕ) : Prop :=
+  ∀ ω, HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + b (t + k) ω) * 𝔼.E t (x (t + k)) ω))
+    (pvSurplus 𝔼 β s t ω - Mr t ω * x t ω)
+
+/-- Cochrane (2023), §7.6.1, p. 230: the reserves implied by (7.23) at `t`,
+`R_t = (E_t ∑ β^k s_{t+k} − V_t)/(1/P_t)`, where `V_t` is the value of Treasury and QE bonds. -/
+noncomputable def resv (β : ℝ) (V x s : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => (pvSurplus 𝔼 β s t ω - V t ω) / x t ω
+
+/-- Cochrane (2023), eq. (7.23), p. 230 (under uncertainty): with `V_t` the (convergent) value of
+Treasury and QE bonds and `1/P_t > 0`, the present-value relation at `t` holds if and only if the
+reserves are `R_t`. -/
+theorem qe_iff {β om B : ℝ} {b Mr x s V : ℕ → Ω → ℝ}
+    (hV : ∀ t ω, HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + b (t + k) ω) *
+      𝔼.E t (x (t + k)) ω)) (V t ω)) (hx : ∀ t ω, 0 < x t ω) (t : ℕ) :
+    QEPV 𝔼 β om B b Mr x s t ↔ Mr t = resv 𝔼 β V x s t := by
+  constructor
+  · intro h
+    funext ω
+    have := (h ω).unique (hV t ω)
+    rw [resv, eq_div_iff (hx t ω).ne']
+    linarith
+  · intro h ω
+    convert hV t ω using 1
+    rw [h, resv]
+    field_simp [(hx t ω).ne']
+    ring
+
+/-- Cochrane (2023), §7.6.1, p. 230 (under uncertainty): the reserves supporting a given random
+price path, if any, are unique at every date `t ≥ 1`. -/
+theorem reserves_unique {β om B : ℝ} {b Mr Mr' x s V : ℕ → Ω → ℝ}
+    (hV : ∀ t ω, HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + b (t + k) ω) *
+      𝔼.E t (x (t + k)) ω)) (V t ω)) (hx : ∀ t ω, 0 < x t ω) (t : ℕ)
+    (h : QEPV 𝔼 β om B b Mr x s t) (h' : QEPV 𝔼 β om B b Mr' x s t) : Mr t = Mr' t := by
+  rw [(qe_iff 𝔼 hV hx t).mp h, (qe_iff 𝔼 hV hx t).mp h']
+
+/-- Cochrane (2023), §7.6.1, p. 230 (under uncertainty): **reverse engineering of reserves.**
+Given a random price path (`1/P > 0`) and the QE purchases, there are predetermined reserves
+(`M_{t}^{(t+1)}` known at `t`) satisfying the present-value relation at every date `t ≥ 1` if
+and only if the implied reserves `R_{t+1}` are known at `t` for every `t`. -/
+theorem reserves_exist_iff {β om B : ℝ} {b x s V : ℕ → Ω → ℝ}
+    (hV : ∀ t ω, HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + b (t + k) ω) *
+      𝔼.E t (x (t + k)) ω)) (V t ω)) (hx : ∀ t ω, 0 < x t ω) :
+    (∃ Mr : ℕ → Ω → ℝ, (∀ t, 𝔼.E t (Mr (t + 1)) = Mr (t + 1)) ∧
+      ∀ t, QEPV 𝔼 β om B b Mr x s (t + 1)) ↔
+      ∀ t, 𝔼.E t (resv 𝔼 β V x s (t + 1)) = resv 𝔼 β V x s (t + 1) := by
+  constructor
+  · rintro ⟨Mr, hMr, hpv⟩ t
+    rw [← (qe_iff 𝔼 hV hx (t + 1)).mp (hpv t)]
+    exact hMr t
+  · intro hR
+    refine ⟨resv 𝔼 β V x s, hR, fun t => (qe_iff 𝔼 hV hx (t + 1)).mpr rfl⟩
+
+/-- Cochrane (2023), §7.6.1, p. 230: **under perfect foresight (the book's case) the reserves
+always exist**: for any positive price path and QE purchases, `M_{t−1}^{(t)} = R_t` satisfies
+(7.23) at every `t ≥ 1`. -/
+theorem perfectForesight_reserves_exist {β om B : ℝ} {b x s V : ℕ → Unit → ℝ}
+    (hV : ∀ t u, HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + b (t + k) u) *
+      perfectForesight.E t (x (t + k)) u)) (V t u)) (hx : ∀ t u, 0 < x t u) :
+    ∃ Mr : ℕ → Unit → ℝ, (∀ t, perfectForesight.E t (Mr (t + 1)) = Mr (t + 1)) ∧
+      ∀ t, QEPV perfectForesight β om B b Mr x s (t + 1) :=
+  (reserves_exist_iff perfectForesight hV hx).mpr fun _ => rfl
+
+/-- Cochrane (2023), eq. (7.23), p. 230 (under uncertainty): **the innovation form.** With
+predetermined reserves, `M_{t}^{(t+1)} (1/P_{t+1} − E_t(1/P_{t+1}))` equals the news in the present
+value of surpluses minus the news in the value of Treasury and QE bonds. -/
+theorem innovation_form (hpo : 𝔼.PullOut) {β om B : ℝ} {b Mr x s V : ℕ → Ω → ℝ}
+    (hV : ∀ t ω, HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + b (t + k) ω) *
+      𝔼.E t (x (t + k)) ω)) (V t ω)) (t : ℕ) (hMr : 𝔼.E t (Mr (t + 1)) = Mr (t + 1))
+    (h : QEPV 𝔼 β om B b Mr x s (t + 1)) :
+    Mr (t + 1) * (x (t + 1) - 𝔼.E t (x (t + 1))) =
+      (pvSurplus 𝔼 β s (t + 1) - 𝔼.E t (pvSurplus 𝔼 β s (t + 1))) -
+        (V (t + 1) - 𝔼.E t (V (t + 1))) := by
+  have hlev : Mr (t + 1) * x (t + 1) = pvSurplus 𝔼 β s (t + 1) - V (t + 1) := by
+    funext ω
+    have := (h ω).unique (hV (t + 1) ω)
+    simp only [Pi.mul_apply, Pi.sub_apply]
+    linarith
+  have hE : Mr (t + 1) * 𝔼.E t (x (t + 1)) =
+      𝔼.E t (pvSurplus 𝔼 β s (t + 1)) - 𝔼.E t (V (t + 1)) := by
+    rw [← hpo t _ _ hMr, hlev, map_sub]
+  rw [mul_sub, hlev, hE]
+  ring
+
+/-- Cochrane (2023), §7.6.1 (under uncertainty): **a price path known one period ahead cannot be
+supported when the present value of surpluses has news.** If `1/P_{t+1}` and the bond value
+`V_{t+1}` are known at `t` but `E_{t+1} ∑ β^k s_{t+1+k}` is not, no predetermined reserves satisfy
+the present-value relation at `t + 1`. -/
+theorem no_reserves_of_news (hpo : 𝔼.PullOut) {β om B : ℝ} {b x s V : ℕ → Ω → ℝ}
+    (hV : ∀ t ω, HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + b (t + k) ω) *
+      𝔼.E t (x (t + k)) ω)) (V t ω)) (t : ℕ) (hxk : 𝔼.E t (x (t + 1)) = x (t + 1))
+    (hVk : 𝔼.E t (V (t + 1)) = V (t + 1))
+    (hnews : 𝔼.E t (pvSurplus 𝔼 β s (t + 1)) ≠ pvSurplus 𝔼 β s (t + 1)) :
+    ¬ ∃ Mr : ℕ → Ω → ℝ, 𝔼.E t (Mr (t + 1)) = Mr (t + 1) ∧ QEPV 𝔼 β om B b Mr x s (t + 1) := by
+  rintro ⟨Mr, hMr, h⟩
+  have := innovation_form 𝔼 hpo hV t hMr h
+  rw [hxk, sub_self, mul_zero, hVk, sub_self, sub_zero] at this
+  exact hnews (sub_eq_zero.mp this.symm).symm
+
+/-! ### A coin-flip surplus shock -/
+
+/-- Cochrane (2023), §7.6.1 (illustration under uncertainty): surpluses `s_t = 1`, except a
+fair coin-flip shock `±1` added at date 1 (revealed at date 1). -/
+noncomputable def coinS : ℕ → Bool × Bool → ℝ :=
+  fun t ω => 1 + if t = 1 then ExpectationsFiniteTree.coinShock 1 ω else 0
+
+/-- Cochrane (2023), §7.6.1 (illustration): the present value of surpluses at date 1 is
+`1/(1−β) + ε_1`, which carries the date-1 news `ε_1`. -/
+theorem coin_pv {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (ω : Bool × Bool) :
+    pvSurplus ExpectationsFiniteTree.coinSystem β coinS 1 ω =
+      1 / (1 - β) + ExpectationsFiniteTree.coinShock 1 ω := by
+  have hk1 : ExpectationsFiniteTree.coinSystem.E 1 (ExpectationsFiniteTree.coinShock 1) ω =
+      ExpectationsFiniteTree.coinShock 1 ω := by
+    rw [ExpectationsFiniteTree.coinSystem,
+      ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E]
+    exact ExpectationsFiniteTree.coinTree.condE_of_const_on_cell fun ω' h =>
+      ExpectationsFiniteTree.coinShock_measurable 1 h
+  have hterm : ∀ k, surplusTerm ExpectationsFiniteTree.coinSystem β coinS 1 k ω =
+      β ^ k * 1 + (Pi.single 0 (ExpectationsFiniteTree.coinShock 1 ω) : ℕ → ℝ) k := by
+    intro k
+    rcases k with _ | k
+    · have hf : coinS (1 + 0) = (fun _ => (1 : ℝ)) + ExpectationsFiniteTree.coinShock 1 := by
+        funext ω'; simp [coinS]
+      simp only [surplusTerm, hf, map_add, ExpectationsFiniteTree.coinSystem.const, Pi.add_apply,
+        hk1, pow_zero, one_mul, Pi.single_eq_same]
+    · have hf : coinS (1 + (k + 1)) = fun _ => (1 : ℝ) := by
+        funext ω'; simp [coinS]
+      simp only [surplusTerm, hf, ExpectationsFiniteTree.coinSystem.const,
+        Pi.single_eq_of_ne (show k + 1 ≠ 0 by omega), add_zero]
+  have hs : HasSum (fun k => surplusTerm ExpectationsFiniteTree.coinSystem β coinS 1 k ω)
+      (1 / (1 - β) + ExpectationsFiniteTree.coinShock 1 ω) := by
+    simp only [hterm]
+    have h := ((hasSum_geometric_of_lt_one hβ0 hβ1).mul_right 1).add
+      (hasSum_pi_single 0 (ExpectationsFiniteTree.coinShock 1 ω))
+    convert h using 1
+    rw [mul_one, one_div]
+  exact hs.tsum_eq
+
+/-- Cochrane (2023), §7.6.1 (under uncertainty): **no reserves support a deterministic price path
+when surpluses carry news.** In the coin-flip economy (`0 ≤ β < 1`), for any deterministic
+path `1/P_t = p_t`, deterministic QE purchases and Treasury structure with a convergent
+bond value, no reserves chosen at date 0 satisfy the present-value relation at date 1. -/
+theorem coin_no_reserves {β om B : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (p bq : ℕ → ℝ) {v : ℝ}
+    (hv : HasSum (fun k : ℕ => β ^ k * ((om ^ k * B + bq (1 + k)) * p (1 + k))) v) :
+    ¬ ∃ Mr : ℕ → Bool × Bool → ℝ, ExpectationsFiniteTree.coinSystem.E 0 (Mr 1) = Mr 1 ∧
+      QEPV ExpectationsFiniteTree.coinSystem β om B (fun j _ => bq j) Mr (fun t _ => p t)
+        coinS 1 := by
+  rintro ⟨Mr, hMr, h⟩
+  have hc : ∀ (t : ℕ) (c : ℝ), ExpectationsFiniteTree.coinSystem.E t (fun _ => c) = fun _ => c :=
+    fun t c => ExpectationsFiniteTree.coinSystem.const t c
+  -- the relation at date 1 pins the present value of surpluses to a date-0 known variable
+  have hlev : ∀ ω, pvSurplus ExpectationsFiniteTree.coinSystem β coinS 1 ω = v + Mr 1 ω * p 1 := by
+    intro ω
+    have h1 := h ω
+    simp only [hc] at h1
+    have := h1.unique hv
+    linarith
+  have hfun : pvSurplus ExpectationsFiniteTree.coinSystem β coinS 1 =
+      (fun _ => v) + p 1 • Mr 1 := by
+    funext ω; rw [hlev ω]; simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]; ring
+  have hknown : ExpectationsFiniteTree.coinSystem.E 0
+      (pvSurplus ExpectationsFiniteTree.coinSystem β coinS 1) =
+      pvSurplus ExpectationsFiniteTree.coinSystem β coinS 1 := by
+    rw [hfun, map_add, map_smul, hc, hMr]
+  -- but its date-0 forecast is `1/(1−β)` while its value after heads is `1/(1−β) + 1`
+  have hpvfun : pvSurplus ExpectationsFiniteTree.coinSystem β coinS 1 =
+      (fun _ => 1 / (1 - β)) + ExpectationsFiniteTree.coinShock 1 := by
+    funext ω; rw [coin_pv hβ0 hβ1 ω]; rfl
+  have hE0 := ExpectationsFiniteTree.coinShock_mean_zero 0
+  rw [zero_add] at hE0
+  rw [hpvfun, map_add, hc, hE0] at hknown
+  have := congrFun hknown (true, true)
+  simp [ExpectationsFiniteTree.coinShock] at this
+
+end Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Conditional expectations pass through absolutely convergent series
+
+Cochrane (2023), §7.4, eq. (7.17), p. 225 (and every `E_t ∑` in the book).
+
+`TidyR5RandomRow.theoremW_rowR` assumed `TidyR5RandomRow.SeriesExchange`: `E_t` passes through
+absolutely convergent series of random variables. The question was whether a finitely additive
+expectation system could violate it. It cannot: **`SeriesExchange` follows from the axioms of an
+`ExpectationSystem`** (`seriesExchange`).
+
+The reason is that `E_t` is linear and monotone on *all* random variables, unbounded ones
+included. A finitely additive functional such as a Banach limit or a limit along a free
+ultrafilter is defined only on bounded functions (or is infinite on some unbounded ones), so it is
+not an `ExpectationSystem`. For a nonnegative series `F = ∑_n f_n` with tails `T_N`, the pointwise
+bound (`tail_le_bound`)
+`T_N ≤ ε + K h/(N+1) + F²/K`,
+where `h` is the first index at which the tail falls below `ε`, together with linearity and
+monotonicity, gives `E_t T_N → 0` (`E_tail_tendsto`). The two unbounded random variables `h` and
+`F²` have finite expectations because `E_t` is defined on them.
+
+Consequences: `theoremW_rowR'`, `price_formula_rowR'`, `formulaW_solves_rowR'` hold with no
+interchange hypothesis, for every expectation system with the pull-out property.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange
+
+open Filter Topology MaturityStructure GeneralFormula TidyR5RandomRow
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), §7.4 (used for every `E_t ∑`): the tail `T_N = ∑_{n ≥ N} f_n` of a series of
+random variables. -/
+noncomputable def tailF (f : ℕ → Ω → ℝ) (N : ℕ) : Ω → ℝ := fun ω => ∑' n, f (n + N) ω
+
+/-- Cochrane (2023), §7.4: tails of a nonnegative convergent series decrease, `T_{N'} ≤ T_N` for
+`N ≤ N'`. -/
+theorem tailF_anti {f : ℕ → Ω → ℝ} (hf0 : ∀ n ω, 0 ≤ f n ω)
+    (hfs : ∀ ω, Summable (fun n => f n ω)) (ω : Ω) {N N' : ℕ} (h : N ≤ N') :
+    tailF f N' ω ≤ tailF f N ω := by
+  obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le h
+  have hs : Summable (fun n => f (n + N) ω) := (summable_nat_add_iff N).mpr (hfs ω)
+  have := hs.sum_add_tsum_nat_add d
+  simp only [tailF]
+  rw [← this]
+  have e : (fun n => f (n + d + N) ω) = fun n => f (n + (N + d)) ω := by
+    funext n; congr 1; omega
+  rw [← e]
+  have : 0 ≤ ∑ i ∈ Finset.range d, f (i + N) ω := Finset.sum_nonneg fun i _ => hf0 _ ω
+  linarith
+
+/-- Cochrane (2023), §7.4: the tails of a series tend to zero at every state. -/
+theorem tailF_tendsto (f : ℕ → Ω → ℝ) (ω : Ω) :
+    Tendsto (fun N => tailF f N ω) atTop (𝓝 0) :=
+  tendsto_sum_nat_add (fun n => f n ω)
+
+/-- Cochrane (2023), §7.4: tails are nonnegative for a nonnegative series. -/
+theorem tailF_nonneg {f : ℕ → Ω → ℝ} (hf0 : ∀ n ω, 0 ≤ f n ω) (N : ℕ) (ω : Ω) :
+    0 ≤ tailF f N ω :=
+  tsum_nonneg fun _ => hf0 _ ω
+
+/-- Cochrane (2023), §7.4: the first index at which the tail is at most `ε`. -/
+noncomputable def firstIdx (f : ℕ → Ω → ℝ) (ε : ℝ) (ω : Ω) : ℝ :=
+  (sInf {M : ℕ | tailF f M ω ≤ ε} : ℕ)
+
+/-- Cochrane (2023), §7.4: **the pointwise tail bound** `T_N ≤ ε + K h/(N+1) + F²/K` for `ε, K > 0`,
+with `h` the first index at which the tail falls below `ε` and `F = T_0`. -/
+theorem tail_le_bound {f : ℕ → Ω → ℝ} (hf0 : ∀ n ω, 0 ≤ f n ω)
+    (hfs : ∀ ω, Summable (fun n => f n ω)) {ε K : ℝ} (hε : 0 < ε) (hK : 0 < K) (N : ℕ)
+    (ω : Ω) :
+    tailF f N ω ≤ ε + K * (firstIdx f ε ω / (N + 1)) + tailF f 0 ω ^ 2 / K := by
+  have hT0 := tailF_nonneg hf0 N ω
+  have hh0 : 0 ≤ firstIdx f ε ω := Nat.cast_nonneg _
+  have hN1 : (0 : ℝ) < N + 1 := by positivity
+  have hF2 : 0 ≤ tailF f 0 ω ^ 2 / K := div_nonneg (sq_nonneg _) hK.le
+  by_cases h : tailF f N ω ≤ ε
+  · have : 0 ≤ K * (firstIdx f ε ω / (N + 1)) := mul_nonneg hK.le (div_nonneg hh0 hN1.le)
+    linarith
+  · push Not at h
+    have hne : {M : ℕ | tailF f M ω ≤ ε}.Nonempty := by
+      obtain ⟨M, hM⟩ := ((tailF_tendsto f ω).eventually (ge_mem_nhds hε)).exists
+      exact ⟨M, hM⟩
+    have hlt : N < sInf {M : ℕ | tailF f M ω ≤ ε} := by
+      by_contra hc
+      push Not at hc
+      have h1 := tailF_anti hf0 hfs ω hc
+      have h2 : tailF f (sInf {M : ℕ | tailF f M ω ≤ ε}) ω ≤ ε := Nat.sInf_mem hne
+      linarith
+    have hge : 1 ≤ firstIdx f ε ω / (N + 1) := by
+      rw [le_div_iff₀ hN1, one_mul, firstIdx]
+      exact_mod_cast hlt
+    have hTF : tailF f N ω ≤ tailF f 0 ω := tailF_anti hf0 hfs ω (Nat.zero_le N)
+    have hK1 : K ≤ K * (firstIdx f ε ω / (N + 1)) := by nlinarith
+    by_cases hFK : tailF f 0 ω ≤ K
+    · linarith
+    · push Not at hFK
+      have : tailF f 0 ω ≤ tailF f 0 ω ^ 2 / K := by
+        rw [le_div_iff₀ hK]; nlinarith
+      nlinarith
+
+/-- Cochrane (2023), §7.4: **expectations of the tails tend to zero**, for every expectation
+system: `E_t T_N → 0` for a nonnegative series converging at every state. -/
+theorem E_tail_tendsto {f : ℕ → Ω → ℝ} (hf0 : ∀ n ω, 0 ≤ f n ω)
+    (hfs : ∀ ω, Summable (fun n => f n ω)) (t : ℕ) (ω : Ω) :
+    Tendsto (fun N => 𝔼.E t (tailF f N) ω) atTop (𝓝 0) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  set η : ℝ := ε / 4 with hη
+  have hη0 : 0 < η := by positivity
+  set a : ℝ := 𝔼.E t (firstIdx f η) ω with ha
+  set c : ℝ := 𝔼.E t (fun ω' => tailF f 0 ω' ^ 2) ω with hc
+  have hnn : ∀ g : Ω → ℝ, (∀ ω', 0 ≤ g ω') → 0 ≤ 𝔼.E t g ω := fun g hg => by
+    have := 𝔼.mono t (show (fun _ => (0 : ℝ)) ≤ g from hg) ω
+    rwa [𝔼.const] at this
+  have ha0 : 0 ≤ a := hnn _ fun ω' => Nat.cast_nonneg _
+  have hc0 : 0 ≤ c := hnn _ fun ω' => sq_nonneg _
+  set K : ℝ := c / η + 1 with hK
+  have hK0 : 0 < K := by positivity
+  have hcK : c / K ≤ η := by
+    rw [div_le_iff₀ hK0, hK]
+    have : c = c / η * η := by field_simp
+    nlinarith
+  refine ⟨⌈K * a / η⌉₊, fun N hN => ?_⟩
+  have hN' : K * a / η ≤ N := (Nat.le_ceil _).trans (by exact_mod_cast hN)
+  have hKa : K * (a / (N + 1)) ≤ η := by
+    rw [div_le_iff₀ hη0] at hN'
+    rw [← mul_div_assoc, div_le_iff₀ (by positivity)]
+    nlinarith
+  have hb : tailF f N ≤ (fun _ => η) + (K / (N + 1)) • firstIdx f η +
+      (1 / K) • fun ω' => tailF f 0 ω' ^ 2 := fun ω' => by
+    have := tail_le_bound hf0 hfs hη0 hK0 N ω'
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    calc tailF f N ω' ≤ η + K * (firstIdx f η ω' / (N + 1)) + tailF f 0 ω' ^ 2 / K := this
+      _ = _ := by ring
+  have hup := 𝔼.mono t hb ω
+  rw [map_add, map_add, map_smul, map_smul, 𝔼.const] at hup
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at hup
+  have hlo := hnn _ (tailF_nonneg hf0 N)
+  rw [Real.dist_eq, sub_zero, abs_of_nonneg hlo]
+  have e1 : K / (N + 1) * a = K * (a / (N + 1)) := by ring
+  have e2 : 1 / K * c = c / K := by ring
+  rw [← ha, ← hc, e1, e2] at hup
+  linarith
+
+/-- Cochrane (2023), §7.4: **`E_t` passes through nonnegative series**, for every expectation
+system: `∑_n E_t f_n = E_t ∑_n f_n`. -/
+theorem hasSum_E_nonneg {f : ℕ → Ω → ℝ} (hf0 : ∀ n ω, 0 ≤ f n ω)
+    (hfs : ∀ ω, Summable (fun n => f n ω)) (t : ℕ) (ω : Ω) :
+    HasSum (fun n => 𝔼.E t (f n) ω) (𝔼.E t (fun ω' => ∑' n, f n ω') ω) := by
+  have hE0 : ∀ n, 0 ≤ 𝔼.E t (f n) ω := fun n => by
+    have := 𝔼.mono t (show (fun _ => (0 : ℝ)) ≤ f n from fun ω' => hf0 n ω') ω
+    rwa [𝔼.const] at this
+  rw [hasSum_iff_tendsto_nat_of_nonneg hE0]
+  have hpart : ∀ N, ∑ n ∈ Finset.range N, 𝔼.E t (f n) ω =
+      𝔼.E t (fun ω' => ∑' n, f n ω') ω - 𝔼.E t (tailF f N) ω := by
+    intro N
+    have hfun : (fun ω' => ∑' n, f n ω') - tailF f N = ∑ n ∈ Finset.range N, f n := by
+      funext ω'
+      simp only [Pi.sub_apply, Finset.sum_apply, tailF]
+      rw [← (hfs ω').sum_add_tsum_nat_add N]
+      ring
+    rw [← Pi.sub_apply, ← map_sub, hfun, map_sum, Finset.sum_apply]
+  simp only [hpart]
+  simpa using (tendsto_const_nhds (x := 𝔼.E t (fun ω' => ∑' n, f n ω') ω)).sub
+    (E_tail_tendsto 𝔼 hf0 hfs t ω)
+
+/-- Cochrane (2023), eq. (7.17), p. 225: **`SeriesExchange` is a theorem**: every expectation
+system passes through absolutely convergent series of random variables. -/
+theorem seriesExchange : SeriesExchange 𝔼 := by
+  intro f hf t ω
+  set fp : ℕ → Ω → ℝ := fun n ω' => max (f n ω') 0 with hfp
+  set fm : ℕ → Ω → ℝ := fun n ω' => max (-f n ω') 0 with hfm
+  have hp0 : ∀ n ω', 0 ≤ fp n ω' := fun n ω' => le_max_right _ _
+  have hm0 : ∀ n ω', 0 ≤ fm n ω' := fun n ω' => le_max_right _ _
+  have hps : ∀ ω', Summable (fun n => fp n ω') := fun ω' =>
+    Summable.of_nonneg_of_le (fun n => hp0 n ω') (fun n => max_le (le_abs_self _)
+      (abs_nonneg _)) (hf ω')
+  have hms : ∀ ω', Summable (fun n => fm n ω') := fun ω' =>
+    Summable.of_nonneg_of_le (fun n => hm0 n ω') (fun n => max_le (neg_le_abs _)
+      (abs_nonneg _)) (hf ω')
+  have hsplit : ∀ n, f n = fp n - fm n := fun n => by
+    funext ω'
+    simp only [hfp, hfm, Pi.sub_apply]
+    rcases le_total 0 (f n ω') with h | h
+    · rw [max_eq_left h, max_eq_right (by linarith)]; ring
+    · rw [max_eq_right h, max_eq_left (by linarith)]; ring
+  have hsum : (fun ω' => ∑' n, f n ω') =
+      (fun ω' => ∑' n, fp n ω') - fun ω' => ∑' n, fm n ω' := by
+    funext ω'
+    simp only [Pi.sub_apply]
+    rw [← (hps ω').tsum_sub (hms ω')]
+    exact tsum_congr fun n => congrFun (hsplit n) ω'
+  have h := (hasSum_E_nonneg 𝔼 hp0 hps t ω).sub (hasSum_E_nonneg 𝔼 hm0 hms t ω)
+  rw [hsum, map_sub, Pi.sub_apply]
+  refine h.congr_fun fun n => ?_
+  rw [hsplit n, map_sub, Pi.sub_apply]
+
+/-- Cochrane (2023), eqs. (7.14), (7.17), pp. 225–226: (7.17) solves the flow system under the
+row condition with random bounds, for every expectation system with the pull-out property. -/
+theorem formulaW_solves_rowR' (hpo : 𝔼.PullOut) {β ρ M : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1)
+    {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (hA : ∀ t j, 𝔼.E (t + j) (A t (t + (j + 1))) = A t (t + (j + 1)))
+    {s : ℕ → Ω → ℝ} (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M) :
+    (∀ t, MaturingSystem 𝔼 β A (formulaW 𝔼 β A s) s t) ∧
+      (∀ t ω, HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (formulaW 𝔼 β A s t ω)) ∧
+      (∀ t ω, |formulaW 𝔼 β A s t ω| ≤ M / (1 - ρ)) ∧
+      ∀ t, 𝔼.E t (formulaW 𝔼 β A s t) = formulaW 𝔼 β A s t :=
+  formulaW_solves_rowR 𝔼 hpo (seriesExchange 𝔼) hβ0 hρ1 h hA hs hsb
+
+/-- Cochrane (2023), eq. (7.17), p. 225: **Theorem W with random bounds, with no interchange
+hypothesis**: under the row condition with random bounds (`ρ < 1`), each `A_t^{(t+j+1)}` known at
+`t + j` and bounded adapted surpluses, every bounded solution of (7.14) is the weighted present
+value (7.17), for every expectation system with the pull-out property. -/
+theorem theoremW_rowR' (hpo : 𝔼.PullOut) {β ρ M K : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1)
+    {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (hA : ∀ t j, 𝔼.E (t + j) (A t (t + (j + 1))) = A t (t + (j + 1)))
+    {s y : ℕ → Ω → ℝ} (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M)
+    (hy : ∀ t, MaturingSystem 𝔼 β A y s t) (hyb : ∀ t ω, |y t ω| ≤ K) (t : ℕ) (ω : Ω) :
+    HasSum (fun m => formulaTerm 𝔼 β A s t m ω) (y t ω) :=
+  theoremW_rowR 𝔼 hpo (seriesExchange 𝔼) hβ0 hρ1 h hA hs hsb hy hyb t ω
+
+/-- Cochrane (2023), eq. (7.17), p. 225: (7.17) for the price level with random bounds, with no
+interchange hypothesis. -/
+theorem price_formula_rowR' (hpo : 𝔼.PullOut) {β ρ M K : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1)
+    {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ} (hD : Predetermined 𝔼 D)
+    (hDmm : ∀ m ω, D m m ω ≠ 0) (h : RowBoundR β (fracSold D) ρ)
+    (hA : ∀ t j, 𝔼.E (t + j) (fracSold D t (t + (j + 1))) = fracSold D t (t + (j + 1)))
+    (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M) (hflow : ∀ t, RealFlow 𝔼 β D x s t)
+    (hb : ∀ t ω, |D t t ω * x t ω| ≤ K) (t : ℕ) (ω : Ω) :
+    HasSum (fun m => formulaTerm 𝔼 β (fracSold D) s t m ω) (D t t ω * x t ω) :=
+  price_formula_rowR 𝔼 hpo (seriesExchange 𝔼) hβ0 hρ1 hD hDmm h hA hs hsb hflow hb t ω
+
+end Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The innovation form of (7.12) at every date
+
+Cochrane (2023), §7.3.2, p. 224 (the unnumbered innovation version of (7.12)), and §7.4,
+eq. (7.17), p. 225.
+
+`BondSales.dilution_formula` is (7.12) at date 0 and `BondSales.offset_shock` states its content at
+date 0. Here (7.12) and its innovation form hold at every date `t`.
+
+* `dilution_at`: **(7.12) at date `t₀`.** If the government trades at `t₀` (state-contingently)
+  and never after,
+  `B_{t₀−1}^{(t₀)}/P_{t₀} = s_{t₀} + ∑_{j≥1} β^j A_{t₀}^{(t₀+j)} E_{t₀} s_{t₀+j}` with
+  `A_{t₀}^{(m)} = (B_{t₀}^{(m)} − B_{t₀−1}^{(m)})/B_{t₀}^{(m)}` (`fracNew`).
+* `innovation_at`: **the innovation form at date `t + 1`**:
+  `B_t^{(t+1)} (1/P_{t+1} − E_t(1/P_{t+1})) = ΔE_{t+1} s_{t+1} +
+  ∑_j β^{j+1} [A E_{t+1} s_{t+1+j+1} − E_t(A s_{t+1+j+1})]`, a convergent series. The printed
+  display
+  mixes the dates `0` and `t` (E7.9); this is its corrected form at a general date.
+* `no_surprise_iff`: there is no unexpected inflation at `t + 1` exactly when the surplus news is
+  offset by the news in the dilution terms (the state-contingent sales).
+* `innovation_rowR`: the innovation form of the general formula (7.17) at every date, for any
+  sale policy under the row condition with random bounds:
+  `y_{t+1} − E_t y_{t+1} = ∑_m β^m (E_{t+1} − E_t)(W_{t+1}^{(m)} s_{t+1+m})`.
+
+The interchanges of `E_t` and the series use `TidyR5SeriesExchange.seriesExchange`.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5InnovationForm
+
+open Filter Topology MaturityStructure GeneralFormula TidyR5Pathwise TidyR5RandomRow
+  TidyR5SeriesExchange
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), §7.3.2, p. 224: the government trades at date `t₀` and never after:
+`B_u^{(m)} = B_{u−1}^{(m)}` for `t₀ < u < m`. -/
+def NoSalesAfter (D : ℕ → ℕ → Ω → ℝ) (t₀ : ℕ) : Prop :=
+  ∀ u m, t₀ < u → u < m → D (u + 1) m = D u m
+
+/-- Cochrane (2023), eq. (7.12), p. 222 (at date `t₀`): the fraction of the date-`m` debt sold at
+`t₀`, `A_{t₀}^{(m)} = (B_{t₀}^{(m)} − B_{t₀−1}^{(m)})/B_{t₀}^{(m)}`. -/
+noncomputable def fracNew (D : ℕ → ℕ → Ω → ℝ) (t₀ m : ℕ) : Ω → ℝ :=
+  (D (t₀ + 1) m - D t₀ m) / D (t₀ + 1) m
+
+/-- Cochrane (2023), §7.3, p. 221 (at date `t₀`): after `t₀` the debt due at `m` is
+`B_{t₀}^{(m)}`. -/
+theorem debt_after {D : ℕ → ℕ → Ω → ℝ} {t₀ : ℕ} (h : NoSalesAfter D t₀) (m : ℕ) :
+    ∀ k, t₀ + 1 + k ≤ m → D (t₀ + 1 + k) m = D (t₀ + 1) m := by
+  intro k
+  induction k with
+  | zero => intro _; rfl
+  | succ k ih =>
+    intro hk
+    rw [show t₀ + 1 + (k + 1) = t₀ + 1 + k + 1 by omega, h _ m (by omega) (by omega),
+      ih (by omega)]
+
+/-- Cochrane (2023), eq. (7.9), p. 221 (after date `t₀`): with no trading after `t₀`, each later
+surplus pays off the debt maturing at its date, `B_{t₀}^{(u)}/P_u = s_u` for `u > t₀`. -/
+theorem maturing_after {β : ℝ} {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ} {t₀ : ℕ}
+    (h : NoSalesAfter D t₀) {u : ℕ} (hu : t₀ < u) (hflow : RealFlow 𝔼 β D x s u) :
+    D (t₀ + 1) u * x u = s u := by
+  funext ω
+  have hz : (fun j : ℕ => β ^ (j + 1) * (sales D u (u + (j + 1)) ω *
+      𝔼.E u (x (u + (j + 1))) ω)) = fun _ => 0 := by
+    funext j
+    simp [sales, h u (u + (j + 1)) hu (by omega)]
+  have h1 := hflow ω
+  rw [hz] at h1
+  have h2 := h1.unique hasSum_zero
+  have hD : D u u = D (t₀ + 1) u := by
+    have := debt_after h u (u - (t₀ + 1)) (by omega)
+    rwa [show t₀ + 1 + (u - (t₀ + 1)) = u by omega] at this
+  simp only [Pi.mul_apply]
+  rw [← hD]
+  linarith
+
+/-- Cochrane (2023), eq. (7.12), p. 222, **at date `t₀`**: with trading at `t₀` only,
+`B_{t₀−1}^{(t₀)}/P_{t₀} = s_{t₀} + ∑_{j≥0} β^{j+1} A_{t₀}^{(t₀+j+1)} E_{t₀} s_{t₀+j+1}`. -/
+theorem dilution_at (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼) {β : ℝ}
+    {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ} {t₀ : ℕ} (hD : Predetermined 𝔼 D)
+    (h : NoSalesAfter D t₀) (hflow : ∀ u, t₀ ≤ u → RealFlow 𝔼 β D x s u)
+    (hD1 : ∀ m ω, t₀ < m → D (t₀ + 1) m ω ≠ 0) (ω : Ω) :
+    HasSum (fun j : ℕ => β ^ (j + 1) * (fracNew D t₀ (t₀ + (j + 1)) ω *
+      𝔼.E t₀ (s (t₀ + (j + 1))) ω)) (D t₀ t₀ ω * x t₀ ω - s t₀ ω) := by
+  refine (hflow t₀ le_rfl ω).congr_fun fun j => ?_
+  set m := t₀ + (j + 1) with hm
+  have hx : x m = s m / D (t₀ + 1) m := by
+    funext ω'
+    have := congrFun (maturing_after 𝔼 h (show t₀ < m by omega) (hflow m (by omega))) ω'
+    simp only [Pi.mul_apply] at this
+    simp only [Pi.div_apply]
+    rw [eq_div_iff (hD1 m ω' (by omega)), ← this, mul_comm]
+  rw [hx, PolicyConstraints.E_div_known 𝔼 hpo hdc (hD.2 t₀ m)]
+  simp only [sales, fracNew, Pi.sub_apply, Pi.div_apply]
+  ring
+
+/-- Cochrane (2023), §7.3.2, p. 224: the sale fractions `A_{t+1}^{(m)}` are known at `t + 1`. -/
+theorem fracNew_known (hdc : PolicyConstraints.DivClosed 𝔼) {D : ℕ → ℕ → Ω → ℝ}
+    (hD : Predetermined 𝔼 D) (t₀ m : ℕ) : 𝔼.E t₀ (fracNew D t₀ m) = fracNew D t₀ m :=
+  hdc t₀ _ _ (by rw [map_sub, hD.2 t₀ m, Predetermined.known 𝔼 hD le_rfl]) (hD.2 t₀ m)
+
+/-- Cochrane (2023), §7.3.2, p. 224, **the innovation form of (7.12) at date `t + 1`** (corrected,
+E7.9): with trading at `t + 1` only and an absolutely convergent dilution series,
+`B_t^{(t+1)} (1/P_{t+1} − E_t(1/P_{t+1})) − (s_{t+1} − E_t s_{t+1}) =
+∑_j β^{j+1} [A_{t+1}^{(m)} E_{t+1} s_m − E_t(A_{t+1}^{(m)} s_m)]` with `m = t + 1 + j + 1`. -/
+theorem innovation_at (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼) {β : ℝ}
+    {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ} {t : ℕ} (hD : Predetermined 𝔼 D)
+    (h : NoSalesAfter D (t + 1)) (hflow : ∀ u, t + 1 ≤ u → RealFlow 𝔼 β D x s u)
+    (hD1 : ∀ m ω, t + 1 < m → D (t + 2) m ω ≠ 0)
+    (habs : ∀ ω, Summable (fun j : ℕ => |β ^ (j + 1) * (fracNew D (t + 1) (t + 1 + (j + 1)) ω *
+      𝔼.E (t + 1) (s (t + 1 + (j + 1))) ω)|)) (ω : Ω) :
+    HasSum (fun j : ℕ => β ^ (j + 1) * (fracNew D (t + 1) (t + 1 + (j + 1)) ω *
+        𝔼.E (t + 1) (s (t + 1 + (j + 1))) ω -
+        𝔼.E t (fracNew D (t + 1) (t + 1 + (j + 1)) * s (t + 1 + (j + 1))) ω))
+      (D (t + 1) (t + 1) ω * (x (t + 1) ω - 𝔼.E t (x (t + 1)) ω) -
+        (s (t + 1) ω - 𝔼.E t (s (t + 1)) ω)) := by
+  set g : ℕ → Ω → ℝ := fun j ω' => β ^ (j + 1) * (fracNew D (t + 1) (t + 1 + (j + 1)) ω' *
+    𝔼.E (t + 1) (s (t + 1 + (j + 1))) ω') with hg
+  have hlev : ∀ ω', HasSum (fun j => g j ω')
+      (D (t + 1) (t + 1) ω' * x (t + 1) ω' - s (t + 1) ω') := fun ω' =>
+    dilution_at 𝔼 hpo hdc hD h hflow hD1 ω'
+  have hex := seriesExchange 𝔼 g habs t ω
+  have hsum : (fun ω' => ∑' j, g j ω') = D (t + 1) (t + 1) * x (t + 1) - s (t + 1) := by
+    funext ω'; exact (hlev ω').tsum_eq
+  rw [hsum, map_sub, hpo t _ _ (hD.2 t (t + 1))] at hex
+  have hEg : ∀ j, 𝔼.E t (g j) ω = β ^ (j + 1) *
+      𝔼.E t (fracNew D (t + 1) (t + 1 + (j + 1)) * s (t + 1 + (j + 1))) ω := by
+    intro j
+    have hk := fracNew_known 𝔼 hdc hD (t + 1) (t + 1 + (j + 1))
+    rw [show g j = β ^ (j + 1) • (fracNew D (t + 1) (t + 1 + (j + 1)) *
+      𝔼.E (t + 1) (s (t + 1 + (j + 1)))) from rfl, map_smul, ← hpo _ _ _ hk,
+      𝔼.tower (Nat.le_succ t)]
+    rfl
+  have hd := (hlev ω).sub hex
+  simp only [hEg] at hd
+  convert hd using 1
+  · funext j; simp only [hg]; ring
+  · simp only [Pi.mul_apply, Pi.sub_apply]; ring
+
+/-- Cochrane (2023), §7.3.2, p. 224 (bullet), at every date: **no unexpected inflation at
+`t + 1` exactly when the surplus news is offset by the news in the dilution terms**: with
+`B_t^{(t+1)} ≠ 0`, `1/P_{t+1} = E_t(1/P_{t+1})` iff
+`s_{t+1} − E_t s_{t+1} + ∑_j β^{j+1}[A E_{t+1} s_m − E_t(A s_m)] = 0`. -/
+theorem no_surprise_iff (hpo : 𝔼.PullOut) (hdc : PolicyConstraints.DivClosed 𝔼) {β : ℝ}
+    {D : ℕ → ℕ → Ω → ℝ} {x s : ℕ → Ω → ℝ} {t : ℕ} (hD : Predetermined 𝔼 D)
+    (h : NoSalesAfter D (t + 1)) (hflow : ∀ u, t + 1 ≤ u → RealFlow 𝔼 β D x s u)
+    (hD1 : ∀ m ω, t + 1 < m → D (t + 2) m ω ≠ 0)
+    (habs : ∀ ω, Summable (fun j : ℕ => |β ^ (j + 1) * (fracNew D (t + 1) (t + 1 + (j + 1)) ω *
+      𝔼.E (t + 1) (s (t + 1 + (j + 1))) ω)|)) (ω : Ω) (hDt : D (t + 1) (t + 1) ω ≠ 0) :
+    x (t + 1) ω = 𝔼.E t (x (t + 1)) ω ↔
+      s (t + 1) ω - 𝔼.E t (s (t + 1)) ω + ∑' j : ℕ, β ^ (j + 1) *
+        (fracNew D (t + 1) (t + 1 + (j + 1)) ω * 𝔼.E (t + 1) (s (t + 1 + (j + 1))) ω -
+          𝔼.E t (fracNew D (t + 1) (t + 1 + (j + 1)) * s (t + 1 + (j + 1))) ω) = 0 := by
+  rw [(innovation_at 𝔼 hpo hdc hD h hflow hD1 habs ω).tsum_eq]
+  constructor
+  · intro hx; rw [hx]; ring
+  · intro h0
+    have : D (t + 1) (t + 1) ω * (x (t + 1) ω - 𝔼.E t (x (t + 1)) ω) = 0 := by linarith
+    rcases mul_eq_zero.mp this with h1 | h1
+    · exact absurd h1 hDt
+    · linarith
+
+/-- Cochrane (2023), eq. (7.17), p. 225, **innovation form at every date for any sale policy**:
+under the row condition with random bounds, for every bounded solution `y` of the flow system
+(7.14), `y_{t+1} − E_t y_{t+1} = ∑_m β^m (E_{t+1}(W_{t+1}^{(m)} s_{t+1+m}) −
+E_t(W_{t+1}^{(m)} s_{t+1+m}))`, a convergent series. -/
+theorem innovation_rowR (hpo : 𝔼.PullOut) {β ρ M K : ℝ} (hβ0 : 0 ≤ β) (hρ1 : ρ < 1)
+    {A : ℕ → ℕ → Ω → ℝ} (h : RowBoundR β A ρ)
+    (hA : ∀ t j, 𝔼.E (t + j) (A t (t + (j + 1))) = A t (t + (j + 1)))
+    {s y : ℕ → Ω → ℝ} (hs : 𝔼.Adapted s) (hsb : ∀ t ω, |s t ω| ≤ M)
+    (hy : ∀ t, MaturingSystem 𝔼 β A y s t) (hyb : ∀ t ω, |y t ω| ≤ K) (t : ℕ) (ω : Ω) :
+    HasSum (fun m => β ^ m * (𝔼.E (t + 1) (weight A (t + 1) m * s (t + 1 + m)) ω -
+        𝔼.E t (weight A (t + 1) m * s (t + 1 + m)) ω))
+      (y (t + 1) ω - 𝔼.E t (y (t + 1)) ω) := by
+  have hlev := fun ω' => theoremW_rowR' 𝔼 hpo hβ0 hρ1 h hA hs hsb hy hyb (t + 1) ω'
+  -- absolute summability of the terms of (7.17) at each state
+  have habs : ∀ ω', Summable (fun m => |formulaTerm 𝔼 β A s (t + 1) m ω'|) := by
+    intro ω'
+    have hM : 0 ≤ M := (abs_nonneg _).trans (hsb 0 ω')
+    set g : ℕ → ℝ := fun m => β ^ m * 𝔼.E (t + 1) (fun ω'' => |weight A (t + 1) m ω''|) ω' * M
+      with hgdef
+    have hEnn : ∀ m, 0 ≤ 𝔼.E (t + 1) (fun ω'' => |weight A (t + 1) m ω''|) ω' := fun m => by
+      have := 𝔼.mono (t + 1) (show (fun _ => (0 : ℝ)) ≤ fun ω'' => |weight A (t + 1) m ω''| from
+        fun _ => abs_nonneg _) ω'
+      rwa [𝔼.const] at this
+    have hg0 : ∀ m, 0 ≤ g m := fun m => mul_nonneg (mul_nonneg (pow_nonneg hβ0 m) (hEnn m)) hM
+    have hgN : ∀ N, ∑ m ∈ Finset.range N, g m ≤ 1 / (1 - ρ) * M := by
+      intro N
+      simp only [hgdef]
+      rw [← Finset.sum_mul]
+      refine mul_le_mul_of_nonneg_right ?_ hM
+      have hle : (∑ m ∈ Finset.range N, β ^ m • fun ω'' => |weight A (t + 1) m ω''|) ≤
+          fun _ => 1 / (1 - ρ) := fun ω'' => by
+        simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+        have hw := weight_series_le hβ0 hρ1 h ω'' (t + 1)
+        simp only [← weight_apply] at hw
+        exact (hw.1.sum_le_tsum _ fun m _ => mul_nonneg (pow_nonneg hβ0 m)
+          (abs_nonneg _)).trans hw.2
+      have := 𝔼.mono (t + 1) hle ω'
+      rw [𝔼.const, map_sum, Finset.sum_apply] at this
+      simpa only [map_smul, Pi.smul_apply, smul_eq_mul] using this
+    refine Summable.of_nonneg_of_le (fun m => abs_nonneg _) (fun m => ?_)
+      (summable_of_sum_range_le hg0 hgN)
+    rw [formulaTerm, abs_mul, abs_pow, abs_of_nonneg hβ0]
+    change _ ≤ β ^ m * 𝔼.E (t + 1) (fun ω'' => |weight A (t + 1) m ω''|) ω' * M
+    rw [mul_assoc]
+    refine mul_le_mul_of_nonneg_left ((abs_E_le_E_abs 𝔼 _ _ ω').trans ?_) (pow_nonneg hβ0 m)
+    have hle : (fun ω'' => |(weight A (t + 1) m * s (t + 1 + m)) ω''|) ≤
+        M • fun ω'' => |weight A (t + 1) m ω''| := fun ω'' => by
+      simp only [Pi.mul_apply, abs_mul, Pi.smul_apply, smul_eq_mul]
+      rw [mul_comm M]
+      exact mul_le_mul_of_nonneg_left (hsb _ ω'') (abs_nonneg _)
+    have := 𝔼.mono (t + 1) hle ω'
+    rw [map_smul, Pi.smul_apply, smul_eq_mul, mul_comm M] at this
+    exact this
+  have hex := seriesExchange 𝔼 (fun m ω' => formulaTerm 𝔼 β A s (t + 1) m ω') habs t ω
+  have hsum : (fun ω' => ∑' m, formulaTerm 𝔼 β A s (t + 1) m ω') = y (t + 1) := by
+    funext ω'; exact (hlev ω').tsum_eq
+  rw [hsum] at hex
+  have hEt : ∀ m, 𝔼.E t (fun ω' => formulaTerm 𝔼 β A s (t + 1) m ω') ω =
+      β ^ m * 𝔼.E t (weight A (t + 1) m * s (t + 1 + m)) ω := by
+    intro m
+    rw [show (fun ω' => formulaTerm 𝔼 β A s (t + 1) m ω') =
+      β ^ m • 𝔼.E (t + 1) (weight A (t + 1) m * s (t + 1 + m)) from rfl, map_smul,
+      𝔼.tower (Nat.le_succ t)]
+    rfl
+  simp only [hEt] at hex
+  refine ((hlev ω).sub hex).congr_fun fun m => ?_
+  simp only [formulaTerm]
+  ring
+
+end Cochrane.LongTermDebtDynamics.TidyR5InnovationForm
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Quantitative easing reverse-engineered from reserves, under uncertainty
+
+Cochrane (2023), §7.6.1, pp. 229–232, equation (7.23): "for a desired price-level path and a
+choice of one of monetary `M` or QE purchases `B̃`, (7.23) gives us the other one". This module
+treats the direction *given `M`, find `B̃`* under uncertainty. The QE purchases `B̃_0^{(j)}` are
+chosen once, at date 0 (known at 0); reserves `M_{t−1}^{(t)}`, the price path and surpluses are
+random.
+
+Write `R_t = E_t ∑_k β^k s_{t+k} − M_{t−1}^{(t)}/P_t − V^T_t` for the value the QE bonds must carry
+at `t` (`resid`, with `V^T_t` the value of Treasury debt) and
+`c_t = (R_t − β E_t R_{t+1}) P_t` (`qeImplied`).
+
+* `qe_split`: (7.23) at `t` holds iff the QE bonds are worth `R_t`.
+* `qe_necessary`, `qe_unique`: if bounded date-0 purchases support the path, then
+  `B̃_0^{(t)} = c_t` for every `t ≥ 1`: they are unique.
+* `qe_sufficient`: conversely, if every `c_t` (`t ≥ 1`) is known at date 0, the purchases
+  `B̃_0^{(t)} = c_t` satisfy (7.23) at every date `t ≥ 1`.
+* `qe_exists_iff`: **the exact condition**: with bounded data and `1/P` bounded away from zero,
+  bounded date-0 QE purchases supporting the path exist if and only if every `c_t` is known at
+  date 0.
+* `coin_no_qe`: **a date-0-fixed `B̃` cannot absorb later news**: with a coin-flip surplus shock at
+  date 1, a deterministic desired price path and deterministic reserves, no bounded date-0 QE
+  purchases exist.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5QEReverse
+
+open Filter Topology MaturityStructure TidyR5QEUncertainty
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), eq. (7.23), p. 230 (under uncertainty): the value the QE bonds must carry at
+`t`, `R_t = E_t ∑_k β^k s_{t+k} − M_{t−1}^{(t)}/P_t − V^T_t`. -/
+noncomputable def resid (β : ℝ) (VT Mr x s : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => pvSurplus 𝔼 β s t ω - Mr t ω * x t ω - VT t ω
+
+/-- Cochrane (2023), eq. (7.23), p. 230 (under uncertainty): the implied QE purchases
+`c_t = (R_t − β E_t R_{t+1})/(1/P_t)`. -/
+noncomputable def qeImplied (β : ℝ) (VT Mr x s : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  (resid 𝔼 β VT Mr x s t - β • 𝔼.E t (resid 𝔼 β VT Mr x s (t + 1))) / x t
+
+/-- Cochrane (2023), eq. (7.23), p. 230: given the value `V^T_t` of the Treasury's geometric debt,
+the present-value relation at `t` holds iff the QE bonds are worth `R_t`,
+`∑_k β^k B̃_0^{(t+k)} E_t(1/P_{t+k}) = R_t`. -/
+theorem qe_split {β om B : ℝ} {b Mr x s VT : ℕ → Ω → ℝ}
+    (hT : ∀ t ω, HasSum (fun k : ℕ => β ^ k * (om ^ k * B * 𝔼.E t (x (t + k)) ω)) (VT t ω))
+    (t : ℕ) :
+    QEPV 𝔼 β om B b Mr x s t ↔ ∀ ω, HasSum (fun k : ℕ => β ^ k * (b (t + k) ω *
+      𝔼.E t (x (t + k)) ω)) (resid 𝔼 β VT Mr x s t ω) := by
+  constructor
+  · intro h ω
+    refine ((h ω).sub (hT t ω)).congr_fun fun k => ?_
+    ring
+  · intro h ω
+    have := (hT t ω).add (h ω)
+    convert this using 1
+    · funext k; ring
+    · simp only [resid]; ring
+
+/-- Cochrane (2023), eq. (7.23), p. 230 (under uncertainty): **necessity.** If bounded QE
+purchases fixed at date 0 satisfy (7.23) at every date `t ≥ 1` (with `|1/P| ≤ K_x`), then
+`B̃_0^{(t+1)}/P_{t+1} = R_{t+1} − β E_{t+1} R_{t+2}`. -/
+theorem qe_necessary (hpo : 𝔼.PullOut) {β om B Kx Kb : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    {b Mr x s VT : ℕ → Ω → ℝ} (hx : 𝔼.Adapted x) (hxb : ∀ t ω, |x t ω| ≤ Kx)
+    (hT : ∀ t ω, HasSum (fun k : ℕ => β ^ k * (om ^ k * B * 𝔼.E t (x (t + k)) ω)) (VT t ω))
+    (hb0 : ∀ j, 𝔼.E 0 (b j) = b j) (hbb : ∀ j ω, |b j ω| ≤ Kb)
+    (hpv : ∀ t, QEPV 𝔼 β om B b Mr x s (t + 1)) (t : ℕ) :
+    b (t + 1) * x (t + 1) = resid 𝔼 β VT Mr x s (t + 1) -
+      β • 𝔼.E (t + 1) (resid 𝔼 β VT Mr x s (t + 1 + 1)) := by
+  have hq := fun v => (qe_split 𝔼 hT (v + 1)).mp (hpv v)
+  have hbk : ∀ j v, 𝔼.E v (b j) = b j := fun j v => ForwardSolution.E_of_known 𝔼
+    (Nat.zero_le v) (hb0 j)
+  -- `E_{t+1} R_{t+2}` as a series
+  set f : ℕ → Ω → ℝ := fun k ω' => β ^ k * (b (t + 1 + 1 + k) ω' *
+    𝔼.E (t + 1 + 1) (x (t + 1 + 1 + k)) ω') with hf
+  have hfb : ∀ k ω', |f k ω'| ≤ β ^ k * (Kb * Kx) := by
+    intro k ω'
+    rw [hf, abs_mul, abs_pow, abs_of_nonneg hβ0, abs_mul]
+    exact mul_le_mul_of_nonneg_left (mul_le_mul (hbb _ ω') (𝔼.abs_E_le (hxb _) _ ω')
+      (abs_nonneg _) ((abs_nonneg _).trans (hbb 0 ω'))) (pow_nonneg hβ0 k)
+  have hRu1 : resid 𝔼 β VT Mr x s (t + 1 + 1) = fun ω' => ∑' k, f k ω' := by
+    funext ω'; exact ((hq (t + 1)) ω').tsum_eq.symm
+  have hEf : ∀ k, 𝔼.E (t + 1) (f k) = fun ω' => β ^ k * (b (t + 1 + 1 + k) ω' *
+      𝔼.E (t + 1) (x (t + 1 + 1 + k)) ω') := by
+    intro k
+    rw [show f k = β ^ k • (b (t + 1 + 1 + k) * 𝔼.E (t + 1 + 1) (x (t + 1 + 1 + k))) from rfl,
+      map_smul,
+      hpo _ _ _ (hbk _ (t + 1)), 𝔼.tower (Nat.le_succ (t + 1))]
+    rfl
+  funext ω
+  have hE := ForwardSolution.E_tsum_dom 𝔼 ((summable_geometric_of_lt_one hβ0 hβ1).mul_right
+    (Kb * Kx)) hfb (t + 1) ω
+  rw [← hRu1] at hE
+  simp only [hEf] at hE
+  have hS := (hq t) ω
+  have h0 := hS.summable.tsum_eq_zero_add
+  rw [hS.tsum_eq] at h0
+  simp only [pow_zero, one_mul, add_zero, hx (t + 1)] at h0
+  have hshift : ∑' k, β ^ (k + 1) * (b (t + 1 + (k + 1)) ω * 𝔼.E (t + 1) (x (t + 1 + (k + 1))) ω) =
+      β * 𝔼.E (t + 1) (resid 𝔼 β VT Mr x s (t + 1 + 1)) ω := by
+    rw [hE, ← tsum_mul_left]
+    refine tsum_congr fun k => ?_
+    rw [show t + 1 + (k + 1) = t + 1 + 1 + k by omega, pow_succ]
+    ring
+  simp only [Pi.mul_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  linarith
+
+/-- Cochrane (2023), §7.6.1, p. 230 (under uncertainty): bounded QE purchases fixed at date 0
+that support a path are unique: two of them agree at every maturity `t ≥ 1`. -/
+theorem qe_unique (hpo : 𝔼.PullOut) {β om B Kx Kb Kb' : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    {b b' Mr x s VT : ℕ → Ω → ℝ} (hx : 𝔼.Adapted x) (hxb : ∀ t ω, |x t ω| ≤ Kx)
+    (hxpos : ∀ t ω, 0 < x t ω)
+    (hT : ∀ t ω, HasSum (fun k : ℕ => β ^ k * (om ^ k * B * 𝔼.E t (x (t + k)) ω)) (VT t ω))
+    (hb0 : ∀ j, 𝔼.E 0 (b j) = b j) (hbb : ∀ j ω, |b j ω| ≤ Kb)
+    (hb0' : ∀ j, 𝔼.E 0 (b' j) = b' j) (hbb' : ∀ j ω, |b' j ω| ≤ Kb')
+    (hpv : ∀ t, QEPV 𝔼 β om B b Mr x s (t + 1)) (hpv' : ∀ t, QEPV 𝔼 β om B b' Mr x s (t + 1))
+    (t : ℕ) : b (t + 1) = b' (t + 1) := by
+  have h1 := qe_necessary 𝔼 hpo hβ0 hβ1 hx hxb hT hb0 hbb hpv t
+  have h2 := qe_necessary 𝔼 hpo hβ0 hβ1 hx hxb hT hb0' hbb' hpv' t
+  funext ω
+  have := congrFun (h1.trans h2.symm) ω
+  simp only [Pi.mul_apply] at this
+  exact mul_right_cancel₀ (hxpos _ ω).ne' this
+
+/-- Cochrane (2023), eq. (7.23), p. 230 (under uncertainty): **sufficiency.** If `R` is adapted and
+bounded and every implied purchase `c_t` (`t ≥ 1`) is known at date 0, then the purchases
+`B̃_0^{(t)} = c_t` satisfy (7.23) at every date `t ≥ 1`. -/
+theorem qe_sufficient (hpo : 𝔼.PullOut) {β om B KR : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    {Mr x s VT : ℕ → Ω → ℝ} (hxpos : ∀ t ω, 0 < x t ω)
+    (hT : ∀ t ω, HasSum (fun k : ℕ => β ^ k * (om ^ k * B * 𝔼.E t (x (t + k)) ω)) (VT t ω))
+    (hRad : ∀ t, 𝔼.E t (resid 𝔼 β VT Mr x s t) = resid 𝔼 β VT Mr x s t)
+    (hRb : ∀ t ω, |resid 𝔼 β VT Mr x s t ω| ≤ KR)
+    (hc0 : ∀ t, 𝔼.E 0 (qeImplied 𝔼 β VT Mr x s (t + 1)) = qeImplied 𝔼 β VT Mr x s (t + 1))
+    (t : ℕ) : QEPV 𝔼 β om B (qeImplied 𝔼 β VT Mr x s) Mr x s (t + 1) := by
+  rw [qe_split 𝔼 hT]
+  intro ω
+  set u := t + 1 with hu
+  set R := resid 𝔼 β VT Mr x s with hR
+  set a : ℕ → ℝ := fun k => 𝔼.E u (R (u + k)) ω with ha
+  have hcx : ∀ m, 1 ≤ m → qeImplied 𝔼 β VT Mr x s m * x m = R m - β • 𝔼.E m (R (m + 1)) := by
+    intro m _
+    funext ω'
+    simp only [qeImplied, Pi.mul_apply, Pi.div_apply]
+    exact div_mul_cancel₀ _ (hxpos m ω').ne'
+  have hterm : ∀ k, β ^ k * (qeImplied 𝔼 β VT Mr x s (u + k) ω * 𝔼.E u (x (u + k)) ω) =
+      β ^ k * a k - β ^ (k + 1) * a (k + 1) := by
+    intro k
+    have hk : 𝔼.E u (qeImplied 𝔼 β VT Mr x s (u + k)) = qeImplied 𝔼 β VT Mr x s (u + k) := by
+      have := hc0 (t + k)
+      rw [show t + k + 1 = u + k by omega] at this
+      exact ForwardSolution.E_of_known 𝔼 (Nat.zero_le u) this
+    have h1 := congrFun (hpo u _ (x (u + k)) hk) ω
+    simp only [Pi.mul_apply] at h1
+    rw [← h1, hcx (u + k) (by omega), map_sub, map_smul, 𝔼.tower (show u ≤ u + k by omega)]
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, ha]
+    rw [show u + k + 1 = u + (k + 1) by omega, pow_succ]
+    ring
+  have hsumm : Summable (fun k : ℕ => β ^ k * (qeImplied 𝔼 β VT Mr x s (u + k) ω *
+      𝔼.E u (x (u + k)) ω)) := by
+    refine Summable.of_norm_bounded ((summable_geometric_of_lt_one hβ0 hβ1).mul_right
+      (KR + β * KR)) fun k => ?_
+    rw [hterm, Real.norm_eq_abs]
+    have h1 : |a k| ≤ KR := 𝔼.abs_E_le (hRb _) u ω
+    have h2 : |a (k + 1)| ≤ KR := 𝔼.abs_E_le (hRb _) u ω
+    rw [pow_succ, show β ^ k * a k - β ^ k * β * a (k + 1) = β ^ k * (a k - β * a (k + 1)) by
+      ring, abs_mul, abs_of_nonneg (pow_nonneg hβ0 k)]
+    refine mul_le_mul_of_nonneg_left ((abs_sub _ _).trans ?_) (pow_nonneg hβ0 k)
+    rw [abs_mul, abs_of_nonneg hβ0]
+    exact add_le_add h1 (mul_le_mul_of_nonneg_left h2 hβ0)
+  rw [hsumm.hasSum_iff_tendsto_nat]
+  have hpart : ∀ N, ∑ k ∈ Finset.range N, β ^ k * (qeImplied 𝔼 β VT Mr x s (u + k) ω *
+      𝔼.E u (x (u + k)) ω) = R u ω - β ^ N * a N := by
+    intro N
+    simp only [hterm]
+    rw [Finset.sum_range_sub' (fun k => β ^ k * a k) N]
+    simp only [ha, pow_zero, one_mul, add_zero, hRad u]
+  simp only [hpart]
+  have hlim : Tendsto (fun N : ℕ => β ^ N * a N) atTop (𝓝 0) := by
+    refine squeeze_zero_norm (fun N => ?_) (by simpa using
+      (tendsto_pow_atTop_nhds_zero_of_lt_one hβ0 hβ1).mul_const KR)
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (pow_nonneg hβ0 N)]
+    exact mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hRb _) u ω) (pow_nonneg hβ0 N)
+  simpa using (tendsto_const_nhds (x := R u ω)).sub hlim
+
+/-- Cochrane (2023), §7.6.1, p. 230 (under uncertainty): **the exact condition for reverse
+engineering QE from reserves.** With `1/P` adapted, bounded and bounded away from zero, and `R`
+adapted and bounded, bounded QE purchases fixed at date 0 that satisfy (7.23) at every date
+`t ≥ 1` exist if and only if every implied purchase `c_t` (`t ≥ 1`) is known at date 0. -/
+theorem qe_exists_iff (hpo : 𝔼.PullOut) {β om B Kx KR xmin : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hxmin : 0 < xmin) {Mr x s VT : ℕ → Ω → ℝ} (hx : 𝔼.Adapted x)
+    (hxb : ∀ t ω, |x t ω| ≤ Kx) (hxlo : ∀ t ω, xmin ≤ x t ω)
+    (hT : ∀ t ω, HasSum (fun k : ℕ => β ^ k * (om ^ k * B * 𝔼.E t (x (t + k)) ω)) (VT t ω))
+    (hRad : ∀ t, 𝔼.E t (resid 𝔼 β VT Mr x s t) = resid 𝔼 β VT Mr x s t)
+    (hRb : ∀ t ω, |resid 𝔼 β VT Mr x s t ω| ≤ KR) :
+    (∃ b : ℕ → Ω → ℝ, (∀ j, 𝔼.E 0 (b j) = b j) ∧ (∃ Kb, ∀ j ω, |b j ω| ≤ Kb) ∧
+      ∀ t, QEPV 𝔼 β om B b Mr x s (t + 1)) ↔
+      ∀ t, 𝔼.E 0 (qeImplied 𝔼 β VT Mr x s (t + 1)) = qeImplied 𝔼 β VT Mr x s (t + 1) := by
+  have hxpos : ∀ t ω, 0 < x t ω := fun t ω => hxmin.trans_le (hxlo t ω)
+  constructor
+  · rintro ⟨b, hb0, ⟨Kb, hbb⟩, hpv⟩ t
+    have h := qe_necessary 𝔼 hpo hβ0 hβ1 hx hxb hT hb0 hbb hpv t
+    have hc : qeImplied 𝔼 β VT Mr x s (t + 1) = b (t + 1) := by
+      funext ω
+      have := congrFun h ω
+      simp only [Pi.mul_apply, Pi.sub_apply, Pi.smul_apply] at this
+      simp only [qeImplied, Pi.div_apply, Pi.sub_apply, Pi.smul_apply]
+      rw [div_eq_iff (hxpos _ ω).ne', ← this]
+    rw [hc]; exact hb0 _
+  · intro hc0
+    set b : ℕ → Ω → ℝ := fun j => if j = 0 then 0 else qeImplied 𝔼 β VT Mr x s j with hbdef
+    refine ⟨b, fun j => ?_, ⟨(KR + β * KR) / xmin, fun j ω => ?_⟩, fun t ω => ?_⟩
+    · rcases j with _ | j
+      · simp only [hbdef, ↓reduceIte, map_zero]
+      · simp only [hbdef, Nat.add_one_ne_zero, ↓reduceIte]; exact hc0 j
+    · rcases j with _ | j
+      · simp only [hbdef, ↓reduceIte, Pi.zero_apply, abs_zero]
+        exact div_nonneg (add_nonneg ((abs_nonneg _).trans (hRb 0 ω))
+          (mul_nonneg hβ0 ((abs_nonneg _).trans (hRb 0 ω)))) hxmin.le
+      · simp only [hbdef, Nat.add_one_ne_zero, ↓reduceIte, qeImplied, Pi.div_apply,
+          Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+        rw [abs_div, abs_of_pos (hxpos _ ω)]
+        have hKR : 0 ≤ KR := (abs_nonneg _).trans (hRb 0 ω)
+        have hK0 : 0 ≤ KR + β * KR := add_nonneg hKR (mul_nonneg hβ0 hKR)
+        refine div_le_div₀ hK0 ?_ hxmin (hxlo _ ω)
+        refine (abs_sub _ _).trans (add_le_add (hRb _ ω) ?_)
+        rw [abs_mul, abs_of_nonneg hβ0]
+        exact mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hRb _) _ ω) hβ0
+    · have h := qe_sufficient 𝔼 hpo hβ0 hβ1 hxpos hT hRad hRb hc0 t ω
+      convert h using 2 with k
+      simp only [hbdef, show t + 1 + k ≠ 0 by omega, ↓reduceIte]
+
+/-! ### A date-0 QE policy cannot absorb later news -/
+
+/-- Cochrane (2023), §7.6.1 (illustration): in the coin-flip economy the present value of
+surpluses from date 2 on is `1/(1−β)` in every state (the shock is at date 1). -/
+theorem coin_pv_two {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (ω : Bool × Bool) :
+    pvSurplus ExpectationsFiniteTree.coinSystem β coinS 2 ω = 1 / (1 - β) := by
+  have hterm : ∀ k, surplusTerm ExpectationsFiniteTree.coinSystem β coinS 2 k ω = β ^ k := by
+    intro k
+    have hf : coinS (2 + k) = fun _ => (1 : ℝ) := by
+      funext ω'; simp [coinS, show ¬ (2 + k = 1) by omega]
+    simp only [surplusTerm, hf, ExpectationsFiniteTree.coinSystem.const, mul_one]
+  rw [pvSurplus]
+  simp only [hterm]
+  rw [tsum_geometric_of_lt_one hβ0 hβ1, one_div]
+
+/-- Cochrane (2023), §7.6.1 (under uncertainty): **a date-0-fixed QE policy cannot absorb later
+news.** In the coin-flip economy (`0 ≤ β < 1`, surplus shock at date 1), for any bounded
+deterministic desired path `1/P_t = p_t`, deterministic reserves `M_{t−1}^{(t)} = m_t` and a
+convergent Treasury value, no bounded QE purchases fixed at date 0 satisfy (7.23) at every
+`t ≥ 1`. -/
+theorem coin_no_qe {β om B Kx : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (p m vt : ℕ → ℝ)
+    (hpb : ∀ t, |p t| ≤ Kx)
+    (hvt : ∀ t, HasSum (fun k : ℕ => β ^ k * (om ^ k * B * p (t + k))) (vt t)) :
+    ¬ ∃ b : ℕ → Bool × Bool → ℝ, (∀ j, ExpectationsFiniteTree.coinSystem.E 0 (b j) = b j) ∧
+      (∃ Kb, ∀ j ω, |b j ω| ≤ Kb) ∧
+      ∀ t, QEPV ExpectationsFiniteTree.coinSystem β om B b (fun t _ => m t) (fun t _ => p t)
+        coinS (t + 1) := by
+  rintro ⟨b, hb0, ⟨Kb, hbb⟩, hpv⟩
+  have hc : ∀ (t : ℕ) (c : ℝ), ExpectationsFiniteTree.coinSystem.E t (fun _ => c) = fun _ => c :=
+    fun t c => ExpectationsFiniteTree.coinSystem.const t c
+  have hT : ∀ t ω, HasSum (fun k : ℕ => β ^ k * (om ^ k * B *
+      ExpectationsFiniteTree.coinSystem.E t ((fun t _ => p t) (t + k)) ω)) (vt t) := by
+    intro t ω
+    simp only [hc]
+    exact hvt t
+  have h := qe_necessary ExpectationsFiniteTree.coinSystem
+    (ExpectationsFiniteTree.finiteTree_pullOut ExpectationsFiniteTree.coinTree) hβ0 hβ1
+    (x := fun t _ => p t)
+    (VT := fun t _ => vt t) (fun t => hc t (p t)) (fun t _ => hpb t) hT hb0 hbb hpv 0
+  -- the date-2 residual is a constant
+  have hR2 : resid ExpectationsFiniteTree.coinSystem β (fun t _ => vt t) (fun t _ => m t)
+      (fun t _ => p t) coinS 2 = fun _ => 1 / (1 - β) - m 2 * p 2 - vt 2 := by
+    funext ω; simp only [resid, coin_pv_two hβ0 hβ1 ω]
+  rw [hR2, hc] at h
+  -- so `b_1 p_1 = 1/(1−β) + ε_1 − const`, which is not known at date 0
+  have hfun : b 1 * (fun _ => p 1) = (fun _ => 1 / (1 - β) - m 1 * p 1 - vt 1 -
+      β * (1 / (1 - β) - m 2 * p 2 - vt 2)) + ExpectationsFiniteTree.coinShock 1 := by
+    rw [h]
+    funext ω
+    simp only [resid, coin_pv hβ0 hβ1 ω, Pi.sub_apply, Pi.smul_apply, Pi.add_apply,
+      smul_eq_mul]
+    ring
+  have hpo : ExpectationsFiniteTree.coinSystem.PullOut :=
+    ExpectationsFiniteTree.finiteTree_pullOut ExpectationsFiniteTree.coinTree
+  have hknown : ExpectationsFiniteTree.coinSystem.E 0 (b 1 * fun _ => p 1) =
+      b 1 * fun _ => p 1 := by
+    rw [mul_comm, hpo 0 _ _ (hc 0 (p 1)), hb0 1]
+  have hE0 := ExpectationsFiniteTree.coinShock_mean_zero 0
+  rw [zero_add] at hE0
+  rw [hfun, map_add, hc, hE0] at hknown
+  have := congrFun hknown (true, true)
+  simp [ExpectationsFiniteTree.coinShock] at this
+
+end Cochrane.LongTermDebtDynamics.TidyR5QEReverse
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Forward guidance with a state-contingent rate path
+
+Cochrane (2023), §7.1, pp. 213–215 (equation (7.3) and the bond-price display on p. 214).
+
+The module TidyR5GuidanceUncertainty treats an announced rate path known at date 0. Here the
+announced one-period rate `i_t` may be random (known at `t`, state-contingent guidance),
+implemented through
+`Q_t^{(t+1)} = β E_t(P_t/P_{t+1}) = 1/(1 + i_t)` (`RFisher`).
+
+* `bondPrice_succ_eq`, `bondPrice_cov`, `bondPrice_cov_rate`: **the bond-price recursion with the
+  covariance term explicit**:
+  `Q_t^{(t+j+1)} = (1 + i_t)^{-1} E_t Q_{t+1}^{(t+j+1)} + Cov_t(β P_t/P_{t+1}, Q_{t+1}^{(t+j+1)})`.
+  With a known rate path the covariance vanishes and the book's display follows
+  (`TidyR5GuidanceUncertainty.bondPrice_eq_prod`); with random rates the bond price also differs
+  from `E_t ∏ (1 + i)^{-1}` by convexity.
+* `random_valuation`: (7.3) under uncertainty with random bond prices,
+  `(∑_j Q_0^{(j)} B_{−1}^{(j)})/P_0 = E_0 ∑ β^j s_j`.
+* **What survives.** `bondPrice_prefix`, `random_fg_no_effect`: if the rates before `T` are
+  unchanged (`i_t = r`), bonds maturing by `T` keep their prices and guidance beyond the longest
+  maturity (`T ≥ k`) has no effect on `P_0`, however random the later rates.
+  `random_expected_ratio`, `random_no_expected_jump`: `E_t(P_t/P_{t+1}) = (1+r)/(1+i_t)` state by
+  state; there is no expected jump where the rate is unchanged.
+* **What fails.** `cg_counterexample`: "an announced rate rise lowers `P_0`" is false for
+  state-contingent guidance. In a coin-flip economy the announced rate at date 1 is `2` or
+  `1/5` (mean `11/10`, above `r = 1`) and `r` at every other date; with the same debt and
+  surpluses the price level is `P_0 = 7/48` against `1/8` with no announcement: guidance with a
+  higher expected rate path *raises* `P_0`. The bond price `Q_0^{(2)} = 7/24` exceeds `1/4`:
+  `E_0 (1+i_1)^{-1} > (1 + E_0 i_1)^{-1}` (Jensen). The comparative statics of §7.1
+  (`ForwardGuidance.priceLevel_fg_lt`, `ForwardGuidance.priceLevel_mono`,
+  `ForwardGuidance.priceLevel_immediate_le`) are statements about the rate *path*; they extend to
+  known paths (module TidyR5GuidanceUncertainty) but not to the expected path of random rates.
+
+As in the book's §7.1 analysis, an equilibrium here means the Fisher relations at every date and
+the date-0 valuation equation (7.3) (`MaturityStructure.PresentValue` at date 0).
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance
+
+open Filter Topology MaturityStructure ForwardGuidance
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), §7.1 (under uncertainty): the conditional covariance
+`Cov_t(a, b) = E_t(ab) − E_t a E_t b`. -/
+noncomputable def condCov (t : ℕ) (a b : Ω → ℝ) : Ω → ℝ :=
+  𝔼.E t (a * b) - 𝔼.E t a * 𝔼.E t b
+
+/-- Cochrane (2023), §7.1, p. 213 (under uncertainty): a state-contingent announced rate path
+`i_t` (known at `t`) is implemented: `Q_t^{(t+1)} = β E_t(P_t/P_{t+1}) = 1/(1 + i_t)`. -/
+def RFisher (β : ℝ) (P x : ℕ → Ω → ℝ) (i : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, bondPrice 𝔼 β P x t 1 = fun ω => (1 + i t ω)⁻¹
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): the bond-price recursion
+`Q_t^{(t+j+1)} = E_t[(β P_t/P_{t+1}) Q_{t+1}^{(t+j+1)}]`. -/
+theorem bondPrice_succ_eq (hpo : 𝔼.PullOut) {β : ℝ} {P x : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P)
+    (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1) (t j : ℕ) :
+    bondPrice 𝔼 β P x t (j + 1) =
+      𝔼.E t ((β • (P t * x (t + 1))) * bondPrice 𝔼 β P x (t + 1) j) := by
+  have hsplit : P t * x (t + (j + 1)) = (P t * x (t + 1)) * (P (t + 1) * x (t + 1 + j)) := by
+    funext ω
+    simp only [Pi.mul_apply]
+    rw [show t + 1 + j = t + (j + 1) by omega]
+    have := hPx (t + 1) ω
+    calc P t ω * x (t + (j + 1)) ω =
+        P t ω * x (t + (j + 1)) ω * (P (t + 1) ω * x (t + 1) ω) := by rw [this, mul_one]
+      _ = _ := by ring
+  have hknown : 𝔼.E (t + 1) (P t * x (t + 1)) = P t * x (t + 1) := by
+    rw [hpo _ _ _ (ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (hP t)), hx (t + 1)]
+  change β ^ (j + 1) • 𝔼.E t (P t * x (t + (j + 1))) =
+    𝔼.E t ((β • (P t * x (t + 1))) * (β ^ j • 𝔼.E (t + 1) (P (t + 1) * x (t + 1 + j))))
+  rw [hsplit, ← 𝔼.tower (Nat.le_succ t) ((P t * x (t + 1)) * (P (t + 1) * x (t + 1 + j))),
+    hpo _ _ _ hknown, smul_mul_assoc, mul_smul_comm, map_smul, map_smul, smul_smul, ← pow_succ']
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): **the covariance decomposition**,
+`Q_t^{(t+j+1)} = Q_t^{(t+1)} E_t Q_{t+1}^{(t+j+1)} + Cov_t(β P_t/P_{t+1}, Q_{t+1}^{(t+j+1)})`. -/
+theorem bondPrice_cov (hpo : 𝔼.PullOut) {β : ℝ} {P x : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P)
+    (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1) (t j : ℕ) :
+    bondPrice 𝔼 β P x t (j + 1) = bondPrice 𝔼 β P x t 1 * 𝔼.E t (bondPrice 𝔼 β P x (t + 1) j) +
+      condCov 𝔼 t (β • (P t * x (t + 1))) (bondPrice 𝔼 β P x (t + 1) j) := by
+  rw [bondPrice_succ_eq 𝔼 hpo hP hx hPx, condCov]
+  have h1 : bondPrice 𝔼 β P x t 1 = 𝔼.E t (β • (P t * x (t + 1))) := by
+    rw [map_smul]; simp [bondPrice]
+  rw [h1]
+  ring
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): with a state-contingent rate path,
+`Q_t^{(t+j+1)} = (1 + i_t)^{-1} E_t Q_{t+1}^{(t+j+1)} + Cov_t(β P_t/P_{t+1}, Q_{t+1}^{(t+j+1)})`. -/
+theorem bondPrice_cov_rate (hpo : 𝔼.PullOut) {β : ℝ} {P x : ℕ → Ω → ℝ} {i : ℕ → Ω → ℝ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : RFisher 𝔼 β P x i) (t j : ℕ) :
+    bondPrice 𝔼 β P x t (j + 1) = (fun ω => (1 + i t ω)⁻¹) *
+      𝔼.E t (bondPrice 𝔼 β P x (t + 1) j) +
+      condCov 𝔼 t (β • (P t * x (t + 1))) (bondPrice 𝔼 β P x (t + 1) j) := by
+  rw [bondPrice_cov 𝔼 hpo hP hx hPx, hF t]
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): **bonds maturing by `T` are unaffected**:
+if the rate is the known `r` at every date before `T`, then
+`Q_t^{(t+j)} = (1+r)^{-j}` whenever `t + j ≤ T`, whatever the rates from `T` on. -/
+theorem bondPrice_prefix (hpo : 𝔼.PullOut) {β r : ℝ} {P x : ℕ → Ω → ℝ} {T : ℕ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : ∀ t, t < T → bondPrice 𝔼 β P x t 1 = fun _ => (1 + r)⁻¹) (j : ℕ) :
+    ∀ t, t + j ≤ T → bondPrice 𝔼 β P x t j = fun _ => ((1 + r)⁻¹) ^ j := by
+  induction j with
+  | zero =>
+    intro t _
+    have h1 : P t * x (t + 0) = fun _ => (1 : ℝ) := funext fun ω => by simpa using hPx t ω
+    simp only [bondPrice, pow_zero, one_smul, h1, 𝔼.const]
+  | succ j ih =>
+    intro t ht
+    rw [bondPrice_succ_eq 𝔼 hpo hP hx hPx, ih (t + 1) (by omega)]
+    have h2 : (β • (P t * x (t + 1))) * (fun _ => ((1 + r)⁻¹) ^ j) =
+        ((1 + r)⁻¹) ^ j • (β • (P t * x (t + 1))) := by
+      funext ω; simp only [Pi.mul_apply, Pi.smul_apply, smul_eq_mul]; ring
+    have h3 : 𝔼.E t (β • (P t * x (t + 1))) = fun _ => (1 + r)⁻¹ := by
+      rw [map_smul]
+      have := hF t (by omega)
+      simpa [bondPrice] using this
+    rw [h2, map_smul, h3]
+    funext ω
+    simp only [Pi.smul_apply, smul_eq_mul]
+    ring
+
+/-- Cochrane (2023), eq. (7.3), p. 214 (under uncertainty): **the valuation equation with random
+bond prices.** With deterministic outstanding debt `B_j` (none beyond `k`), in every state
+`(∑_{j≤k} Q_0^{(j)} B_j)/P_0 = E_0 ∑ β^j s_j`. -/
+theorem random_valuation (hpo : 𝔼.PullOut) {β : ℝ} {k : ℕ} {B : ℕ → ℝ}
+    (hBk : ∀ j, k < j → B j = 0) {P x s : ℕ → Ω → ℝ} (hP : 𝔼.Adapted P)
+    (hPx : ∀ t ω, P t ω * x t ω = 1) (hpv : PresentValue 𝔼 β (fun _ j _ => B j) x s 0)
+    (ω : Ω) :
+    (∑ j ∈ Finset.range (k + 1), bondPrice 𝔼 β P x 0 j ω * B j) / P 0 ω =
+      pvSurplus 𝔼 β s 0 ω := by
+  have hterm : ∀ j, debtTerm 𝔼 β (fun _ j _ => B j) x 0 j ω =
+      x 0 ω * (bondPrice 𝔼 β P x 0 j ω * B j) := by
+    intro j
+    rw [bondPrice_eq 𝔼 hpo hP]
+    simp only [debtTerm, zero_add, Pi.smul_apply, Pi.mul_apply, smul_eq_mul]
+    have := hPx 0 ω
+    linear_combination (-(B j * β ^ j * 𝔼.E 0 (x j) ω)) * this
+  have hfin : HasSum (fun j => debtTerm 𝔼 β (fun _ j _ => B j) x 0 j ω)
+      (∑ j ∈ Finset.range (k + 1), x 0 ω * (bondPrice 𝔼 β P x 0 j ω * B j)) := by
+    simp only [hterm]
+    exact hasSum_sum_of_ne_finset_zero fun j hj => by
+      rw [hBk j (by simpa using hj), mul_zero, mul_zero]
+  rw [(hpv ω).2.unique hfin, ← Finset.mul_sum, div_eq_mul_inv, mul_comm]
+  congr 1
+  exact inv_eq_of_mul_eq_one_right (hPx 0 ω)
+
+/-- Cochrane (2023), §7.1, p. 214 (under uncertainty): **guidance beyond the longest maturity has
+no effect, even when it is state-contingent**: if the rates before `T ≥ k` are the known `r` in
+both equilibria (rates from `T` on arbitrary and random in the first), `P_0` is the same in every
+state with a nonzero present value of surpluses. -/
+theorem random_fg_no_effect (hpo : 𝔼.PullOut) {β r : ℝ} {T k : ℕ} (hkT : k ≤ T) {B : ℕ → ℝ}
+    (hBk : ∀ j, k < j → B j = 0) {P x P' x' s : ℕ → Ω → ℝ}
+    (hP : 𝔼.Adapted P) (hx : 𝔼.Adapted x) (hPx : ∀ t ω, P t ω * x t ω = 1)
+    (hF : ∀ t, t < T → bondPrice 𝔼 β P x t 1 = fun _ => (1 + r)⁻¹)
+    (hpv : PresentValue 𝔼 β (fun _ j _ => B j) x s 0)
+    (hP' : 𝔼.Adapted P') (hx' : 𝔼.Adapted x') (hPx' : ∀ t ω, P' t ω * x' t ω = 1)
+    (hF' : ∀ t, t < T → bondPrice 𝔼 β P' x' t 1 = fun _ => (1 + r)⁻¹)
+    (hpv' : PresentValue 𝔼 β (fun _ j _ => B j) x' s 0) (ω : Ω)
+    (hS : pvSurplus 𝔼 β s 0 ω ≠ 0) : P 0 ω = P' 0 ω := by
+  have h1 := random_valuation 𝔼 hpo hBk hP hPx hpv ω
+  have h2 := random_valuation 𝔼 hpo hBk hP' hPx' hpv' ω
+  have hsame : ∑ j ∈ Finset.range (k + 1), bondPrice 𝔼 β P x 0 j ω * B j =
+      ∑ j ∈ Finset.range (k + 1), bondPrice 𝔼 β P' x' 0 j ω * B j := by
+    refine Finset.sum_congr rfl fun j hj => ?_
+    have hjT : 0 + j ≤ T := by have := Finset.mem_range.mp hj; omega
+    rw [bondPrice_prefix 𝔼 hpo hP hx hPx hF j 0 hjT,
+      bondPrice_prefix 𝔼 hpo hP' hx' hPx' hF' j 0 hjT]
+  rw [hsame] at h1
+  have hA : ∑ j ∈ Finset.range (k + 1), bondPrice 𝔼 β P' x' 0 j ω * B j ≠ 0 := by
+    intro h0; rw [h0, zero_div] at h2; exact hS h2.symm
+  have hP0 : P 0 ω ≠ 0 := fun h => by have := hPx 0 ω; rw [h, zero_mul] at this; simp at this
+  have hP0' : P' 0 ω ≠ 0 := fun h => by
+    have := hPx' 0 ω; rw [h, zero_mul] at this; simp at this
+  have h3 := h1.trans h2.symm
+  rw [div_eq_div_iff hP0 hP0'] at h3
+  exact (mul_left_cancel₀ hA h3).symm
+
+/-- Cochrane (2023), §7.1, p. 215 (under uncertainty): with a state-contingent rate path and
+`β = 1/(1+r)`, `E_t(P_t/P_{t+1}) = (1 + r)/(1 + i_t)` in every state. -/
+theorem random_expected_ratio {r : ℝ} (hr : -1 < r) {P x : ℕ → Ω → ℝ} {i : ℕ → Ω → ℝ}
+    (hF : RFisher 𝔼 (1 + r)⁻¹ P x i) (t : ℕ) (ω : Ω) :
+    𝔼.E t (P t * x (t + 1)) ω = (1 + r) / (1 + i t ω) := by
+  have h1 : (1 + r) ≠ 0 := by linarith
+  have := congrFun (hF t) ω
+  simp only [bondPrice, pow_one, Pi.smul_apply, smul_eq_mul] at this
+  rw [div_eq_mul_inv, ← this]
+  field_simp
+
+/-- Cochrane (2023), §7.1, p. 215 (under uncertainty): **no expected jump where the rate is
+unchanged**: if `i_t = r` in state `ω`, then `E_t(P_t/P_{t+1}) = 1` there. -/
+theorem random_no_expected_jump {r : ℝ} (hr : -1 < r) {P x : ℕ → Ω → ℝ} {i : ℕ → Ω → ℝ}
+    (hF : RFisher 𝔼 (1 + r)⁻¹ P x i) {t : ℕ} {ω : Ω} (hi : i t ω = r) :
+    𝔼.E t (P t * x (t + 1)) ω = 1 := by
+  rw [random_expected_ratio 𝔼 hr hF t ω, hi, div_self (by linarith)]
+
+/-! ### The counterexample: state-contingent guidance can raise `P_0` -/
+
+/-- Cochrane (2023), §7.1 (counterexample): the announced rates, `r = 1` at every date except
+date 1, where the rate is `2` after heads and `1/5` after tails (mean `11/10`). -/
+noncomputable def cgRate : ℕ → Bool × Bool → ℝ :=
+  fun t ω => if t = 1 then (if ω.1 then 2 else 1 / 5) else 1
+
+/-- Cochrane (2023), §7.1 (counterexample): `1/P_t`: `48/7` at dates 0 and 1, then `32/7` after
+heads and `80/7` after tails. -/
+noncomputable def cgX : ℕ → Bool × Bool → ℝ :=
+  fun t ω => if t ≤ 1 then 48 / 7 else (if ω.1 then 32 / 7 else 80 / 7)
+
+/-- Cochrane (2023), §7.1 (counterexample): the price level `P_t = 1/cgX`. -/
+noncomputable def cgP : ℕ → Bool × Bool → ℝ := fun t ω => (cgX t ω)⁻¹
+
+/-- Cochrane (2023), §7.1 (counterexample): `1/P'_t = 8`, the path with no announcement. -/
+noncomputable def cgX' : ℕ → Bool × Bool → ℝ := fun _ _ => 8
+
+/-- Cochrane (2023), §7.1 (counterexample): `P'_t = 1/8`. -/
+noncomputable def cgP' : ℕ → Bool × Bool → ℝ := fun _ _ => 1 / 8
+
+/-- Cochrane (2023), §7.1 (counterexample): one unit of debt due at date 2, nothing else. -/
+noncomputable def cgB : ℕ → ℝ := fun j => if j = 2 then 1 else 0
+
+/-- Cochrane (2023), §7.1 (counterexample): in the coin-flip tree, `E_0` averages the four
+states. -/
+theorem coin_E0 (f : Bool × Bool → ℝ) (ω : Bool × Bool) :
+    ExpectationsFiniteTree.coinSystem.E 0 f ω =
+      (f (true, true) + f (true, false) + f (false, true) + f (false, false)) / 4 := by
+  have htriv : ∀ a b, ExpectationsFiniteTree.coinTree.info 0 a b := fun a b => by
+    change Setoid.ker (ExpectationsFiniteTree.coinObs 0) a b
+    rw [Setoid.ker_def]
+    simp [ExpectationsFiniteTree.coinObs]
+  rw [ExpectationsFiniteTree.coinSystem, ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E,
+    ExpectationsFiniteTree.coinTree.condE_of_trivial htriv]
+  simp [ExpectationsFiniteTree.coinTree, Fintype.sum_prod_type]
+  ring
+
+/-- Cochrane (2023), §7.1 (counterexample): from date 1 on, a variable that depends only on the
+first flip is known. -/
+theorem coin_known {f : Bool × Bool → ℝ} (hf : ∀ ω ω', ω.1 = ω'.1 → f ω = f ω') {t : ℕ}
+    (ht : 1 ≤ t) : ExpectationsFiniteTree.coinSystem.E t f = f := by
+  funext ω
+  rw [ExpectationsFiniteTree.coinSystem, ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E]
+  refine ExpectationsFiniteTree.coinTree.condE_of_const_on_cell fun ω' h => hf _ _ ?_
+  change Setoid.ker (ExpectationsFiniteTree.coinObs t) ω' ω at h
+  rw [Setoid.ker_def] at h
+  simp only [ExpectationsFiniteTree.coinObs, Prod.mk.injEq, ht, ↓reduceIte] at h
+  exact h.1
+
+/-- Cochrane (2023), §7.1 (counterexample): the guidance path is adapted. -/
+theorem cg_adapted : ExpectationsFiniteTree.coinSystem.Adapted cgX := by
+  intro t
+  rcases Nat.eq_zero_or_pos t with rfl | ht
+  · have : cgX 0 = fun _ => 48 / 7 := by funext ω; simp [cgX]
+    rw [this, ExpectationsFiniteTree.coinSystem.const]
+  · exact coin_known (fun ω ω' h => by simp only [cgX, h]) ht
+
+/-- Cochrane (2023), §7.1 (counterexample): the guidance price level is adapted. -/
+theorem cgP_adapted : ExpectationsFiniteTree.coinSystem.Adapted cgP := by
+  intro t
+  rcases Nat.eq_zero_or_pos t with rfl | ht
+  · have : cgP 0 = fun _ => 7 / 48 := by funext ω; simp [cgP, cgX]
+    rw [this, ExpectationsFiniteTree.coinSystem.const]
+  · exact coin_known (fun ω ω' h => by simp only [cgP, cgX, h]) ht
+
+/-- Cochrane (2023), §7.1 (counterexample): **the guidance path implements the state-contingent
+rates**: `Q_t^{(t+1)} = (1/2) E_t(P_t/P_{t+1}) = 1/(1 + i_t)` at every date (`r = 1`, `β = 1/2`). -/
+theorem cg_fisher : RFisher ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP cgX cgRate := by
+  intro t
+  rcases Nat.lt_or_ge t 1 with h0 | h1
+  · obtain rfl : t = 0 := by omega
+    have : cgP 0 * cgX (0 + 1) = fun _ => 1 := by funext ω; simp [cgP, cgX]
+    simp only [bondPrice, pow_one, this, ExpectationsFiniteTree.coinSystem.const]
+    funext ω; simp [cgRate]
+  · rcases Nat.lt_or_ge t 2 with h2 | h2
+    · obtain rfl : t = 1 := by omega
+      have hk : ExpectationsFiniteTree.coinSystem.E 1 (cgP 1 * cgX (1 + 1)) =
+          cgP 1 * cgX (1 + 1) :=
+        coin_known (fun ω ω' h => by simp only [Pi.mul_apply, cgP, cgX, h]) le_rfl
+      simp only [bondPrice, pow_one, hk]
+      funext ω
+      rcases ω with ⟨_ | _, _⟩ <;> simp [cgP, cgX, cgRate] <;> norm_num
+    · have : cgP t * cgX (t + 1) = fun _ => 1 := by
+        funext ω
+        simp only [Pi.mul_apply, cgP, cgX, show ¬ (t ≤ 1) by omega,
+          show ¬ (t + 1 ≤ 1) by omega, ↓reduceIte]
+        split_ifs <;> norm_num
+      simp only [bondPrice, pow_one, this, ExpectationsFiniteTree.coinSystem.const]
+      funext ω
+      simp [cgRate, show t ≠ 1 by omega]
+
+/-- Cochrane (2023), §7.1 (counterexample): the no-announcement path implements the constant rate
+`r = 1`. -/
+theorem cg_fisher' : RFisher ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP' cgX'
+    (fun _ _ => 1) := by
+  intro t
+  have : cgP' t * cgX' (t + 1) = fun _ => 1 := by funext ω; simp [cgP', cgX']
+  simp only [bondPrice, pow_one, this, ExpectationsFiniteTree.coinSystem.const]
+  funext ω; norm_num
+
+/-- Cochrane (2023), §7.1 (counterexample): the surpluses `s_t = 1` have present value `2`
+(`β = 1/2`). -/
+theorem cg_pv (ω : Bool × Bool) :
+    HasSum (fun k => surplusTerm ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ (fun _ _ => 1) 0 k ω)
+      2 := by
+  have h := hasSum_geometric_of_lt_one (r := ((1 : ℝ) + 1)⁻¹) (by norm_num) (by norm_num)
+  have e : (1 - ((1 : ℝ) + 1)⁻¹)⁻¹ = 2 := by norm_num
+  rw [e] at h
+  refine h.congr_fun fun k => ?_
+  simp [surplusTerm, ExpectationsFiniteTree.coinSystem.const]
+
+/-- Cochrane (2023), §7.1 (counterexample): the guidance path satisfies the date-0 valuation
+equation (7.3) with debt `B_{−1}^{(2)} = 1` and surpluses `s_t = 1`: `β² E_0(1/P_2) = 2`. -/
+theorem cg_presentValue : PresentValue ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹
+    (fun _ j _ => cgB j) cgX (fun _ _ => 1) 0 := by
+  intro ω
+  refine ⟨(cg_pv ω).summable, ?_⟩
+  rw [pvSurplus, (cg_pv ω).tsum_eq]
+  have h := hasSum_single (f := fun j => debtTerm ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹
+    (fun _ j _ => cgB j) cgX 0 j ω) 2 fun j hj => by simp [debtTerm, cgB, hj]
+  convert h using 1
+  simp only [debtTerm, cgB, ↓reduceIte, one_mul, zero_add, coin_E0, cgX]
+  norm_num
+
+/-- Cochrane (2023), §7.1 (counterexample): the no-announcement path satisfies the same date-0
+valuation equation: `β² · 8 = 2`. -/
+theorem cg_presentValue' : PresentValue ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹
+    (fun _ j _ => cgB j) cgX' (fun _ _ => 1) 0 := by
+  intro ω
+  refine ⟨(cg_pv ω).summable, ?_⟩
+  rw [pvSurplus, (cg_pv ω).tsum_eq]
+  have h := hasSum_single (f := fun j => debtTerm ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹
+    (fun _ j _ => cgB j) cgX' 0 j ω) 2 fun j hj => by simp [debtTerm, cgB, hj]
+  convert h using 1
+  simp only [debtTerm, cgB, ↓reduceIte, one_mul, zero_add]
+  rw [show cgX' 2 = fun _ => (8 : ℝ) from rfl, ExpectationsFiniteTree.coinSystem.const]
+  norm_num
+
+/-- Cochrane (2023), §7.1, pp. 213–214 (state-contingent guidance): **an announced rise in
+the expected rate path can raise `P_0`.** In the coin-flip economy with debt `B_{−1}^{(2)} = 1`,
+surpluses `s_t = 1`, `r = 1`: both paths are adapted, positive, implement their rate paths
+(`cg_fisher`, `cg_fisher'`) and satisfy (7.3) (`cg_presentValue`, `cg_presentValue'`); the
+guidance rates equal `r` except at date 1, where their mean is `11/10 > r`; yet
+`P_0 = 7/48 > 1/8 = P'_0` in every state, and `Q_0^{(2)} = 7/24 > 1/4 = (1+r)^{-2}`. -/
+theorem cg_counterexample (ω : Bool × Bool) :
+    ExpectationsFiniteTree.coinSystem.E 0 (cgRate 1) ω = 11 / 10 ∧ (∀ t, t ≠ 1 → cgRate t ω = 1) ∧
+      cgP 0 ω = 7 / 48 ∧ cgP' 0 ω = 1 / 8 ∧ cgP' 0 ω < cgP 0 ω ∧
+      bondPrice ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP cgX 0 2 ω = 7 / 24 ∧
+      ((1 : ℝ) + 1)⁻¹ ^ 2 <
+        bondPrice ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP cgX 0 2 ω := by
+  have hQ : bondPrice ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP cgX 0 2 ω = 7 / 24 := by
+    rw [bondPrice_eq ExpectationsFiniteTree.coinSystem
+      (ExpectationsFiniteTree.finiteTree_pullOut ExpectationsFiniteTree.coinTree) cgP_adapted]
+    simp only [Pi.smul_apply, Pi.mul_apply, smul_eq_mul, zero_add, coin_E0, cgP, cgX]
+    norm_num
+  refine ⟨?_, fun t ht => by simp [cgRate, ht], by simp [cgP, cgX], rfl,
+    by simp [cgP, cgP', cgX]; norm_num, hQ, by rw [hQ]; norm_num⟩
+  rw [coin_E0]
+  simp [cgRate]
+  norm_num
+
+end Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Horizon comparisons for state-contingent forward guidance
+
+Cochrane (2023), §7.1, p. 213 (first bullet): guidance has less effect than the same immediate
+rise, and the effect falls with the horizon (`ForwardGuidance.priceLevel_mono`,
+`ForwardGuidance.priceLevel_immediate_le`).
+
+With a state-contingent announced rate path both comparisons fail.
+
+* `cg2_fisher`, `cg2_presentValue`: an equilibrium (Fisher relations at every date and the date-0
+  valuation (7.3), as in `TidyR5RandomGuidance`) for the rate path `cgRate2`. That path is
+  `TidyR5RandomGuidance.cgRate` delayed by one period, with `r` inserted at date 0
+  (`cgRate2_delay`).
+* `cg_horizon_counterexample`: same debt and surpluses; the earlier announcement has the
+  *higher* price level, `P_0 = 7/48 > 1/8`.
+  - Read the shape as "`ρ` at the first date, `r` afterwards". Then horizon 1 versus horizon 2
+    contradicts monotonicity in the horizon.
+  - Read the shape as "`r`, then `ρ`, then `r`". Then the immediate rise (horizon 0) versus
+    horizon 1 contradicts "the immediate rise has the largest effect".
+* `cg_cov_zero`: the date-0 covariance term of `TidyR5RandomGuidance.bondPrice_cov_rate` is zero
+  in this example. So rates uncorrelated with later bond prices do not rescue the comparisons; the
+  failure is the convexity (Jensen) effect `E_0(1+i_1)^{-1} > (1 + E_0 i_1)^{-1}`.
+
+The surviving version is the one for rate paths known at date 0:
+`TidyR5GuidanceUncertainty.stoch_fg_mono`, of which the immediate-rise comparison is the case
+`T = 0`.
+-/
+
+namespace Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon
+
+open Filter Topology MaturityStructure TidyR5RandomGuidance
+
+/-- Cochrane (2023), §7.1 (counterexample): the rate path of `cgRate` delayed one period: `2`
+after heads and `1/5` after tails at date 2, `r = 1` at every other date. -/
+noncomputable def cgRate2 : ℕ → Bool × Bool → ℝ :=
+  fun t ω => if t = 2 then (if ω.1 then 2 else 1 / 5) else 1
+
+/-- Cochrane (2023), §7.1 (counterexample): `cgRate2` is `cgRate` delayed by one period, with the
+unchanged rate `r = 1` at date 0. -/
+theorem cgRate2_delay (t : ℕ) (ω : Bool × Bool) :
+    cgRate2 0 ω = 1 ∧ cgRate2 (t + 1) ω = cgRate t ω := by
+  refine ⟨by simp [cgRate2], ?_⟩
+  simp only [cgRate2, cgRate, show (t + 1 = 2) = (t = 1) by simp]
+
+/-- Cochrane (2023), §7.1 (counterexample): `1/P_t` for the delayed path: `8` up to date 2, then
+`16/3` after heads and `40/3` after tails. -/
+noncomputable def cgX2 : ℕ → Bool × Bool → ℝ :=
+  fun t ω => if t ≤ 2 then 8 else (if ω.1 then 16 / 3 else 40 / 3)
+
+/-- Cochrane (2023), §7.1 (counterexample): the price level `P_t = 1/cgX2`. -/
+noncomputable def cgP2 : ℕ → Bool × Bool → ℝ := fun t ω => (cgX2 t ω)⁻¹
+
+/-- Cochrane (2023), §7.1 (counterexample): the delayed path implements the rates `cgRate2`
+(`β = 1/2`). -/
+theorem cg2_fisher : RFisher ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP2 cgX2 cgRate2 := by
+  intro t
+  rcases Nat.lt_or_ge t 2 with h2 | h2
+  · have : cgP2 t * cgX2 (t + 1) = fun _ => 1 := by
+      funext ω
+      simp [cgP2, cgX2, show t ≤ 2 by omega, show t + 1 ≤ 2 by omega]
+    simp only [bondPrice, pow_one, this, ExpectationsFiniteTree.coinSystem.const]
+    funext ω; simp [cgRate2, show t ≠ 2 by omega]
+  · rcases Nat.lt_or_ge t 3 with h3 | h3
+    · obtain rfl : t = 2 := by omega
+      have hk : ExpectationsFiniteTree.coinSystem.E 2 (cgP2 2 * cgX2 (2 + 1)) =
+          cgP2 2 * cgX2 (2 + 1) :=
+        coin_known (fun ω ω' h => by simp only [Pi.mul_apply, cgP2, cgX2, h]) (by norm_num)
+      simp only [bondPrice, pow_one, hk]
+      funext ω
+      rcases ω with ⟨_ | _, _⟩ <;> simp [cgP2, cgX2, cgRate2] <;> norm_num
+    · have : cgP2 t * cgX2 (t + 1) = fun _ => 1 := by
+        funext ω
+        simp only [Pi.mul_apply, cgP2, cgX2, show ¬ (t ≤ 2) by omega,
+          show ¬ (t + 1 ≤ 2) by omega, ↓reduceIte]
+        split_ifs <;> norm_num
+      simp only [bondPrice, pow_one, this, ExpectationsFiniteTree.coinSystem.const]
+      funext ω
+      simp [cgRate2, show t ≠ 2 by omega]
+
+/-- Cochrane (2023), §7.1 (counterexample): the delayed path satisfies the date-0 valuation
+equation (7.3) with debt `B_{−1}^{(2)} = 1` and surpluses `s_t = 1`: `β² · 8 = 2`. -/
+theorem cg2_presentValue : PresentValue ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹
+    (fun _ j _ => cgB j) cgX2 (fun _ _ => 1) 0 := by
+  intro ω
+  refine ⟨(cg_pv ω).summable, ?_⟩
+  rw [pvSurplus, (cg_pv ω).tsum_eq]
+  have h := hasSum_single (f := fun j => debtTerm ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹
+    (fun _ j _ => cgB j) cgX2 0 j ω) 2 fun j hj => by simp [debtTerm, cgB, hj]
+  convert h using 1
+  simp only [debtTerm, cgB, ↓reduceIte, one_mul, zero_add]
+  rw [show cgX2 2 = fun _ => (8 : ℝ) from funext fun _ => by simp [cgX2],
+    ExpectationsFiniteTree.coinSystem.const]
+  norm_num
+
+/-- Cochrane (2023), §7.1, p. 213 (first bullet), **counterexample for state-contingent guidance**:
+the path `cgRate` and its one-period delay `cgRate2` (same debt `B_{−1}^{(2)} = 1`, surpluses
+`s_t = 1`, `r = 1`) both have equilibria (`cg_fisher`, `cg_presentValue`, `cg2_fisher`,
+`cg2_presentValue`), and the earlier announcement gives the higher price level,
+`P_0 = 7/48 > 1/8`. This contradicts both monotonicity in the horizon and the immediate-rise
+comparison. -/
+theorem cg_horizon_counterexample (ω : Bool × Bool) :
+    cgP 0 ω = 7 / 48 ∧ cgP2 0 ω = 1 / 8 ∧ cgP2 0 ω < cgP 0 ω := by
+  refine ⟨by simp [cgP, cgX], by simp [cgP2, cgX2], ?_⟩
+  simp [cgP, cgX, cgP2, cgX2]
+  norm_num
+
+/-- Cochrane (2023), §7.1 (counterexample): the covariance term
+`Cov_0(β P_0/P_1, Q_1^{(2)})` of `TidyR5RandomGuidance.bondPrice_cov_rate` vanishes in the
+counterexample (`P_0/P_1 = 1`), so the failure is not a correlation effect. -/
+theorem cg_cov_zero :
+    condCov ExpectationsFiniteTree.coinSystem 0 ((1 + 1 : ℝ)⁻¹ • (cgP 0 * cgX (0 + 1)))
+      (bondPrice ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP cgX (0 + 1) 1) = 0 := by
+  have hc : (1 + 1 : ℝ)⁻¹ • (cgP 0 * cgX (0 + 1)) = fun _ => (1 + 1 : ℝ)⁻¹ := by
+    funext ω; simp [cgP, cgX]
+  set b := bondPrice ExpectationsFiniteTree.coinSystem (1 + 1)⁻¹ cgP cgX (0 + 1) 1
+  have hm : (fun _ => (1 + 1 : ℝ)⁻¹) * b = (1 + 1 : ℝ)⁻¹ • b := by
+    funext ω; simp
+  rw [condCov, hc, hm, map_smul, ExpectationsFiniteTree.coinSystem.const]
+  funext ω
+  simp
+
+end Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon
+
 set_option linter.style.longLine false
 #print axioms Cochrane.LongTermDebtDynamics.SchurStable
 #print axioms Cochrane.LongTermDebtDynamics.disc
@@ -6904,3 +10421,173 @@ set_option linter.style.longLine false
 #print axioms Cochrane.LongTermDebtDynamics.QuantitativeEasing.pv_iff_724
 #print axioms Cochrane.LongTermDebtDynamics.QuantitativeEasing.Irrelevance.maturity_irrelevance
 #print axioms Cochrane.LongTermDebtDynamics.QuantitativeEasing.strong_qe
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.weight_apply
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.pathZ
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.pathZΩ
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.pathZ_summable_bound
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.pathZ_solves
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.hasSum_E_of_dom
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.formulaW_eq_E
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.formulaW_adapted_of_exchange
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5Pathwise.formulaW_solves_of_exchange
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.weight_mem_unit
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.frac_le_one
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.weight_series_le
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.pathZΩ_noBuyback
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.formulaW_solves_noBuyback
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.noBuyback_le_maturing
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.fracSold_known
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.eqX
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.equilibrium_of_formulaW_pos
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.maturing_eq_formulaW
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.exists_equilibrium_iff
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.formulaW_ge_surplus
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.existsUnique_of_pos_surplus
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.cbD
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.cbS
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.cb_noBuyback
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.cb_predetermined
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.cb_bounded
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.cb_no_positive_price
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5NoBuybackExistence.cb_pv_pos
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.sum_abs_weight_le
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.RowBoundR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.RandomBound
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.rowBoundR_of_randomBound
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.randomBound_of_rowBound
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.RowBoundR.partial
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.RowBoundR.nonneg
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.weight_series_le
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.pathZΩ_rowR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.E_row_partial
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.abs_term_le
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.row_series
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.unique_of_rowR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.opK
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.iterY
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.opK_sub
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.iterY_bounds
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.exists_bounded_solution
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.existsUnique_bounded_solution
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.SeriesExchange
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.perfectForesight_seriesExchange
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.finiteTree_seriesExchange
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.formulaW_solves_rowR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.theoremW_rowR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.price_unique_rowR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.price_formula_rowR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.sxA
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.sx_rowBoundR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomRow.sx_not_rowBound
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.hasDerivAt_E_div
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.pertD
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.pertD_22
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.pertD_ne
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.pertD_predetermined
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x0R
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x0_eq_x0R
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.fracA
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.kCoef
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x0R_pull
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.kCoef_eq
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.hasDerivAt_x0R
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.price_two_pos_iff
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x0R_mono
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x0R_anti
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x0R_const
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x0R_strictMono
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x1R
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.E_x1_eq_x1R
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x1R_split
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.hasDerivAt_x1R
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5FutureSalesRandom.x1R_mono
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.FisherPath
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.bondPrice_eq_prod
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.prod_fgRate
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_fgPrice
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_E0_path
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_expected_inflation
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_no_expected_jump
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_expected_inflation_after
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_valuation
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_priceLevel
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_fg_no_effect
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_fg_lowers
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_fg_mono
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_geometric_value
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5GuidanceUncertainty.stoch_fg_jump
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.QEPV
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.resv
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.qe_iff
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.reserves_unique
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.reserves_exist_iff
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.perfectForesight_reserves_exist
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.innovation_form
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.no_reserves_of_news
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.coinS
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.coin_pv
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEUncertainty.coin_no_reserves
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.tailF
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.tailF_anti
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.tailF_tendsto
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.tailF_nonneg
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.firstIdx
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.tail_le_bound
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.E_tail_tendsto
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.hasSum_E_nonneg
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.seriesExchange
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.formulaW_solves_rowR'
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.theoremW_rowR'
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5SeriesExchange.price_formula_rowR'
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.NoSalesAfter
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.fracNew
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.debt_after
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.maturing_after
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.dilution_at
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.fracNew_known
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.innovation_at
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.no_surprise_iff
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5InnovationForm.innovation_rowR
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.resid
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.qeImplied
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.qe_split
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.qe_necessary
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.qe_unique
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.qe_sufficient
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.qe_exists_iff
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.coin_pv_two
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5QEReverse.coin_no_qe
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.condCov
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.RFisher
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.bondPrice_succ_eq
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.bondPrice_cov
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.bondPrice_cov_rate
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.bondPrice_prefix
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.random_valuation
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.random_fg_no_effect
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.random_expected_ratio
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.random_no_expected_jump
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cgRate
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cgX
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cgP
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cgX'
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cgP'
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cgB
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.coin_E0
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.coin_known
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cg_adapted
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cgP_adapted
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cg_fisher
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cg_fisher'
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cg_pv
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cg_presentValue
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cg_presentValue'
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomGuidance.cg_counterexample
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cgRate2
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cgRate2_delay
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cgX2
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cgP2
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cg2_fisher
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cg2_presentValue
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cg_horizon_counterexample
+#print axioms Cochrane.LongTermDebtDynamics.TidyR5RandomHorizon.cg_cov_zero

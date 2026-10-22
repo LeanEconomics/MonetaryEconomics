@@ -13,7 +13,9 @@ are the labels of the chapter survey.
 `D t m` is the book's `B_{t−1}^{(m)}`, the primitive price variable is `x_t = 1/P_t`, and in §7.4
 `y_t = B_{t−1}^{(t)}/P_t` and `A_t^{(m)} = (B_t^{(m)} − B_{t−1}^{(m)})/B_{m−1}^{(m)}`. The
 structural results hold for an arbitrary `ExpectationSystem` with `ExpectationSystem.PullOut`;
-forward guidance, §7.6.1 and the counterexample are deterministic. The shared core
+in the chapter modules forward guidance, §7.6.1 and the counterexample are deterministic, as in
+the book, and the sections marked "under uncertainty" or "with random debt" redo them with random
+surpluses and price levels. The shared core
 (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is cited where a row
 uses it.
 
@@ -64,6 +66,40 @@ uses it.
 | Cochrane App. p. 561 | the continuous jump is negative, shrinks with `T`, vanishes as `T → ∞`, and shrinks with `ϖ` | `ForwardGuidance.cfgJump_neg`, `ForwardGuidance.cfgJump_abs_anti`, `ForwardGuidance.cfgJump_tendsto`, `ForwardGuidance.cfgJump_abs_anti_varpi` |
 | Cochrane App. p. 561 | the sales that maintain the geometric structure, `ω^j(1−ω)B = ((1−ω)/ω)B_{t−1}^{(t+j+1)}` | `ForwardGuidance.steady_sales` |
 
+## §7.1 and Online Appendix §A1.2.1 under uncertainty, pp. 213–215 and 560 (TidyR5GuidanceUncertainty, TidyR5RandomGuidance, TidyR5RandomHorizon)
+
+The book's §7.1 is deterministic. Here surpluses and price levels are random, under an arbitrary
+`ExpectationSystem` with the pull-out property. As in the book, an equilibrium is the Fisher
+relation at every date plus the date-0 valuation equation (7.3).
+
+### A rate path known at date 0 (TidyR5GuidanceUncertainty)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 213 | the announced rate path, known at date 0, is implemented through the Fisher relation under uncertainty, `Q_t^{(t+1)} = βE_t(P_t/P_{t+1}) = 1/(1+i_t)` | `TidyR5GuidanceUncertainty.FisherPath` |
+| Cochrane p. 214 | with a known rate path every bond price is deterministic, `Q_t^{(t+j)} = ∏_{u<j}(1+i_{t+u})^{−1}`, however uncertain the price level; along the announced path this is the book's display, in every state | `TidyR5GuidanceUncertainty.bondPrice_eq_prod`, `TidyR5GuidanceUncertainty.prod_fgRate`, `TidyR5GuidanceUncertainty.stoch_fgPrice` |
+| Cochrane pp. 214–215 | the book's price path is the path of `E_0(1/P_j)`: flat until `T`, then falling at the rate `(1+r)/(1+i)` | `TidyR5GuidanceUncertainty.stoch_E0_path` |
+| Cochrane bullet p. 215 | `E_t(P_t/P_{t+1}) = (1+r)/(1+i_t)`; no expected jump, `E_t(P_t/P_{t+1}) = 1`, for `t < T`; expected inflation from `T` on; the realised jump is news only | `TidyR5GuidanceUncertainty.stoch_expected_inflation`, `TidyR5GuidanceUncertainty.stoch_no_expected_jump`, `TidyR5GuidanceUncertainty.stoch_expected_inflation_after` |
+| Cochrane (7.3), p. 214 | the valuation equation with the book's bond prices, and `P_0`, state by state | `TidyR5GuidanceUncertainty.stoch_valuation`, `TidyR5GuidanceUncertainty.stoch_priceLevel` |
+| Cochrane pp. 213–214 | state by state: guidance with `T ≥ k` has no effect; otherwise it lowers `P_0`; the effect falls with the horizon, and the immediate rise (`T = 0`) has the largest effect | `TidyR5GuidanceUncertainty.stoch_fg_no_effect`, `TidyR5GuidanceUncertainty.stoch_fg_lowers`, `TidyR5GuidanceUncertainty.stoch_fg_mono` |
+| Cochrane App. p. 560 | with geometric maturities the valuation equation, and the discrete jump `P_0/P − 1 = J_T` (`ForwardGuidance.fgJump`), state by state | `TidyR5GuidanceUncertainty.stoch_geometric_value`, `TidyR5GuidanceUncertainty.stoch_fg_jump` |
+
+### A state-contingent rate path (TidyR5RandomGuidance, TidyR5RandomHorizon)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 213 | the conditional covariance; a state-contingent rate path `i_t`, known at `t`, implemented through the Fisher relation | `TidyR5RandomGuidance.condCov`, `TidyR5RandomGuidance.RFisher` |
+| Cochrane p. 214 | the bond-price recursion with the covariance term explicit, `Q_t^{(t+j+1)} = (1+i_t)^{−1}E_tQ_{t+1}^{(t+j+1)} + Cov_t(βP_t/P_{t+1}, Q_{t+1}^{(t+j+1)})` | `TidyR5RandomGuidance.bondPrice_succ_eq`, `TidyR5RandomGuidance.bondPrice_cov`, `TidyR5RandomGuidance.bondPrice_cov_rate` |
+| Cochrane (7.3), p. 214 | the valuation equation with random bond prices | `TidyR5RandomGuidance.random_valuation` |
+| Cochrane p. 214 | survives: if the rate is `r` before `T`, bonds maturing by `T` keep their prices, and guidance with `T ≥ k` has no effect on `P_0`, however random the later rates | `TidyR5RandomGuidance.bondPrice_prefix`, `TidyR5RandomGuidance.random_fg_no_effect` |
+| Cochrane p. 215 | survives: `E_t(P_t/P_{t+1}) = (1+r)/(1+i_t)` state by state, so there is no expected jump where `i_t = r` | `TidyR5RandomGuidance.random_expected_ratio`, `TidyR5RandomGuidance.random_no_expected_jump` |
+| Cochrane pp. 213–214 | the counterexample economy: a coin-flip tree, `r = 1`, the date-1 rate `2` or `1/5` (mean `11/10`), one unit of debt due at date 2, the two price paths, adaptedness | `TidyR5RandomGuidance.cgRate`, `TidyR5RandomGuidance.cgX`, `TidyR5RandomGuidance.cgP`, `TidyR5RandomGuidance.cgX'`, `TidyR5RandomGuidance.cgP'`, `TidyR5RandomGuidance.cgB`, `TidyR5RandomGuidance.coin_E0`, `TidyR5RandomGuidance.coin_known`, `TidyR5RandomGuidance.cg_adapted`, `TidyR5RandomGuidance.cgP_adapted` |
+| Cochrane pp. 213–214 | both paths implement their rate paths and satisfy (7.3) with surpluses `s_t = 1`, whose present value is `2` | `TidyR5RandomGuidance.cg_fisher`, `TidyR5RandomGuidance.cg_fisher'`, `TidyR5RandomGuidance.cg_pv`, `TidyR5RandomGuidance.cg_presentValue`, `TidyR5RandomGuidance.cg_presentValue'` |
+| Cochrane pp. 213–214 | fails: a higher expected rate path can raise `P_0`: `P_0 = 7/48` against `1/8` without the announcement, since `Q_0^{(2)} = 7/24 > 1/4` (Jensen) | `TidyR5RandomGuidance.cg_counterexample` |
+| Cochrane bullets p. 213 | the same rate shape delayed one period, with its equilibrium | `TidyR5RandomHorizon.cgRate2`, `TidyR5RandomHorizon.cgRate2_delay`, `TidyR5RandomHorizon.cgX2`, `TidyR5RandomHorizon.cgP2`, `TidyR5RandomHorizon.cg2_fisher`, `TidyR5RandomHorizon.cg2_presentValue` |
+| Cochrane bullets p. 213 | fails: the earlier announcement has the higher price level (`7/48 > 1/8`), contradicting both monotonicity in the horizon and "the immediate rise has the largest effect" | `TidyR5RandomHorizon.cg_horizon_counterexample` |
+| Cochrane p. 214 | the date-0 covariance term vanishes in the example, so the failure is the convexity effect `E_0(1+i_1)^{−1} > (1+E_0i_1)^{−1}`, not a correlation | `TidyR5RandomHorizon.cg_cov_zero` |
+
 ## §7.2.1 Maturing debt and a buffer, (7.4)–(7.6), pp. 216–218 (MaturingDebt)
 
 | Book | Claim | Lean |
@@ -94,7 +130,17 @@ uses it.
 | Cochrane bullets p. 222 | additional sales lower bond prices and raise future price levels | `BondSales.sales_lower_bondPrice`, `BondSales.sales_raise_future_price` |
 | Cochrane bullet p. 223 | a bond-price target is supported by a unique, finite quantity; unit elasticity `d log B/d log Q = −1` | `BondSales.bondPrice_target_iff`, `BondSales.unit_elasticity` |
 | Cochrane bullet p. 223 | with long-term debt outstanding, additional sales lower `P_0`; the marginal effect on `1/P_0` | `BondSales.outstanding_sales_lower_price`, `BondSales.hasDerivAt_dilution` |
-| Cochrane bullet p. 224 | a state-contingent sale offsets a date-0 surplus shock, at the cost of a higher future price level (the content of the innovation form of (7.12), stated at date 0, E7.9) | `BondSales.offset_shock` |
+| Cochrane bullet p. 224 | a state-contingent sale offsets a date-0 surplus shock, at the cost of a higher future price level (the content of the innovation form of (7.12) at date 0; at every date in the next section, E7.9) | `BondSales.offset_shock` |
+
+## §7.3.2 The innovation form of (7.12) at every date, pp. 222–225 (TidyR5InnovationForm)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §7.3, p. 221 (at date `t₀`) | trading at `t₀` only; afterwards the debt due at `m` is `B_{t₀}^{(m)}`, and `B_{t₀}^{(u)}/P_u = s_u` for `u > t₀` (7.9) | `TidyR5InnovationForm.NoSalesAfter`, `TidyR5InnovationForm.debt_after`, `TidyR5InnovationForm.maturing_after` |
+| Cochrane (7.12), p. 222 (at date `t₀`) | the fraction sold at `t₀`, `A_{t₀}^{(m)} = (B_{t₀}^{(m)} − B_{t₀−1}^{(m)})/B_{t₀}^{(m)}`, known at `t₀`; the dilution formula at `t₀` | `TidyR5InnovationForm.fracNew`, `TidyR5InnovationForm.fracNew_known`, `TidyR5InnovationForm.dilution_at` |
+| Cochrane p. 224 (E7.9) | the innovation form of (7.12) at a general date `t + 1`, corrected (the printed display mixes the dates `0` and `t`) | `TidyR5InnovationForm.innovation_at` |
+| Cochrane bullet p. 224 | at every date, no unexpected inflation exactly when the surplus news is offset by the news in the dilution terms | `TidyR5InnovationForm.no_surprise_iff` |
+| Cochrane (7.17), p. 225 | the innovation form of the general formula at every date, for any sale policy under the row condition with random bounds | `TidyR5InnovationForm.innovation_rowR` |
 
 ## §7.3.3 Future bond sales, p. 224, and Online Appendix §A1.14, (1.63)–(1.68), pp. 588–592 (FutureSales)
 
@@ -112,7 +158,20 @@ uses it.
 | Cochrane App. (1.66), p. 591 | `1/P_0` as a function of the expected sale `F`, agreeing with (1.65) term by term | `FutureSales.x0Fun`, `FutureSales.x0_closed` |
 | Cochrane App. bullet p. 592 | `d(1/P_0)/dF` has the sign of `A₁ − A₂`: expected sales lower `P_0` if `A₁ > A₂`, raise it if `A₁ < A₂`, and have no effect if `A₁ = A₂` (E7.10) | `FutureSales.hasDerivAt_x0`, `FutureSales.x0_strictMono`, `FutureSales.x0_strictAnti`, `FutureSales.x0_const` |
 
-## §7.4 A general formula, (7.14)–(7.17), pp. 224–226 (GeneralFormula)
+## Online Appendix §A1.14 with random debt, (1.63)–(1.68), pp. 588–592 (TidyR5FutureSalesRandom)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. p. 589 | the date-1 sale of time-2 debt perturbed in a random direction `G` known at date 1, `B_1^{(2)}(ε) = B_1^{(2)} + εG`; the other positions unchanged; still predetermined | `TidyR5FutureSalesRandom.pertD`, `TidyR5FutureSalesRandom.pertD_22`, `TidyR5FutureSalesRandom.pertD_ne`, `TidyR5FutureSalesRandom.pertD_predetermined` |
+| Cochrane App. (1.63)–(1.66), pp. 589–591 | in every equilibrium of the three-period economy with random debt, `1/P_0` is the closed form along the perturbation | `TidyR5FutureSalesRandom.x0R`, `TidyR5FutureSalesRandom.x0_eq_x0R` |
+| Cochrane App. (1.66), p. 591 | with the date-0 fractions `A₁`, `A₂` pulled out of `E_0`, `B_{−1}^{(0)}/P_0 = s_0 + A₁E_0(βs_1 + β²s_2) + E_0(β²s_2B_0^{(2)}(A₂ − A₁)/B_1^{(2)}(ε))` | `TidyR5FutureSalesRandom.fracA`, `TidyR5FutureSalesRandom.kCoef`, `TidyR5FutureSalesRandom.kCoef_eq`, `TidyR5FutureSalesRandom.x0R_pull` |
+| Cochrane App. p. 592 | `d(1/P_0)/dε = β²B_0^{(2)}(A₁ − A₂)E_0(Gs_2/(B_1^{(2)})²)/B_{−1}^{(0)}`, an exact derivative (the `O(ε²)` remainder is uniform in the state) | `TidyR5FutureSalesRandom.hasDerivAt_E_div`, `TidyR5FutureSalesRandom.hasDerivAt_x0R` |
+| Cochrane App. (1.63), p. 589 | with `B_1^{(2)} > 0`, `P_2 > 0` iff `s_2 > 0`, so `s_2 ≥ 0` is no extra restriction | `TidyR5FutureSalesRandom.price_two_pos_iff` |
+| Cochrane App. bullet p. 592 | the sign rule with random debt: for `G ≥ 0`, larger future sales lower `P_0` if `A₁ ≥ A₂`, strictly under uniform positive bounds, raise it if `A₁ ≤ A₂`, and have no effect in any direction if `A₁ = A₂` | `TidyR5FutureSalesRandom.x0R_mono`, `TidyR5FutureSalesRandom.x0R_strictMono`, `TidyR5FutureSalesRandom.x0R_anti`, `TidyR5FutureSalesRandom.x0R_const` |
+| Cochrane App. (1.64), p. 590 | `E_0(1/P_1)` along the perturbation, in every equilibrium, and its split form | `TidyR5FutureSalesRandom.x1R`, `TidyR5FutureSalesRandom.E_x1_eq_x1R`, `TidyR5FutureSalesRandom.x1R_split` |
+| Cochrane App. bullet p. 591 | with `B_0^{(2)} ≥ 0`, larger state-contingent future sales raise `E_0(1/P_1)`, and so `Q_0^{(1)}` with `P_0` fixed; the exact derivative | `TidyR5FutureSalesRandom.hasDerivAt_x1R`, `TidyR5FutureSalesRandom.x1R_mono` |
+
+## §7.4 A general formula, (7.14)–(7.17), pp. 224–226 (GeneralFormula, TidyR5Pathwise, TidyR5NoBuybackExistence, TidyR5RandomRow, TidyR5SeriesExchange)
 
 ### The system, the weights and Theorem W
 
@@ -145,6 +204,41 @@ uses it.
 | Cochrane (7.17), p. 225 (E7.4) | the sale fractions are `1 − 2/β` and `2/β`; the weights obey `W^{(k+2)} = (1 − 2/β)W^{(k+1)} + (2/β)W^{(k)}`, so `W^{(k)} = (β + 2(−2/β)^k)/(β + 2)`, and (7.17) diverges | `GeneralFormula.cx_frac`, `GeneralFormula.cx_weight_rec`, `GeneralFormula.cx_weight`, `GeneralFormula.cx_formula_diverges` |
 | Cochrane p. 225 (E7.4) | the counterexample buys back debt and violates the row condition (row sum at least `2 + β`) | `GeneralFormula.cx_buyback`, `GeneralFormula.cx_not_row` |
 
+### Existence without buy-backs (TidyR5Pathwise, TidyR5NoBuybackExistence)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 226 | the weights of random sale fractions, evaluated at a state | `TidyR5Pathwise.weight_apply` |
+| Cochrane (7.17), p. 225 | the pathwise weighted present value `Z_t = ∑_m β^mW_t^{(m)}s_{t+m}`, deterministic and state by state; it converges absolutely with `\|Z_t\| ≤ CM` when the weights are absolutely summable | `TidyR5Pathwise.pathZ`, `TidyR5Pathwise.pathZΩ`, `TidyR5Pathwise.pathZ_summable_bound` |
+| Cochrane (7.14), (7.17), pp. 225–226 | state by state, `Z` solves the flow system without expectations, `Z_t = s_t + ∑_j β^{j+1}A_t^{(t+j+1)}Z_{t+j+1}` | `TidyR5Pathwise.pathZ_solves` |
+| Cochrane §7.4 | `E_t` passes through a series dominated by a summable sequence, in `HasSum` form | `TidyR5Pathwise.hasSum_E_of_dom` |
+| Cochrane (7.14), (7.17), pp. 225–226 | if `E_t` passes through the two series involved, (7.17) is `E_tZ_t`, is known at `t` and solves (7.14) under uncertainty | `TidyR5Pathwise.formulaW_eq_E`, `TidyR5Pathwise.formulaW_adapted_of_exchange`, `TidyR5Pathwise.formulaW_solves_of_exchange` |
+| Cochrane p. 226 | without buy-backs each sale fraction and every weight `W_t^{(m)}` lies in `[0, 1]`, so `∑_m β^m\|W_t^{(m)}\| ≤ 1/(1−β)` | `TidyR5NoBuybackExistence.weight_mem_unit`, `TidyR5NoBuybackExistence.frac_le_one`, `TidyR5NoBuybackExistence.weight_series_le` |
+| Cochrane (7.14), (7.17), pp. 225–226 | without buy-backs (7.17) solves the flow system, with no row condition, under uncertainty; pathwise `\|Z_t\| ≤ M/(1−β)` | `TidyR5NoBuybackExistence.pathZΩ_noBuyback`, `TidyR5NoBuybackExistence.formulaW_solves_noBuyback` |
+| Cochrane §7.4, p. 225 | without buy-backs `B_{t−1}^{(m)} ≤ B_{m−1}^{(m)}`; each `A_t^{(t+j+1)}` is known at `t + j` | `TidyR5NoBuybackExistence.noBuyback_le_maturing`, `TidyR5NoBuybackExistence.fracSold_known` |
+| Cochrane (7.17), pp. 225–226 | sufficiency: if (7.17) is strictly positive at every date and state, `1/P_t = E_t∑ β^mW_t^{(m)}s_{t+m}/B_{t−1}^{(t)}` is a positive equilibrium (every flow and present-value relation) | `TidyR5NoBuybackExistence.eqX`, `TidyR5NoBuybackExistence.equilibrium_of_formulaW_pos` |
+| Cochrane (7.17), pp. 225–226 | necessity: in every equilibrium with nonnegative `1/P`, `B_{t−1}^{(t)}/P_t` is (7.17) | `TidyR5NoBuybackExistence.maturing_eq_formulaW` |
+| Cochrane §7.4, pp. 225–226 | the exact condition: without buy-backs a positive equilibrium exists iff (7.17) is strictly positive at every date and state | `TidyR5NoBuybackExistence.exists_equilibrium_iff` |
+| Cochrane §7.4, pp. 225–226 | with nonnegative surpluses (7.17) is at least `s_t`; positive bounded surpluses give exactly one positive equilibrium | `TidyR5NoBuybackExistence.formulaW_ge_surplus`, `TidyR5NoBuybackExistence.existsUnique_of_pos_surplus` |
+| Cochrane §7.4 | the counterexample to existence: one unit due at every date, never traded, `s_0 = −1`, `s_t = 1` after; no buy-backs, predetermined, bounded | `TidyR5NoBuybackExistence.cbD`, `TidyR5NoBuybackExistence.cbS`, `TidyR5NoBuybackExistence.cb_noBuyback`, `TidyR5NoBuybackExistence.cb_predetermined`, `TidyR5NoBuybackExistence.cb_bounded` |
+| Cochrane §7.4 | no buy-backs alone do not give existence: no positive `P_0` satisfies the date-0 flow condition, although the date-0 present value of surpluses `(2β−1)/(1−β)` is positive for `β > 1/2` | `TidyR5NoBuybackExistence.cb_no_positive_price`, `TidyR5NoBuybackExistence.cb_pv_pos` |
+
+### Theorem W with random bounds (TidyR5RandomRow, TidyR5SeriesExchange)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (7.17), p. 225 | the row condition at every date and state, `∑_j β^{j+1}\|A_t^{(t+j+1)}(ω)\| ≤ ρ`; random bounds (adapted or not) imply it, and the deterministic row condition is the case of constant bounds | `TidyR5RandomRow.RowBoundR`, `TidyR5RandomRow.RandomBound`, `TidyR5RandomRow.rowBoundR_of_randomBound`, `TidyR5RandomRow.randomBound_of_rowBound`, `TidyR5RandomRow.RowBoundR.partial`, `TidyR5RandomRow.RowBoundR.nonneg` |
+| Cochrane (7.17), p. 226 | under the row condition `∑_m β^m\|W_u^{(m)}(ω)\| ≤ 1/(1−ρ)` in every state, and `Z` solves the flow system state by state with `\|Z_t\| ≤ M/(1−ρ)` | `TidyR5RandomRow.sum_abs_weight_le`, `TidyR5RandomRow.weight_series_le`, `TidyR5RandomRow.pathZΩ_rowR` |
+| Cochrane §7.4, p. 225 | uniqueness: bounded homogeneous solutions vanish, for every expectation system; two adapted price paths with bounded real maturing debt coincide | `TidyR5RandomRow.E_row_partial`, `TidyR5RandomRow.abs_term_le`, `TidyR5RandomRow.row_series`, `TidyR5RandomRow.unique_of_rowR`, `TidyR5RandomRow.price_unique_rowR` |
+| Cochrane (7.14), p. 225 | existence: the iterates `y^{n+1} = s + Ky^n` converge, so (7.14) has exactly one bounded solution, for every expectation system | `TidyR5RandomRow.opK`, `TidyR5RandomRow.iterY`, `TidyR5RandomRow.opK_sub`, `TidyR5RandomRow.iterY_bounds`, `TidyR5RandomRow.exists_bounded_solution`, `TidyR5RandomRow.existsUnique_bounded_solution` |
+| Cochrane (7.17), p. 225 | `E_t` passes through absolutely convergent series (`SeriesExchange`), shown directly for perfect foresight and every finite tree, and in general below | `TidyR5RandomRow.SeriesExchange`, `TidyR5RandomRow.perfectForesight_seriesExchange`, `TidyR5RandomRow.finiteTree_seriesExchange` |
+| Cochrane (7.17), p. 225 | Theorem W with random bounds, stated with `SeriesExchange` as a hypothesis (redundant: see `TidyR5SeriesExchange.seriesExchange`) | `TidyR5RandomRow.formulaW_solves_rowR`, `TidyR5RandomRow.theoremW_rowR`, `TidyR5RandomRow.price_formula_rowR` |
+| Cochrane §7.4 | the random row condition is strictly weaker than the deterministic one, even under perfect foresight | `TidyR5RandomRow.sxA`, `TidyR5RandomRow.sx_rowBoundR`, `TidyR5RandomRow.sx_not_rowBound` |
+| Cochrane §7.4 | tails `T_N` of a nonnegative series: decreasing, nonnegative, tending to zero; the first index `h` with `T_h ≤ ε`; the pointwise bound `T_N ≤ ε + Kh/(N+1) + F²/K` | `TidyR5SeriesExchange.tailF`, `TidyR5SeriesExchange.tailF_anti`, `TidyR5SeriesExchange.tailF_nonneg`, `TidyR5SeriesExchange.tailF_tendsto`, `TidyR5SeriesExchange.firstIdx`, `TidyR5SeriesExchange.tail_le_bound` |
+| Cochrane §7.4 | `E_tT_N → 0`, so `E_t` passes through nonnegative series, for every expectation system | `TidyR5SeriesExchange.E_tail_tendsto`, `TidyR5SeriesExchange.hasSum_E_nonneg` |
+| Cochrane (7.17), p. 225 | `SeriesExchange` is a theorem of the expectation axioms, since `E_t` is linear and monotone on unbounded random variables too | `TidyR5SeriesExchange.seriesExchange` |
+| Cochrane (7.14), (7.17), pp. 225–226 | Theorem W with random bounds and no interchange hypothesis: (7.17) solves (7.14), every bounded solution is (7.17), and so is `B_{t−1}^{(t)}/P_t`, for every expectation system with the pull-out property | `TidyR5SeriesExchange.formulaW_solves_rowR'`, `TidyR5SeriesExchange.theoremW_rowR'`, `TidyR5SeriesExchange.price_formula_rowR'` |
+
 ### The printed displays (7.15)–(7.16)
 
 | Book | Claim | Lean |
@@ -170,7 +264,7 @@ uses it.
 | Cochrane p. 228 | debt policy can offset a fiscal shock at date 0, but only by raising some future price level | `PolicyConstraints.offset_shock`, `PolicyConstraints.offset_shock_cost` |
 | Cochrane (7.21), p. 228 | the end-of-period real value of debt is `E_0∑_{j≥1} β^js_j`, whatever the quantities sold, also in nominal form | `PolicyConstraints.end_of_period_value`, `PolicyConstraints.end_of_period_value_nominal` |
 
-## §7.6 Quantitative easing and friends, (7.22)–(7.24), pp. 229–234 (QuantitativeEasing)
+## §7.6 Quantitative easing and friends, (7.22)–(7.24), pp. 229–234 (QuantitativeEasing, TidyR5QEUncertainty, TidyR5QEReverse)
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -183,6 +277,23 @@ uses it.
 | Cochrane (7.24), p. 232 | the same relation with bond prices `Q_t^{(j)} = β^{j−t}P_t/P_j` | `QuantitativeEasing.pv_iff_724` |
 | Cochrane §7.6.2, p. 232 | only the total nominal market value of debt matters: two policies with the same market value satisfy the present-value relation for the same price levels, under uncertainty | `QuantitativeEasing.Irrelevance.maturity_irrelevance` |
 | Cochrane p. 233 | strong QE, `B_0^{(j)} = P_js_j`: scaling supply by `λ` scales `P_j` by `λ` and `Q_0^{(j)}` by `1/λ`, so a 1% cut raises the bond price by 1.01–1.02% | `QuantitativeEasing.strong_qe` |
+
+### §7.6.1 under uncertainty (TidyR5QEUncertainty, TidyR5QEReverse)
+
+The book drops `E_0` after the date-0 shock (p. 230), so the path is perfect foresight. Here
+surpluses and price levels are random, the QE purchases `B̃_0^{(j)}` are fixed at date 0, and
+reserves `M_{t−1}^{(t)}` are chosen at `t − 1`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (7.23), p. 230 | the present-value relation at `t` with Treasury debt, QE bonds and reserves; given the price process it holds iff the reserves are `R_t = (E_t∑ β^ks_{t+k} − V_t)P_t` | `TidyR5QEUncertainty.QEPV`, `TidyR5QEUncertainty.resv`, `TidyR5QEUncertainty.qe_iff` |
+| Cochrane p. 230 | "given `B̃`, find `M`": predetermined reserves supporting a random price path are unique, and exist iff `R_t` is known at `t − 1` for every `t ≥ 1`; under perfect foresight (the book's case) always | `TidyR5QEUncertainty.reserves_unique`, `TidyR5QEUncertainty.reserves_exist_iff`, `TidyR5QEUncertainty.perfectForesight_reserves_exist` |
+| Cochrane (7.23), p. 230 | the innovation form: `M_{t}^{(t+1)}` times the price surprise is the news in the present value of surpluses minus the news in the value of Treasury and QE bonds | `TidyR5QEUncertainty.innovation_form` |
+| Cochrane p. 230 | a path known one period ahead cannot be supported when the present value of surpluses has news; with a coin-flip surplus shock at date 1 no reserves support a deterministic path | `TidyR5QEUncertainty.no_reserves_of_news`, `TidyR5QEUncertainty.coinS`, `TidyR5QEUncertainty.coin_pv`, `TidyR5QEUncertainty.coin_no_reserves` |
+| Cochrane (7.23), p. 230 | "given `M`, find `B̃`": the value the QE bonds must carry, `R_t`, and the implied purchases `c_t = (R_t − βE_tR_{t+1})P_t`; (7.23) at `t` holds iff the QE bonds are worth `R_t` | `TidyR5QEReverse.resid`, `TidyR5QEReverse.qeImplied`, `TidyR5QEReverse.qe_split` |
+| Cochrane p. 230 | bounded date-0 purchases supporting the path must equal `c_t`, so they are unique; if every `c_t` is known at date 0, `B̃_0^{(t)} = c_t` works | `TidyR5QEReverse.qe_necessary`, `TidyR5QEReverse.qe_unique`, `TidyR5QEReverse.qe_sufficient` |
+| Cochrane p. 230 | the exact condition: bounded date-0 purchases exist iff every `c_t` is known at date 0 | `TidyR5QEReverse.qe_exists_iff` |
+| Cochrane p. 230 | a date-0-fixed `B̃` cannot absorb later news: with the coin-flip shock, a deterministic path and deterministic reserves, no bounded date-0 purchases exist | `TidyR5QEReverse.coin_pv_two`, `TidyR5QEReverse.coin_no_qe` |
 
 ## Shared tools
 
