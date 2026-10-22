@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T08:36:27.164981+00:00",
-  "theorems": 1255,
+  "checked_at_utc": "2026-10-22T10:36:57.233142+00:00",
+  "theorems": 1366,
   "module_theorems": {
     "NeoWicksellianFramework/Determinacy.lean": 23,
     "NeoWicksellianFramework/Expectations.lean": 20,
@@ -31,9 +31,16 @@
     "NeoWicksellianFramework/GeneralBKPencil.lean": 7,
     "NeoWicksellianFramework/GeneralBKSingular.lean": 49,
     "NeoWicksellianFramework/GeneralBKLinks.lean": 27,
-    "NeoWicksellianFramework/Prop46Sufficiency.lean": 20
+    "NeoWicksellianFramework/Prop46Sufficiency.lean": 20,
+    "NeoWicksellianFramework/TidyR5ForecastSums.lean": 38,
+    "NeoWicksellianFramework/TidyR5ComplexRegion.lean": 16,
+    "NeoWicksellianFramework/TidyR5EStabilityODE.lean": 31,
+    "NeoWicksellianFramework/TidyR5EStabilityProps.lean": 6,
+    "NeoWicksellianFramework/TidyR5Lyapunov.lean": 11,
+    "NeoWicksellianFramework/TidyR5PrestonLAS.lean": 6,
+    "NeoWicksellianFramework/TidyR5PLMALM.lean": 3
   },
-  "audited_declarations": 1656,
+  "audited_declarations": 1791,
   "declarations": [
     {
       "name": "Woodford.NeoWicksellianFramework.SchurStable",
@@ -8314,6 +8321,681 @@
       "name": "Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate44",
       "kind": "theorem",
       "module": "NeoWicksellianFramework/Prop46Sufficiency.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.IsGenEig",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.krylov",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.commute_sub_smul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isGenEig_iff_mem",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isGenEig_pow_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.pow_mulVec_mem",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.krylov_invariant",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.self_mem_krylov",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_of_isGenEig_lt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.dot_eq_zero_of_summable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_iff_of_invariant",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.ofReal_dot_pow",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_iff_krylov",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_all_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isEig_of_isGenEig",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_all_all_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_of_summable_all",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.fcast_term",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_fcast_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.fcast_summable_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.rnfc_summable_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.forecast_sums_all_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isRow",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asRow",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm_succ",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm_succ",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_isTerm_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_asTerm_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm_summable_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm_summable_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.IS229_sums_all_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_fcast_vec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_subj_vec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_iff_of_hasSum",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_iff_exact",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_pow_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_isEig",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_hasSum",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_summable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_vecMul",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.forecast_sums_converge_without_spectral",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_without_spectral",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ForecastSums.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.roots_of_hurwitz",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitz_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.HurwitzC",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.eig_re_lt_one_iff_hurwitz",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.gC",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.isEig_gC_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.nPolyC",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.trPolyC",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_det_identity",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_tr_identity",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzExpr",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_bTilC_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.eStable_hMat_iff",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_of_real",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex_explicit",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2_eig_cases",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2_stationary",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_cex2",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_cex2",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex_stable_case",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5ComplexRegion.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.IsESol",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT_sub",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_apply",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_neg",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_add",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_zero",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_mul_flow_neg",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.hasDerivAt_flow_apply",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_flow",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eq_flow_of_isESol",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.existsUnique_isESol",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_nat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_pow_mulVec",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_pow_apply",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.commute_kMat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.hasSum_kMat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_map_mulVec_of_eig",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.norm_lt_one_of_isEig_kMat",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.pow_bound_fintype",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_bound",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.tendsto_flow_of_eStable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.tendsto_of_eStable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eigSol",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_eigSol",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_of_tendsto",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_tendsto",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.IsLocallyStable",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_scale",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_locallyStable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStableAt_iff_ode",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT_eq_of_affine",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_tendsto_affine",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_locallyStable_affine",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityODE.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_8_ode",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityProps.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_8_locallyStable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityProps.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_9_ode",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityProps.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.differentiableAt_tVecP_of_fixed",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityProps.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_10_ode",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityProps.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_10_complex_ode",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5EStabilityProps.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.IsFwdSol",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.IsLAS",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.isFwdSol_of_isESol",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.hasDerivWithinAt_bilin",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.dot_mulVec_add",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.dot_self_pos",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.norm_sq_le_dot",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.bilin_bound",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.continuous_quad",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.quad_bounds",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.lyapunov_exists",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.decay_of_eStableAt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.isLAS_of_eStableAt",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5Lyapunov.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.eStable_of_attracting",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PrestonLAS.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.liftSol",
+      "kind": "def",
+      "module": "NeoWicksellianFramework/TidyR5PrestonLAS.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.isESol_liftSol",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PrestonLAS.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.attracting_of_isLAS",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PrestonLAS.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.isLAS_iff_eStable",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PrestonLAS.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.prop_4_10_LAS",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PrestonLAS.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.prop_4_10_LAS_complex",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PrestonLAS.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_of_hasSum",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PLMALM.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_exact",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PLMALM.lean"
+    },
+    {
+      "name": "Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_without_spectral",
+      "kind": "theorem",
+      "module": "NeoWicksellianFramework/TidyR5PLMALM.lean"
     }
   ],
   "full_build": "passed",
@@ -16583,6 +17265,681 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.IsGenEig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.krylov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.commute_sub_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isGenEig_iff_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isGenEig_pow_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.pow_mulVec_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.krylov_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.self_mem_krylov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_of_isGenEig_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.dot_eq_zero_of_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_iff_of_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.ofReal_dot_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_iff_krylov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_all_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isEig_of_isGenEig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_all_all_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_of_summable_all": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.fcast_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_fcast_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.fcast_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.rnfc_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.forecast_sums_all_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isRow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asRow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_isTerm_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_asTerm_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm_summable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.IS229_sums_all_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_fcast_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_subj_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_iff_of_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_iff_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_pow_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_isEig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_vecMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.forecast_sums_converge_without_spectral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_without_spectral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.roots_of_hurwitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitz_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.HurwitzC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.eig_re_lt_one_iff_hurwitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.gC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.isEig_gC_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.nPolyC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.trPolyC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_det_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_tr_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzExpr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_bTilC_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.eStable_hMat_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_of_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex_explicit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2_eig_cases": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2_stationary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_cex2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_cex2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex_stable_case": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.IsESol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_mul_flow_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.hasDerivAt_flow_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eq_flow_of_isESol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.existsUnique_isESol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_pow_mulVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_pow_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.commute_kMat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.hasSum_kMat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_map_mulVec_of_eig": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.norm_lt_one_of_isEig_kMat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.pow_bound_fintype": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.tendsto_flow_of_eStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.tendsto_of_eStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eigSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_eigSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.IsLocallyStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_scale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_locallyStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStableAt_iff_ode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT_eq_of_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_tendsto_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_locallyStable_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_8_ode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_8_locallyStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_9_ode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.differentiableAt_tVecP_of_fixed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_10_ode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_10_complex_ode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.IsFwdSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.IsLAS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.isFwdSol_of_isESol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.hasDerivWithinAt_bilin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.dot_mulVec_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.dot_self_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.norm_sq_le_dot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.bilin_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.continuous_quad": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.quad_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.lyapunov_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.decay_of_eStableAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5Lyapunov.isLAS_of_eStableAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.eStable_of_attracting": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.liftSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.isESol_liftSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.attracting_of_isLAS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.isLAS_iff_eStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.prop_4_10_LAS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.prop_4_10_LAS_complex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_of_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_without_spectral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -16616,15 +17973,22 @@
     "NeoWicksellianFramework/GeneralBKSingular.lean": "85ecc6d79e5c96f8a2068bca2a24e7f2004241c3717b87ad3b16ea83446559a8",
     "NeoWicksellianFramework/GeneralBKLinks.lean": "6954f7cb3a61181d16d53f1f92d2c8f003f18e4ae2253dff99f3af558136d6f8",
     "NeoWicksellianFramework/Prop46Sufficiency.lean": "6f2136b00b88a4c9055d88ba425a38c0fc97744847970477a8808527382df7a9",
-    "NeoWicksellianFramework.lean": "ef7fe36d158c7aee54a3669c9580c48c4ec4051f86817db886ce67b40512a9b9",
+    "NeoWicksellianFramework/TidyR5ForecastSums.lean": "26bfbad37fcc820c471a07ec7dad6a5b012cb20a9f9c38f45ded32c106e059e4",
+    "NeoWicksellianFramework/TidyR5ComplexRegion.lean": "3bfb727e915fe9a4e2b8d74c7ab795e244f23468122e3bc3d68b3d692365e0a0",
+    "NeoWicksellianFramework/TidyR5EStabilityODE.lean": "e4876a59c8aa7c93938d3f5e280f4b6dbd8bf209b3d1e86b8c87825f5943b004",
+    "NeoWicksellianFramework/TidyR5EStabilityProps.lean": "f366414a94fac28d5d2b9318bd96ce660bf334edca9b88998132ccbd8bf805f5",
+    "NeoWicksellianFramework/TidyR5Lyapunov.lean": "cccc7225940d4349e51e64d36bcd19a99af72554a374bfe496553825e4ef8391",
+    "NeoWicksellianFramework/TidyR5PrestonLAS.lean": "1298ee2a72c687483042e0cf0c1065f661121e88d13c2b782bf67e3aa0b72813",
+    "NeoWicksellianFramework/TidyR5PLMALM.lean": "7fde14fdadbfaccf45ac89ed9c38a2319b9ba0113e00b2acc1f93a2cacb554f7",
+    "NeoWicksellianFramework.lean": "8a24f07d2a84915705146a64e64b449497fd27d1f9178d69fa63b3df1df95fef",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "0ed812018f1f963607b665f199d9e8f98170bdb6aa76ff7e2e97e3098a59f6b7",
     "lake-manifest.json": "f5b6732ad0236d4b73ec7de0913c83bbe1ea87d5215892f2c2f59287533a0749",
-    "proof-manifest.json": "737236eb2a1b5d8bc3684f8d32cfc20e47e8dc7685c3fe898bbc5e9a4bd4fe8c",
-    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "proof-manifest.json": "8d683f001602d5353d8c4cfd6d123bdcf1ed4ecdfeb7737077dd3855ddd1b5eb",
+    "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "5ea04998e659e970dbb6e2bee6b5d8d3477a0c246d6899660ccec5df6e30de72",
+  "fresh_audit_sha256": "86610aa3379efcb47e4e693337b7254bf4d0fbc095c328c4264c4b77d9bac4da",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Woodford, Interest and Prices, Chapter 4: A Neo-Wicksellian Framework for the Analysis of Monetary Policy, with Appendix C. The basic model as exact derivatives and the natural rate of interest (Prop 4.1); Schur-Cohn root-location criteria for quadratics and cubics (Props C.1, C.2) and a proved Blanchard-Kahn theory for 2x2 forward systems and 3x3 systems with one predetermined variable (with the genericity condition the book omits), plus the general Blanchard-Kahn theorem the book assumes: for any number of variables and predetermined variables and any expectation system, determinacy iff no unit-circle eigenvalue, stable dimension equal to the number of predetermined variables, and genericity, with the pencil form including singular A0 (King-Watson/Klein); determinacy under exogenous, Taylor, inertial, forward-looking and price-level rules (Props 4.2-4.7; Prop 4.4 corrected; Prop 4.6 as an exact iff (with a response condition)); E-stability under sample-mean and regression learning with a Kronecker spectrum theorem (Props 4.8, 4.9) and Preston's long-horizon forms and Prop 4.10 (E-stability of Preston's learning iff the Taylor principle, with the real-eigenvalue hypothesis shown necessary); determinants of inflation, targeting rules and the zero lower bound; money with non-separable utility; fiscal requirements and Prop 4.11 (with its non-degeneracy condition).",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 4, pp. 237-319, and Appendix C, pp. 670-686; Blanchard and Kahn (1980); King and Watson (1998); Klein (2000).; Preston (2005), International Journal of Central Banking 1(2)."

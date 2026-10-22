@@ -47,6 +47,9 @@ import Mathlib.LinearAlgebra.Eigenspace.Zero
 import Mathlib.LinearAlgebra.Charpoly.ToMatrix
 import Mathlib.LinearAlgebra.Matrix.Block
 import Mathlib.Algebra.Order.Field.GeomSum
+import Mathlib.Analysis.SpecialFunctions.Exponential
+import Mathlib.Analysis.Complex.RealDeriv
+import Mathlib.Topology.MetricSpace.ProperSpace
 set_option autoImplicit false
 
 /-
@@ -29428,6 +29431,2769 @@ theorem clarida_later_determinate44 [Nonempty Ω] {β κ σ : ℝ} (hβ0 : 0 < �
 
 end Woodford.NeoWicksellianFramework.Prop46Sufficiency
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# When do Preston's forecast sums converge? The exact condition
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, pp. 273–274 ((2.29)–(2.30) with the
+forecasts of the estimated model `(Φ̂, Ĉ)`, Preston (2005), App. 4). The module PrestonLearning
+proves that the discounted forecast sums `∑ aᵏ Ê_t z_{t+k+1} = ∑ aᵏ (Φ̂₀ + Φ̂ₛ Ĉᵏ s_t)`
+(`a = β` or `αβ`) and `∑ βᵏ Ê_t r̂ⁿ_{t+k} = ∑ βᵏ f_r′ Ĉᵏ s_t` converge when every eigenvalue
+of `βĈ` lies inside the unit circle. That condition is **not necessary** for a given belief and
+state, and it **is necessary** for convergence at every belief and every state. The exact
+condition:
+
+* `IsGenEig M ℓ v` (`(M − ℓI)ᵐ v = 0` for some `m`), `krylov M x` (the span of `Mʲ x`, the
+  spectral components "excited" by `x`); `isGenEig_iff_mem` (Mathlib's
+  `Module.End.maxGenEigenspace`).
+* `summable_of_isGenEig_lt` (stable components decay: binomial expansion and
+  `∑ C(k + j, j) ℓᵏ`), `dot_eq_zero_of_summable` (a convergent series `φ′ Mᵏ x` on an invariant
+  subspace forces `φ′ v = 0` on every generalised eigenvector with `|ℓ| ≥ 1`, including
+  `|ℓ| = 1`, no diagonalisability), **`summable_iff_of_invariant`** (both directions, through the
+  decomposition into generalised eigenspaces, `Submodule.inf_iSup_genEigenspace`).
+* For real data: **`summable_iff_krylov`**: `∑ₖ φ′ Mᵏ s` converges **iff** `φ` annihilates every
+  generalised eigenvector of `M` with eigenvalue of modulus `≥ 1` lying in the Krylov space of
+  `s`; **`summable_all_iff`**: it converges for every state `s` iff `φ` annihilates every such
+  generalised eigenvector; **`summable_all_all_iff`**: it converges for every `φ` and every `s`
+  iff every eigenvalue of `M` lies inside the unit circle; `hasSum_of_summable_all`: under the
+  exact condition and `det(I − M) ≠ 0` the sum is still `φ′ (I − M)⁻¹ s`.
+* The model: `summable_fcast_iff`, `fcast_summable_iff`, `rnfc_summable_iff` (each forecast sum,
+  per belief and state, exact); `isTerm`, `asTerm` (the summands of (2.29), (2.30)),
+  `summable_isTerm_iff`, `summable_asTerm_iff` (the literal series of (2.29)–(2.30) converge iff
+  `χ′(βĈ)ᵏ s_t`, `χ′_AS (αβĈ)ᵏ s_t` do, with explicit rows `isRow`, `asRow`);
+  **`forecast_sums_all_iff`**, **`IS229_sums_all_iff`**: the spectral-radius condition on `βĈ`
+  is **necessary and sufficient** for the forecast sums (resp. the literal series in (2.29)) to
+  converge at every belief and every state.
+* `decisionRules_iff_of_hasSum`, **`decisionRules_iff_exact`**: the actual law of motion
+  `z_t = tempSol(s_t)` (`PrestonLearning.decisionRules_iff`) holds under the exact condition
+  (the rows of `Φ̂ₛ` and `f_r` annihilate the generalised eigenvectors of `βĈ` and `αβĈ` with
+  eigenvalues of modulus `≥ 1`, and `I − βĈ`, `I − αβĈ` invertible).
+* **`forecast_sums_converge_without_spectral`**, `decisionRules_without_spectral`: the
+  counterexample. With `Ĉ = diag(1/2, 2)` and `1/2 < β < 1` (so `βĈ` has the eigenvalue
+  `2β > 1`) and beliefs and `f_r` that put no weight on the second state, every forecast sum and
+  both series (2.29)–(2.30) converge, and (for `2αβ ≠ 1`) the decision rules are
+  `z_t = tempSol(s_t)`; `cexCh_pow_mulVec`, `cexCh_isEig`, `cexCh_hasSum`, `cexCh_summable`,
+  `cexCh_vecMul`.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR5ForecastSums
+
+open Matrix Filter Topology Determinacy2 PrestonLearning
+
+variable {n : ℕ}
+
+/-! ### Generalised eigenvectors and Krylov subspaces -/
+
+/-- Woodford (2003), p. 274: `v` is a generalised eigenvector of `M` for `ℓ` (or zero):
+`(M − ℓI)ᵐ v = 0` for some `m`. -/
+def IsGenEig (M : Matrix (Fin n) (Fin n) ℂ) (l : ℂ) (v : Fin n → ℂ) : Prop :=
+  ∃ m : ℕ, (M - l • 1) ^ m *ᵥ v = 0
+
+/-- Woodford (2003), p. 274: the Krylov space `span{Mʲ x : j ≥ 0}` — the smallest
+`M`-invariant subspace containing `x`; its generalised eigenvectors are the spectral components
+of `M` that the state `x` excites. -/
+def krylov (M : Matrix (Fin n) (Fin n) ℂ) (x : Fin n → ℂ) : Submodule ℂ (Fin n → ℂ) :=
+  Submodule.span ℂ (Set.range fun j : ℕ => M ^ j *ᵥ x)
+
+/-- Woodford (2003), p. 274: `M` commutes with `M − ℓI`. -/
+theorem commute_sub_smul (M : Matrix (Fin n) (Fin n) ℂ) (l : ℂ) : Commute M (M - l • 1) :=
+  (Commute.refl M).sub_right ((Commute.one_right M).smul_right l)
+
+/-- Woodford (2003), p. 274: `IsGenEig` is membership of Mathlib's maximal generalised
+eigenspace. -/
+theorem isGenEig_iff_mem (M : Matrix (Fin n) (Fin n) ℂ) (l : ℂ) (v : Fin n → ℂ) :
+    IsGenEig M l v ↔ v ∈ Module.End.maxGenEigenspace (Matrix.toLin' M) l := by
+  rw [Module.End.mem_maxGenEigenspace]
+  have h : Matrix.toLin' M - l • (1 : Module.End ℂ (Fin n → ℂ)) = Matrix.toLin' (M - l • 1) := by
+    rw [map_sub, map_smul, Matrix.toLin'_one]
+    rfl
+  refine exists_congr fun m => ?_
+  rw [h, ← Matrix.toLin'_pow, Matrix.toLin'_apply]
+
+/-- Woodford (2003), p. 274: generalised eigenspaces are invariant under `M`. -/
+theorem isGenEig_pow_mulVec {M : Matrix (Fin n) (Fin n) ℂ} {l : ℂ} {v : Fin n → ℂ}
+    (hv : IsGenEig M l v) (k : ℕ) : IsGenEig M l (M ^ k *ᵥ v) := by
+  obtain ⟨m, hm⟩ := hv
+  refine ⟨m, ?_⟩
+  rw [mulVec_mulVec, ← ((commute_sub_smul M l).pow_pow k m).eq, ← mulVec_mulVec, hm, mulVec_zero]
+
+/-- Woodford (2003), p. 274: an `M`-invariant subspace is invariant under `Mᵏ`. -/
+theorem pow_mulVec_mem {M : Matrix (Fin n) (Fin n) ℂ} {Z : Submodule ℂ (Fin n → ℂ)}
+    (hZ : ∀ x ∈ Z, M *ᵥ x ∈ Z) (k : ℕ) {x : Fin n → ℂ} (hx : x ∈ Z) : M ^ k *ᵥ x ∈ Z := by
+  induction k with
+  | zero => simpa using hx
+  | succ k ih =>
+    rw [pow_succ', ← mulVec_mulVec]
+    exact hZ _ ih
+
+/-- Woodford (2003), p. 274: the Krylov space of `x` is `M`-invariant. -/
+theorem krylov_invariant (M : Matrix (Fin n) (Fin n) ℂ) (x : Fin n → ℂ) :
+    ∀ y ∈ krylov M x, M *ᵥ y ∈ krylov M x := by
+  intro y hy
+  induction hy using Submodule.span_induction with
+  | mem z hz =>
+    obtain ⟨j, rfl⟩ := hz
+    exact Submodule.subset_span ⟨j + 1, by simp only; rw [mulVec_mulVec, pow_succ']⟩
+  | zero => simp
+  | add a b _ _ ha hb =>
+    rw [mulVec_add]
+    exact Submodule.add_mem _ ha hb
+  | smul c a _ ha =>
+    rw [mulVec_smul]
+    exact Submodule.smul_mem _ c ha
+
+/-- Woodford (2003), p. 274: `x` lies in its own Krylov space. -/
+theorem self_mem_krylov (M : Matrix (Fin n) (Fin n) ℂ) (x : Fin n → ℂ) : x ∈ krylov M x :=
+  Submodule.subset_span ⟨0, by simp⟩
+
+/-! ### Stable components: convergence -/
+
+/-- Woodford (2003), p. 274: **stable spectral components contribute convergent sums**: if
+`(M − ℓI)ᵐ v = 0` and `|ℓ| < 1`, then `∑ₖ φ′ Mᵏ v` converges (`Mᵏ v = ∑_{j<m} C(k, j) ℓ^{k−j}
+(M − ℓI)ʲ v` and `∑ₖ C(k, j) ℓ^{k−j}` converges). -/
+theorem summable_of_isGenEig_lt (M : Matrix (Fin n) (Fin n) ℂ) {l : ℂ} (hl : ‖l‖ < 1)
+    {v : Fin n → ℂ} (hv : IsGenEig M l v) (φ : Fin n → ℂ) :
+    Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ v)) := by
+  obtain ⟨m, hm⟩ := hv
+  set N := M - l • 1 with hN
+  have hNv : ∀ j, m ≤ j → N ^ j *ᵥ v = 0 := fun j hj => by
+    obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hj
+    rw [add_comm, pow_add, ← mulVec_mulVec, hm, mulVec_zero]
+  have hM : M = N + l • 1 := by rw [hN, sub_add_cancel]
+  have hexp : ∀ k, M ^ k *ᵥ v =
+      ∑ j ∈ Finset.range m, ((k.choose j : ℂ) * l ^ (k - j)) • (N ^ j *ᵥ v) := by
+    intro k
+    have h1 : M ^ k *ᵥ v =
+        ∑ j ∈ Finset.range (k + 1), ((k.choose j : ℂ) * l ^ (k - j)) • (N ^ j *ᵥ v) := by
+      rw [hM, ((Commute.one_right N).smul_right l).add_pow, Matrix.sum_mulVec]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [smul_pow, one_pow, Matrix.mul_smul, Matrix.mul_one, ← Nat.cast_comm, ← nsmul_eq_mul,
+        ← Nat.cast_smul_eq_nsmul ℂ, smul_smul, Matrix.smul_mulVec]
+    rw [h1]
+    have e1 : ∑ j ∈ Finset.range (k + 1), ((k.choose j : ℂ) * l ^ (k - j)) • (N ^ j *ᵥ v) =
+        ∑ j ∈ Finset.range (k + 1 + m), ((k.choose j : ℂ) * l ^ (k - j)) • (N ^ j *ᵥ v) :=
+      Finset.sum_subset (Finset.range_mono (Nat.le_add_right _ _)) fun j _ hj' => by
+        have : k < j := by simp at hj'; omega
+        simp [Nat.choose_eq_zero_of_lt this]
+    have e2 : ∑ j ∈ Finset.range m, ((k.choose j : ℂ) * l ^ (k - j)) • (N ^ j *ᵥ v) =
+        ∑ j ∈ Finset.range (k + 1 + m), ((k.choose j : ℂ) * l ^ (k - j)) • (N ^ j *ᵥ v) :=
+      Finset.sum_subset (Finset.range_mono (Nat.le_add_left _ _)) fun j _ hj' => by
+        have : m ≤ j := by simp at hj'; omega
+        simp [hNv j this]
+    rw [e1, e2]
+  have hsum : ∀ j, Summable (fun k : ℕ => (k.choose j : ℂ) * l ^ (k - j)) := by
+    intro j
+    rw [← summable_nat_add_iff j]
+    refine (hasSum_choose_mul_geometric_of_norm_lt_one j hl).summable.congr fun k => ?_
+    simp
+  have he : (fun k => φ ⬝ᵥ (M ^ k *ᵥ v)) = fun k =>
+      ∑ j ∈ Finset.range m, ((k.choose j : ℂ) * l ^ (k - j)) * (φ ⬝ᵥ (N ^ j *ᵥ v)) := by
+    funext k
+    rw [hexp, dotProduct_sum]
+    simp [dotProduct_smul, smul_eq_mul]
+  rw [he]
+  exact summable_sum fun j _ => (hsum j).mul_right _
+
+/-! ### Unstable components: necessity -/
+
+/-- Woodford (2003), p. 274: **convergence forces the unstable components to be invisible**: on
+an `M`-invariant subspace `Z` on which every series `∑ₖ φ′ Mᵏ x` converges, `φ′ v = 0` for every
+`v ∈ Z` with `(M − ℓI)ᵐ v = 0`, `|ℓ| ≥ 1`. By induction on `m`: `φ′ Mᵏ v = ℓᵏ φ′ v` because
+`Mᵏ v − ℓᵏ v ∈ Z ∩ ker (M − ℓI)ᵐ`, and the terms of a convergent series tend to `0` while
+`|ℓᵏ| ≥ 1`. -/
+theorem dot_eq_zero_of_summable {M : Matrix (Fin n) (Fin n) ℂ} {φ : Fin n → ℂ}
+    {Z : Submodule ℂ (Fin n → ℂ)} (hZ : ∀ x ∈ Z, M *ᵥ x ∈ Z)
+    (hs : ∀ x ∈ Z, Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ x))) {l : ℂ} (hl : 1 ≤ ‖l‖) :
+    ∀ m : ℕ, ∀ v ∈ Z, (M - l • 1) ^ m *ᵥ v = 0 → φ ⬝ᵥ v = 0 := by
+  intro m
+  induction m with
+  | zero =>
+    intro v _ hv
+    rw [pow_zero, one_mulVec] at hv
+    rw [hv, dotProduct_zero]
+  | succ m ih =>
+    intro v hvZ hv
+    set N := M - l • 1 with hN
+    have hNv : N *ᵥ v ∈ Z := by
+      rw [hN, sub_mulVec, smul_mulVec, one_mulVec]
+      exact Z.sub_mem (hZ v hvZ) (Z.smul_mem l hvZ)
+    have hMs : Commute M (l • (1 : Matrix (Fin n) (Fin n) ℂ)) :=
+      (Commute.one_right M).smul_right l
+    have hNM : Commute N M := (commute_sub_smul M l).symm
+    have hNs : Commute N (l • (1 : Matrix (Fin n) (Fin n) ℂ)) :=
+      (Commute.one_right N).smul_right l
+    have hkey : ∀ k : ℕ, φ ⬝ᵥ (M ^ k *ᵥ v) = l ^ k * (φ ⬝ᵥ v) := by
+      intro k
+      set S := ∑ i ∈ Finset.range k, M ^ i * (l • (1 : Matrix (Fin n) (Fin n) ℂ)) ^ (k - 1 - i)
+        with hS
+      have hgeom : S * N = M ^ k - (l • (1 : Matrix (Fin n) (Fin n) ℂ)) ^ k :=
+        hMs.geom_sum₂_mul k
+      have hSmem : S *ᵥ (N *ᵥ v) ∈ Z := by
+        rw [hS, Matrix.sum_mulVec]
+        refine Z.sum_mem fun i _ => ?_
+        rw [smul_pow, one_pow, Matrix.mul_smul, Matrix.mul_one, Matrix.smul_mulVec]
+        exact Z.smul_mem _ (pow_mulVec_mem hZ i hNv)
+      have hc : Commute (N ^ m) S := by
+        rw [hS]
+        exact Commute.sum_right _ _ _ fun i _ =>
+          ((hNM.pow_pow m i).mul_right (hNs.pow_pow m (k - 1 - i)))
+      have hSker : N ^ m *ᵥ (S *ᵥ (N *ᵥ v)) = 0 := by
+        rw [mulVec_mulVec, hc.eq, ← mulVec_mulVec, mulVec_mulVec v (N ^ m) N, ← pow_succ, hv,
+          mulVec_zero]
+      have h0 := ih _ hSmem hSker
+      have hdec : M ^ k *ᵥ v = S *ᵥ (N *ᵥ v) + l ^ k • v := by
+        rw [mulVec_mulVec, hgeom, sub_mulVec, smul_pow, one_pow, smul_mulVec, one_mulVec,
+          sub_add_cancel]
+      rw [hdec, dotProduct_add, h0, zero_add, dotProduct_smul, smul_eq_mul]
+    have ht := (hs v hvZ).tendsto_atTop_zero
+    simp only [hkey] at ht
+    have hle : ∀ k : ℕ, ‖φ ⬝ᵥ v‖ ≤ ‖l ^ k * (φ ⬝ᵥ v)‖ := fun k => by
+      rw [norm_mul, norm_pow]
+      exact le_mul_of_one_le_left (norm_nonneg _) (one_le_pow₀ hl)
+    have h0 : ‖φ ⬝ᵥ v‖ ≤ 0 := by
+      have := ht.norm
+      rw [norm_zero] at this
+      exact ge_of_tendsto' this hle
+    exact norm_le_zero_iff.mp h0
+
+/-- Woodford (2003), p. 274: **the exact convergence condition on an invariant subspace**: for an
+`M`-invariant `Z`, every series `∑ₖ φ′ Mᵏ x`, `x ∈ Z`, converges **iff** `φ′ v = 0` for every
+generalised eigenvector `v ∈ Z` of `M` whose eigenvalue has modulus `≥ 1`. -/
+theorem summable_iff_of_invariant (M : Matrix (Fin n) (Fin n) ℂ) (φ : Fin n → ℂ)
+    (Z : Submodule ℂ (Fin n → ℂ)) (hZ : ∀ x ∈ Z, M *ᵥ x ∈ Z) :
+    (∀ x ∈ Z, Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ x))) ↔
+      ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v ∈ Z, IsGenEig M l v → φ ⬝ᵥ v = 0 := by
+  constructor
+  · rintro hs l hl v hvZ ⟨m, hm⟩
+    exact dot_eq_zero_of_summable hZ hs hl m v hvZ hm
+  · intro h y hy
+    have hZ' : ∀ x ∈ Z, Matrix.toLin' M x ∈ Z := fun x hx => by
+      rw [Matrix.toLin'_apply]
+      exact hZ x hx
+    have hy' : y ∈ ⨆ μ, Z ⊓ Module.End.genEigenspace (Matrix.toLin' M) μ ⊤ := by
+      rw [← Submodule.inf_iSup_genEigenspace hZ']
+      refine ⟨hy, ?_⟩
+      have htop := Module.End.iSup_maxGenEigenspace_eq_top (Matrix.toLin' M)
+      exact htop ▸ Submodule.mem_top
+    refine Submodule.iSup_induction _ (motive := fun y => Summable fun k => φ ⬝ᵥ (M ^ k *ᵥ y))
+      hy' ?_ ?_ ?_
+    · intro μ x hx
+      obtain ⟨hxZ, hxg⟩ := Submodule.mem_inf.mp hx
+      have hgen : IsGenEig M μ x := (isGenEig_iff_mem M μ x).mpr hxg
+      by_cases hμ : ‖μ‖ < 1
+      · exact summable_of_isGenEig_lt M hμ hgen φ
+      · push Not at hμ
+        have hz : (fun k => φ ⬝ᵥ (M ^ k *ᵥ x)) = 0 := funext fun k =>
+          h μ hμ _ (pow_mulVec_mem hZ k hxZ) (isGenEig_pow_mulVec hgen k)
+        rw [hz]
+        exact summable_zero
+    · simp only [mulVec_zero, dotProduct_zero]
+      exact summable_zero
+    · intro a b ha hb
+      simp only [mulVec_add, dotProduct_add]
+      exact ha.add hb
+
+/-! ### Real data -/
+
+/-- Woodford (2003), p. 274: complexification commutes with `φ′ Mᵏ x`. -/
+theorem ofReal_dot_pow (M : Matrix (Fin n) (Fin n) ℝ) (φ x : Fin n → ℝ) (k : ℕ) :
+    (fun i => (φ i : ℂ)) ⬝ᵥ ((M.map Complex.ofReal) ^ k *ᵥ fun i => (x i : ℂ)) =
+      ((φ ⬝ᵥ (M ^ k *ᵥ x) : ℝ) : ℂ) := by
+  have hp : (M.map Complex.ofReal) ^ k = (M ^ k).map Complex.ofReal :=
+    (Complex.ofRealHom.mapMatrix.map_pow M k).symm
+  rw [hp]
+  simp [dotProduct, mulVec, Complex.ofReal_sum, Complex.ofReal_mul]
+
+/-- Woodford (2003), p. 274: **the exact condition, state by state**: for real `M`, `φ`, `s`,
+`∑ₖ φ′ Mᵏ s` converges **iff** `φ` annihilates every generalised eigenvector of `M` (complex)
+with eigenvalue of modulus `≥ 1` that lies in the Krylov space of `s` (the spectral components
+`s` excites). -/
+theorem summable_iff_krylov (M : Matrix (Fin n) (Fin n) ℝ) (φ s : Fin n → ℝ) :
+    Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ s)) ↔
+      ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v ∈ krylov (M.map Complex.ofReal) (fun i => (s i : ℂ)),
+        IsGenEig (M.map Complex.ofReal) l v → (fun i => (φ i : ℂ)) ⬝ᵥ v = 0 := by
+  set Mc := M.map Complex.ofReal with hMc
+  set sc : Fin n → ℂ := fun i => (s i : ℂ) with hsc
+  set φc : Fin n → ℂ := fun i => (φ i : ℂ) with hφc
+  have h1 : Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ s)) ↔
+      Summable (fun k => φc ⬝ᵥ (Mc ^ k *ᵥ sc)) := by
+    rw [← Complex.summable_ofReal]
+    simp only [hφc, hMc, hsc, ofReal_dot_pow]
+  rw [h1, ← summable_iff_of_invariant Mc φc _ (krylov_invariant Mc sc)]
+  constructor
+  · intro hs y hy
+    induction hy using Submodule.span_induction with
+    | mem z hz =>
+      obtain ⟨j, rfl⟩ := hz
+      refine ((summable_nat_add_iff j).mpr hs).congr fun k => ?_
+      simp only
+      rw [mulVec_mulVec, ← pow_add]
+    | zero => simp
+    | add a b _ _ ha hb => simpa [mulVec_add, dotProduct_add] using ha.add hb
+    | smul c a _ ha => simpa [mulVec_smul, dotProduct_smul] using ha.mul_left c
+  · intro h
+    exact h sc (self_mem_krylov Mc sc)
+
+/-- Woodford (2003), p. 274: **the exact condition for every state**: `∑ₖ φ′ Mᵏ s` converges for
+every `s` iff `φ` annihilates every generalised eigenvector of `M` with eigenvalue of modulus
+`≥ 1`. -/
+theorem summable_all_iff (M : Matrix (Fin n) (Fin n) ℝ) (φ : Fin n → ℝ) :
+    (∀ s, Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ s))) ↔
+      ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v, IsGenEig (M.map Complex.ofReal) l v →
+        (fun i => (φ i : ℂ)) ⬝ᵥ v = 0 := by
+  constructor
+  · intro h
+    set Mc := M.map Complex.ofReal with hMc
+    set φc : Fin n → ℂ := fun i => (φ i : ℂ) with hφc
+    have hall : ∀ y ∈ (⊤ : Submodule ℂ (Fin n → ℂ)),
+        Summable (fun k => φc ⬝ᵥ (Mc ^ k *ᵥ y)) := by
+      intro y _
+      have hy : y = (fun i => ((y i).re : ℂ)) + Complex.I • (fun i => ((y i).im : ℂ)) := by
+        funext i
+        simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+        rw [mul_comm]
+        exact (Complex.re_add_im (y i)).symm
+      have hr := Complex.summable_ofReal.mpr (h fun i => (y i).re)
+      have hi := (Complex.summable_ofReal.mpr (h fun i => (y i).im)).mul_left Complex.I
+      rw [hy]
+      refine (hr.add hi).congr fun k => ?_
+      simp only [mulVec_add, mulVec_smul, dotProduct_add, dotProduct_smul, smul_eq_mul, hφc,
+        hMc, ofReal_dot_pow]
+    intro l hl v hv
+    exact (summable_iff_of_invariant Mc φc ⊤ (fun _ _ => Submodule.mem_top)).mp hall l hl v
+      Submodule.mem_top hv
+  · intro h s
+    exact (summable_iff_krylov M φ s).mpr fun l hl v _ hv => h l hl v hv
+
+/-- Woodford (2003), p. 274: a nonzero generalised eigenvector for `ℓ` makes `ℓ` an
+eigenvalue. -/
+theorem isEig_of_isGenEig {M : Matrix (Fin n) (Fin n) ℂ} {l : ℂ} {v : Fin n → ℂ}
+    (hv : IsGenEig M l v) (hv0 : v ≠ 0) : KroneckerSpectrum.IsEig M l := by
+  obtain ⟨m, hm⟩ := hv
+  induction m generalizing v with
+  | zero => exact absurd (by simpa using hm) hv0
+  | succ m ih =>
+    by_cases hN : (M - l • 1) *ᵥ v = 0
+    · refine ⟨v, hv0, ?_⟩
+      rw [sub_mulVec, smul_mulVec, one_mulVec, sub_eq_zero] at hN
+      exact hN
+    · exact ih hN (by rw [mulVec_mulVec, ← pow_succ, hm])
+
+/-- Woodford (2003), p. 274: **the spectral-radius condition is necessary and sufficient for
+convergence at every row and every state**: `∑ₖ φ′ Mᵏ s` converges for all `φ, s` iff every
+(complex) eigenvalue of `M` lies inside the unit circle. -/
+theorem summable_all_all_iff (M : Matrix (Fin n) (Fin n) ℝ) :
+    (∀ φ s : Fin n → ℝ, Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ s))) ↔
+      ∀ w, KroneckerSpectrum.IsEig (M.map Complex.ofReal) w → ‖w‖ < 1 := by
+  constructor
+  · intro h w hw
+    by_contra hge
+    push Not at hge
+    obtain ⟨v, hv0, hv⟩ := hw
+    obtain ⟨i, hi⟩ := Function.ne_iff.mp hv0
+    have := (summable_all_iff M (Pi.single i 1)).mp (h _) w hge v
+      ⟨1, by rw [pow_one, sub_mulVec, hv, smul_mulVec, one_mulVec, sub_self]⟩
+    apply hi
+    have e : (fun j => (((Pi.single i 1 : Fin n → ℝ) j : ℝ) : ℂ)) = Pi.single i 1 := by
+      funext j
+      by_cases hj : j = i
+      · subst hj
+        simp
+      · simp [hj]
+    rw [e, single_one_dotProduct] at this
+    simpa using this
+  · intro h φ s
+    have hS := hasSum_smul_pow M h (a := 1) (by norm_num)
+    simp only [one_smul] at hS
+    exact (hasSum_dotProduct_mulVec hS φ s).summable
+
+/-- Woodford (2003), p. 274 (Preston (2005), App. 4, `∑ βᵏ Ĉᵏ = (I − βĈ)⁻¹`, sharpened): if the
+series converges for every state (the exact condition `summable_all_iff`) and `I − M` is
+invertible, its sum is `φ′ (I − M)⁻¹ s` — no spectral-radius condition. -/
+theorem hasSum_of_summable_all {M : Matrix (Fin n) (Fin n) ℝ} {φ : Fin n → ℝ}
+    (hdet : (1 - M).det ≠ 0) (h : ∀ s, Summable (fun k => φ ⬝ᵥ (M ^ k *ᵥ s)))
+    (s : Fin n → ℝ) : HasSum (fun k => φ ⬝ᵥ (M ^ k *ᵥ s)) (φ ⬝ᵥ ((1 - M)⁻¹ *ᵥ s)) := by
+  set u := (1 - M)⁻¹ *ᵥ s with hu
+  have hsu : s = (1 - M) *ᵥ u := by
+    rw [hu, mulVec_mulVec, Matrix.mul_nonsing_inv _ (isUnit_iff_ne_zero.mpr hdet), one_mulVec]
+  rw [(h s).hasSum_iff_tendsto_nat]
+  have hpart : ∀ N : ℕ, ∑ k ∈ Finset.range N, φ ⬝ᵥ (M ^ k *ᵥ s) = φ ⬝ᵥ u - φ ⬝ᵥ (M ^ N *ᵥ u) := by
+    intro N
+    rw [← dotProduct_sum, ← Matrix.sum_mulVec, hsu, mulVec_mulVec, geom_sum_mul_neg, sub_mulVec,
+      one_mulVec, dotProduct_sub]
+  simp only [hpart]
+  have ht := (h u).tendsto_atTop_zero
+  simpa using (tendsto_const_nhds (x := φ ⬝ᵥ u)).sub ht
+
+/-! ### Preston's forecast sums -/
+
+variable {Ω : Type*}
+
+/-- Woodford (2003), p. 274: `aᵏ Ê_t z_{t+k+1} = aᵏ Φ̂₀ + Φ̂ₛ (aĈ)ᵏ s_t` (component `j`). -/
+theorem fcast_term (a : ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) (s : ℕ → Fin n → Ω → ℝ) (t k : ℕ) (j : Fin 3) (ω : Ω) :
+    a ^ k * fcast Φ Ch s t k j ω = a ^ k * Φ.1 j + Φ.2 j ⬝ᵥ ((a • Ch) ^ k *ᵥ sv s t ω) := by
+  simp only [fcast, smul_pow, Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), p. 274: for `|a| < 1` the forecast sum `∑ aᵏ Ê_t z_{t+k+1}` (component `j`)
+converges iff `∑ Φ̂ₛⱼ′ (aĈ)ᵏ s_t` does (the intercepts give a geometric series). -/
+theorem summable_fcast_iff {a : ℝ} (ha : |a| < 1) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) (s : ℕ → Fin n → Ω → ℝ) (t : ℕ) (j : Fin 3) (ω : Ω) :
+    Summable (fun k => a ^ k * fcast Φ Ch s t k j ω) ↔
+      Summable (fun k => Φ.2 j ⬝ᵥ ((a • Ch) ^ k *ᵥ sv s t ω)) := by
+  have hg : Summable (fun k : ℕ => a ^ k * Φ.1 j) :=
+    (summable_geometric_of_abs_lt_one ha).mul_right _
+  simp only [fcast_term]
+  exact ⟨fun h => (h.sub hg).congr fun k => by ring, fun h => hg.add h⟩
+
+/-- Woodford (2003), p. 274: **the exact condition for a forecast sum**: for `|a| < 1`,
+`∑ aᵏ Ê_t z_{t+k+1}` (component `j`) converges iff the row `Φ̂ₛⱼ` annihilates every generalised
+eigenvector of `aĈ` with eigenvalue of modulus `≥ 1` that the state `s_t` excites. -/
+theorem fcast_summable_iff {a : ℝ} (ha : |a| < 1) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) (s : ℕ → Fin n → Ω → ℝ) (t : ℕ) (j : Fin 3) (ω : Ω) :
+    Summable (fun k => a ^ k * fcast Φ Ch s t k j ω) ↔
+      ∀ l : ℂ, 1 ≤ ‖l‖ →
+        ∀ v ∈ krylov ((a • Ch).map Complex.ofReal) (fun i => (sv s t ω i : ℂ)),
+          IsGenEig ((a • Ch).map Complex.ofReal) l v → (fun i => (Φ.2 j i : ℂ)) ⬝ᵥ v = 0 :=
+  (summable_fcast_iff ha Φ Ch s t j ω).trans (summable_iff_krylov _ _ _)
+
+/-- Woodford (2003), p. 274: **the exact condition for the natural-rate forecast sum**:
+`∑ aᵏ Ê_t r̂ⁿ_{t+k} = ∑ f_r′ (aĈ)ᵏ s_t` converges iff `f_r` annihilates every generalised
+eigenvector of `aĈ` with eigenvalue of modulus `≥ 1` that `s_t` excites. -/
+theorem rnfc_summable_iff (a : ℝ) (gr : Fin n → ℝ) (Ch : Matrix (Fin n) (Fin n) ℝ)
+    (s : ℕ → Fin n → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    Summable (fun k => a ^ k * rnfc gr Ch s t k ω) ↔
+      ∀ l : ℂ, 1 ≤ ‖l‖ →
+        ∀ v ∈ krylov ((a • Ch).map Complex.ofReal) (fun i => (sv s t ω i : ℂ)),
+          IsGenEig ((a • Ch).map Complex.ofReal) l v → (fun i => (gr i : ℂ)) ⬝ᵥ v = 0 := by
+  rw [← summable_iff_krylov]
+  refine Eq.to_iff (congrArg Summable (funext fun k => ?_))
+  simp only [rnfc, smul_pow, Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
+
+/-- Woodford (2003), p. 274: **the spectral-radius condition is necessary and sufficient for the
+forecast sums to converge at every belief and every state**: for `|a| < 1` (`a = β` in (2.29)),
+`∑ aᵏ Ê_t z_{t+k+1}` converges for every belief `Φ̂`, state history, date, component and
+outcome iff every eigenvalue of `aĈ` lies inside the unit circle. -/
+theorem forecast_sums_all_iff [Nonempty Ω] {a : ℝ} (ha : |a| < 1)
+    (Ch : Matrix (Fin n) (Fin n) ℝ) :
+    (∀ (Φ : Learning.Regression.Belief (Fin 3) (Fin n)) (s : ℕ → Fin n → Ω → ℝ) (t : ℕ)
+        (j : Fin 3) (ω : Ω), Summable (fun k => a ^ k * fcast Φ Ch s t k j ω)) ↔
+      ∀ w, KroneckerSpectrum.IsEig ((a • Ch).map Complex.ofReal) w → ‖w‖ < 1 := by
+  rw [← summable_all_all_iff]
+  constructor
+  · intro h φ v
+    obtain ⟨ω⟩ := ‹Nonempty Ω›
+    have := (summable_fcast_iff ha (0, fun _ => φ) Ch (fun _ l _ => v l) 0 0 ω).mp
+      (h _ _ 0 0 ω)
+    exact this
+  · intro h Φ s t j ω
+    exact (summable_fcast_iff ha Φ Ch s t j ω).mpr (h _ _)
+
+/-! ### The literal series of (2.29) and (2.30) -/
+
+/-- Woodford (2003), (2.29) p. 273: the `k`-th summand of the right side of (2.29). -/
+def isTerm (β σ : ℝ) (gr : Fin n → ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ)
+    (t : ℕ) (ω : Ω) (k : ℕ) : ℝ :=
+  β ^ k * ((1 - β) * subj z Φ Ch s t (k + 1) 1 ω -
+    σ * (subj z Φ Ch s t k 2 ω - subj z Φ Ch s t (k + 1) 0 ω - rnfc gr Ch s t k ω))
+
+/-- Woodford (2003), (2.30) p. 273: the `k`-th summand of the right side of (2.30). -/
+def asTerm (α β κ : ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ)
+    (t : ℕ) (ω : Ω) (k : ℕ) : ℝ :=
+  (α * β) ^ k * (κ * subj z Φ Ch s t k 1 ω + (1 - α) * β * subj z Φ Ch s t (k + 1) 0 ω)
+
+/-- Woodford (2003), (2.29): the row `χ = ((1 − β)Φ̂ₓ + σΦ̂_π + σ f_r)′(βĈ) − σβ Φ̂_î` through which
+the series (2.29) loads on `(βĈ)ᵏ s_t`. -/
+def isRow (β σ : ℝ) (gr : Fin n → ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) : Fin n → ℝ :=
+  ((1 - β) • Φ.2 1 + σ • Φ.2 0 + σ • gr) ᵥ* (β • Ch) - (σ * β) • Φ.2 2
+
+/-- Woodford (2003), (2.30): the row `χ = καβ Φ̂ₓ + (1 − α)β Φ̂_π′(αβĈ)` through which the
+series (2.30) loads on `(αβĈ)ᵏ s_t`. -/
+def asRow (α β κ : ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) : Fin n → ℝ :=
+  (κ * (α * β)) • Φ.2 1 + ((1 - α) * β) • (Φ.2 0 ᵥ* ((α * β) • Ch))
+
+/-- Woodford (2003), (2.29): from `k = 1` on, the summand of (2.29) is a geometric term plus
+`χ′(βĈ)ᵏ s_t`. -/
+theorem isTerm_succ (β σ : ℝ) (gr : Fin n → ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ)
+    (t : ℕ) (ω : Ω) (k : ℕ) :
+    isTerm β σ gr Φ Ch s z t ω (k + 1) =
+      β ^ (k + 1) * ((1 - β) * Φ.1 1 - σ * (Φ.1 2 - Φ.1 0)) +
+        isRow β σ gr Φ Ch ⬝ᵥ ((β • Ch) ^ k *ᵥ sv s t ω) := by
+  simp only [isTerm, isRow, subj, fcast, rnfc, Nat.add_eq_zero_iff, one_ne_zero, and_false,
+    ↓reduceIte, Nat.add_sub_cancel, sub_dotProduct, ← dotProduct_mulVec, smul_pow,
+    Matrix.smul_mulVec, add_dotProduct, smul_dotProduct, dotProduct_smul, smul_eq_mul,
+    mulVec_mulVec, Matrix.smul_mul, ← pow_succ']
+  ring
+
+/-- Woodford (2003), (2.30): from `k = 1` on, the summand of (2.30) is a geometric term plus
+`χ′(αβĈ)ᵏ s_t`. -/
+theorem asTerm_succ (α β κ : ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (Ch : Matrix (Fin n) (Fin n) ℝ) (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ)
+    (t : ℕ) (ω : Ω) (k : ℕ) :
+    asTerm α β κ Φ Ch s z t ω (k + 1) =
+      (α * β) ^ (k + 1) * (κ * Φ.1 1 + (1 - α) * β * Φ.1 0) +
+        asRow α β κ Φ Ch ⬝ᵥ (((α * β) • Ch) ^ k *ᵥ sv s t ω) := by
+  simp only [asTerm, asRow, subj, fcast, Nat.add_eq_zero_iff, one_ne_zero, and_false,
+    ↓reduceIte, Nat.add_sub_cancel, ← dotProduct_mulVec, smul_pow, Matrix.smul_mulVec,
+    add_dotProduct, smul_dotProduct, dotProduct_smul, smul_eq_mul, mulVec_mulVec, ← pow_succ',
+    Matrix.smul_mul]
+  ring
+
+/-- Woodford (2003), (2.29): for `|β| < 1` the series on the right of (2.29) converges iff
+`∑ χ′(βĈ)ᵏ s_t` does. -/
+theorem summable_isTerm_iff {β : ℝ} (hβ : |β| < 1) (σ : ℝ) (gr : Fin n → ℝ)
+    (Φ : Learning.Regression.Belief (Fin 3) (Fin n)) (Ch : Matrix (Fin n) (Fin n) ℝ)
+    (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    Summable (isTerm β σ gr Φ Ch s z t ω) ↔
+      Summable (fun k => isRow β σ gr Φ Ch ⬝ᵥ ((β • Ch) ^ k *ᵥ sv s t ω)) := by
+  have hg : Summable (fun k : ℕ => β ^ (k + 1) * ((1 - β) * Φ.1 1 - σ * (Φ.1 2 - Φ.1 0))) :=
+    ((summable_nat_add_iff 1).mpr (summable_geometric_of_abs_lt_one hβ)).mul_right _
+  rw [← summable_nat_add_iff 1]
+  simp only [isTerm_succ]
+  exact ⟨fun h => (h.sub hg).congr fun k => by ring, fun h => hg.add h⟩
+
+/-- Woodford (2003), (2.30): for `|αβ| < 1` the series on the right of (2.30) converges iff
+`∑ χ′(αβĈ)ᵏ s_t` does. -/
+theorem summable_asTerm_iff {α β : ℝ} (hab : |α * β| < 1) (κ : ℝ)
+    (Φ : Learning.Regression.Belief (Fin 3) (Fin n)) (Ch : Matrix (Fin n) (Fin n) ℝ)
+    (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    Summable (asTerm α β κ Φ Ch s z t ω) ↔
+      Summable (fun k => asRow α β κ Φ Ch ⬝ᵥ (((α * β) • Ch) ^ k *ᵥ sv s t ω)) := by
+  have hg : Summable (fun k : ℕ => (α * β) ^ (k + 1) * (κ * Φ.1 1 + (1 - α) * β * Φ.1 0)) :=
+    ((summable_nat_add_iff 1).mpr (summable_geometric_of_abs_lt_one hab)).mul_right _
+  rw [← summable_nat_add_iff 1]
+  simp only [asTerm_succ]
+  exact ⟨fun h => (h.sub hg).congr fun k => by ring, fun h => hg.add h⟩
+
+/-- Woodford (2003), (2.29): **the exact convergence condition for the series in (2.29)**: it
+converges iff the row `χ` (`isRow`) annihilates every generalised eigenvector of `βĈ` with
+eigenvalue of modulus `≥ 1` that the state `s_t` excites. -/
+theorem isTerm_summable_iff {β : ℝ} (hβ : |β| < 1) (σ : ℝ) (gr : Fin n → ℝ)
+    (Φ : Learning.Regression.Belief (Fin 3) (Fin n)) (Ch : Matrix (Fin n) (Fin n) ℝ)
+    (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    Summable (isTerm β σ gr Φ Ch s z t ω) ↔
+      ∀ l : ℂ, 1 ≤ ‖l‖ →
+        ∀ v ∈ krylov ((β • Ch).map Complex.ofReal) (fun i => (sv s t ω i : ℂ)),
+          IsGenEig ((β • Ch).map Complex.ofReal) l v →
+            (fun i => (isRow β σ gr Φ Ch i : ℂ)) ⬝ᵥ v = 0 :=
+  (summable_isTerm_iff hβ σ gr Φ Ch s z t ω).trans (summable_iff_krylov _ _ _)
+
+/-- Woodford (2003), (2.30): **the exact convergence condition for the series in (2.30)**. -/
+theorem asTerm_summable_iff {α β : ℝ} (hab : |α * β| < 1) (κ : ℝ)
+    (Φ : Learning.Regression.Belief (Fin 3) (Fin n)) (Ch : Matrix (Fin n) (Fin n) ℝ)
+    (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    Summable (asTerm α β κ Φ Ch s z t ω) ↔
+      ∀ l : ℂ, 1 ≤ ‖l‖ →
+        ∀ v ∈ krylov (((α * β) • Ch).map Complex.ofReal) (fun i => (sv s t ω i : ℂ)),
+          IsGenEig (((α * β) • Ch).map Complex.ofReal) l v →
+            (fun i => (asRow α β κ Φ Ch i : ℂ)) ⬝ᵥ v = 0 :=
+  (summable_asTerm_iff hab κ Φ Ch s z t ω).trans (summable_iff_krylov _ _ _)
+
+/-- Woodford (2003), (2.29): **the spectral-radius condition on `βĈ` is necessary and sufficient
+for the series in (2.29) to converge at every belief and every state** (`0 < β < 1`, `σ ≠ 0`,
+any `f_r`). Necessity: the belief `Φ̂ₓ = Φ̂_π = 0`, `Φ̂_î = f_r′Ĉ − φ/(σβ)` makes the row `χ`
+equal to an arbitrary `φ`. -/
+theorem IS229_sums_all_iff [Nonempty Ω] {β σ : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : σ ≠ 0)
+    (gr : Fin n → ℝ) (Ch : Matrix (Fin n) (Fin n) ℝ) :
+    (∀ (Φ : Learning.Regression.Belief (Fin 3) (Fin n)) (s : ℕ → Fin n → Ω → ℝ)
+        (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) (ω : Ω), Summable (isTerm β σ gr Φ Ch s z t ω)) ↔
+      ∀ w, KroneckerSpectrum.IsEig ((β • Ch).map Complex.ofReal) w → ‖w‖ < 1 := by
+  have hβ : |β| < 1 := by rw [abs_lt]; constructor <;> linarith
+  rw [← summable_all_all_iff]
+  constructor
+  · intro h φ v
+    obtain ⟨ω⟩ := ‹Nonempty Ω›
+    set Φ : Learning.Regression.Belief (Fin 3) (Fin n) :=
+      (0, Matrix.of ![0, 0, gr ᵥ* Ch - (σ * β)⁻¹ • φ]) with hΦ
+    have hrow : isRow β σ gr Φ Ch = φ := by
+      have hσβ : σ * β ≠ 0 := mul_ne_zero hσ hβ0.ne'
+      have e0 : Φ.2 0 = 0 := rfl
+      have e1 : Φ.2 1 = 0 := rfl
+      have e2 : Φ.2 2 = gr ᵥ* Ch - (σ * β)⁻¹ • φ := rfl
+      simp only [isRow, e0, e1, e2, smul_zero, zero_add, Matrix.vecMul_smul, Matrix.smul_vecMul,
+        smul_smul, smul_sub, mul_inv_cancel₀ hσβ, one_smul]
+      rw [mul_comm β σ]
+      abel
+    have := (summable_isTerm_iff hβ σ gr Φ Ch (fun _ l _ => v l) (fun _ _ _ => 0) 0 ω).mp
+      (h _ _ _ 0 ω)
+    rw [hrow] at this
+    exact this
+  · intro h Φ s z t ω
+    exact (summable_isTerm_iff hβ σ gr Φ Ch s z t ω).mpr (h _ _)
+
+/-! ### The decision rules under the exact condition -/
+
+/-- Woodford (2003), p. 274: the forecast sum with a per-state hypothesis: if
+`∑ Φ̂ₛⱼ′(aĈ)ᵏ v = Φ̂ₛⱼ′ S v`, then `∑ aᵏ Ê_t z_{t+k+1} = Φ̂₀ⱼ/(1 − a) + Φ̂ₛⱼ′ S s_t`. -/
+theorem hasSum_fcast_vec {a : ℝ} (ha : |a| < 1) {Ch S : Matrix (Fin n) (Fin n) ℝ}
+    (Φ : Learning.Regression.Belief (Fin 3) (Fin n)) (s : ℕ → Fin n → Ω → ℝ) (t : ℕ)
+    (j : Fin 3) (ω : Ω)
+    (hS : HasSum (fun k => Φ.2 j ⬝ᵥ ((a • Ch) ^ k *ᵥ sv s t ω)) (Φ.2 j ⬝ᵥ (S *ᵥ sv s t ω))) :
+    HasSum (fun k => a ^ k * fcast Φ Ch s t k j ω)
+      (Φ.1 j / (1 - a) + Φ.2 j ⬝ᵥ (S *ᵥ sv s t ω)) := by
+  have h1 : HasSum (fun k => a ^ k * Φ.1 j) (Φ.1 j / (1 - a)) := by
+    rw [div_eq_inv_mul]
+    exact (hasSum_geometric_of_abs_lt_one ha).mul_right (Φ.1 j)
+  convert h1.add hS using 1
+  funext k
+  exact fcast_term a Φ Ch s t k j ω
+
+/-- Woodford (2003), p. 273: `∑ aᵐ Ê_t z_{t+m} = z_t + a ∑ aᵏ Ê_t z_{t+k+1}` under the per-state
+hypothesis. -/
+theorem hasSum_subj_vec {a : ℝ} (ha : |a| < 1) {Ch S : Matrix (Fin n) (Fin n) ℝ}
+    (z : ℕ → Fin 3 → Ω → ℝ) (Φ : Learning.Regression.Belief (Fin 3) (Fin n))
+    (s : ℕ → Fin n → Ω → ℝ) (t : ℕ) (j : Fin 3) (ω : Ω)
+    (hS : HasSum (fun k => Φ.2 j ⬝ᵥ ((a • Ch) ^ k *ᵥ sv s t ω)) (Φ.2 j ⬝ᵥ (S *ᵥ sv s t ω))) :
+    HasSum (fun m => a ^ m * subj z Φ Ch s t m j ω)
+      (z t j ω + a * (Φ.1 j / (1 - a) + Φ.2 j ⬝ᵥ (S *ᵥ sv s t ω))) := by
+  refine (hasSum_nat_add_iff' 1).mp ?_
+  convert (hasSum_fcast_vec ha Φ s t j ω hS).mul_left a using 1
+  · funext k
+    simp only [subj, Nat.add_eq_zero_iff, one_ne_zero, and_false, ↓reduceIte,
+      Nat.add_sub_cancel, pow_succ]
+    ring
+  · simp [subj]
+
+/-- Woodford (2003), pp. 273–274: **the actual law of motion under per-state convergence**:
+`PrestonLearning.decisionRules_iff` with the spectral-radius hypothesis replaced by the
+convergence of the forecast sums at the states that occur, to the closed forms with
+`(I − βĈ)⁻¹`, `(I − αβĈ)⁻¹`. -/
+theorem decisionRules_iff_of_hasSum {α β κ σ φπ φx πbar xbar ci : ℝ} {gr gi : Fin n → ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (hΔ : taylorDelta σ κ φπ φx ≠ 0) {Φ : Learning.Regression.Belief (Fin 3) (Fin n)}
+    {Ch : Matrix (Fin n) (Fin n) ℝ} (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ)
+    (hD : ∀ ω j, HasSum (fun k => Φ.2 j ⬝ᵥ ((β • Ch) ^ k *ᵥ sv s t ω))
+      (Φ.2 j ⬝ᵥ ((1 - β • Ch)⁻¹ *ᵥ sv s t ω)))
+    (hSu : ∀ ω j, HasSum (fun k => Φ.2 j ⬝ᵥ (((α * β) • Ch) ^ k *ᵥ sv s t ω))
+      (Φ.2 j ⬝ᵥ ((1 - (α * β) • Ch)⁻¹ *ᵥ sv s t ω)))
+    (hR : ∀ ω, HasSum (fun k => gr ⬝ᵥ ((β • Ch) ^ k *ᵥ sv s t ω))
+      (gr ⬝ᵥ ((1 - β • Ch)⁻¹ *ᵥ sv s t ω))) :
+    (IS229 β σ gr Φ Ch s z t ∧ AS230 α β κ Φ Ch s z t ∧
+        TaylorRule φπ φx πbar xbar ci gi s z t) ↔
+      ∀ ω, (fun j => z t j ω) =
+        tempSol α β κ σ φπ φx (taylorConst φπ φx πbar xbar ci) gr gi Φ Ch (sv s t ω) := by
+  have hβa : |β| < 1 := by rw [abs_lt]; constructor <;> linarith
+  have hαβa : |α * β| < 1 := by rw [abs_lt]; constructor <;> nlinarith
+  have hIS : ∀ ω, HasSum (fun k => β ^ k * ((1 - β) * subj z Φ Ch s t (k + 1) 1 ω -
+      σ * (subj z Φ Ch s t k 2 ω - subj z Φ Ch s t (k + 1) 0 ω - rnfc gr Ch s t k ω)))
+      (-(σ * z t 2 ω) + (demandW β σ ⬝ᵥ sumD β Φ Ch (sv s t ω) +
+        σ * sumR β gr Ch (sv s t ω))) := by
+    intro ω
+    have h1 := hasSum_fcast_vec hβa Φ s t 1 ω (hD ω 1)
+    have h0 := hasSum_fcast_vec hβa Φ s t 0 ω (hD ω 0)
+    have hr : HasSum (fun k => β ^ k * rnfc gr Ch s t k ω)
+        (gr ⬝ᵥ ((1 - β • Ch)⁻¹ *ᵥ sv s t ω)) := by
+      convert hR ω using 1
+      funext k
+      simp only [rnfc, smul_pow, Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
+    have hi := hasSum_subj_vec hβa z Φ s t 2 ω (hD ω 2)
+    convert (((h1.mul_left (1 - β)).add (h0.mul_left σ)).add (hr.mul_left σ)).sub
+      (hi.mul_left σ) using 1
+    · funext k
+      simp only [subj, Nat.add_eq_zero_iff, one_ne_zero, and_false, ↓reduceIte,
+        Nat.add_sub_cancel]
+      ring
+    · simp only [demandW, sumD, sumR, dotProduct, Fin.sum_univ_three, Fin.isValue,
+        Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two, Nat.succ_eq_add_one,
+        Nat.reduceAdd, Matrix.tail_cons, Matrix.head_cons]
+      have : (1 - β) ≠ 0 := by linarith
+      field_simp
+      ring
+  have hAS : ∀ ω, HasSum (fun k => (α * β) ^ k *
+      (κ * subj z Φ Ch s t k 1 ω + (1 - α) * β * subj z Φ Ch s t (k + 1) 0 ω))
+      (κ * z t 1 ω + supplyW α β κ ⬝ᵥ sumS α β Φ Ch (sv s t ω)) := by
+    intro ω
+    have hx := hasSum_subj_vec hαβa z Φ s t 1 ω (hSu ω 1)
+    have hp := hasSum_fcast_vec hαβa Φ s t 0 ω (hSu ω 0)
+    convert (hx.mul_left κ).add (hp.mul_left ((1 - α) * β)) using 1
+    · funext k
+      simp only [subj, Nat.add_eq_zero_iff, one_ne_zero, and_false, ↓reduceIte,
+        Nat.add_sub_cancel]
+      ring
+    · simp only [supplyW, sumS, dotProduct, Fin.sum_univ_three, Fin.isValue,
+        Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two, Nat.succ_eq_add_one,
+        Nat.reduceAdd, Matrix.tail_cons, Matrix.head_cons]
+      ring
+  have hIS' : IS229 β σ gr Φ Ch s z t ↔ ∀ ω, z t 1 ω = -(σ * z t 2 ω) +
+      (demandW β σ ⬝ᵥ sumD β Φ Ch (sv s t ω) + σ * sumR β gr Ch (sv s t ω)) :=
+    forall_congr' fun ω => by rw [(hIS ω).tsum_eq]
+  have hAS' : AS230 α β κ Φ Ch s z t ↔ ∀ ω, z t 0 ω = κ * z t 1 ω +
+      supplyW α β κ ⬝ᵥ sumS α β Φ Ch (sv s t ω) :=
+    forall_congr' fun ω => by rw [(hAS ω).tsum_eq]
+  have hTR : TaylorRule φπ φx πbar xbar ci gi s z t ↔ ∀ ω, z t 2 ω =
+      (taylorConst φπ φx πbar xbar ci + gi ⬝ᵥ sv s t ω) + φπ * z t 0 ω + φx / 4 * z t 1 ω :=
+    forall_congr' fun ω => by
+      unfold taylorConst
+      constructor <;> intro h <;> linarith
+  rw [hIS', hAS', hTR, ← forall_and, ← forall_and]
+  exact forall_congr' fun ω => tempEqm_iff hΔ (fun j => z t j ω) _ _ _ _
+
+/-- Woodford (2003), pp. 273–274: **the actual law of motion under the exact condition**: if the
+rows of `Φ̂ₛ` and `f_r` annihilate every generalised eigenvector of `βĈ` with eigenvalue of
+modulus `≥ 1`, the rows of `Φ̂ₛ` annihilate those of `αβĈ`, and `I − βĈ`, `I − αβĈ` are
+invertible, then (2.29), (2.30) and (1.14) hold at `t` iff `z_t = tempSol(s_t)` — whatever the
+spectral radius of `βĈ`. -/
+theorem decisionRules_iff_exact {α β κ σ φπ φx πbar xbar ci : ℝ} {gr gi : Fin n → ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (hΔ : taylorDelta σ κ φπ φx ≠ 0) {Φ : Learning.Regression.Belief (Fin 3) (Fin n)}
+    {Ch : Matrix (Fin n) (Fin n) ℝ} (hd1 : (1 - β • Ch).det ≠ 0)
+    (hd2 : (1 - (α * β) • Ch).det ≠ 0)
+    (hΦ1 : ∀ j, ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v, IsGenEig ((β • Ch).map Complex.ofReal) l v →
+      (fun i => (Φ.2 j i : ℂ)) ⬝ᵥ v = 0)
+    (hΦ2 : ∀ j, ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v, IsGenEig (((α * β) • Ch).map Complex.ofReal) l v →
+      (fun i => (Φ.2 j i : ℂ)) ⬝ᵥ v = 0)
+    (hgr : ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v, IsGenEig ((β • Ch).map Complex.ofReal) l v →
+      (fun i => (gr i : ℂ)) ⬝ᵥ v = 0)
+    (s : ℕ → Fin n → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) :
+    (IS229 β σ gr Φ Ch s z t ∧ AS230 α β κ Φ Ch s z t ∧
+        TaylorRule φπ φx πbar xbar ci gi s z t) ↔
+      ∀ ω, (fun j => z t j ω) =
+        tempSol α β κ σ φπ φx (taylorConst φπ φx πbar xbar ci) gr gi Φ Ch (sv s t ω) := by
+  refine decisionRules_iff_of_hasSum hβ0 hβ1 hα0 hα1 hΔ s z t (fun ω j => ?_) (fun ω j => ?_)
+    (fun ω => ?_)
+  · have hd : (1 - β • Ch).det ≠ 0 := hd1
+    exact hasSum_of_summable_all hd ((summable_all_iff _ _).mpr (hΦ1 j)) _
+  · exact hasSum_of_summable_all hd2 ((summable_all_iff _ _).mpr (hΦ2 j)) _
+  · exact hasSum_of_summable_all hd1 ((summable_all_iff _ _).mpr hgr) _
+
+/-! ### The counterexample -/
+
+/-- Woodford (2003), (2.24): an estimated state matrix `Ĉ = diag(1/2, 2)`, with an explosive
+second state. -/
+noncomputable def cexCh : Matrix (Fin 2) (Fin 2) ℝ := Matrix.diagonal ![1 / 2, 2]
+
+/-- Woodford (2003), (2.24): `(aĈ)ᵏ s` for `Ĉ = diag(1/2, 2)`: componentwise
+`((a/2)ᵏ s₀, (2a)ᵏ s₁)`. -/
+theorem cexCh_pow_mulVec (a : ℝ) (k : ℕ) (v : Fin 2 → ℝ) :
+    (a • cexCh) ^ k *ᵥ v = ![(a / 2) ^ k * v 0, (2 * a) ^ k * v 1] := by
+  have h : a • cexCh = Matrix.diagonal ![a / 2, 2 * a] := by
+    ext i j
+    fin_cases i <;> fin_cases j <;> simp [cexCh, Matrix.diagonal] <;> ring
+  rw [h, Matrix.diagonal_pow]
+  funext i
+  rw [Matrix.mulVec_diagonal]
+  fin_cases i <;> simp
+
+/-- Woodford (2003), (2.24): `2a` is an eigenvalue of `aĈ`, `Ĉ = diag(1/2, 2)`. -/
+theorem cexCh_isEig (a : ℝ) :
+    KroneckerSpectrum.IsEig ((a • cexCh).map Complex.ofReal) ((2 * a : ℝ) : ℂ) := by
+  refine ⟨![0, 1], by simp, ?_⟩
+  funext i
+  fin_cases i
+  · simp [cexCh, Matrix.mulVec, dotProduct, Fin.sum_univ_two, Matrix.diagonal]
+  · simp [cexCh, Matrix.mulVec, dotProduct, Fin.sum_univ_two, Matrix.diagonal]
+    ring
+
+/-- Woodford (2003), (2.24): a row with no weight on the second state sums against `(aĈ)ᵏ` to
+`φ′ (I − aĈ)⁻¹ s`. -/
+theorem cexCh_hasSum {a : ℝ} (ha : |a| < 1) (ha2 : 2 * a ≠ 1) (φ : Fin 2 → ℝ) (hφ : φ 1 = 0)
+    (v : Fin 2 → ℝ) :
+    HasSum (fun k => φ ⬝ᵥ ((a • cexCh) ^ k *ᵥ v)) (φ ⬝ᵥ ((1 - a • cexCh)⁻¹ *ᵥ v)) := by
+  have ha' : |a / 2| < 1 := by rw [abs_div]; norm_num; linarith [abs_nonneg a]
+  have hinv : (1 - a • cexCh)⁻¹ = Matrix.diagonal ![(1 - a / 2)⁻¹, (1 - 2 * a)⁻¹] := by
+    have h : 1 - a • cexCh = Matrix.diagonal ![1 - a / 2, 1 - 2 * a] := by
+      ext i j
+      fin_cases i <;> fin_cases j <;> simp [cexCh, Matrix.diagonal] <;> ring
+    have h1 : (1 : ℝ) - a / 2 ≠ 0 := by
+      intro h0
+      have : a = 2 := by linarith
+      rw [this] at ha
+      norm_num at ha
+    have h2 : (1 : ℝ) - 2 * a ≠ 0 := fun h0 => ha2 (by linarith)
+    rw [h]
+    refine Matrix.inv_eq_left_inv ?_
+    rw [Matrix.diagonal_mul_diagonal]
+    ext i j
+    fin_cases i <;> fin_cases j <;> simp [Matrix.diagonal, h1, h2]
+  rw [hinv]
+  have hg := (hasSum_geometric_of_abs_lt_one ha').mul_right (φ 0 * v 0)
+  convert hg using 1
+  · funext k
+    rw [cexCh_pow_mulVec]
+    simp [dotProduct, Fin.sum_univ_two, hφ]
+    ring
+  · simp [dotProduct, Fin.sum_univ_two, hφ, Matrix.mulVec_diagonal]
+    ring
+
+/-- Woodford (2003), (2.24): a row with no weight on the second state gives a convergent series
+against `(aĈ)ᵏ`, `|a| < 1`, whatever `2a`. -/
+theorem cexCh_summable {a : ℝ} (ha : |a| < 1) (φ : Fin 2 → ℝ) (hφ : φ 1 = 0) (v : Fin 2 → ℝ) :
+    Summable (fun k => φ ⬝ᵥ ((a • cexCh) ^ k *ᵥ v)) := by
+  have ha' : |a / 2| < 1 := by rw [abs_div]; norm_num; linarith [abs_nonneg a]
+  refine ((summable_geometric_of_abs_lt_one ha').mul_right (φ 0 * v 0)).congr fun k => ?_
+  rw [cexCh_pow_mulVec]
+  simp [dotProduct, Fin.sum_univ_two, hφ]
+  ring
+
+/-- Woodford (2003), (2.24): the row of a vector with no weight on the second state, times
+`aĈ`, has no weight on the second state. -/
+theorem cexCh_vecMul (a : ℝ) (φ : Fin 2 → ℝ) (h : φ 1 = 0) : (φ ᵥ* (a • cexCh)) 1 = 0 := by
+  simp [cexCh, Matrix.vecMul, dotProduct, Matrix.diagonal, h]
+
+/-- Woodford (2003), pp. 273–274: **the spectral-radius condition is not necessary**. Let
+`Ĉ = diag(1/2, 2)` and `1/2 < β < 1`, `0 ≤ α < 1`, so that `βĈ` has the eigenvalue `2β > 1`, and
+let the beliefs `Φ̂ₛ` and the loading `f_r` put no weight on the second (explosive) state. Then,
+for every state history, every forecast sum and the series in (2.29) and (2.30) converge. -/
+theorem forecast_sums_converge_without_spectral {α β κ σ : ℝ} {gr : Fin 2 → ℝ}
+    (hβ0 : 1 / 2 < β) (hβ1 : β < 1) (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (Φ : Learning.Regression.Belief (Fin 3) (Fin 2)) (hΦ : ∀ j, Φ.2 j 1 = 0) (hgr : gr 1 = 0)
+    (s : ℕ → Fin 2 → Ω → ℝ) (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) :
+    (∃ w, KroneckerSpectrum.IsEig ((β • cexCh).map Complex.ofReal) w ∧ 1 < ‖w‖) ∧
+      (∀ j ω, Summable (fun k => β ^ k * fcast Φ cexCh s t k j ω) ∧
+        Summable (fun k => (α * β) ^ k * fcast Φ cexCh s t k j ω) ∧
+        Summable (fun k => β ^ k * rnfc gr cexCh s t k ω)) ∧
+      ∀ ω, Summable (isTerm β σ gr Φ cexCh s z t ω) ∧
+        Summable (asTerm α β κ Φ cexCh s z t ω) := by
+  have hβa : |β| < 1 := by rw [abs_lt]; constructor <;> linarith
+  have hαβa : |α * β| < 1 := by rw [abs_lt]; constructor <;> nlinarith
+  refine ⟨⟨_, cexCh_isEig β, ?_⟩, fun j ω => ⟨?_, ?_, ?_⟩, fun ω => ⟨?_, ?_⟩⟩
+  · rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by linarith)]
+    linarith
+  · exact (summable_fcast_iff hβa Φ cexCh s t j ω).mpr (cexCh_summable hβa _ (hΦ j) _)
+  · exact (summable_fcast_iff hαβa Φ cexCh s t j ω).mpr (cexCh_summable hαβa _ (hΦ j) _)
+  · refine (cexCh_summable hβa _ hgr (sv s t ω)).congr fun k => ?_
+    simp only [rnfc, smul_pow, Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
+  · refine (summable_isTerm_iff hβa σ gr Φ cexCh s z t ω).mpr (cexCh_summable hβa _ ?_ _)
+    simp only [isRow, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, hΦ, mul_zero, sub_zero]
+    exact cexCh_vecMul β _ (by simp [hΦ, hgr])
+  · refine (summable_asTerm_iff hαβa κ Φ cexCh s z t ω).mpr (cexCh_summable hαβa _ ?_ _)
+    simp only [asRow, Pi.add_apply, Pi.smul_apply, smul_eq_mul, hΦ, mul_zero, zero_add]
+    rw [cexCh_vecMul _ _ (hΦ 0), mul_zero]
+
+/-- Woodford (2003), pp. 273–274: **in the counterexample the actual law of motion is still
+`z_t = tempSol(s_t)`**: with `Ĉ = diag(1/2, 2)`, `1/2 < β < 1`, `0 ≤ α < 1`, `2αβ ≠ 1` (so that
+`I − αβĈ` is invertible; `I − βĈ` is, as `2β > 1`), and beliefs and `f_r` with no weight on the
+second state, (2.29), (2.30) and (1.14) hold at `t` iff `z_t = tempSol(s_t)`, although `βĈ` has
+the eigenvalue `2β > 1`. -/
+theorem decisionRules_without_spectral {α β κ σ φπ φx πbar xbar ci : ℝ} {gr gi : Fin 2 → ℝ}
+    (hβ0 : 1 / 2 < β) (hβ1 : β < 1) (hα0 : 0 ≤ α) (hα1 : α < 1) (h2αβ : 2 * (α * β) ≠ 1)
+    (hΔ : taylorDelta σ κ φπ φx ≠ 0) (Φ : Learning.Regression.Belief (Fin 3) (Fin 2))
+    (hΦ : ∀ j, Φ.2 j 1 = 0) (hgr : gr 1 = 0) (s : ℕ → Fin 2 → Ω → ℝ)
+    (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ) :
+    (IS229 β σ gr Φ cexCh s z t ∧ AS230 α β κ Φ cexCh s z t ∧
+        TaylorRule φπ φx πbar xbar ci gi s z t) ↔
+      ∀ ω, (fun j => z t j ω) =
+        tempSol α β κ σ φπ φx (taylorConst φπ φx πbar xbar ci) gr gi Φ cexCh (sv s t ω) := by
+  have hβa : |β| < 1 := by rw [abs_lt]; constructor <;> linarith
+  have hαβa : |α * β| < 1 := by rw [abs_lt]; constructor <;> nlinarith
+  have h2β : 2 * β ≠ 1 := by intro h; linarith
+  exact decisionRules_iff_of_hasSum (by linarith) hβ1 hα0 hα1 hΔ s z t
+    (fun ω j => cexCh_hasSum hβa h2β _ (hΦ j) _) (fun ω j => cexCh_hasSum hαβa h2αβ _ (hΦ j) _)
+    (fun ω => cexCh_hasSum hβa h2β _ hgr _)
+
+end Woodford.NeoWicksellianFramework.TidyR5ForecastSums
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 4.10 for complex eigenvalues of `C`: the exact E-stability region
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, Proposition 4.10, pp. 274–275 (Preston
+(2005), App. 4). Proposition 4.10 assumes the eigenvalues of `C` real; the module Prop410Complex
+shows the assumption cannot be dropped. Here the E-stability region is characterised
+**exactly** for an arbitrary stationary `C` (complex eigenvalues allowed, no diagonalisability),
+with both directions proved.
+
+* `roots_of_hurwitz`, **`hurwitz_iff`**: both roots of `ν² + c₁ν + c₀` (complex coefficients)
+  have negative real part **iff** `Re c₁ > 0` and
+  `(Re c₁)² Re c₀ + Re c₁ Im c₁ Im c₀ − (Im c₀)² > 0` (the complex Routh–Hurwitz criterion for
+  quadratics; `Prop410Complex.hurwitz_of_roots` was the necessity half);
+  `eig_re_lt_one_iff_hurwitz`: a complex `2 × 2` matrix `R` has every eigenvalue with real part
+  `< 1` iff `HurwitzC R`.
+* `gC`, `bTilC`: `G(ρ) = ρ/(1 − αβρ) A₁ + ρ/(1 − βρ) A₂` and its restriction `B̃(ρ)` to the
+  Taylor-rule plane for complex `ρ`; `nPolyC`, `trPolyC`, `bTilC_det_identity`,
+  `bTilC_tr_identity`: `Δ(1 − αβρ)(1 − βρ)` times the Hurwitz coefficients
+  `c₀ = 1 − tr B̃ + det B̃`, `c₁ = 2 − tr B̃` are the polynomials of the real case evaluated at
+  complex `ρ`; `hurwitzC_bTilC_iff`: the condition in closed form.
+* **`eStable_hMat_iff`**: `H` is E-stable iff `HurwitzC(B̃(ρ))` for **every** eigenvalue `ρ` of
+  `C` (both directions: `Prop410.isEig_hMat_sub` and `Prop410Complex.isEig_hMat_of`).
+* `hurwitzC_of_real`: for any real `r ≤ 1` the condition follows from (2.7).
+* **`prop_4_10_complex`**: for any stationary `C`, a fixed point of Preston's `T`-map is E-stable
+  iff the Taylor principle (2.7) holds **and** `HurwitzC(B̃(ρ))` holds at every non-real
+  eigenvalue `ρ` of `C`; `prop_4_10_complex_explicit`: the same with the closed forms.
+* `cexC2`, `prop_4_10_complex_stable_case`: the extra condition is not always violated: with
+  the parameters of the module Prop410Complex and `C` a rotation with eigenvalues `±i/2`, the
+  r.e.e. exists, is unique and is E-stable. Together with
+  `Prop410Complex.prop_4_10_needs_real_eigenvalues`, for complex `C` E-stability depends on `C`
+  and not only on (2.7).
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR5ComplexRegion
+
+open Matrix Determinacy2 PrestonLearning Prop410 Prop410Complex
+open Determinacy2Learning (EStable EStableAt eStable_iff)
+open scoped _root_.Kronecker
+
+/-! ### The complex Routh–Hurwitz criterion for quadratics -/
+
+/-- Woodford (2003), p. 274 (E-stability for complex blocks; sufficiency of the complex
+Hurwitz condition): if `Re c₁ > 0` and `(Re c₁)² Re c₀ + Re c₁ Im c₁ Im c₀ − (Im c₀)² > 0`, every
+root of `ν² + c₁ν + c₀` has negative real part. With roots `xᵢ + i yᵢ` the second expression is
+`x₁x₂((x₁ + x₂)² + (y₁ − y₂)²)` and `Re c₁ = −(x₁ + x₂)`. -/
+theorem roots_of_hurwitz (c1 c0 : ℂ) (h1 : 0 < c1.re)
+    (h2 : 0 < c1.re ^ 2 * c0.re + c1.re * c1.im * c0.im - c0.im ^ 2) (ν : ℂ)
+    (hν : ν ^ 2 + c1 * ν + c0 = 0) : ν.re < 0 := by
+  have hc1 : c1 = -(ν + (-c1 - ν)) := by ring
+  have hc0 : c0 = ν * (-c1 - ν) := by linear_combination hν
+  set ν2 := -c1 - ν with hν2
+  rw [hc1, hc0] at h2
+  rw [hc1] at h1
+  simp only [Complex.neg_re, Complex.neg_im, Complex.add_re, Complex.add_im,
+    Complex.mul_re, Complex.mul_im] at h1 h2
+  have key : (-(ν.re + ν2.re)) ^ 2 * (ν.re * ν2.re - ν.im * ν2.im) +
+      -(ν.re + ν2.re) * -(ν.im + ν2.im) * (ν.re * ν2.im + ν.im * ν2.re) -
+      (ν.re * ν2.im + ν.im * ν2.re) ^ 2 =
+      ν.re * ν2.re * ((ν.re + ν2.re) ^ 2 + (ν.im - ν2.im) ^ 2) := by ring
+  rw [key] at h2
+  have hP : 0 < (ν.re + ν2.re) ^ 2 + (ν.im - ν2.im) ^ 2 := by
+    have : 0 < (ν.re + ν2.re) ^ 2 := by
+      have : ν.re + ν2.re < 0 := by linarith
+      nlinarith
+    nlinarith [sq_nonneg (ν.im - ν2.im)]
+  have hx : 0 < ν.re * ν2.re := by
+    by_contra hc
+    push Not at hc
+    nlinarith
+  nlinarith
+
+/-- Woodford (2003), p. 274: **the complex Routh–Hurwitz criterion for quadratics**: both roots
+of `ν² + c₁ν + c₀` have negative real part iff `Re c₁ > 0` and
+`(Re c₁)² Re c₀ + Re c₁ Im c₁ Im c₀ − (Im c₀)² > 0`. -/
+theorem hurwitz_iff (c1 c0 : ℂ) :
+    (∀ ν : ℂ, ν ^ 2 + c1 * ν + c0 = 0 → ν.re < 0) ↔
+      (0 < c1.re ∧ 0 < c1.re ^ 2 * c0.re + c1.re * c1.im * c0.im - c0.im ^ 2) :=
+  ⟨hurwitz_of_roots c1 c0, fun h => roots_of_hurwitz c1 c0 h.1 h.2⟩
+
+/-- Woodford (2003), p. 274: the E-stability condition for a complex `2 × 2` block `R`
+(`R − I` Hurwitz): `Re(2 − tr R) > 0` and `hurwitzVal R > 0`. -/
+def HurwitzC (R : Matrix (Fin 2) (Fin 2) ℂ) : Prop :=
+  0 < (2 - (R 0 0 + R 1 1)).re ∧ 0 < hurwitzVal R
+
+/-- Woodford (2003), p. 274: **every eigenvalue of a complex `2 × 2` matrix `R` has real part
+`< 1` iff `HurwitzC R`**. -/
+theorem eig_re_lt_one_iff_hurwitz (R : Matrix (Fin 2) (Fin 2) ℂ) :
+    (∀ μ, KroneckerSpectrum.IsEig R μ → μ.re < 1) ↔ HurwitzC R := by
+  constructor
+  · intro h
+    by_contra hc
+    obtain ⟨μ, hμ, hμ1⟩ := exists_isEig_re_ge_one R hc
+    have := h μ hμ
+    linarith
+  · intro h μ hμ
+    have hq := (isEig_two_iff_complex R μ).mp hμ
+    have := roots_of_hurwitz _ _ h.1 h.2 (μ - 1) (by linear_combination hq)
+    simp only [Complex.sub_re, Complex.one_re] at this
+    linarith
+
+/-! ### The blocks `G(ρ)` and `B̃(ρ)` for complex `ρ` -/
+
+/-- Woodford (2003), p. 275 (Preston (2005), App. 4): `G(ρ) = ρ/(1 − αβρ) A₁ + ρ/(1 − βρ) A₂`
+for a complex eigenvalue `ρ` of `C`. -/
+noncomputable def gC (α β κ σ φπ φx : ℝ) (ρ : ℂ) : Matrix (Fin 3) (Fin 3) ℂ :=
+  (ρ / (1 - ((α * β : ℝ) : ℂ) * ρ)) • (matS α β κ σ φπ φx).map Complex.ofReal +
+    (ρ / (1 - (β : ℂ) * ρ)) • (matD β κ σ φπ φx).map Complex.ofReal
+
+/-- Woodford (2003), p. 275: `B̃(ρ)`, the restriction of `G(ρ)` to the Taylor-rule plane
+`î = φ_π π + φ_x x/4`, for complex `ρ`. -/
+noncomputable def bTilC (α β κ σ φπ φx : ℝ) (ρ : ℂ) : Matrix (Fin 2) (Fin 2) ℂ :=
+  restr (gC α β κ σ φπ φx ρ) (φπ : ℂ) ((φx / 4 : ℝ) : ℂ)
+
+/-- Woodford (2003), p. 275: the eigenvalues of `G(ρ)` are `0` and those of `B̃(ρ)`. -/
+theorem isEig_gC_iff (α β κ σ φπ φx : ℝ) (ρ μ : ℂ) :
+    KroneckerSpectrum.IsEig (gC α β κ σ φπ φx ρ) μ ↔
+      μ = 0 ∨ KroneckerSpectrum.IsEig (bTilC α β κ σ φπ φx ρ) μ :=
+  isEig_three_iff _ _ _ (row_two_complex α β κ σ φπ φx _ _) μ
+
+/-- Woodford (2003), p. 275: `nPoly` at a complex `ρ`:
+`1 − (1 + β + κσ)ρ + βρ² + σκφ_π + (1 − βρ)σφ_x/4`. -/
+noncomputable def nPolyC (β κ σ φπ φx : ℝ) (r : ℂ) : ℂ :=
+  1 - (1 + β + κ * σ) * r + β * r ^ 2 + σ * κ * φπ + (1 - β * r) * (σ * φx / 4)
+
+/-- Woodford (2003), p. 275: `trPoly` at a complex `ρ`. -/
+noncomputable def trPolyC (α β κ σ φπ φx : ℝ) (r : ℂ) : ℂ :=
+  2 * (1 - α * β * r) * (1 - β * r) - (1 - α) * β * r * (1 - β * r) -
+    (κ * σ + 1 - β) * r * (1 - α * β * r) + σ * κ * ((1 - α * β * r) + (1 - β * r)) * φπ +
+    ((1 - α * β * r) * (1 - β * r) + (1 - β * r) + (1 - α) * β ^ 2 * r ^ 2) * (σ * φx / 4)
+
+/-- Woodford (2003), p. 275 (Preston (2005), App. 4, the coefficient `c` at complex `ρ`):
+`Δ(1 − αβρ)(1 − βρ)(1 − tr B̃(ρ) + det B̃(ρ)) = nPoly(ρ)`. -/
+theorem bTilC_det_identity {α β κ σ φπ φx : ℝ} {r : ℂ} (hΔ : taylorDelta σ κ φπ φx ≠ 0)
+    (hP : 1 - ((α * β : ℝ) : ℂ) * r ≠ 0) (hQ : 1 - (β : ℂ) * r ≠ 0) :
+    (taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * r) * (1 - (β : ℂ) * r) *
+        (1 - (bTilC α β κ σ φπ φx r 0 0 + bTilC α β κ σ φπ φx r 1 1) +
+          (bTilC α β κ σ φπ φx r 0 0 * bTilC α β κ σ φπ φx r 1 1 -
+            bTilC α β κ σ φπ φx r 0 1 * bTilC α β κ σ φπ φx r 1 0)) =
+      nPolyC β κ σ φπ φx r := by
+  have hΔe : (taylorDelta σ κ φπ φx : ℂ) = 1 + σ * φx / 4 + σ * κ * φπ := by
+    simp [taylorDelta]
+  have hΔc : (taylorDelta σ κ φπ φx : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hΔ
+  simp only [bTilC, gC, restr, matS, matD, Matrix.add_apply, Matrix.smul_apply, Matrix.map_apply,
+    vecMulVec_apply, smul_eq_mul, colS, colD, supplyW, demandW, nPolyC, Matrix.of_apply,
+    Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two,
+    Matrix.empty_val', Matrix.cons_val_fin_one, Matrix.head_cons, Matrix.tail_cons,
+    Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue]
+  push_cast at hP ⊢
+  field_simp
+  rw [hΔe]
+  ring
+
+/-- Woodford (2003), p. 275 (Preston (2005), App. 4, the coefficient `b` at complex `ρ`):
+`Δ(1 − αβρ)(1 − βρ)(2 − tr B̃(ρ)) = trPoly(ρ)`. -/
+theorem bTilC_tr_identity {α β κ σ φπ φx : ℝ} {r : ℂ} (hΔ : taylorDelta σ κ φπ φx ≠ 0)
+    (hP : 1 - ((α * β : ℝ) : ℂ) * r ≠ 0) (hQ : 1 - (β : ℂ) * r ≠ 0) :
+    (taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * r) * (1 - (β : ℂ) * r) *
+        (2 - (bTilC α β κ σ φπ φx r 0 0 + bTilC α β κ σ φπ φx r 1 1)) =
+      trPolyC α β κ σ φπ φx r := by
+  have hΔe : (taylorDelta σ κ φπ φx : ℂ) = 1 + σ * φx / 4 + σ * κ * φπ := by
+    simp [taylorDelta]
+  have hΔc : (taylorDelta σ κ φπ φx : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hΔ
+  simp only [bTilC, gC, restr, matS, matD, Matrix.add_apply, Matrix.smul_apply, Matrix.map_apply,
+    vecMulVec_apply, smul_eq_mul, colS, colD, supplyW, demandW, trPolyC, Matrix.of_apply,
+    Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two,
+    Matrix.empty_val', Matrix.cons_val_fin_one, Matrix.head_cons, Matrix.tail_cons,
+    Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue]
+  push_cast at hP ⊢
+  field_simp
+  rw [hΔe]
+  ring
+
+/-- Woodford (2003), p. 275: the Hurwitz expression `(Re c₁)² Re c₀ + Re c₁ Im c₁ Im c₀ −
+(Im c₀)²` of a pair of complex coefficients. -/
+noncomputable def hurwitzExpr (c1 c0 : ℂ) : ℝ :=
+  c1.re ^ 2 * c0.re + c1.re * c1.im * c0.im - c0.im ^ 2
+
+/-- Woodford (2003), p. 275: **the E-stability condition of the block `ρ` in closed form**: with
+`D(ρ) = Δ(1 − αβρ)(1 − βρ)`, `c₁ = trPoly(ρ)/D(ρ)` and `c₀ = nPoly(ρ)/D(ρ)`, `HurwitzC(B̃(ρ))`
+iff `Re c₁ > 0` and `(Re c₁)² Re c₀ + Re c₁ Im c₁ Im c₀ − (Im c₀)² > 0`. -/
+theorem hurwitzC_bTilC_iff {α β κ σ φπ φx : ℝ} {r : ℂ} (hΔ : taylorDelta σ κ φπ φx ≠ 0)
+    (hP : 1 - ((α * β : ℝ) : ℂ) * r ≠ 0) (hQ : 1 - (β : ℂ) * r ≠ 0) :
+    HurwitzC (bTilC α β κ σ φπ φx r) ↔
+      (0 < (trPolyC α β κ σ φπ φx r /
+          ((taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * r) * (1 - (β : ℂ) * r))).re ∧
+        0 < hurwitzExpr (trPolyC α β κ σ φπ φx r /
+            ((taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * r) * (1 - (β : ℂ) * r)))
+          (nPolyC β κ σ φπ φx r /
+            ((taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * r) * (1 - (β : ℂ) * r)))) := by
+  have hD : (taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * r) * (1 - (β : ℂ) * r) ≠ 0 :=
+    mul_ne_zero (mul_ne_zero (Complex.ofReal_ne_zero.mpr hΔ) hP) hQ
+  have e1 := bTilC_tr_identity hΔ hP hQ (κ := κ)
+  have e0 := bTilC_det_identity hΔ hP hQ (κ := κ)
+  rw [← e1, ← e0, mul_div_cancel_left₀ _ hD, mul_div_cancel_left₀ _ hD]
+  rfl
+
+/-! ### The exact E-stability region of `H` -/
+
+/-- Woodford (2003), p. 275 (Preston (2005), App. 4, without diagonalisability): **for a
+stationary real `C`, `H = ((I − αβC)⁻¹C)′ ⊗ A₁ + ((I − βC)⁻¹C)′ ⊗ A₂` is E-stable iff
+`HurwitzC(B̃(ρ))` holds at every (complex) eigenvalue `ρ` of `C`.** -/
+theorem eStable_hMat_iff {n : ℕ} {α β κ σ φπ φx : ℝ} (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1) :
+    EStable (hMat α β κ σ φπ φx C) ↔
+      ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ →
+        HurwitzC (bTilC α β κ σ φπ φx ρ) := by
+  rw [eStable_iff]
+  constructor
+  · intro h ρ hρ
+    rw [← eig_re_lt_one_iff_hurwitz]
+    intro μ hμ
+    have hρT : KroneckerSpectrum.IsEig (C.map Complex.ofReal)ᵀ ρ :=
+      (KroneckerSpectrum.isEig_transpose_iff _ ρ).mpr hρ
+    obtain ⟨w, hw0, hw⟩ := hρT
+    rw [Matrix.mulVec_transpose] at hw
+    have hG : KroneckerSpectrum.IsEig (gC α β κ σ φπ φx ρ) μ :=
+      (isEig_gC_iff α β κ σ φπ φx ρ μ).mpr (Or.inr hμ)
+    exact h μ (isEig_hMat_of hα0 hα1 hβ0 hβ1 hC (hC ρ hρ) hw0 hw hG)
+  · intro h μ hμ
+    obtain ⟨ρ, hρ, hG⟩ := isEig_hMat_sub hα0 hα1 hβ0 hβ1 hC hμ
+    rcases (isEig_gC_iff α β κ σ φπ φx ρ μ).mp hG with h0 | h2
+    · rw [h0]
+      norm_num
+    · exact (eig_re_lt_one_iff_hurwitz _).mpr (h ρ hρ) μ h2
+
+/-- Woodford (2003), p. 275: under the Taylor principle (2.7) the condition holds at every real
+`ρ ≤ 1` (the real case of Proposition 4.10, `Prop410.eStable_gMat_of_taylor`). -/
+theorem hurwitzC_of_real {α β κ σ φπ φx r : ℝ} (hα0 : 0 ≤ α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hπ : 0 ≤ φπ) (hx : 0 ≤ φx)
+    (hT : 1 < taylorLHS β κ φπ φx) (hr : r ≤ 1) : HurwitzC (bTilC α β κ σ φπ φx (r : ℂ)) := by
+  rw [← eig_re_lt_one_iff_hurwitz]
+  intro μ hμ
+  have hE := eStable_gMat_of_taylor hα0 hα1 hβ0 hβ1 hκ hσ hπ hx hT hr
+  have hG : KroneckerSpectrum.IsEig (gC α β κ σ φπ φx (r : ℂ)) μ :=
+    (isEig_gC_iff α β κ σ φπ φx _ μ).mpr (Or.inr hμ)
+  rw [gC, ← gMat_map] at hG
+  exact (eStable_iff _).mp hE μ hG
+
+/-- Woodford (2003), **Proposition 4.10 for an arbitrary stationary `C`** (complex eigenvalues
+allowed, no diagonalisability): with `0 < β < 1`, `0 ≤ α < 1`, `κ, σ > 0`, `φ_π, φ_x ≥ 0` and
+every eigenvalue of `C` inside the unit circle, a fixed point of Preston's `T`-map is E-stable
+**iff** the Taylor principle (2.7) holds **and** `HurwitzC(B̃(ρ))` holds at every non-real
+eigenvalue `ρ` of `C`. For real `C`-eigenvalues the extra condition is vacuous (the book's
+Proposition 4.10); `Prop410Complex.prop_4_10_needs_real_eigenvalues` and
+`prop_4_10_complex_stable_case` show it can fail and can hold. -/
+theorem prop_4_10_complex {n : ℕ} {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ} (hα0 : 0 ≤ α)
+    (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hπ : 0 ≤ φπ)
+    (hx : 0 ≤ φx) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    EStableAt (tVecP α β κ σ φπ φx c gr gi C) v ↔
+      1 < taylorLHS β κ φπ φx ∧
+        ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ρ.im ≠ 0 →
+          HurwitzC (bTilC α β κ σ φπ φx ρ) := by
+  have hab : |α * β| ≤ 1 := by
+    rw [abs_le]; constructor <;> nlinarith
+  have hb : |β| ≤ 1 := by
+    rw [abs_le]; constructor <;> linarith
+  rw [eStableAt_tVecP_iff hfix (det_one_sub_smul_ne_zero hC hab) (det_one_sub_smul_ne_zero hC hb),
+    eStable_dTP_iff_and, eStable_aInt_iff hα0 hα1 hβ0 hβ1 hκ hσ hπ hx,
+    eStable_hMat_iff hα0 hα1 hβ0 hβ1 hC]
+  constructor
+  · rintro ⟨hT, h⟩
+    exact ⟨hT, fun ρ hρ _ => h ρ hρ⟩
+  · rintro ⟨hT, h⟩
+    refine ⟨hT, fun ρ hρ => ?_⟩
+    by_cases him : ρ.im = 0
+    · have hρr : ρ = (ρ.re : ℂ) := Complex.ext (by simp) (by simp [him])
+      have hr : ρ.re ≤ 1 := (abs_le.mp ((Complex.abs_re_le_norm ρ).trans (hC ρ hρ).le)).2
+      rw [hρr]
+      exact hurwitzC_of_real hα0 hα1 hβ0 hβ1 hκ hσ hπ hx hT hr
+    · exact h ρ hρ him
+
+/-- Woodford (2003), Proposition 4.10 for an arbitrary stationary `C`, **in closed form**: a
+fixed point of Preston's `T`-map is E-stable iff (2.7) holds and, at every non-real eigenvalue
+`ρ` of `C`, with `D(ρ) = Δ(1 − αβρ)(1 − βρ)`, `c₁ = trPoly(ρ)/D(ρ)`, `c₀ = nPoly(ρ)/D(ρ)`:
+`Re c₁ > 0` and `(Re c₁)² Re c₀ + Re c₁ Im c₁ Im c₀ − (Im c₀)² > 0`. -/
+theorem prop_4_10_complex_explicit {n : ℕ} {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ}
+    (hα0 : 0 ≤ α) (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ)
+    (hπ : 0 ≤ φπ) (hx : 0 ≤ φx) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    EStableAt (tVecP α β κ σ φπ φx c gr gi C) v ↔
+      1 < taylorLHS β κ φπ φx ∧
+        ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ρ.im ≠ 0 →
+          (0 < (trPolyC α β κ σ φπ φx ρ /
+              ((taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * ρ) *
+                (1 - (β : ℂ) * ρ))).re ∧
+            0 < hurwitzExpr (trPolyC α β κ σ φπ φx ρ /
+                ((taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * ρ) * (1 - (β : ℂ) * ρ)))
+              (nPolyC β κ σ φπ φx ρ /
+                ((taylorDelta σ κ φπ φx : ℂ) * (1 - ((α * β : ℝ) : ℂ) * ρ) *
+                  (1 - (β : ℂ) * ρ)))) := by
+  rw [prop_4_10_complex hα0 hα1 hβ0 hβ1 hκ hσ hπ hx hC hfix]
+  have hΔ := (taylorDelta_pos hσ hκ hπ hx).ne'
+  have hne : ∀ a : ℝ, |a| ≤ 1 → ∀ ρ, ‖ρ‖ < 1 → 1 - (a : ℂ) * ρ ≠ 0 := by
+    intro a ha ρ hρ h0
+    have h1 : (a : ℂ) * ρ = 1 := by linear_combination -h0
+    have h2 := congrArg norm h1
+    rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, norm_one] at h2
+    nlinarith [norm_nonneg ρ, abs_nonneg a]
+  have hab : |α * β| ≤ 1 := by
+    rw [abs_le]; constructor <;> nlinarith
+  have hb : |β| ≤ 1 := by
+    rw [abs_le]; constructor <;> linarith
+  refine and_congr_right fun _ => forall_congr' fun ρ => forall_congr' fun hρ =>
+    forall_congr' fun _ => ?_
+  exact hurwitzC_bTilC_iff hΔ (hne _ hab ρ (hC ρ hρ)) (hne _ hb ρ (hC ρ hρ))
+
+/-! ### Complex eigenvalues need not destroy E-stability -/
+
+/-- Woodford (2003), (2.24): a stationary state matrix with purely imaginary eigenvalues
+`±i/2` (a rotation by a quarter turn, damped by `1/2`). -/
+noncomputable def cexC2 : Matrix (Fin 2) (Fin 2) ℝ := !![0, -(1 / 2); 1 / 2, 0]
+
+/-- Woodford (2003), (2.24): the eigenvalues of `cexC2` are `±i/2`. -/
+theorem cexC2_eig_cases {μ : ℂ} (h : KroneckerSpectrum.IsEig (cexC2.map Complex.ofReal) μ) :
+    μ = 1 / 2 * Complex.I ∨ μ = -(1 / 2 * Complex.I) := by
+  rw [isEig_two_iff_complex] at h
+  simp only [cexC2, Fin.isValue, map_apply, of_apply, cons_val', cons_val_zero,
+    cons_val_fin_one, cons_val_one, Complex.ofReal_zero, Complex.ofReal_neg,
+    Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_ofNat] at h
+  have : (μ - 1 / 2 * Complex.I) * (μ + 1 / 2 * Complex.I) = 0 := by
+    linear_combination h - (1 / 4 : ℂ) * Complex.I_sq
+  rcases mul_eq_zero.mp this with h1 | h1
+  · exact Or.inl (sub_eq_zero.mp h1)
+  · exact Or.inr (eq_neg_of_add_eq_zero_left h1)
+
+/-- Woodford (2003), (2.24): `cexC2` is stationary and has a non-real eigenvalue. -/
+theorem cexC2_stationary :
+    (∀ ρ, KroneckerSpectrum.IsEig (cexC2.map Complex.ofReal) ρ → ‖ρ‖ < 1) ∧
+      KroneckerSpectrum.IsEig (cexC2.map Complex.ofReal) (1 / 2 * Complex.I) := by
+  refine ⟨fun ρ hρ => ?_, ?_⟩
+  · rcases cexC2_eig_cases hρ with rfl | rfl
+    · rw [norm_mul, Complex.norm_I]
+      norm_num
+    · rw [norm_neg, norm_mul, Complex.norm_I]
+      norm_num
+  · rw [isEig_two_iff_complex]
+    simp only [cexC2, Fin.isValue, map_apply, of_apply, cons_val', cons_val_zero,
+      cons_val_fin_one, cons_val_one, Complex.ofReal_zero, Complex.ofReal_neg,
+      Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_ofNat]
+    linear_combination (1 / 4 : ℂ) * Complex.I_sq
+
+/-- Woodford (2003), p. 275: in the example `B̃(±i/2) = p X + q Y` with
+`p = ρ/(1 − αβρ) = (−891000 ± 2000000 i)/4793881`, `q = ρ/(1 − βρ) = (−9900 ± 20000 i)/49801`. -/
+theorem bTilC_cex2 (s : ℝ) (hs : s = 1 ∨ s = -1) :
+    bTilC (9 / 10) (99 / 100) 1 (1 / 100) 8 0 ((s : ℂ) * (1 / 2 * Complex.I)) =
+      rCex ⟨-(891000 / 4793881), s * (2000000 / 4793881)⟩
+        ⟨-(9900 / 49801), s * (20000 / 49801)⟩ := by
+  have hp : (s : ℂ) * (1 / 2 * Complex.I) /
+      (1 - (((9 / 10 * (99 / 100) : ℝ)) : ℂ) * ((s : ℂ) * (1 / 2 * Complex.I))) =
+      ⟨-(891000 / 4793881), s * (2000000 / 4793881)⟩ := by
+    have hne : (1 - (((9 / 10 * (99 / 100) : ℝ)) : ℂ) * ((s : ℂ) * (1 / 2 * Complex.I))) ≠ 0 := by
+      intro h
+      have := congrArg Complex.re h
+      norm_num at this
+    rw [div_eq_iff hne]
+    have hs2 : s ^ 2 = 1 := by rcases hs with rfl | rfl <;> norm_num
+    apply Complex.ext <;> simp <;> nlinarith [hs2]
+  have hq : (s : ℂ) * (1 / 2 * Complex.I) /
+      (1 - ((99 / 100 : ℝ) : ℂ) * ((s : ℂ) * (1 / 2 * Complex.I))) =
+      ⟨-(9900 / 49801), s * (20000 / 49801)⟩ := by
+    have hne : (1 - ((99 / 100 : ℝ) : ℂ) * ((s : ℂ) * (1 / 2 * Complex.I))) ≠ 0 := by
+      intro h
+      have := congrArg Complex.re h
+      norm_num at this
+    rw [div_eq_iff hne]
+    have hs2 : s ^ 2 = 1 := by rcases hs with rfl | rfl <;> norm_num
+    apply Complex.ext <;> simp <;> nlinarith [hs2]
+  rw [bTilC, gC, restr_pq, restrS_cex, restrD_cex, hp, hq]
+  rfl
+
+/-- Woodford (2003), p. 275: in the example the block condition holds at both eigenvalues
+`±i/2` (`Re c₁ ≈ 1.99`, Hurwitz value `≈ 3.92`). -/
+theorem hurwitzC_cex2 (s : ℝ) (hs : s = 1 ∨ s = -1) :
+    HurwitzC (bTilC (9 / 10) (99 / 100) 1 (1 / 100) 8 0 ((s : ℂ) * (1 / 2 * Complex.I))) := by
+  rw [bTilC_cex2 s hs]
+  have hs2 : s ^ 2 = 1 := by rcases hs with rfl | rfl <;> norm_num
+  refine ⟨?_, ?_⟩
+  · simp only [rCex, xCex, yCex, Matrix.add_apply, Matrix.smul_apply, Matrix.map_apply,
+      Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.empty_val', Matrix.cons_val_fin_one, smul_eq_mul, Complex.add_re, Complex.sub_re,
+      Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, Complex.re_ofNat]
+    norm_num
+  · simp only [hurwitzVal, rCex, xCex, yCex, Matrix.add_apply, Matrix.smul_apply,
+      Matrix.map_apply, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one, smul_eq_mul,
+      Complex.add_re, Complex.add_im, Complex.sub_re, Complex.sub_im, Complex.mul_re,
+      Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im, Complex.one_re, Complex.one_im,
+      Complex.re_ofNat, Complex.im_ofNat]
+    ring_nf
+    rw [hs2]
+    norm_num
+
+/-- Woodford (2003), Proposition 4.10 with complex eigenvalues: **complex eigenvalues of `C`
+need not destroy E-stability.** With the parameters of the module Prop410Complex
+(`α = 0.9`, `β = 0.99`, `κ = 1`, `σ = 0.01`, `φ_π = 8`, `φ_x = 0`, so (2.7) holds) and the
+stationary `C = [[0, −1/2], [1/2, 0]]` (eigenvalues `±i/2`), Preston's r.e.e. exists, is unique
+and is E-stable, for any Taylor-rule constant and loadings `f_r`, `f_ī`. -/
+theorem prop_4_10_complex_stable_case (c : ℝ) (gr gi : Fin 2 → ℝ) :
+    1 < taylorLHS (99 / 100) 1 8 0 ∧
+      (∃ ρ, KroneckerSpectrum.IsEig (cexC2.map Complex.ofReal) ρ ∧ ρ.im ≠ 0) ∧
+      ∃! v, tVecP (9 / 10) (99 / 100) 1 (1 / 100) 8 0 c gr gi cexC2 v = v ∧
+        EStableAt (tVecP (9 / 10) (99 / 100) 1 (1 / 100) 8 0 c gr gi cexC2) v := by
+  have hT : 1 < taylorLHS (99 / 100) 1 8 0 := by norm_num [taylorLHS]
+  have hH : ∀ ρ, KroneckerSpectrum.IsEig (cexC2.map Complex.ofReal) ρ →
+      HurwitzC (bTilC (9 / 10) (99 / 100) 1 (1 / 100) 8 0 ρ) := by
+    intro ρ hρ
+    rcases cexC2_eig_cases hρ with rfl | rfl
+    · simpa using hurwitzC_cex2 1 (Or.inl rfl)
+    · simpa using hurwitzC_cex2 (-1) (Or.inr rfl)
+  have hE : EStable (dTP (9 / 10) (99 / 100) 1 (1 / 100) 8 0 cexC2) := by
+    rw [eStable_dTP_iff_and]
+    refine ⟨(eStable_aInt_iff (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+      (by norm_num) (by norm_num) (by norm_num) le_rfl).mpr hT, ?_⟩
+    exact (eStable_hMat_iff (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+      cexC2_stationary.1).mpr hH
+  have hdet : (1 - dTP (9 / 10) (99 / 100) 1 (1 / 100) 8 0 cexC2).det ≠ 0 :=
+    KroneckerSpectrum.det_one_sub_ne_zero _ fun h => by
+      have := (eStable_iff _).mp hE 1 h
+      norm_num at this
+  refine ⟨hT, ⟨_, cexC2_stationary.2, by simp⟩, ?_⟩
+  obtain ⟨v, hv, huniq⟩ := fixed_existsUnique_of_det _ _ _ _ _ _ c gr gi cexC2 hdet
+  refine ⟨v, ⟨hv, ?_⟩, fun w hw => huniq w hw.1⟩
+  have hab : |(9 / 10 : ℝ) * (99 / 100)| ≤ 1 := by norm_num [abs_le]
+  have hb : |(99 / 100 : ℝ)| ≤ 1 := by norm_num [abs_le]
+  exact (eStableAt_tVecP_iff hv (det_one_sub_smul_ne_zero cexC2_stationary.1 hab)
+    (det_one_sub_smul_ne_zero cexC2_stationary.1 hb)).mpr hE
+
+end Woodford.NeoWicksellianFramework.TidyR5ComplexRegion
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The E-stability differential equation (2.20)
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, pp. 264–266 ((2.20) and n. 37), and
+App. C.7, p. 684. The book defines an s.c.e. `θ̄` to be E-stable if it is a locally stable rest
+point of the ordinary differential equation `θ̇ = T(θ) − θ` (2.20), and states (p. 266) that this
+holds iff every eigenvalue of `DT(θ̄) − I` has negative real part, ignoring (n. 37) the
+non-generic case of eigenvalues with zero real part. The project defines E-stability through the
+eigenvalues (`Determinacy2Learning.EStable`, `EStableAt`). Here the link with the differential
+equation is proved for the linear(ised) map `T(θ) = θ̄ + J (θ − θ̄)`, with no genericity
+assumption:
+
+* `linT`, `IsESol`: the linear(ised) `T`-map and the solutions of (2.20) (differentiable on all
+  of `ℝ`); `flow`: `exp(τ (J − I))` as a continuous linear map; `isESol_flow`,
+  `eq_flow_of_isESol`, `existsUnique_isESol`: from every initial belief there is exactly one
+  solution, `θ(τ) = θ̄ + exp(τ (J − I)) (θ(0) − θ̄)`.
+* `flow_bound`: under E-stability `‖exp(τ (J − I))‖` decays geometrically (the eigenvalues of
+  `exp(J − I)` are `e^μ`, `μ` an eigenvalue of `J − I`, by a common-eigenvector argument:
+  `kMat_map_mulVec_of_eig`, `norm_lt_one_of_isEig_kMat`; then Gelfand's formula via
+  `BlanchardKahn.pow_entry_bound`).
+* `tendsto_of_eStable`: E-stable ⇒ every solution converges to `θ̄`;
+  `eStable_of_tendsto`: if every solution converges, `J` is E-stable (an eigenvalue `μ` with
+  `Re μ ≥ 0` and eigenvector `v` gives the non-convergent real solutions `Re(e^{τμ} v)`,
+  `Re(e^{τμ} i v)`: `eigSol`, `isESol_eigSol`); **`eStable_iff_tendsto`**.
+* `IsLocallyStable` (the book's wording: Lyapunov stable and locally attracting);
+  **`eStable_iff_locallyStable`**: for the linear(ised) map the eigenvalue definition and the
+  book's ODE definition coincide, including the boundary case `Re μ = 0` excluded by n. 37.
+* `eStableAt_iff_ode`: `EStableAt T θ̄` iff `θ̄` is a differentiable fixed point and every
+  solution of the linearised equation converges; `linT_eq_of_affine`,
+  `eStable_iff_tendsto_affine`: for an affine `T` (Propositions 4.8, 4.9) this is the actual
+  equation (2.20), and convergence is global.
+
+The stochastic-approximation results the book cites from Evans and Honkapohja (pp. 265–266:
+mean dynamics (2.22) approximate (2.20), convergence with probability one of least-squares
+learning) are not formalised.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR5EStabilityODE
+
+open Matrix Filter Topology NormedSpace
+open Determinacy2Learning (EStable EStableAt)
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-! ### The linear(ised) `T`-map and the differential equation (2.20) -/
+
+/-- Woodford (2003), p. 266: the `T`-map linearised at the rest point `θ̄`,
+`T(θ) = θ̄ + J (θ − θ̄)` (`J = DT(θ̄)`); for Proposition 4.8 it is the map (2.19) itself. -/
+def linT (J : Matrix ι ι ℝ) (θs θ : ι → ℝ) : ι → ℝ := θs + J *ᵥ (θ - θs)
+
+/-- Woodford (2003), (2.20) p. 265: `θ : ℝ → ℝⁿ` solves the E-stability differential equation
+`θ̇ = T(θ) − θ` (at every date `τ`). -/
+def IsESol (T : (ι → ℝ) → ι → ℝ) (θ : ℝ → ι → ℝ) : Prop :=
+  ∀ τ : ℝ, HasDerivAt θ (T (θ τ) - θ τ) τ
+
+/-- Woodford (2003), p. 266: for the linearised map, `T(θ) − θ = (J − I)(θ − θ̄)`. -/
+theorem linT_sub (J : Matrix ι ι ℝ) (θs θ : ι → ℝ) :
+    linT J θs θ - θ = (J - 1) *ᵥ (θ - θs) := by
+  simp only [linT, Matrix.sub_mulVec, Matrix.one_mulVec]
+  abel
+
+/-- Woodford (2003), p. 266: the matrix `A` as a continuous linear map `x ↦ A x`. -/
+noncomputable def gen (A : Matrix ι ι ℝ) : (ι → ℝ) →L[ℝ] (ι → ℝ) :=
+  LinearMap.toContinuousLinearMap (Matrix.toLin' A)
+
+/-- Woodford (2003), p. 266: `gen A x = A x`. -/
+theorem gen_apply (A : Matrix ι ι ℝ) (x : ι → ℝ) : gen A x = A *ᵥ x := by
+  simp [gen, Matrix.toLin'_apply]
+
+/-- Woodford (2003), p. 266: `gen (−A) = −gen A`. -/
+theorem gen_neg (A : Matrix ι ι ℝ) : gen (-A) = -gen A := by
+  ext x i
+  simp [gen_apply, Matrix.neg_mulVec]
+
+/-- Woodford (2003), (2.20) p. 265: the flow `exp(τ A)` of the linear equation `ẋ = A x`. -/
+noncomputable def flow (A : Matrix ι ι ℝ) (τ : ℝ) : (ι → ℝ) →L[ℝ] (ι → ℝ) := exp (τ • gen A)
+
+/-- Woodford (2003), (2.20): `exp((s + t) A) = exp(s A) exp(t A)`. -/
+theorem flow_add (A : Matrix ι ι ℝ) (s t : ℝ) : flow A (s + t) = flow A s * flow A t := by
+  unfold flow
+  rw [add_smul]
+  exact exp_add_of_commute_of_mem_ball (𝕂 := ℝ)
+    (((Commute.refl (gen A)).smul_left s).smul_right t)
+    ((expSeries_radius_eq_top ℝ ((ι → ℝ) →L[ℝ] (ι → ℝ))).symm ▸ edist_lt_top _ _)
+    ((expSeries_radius_eq_top ℝ ((ι → ℝ) →L[ℝ] (ι → ℝ))).symm ▸ edist_lt_top _ _)
+
+/-- Woodford (2003), (2.20): `exp(0 A) = I`. -/
+theorem flow_zero (A : Matrix ι ι ℝ) : flow A 0 = 1 := by
+  simp [flow]
+
+/-- Woodford (2003), (2.20): `exp(τ A) exp(−τ A) = I`. -/
+theorem flow_mul_flow_neg (A : Matrix ι ι ℝ) (τ : ℝ) : flow A τ * flow (-A) τ = 1 := by
+  unfold flow
+  rw [gen_neg, ← exp_add_of_commute_of_mem_ball (𝕂 := ℝ)
+    (((Commute.refl (gen A)).neg_right.smul_left τ).smul_right τ)
+    ((expSeries_radius_eq_top ℝ ((ι → ℝ) →L[ℝ] (ι → ℝ))).symm ▸ edist_lt_top _ _)
+    ((expSeries_radius_eq_top ℝ ((ι → ℝ) →L[ℝ] (ι → ℝ))).symm ▸ edist_lt_top _ _)]
+  simp
+
+/-- Woodford (2003), (2.20): `d/dτ exp(τ A) x = A exp(τ A) x`. -/
+theorem hasDerivAt_flow_apply (A : Matrix ι ι ℝ) (x : ι → ℝ) (τ : ℝ) :
+    HasDerivAt (fun u => flow A u x) (A *ᵥ flow A τ x) τ := by
+  have h := (hasDerivAt_exp_smul_const' (𝕂 := ℝ) (gen A) τ).clm_apply (hasDerivAt_const τ x)
+  change HasDerivAt (fun y => exp (y • gen A) x) _ τ
+  convert h using 1
+  rw [map_zero, add_zero, mul_apply_eq_comp, gen_apply]
+  rfl
+
+/-- Woodford (2003), (2.20) p. 265: from every initial belief `θ₀`,
+`θ(τ) = θ̄ + exp(τ (J − I)) (θ₀ − θ̄)` solves `θ̇ = T(θ) − θ` for the linearised map. -/
+theorem isESol_flow (J : Matrix ι ι ℝ) (θs x0 : ι → ℝ) :
+    IsESol (linT J θs) (fun τ => θs + flow (J - 1) τ (x0 - θs)) := by
+  intro τ
+  have h := (hasDerivAt_flow_apply (J - 1) (x0 - θs) τ).const_add θs
+  convert h using 1
+  rw [linT_sub, add_sub_cancel_left]
+
+/-- Woodford (2003), (2.20) p. 265: **every solution of the linearised equation is the flow
+solution**, `θ(τ) = θ̄ + exp(τ (J − I)) (θ(0) − θ̄)` (`exp(−τ(J − I))(θ(τ) − θ̄)` has zero
+derivative). -/
+theorem eq_flow_of_isESol {J : Matrix ι ι ℝ} {θs : ι → ℝ} {θ : ℝ → ι → ℝ}
+    (h : IsESol (linT J θs) θ) (τ : ℝ) : θ τ = θs + flow (J - 1) τ (θ 0 - θs) := by
+  set A := J - 1 with hA
+  have hx : ∀ t, HasDerivAt (fun u => θ u - θs) (A *ᵥ (θ t - θs)) t := fun t => by
+    have := (h t).sub_const θs
+    rwa [linT_sub] at this
+  set g : ℝ → ι → ℝ := fun t => flow (-A) t (θ t - θs) with hg
+  have hgd : ∀ t, HasDerivAt g 0 t := by
+    intro t
+    change HasDerivAt (fun y => exp (y • gen (-A)) (θ y - θs)) 0 t
+    have h1 := (hasDerivAt_exp_smul_const (𝕂 := ℝ) (gen (-A)) t).clm_apply (hx t)
+    convert h1 using 1
+    rw [mul_apply_eq_comp, gen_apply, ← map_add, Matrix.neg_mulVec, neg_add_cancel,
+      map_zero]
+  have hconst : g τ = g 0 :=
+    is_const_of_deriv_eq_zero (fun t => (hgd t).differentiableAt) (fun t => (hgd t).deriv) τ 0
+  have hg0 : g 0 = θ 0 - θs := by
+    simp [hg, flow_zero]
+  have key : θ τ - θs = flow A τ (θ 0 - θs) := by
+    rw [← hg0, ← hconst, hg]
+    simp only
+    rw [← mul_apply_eq_comp, flow_mul_flow_neg, one_apply_eq_self]
+  rw [← key, add_sub_cancel]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20) p. 265: **existence and uniqueness**: from every initial belief
+`θ₀` there is exactly one solution of the linearised equation (2.20) with `θ(0) = θ₀`. -/
+theorem existsUnique_isESol (J : Matrix ι ι ℝ) (θs x0 : ι → ℝ) :
+    ∃! θ : ℝ → ι → ℝ, IsESol (linT J θs) θ ∧ θ 0 = x0 := by
+  classical
+  refine ⟨fun τ => θs + flow (J - 1) τ (x0 - θs), ⟨isESol_flow J θs x0, ?_⟩, ?_⟩
+  · simp [flow_zero]
+  · rintro θ ⟨hθ, h0⟩
+    funext τ
+    rw [eq_flow_of_isESol hθ τ, h0]
+
+/-! ### E-stability ⇒ geometric decay of the flow -/
+
+/-- Woodford (2003), (2.20): `exp(N A) = exp(A)ᴺ`. -/
+theorem flow_nat (A : Matrix ι ι ℝ) (N : ℕ) : flow A N = flow A 1 ^ N := by
+  induction N with
+  | zero => simp [flow_zero]
+  | succ N ih => rw [Nat.cast_succ, flow_add, ih, pow_succ]
+
+/-- Woodford (2003), (2.20): the matrix of `exp(A)`. -/
+noncomputable def kMat (A : Matrix ι ι ℝ) : Matrix ι ι ℝ :=
+  LinearMap.toMatrix' (flow A 1 : (ι → ℝ) →ₗ[ℝ] (ι → ℝ))
+
+/-- Woodford (2003), (2.20): `kMat A x = exp(A) x`. -/
+theorem kMat_mulVec (A : Matrix ι ι ℝ) (y : ι → ℝ) : kMat A *ᵥ y = flow A 1 y := by
+  simp [kMat, LinearMap.toMatrix'_mulVec]
+
+/-- Woodford (2003), (2.20): `kMat Aᴺ x = exp(A)ᴺ x`. -/
+theorem kMat_pow_mulVec (A : Matrix ι ι ℝ) (N : ℕ) (y : ι → ℝ) :
+    kMat A ^ N *ᵥ y = (flow A 1 ^ N) y := by
+  induction N generalizing y with
+  | zero => simp
+  | succ N ih =>
+    rw [pow_succ, ← Matrix.mulVec_mulVec, kMat_mulVec, ih, pow_succ,
+      mul_apply_eq_comp]
+
+/-- Woodford (2003), (2.20): `gen Aⁿ x = Aⁿ x`. -/
+theorem gen_pow_apply (A : Matrix ι ι ℝ) (n : ℕ) (y : ι → ℝ) : (gen A ^ n) y = A ^ n *ᵥ y := by
+  induction n generalizing y with
+  | zero => simp
+  | succ n ih =>
+    rw [pow_succ, mul_apply_eq_comp, ih, gen_apply, Matrix.mulVec_mulVec, pow_succ]
+
+/-- Woodford (2003), (2.20): `A` commutes with `exp(A)`. -/
+theorem commute_kMat (A : Matrix ι ι ℝ) : A * kMat A = kMat A * A := by
+  have hc : Commute (gen A) (flow A 1) :=
+    ((Commute.refl (gen A)).smul_right (1 : ℝ)).exp_right
+  apply Matrix.toLin'.injective
+  apply LinearMap.ext
+  intro y
+  rw [Matrix.toLin'_apply, Matrix.toLin'_apply, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec,
+    kMat_mulVec, kMat_mulVec, ← gen_apply, ← gen_apply, ← mul_apply_eq_comp,
+    hc.eq, mul_apply_eq_comp]
+
+/-- Woodford (2003), (2.20): the entries of `exp(A)` are the sums `∑ₙ (Aⁿ)ᵢⱼ/n!`. -/
+theorem hasSum_kMat (A : Matrix ι ι ℝ) (i j : ι) :
+    HasSum (fun n : ℕ => (n.factorial : ℝ)⁻¹ * (A ^ n) i j) (kMat A i j) := by
+  have hS := exp_series_hasSum_exp' (𝕂 := ℝ) (gen A)
+  have h := hS.mapL ((ContinuousLinearMap.proj i).comp
+    (ContinuousLinearMap.apply ℝ (ι → ℝ) (Pi.single j 1)))
+  convert h using 1
+  · funext n
+    simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.apply_apply,
+      ContinuousLinearMap.proj_apply, _root_.smul_apply, gen_pow_apply,
+      Matrix.mulVec_single_one, Pi.smul_apply, smul_eq_mul, Matrix.col_apply]
+  · simp [kMat, LinearMap.toMatrix'_apply, flow]
+
+/-- Woodford (2003), App. C.7, p. 684: if `A v = μ v` (complex), then `exp(A) v = e^μ v`. -/
+theorem kMat_map_mulVec_of_eig {A : Matrix ι ι ℝ} {μ : ℂ} {w : ι → ℂ}
+    (hw : A.map Complex.ofReal *ᵥ w = μ • w) :
+    (kMat A).map Complex.ofReal *ᵥ w = Complex.exp μ • w := by
+  have hm : ∀ X Y : Matrix ι ι ℝ, (X * Y).map Complex.ofReal =
+      X.map Complex.ofReal * Y.map Complex.ofReal := fun _ _ =>
+    Matrix.map_mul (f := Complex.ofRealHom)
+  have hpow : ∀ n : ℕ, (A ^ n).map Complex.ofReal *ᵥ w = μ ^ n • w := by
+    intro n
+    induction n with
+    | zero => simp
+    | succ n ih =>
+      rw [pow_succ, hm, ← Matrix.mulVec_mulVec, hw, Matrix.mulVec_smul, ih,
+        smul_smul, pow_succ, mul_comm]
+  funext i
+  have h1 : HasSum (fun n : ℕ => ∑ j, ((((n.factorial : ℝ)⁻¹ * (A ^ n) i j : ℝ) : ℂ) * w j))
+      (((kMat A).map Complex.ofReal *ᵥ w) i) := by
+    simp only [mulVec, dotProduct, Matrix.map_apply]
+    exact hasSum_sum fun j _ =>
+      ((Complex.ofRealCLM.hasSum (hasSum_kMat A i j)).mul_right (w j))
+  have h2 : HasSum (fun n : ℕ => ∑ j, ((((n.factorial : ℝ)⁻¹ * (A ^ n) i j : ℝ) : ℂ) * w j))
+      ((Complex.exp μ • w) i) := by
+    have he := exp_series_hasSum_exp' (𝕂 := ℂ) μ
+    rw [← Complex.exp_eq_exp_ℂ] at he
+    convert he.mul_right (w i) using 1
+    funext n
+    have := congrFun (hpow n) i
+    simp only [mulVec, dotProduct, Matrix.map_apply, Pi.smul_apply, smul_eq_mul] at this
+    simp only [Complex.ofReal_mul, Complex.ofReal_inv, Complex.ofReal_natCast, mul_assoc,
+      ← Finset.mul_sum, this, smul_eq_mul]
+  exact h1.unique h2
+
+/-- Woodford (2003), p. 266: **if `J` is E-stable, every eigenvalue of `exp(J − I)` lies
+inside the unit circle**: an eigenvalue `ν` of `exp(J − I)` has an eigenspace invariant under
+`J − I`, which contains an eigenvector `w` of `J − I` (eigenvalue `μ`, `Re μ < 0`); then
+`ν w = exp(J − I) w = e^μ w`, so `|ν| = e^{Re μ} < 1`. -/
+theorem norm_lt_one_of_isEig_kMat {J : Matrix ι ι ℝ} (hJ : EStable J) {ν : ℂ}
+    (h : KroneckerSpectrum.IsEig ((kMat (J - 1)).map Complex.ofReal) ν) : ‖ν‖ < 1 := by
+  set A := J - 1 with hA
+  set Ac : Matrix ι ι ℂ := A.map Complex.ofReal with hAc
+  set Kc : Matrix ι ι ℂ := (kMat A).map Complex.ofReal with hKc
+  have hm : ∀ X Y : Matrix ι ι ℝ, (X * Y).map Complex.ofReal =
+      X.map Complex.ofReal * Y.map Complex.ofReal := fun _ _ =>
+    Matrix.map_mul (f := Complex.ofRealHom)
+  have hcomm : Ac * Kc = Kc * Ac := by
+    rw [hAc, hKc, ← hm, ← hm, commute_kMat]
+  obtain ⟨v, hv0, hv⟩ := h
+  set W : Submodule ℂ (ι → ℂ) := Module.End.eigenspace (Matrix.toLin' Kc) ν with hW
+  have hmem : ∀ x, x ∈ W ↔ Kc *ᵥ x = ν • x := fun x => by
+    rw [hW, Module.End.mem_eigenspace_iff, Matrix.toLin'_apply]
+  have hWne : W ≠ ⊥ := (Submodule.ne_bot_iff W).mpr ⟨v, (hmem v).mpr hv, hv0⟩
+  have hinv : ∀ x ∈ W, Matrix.toLin' Ac x ∈ W := by
+    intro x hx
+    rw [hmem, Matrix.toLin'_apply, Matrix.mulVec_mulVec, ← hcomm, ← Matrix.mulVec_mulVec,
+      (hmem x).mp hx, Matrix.mulVec_smul]
+  obtain ⟨w, hwW, hw0, a, ha⟩ :=
+    KroneckerSpectrum.exists_eigenvector_mem (Matrix.toLin' Ac) W hWne hinv
+  rw [Matrix.toLin'_apply] at ha
+  have hre : a.re < 0 := hJ a ⟨w, hw0, ha⟩
+  have h1 := kMat_map_mulVec_of_eig ha
+  rw [(hmem w).mp hwW] at h1
+  have hνa : ν = Complex.exp a := by
+    by_contra hne
+    apply hw0
+    have : (ν - Complex.exp a) • w = 0 := by rw [sub_smul, h1, sub_self]
+    exact (smul_eq_zero.mp this).resolve_left (sub_ne_zero.mpr hne)
+  rw [hνa, Complex.norm_exp]
+  exact Real.exp_lt_one_iff.mpr hre
+
+/-- Woodford (2003), p. 270: the entries of `Kᵏ` decay geometrically when every complex
+eigenvalue of `K` lies inside the unit circle, for any finite index type (restated from
+`BlanchardKahn.pow_entry_bound`, by reindexing to `Fin n`). -/
+theorem pow_bound_fintype (K : Matrix ι ι ℝ)
+    (hK : ∀ w, KroneckerSpectrum.IsEig (K.map Complex.ofReal) w → ‖w‖ < 1) :
+    ∃ Cb ρ : ℝ, 0 ≤ Cb ∧ 0 < ρ ∧ ρ < 1 ∧ ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k := by
+  set e := Fintype.equivFin ι with he
+  set K' := Matrix.reindex e e K with hK'
+  have hK'e : ∀ w : ℂ, (Matrix.scalar (Fin (Fintype.card ι)) w -
+      K'.map Complex.ofReal).det = 0 → ‖w‖ < 1 := by
+    intro w hw
+    have hs : Matrix.scalar (Fin (Fintype.card ι)) w =
+        w • (1 : Matrix (Fin (Fintype.card ι)) (Fin (Fintype.card ι)) ℂ) := by
+      ext a b
+      by_cases hab : a = b <;> simp [hab, Matrix.scalar_apply]
+    rw [hs, ← KroneckerSpectrum.isEig_iff_det] at hw
+    obtain ⟨v, hv0, hv⟩ := hw
+    refine hK w ⟨v ∘ e, fun h0 => hv0 ?_, ?_⟩
+    · funext b
+      have := congrFun h0 (e.symm b)
+      simpa using this
+    · funext i
+      have := congrFun hv (e i)
+      simp only [mulVec, dotProduct, Matrix.map_apply, hK', Matrix.reindex_apply,
+        Matrix.submatrix_apply, Equiv.symm_apply_apply, Pi.smul_apply, smul_eq_mul] at this
+      simp only [mulVec, dotProduct, Matrix.map_apply, Function.comp_apply, Pi.smul_apply,
+        smul_eq_mul]
+      rw [← this, ← Equiv.sum_comp e (fun b => (K i (e.symm b) : ℂ) * v b)]
+      simp
+  obtain ⟨Cb, ρ, h0, h1, h2, hb⟩ := BlanchardKahn.pow_entry_bound K' hK'e
+  refine ⟨Cb, ρ, h0, h1, h2, fun k i j => ?_⟩
+  have hp : K' ^ k = Matrix.reindex e e (K ^ k) := by
+    rw [hK', ← Matrix.coe_reindexAlgEquiv ℝ ℝ e,
+      map_pow]
+  have := hb k (e i) (e j)
+  rw [hp] at this
+  simpa using this
+
+/-- Woodford (2003), p. 266: **under E-stability the flow of (2.20) decays geometrically**:
+`‖exp(τ (J − I)) x‖ ≤ M ρ^⌊τ⌋ ‖x‖` for `τ ≥ 0`, some `M ≥ 0` and `0 < ρ < 1`. -/
+theorem flow_bound {J : Matrix ι ι ℝ} (hJ : EStable J) :
+    ∃ M ρ : ℝ, 0 ≤ M ∧ 0 < ρ ∧ ρ < 1 ∧
+      ∀ τ : ℝ, 0 ≤ τ → ∀ x, ‖flow (J - 1) τ x‖ ≤ M * ρ ^ ⌊τ⌋₊ * ‖x‖ := by
+  set A := J - 1 with hA
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hb⟩ :=
+    pow_bound_fintype (kMat A) (fun w hw => norm_lt_one_of_isEig_kMat hJ hw)
+  have hcont : Continuous (fun s : ℝ => flow A s) :=
+    continuous_iff_continuousAt.2 fun s =>
+      (hasDerivAt_exp_smul_const (𝕂 := ℝ) (gen A) s).continuousAt
+  obtain ⟨B, hB⟩ := (isCompact_Icc (a := (0 : ℝ)) (b := 1)).exists_bound_of_continuousOn
+    hcont.continuousOn
+  have hB0 : 0 ≤ B := le_trans (norm_nonneg _) (hB 0 ⟨le_rfl, zero_le_one⟩)
+  have hvec : ∀ (N : ℕ) (x : ι → ℝ),
+      ‖kMat A ^ N *ᵥ x‖ ≤ Fintype.card ι * Cb * ρ ^ N * ‖x‖ := by
+    intro N x
+    refine (pi_norm_le_iff_of_nonneg (by positivity)).2 fun i => ?_
+    rw [Real.norm_eq_abs]
+    simp only [mulVec, dotProduct]
+    calc |∑ j, (kMat A ^ N) i j * x j| ≤ ∑ j, |(kMat A ^ N) i j * x j| :=
+          Finset.abs_sum_le_sum_abs _ _
+      _ ≤ ∑ _j : ι, Cb * ρ ^ N * ‖x‖ := Finset.sum_le_sum fun j _ => by
+          rw [abs_mul]
+          exact mul_le_mul (hb N i j) (norm_le_pi_norm x j) (abs_nonneg _) (by positivity)
+      _ = Fintype.card ι * Cb * ρ ^ N * ‖x‖ := by
+          rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+          ring
+  refine ⟨B * (Fintype.card ι * Cb), ρ, by positivity, hρ0, hρ1, fun τ hτ x => ?_⟩
+  have hdec : flow A τ x = flow A (τ - ⌊τ⌋₊) (kMat A ^ ⌊τ⌋₊ *ᵥ x) := by
+    rw [kMat_pow_mulVec, ← flow_nat, ← mul_apply_eq_comp, ← flow_add,
+      sub_add_cancel]
+  have hs : τ - ⌊τ⌋₊ ∈ Set.Icc (0 : ℝ) 1 :=
+    ⟨sub_nonneg.2 (Nat.floor_le hτ), by linarith [Nat.lt_floor_add_one τ]⟩
+  rw [hdec]
+  calc ‖flow A (τ - ⌊τ⌋₊) (kMat A ^ ⌊τ⌋₊ *ᵥ x)‖
+      ≤ ‖flow A (τ - ⌊τ⌋₊)‖ * ‖kMat A ^ ⌊τ⌋₊ *ᵥ x‖ := ContinuousLinearMap.le_opNorm _ _
+    _ ≤ B * (Fintype.card ι * Cb * ρ ^ ⌊τ⌋₊ * ‖x‖) :=
+        mul_le_mul (hB _ hs) (hvec _ _) (norm_nonneg _) hB0
+    _ = B * (Fintype.card ι * Cb) * ρ ^ ⌊τ⌋₊ * ‖x‖ := by ring
+
+/-- Woodford (2003), p. 266: under E-stability `exp(τ (J − I)) x → 0` as `τ → ∞`. -/
+theorem tendsto_flow_of_eStable {J : Matrix ι ι ℝ} (hJ : EStable J) (x : ι → ℝ) :
+    Tendsto (fun τ => flow (J - 1) τ x) atTop (𝓝 0) := by
+  obtain ⟨M, ρ, hM, hρ0, hρ1, hb⟩ := flow_bound hJ
+  have hlim : Tendsto (fun τ : ℝ => M * ρ ^ ⌊τ⌋₊ * ‖x‖) atTop (𝓝 0) := by
+    have h1 := (tendsto_pow_atTop_nhds_zero_of_lt_one hρ0.le hρ1).comp
+      (tendsto_nat_floor_atTop (α := ℝ))
+    have h2 := (h1.const_mul M).mul_const ‖x‖
+    simpa using h2
+  refine squeeze_zero_norm' ?_ hlim
+  filter_upwards [eventually_ge_atTop 0] with τ hτ
+  exact hb τ hτ x
+
+/-- Woodford (2003), p. 266: **E-stability implies convergence**: if every eigenvalue of
+`J − I` has negative real part, every solution of the linearised equation (2.20) converges to
+the rest point `θ̄`, from every initial belief. -/
+theorem tendsto_of_eStable {J : Matrix ι ι ℝ} {θs : ι → ℝ} (hJ : EStable J)
+    {θ : ℝ → ι → ℝ} (h : IsESol (linT J θs) θ) : Tendsto θ atTop (𝓝 θs) := by
+  have := (tendsto_flow_of_eStable hJ (θ 0 - θs)).const_add θs
+  rw [add_zero] at this
+  exact this.congr fun τ => (eq_flow_of_isESol h τ).symm
+
+/-! ### Convergence ⇒ E-stability -/
+
+/-- Woodford (2003), p. 266: the real solution `θ̄ + Re(e^{τμ} v)` built from a complex
+eigenpair `(μ, v)` of `J − I`. -/
+noncomputable def eigSol (θs : ι → ℝ) (μ : ℂ) (v : ι → ℂ) (τ : ℝ) : ι → ℝ :=
+  θs + fun i => (Complex.exp (τ * μ) * v i).re
+
+/-- Woodford (2003), p. 266: if `(J − I) v = μ v` (complex), `θ̄ + Re(e^{τμ} v)` solves the
+linearised equation (2.20). -/
+theorem isESol_eigSol {J : Matrix ι ι ℝ} {θs : ι → ℝ} {μ : ℂ} {v : ι → ℂ}
+    (hv : (J - 1).map Complex.ofReal *ᵥ v = μ • v) : IsESol (linT J θs) (eigSol θs μ v) := by
+  intro τ
+  rw [linT_sub]
+  have hθ : eigSol θs μ v τ - θs = fun i => (Complex.exp (τ * μ) * v i).re := by
+    simp [eigSol]
+  rw [hθ]
+  refine HasDerivAt.const_add θs (f := fun t : ℝ => fun i => (Complex.exp (t * μ) * v i).re) ?_
+  refine hasDerivAt_pi.2 fun i => ?_
+  have he : HasDerivAt (fun z : ℂ => Complex.exp (z * μ) * v i)
+      (Complex.exp (↑τ * μ) * μ * v i) ↑τ := by
+    have := (((hasDerivAt_id (τ : ℂ)).mul_const μ).cexp).mul_const (v i)
+    simpa using this
+  have hr := he.real_of_complex
+  convert hr using 1
+  have hi := congrFun hv i
+  simp only [mulVec, dotProduct, Matrix.map_apply, Pi.smul_apply, smul_eq_mul] at hi
+  simp only [mulVec, dotProduct]
+  rw [show Complex.exp (↑τ * μ) * μ * v i =
+      Complex.exp (↑τ * μ) * ∑ j, (((J - 1) i j : ℝ) : ℂ) * v j by rw [hi]; ring,
+    Finset.mul_sum, Complex.re_sum]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [mul_left_comm, Complex.re_ofReal_mul]
+
+/-- Woodford (2003), p. 266: **convergence implies E-stability**: if every solution of the
+linearised equation (2.20) converges to `θ̄`, every eigenvalue of `J − I` has negative real
+part (no genericity assumption: eigenvalues with zero real part are covered, cf. n. 37). -/
+theorem eStable_of_tendsto {J : Matrix ι ι ℝ} {θs : ι → ℝ}
+    (h : ∀ θ, IsESol (linT J θs) θ → Tendsto θ atTop (𝓝 θs)) : EStable J := by
+  intro μ hμ
+  by_contra hre
+  push Not at hre
+  obtain ⟨v, hv0, hv⟩ := hμ
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp hv0
+  have hv' : (J - 1).map Complex.ofReal *ᵥ (Complex.I • v) = μ • (Complex.I • v) := by
+    rw [Matrix.mulVec_smul, hv, smul_comm]
+  have comp : ∀ w : ι → ℂ, (J - 1).map Complex.ofReal *ᵥ w = μ • w →
+      Tendsto (fun τ : ℝ => (Complex.exp (τ * μ) * w i).re) atTop (𝓝 0) := by
+    intro w hw
+    have t := (tendsto_pi_nhds.1 (h _ (isESol_eigSol (θs := θs) hw))) i
+    have t2 := t.sub_const (θs i)
+    simpa [eigSol] using t2
+  have c1 := comp v hv
+  have c2 := comp _ hv'
+  have c2' : Tendsto (fun τ : ℝ => (Complex.exp (τ * μ) * v i).im) atTop (𝓝 0) := by
+    have := c2.neg
+    rw [neg_zero] at this
+    refine this.congr fun τ => ?_
+    simp only [Pi.smul_apply, smul_eq_mul, Complex.mul_re, Complex.mul_im, Complex.I_re,
+      Complex.I_im]
+    ring
+  have c3 : Tendsto (fun τ : ℝ => ‖Complex.exp (τ * μ) * v i‖) atTop (𝓝 0) := by
+    refine squeeze_zero (fun _ => norm_nonneg _)
+      (fun τ => Complex.norm_le_abs_re_add_abs_im _) ?_
+    simpa using c1.abs.add c2'.abs
+  have hpos : 0 < ‖v i‖ := norm_pos_iff.2 hi
+  obtain ⟨τ, h1, h2⟩ := ((c3.eventually (gt_mem_nhds hpos)).and (eventually_ge_atTop 0)).exists
+  have hge : ‖v i‖ ≤ ‖Complex.exp (τ * μ) * v i‖ := by
+    rw [norm_mul, Complex.norm_exp]
+    have : (↑τ * μ).re = τ * μ.re := by simp
+    rw [this]
+    exact le_mul_of_one_le_left (norm_nonneg _) (Real.one_le_exp (mul_nonneg h2 hre))
+  linarith
+
+/-- Woodford (2003), p. 266: **E-stability (eigenvalues of `DT − I`) iff every solution of the
+linearised E-stability equation (2.20) converges to the rest point**, from every initial
+belief. -/
+theorem eStable_iff_tendsto (J : Matrix ι ι ℝ) (θs : ι → ℝ) :
+    EStable J ↔ ∀ θ, IsESol (linT J θs) θ → Tendsto θ atTop (𝓝 θs) :=
+  ⟨fun hJ _ h => tendsto_of_eStable hJ h, eStable_of_tendsto⟩
+
+/-! ### The book's definition: a locally stable rest point -/
+
+/-- Woodford (2003), p. 264: `θ̄` is a **locally stable rest point** of `θ̇ = T(θ) − θ`:
+solutions starting close stay close (Lyapunov stability) and solutions starting close enough
+converge to `θ̄`. -/
+def IsLocallyStable (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) : Prop :=
+  (∀ ε > 0, ∃ δ > 0, ∀ θ, IsESol T θ → ‖θ 0 - θs‖ < δ → ∀ τ : ℝ, 0 ≤ τ → ‖θ τ - θs‖ < ε) ∧
+    ∃ δ > 0, ∀ θ, IsESol T θ → ‖θ 0 - θs‖ < δ → Tendsto θ atTop (𝓝 θs)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): solutions of the linearised equation scale about `θ̄`. -/
+theorem isESol_scale {J : Matrix ι ι ℝ} {θs : ι → ℝ} {θ : ℝ → ι → ℝ}
+    (h : IsESol (linT J θs) θ) (c : ℝ) :
+    IsESol (linT J θs) (fun τ => θs + c • (θ τ - θs)) := by
+  classical
+  intro τ
+  have h1 := (((h τ).sub_const θs).const_smul c).const_add θs
+  convert h1 using 1
+  rw [linT_sub, linT_sub, add_sub_cancel_left, Matrix.mulVec_smul]
+
+/-- Woodford (2003), pp. 264–266 and n. 37: **for the linear(ised) map the book's definition
+(a locally stable rest point of (2.20)) and the eigenvalue definition coincide**, with no
+genericity assumption. -/
+theorem eStable_iff_locallyStable (J : Matrix ι ι ℝ) (θs : ι → ℝ) :
+    EStable J ↔ IsLocallyStable (linT J θs) θs := by
+  constructor
+  · intro hJ
+    refine ⟨fun ε hε => ?_, ⟨1, one_pos, fun θ h _ => tendsto_of_eStable hJ h⟩⟩
+    obtain ⟨M, ρ, hM, hρ0, hρ1, hb⟩ := flow_bound hJ
+    refine ⟨ε / (M + 1), by positivity, fun θ h h0 τ hτ => ?_⟩
+    have e := eq_flow_of_isESol h τ
+    rw [e, add_sub_cancel_left]
+    calc ‖flow (J - 1) τ (θ 0 - θs)‖ ≤ M * ρ ^ ⌊τ⌋₊ * ‖θ 0 - θs‖ := hb τ hτ _
+      _ ≤ M * ‖θ 0 - θs‖ := by
+          rw [mul_assoc]
+          exact mul_le_mul_of_nonneg_left (mul_le_of_le_one_left (norm_nonneg _)
+            (pow_le_one₀ hρ0.le hρ1.le)) hM
+      _ ≤ (M + 1) * ‖θ 0 - θs‖ := by nlinarith [norm_nonneg (θ 0 - θs)]
+      _ < (M + 1) * (ε / (M + 1)) := by
+          exact mul_lt_mul_of_pos_left h0 (by linarith)
+      _ = ε := by field_simp
+  · rintro ⟨-, δ, hδ, hconv⟩
+    refine eStable_of_tendsto (θs := θs) fun θ h => ?_
+    set c : ℝ := δ / (2 * (‖θ 0 - θs‖ + 1)) with hc
+    have hc0 : 0 < c := by positivity
+    have hsol := isESol_scale h c
+    have hsmall : ‖(θs + c • (θ 0 - θs)) - θs‖ < δ := by
+      rw [add_sub_cancel_left, norm_smul, Real.norm_eq_abs, abs_of_pos hc0, hc]
+      have hn := norm_nonneg (θ 0 - θs)
+      rw [div_mul_eq_mul_div, div_lt_iff₀ (by positivity)]
+      nlinarith
+    have t := hconv _ hsol hsmall
+    have t2 := (t.sub_const θs).const_smul c⁻¹
+    simp only [add_sub_cancel_left, smul_smul, inv_mul_cancel₀ hc0.ne', one_smul,
+      sub_self, smul_zero] at t2
+    simpa using t2.const_add θs
+
+/-! ### Fixed points of a differentiable `T`-map; affine `T`-maps -/
+
+/-- Woodford (2003), p. 266: **`EStableAt T θ̄` iff `θ̄` is a fixed point at which `T` is
+differentiable and every solution of the equation (2.20) linearised at `θ̄`
+(`θ̇ = DT(θ̄)(θ − θ̄) − (θ − θ̄)`) converges to `θ̄`**. -/
+theorem eStableAt_iff_ode (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) :
+    EStableAt T θs ↔ T θs = θs ∧ DifferentiableAt ℝ T θs ∧
+      ∀ θ, IsESol (linT (LinearMap.toMatrix' (fderiv ℝ T θs : (ι → ℝ) →ₗ[ℝ] (ι → ℝ))) θs) θ →
+        Tendsto θ atTop (𝓝 θs) := by
+  unfold EStableAt
+  rw [eStable_iff_tendsto _ θs]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), p. 266: an affine `T(θ) = c + M θ` with rest point `θ̄` is the map
+`θ̄ + M (θ − θ̄)`, so its linearisation is exact. -/
+theorem linT_eq_of_affine {T : (ι → ℝ) → ι → ℝ} {c : ι → ℝ} {M : Matrix ι ι ℝ}
+    (hT : ∀ y, T y = c + M *ᵥ y) {θs : ι → ℝ} (hfix : T θs = θs) : T = linT M θs := by
+  funext y
+  have h1 := hT θs
+  rw [hfix] at h1
+  rw [hT, linT, Matrix.mulVec_sub]
+  linear_combination -h1
+
+/-- Woodford (2003), (2.20) and p. 266, for an affine `T`-map (Propositions 4.8, 4.9): **`M` is
+E-stable iff every solution of the actual equation `θ̇ = T(θ) − θ` converges to the rest
+point**, from every initial belief (global convergence). -/
+theorem eStable_iff_tendsto_affine {T : (ι → ℝ) → ι → ℝ} {c : ι → ℝ} {M : Matrix ι ι ℝ}
+    (hT : ∀ y, T y = c + M *ᵥ y) {θs : ι → ℝ} (hfix : T θs = θs) :
+    EStable M ↔ ∀ θ, IsESol T θ → Tendsto θ atTop (𝓝 θs) := by
+  rw [linT_eq_of_affine hT hfix]
+  exact eStable_iff_tendsto M θs
+
+/-- Woodford (2003), pp. 264–266, for an affine `T`-map: `M` is E-stable iff the rest point is
+a locally stable rest point of the actual equation (2.20) (the book's definition). -/
+theorem eStable_iff_locallyStable_affine {T : (ι → ℝ) → ι → ℝ} {c : ι → ℝ} {M : Matrix ι ι ℝ}
+    (hT : ∀ y, T y = c + M *ᵥ y) {θs : ι → ℝ} (hfix : T θs = θs) :
+    EStable M ↔ IsLocallyStable T θs := by
+  rw [linT_eq_of_affine hT hfix]
+  exact eStable_iff_locallyStable M θs
+
+end Woodford.NeoWicksellianFramework.TidyR5EStabilityODE
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Propositions 4.8–4.10 as statements about the E-stability differential equation
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3: Propositions 4.8 (p. 266), 4.9
+(p. 271) and 4.10 (p. 274), with E-stability read as in the book's definition (pp. 264–265): the
+behaviour of the solutions of `θ̇ = T(θ) − θ` (2.20). Via the module TidyR5EStabilityODE:
+
+* `prop_4_8_ode`, `prop_4_8_locallyStable`: for the sample-mean `T`-map (2.19), which is affine,
+  every solution of the actual equation (2.20) converges to the s.c.e. `z̄` (from every initial
+  belief) iff the Taylor principle (2.7) holds; equivalently `z̄` is a locally stable rest point.
+* `prop_4_9_ode`: for the regression `T`-map (affine in the vectorised beliefs), every solution
+  of (2.20) converges to the r.e.e. iff (2.7), for any stationary `C`.
+* `prop_4_10_ode` (real eigenvalues of `C`) and `prop_4_10_complex_ode` (any stationary `C`):
+  Preston's `T`-map is not affine in `Ĉ`; every solution of (2.20) linearised at the r.e.e.
+  converges iff (2.7) (respectively iff (2.7) and the block conditions `HurwitzC(B̃(ρ))` at the
+  non-real eigenvalues of `C`).
+
+The stochastic-approximation results the book cites from Evans and Honkapohja (pp. 265–266) are
+not formalised.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR5EStabilityProps
+
+open Matrix Filter Topology Determinacy2 TidyR5EStabilityODE PrestonLearning
+open Determinacy2Learning (EStable EStableAt Tmap prop_4_8)
+
+/-- Woodford (2003), **Proposition 4.8** (p. 266) **as a statement about (2.20)**: for the
+Bullard–Mitra temporary equilibrium and the sample-mean `T`-map (2.19), every solution of
+`żᵉ = T(zᵉ) − zᵉ` converges to the s.c.e. `z̄`, from every initial belief, iff the Taylor
+principle (2.7) holds. -/
+theorem prop_4_8_ode {β σ κ φπ φx : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ) (hκ : 0 < κ)
+    (hφπ : 0 ≤ φπ) (hφx : 0 ≤ φx) (zbar : Fin 2 → ℝ) :
+    (∀ θ, IsESol (Tmap (taylorB β σ κ φπ φx) zbar) θ → Tendsto θ atTop (𝓝 zbar)) ↔
+      1 < taylorLHS β κ φπ φx := by
+  rw [← prop_4_8 hβ0 hβ1 hσ hκ hφπ hφx, eStable_iff_tendsto _ zbar]
+  rfl
+
+/-- Woodford (2003), **Proposition 4.8** with the book's definition (p. 264): `z̄` is a locally
+stable rest point of (2.20) iff (2.7) holds. -/
+theorem prop_4_8_locallyStable {β σ κ φπ φx : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ)
+    (hκ : 0 < κ) (hφπ : 0 ≤ φπ) (hφx : 0 ≤ φx) (zbar : Fin 2 → ℝ) :
+    IsLocallyStable (Tmap (taylorB β σ κ φπ φx) zbar) zbar ↔ 1 < taylorLHS β κ φπ φx := by
+  rw [← prop_4_8 hβ0 hβ1 hσ hκ hφπ hφx, eStable_iff_locallyStable _ zbar]
+  rfl
+
+/-- Woodford (2003), **Proposition 4.9** (p. 271) **as a statement about (2.20)**: with
+regression learning on a stationary state, every solution of the E-stability equation for the
+(vectorised, affine) regression `T`-map converges to the r.e.e. `Φ̄`, from every initial belief,
+iff the Taylor principle (2.7) holds. -/
+theorem prop_4_9_ode {β σ κ φπ φx : ℝ} {S : Type*} [Fintype S] (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hπ : 0 ≤ φπ) (hx : 0 ≤ φx) (zbar : Fin 2 → ℝ)
+    (g : S → ℝ) (C : Matrix S S ℝ)
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1)
+    {Φ : Learning.Regression.Belief (Fin 2) S}
+    (hfix : Learning.Regression.tMap zbar (taylorB β σ κ φπ φx) (taylorb σ κ φπ φx) g C Φ = Φ) :
+    (∀ θ, IsESol (Learning.Regression.tVec zbar (taylorB β σ κ φπ φx) (taylorb σ κ φπ φx) g C) θ →
+        Tendsto θ atTop (𝓝 (Learning.Regression.vecBelief Φ))) ↔
+      1 < taylorLHS β κ φπ φx := by
+  classical
+  have hfix' : Learning.Regression.tVec zbar (taylorB β σ κ φπ φx) (taylorb σ κ φπ φx) g C
+      (Learning.Regression.vecBelief Φ) = Learning.Regression.vecBelief Φ := by
+    rw [Learning.Regression.tVec, Learning.Regression.unvecBelief_vecBelief, hfix]
+  rw [← eStable_iff_tendsto_affine (Learning.Regression.tVec_eq zbar _ _ g C) hfix',
+    Learning.BullardMitra.prop_4_9 hβ0 hβ1 hκ hσ hπ hx C hC]
+
+/-- Woodford (2003), p. 274: at a fixed point of Preston's `T`-map with stationary `C`, the map
+is differentiable (Cramer's rule, `PrestonLearning.differentiableAt_tVecP`). -/
+theorem differentiableAt_tVecP_of_fixed {n : ℕ} {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ}
+    (hα0 : 0 ≤ α) (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    DifferentiableAt ℝ (tVecP α β κ σ φπ φx c gr gi C) v := by
+  have hab : |α * β| ≤ 1 := by
+    rw [abs_le]; constructor <;> nlinarith
+  have hb : |β| ≤ 1 := by
+    rw [abs_le]; constructor <;> linarith
+  obtain ⟨-, hv⟩ := unvecP_snd_of_fixed hfix
+  refine differentiableAt_tVecP α β κ σ φπ φx c gr gi C v ?_ ?_
+  · rw [hv]
+    exact Prop410.det_one_sub_smul_ne_zero hC hab
+  · rw [hv]
+    exact Prop410.det_one_sub_smul_ne_zero hC hb
+
+/-- Woodford (2003), **Proposition 4.10** (p. 274) **as a statement about (2.20)**: with every
+eigenvalue of `C` real and inside the unit circle, every solution of the E-stability equation
+linearised at an r.e.e. `v` of Preston's `T`-map converges to `v`, from every initial belief,
+iff the Taylor principle (2.7) holds. -/
+theorem prop_4_10_ode {n : ℕ} {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ} (hα0 : 0 ≤ α)
+    (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hπ : 0 ≤ φπ)
+    (hx : 0 ≤ φx) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ρ.im = 0 ∧ ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    (∀ θ, IsESol (linT (LinearMap.toMatrix'
+        (fderiv ℝ (tVecP α β κ σ φπ φx c gr gi C) v : (IdxP n → ℝ) →ₗ[ℝ] (IdxP n → ℝ))) v) θ →
+        Tendsto θ atTop (𝓝 v)) ↔ 1 < taylorLHS β κ φπ φx := by
+  have hd := differentiableAt_tVecP_of_fixed hα0 hα1 hβ0 hβ1 (fun ρ hρ => (hC ρ hρ).2) hfix
+  rw [← Prop410.prop_4_10 hα0 hα1 hβ0 hβ1 hκ hσ hπ hx hC hfix, eStableAt_iff_ode]
+  exact ⟨fun h => ⟨hfix, hd, h⟩, fun h => h.2.2⟩
+
+/-- Woodford (2003), **Proposition 4.10 for any stationary `C`, as a statement about (2.20)**:
+every solution of the E-stability equation linearised at an r.e.e. `v` of Preston's `T`-map
+converges to `v` iff (2.7) holds and `HurwitzC(B̃(ρ))` holds at every non-real eigenvalue `ρ` of
+`C` (`TidyR5ComplexRegion.prop_4_10_complex`). -/
+theorem prop_4_10_complex_ode {n : ℕ} {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ}
+    (hα0 : 0 ≤ α) (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ)
+    (hπ : 0 ≤ φπ) (hx : 0 ≤ φx) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    (∀ θ, IsESol (linT (LinearMap.toMatrix'
+        (fderiv ℝ (tVecP α β κ σ φπ φx c gr gi C) v : (IdxP n → ℝ) →ₗ[ℝ] (IdxP n → ℝ))) v) θ →
+        Tendsto θ atTop (𝓝 v)) ↔
+      1 < taylorLHS β κ φπ φx ∧
+        ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ρ.im ≠ 0 →
+          TidyR5ComplexRegion.HurwitzC (TidyR5ComplexRegion.bTilC α β κ σ φπ φx ρ) := by
+  have hd := differentiableAt_tVecP_of_fixed hα0 hα1 hβ0 hβ1 hC hfix
+  rw [← TidyR5ComplexRegion.prop_4_10_complex hα0 hα1 hβ0 hβ1 hκ hσ hπ hx hC hfix,
+    eStableAt_iff_ode]
+  exact ⟨fun h => ⟨hfix, hd, h⟩, fun h => h.2.2⟩
+
+end Woodford.NeoWicksellianFramework.TidyR5EStabilityProps
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Lyapunov's indirect method for the E-stability equation (2.20)
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, pp. 264–266: an s.c.e. `θ̄` is E-stable
+if it is a locally stable rest point of the (in general nonlinear) differential equation
+`θ̇ = T(θ) − θ` (2.20), and "the local stability … depends on the eigenvalues of the Jacobian
+matrix `DT(θ̄) − I`". Here the stability half of that link is proved for an arbitrary map `T`
+that is merely differentiable at the rest point:
+
+* `IsFwdSol` (a solution of (2.20) on `[0, ∞)`: continuous there, with right derivatives
+  `T(θ(τ)) − θ(τ)`), `IsLAS` (local asymptotic stability: Lyapunov stability and local
+  attraction, over all such solutions); `isFwdSol_of_isESol`.
+* `lyapunov_exists`: if every eigenvalue of `A = DT − I` has negative real part, the Lyapunov
+  equation `AᵀP + PA = −I` has a symmetric positive-definite solution. `X ↦ AᵀX + XA` is injective
+  (if `AᵀX + XA = 0`, `t ↦ (e^{tA}x)′X(e^{tA}y)` is constant and tends to `0`), hence onto;
+  positivity because `t ↦ (e^{tA}x)′P(e^{tA}x)` is strictly decreasing to `0`.
+* `quad_bounds`, `bilin_bound`, `norm_sq_le_dot`: norm equivalences for the quadratic form.
+* `decay_of_eStableAt`: near `θ̄`, every forward solution satisfies
+  `‖θ(τ) − θ̄‖² ≤ c ‖θ(0) − θ̄‖² e^{−kτ}`, by a barrier (fencing) argument for
+  `V(θ) = (θ − θ̄)′P(θ − θ̄)` (`image_le_of_deriv_right_lt_deriv_boundary`).
+* **`isLAS_of_eStableAt`**: E-stability (eigenvalues of `DT(θ̄) − I` with negative real part)
+  implies that `θ̄` is a locally (exponentially) asymptotically stable rest point of the nonlinear
+  equation (2.20).
+
+The instability half for a general nonlinear `T` (an eigenvalue with positive real part makes
+`θ̄` unstable) is not proved here; for Preston's `T`-map the converse is proved exactly,
+boundary case included, in the module TidyR5PrestonLAS through an invariant affine subspace.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR5Lyapunov
+
+open Matrix Filter Topology TidyR5EStabilityODE
+open Determinacy2Learning (EStable EStableAt)
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-! ### Forward solutions and local asymptotic stability -/
+
+/-- Woodford (2003), (2.20) p. 265: `θ` solves `θ̇ = T(θ) − θ` on `[0, ∞)`: continuous there,
+with right derivative `T(θ(τ)) − θ(τ)` at every `τ ≥ 0`. -/
+def IsFwdSol (T : (ι → ℝ) → ι → ℝ) (θ : ℝ → ι → ℝ) : Prop :=
+  ContinuousOn θ (Set.Ici 0) ∧
+    ∀ τ : ℝ, 0 ≤ τ → HasDerivWithinAt θ (T (θ τ) - θ τ) (Set.Ici τ) τ
+
+/-- Woodford (2003), p. 264: `θ̄` is a **locally asymptotically stable rest point** of (2.20):
+forward solutions starting close stay close (Lyapunov stability) and forward solutions starting
+close enough converge to `θ̄`. -/
+def IsLAS (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) : Prop :=
+  (∀ ε > 0, ∃ δ > 0, ∀ θ, IsFwdSol T θ → ‖θ 0 - θs‖ < δ → ∀ τ : ℝ, 0 ≤ τ → ‖θ τ - θs‖ < ε) ∧
+    ∃ δ > 0, ∀ θ, IsFwdSol T θ → ‖θ 0 - θs‖ < δ → Tendsto θ atTop (𝓝 θs)
+
+set_option linter.unusedFintypeInType false in
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): a solution on all of `ℝ` is a forward solution. -/
+theorem isFwdSol_of_isESol {T : (ι → ℝ) → ι → ℝ} {θ : ℝ → ι → ℝ} (h : IsESol T θ) :
+    IsFwdSol T θ :=
+  ⟨fun τ _ => (h τ).continuousAt.continuousWithinAt, fun τ _ => (h τ).hasDerivWithinAt⟩
+
+/-! ### Calculus and norms for quadratic forms -/
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): the derivative of `τ ↦ u(τ)′ X w(τ)`. -/
+theorem hasDerivWithinAt_bilin (X : Matrix ι ι ℝ) {u w : ℝ → ι → ℝ} {u' w' : ι → ℝ}
+    {s : Set ℝ} {t : ℝ} (hu : HasDerivWithinAt u u' s t) (hw : HasDerivWithinAt w w' s t) :
+    HasDerivWithinAt (fun τ => u τ ⬝ᵥ (X *ᵥ w τ)) (u' ⬝ᵥ (X *ᵥ w t) + u t ⬝ᵥ (X *ᵥ w')) s t := by
+  have hui : ∀ i, HasDerivWithinAt (fun τ => u τ i) (u' i) s t := fun i =>
+    hasDerivWithinAt_pi.1 hu i
+  have hwi : ∀ i, HasDerivWithinAt (fun τ => w τ i) (w' i) s t := fun i =>
+    hasDerivWithinAt_pi.1 hw i
+  have h := HasDerivWithinAt.sum (u := Finset.univ) fun i _ =>
+    (hui i).mul (HasDerivWithinAt.sum (u := Finset.univ) fun j _ => (hwi j).const_mul (X i j))
+  convert h using 1
+  · funext τ
+    simp [dotProduct, mulVec]
+  · simp [dotProduct, mulVec, Finset.sum_add_distrib]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): `(Au)′Xw + u′X(Aw) = u′(AᵀX + XA)w`. -/
+theorem dot_mulVec_add (A X : Matrix ι ι ℝ) (u w : ι → ℝ) :
+    (A *ᵥ u) ⬝ᵥ (X *ᵥ w) + u ⬝ᵥ (X *ᵥ (A *ᵥ w)) = u ⬝ᵥ ((Aᵀ * X + X * A) *ᵥ w) := by
+  rw [add_mulVec, dotProduct_add, ← mulVec_mulVec, ← mulVec_mulVec, dotProduct_comm (A *ᵥ u),
+    dotProduct_mulVec, dotProduct_comm, mulVec_transpose]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): `u′u > 0` for `u ≠ 0`. -/
+theorem dot_self_pos {u : ι → ℝ} (hu : u ≠ 0) : 0 < u ⬝ᵥ u := by
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp hu
+  simp only [dotProduct]
+  exact Finset.sum_pos' (fun j _ => mul_self_nonneg (u j))
+    ⟨i, Finset.mem_univ _, mul_self_pos.mpr hi⟩
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): `‖u‖² ≤ u′u` (sup norm). -/
+theorem norm_sq_le_dot (u : ι → ℝ) : ‖u‖ ^ 2 ≤ u ⬝ᵥ u := by
+  have h : ‖u‖ ≤ Real.sqrt (u ⬝ᵥ u) := by
+    refine (pi_norm_le_iff_of_nonneg (Real.sqrt_nonneg _)).2 fun i => ?_
+    rw [Real.norm_eq_abs, ← Real.sqrt_sq_eq_abs]
+    refine Real.sqrt_le_sqrt ?_
+    simp only [dotProduct]
+    rw [sq]
+    exact Finset.single_le_sum (f := fun j => u j * u j) (fun j _ => mul_self_nonneg (u j))
+      (Finset.mem_univ i)
+  have h0 : 0 ≤ u ⬝ᵥ u := by
+    simp only [dotProduct]
+    exact Finset.sum_nonneg fun j _ => mul_self_nonneg (u j)
+  calc ‖u‖ ^ 2 ≤ Real.sqrt (u ⬝ᵥ u) ^ 2 := pow_le_pow_left₀ (norm_nonneg _) h 2
+    _ = u ⬝ᵥ u := Real.sq_sqrt h0
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): `|u′Pr| ≤ K ‖u‖ ‖r‖` with `K = ∑ᵢⱼ |Pᵢⱼ|`. -/
+theorem bilin_bound (P : Matrix ι ι ℝ) (u r : ι → ℝ) :
+    |u ⬝ᵥ (P *ᵥ r)| ≤ (∑ i, ∑ j, |P i j|) * ‖u‖ * ‖r‖ := by
+  simp only [dotProduct, mulVec]
+  calc |∑ i, u i * ∑ j, P i j * r j| ≤ ∑ i, |u i * ∑ j, P i j * r j| :=
+        Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ i, ∑ j, |P i j| * ‖u‖ * ‖r‖ := Finset.sum_le_sum fun i _ => by
+        rw [abs_mul]
+        calc |u i| * |∑ j, P i j * r j| ≤ |u i| * ∑ j, |P i j * r j| :=
+              mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (abs_nonneg _)
+          _ = ∑ j, |u i| * (|P i j| * |r j|) := by rw [Finset.mul_sum]; simp [abs_mul]
+          _ ≤ ∑ j, |P i j| * ‖u‖ * ‖r‖ := Finset.sum_le_sum fun j _ => by
+              have h1 : |u i| ≤ ‖u‖ := by
+                have := norm_le_pi_norm u i
+                rwa [Real.norm_eq_abs] at this
+              have h2 : |r j| ≤ ‖r‖ := by
+                have := norm_le_pi_norm r j
+                rwa [Real.norm_eq_abs] at this
+              have := mul_le_mul h1 (mul_le_mul_of_nonneg_left h2 (abs_nonneg (P i j)))
+                (by positivity) (norm_nonneg _)
+              nlinarith [abs_nonneg (P i j), norm_nonneg u, norm_nonneg r]
+    _ = (∑ i, ∑ j, |P i j|) * ‖u‖ * ‖r‖ := by simp only [Finset.sum_mul]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): the quadratic form `x′Px` is continuous. -/
+theorem continuous_quad (P : Matrix ι ι ℝ) : Continuous fun x : ι → ℝ => x ⬝ᵥ (P *ᵥ x) :=
+  continuous_id.dotProduct (continuous_const.matrix_mulVec continuous_id)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), (2.20): a positive-definite quadratic form is comparable with `‖x‖²`:
+`c₁‖x‖² ≤ x′Px ≤ c₂‖x‖²`, `c₁, c₂ > 0` (compactness of the unit sphere). -/
+theorem quad_bounds (P : Matrix ι ι ℝ) (hP : ∀ x : ι → ℝ, x ≠ 0 → 0 < x ⬝ᵥ (P *ᵥ x)) :
+    ∃ c₁ c₂ : ℝ, 0 < c₁ ∧ 0 < c₂ ∧
+      ∀ x : ι → ℝ, c₁ * ‖x‖ ^ 2 ≤ x ⬝ᵥ (P *ᵥ x) ∧ x ⬝ᵥ (P *ᵥ x) ≤ c₂ * ‖x‖ ^ 2 := by
+  have hhom : ∀ (c : ℝ) (x : ι → ℝ), (c • x) ⬝ᵥ (P *ᵥ (c • x)) = c ^ 2 * (x ⬝ᵥ (P *ᵥ x)) := by
+    intro c x
+    rw [mulVec_smul, dotProduct_smul, smul_dotProduct, smul_eq_mul, smul_eq_mul]
+    ring
+  rcases isEmpty_or_nonempty ι with hι | hι
+  · refine ⟨1, 1, one_pos, one_pos, fun x => ?_⟩
+    have hx : x = 0 := Subsingleton.elim _ _
+    subst hx
+    simp
+  · have hS : IsCompact (Metric.sphere (0 : ι → ℝ) 1) := isCompact_sphere 0 1
+    have hne : (Metric.sphere (0 : ι → ℝ) 1).Nonempty := by
+      refine ⟨fun _ => 1, ?_⟩
+      rw [mem_sphere_zero_iff_norm]
+      refine le_antisymm ((pi_norm_le_iff_of_nonneg zero_le_one).2 fun _ => by simp) ?_
+      simp
+    obtain ⟨xm, hxm, hmin⟩ := hS.exists_isMinOn hne (continuous_quad P).continuousOn
+    obtain ⟨xM, hxM, hmax⟩ := hS.exists_isMaxOn hne (continuous_quad P).continuousOn
+    have hxm0 : xm ≠ 0 := by
+      intro h
+      rw [h, mem_sphere_zero_iff_norm, norm_zero] at hxm
+      norm_num at hxm
+    set m := xm ⬝ᵥ (P *ᵥ xm)
+    set M := xM ⬝ᵥ (P *ᵥ xM)
+    have hm : 0 < m := hP xm hxm0
+    refine ⟨m, max M 1, hm, lt_of_lt_of_le one_pos (le_max_right _ _), fun x => ?_⟩
+    by_cases hx : x = 0
+    · subst hx
+      simp
+    · have hn : 0 < ‖x‖ := norm_pos_iff.mpr hx
+      set y := ‖x‖⁻¹ • x with hy
+      have hyS : y ∈ Metric.sphere (0 : ι → ℝ) 1 := by
+        rw [mem_sphere_zero_iff_norm, hy, norm_smul, norm_inv, norm_norm,
+          inv_mul_cancel₀ hn.ne']
+      have hxy : x = ‖x‖ • y := by
+        rw [hy, smul_smul, mul_inv_cancel₀ hn.ne', one_smul]
+      have h1 : m ≤ y ⬝ᵥ (P *ᵥ y) := hmin hyS
+      have h2 : y ⬝ᵥ (P *ᵥ y) ≤ M := hmax hyS
+      have hq : x ⬝ᵥ (P *ᵥ x) = ‖x‖ ^ 2 * (y ⬝ᵥ (P *ᵥ y)) := by
+        conv_lhs => rw [hxy]
+        exact hhom _ _
+      rw [hq]
+      have hsq : 0 ≤ ‖x‖ ^ 2 := by positivity
+      constructor
+      · exact mul_le_mul_of_nonneg_left h1 hsq |>.trans_eq' (by ring)
+      · calc ‖x‖ ^ 2 * (y ⬝ᵥ (P *ᵥ y)) ≤ ‖x‖ ^ 2 * max M 1 :=
+            mul_le_mul_of_nonneg_left (h2.trans (le_max_left _ _)) hsq
+          _ = max M 1 * ‖x‖ ^ 2 := by ring
+
+/-! ### The Lyapunov equation -/
+
+/-- Woodford (2003), p. 266: **the Lyapunov matrix**: if `J` is E-stable (every eigenvalue of
+`A = J − I` has negative real part), there is a symmetric `P` with `AᵀP + PA = −I` and
+`x′Px > 0` for `x ≠ 0`. -/
+theorem lyapunov_exists {J : Matrix ι ι ℝ} (hJ : EStable J) :
+    ∃ P : Matrix ι ι ℝ, Pᵀ = P ∧ (J - 1)ᵀ * P + P * (J - 1) = -1 ∧
+      ∀ x : ι → ℝ, x ≠ 0 → 0 < x ⬝ᵥ (P *ᵥ x) := by
+  set A := J - 1 with hA
+  have hlim : ∀ x, Tendsto (fun t => flow A t x) atTop (𝓝 0) := tendsto_flow_of_eStable hJ
+  have hder : ∀ (X : Matrix ι ι ℝ) (x y : ι → ℝ) (t : ℝ),
+      HasDerivAt (fun τ => flow A τ x ⬝ᵥ (X *ᵥ flow A τ y))
+        (flow A t x ⬝ᵥ ((Aᵀ * X + X * A) *ᵥ flow A t y)) t := by
+    intro X x y t
+    have h := hasDerivWithinAt_bilin X (s := Set.univ)
+      (hasDerivAt_flow_apply A x t).hasDerivWithinAt (hasDerivAt_flow_apply A y t).hasDerivWithinAt
+    rw [hasDerivWithinAt_univ, dot_mulVec_add] at h
+    exact h
+  have hlimq : ∀ (X : Matrix ι ι ℝ) (x y : ι → ℝ),
+      Tendsto (fun τ => flow A τ x ⬝ᵥ (X *ᵥ flow A τ y)) atTop (𝓝 0) := by
+    intro X x y
+    have hc : Continuous fun p : (ι → ℝ) × (ι → ℝ) => p.1 ⬝ᵥ (X *ᵥ p.2) :=
+      continuous_fst.dotProduct (continuous_const.matrix_mulVec continuous_snd)
+    have := (hc.tendsto ((0 : ι → ℝ), (0 : ι → ℝ))).comp ((hlim x).prodMk_nhds (hlim y))
+    simpa [Function.comp_def] using this
+  set L : Matrix ι ι ℝ →ₗ[ℝ] Matrix ι ι ℝ :=
+    LinearMap.mulLeft ℝ Aᵀ + LinearMap.mulRight ℝ A with hL
+  have hLapp : ∀ X, L X = Aᵀ * X + X * A := fun X => rfl
+  have hinj : Function.Injective L := by
+    rw [← LinearMap.ker_eq_bot, LinearMap.ker_eq_bot']
+    intro X hX
+    rw [hLapp] at hX
+    have hzero : ∀ x y : ι → ℝ, x ⬝ᵥ (X *ᵥ y) = 0 := by
+      intro x y
+      have hc : ∀ t, flow A t x ⬝ᵥ (X *ᵥ flow A t y) = flow A 0 x ⬝ᵥ (X *ᵥ flow A 0 y) :=
+        fun t => is_const_of_deriv_eq_zero (fun s => (hder X x y s).differentiableAt)
+          (fun s => by rw [(hder X x y s).deriv, hX, zero_mulVec, dotProduct_zero]) t 0
+      have h1 := hlimq X x y
+      simp only [hc, flow_zero, one_apply_eq_self] at h1
+      exact tendsto_nhds_unique tendsto_const_nhds h1
+    ext i j
+    have := hzero (Pi.single i 1) (Pi.single j 1)
+    simpa [mulVec_single_one, single_one_dotProduct] using this
+  obtain ⟨P, hP⟩ := (LinearMap.injective_iff_surjective.mp hinj) (-1)
+  rw [hLapp] at hP
+  have hsym : Pᵀ = P := by
+    apply hinj
+    rw [hLapp, hLapp, hP]
+    have := congrArg Matrix.transpose hP
+    rw [transpose_add, transpose_mul, transpose_mul, transpose_transpose, transpose_neg,
+      transpose_one] at this
+    rw [← this, add_comm]
+  refine ⟨P, hsym, hP, fun x hx => ?_⟩
+  set g : ℝ → ℝ := fun τ => flow A τ x ⬝ᵥ (P *ᵥ flow A τ x) with hg
+  have hne : ∀ t, flow A t x ≠ 0 := by
+    intro t h0
+    apply hx
+    have h1 := flow_mul_flow_neg (-A) t
+    rw [neg_neg] at h1
+    have := congrArg (fun F : (ι → ℝ) →L[ℝ] (ι → ℝ) => F x) h1
+    simp only [mul_apply_eq_comp, h0, map_zero, one_apply_eq_self] at this
+    exact this.symm
+  have hgd : ∀ t, HasDerivAt g (-(flow A t x ⬝ᵥ flow A t x)) t := by
+    intro t
+    have := hder P x x t
+    rw [hP, neg_mulVec, one_mulVec, dotProduct_neg] at this
+    exact this
+  have hanti : StrictAnti g := strictAnti_of_deriv_neg fun t => by
+    rw [(hgd t).deriv]
+    exact neg_neg_of_pos (dot_self_pos (hne t))
+  have hlimg : Tendsto g atTop (𝓝 0) := hlimq P x x
+  have h1 : 0 ≤ g 1 := by
+    refine le_of_tendsto hlimg ?_
+    filter_upwards [eventually_ge_atTop (1 : ℝ)] with t ht
+    exact hanti.antitone ht
+  have h0 : g 0 = x ⬝ᵥ (P *ᵥ x) := by
+    simp [hg, flow_zero]
+  rw [← h0]
+  exact lt_of_le_of_lt h1 (hanti zero_lt_one)
+
+/-! ### Exponential decay near an E-stable rest point -/
+
+/-- Woodford (2003), pp. 264–266: **exponential decay near an E-stable rest point**: if
+`EStableAt T θ̄`, there are `ρ, c, k > 0` such that every forward solution of (2.20) with
+`‖θ(0) − θ̄‖ < ρ` satisfies `‖θ(τ) − θ̄‖² ≤ c ‖θ(0) − θ̄‖² e^{−kτ}` for all `τ ≥ 0`. -/
+theorem decay_of_eStableAt {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} (h : EStableAt T θs) :
+    ∃ ρ c k : ℝ, 0 < ρ ∧ 0 < c ∧ 0 < k ∧ ∀ θ, IsFwdSol T θ → ‖θ 0 - θs‖ < ρ →
+      ∀ τ : ℝ, 0 ≤ τ → ‖θ τ - θs‖ ^ 2 ≤ c * ‖θ 0 - θs‖ ^ 2 * Real.exp (-(k * τ)) := by
+  obtain ⟨hfix, hd, hJ⟩ := h
+  set J := LinearMap.toMatrix' (fderiv ℝ T θs : (ι → ℝ) →ₗ[ℝ] (ι → ℝ)) with hJdef
+  obtain ⟨P, hPs, hL, hPpos⟩ := lyapunov_exists hJ
+  obtain ⟨c₁, c₂, hc₁, hc₂, hb⟩ := quad_bounds P hPpos
+  set K := ∑ i, ∑ j, |P i j| with hK
+  have hK0 : 0 ≤ K := Finset.sum_nonneg fun i _ => Finset.sum_nonneg fun j _ => abs_nonneg _
+  set η := 1 / (4 * (K + 1)) with hη
+  have hηpos : 0 < η := by positivity
+  have hKη : K * η ≤ 1 / 4 := by
+    rw [hη, mul_one_div, div_le_div_iff₀ (by positivity) (by norm_num)]
+    nlinarith
+  have hJapp : ∀ y, J *ᵥ y = fderiv ℝ T θs y := fun y => by
+    rw [hJdef, LinearMap.toMatrix'_mulVec]
+    rfl
+  obtain ⟨ρ0, hρ0, hrem⟩ := Metric.eventually_nhds_iff.mp
+    (hd.hasFDerivAt.isLittleO.def hηpos)
+  -- the derivative of `V` along the vector field
+  have hD : ∀ y, ‖y - θs‖ < ρ0 →
+      (T y - y) ⬝ᵥ (P *ᵥ (y - θs)) + (y - θs) ⬝ᵥ (P *ᵥ (T y - y)) ≤ -(‖y - θs‖ ^ 2 / 2) := by
+    intro y hy
+    set x := y - θs with hx
+    set r := T y - θs - J *ᵥ x with hr
+    have hF : T y - y = (J - 1) *ᵥ x + r := by
+      rw [hr, hx, sub_mulVec, one_mulVec]
+      abel
+    have hrb : ‖r‖ ≤ η * ‖x‖ := by
+      have := hrem (y := y) (by rwa [dist_eq_norm])
+      rw [hfix] at this
+      rw [hr, hJapp]
+      exact this
+    have hsym : r ⬝ᵥ (P *ᵥ x) = x ⬝ᵥ (P *ᵥ r) := by
+      rw [dotProduct_mulVec, dotProduct_comm, ← mulVec_transpose, hPs]
+    rw [hF, add_dotProduct, mulVec_add, dotProduct_add, hsym]
+    have hq : ((J - 1) *ᵥ x) ⬝ᵥ (P *ᵥ x) + x ⬝ᵥ (P *ᵥ ((J - 1) *ᵥ x)) = -(x ⬝ᵥ x) := by
+      rw [dot_mulVec_add, hL, neg_mulVec, one_mulVec, dotProduct_neg]
+    have hbl := bilin_bound P x r
+    have h1 : x ⬝ᵥ (P *ᵥ r) ≤ K * ‖x‖ * (η * ‖x‖) :=
+      (le_abs_self _).trans (hbl.trans (mul_le_mul_of_nonneg_left hrb (by positivity)))
+    have h2 : K * ‖x‖ * (η * ‖x‖) ≤ ‖x‖ ^ 2 / 4 := by
+      have : K * ‖x‖ * (η * ‖x‖) = (K * η) * ‖x‖ ^ 2 := by ring
+      rw [this]
+      nlinarith [sq_nonneg ‖x‖]
+    have h3 := norm_sq_le_dot x
+    linarith
+  set k := 1 / (4 * c₂) with hk
+  have hkpos : 0 < k := by positivity
+  set rr := c₁ / (c₁ + c₂) with hrr
+  have hrr0 : 0 < rr := by positivity
+  have hrr1 : rr ≤ 1 := by rw [hrr, div_le_one (by positivity)]; linarith
+  have hrrc : c₂ * rr ≤ c₁ := by
+    rw [hrr, mul_div_assoc', div_le_iff₀ (by positivity)]
+    nlinarith
+  refine ⟨ρ0 * rr, c₂ / c₁, k, by positivity, by positivity, hkpos, fun θ hθ h0 τ hτ => ?_⟩
+  obtain ⟨hcont, hder⟩ := hθ
+  set V : ℝ → ℝ := fun s => (θ s - θs) ⬝ᵥ (P *ᵥ (θ s - θs)) with hV
+  set V0 := V 0 with hV0
+  have hV0b : V0 ≤ c₂ * ‖θ 0 - θs‖ ^ 2 := (hb _).2
+  have hV0small : V0 < c₁ * ρ0 ^ 2 := by
+    have hn : ‖θ 0 - θs‖ ^ 2 < (ρ0 * rr) ^ 2 :=
+      pow_lt_pow_left₀ h0 (norm_nonneg _) two_ne_zero
+    calc V0 ≤ c₂ * ‖θ 0 - θs‖ ^ 2 := hV0b
+      _ < c₂ * (ρ0 * rr) ^ 2 := mul_lt_mul_of_pos_left hn hc₂
+      _ = (c₂ * rr) * rr * ρ0 ^ 2 := by ring
+      _ ≤ c₁ * 1 * ρ0 ^ 2 := by
+          gcongr
+      _ = c₁ * ρ0 ^ 2 := by ring
+  -- the barrier argument
+  have hbar : ∀ η' > 0, V0 + η' < c₁ * ρ0 ^ 2 → ∀ t, 0 ≤ t →
+      V t ≤ (V0 + η') * Real.exp (-(k * t)) := by
+    intro η' hη' hsm t ht
+    have hVc : ContinuousOn V (Set.Icc 0 t) :=
+      (continuous_quad P).comp_continuousOn
+        ((hcont.mono Set.Icc_subset_Ici_self).sub continuousOn_const)
+    have hVd : ∀ s ∈ Set.Ico (0 : ℝ) t, HasDerivWithinAt V
+        ((T (θ s) - θ s) ⬝ᵥ (P *ᵥ (θ s - θs)) + (θ s - θs) ⬝ᵥ (P *ᵥ (T (θ s) - θ s)))
+        (Set.Ici s) s := by
+      intro s hs
+      have hs' := (hder s hs.1).sub_const θs
+      exact hasDerivWithinAt_bilin P hs' hs'
+    have hB : ∀ s, HasDerivAt (fun s => (V0 + η') * Real.exp (-(k * s)))
+        ((V0 + η') * (Real.exp (-(k * s)) * -(k * 1))) s := fun s =>
+      (((hasDerivAt_id s).const_mul k).neg.exp).const_mul (V0 + η')
+    have hV0B : V 0 ≤ (V0 + η') * Real.exp (-(k * 0)) := by
+      simp only [mul_zero, neg_zero, Real.exp_zero, mul_one]
+      linarith
+    refine image_le_of_deriv_right_lt_deriv_boundary hVc hVd hV0B hB ?_
+      ⟨ht, le_rfl⟩
+    intro s hs hcontact
+    have hV0nn : 0 ≤ V0 := by
+      have := (hb (θ 0 - θs)).1
+      nlinarith [sq_nonneg ‖θ 0 - θs‖]
+    have hBpos : 0 < (V0 + η') * Real.exp (-(k * s)) :=
+      mul_pos (by linarith) (Real.exp_pos _)
+    have hBle : (V0 + η') * Real.exp (-(k * s)) ≤ V0 + η' :=
+      mul_le_of_le_one_right (by linarith)
+        (Real.exp_le_one_iff.mpr (by nlinarith [hs.1]))
+    have hin : ‖θ s - θs‖ < ρ0 := by
+      have h1 := (hb (θ s - θs)).1
+      have h2 : c₁ * ‖θ s - θs‖ ^ 2 < c₁ * ρ0 ^ 2 := by
+        have : V s = (V0 + η') * Real.exp (-(k * s)) := hcontact
+        simp only [hV] at this
+        linarith
+      have h3 : ‖θ s - θs‖ ^ 2 < ρ0 ^ 2 := lt_of_mul_lt_mul_left h2 hc₁.le
+      exact lt_of_pow_lt_pow_left₀ 2 hρ0.le h3
+    have hDs := hD (θ s) hin
+    have hupper := (hb (θ s - θs)).2
+    have hVs : V s = (V0 + η') * Real.exp (-(k * s)) := hcontact
+    simp only [hV] at hVs
+    rw [hVs] at hupper
+    have hk2 : k * (4 * c₂) = 1 := by rw [hk]; field_simp
+    nlinarith [hBpos]
+  have hfin : V τ ≤ V0 * Real.exp (-(k * τ)) := by
+    have hgap : 0 < c₁ * ρ0 ^ 2 - V0 := by linarith
+    refine le_of_forall_pos_le_add fun ε hε => ?_
+    set η' := min ε ((c₁ * ρ0 ^ 2 - V0) / 2) with hη'
+    have hη'0 : 0 < η' := lt_min hε (by linarith)
+    have hη'le : η' ≤ ε := min_le_left _ _
+    have hη's : V0 + η' < c₁ * ρ0 ^ 2 := by
+      have := min_le_right ε ((c₁ * ρ0 ^ 2 - V0) / 2)
+      linarith
+    have := hbar η' hη'0 hη's τ hτ
+    have he : Real.exp (-(k * τ)) ≤ 1 := Real.exp_le_one_iff.mpr (by nlinarith)
+    have he0 : 0 < Real.exp (-(k * τ)) := Real.exp_pos _
+    nlinarith
+  have hlow := (hb (θ τ - θs)).1
+  have he0 : 0 < Real.exp (-(k * τ)) := Real.exp_pos _
+  have : c₁ * ‖θ τ - θs‖ ^ 2 ≤ c₂ * ‖θ 0 - θs‖ ^ 2 * Real.exp (-(k * τ)) := by
+    calc c₁ * ‖θ τ - θs‖ ^ 2 ≤ V τ := hlow
+      _ ≤ V0 * Real.exp (-(k * τ)) := hfin
+      _ ≤ c₂ * ‖θ 0 - θs‖ ^ 2 * Real.exp (-(k * τ)) :=
+          mul_le_mul_of_nonneg_right hV0b he0.le
+  rw [div_mul_eq_mul_div, div_mul_eq_mul_div, le_div_iff₀ hc₁]
+  linarith
+
+/-- Woodford (2003), pp. 264–266: **Lyapunov's indirect method for (2.20) (stability half)**: if
+`T` is differentiable at a rest point `θ̄` and every eigenvalue of `DT(θ̄) − I` has negative
+real part (`EStableAt`), then `θ̄` is a locally asymptotically stable rest point of the nonlinear
+equation `θ̇ = T(θ) − θ` (Lyapunov stable and locally attracting, exponentially). -/
+theorem isLAS_of_eStableAt {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} (h : EStableAt T θs) :
+    IsLAS T θs := by
+  obtain ⟨ρ, c, k, hρ, hc, hk, hdec⟩ := decay_of_eStableAt h
+  refine ⟨fun ε hε => ?_, ⟨ρ, hρ, fun θ hθ h0 => ?_⟩⟩
+  · refine ⟨min ρ (ε / (c + 1)), lt_min hρ (by positivity), fun θ hθ h0 τ hτ => ?_⟩
+    have h1 := hdec θ hθ (lt_of_lt_of_le h0 (min_le_left _ _)) τ hτ
+    have h2 : ‖θ 0 - θs‖ < ε / (c + 1) := lt_of_lt_of_le h0 (min_le_right _ _)
+    have he : Real.exp (-(k * τ)) ≤ 1 := Real.exp_le_one_iff.mpr (by nlinarith)
+    have h3 : ‖θ 0 - θs‖ ^ 2 < (ε / (c + 1)) ^ 2 :=
+      pow_lt_pow_left₀ h2 (norm_nonneg _) two_ne_zero
+    have h4 : c * (ε / (c + 1)) ^ 2 ≤ ε ^ 2 := by
+      rw [div_pow, mul_div_assoc', div_le_iff₀ (by positivity)]
+      nlinarith [mul_nonneg (sq_nonneg ε) (by positivity : (0 : ℝ) ≤ c ^ 2 + c + 1)]
+    have h5 : ‖θ τ - θs‖ ^ 2 < ε ^ 2 := by
+      calc ‖θ τ - θs‖ ^ 2 ≤ c * ‖θ 0 - θs‖ ^ 2 * Real.exp (-(k * τ)) := h1
+        _ ≤ c * ‖θ 0 - θs‖ ^ 2 := by
+            have : 0 ≤ c * ‖θ 0 - θs‖ ^ 2 := by positivity
+            nlinarith [Real.exp_pos (-(k * τ))]
+        _ < c * (ε / (c + 1)) ^ 2 := mul_lt_mul_of_pos_left h3 hc
+        _ ≤ ε ^ 2 := h4
+    exact lt_of_pow_lt_pow_left₀ 2 hε.le h5
+  · rw [tendsto_iff_norm_sub_tendsto_zero]
+    have hlim : Tendsto (fun τ : ℝ => Real.sqrt (c * ‖θ 0 - θs‖ ^ 2 * Real.exp (-(k * τ))))
+        atTop (𝓝 0) := by
+      have h1 : Tendsto (fun τ : ℝ => Real.exp (-(k * τ))) atTop (𝓝 0) := by
+        have := Real.tendsto_exp_neg_atTop_nhds_zero.comp
+          (tendsto_id.const_mul_atTop hk)
+        simpa [Function.comp_def] using this
+      have h2 := (h1.const_mul (c * ‖θ 0 - θs‖ ^ 2)).sqrt
+      simpa using h2
+    refine squeeze_zero' (Eventually.of_forall fun _ => norm_nonneg _) ?_ hlim
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with τ hτ
+    rw [← Real.sqrt_sq (norm_nonneg (θ τ - θs))]
+    exact Real.sqrt_le_sqrt (hdec θ hθ h0 τ hτ)
+
+end Woodford.NeoWicksellianFramework.TidyR5Lyapunov
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 4.10 for the nonlinear E-stability equation (2.20)
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, Proposition 4.10, p. 274, with the
+book's definition of E-stability (pp. 264–265): local stability of the r.e.e. as a rest point of
+the **nonlinear** differential equation `θ̇ = T(θ) − θ` (2.20) for Preston's `T`-map (which is not
+affine in the beliefs `Ĉ`).
+
+* Stability: `PrestonLearning.eStableAt_tVecP_iff` and `TidyR5Lyapunov.isLAS_of_eStableAt`
+  (Lyapunov's indirect method).
+* Instability, exactly and including the boundary case: the set of beliefs with `Ĉ = C` is
+  invariant, and on it (2.20) is affine with matrix `DT_Φ = blockdiag(DT₀, H)`
+  (`PrestonLearning.tVecP_inl_eq`): `liftSol`, `isESol_liftSol` turn every solution of the
+  linear equation with matrix `DT_Φ` into a solution of the nonlinear (2.20); so local
+  attraction of the r.e.e. forces local attraction of the linear equation
+  (`attracting_of_isLAS`), hence E-stability of `DT_Φ` (`eStable_of_attracting`), even when an
+  eigenvalue of `DT_Φ − I` has zero real part.
+* **`isLAS_iff_eStable`**: for any stationary `C`, the r.e.e. is a locally asymptotically stable
+  rest point of the nonlinear (2.20) iff `DT_Φ` is E-stable;
+  **`prop_4_10_LAS`**: with real eigenvalues of `C`, iff the Taylor principle (2.7) holds;
+  **`prop_4_10_LAS_complex`**: for any stationary `C`, iff (2.7) and the block conditions
+  `HurwitzC(B̃(ρ))` at the non-real eigenvalues of `C`.
+
+The stochastic-approximation results the book cites from Evans and Honkapohja are not formalised.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR5PrestonLAS
+
+open Matrix Filter Topology Determinacy2 PrestonLearning TidyR5EStabilityODE TidyR5Lyapunov
+open Determinacy2Learning (EStable EStableAt)
+
+variable {n : ℕ}
+
+/-- Woodford (2003), p. 266: **local attraction of the linear(ised) equation implies
+E-stability** (the scaling argument of `TidyR5EStabilityODE.eStable_iff_locallyStable`, restated
+with only the attraction hypothesis). -/
+theorem eStable_of_attracting {ι : Type*} [Fintype ι] [DecidableEq ι] {J : Matrix ι ι ℝ}
+    {θs : ι → ℝ} {δ : ℝ} (hδ : 0 < δ)
+    (hconv : ∀ θ, IsESol (linT J θs) θ → ‖θ 0 - θs‖ < δ → Tendsto θ atTop (𝓝 θs)) :
+    EStable J := by
+  refine eStable_of_tendsto (θs := θs) fun θ h => ?_
+  set c : ℝ := δ / (2 * (‖θ 0 - θs‖ + 1)) with hc
+  have hc0 : 0 < c := by positivity
+  have hsol := isESol_scale h c
+  have hsmall : ‖(θs + c • (θ 0 - θs)) - θs‖ < δ := by
+    rw [add_sub_cancel_left, norm_smul, Real.norm_eq_abs, abs_of_pos hc0, hc]
+    have hn := norm_nonneg (θ 0 - θs)
+    rw [div_mul_eq_mul_div, div_lt_iff₀ (by positivity)]
+    nlinarith
+  have t := hconv _ hsol hsmall
+  have t2 := (t.sub_const θs).const_smul c⁻¹
+  simp only [add_sub_cancel_left, smul_smul, inv_mul_cancel₀ hc0.ne', one_smul,
+    sub_self, smul_zero] at t2
+  simpa using t2.const_add θs
+
+/-- Woodford (2003), p. 275: the belief with `Ĉ = C` and belief part `φ` (vectorised). -/
+def liftSol (C : Matrix (Fin n) (Fin n) ℝ) (φ : ℝ → Fin 3 ⊕ (Fin n × Fin 3) → ℝ) :
+    ℝ → IdxP n → ℝ :=
+  fun τ => Sum.elim (φ τ) (vec C)
+
+/-- Woodford (2003), p. 275 ("if private agents have beliefs `Ĉ = C` …"): **on the invariant
+set `Ĉ = C` the nonlinear equation (2.20) for Preston's `T`-map is the affine equation with
+matrix `DT_Φ`**: if `w̄ = k + DT_Φ w̄` and `φ` solves `φ̇ = w̄ + DT_Φ(φ − w̄) − φ`, then
+`(φ, C)` solves (2.20). -/
+theorem isESol_liftSol {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ}
+    {C : Matrix (Fin n) (Fin n) ℝ} {wb : Fin 3 ⊕ (Fin n × Fin 3) → ℝ}
+    (hwb : wb = Learning.Regression.vecBelief (interceptP α β κ σ φπ φx c 0,
+        slopeP α β κ σ φπ φx gr gi 0 C * C) + dTP α β κ σ φπ φx C *ᵥ wb)
+    {φ : ℝ → Fin 3 ⊕ (Fin n × Fin 3) → ℝ} (hφ : IsESol (linT (dTP α β κ σ φπ φx C) wb) φ) :
+    IsESol (tVecP α β κ σ φπ φx c gr gi C) (liftSol C φ) := by
+  intro τ
+  refine hasDerivAt_pi.2 fun x => ?_
+  rcases x with a | b
+  · have h := hasDerivAt_pi.1 (hφ τ) a
+    have e := congrFun (tVecP_inl_eq α β κ σ φπ φx c gr gi C (φ τ)) a
+    simp only [Function.comp_apply] at e
+    have hlin : linT (dTP α β κ σ φπ φx C) wb (φ τ) =
+        Learning.Regression.vecBelief (interceptP α β κ σ φπ φx c 0,
+          slopeP α β κ σ φπ φx gr gi 0 C * C) + dTP α β κ σ φπ φx C *ᵥ φ τ := by
+      rw [linT, mulVec_sub]
+      nth_rewrite 1 [hwb]
+      abel
+    rw [hlin] at h
+    convert h using 1
+    · rfl
+    · change tVecP α β κ σ φπ φx c gr gi C (Sum.elim (φ τ) (vec C)) (Sum.inl a) - φ τ a = _
+      rw [e, Pi.sub_apply]
+  · have e := congrFun (tVecP_inr α β κ σ φπ φx c gr gi C (Sum.elim (φ τ) (vec C))) b
+    simp only [Function.comp_apply] at e
+    simp only [liftSol, Pi.sub_apply, Sum.elim_inr, e, sub_self]
+    exact hasDerivAt_const τ _
+
+/-- Woodford (2003), p. 264: **if the r.e.e. of Preston's `T`-map is a locally asymptotically
+stable rest point of the nonlinear (2.20), then the linear equation with matrix `DT_Φ` is
+locally attracting** (through the invariant set `Ĉ = C`). -/
+theorem attracting_of_isLAS {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ}
+    {C : Matrix (Fin n) (Fin n) ℝ} {v : IdxP n → ℝ}
+    (hfix : tVecP α β κ σ φπ φx c gr gi C v = v)
+    (h : IsLAS (tVecP α β κ σ φπ φx c gr gi C) v) :
+    ∃ δ > 0, ∀ φ, IsESol (linT (dTP α β κ σ φπ φx C) (v ∘ Sum.inl)) φ →
+      ‖φ 0 - v ∘ Sum.inl‖ < δ → Tendsto φ atTop (𝓝 (v ∘ Sum.inl)) := by
+  obtain ⟨hinr, -⟩ := unvecP_snd_of_fixed hfix
+  have hv : v = Sum.elim (v ∘ Sum.inl) (vec C) := by
+    funext x
+    rcases x with a | b
+    · rfl
+    · exact congrFun hinr b
+  have hwb : v ∘ Sum.inl = Learning.Regression.vecBelief (interceptP α β κ σ φπ φx c 0,
+      slopeP α β κ σ φπ φx gr gi 0 C * C) + dTP α β κ σ φπ φx C *ᵥ (v ∘ Sum.inl) := by
+    have e := tVecP_inl_eq α β κ σ φπ φx c gr gi C (v ∘ Sum.inl)
+    rw [← hv, hfix] at e
+    exact e
+  obtain ⟨-, δ, hδ, hconv⟩ := h
+  refine ⟨δ, hδ, fun φ hφ h0 => ?_⟩
+  have hsol := isESol_liftSol hwb hφ
+  have hn : ‖liftSol C φ 0 - v‖ < δ := by
+    have heq : liftSol C φ 0 - v = Sum.elim (φ 0 - v ∘ Sum.inl) 0 := by
+      conv_lhs => rw [hv]
+      funext x
+      rcases x with a | b <;> simp [liftSol]
+    rw [heq]
+    refine lt_of_le_of_lt ((pi_norm_le_iff_of_nonneg (norm_nonneg _)).2 fun x => ?_) h0
+    rcases x with a | b
+    · exact norm_le_pi_norm (φ 0 - v ∘ Sum.inl) a
+    · simp
+  have t := hconv _ (isFwdSol_of_isESol hsol) hn
+  have hc : Continuous fun f : IdxP n → ℝ => f ∘ Sum.inl :=
+    continuous_pi fun a => continuous_apply _
+  have t2 := (hc.tendsto v).comp t
+  simpa [Function.comp_def, liftSol] using t2
+
+/-- Woodford (2003), **Proposition 4.10 with the book's definition of E-stability**: for any
+stationary `C` (`0 < β < 1`, `0 ≤ α < 1`), an r.e.e. `v` of Preston's `T`-map is a locally
+asymptotically stable rest point of the **nonlinear** equation `θ̇ = T(θ) − θ` (2.20) iff
+`DT_Φ = blockdiag(DT₀, H)` is E-stable (every eigenvalue of `DT_Φ − I` has negative real part).
+No genericity assumption: zero real parts are covered. -/
+theorem isLAS_iff_eStable {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ} (hα0 : 0 ≤ α)
+    (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    IsLAS (tVecP α β κ σ φπ φx c gr gi C) v ↔ EStable (dTP α β κ σ φπ φx C) := by
+  have hab : |α * β| ≤ 1 := by
+    rw [abs_le]; constructor <;> nlinarith
+  have hb : |β| ≤ 1 := by
+    rw [abs_le]; constructor <;> linarith
+  have hiff := eStableAt_tVecP_iff hfix (Prop410.det_one_sub_smul_ne_zero hC hab)
+    (Prop410.det_one_sub_smul_ne_zero hC hb)
+  constructor
+  · intro h
+    obtain ⟨δ, hδ, hconv⟩ := attracting_of_isLAS hfix h
+    exact eStable_of_attracting hδ hconv
+  · intro h
+    exact isLAS_of_eStableAt (hiff.mpr h)
+
+/-- Woodford (2003), **Proposition 4.10** (p. 274) **for the nonlinear E-stability equation**:
+with every eigenvalue of `C` real and inside the unit circle, the r.e.e. of Preston's `T`-map
+is a locally asymptotically stable rest point of `θ̇ = T(θ) − θ` (2.20) iff the Taylor
+principle (2.7) holds (`0 < β < 1`, `0 ≤ α < 1`, `κ, σ > 0`, `φ_π, φ_x ≥ 0`). -/
+theorem prop_4_10_LAS {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ} (hα0 : 0 ≤ α)
+    (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hπ : 0 ≤ φπ)
+    (hx : 0 ≤ φx) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ρ.im = 0 ∧ ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    IsLAS (tVecP α β κ σ φπ φx c gr gi C) v ↔ 1 < taylorLHS β κ φπ φx := by
+  rw [isLAS_iff_eStable hα0 hα1 hβ0 hβ1 (fun ρ hρ => (hC ρ hρ).2) hfix]
+  exact Prop410.eStable_dTP_iff hα0 hα1 hβ0 hβ1 hκ hσ hπ hx hC
+
+/-- Woodford (2003), **Proposition 4.10 for any stationary `C`, nonlinear (2.20)**: the r.e.e.
+is a locally asymptotically stable rest point of `θ̇ = T(θ) − θ` iff (2.7) holds and
+`HurwitzC(B̃(ρ))` holds at every non-real eigenvalue `ρ` of `C`. -/
+theorem prop_4_10_LAS_complex {α β κ σ φπ φx c : ℝ} {gr gi : Fin n → ℝ} (hα0 : 0 ≤ α)
+    (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hπ : 0 ≤ φπ)
+    (hx : 0 ≤ φx) {C : Matrix (Fin n) (Fin n) ℝ}
+    (hC : ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ‖ρ‖ < 1)
+    {v : IdxP n → ℝ} (hfix : tVecP α β κ σ φπ φx c gr gi C v = v) :
+    IsLAS (tVecP α β κ σ φπ φx c gr gi C) v ↔
+      1 < taylorLHS β κ φπ φx ∧
+        ∀ ρ, KroneckerSpectrum.IsEig (C.map Complex.ofReal) ρ → ρ.im ≠ 0 →
+          TidyR5ComplexRegion.HurwitzC (TidyR5ComplexRegion.bTilC α β κ σ φπ φx ρ) := by
+  have hab : |α * β| ≤ 1 := by
+    rw [abs_le]; constructor <;> nlinarith
+  have hb : |β| ≤ 1 := by
+    rw [abs_le]; constructor <;> linarith
+  rw [isLAS_iff_eStable hα0 hα1 hβ0 hβ1 hC hfix, ← eStableAt_tVecP_iff hfix
+    (Prop410.det_one_sub_smul_ne_zero hC hab) (Prop410.det_one_sub_smul_ne_zero hC hb)]
+  exact TidyR5ComplexRegion.prop_4_10_complex hα0 hα1 hβ0 hβ1 hκ hσ hπ hx hC hfix
+
+end Woodford.NeoWicksellianFramework.TidyR5PrestonLAS
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The perceived-to-actual law of motion under the exact convergence condition
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, p. 274 (Preston (2005), App. 4): the
+`T`-map of Proposition 4.10 maps the perceived law of motion `(Φ̂, Ĉ)` to the actual one.
+`PrestonLearning.E_succ_eq_tMapP` proves this assuming every eigenvalue of `βĈ` lies inside the
+unit circle. The spectral hypothesis is not needed:
+
+* **`E_succ_eq_tMapP_exact`**: the same conclusion under the exact condition of
+  `TidyR5ForecastSums.decisionRules_iff_exact` (the rows of `Φ̂ₛ` and `f_r` annihilate the
+  generalised eigenvectors of `βĈ`, resp. `αβĈ`, with eigenvalues of modulus `≥ 1`, and
+  `I − βĈ`, `I − αβĈ` are invertible);
+* `E_succ_eq_tMapP_of_hasSum`: under per-state convergence of the forecast sums to their closed
+  forms (the hypotheses of `TidyR5ForecastSums.decisionRules_iff_of_hasSum`);
+* `E_succ_eq_tMapP_without_spectral`: in the counterexample `Ĉ = diag(1/2, 2)`,
+  `1/2 < β < 1` (so `βĈ` has the eigenvalue `2β > 1`), the rational forecast is still the
+  forecast of `T(Φ̂, Ĉ)`.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR5PLMALM
+
+open Matrix Determinacy2 PrestonLearning TidyR5ForecastSums
+
+variable {Ω : Type*} {n : ℕ}
+
+/-- Woodford (2003), p. 274: **PLM → ALM under per-state convergence**: if the forecast sums
+converge to their closed forms at the states of date `t + 1`, and (2.29), (2.30), (1.14) hold at
+`t + 1` with the estimated model `(Φ̂, Ĉ)` while the states follow (2.24) with matrix `C`, then
+`E_t z_{t+1}` is the forecast of the model `T(Φ̂, Ĉ)`. -/
+theorem E_succ_eq_tMapP_of_hasSum {𝔼 : ExpectationSystem Ω} {C : Matrix (Fin n) (Fin n) ℝ}
+    {s e : ℕ → Fin n → Ω → ℝ} (h : Learning.Regression.StateLaw 𝔼 C s e)
+    {α β κ σ φπ φx πbar xbar ci : ℝ} {gr gi : Fin n → ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (hΔ : taylorDelta σ κ φπ φx ≠ 0) {Φ : Learning.Regression.Belief (Fin 3) (Fin n)}
+    {Ch : Matrix (Fin n) (Fin n) ℝ} (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ)
+    (hD : ∀ ω j, HasSum (fun k => Φ.2 j ⬝ᵥ ((β • Ch) ^ k *ᵥ sv s (t + 1) ω))
+      (Φ.2 j ⬝ᵥ ((1 - β • Ch)⁻¹ *ᵥ sv s (t + 1) ω)))
+    (hSu : ∀ ω j, HasSum (fun k => Φ.2 j ⬝ᵥ (((α * β) • Ch) ^ k *ᵥ sv s (t + 1) ω))
+      (Φ.2 j ⬝ᵥ ((1 - (α * β) • Ch)⁻¹ *ᵥ sv s (t + 1) ω)))
+    (hR : ∀ ω, HasSum (fun k => gr ⬝ᵥ ((β • Ch) ^ k *ᵥ sv s (t + 1) ω))
+      (gr ⬝ᵥ ((1 - β • Ch)⁻¹ *ᵥ sv s (t + 1) ω)))
+    (hz : IS229 β σ gr Φ Ch s z (t + 1) ∧ AS230 α β κ Φ Ch s z (t + 1) ∧
+        TaylorRule φπ φx πbar xbar ci gi s z (t + 1)) (j : Fin 3) :
+    𝔼.E t (z (t + 1) j) = Learning.Regression.forecast
+      (tMapP α β κ σ φπ φx (taylorConst φπ φx πbar xbar ci) gr gi C (Φ, Ch)).1 s t j := by
+  have hz' := (decisionRules_iff_of_hasSum hβ0 hβ1 hα0 hα1 hΔ s z (t + 1) hD hSu hR).mp hz
+  have hzj : z (t + 1) j = Learning.Regression.affRV
+      (interceptP α β κ σ φπ φx (taylorConst φπ φx πbar xbar ci) Φ.1 j)
+      (slopeP α β κ σ φπ φx gr gi Φ.2 Ch j) (s (t + 1)) := by
+    funext ω
+    have := congrFun (hz' ω) j
+    rw [tempSol_eq] at this
+    rw [this]
+    simp [Learning.Regression.affRV, mulVec, dotProduct, sv]
+  rw [hzj, Learning.Regression.E_affRV_succ h]
+  rfl
+
+/-- Woodford (2003), p. 274: **PLM → ALM under the exact convergence condition**
+(`PrestonLearning.E_succ_eq_tMapP` without the spectral hypothesis on `βĈ`). -/
+theorem E_succ_eq_tMapP_exact {𝔼 : ExpectationSystem Ω} {C : Matrix (Fin n) (Fin n) ℝ}
+    {s e : ℕ → Fin n → Ω → ℝ} (h : Learning.Regression.StateLaw 𝔼 C s e)
+    {α β κ σ φπ φx πbar xbar ci : ℝ} {gr gi : Fin n → ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (hΔ : taylorDelta σ κ φπ φx ≠ 0) {Φ : Learning.Regression.Belief (Fin 3) (Fin n)}
+    {Ch : Matrix (Fin n) (Fin n) ℝ} (hd1 : (1 - β • Ch).det ≠ 0)
+    (hd2 : (1 - (α * β) • Ch).det ≠ 0)
+    (hΦ1 : ∀ j, ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v, IsGenEig ((β • Ch).map Complex.ofReal) l v →
+      (fun i => (Φ.2 j i : ℂ)) ⬝ᵥ v = 0)
+    (hΦ2 : ∀ j, ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v, IsGenEig (((α * β) • Ch).map Complex.ofReal) l v →
+      (fun i => (Φ.2 j i : ℂ)) ⬝ᵥ v = 0)
+    (hgr : ∀ l : ℂ, 1 ≤ ‖l‖ → ∀ v, IsGenEig ((β • Ch).map Complex.ofReal) l v →
+      (fun i => (gr i : ℂ)) ⬝ᵥ v = 0)
+    (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ)
+    (hz : IS229 β σ gr Φ Ch s z (t + 1) ∧ AS230 α β κ Φ Ch s z (t + 1) ∧
+        TaylorRule φπ φx πbar xbar ci gi s z (t + 1)) (j : Fin 3) :
+    𝔼.E t (z (t + 1) j) = Learning.Regression.forecast
+      (tMapP α β κ σ φπ φx (taylorConst φπ φx πbar xbar ci) gr gi C (Φ, Ch)).1 s t j :=
+  E_succ_eq_tMapP_of_hasSum h hβ0 hβ1 hα0 hα1 hΔ z t
+    (fun _ j => hasSum_of_summable_all hd1 ((summable_all_iff _ _).mpr (hΦ1 j)) _)
+    (fun _ j => hasSum_of_summable_all hd2 ((summable_all_iff _ _).mpr (hΦ2 j)) _)
+    (fun _ => hasSum_of_summable_all hd1 ((summable_all_iff _ _).mpr hgr) _) hz j
+
+/-- Woodford (2003), p. 274: **PLM → ALM in the counterexample**: with `Ĉ = diag(1/2, 2)`,
+`1/2 < β < 1`, `0 ≤ α < 1`, `2αβ ≠ 1`, and beliefs and `f_r` with no weight on the second
+state, the rational forecast `E_t z_{t+1}` is the forecast of `T(Φ̂, Ĉ)`, although `βĈ` has the
+eigenvalue `2β > 1`. -/
+theorem E_succ_eq_tMapP_without_spectral {𝔼 : ExpectationSystem Ω}
+    {C : Matrix (Fin 2) (Fin 2) ℝ} {s e : ℕ → Fin 2 → Ω → ℝ}
+    (h : Learning.Regression.StateLaw 𝔼 C s e) {α β κ σ φπ φx πbar xbar ci : ℝ}
+    {gr gi : Fin 2 → ℝ} (hβ0 : 1 / 2 < β) (hβ1 : β < 1) (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (h2αβ : 2 * (α * β) ≠ 1) (hΔ : taylorDelta σ κ φπ φx ≠ 0)
+    (Φ : Learning.Regression.Belief (Fin 3) (Fin 2)) (hΦ : ∀ j, Φ.2 j 1 = 0) (hgr : gr 1 = 0)
+    (z : ℕ → Fin 3 → Ω → ℝ) (t : ℕ)
+    (hz : IS229 β σ gr Φ cexCh s z (t + 1) ∧ AS230 α β κ Φ cexCh s z (t + 1) ∧
+        TaylorRule φπ φx πbar xbar ci gi s z (t + 1)) (j : Fin 3) :
+    𝔼.E t (z (t + 1) j) = Learning.Regression.forecast
+      (tMapP α β κ σ φπ φx (taylorConst φπ φx πbar xbar ci) gr gi C (Φ, cexCh)).1 s t j := by
+  have hβa : |β| < 1 := by rw [abs_lt]; constructor <;> linarith
+  have hαβa : |α * β| < 1 := by rw [abs_lt]; constructor <;> nlinarith
+  have h2β : 2 * β ≠ 1 := by intro h; linarith
+  exact E_succ_eq_tMapP_of_hasSum h (by linarith) hβ1 hα0 hα1 hΔ z t
+    (fun _ j => cexCh_hasSum hβa h2β _ (hΦ j) _) (fun _ j => cexCh_hasSum hαβa h2αβ _ (hΦ j) _)
+    (fun _ => cexCh_hasSum hβa h2β _ hgr _) hz j
+
+end Woodford.NeoWicksellianFramework.TidyR5PLMALM
+
 set_option linter.style.longLine false
 #print axioms Woodford.NeoWicksellianFramework.SchurStable
 #print axioms Woodford.NeoWicksellianFramework.disc
@@ -31085,3 +33851,138 @@ set_option linter.style.longLine false
 #print axioms Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate
 #print axioms Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate3
 #print axioms Woodford.NeoWicksellianFramework.Prop46Sufficiency.clarida_later_determinate44
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.IsGenEig
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.krylov
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.commute_sub_smul
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isGenEig_iff_mem
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isGenEig_pow_mulVec
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.pow_mulVec_mem
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.krylov_invariant
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.self_mem_krylov
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_of_isGenEig_lt
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.dot_eq_zero_of_summable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_iff_of_invariant
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.ofReal_dot_pow
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_iff_krylov
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_all_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isEig_of_isGenEig
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_all_all_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_of_summable_all
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.fcast_term
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_fcast_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.fcast_summable_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.rnfc_summable_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.forecast_sums_all_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isRow
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asRow
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm_succ
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm_succ
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_isTerm_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.summable_asTerm_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.isTerm_summable_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.asTerm_summable_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.IS229_sums_all_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_fcast_vec
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.hasSum_subj_vec
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_iff_of_hasSum
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_iff_exact
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_pow_mulVec
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_isEig
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_hasSum
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_summable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.cexCh_vecMul
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.forecast_sums_converge_without_spectral
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ForecastSums.decisionRules_without_spectral
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.roots_of_hurwitz
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitz_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.HurwitzC
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.eig_re_lt_one_iff_hurwitz
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.gC
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.isEig_gC_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.nPolyC
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.trPolyC
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_det_identity
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_tr_identity
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzExpr
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_bTilC_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.eStable_hMat_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_of_real
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex_explicit
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2_eig_cases
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.cexC2_stationary
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.bTilC_cex2
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.hurwitzC_cex2
+#print axioms Woodford.NeoWicksellianFramework.TidyR5ComplexRegion.prop_4_10_complex_stable_case
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.IsESol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT_sub
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_apply
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_neg
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_add
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_zero
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_mul_flow_neg
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.hasDerivAt_flow_apply
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_flow
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eq_flow_of_isESol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.existsUnique_isESol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_nat
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_mulVec
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_pow_mulVec
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.gen_pow_apply
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.commute_kMat
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.hasSum_kMat
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.kMat_map_mulVec_of_eig
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.norm_lt_one_of_isEig_kMat
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.pow_bound_fintype
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.flow_bound
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.tendsto_flow_of_eStable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.tendsto_of_eStable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eigSol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_eigSol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_of_tendsto
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_tendsto
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.IsLocallyStable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.isESol_scale
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_locallyStable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStableAt_iff_ode
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.linT_eq_of_affine
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_tendsto_affine
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityODE.eStable_iff_locallyStable_affine
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_8_ode
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_8_locallyStable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_9_ode
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.differentiableAt_tVecP_of_fixed
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_10_ode
+#print axioms Woodford.NeoWicksellianFramework.TidyR5EStabilityProps.prop_4_10_complex_ode
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.IsFwdSol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.IsLAS
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.isFwdSol_of_isESol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.hasDerivWithinAt_bilin
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.dot_mulVec_add
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.dot_self_pos
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.norm_sq_le_dot
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.bilin_bound
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.continuous_quad
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.quad_bounds
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.lyapunov_exists
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.decay_of_eStableAt
+#print axioms Woodford.NeoWicksellianFramework.TidyR5Lyapunov.isLAS_of_eStableAt
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.eStable_of_attracting
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.liftSol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.isESol_liftSol
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.attracting_of_isLAS
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.isLAS_iff_eStable
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.prop_4_10_LAS
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PrestonLAS.prop_4_10_LAS_complex
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_of_hasSum
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_exact
+#print axioms Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_without_spectral

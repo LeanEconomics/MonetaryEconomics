@@ -254,7 +254,7 @@ def main():
 
     def run(command, filename):
         result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
-                                encoding="utf-8", errors="replace", timeout=1200)
+                                encoding="utf-8", errors="replace", timeout=3600)
         log = result.stdout + result.stderr
         (out / filename).write_text(log, encoding="utf-8", newline="\n")
         validate_compiler_result(result.returncode, log)
