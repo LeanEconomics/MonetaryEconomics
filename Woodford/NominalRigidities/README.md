@@ -9,7 +9,7 @@ with Nominal Rigidities" (pp. 139–236), together with the proofs in Appendix B
 Model equations hold for an arbitrary expectation operator, so results cover perfect foresight
 and genuine uncertainty; log-linear equations are exact derivatives of the nonlinear model, and
 infinite-horizon objectives and forward solutions are genuine series. The library contains
-**1068 theorems**, including the shared core.
+**1182 theorems**, including the shared core.
 
 Headline results, in the namespace `Woodford.NominalRigidities`:
 * **Flexible prices and the natural rate.** Dixit–Stiglitz demand as genuine cost minimisation
@@ -26,28 +26,39 @@ Headline results, in the namespace `Woodford.NominalRigidities`:
   (`StrategicComplementarity.table31_rounding`).
 * **Calvo pricing and the New Keynesian Phillips curve.** Proposition 3.4 with its exact solution
   class and the continuum outside it (`Calvo.prop34_exists_iff`, `Calvo.prop34_continuum`), and
-  Proposition 3.5 from the primitives of the baseline model (`Links.prop35_baseline`).
+  Proposition 3.5 from the primitives of the baseline model (`Links.prop35_baseline`). With
+  `ω̃θ < 0` the solution is unique among all predetermined solutions for every expectation system
+  (`TidyR5Prop34Uncertainty.prop34_existsUnique_of_w_neg`); on a genuine probability space it
+  exists and is unique in the class with `L¹` forward sums
+  (`TidyR5Prop34MeasureExists.prop34_existsUnique_measure`), and without that condition an i.i.d.
+  economy has a second solution (`TidyR5Prop34NonUnique.prop34_not_unique_iid`,
+  `TidyR5Prop34NonUnique.cex_not_L1Fwd`).
 * **Persistence.** Propositions 3.6 and 3.7 for any expectation system
   (`Persistence.prop_3_6_stochastic`, `SpendingGrowth.prop_3_7_stochastic`), the contract
   multiplier and its continuous-time limit (`Persistence.contractMult_tendsto`).
 * **Sectors, delays and indexation.** Proposition 3.8 (`TwoSector.prop_3_8_full`), delayed and
   indexed price setting with existence and uniqueness of every impulse response
-  (`Delays.irf_existsUnique_nom`, `Delays.cubic_roots_location`), and an event-tree equilibrium
-  with the Figure 3.12 property (`Delays.fig_3_12_tree_equilibrium`).
+  (`Delays.irf_existsUnique_nom`, `Delays.cubic_roots_location`), an event-tree equilibrium
+  with the Figure 3.12 property (`Delays.fig_3_12_tree_equilibrium`), and the Galí–Gertler hybrid
+  model derived for every expectation system, which reproduces the weights of (3.6) iff `γ = 0`
+  or `β = 1`, and at `β = 1` reproduces (3.6) exactly for a unique re-chosen Calvo parameter
+  (`TidyR5GaliGertler.gg_hybrid_iff`,
+  `TidyR5GaliGertler.gg_weights_match_iff`,
+  `TidyR5GaliGertlerUnique.gg_identical_beta_one_existsUnique`).
 * **Sticky wages.** Proposition 3.9 (`StickyWages.prop_3_9`), the real-wage dynamics (4.22) and
   their flexible limits (`StickyWages.secondOrder_existsUnique`,
-  `StickyWages.realWage_flexible_limit`).
+  `StickyWages.realWage_flexible_limit`), and the wage- and price-dispersion terms dropped in
+  (4.10), exact for isoelastic preferences and technology, and `O(s²)` with zero derivative for
+  any `v_h` and `f` with locally Lipschitz derivatives (`TidyR5Dispersion.logv_decomposition`,
+  `TidyR5DispersionGeneral.hasDerivAt_hoursGapGen`,
+  `TidyR5DispersionGeneral.hasDerivAt_outputGapGen`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: the Galí–Gertler formulas for the share of backward-looking price setters (pp.
-216–217), which come from the external paper, are not formalised, only the hybrid form and its
-weights; purely numerical figure shapes and the empirical remarks (the Sbordone fit, VAR
-evidence) are not formalised; the second-order dispersion terms behind (4.10) are left out, as
-the book does not treat them either. For Proposition 3.4 with `ω̃θ < 0`, uniqueness outside the
-difference-stationary class is proved only under perfect foresight.
+Not covered: purely numerical figure shapes and the empirical remarks (the Sbordone fit, VAR
+evidence, Galí and Gertler's point estimates) are not formalised.
 
 ## Library map
 
@@ -73,6 +84,16 @@ difference-stationary class is proved only under perfect foresight.
 | [WageSetting](NominalRigidities/WageSetting.lean) | 81 | §4.1: the wage index, (4.3)–(4.7), the price-setter instance behind (4.9), regularity from primitives |
 | [StickyWages](NominalRigidities/StickyWages.lean) | 107 | §4.1–4.2: (4.8)–(4.25), Proposition 3.9, the real-wage dynamics and their flexible limits, Figure 3.18 |
 | [Links](NominalRigidities/Links.lean) | 19 | §1–§4: the baseline model linked to the Calvo, persistence, delay and sticky-wage modules; Proposition 3.5 from primitives |
+| [TidyR5Prop34Uncertainty](NominalRigidities/TidyR5Prop34Uncertainty.lean) | 13 | §2.1, B.3: `E_t` commutes with every pointwise convergent series; Proposition 3.4 with `ω̃θ < 0` unique among all solutions, for every expectation system |
+| [TidyR5ExpectationsMeasure](NominalRigidities/TidyR5ExpectationsMeasure.lean) | 17 | Conditional expectations on a probability space, a.e. forms; the bridge to `ExpectationSystem` (restated from the Cochrane projects) |
+| [TidyR5ExpectationsMeasureIID](NominalRigidities/TidyR5ExpectationsMeasureIID.lean) | 12 | An i.i.d. economy with its natural filtration; the uniform law (restated from the Cochrane projects) |
+| [TidyR5Prop34Measure](NominalRigidities/TidyR5Prop34Measure.lean) | 4 | §2.1, B.3: Proposition 3.4 with `ω̃θ < 0` on a probability space, unique with `L¹` forward sums |
+| [TidyR5Prop34NonUnique](NominalRigidities/TidyR5Prop34NonUnique.lean) | 23 | §2.1, B.3: without `L¹` sums a second solution on an i.i.d. economy (a doubling bet); the `L¹` condition is sharp |
+| [TidyR5Dispersion](NominalRigidities/TidyR5Dispersion.lean) | 13 | §4.1, (4.10): the hours- and output-dispersion terms, exact for isoelastic primitives, second order |
+| [TidyR5GaliGertler](NominalRigidities/TidyR5GaliGertler.lean) | 8 | §3.2, pp. 216–217: the Galí–Gertler hybrid curve from the model; when it reproduces (3.6) |
+| [TidyR5Prop34MeasureExists](NominalRigidities/TidyR5Prop34MeasureExists.lean) | 12 | §2.1, B.3: (2.9) on a probability space; existence and uniqueness in the `L¹` class |
+| [TidyR5DispersionGeneral](NominalRigidities/TidyR5DispersionGeneral.lean) | 9 | §4.1, (4.10): the dispersion gaps are `O(s²)` with zero derivative for general `v_h` and `f` |
+| [TidyR5GaliGertlerUnique](NominalRigidities/TidyR5GaliGertlerUnique.lean) | 3 | §3.2, p. 217: the Galí–Gertler model reproducing (3.6) at `β = 1` is unique |
 
 ## Build and verify
 

@@ -1,19 +1,18 @@
 # Corrections to the source
 
-Places where a claim in Chapter 3 or Appendix B of Woodford (2003) is false, imprecise, or relies
-on an unstated hypothesis, and where the Lean statement departs from the printed one. In each
-case the Lean statement proves the stated version and cites the original. Entries are recorded
-when found and revised if formalisation shows the finding itself to be wrong: in particular, the
-p. 217 claim that output contracts on impact under indexation when nominal GDP rises with a lag
-was at first left unproved; it holds for every `0 ≤ γ ≤ 1` (`Delays.p217_contraction_general`).
-Table 3.1 is exact to two decimals, including two entries that sit on a rounding tie
-(`StrategicComplementarity.table31_rounding`). One question is left open: for Prop 3.4 with
-`ω̃θ < 0`, uniqueness outside the difference-stationary class is proved only under perfect
-foresight (`Calvo.prop34_pf_unique_of_w_neg`); under genuine uncertainty the explosive
-deterministic family is excluded (`Calvo.perturbation_not_summable`), but whether other solutions
-exist outside the class is not decided, because deriving the recursive form from (2.8) without a
-growth bound needs an interchange of `E_t` with an undominated series. Lean names are relative to
-the namespace `Woodford.NominalRigidities`.
+Places where a claim in Chapter 3 or Appendix B of Woodford (2003) is false, imprecise, or relies on
+an unstated hypothesis, and where the Lean statement departs from the printed one. In each case the
+Lean statement proves the stated version and cites the original. Entries are recorded when found and
+revised if formalisation shows the finding itself to be wrong: in particular, the p. 217 claim that
+output contracts on impact under indexation when nominal GDP rises with a lag was at first left
+unproved; it holds for every `0 ≤ γ ≤ 1` (`Delays.p217_contraction_general`). Table 3.1 is exact to
+two decimals, including two entries that sit on a rounding tie
+(`StrategicComplementarity.table31_rounding`). The question once left open, uniqueness for Prop 3.4
+with `ω̃θ < 0` outside the difference-stationary class, is settled: it holds for every expectation
+system (`TidyR5Prop34Uncertainty.prop34_unique_of_w_neg`), and on a genuine probability space in the
+class with `L¹` forward sums, where (2.9) exists and is the unique solution
+(`TidyR5Prop34MeasureExists.prop34_existsUnique_measure`); see the last section. Lean names are
+relative to the namespace `Woodford.NominalRigidities`.
 
 ## Claims that are false as printed
 
@@ -55,6 +54,9 @@ the namespace `Woodford.NominalRigidities`.
 | Prop 3.7, p. 198; B.6, p. 664 | `0 < ρ < 1` and `ρ ≠ λ`. | Written as `ỹ_k = C∑_{i≤k}λⁱρ^{k−i}` the result holds for every `0 ≤ ρ < 1` (`SpendingGrowth.prop_3_7`); `ρ = λ` gives `ỹ_k = C(k + 1)λ^k` (`SpendingGrowth.rho_eq_lam`). |
 | pp. 202, 667 | The profit function uses the sectoral total of (B.29); the natural-rate display divides by `n_jφ_jYⁿ`. | The profit function needs the per-good index `Y_j/n_j`. The difference is a constant and disappears in log deviations (`TwoSector.revenue_per_good`, `TwoSector.logdev_normalisation`). |
 | p. 232 | In the flexible limit `log w_t` becomes a multiple of `z_t`. | Literally degenerate, since `z` contains `ξ log wⁿ`. Precisely: `log w_t − λ₁z_t → 0` uniformly with `λ₁c → 1`, and `z/ξ` tends to `log wⁿ + r*(Ŷ − Ŷⁿ)`, which is (4.21) with flexible wages and `log wⁿ − ω_p(Ŷ − Ŷⁿ)` with flexible prices (`StickyWages.secondOrder_flexible_limit`, `StickyWages.realWage_flexible_limit`). |
+| p. 217 | (3.6) for any `γ` can be obtained from the Galí–Gertler model by choosing the share of backward-looking price setters. | Holds only when `β = 1` or `γ = 0`. For `0 ≤ γ ≤ 1` and `0 < β ≤ 1`, some Calvo parameter `θ ∈ (0, 1)` and backward share `ϖ ∈ [0, 1)` give the lag and lead weights `γ/(1 + βγ)`, `β/(1 + βγ)` of (3.6) iff `γ = 0` or `β = 1` (`TidyR5GaliGertler.gg_weights_match_iff`); the Galí–Gertler weights are derived from the model for every expectation system (`TidyR5GaliGertler.gg_hybrid_iff`). For `β < 1` and `γ > 0` no choice of `(θ, ϖ)` reproduces (3.6). |
+| p. 217 | "In the limiting case `β = 1`, the two models have identical implications." | With the same Calvo parameter (`ϖ = θγ`) the weights match but the slope on marginal cost is `(1 − θγ)` times that of (3.6), so they coincide only for `γ = 0` (`TidyR5GaliGertler.gg_same_theta_slope`). Identical implications need the Calvo parameter re-chosen as well; then exactly one pair `(θ′, ϖ)` reproduces the weights and the slope of (3.6) (`TidyR5GaliGertler.gg_identical_beta_one`, `TidyR5GaliGertlerUnique.gg_identical_beta_one_existsUnique`). |
+| pp. 223–224, (4.10) | The type-`j` log MRS "can be written in the form `log v_t + ν log(h_t(j)/H_t)`", `v_t` the geometric average of the MRS; (4.10) gives `v̂_t` from aggregate output. | Made precise. With isoelastic disutility the form is exact only up to `ν D_h`, `D_h = log H_t − ∫ log h_t(j) dj`, with `0 ≤ D_h ≤ r s²B²` (`TidyR5Dispersion.logMRS_type_eq`, `TidyR5Dispersion.hoursGap_bounds`); with isoelastic technology `log v_t` equals the first-order terms of (4.10) plus `ν D_y − ν D_h`, `−φρ s²B² ≤ D_y ≤ φ² s²B²` (`TidyR5Dispersion.logv_decomposition`, `TidyR5Dispersion.outputGap_bounds`). Both terms have zero derivative, so (4.10) holds to first order (`TidyR5Dispersion.hasDerivAt_hoursGap`, `TidyR5Dispersion.hasDerivAt_outputGap`); for general `v_h` and `f` with locally Lipschitz derivatives both gaps are `O(s²)` with zero derivative (`TidyR5DispersionGeneral.hoursGapGen_sq_bound`, `TidyR5DispersionGeneral.outputGapGen_sq_bound`, `TidyR5DispersionGeneral.hasDerivAt_hoursGapGen`, `TidyR5DispersionGeneral.hasDerivAt_outputGapGen`). |
 | p. 187 | "determinants of (1.35)" in (2.13). | `ζ` (`NKPC.kappa_baseline`). |
 | p. 227 | "(4.2) indicates". | The relation follows from the `log Y` equation and (2.15); (4.2) is labour demand (`StickyWages.output_response`). |
 | pp. 230, 231, 233 | "(4.19)" for the real-wage equation. | (4.18), at p. 230 ("the only endogenous variable"), p. 231 ("a unique bounded solution for the real wage") and p. 233 ("`w_t = wⁿ_t` is a solution"); probably also "solving (4.19)" on p. 233 (`StickyWages.realWage_indep_of_output`, `StickyWages.eq422`, `StickyWages.natural_real_wage_solves_iff`). |
@@ -67,7 +69,7 @@ the namespace `Woodford.NominalRigidities`.
 | --- | --- | --- |
 | (1.25), p. 156, and throughout | Conditional expectations satisfy the pull-out property `E_t(ay) = aE_t y` for `a` known at `t` | Not implied by the expectation axioms; a hypothesis where used (`ExpectationSystem.PullOut`, `Predetermined.expected_foc_baseline_iff`), proved for perfect foresight and every finite event tree (`perfectForesight_pullOut`, `ExpectationsFiniteTree.finiteTree_pullOut`) |
 | (1.23), p. 155; (B.31)–(B.32), p. 668 | Differentiation under `E_t` | An abstract expectation operator has no continuity; the derivative step is proved on any finite state space, which covers finite trees and perfect foresight (`Predetermined.foc_1_23_necessary`, `Predetermined.foc_1_23_tree`, `Predetermined.foc_1_23_perfectForesight`, `TwoSector.linearised_FOC_uncertain`) |
-| B.3–B.4, pp. 660–662; (B.32) | `E_t` commutes with the infinite sums | Under domination by a summable sequence, e.g. `q^k(C + Dk)`, or absolute convergence (`ForwardSolution.E_tsum_dom`, `TwoSector.E_tsum_polyGeom`, `NKPC.interchange_sums`) |
+| B.3–B.4, pp. 660–662; (B.32) | `E_t` commutes with the infinite sums | Under domination by a summable sequence, e.g. `q^k(C + Dk)`, or absolute convergence (`ForwardSolution.E_tsum_dom`, `TwoSector.E_tsum_polyGeom`, `NKPC.interchange_sums`); for an `ExpectationSystem` the axioms give it for every pointwise convergent series (`TidyR5Prop34Uncertainty.E_hasSum`), on a probability space for `L¹`-convergent series (`TidyR5Prop34Measure.condExp_tsum_of_summable_integral`) |
 | (1.26), pp. 156–157 | A pointwise root of (1.26) is known at `t` | Proved on finite event trees (`Predetermined.tree_known_const_on_cell`, `Predetermined.priceLevel_existsUnique_tree`); for an abstract expectation operator uniqueness is a hypothesis (`Predetermined.priceLevel_homogeneous`) |
 | (1.13), p. 151 | `s` continuous in `y` | Needed for existence of `y(i)` (`FlexiblePrices.relative_supply_existsUnique`) |
 | (1.15), p. 152; Prop 3.1 | Regularity of the primitives in the shocks | Joint differentiability of `v_h`, `u_c` (`MarginalCost.logRmcGap_differentiableAt`); continuity of `f′` for the Lerner result (`FlexiblePrices.lerner_foc_iff`); continuity of `ŝ` in the shocks and `ω + σ⁻¹ ≠ 0` for the natural-rate derivative, which is then proved, not assumed (`FlexiblePrices.eq_1_15_unconditional`, `FlexiblePrices.implicit_hasFDerivAt`) |
@@ -80,3 +82,11 @@ the namespace `Woodford.NominalRigidities`.
 | n. 61, p. 201 | Positive composites when `η < 1` | Finite CES with `η < 1` is stated for strictly positive composites (`DixitStiglitz.fin_cost_ge_and_eq_iff`) |
 | B.3, p. 660; Prop 3.4 | Bounded increments of `log S` | `Calvo.BoundedIncr` |
 | (3.2), p. 208 | Prices preset before the delay | (3.2) leaves `π_k` free for `k < d`; uniqueness of the tree equilibrium needs `p₋₁ = 0` and zero inflation before `d` (`Delays.TreeEq`, `Delays.treeEq_unique`) |
+
+## Corrections to the earlier formalisation (not errors in the book)
+
+| Where | Earlier statement | Finding |
+| --- | --- | --- |
+| Prop 3.4, p. 182; B.3, pp. 659–661; this project's README | For `ω̃θ < 0`, uniqueness outside the difference-stationary class was proved only under perfect foresight (`Calvo.prop34_pf_unique_of_w_neg`). | An unnecessary restriction: the axioms of an `ExpectationSystem` force `E_t` to commute with every pointwise convergent series (`TidyR5Prop34Uncertainty.E_hasSum`), so every predetermined solution of (2.5) and (2.8) is (2.9) for every expectation system (`TidyR5Prop34Uncertainty.prop34_unique_of_w_neg`, `TidyR5Prop34Uncertainty.prop34_existsUnique_of_w_neg`), including every finite event tree and every finite fully supported probability space (`TidyR5Prop34Uncertainty.prop34_unique_of_w_neg_tree`, `TidyR5Prop34Measure.prop34_unique_of_w_neg_finite`). |
+| Prop 3.4, p. 182; B.3 (infinite probability space) | The extension of uniqueness outside the class to genuine uncertainty. | Not a book error, since the book claims uniqueness only within the difference-stationary class. On an infinite probability space, where `E_t` is Mathlib's conditional expectation, uniqueness outside the class is false without further conditions: on the uniform i.i.d. economy with `log µ = 0`, `log S ≡ 0`, `log P_{−1} = 0`, forecast revisions with conditional mean zero term by term (doubling bets) whose discounted sum is a nonzero constant give a second integrable, predetermined solution with absolutely convergent forward sums (`TidyR5Prop34NonUnique.prop34_not_unique_iid`). The correct statement requires the forward sums of (2.8) to converge in `L¹` (`TidyR5Prop34Measure.L1Fwd`): then two solutions coincide a.s. (`TidyR5Prop34Measure.prop34_unique_of_w_neg_L1`), (2.9) exists in that class (`TidyR5Prop34MeasureExists.prop34_exists_measure`), so the class has exactly one solution (`TidyR5Prop34MeasureExists.prop34_existsUnique_measure`), and the condition is sharp (`TidyR5Prop34NonUnique.cex_not_L1Fwd`). |
+| pp. 216–217, (4.10); this project's README | The Galí–Gertler formulas and the dispersion terms behind (4.10) were not formalised. | Now formalised: the rows on p. 217 and pp. 223–224 above. |

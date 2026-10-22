@@ -44,6 +44,18 @@ import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Analysis.Real.Sqrt
 import Mathlib.Topology.Algebra.Module.FiniteDimension
 import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.PullOut
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.Probability.Process.Filtration
+import Mathlib.Probability.ProductMeasure
+import Mathlib.Probability.Independence.InfinitePi
+import Mathlib.Probability.ConditionalExpectation
+import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.Asymptotics.Lemmas
+import Mathlib.Analysis.Complex.Exponential
+import Mathlib.MeasureTheory.Integral.IntegrableOn
+import Mathlib.Analysis.Calculus.Deriv.Shift
 set_option autoImplicit false
 
 /-
@@ -22513,6 +22525,3322 @@ theorem flexible_wages_slope_eq_kappa (αp β ωw ωp θp σi : ℝ) :
 
 end Woodford.NominalRigidities.Links
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 3.4 with `ω̃θ < 0`: uniqueness among all solutions, under uncertainty
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §2.1, Proposition 3.4 (p. 182) and
+Appendix B.3 (pp. 659–661).
+
+`Calvo.prop34_pf_unique_of_w_neg` shows that when `ω̃θ < 0` the solution (2.9) is the only
+solution of (2.5) and (2.8) — no difference-stationarity restriction needed — but only under
+perfect foresight. This module proves the same statement for **every** `ExpectationSystem`.
+
+## Sequential continuity of expectation operators
+
+The only obstacle under uncertainty is passing `E_t` through the infinite sum in (2.8) at `t + 1`
+(the step from (2.8) to its recursive form). Without a growth restriction there is no geometric
+domination, so the core lemma `ExpectationSystem.E_tsum` does not apply. But the axioms of an
+`ExpectationSystem` (linear, monotone, constants preserved, on **all** functions `Ω → ℝ`) already
+force a dominated-convergence property:
+
+* `E_tendsto_zero`: if `u_N ≥ 0` and `u_N → 0` pointwise, then `E_t u_N → 0` at every state. The
+  proof uses only monotonicity: with `n(ω)` the index after which `u_N(ω) ≤ η` and
+  `G(ω) = ∑_{N < n(ω)} u_N(ω)`, one has `u_N ≤ η + n G/(N + 1)` pointwise.
+* `E_hasSum`: `E_t` commutes with **every** pointwise convergent series (no domination
+  hypothesis).
+
+## Results
+
+* `recursive_reset_price_any`: the recursive form of (2.8) (with the corrected sign, survey error
+  E4) for every solution of (2.8), without the difference-stationarity hypothesis of
+  `Calvo.recursive_reset_price`; `solution_B14_any`: (B.14) for every predetermined solution.
+* `prop34_unique_of_w_neg`: for `ω̃θ < 0`, every predetermined solution of (2.5) and (2.8) with
+  initial price level `P0` is (2.9), for every expectation system.
+* `prop34_existsUnique_of_w_neg`: existence (under the initial-gap bound of `Calvo.prop34`) and
+  uniqueness among **all** predetermined solutions.
+* `prop34_unique_of_w_neg_tree`: the instance for every finite event tree
+  (`ExpectationsFiniteTree.FiniteTree.toExpectationSystem`), a genuine-uncertainty instance;
+  `prop34_unique_of_w_neg_pf` recovers the perfect-foresight statement.
+
+The measure-theoretic counterpart on an infinite probability space (where `E_t` is only defined on
+integrable functions and the conclusion fails without an `L¹` condition) is
+`TidyR5Prop34Measure`.
+-/
+
+namespace Woodford.NominalRigidities.TidyR5Prop34Uncertainty
+
+open Filter Topology Calvo QuadraticRoots
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### Sequential continuity of an expectation system -/
+
+/-- Woodford (2003), App. B.3, p. 659 (the step from (2.8) to its recursive form needs `E_t`
+to pass through an infinite sum): `E_t` of a nonnegative function sequence converging pointwise
+to zero converges to zero at every state. Only linearity, monotonicity and `E_t c = c` are used. -/
+theorem E_tendsto_zero {u : ℕ → Ω → ℝ} (hu0 : ∀ N ω, 0 ≤ u N ω)
+    (hu : ∀ ω, Tendsto (fun N => u N ω) atTop (𝓝 0)) (t : ℕ) (ω : Ω) :
+    Tendsto (fun N => 𝔼.E t (u N) ω) atTop (𝓝 0) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  set η := ε / 2 with hη
+  have hη0 : 0 < η := by positivity
+  have hex : ∀ ω', ∃ n : ℕ, ∀ M, n ≤ M → u M ω' ≤ η := by
+    intro ω'
+    have h := (hu ω').eventually (gt_mem_nhds hη0)
+    obtain ⟨n, hn⟩ := eventually_atTop.mp h
+    exact ⟨n, fun M hM => (hn M hM).le⟩
+  choose n hn using hex
+  set G : Ω → ℝ := fun ω' => ∑ M ∈ Finset.range (n ω'), u M ω' with hG
+  set H : Ω → ℝ := fun ω' => (n ω' : ℝ) * G ω' with hH
+  have hG0 : ∀ ω', 0 ≤ G ω' := fun ω' => Finset.sum_nonneg fun M _ => hu0 M ω'
+  have hH0 : ∀ ω', 0 ≤ H ω' := fun ω' => mul_nonneg (Nat.cast_nonneg _) (hG0 ω')
+  have hbound : ∀ N : ℕ, u N ≤ (fun _ => η) + ((N : ℝ) + 1)⁻¹ • H := by
+    intro N ω'
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    have hN1 : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+    by_cases hc : n ω' ≤ N
+    · have := hn ω' N hc
+      have : 0 ≤ ((N : ℝ) + 1)⁻¹ * H ω' := mul_nonneg (inv_nonneg.mpr hN1.le) (hH0 ω')
+      linarith
+    · push Not at hc
+      have h1 : u N ω' ≤ G ω' :=
+        Finset.single_le_sum (fun M _ => hu0 M ω') (Finset.mem_range.mpr hc)
+      have h2 : G ω' ≤ ((N : ℝ) + 1)⁻¹ * H ω' := by
+        rw [hH]
+        simp only
+        rw [← mul_assoc, ← div_eq_inv_mul]
+        have hn' : (N : ℝ) + 1 ≤ n ω' := by exact_mod_cast hc
+        have : 1 ≤ (n ω' : ℝ) / ((N : ℝ) + 1) := by rw [le_div_iff₀ hN1]; linarith
+        nlinarith [hG0 ω']
+      linarith
+  have hEH0 : 0 ≤ 𝔼.E t H ω := by
+    have := 𝔼.mono t (x := fun _ => (0 : ℝ)) (y := H) (fun ω' => hH0 ω') ω
+    rwa [𝔼.const] at this
+  obtain ⟨N0, hN0⟩ := exists_nat_gt (𝔼.E t H ω / η)
+  refine ⟨N0, fun N hN => ?_⟩
+  have hN1 : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+  have hup : 𝔼.E t (u N) ω ≤ η + ((N : ℝ) + 1)⁻¹ * 𝔼.E t H ω := by
+    have := 𝔼.mono t (hbound N) ω
+    rwa [map_add, map_smul, 𝔼.const] at this
+  have hlow : 0 ≤ 𝔼.E t (u N) ω := by
+    have := 𝔼.mono t (x := fun _ => (0 : ℝ)) (y := u N) (fun ω' => hu0 N ω') ω
+    rwa [𝔼.const] at this
+  have hsmall : ((N : ℝ) + 1)⁻¹ * 𝔼.E t H ω < η := by
+    have hNle : (N0 : ℝ) ≤ N := by exact_mod_cast hN
+    rw [inv_mul_lt_iff₀ hN1]
+    rw [div_lt_iff₀ hη0] at hN0
+    nlinarith
+  rw [Real.dist_eq, sub_zero, abs_of_nonneg hlow]
+  linarith
+
+/-- Woodford (2003), App. B.3, p. 659: `|E_t x| ≤ E_t |x|` at every state. -/
+theorem abs_E_le_E_abs (t : ℕ) (x : Ω → ℝ) (ω : Ω) : |𝔼.E t x ω| ≤ 𝔼.E t (fun ω' => |x ω'|) ω := by
+  have h1 := 𝔼.mono t (x := x) (y := fun ω' => |x ω'|) (fun ω' => le_abs_self (x ω')) ω
+  have h2 := 𝔼.mono t (x := -x) (y := fun ω' => |x ω'|) (fun ω' => neg_le_abs (x ω')) ω
+  rw [map_neg, Pi.neg_apply] at h2
+  exact abs_le.mpr ⟨by linarith, h1⟩
+
+/-- Woodford (2003), App. B.3, p. 659 (**`E_t` commutes with every pointwise convergent
+series**): if `∑_j f_j(ω) = F(ω)` at every state, then `∑_j E_t f_j = E_t F` at every state, with
+no domination hypothesis. This is what turns (2.8) into its recursive form without a growth
+restriction on the price index. -/
+theorem E_hasSum {f : ℕ → Ω → ℝ} {F : Ω → ℝ} (hf : ∀ ω, HasSum (fun j => f j ω) (F ω))
+    (t : ℕ) (ω : Ω) : HasSum (fun j => 𝔼.E t (f j) ω) (𝔼.E t F ω) := by
+  -- absolute summability of the expectations
+  set A : Ω → ℝ := fun ω' => ∑' j, |f j ω'| with hA
+  have habs : ∀ ω', Summable (fun j => |f j ω'|) := fun ω' => (hf ω').summable.abs
+  have hpart : ∀ N, ∑ j ∈ Finset.range N, |𝔼.E t (f j) ω| ≤ 𝔼.E t A ω := by
+    intro N
+    have h1 : ∑ j ∈ Finset.range N, |𝔼.E t (f j) ω|
+        ≤ ∑ j ∈ Finset.range N, 𝔼.E t (fun ω' => |f j ω'|) ω :=
+      Finset.sum_le_sum fun j _ => abs_E_le_E_abs 𝔼 t (f j) ω
+    have h2 : ∑ j ∈ Finset.range N, 𝔼.E t (fun ω' => |f j ω'|) ω
+        = 𝔼.E t (∑ j ∈ Finset.range N, fun ω' => |f j ω'|) ω := by
+      rw [map_sum, Finset.sum_apply]
+    have h3 : (∑ j ∈ Finset.range N, fun ω' => |f j ω'|) ≤ A := by
+      intro ω'
+      rw [Finset.sum_apply]
+      exact (habs ω').sum_le_tsum _ fun j _ => abs_nonneg _
+    linarith [𝔼.mono t h3 ω]
+  have hs : Summable (fun j => 𝔼.E t (f j) ω) := by
+    refine Summable.of_abs ?_
+    exact summable_of_sum_range_le (fun j => abs_nonneg _) hpart
+  -- the partial sums converge to `E_t F`
+  set S : ℕ → Ω → ℝ := fun N => ∑ j ∈ Finset.range N, f j with hS
+  set u : ℕ → Ω → ℝ := fun N ω' => |F ω' - S N ω'| with hu
+  have hu0 : ∀ N ω', 0 ≤ u N ω' := fun N ω' => abs_nonneg _
+  have hut : ∀ ω', Tendsto (fun N => u N ω') atTop (𝓝 0) := by
+    intro ω'
+    have h := (hf ω').tendsto_sum_nat
+    have h' : Tendsto (fun N => F ω' - S N ω') atTop (𝓝 (F ω' - F ω')) := by
+      refine tendsto_const_nhds.sub ?_
+      simpa [hS, Finset.sum_apply] using h
+    rw [sub_self] at h'
+    simpa [hu] using h'.abs
+  have hE := E_tendsto_zero 𝔼 hu0 hut t ω
+  have hlim : Tendsto (fun N => ∑ j ∈ Finset.range N, 𝔼.E t (f j) ω) atTop (𝓝 (𝔼.E t F ω)) := by
+    have heq : ∀ N, ∑ j ∈ Finset.range N, 𝔼.E t (f j) ω = 𝔼.E t (S N) ω := by
+      intro N
+      rw [hS, map_sum, Finset.sum_apply]
+    have hle : ∀ N, |𝔼.E t (S N) ω - 𝔼.E t F ω| ≤ 𝔼.E t (u N) ω := by
+      intro N
+      have := abs_E_le_E_abs 𝔼 t (F - S N) ω
+      rw [map_sub, Pi.sub_apply, abs_sub_comm] at this
+      exact this
+    simp_rw [heq]
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    exact squeeze_zero (fun _ => norm_nonneg _) (fun N => by rw [Real.norm_eq_abs]; exact hle N) hE
+  have := tendsto_nhds_unique hs.hasSum.tendsto_sum_nat hlim
+  rw [← this]
+  exact hs.hasSum
+
+/-! ### The recursive form of (2.8) and (B.14) without a growth restriction -/
+
+/-- Woodford (2003), App. B.3, p. 659: `log µ + log S_t + ω̃θ log P_t` is known at `t` when
+`log S` is adapted and the price index is predetermined. -/
+theorem E_costTerm_self {m w : ℝ} {s P : ℕ → Ω → ℝ} (hsa : 𝔼.Adapted s)
+    (hpre : ∀ t, 𝔼.E t (P (t + 1)) = P (t + 1)) (t : ℕ) :
+    𝔼.E t (costTerm m w s P t) = costTerm m w s P t := by
+  have hf : costTerm m w s P t = (fun _ => m) + s t + w • P (t + 1) := by
+    funext ω
+    simp [costTerm]
+  rw [hf, map_add, map_add, 𝔼.const, hsa t, map_smul, hpre t]
+
+/-- Woodford (2003), App. B.3, p. 659 (**the recursive form of (2.8), sign corrected, for every
+solution**): if (2.8) holds at every date, `log S` is adapted and the price index predetermined,
+then `log p*_t = (1 − αβ)/(1 + ω̃θ)[log µ + log S_t + ω̃θ log P_t] + αβ E_t log p*_{t+1}` — no
+difference-stationarity needed (contrast `Calvo.recursive_reset_price`). -/
+theorem recursive_reset_price_any {α β w m : ℝ} {s P pstar : ℕ → Ω → ℝ} (hsa : 𝔼.Adapted s)
+    (hpre : ∀ t, 𝔼.E t (P (t + 1)) = P (t + 1)) (h28 : Eq28 𝔼 α β w m s P pstar) (t : ℕ) :
+    pstar t = ((1 - α * β) / (1 + w)) • costTerm m w s P t + (α * β) • 𝔼.E t (pstar (t + 1)) := by
+  set f : ℕ → Ω → ℝ := fun j => (α * β) ^ j • 𝔼.E (t + 1) (costTerm m w s P (t + 1 + j)) with hf
+  have hF : pstar (t + 1) = ((1 - α * β) / (1 + w)) • fun ω => ∑' j, f j ω := by
+    funext ω
+    rw [(h28 (t + 1) ω).2]
+    rfl
+  have hsumF : ∀ ω, HasSum (fun j => f j ω) (∑' j, f j ω) := fun ω => (h28 (t + 1) ω).1.hasSum
+  have hint := fun ω => E_hasSum 𝔼 hsumF t ω
+  funext ω
+  have hterm : ∀ j, 𝔼.E t (f j) ω = (α * β) ^ j * 𝔼.E t (costTerm m w s P (t + 1 + j)) ω := by
+    intro j
+    rw [hf]
+    simp only
+    rw [map_smul, 𝔼.tower (Nat.le_succ t)]
+    rfl
+  obtain ⟨hs0, hv0⟩ := h28 t ω
+  have hEp : 𝔼.E t (pstar (t + 1)) ω
+      = (1 - α * β) / (1 + w) * ∑' j, (α * β) ^ j * 𝔼.E t (costTerm m w s P (t + 1 + j)) ω := by
+    rw [hF, map_smul, Pi.smul_apply, smul_eq_mul, (hint ω).tsum_eq.symm]
+    simp_rw [hterm]
+  rw [Pi.add_apply, Pi.smul_apply, Pi.smul_apply, smul_eq_mul, smul_eq_mul, hEp, hv0,
+    hs0.tsum_eq_zero_add]
+  have htail : ∑' j, (α * β) ^ (j + 1) * 𝔼.E t (costTerm m w s P (t + (j + 1))) ω
+      = α * β * ∑' j, (α * β) ^ j * 𝔼.E t (costTerm m w s P (t + 1 + j)) ω := by
+    rw [← tsum_mul_left]
+    refine tsum_congr fun j => ?_
+    rw [show t + (j + 1) = t + 1 + j by omega, pow_succ]
+    ring
+  rw [htail, pow_zero, one_mul, add_zero, congrFun (E_costTerm_self 𝔼 hsa hpre t) ω]
+  ring
+
+/-- Woodford (2003), (B.14), p. 660 (**for every predetermined solution**): every solution of
+(2.5) and (2.8) with predetermined price index satisfies
+`z_t = λ₂⁻¹ E_t z_{t+1} + (1 − λ₁)(1 − λ₂⁻¹)(log µ + log S_t)`, `z_t = log P_t − λ₁ log P_{t−1}`,
+with no difference-stationarity hypothesis (contrast `Calvo.solution_B14`). -/
+theorem solution_B14_any {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hw : 0 < 1 + w) {s P pstar : ℕ → Ω → ℝ} (hsa : 𝔼.Adapted s)
+    (hpre : ∀ t, 𝔼.E t (P (t + 1)) = P (t + 1)) (h25 : Eq25 α P pstar)
+    (h28 : Eq28 𝔼 α β w m s P pstar) (t : ℕ) (ω : Ω) :
+    P (t + 1) ω - lam1 β (calvoXi α β w) * P t ω
+      = (lam2 β (calvoXi α β w))⁻¹ * (𝔼.E t (P (t + 2)) ω - lam1 β (calvoXi α β w) * P (t + 1) ω)
+        + (1 - lam1 β (calvoXi α β w)) * (1 - (lam2 β (calvoXi α β w))⁻¹) * (m + s t ω) := by
+  have hr := congrFun (recursive_reset_price_any 𝔼 hsa hpre h28 t) ω
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, costTerm] at hr
+  rw [E_pstar_succ 𝔼 hα1 h25 hpre t ω, congrFun (pstar_of_eq25 hα1 h25 t) ω] at hr
+  exact (B13_iff_B14 hβ0 (calvoXi_pos hα0 hα1 hβ1 hw) _ _ _ _).mp
+    ((recursive_iff_B13 hα0 hα1 hw.ne' _ _ _ _).mp hr)
+
+/-! ### Proposition 3.4 with `ω̃θ < 0`: uniqueness among all solutions -/
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 3.4 and App. B.3, p. 661: when `ω̃θ < 0`, `αβλ₂ ≥ 1` (so the
+explosive root is not discounted away by the `(αβ)ʲ` weights of (2.8)). -/
+theorem one_le_alpha_beta_lam2 {α β w : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) :
+    1 ≤ α * β * lam2 β (calvoXi α β w) := by
+  have hξ := calvoXi_pos hα0 hα1 hβ1 hw
+  rw [alpha_beta_lam2 hβ0 hξ, one_le_div (lam1_pos hβ0 hξ)]
+  by_contra hlt
+  push Not at hlt
+  have := (alpha_lt_lam1_calvo_iff hα0 hα1 hβ0 hβ1 hw).mp hlt
+  linarith
+
+omit 𝔼 in
+/-- Woodford (2003), App. B.3, p. 661: for `0 ≤ a < 1`, `aʲ (C + K j) → 0`. -/
+theorem tendsto_pow_mul_lin {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a < 1) (C K : ℝ) :
+    Tendsto (fun j : ℕ => a ^ j * (C + K * j)) atTop (𝓝 0) := by
+  have h1 := (tendsto_pow_atTop_nhds_zero_of_lt_one ha0 ha1).mul_const C
+  have h2 := (tendsto_self_mul_const_pow_of_lt_one ha0 ha1).const_mul K
+  have h := h1.add h2
+  simp only [zero_mul, mul_zero, add_zero] at h
+  refine h.congr fun j => ?_
+  ring
+
+/-- Woodford (2003), App. B.3, p. 661: for a difference-stationary `x`, `aʲ E_t x_{t+j} → 0` at
+every state when `0 ≤ a < 1`. -/
+theorem tendsto_pow_E_of_diffStationary {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a < 1) {x : ℕ → Ω → ℝ}
+    (hx : DiffStationary 𝔼 x) (t : ℕ) (ω : Ω) :
+    Tendsto (fun j : ℕ => a ^ j * 𝔼.E t (x (t + j)) ω) atTop (𝓝 0) := by
+  obtain ⟨K, hK0, hK⟩ := diffStationary_nonneg 𝔼 hx
+  have hb := tendsto_pow_mul_lin ha0 ha1 |x t ω| K
+  rw [tendsto_zero_iff_abs_tendsto_zero]
+  refine squeeze_zero (fun _ => abs_nonneg _) (fun j => ?_) hb
+  rw [Function.comp_apply, abs_mul, abs_of_nonneg (pow_nonneg ha0 j)]
+  refine mul_le_mul_of_nonneg_left ?_ (pow_nonneg ha0 j)
+  have := hK t j ω
+  have h2 := abs_sub_abs_le_abs_sub (𝔼.E t (x (t + j)) ω) (x t ω)
+  linarith
+
+/-- Woodford (2003), **Proposition 3.4 with `ω̃θ < 0`, uniqueness among all solutions, for every
+expectation system** (p. 182; App. B.3, pp. 659–661). Let `0 < α < 1`, `0 < β < 1`,
+`−1 < ω̃θ < 0`, `log S` adapted with bounded first differences. Every solution
+`(log P, log p*)` of (2.5) and (2.8) with predetermined price index and `log P_{−1} = P0` is
+(2.9): no difference-stationarity restriction is needed. -/
+theorem prop34_unique_of_w_neg {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) {s : ℕ → Ω → ℝ} (hsa : 𝔼.Adapted s)
+    (hsb : BoundedIncr s) {P0 : Ω → ℝ} {P pstar : ℕ → Ω → ℝ} (hP0 : P 0 = P0)
+    (hpre : ∀ t, 𝔼.E t (P (t + 1)) = P (t + 1)) (h25 : Eq25 α P pstar)
+    (h28 : Eq28 𝔼 α β w m s P pstar) :
+    P = Psol 𝔼 α β w m s P0 ∧ pstar = pstarSol 𝔼 α β w m s P0 := by
+  obtain ⟨hξ, hl0, hl1, ha0, -⟩ := calvo_roots hα0 hα1 hβ0 hβ1 hw
+  have hs := diffStationary_of_boundedIncr 𝔼 hsa hsb
+  obtain ⟨-, hzs, -⟩ := zbar_props 𝔼 (m := m) hα0 hα1 hβ0 hβ1 hw hsa hsb
+  have hB14 := solution_B14_any 𝔼 hα0 hα1 hβ0 hβ1 hw hsa hpre h25 h28
+  have hZ := fun t => congrFun (zbar_rec 𝔼 (m := m) hα0 hα1 hβ0 hβ1 hw hs t)
+  set l1 := lam1 β (calvoXi α β w)
+  set l2 := lam2 β (calvoXi α β w)
+  set a := l2⁻¹
+  set z := zbar 𝔼 α β w m s
+  set q := α * β
+  have hl2 : 1 < l2 := one_lt_lam2 hβ0 hξ
+  have hl2ne : l2 ≠ 0 := by linarith
+  have hq0 : 0 ≤ q := (mul_pos hα0 hβ0).le
+  have hq1 : q < 1 := by nlinarith
+  have hql2 : 1 ≤ q * l2 := one_le_alpha_beta_lam2 hα0 hα1 hβ0 hβ1 hwneg hw
+  set d : ℕ → Ω → ℝ := fun t ω => P (t + 1) ω - l1 * P t ω - z t ω with hd_def
+  have hd : ∀ t, d t = a • 𝔼.E t (d (t + 1)) := by
+    intro t
+    have hf : d (t + 1) = P (t + 1 + 1) - l1 • P (t + 1) - z (t + 1) := by
+      funext ω; simp [hd_def, smul_eq_mul]
+    funext ω
+    rw [hf, map_sub, map_sub, map_smul, hpre t]
+    have hb := hB14 t ω
+    have hz := hZ t ω
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul, mcost] at hz ⊢
+    simp only [hd_def]
+    linear_combination hb - hz
+  -- `E_t d_{t+k} = λ₂ᵏ d_t`
+  have hEd : ∀ t k ω, 𝔼.E t (d (t + k)) ω = l2 ^ k * d t ω := by
+    intro t k ω
+    have h := congrFun (𝔼.forward_iterate hd t k) ω
+    simp only [Pi.smul_apply, smul_eq_mul] at h
+    rw [h, ← mul_assoc, ← mul_pow, mul_inv_cancel₀ hl2ne, one_pow, one_mul]
+  -- every `d_t` vanishes
+  have hd0 : ∀ t ω, d t ω = 0 := by
+    intro t ω
+    set e : ℕ → ℝ := fun k => 𝔼.E t (P (t + 1 + k)) ω with he
+    -- `qᵏ e_k → 0` from the convergence of (2.8) at `t`
+    have hcost : Tendsto (fun j : ℕ => q ^ j * 𝔼.E t (costTerm m w s P (t + j)) ω) atTop (𝓝 0) :=
+      (h28 t ω).1.tendsto_atTop_zero
+    have hsj := tendsto_pow_E_of_diffStationary 𝔼 hq0 hq1 hs t ω
+    have hm := (tendsto_pow_atTop_nhds_zero_of_lt_one hq0 hq1).mul_const m
+    rw [zero_mul] at hm
+    have hcost' : ∀ j, q ^ j * 𝔼.E t (costTerm m w s P (t + j)) ω
+        = q ^ j * m + q ^ j * 𝔼.E t (s (t + j)) ω + w * (q ^ j * e j) := by
+      intro j
+      have hf : costTerm m w s P (t + j) = (fun _ => m) + s (t + j) + w • P (t + 1 + j) := by
+        funext ω'
+        simp only [costTerm, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+        rw [show t + j + 1 = t + 1 + j by omega]
+      rw [hf, map_add, map_add, 𝔼.const, map_smul]
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, he]
+      ring
+    have hwe : Tendsto (fun j : ℕ => w * (q ^ j * e j)) atTop (𝓝 0) := by
+      have h := (hcost.sub hm).sub hsj
+      simp only [sub_zero] at h
+      refine h.congr fun j => ?_
+      rw [hcost' j]
+      ring
+    have hqe : Tendsto (fun j : ℕ => q ^ j * e j) atTop (𝓝 0) := by
+      have h := hwe.const_mul w⁻¹
+      rw [mul_zero] at h
+      refine h.congr fun j => ?_
+      rw [← mul_assoc, inv_mul_cancel₀ hwneg.ne, one_mul]
+    -- `qᵏ E_t z_{t+k} → 0`
+    have hqz := tendsto_pow_E_of_diffStationary 𝔼 hq0 hq1 hzs t ω
+    -- the identity `E_t d_{t+k+1} = e_{k+1} − λ₁ e_k − E_t z_{t+k+1}`
+    have hid : ∀ k, (q * l2) ^ (k + 1) * d t ω
+        = q ^ (k + 1) * e (k + 1) - q * l1 * (q ^ k * e k)
+          - q ^ (k + 1) * 𝔼.E t (z (t + (k + 1))) ω := by
+      intro k
+      have hdk : d (t + (k + 1)) = P (t + 1 + (k + 1)) - l1 • P (t + 1 + k) - z (t + (k + 1)) := by
+        funext ω'
+        simp only [hd_def, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+        rw [show t + (k + 1) + 1 = t + 1 + (k + 1) by omega,
+          show t + (k + 1) = t + 1 + k by omega]
+      have h := hEd t (k + 1) ω
+      rw [hdk, map_sub, map_sub, map_smul] at h
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at h
+      rw [mul_pow, mul_assoc, ← h]
+      simp only [he]
+      ring
+    have hlim : Tendsto (fun k : ℕ => (q * l2) ^ (k + 1) * d t ω) atTop (𝓝 0) := by
+      have h1 := (tendsto_add_atTop_iff_nat 1).mpr hqe
+      have h2 := hqe.const_mul (q * l1)
+      have h3 := (tendsto_add_atTop_iff_nat 1).mpr hqz
+      have h := (h1.sub h2).sub h3
+      simp only [mul_zero, sub_zero] at h
+      exact h.congr fun k => (hid k).symm
+    have hle : ∀ k : ℕ, |d t ω| ≤ |(q * l2) ^ (k + 1) * d t ω| := by
+      intro k
+      rw [abs_mul, abs_of_nonneg (pow_nonneg (mul_nonneg hq0 (by linarith)) _)]
+      exact le_mul_of_one_le_left (abs_nonneg _) (one_le_pow₀ hql2)
+    have h0 : |d t ω| ≤ 0 :=
+      ge_of_tendsto' ((continuous_abs.tendsto 0).comp hlim |>.trans (by rw [abs_zero])) hle
+    exact abs_nonpos_iff.mp h0
+  have hP : P = Psol 𝔼 α β w m s P0 := by
+    funext t
+    induction t with
+    | zero => exact hP0
+    | succ t ih =>
+      funext ω
+      have h := hd0 t ω
+      simp only [hd_def] at h
+      change P (t + 1) ω = l1 * Psol 𝔼 α β w m s P0 t ω + z t ω
+      rw [← ih]
+      linarith
+  refine ⟨hP, ?_⟩
+  funext t ω
+  rw [congrFun (pstar_of_eq25 hα1 h25 t) ω, hP]
+  rfl
+
+/-- Woodford (2003), **Proposition 3.4 with `ω̃θ < 0`, existence and uniqueness among all
+solutions, for every expectation system**: under the hypotheses of `Calvo.prop34` (initial gap
+`log P_{−1} − log S_0` bounded) and `−1 < ω̃θ < 0`, (2.9) solves (2.5) and (2.8) with predetermined
+price index, and every predetermined solution with the same initial price level is (2.9). -/
+theorem prop34_existsUnique_of_w_neg {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) {s : ℕ → Ω → ℝ} (hsa : 𝔼.Adapted s)
+    (hsb : BoundedIncr s) {P0 : Ω → ℝ} (hP0 : 𝔼.E 0 P0 = P0)
+    (hinit : ∃ B, ∀ ω, |P0 ω - s 0 ω| ≤ B) :
+    (Psol 𝔼 α β w m s P0 0 = P0 ∧
+      (∀ t, 𝔼.E t (Psol 𝔼 α β w m s P0 (t + 1)) = Psol 𝔼 α β w m s P0 (t + 1)) ∧
+      Eq25 α (Psol 𝔼 α β w m s P0) (pstarSol 𝔼 α β w m s P0) ∧
+      Eq28 𝔼 α β w m s (Psol 𝔼 α β w m s P0) (pstarSol 𝔼 α β w m s P0)) ∧
+    ∀ P pstar : ℕ → Ω → ℝ, P 0 = P0 → (∀ t, 𝔼.E t (P (t + 1)) = P (t + 1)) →
+      Eq25 α P pstar → Eq28 𝔼 α β w m s P pstar →
+      P = Psol 𝔼 α β w m s P0 ∧ pstar = pstarSol 𝔼 α β w m s P0 := by
+  obtain ⟨⟨h0, hpre, h25, h28, -, -⟩, -⟩ :=
+    prop34 𝔼 (m := m) hα0 hα1 hβ0 hβ1 hw hsa hsb hP0 hinit
+  exact ⟨⟨h0, hpre, h25, h28⟩, fun P pstar hP0' hpre' h25' h28' =>
+    prop34_unique_of_w_neg 𝔼 hα0 hα1 hβ0 hβ1 hwneg hw hsa hsb hP0' hpre' h25' h28'⟩
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 3.4 with `ω̃θ < 0` **on every finite event tree** (genuine
+uncertainty, `ExpectationsFiniteTree.FiniteTree.toExpectationSystem`): every predetermined
+solution of (2.5) and (2.8) is (2.9). -/
+theorem prop34_unique_of_w_neg_tree {Ω : Type*} [Fintype Ω]
+    (T : ExpectationsFiniteTree.FiniteTree Ω) {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) {s : ℕ → Ω → ℝ}
+    (hsa : T.toExpectationSystem.Adapted s) (hsb : BoundedIncr s) {P0 : Ω → ℝ}
+    {P pstar : ℕ → Ω → ℝ} (hP0 : P 0 = P0)
+    (hpre : ∀ t, T.toExpectationSystem.E t (P (t + 1)) = P (t + 1)) (h25 : Eq25 α P pstar)
+    (h28 : Eq28 T.toExpectationSystem α β w m s P pstar) :
+    P = Psol T.toExpectationSystem α β w m s P0 ∧
+      pstar = pstarSol T.toExpectationSystem α β w m s P0 :=
+  prop34_unique_of_w_neg _ hα0 hα1 hβ0 hβ1 hwneg hw hsa hsb hP0 hpre h25 h28
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 3.4 with `ω̃θ < 0` under perfect foresight: the special case
+`Calvo.prop34_pf_unique_of_w_neg`, recovered from `prop34_unique_of_w_neg`. -/
+theorem prop34_unique_of_w_neg_pf {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) {s : ℕ → Unit → ℝ} (hsb : BoundedIncr s)
+    {P0 : Unit → ℝ} {P pstar : ℕ → Unit → ℝ} (h0 : P 0 = P0) (h25 : Eq25 α P pstar)
+    (h28 : Eq28 perfectForesight α β w m s P pstar) :
+    P = Psol perfectForesight α β w m s P0 :=
+  (prop34_unique_of_w_neg perfectForesight hα0 hα1 hβ0 hβ1 hwneg hw (fun _ => rfl) hsb h0
+    (fun _ => rfl) h25 h28).1
+
+end Woodford.NominalRigidities.TidyR5Prop34Uncertainty
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Measure-theoretic conditional expectations
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §2.1 and Appendix B.3 (pp. 659–661): the
+expectations `E_t` in (2.8) and (2.9) on a genuine probability space. Restated (the part needed
+here) from the Cochrane ObservationalEquivalence project's ExpectationsMeasure, with the namespace
+renamed.
+
+The core `ExpectationSystem` defines `E_t` on **all** functions `Ω → ℝ` with exact equalities.
+This module is the measure-theoretic counterpart: a probability space with a filtration and
+Mathlib's `condExp`, every property in its almost-everywhere form; `E_t` of a non-integrable
+function is Mathlib's junk value `0`, so integrability hypotheses appear where the core needs
+none.
+
+* `MeasExpectationSystem Ω` (fields `P : ProbabilityMeasure Ω`, `𝓕 : Filtration ℕ _`);
+  `S.μ` the measure, `S.E t x = S.μ[x | S.𝓕 t]`.
+* `E_add`, `E_sub`, `E_smul`, `E_const`, `E_mono`, `E_tower`, `E_known`, `E_E_self`,
+  `E_of_stronglyMeasurable`, `E_of_aestronglyMeasurable`, `E_congr`, `stronglyMeasurable_E`,
+  `integrable_E`, `integral_E`.
+* Bridge: `toExpectationSystem` (a finite discrete state space with full support gives a core
+  `ExpectationSystem` with the same `E_t`, `toExpectationSystem_E`).
+-/
+
+namespace Woodford.NominalRigidities.TidyR5ExpectationsMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+
+variable (Ω : Type*) [mΩ : MeasurableSpace Ω]
+
+/-- Woodford (2003), App. B.3 (the conditional expectations `E_t` of (2.8); restated from the
+Cochrane ObservationalEquivalence project): a probability space `(Ω, P)` with a filtration
+`𝓕 : ℕ → MeasurableSpace Ω`; `E_t x := P[x | 𝓕 t]`. -/
+structure MeasExpectationSystem where
+  /-- The probability measure. -/
+  P : ProbabilityMeasure Ω
+  /-- The information available at each date. -/
+  𝓕 : Filtration ℕ mΩ
+
+namespace MeasExpectationSystem
+
+variable {Ω} (S : MeasExpectationSystem Ω)
+
+/-- Woodford (2003), App. B.3: the probability measure as a measure. -/
+abbrev μ : Measure Ω := S.P
+
+/-- Woodford (2003), App. B.3: `E_t x = μ[x | 𝓕 t]`, Mathlib's conditional expectation. -/
+noncomputable abbrev E (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.μ[x | S.𝓕 t]
+
+/-- Woodford (2003), App. B.3: `E_t` is additive (a.e.). -/
+theorem E_add {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x + y) =ᵐ[S.μ] S.E t x + S.E t y := condExp_add hx hy _
+
+/-- Woodford (2003), App. B.3: `E_t` commutes with differences (a.e.). -/
+theorem E_sub {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x - y) =ᵐ[S.μ] S.E t x - S.E t y := condExp_sub hx hy _
+
+/-- Woodford (2003), App. B.3: `E_t` is homogeneous (a.e.). -/
+theorem E_smul (c : ℝ) (x : Ω → ℝ) (t : ℕ) : S.E t (c • x) =ᵐ[S.μ] c • S.E t x :=
+  condExp_smul c x _
+
+/-- Woodford (2003), App. B.3: constants are known (exactly). -/
+theorem E_const (t : ℕ) (c : ℝ) : S.E t (fun _ => c) = fun _ => c :=
+  condExp_const (S.𝓕.le t) c
+
+/-- Woodford (2003), App. B.3: `E_t` is monotone (a.e.). -/
+theorem E_mono {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ)
+    (hxy : x ≤ᵐ[S.μ] y) (t : ℕ) : S.E t x ≤ᵐ[S.μ] S.E t y := condExp_mono hx hy hxy
+
+/-- Woodford (2003), App. B.3: the law of iterated expectations `E_s E_t = E_s`, `s ≤ t` (a.e.). -/
+theorem E_tower {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.E t x) =ᵐ[S.μ] S.E s x :=
+  condExp_condExp_of_le (S.𝓕.mono hst) (S.𝓕.le t)
+
+/-- Woodford (2003), App. B.3: `E_t x` is `𝓕 t`-strongly measurable. -/
+theorem stronglyMeasurable_E (t : ℕ) (x : Ω → ℝ) : StronglyMeasurable[S.𝓕 t] (S.E t x) :=
+  stronglyMeasurable_condExp
+
+/-- Woodford (2003), App. B.3: `E_t x` is integrable. -/
+theorem integrable_E (t : ℕ) (x : Ω → ℝ) : Integrable (S.E t x) S.μ := integrable_condExp
+
+/-- Woodford (2003), App. B.3: what is known at `t` is its own forecast (exactly). -/
+theorem E_of_stronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    (hi : Integrable x S.μ) : S.E t x = x :=
+  condExp_of_stronglyMeasurable (S.𝓕.le t) hx hi
+
+/-- Woodford (2003), App. B.3: what is a.e. known at `t` is a.e. its own forecast. -/
+theorem E_of_aestronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : AEStronglyMeasurable[S.𝓕 t] x S.μ)
+    (hi : Integrable x S.μ) : S.E t x =ᵐ[S.μ] x :=
+  condExp_of_aestronglyMeasurable' (S.𝓕.le t) hx hi
+
+/-- Woodford (2003), App. B.3: earlier forecasts are known later, `E_t E_s = E_s` for `s ≤ t`
+(exactly). -/
+theorem E_known {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E t (S.E s x) = S.E s x :=
+  S.E_of_stronglyMeasurable ((S.stronglyMeasurable_E s x).mono (S.𝓕.mono hst))
+    (S.integrable_E s x)
+
+/-- Woodford (2003), App. B.3: `E_t` is idempotent (exactly). -/
+theorem E_E_self (t : ℕ) (x : Ω → ℝ) : S.E t (S.E t x) = S.E t x := S.E_known le_rfl x
+
+/-- Woodford (2003), App. B.3: `E_t` respects a.e. equality. -/
+theorem E_congr {x y : Ω → ℝ} (h : x =ᵐ[S.μ] y) (t : ℕ) : S.E t x =ᵐ[S.μ] S.E t y :=
+  condExp_congr_ae h
+
+/-- Woodford (2003), App. B.3: the unconditional mean of a forecast is the mean. -/
+theorem integral_E (t : ℕ) (x : Ω → ℝ) : ∫ ω, S.E t x ω ∂S.μ = ∫ ω, x ω ∂S.μ :=
+  integral_condExp (S.𝓕.le t)
+
+/-! ### Bridge to the core `ExpectationSystem` on a finite, fully supported state space -/
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): when
+every state has positive probability, a.e. equality is equality. -/
+theorem eq_of_ae_eq (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f =ᵐ[S.μ] g) : f = g := by
+  funext ω
+  by_contra hne
+  have h0 : S.μ {ω' | f ω' ≠ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): when
+every state has positive probability, a.e. inequality is inequality. -/
+theorem le_of_ae_le (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f ≤ᵐ[S.μ] g) : f ≤ g := by
+  intro ω
+  by_contra hne
+  have h0 : S.μ {ω' | ¬ f ω' ≤ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): `E_t`
+as a linear map on all of `Ω → ℝ`, for a finite discrete state space with full support. -/
+noncomputable def ELin [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (t : ℕ) : (Ω → ℝ) →ₗ[ℝ] (Ω → ℝ) where
+  toFun := S.E t
+  map_add' _ _ := S.eq_of_ae_eq hfull (S.E_add Integrable.of_finite Integrable.of_finite t)
+  map_smul' c x := S.eq_of_ae_eq hfull (S.E_smul c x t)
+
+/-- Woodford (2003), App. B.3 (**bridge**; restated from the Cochrane ObservationalEquivalence
+project): on a finite discrete state space with full support, a measure-theoretic expectation
+system is a core `ExpectationSystem` with the same `E_t` at every state, so every core theorem
+applies to it. -/
+noncomputable def toExpectationSystem [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : ExpectationSystem Ω where
+  E := S.ELin hfull
+  const := S.E_const
+  mono t _ _ h := S.le_of_ae_le hfull
+    (S.E_mono Integrable.of_finite Integrable.of_finite (Eventually.of_forall h) t)
+  tower hst x := S.eq_of_ae_eq hfull (S.E_tower hst x)
+  known hst x := S.E_known hst x
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+core system's `E_t` is Mathlib's conditional expectation, exactly. -/
+theorem toExpectationSystem_E [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) (t : ℕ) (x : Ω → ℝ) :
+    (S.toExpectationSystem hfull).E t x = S.E t x := rfl
+
+end MeasExpectationSystem
+
+end Woodford.NominalRigidities.TidyR5ExpectationsMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A genuine infinite-horizon probability space: i.i.d. shocks
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §2.1 and Appendix B.3 (pp. 659–661): an
+economy with genuine uncertainty in which to test Proposition 3.4. Restated (the part needed
+here) from the Cochrane ObservationalEquivalence project's ExpectationsMeasureIID, with the
+renamed namespace, plus the uniform law on `[0, 1]`.
+
+The state space is `Ω = ℕ → ℝ` with the infinite product `ν^ℕ` of a law `ν` on `ℝ` (Mathlib's
+`Measure.infinitePi`), the shocks are the coordinates `ε_t(ω) = ω_t`, and the filtration is the
+natural one, `𝓕_t = σ(ε_0, …, ε_t)` (Mathlib's `Filtration.piLE`).
+
+* `iidSystem ν`; `measurable_shock` (`ε_s` is known at `t ≥ s`).
+* `indep_future`, `E_future`, `E_shock_fun` (`E_t f(ε_{t+1}) = ∫ f dν`), `integral_shock_fun`.
+* `unif`: the uniform law on `[0, 1]`, with `unif_real_Ioc` (`ν((0, a]) = a` for `0 ≤ a ≤ 1`).
+-/
+
+namespace Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open TidyR5ExpectationsMeasure
+
+variable (ν : ProbabilityMeasure ℝ)
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+law of the i.i.d. shock sequence, the infinite product `ν^ℕ` on `Ω = ℕ → ℝ`. -/
+noncomputable def iidProb : ProbabilityMeasure (ℕ → ℝ) :=
+  ⟨Measure.infinitePi (fun _ => (ν : Measure ℝ)), inferInstance⟩
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+i.i.d. expectation system — `Ω = ℕ → ℝ`, `μ = ν^ℕ`, `𝓕_t = σ(ε_0, …, ε_t)`. -/
+noncomputable def iidSystem : MeasExpectationSystem (ℕ → ℝ) := ⟨iidProb ν, Filtration.piLE⟩
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+shock of date `s ≤ t` is known at `t`. -/
+theorem measurable_shock {s t : ℕ} (hst : s ≤ t) :
+    Measurable[(iidSystem ν).𝓕 t] (fun ω : ℕ → ℝ => ω s) := by
+  change Measurable[MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi] (fun ω => Preorder.restrictLe (π := fun _ : ℕ => ℝ) t ω ⟨s, hst⟩)
+  exact (measurable_pi_apply (⟨s, hst⟩ : Set.Iic t)).comp (comap_measurable _)
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+σ-algebra generated by the date-`j` shock. -/
+abbrev coordSigma (j : ℕ) : MeasurableSpace (ℕ → ℝ) :=
+  MeasurableSpace.comap (fun ω : ℕ → ℝ => ω j) inferInstance
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+σ-algebra of the future shocks `ε_{t+1}, ε_{t+2}, …`. -/
+abbrev futureSigma (t : ℕ) : MeasurableSpace (ℕ → ℝ) := ⨆ j ∈ Set.Ioi t, coordSigma j
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): each
+shock σ-algebra is a sub-σ-algebra. -/
+theorem coordSigma_le (j : ℕ) : coordSigma j ≤ MeasurableSpace.pi :=
+  (measurable_pi_apply j).comap_le
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+future σ-algebra is a sub-σ-algebra. -/
+theorem futureSigma_le (t : ℕ) : futureSigma t ≤ MeasurableSpace.pi :=
+  iSup₂_le fun j _ => coordSigma_le j
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+shocks are mutually independent under `ν^ℕ`. -/
+theorem iIndep_coord : iIndep coordSigma (iidSystem ν).μ :=
+  (iIndepFun_infinitePi (P := fun _ => (ν : Measure ℝ)) (X := fun _ => id)
+    (fun _ => measurable_id)).iIndep
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project):
+date-`t` information is generated by `ε_0, …, ε_t`. -/
+theorem filtration_le_past (t : ℕ) :
+    (iidSystem ν).𝓕 t ≤ ⨆ j ∈ Set.Iic t, coordSigma j := by
+  change MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi ≤ _
+  simp only [MeasurableSpace.pi, MeasurableSpace.comap_iSup, MeasurableSpace.comap_comp]
+  refine iSup_le fun j => ?_
+  exact le_iSup₂ (f := fun i (_ : i ∈ Set.Iic t) => coordSigma i) j.1 j.2
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+future shocks are independent of date-`t` information. -/
+theorem indep_future (t : ℕ) : Indep (futureSigma t) ((iidSystem ν).𝓕 t) (iidSystem ν).μ :=
+  indep_of_indep_of_le_right (indep_iSup_of_disjoint coordSigma_le (iIndep_coord ν)
+    (Set.disjoint_left.2 fun _ h1 h2 => absurd (Set.mem_Ioi.1 h1) (not_lt.2 (Set.mem_Iic.1 h2))))
+    (filtration_le_past ν t)
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): the
+forecast of a function of the future is its unconditional mean, `E_t g = E g` a.e. -/
+theorem E_future (t : ℕ) {g : (ℕ → ℝ) → ℝ} (hg : StronglyMeasurable[futureSigma t] g) :
+    (iidSystem ν).E t g =ᵐ[(iidSystem ν).μ] fun _ => ∫ ω, g ω ∂(iidSystem ν).μ :=
+  condExp_indep_eq (futureSigma_le t) ((iidSystem ν).𝓕.le t) hg (indep_future ν t)
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): a
+function of the next shock is measurable for the future. -/
+theorem measurable_future_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    Measurable[futureSigma t] (fun ω : ℕ → ℝ => f (ω (t + 1))) :=
+  hf.comp (Measurable.of_comap_le
+    (le_iSup₂ (f := fun i (_ : i ∈ Set.Ioi t) => coordSigma i) (t + 1) (Nat.lt_succ_self t)))
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project): each
+shock has law `ν`, so `E f(ε_i) = ∫ f dν`. -/
+theorem integral_shock_fun (i : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    ∫ ω, f (ω i) ∂(iidSystem ν).μ = ∫ x, f x ∂(ν : Measure ℝ) := by
+  have h := integral_map (μ := Measure.infinitePi (fun _ => (ν : Measure ℝ)))
+    (φ := fun ω : ℕ → ℝ => ω i) (measurable_pi_apply i).aemeasurable
+    (f := f) hf.aestronglyMeasurable
+  rw [Measure.infinitePi_map_eval] at h
+  exact h.symm
+
+/-- Woodford (2003), App. B.3 (restated from the Cochrane ObservationalEquivalence project):
+`E_t f(ε_{t+1}) = ∫ f dν` a.e. -/
+theorem E_shock_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    (iidSystem ν).E t (fun ω => f (ω (t + 1))) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, f x ∂(ν : Measure ℝ) := by
+  rw [← integral_shock_fun ν (t + 1) hf]
+  exact E_future ν t (measurable_future_fun t hf).stronglyMeasurable
+
+/-! ### The uniform law on `[0, 1]` -/
+
+/-- Woodford (2003), App. B.3: Lebesgue measure on `[0, 1]` has total mass one. -/
+theorem unifMeasure_univ : (volume.restrict (Set.Icc (0 : ℝ) 1)) Set.univ = 1 := by
+  rw [Measure.restrict_apply_univ, Real.volume_Icc]
+  norm_num
+
+/-- Woodford (2003), App. B.3: the uniform law on `[0, 1]`, the shock law of the i.i.d.
+economy used to test Proposition 3.4 under uncertainty. -/
+noncomputable def unif : ProbabilityMeasure ℝ :=
+  ⟨volume.restrict (Set.Icc (0 : ℝ) 1), ⟨unifMeasure_univ⟩⟩
+
+/-- Woodford (2003), App. B.3: under the uniform law, `ν((0, a]) = a` for `0 ≤ a ≤ 1`. -/
+theorem unif_real_Ioc {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
+    (unif : Measure ℝ).real (Set.Ioc 0 a) = a := by
+  change (volume.restrict (Set.Icc (0 : ℝ) 1)).real (Set.Ioc 0 a) = a
+  rw [measureReal_def, Measure.restrict_apply measurableSet_Ioc,
+    Set.inter_eq_left.mpr (show Set.Ioc (0 : ℝ) a ⊆ Set.Icc 0 1 from
+      fun x hx => Set.mem_Icc.mpr ⟨hx.1.le, hx.2.trans ha1⟩), Real.volume_Ioc,
+    sub_zero, ENNReal.toReal_ofReal ha0]
+
+end Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 3.4 with `ω̃θ < 0` on a genuine probability space
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §2.1, Proposition 3.4 (p. 182) and
+Appendix B.3 (pp. 659–661), with `E_t` Mathlib's conditional expectation on a probability space
+(`TidyR5ExpectationsMeasure.MeasExpectationSystem`).
+
+On an infinite probability space `E_t` is only defined (non-junk) on integrable functions, and the
+dominated-convergence argument of `TidyR5Prop34Uncertainty.E_hasSum` is no longer available: an
+almost-everywhere convergent forward sum need not commute with `E_t`. The correct statement
+needs the forward sum of (2.8) to converge **in `L¹`** (`L1Fwd`), and then:
+
+* `prop34_unique_of_w_neg_L1`: for `−1 < ω̃θ < 0`, any two solutions of (2.5) and (2.8)
+  (`MEq28`, the a.e. form of (2.8)) with integrable, predetermined price indices, the same initial
+  price level and `L¹`-convergent forward sums coincide almost surely — no difference-stationarity
+  restriction and no restriction on marginal cost beyond integrability.
+
+Without `L1Fwd` the statement is false: `TidyR5Prop34NonUnique` builds, on an i.i.d. economy,
+a second integrable predetermined solution of (2.5) and (2.8) with absolutely convergent forward
+sums at every state. The key analytic lemma is `condExp_tsum_of_summable_integral`
+(`E_t` through an `L¹`-convergent series).
+
+On a finite fully supported probability space the measure-theoretic system is a core
+`ExpectationSystem` (`TidyR5ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`), and
+uniqueness holds with no `L¹` condition (`prop34_unique_of_w_neg_finite`).
+-/
+
+namespace Woodford.NominalRigidities.TidyR5Prop34Measure
+
+open MeasureTheory Filter Topology Calvo QuadraticRoots
+open TidyR5ExpectationsMeasure
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-- Woodford (2003), eq. (2.8), p. 181, on a probability space: almost surely, at every date the
+forward sum `∑_j (αβ)ʲ E_t[log µ + log S_{t+j} + ω̃θ log P_{t+j}]` converges and
+`log p*_t = (1 − αβ)/(1 + ω̃θ)` times it. -/
+def MEq28 (α β w m : ℝ) (s P pstar : ℕ → Ω → ℝ) : Prop :=
+  ∀ᵐ ω ∂S.μ, ∀ t, Summable (fun j => (α * β) ^ j * S.E t (costTerm m w s P (t + j)) ω) ∧
+    pstar t ω = (1 - α * β) / (1 + w) * ∑' j, (α * β) ^ j * S.E t (costTerm m w s P (t + j)) ω
+
+/-- Woodford (2003), eq. (2.8), p. 181 (**the forward sum converges in `L¹`**):
+`∑_j (αβ)ʲ ‖E_t c_{t+j}‖_{L¹} < ∞` at every date. -/
+def L1Fwd (α β : ℝ) (c : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, Summable (fun j => (α * β) ^ j * ∫ ω, |S.E t (c (t + j)) ω| ∂S.μ)
+
+omit [MeasurableSpace Ω] in
+/-- Woodford (2003), eq. (2.8): the cost terms of two price paths differ by `ω̃θ` times the
+difference of the price indices. -/
+theorem costTerm_sub (m w : ℝ) (s P P' : ℕ → Ω → ℝ) (t j : ℕ) :
+    costTerm m w s P (t + j) - costTerm m w s P' (t + j)
+      = w • (P (t + 1 + j) - P' (t + 1 + j)) := by
+  funext ω
+  simp only [costTerm, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  rw [show t + j + 1 = t + 1 + j by omega]
+  ring
+
+/-- Woodford (2003), App. B.3, p. 659 (**`E_t` through an `L¹`-convergent series**): if every
+`f_j` is integrable and `∑_j ‖f_j‖_{L¹} < ∞`, then `E_t ∑_j f_j = ∑_j E_t f_j` a.e. -/
+theorem condExp_tsum_of_summable_integral {f : ℕ → Ω → ℝ} (hf : ∀ j, Integrable (f j) S.μ)
+    (hs : Summable (fun j => ∫ ω, |f j ω| ∂S.μ)) (t : ℕ) :
+    S.E t (fun ω => ∑' j, f j ω) =ᵐ[S.μ] fun ω => ∑' j, S.E t (f j) ω := by
+  refine condExp_tsum (fun j => (hf j).aestronglyMeasurable) ?_
+  have he : ∀ j, ∫⁻ ω, ‖f j ω‖ₑ ∂S.μ = ENNReal.ofReal (∫ ω, |f j ω| ∂S.μ) := by
+    intro j
+    rw [← ofReal_integral_norm_eq_lintegral_enorm (hf j)]
+    rfl
+  simp_rw [he]
+  rw [← ENNReal.ofReal_tsum_of_nonneg (fun j => integral_nonneg fun ω => abs_nonneg _) hs]
+  exact ENNReal.ofReal_ne_top
+
+/-- Woodford (2003), **Proposition 3.4 with `ω̃θ < 0` on a probability space** (p. 182; App. B.3,
+pp. 659–661). Let `0 < α < 1`, `0 < β < 1`, `−1 < ω̃θ < 0`, and let marginal cost `log S_t` be
+integrable at every date. Take two solutions `(log P, log p*)`, `(log P', log p*')` of (2.5) and
+(2.8) (a.e. form `MEq28`) with integrable price indices, predetermined (`log P_t` known at `t`),
+almost surely equal initial price levels, and forward sums converging in `L¹` (`L1Fwd`). Then
+the price indices and reset prices coincide almost surely at every date. -/
+theorem prop34_unique_of_w_neg_L1 {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) {s P pstar P' pstar' : ℕ → Ω → ℝ}
+    (hsi : ∀ t, Integrable (s t) S.μ) (hPi : ∀ t, Integrable (P t) S.μ)
+    (hPi' : ∀ t, Integrable (P' t) S.μ) (hpre : ∀ t, StronglyMeasurable[S.𝓕 t] (P (t + 1)))
+    (hpre' : ∀ t, StronglyMeasurable[S.𝓕 t] (P' (t + 1))) (h0 : P 0 =ᵐ[S.μ] P' 0)
+    (h25 : Eq25 α P pstar) (h25' : Eq25 α P' pstar') (h28 : MEq28 S α β w m s P pstar)
+    (h28' : MEq28 S α β w m s P' pstar') (hL : L1Fwd S α β (costTerm m w s P))
+    (hL' : L1Fwd S α β (costTerm m w s P')) :
+    ∀ t, P t =ᵐ[S.μ] P' t ∧ pstar t =ᵐ[S.μ] pstar' t := by
+  obtain ⟨hξ, hl0, -, -, -⟩ := calvo_roots hα0 hα1 hβ0 hβ1 hw
+  set l1 := lam1 β (calvoXi α β w)
+  set l2 := lam2 β (calvoXi α β w)
+  have hl2 : 1 < l2 := one_lt_lam2 hβ0 hξ
+  have hl2ne : l2 ≠ 0 := by linarith
+  have hq0 : 0 ≤ α * β := (mul_pos hα0 hβ0).le
+  have hql2 : 1 ≤ α * β * l2 :=
+    TidyR5Prop34Uncertainty.one_le_alpha_beta_lam2 hα0 hα1 hβ0 hβ1 hwneg hw
+  have hw0 : w ≠ 0 := hwneg.ne
+  have h1a : (1 : ℝ) - α ≠ 0 := by linarith
+  set X : ℕ → Ω → ℝ := fun t => P t - P' t with hX
+  have hXi : ∀ t, Integrable (X t) S.μ := fun t => (hPi t).sub (hPi' t)
+  have hXm : ∀ t, StronglyMeasurable[S.𝓕 t] (X (t + 1)) := fun t => (hpre t).sub (hpre' t)
+  have hXE : ∀ t, S.E t (X (t + 1)) = X (t + 1) := fun t =>
+    S.E_of_stronglyMeasurable (hXm t) (hXi (t + 1))
+  have hci : ∀ (Q : ℕ → Ω → ℝ), (∀ t, Integrable (Q t) S.μ) → ∀ T,
+      Integrable (costTerm m w s Q T) S.μ := by
+    intro Q hQ T
+    exact ((integrable_const m).add (hsi T)).add ((hQ (T + 1)).const_mul w)
+  -- forecasts of the price difference
+  set Y : ℕ → ℕ → Ω → ℝ := fun t j => S.E t (X (t + 1 + j)) with hY
+  have hEdiff : ∀ t j, S.E t (costTerm m w s P (t + j)) - S.E t (costTerm m w s P' (t + j))
+      =ᵐ[S.μ] w • Y t j := by
+    intro t j
+    refine (S.E_sub (hci P hPi (t + j)) (hci P' hPi' (t + j)) t).symm.trans ?_
+    rw [costTerm_sub]
+    exact S.E_smul w _ t
+  have hEdiff' : ∀ᵐ ω ∂S.μ, ∀ t j, S.E t (costTerm m w s P (t + j)) ω
+      - S.E t (costTerm m w s P' (t + j)) ω = w * Y t j ω := by
+    rw [ae_all_iff]; intro t; rw [ae_all_iff]; intro j
+    filter_upwards [hEdiff t j] with ω h
+    simpa using h
+  -- the difference solves the homogeneous forward condition a.e.
+  have hC : ∀ᵐ ω ∂S.μ, ∀ t, Summable (fun j => (α * β) ^ j * Y t j ω) ∧
+      X (t + 1) ω - α * X t ω
+        = (1 - α) * ((1 - α * β) / (1 + w)) * w * ∑' j, (α * β) ^ j * Y t j ω := by
+    filter_upwards [h28, h28', hEdiff'] with ω h1 h2 h3 t
+    obtain ⟨hs1, hv1⟩ := h1 t
+    obtain ⟨hs2, hv2⟩ := h2 t
+    have hterm : ∀ j, (α * β) ^ j * Y t j ω = w⁻¹ * ((α * β) ^ j *
+        S.E t (costTerm m w s P (t + j)) ω
+          - (α * β) ^ j * S.E t (costTerm m w s P' (t + j)) ω) := by
+      intro j
+      rw [← mul_sub, h3 t j]
+      field_simp
+    have hsum : Summable (fun j => (α * β) ^ j * Y t j ω) := by
+      simp_rw [hterm]
+      exact (hs1.sub hs2).mul_left _
+    refine ⟨hsum, ?_⟩
+    have hdiff : pstar t ω - pstar' t ω
+        = (1 - α * β) / (1 + w) * w * ∑' j, (α * β) ^ j * Y t j ω := by
+      rw [hv1, hv2, ← mul_sub, ← hs1.tsum_sub hs2]
+      simp_rw [hterm]
+      rw [tsum_mul_left]
+      field_simp
+    simp only [hX, Pi.sub_apply]
+    rw [h25 t ω, h25' t ω]
+    linear_combination (1 - α) * hdiff
+  -- `L¹` bounds on the forecasts of the difference
+  have hYL : ∀ t, Summable (fun j => (α * β) ^ j * ∫ ω, |Y t j ω| ∂S.μ) := by
+    intro t
+    have hb : ∀ j, (α * β) ^ j * ∫ ω, |Y t j ω| ∂S.μ ≤ |w|⁻¹ * ((α * β) ^ j *
+        ∫ ω, |S.E t (costTerm m w s P (t + j)) ω| ∂S.μ + (α * β) ^ j *
+        ∫ ω, |S.E t (costTerm m w s P' (t + j)) ω| ∂S.μ) := by
+      intro j
+      have hint : ∫ ω, |Y t j ω| ∂S.μ ≤ |w|⁻¹ * (∫ ω, |S.E t (costTerm m w s P (t + j)) ω| ∂S.μ
+          + ∫ ω, |S.E t (costTerm m w s P' (t + j)) ω| ∂S.μ) := by
+        rw [← integral_add (S.integrable_E t _).abs (S.integrable_E t _).abs,
+          ← integral_const_mul]
+        refine integral_mono_ae (S.integrable_E t _).abs
+          (((S.integrable_E t _).abs.add (S.integrable_E t _).abs).const_mul _) ?_
+        filter_upwards [hEdiff'] with ω h
+        have e : |Y t j ω| = |w|⁻¹ * |S.E t (costTerm m w s P (t + j)) ω
+            - S.E t (costTerm m w s P' (t + j)) ω| := by
+          rw [h t j, abs_mul]
+          field_simp
+        rw [e]
+        exact mul_le_mul_of_nonneg_left (abs_sub _ _) (inv_nonneg.mpr (abs_nonneg w))
+      calc (α * β) ^ j * ∫ ω, |Y t j ω| ∂S.μ
+          ≤ (α * β) ^ j * (|w|⁻¹ * (∫ ω, |S.E t (costTerm m w s P (t + j)) ω| ∂S.μ
+            + ∫ ω, |S.E t (costTerm m w s P' (t + j)) ω| ∂S.μ)) :=
+            mul_le_mul_of_nonneg_left hint (pow_nonneg hq0 j)
+        _ = _ := by ring
+    refine Summable.of_nonneg_of_le (fun j => mul_nonneg (pow_nonneg hq0 j)
+      (integral_nonneg fun ω => abs_nonneg _)) hb ?_
+    exact ((hL t).add (hL' t)).mul_left _
+  -- `E_t` passes through the date-`t+1` forward sum
+  have hswap : ∀ t, S.E t (fun ω => ∑' j, (α * β) ^ j * Y (t + 1) j ω)
+      =ᵐ[S.μ] fun ω => ∑' j, (α * β) ^ j * Y t (j + 1) ω := by
+    intro t
+    have hfi : ∀ j, Integrable (fun ω => (α * β) ^ j * Y (t + 1) j ω) S.μ :=
+      fun j => (S.integrable_E _ _).const_mul _
+    have hfs : Summable (fun j => ∫ ω, |(α * β) ^ j * Y (t + 1) j ω| ∂S.μ) := by
+      refine (hYL (t + 1)).congr fun j => ?_
+      simp_rw [abs_mul, abs_of_nonneg (pow_nonneg hq0 j)]
+      rw [integral_const_mul]
+    refine (condExp_tsum_of_summable_integral S hfi hfs t).trans ?_
+    have hterm : ∀ j, S.E t (fun ω => (α * β) ^ j * Y (t + 1) j ω)
+        =ᵐ[S.μ] fun ω => (α * β) ^ j * Y t (j + 1) ω := by
+      intro j
+      have e1 : (fun ω => (α * β) ^ j * Y (t + 1) j ω) = (α * β) ^ j • Y (t + 1) j := rfl
+      rw [e1]
+      refine (S.E_smul _ _ t).trans ?_
+      have e2 : Y t (j + 1) = S.E t (X (t + 1 + 1 + j)) := by
+        simp only [hY]
+        rw [show t + 1 + (j + 1) = t + 1 + 1 + j by omega]
+      filter_upwards [S.E_tower (Nat.le_succ t) (X (t + 1 + 1 + j))] with ω h
+      simp only [Pi.smul_apply, smul_eq_mul, hY] at h ⊢
+      rw [h, ← congrFun e2 ω]
+    filter_upwards [ae_all_iff.mpr hterm] with ω h
+    exact tsum_congr fun j => h j
+  -- the homogeneous (B.13): `X_{t+1} − αX_t = cX_{t+1} + αβ(E_t X_{t+2} − αX_{t+1})`
+  have hrec : ∀ t, ∀ᵐ ω ∂S.μ, X (t + 1) ω - α * X t ω
+      = (1 - α) * ((1 - α * β) / (1 + w)) * w * X (t + 1) ω
+      + α * β * (S.E t (X (t + 1 + 1)) ω - α * X (t + 1) ω) := by
+    intro t
+    have hnext : (fun ω => X (t + 1 + 1) ω - α * X (t + 1) ω)
+        =ᵐ[S.μ] ((1 - α) * ((1 - α * β) / (1 + w)) * w) •
+          fun ω => ∑' j, (α * β) ^ j * Y (t + 1) j ω := by
+      filter_upwards [hC] with ω h
+      rw [(h (t + 1)).2]
+      rfl
+    have hE := S.E_congr hnext t
+    have hl : S.E t (fun ω => X (t + 1 + 1) ω - α * X (t + 1) ω)
+        =ᵐ[S.μ] fun ω => S.E t (X (t + 1 + 1)) ω - α * X (t + 1) ω := by
+      have e : (fun ω => X (t + 1 + 1) ω - α * X (t + 1) ω) = X (t + 1 + 1) - α • X (t + 1) := rfl
+      rw [e]
+      filter_upwards [S.E_sub (hXi _) ((hXi _).smul α) t, S.E_smul α (X (t + 1)) t]
+        with ω h1 h2
+      rw [h1, Pi.sub_apply, h2, Pi.smul_apply, hXE t, smul_eq_mul]
+    filter_upwards [hC, hE, hl, S.E_smul ((1 - α) * ((1 - α * β) / (1 + w)) * w) _ t, hswap t]
+      with ω hc he hl' hs hsw
+    obtain ⟨hsum, hv⟩ := hc t
+    rw [hl', hs, Pi.smul_apply, hsw, smul_eq_mul] at he
+    rw [hv, hsum.tsum_eq_zero_add]
+    have hY0 : Y t 0 ω = X (t + 1) ω := by
+      simp only [hY, add_zero]
+      rw [hXE t]
+    have htail : ∑' j, (α * β) ^ (j + 1) * Y t (j + 1) ω
+        = α * β * ∑' j, (α * β) ^ j * Y t (j + 1) ω := by
+      rw [← tsum_mul_left]
+      exact tsum_congr fun j => by rw [pow_succ]; ring
+    rw [htail, pow_zero, one_mul, hY0]
+    linear_combination (-(α * β)) * he
+  -- (B.14) for the difference: `d_t = λ₂⁻¹ E_t d_{t+1}` with `d_t = X_{t+1} − λ₁ X_t`
+  set d : ℕ → Ω → ℝ := fun t => X (t + 1) - l1 • X t with hd_def
+  have hEd1 : ∀ t, S.E t (d (t + 1))
+      =ᵐ[S.μ] fun ω => S.E t (X (t + 1 + 1)) ω - l1 * X (t + 1) ω := by
+    intro t
+    filter_upwards [S.E_sub (hXi _) ((hXi _).smul l1) t, S.E_smul l1 (X (t + 1)) t] with ω h1 h2
+    simp only [hd_def]
+    rw [h1, Pi.sub_apply, h2, Pi.smul_apply, hXE t, smul_eq_mul]
+  have hd : ∀ t, d t =ᵐ[S.μ] l2⁻¹ • S.E t (d (t + 1)) := by
+    intro t
+    filter_upwards [hrec t, hEd1 t] with ω hr he
+    rw [Pi.smul_apply, he, smul_eq_mul]
+    have hB13 := (recursive_iff_B13 (β := β) hα0 hα1 hw.ne' (X t ω) (X (t + 1) ω)
+      (S.E t (X (t + 1 + 1)) ω) 0).mp (by
+        have key : (X (t + 1) ω - α * X t ω) / (1 - α) - ((1 - α * β) / (1 + w) * (0 + w *
+            X (t + 1) ω) + α * β * ((S.E t (X (t + 1 + 1)) ω - α * X (t + 1) ω) / (1 - α)))
+            = (X (t + 1) ω - α * X t ω - ((1 - α) * ((1 - α * β) / (1 + w)) * w * X (t + 1) ω
+              + α * β * (S.E t (X (t + 1 + 1)) ω - α * X (t + 1) ω))) / (1 - α) := by
+          field_simp
+          ring
+        rw [sub_eq_zero.mpr hr, zero_div] at key
+        linear_combination key)
+    have hB14 := (B13_iff_B14 hβ0 hξ _ _ _ _).mp hB13
+    simp only [hd_def, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    rw [hB14]
+    ring
+  -- iterate: `E_t d_{t+k} = λ₂ᵏ d_t`
+  have hdm : ∀ t, AEStronglyMeasurable[S.𝓕 t] (d t) S.μ := fun t =>
+    ⟨l2⁻¹ • S.E t (d (t + 1)), (S.stronglyMeasurable_E t _).const_smul _, hd t⟩
+  have hdi : ∀ t, Integrable (d t) S.μ := fun t => (hXi _).sub ((hXi t).smul l1)
+  have hiter : ∀ t k, S.E t (d (t + k)) =ᵐ[S.μ] l2 ^ k • d t := by
+    intro t k
+    induction k with
+    | zero =>
+      simp only [add_zero, pow_zero, one_smul]
+      exact S.E_of_aestronglyMeasurable (hdm t) (hdi t)
+    | succ k ih =>
+      have hstep : S.E (t + k) (d (t + k + 1)) =ᵐ[S.μ] l2 • d (t + k) := by
+        filter_upwards [hd (t + k)] with ω h
+        rw [Pi.smul_apply, h, Pi.smul_apply, smul_eq_mul, smul_eq_mul, ← mul_assoc,
+          mul_inv_cancel₀ hl2ne, one_mul]
+      rw [show t + (k + 1) = t + k + 1 by omega]
+      refine (S.E_tower (Nat.le_add_right t k) (d (t + k + 1))).symm.trans ?_
+      refine (S.E_congr hstep t).trans ((S.E_smul l2 _ t).trans ?_)
+      filter_upwards [ih] with ω h
+      rw [Pi.smul_apply, h, Pi.smul_apply, Pi.smul_apply, smul_eq_mul, smul_eq_mul, smul_eq_mul,
+        pow_succ]
+      ring
+  -- `E_t d_{t+k+1} = Y_{t,k+1} − λ₁ Y_{t,k}`
+  have hEdY : ∀ t k, S.E t (d (t + (k + 1))) =ᵐ[S.μ] fun ω => Y t (k + 1) ω - l1 * Y t k ω := by
+    intro t k
+    have e : d (t + (k + 1)) = X (t + 1 + (k + 1)) - l1 • X (t + 1 + k) := by
+      simp only [hd_def]
+      rw [show t + (k + 1) + 1 = t + 1 + (k + 1) by omega,
+        show t + (k + 1) = t + 1 + k by omega]
+    rw [e]
+    filter_upwards [S.E_sub (hXi _) ((hXi _).smul l1) t, S.E_smul l1 (X (t + 1 + k)) t] with ω h1 h2
+    rw [h1, Pi.sub_apply, h2, Pi.smul_apply, smul_eq_mul]
+  -- every `d_t` vanishes a.e.
+  have hd0 : ∀ t, d t =ᵐ[S.μ] 0 := by
+    intro t
+    filter_upwards [hC, ae_all_iff.mpr (fun k => hiter t (k + 1)),
+      ae_all_iff.mpr (fun k => hEdY t k)] with ω hc hit hey
+    have hqe : Tendsto (fun k : ℕ => (α * β) ^ k * Y t k ω) atTop (𝓝 0) :=
+      (hc t).1.tendsto_atTop_zero
+    have hid : ∀ k, (α * β * l2) ^ (k + 1) * d t ω
+        = (α * β) ^ (k + 1) * Y t (k + 1) ω - α * β * l1 * ((α * β) ^ k * Y t k ω) := by
+      intro k
+      have h1 := hit k
+      have h2 := hey k
+      rw [h2, Pi.smul_apply, smul_eq_mul] at h1
+      rw [mul_pow, mul_assoc, ← h1]
+      ring
+    have hlim : Tendsto (fun k : ℕ => (α * β * l2) ^ (k + 1) * d t ω) atTop (𝓝 0) := by
+      have h1 := (tendsto_add_atTop_iff_nat 1).mpr hqe
+      have h2 := hqe.const_mul (α * β * l1)
+      have h := h1.sub h2
+      simp only [mul_zero, sub_zero] at h
+      exact h.congr fun k => (hid k).symm
+    have hle : ∀ k : ℕ, |d t ω| ≤ |(α * β * l2) ^ (k + 1) * d t ω| := by
+      intro k
+      rw [abs_mul, abs_of_nonneg (pow_nonneg (mul_nonneg hq0 (by linarith)) _)]
+      exact le_mul_of_one_le_left (abs_nonneg _) (one_le_pow₀ hql2)
+    have h0' : |d t ω| ≤ 0 :=
+      ge_of_tendsto' ((continuous_abs.tendsto 0).comp hlim |>.trans (by rw [abs_zero])) hle
+    exact abs_nonpos_iff.mp h0'
+  -- hence `X = 0` a.e. at every date
+  have hX0 : ∀ t, X t =ᵐ[S.μ] 0 := by
+    intro t
+    induction t with
+    | zero =>
+      filter_upwards [h0] with ω h
+      simp [hX, h]
+    | succ t ih =>
+      filter_upwards [hd0 t, ih] with ω h1 h2
+      simp only [hd_def, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at h1 h2 ⊢
+      rw [h2, mul_zero, sub_zero] at h1
+      exact h1
+  have hPP : ∀ t, P t =ᵐ[S.μ] P' t := by
+    intro t
+    filter_upwards [hX0 t] with ω h
+    simp only [hX, Pi.sub_apply, Pi.zero_apply] at h
+    linarith
+  intro t
+  refine ⟨hPP t, ?_⟩
+  filter_upwards [hPP t, hPP (t + 1)] with ω h1 h2
+  rw [congrFun (pstar_of_eq25 hα1 h25 t) ω, congrFun (pstar_of_eq25 hα1 h25' t) ω, h1, h2]
+
+/-- Woodford (2003), Prop. 3.4 with `ω̃θ < 0` **on a finite, fully supported probability space**:
+the measure-theoretic system is a core `ExpectationSystem`
+(`MeasExpectationSystem.toExpectationSystem`), so every predetermined solution of (2.5) and
+(2.8) is (2.9), with no `L¹` condition (`TidyR5Prop34Uncertainty.prop34_unique_of_w_neg`). -/
+theorem prop34_unique_of_w_neg_finite [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) {s : ℕ → Ω → ℝ}
+    (hsa : (S.toExpectationSystem hfull).Adapted s) (hsb : BoundedIncr s) {P0 : Ω → ℝ}
+    {P pstar : ℕ → Ω → ℝ} (hP0 : P 0 = P0)
+    (hpre : ∀ t, (S.toExpectationSystem hfull).E t (P (t + 1)) = P (t + 1))
+    (h25 : Eq25 α P pstar) (h28 : Eq28 (S.toExpectationSystem hfull) α β w m s P pstar) :
+    P = Psol (S.toExpectationSystem hfull) α β w m s P0 ∧
+      pstar = pstarSol (S.toExpectationSystem hfull) α β w m s P0 :=
+  TidyR5Prop34Uncertainty.prop34_unique_of_w_neg _ hα0 hα1 hβ0 hβ1 hwneg hw hsa hsb hP0 hpre
+    h25 h28
+
+end Woodford.NominalRigidities.TidyR5Prop34Measure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 3.4 with `ω̃θ < 0`: uniqueness fails on an i.i.d. economy without `L¹` sums
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §2.1, Proposition 3.4 (p. 182) and
+Appendix B.3 (pp. 659–661).
+
+`TidyR5Prop34Uncertainty.prop34_unique_of_w_neg` proves uniqueness among all predetermined
+solutions for every core `ExpectationSystem`, and `TidyR5Prop34Measure.prop34_unique_of_w_neg_L1`
+proves it on any probability space when the forward sums of (2.8) converge in `L¹`. This module
+shows the `L¹` condition cannot be dropped: on the i.i.d. economy with uniform shocks
+(`TidyR5ExpectationsMeasureIID.iidSystem unif`), with `log µ = 0`, `log S ≡ 0` and
+`log P_{−1} = 0` (so (2.9) is the zero path), there is a second solution of (2.5) and (2.8) —
+integrable, predetermined, with the forward sums of (2.8) converging absolutely at every state —
+whose price level jumps to `1` at date `0`. This holds for every `ω̃θ ≠ 0`, in particular for
+`−1 < ω̃θ < 0`.
+
+## Where uniqueness breaks
+
+The uniqueness proof passes from (2.8) at `t + 1` to its forecast at `t` by
+`E_t ∑_j (αβ)ʲ E_{t+1} c_{t+1+j} = ∑_j (αβ)ʲ E_t c_{t+1+j}`. On a probability space this needs
+more than a.e. convergence. The construction exploits exactly this: each period the forecast
+curve `g_t(k) = E_t log P_{t+k}` is revised by news `ν_{t+1}(k)` that has conditional mean zero
+**term by term** (`E_news`), while the discounted sum of the revisions is a nonzero constant at
+every state (a doubling bet: `hasSum_bet`, `integral_bet`), so `E_t` and the infinite sum do not
+commute. The revision is chosen to cancel the explosive `λ₂` dynamics that rule out such paths
+under perfect foresight.
+
+## Results
+
+* `bet`, `hasSum_bet` (`∑_k bet_k(x) = 1` for every `x`), `integral_bet` (`∫ bet_k = 0`).
+* `curve`, `sig`, `resid`, `news`: the forecast curve, its discounted sum, the required
+  correction and the news; `curve_condition` ((2.5)+(2.8) at each date), `hasSum_curve`,
+  `E_curve_iter` (`E_t g_{t+j}(k) = g_t(k+j)`).
+* `prop34_not_unique_iid`: the second solution, `cexP`, and the zero solution; they differ.
+* `cex_not_L1Fwd`: for `ω̃θ < 0` the second solution violates `L1Fwd` (so the correction is
+  sharp), via `TidyR5Prop34Measure.prop34_unique_of_w_neg_L1`.
+-/
+
+namespace Woodford.NominalRigidities.TidyR5Prop34NonUnique
+
+open MeasureTheory Filter Topology Calvo
+open TidyR5ExpectationsMeasure TidyR5ExpectationsMeasureIID TidyR5Prop34Measure
+
+/-- Woodford (2003), App. B.3: the i.i.d. economy with uniform shocks on `[0, 1]`. -/
+noncomputable abbrev SU : MeasExpectationSystem (ℕ → ℝ) := iidSystem unif
+
+/-! ### A doubling bet -/
+
+/-- Woodford (2003), App. B.3 (an auxiliary random variable): the stake
+`ψ_k(x) = 2^{k+1} 1[0 < x ≤ 2^{−(k+1)}]`. -/
+noncomputable def stake (k : ℕ) (x : ℝ) : ℝ :=
+  2 ^ (k + 1) * (Set.Ioc (0 : ℝ) ((2 : ℝ) ^ (k + 1))⁻¹).indicator 1 x
+
+/-- Woodford (2003), App. B.3 (an auxiliary random variable): the doubling bet,
+`bet_0 = 1 − ψ_0`, `bet_{k+1} = ψ_k − ψ_{k+1}`. -/
+noncomputable def bet : ℕ → ℝ → ℝ
+  | 0 => fun x => 1 - stake 0 x
+  | k + 1 => fun x => stake k x - stake (k + 1) x
+
+/-- Woodford (2003), App. B.3: the stake is measurable. -/
+theorem measurable_stake (k : ℕ) : Measurable (stake k) :=
+  measurable_const.mul (measurable_one.indicator measurableSet_Ioc)
+
+/-- Woodford (2003), App. B.3: the bet is measurable. -/
+theorem measurable_bet (k : ℕ) : Measurable (bet k) := by
+  cases k with
+  | zero => exact measurable_const.sub (measurable_stake 0)
+  | succ k => exact (measurable_stake k).sub (measurable_stake (k + 1))
+
+/-- Woodford (2003), App. B.3: `0 ≤ ψ_k ≤ 2^{k+1}`. -/
+theorem stake_bounds (k : ℕ) (x : ℝ) : 0 ≤ stake k x ∧ stake k x ≤ 2 ^ (k + 1) := by
+  unfold stake
+  by_cases hx : x ∈ Set.Ioc (0 : ℝ) ((2 : ℝ) ^ (k + 1))⁻¹
+  · simp [Set.indicator_of_mem hx]
+  · simp [Set.indicator_of_notMem hx]
+
+/-- Woodford (2003), App. B.3: `|bet_k| ≤ 2^{k+3}`. -/
+theorem abs_bet_le (k : ℕ) (x : ℝ) : |bet k x| ≤ 2 ^ (k + 3) := by
+  cases k with
+  | zero =>
+    obtain ⟨h0, h1⟩ := stake_bounds 0 x
+    simp only [bet]
+    rw [abs_le]
+    norm_num at h1 ⊢
+    constructor <;> linarith
+  | succ k =>
+    obtain ⟨h0, h1⟩ := stake_bounds k x
+    obtain ⟨h2, h3⟩ := stake_bounds (k + 1) x
+    simp only [bet]
+    have e1 : (2 : ℝ) ^ (k + 1 + 3) = 8 * 2 ^ (k + 1) := by ring
+    have e2 : (2 : ℝ) ^ (k + 1 + 1) = 2 * 2 ^ (k + 1) := by ring
+    rw [abs_le, e1]
+    rw [e2] at h3
+    have : (0 : ℝ) < 2 ^ (k + 1) := by positivity
+    constructor <;> linarith
+
+/-- Woodford (2003), App. B.3: under the uniform law `∫ ψ_k = 1`. -/
+theorem integral_stake (k : ℕ) : ∫ x, stake k x ∂(unif : Measure ℝ) = 1 := by
+  unfold stake
+  rw [integral_const_mul, integral_indicator_one measurableSet_Ioc,
+    unif_real_Ioc (by positivity) (inv_le_one_of_one_le₀ (one_le_pow₀ (by norm_num)))]
+  exact mul_inv_cancel₀ (by positivity)
+
+/-- Woodford (2003), App. B.3: the stake is integrable under the uniform law. -/
+theorem integrable_stake (k : ℕ) : Integrable (stake k) (unif : Measure ℝ) :=
+  Integrable.of_bound (measurable_stake k).aestronglyMeasurable (2 ^ (k + 1))
+    (Eventually.of_forall fun x => by
+      rw [Real.norm_eq_abs, abs_of_nonneg (stake_bounds k x).1]
+      exact (stake_bounds k x).2)
+
+/-- Woodford (2003), App. B.3: **every bet is fair**, `∫ bet_k = 0` under the uniform law. -/
+theorem integral_bet (k : ℕ) : ∫ x, bet k x ∂(unif : Measure ℝ) = 0 := by
+  cases k with
+  | zero =>
+    simp only [bet]
+    rw [integral_sub (integrable_const 1) (integrable_stake 0), integral_stake]
+    simp
+  | succ k =>
+    simp only [bet]
+    rw [integral_sub (integrable_stake k) (integrable_stake (k + 1)), integral_stake,
+      integral_stake, sub_self]
+
+/-- Woodford (2003), App. B.3: the stakes vanish eventually at every point. -/
+theorem stake_eventually_zero (x : ℝ) : ∃ N, ∀ n, N ≤ n → stake n x = 0 := by
+  by_cases hx : 0 < x
+  · obtain ⟨N, hN⟩ := exists_pow_lt_of_lt_one hx (by norm_num : (1 / 2 : ℝ) < 1)
+    refine ⟨N, fun n hn => ?_⟩
+    unfold stake
+    have hnot : x ∉ Set.Ioc (0 : ℝ) ((2 : ℝ) ^ (n + 1))⁻¹ := by
+      intro hm
+      have h1 : ((2 : ℝ) ^ (n + 1))⁻¹ ≤ (1 / 2) ^ N := by
+        rw [one_div, inv_pow]
+        exact inv_anti₀ (by positivity) (pow_le_pow_right₀ (by norm_num) (by omega))
+      linarith [hm.2]
+    simp [Set.indicator_of_notMem hnot]
+  · refine ⟨0, fun n _ => ?_⟩
+    unfold stake
+    have hnot : x ∉ Set.Ioc (0 : ℝ) ((2 : ℝ) ^ (n + 1))⁻¹ := fun hm => hx hm.1
+    simp [Set.indicator_of_notMem hnot]
+
+/-- Woodford (2003), App. B.3: the partial sums of the bets, `∑_{k ≤ n} bet_k = 1 − ψ_n`. -/
+theorem sum_bet (x : ℝ) (n : ℕ) : ∑ k ∈ Finset.range (n + 1), bet k x = 1 - stake n x := by
+  induction n with
+  | zero => simp [bet]
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ih]
+    simp only [bet]
+    ring
+
+/-- Woodford (2003), App. B.3 (**the doubling bet pays one at every point**):
+`∑_k bet_k(x) = 1` for every `x` (finitely many nonzero terms), although every bet is fair. -/
+theorem hasSum_bet (x : ℝ) : HasSum (fun k => bet k x) 1 := by
+  obtain ⟨N, hN⟩ := stake_eventually_zero x
+  have hsum : ∑ k ∈ Finset.range (N + 1), bet k x = 1 := by rw [sum_bet, hN N le_rfl, sub_zero]
+  rw [← hsum]
+  refine hasSum_sum_of_ne_finset_zero fun k hk => ?_
+  rw [Finset.mem_range, not_lt] at hk
+  obtain ⟨j, rfl⟩ : ∃ j, k = j + 1 := ⟨k - 1, by omega⟩
+  simp only [bet]
+  rw [hN j (by omega), hN (j + 1) (by omega), sub_zero]
+
+/-! ### The forecast curve -/
+
+/-- Woodford (2003), App. B.3: the initial forecast curve `g_0(1) = 1`,
+`g_0(2) = (c⁻¹ − 1)/q`, all other entries `0`. -/
+noncomputable def init (q c : ℝ) (k : ℕ) : ℝ :=
+  if k = 1 then 1 else if k = 2 then (c⁻¹ - 1) / q else 0
+
+/-- Woodford (2003), App. B.3: the correction `R_t` that the date-`t+1` news must deliver,
+from the curve and its discounted sum at `t`. -/
+noncomputable def resid (α q c : ℝ) (g : ℕ → (ℕ → ℝ) → ℝ) (σ : (ℕ → ℝ) → ℝ) :
+    (ℕ → ℝ) → ℝ :=
+  fun ω => g 2 ω - α * g 1 ω - c / q * (σ ω - g 1 ω)
+
+/-- Woodford (2003), App. B.3: the news `ν_{t+1}(k)` revising the forecast of horizon `k`:
+zero for `k ≤ 1`, and `q^{−(k+1)} (R_t/c) bet_k(ε_{t+1})` at horizon `k + 2`. -/
+noncomputable def news (q c : ℝ) (R : (ℕ → ℝ) → ℝ) (t : ℕ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => fun _ => 0
+  | 1 => fun _ => 0
+  | k + 2 => fun ω => (q ^ (k + 1))⁻¹ * (R ω / c) * bet k (ω (t + 1))
+
+/-- Woodford (2003), App. B.3: the forecast curve `g_t(k)` and its discounted sum `Σ_t`, built
+recursively: `g_{t+1}(k) = g_t(k+1) + ν_{t+1}(k)`, `Σ_{t+1} = (Σ_t − g_t(1))/q + R_t/c`. -/
+noncomputable def state (α q c : ℝ) : ℕ → (ℕ → (ℕ → ℝ) → ℝ) × ((ℕ → ℝ) → ℝ)
+  | 0 => (fun k _ => init q c k, fun _ => c⁻¹)
+  | t + 1 =>
+    (fun k ω => (state α q c t).1 (k + 1) ω
+        + news q c (resid α q c (state α q c t).1 (state α q c t).2) t k ω,
+      fun ω => ((state α q c t).2 ω - (state α q c t).1 1 ω) / q
+        + resid α q c (state α q c t).1 (state α q c t).2 ω / c)
+
+/-- Woodford (2003), App. B.3: the forecast curve `g_t(k) = E_t log P_{t+k}`. -/
+noncomputable def curve (α q c : ℝ) (t : ℕ) : ℕ → (ℕ → ℝ) → ℝ := (state α q c t).1
+
+/-- Woodford (2003), App. B.3: the discounted sum `Σ_t = ∑_k qᵏ g_t(k+1)`. -/
+noncomputable def sig (α q c : ℝ) (t : ℕ) : (ℕ → ℝ) → ℝ := (state α q c t).2
+
+/-- Woodford (2003), App. B.3: the correction at date `t`. -/
+noncomputable def R (α q c : ℝ) (t : ℕ) : (ℕ → ℝ) → ℝ := resid α q c (curve α q c t) (sig α q c t)
+
+/-- Woodford (2003), App. B.3: the recursion of the forecast curve. -/
+theorem curve_succ (α q c : ℝ) (t k : ℕ) :
+    curve α q c (t + 1) k = curve α q c t (k + 1) + news q c (R α q c t) t k := rfl
+
+/-- Woodford (2003), App. B.3: the recursion of the discounted sum. -/
+theorem sig_succ (α q c : ℝ) (t : ℕ) (ω : ℕ → ℝ) :
+    sig α q c (t + 1) ω = (sig α q c t ω - curve α q c t 1 ω) / q + R α q c t ω / c := rfl
+
+/-- Woodford (2003), App. B.3: news never revises the current value (the next value: `news_one`). -/
+theorem news_zero (q c : ℝ) (Rf : (ℕ → ℝ) → ℝ) (t : ℕ) : news q c Rf t 0 = 0 := rfl
+
+/-- Woodford (2003), App. B.3: news never revises the next value. -/
+theorem news_one (q c : ℝ) (Rf : (ℕ → ℝ) → ℝ) (t : ℕ) : news q c Rf t 1 = 0 := rfl
+
+/-- Woodford (2003), eqs. (2.5) and (2.8) at each date, for the curve: `g_t(1) − α g_t(0) = c Σ_t`
+(in the model `c = (1 − α)(1 − αβ)ω̃θ/(1 + ω̃θ)`). -/
+theorem curve_condition {α q c : ℝ} (hq : q ≠ 0) (hc : c ≠ 0) (t : ℕ) (ω : ℕ → ℝ) :
+    curve α q c t 1 ω - α * curve α q c t 0 ω = c * sig α q c t ω := by
+  cases t with
+  | zero =>
+    simp only [curve, sig, state, init]
+    norm_num
+    field_simp
+  | succ t =>
+    rw [curve_succ, curve_succ, sig_succ, news_one, news_zero]
+    simp only [Pi.add_apply, Pi.zero_apply, add_zero, R, resid]
+    field_simp
+    ring
+
+/-- Woodford (2003), App. B.3: `Σ_t` is the genuine discounted sum, `∑_k qᵏ g_t(k+1) = Σ_t`, at
+every state (finitely many nonzero terms). -/
+theorem hasSum_curve {α q c : ℝ} (hq : q ≠ 0) (t : ℕ) (ω : ℕ → ℝ) :
+    HasSum (fun k => q ^ k * curve α q c t (k + 1) ω) (sig α q c t ω) := by
+  induction t with
+  | zero =>
+    have hval : sig α q c 0 ω = ∑ k ∈ Finset.range 2, q ^ k * curve α q c 0 (k + 1) ω := by
+      simp only [sig, curve, state, init, Finset.sum_range_succ, Finset.sum_range_zero]
+      norm_num
+      field_simp
+      ring
+    rw [hval]
+    refine hasSum_sum_of_ne_finset_zero fun k hk => ?_
+    rw [Finset.mem_range, not_lt] at hk
+    simp only [curve, state, init]
+    have h1 : k + 1 ≠ 1 := by omega
+    have h2 : k + 1 ≠ 2 := by omega
+    simp only [h1, h2, ↓reduceIte, mul_zero]
+  | succ t ih =>
+    -- the shifted curve
+    have hA : HasSum (fun k => q ^ k * curve α q c t (k + 2) ω)
+        ((sig α q c t ω - curve α q c t 1 ω) / q) := by
+      have h := ((hasSum_nat_add_iff' 1).mpr ih).mul_left q⁻¹
+      simp only [Finset.sum_range_one, pow_zero, one_mul, zero_add] at h
+      refine (h.congr_fun fun k => ?_).trans_eq ?_
+      · rw [pow_succ]; field_simp
+      · field_simp
+    -- the news
+    have hB : HasSum (fun k => q ^ k * news q c (R α q c t) t (k + 1) ω) (R α q c t ω / c) := by
+      refine (hasSum_nat_add_iff' 1).mp ?_
+      simp only [Finset.sum_range_one, pow_zero, one_mul, zero_add, news_one, Pi.zero_apply,
+        sub_zero]
+      have h := (hasSum_bet (ω (t + 1))).mul_left (R α q c t ω / c)
+      rw [mul_one] at h
+      refine h.congr_fun fun k => ?_
+      change q ^ (k + 1) * ((q ^ (k + 1))⁻¹ * (R α q c t ω / c) * bet k (ω (t + 1))) = _
+      rw [← mul_assoc, ← mul_assoc, mul_inv_cancel₀ (pow_ne_zero _ hq), one_mul]
+    rw [sig_succ]
+    refine (hA.add hB).congr_fun fun k => ?_
+    rw [curve_succ, Pi.add_apply, mul_add]
+
+/-! ### Measurability, integrability and forecasts -/
+
+/-- Woodford (2003), App. B.3: the curve and its sum at date `t` are known at `t`. -/
+theorem measurable_curve (α q c : ℝ) (t : ℕ) :
+    (∀ k, Measurable[SU.𝓕 t] (curve α q c t k)) ∧ Measurable[SU.𝓕 t] (sig α q c t) := by
+  induction t with
+  | zero => exact ⟨fun k => measurable_const, measurable_const⟩
+  | succ t ih =>
+    obtain ⟨hg, hs⟩ := ih
+    have hle : SU.𝓕 t ≤ SU.𝓕 (t + 1) := SU.𝓕.mono (Nat.le_succ t)
+    have hR : Measurable[SU.𝓕 t] (R α q c t) :=
+      ((hg 2).sub (measurable_const.mul (hg 1))).sub (measurable_const.mul (hs.sub (hg 1)))
+    have hb : ∀ k, Measurable[SU.𝓕 (t + 1)] (fun ω : ℕ → ℝ => bet k (ω (t + 1))) :=
+      fun k => (measurable_bet k).comp (measurable_shock unif le_rfl)
+    have hn : ∀ k, Measurable[SU.𝓕 (t + 1)] (news q c (R α q c t) t k) := by
+      intro k
+      match k with
+      | 0 => exact measurable_const
+      | 1 => exact measurable_const
+      | k + 2 =>
+        exact (measurable_const.mul ((hR.mono hle le_rfl).div_const c)).mul (hb k)
+    refine ⟨fun k => ?_, ?_⟩
+    · rw [curve_succ]
+      exact ((hg (k + 1)).mono hle le_rfl).add (hn k)
+    · have : sig α q c (t + 1) = fun ω => (sig α q c t ω - curve α q c t 1 ω) / q
+          + R α q c t ω / c := rfl
+      rw [this]
+      exact (((hs.sub (hg 1)).div_const q).add (hR.div_const c)).mono hle le_rfl
+
+/-- Woodford (2003), App. B.3: the curve and its sum are integrable. -/
+theorem integrable_curve (α q c : ℝ) (t : ℕ) :
+    (∀ k, Integrable (curve α q c t k) SU.μ) ∧ Integrable (sig α q c t) SU.μ := by
+  induction t with
+  | zero => exact ⟨fun k => integrable_const _, integrable_const _⟩
+  | succ t ih =>
+    obtain ⟨hg, hs⟩ := ih
+    have hR : Integrable (R α q c t) SU.μ :=
+      ((hg 2).sub ((hg 1).const_mul α)).sub ((hs.sub (hg 1)).const_mul (c / q))
+    have hn : ∀ k, Integrable (news q c (R α q c t) t k) SU.μ := by
+      intro k
+      match k with
+      | 0 => exact integrable_const _
+      | 1 => exact integrable_const _
+      | k + 2 =>
+        have hb : AEStronglyMeasurable (fun ω : ℕ → ℝ => bet k (ω (t + 1))) SU.μ :=
+          ((measurable_bet k).comp (measurable_pi_apply (t + 1))).aestronglyMeasurable
+        exact ((hR.div_const c).const_mul _).mul_bdd hb
+          (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact abs_bet_le k _)
+    refine ⟨fun k => (hg (k + 1)).add (hn k), ?_⟩
+    exact ((hs.sub (hg 1)).div_const q).add (hR.div_const c)
+
+/-- Woodford (2003), App. B.3 (**news is unforecastable term by term**): `E_t ν_{t+1}(k) = 0`
+a.e. for every horizon `k`. -/
+theorem E_news (α q c : ℝ) (t k : ℕ) :
+    SU.E t (news q c (R α q c t) t k) =ᵐ[SU.μ] 0 := by
+  match k with
+  | 0 =>
+    change SU.E t (fun _ => (0 : ℝ)) =ᵐ[SU.μ] 0
+    rw [SU.E_const]
+    exact EventuallyEq.rfl
+  | 1 =>
+    change SU.E t (fun _ => (0 : ℝ)) =ᵐ[SU.μ] 0
+    rw [SU.E_const]
+    exact EventuallyEq.rfl
+  | k + 2 =>
+    obtain ⟨hgm, hsm⟩ := measurable_curve α q c t
+    obtain ⟨hgi, hsi⟩ := integrable_curve α q c t
+    have hR : Measurable[SU.𝓕 t] (R α q c t) :=
+      ((hgm 2).sub (measurable_const.mul (hgm 1))).sub (measurable_const.mul (hsm.sub (hgm 1)))
+    have hRi : Integrable (R α q c t) SU.μ :=
+      ((hgi 2).sub ((hgi 1).const_mul α)).sub ((hsi.sub (hgi 1)).const_mul (c / q))
+    set f : (ℕ → ℝ) → ℝ := fun ω => (q ^ (k + 1))⁻¹ * (R α q c t ω / c) with hf
+    set g : (ℕ → ℝ) → ℝ := fun ω => bet k (ω (t + 1)) with hg
+    have hfm : StronglyMeasurable[SU.𝓕 t] f :=
+      (measurable_const.mul (hR.div_const c)).stronglyMeasurable
+    have hgi' : Integrable g SU.μ :=
+      Integrable.of_bound
+        ((measurable_bet k).comp (measurable_pi_apply (t + 1))).aestronglyMeasurable
+        (2 ^ (k + 3)) (Eventually.of_forall fun ω => by
+          rw [Real.norm_eq_abs]; exact abs_bet_le k _)
+    have hfgi : Integrable (f * g) SU.μ :=
+      ((hRi.div_const c).const_mul _).mul_bdd hgi'.aestronglyMeasurable
+        (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact abs_bet_le k _)
+    have heq : news q c (R α q c t) t (k + 2) = f * g := rfl
+    rw [heq]
+    filter_upwards [condExp_mul_of_stronglyMeasurable_left hfm hfgi hgi',
+      E_shock_fun unif t (measurable_bet k)] with ω h1 h2
+    rw [show SU.E t (f * g) ω = (f * SU.E t g) ω from h1, Pi.mul_apply,
+      show SU.E t g ω = ∫ x, bet k x ∂(unif : Measure ℝ) from h2, integral_bet, mul_zero,
+      Pi.zero_apply]
+
+/-- Woodford (2003), App. B.3: one step of the forecast recursion, `E_t g_{t+1}(k) = g_t(k+1)`. -/
+theorem E_curve_succ (α q c : ℝ) (t k : ℕ) :
+    SU.E t (curve α q c (t + 1) k) =ᵐ[SU.μ] curve α q c t (k + 1) := by
+  obtain ⟨hgm, -⟩ := measurable_curve α q c t
+  obtain ⟨hgi, -⟩ := integrable_curve α q c t
+  obtain ⟨hgi1, -⟩ := integrable_curve α q c (t + 1)
+  have hni : Integrable (news q c (R α q c t) t k) SU.μ := by
+    have h := (hgi1 k).sub (hgi (k + 1))
+    rw [curve_succ] at h
+    simpa using h
+  rw [curve_succ]
+  filter_upwards [SU.E_add (hgi (k + 1)) hni t, E_news α q c t k] with ω h1 h2
+  rw [h1, Pi.add_apply, h2, SU.E_of_stronglyMeasurable (hgm (k + 1)).stronglyMeasurable (hgi _)]
+  simp
+
+/-- Woodford (2003), App. B.3 (**the curve is the forecast curve**): `E_t g_{t+j}(k) = g_t(k+j)`
+a.e. -/
+theorem E_curve_iter (α q c : ℝ) (t j : ℕ) :
+    ∀ k, SU.E t (curve α q c (t + j) k) =ᵐ[SU.μ] curve α q c t (k + j) := by
+  induction j with
+  | zero =>
+    intro k
+    obtain ⟨hgm, -⟩ := measurable_curve α q c t
+    obtain ⟨hgi, -⟩ := integrable_curve α q c t
+    rw [add_zero, add_zero, SU.E_of_stronglyMeasurable (hgm k).stronglyMeasurable (hgi k)]
+  | succ j ih =>
+    intro k
+    rw [show t + (j + 1) = t + j + 1 by omega]
+    refine (SU.E_tower (Nat.le_add_right t j) _).symm.trans ?_
+    refine (SU.E_congr (E_curve_succ α q c (t + j) k) t).trans ?_
+    rw [show k + (j + 1) = k + 1 + j by omega]
+    exact ih (k + 1)
+
+/-! ### The second solution -/
+
+/-- Woodford (2003), App. B.3: the second price path, `log P_{t−1} = g_t(0)` (in the project's
+indexing `P t = log P_{t−1}`), with `q = αβ` and `c = (1 − α)(1 − αβ)ω̃θ/(1 + ω̃θ)`. -/
+noncomputable def cexP (α β w : ℝ) (t : ℕ) : (ℕ → ℝ) → ℝ :=
+  curve α (α * β) ((1 - α) * ((1 - α * β) / (1 + w)) * w) t 0
+
+/-- Woodford (2003), eq. (2.5): the reset price of the second path. -/
+noncomputable def cexPstar (α β w : ℝ) (t : ℕ) : (ℕ → ℝ) → ℝ :=
+  fun ω => (cexP α β w (t + 1) ω - α * cexP α β w t ω) / (1 - α)
+
+/-- Woodford (2003), **Proposition 3.4 with `ω̃θ ≠ 0` fails on a probability space without `L¹`
+convergence of (2.8)** (p. 182; App. B.3, pp. 659–661). On the i.i.d. economy with uniform shocks
+let `0 < α < 1`, `0 < β < 1`, `ω̃θ ≠ 0`, `1 + ω̃θ > 0`, `log µ = 0`, `log S ≡ 0`,
+`log P_{−1} = 0`. Then the zero path and `cexP` both satisfy (2.5) and the a.e. form of (2.8),
+both are integrable and predetermined with the same initial price level, the forward sums of
+(2.8) along `cexP` converge absolutely at every state and date (a.e.), the zero path has
+`L¹`-convergent sums — and `log P_0` is `0` on one path and `1` on the other. -/
+theorem prop34_not_unique_iid {α β w : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hw0 : w ≠ 0) (hw : 0 < 1 + w) :
+    let P := cexP α β w
+    let pstar := cexPstar α β w
+    (P 0 = 0 ∧ (∀ t, Integrable (P t) SU.μ) ∧ (∀ t, StronglyMeasurable[SU.𝓕 t] (P (t + 1))) ∧
+      Eq25 α P pstar ∧ MEq28 SU α β w 0 0 P pstar) ∧
+    ((0 : ℕ → (ℕ → ℝ) → ℝ) 0 = 0 ∧ (∀ t, Integrable ((0 : ℕ → (ℕ → ℝ) → ℝ) t) SU.μ) ∧
+      (∀ t, StronglyMeasurable[SU.𝓕 t] ((0 : ℕ → (ℕ → ℝ) → ℝ) (t + 1))) ∧
+      Eq25 α (0 : ℕ → (ℕ → ℝ) → ℝ) 0 ∧ MEq28 SU α β w 0 0 0 0 ∧ L1Fwd SU α β (costTerm 0 w 0 0)) ∧
+    P 1 = (fun _ => 1) ∧ ¬ P 1 =ᵐ[SU.μ] (0 : ℕ → (ℕ → ℝ) → ℝ) 1 := by
+  intro P pstar
+  set q := α * β with hq_def
+  set c := (1 - α) * ((1 - α * β) / (1 + w)) * w with hc_def
+  have hq : q ≠ 0 := (mul_pos hα0 hβ0).ne'
+  have h1a : (1 : ℝ) - α ≠ 0 := by linarith
+  have h1q : (1 : ℝ) - α * β ≠ 0 := by nlinarith
+  have hc : c ≠ 0 := mul_ne_zero (mul_ne_zero h1a (div_ne_zero h1q hw.ne')) hw0
+  have hP : ∀ t, P t = curve α q c t 0 := fun t => rfl
+  have hPs : ∀ t, P (t + 1) = curve α q c t 1 := by
+    intro t
+    rw [hP, curve_succ, news_zero]
+    funext ω
+    simp
+  have hP1 : P 1 = fun _ => 1 := by
+    rw [hPs 0]
+    funext ω
+    simp [curve, state, init]
+  -- forecasts of the price path
+  have hfc : ∀ t j, SU.E t (P (t + 1 + j)) =ᵐ[SU.μ] curve α q c t (j + 1) := by
+    intro t j
+    have h := E_curve_iter α q c t (1 + j) 0
+    rw [zero_add, show t + (1 + j) = t + 1 + j by omega, add_comm 1 j] at h
+    exact h
+  have hcost : ∀ t j, SU.E t (costTerm 0 w 0 P (t + j))
+      =ᵐ[SU.μ] fun ω => w * curve α q c t (j + 1) ω := by
+    intro t j
+    have e : costTerm 0 w 0 P (t + j) = w • P (t + 1 + j) := by
+      funext ω
+      simp only [costTerm, Pi.zero_apply, Pi.smul_apply, smul_eq_mul, zero_add]
+      rw [show t + j + 1 = t + 1 + j by omega]
+    rw [e]
+    filter_upwards [SU.E_smul w (P (t + 1 + j)) t, hfc t j] with ω h1 h2
+    rw [h1, Pi.smul_apply, h2, smul_eq_mul]
+  refine ⟨⟨?_, fun t => ?_, fun t => ?_, ?_, ?_⟩, ⟨rfl, fun t => integrable_zero _ _ _,
+    fun t => stronglyMeasurable_zero, ?_, ?_, ?_⟩, hP1, ?_⟩
+  · funext ω
+    simp [P, cexP, curve, state, init]
+  · exact (integrable_curve α q c t).1 0
+  · rw [hPs t]
+    exact ((measurable_curve α q c t).1 1).stronglyMeasurable
+  · intro t ω
+    change P (t + 1) ω = α * P t ω + (1 - α) * ((P (t + 1) ω - α * P t ω) / (1 - α))
+    field_simp
+    ring
+  · have hall : ∀ᵐ ω ∂SU.μ, ∀ t j, SU.E t (costTerm 0 w 0 P (t + j)) ω
+        = w * curve α q c t (j + 1) ω := by
+      rw [ae_all_iff]; intro t; rw [ae_all_iff]; intro j
+      exact hcost t j
+    filter_upwards [hall] with ω h t
+    have hs : HasSum (fun j => (α * β) ^ j * SU.E t (costTerm 0 w 0 P (t + j)) ω)
+        (w * sig α q c t ω) := by
+      refine ((hasSum_curve (c := c) hq t ω).mul_left w).congr_fun fun j => ?_
+      rw [h t j]
+      ring
+    refine ⟨hs.summable, ?_⟩
+    rw [hs.tsum_eq]
+    change (P (t + 1) ω - α * P t ω) / (1 - α) = _
+    rw [hPs t, hP t, curve_condition hq hc t ω, hc_def]
+    field_simp
+  · intro t ω
+    simp
+  · filter_upwards with ω t
+    have h0 : ∀ j, SU.E t (costTerm 0 w 0 (0 : ℕ → (ℕ → ℝ) → ℝ) (t + j)) = 0 := by
+      intro j
+      have e : costTerm 0 w 0 (0 : ℕ → (ℕ → ℝ) → ℝ) (t + j) = 0 := by
+        funext ω'
+        simp [costTerm]
+      rw [e]
+      exact condExp_zero
+    simp [h0]
+  · intro t
+    have h0 : ∀ j, SU.E t (costTerm 0 w 0 (0 : ℕ → (ℕ → ℝ) → ℝ) (t + j)) = 0 := by
+      intro j
+      have e : costTerm 0 w 0 (0 : ℕ → (ℕ → ℝ) → ℝ) (t + j) = 0 := by
+        funext ω'
+        simp [costTerm]
+      rw [e]
+      exact condExp_zero
+    simp only [h0, Pi.zero_apply, abs_zero, integral_zero, mul_zero]
+    exact summable_zero
+  · rw [hP1]
+    intro h
+    have hnull : SU.μ {ω | (1 : ℝ) ≠ (0 : ℕ → (ℕ → ℝ) → ℝ) 1 ω} = 0 := ae_iff.mp h
+    simp at hnull
+
+/-- Woodford (2003), Prop. 3.4 with `ω̃θ < 0` (**the `L¹` condition is sharp**): the second
+solution `cexP` of `prop34_not_unique_iid` has forward sums of (2.8) that do **not** converge in
+`L¹` — otherwise `TidyR5Prop34Measure.prop34_unique_of_w_neg_L1` would make it equal to the zero
+path. -/
+theorem cex_not_L1Fwd {α β w : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hwneg : w < 0) (hw : 0 < 1 + w) :
+    ¬ L1Fwd SU α β (costTerm 0 w 0 (cexP α β w)) := by
+  intro hL
+  obtain ⟨⟨h0, hPi, hpre, h25, h28⟩, ⟨-, hZi, hZpre, hZ25, hZ28, hZL⟩, -, hne⟩ :=
+    prop34_not_unique_iid hα0 hα1 hβ0 hβ1 hwneg.ne hw
+  have h := prop34_unique_of_w_neg_L1 SU hα0 hα1 hβ0 hβ1 hwneg hw
+    (fun _ => integrable_zero _ _ _) hPi hZi hpre hZpre (by rw [h0]; exact EventuallyEq.rfl)
+    h25 hZ25 h28 hZ28 hL hZL
+  exact hne (h 1).1
+
+end Woodford.NominalRigidities.TidyR5Prop34NonUnique
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The dispersion terms behind (4.10) are second order
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §4.1, pp. 222–225: the log MRS of the
+supplier of labour type `j` "can be written in the form `log v_t + ν log(h_t(j)/H_t)`, where
+`v_t` is the geometric average of the MRS across different types of labor" (p. 223), and (4.10)
+(p. 224) gives `v̂_t` from aggregate output through the hours `f⁻¹(Y/A)` needed to produce it.
+Both steps drop dispersion terms: the geometric mean of the MRS is not the MRS at the CES labour
+aggregate `H_t` of (4.1) when hours differ across types (wage dispersion), and `H_t` is not
+`f⁻¹(Y_t/A_t)` when output differs across goods (price dispersion). The book does not discuss
+them; its log-linear claims say they do not matter to first order. This module makes that
+precise, with types forming any probability space `(J, m)` (the book's `[0, 1]`) and
+log-deviations bounded by `B`:
+
+* `log_integral_exp_bounds`: `0 ≤ log ∫ e^{x e} − x ∫ e ≤ x² B²` for `|x| B ≤ 1` — the
+  dispersion functional is nonnegative and quadratic.
+* `log_ces_eq`: the log of the CES aggregate `(∫ hʳ)^{1/r}` of `h = H̄ e^{s e}`.
+* `logMRS_type_eq`: with isoelastic disutility (`log v_h(h) = log k + ν log h`, the
+  case in which the book's `ν log(h_t(j)/H_t)` is exact), the type-`j` log MRS is
+  `log v_t + ν log(h_t(j)/H_t) + ν D_h`, `D_h = log H_t − ∫ log h_t(j) dj`, and
+  `hoursGap_bounds`: `0 ≤ D_h ≤ r s² B²`.
+* `outputGap_bounds`: with isoelastic technology `h = (y/A)^φ`, the labour aggregate
+  `H = ∫ (y_i/A)^φ di` exceeds `(Y/A)^φ` by `D_y` with `−φρ s² B² ≤ D_y ≤ φ² s² B²` (`ρ` the CES
+  exponent of (1.2)).
+* `logv_decomposition`: `log v_t = log k − log u_c + νφ(log Y_t − log A_t) + ν D_y − ν D_h` —
+  the exact counterpart of (4.10)'s first-order relation.
+* `hasDerivAt_hoursGap`, `hasDerivAt_outputGap`: both gaps have derivative `0` along any
+  dispersion perturbation, so they drop out of the log-linearisation (4.10).
+-/
+
+namespace Woodford.NominalRigidities.TidyR5Dispersion
+
+open MeasureTheory Filter Topology Asymptotics
+
+variable {J : Type*} [MeasurableSpace J] (m : Measure J) [IsProbabilityMeasure m]
+
+/-- Woodford (2003), §4.1, p. 223 (the dispersion functional): `D(x) = log ∫ e^{x e} dm − x ∫ e dm`
+for a log-deviation profile `e` across types. -/
+noncomputable def dispFn (e : J → ℝ) (x : ℝ) : ℝ :=
+  Real.log (∫ j, Real.exp (x * e j) ∂m) - x * ∫ j, e j ∂m
+
+omit [IsProbabilityMeasure m] in
+/-- Woodford (2003), §4.1: `e^{x e}` is integrable for a bounded measurable profile `e`. -/
+theorem integrable_exp_mul [IsFiniteMeasure m] {e : J → ℝ} (he : AEStronglyMeasurable e m)
+    {B : ℝ} (hB : ∀ j, |e j| ≤ B) (x : ℝ) : Integrable (fun j => Real.exp (x * e j)) m := by
+  refine Integrable.of_bound (Real.continuous_exp.comp_aestronglyMeasurable
+    (he.const_mul x)) (Real.exp (|x| * B)) (Eventually.of_forall fun j => ?_)
+  rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+  refine Real.exp_le_exp.mpr ((le_abs_self _).trans ?_)
+  rw [abs_mul]
+  exact mul_le_mul_of_nonneg_left (hB j) (abs_nonneg x)
+
+omit [IsProbabilityMeasure m] in
+/-- Woodford (2003), §4.1: a bounded measurable profile is integrable. -/
+theorem integrable_of_bdd [IsFiniteMeasure m] {e : J → ℝ} (he : AEStronglyMeasurable e m)
+    {B : ℝ} (hB : ∀ j, |e j| ≤ B) : Integrable e m :=
+  Integrable.of_bound he B (Eventually.of_forall fun j => by rw [Real.norm_eq_abs]; exact hB j)
+
+/-- Woodford (2003), §4.1, pp. 223–224 (**the dispersion terms are nonnegative and quadratic**):
+for a measurable profile `|e| ≤ B` and `|x| B ≤ 1`,
+`0 ≤ log ∫ e^{x e} − x ∫ e ≤ x² B²`. -/
+theorem log_integral_exp_bounds {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ}
+    (hB : ∀ j, |e j| ≤ B) {x : ℝ} (hx : |x| * B ≤ 1) :
+    0 ≤ dispFn m e x ∧ dispFn m e x ≤ x ^ 2 * B ^ 2 := by
+  have hI := integrable_exp_mul m he hB x
+  have hei := integrable_of_bdd m he hB
+  set μe := ∫ j, e j ∂m
+  set I := ∫ j, Real.exp (x * e j) ∂m
+  have hIpos : 0 < I := integral_exp_pos hI
+  constructor
+  · -- Jensen through `e^y ≥ 1 + y`
+    have hlow : Real.exp (x * μe) ≤ I := by
+      have h1 : ∀ j, Real.exp (x * μe) * (1 + (x * e j - x * μe)) ≤ Real.exp (x * e j) := by
+        intro j
+        have := Real.add_one_le_exp (x * e j - x * μe)
+        rw [Real.exp_sub] at this
+        have hp := Real.exp_pos (x * μe)
+        rw [le_div_iff₀ hp] at this
+        linarith
+      have i1 : Integrable (fun j => x * e j - x * μe) m :=
+        (hei.const_mul x).sub (integrable_const _)
+      have h2 : ∫ j, Real.exp (x * μe) * (1 + (x * e j - x * μe)) ∂m = Real.exp (x * μe) := by
+        rw [integral_const_mul, integral_add (integrable_const _) i1,
+          integral_sub (hei.const_mul x) (integrable_const _), integral_const_mul]
+        simp [μe]
+      rw [← h2]
+      exact integral_mono (((integrable_const 1).add i1).const_mul _) hI h1
+    have := Real.log_le_log (Real.exp_pos _) hlow
+    rw [Real.log_exp] at this
+    unfold dispFn
+    linarith
+  · -- `e^y ≤ 1 + y + y²` for `|y| ≤ 1`
+    have hup : I ≤ 1 + x * μe + x ^ 2 * B ^ 2 := by
+      have h1 : ∀ j, Real.exp (x * e j) ≤ 1 + x * e j + x ^ 2 * B ^ 2 := by
+        intro j
+        have hy : |x * e j| ≤ 1 := by
+          rw [abs_mul]
+          exact (mul_le_mul_of_nonneg_left (hB j) (abs_nonneg x)).trans hx
+        have h := Real.abs_exp_sub_one_sub_id_le hy
+        have hsq : (x * e j) ^ 2 ≤ x ^ 2 * B ^ 2 := by
+          rw [mul_pow]
+          refine mul_le_mul_of_nonneg_left ?_ (sq_nonneg x)
+          have := hB j
+          have h0 : 0 ≤ |e j| := abs_nonneg _
+          nlinarith [sq_abs (e j)]
+        have := (abs_le.mp h).2
+        linarith
+      have i1 : Integrable (fun j => 1 + x * e j) m := (integrable_const _).add (hei.const_mul x)
+      have h2 : ∫ j, (1 + x * e j + x ^ 2 * B ^ 2) ∂m = 1 + x * μe + x ^ 2 * B ^ 2 := by
+        rw [integral_add i1 (integrable_const _),
+          integral_add (integrable_const _) (hei.const_mul x), integral_const_mul]
+        simp [μe]
+      rw [← h2]
+      exact integral_mono hI (i1.add (integrable_const _)) h1
+    have := Real.log_le_sub_one_of_pos hIpos
+    unfold dispFn
+    linarith
+
+omit [IsProbabilityMeasure m] in
+/-- Woodford (2003), §4.1, eq. (4.1), p. 221 (the CES labour aggregate in logs): for hours
+`h_j = H̄ e^{s e_j}` and `r ≠ 0`, `log (∫ h_jʳ dj)^{1/r} = log H̄ + r⁻¹ log ∫ e^{r s e_j} dj`. -/
+theorem log_ces_eq {e : J → ℝ} {Hbar : ℝ} (hH : 0 < Hbar) {r : ℝ} (hr : r ≠ 0) (s : ℝ)
+    (hpos : 0 < ∫ j, Real.exp (r * s * e j) ∂m) :
+    Real.log ((∫ j, (Hbar * Real.exp (s * e j)) ^ r ∂m) ^ (1 / r))
+      = Real.log Hbar + r⁻¹ * Real.log (∫ j, Real.exp (r * s * e j) ∂m) := by
+  have hpt : ∀ j, (Hbar * Real.exp (s * e j)) ^ r = Hbar ^ r * Real.exp (r * s * e j) := by
+    intro j
+    rw [Real.mul_rpow hH.le (Real.exp_pos _).le, ← Real.exp_mul]
+    congr 2
+    ring
+  simp_rw [hpt]
+  rw [integral_const_mul, Real.log_rpow (mul_pos (Real.rpow_pos_of_pos hH r) hpos),
+    Real.log_mul (Real.rpow_pos_of_pos hH r).ne' hpos.ne', Real.log_rpow hH]
+  field_simp
+
+/-- Woodford (2003), §4.1, p. 223 (**the hours-dispersion term**):
+`D_h = log H − ∫ log h_j dj` for `h_j = H̄ e^{s e_j}` and the CES aggregate `H` of (4.1) with
+exponent `r = (θ_w − 1)/θ_w`, written `r⁻¹ D(r s)`. -/
+noncomputable def hoursGap (e : J → ℝ) (r s : ℝ) : ℝ := r⁻¹ * dispFn m e (r * s)
+
+/-- Woodford (2003), §4.1, p. 223: `D_h` is the gap between the log CES aggregate and the
+average log hours, `log H − ∫ log h_j = r⁻¹ log ∫ e^{r s e} − s ∫ e`. -/
+theorem hoursGap_eq {e : J → ℝ} {Hbar : ℝ} (hH : 0 < Hbar) {r : ℝ} (hr : r ≠ 0) (s : ℝ)
+    (hei : Integrable e m) :
+    (Real.log Hbar + r⁻¹ * Real.log (∫ j, Real.exp (r * s * e j) ∂m))
+      - ∫ j, Real.log (Hbar * Real.exp (s * e j)) ∂m = hoursGap m e r s := by
+  have hpt : ∀ j, Real.log (Hbar * Real.exp (s * e j)) = Real.log Hbar + s * e j := by
+    intro j
+    rw [Real.log_mul hH.ne' (Real.exp_pos _).ne', Real.log_exp]
+  simp_rw [hpt]
+  rw [integral_add (integrable_const _) (hei.const_mul s), integral_const_mul]
+  simp only [integral_const, probReal_univ, smul_eq_mul, one_mul]
+  unfold hoursGap dispFn
+  field_simp
+  ring
+
+/-- Woodford (2003), §4.1, p. 223 (**`D_h` is nonnegative and second order**): for
+`0 < r ≤ 1` and `|r s| B ≤ 1`, `0 ≤ D_h ≤ r s² B²`. -/
+theorem hoursGap_bounds {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ}
+    (hB : ∀ j, |e j| ≤ B) {r s : ℝ} (hr : 0 < r) (hx : |r * s| * B ≤ 1) :
+    0 ≤ hoursGap m e r s ∧ hoursGap m e r s ≤ r * s ^ 2 * B ^ 2 := by
+  obtain ⟨h0, h1⟩ := log_integral_exp_bounds m he hB hx
+  unfold hoursGap
+  refine ⟨mul_nonneg (inv_nonneg.mpr hr.le) h0, ?_⟩
+  calc r⁻¹ * dispFn m e (r * s) ≤ r⁻¹ * ((r * s) ^ 2 * B ^ 2) :=
+        mul_le_mul_of_nonneg_left h1 (inv_nonneg.mpr hr.le)
+    _ = r * s ^ 2 * B ^ 2 := by field_simp
+
+/-- Woodford (2003), §4.1, p. 223 (**the book's form of the type-`j` log MRS, made exact**):
+with isoelastic disutility, `log MRS_j = k₀ + ν log h_j` (`k₀ = log k − log u_c`), the geometric
+average `log v = ∫ log MRS_j dj` and any `log H`,
+`log MRS_j = log v + ν (log h_j − log H) + ν (log H − ∫ log h)`. The book's
+`log v_t + ν log(h_t(j)/H_t)` is therefore exact up to `ν D_h` (`hoursGap_eq`). -/
+theorem logMRS_type_eq {h : J → ℝ} (hi : Integrable (fun j => Real.log (h j)) m)
+    (k0 ν logH : ℝ) (j : J) :
+    k0 + ν * Real.log (h j) = (∫ i, (k0 + ν * Real.log (h i)) ∂m)
+      + ν * (Real.log (h j) - logH) + ν * (logH - ∫ i, Real.log (h i) ∂m) := by
+  rw [integral_add (integrable_const _) (hi.const_mul ν), integral_const_mul, integral_const]
+  simp only [smul_eq_mul, probReal_univ, one_mul]
+  ring
+
+/-- Woodford (2003), §4.1, p. 224 (**the output-dispersion term**): with output
+`y_i = Ȳ e^{s e_i}`, the Dixit–Stiglitz aggregate `Y` of (1.2) with exponent
+`ρ = (θ − 1)/θ`, and isoelastic labour requirements `(y_i/A)^φ`,
+`D_y = log ∫ (y_i/A)^φ di − φ (log Y − log A) = D(φ s) − (φ/ρ) D(ρ s)`. -/
+noncomputable def outputGap (e : J → ℝ) (φ ρ s : ℝ) : ℝ :=
+  dispFn m e (φ * s) - φ / ρ * dispFn m e (ρ * s)
+
+omit [IsProbabilityMeasure m] in
+/-- Woodford (2003), §4.1, p. 224: `D_y` is the gap between log labour input
+`log ∫ (y_i/A)^φ di` and `φ (log Y − log A)`, with `log Y = log Ȳ + ρ⁻¹ log ∫ e^{ρ s e}`. -/
+theorem outputGap_eq {e : J → ℝ} {Ybar A : ℝ} (hY : 0 < Ybar) (hA : 0 < A) {φ ρ : ℝ}
+    (hρ : ρ ≠ 0) (s : ℝ) (hpos : 0 < ∫ j, Real.exp (φ * s * e j) ∂m) :
+    Real.log (∫ j, (Ybar * Real.exp (s * e j) / A) ^ φ ∂m)
+      - φ * ((Real.log Ybar + ρ⁻¹ * Real.log (∫ j, Real.exp (ρ * s * e j) ∂m)) - Real.log A)
+      = outputGap m e φ ρ s := by
+  have hpt : ∀ j, (Ybar * Real.exp (s * e j) / A) ^ φ
+      = (Ybar / A) ^ φ * Real.exp (φ * s * e j) := by
+    intro j
+    rw [mul_div_right_comm, Real.mul_rpow (div_pos hY hA).le (Real.exp_pos _).le, ← Real.exp_mul]
+    congr 2
+    ring
+  simp_rw [hpt]
+  have hYA := div_pos hY hA
+  rw [integral_const_mul, Real.log_mul (Real.rpow_pos_of_pos hYA φ).ne' hpos.ne',
+    Real.log_rpow hYA, Real.log_div hY.ne' hA.ne']
+  unfold outputGap dispFn
+  simp_rw [mul_assoc]
+  field_simp
+  ring
+
+/-- Woodford (2003), §4.1, p. 224 (**`D_y` is second order**): for `φ > 0`, `ρ > 0`,
+`|φ s| B ≤ 1` and `|ρ s| B ≤ 1`, `−φρ s² B² ≤ D_y ≤ φ² s² B²`. -/
+theorem outputGap_bounds {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ}
+    (hB : ∀ j, |e j| ≤ B) {φ ρ s : ℝ} (hφ : 0 < φ) (hρ : 0 < ρ) (hx1 : |φ * s| * B ≤ 1)
+    (hx2 : |ρ * s| * B ≤ 1) :
+    -(φ * ρ * s ^ 2 * B ^ 2) ≤ outputGap m e φ ρ s ∧
+      outputGap m e φ ρ s ≤ φ ^ 2 * s ^ 2 * B ^ 2 := by
+  obtain ⟨a0, a1⟩ := log_integral_exp_bounds m he hB hx1
+  obtain ⟨b0, b1⟩ := log_integral_exp_bounds m he hB hx2
+  have hc : 0 ≤ φ / ρ := (div_pos hφ hρ).le
+  unfold outputGap
+  constructor
+  · have : φ / ρ * dispFn m e (ρ * s) ≤ φ / ρ * ((ρ * s) ^ 2 * B ^ 2) :=
+      mul_le_mul_of_nonneg_left b1 hc
+    have e1 : φ / ρ * ((ρ * s) ^ 2 * B ^ 2) = φ * ρ * s ^ 2 * B ^ 2 := by field_simp
+    linarith
+  · have : 0 ≤ φ / ρ * dispFn m e (ρ * s) := mul_nonneg hc b0
+    have e1 : (φ * s) ^ 2 * B ^ 2 = φ ^ 2 * s ^ 2 * B ^ 2 := by ring
+    linarith
+
+/-- Woodford (2003), eq. (4.10), p. 224 (**the exact geometric-average MRS**): with isoelastic
+disutility (`log MRS_j = log k − log u_c + ν log h_j`), if the labour market clears
+(`log H = log ∫ (y_i/A)^φ di` for the CES aggregate `H` of the hours `h_j`), then
+`log v = log k − log u_c + νφ (log Y − log A) + ν D_y − ν D_h`, where
+`D_h = log H − ∫ log h_j` and `D_y = log H − φ(log Y − log A)`: (4.10)'s first-order relation
+plus the two dispersion terms. -/
+theorem logv_decomposition {h : J → ℝ}
+    (hi : Integrable (fun j => Real.log (h j)) m) (logk loguc ν φ logH logY logA : ℝ) :
+    ∫ j, (logk - loguc + ν * Real.log (h j)) ∂m
+      = logk - loguc + ν * φ * (logY - logA) + ν * (logH - φ * (logY - logA))
+        - ν * (logH - ∫ j, Real.log (h j) ∂m) := by
+  rw [integral_add (integrable_const _) (hi.const_mul ν), integral_const_mul, integral_const]
+  simp only [smul_eq_mul, probReal_univ, one_mul]
+  ring
+
+/-! ### Both gaps drop out of the log-linearisation -/
+
+/-- Woodford (2003), §4.1 (second-order terms have zero derivative): if `F 0 = 0` and
+`|F s| ≤ K s²` for `|s| ≤ δ`, `δ > 0`, then `F` has derivative `0` at `0`. -/
+theorem hasDerivAt_zero_of_sq_bound {F : ℝ → ℝ} (h0 : F 0 = 0) {δ K : ℝ} (hδ : 0 < δ)
+    (hb : ∀ s, |s| ≤ δ → |F s| ≤ K * s ^ 2) : HasDerivAt F 0 0 := by
+  rw [hasDerivAt_iff_isLittleO_nhds_zero]
+  simp only [zero_add, h0, sub_zero, smul_zero]
+  have hO : F =O[𝓝 0] fun s : ℝ => s ^ 2 := by
+    refine IsBigO.of_bound K ?_
+    filter_upwards [Metric.closedBall_mem_nhds (0 : ℝ) hδ] with s hs
+    rw [Metric.mem_closedBall, Real.dist_eq, sub_zero] at hs
+    rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg (sq_nonneg s)]
+    exact hb s hs
+  exact hO.trans_isLittleO (isLittleO_pow_id (by norm_num))
+
+/-- Woodford (2003), §4.1, p. 223 and (4.10), p. 224 (**hours dispersion drops out to first
+order**): along `h_j = H̄ e^{s e_j}`, `s ↦ D_h(s)` has derivative `0` at `s = 0`. -/
+theorem hasDerivAt_hoursGap {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ} (hB0 : 0 < B)
+    (hB : ∀ j, |e j| ≤ B) {r : ℝ} (hr : 0 < r) :
+    HasDerivAt (fun s => hoursGap m e r s) 0 0 := by
+  refine hasDerivAt_zero_of_sq_bound ?_ (δ := (r * B)⁻¹) (K := r * B ^ 2)
+    (inv_pos.mpr (mul_pos hr hB0)) fun s hs => ?_
+  · simp [hoursGap, dispFn]
+  · have hx : |r * s| * B ≤ 1 := by
+      rw [abs_mul, abs_of_pos hr]
+      have h' := mul_le_mul_of_nonneg_left hs (mul_pos hr hB0).le
+      rw [mul_inv_cancel₀ (mul_pos hr hB0).ne'] at h'
+      nlinarith
+    obtain ⟨h0, h1⟩ := hoursGap_bounds m he hB hr hx
+    rw [abs_of_nonneg h0]
+    linarith
+
+/-- Woodford (2003), (4.10), p. 224 (**output dispersion drops out to first order**): along
+`y_i = Ȳ e^{s e_i}`, `s ↦ D_y(s)` has derivative `0` at `s = 0`. -/
+theorem hasDerivAt_outputGap {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ} (hB0 : 0 < B)
+    (hB : ∀ j, |e j| ≤ B) {φ ρ : ℝ} (hφ : 0 < φ) (hρ : 0 < ρ) :
+    HasDerivAt (fun s => outputGap m e φ ρ s) 0 0 := by
+  set M := max φ ρ
+  have hM : 0 < M := lt_max_of_lt_left hφ
+  refine hasDerivAt_zero_of_sq_bound ?_ (δ := (M * B)⁻¹) (K := (φ ^ 2 + φ * ρ) * B ^ 2)
+    (inv_pos.mpr (mul_pos hM hB0)) fun s hs => ?_
+  · simp [outputGap, dispFn]
+  · have hs' := mul_le_mul_of_nonneg_left hs (mul_pos hM hB0).le
+    rw [mul_inv_cancel₀ (mul_pos hM hB0).ne'] at hs'
+    have hx1 : |φ * s| * B ≤ 1 := by
+      rw [abs_mul, abs_of_pos hφ]
+      have : φ ≤ M := le_max_left _ _
+      nlinarith [abs_nonneg s]
+    have hx2 : |ρ * s| * B ≤ 1 := by
+      rw [abs_mul, abs_of_pos hρ]
+      have : ρ ≤ M := le_max_right _ _
+      nlinarith [abs_nonneg s]
+    obtain ⟨h0, h1⟩ := outputGap_bounds m he hB hφ hρ hx1 hx2
+    rw [abs_le]
+    constructor <;> nlinarith [sq_nonneg s, sq_nonneg B, mul_pos hφ hρ]
+
+end Woodford.NominalRigidities.TidyR5Dispersion
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Galí–Gertler hybrid model and indexation (3.6)
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §3.2, pp. 216–217. The book compares the
+indexation model (3.6) with "the generalization of the Calvo model proposed by Gali and Gertler
+(1999)": prices are fixed for Calvo intervals, but a fraction of adjusters use a backward-looking
+rule of thumb. It claims that "in the limiting case `β = 1`, the two models have identical
+implications" and that "relation (3.6) for any given value of `γ` can be obtained from the
+Gali-Gertler model through an appropriate choice of the fraction of backward-looking
+pricesetters".
+
+## The Galí–Gertler model
+
+Log price index `p_t = θ p_{t−1} + (1 − θ) x_t` (`θ` the probability of not adjusting, the book's
+`α`), adjusters' average price `x_t = (1 − ϖ) p^f_t + ϖ p^b_t` (`ϖ` the backward-looking share),
+rule of thumb `p^b_t = x_{t−1} + π_{t−1}`, and forward-looking optimal price
+`p^f_t = (1 − βθ) ∑_k (βθ)ᵏ E_t[mc_{t+k} + p_{t+k}]`.
+
+* `pf_rec_of_forward`: the forward sum gives the recursive form (no growth restriction, through
+  `TidyR5Prop34Uncertainty.E_hasSum`).
+* `gg_hybrid_iff`: for every expectation system, the recursive optimal-price condition is
+  equivalent to the hybrid Phillips curve `π_t = γ_b π_{t−1} + γ_f E_t π_{t+1} + λ mc_t` with
+  `φ = θ + ϖ(1 − θ(1 − β))`, `γ_b = ϖ/φ`, `γ_f = βθ/φ`, `λ = (1 − ϖ)(1 − θ)(1 − βθ)/φ`
+  (the Galí–Gertler formulas).
+
+## The book's claims
+
+The hybrid form of (3.6) is `π_t = γ/(1 + βγ) π_{t−1} + β/(1 + βγ) E_t π_{t+1} + …`
+(`Delays.eq_3_6_iff_hybrid`).
+
+* `gg_weights_match_iff`: for `0 ≤ γ ≤ 1` and `0 < β ≤ 1`, some Galí–Gertler model (any Calvo
+  parameter `θ ∈ (0, 1)` and share `ϖ ∈ [0, 1)`) has exactly the lag and lead weights of (3.6) iff
+  `γ = 0` or `β = 1`. So the second claim holds in the limiting case `β = 1` only: for `β < 1`
+  and `γ > 0` no choice of the backward-looking share reproduces (3.6).
+* `gg_same_theta_slope`: at `β = 1` with the same Calvo parameter (`ϖ = θγ`), the weights match
+  but the slope on marginal cost is `(1 − θγ)` times that of (3.6).
+* `gg_identical_beta_one`: at `β = 1`, for every `γ ∈ [0, 1]` and every target slope `s > 0`
+  there are `θ' ∈ (0, 1)` and `ϖ = θ'γ` reproducing (3.6) exactly (weights and slope) — the first
+  claim, made precise: identical implications require re-choosing the Calvo parameter as well.
+-/
+
+namespace Woodford.NominalRigidities.TidyR5GaliGertler
+
+open Filter Topology
+
+/-- Woodford (2003), p. 217 (Galí–Gertler 1999): `φ = θ + ϖ(1 − θ(1 − β))`. -/
+noncomputable def ggPhi (θ β ϖ : ℝ) : ℝ := θ + ϖ * (1 - θ * (1 - β))
+
+/-- Woodford (2003), p. 217 (Galí–Gertler 1999): the backward weight `γ_b = ϖ/φ`. -/
+noncomputable def ggBack (θ β ϖ : ℝ) : ℝ := ϖ / ggPhi θ β ϖ
+
+/-- Woodford (2003), p. 217 (Galí–Gertler 1999): the forward weight `γ_f = βθ/φ`. -/
+noncomputable def ggFwd (θ β ϖ : ℝ) : ℝ := β * θ / ggPhi θ β ϖ
+
+/-- Woodford (2003), p. 217 (Galí–Gertler 1999): the slope `λ = (1 − ϖ)(1 − θ)(1 − βθ)/φ`. -/
+noncomputable def ggSlope (θ β ϖ : ℝ) : ℝ := (1 - ϖ) * (1 - θ) * (1 - β * θ) / ggPhi θ β ϖ
+
+/-- Woodford (2003), p. 217: `φ > 0` for `0 < θ < 1`, `β ≥ 0`, `ϖ ≥ 0`. -/
+theorem ggPhi_pos {θ β ϖ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ < 1) (hβ0 : 0 ≤ β)
+    (hϖ : 0 ≤ ϖ) : 0 < ggPhi θ β ϖ := by
+  unfold ggPhi
+  have : 0 ≤ 1 - θ * (1 - β) := by nlinarith
+  nlinarith
+
+/-- Woodford (2003), p. 217 (the Galí–Gertler algebra): with `K = (1 − θ)(1 − ϖ)`, writing
+`p^f_t = p_{t−1} + (π_t − ϖ π_{t−1})/K` and `E_t p^f_{t+1} = p_t + (E_t π_{t+1} − ϖ π_t)/K`, the
+optimal-price recursion `p^f_t = (1 − βθ)(mc_t + p_t) + βθ E_t p^f_{t+1}` holds iff
+`π_t = γ_b π_{t−1} + γ_f E_t π_{t+1} + λ mc_t`. -/
+theorem gg_algebra {θ β ϖ : ℝ} (hθ1 : θ ≠ 1) (hϖ1 : ϖ ≠ 1) (hφ : ggPhi θ β ϖ ≠ 0)
+    (p0 p1 π1 π2 Eπ3 mc : ℝ) (hπ2 : π2 = p1 - p0) :
+    p0 + (π2 - ϖ * π1) / ((1 - θ) * (1 - ϖ)) = (1 - β * θ) * (mc + p1)
+        + β * θ * (p1 + (Eπ3 - ϖ * π2) / ((1 - θ) * (1 - ϖ))) ↔
+      π2 = ggBack θ β ϖ * π1 + ggFwd θ β ϖ * Eπ3 + ggSlope θ β ϖ * mc := by
+  have hK : (1 - θ) * (1 - ϖ) ≠ 0 := mul_ne_zero (sub_ne_zero.mpr (Ne.symm hθ1))
+    (sub_ne_zero.mpr (Ne.symm hϖ1))
+  unfold ggBack ggFwd ggSlope
+  have key : (π2 - (ϖ / ggPhi θ β ϖ * π1 + β * θ / ggPhi θ β ϖ * Eπ3
+      + (1 - ϖ) * (1 - θ) * (1 - β * θ) / ggPhi θ β ϖ * mc)) * ggPhi θ β ϖ
+      = (p0 + (π2 - ϖ * π1) / ((1 - θ) * (1 - ϖ)) - ((1 - β * θ) * (mc + p1)
+        + β * θ * (p1 + (Eπ3 - ϖ * π2) / ((1 - θ) * (1 - ϖ))))) * ((1 - θ) * (1 - ϖ)) := by
+    subst hπ2
+    unfold ggPhi at hφ ⊢
+    field_simp
+    ring
+  constructor
+  · intro h
+    rw [sub_eq_zero.mpr h, zero_mul] at key
+    have := (mul_eq_zero.mp key).resolve_right hφ
+    linarith
+  · intro h
+    rw [sub_eq_zero.mpr h, zero_mul] at key
+    have := (mul_eq_zero.mp key.symm).resolve_right hK
+    linarith
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), p. 217 (Galí–Gertler 1999, the forward-looking price): if
+`p^f_t = (1 − βθ) ∑_k (βθ)ᵏ E_t[mc_{t+k} + p_{t+k}]` with the sum converging at every state and
+date, and `mc + p` is adapted, then `p^f_t = (1 − βθ)(mc_t + p_t) + βθ E_t p^f_{t+1}`. -/
+theorem pf_rec_of_forward {θ β : ℝ} {pf mcp : ℕ → Ω → ℝ} (hmcp : 𝔼.Adapted mcp)
+    (hs : ∀ t ω, Summable (fun k => (β * θ) ^ k * 𝔼.E t (mcp (t + k)) ω))
+    (hpf : ∀ t ω, pf t ω = (1 - β * θ) * ∑' k, (β * θ) ^ k * 𝔼.E t (mcp (t + k)) ω) (t : ℕ)
+    (ω : Ω) : pf t ω = (1 - β * θ) * mcp t ω + β * θ * 𝔼.E t (pf (t + 1)) ω := by
+  set f : ℕ → Ω → ℝ := fun k => (β * θ) ^ k • 𝔼.E (t + 1) (mcp (t + 1 + k))
+  have hF : pf (t + 1) = (1 - β * θ) • fun ω' => ∑' k, f k ω' := by
+    funext ω'
+    rw [hpf (t + 1) ω']
+    rfl
+  have hsum : ∀ ω', HasSum (fun k => f k ω') (∑' k, f k ω') := fun ω' => (hs (t + 1) ω').hasSum
+  have hint := TidyR5Prop34Uncertainty.E_hasSum 𝔼 hsum t ω
+  have hterm : ∀ k, 𝔼.E t (f k) ω = (β * θ) ^ k * 𝔼.E t (mcp (t + 1 + k)) ω := by
+    intro k
+    simp only [f]
+    rw [map_smul, 𝔼.tower (Nat.le_succ t)]
+    rfl
+  have hE : 𝔼.E t (pf (t + 1)) ω = (1 - β * θ) * ∑' k, (β * θ) ^ k * 𝔼.E t (mcp (t + 1 + k)) ω := by
+    rw [hF, map_smul, Pi.smul_apply, smul_eq_mul, hint.tsum_eq.symm]
+    simp_rw [hterm]
+  rw [hE, hpf t ω, (hs t ω).tsum_eq_zero_add]
+  have htail : ∑' k, (β * θ) ^ (k + 1) * 𝔼.E t (mcp (t + (k + 1))) ω
+      = β * θ * ∑' k, (β * θ) ^ k * 𝔼.E t (mcp (t + 1 + k)) ω := by
+    rw [← tsum_mul_left]
+    refine tsum_congr fun k => ?_
+    rw [show t + (k + 1) = t + 1 + k by omega, pow_succ]
+    ring
+  rw [htail, pow_zero, one_mul, add_zero, congrFun (hmcp t) ω]
+  ring
+
+/-- Woodford (2003), pp. 216–217 (**the Galí–Gertler hybrid Phillips curve, for every
+expectation system**). Let `0 ≤ θ < 1`, `ϖ ≠ 1`, `φ ≠ 0`, the price level `p` adapted, and
+`p_{t+1} = θ p_t + (1 − θ) x_{t+1}`, `x_t = (1 − ϖ) p^f_t + ϖ p^b_t`,
+`p^b_{t+2} = x_{t+1} + π_{t+1}` with `π_{t+1} = p_{t+1} − p_t`. Then at every date `t + 2` the
+optimal-price recursion `p^f = (1 − βθ)(mc + p) + βθ E p^f_{+1}` holds iff
+`π_{t+2} = γ_b π_{t+1} + γ_f E_{t+2} π_{t+3} + λ mc_{t+2}`. -/
+theorem gg_hybrid_iff {θ β ϖ : ℝ} (hθ1 : θ ≠ 1) (hϖ1 : ϖ ≠ 1) (hφ : ggPhi θ β ϖ ≠ 0)
+    {p x pf pb mc : ℕ → Ω → ℝ} (hpa : 𝔼.Adapted p)
+    (hp : ∀ t ω, p (t + 1) ω = θ * p t ω + (1 - θ) * x (t + 1) ω)
+    (hx : ∀ t ω, x t ω = (1 - ϖ) * pf t ω + ϖ * pb t ω)
+    (hb : ∀ t ω, pb (t + 2) ω = x (t + 1) ω + (p (t + 1) ω - p t ω)) (t : ℕ) (ω : Ω) :
+    pf (t + 2) ω = (1 - β * θ) * (mc (t + 2) ω + p (t + 2) ω)
+        + β * θ * 𝔼.E (t + 2) (pf (t + 3)) ω
+      ↔ p (t + 2) ω - p (t + 1) ω = ggBack θ β ϖ * (p (t + 1) ω - p t ω)
+        + ggFwd θ β ϖ * (𝔼.E (t + 2) (p (t + 3)) ω - p (t + 2) ω)
+        + ggSlope θ β ϖ * mc (t + 2) ω := by
+  have h1θ : (1 : ℝ) - θ ≠ 0 := sub_ne_zero.mpr (Ne.symm hθ1)
+  have h1ϖ : (1 : ℝ) - ϖ ≠ 0 := sub_ne_zero.mpr (Ne.symm hϖ1)
+  -- `x` from the index, `p^f` from `x` and `p^b`
+  have hxs : ∀ s ω', x (s + 1) ω' = (p (s + 1) ω' - θ * p s ω') / (1 - θ) := by
+    intro s ω'
+    rw [hp s ω']
+    field_simp
+    ring
+  have hpf : ∀ s ω', pf (s + 2) ω' = p (s + 1) ω'
+      + ((p (s + 2) ω' - p (s + 1) ω') - ϖ * (p (s + 1) ω' - p s ω')) / ((1 - θ) * (1 - ϖ)) := by
+    intro s ω'
+    have e1 : x (s + 2) ω' * (1 - θ) = p (s + 2) ω' - θ * p (s + 1) ω' := by
+      have := hp (s + 1) ω'
+      rw [show s + 1 + 1 = s + 2 by omega] at this
+      linear_combination -this
+    have e0 : x (s + 1) ω' * (1 - θ) = p (s + 1) ω' - θ * p s ω' := by
+      linear_combination -(hp s ω')
+    have hx2 := hx (s + 2) ω'
+    rw [hb s ω'] at hx2
+    have hK : pf (s + 2) ω' * ((1 - θ) * (1 - ϖ)) = p (s + 1) ω' * ((1 - θ) * (1 - ϖ))
+        + ((p (s + 2) ω' - p (s + 1) ω') - ϖ * (p (s + 1) ω' - p s ω')) := by
+      linear_combination (-1 + θ) * hx2 + e1 - ϖ * e0
+    field_simp
+    linear_combination hK
+  -- the forecast of `p^f_{t+3}`
+  have hEpf : 𝔼.E (t + 2) (pf (t + 3)) ω = p (t + 2) ω
+      + ((𝔼.E (t + 2) (p (t + 3)) ω - p (t + 2) ω) - ϖ * (p (t + 2) ω - p (t + 1) ω))
+        / ((1 - θ) * (1 - ϖ)) := by
+    have hfun : pf (t + 3) = p (t + 2)
+        + ((1 - θ) * (1 - ϖ))⁻¹ • (p (t + 3) - p (t + 2) - ϖ • (p (t + 2) - p (t + 1))) := by
+      funext ω'
+      rw [hpf (t + 1) ω']
+      simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+      field_simp
+    have hk : 𝔼.E (t + 2) (p (t + 1)) = p (t + 1) := by
+      rw [← hpa (t + 1), 𝔼.known (by omega)]
+    rw [hfun, map_add, map_smul, map_sub, map_sub, map_smul, map_sub, hpa (t + 2), hk]
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    field_simp
+  rw [hpf t ω, hEpf]
+  exact gg_algebra hθ1 hϖ1 hφ (p (t + 1) ω) (p (t + 2) ω) (p (t + 1) ω - p t ω)
+    (p (t + 2) ω - p (t + 1) ω) (𝔼.E (t + 2) (p (t + 3)) ω - p (t + 2) ω) (mc (t + 2) ω) rfl
+
+/-! ### The book's comparison with indexation (3.6) -/
+
+/-- Woodford (2003), pp. 216–217 (**when can Galí–Gertler reproduce the weights of (3.6)?**):
+for `0 ≤ γ ≤ 1` and `0 < β ≤ 1`, there are a Calvo parameter `θ ∈ (0, 1)` and a backward share
+`ϖ ∈ [0, 1)` with `γ_b = γ/(1 + βγ)` and `γ_f = β/(1 + βγ)` iff `γ = 0` or `β = 1`. -/
+theorem gg_weights_match_iff {β γ : ℝ} (hβ0 : 0 < β) (hβ1 : β ≤ 1) (hγ0 : 0 ≤ γ)
+    (hγ1 : γ ≤ 1) :
+    (∃ θ ϖ : ℝ, 0 < θ ∧ θ < 1 ∧ 0 ≤ ϖ ∧ ϖ < 1 ∧ ggBack θ β ϖ = γ / (1 + β * γ) ∧
+      ggFwd θ β ϖ = β / (1 + β * γ)) ↔ (γ = 0 ∨ β = 1) := by
+  have hd : 0 < 1 + β * γ := by nlinarith
+  constructor
+  · rintro ⟨θ, ϖ, hθ0, hθ1, hϖ0, -, hb, hf⟩
+    have hφ := ggPhi_pos hθ0 hθ1 hβ0.le hϖ0
+    unfold ggBack at hb
+    unfold ggFwd at hf
+    rw [div_eq_div_iff hφ.ne' hd.ne'] at hb hf
+    have hφeq : θ * (1 + β * γ) = ggPhi θ β ϖ := by
+      have : β * (θ * (1 + β * γ) - ggPhi θ β ϖ) = 0 := by linear_combination hf
+      have := (mul_eq_zero.mp this).resolve_left hβ0.ne'
+      linarith
+    have hϖ : ϖ = θ * γ := by
+      have : (ϖ - θ * γ) * (1 + β * γ) = 0 := by linear_combination hb - γ * hφeq
+      have := (mul_eq_zero.mp this).resolve_right hd.ne'
+      linarith
+    unfold ggPhi at hφeq
+    rw [hϖ] at hφeq
+    have key : θ * γ * (1 - θ) * (1 - β) = 0 := by linear_combination -hφeq
+    rcases mul_eq_zero.mp key with h | h
+    · rcases mul_eq_zero.mp h with h' | h'
+      · rcases mul_eq_zero.mp h' with h'' | h''
+        · linarith
+        · exact Or.inl h''
+      · linarith
+    · right; linarith
+  · rintro (h | h)
+    · refine ⟨1 / 2, 0, by norm_num, by norm_num, le_rfl, by norm_num, ?_, ?_⟩
+      · simp [ggBack, h]
+      · simp only [ggFwd, ggPhi, h]
+        norm_num
+    · refine ⟨1 / 2, γ / 2, by norm_num, by norm_num, by linarith, by linarith, ?_, ?_⟩
+      · simp only [ggBack, ggPhi, h]
+        field_simp
+        ring
+      · simp only [ggFwd, ggPhi, h]
+        field_simp
+        ring
+
+/-- Woodford (2003), p. 217: at `β = 1` with `ϖ = θγ`, `φ = θ(1 + γ)`. -/
+theorem ggPhi_beta_one (θ γ : ℝ) : ggPhi θ 1 (θ * γ) = θ * (1 + γ) := by
+  unfold ggPhi
+  ring
+
+/-- Woodford (2003), p. 217 (**same Calvo parameter, `β = 1`**): with `ϖ = θγ` the Galí–Gertler
+weights are `γ/(1 + γ)` and `1/(1 + γ)` — those of (3.6) at `β = 1` — but the slope on marginal
+cost is `(1 − θγ)` times the slope `(1 − θ)²/(θ(1 + γ))` of (3.6) (Calvo, no strategic
+complementarity, at `β = 1`), so the two coincide only for `γ = 0`. -/
+theorem gg_same_theta_slope {θ γ : ℝ} (hθ0 : 0 < θ) (hγ0 : 0 ≤ γ) :
+    ggBack θ 1 (θ * γ) = γ / (1 + γ) ∧ ggFwd θ 1 (θ * γ) = 1 / (1 + γ) ∧
+      ggSlope θ 1 (θ * γ) = (1 - θ * γ) * ((1 - θ) ^ 2 / θ / (1 + γ)) := by
+  have hγ : (1 : ℝ) + γ ≠ 0 := by linarith
+  have hθ : θ ≠ 0 := hθ0.ne'
+  have hφ := ggPhi_beta_one θ γ
+  refine ⟨?_, ?_, ?_⟩
+  · rw [ggBack, hφ]; field_simp
+  · rw [ggFwd, hφ]; field_simp
+  · rw [ggSlope, hφ]; field_simp
+
+/-- Woodford (2003), p. 217: the Galí–Gertler slope at `β = 1` with `ϖ = θγ`, times `1 + γ`:
+`(1 − θγ)(1 − θ)²/θ`. -/
+noncomputable def slopeFn (γ θ : ℝ) : ℝ := (1 - θ * γ) * (1 - θ) ^ 2 / θ
+
+/-- Woodford (2003), p. 217 (**"in the limiting case `β = 1`, the two models have identical
+implications", made precise**): at `β = 1`, for every `γ ∈ [0, 1]` and every slope `s > 0` of
+(3.6) on marginal cost (in hybrid form `s/(1 + γ)`), there is a Galí–Gertler model — Calvo
+parameter `θ' ∈ (0, 1)` and backward share `ϖ = θ'γ ∈ [0, 1)` — with exactly the weights and the
+slope of (3.6). -/
+theorem gg_identical_beta_one {γ s : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) (hs : 0 < s) :
+    ∃ θ' : ℝ, 0 < θ' ∧ θ' < 1 ∧ 0 ≤ θ' * γ ∧ θ' * γ < 1 ∧
+      ggBack θ' 1 (θ' * γ) = γ / (1 + γ) ∧ ggFwd θ' 1 (θ' * γ) = 1 / (1 + γ) ∧
+      ggSlope θ' 1 (θ' * γ) = s / (1 + γ) := by
+  -- the endpoints for the intermediate value theorem
+  set a := min (1 / 2) (1 / (8 * (s + 1))) with ha
+  set b := max (1 / 2) (1 - min (1 / 2) (s / 4)) with hb
+  have ha0 : 0 < a := lt_min (by norm_num) (by positivity)
+  have ha2 : a ≤ 1 / 2 := min_le_left _ _
+  have ha8 : a ≤ 1 / (8 * (s + 1)) := min_le_right _ _
+  have hmin0 : 0 < min (1 / 2 : ℝ) (s / 4) := lt_min (by norm_num) (by positivity)
+  have hb2 : 1 / 2 ≤ b := le_max_left _ _
+  have hb1 : b < 1 := max_lt (by norm_num) (by linarith)
+  have hab : a ≤ b := by linarith
+  have hfa : s ≤ slopeFn γ a := by
+    unfold slopeFn
+    have h1 : 1 / 2 ≤ 1 - a * γ := by nlinarith
+    have h2 : 1 / 4 ≤ (1 - a) ^ 2 := by nlinarith
+    have h3 : 8 * (s + 1) * a ≤ 1 := by
+      rw [le_div_iff₀ (by positivity)] at ha8
+      linarith
+    rw [le_div_iff₀ ha0]
+    nlinarith
+  have hfb : slopeFn γ b ≤ s := by
+    unfold slopeFn
+    have hb0 : 0 < b := by linarith
+    have h1 : 1 - b * γ ≤ 1 := by nlinarith
+    have h1' : 0 ≤ 1 - b * γ := by nlinarith
+    have hm : 1 - b ≤ min (1 / 2 : ℝ) (s / 4) := by
+      have := le_max_right (1 / 2 : ℝ) (1 - min (1 / 2) (s / 4))
+      linarith
+    have hm1 : 1 - b ≤ 1 / 2 := hm.trans (min_le_left _ _)
+    have hm2 : 1 - b ≤ s / 4 := hm.trans (min_le_right _ _)
+    have h0 : 0 ≤ 1 - b := by linarith
+    rw [div_le_iff₀ hb0]
+    have hsq : (1 - b) ^ 2 ≤ s / 8 := by nlinarith
+    nlinarith
+  have hcont : ContinuousOn (slopeFn γ) (Set.Icc a b) := by
+    refine ContinuousOn.div (by fun_prop) continuousOn_id fun x hx => ?_
+    exact (lt_of_lt_of_le ha0 hx.1).ne'
+  obtain ⟨θ', hθ', hval⟩ := intermediate_value_Icc' hab hcont ⟨hfb, hfa⟩
+  have hθ0 : 0 < θ' := lt_of_lt_of_le ha0 hθ'.1
+  have hθ1 : θ' < 1 := lt_of_le_of_lt hθ'.2 hb1
+  have hγ : (1 : ℝ) + γ ≠ 0 := by linarith
+  have hθ : θ' ≠ 0 := hθ0.ne'
+  have hφ := ggPhi_beta_one θ' γ
+  refine ⟨θ', hθ0, hθ1, mul_nonneg hθ0.le hγ0, by nlinarith, ?_, ?_, ?_⟩
+  · rw [ggBack, hφ]; field_simp
+  · rw [ggFwd, hφ]; field_simp
+  · rw [← hval, ggSlope, hφ, slopeFn]; field_simp
+
+end Woodford.NominalRigidities.TidyR5GaliGertler
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 3.4 on a genuine probability space: existence, and `∃!` in the `L¹` class
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §2.1, Proposition 3.4 (p. 182) and
+Appendix B.3 (pp. 659–661), with `E_t` Mathlib's conditional expectation
+(`TidyR5ExpectationsMeasure.MeasExpectationSystem`).
+
+Hypotheses (the measure-theoretic form of "`log S` difference-stationary"): `log S_t` is known at
+`t`, `log S_0` is integrable, and the increments are a.s. bounded, `|log S_{t+1} − log S_t| ≤ K`;
+the initial price level `log P_{−1}` is integrable and known at date `0`.
+
+## The solution (2.9)
+
+`z_T = (1 − λ₁)(log µ + log S_T) + (1 − λ₁)(1 − λ₂⁻¹) E_T ∑_k λ₂⁻ᵏ (log S_{T+k} − log S_T)`
+(`zM`; the realised sum `remD` is a.s. bounded, `remD_props`), and
+`log P_t = λ₁ log P_{t−1} + z_{t−1}` (`PM`), which is (2.9) written with the forward sum split
+into its level and its expected changes.
+
+* The key step (inside `prop34_exists_measure`): at almost every state and every date `t`,
+  the forecasts `E_t log P_{t+n}` are exactly the perfect-foresight solution `Calvo.Psol`
+  driven by the forecast path `n ↦ E_t log S_{t+n}` from `log P_{t−1}`; so (2.8) at `(t, ω)`
+  is (2.8) of that deterministic economy at date `0`, which `Calvo.psol_eq28` provides.
+* `prop34_exists_measure`: for every `ω̃θ > −1`, `PM` with its reset price solves (2.5) and the a.e.
+  form of (2.8), is integrable and predetermined, and its forward sums converge in `L¹`.
+* `prop34_existsUnique_measure`: for `−1 < ω̃θ < 0` it is, up to null sets, the only solution
+  in that class (with `TidyR5Prop34Measure.prop34_unique_of_w_neg_L1`).
+-/
+
+namespace Woodford.NominalRigidities.TidyR5Prop34MeasureExists
+
+open MeasureTheory Filter Topology Calvo QuadraticRoots
+open TidyR5ExpectationsMeasure TidyR5Prop34Measure
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-- Woodford (2003), App. B.3, p. 660 (`E_t` through a dominated series; adapted from the Cochrane
+ObservationalEquivalence project's E_hasSum lemma): if `|f_k| ≤ c_k` a.e. with `∑ c_k < ∞`, the sum
+`∑ f_k` is integrable, bounded by `∑ c_k`, and `E_t ∑ f_k = ∑ E_t f_k` a.e. at every date. -/
+theorem tsum_dom {f : ℕ → Ω → ℝ} {c : ℕ → ℝ} (hc : Summable c)
+    (hm : ∀ k, AEStronglyMeasurable (f k) S.μ) (hf : ∀ k, ∀ᵐ ω ∂S.μ, |f k ω| ≤ c k) :
+    Integrable (fun ω => ∑' k, f k ω) S.μ ∧ (∀ᵐ ω ∂S.μ, |∑' k, f k ω| ≤ ∑' k, c k) ∧
+      ∀ t, ∀ᵐ ω ∂S.μ, HasSum (fun k => S.E t (f k) ω) (S.E t (fun ω' => ∑' k, f k ω') ω) := by
+  set F : Ω → ℝ := fun ω' => ∑' k, f k ω' with hF
+  have hall : ∀ᵐ ω ∂S.μ, ∀ k, |f k ω| ≤ c k := ae_all_iff.2 hf
+  have hsum : ∀ᵐ ω ∂S.μ, Summable (fun k => f k ω) := hall.mono fun ω h =>
+    Summable.of_norm_bounded hc (fun k => by rw [Real.norm_eq_abs]; exact h k)
+  have hFm : AEStronglyMeasurable F S.μ := by
+    refine aestronglyMeasurable_of_tendsto_ae atTop
+      (f := fun N ω => ∑ k ∈ Finset.range N, f k ω)
+      (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => hm k) ?_
+    filter_upwards [hsum] with ω h
+    exact h.hasSum.tendsto_sum_nat
+  have htail : ∀ N, ∀ᵐ ω ∂S.μ,
+      |F ω - ∑ k ∈ Finset.range N, f k ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    filter_upwards [hall, hsum] with ω h hs
+    change |∑' k, f k ω - ∑ k ∈ Finset.range N, f k ω| ≤ _
+    rw [← hs.sum_add_tsum_nat_add N, add_sub_cancel_left, ← Real.norm_eq_abs]
+    exact tsum_of_norm_bounded ((summable_nat_add_iff N).2 hc).hasSum
+      (fun k => by rw [Real.norm_eq_abs]; exact h (k + N))
+  have hbF : ∀ᵐ ω ∂S.μ, |F ω| ≤ ∑' k, c k := by
+    filter_upwards [htail 0] with ω h
+    simpa using h
+  have hint : ∀ k, Integrable (f k) S.μ := fun k =>
+    Integrable.of_bound (hm k) (c k) ((hf k).mono fun ω h => by rwa [Real.norm_eq_abs])
+  have hFi : Integrable F S.μ :=
+    Integrable.of_bound hFm _ (hbF.mono fun ω h => by rwa [Real.norm_eq_abs])
+  refine ⟨hFi, hbF, fun t => ?_⟩
+  have hdiff : ∀ N, ∀ᵐ ω ∂S.μ,
+      |S.E t F ω - ∑ k ∈ Finset.range N, S.E t (f k) ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    have hpi : Integrable (∑ k ∈ Finset.range N, f k) S.μ :=
+      integrable_finsetSum' _ fun k _ => hint k
+    have hEs : S.E t (∑ k ∈ Finset.range N, f k) =ᵐ[S.μ] ∑ k ∈ Finset.range N, S.E t (f k) :=
+      condExp_finsetSum (fun k _ => hint k) (S.𝓕 t)
+    filter_upwards [S.E_sub hFi hpi t, hEs,
+      ae_bdd_abs_condExp_of_ae_bdd_abs (m := S.𝓕 t) (μ := S.μ)
+        (f := F - ∑ k ∈ Finset.range N, f k) (by
+        filter_upwards [htail N] with ω h
+        simpa [Finset.sum_apply] using h)] with ω h1 h2 h3
+    change |S.E t (F - ∑ k ∈ Finset.range N, f k) ω| ≤ _ at h3
+    rw [h1, Pi.sub_apply, h2, Finset.sum_apply] at h3
+    exact h3
+  have hEb : ∀ᵐ ω ∂S.μ, ∀ k, |S.E t (f k) ω| ≤ c k :=
+    ae_all_iff.2 fun k => ae_bdd_abs_condExp_of_ae_bdd_abs (hf k)
+  filter_upwards [ae_all_iff.2 hdiff, hEb] with ω hd hb
+  have hs : Summable fun k => ‖S.E t (f k) ω‖ :=
+    Summable.of_nonneg_of_le (fun _ => norm_nonneg _)
+      (fun k => by rw [Real.norm_eq_abs]; exact hb k) hc
+  rw [hasSum_iff_tendsto_nat_of_summable_norm hs, tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero_norm (fun N => ?_) (tendsto_sum_nat_add c)
+  rw [norm_norm, Real.norm_eq_abs, abs_sub_comm]
+  exact hd N
+
+/-! ### The solution -/
+
+/-- Woodford (2003), App. B.3, p. 660: the realised discounted sum of changes in marginal cost,
+`∑_k aᵏ (log S_{T+k} − log S_T)`. -/
+noncomputable def remD (a : ℝ) (s : ℕ → Ω → ℝ) (T : ℕ) : Ω → ℝ :=
+  fun ω => ∑' k, a ^ k * (s (T + k) ω - s T ω)
+
+/-- Woodford (2003), (2.9), p. 182: the target `z_T` of the partial adjustment, with
+`a = λ₂⁻¹`: `(1 − λ₁)(log µ + log S_T) + (1 − λ₁)(1 − a) E_T ∑_k aᵏ (log S_{T+k} − log S_T)`. -/
+noncomputable def zM (α β w m : ℝ) (s : ℕ → Ω → ℝ) (T : ℕ) : Ω → ℝ :=
+  fun ω => (1 - lam1 β (calvoXi α β w)) * (m + s T ω)
+    + (1 - lam1 β (calvoXi α β w)) * (1 - (lam2 β (calvoXi α β w))⁻¹) *
+      S.E T (remD (lam2 β (calvoXi α β w))⁻¹ s T) ω
+
+/-- Woodford (2003), (2.9), p. 182 (**the solution on a probability space**): `PM 0 = log P_{−1}`
+and `log P_t = λ₁ log P_{t−1} + z_t` (in the project's indexing `PM (t + 1) = log P_t`). -/
+noncomputable def PM (α β w m : ℝ) (s : ℕ → Ω → ℝ) (P0 : Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => P0
+  | t + 1 => fun ω => lam1 β (calvoXi α β w) * PM α β w m s P0 t ω + zM S α β w m s t ω
+
+/-- Woodford (2003), eq. (2.5), p. 180: the reset price of the solution. -/
+noncomputable def pstarM (α β w m : ℝ) (s : ℕ → Ω → ℝ) (P0 : Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => (PM S α β w m s P0 (t + 1) ω - α * PM S α β w m s P0 t ω) / (1 - α)
+
+/-- Woodford (2003), App. B.3: bounded increments give `|log S_{T+k} − log S_T| ≤ K k` a.s. -/
+theorem incr_bound {s : ℕ → Ω → ℝ} {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    (T k : ℕ) : ∀ᵐ ω ∂S.μ, |s (T + k) ω - s T ω| ≤ K * k := by
+  induction k with
+  | zero => exact Eventually.of_forall fun ω => by simp
+  | succ k ih =>
+    filter_upwards [ih, hsb (T + k)] with ω h1 h2
+    rw [show T + (k + 1) = T + k + 1 by omega]
+    have := abs_add_le (s (T + k + 1) ω - s (T + k) ω) (s (T + k) ω - s T ω)
+    rw [show s (T + k + 1) ω - s (T + k) ω + (s (T + k) ω - s T ω)
+      = s (T + k + 1) ω - s T ω by ring] at this
+    push_cast
+    linarith
+
+/-- Woodford (2003), App. B.3: marginal cost is integrable at every date. -/
+theorem integrable_s {s : ℕ → Ω → ℝ} (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t))
+    (hs0 : Integrable (s 0) S.μ) {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    (T : ℕ) : Integrable (s T) S.μ := by
+  have hd : Integrable (s T - s 0) S.μ := by
+    refine Integrable.of_bound ((((hsm T).mono (S.𝓕.le T)).sub
+      ((hsm 0).mono (S.𝓕.le 0))).aestronglyMeasurable) (K * T) ?_
+    filter_upwards [incr_bound S hsb 0 T] with ω h
+    rw [Real.norm_eq_abs, Pi.sub_apply]
+    simpa using h
+  have := hs0.add hd
+  rwa [add_sub_cancel] at this
+
+/-- Woodford (2003), App. B.3, p. 660: the realised sum `remD T` is integrable, a.s. bounded by
+`K ∑ k aᵏ`, and its forecast is the sum of the forecasts. -/
+theorem remD_props {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a < 1) {s : ℕ → Ω → ℝ}
+    (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t)) {K : ℝ}
+    (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K) (T : ℕ) :
+    Integrable (remD a s T) S.μ ∧
+      (∀ᵐ ω ∂S.μ, |remD a s T ω| ≤ ∑' k : ℕ, a ^ k * (K * k)) ∧
+      ∀ t, ∀ᵐ ω ∂S.μ, HasSum (fun k => S.E t (fun ω' => a ^ k * (s (T + k) ω' - s T ω')) ω)
+        (S.E t (remD a s T) ω) := by
+  have hc : Summable (fun k : ℕ => a ^ k * (K * k)) :=
+    ((summable_nat_mul_geom ha0 ha1).mul_left K).congr fun k => by ring
+  have hm : ∀ k, AEStronglyMeasurable (fun ω => a ^ k * (s (T + k) ω - s T ω)) S.μ := fun k =>
+    ((((hsm (T + k)).mono (S.𝓕.le _)).sub ((hsm T).mono (S.𝓕.le _))).const_mul
+      (a ^ k)).aestronglyMeasurable
+  have hf : ∀ k, ∀ᵐ ω ∂S.μ, |a ^ k * (s (T + k) ω - s T ω)| ≤ a ^ k * (K * k) := by
+    intro k
+    filter_upwards [incr_bound S hsb T k] with ω h
+    rw [abs_mul, abs_of_nonneg (pow_nonneg ha0 k)]
+    exact mul_le_mul_of_nonneg_left h (pow_nonneg ha0 k)
+  exact tsum_dom S hc hm hf
+
+/-- Woodford (2003), (2.9): `z_T` is known at `T` and integrable. -/
+theorem zM_props {α β w m : ℝ} {s : ℕ → Ω → ℝ} (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t))
+    (hs0 : Integrable (s 0) S.μ) {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    (T : ℕ) : Measurable[S.𝓕 T] (zM S α β w m s T) ∧ Integrable (zM S α β w m s T) S.μ := by
+  constructor
+  · exact ((measurable_const.add (hsm T).measurable).const_mul _).add
+      ((S.stronglyMeasurable_E T _).measurable.const_mul _)
+  · exact (((integrable_const m).add (integrable_s S hsm hs0 hsb T)).const_mul _).add
+      ((S.integrable_E T _).const_mul _)
+
+/-- Woodford (2003), (2.9): the price index of the solution is integrable, `log P_{t−1}` is known
+at `t`, and `log P_t` is known at `t` (predetermined). -/
+theorem PM_props {α β w m : ℝ} {s : ℕ → Ω → ℝ} (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t))
+    (hs0 : Integrable (s 0) S.μ) {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    {P0 : Ω → ℝ} (hP0m : StronglyMeasurable[S.𝓕 0] P0) (hP0i : Integrable P0 S.μ) (t : ℕ) :
+    Measurable[S.𝓕 t] (PM S α β w m s P0 t) ∧ Measurable[S.𝓕 t] (PM S α β w m s P0 (t + 1)) ∧
+      Integrable (PM S α β w m s P0 t) S.μ := by
+  induction t with
+  | zero =>
+    refine ⟨hP0m.measurable, ?_, hP0i⟩
+    exact (hP0m.measurable.const_mul _).add (zM_props S hsm hs0 hsb 0).1
+  | succ t ih =>
+    obtain ⟨-, h2, h3⟩ := ih
+    refine ⟨h2.mono (S.𝓕.mono (Nat.le_succ t)) le_rfl, ?_, ?_⟩
+    · exact ((h2.mono (S.𝓕.mono (Nat.le_succ t)) le_rfl).const_mul _).add
+        (zM_props S hsm hs0 hsb (t + 1)).1
+    · exact (h3.const_mul _).add (zM_props S hsm hs0 hsb t).2
+
+/-- Woodford (2003), (2.9), p. 182 (**the forecast of the target**): a.s.,
+`E_t z_{t+i} = (1 − λ₁)(log µ + E_t log S_{t+i}) + (1 − λ₁)(1 − a) ∑_k aᵏ E_t(log S_{t+i+k} −
+log S_{t+i})`. -/
+theorem E_zM {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hw : 0 < 1 + w) {s : ℕ → Ω → ℝ} (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t))
+    (hs0 : Integrable (s 0) S.μ) {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    (t i : ℕ) : S.E t (zM S α β w m s (t + i)) =ᵐ[S.μ] fun ω =>
+      (1 - lam1 β (calvoXi α β w)) * (m + S.E t (s (t + i)) ω)
+      + (1 - lam1 β (calvoXi α β w)) * (1 - (lam2 β (calvoXi α β w))⁻¹) *
+        ∑' k, (lam2 β (calvoXi α β w))⁻¹ ^ k *
+          (S.E t (s (t + i + k)) ω - S.E t (s (t + i)) ω) := by
+  obtain ⟨-, -, -, ha0, ha1⟩ := calvo_roots hα0 hα1 hβ0 hβ1 hw
+  set l1 := lam1 β (calvoXi α β w)
+  set a := (lam2 β (calvoXi α β w))⁻¹
+  have hsi := integrable_s S hsm hs0 hsb
+  obtain ⟨-, -, hHas⟩ := remD_props S ha0.le ha1 hsm hsb (t + i)
+  have hfun : zM S α β w m s (t + i) = (fun _ => (1 - l1) * m) + (1 - l1) • s (t + i)
+      + ((1 - l1) * (1 - a)) • S.E (t + i) (remD a s (t + i)) := by
+    funext ω
+    simp only [zM, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hterm : ∀ k, S.E t (fun ω' => a ^ k * (s (t + i + k) ω' - s (t + i) ω'))
+      =ᵐ[S.μ] fun ω => a ^ k * (S.E t (s (t + i + k)) ω - S.E t (s (t + i)) ω) := by
+    intro k
+    have e : (fun ω' => a ^ k * (s (t + i + k) ω' - s (t + i) ω'))
+        = a ^ k • (s (t + i + k) - s (t + i)) := rfl
+    rw [e]
+    filter_upwards [S.E_smul (a ^ k) (s (t + i + k) - s (t + i)) t,
+      S.E_sub (hsi (t + i + k)) (hsi (t + i)) t] with ω h1 h2
+    rw [h1, Pi.smul_apply, h2, Pi.sub_apply, smul_eq_mul]
+  rw [hfun]
+  filter_upwards [S.E_add ((integrable_const _).add ((hsi _).smul (1 - l1)))
+      ((S.integrable_E _ _).smul ((1 - l1) * (1 - a))) t,
+    S.E_add (integrable_const ((1 - l1) * m)) ((hsi _).smul (1 - l1)) t,
+    S.E_smul (1 - l1) (s (t + i)) t,
+    S.E_smul ((1 - l1) * (1 - a)) (S.E (t + i) (remD a s (t + i))) t,
+    S.E_tower (Nat.le_add_right t i) (remD a s (t + i)), hHas t, ae_all_iff.mpr hterm]
+    with ω h1 h2 h3 h4 h5 h6 h7
+  rw [h1, Pi.add_apply, h2, Pi.add_apply, S.E_const, h3, h4, Pi.smul_apply, Pi.smul_apply,
+    smul_eq_mul, smul_eq_mul, h5, ← h6.tsum_eq]
+  simp_rw [h7]
+  ring
+
+/-- Woodford (2003), App. B.3: the forecast path of marginal cost has bounded increments,
+`|E_t log S_{t+n+1} − E_t log S_{t+n}| ≤ K` a.s. -/
+theorem E_s_incr {s : ℕ → Ω → ℝ} (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t))
+    (hs0 : Integrable (s 0) S.μ) {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    (t n : ℕ) : ∀ᵐ ω ∂S.μ, |S.E t (s (t + n + 1)) ω - S.E t (s (t + n)) ω| ≤ K := by
+  have hsi := integrable_s S hsm hs0 hsb
+  filter_upwards [S.E_sub (hsi (t + n + 1)) (hsi (t + n)) t,
+    ae_bdd_abs_condExp_of_ae_bdd_abs (m := S.𝓕 t) (μ := S.μ)
+      (f := s (t + n + 1) - s (t + n)) (hsb (t + n))] with ω h1 h2
+  change |S.E t (s (t + n + 1) - s (t + n)) ω| ≤ K at h2
+  rw [h1, Pi.sub_apply] at h2
+  exact h2
+
+/-- Woodford (2003), (2.9): one step of the forecast of the price index,
+`E_t log P_{t+n} = λ₁ E_t log P_{t+n−1} + E_t z_{t+n}` a.s. -/
+theorem E_PM_succ {α β w m : ℝ} {s : ℕ → Ω → ℝ} (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t))
+    (hs0 : Integrable (s 0) S.μ) {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    {P0 : Ω → ℝ} (hP0m : StronglyMeasurable[S.𝓕 0] P0) (hP0i : Integrable P0 S.μ) (t n : ℕ) :
+    S.E t (PM S α β w m s P0 (t + n + 1)) =ᵐ[S.μ] fun ω =>
+      lam1 β (calvoXi α β w) * S.E t (PM S α β w m s P0 (t + n)) ω
+        + S.E t (zM S α β w m s (t + n)) ω := by
+  have e : PM S α β w m s P0 (t + n + 1)
+      = lam1 β (calvoXi α β w) • PM S α β w m s P0 (t + n) + zM S α β w m s (t + n) := rfl
+  rw [e]
+  filter_upwards [S.E_add ((PM_props S (α := α) (β := β) (w := w) (m := m) hsm hs0 hsb hP0m
+      hP0i (t + n)).2.2.smul (lam1 β (calvoXi α β w)))
+      (zM_props S hsm hs0 hsb (t + n)).2 t, S.E_smul (lam1 β (calvoXi α β w))
+      (PM S α β w m s P0 (t + n)) t] with ω h1 h2
+  rw [h1, Pi.add_apply, h2, Pi.smul_apply, smul_eq_mul]
+
+/-- Woodford (2003), eq. (2.8): the forecast of the cost term,
+`E_t[log µ + log S_T + ω̃θ log P_T] = log µ + E_t log S_T + ω̃θ E_t log P_T` a.s. -/
+theorem E_costTerm {α β w m : ℝ} {s : ℕ → Ω → ℝ} (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t))
+    (hs0 : Integrable (s 0) S.μ) {K : ℝ} (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K)
+    {P0 : Ω → ℝ} (hP0m : StronglyMeasurable[S.𝓕 0] P0) (hP0i : Integrable P0 S.μ) (t j : ℕ) :
+    S.E t (costTerm m w s (PM S α β w m s P0) (t + j)) =ᵐ[S.μ] fun ω =>
+      m + S.E t (s (t + j)) ω + w * S.E t (PM S α β w m s P0 (t + j + 1)) ω := by
+  have hsi := integrable_s S hsm hs0 hsb
+  have hPi := fun T => (PM_props S hsm hs0 hsb hP0m hP0i (α := α) (β := β) (w := w) (m := m)
+    T).2.2
+  have e : costTerm m w s (PM S α β w m s P0) (t + j)
+      = (fun _ => m) + s (t + j) + w • PM S α β w m s P0 (t + j + 1) := by
+    funext ω
+    simp [costTerm]
+  rw [e]
+  filter_upwards [S.E_add ((integrable_const m).add (hsi _)) ((hPi _).smul w) t,
+    S.E_add (integrable_const m) (hsi (t + j)) t, S.E_smul w (PM S α β w m s P0 (t + j + 1)) t]
+    with ω h1 h2 h3
+  rw [h1, Pi.add_apply, h2, Pi.add_apply, S.E_const, h3, Pi.smul_apply, smul_eq_mul]
+
+/-- Woodford (2003), **Proposition 3.4: existence on a probability space** (p. 182; App. B.3,
+pp. 659–661). Let `0 < α < 1`, `0 < β < 1`, `1 + ω̃θ > 0`, `log S_t` known at `t` with `log S_0`
+integrable and a.s. increments bounded by `K`, and `log P_{−1}` integrable and known at `0`. Then
+the solution (2.9) (`PM`, reset price `pstarM`) satisfies (2.5) and the a.e. form of (2.8), is
+integrable and predetermined, and its forward sums converge in `L¹` (`L1Fwd`). -/
+theorem prop34_exists_measure {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hw : 0 < 1 + w) {s : ℕ → Ω → ℝ}
+    (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t)) (hs0 : Integrable (s 0) S.μ) {K : ℝ}
+    (hK0 : 0 ≤ K) (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K) {P0 : Ω → ℝ}
+    (hP0m : StronglyMeasurable[S.𝓕 0] P0) (hP0i : Integrable P0 S.μ) :
+    PM S α β w m s P0 0 = P0 ∧ (∀ t, Integrable (PM S α β w m s P0 t) S.μ) ∧
+      (∀ t, StronglyMeasurable[S.𝓕 t] (PM S α β w m s P0 (t + 1))) ∧
+      Eq25 α (PM S α β w m s P0) (pstarM S α β w m s P0) ∧
+      MEq28 S α β w m s (PM S α β w m s P0) (pstarM S α β w m s P0) ∧
+      L1Fwd S α β (costTerm m w s (PM S α β w m s P0)) := by
+  obtain ⟨hξ, hl0, hl1, ha0, ha1⟩ := calvo_roots hα0 hα1 hβ0 hβ1 hw
+  set l1 := lam1 β (calvoXi α β w) with hl1def
+  set a := (lam2 β (calvoXi α β w))⁻¹ with hadef
+  set P := PM S α β w m s P0 with hPdef
+  have hsi := integrable_s S hsm hs0 hsb
+  have hPp := PM_props S hsm hs0 hsb (α := α) (β := β) (w := w) (m := m) hP0m hP0i
+  have hPE : ∀ T, S.E T (P T) = P T := fun T =>
+    S.E_of_stronglyMeasurable (hPp T).1.stronglyMeasurable (hPp T).2.2
+  have hPE1 : ∀ T, S.E T (P (T + 1)) = P (T + 1) := fun T =>
+    S.E_of_stronglyMeasurable (hPp T).2.1.stronglyMeasurable (hPp (T + 1)).2.2
+  refine ⟨rfl, fun t => (hPp t).2.2, fun t => (hPp t).2.1.stronglyMeasurable, ?_, ?_, ?_⟩
+  · intro t ω
+    change P (t + 1) ω = α * P t ω + (1 - α) * ((P (t + 1) ω - α * P t ω) / (1 - α))
+    have : (1 : ℝ) - α ≠ 0 := by linarith
+    field_simp
+    ring
+  · -- (2.8): reduce to the perfect-foresight economy driven by the forecast path
+    have hA1 : ∀ᵐ ω ∂S.μ, ∀ t i, S.E t (zM S α β w m s (t + i)) ω =
+          (1 - l1) * (m + S.E t (s (t + i)) ω) + (1 - l1) * (1 - a) *
+            ∑' k, a ^ k * (S.E t (s (t + i + k)) ω - S.E t (s (t + i)) ω) := by
+      rw [ae_all_iff]; intro t; rw [ae_all_iff]; intro i
+      exact E_zM S hα0 hα1 hβ0 hβ1 hw hsm hs0 hsb t i
+    have hA2 : ∀ᵐ ω ∂S.μ, ∀ t n, |S.E t (s (t + n + 1)) ω - S.E t (s (t + n)) ω| ≤ K := by
+      rw [ae_all_iff]; intro t; rw [ae_all_iff]; intro n
+      exact E_s_incr S hsm hs0 hsb t n
+    have hA3 : ∀ᵐ ω ∂S.μ, ∀ t n, S.E t (P (t + n + 1)) ω = l1 * S.E t (P (t + n)) ω
+          + S.E t (zM S α β w m s (t + n)) ω := by
+      rw [ae_all_iff]; intro t; rw [ae_all_iff]; intro n
+      exact E_PM_succ S hsm hs0 hsb hP0m hP0i t n
+    have hA4 : ∀ᵐ ω ∂S.μ, ∀ t j, S.E t (costTerm m w s P (t + j)) ω
+          = m + S.E t (s (t + j)) ω + w * S.E t (P (t + j + 1)) ω := by
+      rw [ae_all_iff]; intro t; rw [ae_all_iff]; intro j
+      exact E_costTerm S hsm hs0 hsb hP0m hP0i t j
+    filter_upwards [hA1, hA2, hA3, hA4] with ω hz hinc hP1 hc t
+    set sPF : ℕ → Unit → ℝ := fun n _ => S.E t (s (t + n)) ω with hsPF
+    have hsbPF : BoundedIncr sPF := ⟨K, fun n _ => hinc t n⟩
+    obtain ⟨K', hK'⟩ := mcost_diffStationary perfectForesight (m := m)
+      (diffStationary_of_boundedIncr perfectForesight (fun _ => rfl) hsbPF)
+    have hzm : ∀ n, S.E t (zM S α β w m s (t + n)) ω = zbar perfectForesight α β w m sPF n () := by
+      intro n
+      have hd := fwd_decomp perfectForesight ha0.le ha1 hK' n ()
+      change S.E t (zM S α β w m s (t + n)) ω
+        = (1 - l1) * (1 - a) * perfectForesight.forwardSeries a (mcost m sPF) n ()
+      rw [hd, hz t n]
+      have h1a : (1 : ℝ) - a ≠ 0 := by linarith
+      have hrem : fwdRem perfectForesight a (mcost m sPF) n ()
+          = ∑' k, a ^ k * (S.E t (s (t + n + k)) ω - S.E t (s (t + n)) ω) := by
+        simp only [fwdRem]
+        refine tsum_congr fun k => ?_
+        change a ^ k * ((m + S.E t (s (t + (n + k))) ω) - (m + S.E t (s (t + n)) ω)) = _
+        rw [show t + (n + k) = t + n + k by omega]
+        ring
+      rw [hrem]
+      change (1 - l1) * (m + S.E t (s (t + n)) ω) + _ = (1 - l1) * (1 - a) *
+        ((1 - a)⁻¹ * (m + S.E t (s (t + n)) ω) + _)
+      field_simp
+    have hPm : ∀ n, S.E t (P (t + n)) ω
+        = Psol perfectForesight α β w m sPF (fun _ => P t ω) n () := by
+      intro n
+      induction n with
+      | zero => simp only [add_zero, hPE t]; rfl
+      | succ n ih =>
+        rw [show t + (n + 1) = t + n + 1 by omega, hP1 t n, ih, hzm n]
+        rfl
+    have hcm : ∀ j, S.E t (costTerm m w s P (t + j)) ω
+        = costTerm m w sPF (Psol perfectForesight α β w m sPF (fun _ => P t ω)) j () := by
+      intro j
+      rw [hc t j, show t + j + 1 = t + (j + 1) by omega, hPm (j + 1)]
+      rfl
+    have h28 := psol_eq28 perfectForesight hα0 hα1 hβ0 hβ1 hw (s := sPF) (m := m)
+      (fun _ => rfl) hsbPF (P0 := fun _ => P t ω) rfl
+      ⟨|P t ω - sPF 0 ()|, fun u => le_rfl⟩ 0 ()
+    obtain ⟨hs, hv⟩ := h28
+    have hseq : (fun j => (α * β) ^ j * S.E t (costTerm m w s P (t + j)) ω)
+        = fun j => (α * β) ^ j * perfectForesight.E 0
+          (costTerm m w sPF (Psol perfectForesight α β w m sPF (fun _ => P t ω)) (0 + j)) () := by
+      funext j
+      rw [hcm j, zero_add]
+      rfl
+    refine ⟨hseq ▸ hs, ?_⟩
+    rw [hseq, ← hv]
+    have h1 := hPm 1
+    rw [hPE1 t] at h1
+    change (P (t + 1) ω - α * P t ω) / (1 - α) = (Psol perfectForesight α β w m sPF
+      (fun _ => P t ω) 1 () - α * Psol perfectForesight α β w m sPF (fun _ => P t ω) 0 ()) /
+      (1 - α)
+    rw [← h1]
+    rfl
+  · -- `L¹` convergence of the forward sums
+    set Ms := ∑' k : ℕ, a ^ k * (K * k)
+    have hMs0 : 0 ≤ Ms := tsum_nonneg fun k => mul_nonneg (pow_nonneg ha0.le k)
+      (mul_nonneg hK0 (Nat.cast_nonneg k))
+    set κ' := (1 - l1) * (1 - a)
+    have hκ' : 0 ≤ κ' := mul_nonneg (by linarith) (by linarith)
+    set N0 := ∫ ω, |s 0 ω| ∂S.μ
+    have hsN : ∀ T, ∫ ω, |s T ω| ∂S.μ ≤ N0 + K * T := by
+      intro T
+      have hb : ∀ᵐ ω ∂S.μ, |s T ω| ≤ |s 0 ω| + K * T := by
+        filter_upwards [incr_bound S hsb 0 T] with ω h
+        rw [zero_add] at h
+        have := abs_sub_abs_le_abs_sub (s T ω) (s 0 ω)
+        linarith
+      refine (integral_mono_ae (hsi T).abs (show Integrable (fun ω => |s 0 ω| + K * T) S.μ from
+        hs0.abs.add (integrable_const _)) hb).trans ?_
+      rw [integral_add hs0.abs (integrable_const _), integral_const]
+      simp [N0]
+    have hzN : ∀ T, ∫ ω, |zM S α β w m s T ω| ∂S.μ
+        ≤ (1 - l1) * (|m| + ∫ ω, |s T ω| ∂S.μ) + κ' * Ms := by
+      intro T
+      obtain ⟨-, hbd, -⟩ := remD_props S ha0.le ha1 hsm hsb T
+      have hE := ae_bdd_abs_condExp_of_ae_bdd_abs (m := S.𝓕 T) (μ := S.μ) hbd
+      have hb : ∀ᵐ ω ∂S.μ, |zM S α β w m s T ω| ≤ (1 - l1) * (|m| + |s T ω|) + κ' * Ms := by
+        filter_upwards [hE] with ω h
+        change |(1 - l1) * (m + s T ω) + κ' * S.E T (remD a s T) ω| ≤ _
+        have k1 := abs_add_le ((1 - l1) * (m + s T ω)) (κ' * S.E T (remD a s T) ω)
+        have k2 : |(1 - l1) * (m + s T ω)| ≤ (1 - l1) * (|m| + |s T ω|) := by
+          rw [abs_mul, abs_of_pos (by linarith : (0 : ℝ) < 1 - l1)]
+          exact mul_le_mul_of_nonneg_left (abs_add_le _ _) (by linarith)
+        have k3 : |κ' * S.E T (remD a s T) ω| ≤ κ' * Ms := by
+          rw [abs_mul, abs_of_nonneg hκ']
+          exact mul_le_mul_of_nonneg_left h hκ'
+        linarith
+      have i1 : Integrable (fun ω => (1 - l1) * (|m| + |s T ω|)) S.μ :=
+        ((integrable_const |m|).add (hsi T).abs).const_mul _
+      refine (integral_mono_ae (zM_props S hsm hs0 hsb T).2.abs
+        (show Integrable (fun ω => (1 - l1) * (|m| + |s T ω|) + κ' * Ms) S.μ from
+          i1.add (integrable_const _)) hb).trans (le_of_eq ?_)
+      rw [integral_add i1 (integrable_const _), integral_const_mul,
+        integral_add (integrable_const _) (hsi T).abs, integral_const, integral_const]
+      simp
+    set D0 := (1 - l1) * (|m| + N0) + κ' * Ms
+    set A := ∫ ω, |P0 ω| ∂S.μ + D0 / (1 - l1)
+    have hPN : ∀ T, ∫ ω, |P T ω| ∂S.μ ≤ A + K * T := by
+      intro T
+      induction T with
+      | zero =>
+        have : 0 ≤ D0 / (1 - l1) := div_nonneg (by positivity) (by linarith)
+        simp only [CharP.cast_eq_zero, mul_zero, add_zero]
+        change ∫ ω, |P0 ω| ∂S.μ ≤ A
+        linarith
+      | succ T ih =>
+        have hb : ∀ ω, |P (T + 1) ω| ≤ l1 * |P T ω| + |zM S α β w m s T ω| := by
+          intro ω
+          change |l1 * P T ω + zM S α β w m s T ω| ≤ _
+          have := abs_add_le (l1 * P T ω) (zM S α β w m s T ω)
+          rw [abs_mul, abs_of_pos hl0] at this
+          exact this
+        have i1 : Integrable (fun ω => l1 * |P T ω|) S.μ := (hPp T).2.2.abs.const_mul l1
+        have i2 : Integrable (fun ω => |zM S α β w m s T ω|) S.μ :=
+          (zM_props S hsm hs0 hsb T).2.abs
+        have hI := integral_mono (hPp (T + 1)).2.2.abs
+          (show Integrable (fun ω => l1 * |P T ω| + |zM S α β w m s T ω|) S.μ from i1.add i2) hb
+        rw [integral_add i1 i2, integral_const_mul] at hI
+        have hz := hzN T
+        have hs := hsN T
+        have hA : (1 - l1) * A = (1 - l1) * ∫ ω, |P0 ω| ∂S.μ + D0 := by
+          have h1l : (1 : ℝ) - l1 ≠ 0 := by linarith
+          simp only [A]
+          rw [mul_add, mul_div_cancel₀ _ h1l]
+        have hP0n : 0 ≤ ∫ ω, |P0 ω| ∂S.μ := integral_nonneg fun ω => abs_nonneg _
+        have e1 : A + K * ((T + 1 : ℕ) : ℝ) - (l1 * (A + K * T) + ((1 - l1) * (|m| + (N0 + K * T))
+            + κ' * Ms)) = ((1 - l1) * A - D0) + K := by
+          push_cast; simp only [D0]; ring
+        have i1 : l1 * ∫ ω, |P T ω| ∂S.μ ≤ l1 * (A + K * T) := mul_le_mul_of_nonneg_left ih hl0.le
+        have i2 : (1 - l1) * (|m| + ∫ ω, |s T ω| ∂S.μ) ≤ (1 - l1) * (|m| + (N0 + K * T)) :=
+          mul_le_mul_of_nonneg_left (by linarith) (by linarith)
+        have : (1 - l1) * ∫ ω, |P0 ω| ∂S.μ ≥ 0 := mul_nonneg (by linarith) hP0n
+        linarith
+    intro t
+    have hbound : ∀ j : ℕ, (α * β) ^ j * ∫ ω, |S.E t (costTerm m w s P (t + j)) ω| ∂S.μ
+        ≤ (α * β) ^ j * ((|m| + N0 + K * t + |w| * (A + K * (t + 1))) + (K + |w| * K) * j) := by
+      intro j
+      refine mul_le_mul_of_nonneg_left ?_ (pow_nonneg (mul_pos hα0 hβ0).le j)
+      refine (integral_abs_condExp_le _).trans ?_
+      have hb : ∀ ω, |costTerm m w s P (t + j) ω|
+          ≤ |m| + |s (t + j) ω| + |w| * |P (t + j + 1) ω| := by
+        intro ω
+        change |m + s (t + j) ω + w * P (t + j + 1) ω| ≤ _
+        have k1 := abs_add_le (m + s (t + j) ω) (w * P (t + j + 1) ω)
+        have k2 := abs_add_le m (s (t + j) ω)
+        rw [abs_mul] at k1
+        linarith
+      have ic : Integrable (costTerm m w s P (t + j)) S.μ :=
+        ((integrable_const m).add (hsi (t + j))).add ((hPp (t + j + 1)).2.2.const_mul w)
+      have i1 : Integrable (fun ω => |m| + |s (t + j) ω|) S.μ :=
+        (integrable_const |m|).add (hsi (t + j)).abs
+      have i2 : Integrable (fun ω => |w| * |P (t + j + 1) ω|) S.μ :=
+        (hPp (t + j + 1)).2.2.abs.const_mul |w|
+      have hI := integral_mono (show Integrable (fun ω => |costTerm m w s P (t + j) ω|) S.μ from
+        ic.abs) (show Integrable (fun ω => |m| + |s (t + j) ω| + |w| * |P (t + j + 1) ω|) S.μ
+        from i1.add i2) hb
+      rw [integral_add i1 i2, integral_add (integrable_const _) (hsi (t + j)).abs,
+        integral_const, integral_const_mul] at hI
+      simp only [probReal_univ, smul_eq_mul, one_mul] at hI
+      have h1 := hsN (t + j)
+      have h2 := hPN (t + j + 1)
+      have h3 : |w| * ∫ ω, |P (t + j + 1) ω| ∂S.μ ≤ |w| * (A + K * ((t + j + 1 : ℕ) : ℝ)) :=
+        mul_le_mul_of_nonneg_left h2 (abs_nonneg w)
+      push_cast at h1 h3 ⊢
+      nlinarith [abs_nonneg w, hK0]
+    refine Summable.of_nonneg_of_le (fun j => mul_nonneg (pow_nonneg (mul_pos hα0 hβ0).le j)
+      (integral_nonneg fun ω => abs_nonneg _)) hbound ?_
+    have hq0 : 0 ≤ α * β := (mul_pos hα0 hβ0).le
+    have hq1 : α * β < 1 := by nlinarith
+    refine (((summable_geometric_of_lt_one hq0 hq1).mul_right
+      (|m| + N0 + K * t + |w| * (A + K * (t + 1)))).add
+      ((summable_nat_mul_geom hq0 hq1).mul_left (K + |w| * K))).congr fun j => ?_
+    ring
+
+/-- Woodford (2003), **Proposition 3.4 with `−1 < ω̃θ < 0` on a probability space: existence and
+uniqueness in the `L¹` class** (p. 182; App. B.3). Under the hypotheses of
+`prop34_exists_measure`, (2.9) is a solution with the listed properties, and every other
+integrable predetermined solution of (2.5) and the a.e. form of (2.8) with the same initial price
+level and `L¹`-convergent forward sums coincides with it almost surely at every date. -/
+theorem prop34_existsUnique_measure {α β w m : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hwneg : w < 0) (hw : 0 < 1 + w) {s : ℕ → Ω → ℝ}
+    (hsm : ∀ t, StronglyMeasurable[S.𝓕 t] (s t)) (hs0 : Integrable (s 0) S.μ) {K : ℝ}
+    (hK0 : 0 ≤ K) (hsb : ∀ t, ∀ᵐ ω ∂S.μ, |s (t + 1) ω - s t ω| ≤ K) {P0 : Ω → ℝ}
+    (hP0m : StronglyMeasurable[S.𝓕 0] P0) (hP0i : Integrable P0 S.μ) :
+    (PM S α β w m s P0 0 = P0 ∧ (∀ t, Integrable (PM S α β w m s P0 t) S.μ) ∧
+      (∀ t, StronglyMeasurable[S.𝓕 t] (PM S α β w m s P0 (t + 1))) ∧
+      Eq25 α (PM S α β w m s P0) (pstarM S α β w m s P0) ∧
+      MEq28 S α β w m s (PM S α β w m s P0) (pstarM S α β w m s P0) ∧
+      L1Fwd S α β (costTerm m w s (PM S α β w m s P0))) ∧
+    ∀ P pstar : ℕ → Ω → ℝ, P 0 =ᵐ[S.μ] P0 → (∀ t, Integrable (P t) S.μ) →
+      (∀ t, StronglyMeasurable[S.𝓕 t] (P (t + 1))) → Eq25 α P pstar →
+      MEq28 S α β w m s P pstar → L1Fwd S α β (costTerm m w s P) →
+      ∀ t, P t =ᵐ[S.μ] PM S α β w m s P0 t ∧ pstar t =ᵐ[S.μ] pstarM S α β w m s P0 t := by
+  have hex := prop34_exists_measure S (m := m) hα0 hα1 hβ0 hβ1 hw hsm hs0 hK0 hsb hP0m hP0i
+  refine ⟨hex, fun P pstar h0 hPi hpre h25 h28 hL => ?_⟩
+  obtain ⟨e0, hPi', hpre', h25', h28', hL'⟩ := hex
+  exact prop34_unique_of_w_neg_L1 S hα0 hα1 hβ0 hβ1 hwneg hw (integrable_s S hsm hs0 hsb) hPi
+    hPi' hpre hpre' (by rw [e0]; exact h0) h25 h25' h28 h28' hL hL'
+
+end Woodford.NominalRigidities.TidyR5Prop34MeasureExists
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The dispersion terms behind (4.10) are second order for general preferences and technology
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §4.1, pp. 222–225. `TidyR5Dispersion` treats
+isoelastic disutility and technology. Here the disutility of work and the production function
+are general. Types form any probability space `(J, m)`; log-deviations `e` are measurable with
+`|e| ≤ B`, and the dispersion parameter is `s`.
+
+* **Hours dispersion.** `ℓ(x) = log v_h(eˣ)` (the log marginal disutility at log hours `x`).
+  The log of the geometric-average MRS minus the log MRS at the CES aggregate `H` of (4.1) is
+  `hoursGapGen(s) = ∫ ℓ(L + s e_j) dj − ℓ(log H(s))`, with
+  `log H(s) = L + r⁻¹ log ∫ e^{r s e}` (`TidyR5Dispersion.log_ces_eq`).
+* **Output dispersion.** `χ(x) > 0` is the labour needed to produce log output `x` (in the book,
+  `f⁻¹(eˣ/A)`). With output `L + s e_i` across goods and the Dixit–Stiglitz aggregate
+  `log Y(s) = L + ρ⁻¹ log ∫ e^{ρ s e}`, the gap between log labour input and the labour (4.10)
+  uses is `outputGapGen(s) = log ∫ χ(L + s e_i) di − log χ(log Y(s))`.
+
+Hypotheses: `ℓ` and `χ` are differentiable with derivatives `ℓ'` and `χ'` that are Lipschitz
+(constant `C`) on a neighbourhood of `L` (for instance, `C²` functions).
+
+* `quad_remainder`: `|φ(L + y) − φ(L) − φ'(L) y| ≤ C y²` (mean value theorem).
+* `integral_quad_remainder`: the same for `∫ φ(L + s e)`.
+* `hoursGapGen_sq_bound`, `outputGapGen_sq_bound`: both gaps are `O(s²)`.
+* `hasDerivAt_hoursGapGen`, `hasDerivAt_outputGapGen`: both have derivative `0` at `s = 0`, so
+  they drop out of the log-linear relation (4.10).
+-/
+
+namespace Woodford.NominalRigidities.TidyR5DispersionGeneral
+
+open MeasureTheory Filter Topology TidyR5Dispersion
+
+/-- Woodford (2003), §4.1 (the second-order remainder used for (4.10)): if `φ` has derivative
+`φ'` everywhere and `|φ'(x) − φ'(L)| ≤ C |x − L|` for `|x − L| ≤ δ`, then for `|y| ≤ δ`,
+`|φ(L + y) − φ(L) − φ'(L) y| ≤ C y²`. -/
+theorem quad_remainder {φ φ' : ℝ → ℝ} (hφ : ∀ x, HasDerivAt φ (φ' x) x) {L δ C : ℝ}
+    (hC : 0 ≤ C) (hlip : ∀ x, |x - L| ≤ δ → |φ' x - φ' L| ≤ C * |x - L|) {y : ℝ} (hy : |y| ≤ δ) :
+    |φ (L + y) - φ L - φ' L * y| ≤ C * y ^ 2 := by
+  set g : ℝ → ℝ := fun u => φ (L + u) - φ L - φ' L * u
+  have hg : ∀ u, HasDerivAt g (φ' (L + u) - φ' L) u := by
+    intro u
+    have h1 : HasDerivAt (fun u => φ (L + u)) (φ' (L + u)) u :=
+      HasDerivAt.comp_const_add L u (hφ (L + u))
+    have h2 : HasDerivAt (fun u => φ' L * u) (φ' L) u := by
+      simpa using (hasDerivAt_id u).const_mul (φ' L)
+    exact HasDerivAt.sub (HasDerivAt.sub_const (φ L) h1) h2
+  have hmem : ∀ u ∈ Set.uIcc 0 y, |u| ≤ |y| := by
+    intro u hu
+    rcases Set.mem_uIcc.mp hu with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · rw [abs_of_nonneg h1, abs_of_nonneg (h1.trans h2)]; exact h2
+    · rw [abs_of_nonpos h2, abs_of_nonpos (h1.trans h2)]; linarith
+  have hbound : ∀ u ∈ Set.uIcc 0 y, ‖φ' (L + u) - φ' L‖ ≤ C * |y| := by
+    intro u hu
+    have hu' := hmem u hu
+    have h := hlip (L + u) (by rw [add_sub_cancel_left]; exact hu'.trans hy)
+    rw [add_sub_cancel_left] at h
+    rw [Real.norm_eq_abs]
+    exact h.trans (mul_le_mul_of_nonneg_left hu' hC)
+  have hmv := (convex_uIcc (0 : ℝ) y).norm_image_sub_le_of_norm_hasDerivWithin_le
+    (fun u _ => (hg u).hasDerivWithinAt) hbound Set.left_mem_uIcc Set.right_mem_uIcc
+  simp only [g, add_zero, mul_zero, sub_self, sub_zero, Real.norm_eq_abs] at hmv
+  calc |φ (L + y) - φ L - φ' L * y| ≤ C * |y| * |y| := hmv
+    _ = C * y ^ 2 := by rw [mul_assoc, abs_mul_abs_self, sq]
+
+variable {J : Type*} [MeasurableSpace J] (m : Measure J) [IsProbabilityMeasure m]
+
+/-- Woodford (2003), §4.1: under the hypotheses of `quad_remainder` and `|s| B ≤ δ`, the map
+`j ↦ φ(L + s e_j)` is integrable. -/
+theorem integrable_comp {φ φ' : ℝ → ℝ} (hφ : ∀ x, HasDerivAt φ (φ' x) x) {L δ C : ℝ}
+    (hC : 0 ≤ C) (hlip : ∀ x, |x - L| ≤ δ → |φ' x - φ' L| ≤ C * |x - L|) {e : J → ℝ}
+    (he : AEStronglyMeasurable e m) {B : ℝ} (hB : ∀ j, |e j| ≤ B) {s : ℝ} (hs : |s| * B ≤ δ) :
+    Integrable (fun j => φ (L + s * e j)) m := by
+  have hcont : Continuous φ := continuous_iff_continuousAt.mpr fun x => (hφ x).continuousAt
+  refine Integrable.of_bound (hcont.comp_aestronglyMeasurable (he.const_mul s |>.const_add L))
+    (|φ L| + |φ' L| * (|s| * B) + C * (s * B) ^ 2) (Eventually.of_forall fun j => ?_)
+  have hy : |s * e j| ≤ |s| * B := by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hB j) (abs_nonneg s)
+  have hq := quad_remainder hφ hC hlip (hy.trans hs)
+  have hC : C * (s * e j) ^ 2 ≤ C * (s * B) ^ 2 := by
+    refine mul_le_mul_of_nonneg_left ?_ hC
+    rw [mul_pow, mul_pow]
+    refine mul_le_mul_of_nonneg_left ?_ (sq_nonneg s)
+    have := hB j
+    nlinarith [sq_abs (e j), abs_nonneg (e j)]
+  rw [Real.norm_eq_abs]
+  have h1 : |φ' L * (s * e j)| ≤ |φ' L| * (|s| * B) := by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left hy (abs_nonneg _)
+  have := abs_sub_abs_le_abs_sub (φ (L + s * e j)) (φ L + φ' L * (s * e j))
+  rw [show φ (L + s * e j) - (φ L + φ' L * (s * e j)) = φ (L + s * e j) - φ L - φ' L * (s * e j)
+    by ring] at this
+  have h2 := abs_add_le (φ L) (φ' L * (s * e j))
+  linarith
+
+/-- Woodford (2003), §4.1 (**averaging across types to second order**): under the hypotheses of
+`quad_remainder`, for `|s| B ≤ δ`,
+`|∫ φ(L + s e) − φ(L) − φ'(L) s ∫ e| ≤ C s² B²`. -/
+theorem integral_quad_remainder {φ φ' : ℝ → ℝ} (hφ : ∀ x, HasDerivAt φ (φ' x) x) {L δ C : ℝ}
+    (hC : 0 ≤ C) (hlip : ∀ x, |x - L| ≤ δ → |φ' x - φ' L| ≤ C * |x - L|) {e : J → ℝ}
+    (he : AEStronglyMeasurable e m) {B : ℝ} (hB : ∀ j, |e j| ≤ B) {s : ℝ} (hs : |s| * B ≤ δ) :
+    |∫ j, φ (L + s * e j) ∂m - φ L - φ' L * s * ∫ j, e j ∂m| ≤ C * s ^ 2 * B ^ 2 := by
+  have hi := integrable_comp m hφ hC hlip he hB hs
+  have hei := integrable_of_bdd m he hB
+  have i1 : Integrable (fun j => φ (L + s * e j) - φ L) m := hi.sub (integrable_const _)
+  have i2 : Integrable (fun j => φ' L * (s * e j)) m := (hei.const_mul s).const_mul _
+  have heq : ∫ j, φ (L + s * e j) ∂m - φ L - φ' L * s * ∫ j, e j ∂m
+      = ∫ j, (φ (L + s * e j) - φ L - φ' L * (s * e j)) ∂m := by
+    rw [integral_sub i1 i2, integral_sub hi (integrable_const _), integral_const_mul,
+      integral_const_mul, integral_const]
+    simp only [smul_eq_mul, probReal_univ, one_mul]
+    ring
+  rw [heq, ← Real.norm_eq_abs]
+  have h := norm_integral_le_of_norm_le_const (μ := m)
+    (f := fun j => φ (L + s * e j) - φ L - φ' L * (s * e j)) (C := C * s ^ 2 * B ^ 2)
+    (Eventually.of_forall fun j => by
+      rw [Real.norm_eq_abs]
+      have hy : |s * e j| ≤ |s| * B := by
+        rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hB j) (abs_nonneg s)
+      refine (quad_remainder hφ hC hlip (hy.trans hs)).trans ?_
+      rw [mul_assoc]
+      refine mul_le_mul_of_nonneg_left ?_ hC
+      rw [mul_pow]
+      refine mul_le_mul_of_nonneg_left ?_ (sq_nonneg s)
+      have := hB j
+      nlinarith [sq_abs (e j), abs_nonneg (e j)])
+  simpa using h
+
+/-- Woodford (2003), §4.1: the log CES aggregate in deviation from `L`,
+`y(r, s) = r⁻¹ log ∫ e^{r s e}`, equals `s ∫ e + r⁻¹ D(r s)`. -/
+noncomputable def cesDev (e : J → ℝ) (r s : ℝ) : ℝ :=
+  r⁻¹ * Real.log (∫ j, Real.exp (r * s * e j) ∂m)
+
+/-- Woodford (2003), §4.1: for `0 < r` and `|r s| B ≤ 1`, `|y(r, s) − s ∫ e| ≤ r s² B²`
+and `|y(r, s)| ≤ |s| B + r s² B²`. -/
+theorem cesDev_bounds {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ}
+    (hB : ∀ j, |e j| ≤ B) {r s : ℝ} (hr : 0 < r) (hx : |r * s| * B ≤ 1) :
+    |cesDev m e r s - s * ∫ j, e j ∂m| ≤ r * s ^ 2 * B ^ 2 ∧
+      |cesDev m e r s| ≤ |s| * B + r * s ^ 2 * B ^ 2 := by
+  obtain ⟨h0, h1⟩ := hoursGap_bounds m he hB hr hx
+  have heq : cesDev m e r s - s * ∫ j, e j ∂m = hoursGap m e r s := by
+    unfold cesDev hoursGap dispFn
+    field_simp
+  have hfirst : |cesDev m e r s - s * ∫ j, e j ∂m| ≤ r * s ^ 2 * B ^ 2 := by
+    rw [heq, abs_of_nonneg h0]; exact h1
+  refine ⟨hfirst, ?_⟩
+  have hint : |∫ j, e j ∂m| ≤ B := by
+    have := norm_integral_le_of_norm_le_const (μ := m) (f := e) (C := B)
+      (Eventually.of_forall fun j => by rw [Real.norm_eq_abs]; exact hB j)
+    simpa using this
+  have hse : |s * ∫ j, e j ∂m| ≤ |s| * B := by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left hint (abs_nonneg s)
+  have := abs_sub_abs_le_abs_sub (cesDev m e r s) (s * ∫ j, e j ∂m)
+  linarith
+
+/-- Woodford (2003), §4.1, p. 223 (**the hours-dispersion gap, general disutility**):
+`∫ ℓ(L + s e_j) dj − ℓ(L + y(r, s))`, the log geometric-average MRS minus the log MRS at the CES
+labour aggregate, with `ℓ(x) = log v_h(eˣ)`. -/
+noncomputable def hoursGapGen (ℓ : ℝ → ℝ) (L : ℝ) (e : J → ℝ) (r s : ℝ) : ℝ :=
+  ∫ j, ℓ (L + s * e j) ∂m - ℓ (L + cesDev m e r s)
+
+/-- Woodford (2003), §4.1, p. 223 (**the hours-dispersion gap is second order**): with
+`ℓ` differentiable, `ℓ'` `C`-Lipschitz on `|x − L| ≤ δ`, `0 < r ≤ 1`, `B > 0`, and
+`|s| ≤ min (δ/(2B)) (1/(rB))`, `|hoursGapGen(s)| ≤ (5C + |ℓ'(L)| r) B² s²`. -/
+theorem hoursGapGen_sq_bound {ℓ ℓ' : ℝ → ℝ} (hℓ : ∀ x, HasDerivAt ℓ (ℓ' x) x) {L δ C : ℝ}
+    (hC : 0 ≤ C) (hlip : ∀ x, |x - L| ≤ δ → |ℓ' x - ℓ' L| ≤ C * |x - L|) {e : J → ℝ}
+    (he : AEStronglyMeasurable e m) {B : ℝ} (hB0 : 0 < B) (hB : ∀ j, |e j| ≤ B) {r : ℝ}
+    (hr : 0 < r) {s : ℝ} (hs1 : |s| * B ≤ δ / 2) (hs2 : r * |s| * B ≤ 1) :
+    |hoursGapGen m ℓ L e r s| ≤ (5 * C + |ℓ' L| * r) * B ^ 2 * s ^ 2 := by
+  have hδ : 0 ≤ δ := by have := mul_nonneg (abs_nonneg s) hB0.le; linarith
+  have hx : |r * s| * B ≤ 1 := by rw [abs_mul, abs_of_pos hr]; linarith
+  obtain ⟨hd1, hd2⟩ := cesDev_bounds m he hB hr hx
+  set y := cesDev m e r s
+  set μe := ∫ j, e j ∂m
+  have hsB : r * s ^ 2 * B ^ 2 ≤ |s| * B := by
+    have : r * s ^ 2 * B ^ 2 = (r * |s| * B) * (|s| * B) := by
+      rw [← sq_abs s]; ring
+    rw [this]
+    exact mul_le_of_le_one_left (by positivity) hs2
+  have hy : |y| ≤ 2 * (|s| * B) := by linarith
+  have hyδ : |y| ≤ δ := by linarith
+  have h1 := integral_quad_remainder m hℓ hC hlip he hB (s := s) (by linarith)
+  have h2 := quad_remainder hℓ hC hlip hyδ
+  have hy2 : y ^ 2 ≤ 4 * (B ^ 2 * s ^ 2) := by
+    have hyabs : y ^ 2 = |y| ^ 2 := (sq_abs y).symm
+    have e2 : (2 * (|s| * B)) ^ 2 = 4 * (B ^ 2 * s ^ 2) := by rw [← sq_abs s]; ring
+    rw [hyabs, ← e2]
+    exact pow_le_pow_left₀ (abs_nonneg y) hy 2
+  have h3 : |ℓ' L * (s * μe - y)| ≤ |ℓ' L| * r * B ^ 2 * s ^ 2 := by
+    rw [abs_mul, abs_sub_comm]
+    calc |ℓ' L| * |y - s * μe| ≤ |ℓ' L| * (r * s ^ 2 * B ^ 2) :=
+          mul_le_mul_of_nonneg_left hd1 (abs_nonneg _)
+      _ = |ℓ' L| * r * B ^ 2 * s ^ 2 := by ring
+  have hsplit : hoursGapGen m ℓ L e r s
+      = (∫ j, ℓ (L + s * e j) ∂m - ℓ L - ℓ' L * s * μe)
+        - (ℓ (L + y) - ℓ L - ℓ' L * y) + ℓ' L * (s * μe - y) := by
+    unfold hoursGapGen; ring
+  rw [hsplit]
+  have hCy : C * y ^ 2 ≤ 4 * C * B ^ 2 * s ^ 2 :=
+    calc C * y ^ 2 ≤ C * (4 * (B ^ 2 * s ^ 2)) := mul_le_mul_of_nonneg_left hy2 hC
+      _ = 4 * C * B ^ 2 * s ^ 2 := by ring
+  calc _ ≤ |∫ j, ℓ (L + s * e j) ∂m - ℓ L - ℓ' L * s * μe| + |ℓ (L + y) - ℓ L - ℓ' L * y|
+        + |ℓ' L * (s * μe - y)| := by
+        have := abs_add_le (∫ j, ℓ (L + s * e j) ∂m - ℓ L - ℓ' L * s * μe
+          - (ℓ (L + y) - ℓ L - ℓ' L * y)) (ℓ' L * (s * μe - y))
+        have := abs_sub (∫ j, ℓ (L + s * e j) ∂m - ℓ L - ℓ' L * s * μe)
+          (ℓ (L + y) - ℓ L - ℓ' L * y)
+        linarith
+    _ ≤ C * s ^ 2 * B ^ 2 + 4 * C * B ^ 2 * s ^ 2 + |ℓ' L| * r * B ^ 2 * s ^ 2 := by
+        linarith
+    _ = (5 * C + |ℓ' L| * r) * B ^ 2 * s ^ 2 := by ring
+
+/-- Woodford (2003), (4.10), p. 224 (**hours dispersion drops out to first order, general
+disutility**): `s ↦ hoursGapGen(s)` has derivative `0` at `s = 0`. -/
+theorem hasDerivAt_hoursGapGen {ℓ ℓ' : ℝ → ℝ} (hℓ : ∀ x, HasDerivAt ℓ (ℓ' x) x) {L δ C : ℝ}
+    (hδ : 0 < δ) (hC : 0 ≤ C) (hlip : ∀ x, |x - L| ≤ δ → |ℓ' x - ℓ' L| ≤ C * |x - L|)
+    {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ} (hB0 : 0 < B) (hB : ∀ j, |e j| ≤ B)
+    {r : ℝ} (hr : 0 < r) : HasDerivAt (fun s => hoursGapGen m ℓ L e r s) 0 0 := by
+  refine hasDerivAt_zero_of_sq_bound ?_ (δ := min (δ / (2 * B)) (1 / (r * B)))
+    (K := (5 * C + |ℓ' L| * r) * B ^ 2) (lt_min (by positivity) (by positivity)) fun s hs => ?_
+  · simp [hoursGapGen, cesDev]
+  · have hs1 : |s| * B ≤ δ / 2 := by
+      have := (hs.trans (min_le_left _ _))
+      rw [le_div_iff₀ (by positivity)] at this
+      linarith
+    have hs2 : r * |s| * B ≤ 1 := by
+      have := (hs.trans (min_le_right _ _))
+      rw [le_div_iff₀ (by positivity)] at this
+      linarith
+    exact hoursGapGen_sq_bound m hℓ hC hlip he hB0 hB hr hs1 hs2
+
+omit [IsProbabilityMeasure m] in
+/-- Woodford (2003), §4.1 (a log bound): if `a, b ≥ c > 0` then `|log a − log b| ≤ |a − b|/c`. -/
+theorem abs_log_sub_le {a b c : ℝ} (hc : 0 < c) (ha : c ≤ a) (hb : c ≤ b) :
+    |Real.log a - Real.log b| ≤ |a - b| / c := by
+  have ha0 : 0 < a := lt_of_lt_of_le hc ha
+  have hb0 : 0 < b := lt_of_lt_of_le hc hb
+  have h1 : Real.log a - Real.log b ≤ (a - b) / b := by
+    rw [← Real.log_div ha0.ne' hb0.ne']
+    have := Real.log_le_sub_one_of_pos (div_pos ha0 hb0)
+    rw [sub_div, div_self hb0.ne'] ; linarith
+  have h2 : Real.log b - Real.log a ≤ (b - a) / a := by
+    rw [← Real.log_div hb0.ne' ha0.ne']
+    have := Real.log_le_sub_one_of_pos (div_pos hb0 ha0)
+    rw [sub_div, div_self ha0.ne'] ; linarith
+  have k1 : (a - b) / b ≤ |a - b| / c := by
+    rcases le_total 0 (a - b) with h | h
+    · rw [abs_of_nonneg h]; exact div_le_div_of_nonneg_left h hc hb
+    · have : (a - b) / b ≤ 0 := div_nonpos_of_nonpos_of_nonneg h hb0.le
+      exact this.trans (div_nonneg (abs_nonneg _) hc.le)
+  have k2 : (b - a) / a ≤ |a - b| / c := by
+    rcases le_total 0 (b - a) with h | h
+    · rw [abs_sub_comm, abs_of_nonneg h]; exact div_le_div_of_nonneg_left h hc ha
+    · have : (b - a) / a ≤ 0 := div_nonpos_of_nonpos_of_nonneg h ha0.le
+      exact this.trans (div_nonneg (abs_nonneg _) hc.le)
+  rw [abs_le]
+  constructor <;> linarith
+
+/-- Woodford (2003), §4.1, p. 224 (**the output-dispersion gap, general technology**):
+`log ∫ χ(L + s e_i) di − log χ(L + y(ρ, s))`, log labour input minus the log labour needed for
+the Dixit–Stiglitz aggregate, with `χ(x)` the labour required for log output `x`. -/
+noncomputable def outputGapGen (χ : ℝ → ℝ) (L : ℝ) (e : J → ℝ) (ρ s : ℝ) : ℝ :=
+  Real.log (∫ j, χ (L + s * e j) ∂m) - Real.log (χ (L + cesDev m e ρ s))
+
+/-- Woodford (2003), §4.1, p. 224 (**the output-dispersion gap is second order**): with `χ`
+differentiable, `χ(L) > 0`, `χ'` `C`-Lipschitz on `|x − L| ≤ δ`, `0 < ρ`, `B > 0`, and `|s|`
+small (`|s| B ≤ δ/2`, `ρ|s|B ≤ 1`, `|s| ≤ 1`, `|s| Q ≤ χ(L)/4` with
+`Q = 2|χ'(L)| B + 4 C B² + 1`), `|outputGapGen(s)| ≤ 2(5C + |χ'(L)| ρ) B² s² / χ(L)`. -/
+theorem outputGapGen_sq_bound {χ χ' : ℝ → ℝ} (hχ : ∀ x, HasDerivAt χ (χ' x) x) {L δ C : ℝ}
+    (hC : 0 ≤ C) (hlip : ∀ x, |x - L| ≤ δ → |χ' x - χ' L| ≤ C * |x - L|) (hχL : 0 < χ L)
+    {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ} (hB0 : 0 < B) (hB : ∀ j, |e j| ≤ B)
+    {ρ : ℝ} (hρ : 0 < ρ) {s : ℝ} (hs1 : |s| * B ≤ δ / 2) (hs2 : ρ * |s| * B ≤ 1)
+    (hs3 : |s| ≤ 1) (hs4 : |s| * (2 * |χ' L| * B + 4 * C * B ^ 2 + 1) ≤ χ L / 4) :
+    |outputGapGen m χ L e ρ s| ≤ 2 * (5 * C + |χ' L| * ρ) * B ^ 2 * s ^ 2 / χ L := by
+  have hδ : 0 ≤ δ := by have := mul_nonneg (abs_nonneg s) hB0.le; linarith
+  have hx : |ρ * s| * B ≤ 1 := by rw [abs_mul, abs_of_pos hρ]; linarith
+  obtain ⟨hd1, hd2⟩ := cesDev_bounds m he hB hρ hx
+  set y := cesDev m e ρ s
+  set μe := ∫ j, e j ∂m
+  set Φ := ∫ j, χ (L + s * e j) ∂m
+  have hsB : ρ * s ^ 2 * B ^ 2 ≤ |s| * B := by
+    have : ρ * s ^ 2 * B ^ 2 = (ρ * |s| * B) * (|s| * B) := by rw [← sq_abs s]; ring
+    rw [this]; exact mul_le_of_le_one_left (by positivity) hs2
+  have hy : |y| ≤ 2 * (|s| * B) := by linarith
+  have hyδ : |y| ≤ δ := by linarith
+  have h1 := integral_quad_remainder m hχ hC hlip he hB (s := s) (by linarith)
+  have h2 := quad_remainder hχ hC hlip hyδ
+  have hy2 : y ^ 2 ≤ 4 * (B ^ 2 * s ^ 2) := by
+    have hyabs : y ^ 2 = |y| ^ 2 := (sq_abs y).symm
+    have e2 : (2 * (|s| * B)) ^ 2 = 4 * (B ^ 2 * s ^ 2) := by rw [← sq_abs s]; ring
+    rw [hyabs, ← e2]
+    exact pow_le_pow_left₀ (abs_nonneg y) hy 2
+  have hint : |μe| ≤ B := by
+    have := norm_integral_le_of_norm_le_const (μ := m) (f := e) (C := B)
+      (Eventually.of_forall fun j => by rw [Real.norm_eq_abs]; exact hB j)
+    simpa using this
+  have hs2' : s ^ 2 ≤ |s| := by rw [← sq_abs s, sq]; exact mul_le_of_le_one_left (abs_nonneg s) hs3
+  have hCy : C * y ^ 2 ≤ 4 * C * B ^ 2 * s ^ 2 :=
+    calc C * y ^ 2 ≤ C * (4 * (B ^ 2 * s ^ 2)) := mul_le_mul_of_nonneg_left hy2 hC
+      _ = 4 * C * B ^ 2 * s ^ 2 := by ring
+  have hQe : |s| * (2 * |χ' L| * B + 4 * C * B ^ 2 + 1)
+      = (2 * |χ' L| * B * |s| + 4 * C * B ^ 2 * |s|) + |s| := by ring
+  have hsq1 : C * B ^ 2 * s ^ 2 ≤ C * B ^ 2 * |s| :=
+    mul_le_mul_of_nonneg_left hs2' (mul_nonneg hC (sq_nonneg B))
+  -- both arguments of the logs stay above `χ(L)/2`
+  have hΦ : χ L / 2 ≤ Φ := by
+    have hlin : |χ' L * s * μe| ≤ |χ' L| * B * |s| := by
+      rw [abs_mul, abs_mul]
+      calc |χ' L| * |s| * |μe| ≤ |χ' L| * |s| * B :=
+            mul_le_mul_of_nonneg_left hint (mul_nonneg (abs_nonneg _) (abs_nonneg s))
+        _ = |χ' L| * B * |s| := by ring
+    have t1 : -(|χ' L| * B * |s|) ≤ χ' L * s * μe := by
+      linarith [neg_abs_le (χ' L * s * μe)]
+    have t2 := (abs_le.mp h1).1
+    have t3 : C * s ^ 2 * B ^ 2 ≤ C * B ^ 2 * |s| := by
+      calc C * s ^ 2 * B ^ 2 = C * B ^ 2 * s ^ 2 := by ring
+        _ ≤ C * B ^ 2 * |s| := hsq1
+    have t4 : |χ' L| * B * |s| + C * B ^ 2 * |s| ≤ χ L / 4 := by
+      have : |χ' L| * B * |s| + C * B ^ 2 * |s|
+          ≤ |s| * (2 * |χ' L| * B + 4 * C * B ^ 2 + 1) := by
+        nlinarith [abs_nonneg s, abs_nonneg (χ' L), mul_nonneg hC (sq_nonneg B),
+          mul_nonneg (abs_nonneg (χ' L)) hB0.le]
+      linarith
+    linarith
+  have hΨ : χ L / 2 ≤ χ (L + y) := by
+    have hlin : |χ' L * y| ≤ |χ' L| * (2 * (|s| * B)) := by
+      rw [abs_mul]; exact mul_le_mul_of_nonneg_left hy (abs_nonneg _)
+    have t1 : -(|χ' L| * (2 * (|s| * B))) ≤ χ' L * y := by
+      linarith [neg_abs_le (χ' L * y)]
+    have t2 := (abs_le.mp h2).1
+    have hq : C * y ^ 2 ≤ 4 * C * B ^ 2 * |s| := by
+      have h4 : 4 * C * B ^ 2 * s ^ 2 ≤ 4 * C * B ^ 2 * |s| :=
+        mul_le_mul_of_nonneg_left hs2' (by positivity)
+      linarith
+    have t4 : |χ' L| * (2 * (|s| * B)) + 4 * C * B ^ 2 * |s| ≤ χ L / 4 := by
+      have : |χ' L| * (2 * (|s| * B)) + 4 * C * B ^ 2 * |s|
+          ≤ |s| * (2 * |χ' L| * B + 4 * C * B ^ 2 + 1) := by
+        nlinarith [abs_nonneg s, abs_nonneg (χ' L), mul_nonneg hC (sq_nonneg B),
+          mul_nonneg (abs_nonneg (χ' L)) hB0.le]
+      linarith
+    linarith
+  -- the difference of the arguments is second order
+  have hdiff : |Φ - χ (L + y)| ≤ (5 * C + |χ' L| * ρ) * B ^ 2 * s ^ 2 := by
+    have h3 : |χ' L * (s * μe - y)| ≤ |χ' L| * ρ * B ^ 2 * s ^ 2 := by
+      rw [abs_mul, abs_sub_comm]
+      calc |χ' L| * |y - s * μe| ≤ |χ' L| * (ρ * s ^ 2 * B ^ 2) :=
+            mul_le_mul_of_nonneg_left hd1 (abs_nonneg _)
+        _ = |χ' L| * ρ * B ^ 2 * s ^ 2 := by ring
+    have hsplit : Φ - χ (L + y) = (Φ - χ L - χ' L * s * μe) - (χ (L + y) - χ L - χ' L * y)
+        + χ' L * (s * μe - y) := by ring
+    rw [hsplit]
+    have k1 := abs_add_le ((Φ - χ L - χ' L * s * μe) - (χ (L + y) - χ L - χ' L * y))
+      (χ' L * (s * μe - y))
+    have k2 := abs_sub (Φ - χ L - χ' L * s * μe) (χ (L + y) - χ L - χ' L * y)
+    have e5 : (5 * C + |χ' L| * ρ) * B ^ 2 * s ^ 2
+        = C * s ^ 2 * B ^ 2 + 4 * C * B ^ 2 * s ^ 2 + |χ' L| * ρ * B ^ 2 * s ^ 2 := by ring
+    linarith
+  have hc : 0 < χ L / 2 := by linarith
+  have hl := abs_log_sub_le hc hΦ hΨ
+  unfold outputGapGen
+  calc _ ≤ |Φ - χ (L + y)| / (χ L / 2) := hl
+    _ ≤ (5 * C + |χ' L| * ρ) * B ^ 2 * s ^ 2 / (χ L / 2) :=
+        div_le_div_of_nonneg_right hdiff hc.le
+    _ = 2 * (5 * C + |χ' L| * ρ) * B ^ 2 * s ^ 2 / χ L := by field_simp
+
+/-- Woodford (2003), (4.10), p. 224 (**output dispersion drops out to first order, general
+technology**): `s ↦ outputGapGen(s)` has derivative `0` at `s = 0`. -/
+theorem hasDerivAt_outputGapGen {χ χ' : ℝ → ℝ} (hχ : ∀ x, HasDerivAt χ (χ' x) x) {L δ C : ℝ}
+    (hδ : 0 < δ) (hC : 0 ≤ C) (hlip : ∀ x, |x - L| ≤ δ → |χ' x - χ' L| ≤ C * |x - L|)
+    (hχL : 0 < χ L) {e : J → ℝ} (he : AEStronglyMeasurable e m) {B : ℝ} (hB0 : 0 < B)
+    (hB : ∀ j, |e j| ≤ B) {ρ : ℝ} (hρ : 0 < ρ) :
+    HasDerivAt (fun s => outputGapGen m χ L e ρ s) 0 0 := by
+  set Q := 2 * |χ' L| * B + 4 * C * B ^ 2 + 1
+  have hQ : 0 < Q := by positivity
+  refine hasDerivAt_zero_of_sq_bound ?_
+    (δ := min (min (δ / (2 * B)) (1 / (ρ * B))) (min 1 (χ L / (4 * Q))))
+    (K := 2 * (5 * C + |χ' L| * ρ) * B ^ 2 / χ L)
+    (lt_min (lt_min (by positivity) (by positivity)) (lt_min one_pos (by positivity)))
+    fun s hs => ?_
+  · simp [outputGapGen, cesDev]
+  · have hsa := hs.trans ((min_le_left _ _).trans (min_le_left _ _))
+    have hsb := hs.trans ((min_le_left _ _).trans (min_le_right _ _))
+    have hsc := hs.trans ((min_le_right _ _).trans (min_le_left _ _))
+    have hsd := hs.trans ((min_le_right _ _).trans (min_le_right _ _))
+    rw [le_div_iff₀ (by positivity)] at hsa hsb hsd
+    have h := outputGapGen_sq_bound m hχ hC hlip hχL he hB0 hB hρ (s := s) (by linarith)
+      (by linarith) hsc (by linarith)
+    calc _ ≤ 2 * (5 * C + |χ' L| * ρ) * B ^ 2 * s ^ 2 / χ L := h
+      _ = 2 * (5 * C + |χ' L| * ρ) * B ^ 2 / χ L * s ^ 2 := by ring
+
+end Woodford.NominalRigidities.TidyR5DispersionGeneral
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Galí–Gertler model reproducing (3.6) at `β = 1` is unique
+
+Woodford (2003), *Interest and Prices*, Chapter 3, §3.2, p. 217: "in the limiting case `β = 1`,
+the two models have identical implications". `TidyR5GaliGertler.gg_identical_beta_one` shows
+that for every `γ ∈ [0, 1]` and slope `s > 0` some Galí–Gertler model (Calvo parameter `θ'`,
+backward share `ϖ`) reproduces the weights and slope of (3.6). This module shows that the model
+is unique:
+
+* `slopeFn_strictAntiOn`: `θ ↦ (1 − θγ)(1 − θ)²/θ` is strictly decreasing on `(0, 1)`.
+* `gg_beta_one_share`: matching the weights at `β = 1` forces `ϖ = θγ`.
+* `gg_identical_beta_one_existsUnique`: there is exactly one pair `(θ', ϖ)` with
+  `θ' ∈ (0, 1)`, `ϖ ∈ [0, 1)` reproducing (3.6).
+-/
+
+namespace Woodford.NominalRigidities.TidyR5GaliGertlerUnique
+
+open TidyR5GaliGertler
+
+/-- Woodford (2003), p. 217: for `0 ≤ γ ≤ 1` the slope function `(1 − θγ)(1 − θ)²/θ` is strictly
+decreasing in the Calvo parameter `θ ∈ (0, 1)`. -/
+theorem slopeFn_strictAntiOn {γ : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) :
+    StrictAntiOn (slopeFn γ) (Set.Ioo 0 1) := by
+  intro x hx y hy hxy
+  obtain ⟨hx0, -⟩ := hx
+  obtain ⟨hy0, hy1⟩ := hy
+  unfold slopeFn
+  have h1 : 0 < 1 - y * γ := by nlinarith
+  have h2 : 1 - y * γ ≤ 1 - x * γ := by nlinarith
+  have h3 : (1 - y) ^ 2 / y < (1 - x) ^ 2 / x := by
+    rw [div_lt_div_iff₀ hy0 hx0]
+    have hxy1 : 0 < 1 - x * y := by nlinarith
+    have key : (1 - x) ^ 2 * y - (1 - y) ^ 2 * x = (y - x) * (1 - x * y) := by ring
+    nlinarith [mul_pos (sub_pos.mpr hxy) hxy1]
+  have h4 : 0 ≤ (1 - x) ^ 2 / x := div_nonneg (sq_nonneg _) hx0.le
+  calc (1 - y * γ) * (1 - y) ^ 2 / y = (1 - y * γ) * ((1 - y) ^ 2 / y) := by ring
+    _ < (1 - y * γ) * ((1 - x) ^ 2 / x) := mul_lt_mul_of_pos_left h3 h1
+    _ ≤ (1 - x * γ) * ((1 - x) ^ 2 / x) := mul_le_mul_of_nonneg_right h2 h4
+    _ = (1 - x * γ) * (1 - x) ^ 2 / x := by ring
+
+/-- Woodford (2003), p. 217: at `β = 1`, Galí–Gertler weights `γ/(1 + γ)` and `1/(1 + γ)` force
+the backward share `ϖ = θγ`. -/
+theorem gg_beta_one_share {θ ϖ γ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ < 1) (hϖ0 : 0 ≤ ϖ) (hγ0 : 0 ≤ γ)
+    (hb : ggBack θ 1 ϖ = γ / (1 + γ)) (hf : ggFwd θ 1 ϖ = 1 / (1 + γ)) : ϖ = θ * γ := by
+  have hφ := ggPhi_pos hθ0 hθ1 zero_le_one hϖ0
+  have hd : (0 : ℝ) < 1 + γ := by linarith
+  unfold ggBack at hb
+  unfold ggFwd at hf
+  rw [div_eq_div_iff hφ.ne' hd.ne'] at hb hf
+  have hφeq : θ * (1 + γ) = ggPhi θ 1 ϖ := by linear_combination hf
+  have : (ϖ - θ * γ) * (1 + γ) = 0 := by linear_combination hb - γ * hφeq
+  have := (mul_eq_zero.mp this).resolve_right hd.ne'
+  linarith
+
+/-- Woodford (2003), p. 217 (**the Galí–Gertler model matching (3.6) at `β = 1` is unique**): for
+`0 ≤ γ ≤ 1` and `s > 0` there is exactly one pair `(θ', ϖ)` with `0 < θ' < 1`, `0 ≤ ϖ < 1`
+whose weights are `γ/(1 + γ)`, `1/(1 + γ)` and whose slope is `s/(1 + γ)`. -/
+theorem gg_identical_beta_one_existsUnique {γ s : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) (hs : 0 < s) :
+    ∃! p : ℝ × ℝ, 0 < p.1 ∧ p.1 < 1 ∧ 0 ≤ p.2 ∧ p.2 < 1 ∧
+      ggBack p.1 1 p.2 = γ / (1 + γ) ∧ ggFwd p.1 1 p.2 = 1 / (1 + γ) ∧
+      ggSlope p.1 1 p.2 = s / (1 + γ) := by
+  obtain ⟨θ', h0, h1, h2, h3, hb, hf, hsl⟩ := gg_identical_beta_one hγ0 hγ1 hs
+  have hγ : (1 : ℝ) + γ ≠ 0 := by linarith
+  -- the slope condition is `slopeFn γ θ = s`
+  have hslope : ∀ θ, 0 < θ → (ggSlope θ 1 (θ * γ) = s / (1 + γ) ↔ slopeFn γ θ = s) := by
+    intro θ hθ
+    rw [ggSlope, ggPhi_beta_one, slopeFn]
+    have hθ' : θ ≠ 0 := hθ.ne'
+    constructor <;> intro h
+    · field_simp at h ⊢; linear_combination h
+    · field_simp at h ⊢; linear_combination h
+  refine ⟨(θ', θ' * γ), ⟨h0, h1, h2, h3, hb, hf, hsl⟩, ?_⟩
+  rintro ⟨θ, ϖ⟩ ⟨k0, k1, k2, k3, kb, kf, ksl⟩
+  simp only at k0 k1 k2 k3 kb kf ksl
+  have hϖ := gg_beta_one_share k0 k1 k2 hγ0 kb kf
+  subst hϖ
+  have e1 := (hslope θ k0).mp ksl
+  have e2 := (hslope θ' h0).mp hsl
+  have hθ : θ = θ' := (slopeFn_strictAntiOn hγ0 hγ1).injOn ⟨k0, k1⟩ ⟨h0, h1⟩ (e1.trans e2.symm)
+  subst hθ
+  rfl
+
+end Woodford.NominalRigidities.TidyR5GaliGertlerUnique
+
 set_option linter.style.longLine false
 #print axioms Woodford.NominalRigidities.SchurStable
 #print axioms Woodford.NominalRigidities.disc
@@ -23819,3 +27147,159 @@ set_option linter.style.longLine false
 #print axioms Woodford.NominalRigidities.Links.prop_3_6_calvo
 #print axioms Woodford.NominalRigidities.Links.nkpc_iff_delayed_zero
 #print axioms Woodford.NominalRigidities.Links.flexible_wages_slope_eq_kappa
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.E_tendsto_zero
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.abs_E_le_E_abs
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.E_hasSum
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.E_costTerm_self
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.recursive_reset_price_any
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.solution_B14_any
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.one_le_alpha_beta_lam2
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.tendsto_pow_mul_lin
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.tendsto_pow_E_of_diffStationary
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.prop34_unique_of_w_neg
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.prop34_existsUnique_of_w_neg
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.prop34_unique_of_w_neg_tree
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Uncertainty.prop34_unique_of_w_neg_pf
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.mk
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.P
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.𝓕
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.μ
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_add
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_sub
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_smul
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_const
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_mono
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_tower
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.integrable_E
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_known
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_E_self
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.E_congr
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.integral_E
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.ELin
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.iidProb
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.iidSystem
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.measurable_shock
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.coordSigma
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.futureSigma
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.coordSigma_le
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.futureSigma_le
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.iIndep_coord
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.filtration_le_past
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.indep_future
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.E_future
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.measurable_future_fun
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.integral_shock_fun
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.E_shock_fun
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.unifMeasure_univ
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.unif
+#print axioms Woodford.NominalRigidities.TidyR5ExpectationsMeasureIID.unif_real_Ioc
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Measure.MEq28
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Measure.L1Fwd
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Measure.costTerm_sub
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Measure.condExp_tsum_of_summable_integral
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Measure.prop34_unique_of_w_neg_L1
+#print axioms Woodford.NominalRigidities.TidyR5Prop34Measure.prop34_unique_of_w_neg_finite
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.SU
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.stake
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.bet
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.measurable_stake
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.measurable_bet
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.stake_bounds
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.abs_bet_le
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.integral_stake
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.integrable_stake
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.integral_bet
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.stake_eventually_zero
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.sum_bet
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.hasSum_bet
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.init
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.resid
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.news
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.state
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.curve
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.sig
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.R
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.curve_succ
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.sig_succ
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.news_zero
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.news_one
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.curve_condition
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.hasSum_curve
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.measurable_curve
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.integrable_curve
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.E_news
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.E_curve_succ
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.E_curve_iter
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.cexP
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.cexPstar
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.prop34_not_unique_iid
+#print axioms Woodford.NominalRigidities.TidyR5Prop34NonUnique.cex_not_L1Fwd
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.dispFn
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.integrable_exp_mul
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.integrable_of_bdd
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.log_integral_exp_bounds
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.log_ces_eq
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.hoursGap
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.hoursGap_eq
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.hoursGap_bounds
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.logMRS_type_eq
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.outputGap
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.outputGap_eq
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.outputGap_bounds
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.logv_decomposition
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.hasDerivAt_zero_of_sq_bound
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.hasDerivAt_hoursGap
+#print axioms Woodford.NominalRigidities.TidyR5Dispersion.hasDerivAt_outputGap
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.ggPhi
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.ggBack
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.ggFwd
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.ggSlope
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.ggPhi_pos
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.gg_algebra
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.pf_rec_of_forward
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.gg_hybrid_iff
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.gg_weights_match_iff
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.ggPhi_beta_one
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.gg_same_theta_slope
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.slopeFn
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertler.gg_identical_beta_one
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.tsum_dom
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.remD
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.zM
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.PM
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.pstarM
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.incr_bound
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.integrable_s
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.remD_props
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.zM_props
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.PM_props
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.E_zM
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.E_s_incr
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.E_PM_succ
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.E_costTerm
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.prop34_exists_measure
+#print axioms Woodford.NominalRigidities.TidyR5Prop34MeasureExists.prop34_existsUnique_measure
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.quad_remainder
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.integrable_comp
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.integral_quad_remainder
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.cesDev
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.cesDev_bounds
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.hoursGapGen
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.hoursGapGen_sq_bound
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.hasDerivAt_hoursGapGen
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.abs_log_sub_le
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.outputGapGen
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.outputGapGen_sq_bound
+#print axioms Woodford.NominalRigidities.TidyR5DispersionGeneral.hasDerivAt_outputGapGen
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertlerUnique.slopeFn_strictAntiOn
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertlerUnique.gg_beta_one_share
+#print axioms Woodford.NominalRigidities.TidyR5GaliGertlerUnique.gg_identical_beta_one_existsUnique
