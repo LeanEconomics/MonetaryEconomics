@@ -15,8 +15,8 @@ space with independent surpluses and the second Borel–Cantelli lemma. Aggregat
 two-state i.i.d. coin tree as a witness under genuine uncertainty. Both are then re-proved on
 genuine infinite-horizon i.i.d. processes with Mathlib's conditional expectation: i.i.d. surplus
 processes for §6.4.1, and i.i.d. growth processes, including a constructed lognormal process and
-an infinite coin process for Bohn's example, for §6.4.7. The library contains **593 theorems**,
-including the shared core; 377 of them are in the fifteen chapter modules.
+an infinite coin process for Bohn's example, for §6.4.7. The library contains **676 theorems**,
+including the shared core; 460 of them are in the eighteen chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -32,7 +32,10 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   fails for every price level when the surplus ratio is a nonzero constant
   (`RvsG.tvc_fails_of_neg`). `r = g` is the knife edge (`RvsG.bddOn_iff_zero`). A temporary
   period of `r < g` restores a unique bounded solution, given by the corrected 20-year formula
-  (`RvsG.step_existsUnique`, `RvsG.book_twenty_year_formula`). The same dichotomy holds in
+  (`RvsG.step_existsUnique`, `RvsG.book_twenty_year_formula`). So do finitely many regimes of
+  any signs, with a general 20-year formula, and `r > g` after the last switch is necessary as
+  well as sufficient (`TidyR5PiecewiseRvsG.pw_existsUnique`, `TidyR5PiecewiseRvsG.pwPV0_eq_sum`,
+  `TidyR5PiecewiseRvsG.pw_unique_iff_last_pos`). The same dichotomy holds in
   discrete time (`RvsG.eq_pvD_of_bddD`, `RvsG.nominal_determinacy_D`,
   `RvsG.nominal_indeterminacy_D`).
 * **The backward solution (6.5) corrected.** The solution of (6.4) is
@@ -47,7 +50,10 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   every size, and no upper bound on surpluses, debt is almost surely unbounded
   (`DebtLimitStochasticMeasure.iid_unbounded_of_integrable`), in particular with i.i.d. Gaussian
   surpluses (`DebtLimitStochasticMeasure.gaussian_process_unbounded`,
-  `DebtLimitStochasticMeasure.gaussian_process_not_sustainable`). The earlier Gaussian theorem
+  `DebtLimitStochasticMeasure.gaussian_process_not_sustainable`). The same holds for a
+  constructed Gaussian AR(1) surplus, which is not bounded above, so Theorem S does not apply
+  (`TidyR5GaussianAR1.gaussian_ar1_unbounded`, `TidyR5GaussianAR1.gaussian_ar1_not_sustainable`,
+  `TidyR5GaussianAR1.arSurplus_not_ae_bdd_above`). The earlier Gaussian theorem
   `DebtLimitStochastic.gaussian_iid_unbounded` is vacuous: it also assumes surpluses bounded
   above, which no non-degenerate Gaussian is
   (`DebtLimitStochasticMeasure.gaussian_iid_unbounded_vacuous`). The book's claim that bounded
@@ -74,7 +80,11 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   finite-horizon identities; in the steady state the two terms of (6.12) diverge to `−∞` and `+∞`
   while those of (6.13) converge (`MoneyLiquidity.steady_6_12_explodes`,
   `MoneyLiquidity.steady_6_13_converges`), and (6.9) is the improper present-value integral
-  (`MoneyLiquidity.eq_6_9`). The return-discounted identity (6.14) holds state by state
+  (`MoneyLiquidity.eq_6_9`). A money-and-debt path with value (6.9) and the transversality
+  condition exists, uniquely, iff the improper present value converges, with no sign of
+  `r^f − g` and no bound on flows assumed (`TidyR5MoneyExistence.money_debt_exists`,
+  `TidyR5MoneyExistence.money_debt_exists_iff`, `TidyR5MoneyExistence.money_debt_unique`).
+  The return-discounted identity (6.14) holds state by state
   (`ReturnDiscounting.eq_6_14_pathwise`).
 * **Aggregate uncertainty and Bohn's example.** The true present value (6.15) can converge while
   the mistaken one (6.16) explodes (`AggregateUncertainty.correct_finite_incorrect_explodes`).
@@ -122,7 +132,7 @@ In addition, the typos E6.4 (`B₁` for `B₋₁`, p. 194) and E6.6 (a missing `
 corrected, the rounding in E6.3 (a 20% rise is a log change of 18.2%) and in "e^{−0.2} = 80%"
 (81.9%) is made exact, the §6.3 regime claims are shown to need outstanding debt `B₀ ≠ 0`, and the
 slogan "indeterminacy, not infinity" is shown to use two different criteria for its two halves.
-One correction concerns this formalisation rather than the book: the earlier Gaussian debt
+The main correction to this formalisation rather than the book is that the earlier Gaussian debt
 theorem `DebtLimitStochastic.gaussian_iid_unbounded` (and `Links.gaussian_not_bddD`, which uses
 its hypotheses) is vacuous, and is replaced by
 `DebtLimitStochasticMeasure.iid_unbounded_of_integrable` and
@@ -135,15 +145,10 @@ Not formalised:
   (`DebtLimitStochastic.managedPath_le`), as an adapted policy on the i.i.d. process
   (`DebtLimitStochasticMeasure.managed_adapted`, `DebtLimitStochasticMeasure.managedPath_le_process`),
   and Theorem S shows that without management no debt is sustainable;
-* the continuous-time AR(1) surplus of p. 197, which needs Itô or Gaussian-process calculus. It is
-  replaced by the discrete i.i.d. version, including a genuine i.i.d. Gaussian surplus process
-  (`DebtLimitStochasticMeasure.gaussian_process_unbounded`); a discrete Gaussian AR(1) surplus
-  process is not built either;
-* temporary `r < g` for a general piecewise-constant `r − g`: the corrected 20-year formula is
-  proved for the book's two-regime case (any sign before `T₀`, `r > g` after);
-* existence of a solution of the money-and-debt flow equation with the forward-integral value
-  (6.9): the theorems give the representation and uniqueness under the transversality condition
-  (`MoneyLiquidity.eq_6_9`, `MoneyLiquidity.present_value_unique`), which is what the book claims;
+* the continuous-time (Ornstein–Uhlenbeck) AR(1) surplus of p. 197, which needs Itô calculus. It
+  is replaced by its discrete analogue, a Gaussian AR(1) surplus process on `ν^ℕ`
+  (`TidyR5GaussianAR1.ar1_hasLaw_gaussian`, `TidyR5GaussianAR1.gaussian_ar1_unbounded`), with the
+  book's decay `ρ = e^{−η}` per period (`TidyR5GaussianAR1.gaussian_ar1_exp_unbounded`);
 * the discursive passages: dynamic inefficiency, overlapping generations and demographics
   (p. 200), the discussion paragraphs of §6.4.6 and §6.4.8, and contingent liabilities (§6.5,
   pp. 209–211).
@@ -173,6 +178,9 @@ Not formalised:
 | [AggregateUncertaintyMeasure](FiscalConstraints/AggregateUncertaintyMeasure.lean) | 49 | §6.4.7, (6.15)–(6.18) on a genuine i.i.d. growth process: independence of past and future, i.i.d. growth a.e., `E_t` through infinite sums, (6.15) and (6.17) as expectations of infinite sums, (6.18) diverging a.s., Bohn's example as an infinite coin process, links to `IIDGrowth` and the coin tree |
 | [LognormalGrowthMeasure](FiscalConstraints/LognormalGrowthMeasure.lean) | 19 | §6.4.7: a constructed lognormal growth process (`exp` of i.i.d. `N(μ, v)`), its law, independence and moments; (6.15)–(6.18) on it, the printed exponent wrong (E6.5), the region non-empty iff `γ > 0`, the corrected risk-free rate (E6.7) |
 | [DebtLimitStochasticMeasure](FiscalConstraints/DebtLimitStochasticMeasure.lean) | 24 | §6.4.1, p. 197, on i.i.d. surplus processes: Theorem S, the bounded-support dichotomy for coin surpluses, `DebtLimitStochastic.gaussian_iid_unbounded` shown vacuous, debt a.s. unbounded for integrable surpluses with deficits of every size (Kolmogorov's 0-1 law), Gaussian surplus processes, the managed surplus as an adapted policy |
+| [TidyR5MoneyExistence](FiscalConstraints/TidyR5MoneyExistence.lean) | 22 | §6.4.5, (6.9): existence of the money-and-debt solution with the forward value and the TVC, iff the improper present value converges; uniqueness; the TVC iff the value (6.9); the Bochner form |
+| [TidyR5PiecewiseRvsG](FiscalConstraints/TidyR5PiecewiseRvsG.lean) | 39 | §6.4.1, p. 196: temporary `r < g` with a general eventually-constant `r − g` and with finitely many regimes; existence, uniqueness, explosion, the TVC, the general 20-year formula, `r > g` at the end necessary, the link to `RvsG` |
+| [TidyR5GaussianAR1](FiscalConstraints/TidyR5GaussianAR1.lean) | 22 | §6.4.1, p. 197: a Gaussian AR(1) surplus process on `ν^ℕ`, its law and forecast, not bounded above; debt a.s. unbounded and no debt limit sustainable (Kolmogorov's 0-1 law), also for `ρ = e^{−η}` |
 
 ## Modelling conventions
 
@@ -248,7 +256,9 @@ in `AggregateUncertainty`. `Determinacy` and the forward-series theory are carri
 Cochrane projects. The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`)
 is copied, with only the namespace renamed, from the Cochrane `ObservationalEquivalence` project;
 the three measure modules use its i.i.d. economy (`ExpectationsMeasureIID.iidSystem`) and its
-bridge from finite event trees (`ExpectationsMeasure.TreeBridge.treeSystem`).
+bridge from finite event trees (`ExpectationsMeasure.TreeBridge.treeSystem`), and
+`TidyR5GaussianAR1` builds its AR(1) surplus from `ExpectationsMeasureIID.ar1` on the same
+economy.
 
 Unlike the Chapter 1 project, no Woodford or Galí result is restated in a chapter module, and
 `Links` links the chapter's own two formalisation chains rather than other books. Two

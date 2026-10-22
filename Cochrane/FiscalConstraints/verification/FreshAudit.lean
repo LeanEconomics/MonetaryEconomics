@@ -42,6 +42,7 @@ import Mathlib.Probability.Independence.InfinitePi
 import Mathlib.Probability.ConditionalExpectation
 import Mathlib.Probability.Independence.Integration
 import Mathlib.Probability.Independence.ZeroOne
+import Mathlib.MeasureTheory.Integral.DivergenceTheorem
 set_option autoImplicit false
 
 /-
@@ -10251,6 +10252,1564 @@ theorem managedPath_le_process (γ x₀ xbar : ℝ) (t : ℕ) (ω : ℕ → ℝ)
 
 end Cochrane.FiscalConstraints.DebtLimitStochasticMeasure
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Existence of the money-and-debt solution with the forward value (6.9)
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.5, pp. 201–203,
+equation (6.9).
+
+`MoneyLiquidity.eq_6_9` and `MoneyLiquidity.present_value_unique` show that a path of money and
+debt solving the flow equation `d(M + B)/dt = i B − P s` and the transversality condition is
+the forward present value (6.9), and that it is unique. This module proves the converse,
+existence, under the weakest natural hypothesis, and the equivalences.
+
+The liability ratio `w = (M + B)/(P y)` obeys `w' = a w − f` with `a = r^f − g` and the flow
+`f = s/y + i M/(P y)`. The natural hypothesis is that the forward present value exists as an
+improper integral: `∫₀^T e^{−aτ} f_τ dτ → L` (`ImproperPV`). No sign of `a` and no bound on `f`
+is needed.
+
+## Main results
+
+* `fwdValue`: the forward value `ŵ_t = e^{at}(L − ∫₀^t e^{−aτ} f_τ dτ)`;
+  `tendsto_finite_pv`: `ŵ_t = lim_T ∫_t^T e^{−a(τ−t)} f_τ dτ` at every date.
+* `fwdValue_hasDerivAt`, `fwdValue_tvc`: it solves the flow equation and satisfies the
+  transversality condition at every date (existence).
+* `tvc_iff`: a solution satisfies the transversality condition iff it equals the forward value
+  at that date; `eq_fwdValue_of_tvc`, `existsUnique_tvc` (uniqueness of the whole path).
+* `exists_tvc_iff`: a solution with the transversality condition exists iff the improper
+  present value converges.
+* `fwdValue_eq_integral`: under Lebesgue integrability the forward value is the Bochner
+  integral `∫_t^∞ e^{−a(τ−t)} f_τ dτ`; `integrable_of_bdd` (the setting of
+  `MoneyLiquidity.eq_6_9`: `r^f > g`, bounded flows).
+* For money and debt: `money_debt_exists` (debt `B = P y ŵ − M` solves the flow equation, has
+  the value (6.9) and satisfies the transversality condition), `money_debt_unique`,
+  `money_debt_tvc_iff`, `money_debt_exists_iff`, `eq_6_9_exists` (the bounded case of (6.9)).
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR5MoneyExistence
+
+open Real MeasureTheory Filter Topology
+open Cochrane.FiscalConstraints.LinearODE
+
+/-- Cochrane (2023), (6.9) p. 201: the forward present value of the flow `f` discounted at `a`
+converges as an improper integral to `L`: `∫₀^T e^{−aτ} f_τ dτ → L` as `T → ∞`. -/
+def ImproperPV (a : ℝ) (f : ℝ → ℝ) (L : ℝ) : Prop :=
+  Tendsto (fun T => ∫ τ in (0 : ℝ)..T, exp (-a * τ) * f τ) atTop (𝓝 L)
+
+/-- Cochrane (2023), (6.9) p. 201: the forward value `ŵ_t = e^{at}(L − ∫₀^t e^{−aτ} f_τ dτ)`
+(the variation-of-constants solution through `(0, L)`). -/
+noncomputable def fwdValue (a : ℝ) (f : ℝ → ℝ) (L t : ℝ) : ℝ := vocFrom a f 0 L t
+
+/-- Cochrane (2023), (6.9) p. 201: the forward value written out. -/
+theorem fwdValue_eq (a : ℝ) (f : ℝ → ℝ) (L t : ℝ) :
+    fwdValue a f L t = exp (a * t) * (L - ∫ τ in (0 : ℝ)..t, exp (-a * τ) * f τ) := by
+  unfold fwdValue vocFrom
+  rw [mul_zero, exp_zero, one_mul]
+
+variable {a L K : ℝ} {f w : ℝ → ℝ}
+
+/-- Cochrane (2023), (6.13) p. 203: the finite-horizon present value from `t` to `T` is
+`e^{at}(∫₀^T e^{−aτ} f − ∫₀^t e^{−aτ} f)`. -/
+theorem finite_pv_eq (hf : Continuous f) (t T : ℝ) :
+    ∫ τ in t..T, exp (-a * (τ - t)) * f τ =
+      exp (a * t) * ((∫ τ in (0 : ℝ)..T, exp (-a * τ) * f τ) -
+        ∫ τ in (0 : ℝ)..t, exp (-a * τ) * f τ) := by
+  have hc : Continuous fun τ => exp (-a * τ) * f τ := by fun_prop
+  rw [intervalIntegral.integral_interval_sub_left (hc.intervalIntegrable 0 T)
+    (hc.intervalIntegrable 0 t), ← intervalIntegral.integral_const_mul]
+  congr 1
+  funext τ
+  rw [← mul_assoc, ← exp_add]
+  ring_nf
+
+/-- Cochrane (2023), (6.9) p. 201: when the improper present value converges, the forward value
+at every date `t` is the limit of the finite-horizon present values,
+`ŵ_t = lim_{T→∞} ∫_t^T e^{−a(τ−t)} f_τ dτ`. -/
+theorem tendsto_finite_pv (hf : Continuous f) (hL : ImproperPV a f L) (t : ℝ) :
+    Tendsto (fun T => ∫ τ in t..T, exp (-a * (τ - t)) * f τ) atTop
+      (𝓝 (fwdValue a f L t)) := by
+  simp_rw [finite_pv_eq hf t, fwdValue_eq]
+  exact (hL.sub_const _).const_mul _
+
+/-- Cochrane (2023), (6.9) p. 201 (existence, the flow equation): the forward value solves
+`w' = a w − f` at every date. -/
+theorem fwdValue_hasDerivAt (hf : Continuous f) (L τ : ℝ) :
+    HasDerivAt (fwdValue a f L) (a * fwdValue a f L τ - f τ) τ :=
+  vocFrom_hasDerivAt a hf 0 L τ
+
+/-- Cochrane (2023), (6.12)–(6.13) pp. 202–203: for any solution of `w' = a w − f`, the
+discounted terminal value is `e^{−a(T−t)} w_T = w_t − ∫_t^T e^{−a(τ−t)} f_τ dτ`. -/
+theorem terminal_eq (hw : ∀ τ, HasDerivAt w (a * w τ - f τ) τ) (hf : Continuous f) (t T : ℝ) :
+    exp (-a * (T - t)) * w T = w t - ∫ τ in t..T, exp (-a * (τ - t)) * f τ := by
+  have := finite_horizon_identity hw hf t T
+  linarith
+
+/-- Cochrane (2023), (6.9) p. 201: for any solution, the discounted terminal value converges to
+`w_t − ŵ_t`. -/
+theorem tendsto_terminal (hw : ∀ τ, HasDerivAt w (a * w τ - f τ) τ) (hf : Continuous f)
+    (hL : ImproperPV a f L) (t : ℝ) :
+    Tendsto (fun T => exp (-a * (T - t)) * w T) atTop (𝓝 (w t - fwdValue a f L t)) := by
+  simp_rw [terminal_eq hw hf t]
+  exact (tendsto_finite_pv hf hL t).const_sub _
+
+/-- Cochrane (2023), (6.9) p. 201 (**the iff**): a solution of the flow equation satisfies the
+transversality condition `e^{−a(T−t)} w_T → 0` iff its value at `t` is the forward value (6.9). -/
+theorem tvc_iff (hw : ∀ τ, HasDerivAt w (a * w τ - f τ) τ) (hf : Continuous f)
+    (hL : ImproperPV a f L) (t : ℝ) :
+    Tendsto (fun T => exp (-a * (T - t)) * w T) atTop (𝓝 0) ↔ w t = fwdValue a f L t := by
+  have h := tendsto_terminal hw hf hL t
+  constructor
+  · intro h0
+    have := tendsto_nhds_unique h h0
+    linarith
+  · intro he
+    rwa [he, sub_self] at h
+
+/-- Cochrane (2023), (6.9) p. 201 (**existence**, the transversality condition): the forward
+value satisfies the transversality condition at every date. -/
+theorem fwdValue_tvc (hf : Continuous f) (hL : ImproperPV a f L) (t : ℝ) :
+    Tendsto (fun T => exp (-a * (T - t)) * fwdValue a f L T) atTop (𝓝 0) :=
+  (tvc_iff (fwdValue_hasDerivAt hf L) hf hL t).2 rfl
+
+/-- Cochrane (2023), (6.9) p. 201 (uniqueness of the whole path): a solution satisfying the
+transversality condition at one date `t` is the forward value at every date. -/
+theorem eq_fwdValue_of_tvc (hw : ∀ τ, HasDerivAt w (a * w τ - f τ) τ) (hf : Continuous f)
+    (hL : ImproperPV a f L) {t : ℝ}
+    (htvc : Tendsto (fun T => exp (-a * (T - t)) * w T) atTop (𝓝 0)) :
+    w = fwdValue a f L := by
+  have ht := (tvc_iff hw hf hL t).1 htvc
+  funext T
+  rw [vocFrom_eq_of_global hw hf t T, vocFrom_eq_of_global (fwdValue_hasDerivAt hf L) hf t T,
+    ht]
+
+/-- Cochrane (2023), (6.9) p. 201 (**existence and uniqueness**): when the improper present
+value converges, there is exactly one solution of the flow equation satisfying the
+transversality condition at `t`, the forward value. -/
+theorem existsUnique_tvc (hf : Continuous f) (hL : ImproperPV a f L) (t : ℝ) :
+    ∃! w : ℝ → ℝ, (∀ τ, HasDerivAt w (a * w τ - f τ) τ) ∧
+      Tendsto (fun T => exp (-a * (T - t)) * w T) atTop (𝓝 0) :=
+  ⟨fwdValue a f L, ⟨fwdValue_hasDerivAt hf L, fwdValue_tvc hf hL t⟩,
+    fun _ hw => eq_fwdValue_of_tvc hw.1 hf hL hw.2⟩
+
+/-- Cochrane (2023), (6.9) p. 201 (**the existence iff**): a solution of the flow equation
+satisfying the transversality condition exists iff the forward present value converges as an
+improper integral. -/
+theorem exists_tvc_iff (hf : Continuous f) (t : ℝ) :
+    (∃ w : ℝ → ℝ, (∀ τ, HasDerivAt w (a * w τ - f τ) τ) ∧
+      Tendsto (fun T => exp (-a * (T - t)) * w T) atTop (𝓝 0)) ↔ ∃ L, ImproperPV a f L := by
+  constructor
+  · rintro ⟨w, hw, htvc⟩
+    have hJ : Tendsto (fun T => ∫ τ in t..T, exp (-a * (τ - t)) * f τ) atTop (𝓝 (w t)) := by
+      have h := htvc.const_sub (w t)
+      rw [sub_zero] at h
+      refine h.congr fun T => ?_
+      rw [terminal_eq hw hf t T]
+      ring
+    refine ⟨(∫ τ in (0 : ℝ)..t, exp (-a * τ) * f τ) + exp (-a * t) * w t, ?_⟩
+    have he : ∀ T, ∫ τ in (0 : ℝ)..T, exp (-a * τ) * f τ = (∫ τ in (0 : ℝ)..t,
+        exp (-a * τ) * f τ) + exp (-a * t) * ∫ τ in t..T, exp (-a * (τ - t)) * f τ := by
+      intro T
+      rw [finite_pv_eq hf t T]
+      have e : exp (-a * t) * exp (a * t) = 1 := by rw [← exp_add]; ring_nf; exact exp_zero
+      generalize (∫ τ in (0 : ℝ)..T, exp (-a * τ) * f τ) = I1
+      generalize (∫ τ in (0 : ℝ)..t, exp (-a * τ) * f τ) = I2
+      linear_combination (-(I1 - I2)) * e
+    exact ((hJ.const_mul _).const_add _).congr fun T => (he T).symm
+  · rintro ⟨L, hL⟩
+    exact ⟨fwdValue a f L, fwdValue_hasDerivAt hf L, fwdValue_tvc hf hL t⟩
+
+/-- Cochrane (2023), (6.9) p. 201: a continuous flow whose discounted value is integrable on
+`(0, ∞)` is integrable on every `(c, ∞)`. -/
+theorem integrableOn_Ioi_of (hf : Continuous f)
+    (hint : IntegrableOn (fun τ => exp (-a * τ) * f τ) (Set.Ioi 0)) (c : ℝ) :
+    IntegrableOn (fun τ => exp (-a * τ) * f τ) (Set.Ioi c) := by
+  have hc : Continuous fun τ => exp (-a * τ) * f τ := by fun_prop
+  refine ((hc.integrableOn_Icc (a := min c 0) (b := 0)).union hint).mono_set fun τ hτ => ?_
+  rcases le_or_gt τ 0 with h | h
+  · exact Or.inl ⟨le_trans (min_le_left _ _) (le_of_lt hτ), h⟩
+  · exact Or.inr h
+
+/-- Cochrane (2023), (6.9) p. 201: under Lebesgue integrability of the discounted flow, the
+improper present value converges to `∫₀^∞ e^{−aτ} f_τ dτ`, and the forward value at every date
+is the Bochner integral `ŵ_t = ∫_t^∞ e^{−a(τ−t)} f_τ dτ`. -/
+theorem fwdValue_eq_integral (hf : Continuous f)
+    (hint : IntegrableOn (fun τ => exp (-a * τ) * f τ) (Set.Ioi 0)) :
+    ImproperPV a f (∫ τ in Set.Ioi (0 : ℝ), exp (-a * τ) * f τ) ∧
+      ∀ t, fwdValue a f (∫ τ in Set.Ioi (0 : ℝ), exp (-a * τ) * f τ) t =
+        ∫ τ in Set.Ioi t, exp (-a * (τ - t)) * f τ := by
+  refine ⟨intervalIntegral_tendsto_integral_Ioi 0 hint tendsto_id, fun t => ?_⟩
+  rw [fwdValue_eq, ExpIntegrals.integral_Ioi_sub_interval (integrableOn_Ioi_of hf hint) t,
+    ← integral_const_mul]
+  congr 1
+  funext τ
+  rw [← mul_assoc, ← exp_add]
+  ring_nf
+
+/-- Cochrane (2023), (6.9) p. 201 (the setting of `MoneyLiquidity.eq_6_9`): with `a = r^f − g > 0`
+and a bounded continuous flow, the discounted flow is integrable on `(0, ∞)`. -/
+theorem integrable_of_bdd (ha : 0 < a) (hf : Continuous f) (hK : ∀ τ, |f τ| ≤ K) :
+    IntegrableOn (fun τ => exp (-a * τ) * f τ) (Set.Ioi 0) :=
+  ExpIntegrals.integrableOn_exp_mul_bdd ha hf hK 0
+
+/-! ### Money and debt -/
+
+variable {M B P y s infl i : ℝ → ℝ} {g rf : ℝ}
+
+/-- Cochrane (2023), (6.9) p. 201: for any money-and-debt path solving the flow equation
+`d(M + B)/dt = i B − P s`, with `dP/dt = π P`, `dy/dt = g y` and `i = r^f + π`, the liability
+ratio `w = (M + B)/(P y)` solves `w' = (r^f − g) w − (s/y + i M/(P y))`. -/
+theorem ratio_hasDerivAt (hW : ∀ τ, HasDerivAt (fun x => M x + B x) (i τ * B τ - P τ * s τ) τ)
+    (hP : ∀ τ, HasDerivAt P (infl τ * P τ) τ) (hy : ∀ τ, HasDerivAt y (g * y τ) τ)
+    (hP0 : ∀ τ, P τ ≠ 0) (hy0 : ∀ τ, y τ ≠ 0) (hi : ∀ τ, i τ = rf + infl τ) (τ : ℝ) :
+    HasDerivAt (fun x => (M x + B x) / (P x * y x))
+      ((rf - g) * ((M τ + B τ) / (P τ * y τ)) - (s τ / y τ + i τ * (M τ / (P τ * y τ)))) τ := by
+  have h := MoneyLiquidity.hasDerivAt_liabilityRatio (g := fun _ => g) (hW τ) (hP τ) (hy τ)
+    (hP0 τ) (hy0 τ)
+  convert h using 1
+  rw [hi τ]
+  ring
+
+/-- Cochrane (2023), (6.9) p. 201: with debt `B = P y W − M`, the liability ratio
+`(M + B)/(P y)` is `W`. -/
+theorem ratio_of_debt (W : ℝ → ℝ) {t : ℝ} (hP0 : P t ≠ 0) (hy0 : y t ≠ 0) :
+    (M t + (P t * y t * W t - M t)) / (P t * y t) = W t := by
+  have := mul_ne_zero hP0 hy0
+  field_simp
+  ring
+
+/-- Cochrane (2023), (6.9) p. 201: if a ratio path `W` solves
+`W' = (r^f − g) W − (s/y + i M/(P y))`, with `dP/dt = π P`, `dy/dt = g y` and `i = r^f + π`, then
+debt `B = P y W − M` solves the flow equation `d(M + B)/dt = i B − P s`. -/
+theorem flow_of_debt {W : ℝ → ℝ} {τ : ℝ} (hP : HasDerivAt P (infl τ * P τ) τ)
+    (hy : HasDerivAt y (g * y τ) τ) (hP0 : P τ ≠ 0) (hy0 : y τ ≠ 0) (hi : i τ = rf + infl τ)
+    (hW : HasDerivAt W ((rf - g) * W τ - (s τ / y τ + i τ * (M τ / (P τ * y τ)))) τ) :
+    HasDerivAt (fun x => M x + (P x * y x * W x - M x))
+      (i τ * (P τ * y τ * W τ - M τ) - P τ * s τ) τ := by
+  have hMB : (fun x => M x + (P x * y x * W x - M x)) = fun x => P x * y x * W x := by
+    funext x; ring
+  rw [hMB]
+  refine ((hP.mul hy).mul hW).congr_deriv ?_
+  simp only [Pi.mul_apply]
+  rw [hi]
+  field_simp
+  ring
+
+/-- Cochrane (2023), (6.9) p. 201 (**existence for money and debt**): given money `M`, the price
+level, output and the surplus, with `i = r^f + π` and a convergent improper present value `L` of
+`f = s/y + i M/(P y)` discounted at `r^f − g`, the debt path `B = P y ŵ − M` solves the flow
+equation `d(M + B)/dt = i B − P s` at every date, its liability ratio is the forward value (6.9)
+at every date, and it satisfies the transversality condition at every date. -/
+theorem money_debt_exists (hP : ∀ τ, HasDerivAt P (infl τ * P τ) τ)
+    (hy : ∀ τ, HasDerivAt y (g * y τ) τ) (hP0 : ∀ τ, P τ ≠ 0) (hy0 : ∀ τ, y τ ≠ 0)
+    (hi : ∀ τ, i τ = rf + infl τ) (hf : Continuous fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ)))
+    (hL : ImproperPV (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L) :
+    let B := fun τ => P τ * y τ *
+      fwdValue (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L τ - M τ
+    (∀ τ, HasDerivAt (fun x => M x + B x) (i τ * B τ - P τ * s τ) τ) ∧
+      (∀ t, (M t + B t) / (P t * y t) =
+        fwdValue (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L t) ∧
+      ∀ t, Tendsto (fun T => exp (-(rf - g) * (T - t)) * ((M T + B T) / (P T * y T))) atTop
+        (𝓝 0) := by
+  intro B
+  set F := fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ)) with hF
+  have hratio : ∀ t, (M t + B t) / (P t * y t) = fwdValue (rf - g) F L t := fun t =>
+    ratio_of_debt (fwdValue (rf - g) F L) (hP0 t) (hy0 t)
+  refine ⟨fun τ => flow_of_debt (hP τ) (hy τ) (hP0 τ) (hy0 τ) (hi τ)
+    (fwdValue_hasDerivAt (a := rf - g) hf L τ), hratio, fun t => ?_⟩
+  simp_rw [hratio]
+  exact fwdValue_tvc hf hL t
+
+/-- Cochrane (2023), (6.9) p. 201 (**the iff for money and debt**): for a money-and-debt path
+solving the flow equation, the transversality condition at `t` holds iff the value of money and
+debt at `t` is the forward value (6.9). -/
+theorem money_debt_tvc_iff
+    (hW : ∀ τ, HasDerivAt (fun x => M x + B x) (i τ * B τ - P τ * s τ) τ)
+    (hP : ∀ τ, HasDerivAt P (infl τ * P τ) τ) (hy : ∀ τ, HasDerivAt y (g * y τ) τ)
+    (hP0 : ∀ τ, P τ ≠ 0) (hy0 : ∀ τ, y τ ≠ 0) (hi : ∀ τ, i τ = rf + infl τ)
+    (hf : Continuous fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ)))
+    (hL : ImproperPV (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L) (t : ℝ) :
+    Tendsto (fun T => exp (-(rf - g) * (T - t)) * ((M T + B T) / (P T * y T))) atTop (𝓝 0) ↔
+      (M t + B t) / (P t * y t) =
+        fwdValue (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L t :=
+  tvc_iff (w := fun x => (M x + B x) / (P x * y x))
+    (ratio_hasDerivAt hW hP hy hP0 hy0 hi) hf hL t
+
+/-- Cochrane (2023), (6.9) p. 201 (**uniqueness for money and debt**): any debt path solving the
+flow equation and the transversality condition at one date is the debt of `money_debt_exists`,
+`B = P y ŵ − M`, at every date. -/
+theorem money_debt_unique
+    (hW : ∀ τ, HasDerivAt (fun x => M x + B x) (i τ * B τ - P τ * s τ) τ)
+    (hP : ∀ τ, HasDerivAt P (infl τ * P τ) τ) (hy : ∀ τ, HasDerivAt y (g * y τ) τ)
+    (hP0 : ∀ τ, P τ ≠ 0) (hy0 : ∀ τ, y τ ≠ 0) (hi : ∀ τ, i τ = rf + infl τ)
+    (hf : Continuous fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ)))
+    (hL : ImproperPV (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L) {t : ℝ}
+    (htvc : Tendsto (fun T => exp (-(rf - g) * (T - t)) * ((M T + B T) / (P T * y T))) atTop
+      (𝓝 0)) :
+    B = fun τ => P τ * y τ *
+      fwdValue (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L τ - M τ := by
+  have h := eq_fwdValue_of_tvc (w := fun x => (M x + B x) / (P x * y x))
+    (ratio_hasDerivAt hW hP hy hP0 hy0 hi) hf hL htvc
+  funext τ
+  have hτ := congrFun h τ
+  have h1 := hP0 τ
+  have h2 := hy0 τ
+  change (M τ + B τ) / (P τ * y τ) = _ at hτ
+  rw [← hτ]
+  field_simp
+  ring
+
+/-- Cochrane (2023), (6.9) p. 201 (**the existence iff for money and debt**): given money, prices,
+output and surpluses, a debt path solving the flow equation and the transversality condition at
+`t` exists iff the present value of `s/y + i M/(P y)` discounted at `r^f − g` converges as an
+improper integral. -/
+theorem money_debt_exists_iff (hP : ∀ τ, HasDerivAt P (infl τ * P τ) τ)
+    (hy : ∀ τ, HasDerivAt y (g * y τ) τ) (hP0 : ∀ τ, P τ ≠ 0) (hy0 : ∀ τ, y τ ≠ 0)
+    (hi : ∀ τ, i τ = rf + infl τ) (hf : Continuous fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ)))
+    (t : ℝ) :
+    (∃ B : ℝ → ℝ, (∀ τ, HasDerivAt (fun x => M x + B x) (i τ * B τ - P τ * s τ) τ) ∧
+      Tendsto (fun T => exp (-(rf - g) * (T - t)) * ((M T + B T) / (P T * y T))) atTop (𝓝 0))
+      ↔ ∃ L, ImproperPV (rf - g) (fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ))) L := by
+  constructor
+  · rintro ⟨B, hW, htvc⟩
+    exact (exists_tvc_iff hf t).1 ⟨_, ratio_hasDerivAt hW hP hy hP0 hy0 hi, htvc⟩
+  · rintro ⟨L, hL⟩
+    obtain ⟨h1, -, h3⟩ := money_debt_exists hP hy hP0 hy0 hi hf hL
+    exact ⟨_, h1, h3 t⟩
+
+/-- Cochrane (2023), (6.9) p. 201 (**existence in the setting of `MoneyLiquidity.eq_6_9`**): with
+`r^f > g`, `i = r^f + π` and a bounded continuous flow `s/y + i M/(P y)`, there is a debt path
+solving the flow equation and the transversality condition at every date, whose value of money
+and debt is the Bochner present value (6.9),
+`(M_t + B_t)/(P_t y_t) = ∫_t^∞ e^{−(r^f−g)(τ−t)} (s_τ/y_τ + i_τ M_τ/(P_τ y_τ)) dτ`, at every
+date. -/
+theorem eq_6_9_exists (hrg : g < rf) (hP : ∀ τ, HasDerivAt P (infl τ * P τ) τ)
+    (hy : ∀ τ, HasDerivAt y (g * y τ) τ) (hP0 : ∀ τ, P τ ≠ 0) (hy0 : ∀ τ, y τ ≠ 0)
+    (hi : ∀ τ, i τ = rf + infl τ) (hf : Continuous fun τ => s τ / y τ + i τ * (M τ / (P τ * y τ)))
+    (hK : ∀ τ, |s τ / y τ + i τ * (M τ / (P τ * y τ))| ≤ K) :
+    ∃ B : ℝ → ℝ, (∀ τ, HasDerivAt (fun x => M x + B x) (i τ * B τ - P τ * s τ) τ) ∧
+      (∀ t, Tendsto (fun T => exp (-(rf - g) * (T - t)) * ((M T + B T) / (P T * y T))) atTop
+        (𝓝 0)) ∧
+      ∀ t, (M t + B t) / (P t * y t) = ∫ τ in Set.Ioi t, exp (-(rf - g) * (τ - t)) *
+        (s τ / y τ + i τ * (M τ / (P τ * y τ))) := by
+  have hint := integrable_of_bdd (sub_pos.2 hrg) hf hK
+  obtain ⟨hL, hrep⟩ := fwdValue_eq_integral hf hint
+  obtain ⟨h1, h2, h3⟩ := money_debt_exists hP hy hP0 hy0 hi hf hL
+  exact ⟨_, h1, h3, fun t => (h2 t).trans (hrep t)⟩
+
+end Cochrane.FiscalConstraints.TidyR5MoneyExistence
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Temporary `r < g` with finitely many regimes
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 196 ("if the
+`r < g` opportunity fades away, fiscal theory reemerges").
+
+`RvsG` proves the corrected 20-year formula for two regimes (`RvsG.step_existsUnique`). Here
+`r − g` is piecewise constant with any finite number of regimes: `a₀` on `[T₀, T₁)`, `a₁` on
+`[T₁, T₂)`, …, `a_{n−1}` on `[T_{n−1}, T_n)` and `a_n` on `[T_n, ∞)`, with `0 = T₀ ≤ T₁ ≤ ⋯ ≤ T_n`.
+The rates before the last switch have any signs; the last one is positive (`r > g` after).
+
+The proof first treats a general time-varying `r − g` with a continuous cumulative rate
+`A(t) = ∫₀^t (r − g)` that is differentiable off a countable set and eventually linear with
+positive slope (`SolvesGen`). Every solution is `x_t = e^{A(t)}(x₀ − ∫₀^t e^{−A(v)} σ_v dv)`
+(`eq_vocA`, by the fundamental theorem of calculus off a countable set), and the sustainable debt is
+`x̂₀ = ∫₀^∞ e^{−A(v)} σ_v dv`.
+
+## Main results
+
+* General rate: `gen_solves`, `gen_bddOn`, `gen_bddOn_iff`, `gen_tendsto_abs_of_ne`,
+  `gen_existsUnique`, `gen_tvc_iff`, `gSol_eq_integral`
+  (`x̂_t = ∫_t^∞ exp(−∫_t^v (r − g)) σ_v dv`).
+* Finitely many regimes: the cumulative rate `cum` and its regime formulas (`cum_eq_regime`,
+  `cum_eq_last`, `cum_hasDerivAt_regime`, `cum_hasDerivAt_last`); the solution concept
+  `SolvesPW`; `pw_existsUnique` (exactly one bounded solution), `pw_bddOn_iff` (bounded iff
+  `x₀ = x̂₀`), `pw_tendsto_abs_of_ne` (every other solution explodes), `pw_tvc_iff` (the
+  transversality condition iff `x₀ = x̂₀`), `pw_nominal_determinacy` (exactly one `P₀`).
+* `pwPV0_eq_sum`: the general 20-year formula,
+  `x̂₀ = ∑_{k<n} e^{−A(T_k)} ∫_{T_k}^{T_{k+1}} e^{−a_k(v−T_k)} σ_v dv + e^{−A(T_n)} x̂^{(n)}_{T_n}`,
+  with `A(T_k) = ∑_{j<k} a_j (T_{j+1} − T_j)` and `x̂^{(n)}` the present value at the last rate.
+* `pw_unique_iff_last_pos`: a bounded solution is unique for every bounded surplus iff `r > g` in
+  the last regime, whatever the signs before.
+* `solvesStep_iff`, `pwPV0_two_regime`: the two-regime case is `RvsG.SolvesStep` and
+  `RvsG.stepPV0`.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG
+
+open Real MeasureTheory Filter Topology
+open Cochrane.FiscalConstraints.ExpIntegrals Cochrane.FiscalConstraints.RvsG
+
+/-! ### A general time-varying `r − g` -/
+
+/-- Cochrane (2023), eq. (6.4), p. 196, with time-varying `r − g = ρ(t)`: `x` is continuous on
+`[0, ∞)` and solves `x' = ρ(t) x − σ` at every `t > 0` outside the exceptional set `S` (the switch
+dates). -/
+def SolvesGen (ρ : ℝ → ℝ) (S : Set ℝ) (σ x : ℝ → ℝ) : Prop :=
+  ContinuousOn x (Set.Ici 0) ∧ ∀ t, 0 < t → t ∉ S → HasDerivAt x (ρ t * x t - σ t) t
+
+/-- Cochrane (2023), eq. (6.5), p. 196, with time-varying `r − g`: the backward solution from
+`x₀` with cumulative rate `A`, `x_t = e^{A(t)}(x₀ − ∫₀^t e^{−A(v)} σ_v dv)`. -/
+noncomputable def vocA (A σ : ℝ → ℝ) (x0 t : ℝ) : ℝ :=
+  exp (A t) * (x0 - ∫ v in (0 : ℝ)..t, exp (-A v) * σ v)
+
+/-- Cochrane (2023), §6.4.1, p. 196: the sustainable initial debt-to-GDP ratio with time-varying
+`r − g`, `x̂₀ = ∫₀^∞ e^{−A(v)} σ_v dv`. -/
+noncomputable def pvA (A σ : ℝ → ℝ) : ℝ := ∫ v in Set.Ioi (0 : ℝ), exp (-A v) * σ v
+
+/-- Cochrane (2023), §6.4.1, p. 196: the forward-looking solution, the backward solution started
+at `x̂₀`. -/
+noncomputable def gSol (A σ : ℝ → ℝ) (t : ℝ) : ℝ := vocA A σ (pvA A σ) t
+
+variable {A ρ σ x : ℝ → ℝ} {S : Set ℝ} {Tn ab M : ℝ}
+
+/-- Cochrane (2023), eq. (6.4), p. 196: the backward solution solves `x' = r x − σ` at every
+date where the cumulative rate has derivative `r`. -/
+theorem vocA_hasDerivAt (hσ : Continuous σ) (hAc : Continuous A) (x0 : ℝ) {t r : ℝ}
+    (hA : HasDerivAt A r t) : HasDerivAt (vocA A σ x0) (r * vocA A σ x0 t - σ t) t := by
+  have hf : Continuous (fun v => exp (-A v) * σ v) := by fun_prop
+  have hI := (hf.integral_hasStrictDerivAt 0 t).hasDerivAt
+  have h := hA.exp.mul (hI.const_sub x0)
+  unfold vocA
+  refine h.congr_deriv ?_
+  have : exp (A t) * exp (-A t) = 1 := by rw [← exp_add]; simp
+  linear_combination (-(σ t)) * this
+
+/-- Cochrane (2023), eq. (6.5), p. 196: the backward solution is continuous. -/
+theorem vocA_continuous (hσ : Continuous σ) (hAc : Continuous A) (x0 : ℝ) :
+    Continuous (vocA A σ x0) := by
+  have hf : Continuous (fun v => exp (-A v) * σ v) := by fun_prop
+  have hI : Continuous fun t => ∫ v in (0 : ℝ)..t, exp (-A v) * σ v :=
+    continuous_iff_continuousAt.2 fun t =>
+      (hf.integral_hasStrictDerivAt 0 t).hasDerivAt.continuousAt
+  unfold vocA
+  fun_prop
+
+/-- Cochrane (2023), eq. (6.5), p. 196: the backward solution starts at `x₀`. -/
+theorem vocA_zero (hA0 : A 0 = 0) (x0 : ℝ) : vocA A σ x0 0 = x0 := by
+  unfold vocA
+  rw [hA0, exp_zero, intervalIntegral.integral_same, sub_zero, one_mul]
+
+/-- Cochrane (2023), eq. (6.5), p. 196: two backward solutions differ by `e^{A(t)}(x₀ − z₀)`. -/
+theorem vocA_sub (x0 z0 t : ℝ) : vocA A σ x0 t - vocA A σ z0 t = exp (A t) * (x0 - z0) := by
+  unfold vocA
+  ring
+
+/-- Cochrane (2023), eq. (6.5), p. 196 (**uniqueness with time-varying `r − g`**): every solution
+on `[0, ∞)` is the backward solution from its initial value, when the cumulative rate is
+continuous with derivative `ρ` off a countable set `S`. -/
+theorem eq_vocA (hS : S.Countable) (hAc : Continuous A) (hA0 : A 0 = 0)
+    (hAd : ∀ t, 0 < t → t ∉ S → HasDerivAt A (ρ t) t) (hσ : Continuous σ)
+    (hx : SolvesGen ρ S σ x) {t : ℝ} (ht : 0 ≤ t) : x t = vocA A σ (x 0) t := by
+  have hf : Continuous (fun v => exp (-A v) * σ v) := by fun_prop
+  have hI : Continuous fun t => ∫ v in (0 : ℝ)..t, exp (-A v) * σ v :=
+    continuous_iff_continuousAt.2 fun t =>
+      (hf.integral_hasStrictDerivAt 0 t).hasDerivAt.continuousAt
+  set g : ℝ → ℝ := fun u => exp (-A u) * x u + ∫ v in (0 : ℝ)..u, exp (-A v) * σ v with hg
+  have hgc : ContinuousOn g (Set.Icc 0 t) :=
+    ((by fun_prop : Continuous fun u => exp (-A u)).continuousOn.mul
+      (hx.1.mono Set.Icc_subset_Ici_self)).add hI.continuousOn
+  have hgd : ∀ u ∈ Set.Ioo 0 t \ S, HasDerivAt g 0 u := by
+    rintro u ⟨hu, huS⟩
+    have h1 := (hAd u hu.1 huS).neg.exp
+    have h2 := hx.2 u hu.1 huS
+    have h3 := (hf.integral_hasStrictDerivAt 0 u).hasDerivAt
+    refine ((h1.mul h2).add h3).congr_deriv ?_
+    simp only [Pi.neg_apply]
+    ring
+  have hftc := integral_eq_of_hasDerivAt_off_countable_of_le g (fun _ => (0 : ℝ)) ht hS hgc hgd
+    intervalIntegrable_const
+  rw [intervalIntegral.integral_zero] at hftc
+  have h' : exp (-A t) * x t + (∫ v in (0 : ℝ)..t, exp (-A v) * σ v) - x 0 = 0 := by
+    have hg0 : g 0 = x 0 := by
+      simp only [hg, hA0, neg_zero, exp_zero, one_mul, intervalIntegral.integral_same, add_zero]
+    have : g t - g 0 = 0 := hftc.symm
+    rw [hg0] at this
+    exact this
+  have hE : exp (A t) * exp (-A t) = 1 := by rw [← exp_add]; simp
+  unfold vocA
+  linear_combination (exp (A t)) * h' + (-(x t)) * hE
+
+/-- Cochrane (2023), §6.4.1, p. 196: if `r − g` is eventually constant at `ā > 0` (after `T_n`)
+and surpluses are continuous and bounded, the discounted surpluses `e^{−A(v)} σ_v` are integrable
+on every `(c, ∞)`. -/
+theorem integrableOn_expA (hAc : Continuous A) (hσ : Continuous σ) (hM : ∀ u, |σ u| ≤ M)
+    (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab) (c : ℝ) :
+    IntegrableOn (fun v => exp (-A v) * σ v) (Set.Ioi c) := by
+  have h1 : IntegrableOn (fun v => exp (-A v) * σ v) (Set.Ioi (max c Tn)) := by
+    have := (integrableOn_exp_mul_bdd ha hσ hM (max c Tn)).const_mul (exp (-A Tn + ab * Tn))
+    refine IntegrableOn.congr_fun this (fun v hv => ?_) measurableSet_Ioi
+    have hv' : Tn ≤ v := le_trans (le_max_right _ _) (le_of_lt hv)
+    rw [hAT v hv', ← mul_assoc, ← exp_add]
+    congr 2
+    ring
+  have h2 : IntegrableOn (fun v => exp (-A v) * σ v) (Set.Icc c (max c Tn)) :=
+    (by fun_prop : Continuous fun v => exp (-A v) * σ v).integrableOn_Icc
+  refine (h2.union h1).mono_set fun v hv => ?_
+  rcases le_or_gt v (max c Tn) with h | h
+  · exact Or.inl ⟨le_of_lt hv, h⟩
+  · exact Or.inr h
+
+/-- Cochrane (2023), §6.4.1, p. 196 (the forward formula at every date): the forward-looking
+solution is `x̂_t = ∫_t^∞ exp(−(A(v) − A(t))) σ_v dv`, i.e. surpluses discounted at the cumulated
+`r − g` between `t` and `v`. -/
+theorem gSol_eq_integral (hAc : Continuous A) (hσ : Continuous σ) (hM : ∀ u, |σ u| ≤ M)
+    (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab) (t : ℝ) :
+    gSol A σ t = ∫ v in Set.Ioi t, exp (-(A v - A t)) * σ v := by
+  unfold gSol vocA pvA
+  rw [integral_Ioi_sub_interval (integrableOn_expA hAc hσ hM hAT ha) t, ← integral_const_mul]
+  congr 1
+  funext v
+  rw [← mul_assoc, ← exp_add]
+  ring_nf
+
+/-- Cochrane (2023), §6.4.1, p. 196: after the last switch the forward-looking solution is the
+constant-rate present value `RvsG.pv ā σ t`. -/
+theorem gSol_eq_pv (hAc : Continuous A) (hσ : Continuous σ) (hM : ∀ u, |σ u| ≤ M)
+    (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab) {t : ℝ} (ht : Tn ≤ t) :
+    gSol A σ t = pv ab σ t := by
+  rw [gSol_eq_integral hAc hσ hM hAT ha t, pv]
+  rw [← integral_Ioi_comp_add (fun v => exp (-(A v - A t)) * σ v) t]
+  refine setIntegral_congr_fun measurableSet_Ioi fun u hu => ?_
+  have hu' : (0 : ℝ) < u := hu
+  rw [hAT (t + u) (by linarith), hAT t ht]
+  congr 2
+  ring
+
+/-- Cochrane (2023), §6.4.1, p. 196: the forward-looking solution is continuous. -/
+theorem gSol_continuous (hσ : Continuous σ) (hAc : Continuous A) : Continuous (gSol A σ) :=
+  vocA_continuous hσ hAc _
+
+/-- Cochrane (2023), §6.4.1, p. 196 (existence): the forward-looking solution is bounded on
+`[0, ∞)`. -/
+theorem gen_bddOn (hAc : Continuous A) (hσ : Continuous σ) (hM : ∀ u, |σ u| ≤ M)
+    (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab) : BddOn (gSol A σ) := by
+  obtain ⟨C, hC⟩ := (isCompact_Icc (a := (0 : ℝ)) (b := Tn)).exists_bound_of_continuousOn
+    (gSol_continuous hσ hAc).continuousOn
+  refine ⟨max C (M / ab), fun t ht => ?_⟩
+  rcases le_total t Tn with h | h
+  · exact (hC t ⟨ht, h⟩).trans (le_max_left _ _)
+  · rw [gSol_eq_pv hAc hσ hM hAT ha h]
+    exact (abs_pv_le ha hM t).trans (le_max_right _ _)
+
+/-- Cochrane (2023), §6.4.1, p. 196 (existence): the forward-looking solution solves the
+equation with time-varying `r − g`. -/
+theorem gen_solves (hAc : Continuous A) (hAd : ∀ t, 0 < t → t ∉ S → HasDerivAt A (ρ t) t)
+    (hσ : Continuous σ) : SolvesGen ρ S σ (gSol A σ) :=
+  ⟨(gSol_continuous hσ hAc).continuousOn, fun t ht htS => vocA_hasDerivAt hσ hAc _ (hAd t ht htS)⟩
+
+/-- Cochrane (2023), §6.4.1, p. 196: every solution differs from the forward-looking one by
+`e^{A(t)}(x₀ − x̂₀)`. -/
+theorem gen_sub (hS : S.Countable) (hAc : Continuous A) (hA0 : A 0 = 0)
+    (hAd : ∀ t, 0 < t → t ∉ S → HasDerivAt A (ρ t) t) (hσ : Continuous σ)
+    (hx : SolvesGen ρ S σ x) {t : ℝ} (ht : 0 ≤ t) :
+    x t - gSol A σ t = exp (A t) * (x 0 - pvA A σ) := by
+  rw [eq_vocA hS hAc hA0 hAd hσ hx ht, gSol, vocA_sub]
+
+/-- Cochrane (2023), §6.4.1, p. 196 ("values of debt different from this forward-looking integral
+lead to explosions"), time-varying `r − g`: a solution not starting at `x̂₀` explodes. -/
+theorem gen_tendsto_abs_of_ne (hS : S.Countable) (hAc : Continuous A) (hA0 : A 0 = 0)
+    (hAd : ∀ t, 0 < t → t ∉ S → HasDerivAt A (ρ t) t) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab)
+    (hx : SolvesGen ρ S σ x) (hne : x 0 ≠ pvA A σ) :
+    Tendsto (fun t => |x t|) atTop atTop := by
+  set d := |x 0 - pvA A σ| with hd_def
+  have hd : 0 < d := abs_pos.2 (sub_ne_zero.2 hne)
+  have hlow : ∀ t, max 0 Tn ≤ t →
+      exp (A Tn + ab * (t - Tn)) * d + -(M / ab) ≤ |x t| := by
+    intro t ht
+    have ht0 : 0 ≤ t := le_trans (le_max_left _ _) ht
+    have htn : Tn ≤ t := le_trans (le_max_right _ _) ht
+    have h1 := gen_sub hS hAc hA0 hAd hσ hx ht0
+    have h2 := abs_pv_le ha hM t
+    rw [← gSol_eq_pv hAc hσ hM hAT ha htn] at h2
+    have h3 : exp (A Tn + ab * (t - Tn)) * d = |x t - gSol A σ t| := by
+      rw [h1, abs_mul, abs_of_pos (exp_pos _), hAT t htn]
+    have h4 := abs_sub (x t) (gSol A σ t)
+    linarith
+  have hlim : Tendsto (fun t => exp (A Tn + ab * (t - Tn)) * d + -(M / ab)) atTop atTop := by
+    have h1 : Tendsto (fun t => A Tn + ab * (t - Tn)) atTop atTop :=
+      tendsto_atTop_add_const_left _ _
+        ((tendsto_atTop_add_const_right _ (-Tn) tendsto_id).const_mul_atTop ha)
+    exact tendsto_atTop_add_const_right _ _ ((tendsto_exp_atTop.comp h1).atTop_mul_const hd)
+  exact tendsto_atTop_mono' atTop ((eventually_ge_atTop (max 0 Tn)).mono hlow) hlim
+
+/-- Cochrane (2023), §6.4.1, p. 196, time-varying `r − g`: a solution is bounded iff it starts at
+the sustainable value `x̂₀ = ∫₀^∞ e^{−A(v)} σ_v dv`. -/
+theorem gen_bddOn_iff (hS : S.Countable) (hAc : Continuous A) (hA0 : A 0 = 0)
+    (hAd : ∀ t, 0 < t → t ∉ S → HasDerivAt A (ρ t) t) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab)
+    (hx : SolvesGen ρ S σ x) : BddOn x ↔ x 0 = pvA A σ := by
+  constructor
+  · rintro ⟨K, hK⟩
+    by_contra hne
+    have h1 := (gen_tendsto_abs_of_ne hS hAc hA0 hAd hσ hM hAT ha hx hne).eventually_gt_atTop K
+    obtain ⟨t, ht1, ht2⟩ := (h1.and (eventually_ge_atTop 0)).exists
+    linarith [hK t ht2]
+  · intro h
+    obtain ⟨K, hK⟩ := gen_bddOn hAc hσ hM hAT ha
+    refine ⟨K, fun t ht => ?_⟩
+    have := gen_sub hS hAc hA0 hAd hσ hx ht
+    rw [h, sub_self, mul_zero, sub_eq_zero] at this
+    rw [this]
+    exact hK t ht
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**existence and uniqueness**, time-varying `r − g`): there is
+a bounded solution, and every bounded solution is the forward-looking one at every date
+`t ≥ 0`. -/
+theorem gen_existsUnique (hS : S.Countable) (hAc : Continuous A) (hA0 : A 0 = 0)
+    (hAd : ∀ t, 0 < t → t ∉ S → HasDerivAt A (ρ t) t) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab) :
+    SolvesGen ρ S σ (gSol A σ) ∧ BddOn (gSol A σ) ∧
+      ∀ x, SolvesGen ρ S σ x → BddOn x → ∀ t, 0 ≤ t → x t = gSol A σ t := by
+  refine ⟨gen_solves hAc hAd hσ, gen_bddOn hAc hσ hM hAT ha, fun x hx hb t ht => ?_⟩
+  have := gen_sub hS hAc hA0 hAd hσ hx ht
+  rw [(gen_bddOn_iff hS hAc hA0 hAd hσ hM hAT ha hx).1 hb, sub_self, mul_zero, sub_eq_zero]
+    at this
+  exact this
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**transversality**, time-varying `r − g`): the discounted
+debt-to-GDP ratio `e^{−A(t)} x_t` (debt discounted at the cumulated real rate, relative to
+GDP) tends to `0` iff `x₀ = x̂₀`. -/
+theorem gen_tvc_iff (hS : S.Countable) (hAc : Continuous A) (hA0 : A 0 = 0)
+    (hAd : ∀ t, 0 < t → t ∉ S → HasDerivAt A (ρ t) t) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) (hAT : ∀ t, Tn ≤ t → A t = A Tn + ab * (t - Tn)) (ha : 0 < ab)
+    (hx : SolvesGen ρ S σ x) :
+    Tendsto (fun t => exp (-A t) * x t) atTop (𝓝 0) ↔ x 0 = pvA A σ := by
+  have hlimI := intervalIntegral_tendsto_integral_Ioi 0
+    (integrableOn_expA hAc hσ hM hAT ha 0) tendsto_id
+  have hev : ∀ᶠ t in atTop,
+      x 0 - (∫ v in (0 : ℝ)..t, exp (-A v) * σ v) = exp (-A t) * x t := by
+    filter_upwards [eventually_ge_atTop 0] with t ht
+    rw [eq_vocA hS hAc hA0 hAd hσ hx ht, vocA, ← mul_assoc, ← exp_add]
+    simp
+  have hlim : Tendsto (fun t => exp (-A t) * x t) atTop (𝓝 (x 0 - pvA A σ)) :=
+    (hlimI.const_sub (x 0)).congr' hev
+  constructor
+  · intro h
+    have := tendsto_nhds_unique hlim h
+    linarith
+  · intro h
+    rwa [h, sub_self] at hlim
+
+/-! ### Finitely many regimes -/
+
+/-- Cochrane (2023), §6.4.1, p. 196: `t` clamped to `[lo, hi]`, `max lo (min t hi)`. -/
+noncomputable def clampI (lo hi t : ℝ) : ℝ := max lo (min t hi)
+
+/-- Cochrane (2023), §6.4.1, p. 196: the cumulated `r − g` with `n` switches, rates `a k` on
+`[T k, T (k+1))` for `k < n` and `a n` after `T n`: `A(t) = ∫₀^t (r − g)` written out. -/
+noncomputable def cum (n : ℕ) (a T : ℕ → ℝ) (t : ℝ) : ℝ :=
+  (∑ k ∈ Finset.range n, a k * (clampI (T k) (T (k + 1)) t - T k)) + a n * (max t (T n) - T n)
+
+/-- Cochrane (2023), §6.4.1, p. 196: the cumulated `r − g` at the switch date `T j`,
+`A(T_j) = ∑_{k<j} a_k (T_{k+1} − T_k)`. -/
+noncomputable def cumAt (a T : ℕ → ℝ) (j : ℕ) : ℝ :=
+  ∑ k ∈ Finset.range j, a k * (T (k + 1) - T k)
+
+/-- Cochrane (2023), eq. (6.4), p. 196, with finitely many regimes: `x` is continuous on
+`[0, ∞)`, solves `x' = a_j x − σ` on each `(T_j, T_{j+1})`, `j < n`, and `x' = a_n x − σ` after
+`T_n`. -/
+def SolvesPW (n : ℕ) (a T : ℕ → ℝ) (σ x : ℝ → ℝ) : Prop :=
+  ContinuousOn x (Set.Ici 0) ∧
+    (∀ j < n, ∀ t ∈ Set.Ioo (T j) (T (j + 1)), HasDerivAt x (a j * x t - σ t) t) ∧
+    ∀ t, T n < t → HasDerivAt x (a n * x t - σ t) t
+
+/-- Cochrane (2023), §6.4.1, p. 196: the sustainable initial debt-to-GDP ratio with finitely
+many regimes, `x̂₀ = ∫₀^∞ e^{−A(v)} σ_v dv`. -/
+noncomputable def pwPV0 (n : ℕ) (a T : ℕ → ℝ) (σ : ℝ → ℝ) : ℝ := pvA (cum n a T) σ
+
+/-- Cochrane (2023), §6.4.1, p. 196: the forward-looking solution with finitely many regimes. -/
+noncomputable def pwSol (n : ℕ) (a T : ℕ → ℝ) (σ : ℝ → ℝ) : ℝ → ℝ := gSol (cum n a T) σ
+
+variable {n : ℕ} {a T : ℕ → ℝ}
+
+/-- Cochrane (2023), §6.4.1, p. 196: the cumulated rate is continuous. -/
+theorem cum_continuous (n : ℕ) (a T : ℕ → ℝ) : Continuous (cum n a T) := by
+  unfold cum clampI
+  fun_prop
+
+/-- Cochrane (2023), §6.4.1, p. 196: on the closed regime `[T_j, T_{j+1}]`, `j < n`, the cumulated
+rate is `A(T_j) + a_j (t − T_j)`. -/
+theorem cum_eq_regime (hT : Monotone T) {j : ℕ} (hj : j < n) {t : ℝ}
+    (ht : t ∈ Set.Icc (T j) (T (j + 1))) : cum n a T t = cumAt a T j + a j * (t - T j) := by
+  unfold cum cumAt
+  rw [← Finset.sum_range_add_sum_Ico _ (show j + 1 ≤ n by omega), Finset.sum_range_succ]
+  have h1 : ∑ k ∈ Finset.range j, a k * (clampI (T k) (T (k + 1)) t - T k) =
+      ∑ k ∈ Finset.range j, a k * (T (k + 1) - T k) := by
+    refine Finset.sum_congr rfl fun k hk => ?_
+    have hk' : k + 1 ≤ j := Finset.mem_range.1 hk
+    have e1 : T (k + 1) ≤ t := (hT hk').trans ht.1
+    have e2 : T k ≤ T (k + 1) := hT (Nat.le_succ k)
+    unfold clampI
+    rw [min_eq_right e1, max_eq_right e2]
+  have h2 : ∑ k ∈ Finset.Ico (j + 1) n, a k * (clampI (T k) (T (k + 1)) t - T k) = 0 := by
+    refine Finset.sum_eq_zero fun k hk => ?_
+    have hk' : j + 1 ≤ k := (Finset.mem_Ico.1 hk).1
+    have e1 : t ≤ T k := ht.2.trans (hT hk')
+    have e2 : t ≤ T (k + 1) := e1.trans (hT (Nat.le_succ k))
+    unfold clampI
+    rw [min_eq_left e2, max_eq_left e1, sub_self, mul_zero]
+  have h3 : clampI (T j) (T (j + 1)) t = t := by
+    unfold clampI
+    rw [min_eq_left ht.2, max_eq_right ht.1]
+  have h4 : max t (T n) = T n := max_eq_right (ht.2.trans (hT (show j + 1 ≤ n by omega)))
+  rw [h1, h2, h3, h4]
+  ring
+
+/-- Cochrane (2023), §6.4.1, p. 196: after the last switch the cumulated rate is
+`A(T_n) + a_n (t − T_n)`. -/
+theorem cum_eq_last (hT : Monotone T) {t : ℝ} (ht : T n ≤ t) :
+    cum n a T t = cumAt a T n + a n * (t - T n) := by
+  unfold cum cumAt
+  congr 1
+  · refine Finset.sum_congr rfl fun k hk => ?_
+    have hk' : k + 1 ≤ n := Finset.mem_range.1 hk
+    have e1 : T (k + 1) ≤ t := (hT hk').trans ht
+    unfold clampI
+    rw [min_eq_right e1, max_eq_right (hT (Nat.le_succ k))]
+  · rw [max_eq_left ht]
+
+/-- Cochrane (2023), §6.4.1, p. 196: the cumulated rate starts at `A(0) = 0` when `T₀ = 0`. -/
+theorem cum_zero (hT : Monotone T) (hT0 : T 0 = 0) : cum n a T 0 = 0 := by
+  rcases Nat.eq_zero_or_pos n with hn | hn
+  · subst hn
+    rw [cum_eq_last hT (le_of_eq hT0), hT0]
+    simp [cumAt]
+  · rw [cum_eq_regime hT hn ⟨le_of_eq hT0, hT0 ▸ hT (Nat.zero_le 1)⟩, hT0]
+    simp [cumAt]
+
+/-- Cochrane (2023), §6.4.1, p. 196: inside the regime `(T_j, T_{j+1})`, `j < n`, the cumulated
+rate has derivative `a_j`. -/
+theorem cum_hasDerivAt_regime (hT : Monotone T) {j : ℕ} (hj : j < n) {t : ℝ}
+    (ht : t ∈ Set.Ioo (T j) (T (j + 1))) : HasDerivAt (cum n a T) (a j) t := by
+  have hlin : HasDerivAt (fun s => cumAt a T j + a j * (s - T j)) (a j) t := by
+    simpa using (((hasDerivAt_id t).sub_const (T j)).const_mul (a j)).const_add (cumAt a T j)
+  refine hlin.congr_of_eventuallyEq ?_
+  filter_upwards [Ioo_mem_nhds ht.1 ht.2] with s hs
+  exact cum_eq_regime hT hj ⟨hs.1.le, hs.2.le⟩
+
+/-- Cochrane (2023), §6.4.1, p. 196: after the last switch the cumulated rate has derivative
+`a_n`. -/
+theorem cum_hasDerivAt_last (hT : Monotone T) {t : ℝ} (ht : T n < t) :
+    HasDerivAt (cum n a T) (a n) t := by
+  have hlin : HasDerivAt (fun s => cumAt a T n + a n * (s - T n)) (a n) t := by
+    simpa using (((hasDerivAt_id t).sub_const (T n)).const_mul (a n)).const_add (cumAt a T n)
+  refine hlin.congr_of_eventuallyEq ?_
+  filter_upwards [Ioi_mem_nhds ht] with s hs
+  exact cum_eq_last hT (le_of_lt hs)
+
+/-- Cochrane (2023), §6.4.1, p. 196: a date `t > 0` that is not a switch date lies inside one
+regime `(T_j, T_{j+1})`, `j < n`, or after the last switch. -/
+theorem regime_cases (hT0 : T 0 = 0) {t : ℝ} (ht : 0 < t)
+    (htS : t ∉ Set.range T) :
+    (∃ j < n, t ∈ Set.Ioo (T j) (T (j + 1))) ∨ T n < t := by
+  classical
+  have hne : ∀ k, T k ≠ t := fun k h => htS ⟨k, h⟩
+  by_cases h : ∃ j, j < n ∧ t < T (j + 1)
+  · left
+    refine ⟨Nat.find h, (Nat.find_spec h).1, ?_, (Nat.find_spec h).2⟩
+    have hle : T (Nat.find h) ≤ t := by
+      rcases Nat.eq_zero_or_pos (Nat.find h) with h0 | h0
+      · rw [h0, hT0]; exact ht.le
+      · obtain ⟨j', hj'⟩ : ∃ j', Nat.find h = j' + 1 := ⟨Nat.find h - 1, by omega⟩
+        have hmin := Nat.find_min h (show j' < Nat.find h by omega)
+        have hj'n : j' < n := by have := (Nat.find_spec h).1; omega
+        rw [hj']
+        push Not at hmin
+        exact hmin hj'n
+    exact lt_of_le_of_ne hle (hne _)
+  · right
+    push Not at h
+    have hle : T n ≤ t := by
+      rcases Nat.eq_zero_or_pos n with h0 | h0
+      · rw [h0, hT0]; exact ht.le
+      · have := h (n - 1) (by omega)
+        rwa [show n - 1 + 1 = n by omega] at this
+    exact lt_of_le_of_ne hle (hne _)
+
+/-- Cochrane (2023), §6.4.1, p. 196: off the switch dates, for `t > 0`, the cumulated rate has
+derivative `deriv A t` (it is differentiable there). -/
+theorem cum_hasDerivAt_off (hT : Monotone T) (hT0 : T 0 = 0) {t : ℝ} (ht : 0 < t)
+    (htS : t ∉ Set.range T) : HasDerivAt (cum n a T) (deriv (cum n a T) t) t := by
+  rcases regime_cases (n := n) hT0 ht htS with ⟨j, hj, hjt⟩ | h
+  · exact (cum_hasDerivAt_regime hT hj hjt).differentiableAt.hasDerivAt
+  · exact (cum_hasDerivAt_last hT h).differentiableAt.hasDerivAt
+
+/-- Cochrane (2023), §6.4.1, p. 196: after the last switch, `A(t) = A(T_n) + a_n (t − T_n)`. -/
+theorem cum_after (hT : Monotone T) (t : ℝ) (ht : T n ≤ t) :
+    cum n a T t = cum n a T (T n) + a n * (t - T n) := by
+  rw [cum_eq_last hT ht, cum_eq_last hT le_rfl, sub_self, mul_zero, add_zero]
+
+/-- Cochrane (2023), §6.4.1, p. 196: a regime-by-regime solution is a solution with time-varying
+`r − g` (off the switch dates). -/
+theorem solvesPW_toGen (hT : Monotone T) (hT0 : T 0 = 0) (hx : SolvesPW n a T σ x) :
+    SolvesGen (deriv (cum n a T)) (Set.range T) σ x := by
+  refine ⟨hx.1, fun t ht htS => ?_⟩
+  rcases regime_cases (n := n) hT0 ht htS with ⟨j, hj, hjt⟩ | h
+  · rw [(cum_hasDerivAt_regime hT hj hjt).deriv]
+    exact hx.2.1 j hj t hjt
+  · rw [(cum_hasDerivAt_last hT h).deriv]
+    exact hx.2.2 t h
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**existence**): the forward-looking solution solves the
+regime-by-regime equation. -/
+theorem pwSol_solvesPW (hT : Monotone T) (hσ : Continuous σ) :
+    SolvesPW n a T σ (pwSol n a T σ) :=
+  ⟨(gSol_continuous hσ (cum_continuous n a T)).continuousOn,
+    fun _ hj _ ht => vocA_hasDerivAt hσ (cum_continuous n a T) _ (cum_hasDerivAt_regime hT hj ht),
+    fun _ ht => vocA_hasDerivAt hσ (cum_continuous n a T) _ (cum_hasDerivAt_last hT ht)⟩
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**bounded iff sustainable**): with any rates before the last
+switch and `r > g` after it, a solution is bounded iff it starts at `x̂₀`. -/
+theorem pw_bddOn_iff (hT : Monotone T) (hT0 : T 0 = 0) (ha : 0 < a n) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) (hx : SolvesPW n a T σ x) : BddOn x ↔ x 0 = pwPV0 n a T σ :=
+  gen_bddOn_iff (Set.countable_range T) (cum_continuous n a T) (cum_zero hT hT0)
+    (fun _ ht htS => cum_hasDerivAt_off hT hT0 ht htS) hσ hM (cum_after hT) ha
+    (solvesPW_toGen hT hT0 hx)
+
+/-- Cochrane (2023), §6.4.1, p. 196 ("values of debt different from this forward-looking integral
+lead to explosions"), finitely many regimes: a solution not starting at `x̂₀` explodes. -/
+theorem pw_tendsto_abs_of_ne (hT : Monotone T) (hT0 : T 0 = 0) (ha : 0 < a n)
+    (hσ : Continuous σ) (hM : ∀ u, |σ u| ≤ M) (hx : SolvesPW n a T σ x)
+    (hne : x 0 ≠ pwPV0 n a T σ) : Tendsto (fun t => |x t|) atTop atTop :=
+  gen_tendsto_abs_of_ne (Set.countable_range T) (cum_continuous n a T) (cum_zero hT hT0)
+    (fun _ ht htS => cum_hasDerivAt_off hT hT0 ht htS) hσ hM (cum_after hT) ha
+    (solvesPW_toGen hT hT0 hx) hne
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**existence and uniqueness of the sustainable debt**): with
+finitely many regimes of any signs and `r > g` after the last switch, the forward-looking solution
+is a bounded solution, and every bounded solution equals it at every date `t ≥ 0`. -/
+theorem pw_existsUnique (hT : Monotone T) (hT0 : T 0 = 0) (ha : 0 < a n) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) :
+    SolvesPW n a T σ (pwSol n a T σ) ∧ BddOn (pwSol n a T σ) ∧
+      ∀ x, SolvesPW n a T σ x → BddOn x → ∀ t, 0 ≤ t → x t = pwSol n a T σ t := by
+  have h := gen_existsUnique (Set.countable_range T) (cum_continuous n a T) (cum_zero hT hT0)
+    (fun _ ht htS => cum_hasDerivAt_off hT hT0 ht htS) hσ hM (cum_after hT) ha
+  exact ⟨pwSol_solvesPW hT hσ, h.2.1, fun x hx hb t ht =>
+    h.2.2 x (solvesPW_toGen hT hT0 hx) hb t ht⟩
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**transversality**, finitely many regimes): the debt-to-GDP
+ratio discounted at the cumulated `r − g`, `e^{−A(t)} x_t`, tends to `0` iff `x₀ = x̂₀`. -/
+theorem pw_tvc_iff (hT : Monotone T) (hT0 : T 0 = 0) (ha : 0 < a n) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) (hx : SolvesPW n a T σ x) :
+    Tendsto (fun t => exp (-cum n a T t) * x t) atTop (𝓝 0) ↔ x 0 = pwPV0 n a T σ :=
+  gen_tvc_iff (Set.countable_range T) (cum_continuous n a T) (cum_zero hT hT0)
+    (fun _ ht htS => cum_hasDerivAt_off hT hT0 ht htS) hσ hM (cum_after hT) ha
+    (solvesPW_toGen hT hT0 hx)
+
+/-- Cochrane (2023), §6.4.1, p. 196: the sustainable debt at every date is the forward integral
+`x̂_t = ∫_t^∞ exp(−(A(v) − A(t))) σ_v dv`. -/
+theorem pwSol_eq_integral (hT : Monotone T) (ha : 0 < a n) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) (t : ℝ) :
+    pwSol n a T σ t = ∫ v in Set.Ioi t, exp (-(cum n a T v - cum n a T t)) * σ v :=
+  gSol_eq_integral (cum_continuous n a T) hσ hM (cum_after hT) ha t
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**the general 20-year formula**): with finitely many regimes,
+`x̂₀ = ∑_{k<n} e^{−A(T_k)} ∫_{T_k}^{T_{k+1}} e^{−a_k(v−T_k)} σ_v dv + e^{−A(T_n)} x̂^{(n)}_{T_n}`,
+with `A(T_k) = ∑_{j<k} a_j (T_{j+1} − T_j)` and `x̂^{(n)}_{T_n} = ∫₀^∞ e^{−a_n u} σ_{T_n+u} du`. -/
+theorem pwPV0_eq_sum (hT : Monotone T) (hT0 : T 0 = 0) (ha : 0 < a n) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) :
+    pwPV0 n a T σ = (∑ k ∈ Finset.range n, exp (-cumAt a T k) *
+        ∫ v in T k..T (k + 1), exp (-a k * (v - T k)) * σ v) +
+      exp (-cumAt a T n) * pv (a n) σ (T n) := by
+  have hint := integrableOn_expA (cum_continuous n a T) hσ hM (cum_after hT) ha
+  have hsplit : pwPV0 n a T σ = (∫ v in (0 : ℝ)..T n, exp (-cum n a T v) * σ v) +
+      ∫ v in Set.Ioi (T n), exp (-cum n a T v) * σ v := by
+    rw [← integral_Ioi_sub_interval hint (T n)]
+    unfold pwPV0 pvA
+    ring
+  have hc : Continuous fun v => exp (-cum n a T v) * σ v := by
+    have := cum_continuous n a T
+    fun_prop
+  have hfin : (∫ v in (0 : ℝ)..T n, exp (-cum n a T v) * σ v) =
+      ∑ k ∈ Finset.range n, exp (-cumAt a T k) *
+        ∫ v in T k..T (k + 1), exp (-a k * (v - T k)) * σ v := by
+    rw [← hT0, ← intervalIntegral.sum_integral_adjacent_intervals
+      (fun k _ => hc.intervalIntegrable _ _)]
+    refine Finset.sum_congr rfl fun k hk => ?_
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun v hv => ?_
+    rw [Set.uIcc_of_le (hT (Nat.le_succ k))] at hv
+    rw [cum_eq_regime hT (Finset.mem_range.1 hk) hv, ← mul_assoc, ← exp_add]
+    congr 2
+    ring
+  have htail : (∫ v in Set.Ioi (T n), exp (-cum n a T v) * σ v) =
+      exp (-cumAt a T n) * pv (a n) σ (T n) := by
+    have hpv : pv (a n) σ (T n) = ∫ v in Set.Ioi (T n), exp (-a n * (v - T n)) * σ v := by
+      rw [pv, ← integral_Ioi_comp_add (fun v => exp (-a n * (v - T n)) * σ v) (T n)]
+      congr 1
+      funext u
+      simp only [add_sub_cancel_left]
+    rw [hpv, ← integral_const_mul]
+    refine setIntegral_congr_fun measurableSet_Ioi fun v hv => ?_
+    rw [cum_eq_last hT (le_of_lt hv), ← mul_assoc, ← exp_add]
+    congr 2
+    ring
+  rw [hsplit, hfin, htail]
+
+/-- Cochrane (2023), §6.4.1, p. 196 (`r > g` in the last regime is necessary): if the last rate is
+`a_n ≤ 0`, then with zero surpluses both `0` and `e^{A(t)}` are bounded solutions, and they
+differ at date `0`. -/
+theorem pw_not_unique_of_last_nonpos (hT : Monotone T) (ha : a n ≤ 0) :
+    SolvesPW n a T (fun _ => 0) (fun t => exp (cum n a T t)) ∧
+      BddOn (fun t => exp (cum n a T t)) ∧ SolvesPW n a T (fun _ => 0) (fun _ => 0) ∧
+      BddOn (fun _ => (0 : ℝ)) ∧ exp (cum n a T 0) ≠ 0 := by
+  have hc := cum_continuous n a T
+  refine ⟨⟨(by fun_prop : Continuous fun t => exp (cum n a T t)).continuousOn,
+    fun j hj t ht => ?_, fun t ht => ?_⟩, ?_, ⟨continuousOn_const, fun j _ t _ => ?_,
+    fun t _ => ?_⟩, ⟨0, fun _ _ => by simp⟩, exp_ne_zero _⟩
+  · refine (cum_hasDerivAt_regime hT hj ht).exp.congr_deriv ?_
+    ring
+  · refine (cum_hasDerivAt_last hT ht).exp.congr_deriv ?_
+    ring
+  · obtain ⟨C, hC⟩ := (isCompact_Icc (a := (0 : ℝ)) (b := T n)).exists_bound_of_continuousOn
+      (by fun_prop : Continuous fun t => exp (cum n a T t)).continuousOn
+    refine ⟨max C (exp (cumAt a T n)), fun t ht => ?_⟩
+    rcases le_total t (T n) with h | h
+    · exact (hC t ⟨ht, h⟩).trans (le_max_left _ _)
+    · rw [abs_of_pos (exp_pos _), cum_eq_last hT h]
+      refine le_trans ?_ (le_max_right _ _)
+      exact exp_le_exp.2 (by nlinarith)
+  · simpa using hasDerivAt_const t (0 : ℝ)
+  · simpa using hasDerivAt_const t (0 : ℝ)
+
+/-- Cochrane (2023), §6.4.1, p. 196 (**determinacy iff `r > g` in the last regime**): whatever
+the signs of `r − g` before the last switch, bounded solutions are unique for every continuous
+bounded surplus path iff the last rate is positive. -/
+theorem pw_unique_iff_last_pos (hT : Monotone T) (hT0 : T 0 = 0) :
+    (∀ σ : ℝ → ℝ, Continuous σ → (∃ M, ∀ u, |σ u| ≤ M) → ∀ x z, SolvesPW n a T σ x →
+      SolvesPW n a T σ z → BddOn x → BddOn z → ∀ t, 0 ≤ t → x t = z t) ↔ 0 < a n := by
+  constructor
+  · intro h
+    by_contra hneg
+    push Not at hneg
+    obtain ⟨h1, h2, h3, h4, h5⟩ := pw_not_unique_of_last_nonpos (a := a) hT hneg
+    exact h5 (h _ continuous_const ⟨0, fun _ => by simp⟩ _ _ h1 h3 h2 h4 0 le_rfl)
+  · rintro ha σ hσ ⟨M, hM⟩ x z hx hz hbx hbz t ht
+    have h := (pw_existsUnique hT hT0 ha hσ hM).2.2
+    rw [h x hx hbx t ht, h z hz hbz t ht]
+
+/-- Cochrane (2023), §6.4.1, p. 196 (nominal determinacy with finitely many regimes): with nominal
+debt `B₀ > 0`, `y₀ > 0`, `P₀ > 0` and `x₀ = B₀/(P₀ y₀)`, there is a bounded solution iff
+`P₀ = B₀/(y₀ x̂₀)`. -/
+theorem pw_nominal_determinacy (hT : Monotone T) (hT0 : T 0 = 0) (ha : 0 < a n)
+    (hσ : Continuous σ) (hM : ∀ u, |σ u| ≤ M) {B0 y0 P0 : ℝ} (hB0 : 0 < B0) (hy0 : 0 < y0)
+    (hP0 : 0 < P0) :
+    (∃ x, SolvesPW n a T σ x ∧ x 0 = B0 / (P0 * y0) ∧ BddOn x) ↔
+      P0 = B0 / (y0 * pwPV0 n a T σ) := by
+  constructor
+  · rintro ⟨x, hx, hx0, hb⟩
+    have h := (pw_bddOn_iff hT hT0 ha hσ hM hx).1 hb
+    rw [hx0] at h
+    have hpv : 0 < pwPV0 n a T σ := by rw [← h]; positivity
+    rw [← h]
+    field_simp
+  · intro hP
+    have hpos : 0 < y0 * pwPV0 n a T σ := by
+      have : 0 < B0 / (y0 * pwPV0 n a T σ) := hP ▸ hP0
+      rcases div_pos_iff.1 this with ⟨_, h2⟩ | ⟨h2, _⟩
+      · exact h2
+      · linarith
+    have hpv : 0 < pwPV0 n a T σ := pos_of_mul_pos_right hpos hy0.le
+    obtain ⟨h1, h2, -⟩ := pw_existsUnique hT hT0 ha hσ hM
+    refine ⟨pwSol n a T σ, h1, ?_, h2⟩
+    have h0 : pwSol n a T σ 0 = pwPV0 n a T σ := vocA_zero (cum_zero hT hT0) _
+    rw [h0, hP]
+    field_simp
+
+/-! ### The two-regime case of `RvsG` -/
+
+/-- Cochrane (2023), §6.4.1, p. 196: the two-regime rates, `a₁` then `a₂`. -/
+noncomputable def twoA (a₁ a₂ : ℝ) (k : ℕ) : ℝ := if k = 0 then a₁ else a₂
+
+/-- Cochrane (2023), §6.4.1, p. 196: the two-regime switch dates, `0` then `T₀`. -/
+noncomputable def twoT (T0 : ℝ) (k : ℕ) : ℝ := if k = 0 then 0 else T0
+
+/-- Cochrane (2023), §6.4.1, p. 196: the two-regime dates are monotone when `T₀ ≥ 0`. -/
+theorem twoT_monotone {T0 : ℝ} (hT0 : 0 ≤ T0) : Monotone (twoT T0) := by
+  intro i j hij
+  unfold twoT
+  split_ifs <;> first | exact le_rfl | exact hT0 | omega
+
+/-- Cochrane (2023), §6.4.1, p. 196: the two-regime solution concept of `RvsG` is the case `n = 1`
+of `SolvesPW`. -/
+theorem solvesStep_iff (a₁ a₂ T0 : ℝ) (σ x : ℝ → ℝ) :
+    SolvesStep a₁ a₂ T0 σ x ↔ SolvesPW 1 (twoA a₁ a₂) (twoT T0) σ x := by
+  unfold SolvesStep SolvesPW twoA twoT
+  simp only [Nat.lt_one_iff, forall_eq, ↓reduceIte, zero_add, one_ne_zero]
+
+/-- Cochrane (2023), §6.4.1, p. 196 (the corrected 20-year formula is the case `n = 1`): the
+general regime sum reduces to `RvsG.stepPV0`. -/
+theorem pwPV0_two_regime {a₁ a₂ T0 : ℝ} (hT0 : 0 ≤ T0) (ha₂ : 0 < a₂) (hσ : Continuous σ)
+    (hM : ∀ u, |σ u| ≤ M) : pwPV0 1 (twoA a₁ a₂) (twoT T0) σ = stepPV0 a₁ a₂ T0 σ := by
+  rw [pwPV0_eq_sum (twoT_monotone hT0) (by simp [twoT]) (by simpa [twoA] using ha₂) hσ hM]
+  simp [cumAt, twoA, twoT, stepPV0]
+
+end Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A Gaussian AR(1) surplus process and the debt limit
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197 ("Suppose we
+generate the surplus by an AR(1) ... An AR(1) ranges over the entire real line, as does the
+integral of an AR(1) ... the future debt-to-GDP ratio ... will eventually exceed any bound").
+
+The book's continuous-time AR(1) needs Itô calculus; this module builds its discrete analogue on a
+genuine probability space. On the i.i.d. product space `(ℕ → ℝ, ν^ℕ)` of `ExpectationsMeasureIID`
+the innovations are the coordinates `ε_t(ω) = ω_t`, `u = ExpectationsMeasureIID.ar1 ρ` is the
+AR(1) `u₀ = ε₀`, `u_{t+1} = ρ u_t + ε_{t+1}`, and the surplus-to-GDP ratio is `σ_t = s̄ + u_t`
+(`arSurplus`). With `ν = N(0, v)` the process is a Gaussian AR(1): `u_t ~ N(0, v ∑_{j≤t} ρ^{2j})`
+(`ar1_hasLaw_gaussian`), `E_t u_{t+1} = ρ u_t` (`E_ar1_succ`). The debt-to-GDP ratio is
+`x_{t+1} = γ x_t − σ_t` with `0 ≤ γ < 1` (permanent `r < g`).
+
+## Main results
+
+* `arDebt_adapted`: debt `x_{t+1}` is known at `t`.
+* `integral_abs_ar1_le`, `integral_abs_arDebt_le`: uniform `L¹` bounds for `|ρ| < 1`.
+* `prob_exceeds_ar`: `P(x_{t+2} > M) ≥ q > 0` uniformly in `t` (Markov's inequality and the
+  independence of `ε_{t+1}` from `𝓕_t`).
+* `arDebt_shift`, `dseq_tendsto`: restarted at `N`, debt is a function of the innovations after
+  `N` plus a term that vanishes, so the events below are tail events.
+* `ar1_unbounded_of_integrable` (Kolmogorov's 0-1 law): for integrable innovations with deficits of
+  every size, debt is a.s. unbounded above.
+* **`gaussian_ar1_unbounded`, `gaussian_ar1_not_sustainable`**: with a Gaussian AR(1) surplus
+  (`|ρ| < 1`, `v ≠ 0`, any mean `s̄`), almost surely the debt-to-GDP ratio exceeds every level
+  infinitely often, so no debt limit is sustainable; `gaussian_ar1_exp_unbounded` for
+  `ρ = e^{−η}`, the decay of the book's `ds = −η(s − s̄)dt + σ dz` over one period.
+* `arSurplus_not_ae_bdd_above`: the surplus is not bounded above, so Theorem S
+  (`DebtLimitStochastic.frequently_exceeds`) does not apply and the 0-1 argument is needed.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR5GaussianAR1
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure ExpectationsMeasureIID DebtLimitStochastic DebtLimitStochasticMeasure
+  LognormalGrowthMeasure
+open AggregateUncertaintyMeasure (integrable_coord_fun measurable_coord_future)
+
+/-- Cochrane (2023), p. 197: the AR(1) surplus-to-GDP ratio `σ_t = s̄ + u_t`, with
+`u = ExpectationsMeasureIID.ar1 ρ`. -/
+noncomputable def arSurplus (ρ sbar : ℝ) (t : ℕ) (ω : ℕ → ℝ) : ℝ := sbar + ar1 ρ t ω
+
+/-- Cochrane (2023), p. 197: the AR(1) law of motion pointwise,
+`u_{t+1} = ρ u_t + ε_{t+1}`. -/
+theorem ar1_succ_apply (ρ : ℝ) (t : ℕ) (ω : ℕ → ℝ) :
+    ar1 ρ (t + 1) ω = ρ * ar1 ρ t ω + ω (t + 1) := rfl
+
+/-- Cochrane (2023), p. 197: the surplus is an AR(1) around `s̄`:
+`σ_{t+1} − s̄ = ρ(σ_t − s̄) + ε_{t+1}`. -/
+theorem arSurplus_succ (ρ sbar : ℝ) (t : ℕ) (ω : ℕ → ℝ) :
+    arSurplus ρ sbar (t + 1) ω - sbar = ρ * (arSurplus ρ sbar t ω - sbar) + ω (t + 1) := by
+  unfold arSurplus
+  rw [ar1_succ_apply]
+  ring
+
+/-- Cochrane (2023), p. 197: the AR(1) is measurable. -/
+theorem measurable_ar1 (ρ : ℝ) (t : ℕ) : Measurable (ar1 ρ t) := by
+  induction t with
+  | zero => exact measurable_pi_apply 0
+  | succ t ih => exact (ih.const_mul ρ).add (measurable_pi_apply (t + 1))
+
+variable {ν : ProbabilityMeasure ℝ}
+
+variable (ν) in
+/-- Cochrane (2023), p. 197: the AR(1) `u_t` is known at date `t`. -/
+theorem measurable_ar1_F (ρ : ℝ) (t : ℕ) : Measurable[(iidSystem ν).𝓕 t] (ar1 ρ t) :=
+  (ar1_adapted ν ρ t).measurable
+
+variable (ν) in
+/-- Cochrane (2023), (6.4) p. 196 and p. 197: with AR(1) surpluses the debt ratio `x_{t+1}` is
+known at date `t`. -/
+theorem arDebt_adapted (γ x₀ ρ sbar : ℝ) (t : ℕ) :
+    Measurable[(iidSystem ν).𝓕 t] (debtPath γ x₀ (arSurplus ρ sbar) (t + 1)) :=
+  measurable_debtPath γ x₀ (t + 1) fun s hs =>
+    ((measurable_ar1_F ν ρ s).mono ((iidSystem ν).𝓕.mono (by omega)) le_rfl).const_add sbar
+
+/-- Cochrane (2023), (6.4) p. 196: with AR(1) surpluses the debt ratio is measurable. -/
+theorem measurable_arDebt (γ x₀ ρ sbar : ℝ) (t : ℕ) :
+    Measurable (debtPath γ x₀ (arSurplus ρ sbar) t) :=
+  measurable_debtPath γ x₀ t fun s _ => (measurable_ar1 ρ s).const_add sbar
+
+/-! ### The Gaussian AR(1) -/
+
+/-- Cochrane (2023), p. 197: the squared AR(1) coefficient `ρ²` as a nonnegative real. -/
+def rho2 (ρ : ℝ) : NNReal := ⟨ρ ^ 2, sq_nonneg ρ⟩
+
+/-- Cochrane (2023), p. 197: the variance of the Gaussian AR(1) at date `t`,
+`v ∑_{j ≤ t} ρ^{2j}`. -/
+noncomputable def arVar (ρ : ℝ) (v : NNReal) (t : ℕ) : NNReal :=
+  v * ∑ j ∈ Finset.range (t + 1), rho2 ρ ^ j
+
+/-- Cochrane (2023), p. 197 (**the process is a Gaussian AR(1)**): with innovations `N(0, v)`,
+`u_t ~ N(0, v ∑_{j ≤ t} ρ^{2j})`. -/
+theorem ar1_hasLaw_gaussian (ρ : ℝ) (v : NNReal) (t : ℕ) :
+    HasLaw (ar1 ρ t) (gaussianReal 0 (arVar ρ v t)) (iidSystem (gaussianProb 0 v)).μ := by
+  have hshock : ∀ k, HasLaw (fun ω : ℕ → ℝ => ω k) (gaussianReal 0 v)
+      (iidSystem (gaussianProb 0 v)).μ := fun k =>
+    ⟨(measurable_pi_apply k).aemeasurable, Measure.infinitePi_map_eval _ k⟩
+  induction t with
+  | zero =>
+    have h : arVar ρ v 0 = v := by simp [arVar]
+    rw [h]
+    exact hshock 0
+  | succ t ih =>
+    have h1 : HasLaw (fun ω => ρ * ar1 ρ t ω)
+        (gaussianReal (ρ * 0) (rho2 ρ * arVar ρ v t))
+        (iidSystem (gaussianProb 0 v)).μ :=
+      HasLaw.comp ⟨by fun_prop, gaussianReal_map_const_mul ρ⟩ ih
+    have hind : IndepFun (fun ω => ρ * ar1 ρ t ω) (fun ω : ℕ → ℝ => ω (t + 1))
+        (iidSystem (gaussianProb 0 v)).μ := by
+      rw [IndepFun_iff_Indep]
+      refine indep_of_indep_of_le_right (indep_of_indep_of_le_left
+        (indep_future (gaussianProb 0 v) t).symm ?_) ?_
+      · exact (((measurable_ar1_F (gaussianProb 0 v) ρ t).const_mul ρ)).comap_le
+      · exact (measurable_coord_future (Nat.lt_succ_self t)).comap_le
+    have h := gaussianReal_add_gaussianReal_of_indepFun hind h1 (hshock (t + 1))
+    have hv : arVar ρ v (t + 1) = rho2 ρ * arVar ρ v t + v := by
+      unfold arVar
+      rw [Finset.sum_range_succ', pow_zero, mul_add, mul_one, Finset.mul_sum, Finset.mul_sum,
+        Finset.mul_sum]
+      congr 1
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [pow_succ]
+      ring
+    rw [mul_zero, zero_add] at h
+    rw [hv]
+    refine ⟨(measurable_ar1 ρ (t + 1)).aemeasurable, ?_⟩
+    rw [← h]
+    rfl
+
+/-- Cochrane (2023), p. 197: the AR(1) variance is nonzero when the innovation variance is. -/
+theorem arVar_ne_zero (ρ : ℝ) {v : NNReal} (hv : v ≠ 0) (t : ℕ) : arVar ρ v t ≠ 0 := by
+  unfold arVar
+  refine mul_ne_zero hv ?_
+  rw [Finset.sum_range_succ']
+  simp
+
+/-- Cochrane (2023), p. 197 ("an AR(1) ranges over the entire real line"): a Gaussian AR(1)
+surplus is not almost surely bounded above at any date, so the bounded-above hypothesis of
+Theorem S (`DebtLimitStochastic.frequently_exceeds`) fails. -/
+theorem arSurplus_not_ae_bdd_above (ρ sbar : ℝ) {v : NNReal} (hv : v ≠ 0) (t : ℕ) (K : ℝ) :
+    ¬ ∀ᵐ ω ∂(iidSystem (gaussianProb 0 v)).μ, arSurplus ρ sbar t ω ≤ K := by
+  intro h
+  have h0 : (iidSystem (gaussianProb 0 v)).μ (ar1 ρ t ⁻¹' Set.Ioi (K - sbar)) = 0 := by
+    rw [ae_iff] at h
+    have hs : {ω | ¬ arSurplus ρ sbar t ω ≤ K} = ar1 ρ t ⁻¹' Set.Ioi (K - sbar) := by
+      ext ω
+      simp only [arSurplus, Set.mem_ofPred_eq, not_le, Set.mem_preimage, Set.mem_Ioi]
+      constructor <;> intro h <;> linarith
+    rwa [hs] at h
+  rw [← Measure.map_apply (measurable_ar1 ρ t) measurableSet_Ioi,
+    (ar1_hasLaw_gaussian ρ v t).map_eq] at h0
+  have h2 := gaussianReal_absolutelyContinuous' 0 (arVar_ne_zero ρ hv t) h0
+  rw [Real.volume_Ioi] at h2
+  exact ENNReal.top_ne_zero h2
+
+/-- Cochrane (2023), p. 197 (the AR(1) forecast): with mean-zero integrable innovations,
+`E_t u_{t+1} = ρ u_t` almost everywhere. -/
+theorem E_ar1_succ (hint : Integrable id (ν : Measure ℝ)) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (ρ : ℝ) (t : ℕ) :
+    (iidSystem ν).E t (ar1 ρ (t + 1)) =ᵐ[(iidSystem ν).μ] ρ • ar1 ρ t := by
+  have hui : ∀ s, Integrable (ar1 ρ s) (iidSystem ν).μ := by
+    intro s
+    induction s with
+    | zero => exact integrable_coord_fun (f := id) hint 0
+    | succ s ih => exact (ih.const_mul ρ).add (integrable_coord_fun (f := id) hint (s + 1))
+  have hsi : Integrable (shock (t + 1)) (iidSystem ν).μ :=
+    integrable_coord_fun (f := id) hint (t + 1)
+  rw [ar1_succ]
+  filter_upwards [(iidSystem ν).E_add ((hui t).smul ρ) hsi t, (iidSystem ν).E_smul ρ (ar1 ρ t) t,
+    E_shock ν t] with ω h1 h2 h3
+  rw [h1, Pi.add_apply, h2, h3, hmean, add_zero,
+    (iidSystem ν).E_of_stronglyMeasurable (ar1_adapted ν ρ t) (hui t)]
+
+/-! ### `L¹` bounds and the uniform probability bound -/
+
+/-- Cochrane (2023), p. 197: for `|ρ| < 1` and integrable innovations, every `u_t` is integrable
+with `E|u_t| ≤ E|ε|/(1 − |ρ|)`. -/
+theorem integral_abs_ar1_le (hint : Integrable id (ν : Measure ℝ)) {ρ : ℝ} (hρ : |ρ| < 1) :
+    ∀ t, Integrable (ar1 ρ t) (iidSystem ν).μ ∧
+      ∫ ω, |ar1 ρ t ω| ∂(iidSystem ν).μ ≤ (∫ x, |x| ∂(ν : Measure ℝ)) / (1 - |ρ|) := by
+  have h1 : 0 < 1 - |ρ| := by linarith
+  have hm0 : 0 ≤ ∫ x, |x| ∂(ν : Measure ℝ) := integral_nonneg fun x => abs_nonneg x
+  have hsa : ∀ s, ∫ ω, |ω s| ∂(iidSystem ν).μ = ∫ x, |x| ∂(ν : Measure ℝ) := fun s =>
+    integral_shock_fun ν s (f := fun x => |x|) continuous_abs.measurable
+  have hsh : ∀ s, Integrable (fun ω : ℕ → ℝ => ω s) (iidSystem ν).μ := fun s =>
+    integrable_coord_fun (f := id) hint s
+  have hkey : (∫ x, |x| ∂(ν : Measure ℝ)) / (1 - |ρ|) * (1 - |ρ|) = ∫ x, |x| ∂(ν : Measure ℝ) :=
+    div_mul_cancel₀ _ h1.ne'
+  intro t
+  induction t with
+  | zero =>
+    refine ⟨hsh 0, ?_⟩
+    change ∫ ω, |ω 0| ∂(iidSystem ν).μ ≤ _
+    rw [hsa 0, le_div_iff₀ h1]
+    nlinarith [abs_nonneg ρ]
+  | succ t ih =>
+    have hI : Integrable (ar1 ρ (t + 1)) (iidSystem ν).μ := (ih.1.const_mul ρ).add (hsh (t + 1))
+    refine ⟨hI, ?_⟩
+    have hle : ∫ ω, |ar1 ρ (t + 1) ω| ∂(iidSystem ν).μ ≤
+        ∫ ω, (|ρ| * |ar1 ρ t ω| + |ω (t + 1)|) ∂(iidSystem ν).μ := by
+      refine integral_mono hI.abs ((ih.1.abs.const_mul |ρ|).add (hsh (t + 1)).abs) fun ω => ?_
+      rw [ar1_succ_apply]
+      calc |ρ * ar1 ρ t ω + ω (t + 1)| ≤ |ρ * ar1 ρ t ω| + |ω (t + 1)| := abs_add_le _ _
+        _ = |ρ| * |ar1 ρ t ω| + |ω (t + 1)| := by rw [abs_mul]
+    rw [integral_add (ih.1.abs.const_mul |ρ|) (hsh (t + 1)).abs, integral_const_mul,
+      hsa] at hle
+    nlinarith [mul_le_mul_of_nonneg_left ih.2 (abs_nonneg ρ)]
+
+/-- Cochrane (2023), p. 197: with AR(1) surpluses, `|ρ| < 1` and `0 ≤ γ < 1`, every debt ratio is
+integrable with `E|x_t| ≤ |x₀| + (|s̄| + E|ε|/(1 − |ρ|))/(1 − γ)`. -/
+theorem integral_abs_arDebt_le (hint : Integrable id (ν : Measure ℝ)) {γ ρ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ < 1) (hρ : |ρ| < 1) (x₀ sbar : ℝ) :
+    ∀ t, Integrable (debtPath γ x₀ (arSurplus ρ sbar) t) (iidSystem ν).μ ∧
+      ∫ ω, |debtPath γ x₀ (arSurplus ρ sbar) t ω| ∂(iidSystem ν).μ ≤
+        |x₀| + (|sbar| + (∫ x, |x| ∂(ν : Measure ℝ)) / (1 - |ρ|)) / (1 - γ) := by
+  set Cu := (∫ x, |x| ∂(ν : Measure ℝ)) / (1 - |ρ|) with hCu
+  have h1 : 0 < 1 - γ := by linarith
+  have hCu0 : 0 ≤ Cu := div_nonneg (integral_nonneg fun x => abs_nonneg x) (by linarith)
+  have hB0 : 0 ≤ (|sbar| + Cu) / (1 - γ) := div_nonneg (by positivity) h1.le
+  have hkey : (|sbar| + Cu) / (1 - γ) * (1 - γ) = |sbar| + Cu := div_mul_cancel₀ _ h1.ne'
+  intro t
+  induction t with
+  | zero =>
+    refine ⟨integrable_const x₀, ?_⟩
+    change ∫ _, |x₀| ∂(iidSystem ν).μ ≤ _
+    simp only [integral_const, probReal_univ, smul_eq_mul, one_mul]
+    linarith
+  | succ t ih =>
+    obtain ⟨hu, hub⟩ := integral_abs_ar1_le hint hρ t
+    have hf : debtPath γ x₀ (arSurplus ρ sbar) (t + 1) =
+        fun ω => γ * debtPath γ x₀ (arSurplus ρ sbar) t ω - (sbar + ar1 ρ t ω) := by
+      funext ω; exact debtPath_succ γ x₀ _ t ω
+    have hsI : Integrable (fun ω => sbar + ar1 ρ t ω) (iidSystem ν).μ :=
+      (integrable_const sbar).add hu
+    have hI : Integrable (debtPath γ x₀ (arSurplus ρ sbar) (t + 1)) (iidSystem ν).μ := by
+      rw [hf]; exact (ih.1.const_mul γ).sub hsI
+    refine ⟨hI, ?_⟩
+    have hle : ∫ ω, |debtPath γ x₀ (arSurplus ρ sbar) (t + 1) ω| ∂(iidSystem ν).μ ≤
+        ∫ ω, (γ * |debtPath γ x₀ (arSurplus ρ sbar) t ω| + (|sbar| + |ar1 ρ t ω|))
+          ∂(iidSystem ν).μ := by
+      refine integral_mono hI.abs ((ih.1.abs.const_mul γ).add
+        ((integrable_const |sbar|).add hu.abs)) fun ω => ?_
+      rw [hf]
+      calc |γ * debtPath γ x₀ (arSurplus ρ sbar) t ω - (sbar + ar1 ρ t ω)|
+          ≤ |γ * debtPath γ x₀ (arSurplus ρ sbar) t ω| + |sbar + ar1 ρ t ω| := abs_sub _ _
+        _ ≤ γ * |debtPath γ x₀ (arSurplus ρ sbar) t ω| + (|sbar| + |ar1 ρ t ω|) := by
+          rw [abs_mul, abs_of_nonneg hγ0]
+          linarith [abs_add_le sbar (ar1 ρ t ω)]
+    have e : ∫ ω, (γ * |debtPath γ x₀ (arSurplus ρ sbar) t ω| + (|sbar| + |ar1 ρ t ω|))
+        ∂(iidSystem ν).μ = γ * ∫ ω, |debtPath γ x₀ (arSurplus ρ sbar) t ω| ∂(iidSystem ν).μ +
+          (|sbar| + ∫ ω, |ar1 ρ t ω| ∂(iidSystem ν).μ) := by
+      rw [integral_add (f := fun ω => γ * |debtPath γ x₀ (arSurplus ρ sbar) t ω|)
+        (g := fun ω => |sbar| + |ar1 ρ t ω|) (ih.1.abs.const_mul γ)
+        ((integrable_const |sbar|).add hu.abs), integral_const_mul,
+        integral_add (f := fun _ => |sbar|) (g := fun ω => |ar1 ρ t ω|)
+        (integrable_const |sbar|) hu.abs]
+      simp only [integral_const, probReal_univ, smul_eq_mul, one_mul]
+    rw [e] at hle
+    nlinarith [mul_le_mul_of_nonneg_left ih.2 hγ0, abs_nonneg x₀]
+
+/-- Cochrane (2023), p. 197: with AR(1) surpluses (`|ρ| < 1`), integrable innovations with
+deficits of every size and `0 ≤ γ < 1`, the probability that debt exceeds `M` at date `t + 2` is
+bounded below by a positive constant uniformly in `t`. Proof: `x_{t+2} = Z_t − s̄ − ε_{t+1}` with
+`Z_t = γ x_{t+1} − ρ u_t` known at `t`; Markov's inequality gives `P(Z_t > −D) ≥ 1/2`, and
+`ε_{t+1} ≤ −L` is independent of `𝓕_t`. -/
+theorem prob_exceeds_ar (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {γ ρ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ < 1) (hρ : |ρ| < 1) (x₀ sbar M : ℝ) :
+    ∃ q : ENNReal, q ≠ 0 ∧ ∀ t, q ≤
+      (iidSystem ν).μ {ω | M < debtPath γ x₀ (arSurplus ρ sbar) (t + 2) ω} := by
+  set Cu := (∫ x, |x| ∂(ν : Measure ℝ)) / (1 - |ρ|) with hCu
+  set Cx := |x₀| + (|sbar| + Cu) / (1 - γ) with hCx
+  set C := γ * Cx + |ρ| * Cu with hC
+  set D := 2 * C + 1 with hD
+  set L := M + sbar + D + 1 with hL
+  have hCu0 : 0 ≤ Cu := div_nonneg (integral_nonneg fun x => abs_nonneg x) (by linarith)
+  have hCx0 : 0 ≤ Cx := add_nonneg (abs_nonneg _) (div_nonneg (by positivity) (by linarith))
+  have hC0 : 0 ≤ C := add_nonneg (mul_nonneg hγ0 hCx0) (mul_nonneg (abs_nonneg ρ) hCu0)
+  have hD0 : 0 < D := by linarith
+  refine ⟨(ν : Measure ℝ) (Set.Iic (-L)) * ENNReal.ofReal (1 / 2),
+    mul_ne_zero (hdef L) (by norm_num), fun t => ?_⟩
+  obtain ⟨hIx, hbx⟩ := integral_abs_arDebt_le hint hγ0 hγ1 hρ x₀ sbar (t + 1)
+  obtain ⟨hIu, hbu⟩ := integral_abs_ar1_le hint hρ t
+  set Z : (ℕ → ℝ) → ℝ := fun ω =>
+    γ * debtPath γ x₀ (arSurplus ρ sbar) (t + 1) ω - ρ * ar1 ρ t ω with hZ
+  have hZi : Integrable Z (iidSystem ν).μ := (hIx.const_mul γ).sub (hIu.const_mul ρ)
+  have hZb : ∫ ω, |Z ω| ∂(iidSystem ν).μ ≤ C := by
+    have hle : ∫ ω, |Z ω| ∂(iidSystem ν).μ ≤ ∫ ω, (γ * |debtPath γ x₀ (arSurplus ρ sbar) (t + 1)
+        ω| + |ρ| * |ar1 ρ t ω|) ∂(iidSystem ν).μ := by
+      refine integral_mono hZi.abs ((hIx.abs.const_mul γ).add (hIu.abs.const_mul |ρ|))
+        fun ω => ?_
+      calc |Z ω| ≤ |γ * debtPath γ x₀ (arSurplus ρ sbar) (t + 1) ω| + |ρ * ar1 ρ t ω| :=
+            abs_sub _ _
+        _ = _ := by rw [abs_mul, abs_mul, abs_of_nonneg hγ0]
+    rw [integral_add (hIx.abs.const_mul γ) (hIu.abs.const_mul |ρ|), integral_const_mul,
+      integral_const_mul] at hle
+    nlinarith [mul_le_mul_of_nonneg_left hbx hγ0, mul_le_mul_of_nonneg_left hbu (abs_nonneg ρ)]
+  have hZm : Measurable[(iidSystem ν).𝓕 t] Z :=
+    ((arDebt_adapted ν γ x₀ ρ sbar t).const_mul γ).sub ((measurable_ar1_F ν ρ t).const_mul ρ)
+  set A := {ω : ℕ → ℝ | -D < Z ω} with hA
+  set B := {ω : ℕ → ℝ | ω (t + 1) ≤ -L} with hB
+  have hAm : MeasurableSet[(iidSystem ν).𝓕 t] A := measurableSet_lt measurable_const hZm
+  have hBm : MeasurableSet[futureSigma t] B :=
+    measurableSet_le (measurable_coord_future (by omega)) measurable_const
+  have hind := (Indep_iff _ _ _).1 (indep_future ν t) B A hBm hAm
+  have hsub : B ∩ A ⊆ {ω | M < debtPath γ x₀ (arSurplus ρ sbar) (t + 2) ω} := by
+    rintro ω ⟨hb, ha⟩
+    simp only [Set.mem_ofPred_eq, hB, hA, hZ] at hb ha ⊢
+    rw [show t + 2 = (t + 1) + 1 by rfl, debtPath_succ]
+    have e : arSurplus ρ sbar (t + 1) ω = sbar + (ρ * ar1 ρ t ω + ω (t + 1)) := rfl
+    rw [e]
+    linarith
+  have hBval : (iidSystem ν).μ B = (ν : Measure ℝ) (Set.Iic (-L)) :=
+    measure_shock_preimage (t + 1) measurableSet_Iic
+  have hAval : ENNReal.ofReal (1 / 2) ≤ (iidSystem ν).μ A := by
+    have hmk := mul_meas_ge_le_integral_of_nonneg (μ := (iidSystem ν).μ)
+      (Eventually.of_forall fun ω => abs_nonneg (Z ω)) hZi.abs D
+    have hreal : (iidSystem ν).μ.real {ω | D ≤ |Z ω|} ≤ 1 / 2 := by
+      have : D * (iidSystem ν).μ.real {ω | D ≤ |Z ω|} ≤ C := hmk.trans hZb
+      rw [le_div_iff₀ (by norm_num : (0 : ℝ) < 2)]
+      have hpr := measureReal_nonneg (μ := (iidSystem ν).μ) (s := {ω | D ≤ |Z ω|})
+      nlinarith
+    have hcompl : Aᶜ ⊆ {ω | D ≤ |Z ω|} := by
+      intro ω hω
+      simp only [hA, Set.mem_compl_iff, Set.mem_ofPred_eq, not_lt] at hω ⊢
+      rw [le_abs]; right; linarith
+    have hAc : (iidSystem ν).μ.real Aᶜ ≤ 1 / 2 := (measureReal_mono hcompl).trans hreal
+    have hAm' : MeasurableSet A := (iidSystem ν).𝓕.le t _ hAm
+    rw [measureReal_compl hAm', probReal_univ] at hAc
+    rw [← ofReal_measureReal]
+    exact ENNReal.ofReal_le_ofReal (by linarith)
+  calc (ν : Measure ℝ) (Set.Iic (-L)) * ENNReal.ofReal (1 / 2)
+      ≤ (iidSystem ν).μ B * (iidSystem ν).μ A := by rw [hBval]; gcongr
+    _ = (iidSystem ν).μ (B ∩ A) := hind.symm
+    _ ≤ _ := measure_mono hsub
+
+/-! ### Tail events -/
+
+/-- Cochrane (2023), p. 197: the AR(1) restarted at `N` from `0`, driven by `ε_{N+1}, ε_{N+2}, …`:
+`w_0 = 0`, `w_{s+1} = ρ w_s + ε_{N+s+1}`. -/
+noncomputable def ar1From (ρ : ℝ) (N : ℕ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => fun _ => 0
+  | s + 1 => fun ω => ρ * ar1From ρ N s ω + ω (N + s + 1)
+
+/-- Cochrane (2023), p. 197: the deterministic response of debt to the date-`N` AR(1) state,
+`d_0 = 0`, `d_{k+1} = γ d_k − ρ^k`. -/
+noncomputable def dseq (γ ρ : ℝ) : ℕ → ℝ
+  | 0 => 0
+  | k + 1 => γ * dseq γ ρ k - ρ ^ k
+
+/-- Cochrane (2023), p. 197: restarting the AR(1) at `N`, `u_{N+s} = ρ^s u_N + w_s`. -/
+theorem ar1_shift (ρ : ℝ) (N : ℕ) (ω : ℕ → ℝ) :
+    ∀ s, ar1 ρ (N + s) ω = ρ ^ s * ar1 ρ N ω + ar1From ρ N s ω := by
+  intro s
+  induction s with
+  | zero => simp [ar1From]
+  | succ s ih =>
+    rw [← add_assoc, ar1_succ_apply, ih]
+    change _ = _ + (ρ * ar1From ρ N s ω + ω (N + s + 1))
+    ring
+
+/-- Cochrane (2023), (6.4) p. 196 and p. 197: restarting the debt recursion at `N`,
+`x_{N+k} = γ^k x_N + y_k + u_N d_k`, where `y` is the debt from `0` driven by the surpluses
+`s̄ + w_s` (functions of the innovations after `N` only). -/
+theorem arDebt_shift (γ x₀ ρ sbar : ℝ) (N : ℕ) (ω : ℕ → ℝ) :
+    ∀ k, debtPath γ x₀ (arSurplus ρ sbar) (N + k) ω =
+      γ ^ k * debtPath γ x₀ (arSurplus ρ sbar) N ω +
+        debtPath γ 0 (fun s ω => sbar + ar1From ρ N s ω) k ω + ar1 ρ N ω * dseq γ ρ k := by
+  intro k
+  induction k with
+  | zero => change _ = _ * _ + 0 + _ * 0; simp
+  | succ k ih =>
+    rw [← add_assoc, debtPath_succ, debtPath_succ, ih]
+    unfold arSurplus
+    rw [ar1_shift ρ N ω k]
+    change _ = _ + _ + ar1 ρ N ω * (γ * dseq γ ρ k - ρ ^ k)
+    ring
+
+/-- Cochrane (2023), p. 197: `|d_{j+1}| ≤ (j + 1) m^j` with `m = max γ |ρ|`. -/
+theorem abs_dseq_le {γ ρ : ℝ} (hγ0 : 0 ≤ γ) (j : ℕ) :
+    |dseq γ ρ (j + 1)| ≤ ((j : ℝ) + 1) * max γ |ρ| ^ j := by
+  have hm0 : 0 ≤ max γ |ρ| := le_trans hγ0 (le_max_left _ _)
+  induction j with
+  | zero => simp [dseq]
+  | succ j ih =>
+    change |γ * dseq γ ρ (j + 1) - ρ ^ (j + 1)| ≤ _
+    have h1 : |γ * dseq γ ρ (j + 1)| ≤ max γ |ρ| * (((j : ℝ) + 1) * max γ |ρ| ^ j) := by
+      rw [abs_mul, abs_of_nonneg hγ0]
+      exact mul_le_mul (le_max_left _ _) ih (abs_nonneg _) hm0
+    have h2 : |ρ ^ (j + 1)| ≤ max γ |ρ| ^ (j + 1) := by
+      rw [abs_pow]
+      exact pow_le_pow_left₀ (abs_nonneg ρ) (le_max_right _ _) _
+    calc |γ * dseq γ ρ (j + 1) - ρ ^ (j + 1)| ≤ |γ * dseq γ ρ (j + 1)| + |ρ ^ (j + 1)| :=
+          abs_sub _ _
+      _ ≤ max γ |ρ| * (((j : ℝ) + 1) * max γ |ρ| ^ j) + max γ |ρ| ^ (j + 1) := add_le_add h1 h2
+      _ = (((j + 1 : ℕ) : ℝ) + 1) * max γ |ρ| ^ (j + 1) := by push_cast; ring
+
+/-- Cochrane (2023), p. 197: for `0 ≤ γ < 1` and `|ρ| < 1` the response `d_k` vanishes. -/
+theorem dseq_tendsto {γ ρ : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ < 1) (hρ : |ρ| < 1) :
+    Tendsto (dseq γ ρ) atTop (𝓝 0) := by
+  have hm0 : 0 ≤ max γ |ρ| := le_trans hγ0 (le_max_left _ _)
+  have hm1 : max γ |ρ| < 1 := max_lt hγ1 hρ
+  have hb : Tendsto (fun j : ℕ => ((j : ℝ) + 1) * max γ |ρ| ^ j) atTop (𝓝 0) := by
+    have := (tendsto_self_mul_const_pow_of_lt_one hm0 hm1).add
+      (tendsto_pow_atTop_nhds_zero_of_lt_one hm0 hm1)
+    rw [add_zero] at this
+    refine this.congr fun j => ?_
+    ring
+  refine (tendsto_add_atTop_iff_nat 1).1 ?_
+  exact squeeze_zero_norm (fun j => (Real.norm_eq_abs _).le.trans (abs_dseq_le hγ0 j)) hb
+
+/-- Cochrane (2023), p. 197: the restarted AR(1) `w_s` depends only on the innovations from date
+`N` on. -/
+theorem measurable_ar1From (ρ : ℝ) (N : ℕ) :
+    ∀ s, Measurable[⨆ i ≥ N, coordSigma i] (ar1From ρ N s) := by
+  intro s
+  induction s with
+  | zero => exact measurable_const
+  | succ s ih =>
+    exact (ih.const_mul ρ).add (Measurable.of_comap_le
+      (le_iSup₂ (f := fun i (_ : i ≥ N) => coordSigma i) (N + s + 1) (by omega)))
+
+/-- Cochrane (2023), p. 197 (**debt is a.s. unbounded above with AR(1) surpluses**): with
+`u_{t+1} = ρ u_t + ε_{t+1}`, `|ρ| < 1`, i.i.d. integrable innovations with deficits of every size,
+any mean `s̄` and `0 ≤ γ < 1`, almost surely the debt ratio exceeds every level infinitely often,
+from every initial debt. The events are tail events (`arDebt_shift`, `dseq_tendsto`) of positive
+probability (`prob_exceeds_ar`), hence of probability one by Kolmogorov's 0-1 law. -/
+theorem ar1_unbounded_of_integrable (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {γ ρ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ < 1) (hρ : |ρ| < 1) (x₀ sbar : ℝ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, ∀ M : ℝ, ∃ᶠ t in atTop,
+      M < debtPath γ x₀ (arSurplus ρ sbar) t ω := by
+  set x := debtPath γ x₀ (arSurplus ρ sbar) with hx
+  set E : ℝ → Set (ℕ → ℝ) := fun a =>
+    {ω | ∀ m : ℕ, ∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < x t ω} with hE
+  have htail : ∀ a, MeasurableSet[limsup coordSigma atTop] (E a) := by
+    intro a
+    rw [limsup_eq_iInf_iSup_of_nat, MeasurableSpace.measurableSet_iInf]
+    intro N
+    set y : ℕ → (ℕ → ℝ) → ℝ := fun k => debtPath γ 0 (fun s ω => sbar + ar1From ρ N s ω) k
+      with hy
+    have hym : ∀ k, Measurable[⨆ i ≥ N, coordSigma i] (y k) := fun k =>
+      measurable_debtPath γ 0 k fun s _ => (measurable_ar1From ρ N s).const_add sbar
+    have heq : E a = {ω | ∀ m : ℕ, ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < y k ω} := by
+      ext ω
+      simp only [hE, Set.mem_ofPred_eq]
+      have hshift : ∀ m : ℕ, (∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < x t ω) ↔
+          ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < x (N + k) ω :=
+        fun m => frequently_shift_iff N
+      simp only [hshift]
+      have hdiff : Tendsto (fun k => x (N + k) ω - y k ω) atTop (𝓝 0) := by
+        have h1 := (tendsto_pow_atTop_nhds_zero_of_lt_one hγ0 hγ1).mul_const (x N ω)
+        have h2 := (dseq_tendsto hγ0 hγ1 hρ).const_mul (ar1 ρ N ω)
+        rw [zero_mul] at h1
+        rw [mul_zero] at h2
+        have h3 := h1.add h2
+        rw [add_zero] at h3
+        refine h3.congr fun k => ?_
+        rw [hx, arDebt_shift]
+        simp only [hy]
+        ring
+      have hdiff' : Tendsto (fun k => y k ω - x (N + k) ω) atTop (𝓝 0) := by
+        have := hdiff.neg
+        rw [neg_zero] at this
+        refine this.congr fun k => ?_
+        ring
+      exact ⟨fun h m => frequently_near_of_tendsto hdiff h m,
+        fun h m => frequently_near_of_tendsto hdiff' h m⟩
+    rw [heq]
+    exact measurableSet_frequently_near hym a
+  have hpos : ∀ a, (iidSystem ν).μ (E a) ≠ 0 := by
+    intro a
+    obtain ⟨q, hq0, hq⟩ := prob_exceeds_ar hint hdef hγ0 hγ1 hρ x₀ sbar a
+    have hfreq := le_measure_frequently (μ := (iidSystem ν).μ)
+      (A := fun t => {ω | a < x t ω})
+      (fun t => measurableSet_lt measurable_const (measurable_arDebt γ x₀ ρ sbar t)) hq
+    have hsub : {ω | ∃ᶠ t in atTop, ω ∈ {ω' | a < x t ω'}} ⊆ E a := by
+      intro ω hω m
+      refine hω.mono fun t ht => ?_
+      have : 0 < 1 / ((m : ℝ) + 1) := by positivity
+      simp only [Set.mem_ofPred_eq] at ht
+      linarith
+    intro h0
+    exact hq0 (nonpos_iff_eq_zero.1 ((hfreq.trans (measure_mono hsub)).trans_eq h0))
+  have hone : ∀ n : ℕ, ∀ᵐ ω ∂(iidSystem ν).μ, ω ∈ E n := by
+    intro n
+    rcases measure_zero_or_one_of_measurableSet_limsup_atTop coordSigma_le (iIndep_coord ν)
+      (htail n) with h | h
+    · exact absurd h (hpos n)
+    · have hm : MeasurableSet (E n) :=
+        (limsup_le_iSup.trans (iSup_le coordSigma_le)) _ (htail n)
+      rw [ae_iff]
+      have := (prob_compl_eq_zero_iff hm).2 h
+      simpa [Set.compl_def] using this
+  filter_upwards [ae_all_iff.2 hone] with ω hω M
+  obtain ⟨n, hn⟩ := exists_nat_gt (M + 1)
+  refine (hω n 0).mono fun t ht => ?_
+  simp only [CharP.cast_eq_zero, zero_add, div_one] at ht
+  linarith
+
+/-! ### The Gaussian AR(1) surplus -/
+
+/-- Cochrane (2023), p. 197 (**Gaussian AR(1) surpluses: debt is a.s. unbounded above**): with
+`σ_t = s̄ + u_t`, `u_{t+1} = ρ u_t + ε_{t+1}`, `|ρ| < 1`, `ε_t` i.i.d. `N(0, v)`, `v ≠ 0`, and
+`0 ≤ γ < 1` (`r < g`), almost surely the debt-to-GDP ratio exceeds every level infinitely
+often, from every initial debt. -/
+theorem gaussian_ar1_unbounded {v : NNReal} (hv : v ≠ 0) {γ ρ : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ < 1)
+    (hρ : |ρ| < 1) (x₀ sbar : ℝ) :
+    ∀ᵐ ω ∂(iidSystem (gaussianProb 0 v)).μ, ∀ M : ℝ, ∃ᶠ t in atTop,
+      M < debtPath γ x₀ (arSurplus ρ sbar) t ω := by
+  have hint : Integrable id (gaussianReal 0 v) := by
+    have h := memLp_id_gaussianReal (μ := 0) (v := v) 1
+    rw [ENNReal.coe_one, memLp_one_iff_integrable] at h
+    exact h
+  exact ar1_unbounded_of_integrable (ν := gaussianProb 0 v) hint (gaussian_Iic_ne_zero 0 hv)
+    hγ0 hγ1 hρ x₀ sbar
+
+/-- Cochrane (2023), p. 197 ("the initial value of debt ... is not sustainable", **Gaussian
+AR(1)**): for every debt limit `M`, the event that debt stays at or below `M` forever has
+probability zero. -/
+theorem gaussian_ar1_not_sustainable {v : NNReal} (hv : v ≠ 0) {γ ρ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ < 1) (hρ : |ρ| < 1) (x₀ sbar M : ℝ) :
+    (iidSystem (gaussianProb 0 v)).μ {ω | ∀ t, debtPath γ x₀ (arSurplus ρ sbar) t ω ≤ M} = 0 := by
+  rw [measure_eq_zero_iff_ae_notMem]
+  filter_upwards [gaussian_ar1_unbounded hv hγ0 hγ1 hρ x₀ sbar] with ω hω hall
+  obtain ⟨t, ht⟩ := (hω M).exists
+  exact absurd (hall t) (not_le.mpr ht)
+
+/-- Cochrane (2023), p. 197: the book's mean reversion `ds = −η(s − s̄)dt + σ dz` with `η > 0`
+decays by `ρ = e^{−η}` per period; with this `ρ` and Gaussian innovations, debt is a.s.
+unbounded above. -/
+theorem gaussian_ar1_exp_unbounded {v : NNReal} (hv : v ≠ 0) {γ η : ℝ} (hη : 0 < η)
+    (hγ0 : 0 ≤ γ) (hγ1 : γ < 1) (x₀ sbar : ℝ) :
+    ∀ᵐ ω ∂(iidSystem (gaussianProb 0 v)).μ, ∀ M : ℝ, ∃ᶠ t in atTop,
+      M < debtPath γ x₀ (arSurplus (Real.exp (-η)) sbar) t ω := by
+  have hρ : |Real.exp (-η)| < 1 := by
+    rw [abs_of_pos (Real.exp_pos _)]
+    exact Real.exp_lt_one_iff.2 (by linarith)
+  exact gaussian_ar1_unbounded hv hγ0 hγ1 hρ x₀ sbar
+
+end Cochrane.FiscalConstraints.TidyR5GaussianAR1
+
 set_option linter.style.longLine false
 #print axioms Cochrane.FiscalConstraints.SchurStable
 #print axioms Cochrane.FiscalConstraints.disc
@@ -10982,3 +12541,105 @@ set_option linter.style.longLine false
 #print axioms Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managedSurplus
 #print axioms Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managed_adapted
 #print axioms Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managedPath_le_process
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.ImproperPV
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_eq
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.finite_pv_eq
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.tendsto_finite_pv
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_hasDerivAt
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.terminal_eq
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.tendsto_terminal
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.tvc_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_tvc
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.eq_fwdValue_of_tvc
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.existsUnique_tvc
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.exists_tvc_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.integrableOn_Ioi_of
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_eq_integral
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.integrable_of_bdd
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.ratio_hasDerivAt
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.ratio_of_debt
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.flow_of_debt
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_exists
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_tvc_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_unique
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_exists_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5MoneyExistence.eq_6_9_exists
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.SolvesGen
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pvA
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_hasDerivAt
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_continuous
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_zero
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_sub
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.eq_vocA
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.integrableOn_expA
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_eq_integral
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_eq_pv
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_continuous
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_bddOn
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_solves
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_sub
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_tendsto_abs_of_ne
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_bddOn_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_existsUnique
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_tvc_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.clampI
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cumAt
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.SolvesPW
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_continuous
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_eq_regime
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_eq_last
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_zero
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_regime
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_last
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.regime_cases
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_off
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_after
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.solvesPW_toGen
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol_solvesPW
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_bddOn_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_tendsto_abs_of_ne
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_existsUnique
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_tvc_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol_eq_integral
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0_eq_sum
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_not_unique_of_last_nonpos
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_unique_iff_last_pos
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_nominal_determinacy
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoA
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoT
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoT_monotone
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.solvesStep_iff
+#print axioms Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0_two_regime
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_succ_apply
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus_succ
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1_F
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.arDebt_adapted
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_arDebt
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.rho2
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.arVar
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_hasLaw_gaussian
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.arVar_ne_zero
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus_not_ae_bdd_above
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.E_ar1_succ
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.integral_abs_ar1_le
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.integral_abs_arDebt_le
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.prob_exceeds_ar
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1From
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.dseq
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_shift
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.arDebt_shift
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.abs_dseq_le
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.dseq_tendsto
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1From
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_unbounded_of_integrable
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_unbounded
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_not_sustainable
+#print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_exp_unbounded

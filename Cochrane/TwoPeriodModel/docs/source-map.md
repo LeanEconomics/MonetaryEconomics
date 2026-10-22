@@ -105,6 +105,30 @@ links to the Woodford projects, then the shared tools. Every statement holds for
 | Cochrane p. 19 | `γ` is not identified; passive and active regimes are observationally equivalent | `ActivePassive.gamma_not_identified`, `ActivePassive.obs_equiv_two_period` |
 | Cochrane p. 18 | the regression `s₁ = a + γB₀/P₁ + u₁` would estimate `γ = 1`: equilibrium data satisfy `s₁ = 1 · B₀/P₁` exactly | `ActivePassive.rule_regression_gamma_one` |
 
+## §1.8 Active rules with a single crossing, p. 17 (TidyR5SingleCrossing)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 17 | the excess valuation `B₀/P − s(P)`, whose zeros on `P > 0` are the equilibria; the sign change: some `a > 0` has `s(a) ≤ B₀/a` and some `b > 0` has `B₀/b ≤ s(b)` | `TidyR5SingleCrossing.excess`, `TidyR5SingleCrossing.SignChange` |
+| Cochrane p. 17 | a rule continuous on `P > 0` with a sign change has an equilibrium (intermediate value theorem, `a` and `b` in either order, no monotonicity); the sign change is necessary; so for a continuous rule an equilibrium exists iff the sign change holds | `TidyR5SingleCrossing.exists_of_signChange`, `TidyR5SingleCrossing.signChange_of_mem`, `TidyR5SingleCrossing.eqmSet_nonempty_iff` |
+| Cochrane p. 17 | "we just have to exclude the one-for-one case … (or multiple crossings)": a continuous rule with `B₀/P − s(P)` strictly decreasing on `P > 0` has exactly one equilibrium iff the sign change holds | `TidyR5SingleCrossing.singleCrossing_existsUnique_iff` |
+| Cochrane p. 17 | a checkable sufficient condition: `s ≤ M` on `(0, 1]` and `s ≥ ε > 0` for `P ≥ P₀`, with `B₀ > 0`, give exactly one equilibrium | `TidyR5SingleCrossing.singleCrossing_existsUnique_of_bounds` |
+| Cochrane p. 17 | the strictly decreasing rule `s(P) = B₀/(2P) + c` is not weakly increasing, so `ActivePassive.active_existsUnique` does not apply, yet it is active, with `P₁ = B₀/(2c)` | `TidyR5SingleCrossing.decreasing_rule_active` |
+| Cochrane p. 17 | continuity and a single crossing are not enough: `s(P) = B₀/P + P` has no equilibrium | `TidyR5SingleCrossing.continuous_singleCrossing_no_eqm` |
+| Cochrane p. 17 | continuity cannot be dropped: a single-crossing rule with a sign change, and a positive surplus at every price level when `B₀ ≥ 1`, has no equilibrium; it is indeed not continuous | `TidyR5SingleCrossing.jumpExcess`, `TidyR5SingleCrossing.jumpRule`, `TidyR5SingleCrossing.discont_singleCrossing_no_eqm`, `TidyR5SingleCrossing.discont_rule_not_continuousOn` |
+
+## §1.9 The `γ`-rule with general `α` and a random target, pp. 18–19 (TidyR5GammaRandom)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane pp. 18–19 | the coefficient `(α − γ)/(1 − γ)`; `γ ≠ 1` and `(α − γ)/(1 − γ) > 0` iff `(α − γ)(1 − γ) > 0` | `TidyR5GammaRandom.gammaCoef`, `TidyR5GammaRandom.gamma_cond_iff_mul_pos` |
+| Cochrane pp. 18–19 | deterministic target, every `γ` including `γ = 1`: unique iff `γ ≠ 1` and `(α − γ)/(1 − γ) > 0`, and then `P₁ = P₁*(1 − γ)/(α − γ)` | `TidyR5GammaRandom.gamma_rule_full_iff`, `TidyR5GammaRandom.gamma_rule_eq_iff`, `TidyR5GammaRandom.div_gammaCoef` |
+| Cochrane p. 19 | a random variable is the unique state-by-state solution iff every state has a unique solution | `TidyR5GammaRandom.existsUnique_pi_iff` |
+| Cochrane pp. 18–19 | the rule state by state with random `α`, `γ`, `B₀` and `P₁*`: exactly one positive random `P₁` solves (1.14) iff `γ ≠ 1` and `(α − γ)/(1 − γ) > 0` in every state, and then `P₁ = P₁*(1 − γ)/(α − γ)` state by state | `TidyR5GammaRandom.gammaRuleRandom`, `TidyR5GammaRandom.gamma_random_existsUnique_iff`, `TidyR5GammaRandom.gamma_random_valuation_iff` |
+| Cochrane pp. 18–19 | deterministic `α`, `γ` with a random target: unique iff `(α − γ)(1 − γ) > 0`, whatever the distribution of `P₁*`; `α = 1` recovers `ActivePassive.gamma_rule_random` | `TidyR5GammaRandom.gamma_random_const_iff`, `TidyR5GammaRandom.gamma_random_alpha_one` |
+| Cochrane p. 8; p. 19 | with deterministic `α`, `γ` the equilibrium `P₁` is known at date 1 whenever `P₁*` is | `TidyR5GammaRandom.gamma_random_known` |
+| Cochrane pp. 18–19 | the condition must hold in every state: a random `γ` equal to `1` in one state and `0` in the other gives no unique equilibrium | `TidyR5GammaRandom.gamma_random_one_state_fails` |
+
 ## Links to the Woodford projects (Links)
 
 | Book | Claim | Lean |

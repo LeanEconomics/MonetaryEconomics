@@ -12,8 +12,8 @@ non-integrable integrands. Writing `x = b/y`, `σ = s/y` and `a = r − g`, the 
 `γ = (1 + r)/(1 + g)`. The labels D1–D6 (the r-versus-g dichotomy), S (the debt limit) and B
 (Bohn's example) are those of the chapter survey. The stochastic results of §§6.4.6–6.4.7 hold
 for an arbitrary `ExpectationSystem` with `ExpectationSystem.PullOut`. The measure-theoretic
-modules (`DebtLimitStochasticMeasure`, `AggregateUncertaintyMeasure`, `LognormalGrowthMeasure`)
-re-prove §6.4.1 and §6.4.7 on genuine infinite-horizon i.i.d. processes on `ℕ → ℝ` under `ν^ℕ`,
+modules (`DebtLimitStochasticMeasure`, `AggregateUncertaintyMeasure`, `LognormalGrowthMeasure`,
+and `TidyR5GaussianAR1` for the AR(1) surplus) re-prove §6.4.1 and §6.4.7 on genuine infinite-horizon i.i.d. processes on `ℕ → ℝ` under `ν^ℕ`,
 with Mathlib's conditional expectation `condExp` and statements almost everywhere; their sections
 follow the sections they make genuine. The shared core
 (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is cited where a row
@@ -96,6 +96,26 @@ uses it.
 | Cochrane p. 196 (D5) | for `γ > 1` other solutions explode; bounded iff `x₀ = x̂₀`, and then it is the present value; transversality `x_t/γᵗ → 0` iff `x₀ = x̂₀`; nominal determinacy | `RvsG.tendsto_abs_of_ne_D`, `RvsG.bddD_iff`, `RvsG.eq_pvD_of_bddD`, `RvsG.tvcD_iff`, `RvsG.nominal_determinacy_D` |
 | Cochrane p. 196 (D5) | for `0 ≤ γ < 1` every solution is bounded and any two converge, so every price level gives a bounded path; for `γ = 1`, `x_t = x₀ − ∑_{j<t}w_j`, bounded iff the partial sums are | `RvsG.abs_le_of_lt_one`, `RvsG.tendsto_sub_D`, `RvsG.nominal_indeterminacy_D`, `RvsG.eq_of_one`, `RvsG.bddD_iff_one` |
 
+## §6.4.1 Temporary r < g with finitely many regimes, p. 196 (TidyR5PiecewiseRvsG)
+
+First a general time-varying `r − g` with continuous cumulative rate `A(t) = ∫₀^t (r − g)`, differentiable off a countable set and eventually linear with positive slope; then `n` switch dates `0 = T₀ ≤ ⋯ ≤ T_n`, rates `a_k` of any sign before `T_n` and `a_n > 0` after.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (6.4)–(6.5), p. 196, time-varying `r − g` | the solution concept off the switch dates; the backward solution `x_t = e^{A(t)}(x₀ − ∫₀^t e^{−A}σ)` solves (6.4) where `A` is differentiable, is continuous, starts at `x₀`, and two of them differ by `e^{A(t)}(x₀ − z₀)` | `TidyR5PiecewiseRvsG.SolvesGen`, `TidyR5PiecewiseRvsG.vocA`, `TidyR5PiecewiseRvsG.vocA_hasDerivAt`, `TidyR5PiecewiseRvsG.vocA_continuous`, `TidyR5PiecewiseRvsG.vocA_zero`, `TidyR5PiecewiseRvsG.vocA_sub` |
+| Cochrane (6.5), p. 196, time-varying `r − g` | every solution is the backward solution from its initial value (fundamental theorem of calculus off a countable set) | `TidyR5PiecewiseRvsG.eq_vocA` |
+| Cochrane p. 196, time-varying `r − g` | the sustainable debt `x̂₀ = ∫₀^∞ e^{−A}σ` and the forward-looking solution: discounted surpluses are integrable; `x̂_t = ∫_t^∞ exp(−(A(v) − A(t)))σ_v dv`; after the last switch it is `RvsG.pv`; it is continuous, bounded and solves the equation; every solution differs from it by `e^{A(t)}(x₀ − x̂₀)` | `TidyR5PiecewiseRvsG.pvA`, `TidyR5PiecewiseRvsG.gSol`, `TidyR5PiecewiseRvsG.integrableOn_expA`, `TidyR5PiecewiseRvsG.gSol_eq_integral`, `TidyR5PiecewiseRvsG.gSol_eq_pv`, `TidyR5PiecewiseRvsG.gSol_continuous`, `TidyR5PiecewiseRvsG.gen_bddOn`, `TidyR5PiecewiseRvsG.gen_solves`, `TidyR5PiecewiseRvsG.gen_sub` |
+| Cochrane p. 196, time-varying `r − g` | bounded iff `x₀ = x̂₀`; any other solution explodes; exactly one bounded solution; `e^{−A(t)}x_t → 0` iff `x₀ = x̂₀` | `TidyR5PiecewiseRvsG.gen_bddOn_iff`, `TidyR5PiecewiseRvsG.gen_tendsto_abs_of_ne`, `TidyR5PiecewiseRvsG.gen_existsUnique`, `TidyR5PiecewiseRvsG.gen_tvc_iff` |
+| Cochrane p. 196, `n` regimes | the cumulative rate `A` with `n` switches and `A(T_j) = Σ_{k<j} a_k(T_{k+1} − T_k)`; it is continuous, `A(0) = 0`, linear on each regime and after the last switch, with derivative `a_j` inside each regime and `a_n` after; every `t > 0` off the switch dates lies in one regime | `TidyR5PiecewiseRvsG.clampI`, `TidyR5PiecewiseRvsG.cum`, `TidyR5PiecewiseRvsG.cumAt`, `TidyR5PiecewiseRvsG.cum_continuous`, `TidyR5PiecewiseRvsG.cum_zero`, `TidyR5PiecewiseRvsG.cum_eq_regime`, `TidyR5PiecewiseRvsG.cum_eq_last`, `TidyR5PiecewiseRvsG.cum_after`, `TidyR5PiecewiseRvsG.cum_hasDerivAt_regime`, `TidyR5PiecewiseRvsG.cum_hasDerivAt_last`, `TidyR5PiecewiseRvsG.cum_hasDerivAt_off`, `TidyR5PiecewiseRvsG.regime_cases` |
+| Cochrane (6.4), p. 196, `n` regimes | the regime-by-regime equation is a case of the time-varying one; the sustainable debt and the forward-looking solution, which solves it | `TidyR5PiecewiseRvsG.SolvesPW`, `TidyR5PiecewiseRvsG.solvesPW_toGen`, `TidyR5PiecewiseRvsG.pwPV0`, `TidyR5PiecewiseRvsG.pwSol`, `TidyR5PiecewiseRvsG.pwSol_solvesPW` |
+| Cochrane p. 196 | temporary `r < g` with `n` regimes of any sign and `r > g` after the last: exactly one bounded solution | `TidyR5PiecewiseRvsG.pw_existsUnique` |
+| Cochrane p. 196 | "values of debt different from this forward-looking integral lead to explosions": bounded iff `x₀ = x̂₀`, and every other solution has `\|x_t\| → ∞` | `TidyR5PiecewiseRvsG.pw_bddOn_iff`, `TidyR5PiecewiseRvsG.pw_tendsto_abs_of_ne` |
+| Cochrane p. 196 | the transversality condition `e^{−A(t)}x_t → 0` iff `x₀ = x̂₀` | `TidyR5PiecewiseRvsG.pw_tvc_iff` |
+| Cochrane p. 196 (E6.2, generalised) | the general 20-year formula `x̂₀ = Σ_{k<n} e^{−A(T_k)} ∫_{T_k}^{T_{k+1}} e^{−a_k(v−T_k)}σ_v dv + e^{−A(T_n)} ∫₀^∞ e^{−a_n u}σ_{T_n+u} du`, and the forward integral at every date | `TidyR5PiecewiseRvsG.pwPV0_eq_sum`, `TidyR5PiecewiseRvsG.pwSol_eq_integral` |
+| Cochrane p. 196 | "if the `r < g` opportunity fades away, fiscal theory reemerges": bounded solutions are unique for every bounded surplus iff `r > g` in the last regime, whatever the earlier signs; with `a_n ≤ 0` both `0` and `e^{A(t)}` are bounded solutions | `TidyR5PiecewiseRvsG.pw_unique_iff_last_pos`, `TidyR5PiecewiseRvsG.pw_not_unique_of_last_nonpos` |
+| Cochrane p. 196 | nominal determinacy: with `x₀ = B₀/(P₀y₀)` there is a bounded solution iff `P₀ = B₀/(y₀x̂₀)` | `TidyR5PiecewiseRvsG.pw_nominal_determinacy` |
+| Cochrane p. 196 | the two-regime case `n = 1` is `RvsG.SolvesStep`, and the regime sum reduces to `RvsG.stepPV0` | `TidyR5PiecewiseRvsG.twoA`, `TidyR5PiecewiseRvsG.twoT`, `TidyR5PiecewiseRvsG.twoT_monotone`, `TidyR5PiecewiseRvsG.solvesStep_iff`, `TidyR5PiecewiseRvsG.pwPV0_two_regime` |
+
 ## §6.4.1 A debt limit with stochastic surpluses, pp. 196–197 (DebtLimitStochastic)
 
 | Book | Claim | Lean |
@@ -124,6 +144,22 @@ Surpluses are the coordinates `σ_t(ω) = ω_t` of `ℕ → ℝ` under `ν^ℕ` 
 | Cochrane p. 197 | an AR(1) "ranges over the entire real line", corrected discrete i.i.d. version: integrable i.i.d. surpluses with deficits of every size make debt a.s. unbounded above, with no upper bound on surpluses (Kolmogorov's 0-1 law) | `DebtLimitStochasticMeasure.iid_unbounded_of_integrable` |
 | Cochrane p. 197 | i.i.d. Gaussian surpluses `N(m, v)`, `v ≠ 0`: deficits of every size have positive mass, debt is a.s. unbounded above, and no debt limit is sustainable | `DebtLimitStochasticMeasure.gaussian_Iic_ne_zero`, `DebtLimitStochasticMeasure.gaussian_process_unbounded`, `DebtLimitStochasticMeasure.gaussian_process_not_sustainable` |
 | Cochrane p. 197 | the managed surplus `σ_t = ε_t + max 0 (γx_t − ε_t − x̄)` is an adapted policy on the i.i.d. process and keeps debt at or below `x̄` from date 1, on every path | `DebtLimitStochasticMeasure.managedSurplus`, `DebtLimitStochasticMeasure.managed_adapted`, `DebtLimitStochasticMeasure.managedPath_le_process` |
+
+## §6.4.1 A Gaussian AR(1) surplus process, p. 197 (TidyR5GaussianAR1)
+
+The discrete analogue of the book's continuous-time AR(1), on the i.i.d. economy of `ExpectationsMeasureIID`: innovations are the coordinates `ε_t(ω) = ω_t` under `ν^ℕ`, `u = ExpectationsMeasureIID.ar1 ρ`, the surplus ratio is `σ_t = s̄ + u_t` and debt is `x_{t+1} = γx_t − σ_t` with `0 ≤ γ < 1` (permanent `r < g`).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 197 | "suppose we generate the surplus by an AR(1)": `σ_t = s̄ + u_t` with `u_{t+1} = ρu_t + ε_{t+1}`, so `σ_{t+1} − s̄ = ρ(σ_t − s̄) + ε_{t+1}`; `u_t` is measurable and known at `t` | `TidyR5GaussianAR1.arSurplus`, `TidyR5GaussianAR1.ar1_succ_apply`, `TidyR5GaussianAR1.arSurplus_succ`, `TidyR5GaussianAR1.measurable_ar1`, `TidyR5GaussianAR1.measurable_ar1_F` |
+| Cochrane (6.4), p. 196, and p. 197 | with AR(1) surpluses the debt ratio is measurable and `x_{t+1}` is known at `t` | `TidyR5GaussianAR1.measurable_arDebt`, `TidyR5GaussianAR1.arDebt_adapted` |
+| Cochrane p. 197 | with `N(0, v)` innovations the process is a Gaussian AR(1), `u_t ~ N(0, v Σ_{j≤t} ρ^{2j})`, with nonzero variance; `E_t u_{t+1} = ρu_t` a.e. | `TidyR5GaussianAR1.rho2`, `TidyR5GaussianAR1.arVar`, `TidyR5GaussianAR1.ar1_hasLaw_gaussian`, `TidyR5GaussianAR1.arVar_ne_zero`, `TidyR5GaussianAR1.E_ar1_succ` |
+| Cochrane p. 197 | "an AR(1) ranges over the entire real line": the Gaussian AR(1) surplus is not a.s. bounded above, so Theorem S (`DebtLimitStochastic.frequently_exceeds`) does not apply | `TidyR5GaussianAR1.arSurplus_not_ae_bdd_above` |
+| Cochrane p. 197 | for `\|ρ\| < 1`: `E\|u_t\| ≤ E\|ε\|/(1 − \|ρ\|)` and `E\|x_t\| ≤ \|x₀\| + (\|s̄\| + E\|ε\|/(1 − \|ρ\|))/(1 − γ)`; `P(x_{t+2} > M)` is bounded below by a positive constant uniformly in `t` (Markov's inequality and independence of `ε_{t+1}` from `𝓕_t`) | `TidyR5GaussianAR1.integral_abs_ar1_le`, `TidyR5GaussianAR1.integral_abs_arDebt_le`, `TidyR5GaussianAR1.prob_exceeds_ar` |
+| Cochrane p. 197 | tail events: restarted at `N`, `u_{N+s} = ρ^s u_N + w_s` and `x_{N+k} = γ^k x_N + y_k + u_N d_k`, with `w` and `y` functions of the innovations after `N` and `\|d_{j+1}\| ≤ (j + 1)m^j → 0` | `TidyR5GaussianAR1.ar1From`, `TidyR5GaussianAR1.dseq`, `TidyR5GaussianAR1.ar1_shift`, `TidyR5GaussianAR1.arDebt_shift`, `TidyR5GaussianAR1.abs_dseq_le`, `TidyR5GaussianAR1.dseq_tendsto`, `TidyR5GaussianAR1.measurable_ar1From` |
+| Cochrane p. 197 | debt "will eventually exceed any bound": with AR(1) surpluses, integrable i.i.d. innovations with deficits of every size, any `s̄` and `0 ≤ γ < 1`, debt a.s. exceeds every level infinitely often (Kolmogorov's 0-1 law); in particular with Gaussian innovations | `TidyR5GaussianAR1.ar1_unbounded_of_integrable`, `TidyR5GaussianAR1.gaussian_ar1_unbounded` |
+| Cochrane p. 197 | "the initial value of debt … is not sustainable": with a Gaussian AR(1) surplus, `P(∀t, x_t ≤ M) = 0` for every `M` | `TidyR5GaussianAR1.gaussian_ar1_not_sustainable` |
+| Cochrane p. 197 | `ds = −η(s − s̄)dt + σdz` decays by `ρ = e^{−η}` per period; with this `ρ` debt is a.s. unbounded above | `TidyR5GaussianAR1.gaussian_ar1_exp_unbounded` |
 
 ## §6.4.2–§6.4.3 The flow surplus and r < g as a free lunch, pp. 198–199 (RvsG)
 
@@ -161,6 +197,24 @@ Surpluses are the coordinates `σ_t(ω) = ω_t` of `ℕ → ℝ` under `ν^ℕ` 
 | Cochrane (6.13), p. 203 | discounting at `r^f`, the money ratio is the value of surpluses plus seigniorage plus a terminal term; in the steady state both converge | `MoneyLiquidity.eq_6_13`, `MoneyLiquidity.steady_6_13_converges` |
 | Cochrane (6.9), p. 201 | for `a > 0` a bounded solution satisfies the TVC; with bounded continuous flows and the TVC, `w_t = ∫_t^∞ e^{−a(τ−t)}f_τdτ`; `(M + B)/(Py)` is the present value of surpluses plus seigniorage at `r^f − g`, and it is unique | `ExpIntegrals.tvc_of_bounded`, `LinearODE.forward_present_value`, `MoneyLiquidity.eq_6_9`, `MoneyLiquidity.present_value_unique` |
 | Cochrane p. 203 | with power utility the marginal rate of substitution is `e^{−r^f(τ−t)}`, `r^f = ρ + γg`; the TVC `e^{−r^f(T−t)}M_T/P_T → 0` holds iff `r^f > g`; the terminal value discounted at the ex-post money return explodes | `MoneyLiquidity.mrs_eq_riskfree`, `MoneyLiquidity.tvc_mrs_iff`, `MoneyLiquidity.return_discounted_terminal_explodes` |
+
+## §6.4.5 Existence of the money-and-debt solution, (6.9), pp. 201–203 (TidyR5MoneyExistence)
+
+The liability ratio `w = (M + B)/(Py)` obeys `w' = aw − f` with `a = r^f − g` and `f = s/y + iM/(Py)`. The only hypothesis is that the forward present value converges as an improper integral; no sign of `a` and no bound on `f` is needed.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (6.9), p. 201 | the improper present value `∫₀^T e^{−aτ}f_τdτ → L`; the forward value `ŵ_t = e^{at}(L − ∫₀^t e^{−aτ}f_τdτ)`, written out | `TidyR5MoneyExistence.ImproperPV`, `TidyR5MoneyExistence.fwdValue`, `TidyR5MoneyExistence.fwdValue_eq` |
+| Cochrane (6.13), p. 203; (6.9), p. 201 | the finite-horizon present value from `t` to `T`; `ŵ_t = lim_T ∫_t^T e^{−a(τ−t)}f_τdτ` at every date | `TidyR5MoneyExistence.finite_pv_eq`, `TidyR5MoneyExistence.tendsto_finite_pv` |
+| Cochrane (6.12)–(6.13), pp. 202–203 | for any solution, `e^{−a(T−t)}w_T = w_t − ∫_t^T e^{−a(τ−t)}f_τdτ`, which tends to `w_t − ŵ_t` | `TidyR5MoneyExistence.terminal_eq`, `TidyR5MoneyExistence.tendsto_terminal` |
+| Cochrane (6.9), p. 201 (existence) | the forward value solves `w' = aw − f` and satisfies the transversality condition at every date | `TidyR5MoneyExistence.fwdValue_hasDerivAt`, `TidyR5MoneyExistence.fwdValue_tvc` |
+| Cochrane (6.9), p. 201 | for any solution, the transversality condition at `t` holds iff `w_t = ŵ_t`; a solution with it at one date is `ŵ` at every date; exactly one solution with the transversality condition | `TidyR5MoneyExistence.tvc_iff`, `TidyR5MoneyExistence.eq_fwdValue_of_tvc`, `TidyR5MoneyExistence.existsUnique_tvc` |
+| Cochrane (6.9), p. 201 | a solution with the transversality condition exists iff the improper present value converges | `TidyR5MoneyExistence.exists_tvc_iff` |
+| Cochrane (6.9), p. 201 | under Lebesgue integrability `ŵ_t = ∫_t^∞ e^{−a(τ−t)}f_τdτ` (Bochner); integrability on every `(c, ∞)`; `a > 0` and a bounded continuous flow give integrability | `TidyR5MoneyExistence.fwdValue_eq_integral`, `TidyR5MoneyExistence.integrableOn_Ioi_of`, `TidyR5MoneyExistence.integrable_of_bdd` |
+| Cochrane (6.9)–(6.11), pp. 201–202 | with `i = r^f + π`, a money-and-debt path solving `d(M + B)/dt = iB − Ps` has a liability ratio solving `w' = (r^f − g)w − f`; conversely `B = PyW − M` has ratio `W` and solves the flow equation when `W` solves the ratio equation | `TidyR5MoneyExistence.ratio_hasDerivAt`, `TidyR5MoneyExistence.ratio_of_debt`, `TidyR5MoneyExistence.flow_of_debt` |
+| Cochrane (6.9), p. 201 | existence for money and debt: `B = Pyŵ − M` solves the flow equation, has the value (6.9) and satisfies the transversality condition at every date | `TidyR5MoneyExistence.money_debt_exists` |
+| Cochrane (6.9), p. 201 | for money and debt: the transversality condition iff the value (6.9); uniqueness of the debt path; existence iff the improper present value converges | `TidyR5MoneyExistence.money_debt_tvc_iff`, `TidyR5MoneyExistence.money_debt_unique`, `TidyR5MoneyExistence.money_debt_exists_iff` |
+| Cochrane (6.9), p. 201 | existence in the setting of `MoneyLiquidity.eq_6_9` (`r^f > g`, bounded flow), with the Bochner integral (6.9) at every date | `TidyR5MoneyExistence.eq_6_9_exists` |
 
 ## §6.4.6 Discount rates versus rates of return, (6.14), pp. 204–205 (ReturnDiscounting)
 

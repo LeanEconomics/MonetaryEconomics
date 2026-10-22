@@ -13,7 +13,7 @@ is the fiscal-theory equilibrium: given fiscal policy and the debt sale, a tripl
 equation. "The price level is determined" means that there is exactly one such triple. This is
 not uniqueness of bounded solutions, the notion of the Woodford projects: with a last day there is
 no boundedness to impose, and the valuation equations alone pin down the price level. The library
-contains **238 theorems**, including the shared core; 130 of them are in the six chapter modules.
+contains **258 theorems**, including the shared core; 150 of them are in the eight chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -52,9 +52,17 @@ Headline results, in the namespace `Cochrane.TwoPeriodModel`:
   (`ActivePassive.budget_any_price`). Under the passive rule (1.16) the set of equilibrium price
   levels is uncountable (`ActivePassive.passive_indeterminate`). A continuous surplus rule that
   is weakly increasing in `P₁` gives exactly one equilibrium (`ActivePassive.active_existsUnique`).
+  More generally, a continuous single-crossing rule, increasing or not, has exactly one
+  equilibrium iff `B₀/P − s(P)` changes sign
+  (`TidyR5SingleCrossing.singleCrossing_existsUnique_iff`); without continuity or without the
+  sign change there can be none (`TidyR5SingleCrossing.discont_singleCrossing_no_eqm`,
+  `TidyR5SingleCrossing.continuous_singleCrossing_no_eqm`).
   The `γ`-rule of §1.9 is determinate iff `γ ≠ 1`, correcting "less than one-for-one"
   (`ActivePassive.gamma_rule_determinate_iff`,
-  `ActivePassive.less_than_one_for_one_not_necessary`). Non-identification of `γ` and
+  `ActivePassive.less_than_one_for_one_not_necessary`). For general `α` and a random target
+  (and random `α`, `γ`), it is determinate iff `γ ≠ 1` and `(α − γ)/(1 − γ) > 0` in every state,
+  with `P₁ = P₁*(1 − γ)/(α − γ)` (`TidyR5GammaRandom.gamma_random_existsUnique_iff`,
+  `TidyR5GammaRandom.gamma_random_valuation_iff`). Non-identification of `γ` and
   observational equivalence are proved (`ActivePassive.gamma_not_identified`,
   `ActivePassive.obs_equiv_two_period`).
 * **Links to Woodford.** Cochrane's passive response is locally Ricardian in Woodford's sense,
@@ -84,11 +92,6 @@ Not formalised:
 * the household problem behind the bond-pricing equation (1.3) and behind zero demand for money
   at the end of the last day: (1.3) and `M₁ = 0` are imposed as equilibrium conditions, not
   derived from optimisation;
-* existence of equilibrium for active rules that are single-crossing but not weakly increasing:
-  `ActivePassive.active_unique_of_strictAnti` gives at most one equilibrium, and existence is
-  proved only for continuous, weakly increasing rules;
-* the general-`α` `γ`-rule with a random target (`ActivePassive.gamma_rule_random` takes
-  `α = 1`; the general-`α` condition is proved for a deterministic target);
 * the regression of p. 18 as a statistical estimate: `ActivePassive.rule_regression_gamma_one`
   proves only that equilibrium data satisfy `s₁ = 1 · B₀/P₁` exactly;
 * any infinite-horizon statement. The comparison with an infinite horizon is made only through
@@ -108,6 +111,8 @@ Not formalised:
 | [PriceLevelTarget](TwoPeriodModel/PriceLevelTarget.lean) | 17 | §§1.6–1.7: the rule (1.13), financing a deficit, the rule with an interest-rate target, flat and unit-elastic debt demand |
 | [ActivePassive](TwoPeriodModel/ActivePassive.lean) | 25 | §§1.8–1.9: (1.14)–(1.16), active and passive rules, the value-of-debt decomposition, the `γ`-rule corrected, non-identification and observational equivalence |
 | [Links](TwoPeriodModel/Links.lean) | 19 | Woodford's locally Ricardian rules (Ch. 4) and Ricardian transversality (Ch. 2), restated and linked to Cochrane's passive policy |
+| [TidyR5SingleCrossing](TwoPeriodModel/TidyR5SingleCrossing.lean) | 9 | §1.8: existence for single-crossing rules; a unique equilibrium iff the rule changes sign against `B₀/P`; a decreasing active rule; counterexamples without continuity or the sign change |
+| [TidyR5GammaRandom](TwoPeriodModel/TidyR5GammaRandom.lean) | 11 | §1.9: the `γ`-rule for every `γ`; general `α` with a random target and random coefficients, state by state; the condition must hold in every state |
 
 ## Modelling conventions
 
@@ -142,7 +147,8 @@ Not formalised:
   `{P₁ > 0 | B₀/P₁ = s(P₁)}` (`ActivePassive.eqmSet`). Policy is active when this set has exactly
   one element and passive when it is the whole half-line. The `γ`-rule is stated for a
   deterministic target and lifted state by state to a random one
-  (`ActivePassive.gamma_rule_random`).
+  (`ActivePassive.gamma_rule_random` for `α = 1`; `TidyR5GammaRandom.gammaRuleRandom` for random
+  `α`, `γ`, `B₀` and `P₁*`).
 * **Explicit hypotheses.** Positivity the book leaves implicit is stated as a hypothesis in each
   theorem: `B₋₁, B₀ > 0`, `s₁ > 0`, `s₀ + βE₀s₁ > 0`, `E₀s₁ > 0` under a target, and
   `E₀(1/P₁*) > 0` under the rule (1.13).

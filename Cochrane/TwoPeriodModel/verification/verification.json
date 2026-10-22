@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T08:48:44.052562+00:00",
-  "theorems": 238,
+  "checked_at_utc": "2026-10-22T08:04:02.677284+00:00",
+  "theorems": 258,
   "module_theorems": {
     "TwoPeriodModel/Determinacy.lean": 23,
     "TwoPeriodModel/Expectations.lean": 20,
@@ -11,9 +11,11 @@
     "TwoPeriodModel/DebtSales.lean": 19,
     "TwoPeriodModel/PriceLevelTarget.lean": 17,
     "TwoPeriodModel/ActivePassive.lean": 25,
-    "TwoPeriodModel/Links.lean": 19
+    "TwoPeriodModel/Links.lean": 19,
+    "TwoPeriodModel/TidyR5SingleCrossing.lean": 9,
+    "TwoPeriodModel/TidyR5GammaRandom.lean": 11
   },
-  "audited_declarations": 303,
+  "audited_declarations": 329,
   "declarations": [
     {
       "name": "Cochrane.TwoPeriodModel.SchurStable",
@@ -1529,6 +1531,136 @@
       "name": "Cochrane.TwoPeriodModel.Links.zero_surplus_restricts_prices",
       "kind": "theorem",
       "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.excess",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.SignChange",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.exists_of_signChange",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.signChange_of_mem",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.eqmSet_nonempty_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.singleCrossing_existsUnique_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.singleCrossing_existsUnique_of_bounds",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.decreasing_rule_active",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.continuous_singleCrossing_no_eqm",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.jumpExcess",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.jumpRule",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.discont_singleCrossing_no_eqm",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.discont_rule_not_continuousOn",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5SingleCrossing.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gammaCoef",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_cond_iff_mul_pos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_rule_full_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_rule_eq_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.div_gammaCoef",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.existsUnique_pi_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gammaRuleRandom",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_existsUnique_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_valuation_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_const_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_known",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_alpha_one",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_one_state_fails",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
     }
   ],
   "full_build": "passed",
@@ -3048,6 +3180,136 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.excess": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.SignChange": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.exists_of_signChange": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.signChange_of_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.eqmSet_nonempty_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.singleCrossing_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.singleCrossing_existsUnique_of_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.decreasing_rule_active": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.continuous_singleCrossing_no_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.jumpExcess": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.jumpRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.discont_singleCrossing_no_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5SingleCrossing.discont_rule_not_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gammaCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_cond_iff_mul_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_rule_full_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_rule_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.div_gammaCoef": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.existsUnique_pi_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gammaRuleRandom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_valuation_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_const_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_alpha_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_one_state_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -3061,15 +3323,17 @@
     "TwoPeriodModel/PriceLevelTarget.lean": "949724bf7a2a2dff3526e88504ec5892cec27e22e4c91656a90264c1b28cd9ee",
     "TwoPeriodModel/ActivePassive.lean": "8faa2df00355a0ea04f50703164675cd317ad6be127c6c74f27d41dda2be4e40",
     "TwoPeriodModel/Links.lean": "57081d078e6d6db7e57406def9080c16c46b53affd6b7785c72b53d4622f8fe1",
-    "TwoPeriodModel.lean": "5eb46d6e3ee53852fc448caf078f570513681d51ef4e9a0e000ed1d44f027748",
+    "TwoPeriodModel/TidyR5SingleCrossing.lean": "211e7e273623585a9b32a49e12e7c7f2eb927dede38d7c83121b33308bad1916",
+    "TwoPeriodModel/TidyR5GammaRandom.lean": "6879af19f65774416e020cd55b57ee31f78b5a9abe8a4668ede640581da2f5c4",
+    "TwoPeriodModel.lean": "0e78c067e446c85f5ea0466ba359b27ca4181d97f43e7e18a6d89858e7c458e5",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "9ac16666879d690ac60eecff848439219c51d18f77aaf98a44da5645c7a3c7e7",
     "lake-manifest.json": "07f4accbc406d033adc9082d8da1cb7e081478e58a8f3dbbbfcb9000b78abb2b",
-    "proof-manifest.json": "9823a979b03c3fc35ec0e33aaf7fbbbb354e409e8fa261805fdba36b1db6e669",
+    "proof-manifest.json": "bd43544868c35ce30a6f0bb404e22795a4c69dcc1d8042c2b760f981cacd5041",
     "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "ccaf2243d783e3e1ca570b84d311166b6f3111cc0520fb0cd5155b38669d6677",
+  "fresh_audit_sha256": "0eba432e6a43681ea3b181a1a846a97cee3aa8a45a8fb712aa96a5dc793d1dee",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 1: A two-period model. The last day and the two-period fiscal-theory equilibrium (existence and uniqueness of the price level given surpluses, for any expectation system); monetary and fiscal policy: share splits, interest-rate targets and the Fisherian response, the expected/unexpected inflation decomposition; debt sales and Table 1.1 (borrow, inflate, AR(1), s-shaped surpluses) with the borrowing condition corrected; a price-level target rule; active versus passive policy, the gamma-rule determinacy condition corrected, non-identification and observational equivalence; links to Woodford's locally Ricardian policy and Ricardian transversality results.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 1, pp. 4-19."

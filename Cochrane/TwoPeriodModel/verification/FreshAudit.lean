@@ -4627,6 +4627,483 @@ theorem zero_surplus_restricts_prices {q W Tx Δ M : ℕ → ℝ}
 
 end Cochrane.TwoPeriodModel.Links
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Active rules with a single crossing: existence of equilibrium
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 1, §1.8, p. 17.
+
+Cochrane says that for active policy "we just have to exclude the one-for-one case … (or
+multiple crossings)". `ActivePassive.active_unique_of_strictAnti` shows that a single crossing
+(the excess valuation `f(P) = B₀/P − s(P)` strictly decreasing on `P > 0`) gives **at most**
+one equilibrium, and `ActivePassive.active_existsUnique` gives existence only for continuous,
+weakly increasing surplus rules. This module settles existence for general single-crossing
+rules, which may be decreasing in `P₁`.
+
+## Main results
+
+* `eqmSet_nonempty_iff`: for a surplus rule continuous on `P > 0`, an equilibrium exists
+  **iff** the valuation curve changes sign: some `a > 0` has `s(a) ≤ B₀/a` and some `b > 0` has
+  `B₀/b ≤ s(b)` (intermediate value theorem; no monotonicity needed).
+* `singleCrossing_existsUnique_iff`: for a continuous single-crossing rule, the equilibrium is
+  unique and exists **iff** the same sign condition holds — the exact characterisation of
+  active single-crossing rules.
+* `singleCrossing_existsUnique_of_bounds`: an economically checkable sufficient condition
+  (surplus bounded above at low price levels and bounded away from zero at high ones).
+* `decreasing_rule_active`: the rule `s(P) = B₀/(2P) + c` is strictly decreasing in `P₁`, so
+  not covered by `ActivePassive.active_existsUnique`, yet has exactly one equilibrium.
+* Counterexamples: `continuous_singleCrossing_no_eqm` (continuity and a single crossing do not
+  suffice without the sign condition) and `discont_singleCrossing_no_eqm` (without continuity
+  a single-crossing rule with a sign change, positive surpluses everywhere when `B₀ ≥ 1`, has
+  no equilibrium; `discont_rule_not_continuousOn` confirms continuity is what fails).
+-/
+
+namespace Cochrane.TwoPeriodModel.TidyR5SingleCrossing
+
+open Cochrane.TwoPeriodModel.ActivePassive
+
+/-- Cochrane (2023), p. 17: the excess valuation `f(P) = B₀/P − s(P)` of a surplus rule;
+the equilibria are its zeros on `P > 0`, and a "single crossing" means `f` strictly
+decreasing there. -/
+noncomputable def excess (B0 : ℝ) (s : ℝ → ℝ) (P : ℝ) : ℝ := B0 / P - s P
+
+/-- Cochrane (2023), p. 17: the sign-change condition for a surplus rule: at some price level
+`a > 0` the surplus is at most the value of debt, `s(a) ≤ B₀/a`, and at some `b > 0` it is at
+least the value of debt, `B₀/b ≤ s(b)`. -/
+def SignChange (B0 : ℝ) (s : ℝ → ℝ) : Prop :=
+  (∃ a, 0 < a ∧ s a ≤ B0 / a) ∧ ∃ b, 0 < b ∧ B0 / b ≤ s b
+
+/-- Cochrane (2023), p. 17: **existence** of an equilibrium by the intermediate value theorem:
+a surplus rule continuous on `P > 0` with a sign change has an equilibrium (in either order of
+`a` and `b`; no monotonicity is needed). -/
+theorem exists_of_signChange {B0 : ℝ} {s : ℝ → ℝ} (hcont : ContinuousOn s (Set.Ioi 0))
+    (hsc : SignChange B0 s) : (eqmSet B0 s).Nonempty := by
+  obtain ⟨⟨a, ha, hsa⟩, ⟨b, hb, hsb⟩⟩ := hsc
+  have hsub : Set.uIcc a b ⊆ Set.Ioi 0 := by
+    intro x hx
+    rcases Set.mem_uIcc.mp hx with h | h
+    · exact lt_of_lt_of_le ha h.1
+    · exact lt_of_lt_of_le hb h.1
+  have hcf : ContinuousOn (excess B0 s) (Set.uIcc a b) := by
+    refine ContinuousOn.sub ?_ (hcont.mono hsub)
+    exact continuousOn_const.div continuousOn_id (fun x hx => (hsub hx).ne')
+  have hfa : 0 ≤ excess B0 s a := by simp only [excess]; linarith
+  have hfb : excess B0 s b ≤ 0 := by simp only [excess]; linarith
+  have h0 : (0 : ℝ) ∈ Set.uIcc (excess B0 s a) (excess B0 s b) :=
+    Set.mem_uIcc.mpr (Or.inr ⟨hfb, hfa⟩)
+  obtain ⟨c, hc, hfc⟩ := intermediate_value_uIcc hcf h0
+  refine ⟨c, hsub hc, ?_⟩
+  simp only [excess] at hfc
+  linarith
+
+/-- Cochrane (2023), p. 17: the sign-change condition is necessary for an equilibrium: an
+equilibrium `P₁` serves as both `a` and `b`. -/
+theorem signChange_of_mem {B0 : ℝ} {s : ℝ → ℝ} {P : ℝ} (hP : P ∈ eqmSet B0 s) :
+    SignChange B0 s :=
+  ⟨⟨P, hP.1, hP.2.symm.le⟩, ⟨P, hP.1, hP.2.le⟩⟩
+
+/-- Cochrane (2023), p. 17: for a surplus rule continuous on `P > 0`, an equilibrium exists
+**iff** the sign-change condition holds. -/
+theorem eqmSet_nonempty_iff {B0 : ℝ} {s : ℝ → ℝ} (hcont : ContinuousOn s (Set.Ioi 0)) :
+    (eqmSet B0 s).Nonempty ↔ SignChange B0 s :=
+  ⟨fun ⟨_, hP⟩ => signChange_of_mem hP, exists_of_signChange hcont⟩
+
+/-- Cochrane (2023), p. 17, **active single-crossing rules, exact characterisation**: if the
+surplus rule is continuous on `P > 0` and crosses the valuation curve once (`B₀/P − s(P)`
+strictly decreasing on `P > 0`), there is exactly one equilibrium price level **iff** the
+sign-change condition holds. The rule need not be weakly increasing in `P₁`. -/
+theorem singleCrossing_existsUnique_iff {B0 : ℝ} {s : ℝ → ℝ}
+    (hcont : ContinuousOn s (Set.Ioi 0))
+    (hanti : StrictAntiOn (fun P => B0 / P - s P) (Set.Ioi 0)) :
+    (∃! P : ℝ, 0 < P ∧ B0 / P = s P) ↔ SignChange B0 s := by
+  constructor
+  · rintro ⟨P, hP, -⟩
+    exact signChange_of_mem hP
+  · intro hsc
+    obtain ⟨P, hP⟩ := exists_of_signChange hcont hsc
+    exact ⟨P, hP, fun Q hQ => active_unique_of_strictAnti hanti hQ hP⟩
+
+/-- Cochrane (2023), p. 17: a checkable sufficient condition for a continuous single-crossing
+rule to be active: if the surplus is bounded above, `s(P) ≤ M`, at price levels `0 < P ≤ 1`, and
+bounded away from zero, `s(P) ≥ ε > 0`, at price levels `P ≥ P₀`, then (for `B₀ > 0`) there is
+exactly one equilibrium price level. -/
+theorem singleCrossing_existsUnique_of_bounds {B0 M ε P0 : ℝ} (hB : 0 < B0) {s : ℝ → ℝ}
+    (hcont : ContinuousOn s (Set.Ioi 0))
+    (hanti : StrictAntiOn (fun P => B0 / P - s P) (Set.Ioi 0))
+    (hM : ∀ P, 0 < P → P ≤ 1 → s P ≤ M) (hε : 0 < ε) (hlarge : ∀ P, P0 ≤ P → ε ≤ s P) :
+    ∃! P : ℝ, 0 < P ∧ B0 / P = s P := by
+  refine (singleCrossing_existsUnique_iff hcont hanti).mpr ⟨?_, ?_⟩
+  · have hden : 0 < |M| + B0 := by positivity
+    refine ⟨B0 / (|M| + B0), div_pos hB hden, ?_⟩
+    have ha1 : B0 / (|M| + B0) ≤ 1 := by
+      rw [div_le_one hden]; linarith [abs_nonneg M]
+    have h1 : B0 / (B0 / (|M| + B0)) = |M| + B0 := by field_simp
+    rw [h1]
+    have := hM _ (div_pos hB hden) ha1
+    linarith [le_abs_self M]
+  · set b := max P0 (B0 / ε) with hb
+    have hbB : B0 / ε ≤ b := le_max_right _ _
+    have hb0 : 0 < b := lt_of_lt_of_le (div_pos hB hε) hbB
+    refine ⟨b, hb0, ?_⟩
+    have h1 : B0 / b ≤ ε := by
+      rw [div_le_iff₀ hb0]
+      rw [div_le_iff₀ hε] at hbB
+      linarith
+    exact h1.trans (hlarge b (le_max_left _ _))
+
+/-- Cochrane (2023), p. 17: the surplus rule `s(P) = B₀/(2P) + c` (`B₀, c > 0`) cuts surpluses
+as the price level rises — it is strictly decreasing, so `ActivePassive.active_existsUnique`
+does not apply — but it crosses the valuation curve once, and it has exactly one equilibrium,
+`P₁ = B₀/(2c)`. -/
+theorem decreasing_rule_active {B0 c : ℝ} (hB : 0 < B0) (hc : 0 < c) :
+    StrictAntiOn (fun P => B0 / (2 * P) + c) (Set.Ioi 0) ∧
+      ¬ MonotoneOn (fun P => B0 / (2 * P) + c) (Set.Ioi 0) ∧
+      ∃! P : ℝ, 0 < P ∧ B0 / P = B0 / (2 * P) + c := by
+  have hsa : StrictAntiOn (fun P => B0 / (2 * P) + c) (Set.Ioi 0) := by
+    intro x hx y _ hxy
+    have hx' : (0 : ℝ) < x := hx
+    have : B0 / (2 * y) < B0 / (2 * x) := div_lt_div_of_pos_left hB (by positivity) (by linarith)
+    simp only
+    linarith
+  refine ⟨hsa, fun hmono => ?_, ?_⟩
+  · have m1 : (1 : ℝ) ∈ Set.Ioi 0 := Set.mem_Ioi.mpr one_pos
+    have m2 : (2 : ℝ) ∈ Set.Ioi 0 := Set.mem_Ioi.mpr two_pos
+    have h1 := hsa m1 m2 one_lt_two
+    have h2 := hmono m1 m2 one_lt_two.le
+    exact absurd h2 (not_le.mpr h1)
+  · have hcont : ContinuousOn (fun P => B0 / (2 * P) + c) (Set.Ioi 0) := by
+      refine ContinuousOn.add ?_ continuousOn_const
+      refine continuousOn_const.div (continuousOn_const.mul continuousOn_id) ?_
+      intro x hx
+      have hx' : (0 : ℝ) < x := hx
+      positivity
+    have hanti : StrictAntiOn (fun P => B0 / P - (B0 / (2 * P) + c)) (Set.Ioi 0) := by
+      intro x hx y _ hxy
+      have hx' : (0 : ℝ) < x := hx
+      have hy' : (0 : ℝ) < y := by linarith
+      have e : ∀ z : ℝ, 0 < z → B0 / z - (B0 / (2 * z) + c) = B0 / (2 * z) - c := by
+        intro z hz; field_simp; ring
+      simp only
+      rw [e x hx', e y hy']
+      have : B0 / (2 * y) < B0 / (2 * x) := div_lt_div_of_pos_left hB (by positivity)
+        (by linarith)
+      linarith
+    refine (singleCrossing_existsUnique_iff hcont hanti).mpr ⟨⟨B0 / (2 * c), by positivity, ?_⟩,
+      ⟨B0 / (2 * c), by positivity, ?_⟩⟩
+    · apply le_of_eq; field_simp; ring
+    · apply le_of_eq; field_simp; ring
+
+/-- Cochrane (2023), p. 17, counterexample: continuity and a single crossing do **not** give
+existence without the sign-change condition: the continuous rule `s(P) = B₀/P + P` has
+`B₀/P − s(P) = −P` strictly decreasing, but no equilibrium. -/
+theorem continuous_singleCrossing_no_eqm (B0 : ℝ) :
+    ContinuousOn (fun P => B0 / P + P) (Set.Ioi 0) ∧
+      StrictAntiOn (fun P => B0 / P - (B0 / P + P)) (Set.Ioi 0) ∧
+      eqmSet B0 (fun P => B0 / P + P) = ∅ := by
+  refine ⟨?_, ?_, ?_⟩
+  · refine ContinuousOn.add ?_ continuousOn_id
+    exact continuousOn_const.div continuousOn_id (fun x hx => (ne_of_lt hx).symm)
+  · intro x _ y _ hxy
+    simp only
+    linarith
+  · ext P
+    simp only [eqmSet, Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false, not_and]
+    intro hP h
+    linarith
+
+/-- Cochrane (2023), p. 17: the discontinuous excess valuation used in
+`discont_singleCrossing_no_eqm`: `1 − P` below `P = 1` and `−P` from `P = 1` on. -/
+noncomputable def jumpExcess (P : ℝ) : ℝ := if P < 1 then 1 - P else -P
+
+/-- Cochrane (2023), p. 17: the discontinuous surplus rule `s(P) = B₀/P − jumpExcess(P)`. -/
+noncomputable def jumpRule (B0 : ℝ) (P : ℝ) : ℝ := B0 / P - jumpExcess P
+
+/-- Cochrane (2023), p. 17, counterexample: **continuity cannot be dropped**. The rule
+`jumpRule` crosses the valuation curve at most once (`B₀/P − s(P)` strictly decreasing), has
+the sign change (`a = 1/2`, `b = 1`), and for `B₀ ≥ 1` runs a positive surplus at every price
+level, yet it has no equilibrium: `B₀/P − s(P)` jumps from `+0` to `−1` at `P = 1`. -/
+theorem discont_singleCrossing_no_eqm (B0 : ℝ) :
+    StrictAntiOn (fun P => B0 / P - jumpRule B0 P) (Set.Ioi 0) ∧
+      SignChange B0 (jumpRule B0) ∧ eqmSet B0 (jumpRule B0) = ∅ ∧
+      (1 ≤ B0 → ∀ P, 0 < P → 0 < jumpRule B0 P) := by
+  have hf : ∀ P, B0 / P - jumpRule B0 P = jumpExcess P := by
+    intro P; simp only [jumpRule]; ring
+  refine ⟨?_, ⟨⟨1 / 2, by norm_num, ?_⟩, ⟨1, one_pos, ?_⟩⟩, ?_, ?_⟩
+  · intro x _ y _ hxy
+    simp only [hf, jumpExcess]
+    by_cases hy : y < 1
+    · have hx : x < 1 := lt_trans hxy hy
+      simp only [hx, hy, ↓reduceIte]
+      linarith
+    · by_cases hx : x < 1
+      · simp only [hx, hy, ↓reduceIte]
+        linarith
+      · simp only [hx, hy, ↓reduceIte]
+        linarith
+  · have := hf (1 / 2)
+    simp only [jumpExcess, show (1 / 2 : ℝ) < 1 by norm_num, ↓reduceIte] at this
+    linarith
+  · have := hf 1
+    simp only [jumpExcess, lt_irrefl, ↓reduceIte] at this
+    linarith
+  · ext P
+    simp only [eqmSet, Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false, not_and]
+    intro hP h
+    have h2 := hf P
+    rw [← h, sub_self] at h2
+    simp only [jumpExcess] at h2
+    by_cases h1 : P < 1
+    · simp only [h1, ↓reduceIte] at h2
+      linarith
+    · simp only [h1, ↓reduceIte] at h2
+      linarith
+  · intro hB P hP
+    simp only [jumpRule, jumpExcess]
+    by_cases h1 : P < 1
+    · simp only [h1, ↓reduceIte]
+      have : 1 < B0 / P := by rw [lt_div_iff₀ hP]; linarith
+      linarith
+    · simp only [h1, ↓reduceIte]
+      have : 0 < B0 / P := div_pos (by linarith) hP
+      linarith
+
+/-- Cochrane (2023), p. 17: the rule `jumpRule` is indeed not continuous on `P > 0` — by
+`exists_of_signChange`, continuity together with its sign change would produce an
+equilibrium. -/
+theorem discont_rule_not_continuousOn (B0 : ℝ) :
+    ¬ ContinuousOn (jumpRule B0) (Set.Ioi 0) := by
+  intro hcont
+  obtain ⟨-, hsc, hempty, -⟩ := discont_singleCrossing_no_eqm B0
+  have := exists_of_signChange hcont hsc
+  rw [hempty] at this
+  exact Set.not_nonempty_empty this
+
+end Cochrane.TwoPeriodModel.TidyR5SingleCrossing
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The general-`α` `γ`-rule with a random target
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 1, §1.9, pp. 18–19.
+
+The surplus rule `s₁ = α B₀/P₁* + γ(B₀/P₁ − B₀/P₁*)` with a random price-level target `P₁*`
+(and, more generally, random coefficients `α, γ` and random debt `B₀`), imposed state by state.
+`ActivePassive.gamma_rule_random` treats only `α = 1`, and `ActivePassive.gamma_rule_general_iff`
+treats general `α` only for a deterministic target and `γ ≠ 1`. Here:
+
+## Main results
+
+* `gamma_rule_full_iff`: deterministic case, **all** `γ`: a unique equilibrium iff `γ ≠ 1` and
+  `(α − γ)/(1 − γ) > 0`, equivalently (`gamma_cond_iff_mul_pos`) `(α − γ)(1 − γ) > 0`.
+* `existsUnique_pi_iff`: a random variable is the unique state-by-state solution iff every
+  state has a unique solution (a general lemma, proved here).
+* `gamma_random_existsUnique_iff`: random `α, γ, B₀ > 0, P₁* > 0`: there is exactly one positive
+  random price level satisfying (1.14) under the rule **iff** in every state `γ(ω) ≠ 1` and
+  `(α(ω) − γ(ω))/(1 − γ(ω)) > 0`.
+* `gamma_random_valuation_iff`: under that condition the equilibrium is
+  `P₁ = P₁*(1 − γ)/(α − γ)` state by state.
+* `gamma_random_const_iff`: deterministic `α, γ`, random target (`Ω` nonempty): unique iff
+  `(α − γ)(1 − γ) > 0` — the deterministic condition, independent of the target's
+  distribution; `gamma_random_known` (the equilibrium is known at date 1 when the target is);
+  `gamma_random_alpha_one` recovers `ActivePassive.gamma_rule_random`.
+* `gamma_random_one_state_fails`: the condition must hold in **every** state: a random `γ`
+  equal to `1` in a single state destroys uniqueness even if `γ = 0` elsewhere.
+-/
+
+namespace Cochrane.TwoPeriodModel.TidyR5GammaRandom
+
+open Cochrane.TwoPeriodModel.TwoPeriod Cochrane.TwoPeriodModel.ActivePassive
+
+variable {Ω : Type*}
+
+/-- Cochrane (2023), §1.9, pp. 18–19: the coefficient `(α − γ)/(1 − γ)` with which the
+`γ`-rule ties the value of debt to its target: `B₀/P₁ = ((α − γ)/(1 − γ)) · B₀/P₁*`. -/
+noncomputable def gammaCoef (α γ : ℝ) : ℝ := (α - γ) / (1 - γ)
+
+/-- Cochrane (2023), §1.9, pp. 18–19: `γ ≠ 1` and `(α − γ)/(1 − γ) > 0` iff
+`(α − γ)(1 − γ) > 0`. -/
+theorem gamma_cond_iff_mul_pos (α γ : ℝ) :
+    (γ ≠ 1 ∧ 0 < gammaCoef α γ) ↔ 0 < (α - γ) * (1 - γ) := by
+  unfold gammaCoef
+  constructor
+  · rintro ⟨-, h⟩
+    rcases div_pos_iff.mp h with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · exact mul_pos h1 h2
+    · exact mul_pos_of_neg_of_neg h1 h2
+  · intro h
+    rcases mul_pos_iff.mp h with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · exact ⟨fun hγ => by rw [hγ, sub_self] at h2; exact lt_irrefl 0 h2, div_pos h1 h2⟩
+    · exact ⟨fun hγ => by rw [hγ, sub_self] at h2; exact lt_irrefl 0 h2,
+        div_pos_of_neg_of_neg h1 h2⟩
+
+/-- Cochrane (2023), §1.9, pp. 18–19, deterministic target, **every** `γ` (`B₀ > 0`,
+`P₁* > 0`): the `γ`-rule has a unique equilibrium iff `γ ≠ 1` and `(α − γ)/(1 − γ) > 0`
+(`γ = 1` gives either every `P₁ > 0` or no equilibrium). -/
+theorem gamma_rule_full_iff {α γ B0 Pstar : ℝ} (hB : 0 < B0) (hPs : 0 < Pstar) :
+    (∃! P : ℝ, 0 < P ∧ B0 / P = gammaRule α γ B0 Pstar P) ↔ γ ≠ 1 ∧ 0 < gammaCoef α γ := by
+  by_cases hγ : γ = 1
+  · subst hγ
+    simp only [ne_eq, not_true_eq_false, false_and, iff_false]
+    intro hu
+    by_cases hα : α = 1
+    · subst hα
+      exact (gamma_rule_determinate_iff hB hPs).mp hu rfl
+    · obtain ⟨P, hP, -⟩ := hu
+      have hmem : P ∈ eqmSet B0 (gammaRule α 1 B0 Pstar) := hP
+      rw [gamma_eqmSet_empty hα hB.ne' hPs.ne'] at hmem
+      exact hmem
+  · rw [gamma_rule_general_iff hB hPs hγ]
+    exact ⟨fun h => ⟨hγ, h⟩, fun h => h.2⟩
+
+/-- Cochrane (2023), §1.9, pp. 18–19, deterministic target: under `γ ≠ 1` and
+`(α − γ)/(1 − γ) > 0`, a positive `P₁` is an equilibrium iff `P₁ = P₁*/((α − γ)/(1 − γ))`,
+i.e. `P₁ = P₁*(1 − γ)/(α − γ)`. -/
+theorem gamma_rule_eq_iff {α γ B0 Pstar P : ℝ} (hB : 0 < B0) (hPs : 0 < Pstar) (hγ : γ ≠ 1)
+    (hc : 0 < gammaCoef α γ) (hP : 0 < P) :
+    B0 / P = gammaRule α γ B0 Pstar P ↔ P = Pstar / gammaCoef α γ := by
+  have h1 : (1 - γ) ≠ 0 := sub_ne_zero.mpr (Ne.symm hγ)
+  have key : B0 / P = gammaRule α γ B0 Pstar P ↔ B0 / P = gammaCoef α γ * (B0 / Pstar) := by
+    simp only [gammaRule, gammaCoef]
+    rw [div_mul_eq_mul_div, eq_div_iff h1]
+    constructor <;> intro h <;> linarith
+  have hQ : 0 < Pstar / gammaCoef α γ := div_pos hPs hc
+  have hsol : B0 / (Pstar / gammaCoef α γ) = gammaCoef α γ * (B0 / Pstar) := by
+    field_simp
+  rw [key, ← hsol, div_eq_div_iff hP.ne' hQ.ne']
+  constructor
+  · intro h; exact mul_left_cancel₀ hB.ne' (by linarith)
+  · intro h; rw [h]
+
+/-- Cochrane (2023), §1.9, pp. 18–19, the closed form: `P₁*/((α − γ)/(1 − γ)) =
+P₁*(1 − γ)/(α − γ)`. -/
+theorem div_gammaCoef (α γ Pstar : ℝ) : Pstar / gammaCoef α γ = Pstar * (1 - γ) / (α - γ) := by
+  unfold gammaCoef
+  rw [div_div_eq_mul_div]
+
+/-- Cochrane (2023), §1.9, p. 19 (a general lemma used to pass from state-by-state to random
+equilibria): for a state-by-state condition `R ω p`, there is exactly one random variable
+`P : Ω → ℝ` with `R ω (P ω)` in every state iff every state has exactly one solution. -/
+theorem existsUnique_pi_iff (R : Ω → ℝ → Prop) :
+    (∃! P : Ω → ℝ, ∀ ω, R ω (P ω)) ↔ ∀ ω, ∃! p : ℝ, R ω p := by
+  classical
+  constructor
+  · rintro ⟨P, hP, hu⟩ ω
+    refine ⟨P ω, hP ω, fun p hp => ?_⟩
+    have h := hu (Function.update P ω p) (fun ω' => by
+      by_cases h : ω' = ω
+      · subst h; simpa using hp
+      · simpa [h] using hP ω')
+    have := congrFun h ω
+    simpa using this
+  · intro h
+    choose P hP hu using h
+    exact ⟨P, hP, fun Q hQ => funext fun ω => hu ω (Q ω) (hQ ω)⟩
+
+/-- Cochrane (2023), §1.9, pp. 18–19: the `γ`-rule state by state, with random coefficients
+`α, γ`, random debt `B₀` and a random target `P₁*`:
+`s₁(ω) = α(ω)B₀(ω)/P₁*(ω) + γ(ω)(B₀(ω)/P₁(ω) − B₀(ω)/P₁*(ω))`. -/
+noncomputable def gammaRuleRandom (α γ B0 Pstar P1 : Ω → ℝ) : Ω → ℝ :=
+  fun ω => gammaRule (α ω) (γ ω) (B0 ω) (Pstar ω) (P1 ω)
+
+/-- Cochrane (2023), §1.9, pp. 18–19, **general `α`, random target** (and random `α, γ`;
+`B₀, P₁* > 0` in every state): there is exactly one positive random price level satisfying
+(1.14) `B₀/P₁ = s₁` under the `γ`-rule iff in every state `γ(ω) ≠ 1` and
+`(α(ω) − γ(ω))/(1 − γ(ω)) > 0`. -/
+theorem gamma_random_existsUnique_iff {α γ B0 Pstar : Ω → ℝ} (hB : ∀ ω, 0 < B0 ω)
+    (hPs : ∀ ω, 0 < Pstar ω) :
+    (∃! P1 : Ω → ℝ, (∀ ω, 0 < P1 ω) ∧ Valuation1 B0 P1 (gammaRuleRandom α γ B0 Pstar P1)) ↔
+      ∀ ω, γ ω ≠ 1 ∧ 0 < gammaCoef (α ω) (γ ω) := by
+  have e : ∀ P1 : Ω → ℝ, ((∀ ω, 0 < P1 ω) ∧
+      Valuation1 B0 P1 (gammaRuleRandom α γ B0 Pstar P1)) ↔
+      ∀ ω, 0 < P1 ω ∧ B0 ω / P1 ω = gammaRule (α ω) (γ ω) (B0 ω) (Pstar ω) (P1 ω) := by
+    intro P1
+    simp only [Valuation1, gammaRuleRandom, funext_iff, Pi.div_apply]
+    exact ⟨fun h ω => ⟨h.1 ω, h.2 ω⟩, fun h => ⟨fun ω => (h ω).1, fun ω => (h ω).2⟩⟩
+  simp only [e]
+  rw [existsUnique_pi_iff (fun ω p => 0 < p ∧ B0 ω / p =
+    gammaRule (α ω) (γ ω) (B0 ω) (Pstar ω) p)]
+  exact forall_congr' fun ω => gamma_rule_full_iff (hB ω) (hPs ω)
+
+/-- Cochrane (2023), §1.9, pp. 18–19, random target: when every state satisfies `γ(ω) ≠ 1` and
+`(α(ω) − γ(ω))/(1 − γ(ω)) > 0`, a positive random `P₁` is an equilibrium iff
+`P₁ = P₁*(1 − γ)/(α − γ)` state by state. -/
+theorem gamma_random_valuation_iff {α γ B0 Pstar P1 : Ω → ℝ} (hB : ∀ ω, 0 < B0 ω)
+    (hPs : ∀ ω, 0 < Pstar ω) (hcond : ∀ ω, γ ω ≠ 1 ∧ 0 < gammaCoef (α ω) (γ ω))
+    (hP1 : ∀ ω, 0 < P1 ω) :
+    Valuation1 B0 P1 (gammaRuleRandom α γ B0 Pstar P1) ↔
+      P1 = fun ω => Pstar ω * (1 - γ ω) / (α ω - γ ω) := by
+  simp only [Valuation1, gammaRuleRandom, funext_iff, Pi.div_apply]
+  refine forall_congr' fun ω => ?_
+  rw [gamma_rule_eq_iff (hB ω) (hPs ω) (hcond ω).1 (hcond ω).2 (hP1 ω), div_gammaCoef]
+
+/-- Cochrane (2023), §1.9, pp. 18–19, **deterministic `α, γ` with a random target** (`Ω`
+nonempty, `B₀, P₁* > 0`): a unique equilibrium iff `(α − γ)(1 − γ) > 0` — the same condition
+as with a deterministic target, whatever the distribution of `P₁*`. -/
+theorem gamma_random_const_iff [Nonempty Ω] {α γ : ℝ} {B0 Pstar : Ω → ℝ}
+    (hB : ∀ ω, 0 < B0 ω) (hPs : ∀ ω, 0 < Pstar ω) :
+    (∃! P1 : Ω → ℝ, (∀ ω, 0 < P1 ω) ∧
+      Valuation1 B0 P1 (gammaRuleRandom (fun _ => α) (fun _ => γ) B0 Pstar P1)) ↔
+      0 < (α - γ) * (1 - γ) := by
+  rw [gamma_random_existsUnique_iff hB hPs, ← gamma_cond_iff_mul_pos]
+  exact ⟨fun h => h (Classical.arbitrary Ω), fun h _ => h⟩
+
+/-- Cochrane (2023), §1.3, p. 8 and §1.9, p. 19: with deterministic `α, γ` the equilibrium
+price level `P₁ = ((1 − γ)/(α − γ)) P₁*` is known at date 1 whenever the target is. -/
+theorem gamma_random_known (𝔼 : ExpectationSystem Ω) {α γ : ℝ} {Pstar : Ω → ℝ}
+    (hk : Known 𝔼 1 Pstar) :
+    Known 𝔼 1 (fun ω => Pstar ω * (1 - γ) / (α - γ)) := by
+  have e : (fun ω => Pstar ω * (1 - γ) / (α - γ)) = ((1 - γ) / (α - γ)) • Pstar := by
+    funext ω
+    simp only [Pi.smul_apply, smul_eq_mul]
+    ring
+  rw [e]
+  exact known_smul 𝔼 _ hk
+
+/-- Cochrane (2023), §1.9, pp. 18–19: with `α = 1` the condition reduces to `γ ≠ 1` and the
+equilibrium is `P₁ = P₁*`, recovering `ActivePassive.gamma_rule_random` (`Ω` nonempty). -/
+theorem gamma_random_alpha_one [Nonempty Ω] {γ : ℝ} {B0 Pstar : Ω → ℝ}
+    (hB : ∀ ω, 0 < B0 ω) (hPs : ∀ ω, 0 < Pstar ω) :
+    ((∃! P1 : Ω → ℝ, (∀ ω, 0 < P1 ω) ∧
+      Valuation1 B0 P1 (gammaRuleRandom (fun _ => 1) (fun _ => γ) B0 Pstar P1)) ↔ γ ≠ 1) ∧
+    (γ ≠ 1 → ∀ P1 : Ω → ℝ, (∀ ω, 0 < P1 ω) →
+      (Valuation1 B0 P1 (gammaRuleRandom (fun _ => 1) (fun _ => γ) B0 Pstar P1) ↔
+        P1 = Pstar)) := by
+  have hc : ∀ γ : ℝ, γ ≠ 1 → gammaCoef 1 γ = 1 := fun γ hγ =>
+    div_self (sub_ne_zero.mpr (Ne.symm hγ))
+  refine ⟨?_, fun hγ P1 hP1 => ?_⟩
+  · rw [gamma_random_existsUnique_iff hB hPs]
+    constructor
+    · intro h; exact (h (Classical.arbitrary Ω)).1
+    · intro hγ _; exact ⟨hγ, by rw [hc γ hγ]; exact one_pos⟩
+  · rw [gamma_random_valuation_iff hB hPs (fun _ => ⟨hγ, by rw [hc γ hγ]; exact one_pos⟩) hP1]
+    have h1 : (1 - γ) ≠ 0 := sub_ne_zero.mpr (Ne.symm hγ)
+    have e : (fun ω => Pstar ω * (1 - γ) / (1 - γ)) = Pstar := by
+      funext ω; field_simp
+    rw [e]
+
+/-- Cochrane (2023), §1.9, pp. 18–19, counterexample: the condition must hold in **every**
+state. On `Ω = Bool`, with `α = 1`, `B₀ = P₁* = 1`, the random `γ` equal to `1` in state
+`true` and `0` in state `false` (determinate in state `false`) gives no unique equilibrium. -/
+theorem gamma_random_one_state_fails :
+    ¬ ∃! P1 : Bool → ℝ, (∀ ω, 0 < P1 ω) ∧ Valuation1 (fun _ => 1) P1
+      (gammaRuleRandom (fun _ => 1) (fun ω => if ω then 1 else 0) (fun _ => 1) (fun _ => 1)
+        P1) := by
+  rw [gamma_random_existsUnique_iff (fun _ => one_pos) (fun _ => one_pos)]
+  intro h
+  exact (h true).1 (by simp)
+
+end Cochrane.TwoPeriodModel.TidyR5GammaRandom
+
 set_option linter.style.longLine false
 #print axioms Cochrane.TwoPeriodModel.SchurStable
 #print axioms Cochrane.TwoPeriodModel.disc
@@ -4931,3 +5408,29 @@ set_option linter.style.longLine false
 #print axioms Cochrane.TwoPeriodModel.Links.passive_valuation_any_price
 #print axioms Cochrane.TwoPeriodModel.Links.alpha_one_debt_retired
 #print axioms Cochrane.TwoPeriodModel.Links.zero_surplus_restricts_prices
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.excess
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.SignChange
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.exists_of_signChange
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.signChange_of_mem
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.eqmSet_nonempty_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.singleCrossing_existsUnique_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.singleCrossing_existsUnique_of_bounds
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.decreasing_rule_active
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.continuous_singleCrossing_no_eqm
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.jumpExcess
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.jumpRule
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.discont_singleCrossing_no_eqm
+#print axioms Cochrane.TwoPeriodModel.TidyR5SingleCrossing.discont_rule_not_continuousOn
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gammaCoef
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_cond_iff_mul_pos
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_rule_full_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_rule_eq_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.div_gammaCoef
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.existsUnique_pi_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gammaRuleRandom
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_existsUnique_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_valuation_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_const_iff
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_known
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_alpha_one
+#print axioms Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_one_state_fails

@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-21T19:33:57.877584+00:00",
-  "theorems": 593,
+  "checked_at_utc": "2026-10-22T08:25:26.991975+00:00",
+  "theorems": 676,
   "module_theorems": {
     "FiscalConstraints/Determinacy.lean": 23,
     "FiscalConstraints/Expectations.lean": 20,
@@ -22,9 +22,12 @@
     "FiscalConstraints/ExpectationsMeasureIID.lean": 37,
     "FiscalConstraints/AggregateUncertaintyMeasure.lean": 49,
     "FiscalConstraints/LognormalGrowthMeasure.lean": 19,
-    "FiscalConstraints/DebtLimitStochasticMeasure.lean": 24
+    "FiscalConstraints/DebtLimitStochasticMeasure.lean": 24,
+    "FiscalConstraints/TidyR5MoneyExistence.lean": 22,
+    "FiscalConstraints/TidyR5PiecewiseRvsG.lean": 39,
+    "FiscalConstraints/TidyR5GaussianAR1.lean": 22
   },
-  "audited_declarations": 730,
+  "audited_declarations": 832,
   "declarations": [
     {
       "name": "Cochrane.FiscalConstraints.SchurStable",
@@ -3675,6 +3678,516 @@
       "name": "Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.managedPath_le_process",
       "kind": "theorem",
       "module": "FiscalConstraints/DebtLimitStochasticMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.ImproperPV",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.finite_pv_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.tendsto_finite_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.terminal_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.tendsto_terminal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.tvc_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_tvc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.eq_fwdValue_of_tvc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.existsUnique_tvc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.exists_tvc_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.integrableOn_Ioi_of",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_eq_integral",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.integrable_of_bdd",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.ratio_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.ratio_of_debt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.flow_of_debt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_exists",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_tvc_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_exists_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5MoneyExistence.eq_6_9_exists",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5MoneyExistence.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.SolvesGen",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pvA",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_continuous",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.eq_vocA",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.integrableOn_expA",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_eq_integral",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_eq_pv",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_continuous",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_bddOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_solves",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_tendsto_abs_of_ne",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_bddOn_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_existsUnique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_tvc_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.clampI",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cumAt",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.SolvesPW",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_continuous",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_eq_regime",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_eq_last",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_regime",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_last",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.regime_cases",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_off",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_after",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.solvesPW_toGen",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol_solvesPW",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_bddOn_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_tendsto_abs_of_ne",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_existsUnique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_tvc_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol_eq_integral",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0_eq_sum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_not_unique_of_last_nonpos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_unique_iff_last_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_nominal_determinacy",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoA",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoT",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoT_monotone",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.solvesStep_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0_two_regime",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5PiecewiseRvsG.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_succ_apply",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1_F",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arDebt_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_arDebt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.rho2",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arVar",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_hasLaw_gaussian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arVar_ne_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus_not_ae_bdd_above",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.E_ar1_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.integral_abs_ar1_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.integral_abs_arDebt_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.prob_exceeds_ar",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1From",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.dseq",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arDebt_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.abs_dseq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.dseq_tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1From",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_unbounded_of_integrable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_exp_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
     }
   ],
   "full_build": "passed",
@@ -7324,6 +7837,516 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.ImproperPV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.finite_pv_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.tendsto_finite_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.terminal_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.tendsto_terminal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.eq_fwdValue_of_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.existsUnique_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.exists_tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.integrableOn_Ioi_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.fwdValue_eq_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.integrable_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.ratio_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.ratio_of_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.flow_of_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.money_debt_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5MoneyExistence.eq_6_9_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.SolvesGen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pvA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.vocA_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.eq_vocA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.integrableOn_expA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_eq_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_eq_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gSol_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_bddOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_tendsto_abs_of_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_bddOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.gen_tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.clampI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cumAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.SolvesPW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_eq_regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_eq_last": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_last": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.regime_cases": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_hasDerivAt_off": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.cum_after": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.solvesPW_toGen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol_solvesPW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_bddOn_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_tendsto_abs_of_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwSol_eq_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0_eq_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_not_unique_of_last_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_unique_iff_last_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pw_nominal_determinacy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.twoT_monotone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.solvesStep_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5PiecewiseRvsG.pwPV0_two_regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_succ_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1_F": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arDebt_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_arDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.rho2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_hasLaw_gaussian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arVar_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arSurplus_not_ae_bdd_above": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.E_ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.integral_abs_ar1_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.integral_abs_arDebt_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.prob_exceeds_ar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1From": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.dseq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.arDebt_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.abs_dseq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.dseq_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.measurable_ar1From": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.ar1_unbounded_of_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_exp_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -7348,15 +8371,18 @@
     "FiscalConstraints/AggregateUncertaintyMeasure.lean": "3ea7d889b0b1eead06a98e7c1e9df3fdc1ea0d9c2482213a51447f25a0423d67",
     "FiscalConstraints/LognormalGrowthMeasure.lean": "f47d856e98565ef5b0d9a4a49cfbe8f0eb9aa1b8107149487a0c773888515672",
     "FiscalConstraints/DebtLimitStochasticMeasure.lean": "3eb7619b2109e9463ef5ae04a06183e2789cfb60cde3d984dc9f8d48a162fd5a",
-    "FiscalConstraints.lean": "dca9ed344a0e53140a798797a00275bdc089f7537ecdced71744d9c18b6ef488",
+    "FiscalConstraints/TidyR5MoneyExistence.lean": "86c6c0e71abd3991192fe7fd898b21d22869a43371398a68ecfebdafeb017409",
+    "FiscalConstraints/TidyR5PiecewiseRvsG.lean": "d23bab6c3cfcb53d45bdefa2152d7e78ec9c2256df6d10bd1bbb8a53d6c8cdd4",
+    "FiscalConstraints/TidyR5GaussianAR1.lean": "43f86267990dbdf99a4320488d5b735c8b26265083c26b04f10c918d31500ad9",
+    "FiscalConstraints.lean": "eed63e2f0f04a1b6b19d8d06ae2a4bf55b596f674f5ffbc48ae84a3ffaf795d6",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "2316afb07e737873c291196c3982b4bdd8780e7da7c3353143daebcc265883ed",
     "lake-manifest.json": "471395732f51621c043128672558300d914c17f1f7b01d12949738d21f9aac5f",
-    "proof-manifest.json": "232f2907160bbe78e622fb0a42533e2eafc27322e187f3736f9f0a5a4c2726af",
-    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "proof-manifest.json": "4f27c279b3a33d70791645b70f8e457fefc77ac755038e69d831ba55f360d068",
+    "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "939b289f9dc689675c6303e2ad72160e36be9971caf8f6705ab5b126d7d8e9b5",
+  "fresh_audit_sha256": "3091c6240b225a25e2313104ef98107bda0d2682f792007ed4229f2c0dce0be9",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."

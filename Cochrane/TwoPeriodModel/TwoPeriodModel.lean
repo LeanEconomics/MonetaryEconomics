@@ -13,3 +13,5 @@ import TwoPeriodModel.DebtSales
 import TwoPeriodModel.PriceLevelTarget
 import TwoPeriodModel.ActivePassive
 import TwoPeriodModel.Links
+import TwoPeriodModel.TidyR5SingleCrossing
+import TwoPeriodModel.TidyR5GammaRandom
