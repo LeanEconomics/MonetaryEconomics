@@ -50,6 +50,10 @@ import Mathlib.Probability.CondVar
 import Mathlib.Probability.ProductMeasure
 import Mathlib.Probability.Independence.InfinitePi
 import Mathlib.Probability.ConditionalExpectation
+import Mathlib.Analysis.Calculus.Deriv.Slope
+import Mathlib.Analysis.Calculus.Deriv.Pow
+import Mathlib.Analysis.Calculus.FDeriv.Measurable
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 set_option autoImplicit false
 
 /-
@@ -24651,6 +24655,2239 @@ theorem iid_stationary_from_one {ν : ProbabilityMeasure ℝ} {σ2 B : ℝ}
 
 end Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The resonant AR(1) rate rise with long-term debt
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §5.3, p. 131, with the
+long-term-debt model of §5.2, eqs. (5.17)–(5.21), pp. 127–129.
+
+`LongTermDebt.ltd_ar1` solves the AR(1) rate rise `i_t = ηᵗ` in closed form,
+`π_t = A ηᵗ + C λ₁^{−t}`, but only when `λ₁η ≠ 1`: at `η = 1/λ₁` the coefficient
+`A = σκ/((λ₁η − 1)(1 − λ₂η))` blows up. This module closes that case.
+
+## Main results
+
+* `resA`, `resC`: the coefficients of the resonant solution.
+* `ltd_ar1_resonant`: when `λ₁η = 1`, every equilibrium with bounded inflation and debt and
+  adapted bounded bond prices has `q_t = −ηᵗ/(1 − ω̃η)` and
+  `π_t = resA · t · ηᵗ + resC · ηᵗ` (the `t λ₁^{−t}` term of a double root).
+* `ltd_ar1_resonant_exists`, `ltd_ar1_resonant_existsUnique`: such an equilibrium exists, and
+  it is unique.
+* `resC_eq_impactRHS`: the resonant impact `resC` is the value at `η = 1/λ₁` of the
+  closed-form impact of `LongTermDebt.ar1_impact` (whose right side has no resonance).
+* `tendsto_ar1_resonant`: **the resonant path is the limit of the non-resonant ones**: for every
+  date `t`, `A(η) ηᵗ + C(η) λ₁^{−t} → resA · t · λ₁^{−t} + resC · λ₁^{−t}` as `η → 1/λ₁`,
+  `η ≠ 1/λ₁`; `tendsto_ar1_impact_resonant` is the impact (`t = 0`).
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR5Resonant
+
+open Filter Topology NKModel TwoSidedMA FiscalNK LongTermDebt
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), p. 131 (resonant case `λ₁η = 1`): the coefficient on `t ηᵗ` in inflation,
+`σκ/(1 − λ₂η)`. -/
+noncomputable def resA (σ β κ η : ℝ) : ℝ :=
+  σ * κ / (1 - lam2 σ β κ * η)
+
+/-- Cochrane (2023), p. 131 (resonant case `λ₁η = 1`): the coefficient on `ηᵗ`, pinned by the
+valuation equation, `ρ − resA·ρη/(1 − ρη) − (1 − ρη) ω̃/(1 − ω̃η)`; it is the impact response. -/
+noncomputable def resC (σ β κ ρ om η : ℝ) : ℝ :=
+  ρ - resA σ β κ η * (ρ * η) / (1 - ρ * η) - (1 - ρ * η) * (om / (1 - om * η))
+
+/-- Cochrane (2023), p. 131: the right side of `LongTermDebt.ar1_impact`,
+`ρ/(1 − ρη)·[(1 − ρ/λ₁) − (1 − λ₁⁻¹)(1 − λ₂)/(1 − λ₂η)] − (1 − ρ/λ₁) ω̃/(1 − ω̃η)`, as a function
+of the persistence `η` defined at every `η` (it has no resonance). -/
+noncomputable def impactRHS (σ β κ ρ om η : ℝ) : ℝ :=
+  ρ / (1 - ρ * η) * ((1 - ρ * (lam1 σ β κ)⁻¹) -
+    (1 - (lam1 σ β κ)⁻¹) * (1 - lam2 σ β κ) / (1 - lam2 σ β κ * η)) -
+  (1 - ρ * (lam1 σ β κ)⁻¹) * (om / (1 - om * η))
+
+/-- Cochrane (2023), p. 131: in the resonant case the persistence is `η = 1/λ₁ ∈ (0, 1)`. -/
+theorem resonant_eta {σ β κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hres : lam1 σ β κ * η = 1) : η = (lam1 σ β κ)⁻¹ ∧ 0 < η ∧ η < 1 := by
+  have ha := mul_pos hσ hκ
+  have h1 := one_lt_lam1 ha hβ
+  have hl0 : lam1 σ β κ ≠ 0 := by linarith
+  have he : η = (lam1 σ β κ)⁻¹ := by
+    exact eq_inv_of_mul_eq_one_right hres
+  refine ⟨he, ?_, ?_⟩
+  · rw [he]; exact inv_pos.mpr (by linarith)
+  · rw [he]; exact inv_lt_one_of_one_lt₀ h1
+
+/-- Cochrane (2023), §5.3, p. 131, **the resonant case `λ₁η = 1`**: an unexpected AR(1) rate path
+`i_t = ηᵗ` with `η = 1/λ₁`, long-term debt (`0 ≤ ω̃ < 1`), unchanged surpluses and
+`v_{−1} = q_{−1} = 0`. In every equilibrium with bounded inflation and debt and adapted bounded
+bond prices, `q_t = −ηᵗ/(1 − ω̃η)` and `π_t = resA · t · ηᵗ + resC · ηᵗ`. -/
+theorem ltd_ar1_resonant {σ β κ ρ om η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1)
+    (hres : lam1 σ β κ * η = 1) {x π v q rn : ℕ → Ω → ℝ}
+    (h : LTD 𝔼 σ β κ ρ om (fun t _ => η ^ t) (fun _ _ => 0) 0 0 x π v q rn) (hqa : 𝔼.Adapted q)
+    (hπb : BoundedProc π) (hvb : BoundedProc v) (hqb : BoundedProc q) (t : ℕ) (ω : Ω) :
+    q t ω = -η ^ t / (1 - om * η) ∧
+      π t ω = resA σ β κ η * t * η ^ t + resC σ β κ ρ om η * η ^ t := by
+  have ha := mul_pos hσ hκ
+  obtain ⟨-, hη0', hη1⟩ := resonant_eta hσ hκ hβ hres
+  have hη0 := hη0'.le
+  have h2 := lam2_pos ha hβ
+  have h21 := lam2_lt_one ha hβ
+  have hoη : 0 < 1 - om * η := by nlinarith
+  have hl2η : 0 < 1 - lam2 σ β κ * η := by nlinarith
+  have hρη : 0 < 1 - ρ * η := by nlinarith
+  have hρη1 : ρ * η < 1 := by linarith
+  have hηb : ∀ t, |η ^ t| ≤ 1 := fun t => by
+    rw [abs_of_nonneg (pow_nonneg hη0 t)]; exact pow_le_one₀ hη0 hη1.le
+  -- the bond price
+  have hi : 𝔼.Adapted (fun t (_ : Ω) => η ^ t) := fun t => 𝔼.const t _
+  have hqc : q = fun t _ => -η ^ t / (1 - om * η) := by
+    rw [bond_price 𝔼 hom0 hom1 hi (Mi := 1) (fun t _ => hηb t) hqa hqb h.2.2.2.1 h.2.2.2.2.1]
+    refine (𝔼.eq_forwardSeries hom0 hom1 (M := 1) (fun t _ => by simpa using hηb t)
+      (fun t => by rw [Pi.neg_apply, map_neg, hi t]) (fun t => ?_)
+      ⟨1 / (1 - om * η), fun t _ => ?_⟩).symm
+    · rw [𝔼.const]
+      funext ω'
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.neg_apply]
+      field_simp
+      ring
+    · rw [abs_div, abs_neg, abs_of_pos hoη]
+      exact div_le_div_of_nonneg_right (hηb t) hoη.le
+  set c0 := om / (1 - om * η) with hc0
+  set s'' : ℕ → ℝ := fun t => if t = 0 then c0 else 0 with hs''
+  have hsadj : sAdj (fun t _ => η ^ t) (fun _ _ => (0 : ℝ)) rn = fun t _ => s'' t := by
+    funext t ω'
+    cases t with
+    | zero =>
+      simp only [sAdj, Pi.sub_apply, hs'', ↓reduceIte]
+      rw [h.2.2.2.2.2, hqc]
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply, hc0, pow_zero]
+      field_simp
+      ring
+    | succ t =>
+      simp only [sAdj, Pi.add_apply, Pi.sub_apply, hs'', Nat.succ_ne_zero, ↓reduceIte]
+      rw [h.2.2.2.2.1 t, hqc]
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      field_simp
+      ring
+  have hft := ltd_to_ftplnk 𝔼 h
+  rw [hsadj] at hft
+  set A := resA σ β κ η with hAdef
+  set C := resC σ β κ ρ om η with hCdef
+  set l1 := lam1 σ β κ with hl1
+  set l2 := lam2 σ β κ with hl2
+  have hA : A * (1 - l2 * η) = σ * κ := by
+    rw [hAdef, resA, ← hl2]
+    field_simp
+  have hFd : ∀ t, ∑' k, l2 ^ k * η ^ (t + k) = η ^ t / (1 - l2 * η) := by
+    intro t
+    have := ((hasSum_geometric_of_lt_one (mul_nonneg h2.le hη0) (by nlinarith)).mul_left
+      (η ^ t)).tsum_eq
+    rw [← div_eq_mul_inv] at this
+    rw [← this]
+    exact tsum_congr fun k => by rw [pow_add, mul_pow]; ring
+  set p : ℕ → ℝ := fun t => A * t * η ^ t + C * η ^ t with hp
+  have hfac : ∀ t, p t - l1 * p (t + 1) = -(σ * κ) * ∑' k, l2 ^ k * η ^ (t + k) := by
+    intro t
+    have hkey : p t - l1 * p (t + 1) = -(A * η ^ t) := by
+      simp only [hp]
+      push_cast
+      rw [pow_succ]
+      linear_combination (-((A * (t + 1) + C) * η ^ t)) * hres
+    have e1 : 1 - l2 * η ≠ 0 := hl2η.ne'
+    rw [hkey, hFd t, ← hA]
+    field_simp
+  -- present values
+  have hgeo : HasSum (fun j : ℕ => (j : ℝ) * (ρ * η) ^ j) (ρ * η / (1 - ρ * η) ^ 2) := by
+    have := hasSum_coe_mul_geometric_of_norm_lt_one (𝕜 := ℝ) (r := ρ * η)
+      (by rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]; exact hρη1)
+    exact this
+  have hps : HasSum (fun j : ℕ => ρ ^ j * (p j + s'' j))
+      (A * (ρ * η / (1 - ρ * η) ^ 2) + C * (1 - ρ * η)⁻¹ + c0) := by
+    have hs0 : HasSum (fun j : ℕ => if j = 0 then c0 else 0) c0 := hasSum_ite_eq 0 c0
+    have := ((hgeo.mul_left A).add ((hasSum_geometric_of_lt_one (by positivity) hρη1).mul_left
+      C)).add hs0
+    convert this using 1
+    funext j
+    simp only [hs'', hp]
+    split_ifs with hj
+    · subst hj; simp
+    · rw [mul_pow]; ring
+  have hηs : ∑' j, ρ ^ j * η ^ j = (1 - ρ * η)⁻¹ := by
+    rw [← tsum_geometric_of_lt_one (by positivity) hρη1]
+    exact tsum_congr fun j => by rw [mul_pow]
+  have hfis : ∑' j, ρ ^ j * (p j + s'' j) - ρ * ∑' j, ρ ^ j * η ^ j = 0 := by
+    rw [hps.tsum_eq, hηs, hCdef, resC, ← hAdef, ← hc0]
+    field_simp
+    ring
+  -- bounds
+  have hjb : ∀ j : ℕ, (j : ℝ) * η ^ j ≤ η / (1 - η) ^ 2 := fun j => by
+    have hg := hasSum_coe_mul_geometric_of_norm_lt_one (𝕜 := ℝ) (r := η)
+      (by rw [Real.norm_eq_abs, abs_of_nonneg hη0]; exact hη1)
+    exact le_hasSum hg j (fun k _ => by positivity)
+  have hpb : ∀ t, |p t| ≤ |A| * (η / (1 - η) ^ 2) + |C| := fun t => by
+    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+    · rw [mul_assoc, abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ t * η ^ t)]
+      exact mul_le_mul_of_nonneg_left (hjb t) (abs_nonneg _)
+    · rw [abs_mul]; exact mul_le_of_le_one_right (abs_nonneg _) (hηb t)
+  have hsb : ∀ t, |s'' t| ≤ |c0| := fun t => by
+    simp only [hs'']; split_ifs <;> simp
+  have hdp := det_path 𝔼 hσ hκ hβ hρ0 hρ1 0 (c := fun t => η ^ t) hηb hsb hpb hfac hfis
+  have hπ := (hdp.2 x π v (by exact hft) hπb hvb).1
+  refine ⟨by rw [hqc], ?_⟩
+  rw [hπ]
+
+/-- Cochrane (2023), §5.3, p. 131 and p. 128 (resonant case): **an equilibrium exists** with
+bounded output, inflation, debt and adapted bounded bond prices (`ltd_determinate`). -/
+theorem ltd_ar1_resonant_exists {σ β κ ρ om η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1)
+    (hres : lam1 σ β κ * η = 1) :
+    ∃ x π v q rn, LTD 𝔼 σ β κ ρ om (fun t _ => η ^ t) (fun _ _ => 0) 0 0 x π v q rn ∧
+      𝔼.Adapted q ∧ BoundedProc x ∧ BoundedProc π ∧ BoundedProc v ∧ BoundedProc q := by
+  obtain ⟨-, hη0, hη1⟩ := resonant_eta hσ hκ hβ hres
+  obtain ⟨x, π, v, q, rn, ⟨hL, hqa, hxb, hπb, hvb, hqb⟩, -⟩ :=
+    ltd_determinate 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 (i := fun t _ => η ^ t)
+      (s := fun _ _ => 0) (vm1 := 0) (qm1 := 0) (Mi := 1) (Ms := 0) (Mv := 0) (Mq := 0)
+      (fun t => 𝔼.const t _)
+      (fun t _ => by
+        rw [abs_of_nonneg (pow_nonneg hη0.le t)]; exact pow_le_one₀ hη0.le hη1.le)
+      (fun t => 𝔼.const t _) (fun _ _ => by simp) (map_zero _) (fun _ => by simp)
+      (map_zero _) (fun _ => by simp)
+  exact ⟨x, π, v, q, rn, hL, hqa, hxb, hπb, hvb, hqb⟩
+
+/-- Cochrane (2023), §5.3, p. 131, **existence and uniqueness in the resonant case**: there is
+an equilibrium, every equilibrium (bounded inflation and debt, adapted bounded bond prices) has
+the closed form of `ltd_ar1_resonant`, and any two coincide. -/
+theorem ltd_ar1_resonant_existsUnique {σ β κ ρ om η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hβ : 0 < β) (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1)
+    (hres : lam1 σ β κ * η = 1) :
+    (∃ x π v q rn, LTD 𝔼 σ β κ ρ om (fun t _ => η ^ t) (fun _ _ => 0) 0 0 x π v q rn ∧
+      𝔼.Adapted q ∧ BoundedProc x ∧ BoundedProc π ∧ BoundedProc v ∧ BoundedProc q) ∧
+    ∀ x π v q rn x' π' v' q' rn',
+      LTD 𝔼 σ β κ ρ om (fun t _ => η ^ t) (fun _ _ => 0) 0 0 x π v q rn → 𝔼.Adapted q →
+      BoundedProc π → BoundedProc v → BoundedProc q →
+      LTD 𝔼 σ β κ ρ om (fun t _ => η ^ t) (fun _ _ => 0) 0 0 x' π' v' q' rn' →
+      𝔼.Adapted q' → BoundedProc π' → BoundedProc v' → BoundedProc q' → π = π' ∧ q = q' := by
+  refine ⟨ltd_ar1_resonant_exists 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 hres,
+    fun x π v q rn x' π' v' q' rn' h hqa hπb hvb hqb h' hqa' hπb' hvb' hqb' => ⟨?_, ?_⟩⟩
+  · funext t ω
+    rw [(ltd_ar1_resonant 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 hres h hqa hπb hvb hqb t ω).2,
+      (ltd_ar1_resonant 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 hres h' hqa' hπb' hvb' hqb' t ω).2]
+  · funext t ω
+    rw [(ltd_ar1_resonant 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 hres h hqa hπb hvb hqb t ω).1,
+      (ltd_ar1_resonant 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 hres h' hqa' hπb' hvb' hqb' t ω).1]
+
+/-- Cochrane (2023), p. 131: the resonant impact `resC` is the value of the closed-form impact
+of `LongTermDebt.ar1_impact` at `η = 1/λ₁` (the right side of `ar1_impact` is continuous
+through the resonance). -/
+theorem resC_eq_impactRHS {σ β κ ρ om : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) :
+    resC σ β κ ρ om (lam1 σ β κ)⁻¹ = impactRHS σ β κ ρ om (lam1 σ β κ)⁻¹ := by
+  have ha := mul_pos hσ hκ
+  have h1 := one_lt_lam1 ha hβ
+  have hl0 : lam1 σ β κ ≠ 0 := by linarith
+  obtain ⟨-, hη0, hη1⟩ := resonant_eta hσ hκ hβ (mul_inv_cancel₀ hl0)
+  have h2 := lam2_pos ha hβ
+  have h21 := lam2_lt_one ha hβ
+  have hoη : 1 - om * (lam1 σ β κ)⁻¹ ≠ 0 := by nlinarith
+  have hl2η : 1 - lam2 σ β κ * (lam1 σ β κ)⁻¹ ≠ 0 := by nlinarith
+  have hρη : 1 - ρ * (lam1 σ β κ)⁻¹ ≠ 0 := by nlinarith
+  have hsk := sigma_kappa_eq ha hβ
+  unfold resC resA impactRHS
+  rw [hsk]
+  obtain ⟨η, hη⟩ : ∃ η, lam1 σ β κ = η⁻¹ := ⟨(lam1 σ β κ)⁻¹, (inv_inv _).symm⟩
+  rw [hη] at hoη hl2η hρη hl0 ⊢
+  simp only [inv_inv] at hoη hl2η hρη ⊢
+  have hηne : η ≠ 0 := by rintro rfl; simp at hl0
+  generalize lam2 σ β κ = M at *
+  field_simp
+
+/-- Cochrane (2023), p. 131: `impactRHS` is continuous at the resonance `η = 1/λ₁`. -/
+theorem continuousAt_impactRHS {σ β κ ρ om : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) :
+    ContinuousAt (impactRHS σ β κ ρ om) (lam1 σ β κ)⁻¹ := by
+  have ha := mul_pos hσ hκ
+  have h1 := one_lt_lam1 ha hβ
+  have hl0 : lam1 σ β κ ≠ 0 := by linarith
+  obtain ⟨-, hη0, hη1⟩ := resonant_eta hσ hκ hβ (mul_inv_cancel₀ hl0)
+  have h2 := lam2_pos ha hβ
+  have h21 := lam2_lt_one ha hβ
+  have hoη : 1 - om * (lam1 σ β κ)⁻¹ ≠ 0 := by nlinarith
+  have hl2η : 1 - lam2 σ β κ * (lam1 σ β κ)⁻¹ ≠ 0 := by nlinarith
+  have hρη : 1 - ρ * (lam1 σ β κ)⁻¹ ≠ 0 := by nlinarith
+  unfold impactRHS
+  fun_prop (disch := assumption)
+
+/-- Cochrane (2023), §5.3, p. 131, **the resonant path is the limit of the non-resonant paths**:
+for every date `t`, the closed form `A(η) ηᵗ + C(η) λ₁^{−t}` of `LongTermDebt.ltd_ar1` converges,
+as `η → 1/λ₁` with `η ≠ 1/λ₁`, to the resonant closed form `resA · t · λ₁^{−t} + resC · λ₁^{−t}`
+of `ltd_ar1_resonant`. -/
+theorem tendsto_ar1_resonant {σ β κ ρ om : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) (t : ℕ) :
+    Tendsto (fun η => ar1A σ β κ η * η ^ t + ar1C σ β κ ρ om η * (lam1 σ β κ)⁻¹ ^ t)
+      (𝓝[≠] (lam1 σ β κ)⁻¹)
+      (𝓝 (resA σ β κ (lam1 σ β κ)⁻¹ * t * (lam1 σ β κ)⁻¹ ^ t +
+        resC σ β κ ρ om (lam1 σ β κ)⁻¹ * (lam1 σ β κ)⁻¹ ^ t)) := by
+  have ha := mul_pos hσ hκ
+  have h1 := one_lt_lam1 ha hβ
+  have hl0 : lam1 σ β κ ≠ 0 := by linarith
+  obtain ⟨-, hη0, hη1⟩ := resonant_eta hσ hκ hβ (mul_inv_cancel₀ hl0)
+  have h2 := lam2_pos ha hβ
+  have h21 := lam2_lt_one ha hβ
+  set l1 := lam1 σ β κ with hl1
+  set l2 := lam2 σ β κ with hl2
+  set η0 := l1⁻¹ with hη0d
+  have hq : l1 * η0 = 1 := mul_inv_cancel₀ hl0
+  have hoη : 0 < 1 - om * η0 := by nlinarith
+  have hl2η : 0 < 1 - l2 * η0 := by nlinarith
+  have hρη : 0 < 1 - ρ * η0 := by nlinarith
+  -- the three factors
+  have hslope : Tendsto (fun η => (η - η0)⁻¹ * (η ^ t - η0 ^ t)) (𝓝[≠] η0)
+      (𝓝 ((t : ℝ) * η0 ^ (t - 1))) := by
+    have := (hasDerivAt_pow t η0).tendsto_slope
+    refine this.congr fun η => ?_
+    simp [slope_def_field, div_eq_inv_mul]
+  have hfac : Tendsto (fun η => σ * κ / (l1 * (1 - l2 * η))) (𝓝[≠] η0)
+      (𝓝 (σ * κ / (l1 * (1 - l2 * η0)))) := by
+    have hc : ContinuousAt (fun η => σ * κ / (l1 * (1 - l2 * η))) η0 := by
+      have : l1 * (1 - l2 * η0) ≠ 0 := mul_ne_zero hl0 hl2η.ne'
+      fun_prop (disch := assumption)
+    exact hc.tendsto.mono_left nhdsWithin_le_nhds
+  have himp : Tendsto (impactRHS σ β κ ρ om) (𝓝[≠] η0) (𝓝 (impactRHS σ β κ ρ om η0)) :=
+    (continuousAt_impactRHS hσ hκ hβ hρ0 hρ1 hom0 hom1).tendsto.mono_left nhdsWithin_le_nhds
+  have hlim := (hfac.mul hslope).add (himp.mul_const (η0 ^ t))
+  have hval : σ * κ / (l1 * (1 - l2 * η0)) * ((t : ℝ) * η0 ^ (t - 1)) +
+      impactRHS σ β κ ρ om η0 * η0 ^ t =
+      resA σ β κ η0 * t * η0 ^ t + resC σ β κ ρ om η0 * η0 ^ t := by
+    rw [← resC_eq_impactRHS hσ hκ hβ hρ0 hρ1 hom0 hom1]
+    congr 1
+    rw [resA, ← hl2]
+    rcases Nat.eq_zero_or_pos t with ht | ht
+    · subst ht; simp
+    · have e : η0 ^ t = η0 ^ (t - 1) * η0 := by
+        rw [← pow_succ, Nat.sub_add_cancel ht]
+      rw [e]
+      field_simp
+      linear_combination (-1 : ℝ) * hq
+  rw [← hval]
+  refine hlim.congr' ?_
+  -- eventually the denominators of `ar1_impact` are nonzero
+  have hev1 : ∀ᶠ η in 𝓝 η0, 1 - ρ * η ≠ 0 :=
+    ((continuous_const.sub (continuous_const.mul continuous_id)).continuousAt.eventually_ne
+      hρη.ne')
+  have hev2 : ∀ᶠ η in 𝓝 η0, 1 - om * η ≠ 0 :=
+    ((continuous_const.sub (continuous_const.mul continuous_id)).continuousAt.eventually_ne
+      hoη.ne')
+  have hev3 : ∀ᶠ η in 𝓝 η0, 1 - l2 * η ≠ 0 :=
+    ((continuous_const.sub (continuous_const.mul continuous_id)).continuousAt.eventually_ne
+      hl2η.ne')
+  filter_upwards [nhdsWithin_le_nhds hev1, nhdsWithin_le_nhds hev2, nhdsWithin_le_nhds hev3,
+    self_mem_nhdsWithin] with η e1 e2 e3 hne
+  have hne' : η - η0 ≠ 0 := sub_ne_zero.mpr hne
+  have hres : l1 * η ≠ 1 := by
+    intro h0
+    apply hne'
+    have : l1 * (η - η0) = 0 := by rw [mul_sub, h0, hq, sub_self]
+    rcases mul_eq_zero.mp this with h | h
+    · exact absurd h hl0
+    · exact h
+  have himpη := ar1_impact hσ hκ hβ e1 e2 e3 hres
+  have hC : ar1C σ β κ ρ om η = impactRHS σ β κ ρ om η - ar1A σ β κ η := by
+    rw [impactRHS, ← himpη]; ring
+  have hA : ar1A σ β κ η = σ * κ / (l1 * (1 - l2 * η)) * (η - η0)⁻¹ := by
+    rw [ar1A, ← hl1, ← hl2]
+    have : l1 * η - 1 = l1 * (η - η0) := by rw [mul_sub, hq]
+    rw [this]
+    field_simp
+  rw [hC, hA]
+  ring
+
+/-- Cochrane (2023), p. 131: the impact response `A(η) + C(η)` converges to the resonant impact
+`resC` as `η → 1/λ₁` (`t = 0` in `tendsto_ar1_resonant`). -/
+theorem tendsto_ar1_impact_resonant {σ β κ ρ om : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) :
+    Tendsto (fun η => ar1A σ β κ η + ar1C σ β κ ρ om η) (𝓝[≠] (lam1 σ β κ)⁻¹)
+      (𝓝 (resC σ β κ ρ om (lam1 σ β κ)⁻¹)) := by
+  have := tendsto_ar1_resonant hσ hκ hβ hρ0 hρ1 hom0 hom1 0
+  simp only [pow_zero, mul_one, Nat.cast_zero, mul_zero, zero_add] at this
+  exact this
+
+end Cochrane.StickyPriceFiscal.TidyR5Resonant
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# How the impact of an AR(1) rate rise depends on its persistence, for every `ρ`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §5.3, p. 131, with the
+long-term-debt model of §5.2, pp. 127–129.
+
+The book says that, to lower inflation through long-term debt, "the interest-rate rise must be
+persistent and unexpected" and that a shock "believed to be long-lasting … is most likely to be
+disinflationary" (p. 131). `LongTermDebt` proves these with `ρ = β` (where, in fact, the sign of
+the impact does not depend on persistence, `ar1_disinflation_iff_rho_eq_beta`). This module
+treats every `0 < ρ < 1`.
+
+Write `q = 1/λ₁` (so `λ₂ = βq`) and
+`P(η) = (1 − ρq) − (ρ(1 − q) + βq(1 − ρ))η`, `Q(η) = ρq[(1 + β − ρ − βq) − (1 − ρq)βη]`.
+
+## Main results
+
+* `impactRHS_eq_factor`: the impact response is
+  `π₁(η) = (Q(η) − ω̃P(η)) / ((1 − ρη)(1 − βqη)(1 − ω̃η))`; `eqm_impact`: this is the impact of
+  every equilibrium, resonant (`λ₁η = 1`) or not.
+* `impact_neg_iff_omStar`: **disinflation on impact iff `ω̃ > ω*(η) = Q(η)/P(η)`**; the
+  threshold runs from `ω*(0)` to `ω*(1) = ρ/λ₁` (`omStar_one`, the permanent-rise threshold of
+  `LongTermDebt.ltd_disinflation_iff`), and `tendsto_impact_one` (the AR(1) impact tends to the
+  permanent-rise impact `(ρ/λ₁ − ω̃)/(1 − ω̃)` as `η → 1`).
+* `omStar_cross`: `Q(η₂)P(η₁) − Q(η₁)P(η₂) = (η₂ − η₁)·ρq(1 − q)(1 − βq)(1 − ρ)(ρ − β)`, hence
+  the threshold is strictly decreasing in persistence iff `ρ < β` (`omStar_strictAntiOn`),
+  constant iff `ρ = β` (`omStar_rho_eq_beta`), strictly increasing iff `ρ > β`
+  (`omStar_strictMonoOn`).
+* `ρ ≤ β`, **the book's claims hold**: `persistence_helps` (if an AR(1) rise disinflates, so
+  does every more persistent one), `persistence_needed` (`ρ < β`: there are maturities for which
+  a one-period rise does not disinflate while sufficiently persistent rises do),
+  `persistence_magnifies` (once disinflationary, more persistence gives strictly more
+  disinflation).
+* `ρ > β`, **the book's claims fail**: `persistence_hurts` (if a rise disinflates, so does every
+  less persistent one), and `rho_gt_beta_reversal`: with `ω̃ = ρ/λ₁` every AR(1) rise of
+  persistence `η < 1` lowers inflation on impact, the permanent rise does not (impact `0`), the
+  impact rises towards `0` as `η → 1`, and it is not antitone in `η`;
+  `rho_gt_beta_reversal_eqm` states it for the equilibria.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR5Persistence
+
+open Filter Topology NKModel TwoSidedMA FiscalNK LongTermDebt TidyR5Resonant
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), p. 131 (tool): the linear function
+`P(η) = (1 − ρq) − (ρ(1 − q) + βq(1 − ρ))η`. -/
+def pP (ρ β q η : ℝ) : ℝ := (1 - ρ * q) - (ρ * (1 - q) + β * q * (1 - ρ)) * η
+
+/-- Cochrane (2023), p. 131 (tool): the linear function
+`Q(η) = ρq[(1 + β − ρ − βq) − (1 − ρq)βη]`. -/
+def pQ (ρ β q η : ℝ) : ℝ := ρ * q * ((1 + β - ρ - β * q) - (1 - ρ * q) * β * η)
+
+/-- Cochrane (2023), p. 131: the maturity threshold `ω*(η) = Q(η)/P(η)` above which an AR(1)
+rise of persistence `η` lowers inflation on impact. -/
+noncomputable def omStar (ρ β q η : ℝ) : ℝ := pQ ρ β q η / pP ρ β q η
+
+/-- Cochrane (2023), eq. (5.6), p. 119: `λ₂ = β/λ₁` (from `λ₁λ₂ = β`). -/
+theorem lam2_eq {σ β κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β) :
+    lam2 σ β κ = β * (lam1 σ β κ)⁻¹ := by
+  have ha := mul_pos hσ hκ
+  have hl0 : lam1 σ β κ ≠ 0 := (lam1_pos ha hβ).ne'
+  have := lam_prod ha hβ
+  field_simp
+  linarith
+
+/-- Cochrane (2023), p. 131 (tool): the identity `P(η) − ηQ(η) = (1 − ρq)(1 − ρη)(1 − βqη)`. -/
+theorem pP_sub_pQ (ρ β q η : ℝ) :
+    pP ρ β q η - η * pQ ρ β q η = (1 - ρ * q) * (1 - ρ * η) * (1 - β * q * η) := by
+  unfold pP pQ
+  ring
+
+/-- Cochrane (2023), p. 131 (tool): `P(1) = (1 − ρ)(1 − βq)` and `Q(1) = ρq(1 − ρ)(1 − βq)`. -/
+theorem pP_pQ_one (ρ β q : ℝ) :
+    pP ρ β q 1 = (1 - ρ) * (1 - β * q) ∧ pQ ρ β q 1 = ρ * q * ((1 - ρ) * (1 - β * q)) := by
+  unfold pP pQ
+  constructor <;> ring
+
+/-- Cochrane (2023), p. 131 (tool): for `0 < q < 1`, `0 < ρ < 1`, `β ≥ 0`, `βq < 1` and
+`η ≤ 1`, `P(η) > 0` and `Q(η) > 0`. -/
+theorem pP_pQ_pos {ρ β q η : ℝ} (hq0 : 0 < q) (hq1 : q < 1) (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
+    (hβ : 0 ≤ β) (hβq : β * q < 1) (hη1 : η ≤ 1) :
+    0 < pP ρ β q η ∧ 0 < pQ ρ β q η := by
+  unfold pP pQ
+  have hρq : ρ * q < 1 := by nlinarith
+  have hc : 0 ≤ ρ * (1 - q) + β * q * (1 - ρ) := by
+    have : 0 ≤ β * q := by positivity
+    nlinarith
+  have hb : 0 ≤ (1 - ρ * q) * β := by nlinarith
+  constructor
+  · have : (ρ * (1 - q) + β * q * (1 - ρ)) * η ≤ ρ * (1 - q) + β * q * (1 - ρ) :=
+      mul_le_of_le_one_right hc hη1
+    nlinarith
+  · refine mul_pos (mul_pos hρ0 hq0) ?_
+    have : (1 - ρ * q) * β * η ≤ (1 - ρ * q) * β := mul_le_of_le_one_right hb hη1
+    nlinarith
+
+/-- Cochrane (2023), p. 131 (algebraic form): with `ℓ = βq`,
+`ρ/(1 − ρη)[(1 − ρq) − (1 − q)(1 − ℓ)/(1 − ℓη)] − (1 − ρq)ω̃/(1 − ω̃η)
+  = (Q(η) − ω̃P(η))/((1 − ρη)(1 − βqη)(1 − ω̃η))`. -/
+theorem factor_identity {ρ β q om η : ℝ} (h1 : 1 - ρ * η ≠ 0) (h2 : 1 - β * q * η ≠ 0)
+    (h3 : 1 - om * η ≠ 0) :
+    ρ / (1 - ρ * η) * ((1 - ρ * q) - (1 - q) * (1 - β * q) / (1 - β * q * η)) -
+      (1 - ρ * q) * (om / (1 - om * η)) =
+    (pQ ρ β q η - om * pP ρ β q η) / ((1 - ρ * η) * (1 - β * q * η) * (1 - om * η)) := by
+  unfold pP pQ
+  rw [eq_div_iff (mul_ne_zero (mul_ne_zero h1 h2) h3)]
+  have e1 : ρ / (1 - ρ * η) * (1 - ρ * η) = ρ := div_mul_cancel₀ ρ h1
+  have e2 : (1 - q) * (1 - β * q) / (1 - β * q * η) * (1 - β * q * η) =
+      (1 - q) * (1 - β * q) := div_mul_cancel₀ _ h2
+  have e3 : om / (1 - om * η) * (1 - om * η) = om := div_mul_cancel₀ om h3
+  linear_combination ((1 - ρ * q) - (1 - q) * (1 - β * q) / (1 - β * q * η)) *
+      (1 - β * q * η) * (1 - om * η) * e1 - ρ * (1 - om * η) * e2 -
+    (1 - ρ * q) * (1 - ρ * η) * (1 - β * q * η) * e3
+
+/-- Cochrane (2023), p. 131: **the impact response in factored form**,
+`π₁(η) = (Q(η) − ω̃P(η))/((1 − ρη)(1 − βqη)(1 − ω̃η))` with `q = 1/λ₁`. -/
+theorem impactRHS_eq_factor {σ β κ ρ om η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (h1 : 1 - ρ * η ≠ 0) (h2 : 1 - β * (lam1 σ β κ)⁻¹ * η ≠ 0) (h3 : 1 - om * η ≠ 0) :
+    impactRHS σ β κ ρ om η =
+      (pQ ρ β (lam1 σ β κ)⁻¹ η - om * pP ρ β (lam1 σ β κ)⁻¹ η) /
+        ((1 - ρ * η) * (1 - β * (lam1 σ β κ)⁻¹ * η) * (1 - om * η)) := by
+  rw [impactRHS, lam2_eq hσ hκ hβ]
+  exact factor_identity h1 h2 h3
+
+/-- Cochrane (2023), §5.3, p. 131: **the impact of every AR(1) equilibrium** (`0 ≤ η < 1`,
+resonant or not): the book's impact `π₁` (Lean index `π 0`) equals `impactRHS`, the closed form of
+`LongTermDebt.ar1_impact`. -/
+theorem eqm_impact {σ β κ ρ om η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) (hη0 : 0 ≤ η) (hη1 : η < 1)
+    {x π v q rn : ℕ → Ω → ℝ}
+    (h : LTD 𝔼 σ β κ ρ om (fun t _ => η ^ t) (fun _ _ => 0) 0 0 x π v q rn) (hqa : 𝔼.Adapted q)
+    (hπb : BoundedProc π) (hvb : BoundedProc v) (hqb : BoundedProc q) (ω : Ω) :
+    π 0 ω = impactRHS σ β κ ρ om η := by
+  have ha := mul_pos hσ hκ
+  have h2 := lam2_pos ha hβ
+  have h21 := lam2_lt_one ha hβ
+  by_cases hres : lam1 σ β κ * η = 1
+  · obtain ⟨he, -, -⟩ := resonant_eta hσ hκ hβ hres
+    rw [(ltd_ar1_resonant 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 hres h hqa hπb hvb hqb 0 ω).2]
+    simp only [Nat.cast_zero, mul_zero, pow_zero, mul_one, zero_add]
+    rw [he]
+    exact resC_eq_impactRHS hσ hκ hβ hρ0 hρ1 hom0 hom1
+  · rw [(ltd_ar1 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hom1 hη0 hη1 hres h hqa hπb hvb hqb 0 ω).2]
+    simp only [pow_zero, mul_one]
+    exact ar1_impact hσ hκ hβ (by nlinarith) (by nlinarith) (by nlinarith) hres
+
+/-- Cochrane (2023), p. 131: the model's `q = 1/λ₁` and `βq = λ₂` satisfy the hypotheses of
+`pP_pQ_pos`: `0 < q < 1`, `βq < 1`. -/
+theorem q_facts {σ β κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β) :
+    0 < (lam1 σ β κ)⁻¹ ∧ (lam1 σ β κ)⁻¹ < 1 ∧ β * (lam1 σ β κ)⁻¹ < 1 := by
+  have ha := mul_pos hσ hκ
+  have h1 := one_lt_lam1 ha hβ
+  refine ⟨inv_pos.mpr (by linarith), inv_lt_one_of_one_lt₀ h1, ?_⟩
+  rw [← lam2_eq hσ hκ hβ]
+  exact lam2_lt_one ha hβ
+
+/-- Cochrane (2023), §5.3, p. 131: **the sign of the impact**: for `0 ≤ η < 1`, the AR(1) rise
+lowers inflation on impact iff `Q(η) < ω̃ P(η)`. -/
+theorem impact_neg_iff {σ β κ ρ om η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) (hη0 : 0 ≤ η) (hη1 : η < 1) :
+    impactRHS σ β κ ρ om η < 0 ↔
+      pQ ρ β (lam1 σ β κ)⁻¹ η < om * pP ρ β (lam1 σ β κ)⁻¹ η := by
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  have d1 : 0 < 1 - ρ * η := by nlinarith
+  have d2 : 0 < 1 - β * (lam1 σ β κ)⁻¹ * η := by nlinarith
+  have d3 : 0 < 1 - om * η := by nlinarith
+  rw [impactRHS_eq_factor hσ hκ hβ d1.ne' d2.ne' d3.ne', div_neg_iff]
+  have hD : 0 < (1 - ρ * η) * (1 - β * (lam1 σ β κ)⁻¹ * η) * (1 - om * η) := by positivity
+  constructor
+  · rintro (⟨-, h⟩ | ⟨h, -⟩)
+    · linarith
+    · linarith
+  · intro h
+    exact Or.inr ⟨by linarith, hD⟩
+
+/-- Cochrane (2023), §5.3, p. 131: **disinflation on impact iff `ω̃ > ω*(η)`**, the
+persistence-dependent maturity threshold. -/
+theorem impact_neg_iff_omStar {σ β κ ρ om η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) (hη0 : 0 ≤ η) (hη1 : η < 1) :
+    impactRHS σ β κ ρ om η < 0 ↔ omStar ρ β (lam1 σ β κ)⁻¹ η < om := by
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  have hP := (pP_pQ_pos hq0 hq1 hρ0 hρ1 hβ.le hβq hη1.le).1
+  rw [impact_neg_iff hσ hκ hβ hρ0 hρ1 hom0 hom1 hη0 hη1, omStar, div_lt_iff₀ hP]
+
+/-- Cochrane (2023), p. 131 and Fig. 5.4: at full persistence the threshold is the
+permanent-rise threshold, `ω*(1) = ρq = ρ/λ₁` (`LongTermDebt.ltd_disinflation_iff`). -/
+theorem omStar_one {ρ β q : ℝ} (hρ1 : ρ < 1) (hβq : β * q < 1) : omStar ρ β q 1 = ρ * q := by
+  rw [omStar, (pP_pQ_one ρ β q).1, (pP_pQ_one ρ β q).2]
+  have : (1 - ρ) * (1 - β * q) ≠ 0 := mul_ne_zero (by linarith) (by linarith)
+  exact mul_div_cancel_right₀ _ this
+
+/-- Cochrane (2023), p. 131: **the cross-product identity** for the two linear functions,
+`Q(η₂)P(η₁) − Q(η₁)P(η₂) = (η₂ − η₁) ρq(1 − q)(1 − βq)(1 − ρ)(ρ − β)`. -/
+theorem omStar_cross (ρ β q η₁ η₂ : ℝ) :
+    pQ ρ β q η₂ * pP ρ β q η₁ - pQ ρ β q η₁ * pP ρ β q η₂ =
+      (η₂ - η₁) * (ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) * (ρ - β)) := by
+  unfold pP pQ
+  ring
+
+/-- Cochrane (2023), p. 131: with `ρ < β` the threshold `ω*(η)` is strictly decreasing in
+persistence on `[0, 1]`: more persistent rises disinflate for more maturity structures. -/
+theorem omStar_strictAntiOn {ρ β q : ℝ} (hq0 : 0 < q) (hq1 : q < 1) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hβq : β * q < 1) (hρβ : ρ < β) :
+    StrictAntiOn (omStar ρ β q) (Set.Icc 0 1) := by
+  intro η₁ h₁ η₂ h₂ hlt
+  have hβ : 0 ≤ β := by linarith
+  have p1 := pP_pQ_pos hq0 hq1 hρ0 hρ1 hβ hβq h₁.2
+  have p2 := pP_pQ_pos hq0 hq1 hρ0 hρ1 hβ hβq h₂.2
+  have hc := omStar_cross ρ β q η₁ η₂
+  have hk : 0 < ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) := by
+    have : 0 < 1 - q := by linarith
+    have : 0 < 1 - β * q := by linarith
+    have : 0 < 1 - ρ := by linarith
+    positivity
+  have hneg : (η₂ - η₁) * (ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) * (ρ - β)) < 0 := by
+    have : ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) * (ρ - β) < 0 :=
+      mul_neg_of_pos_of_neg hk (by linarith)
+    exact mul_neg_of_pos_of_neg (by linarith) this
+  unfold omStar
+  rw [div_lt_div_iff₀ p2.1 p1.1]
+  linarith
+
+/-- Cochrane (2023), p. 131: with `ρ > β` the threshold `ω*(η)` is strictly **increasing** in
+persistence on `[0, 1]`: more persistent rises need longer debt to disinflate. -/
+theorem omStar_strictMonoOn {ρ β q : ℝ} (hq0 : 0 < q) (hq1 : q < 1) (hρ1 : ρ < 1)
+    (hβ : 0 ≤ β) (hβq : β * q < 1) (hβρ : β < ρ) :
+    StrictMonoOn (omStar ρ β q) (Set.Icc 0 1) := by
+  intro η₁ h₁ η₂ h₂ hlt
+  have hρ0 : 0 < ρ := by linarith
+  have p1 := pP_pQ_pos hq0 hq1 hρ0 hρ1 hβ hβq h₁.2
+  have p2 := pP_pQ_pos hq0 hq1 hρ0 hρ1 hβ hβq h₂.2
+  have hc := omStar_cross ρ β q η₁ η₂
+  have hk : 0 < ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) := by
+    have : 0 < 1 - q := by linarith
+    have : 0 < 1 - β * q := by linarith
+    have : 0 < 1 - ρ := by linarith
+    positivity
+  have hpos : 0 < (η₂ - η₁) * (ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) * (ρ - β)) :=
+    mul_pos (by linarith) (mul_pos hk (by linarith))
+  unfold omStar
+  rw [div_lt_div_iff₀ p1.1 p2.1]
+  linarith
+
+/-- Cochrane (2023), p. 131: with `ρ = β` the threshold is constant, `ω*(η) = ρq` for every
+`η ≤ 1` (so the sign of the impact does not depend on persistence,
+`LongTermDebt.ar1_disinflation_iff_rho_eq_beta`). -/
+theorem omStar_rho_eq_beta {ρ q η : ℝ} (hq0 : 0 < q) (hq1 : q < 1) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hρq : ρ * q < 1) (hη1 : η ≤ 1) : omStar ρ ρ q η = ρ * q := by
+  have p := pP_pQ_pos hq0 hq1 hρ0 hρ1 hρ0.le hρq hη1
+  have hc := omStar_cross ρ ρ q η 1
+  rw [(pP_pQ_one ρ ρ q).1, (pP_pQ_one ρ ρ q).2, sub_self, mul_zero, mul_zero] at hc
+  unfold omStar
+  rw [div_eq_iff p.1.ne']
+  have hne : (1 - ρ) * (1 - ρ * q) ≠ 0 := mul_ne_zero (by linarith) (by linarith)
+  have : pQ ρ ρ q η * ((1 - ρ) * (1 - ρ * q)) = ρ * q * pP ρ ρ q η * ((1 - ρ) * (1 - ρ * q)) := by
+    linear_combination -hc
+  exact mul_right_cancel₀ hne this
+
+/-- Cochrane (2023), §5.3, p. 131 (`ρ ≤ β`): **persistence helps**: if an AR(1) rise of
+persistence `η₁` lowers inflation on impact, so does every more persistent one. -/
+theorem persistence_helps {σ β κ ρ om η₁ η₂ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hρβ : ρ ≤ β) (hom0 : 0 ≤ om) (hom1 : om < 1) (h₁0 : 0 ≤ η₁)
+    (h12 : η₁ ≤ η₂) (h₂1 : η₂ < 1) (h : impactRHS σ β κ ρ om η₁ < 0) :
+    impactRHS σ β κ ρ om η₂ < 0 := by
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  rw [impact_neg_iff hσ hκ hβ hρ0 hρ1 hom0 hom1 h₁0 (by linarith)] at h
+  rw [impact_neg_iff hσ hκ hβ hρ0 hρ1 hom0 hom1 (by linarith) h₂1]
+  set q := (lam1 σ β κ)⁻¹
+  have p1 := pP_pQ_pos (η := η₁) hq0 hq1 hρ0 hρ1 hβ.le hβq (by linarith)
+  have p2 := pP_pQ_pos (η := η₂) hq0 hq1 hρ0 hρ1 hβ.le hβq h₂1.le
+  have hc := omStar_cross ρ β q η₁ η₂
+  have hk : 0 ≤ ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) := by
+    have : 0 < 1 - q := by linarith
+    have : 0 < 1 - β * q := by linarith
+    have : 0 < 1 - ρ := by linarith
+    positivity
+  have hle : (η₂ - η₁) * (ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) * (ρ - β)) ≤ 0 :=
+    mul_nonpos_of_nonneg_of_nonpos (by linarith)
+      (mul_nonpos_of_nonneg_of_nonpos hk (by linarith))
+  -- Q₂ P₁ ≤ Q₁ P₂ and Q₁ < ω̃ P₁ give Q₂ P₁ < ω̃ P₂ P₁
+  have : pQ ρ β q η₂ * pP ρ β q η₁ < om * pP ρ β q η₂ * pP ρ β q η₁ := by
+    nlinarith [mul_lt_mul_of_pos_right h p2.1]
+  exact lt_of_mul_lt_mul_right this p1.1.le
+
+/-- Cochrane (2023), §5.3, p. 131 (`ρ > β`): **persistence hurts**: if an AR(1) rise of
+persistence `η₂` lowers inflation on impact, so does every less persistent one. -/
+theorem persistence_hurts {σ β κ ρ om η₁ η₂ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ1 : ρ < 1) (hβρ : β < ρ) (hom0 : 0 ≤ om) (hom1 : om < 1) (h₁0 : 0 ≤ η₁)
+    (h12 : η₁ ≤ η₂) (h₂1 : η₂ < 1) (h : impactRHS σ β κ ρ om η₂ < 0) :
+    impactRHS σ β κ ρ om η₁ < 0 := by
+  have hρ0 : 0 < ρ := by linarith
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  rw [impact_neg_iff hσ hκ hβ hρ0 hρ1 hom0 hom1 (by linarith) h₂1] at h
+  rw [impact_neg_iff hσ hκ hβ hρ0 hρ1 hom0 hom1 h₁0 (by linarith)]
+  set q := (lam1 σ β κ)⁻¹
+  have p1 := pP_pQ_pos (η := η₁) hq0 hq1 hρ0 hρ1 hβ.le hβq (by linarith)
+  have p2 := pP_pQ_pos (η := η₂) hq0 hq1 hρ0 hρ1 hβ.le hβq h₂1.le
+  have hc := omStar_cross ρ β q η₁ η₂
+  have hk : 0 ≤ ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) := by
+    have : 0 < 1 - q := by linarith
+    have : 0 < 1 - β * q := by linarith
+    have : 0 < 1 - ρ := by linarith
+    positivity
+  have hle : 0 ≤ (η₂ - η₁) * (ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) * (ρ - β)) :=
+    mul_nonneg (by linarith) (mul_nonneg hk (by linarith))
+  have : pQ ρ β q η₁ * pP ρ β q η₂ < om * pP ρ β q η₁ * pP ρ β q η₂ := by
+    nlinarith [mul_lt_mul_of_pos_right h p1.1]
+  exact lt_of_mul_lt_mul_right this p2.1.le
+
+/-- Cochrane (2023), p. 131 (tool): `1/a₂ − 1/b₂ < 1/a₁ − 1/b₁` when `b₁ = b₂ + d`, `d > 0`,
+`b₂ > 0`, `a₁ > b₁` and `a₂ ≥ a₁ − d`. -/
+theorem recip_gap_lt {a₁ a₂ b₁ b₂ d : ℝ} (hd : 0 < d) (hb : b₁ = b₂ + d) (hb2 : 0 < b₂)
+    (ha1 : b₁ < a₁) (ha2 : a₁ - d ≤ a₂) : 1 / a₂ - 1 / b₂ < 1 / a₁ - 1 / b₁ := by
+  have hb1 : 0 < b₁ := by linarith
+  have hA1 : 0 < a₁ := by linarith
+  have hA2 : b₂ < a₂ := by linarith
+  have hA2' : 0 < a₂ := by linarith
+  have e1 : 1 / a₂ - 1 / a₁ = (a₁ - a₂) / (a₁ * a₂) := by field_simp
+  have e2 : 1 / b₂ - 1 / b₁ = d / (b₁ * b₂) := by rw [hb]; field_simp; ring
+  have s1 : (a₁ - a₂) / (a₁ * a₂) ≤ d / (a₁ * a₂) :=
+    div_le_div_of_nonneg_right (by linarith) (by positivity)
+  have s2 : d / (a₁ * a₂) < d / (b₁ * b₂) :=
+    div_lt_div_of_pos_left hd (by positivity) (mul_lt_mul'' ha1 hA2 hb1.le hb2.le)
+  linarith
+
+/-- Cochrane (2023), p. 131 (tool): for `Q > 0`, `ω̃ > 0`, `ω̃η < 1` and
+`P − ηQ = (1 − ρq)(1 − ρη)(1 − βqη)`, the impact is
+`(1 − ρq)[1/(P/Q − η) − 1/(1/ω̃ − η)]`. -/
+theorem impact_recip_form {ρ β q om η : ℝ} (hQ : 0 < pQ ρ β q η) (hom : 0 < om)
+    (h1 : 1 - ρ * η ≠ 0) (h2 : 1 - β * q * η ≠ 0) (h3 : 1 - om * η ≠ 0) (hρq : 1 - ρ * q ≠ 0) :
+    (pQ ρ β q η - om * pP ρ β q η) / ((1 - ρ * η) * (1 - β * q * η) * (1 - om * η)) =
+      (1 - ρ * q) * (1 / (pP ρ β q η / pQ ρ β q η - η) - 1 / (1 / om - η)) := by
+  have hPQ := pP_sub_pQ ρ β q η
+  set X := (1 - ρ * q) * (1 - ρ * η) * (1 - β * q * η) with hX
+  have hXne : X ≠ 0 := mul_ne_zero (mul_ne_zero hρq h1) h2
+  have r1 : 1 / (pP ρ β q η / pQ ρ β q η - η) = pQ ρ β q η / X := by
+    have : pP ρ β q η / pQ ρ β q η - η = X / pQ ρ β q η := by
+      rw [eq_div_iff hQ.ne', sub_mul, div_mul_cancel₀ _ hQ.ne']
+      exact hPQ
+    rw [this, one_div_div]
+  have r2 : 1 / (1 / om - η) = om / (1 - om * η) := by
+    have : 1 / om - η = (1 - om * η) / om := by
+      rw [eq_div_iff hom.ne', sub_mul, div_mul_cancel₀ _ hom.ne']
+      ring
+    rw [this, one_div_div]
+  rw [r1, r2, div_eq_iff (mul_ne_zero (mul_ne_zero h1 h2) h3)]
+  have eX : pQ ρ β q η / X * X = pQ ρ β q η := div_mul_cancel₀ _ hXne
+  have e3 : om / (1 - om * η) * (1 - om * η) = om := div_mul_cancel₀ om h3
+  have hPe : pP ρ β q η = X + η * pQ ρ β q η := by linarith
+  linear_combination (-(1 - om * η)) * eX + X * e3 - om * hPe
+
+/-- Cochrane (2023), §5.3, p. 131 ("A sudden shock, that is believed to be long-lasting … is most
+likely to be disinflationary"), `ρ ≤ β`: **persistence magnifies the disinflation**: if the
+AR(1) rise of persistence `η₁` lowers inflation on impact, every more persistent rise lowers it
+strictly more. -/
+theorem persistence_magnifies {σ β κ ρ om η₁ η₂ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hρβ : ρ ≤ β) (hom0 : 0 ≤ om) (hom1 : om < 1) (h₁0 : 0 ≤ η₁)
+    (h12 : η₁ < η₂) (h₂1 : η₂ < 1) (h : impactRHS σ β κ ρ om η₁ < 0) :
+    impactRHS σ β κ ρ om η₂ < impactRHS σ β κ ρ om η₁ := by
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  have hneg := (impact_neg_iff hσ hκ hβ hρ0 hρ1 hom0 hom1 h₁0 (by linarith)).1 h
+  set q := (lam1 σ β κ)⁻¹ with hqdef
+  have p1 := pP_pQ_pos (η := η₁) hq0 hq1 hρ0 hρ1 hβ.le hβq (by linarith)
+  have p2 := pP_pQ_pos (η := η₂) hq0 hq1 hρ0 hρ1 hβ.le hβq h₂1.le
+  have hom : 0 < om := by
+    by_contra hc
+    have : om = 0 := le_antisymm (not_lt.mp hc) hom0
+    rw [this, zero_mul] at hneg
+    linarith [p1.2]
+  have hρq : 0 < 1 - ρ * q := by nlinarith
+  have d : ∀ η, 0 ≤ η → η < 1 → 1 - ρ * η ≠ 0 ∧ 1 - β * q * η ≠ 0 ∧ 1 - om * η ≠ 0 :=
+    fun η h0 h1 => ⟨by nlinarith, by nlinarith, by nlinarith⟩
+  obtain ⟨d11, d12, d13⟩ := d η₁ h₁0 (by linarith)
+  obtain ⟨d21, d22, d23⟩ := d η₂ (by linarith) h₂1
+  rw [impactRHS_eq_factor hσ hκ hβ d11 d12 d13, impactRHS_eq_factor hσ hκ hβ d21 d22 d23,
+    impact_recip_form p1.2 hom d11 d12 d13 hρq.ne',
+    impact_recip_form p2.2 hom d21 d22 d23 hρq.ne']
+  refine mul_lt_mul_of_pos_left ?_ hρq
+  -- the threshold `P/Q` is nondecreasing, and `P₁/Q₁ > 1/ω̃`
+  have hc := omStar_cross ρ β q η₁ η₂
+  have hk : 0 ≤ ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) := by
+    have : 0 < 1 - q := by linarith
+    have : 0 < 1 - β * q := by linarith
+    have : 0 < 1 - ρ := by linarith
+    positivity
+  have hle : (η₂ - η₁) * (ρ * q * (1 - q) * (1 - β * q) * (1 - ρ) * (ρ - β)) ≤ 0 :=
+    mul_nonpos_of_nonneg_of_nonpos (by linarith)
+      (mul_nonpos_of_nonneg_of_nonpos hk (by linarith))
+  have hf : pP ρ β q η₁ / pQ ρ β q η₁ ≤ pP ρ β q η₂ / pQ ρ β q η₂ := by
+    rw [div_le_div_iff₀ p1.2 p2.2]
+    linarith
+  have hg : 1 / om < pP ρ β q η₁ / pQ ρ β q η₁ := by
+    rw [div_lt_div_iff₀ hom p1.2]
+    linarith
+  refine recip_gap_lt (d := η₂ - η₁) (by linarith) (by ring) ?_ (by linarith) (by linarith)
+  have : η₂ * om < 1 := by nlinarith
+  rw [sub_pos, lt_div_iff₀ hom]
+  exact this
+
+/-- Cochrane (2023), p. 131 (tool): the factored impact
+`(Q(η) − ω̃P(η))/((1 − ρη)(1 − βqη)(1 − ω̃η))` is continuous at `η = 1`, with value
+`(ρq − ω̃)/(1 − ω̃)`. -/
+theorem factor_tendsto_one {ρ β q om : ℝ} (hρ1 : ρ < 1) (hβq : β * q < 1) (hom1 : om < 1) :
+    Tendsto (fun η => (pQ ρ β q η - om * pP ρ β q η) /
+      ((1 - ρ * η) * (1 - β * q * η) * (1 - om * η))) (𝓝 1)
+      (𝓝 ((ρ * q - om) / (1 - om))) := by
+  have hD : (1 - ρ * 1) * (1 - β * q * 1) * (1 - om * 1) ≠ 0 := by
+    simp only [mul_one]
+    exact mul_ne_zero (mul_ne_zero (by linarith) (by linarith)) (by linarith)
+  have hc : ContinuousAt (fun η => (pQ ρ β q η - om * pP ρ β q η) /
+      ((1 - ρ * η) * (1 - β * q * η) * (1 - om * η))) 1 := by
+    unfold pP pQ
+    fun_prop (disch := assumption)
+  have hv : (pQ ρ β q 1 - om * pP ρ β q 1) / ((1 - ρ * 1) * (1 - β * q * 1) * (1 - om * 1)) =
+      (ρ * q - om) / (1 - om) := by
+    rw [(pP_pQ_one ρ β q).1, (pP_pQ_one ρ β q).2]
+    simp only [mul_one]
+    have hne : (1 - ρ) * (1 - β * q) ≠ 0 := mul_ne_zero (by linarith) (by linarith)
+    rw [show ρ * q * ((1 - ρ) * (1 - β * q)) - om * ((1 - ρ) * (1 - β * q)) =
+        (ρ * q - om) * ((1 - ρ) * (1 - β * q)) by ring,
+      show (1 - ρ) * (1 - β * q) * (1 - om) = (1 - om) * ((1 - ρ) * (1 - β * q)) by ring,
+      mul_div_mul_right _ _ hne]
+  have := hc.tendsto
+  rwa [hv] at this
+
+/-- Cochrane (2023), p. 131 and Fig. 5.4: **the AR(1) impact tends to the permanent-rise impact**
+`(ρ/λ₁ − ω̃)/(1 − ω̃)` (`LongTermDebt.ltd_perm_rise` at `t = 0`) as the persistence `η → 1⁻`. -/
+theorem tendsto_impact_one {σ β κ ρ om : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hom0 : 0 ≤ om) (hom1 : om < 1) :
+    Tendsto (impactRHS σ β κ ρ om) (𝓝[<] 1)
+      (𝓝 ((ρ * (lam1 σ β κ)⁻¹ - om) / (1 - om))) := by
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  refine ((factor_tendsto_one hρ1 hβq hom1).mono_left nhdsWithin_le_nhds).congr' ?_
+  filter_upwards [self_mem_nhdsWithin, nhdsWithin_le_nhds (lt_mem_nhds (by norm_num :
+    (0 : ℝ) < 1))] with η hη1 hη0
+  have hη1' : η < 1 := hη1
+  rw [impactRHS_eq_factor hσ hκ hβ (by nlinarith) (by nlinarith) (by nlinarith)]
+
+/-- Cochrane (2023), §5.3, p. 131 ("the interest-rate rise must be persistent"), `ρ < β`:
+**persistence is needed** for some maturity structures: there is `0 ≤ ω̃ < 1` for which a
+one-period (`η = 0`) rise does not lower inflation on impact while every sufficiently persistent
+AR(1) rise does. -/
+theorem persistence_needed {σ β κ ρ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hρ0 : 0 < ρ) (hρβ : ρ < β) (hρ1 : ρ < 1) :
+    ∃ om, 0 ≤ om ∧ om < 1 ∧ 0 ≤ impactRHS σ β κ ρ om 0 ∧
+      ∀ᶠ η in 𝓝[<] 1, impactRHS σ β κ ρ om η < 0 := by
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  set q := (lam1 σ β κ)⁻¹ with hqdef
+  have hanti := omStar_strictAntiOn hq0 hq1 hρ0 hρ1 hβq hρβ
+  have h01 : omStar ρ β q 1 < omStar ρ β q 0 :=
+    hanti ⟨le_rfl, zero_le_one⟩ ⟨zero_le_one, le_rfl⟩ zero_lt_one
+  rw [omStar_one hρ1 hβq] at h01
+  have hρq1 : ρ * q < 1 := by nlinarith
+  set om := min ((ρ * q + omStar ρ β q 0) / 2) ((ρ * q + 1) / 2) with homdef
+  have hom_gt : ρ * q < om := lt_min (by linarith) (by linarith)
+  have hom_le : om ≤ omStar ρ β q 0 := (min_le_left _ _).trans (by linarith)
+  have hom1 : om < 1 := (min_le_right _ _).trans_lt (by linarith)
+  have hρq0 : 0 < ρ * q := by positivity
+  have hom0 : 0 ≤ om := by linarith
+  refine ⟨om, hom0, hom1, ?_, ?_⟩
+  · by_contra hc
+    push Not at hc
+    have := (impact_neg_iff_omStar hσ hκ hβ hρ0 hρ1 hom0 hom1 le_rfl zero_lt_one).1 hc
+    linarith
+  · have ht := tendsto_impact_one hσ hκ hβ hρ0 hρ1 hom0 hom1
+    have hneg : (ρ * q - om) / (1 - om) < 0 := div_neg_of_neg_of_pos (by linarith) (by linarith)
+    exact ht.eventually (gt_mem_nhds hneg)
+
+/-- Cochrane (2023), §5.3, p. 131, **counterexample for `ρ > β`** to "the interest-rate rise must be
+persistent" and "a shock believed to be long-lasting is most likely to be disinflationary": with
+`ω̃ = ρ/λ₁`, every AR(1) rise of persistence `η ∈ [0, 1)` lowers inflation on impact, the impact
+is exactly `(1 − η)ρq(1 − q)(β − ρ)/((1 − ρη)(1 − βqη)(1 − ρqη))`, it rises to `0` as `η → 1`
+(the permanent rise has impact `(ρq − ω̃)/(1 − ω̃) = 0`), and so it is not antitone in `η`. -/
+theorem rho_gt_beta_reversal {σ β κ ρ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hβρ : β < ρ) (hρ1 : ρ < 1) :
+    let q := (lam1 σ β κ)⁻¹
+    (∀ η, 0 ≤ η → η < 1 → impactRHS σ β κ ρ (ρ * q) η =
+        (1 - η) * (ρ * q * (1 - q) * (β - ρ)) /
+          ((1 - ρ * η) * (1 - β * q * η) * (1 - ρ * q * η)) ∧
+        impactRHS σ β κ ρ (ρ * q) η < 0) ∧
+      (ρ * q - ρ * q) / (1 - ρ * q) = 0 ∧
+      Tendsto (impactRHS σ β κ ρ (ρ * q)) (𝓝[<] 1) (𝓝 0) ∧
+      ¬ AntitoneOn (impactRHS σ β κ ρ (ρ * q)) (Set.Ico 0 1) := by
+  intro q
+  have hρ0 : 0 < ρ := by linarith
+  obtain ⟨hq0, hq1, hβq⟩ := q_facts hσ hκ hβ
+  have hρq1 : ρ * q < 1 := by nlinarith
+  have hom0 : 0 ≤ ρ * q := by positivity
+  have hval : ∀ η, 0 ≤ η → η < 1 → impactRHS σ β κ ρ (ρ * q) η =
+      (1 - η) * (ρ * q * (1 - q) * (β - ρ)) /
+        ((1 - ρ * η) * (1 - β * q * η) * (1 - ρ * q * η)) := by
+    intro η h0 h1
+    rw [impactRHS_eq_factor hσ hκ hβ (by nlinarith) (by nlinarith) (by nlinarith)]
+    congr 1
+    unfold pP pQ
+    ring
+  have hneg : ∀ η, 0 ≤ η → η < 1 → impactRHS σ β κ ρ (ρ * q) η < 0 := by
+    intro η h0 h1
+    rw [hval η h0 h1]
+    have hD : 0 < (1 - ρ * η) * (1 - β * q * η) * (1 - ρ * q * η) := by
+      have : 0 < 1 - ρ * η := by nlinarith
+      have : 0 < 1 - β * q * η := by nlinarith
+      have : 0 < 1 - ρ * q * η := by nlinarith
+      positivity
+    refine div_neg_of_neg_of_pos ?_ hD
+    refine mul_neg_of_pos_of_neg (by linarith) ?_
+    have h1q : 0 < 1 - q := by linarith
+    exact mul_neg_of_pos_of_neg (by positivity) (by linarith)
+  have hlim : Tendsto (impactRHS σ β κ ρ (ρ * q)) (𝓝[<] 1) (𝓝 0) := by
+    have := tendsto_impact_one hσ hκ hβ hρ0 hρ1 hom0 hρq1
+    rwa [sub_self, zero_div] at this
+  refine ⟨fun η h0 h1 => ⟨hval η h0 h1, hneg η h0 h1⟩, by simp, hlim, fun hanti => ?_⟩
+  have h0 := hneg 0 le_rfl zero_lt_one
+  have hev : ∀ᶠ η in 𝓝[<] 1, impactRHS σ β κ ρ (ρ * q) 0 < impactRHS σ β κ ρ (ρ * q) η :=
+    hlim.eventually (lt_mem_nhds h0)
+  have hev2 : ∀ᶠ η in 𝓝[<] (1 : ℝ), 0 < η :=
+    nhdsWithin_le_nhds (lt_mem_nhds (by norm_num : (0 : ℝ) < 1))
+  obtain ⟨η, h1, h2, h3⟩ := (hev.and (hev2.and self_mem_nhdsWithin)).exists
+  have := hanti ⟨le_rfl, zero_lt_one⟩ ⟨h2.le, h3⟩ h2.le
+  linarith
+
+/-- Cochrane (2023), §5.3, p. 131 and §5.2, Fig. 5.4, the counterexample **for the equilibria**
+(`ρ > β`, `ω̃ = ρ/λ₁`): every equilibrium after an AR(1) rise `i_t = ηᵗ`, `0 ≤ η < 1`, has
+impact `π₁ < 0` (the book's date 1, Lean index `π 0`), while every equilibrium after the
+permanent rise has impact `π₁ = 0`. -/
+theorem rho_gt_beta_reversal_eqm {σ β κ ρ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hβρ : β < ρ) (hρ1 : ρ < 1) :
+    (∀ η, 0 ≤ η → η < 1 → ∀ x π v q rn,
+      LTD 𝔼 σ β κ ρ (ρ * (lam1 σ β κ)⁻¹) (fun t _ => η ^ t) (fun _ _ => 0) 0 0 x π v q rn →
+      𝔼.Adapted q → BoundedProc π → BoundedProc v → BoundedProc q → ∀ ω, π 0 ω < 0) ∧
+    (∀ x π v q rn,
+      LTD 𝔼 σ β κ ρ (ρ * (lam1 σ β κ)⁻¹) (fun _ _ => 1) (fun _ _ => 0) 0 0 x π v q rn →
+      𝔼.Adapted q → BoundedProc π → BoundedProc v → BoundedProc q → ∀ ω, π 0 ω = 0) := by
+  have hρ0 : 0 < ρ := by linarith
+  obtain ⟨hq0, hq1, -⟩ := q_facts hσ hκ hβ
+  have hρq1 : ρ * (lam1 σ β κ)⁻¹ < 1 := by nlinarith
+  have hom0 : 0 ≤ ρ * (lam1 σ β κ)⁻¹ := by positivity
+  constructor
+  · intro η h0 h1 x π v q rn h hqa hπb hvb hqb ω
+    rw [eqm_impact 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hρq1 h0 h1 h hqa hπb hvb hqb ω]
+    exact ((rho_gt_beta_reversal hσ hκ hβ hβρ hρ1).1 η h0 h1).2
+  · intro x π v q rn h hqa hπb hvb hqb ω
+    rw [(ltd_perm_rise 𝔼 hσ hκ hβ hρ0 hρ1 hom0 hρq1 h hqa hπb hvb hqb 0 ω).2.1]
+    have : 1 - ρ * (lam1 σ β κ)⁻¹ ≠ 0 := by linarith
+    rw [pow_zero, mul_one, div_self this, sub_self]
+
+end Cochrane.StickyPriceFiscal.TidyR5Persistence
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Continuous-time transversality with discontinuous forcing
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §5.4.2, eq. (5.44), p. 140
+(`NonlinearCT.tvc_iff_integral`) and §5.7.1, eq. (5.95), p. 165 (`CTSimple.tvc_iff_forward`).
+
+`NonlinearCT.tvc_iff_integral` assumes a surplus continuous on `[0, ∞)`; `CTSimple`'s flows
+`v' = a v − f` need only an integrable discounted forcing, so `f = a v − v'` may be
+discontinuous. `LinksTidy.forward_hyps_discontinuous` only had a witness discontinuous at the
+valuation date. This module builds an **interior** witness and closes the gap.
+
+## 1. A Darboux-type interior witness
+
+`wv τ = (τ − 1)² sin(1/(τ − 1))` is differentiable everywhere (`wv_hasDerivAt`), with derivative
+`wdv` discontinuous at `τ = 1`. With `a = 2` the forcing `wf = 2 wv − wv'` satisfies every
+hypothesis of `CTSimple.tvc_iff_forward` at `t = 0` and NonlinearCT's flow
+(`witness_ctsimple_hyps`, `witness_flow`), but it has **no** limit from the right at the
+interior point `1` (`wf_no_right_limit`: along `1 + 1/(2πn)` it tends to `1`, along
+`1 + 1/(2πn + π)` to `−1`). Hence (`witness_not_covered`) for every valuation date `t' ∈ [0, 1]`,
+every surplus `s` and debt path `b` that put these data into NonlinearCT's form
+(`b(u) = wv(t' + u)`, `db/du = 2b − s`), `s` is not continuous on `[0, ∞)`:
+`NonlinearCT.tvc_iff_integral` cannot be applied.
+
+## 2. NonlinearCT's route for integrable forcing
+
+* `flow_integrated_int`, `tvc_iff_integral_int`: (5.44) and the transversality theorem proved by
+  NonlinearCT's own argument (integrate the flow forward) with merely integrable discounted
+  forcing; `IntegralIntStmt`, `integralIntStmt_holds`.
+* `forwardStmt_of_integralIntStmt`: **the full `CTSimple.tvc_iff_forward` (`LinksTidy.ForwardStmt`,
+  arbitrary integrable forcing, no derivative at the valuation date) follows from
+  `IntegralIntStmt`**: apply it at every later date `t' > t` to the flow minus the homogeneous
+  solution `c e^{a u}` that makes the valuation equation hold, read off the limit of the
+  discounted debt, and let `t' ↓ t`. `tvc_iff_forward_of_integralInt` is the instance; it covers
+  the witness (`witness_valuation`: its transversality condition holds, so
+  `wv(0) = ∫_0^∞ e^{−2τ} wf(τ) dτ`).
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR5TVC
+
+open Filter Topology MeasureTheory
+
+/-! ### 1. The interior witness -/
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): the path `wv τ = (τ − 1)² sin(1/(τ − 1))`
+(`wv 1 = 0`). -/
+noncomputable def wv (τ : ℝ) : ℝ := (τ - 1) ^ 2 * Real.sin (τ - 1)⁻¹
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): the derivative of `wv`,
+`2(τ − 1) sin(1/(τ − 1)) − cos(1/(τ − 1))` off `τ = 1`, and `0` at `τ = 1`. -/
+noncomputable def wdv (τ : ℝ) : ℝ :=
+  if τ = 1 then 0 else 2 * (τ - 1) * Real.sin (τ - 1)⁻¹ - Real.cos (τ - 1)⁻¹
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): the forcing `f = a v − v'` with `a = 2`. -/
+noncomputable def wf (τ : ℝ) : ℝ := 2 * wv τ - wdv τ
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): `wv` has derivative `wdv τ` at every `τ`
+(at `τ = 1` because `|wv(1 + h)| ≤ h²`). -/
+theorem wv_hasDerivAt (τ : ℝ) : HasDerivAt wv (wdv τ) τ := by
+  by_cases hτ : τ = 1
+  · subst hτ
+    simp only [wdv, ↓reduceIte]
+    rw [hasDerivAt_iff_isLittleO_nhds_zero]
+    have hb : (fun h : ℝ => wv (1 + h) - wv 1 - h • (0 : ℝ)) =O[𝓝 0] fun h : ℝ => h ^ 2 := by
+      refine Asymptotics.IsBigO.of_bound 1 (Eventually.of_forall fun h => ?_)
+      simp only [wv, sub_self, smul_zero, sub_zero, add_sub_cancel_left, Real.norm_eq_abs,
+        one_mul]
+      rw [show (0 : ℝ) ^ 2 * Real.sin 0⁻¹ = 0 by simp, sub_zero, abs_mul]
+      exact mul_le_of_le_one_right (abs_nonneg _) (Real.abs_sin_le_one _)
+    exact hb.trans_isLittleO (Asymptotics.isLittleO_pow_id (by norm_num))
+  · have h1 : τ - 1 ≠ 0 := sub_ne_zero.mpr hτ
+    have hs : HasDerivAt (fun u => u - 1) 1 τ := (hasDerivAt_id τ).sub_const 1
+    have hinv : HasDerivAt (fun u => (u - 1)⁻¹) (-1 / (τ - 1) ^ 2) τ := hs.inv h1
+    have hsin := hinv.sin
+    have hsq : HasDerivAt (fun u => (u - 1) ^ 2) (2 * (τ - 1)) τ := by
+      refine (hs.pow 2).congr_deriv ?_
+      norm_num
+    refine (hsq.mul hsin).congr_deriv ?_
+    simp only [wdv, hτ, ↓reduceIte]
+    field_simp
+    ring
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): `wv` is continuous. -/
+theorem wv_continuous : Continuous wv :=
+  continuous_iff_continuousAt.mpr fun τ => (wv_hasDerivAt τ).continuousAt
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): `deriv wv = wdv`, so `wdv` and `wf` are
+measurable. -/
+theorem wf_measurable : Measurable wf := by
+  have hd : deriv wv = wdv := funext fun τ => (wv_hasDerivAt τ).deriv
+  have hm : Measurable wdv := hd ▸ measurable_deriv wv
+  exact (wv_continuous.measurable.const_mul 2).sub hm
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): `|wv τ| ≤ (τ − 1)²` and
+`|wdv τ| ≤ 2|τ − 1| + 1`. -/
+theorem wv_wdv_bound (τ : ℝ) : |wv τ| ≤ (τ - 1) ^ 2 ∧ |wdv τ| ≤ 2 * |τ - 1| + 1 := by
+  constructor
+  · rw [wv, abs_mul, abs_pow]
+    simp only [sq_abs]
+    exact mul_le_of_le_one_right (by positivity) (Real.abs_sin_le_one _)
+  · unfold wdv
+    split_ifs
+    · simp only [abs_zero]; positivity
+    · refine (abs_sub _ _).trans (add_le_add ?_ (Real.abs_cos_le_one _))
+      rw [abs_mul, abs_mul, abs_two]
+      exact mul_le_of_le_one_right (by positivity) (Real.abs_sin_le_one _)
+
+/-- Cochrane (2023), §5.7.1, p. 165 (tool): `(τ + 2)² ≤ 4 e^τ` for `τ ≥ 0`. -/
+theorem sq_le_four_exp {τ : ℝ} (hτ : 0 ≤ τ) : (τ + 2) ^ 2 ≤ 4 * Real.exp τ := by
+  have h := Real.add_one_le_exp (τ / 2)
+  have h2 : (τ / 2 + 1) ^ 2 ≤ Real.exp (τ / 2) ^ 2 :=
+    pow_le_pow_left₀ (by linarith) h 2
+  rw [← Real.exp_nat_mul] at h2
+  have : ((2 : ℕ) : ℝ) * (τ / 2) = τ := by push_cast; ring
+  rw [this] at h2
+  nlinarith
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): `|e^{−2τ} wf τ| ≤ 8 e^{−τ}` for `τ ≥ 0`. -/
+theorem wf_disc_bound {τ : ℝ} (hτ : 0 ≤ τ) :
+    |Real.exp (-(2 * τ)) * wf τ| ≤ 8 * Real.exp (-τ) := by
+  obtain ⟨b1, b2⟩ := wv_wdv_bound τ
+  have hτ1 : |τ - 1| ≤ τ + 1 := abs_le.mpr ⟨by linarith, by linarith⟩
+  have hf : |wf τ| ≤ 2 * (τ + 2) ^ 2 := by
+    unfold wf
+    refine (abs_sub _ _).trans ?_
+    rw [abs_mul, abs_two]
+    have : (τ - 1) ^ 2 ≤ (τ + 1) ^ 2 := by
+      rw [← sq_abs (τ - 1)]
+      exact pow_le_pow_left₀ (abs_nonneg _) hτ1 2
+    nlinarith
+  have he := sq_le_four_exp hτ
+  rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+  have hsplit : Real.exp (-(2 * τ)) * Real.exp τ = Real.exp (-τ) := by
+    rw [← Real.exp_add]; ring_nf
+  calc Real.exp (-(2 * τ)) * |wf τ| ≤ Real.exp (-(2 * τ)) * (2 * (4 * Real.exp τ)) :=
+        mul_le_mul_of_nonneg_left (hf.trans (by linarith)) (Real.exp_pos _).le
+    _ = 8 * Real.exp (-τ) := by rw [← hsplit]; ring
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): `e^{−2τ} wf τ` is integrable on `(0, ∞)`. -/
+theorem wf_integrable : IntegrableOn (fun τ => Real.exp (-(2 * τ)) * wf τ) (Set.Ioi 0) := by
+  have hint : IntegrableOn (fun τ : ℝ => 8 * Real.exp (-1 * τ)) (Set.Ioi 0) :=
+    (exp_neg_integrableOn_Ioi 0 one_pos).const_mul 8
+  refine Integrable.mono' hint
+    ((by fun_prop : Continuous fun τ : ℝ => Real.exp (-(2 * τ))).measurable.mul
+      wf_measurable).aestronglyMeasurable ?_
+  refine (ae_restrict_iff' measurableSet_Ioi).2 (ae_of_all _ fun τ (hτ : (0 : ℝ) < τ) => ?_)
+  rw [Real.norm_eq_abs, neg_one_mul]
+  exact wf_disc_bound hτ.le
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): along `x_n = 1 + 1/(2πn)`, `wdv x_n = −1`; along
+`y_n = 1 + 1/(2πn + π)`, `wdv y_n = 1` (`n ≥ 1`). -/
+theorem wdv_seq (n : ℕ) (hn : 1 ≤ n) :
+    wdv (1 + ((n : ℝ) * (2 * Real.pi))⁻¹) = -1 ∧
+      wdv (1 + ((n : ℝ) * (2 * Real.pi) + Real.pi)⁻¹) = 1 := by
+  have hn' : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+  have hx : (0 : ℝ) < (n : ℝ) * (2 * Real.pi) := by positivity
+  have hy : (0 : ℝ) < (n : ℝ) * (2 * Real.pi) + Real.pi := by positivity
+  constructor
+  · have hne : 1 + ((n : ℝ) * (2 * Real.pi))⁻¹ ≠ 1 := by
+      intro h; have : ((n : ℝ) * (2 * Real.pi))⁻¹ = 0 := by linarith
+      exact (inv_pos.mpr hx).ne' this
+    simp only [wdv, hne, ↓reduceIte, add_sub_cancel_left, inv_inv, Real.cos_nat_mul_two_pi]
+    have : Real.sin ((n : ℝ) * (2 * Real.pi)) = 0 := by
+      rw [show (n : ℝ) * (2 * Real.pi) = ((2 * n : ℕ) : ℝ) * Real.pi by push_cast; ring]
+      exact Real.sin_nat_mul_pi _
+    rw [this]
+    ring
+  · have hne : 1 + ((n : ℝ) * (2 * Real.pi) + Real.pi)⁻¹ ≠ 1 := by
+      intro h; have : ((n : ℝ) * (2 * Real.pi) + Real.pi)⁻¹ = 0 := by linarith
+      exact (inv_pos.mpr hy).ne' this
+    simp only [wdv, hne, ↓reduceIte, add_sub_cancel_left, inv_inv, Real.cos_add_pi,
+      Real.sin_add_pi, Real.cos_nat_mul_two_pi]
+    have : Real.sin ((n : ℝ) * (2 * Real.pi)) = 0 := by
+      rw [show (n : ℝ) * (2 * Real.pi) = ((2 * n : ℕ) : ℝ) * Real.pi by push_cast; ring]
+      exact Real.sin_nat_mul_pi _
+    rw [this]
+    ring
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): **the forcing has no limit from the right at the
+interior point `1`**: no `c` has `wf τ → c` as `τ → 1⁺`. -/
+theorem wf_no_right_limit (c : ℝ) : ¬ Tendsto wf (𝓝[>] 1) (𝓝 c) := by
+  intro hc
+  have hw1 : wv 1 = 0 := by simp [wv]
+  -- the two sequences
+  have hxs : Tendsto (fun n : ℕ => ((n : ℝ) * (2 * Real.pi))⁻¹) atTop (𝓝 0) :=
+    tendsto_inv_atTop_zero.comp
+      (tendsto_natCast_atTop_atTop.atTop_mul_const (by positivity))
+  have hys : Tendsto (fun n : ℕ => ((n : ℝ) * (2 * Real.pi) + Real.pi)⁻¹) atTop (𝓝 0) :=
+    tendsto_inv_atTop_zero.comp (tendsto_atTop_add_const_right _ _
+      (tendsto_natCast_atTop_atTop.atTop_mul_const (by positivity)))
+  have hwithin : ∀ u : ℕ → ℝ, Tendsto u atTop (𝓝 0) → (∀ n, 1 ≤ n → 0 < u n) →
+      Tendsto (fun n => 1 + u n) atTop (𝓝[>] 1) := by
+    intro u hu hpos
+    refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
+    · simpa using hu.const_add 1
+    · filter_upwards [eventually_ge_atTop 1] with n hn
+      simp only [Set.mem_Ioi]
+      linarith [hpos n hn]
+  have hlim : ∀ (u : ℕ → ℝ) (d : ℝ), Tendsto u atTop (𝓝 0) → (∀ n, 1 ≤ n → 0 < u n) →
+      (∀ n, 1 ≤ n → wdv (1 + u n) = d) → c = 2 * 0 - d := by
+    intro u d hu hpos hd
+    have h1 := hc.comp (hwithin u hu hpos)
+    have hv : Tendsto (fun n => wv (1 + u n)) atTop (𝓝 0) := by
+      have := (wv_continuous.tendsto 1).comp (by simpa using hu.const_add 1 :
+        Tendsto (fun n => 1 + u n) atTop (𝓝 1))
+      rwa [hw1] at this
+    have h2 : Tendsto (fun n => wf (1 + u n)) atTop (𝓝 (2 * 0 - d)) := by
+      refine ((hv.const_mul 2).sub_const d).congr' ?_
+      filter_upwards [eventually_ge_atTop 1] with n hn
+      simp only [wf, hd n hn]
+    exact tendsto_nhds_unique h1 h2
+  have hp1 : ∀ n : ℕ, 1 ≤ n → 0 < ((n : ℝ) * (2 * Real.pi))⁻¹ := fun n hn => by
+    have : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+    positivity
+  have hp2 : ∀ n : ℕ, 1 ≤ n → 0 < ((n : ℝ) * (2 * Real.pi) + Real.pi)⁻¹ := fun n hn => by
+    have : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+    positivity
+  have e1 := hlim _ (-1) hxs hp1 (fun n hn => (wdv_seq n hn).1)
+  have e2 := hlim _ 1 hys hp2 (fun n hn => (wdv_seq n hn).2)
+  linarith
+
+/-- Cochrane (2023), (5.95), p. 165 (witness): `wf` is not continuous at the interior point `1`. -/
+theorem wf_not_continuousAt : ¬ ContinuousAt wf 1 := fun h =>
+  wf_no_right_limit (wf 1) (h.tendsto.mono_left nhdsWithin_le_nhds)
+
+/-- Cochrane (2023), (5.95), p. 165: **the witness satisfies CTSimple's hypotheses** at `a = 2`,
+`t = 0` (continuity on `[0, ∞)`, the flow on `(0, ∞)`, integrable discounted forcing), and its
+forcing is discontinuous at the interior point `1 ∈ (0, ∞)`. -/
+theorem witness_ctsimple_hyps :
+    ContinuousOn wv (Set.Ici 0) ∧ (∀ τ, 0 < τ → HasDerivAt wv (2 * wv τ - wf τ) τ) ∧
+      IntegrableOn (fun τ => Real.exp (-(2 * τ)) * wf τ) (Set.Ioi 0) ∧
+      (1 : ℝ) ∈ Set.Ioi 0 ∧ ¬ ContinuousAt wf 1 := by
+  refine ⟨wv_continuous.continuousOn, fun τ _ => ?_, wf_integrable, by norm_num,
+    wf_not_continuousAt⟩
+  have : 2 * wv τ - wf τ = wdv τ := by unfold wf; ring
+  rw [this]
+  exact wv_hasDerivAt τ
+
+/-- Cochrane (2023), (5.43), p. 140: the witness even satisfies NonlinearCT's flow
+`db/dt = 2b − s` at every `τ ≥ 0` with `b = wv`, `s = wf`. -/
+theorem witness_flow : NonlinearCT.Flow 2 wf wv := fun τ _ => by
+  have : 2 * wv τ - wf τ = wdv τ := by unfold wf; ring
+  rw [this]
+  exact wv_hasDerivAt τ
+
+/-- Cochrane (2023), (5.44), p. 140 and (5.95), p. 165: **`NonlinearCT.tvc_iff_integral` does not
+cover the witness**: for every shift `t' ≤ 1` (in particular every valuation date
+`t' ∈ [0, 1]`), every surplus `s` and debt path `b` with `b(u) = wv(t' + u)` for `u ≥ 0` and
+NonlinearCT's flow `db/du = 2b − s`, the surplus `s` is not continuous on `[0, ∞)` (the
+continuity hypothesis of `NonlinearCT.tvc_iff_integral` fails). -/
+theorem witness_not_covered {t' : ℝ} (ht1 : t' ≤ 1) (s b : ℝ → ℝ)
+    (hb : ∀ u, 0 ≤ u → b u = wv (t' + u)) (hflow : NonlinearCT.Flow 2 s b) :
+    ¬ ContinuousOn s (Set.Ici 0) := by
+  intro hs
+  -- on `(0, ∞)` the flow pins `s(u) = wf(t' + u)`
+  have hsu : ∀ u, 0 < u → s u = wf (t' + u) := by
+    intro u hu
+    have hev : b =ᶠ[𝓝 u] fun y => wv (t' + y) := by
+      filter_upwards [lt_mem_nhds hu] with y hy
+      exact hb y hy.le
+    have h1 : HasDerivAt (fun y => wv (t' + y)) (2 * b u - s u) u :=
+      (hflow u hu.le).congr_of_eventuallyEq hev.symm
+    have h2 : HasDerivAt (fun y => wv (t' + y)) (wdv (t' + u)) u :=
+      HasDerivAt.comp_const_add t' u (wv_hasDerivAt (t' + u))
+    have := h1.unique h2
+    rw [hb u hu.le] at this
+    unfold wf
+    linarith
+  set u0 := 1 - t' with hu0
+  have hu00 : 0 ≤ u0 := by linarith
+  have hc : Tendsto s (𝓝[>] u0) (𝓝 (s u0)) :=
+    ((hs u0 (Set.mem_Ici.mpr hu00)).mono
+      (fun y (hy : u0 < y) => Set.mem_Ici.mpr (by linarith))).tendsto
+  have hmap : Tendsto (fun x => x - t') (𝓝[>] 1) (𝓝[>] u0) := by
+    refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ ?_ ?_
+    · have := ((continuous_id.sub continuous_const).tendsto (1 : ℝ) :
+        Tendsto (fun x : ℝ => x - t') (𝓝 1) (𝓝 (1 - t')))
+      exact this.mono_left nhdsWithin_le_nhds
+    · filter_upwards [self_mem_nhdsWithin] with x hx
+      simp only [Set.mem_Ioi] at hx ⊢
+      linarith
+  have hcomp := hc.comp hmap
+  refine wf_no_right_limit (s u0) (hcomp.congr' ?_)
+  filter_upwards [self_mem_nhdsWithin] with x hx
+  simp only [Function.comp_apply, Set.mem_Ioi] at hx ⊢
+  rw [hsu (x - t') (by linarith)]
+  ring_nf
+
+/-! ### 2. NonlinearCT's route with integrable forcing -/
+
+/-- Cochrane (2023), eq. (5.44), p. 140, **with integrable forcing** (NonlinearCT's argument
+without continuity): for a flow `db/dt = c b − f` on `[0, ∞)`, `t, T ≥ 0` and `e^{−cτ} f_{t+τ}`
+interval integrable on `[0, T]`, `e^{−cT} b_{t+T} = b_t − ∫_0^T e^{−cτ} f_{t+τ} dτ`. -/
+theorem flow_integrated_int {c : ℝ} {f b : ℝ → ℝ} (hb : NonlinearCT.Flow c f b) {t : ℝ}
+    (ht : 0 ≤ t) {T : ℝ} (hT : 0 ≤ T)
+    (hint : IntervalIntegrable (fun τ => Real.exp (-c * τ) * f (t + τ)) volume 0 T) :
+    Real.exp (-c * T) * b (t + T) =
+      b t - ∫ τ in (0 : ℝ)..T, Real.exp (-c * τ) * f (t + τ) := by
+  have hderiv : ∀ x ∈ Set.uIcc 0 T, HasDerivAt (fun τ => Real.exp (-c * τ) * b (t + τ))
+      (-(Real.exp (-c * x) * f (t + x))) x := by
+    intro x hx
+    rw [Set.uIcc_of_le hT] at hx
+    have h1 : HasDerivAt (fun τ => Real.exp (-c * τ)) (Real.exp (-c * x) * (-c)) x := by
+      have := ((hasDerivAt_id x).const_mul (-c)).exp
+      simpa using this
+    have h2 : HasDerivAt (fun τ => b (t + τ)) (c * b (t + x) - f (t + x)) x :=
+      HasDerivAt.comp_const_add t x (hb (t + x) (by linarith [hx.1]))
+    convert h1.mul h2 using 1
+    ring
+  have := intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint.neg
+  rw [intervalIntegral.integral_neg] at this
+  simp only [mul_zero, Real.exp_zero, one_mul, add_zero] at this
+  linarith
+
+/-- Cochrane (2023), (5.44), p. 140, **with integrable forcing**: for a flow `db/dt = rb − s` on
+`[0, ∞)`, `t ≥ 0` and `e^{−rτ} s_{t+τ}` integrable on `(0, ∞)`, the transversality condition
+holds iff `b_t = ∫_0^∞ e^{−rτ} s_{t+τ} dτ` (no continuity of `s`). -/
+theorem tvc_iff_integral_int {r : ℝ} {s b : ℝ → ℝ} (hb : NonlinearCT.Flow r s b) {t : ℝ}
+    (ht : 0 ≤ t) (hint : IntegrableOn (fun τ => Real.exp (-r * τ) * s (t + τ)) (Set.Ioi 0)) :
+    Tendsto (fun T => Real.exp (-r * T) * b (t + T)) atTop (𝓝 0) ↔
+      b t = ∫ τ in Set.Ioi 0, Real.exp (-r * τ) * s (t + τ) := by
+  have hlim := intervalIntegral_tendsto_integral_Ioi 0 hint tendsto_id
+  have hev : (fun T => Real.exp (-r * T) * b (t + T)) =ᶠ[atTop]
+      fun T => b t - ∫ τ in (0 : ℝ)..T, Real.exp (-r * τ) * s (t + τ) := by
+    filter_upwards [eventually_ge_atTop 0] with T hT
+    exact flow_integrated_int hb ht hT ((intervalIntegrable_iff_integrableOn_Ioc_of_le hT).2
+      (hint.mono_set Set.Ioc_subset_Ioi_self))
+  rw [tendsto_congr' hev]
+  constructor
+  · intro h
+    have h2 := (tendsto_const_nhds (x := b t)).sub h
+    simp only [sub_sub_cancel, sub_zero] at h2
+    exact tendsto_nhds_unique h2 hlim
+  · intro h
+    have := (tendsto_const_nhds (x := b t)).sub hlim
+    rwa [← h, sub_self] at this
+
+/-- Cochrane (2023), (5.44), p. 140: the statement of `NonlinearCT.tvc_iff_integral` with the
+continuity of the surplus dropped (integrable discounted surplus only). -/
+def IntegralIntStmt : Prop :=
+  ∀ (r : ℝ) (s b : ℝ → ℝ), NonlinearCT.Flow r s b → ∀ t : ℝ, 0 ≤ t →
+    IntegrableOn (fun τ => Real.exp (-r * τ) * s (t + τ)) (Set.Ioi 0) →
+    (Tendsto (fun T => Real.exp (-r * T) * b (t + T)) atTop (𝓝 0) ↔
+      b t = ∫ τ in Set.Ioi 0, Real.exp (-r * τ) * s (t + τ))
+
+/-- Cochrane (2023), (5.44), p. 140: `IntegralIntStmt` holds (`tvc_iff_integral_int`). -/
+theorem integralIntStmt_holds : IntegralIntStmt :=
+  fun _ _ _ hb _ ht hint => tvc_iff_integral_int hb ht hint
+
+/-- Cochrane (2023), (5.44) and (5.95) (tool): a limit of the relative-time discounted path from
+date `t'` gives the absolute-time limit, `e^{−aT} v_{t'+T} → c ⇒ e^{−aT} v_T → e^{−at'} c`. -/
+theorem tvc_shift_limit {a t' c : ℝ} {v : ℝ → ℝ}
+    (h : Tendsto (fun T => Real.exp (-a * T) * v (t' + T)) atTop (𝓝 c)) :
+    Tendsto (fun T => Real.exp (-(a * T)) * v T) atTop (𝓝 (Real.exp (-(a * t')) * c)) := by
+  have hs : Tendsto (fun T : ℝ => -t' + T) atTop atTop :=
+    tendsto_atTop_add_const_left _ _ tendsto_id
+  have h2 := (h.comp hs).const_mul (Real.exp (-(a * t')))
+  refine h2.congr fun T => ?_
+  simp only [Function.comp_apply]
+  rw [show t' + (-t' + T) = T by ring, ← mul_assoc, ← Real.exp_add]
+  ring_nf
+
+/-- Cochrane (2023), §5.7.1, p. 165 (tool): for `g` integrable on `(t, ∞)`,
+`∫_{t'}^∞ g → ∫_t^∞ g` as `t' → t⁺`. -/
+theorem tendsto_integral_Ioi_right {g : ℝ → ℝ} {t : ℝ} (hg : IntegrableOn g (Set.Ioi t)) :
+    Tendsto (fun t' => ∫ τ in Set.Ioi t', g τ) (𝓝[>] t) (𝓝 (∫ τ in Set.Ioi t, g τ)) := by
+  have hII : IntervalIntegrable g volume (min t t) (max t (t + 1)) := by
+    rw [min_self, max_eq_right (by linarith)]
+    exact (intervalIntegrable_iff_integrableOn_Ioc_of_le (by linarith)).2
+      (hg.mono_set Set.Ioc_subset_Ioi_self)
+  have hcw := intervalIntegral.continuousWithinAt_primitive (μ := volume) (a := t) (b₀ := t)
+    (b₁ := t) (b₂ := t + 1) (by simp) hII
+  have hmem : Set.Icc t (t + 1) ∈ 𝓝[>] t :=
+    mem_of_superset (Ioo_mem_nhdsGT (by linarith : t < t + 1)) Set.Ioo_subset_Icc_self
+  have hP : Tendsto (fun b => ∫ x in t..b, g x) (𝓝[>] t) (𝓝 0) := by
+    have := (hcw.mono_of_mem_nhdsWithin hmem).tendsto
+    simpa using this
+  have := (tendsto_const_nhds (x := ∫ τ in Set.Ioi t, g τ)).sub hP
+  rw [sub_zero] at this
+  refine this.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with t' ht'
+  have ht'' : t ≤ t' := le_of_lt ht'
+  rw [intervalIntegral.integral_of_le ht'', ← Set.Ioc_union_Ioi_eq_Ioi ht'',
+    setIntegral_union Set.Ioc_disjoint_Ioi_same measurableSet_Ioi
+      (hg.mono_set Set.Ioc_subset_Ioi_self) (hg.mono_set (Set.Ioi_subset_Ioi ht''))]
+  ring
+
+/-- Cochrane (2023), (5.44) and (5.95): **`CTSimple.tvc_iff_forward` in full (any integrable
+forcing, continuous or not, no derivative at the valuation date) follows from
+`IntegralIntStmt`**, NonlinearCT's statement with integrable forcing. -/
+theorem forwardStmt_of_integralIntStmt (H : IntegralIntStmt) : LinksTidy.ForwardStmt := by
+  intro v f a t hc hd hint
+  set g : ℝ → ℝ := fun τ => Real.exp (-(a * τ)) * f τ with hg
+  -- Step 1: from every later date `t'`, the discounted debt converges to `e^{−at'}v_{t'} − G(t')`
+  have step1 : ∀ t', t < t' → Tendsto (fun T => Real.exp (-(a * T)) * v T) atTop
+      (𝓝 (Real.exp (-(a * t')) * v t' - ∫ τ in Set.Ioi t', g τ)) := by
+    intro t' htt'
+    set F := ∫ τ in Set.Ioi 0, Real.exp (-a * τ) * f (t' + τ) with hF
+    set c := v t' - F with hcdef
+    set b : ℝ → ℝ := fun u => v (t' + u) - c * Real.exp (a * u) with hbdef
+    have hflow : NonlinearCT.Flow a (fun u => f (t' + u)) b := by
+      intro u hu
+      have h1 : HasDerivAt (fun y => v (t' + y)) (a * v (t' + u) - f (t' + u)) u :=
+        HasDerivAt.comp_const_add t' u (hd (t' + u) (by linarith))
+      have h2 := (CTSimple.hasDerivAt_expPos a u).const_mul c
+      convert HasDerivAt.sub h1 h2 using 1
+      simp only [hbdef]
+      ring
+    have hint' : IntegrableOn (fun τ => Real.exp (-a * τ) * (fun u => f (t' + u)) (0 + τ))
+        (Set.Ioi 0) := by
+      simp only [zero_add]
+      exact (LinksTidy.integrable_rel_iff_abs a t' f).2
+        (hint.mono_set (Set.Ioi_subset_Ioi htt'.le))
+    have key := (H a (fun u => f (t' + u)) b hflow 0 le_rfl hint').2 (by
+      simp only [hbdef, zero_add, add_zero, mul_zero, Real.exp_zero, mul_one, hcdef]
+      ring)
+    have hlim : Tendsto (fun T => Real.exp (-a * T) * v (t' + T)) atTop (𝓝 c) := by
+      have := key.add_const c
+      rw [zero_add] at this
+      refine this.congr fun T => ?_
+      simp only [hbdef, zero_add]
+      have hee : Real.exp (-a * T) * Real.exp (a * T) = 1 := by rw [← Real.exp_add]; simp
+      linear_combination (-c) * hee
+    have hres := tvc_shift_limit hlim
+    have hval : Real.exp (-(a * t')) * c =
+        Real.exp (-(a * t')) * v t' - ∫ τ in Set.Ioi t', g τ := by
+      rw [hcdef, mul_sub, hF, (LinksTidy.valuation_rel_eq a t' f).1,
+        (LinksTidy.valuation_rel_eq a t' f).2, ← mul_assoc, ← Real.exp_add]
+      simp [hg]
+    rwa [hval] at hres
+  -- Step 2: the limit `L` is pinned at `t` by letting `t' ↓ t`
+  set L := Real.exp (-(a * (t + 1))) * v (t + 1) - ∫ τ in Set.Ioi (t + 1), g τ with hL
+  have hconst : ∀ t', t < t' → Real.exp (-(a * t')) * v t' - ∫ τ in Set.Ioi t', g τ = L :=
+    fun t' ht' => tendsto_nhds_unique (step1 t' ht') (step1 (t + 1) (by linarith))
+  have hcont : Tendsto (fun t' => Real.exp (-(a * t')) * v t' - ∫ τ in Set.Ioi t', g τ)
+      (𝓝[>] t) (𝓝 (Real.exp (-(a * t)) * v t - ∫ τ in Set.Ioi t, g τ)) := by
+    have he : ContinuousWithinAt (fun u => Real.exp (-(a * u)) * v u) (Set.Ioi t) t :=
+      (((by fun_prop : Continuous fun u : ℝ => Real.exp (-(a * u))).continuousWithinAt).mul
+        (hc t (Set.mem_Ici.mpr le_rfl))).mono Set.Ioi_subset_Ici_self
+    exact he.tendsto.sub (tendsto_integral_Ioi_right hint)
+  have hLt : L = Real.exp (-(a * t)) * v t - ∫ τ in Set.Ioi t, g τ := by
+    refine tendsto_nhds_unique (tendsto_const_nhds.congr' ?_) hcont
+    filter_upwards [self_mem_nhdsWithin] with t' ht'
+    exact (hconst t' ht').symm
+  have hlimL : Tendsto (fun T => Real.exp (-(a * T)) * v T) atTop (𝓝 L) := by
+    have := step1 (t + 1) (by linarith)
+    rwa [← hL] at this
+  -- Step 3: the transversality condition holds iff `L = 0` iff the valuation equation holds
+  have hpos := Real.exp_pos (a * t)
+  have hinv : Real.exp (a * t) * Real.exp (-(a * t)) = 1 := by
+    rw [← Real.exp_add]; simp
+  rw [CTSimple.integral_exp_shift]
+  constructor
+  · intro h0
+    have hL0 : L = 0 := tendsto_nhds_unique hlimL h0
+    rw [hL0] at hLt
+    have : Real.exp (-(a * t)) * v t = ∫ τ in Set.Ioi t, g τ := by linarith
+    rw [← this, ← mul_assoc, hinv, one_mul]
+  · intro hv
+    have hL0 : L = 0 := by
+      rw [hLt, hv, ← mul_assoc, mul_comm (Real.exp (-(a * t))), hinv, one_mul]
+      simp [hg]
+    rwa [hL0] at hlimL
+
+/-- Cochrane (2023), (5.95), p. 165: `CTSimple.tvc_iff_forward` for **any** integrable forcing
+(including discontinuous forcing such as `wf`), re-derived along NonlinearCT's route
+(`tvc_iff_integral_int`). -/
+theorem tvc_iff_forward_of_integralInt {v f : ℝ → ℝ} {a t : ℝ}
+    (hc : ContinuousOn v (Set.Ici t)) (hd : ∀ τ, t < τ → HasDerivAt v (a * v τ - f τ) τ)
+    (hint : IntegrableOn (fun τ => Real.exp (-(a * τ)) * f τ) (Set.Ioi t)) :
+    Tendsto (fun T => Real.exp (-(a * T)) * v T) atTop (𝓝 0) ↔
+      v t = ∫ τ in Set.Ioi 0, Real.exp (-(a * τ)) * f (t + τ) :=
+  forwardStmt_of_integralIntStmt integralIntStmt_holds v f a t hc hd hint
+
+/-- Cochrane (2023), (5.95), p. 165: **the witness is covered by the re-derived theorem**: its
+transversality condition `e^{−2T} wv_T → 0` holds, so `wv(0) = ∫_0^∞ e^{−2τ} wf(τ) dτ`, although
+`wf` is discontinuous at `1`. -/
+theorem witness_valuation :
+    Tendsto (fun T => Real.exp (-(2 * T)) * wv T) atTop (𝓝 0) ∧
+      wv 0 = ∫ τ in Set.Ioi 0, Real.exp (-(2 * τ)) * wf (0 + τ) := by
+  obtain ⟨hc, hd, hint, -, -⟩ := witness_ctsimple_hyps
+  have htvc : Tendsto (fun T => Real.exp (-(2 * T)) * wv T) atTop (𝓝 0) := by
+    have he : Tendsto (fun T : ℝ => 4 * Real.exp (-T)) atTop (𝓝 0) := by
+      have := Real.tendsto_exp_neg_atTop_nhds_zero.const_mul 4
+      rwa [mul_zero] at this
+    refine squeeze_zero_norm' ?_ he
+    filter_upwards [eventually_ge_atTop 0] with T hT
+    rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+    have h1 := (wv_wdv_bound T).1
+    have h2 : (T - 1) ^ 2 ≤ (T + 2) ^ 2 := by nlinarith
+    have h3 := sq_le_four_exp hT
+    have hsplit : Real.exp (-(2 * T)) * Real.exp T = Real.exp (-T) := by
+      rw [← Real.exp_add]; ring_nf
+    calc Real.exp (-(2 * T)) * |wv T| ≤ Real.exp (-(2 * T)) * (4 * Real.exp T) :=
+          mul_le_mul_of_nonneg_left (by linarith) (Real.exp_pos _).le
+      _ = 4 * Real.exp (-T) := by rw [← hsplit]; ring
+  exact ⟨htvc, (tvc_iff_forward_of_integralInt hc hd hint).1 htvc⟩
+
+end Cochrane.StickyPriceFiscal.TidyR5TVC
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The discrete-to-continuous limit of the whole peg path
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5: Figs. 5.1–5.3, pp. 122–125
+(the discrete-time peg, `FiscalNK.piDet`) and §5.7.1, (5.96), p. 166 (the step example in
+continuous time, `CTSimple.ct_step_solution`, `CTSimple.ct_step_debt`).
+
+`Links` shows that the roots, the impact coefficient and the decay factor of the discrete peg
+response converge to their continuous-time counterparts. This module proves the convergence of
+the **whole path**, uniformly on every compact time interval `[0, T]`, as the period length
+`h → 0⁺`.
+
+With period length `h`, the discrete model has IS slope `σh`, Phillips-curve slope `κh`,
+discount `β = 1 − ρh`, debt discount `1 − rh`, a peg at `i₀h` per period, surpluses `s̃₀h` per
+period and initial debt `v₀`; continuous time `t` is date `⌊t/h⌋` and per-period inflation is
+divided by `h` to give a rate.
+
+## Main results
+
+* `qh_pow_eq`, `tendsto_khat`: `λ₁^{−n} = e^{−k̂(h)·nh}` with `k̂(h) → λ₂`.
+* `decay_bound`, `tendsto_decay_uniform`: `λ₁^{−⌊t/h⌋} → e^{−λ₂ t}` uniformly on `[0, T]`.
+* `peg_response_uniform`: the peg response of `Links` (`FiscalNK`'s `(1 − ρ/λ₁)λ₁^{−t}`, per unit
+  of time) converges uniformly on `[0, T]` to `CTSimple`'s `(r + λ₂)e^{−λ₂ t}`.
+* `peg_disc_exists`: for small `h` the discrete equilibrium exists.
+* `peg_path_uniform`: **every family of bounded discrete equilibria has inflation (per unit of
+  time) converging uniformly on `[0, T]` to the continuous-time equilibrium inflation**
+  `(r + λ₂)(v₀ − s̃₀/r)e^{−λ₂ t} + i₀`; `peg_debt_uniform`: so does the real value of debt.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR5PegLimit
+
+open Filter Topology
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), Fig. 5.1, p. 122, with period length `h`: the per-period decay factor
+`λ₁^{−1}` of the discrete peg response. -/
+noncomputable def qh (ρ σ κ h : ℝ) : ℝ := (NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h))⁻¹
+
+/-- Cochrane (2023), §5.7.1, p. 165, with period length `h`: the implied continuous decay rate
+`k̂(h) = log(1 + h·g(h))/h`, `g = Links.scaledRoot`. -/
+noncomputable def khat (ρ σ κ h : ℝ) : ℝ := Real.log (1 + h * Links.scaledRoot ρ σ κ h) / h
+
+/-- Cochrane (2023), §5.7.1, p. 165 (tool): uniform convergence on a set from an eventual
+uniform bound `|F_i − G| ≤ B_i` with `B_i → 0`. -/
+theorem tendstoUniformlyOn_of_abs_le {ι : Type*} {l : Filter ι} {F : ι → ℝ → ℝ} {G : ℝ → ℝ}
+    {S : Set ℝ} {B : ι → ℝ} (hB : Tendsto B l (𝓝 0))
+    (h : ∀ᶠ i in l, ∀ t ∈ S, |F i t - G t| ≤ B i) : TendstoUniformlyOn F G l S := by
+  rw [Metric.tendstoUniformlyOn_iff]
+  intro ε hε
+  filter_upwards [h, hB.eventually (gt_mem_nhds hε)] with i hi hBi t ht
+  rw [Real.dist_eq, abs_sub_comm]
+  exact (hi t ht).trans_lt hBi
+
+/-- Cochrane (2023), §5.7.1, p. 166 (tool): `e^{−x}` is 1-Lipschitz on `[0, ∞)`. -/
+theorem abs_exp_neg_sub_le {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
+    |Real.exp (-x) - Real.exp (-y)| ≤ |x - y| := by
+  have key : ∀ a b : ℝ, 0 ≤ a → a ≤ b → Real.exp (-a) - Real.exp (-b) ≤ b - a := by
+    intro a b ha hab
+    have h1 := Real.add_one_le_exp (-(b - a))
+    have h2 : Real.exp (-b) = Real.exp (-a) * Real.exp (-(b - a)) := by
+      rw [← Real.exp_add]; ring_nf
+    have h3 : Real.exp (-a) ≤ 1 := Real.exp_le_one_iff.mpr (by linarith)
+    have h4 : 0 ≤ 1 - Real.exp (-(b - a)) := by
+      have : Real.exp (-(b - a)) ≤ 1 := Real.exp_le_one_iff.mpr (by linarith)
+      linarith
+    rw [h2]
+    nlinarith [Real.exp_pos (-a)]
+  rcases le_total x y with hxy | hxy
+  · have := key x y hx hxy
+    have hm : Real.exp (-y) ≤ Real.exp (-x) := Real.exp_le_exp.mpr (by linarith)
+    rw [abs_of_nonneg (by linarith), abs_of_nonpos (by linarith)]
+    linarith
+  · have := key y x hy hxy
+    have hm : Real.exp (-x) ≤ Real.exp (-y) := Real.exp_le_exp.mpr (by linarith)
+    rw [abs_of_nonpos (by linarith), abs_of_nonneg (by linarith)]
+    linarith
+
+/-- Cochrane (2023), Fig. 5.1 → (5.96) (tool): for `h > 0` and `σκ > 0`,
+`λ₁^{−n} = e^{−k̂(h)·(nh)}`. -/
+theorem qh_pow_eq {ρ σ κ h : ℝ} (ha : 0 < σ * κ) (hh : 0 < h) (n : ℕ) :
+    qh ρ σ κ h ^ n = Real.exp (-(khat ρ σ κ h * (n * h))) := by
+  have hpos : 0 < 1 + h * Links.scaledRoot ρ σ κ h := by
+    have := mul_pos hh (Links.scaledRoot_pos (ρ := ρ) ha h)
+    linarith
+  rw [qh, Links.lam1_scaled_eq hh, inv_pow, khat,
+    show Real.log (1 + h * Links.scaledRoot ρ σ κ h) / h * (n * h) =
+      n * Real.log (1 + h * Links.scaledRoot ρ σ κ h) by field_simp,
+    ← Real.log_pow, Real.exp_neg, Real.exp_log (pow_pos hpos n)]
+
+/-- Cochrane (2023), §5.7.1, p. 165 (tool): `k̂(h) ≥ 0` for `h > 0`. -/
+theorem khat_nonneg {ρ σ κ h : ℝ} (ha : 0 < σ * κ) (hh : 0 < h) : 0 ≤ khat ρ σ κ h := by
+  have := mul_pos hh (Links.scaledRoot_pos (ρ := ρ) ha h)
+  exact div_nonneg (Real.log_nonneg (by linarith)) hh.le
+
+/-- Cochrane (2023), (5.6), p. 119 → §5.7.1, p. 165: as `h → 0⁺`, the implied decay rate
+`k̂(h) = log λ₁/h` converges to the continuous-time root `λ₂`. -/
+theorem tendsto_khat {ρ σ κ : ℝ} (ha : 0 < σ * κ) :
+    Tendsto (khat ρ σ κ) (𝓝[>] 0) (𝓝 (CTSimple.lam2 ρ κ σ)) := by
+  have hg : Tendsto (Links.scaledRoot ρ σ κ) (𝓝[>] 0) (𝓝 (CTSimple.lam2 ρ κ σ)) := by
+    rw [← Links.scaledRoot_zero]
+    exact ((Links.continuous_scaledRoot ρ σ κ).tendsto 0).mono_left nhdsWithin_le_nhds
+  have hhg : Tendsto (fun h => 1 + h * Links.scaledRoot ρ σ κ h) (𝓝[>] 0)
+      (𝓝 (1 + 0 * CTSimple.lam2 ρ κ σ)) :=
+    tendsto_const_nhds.add ((tendsto_id.mono_left nhdsWithin_le_nhds).mul hg)
+  rw [zero_mul, add_zero] at hhg
+  have hlo : Tendsto (fun h => Links.scaledRoot ρ σ κ h / (1 + h * Links.scaledRoot ρ σ κ h))
+      (𝓝[>] 0) (𝓝 (CTSimple.lam2 ρ κ σ)) := by
+    have := hg.div hhg one_ne_zero
+    rwa [div_one] at this
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' hlo hg ?_ ?_
+  · filter_upwards [self_mem_nhdsWithin] with h hh
+    have hh' : 0 < h := hh
+    have hy := mul_pos hh' (Links.scaledRoot_pos (ρ := ρ) ha h)
+    have hl := Real.one_sub_inv_le_log_of_pos (by linarith :
+      (0 : ℝ) < 1 + h * Links.scaledRoot ρ σ κ h)
+    rw [khat, le_div_iff₀ hh']
+    have hne : 1 + h * Links.scaledRoot ρ σ κ h ≠ 0 := by linarith
+    have e : Links.scaledRoot ρ σ κ h / (1 + h * Links.scaledRoot ρ σ κ h) * h =
+        1 - (1 + h * Links.scaledRoot ρ σ κ h)⁻¹ := by
+      have e1 : (1 + h * Links.scaledRoot ρ σ κ h) * (1 + h * Links.scaledRoot ρ σ κ h)⁻¹ = 1 :=
+        mul_inv_cancel₀ hne
+      rw [div_eq_mul_inv]
+      linear_combination e1
+    rw [e]
+    exact hl
+  · filter_upwards [self_mem_nhdsWithin] with h hh
+    have hh' : 0 < h := hh
+    have hy := mul_pos hh' (Links.scaledRoot_pos (ρ := ρ) ha h)
+    have hl := Real.log_le_sub_one_of_pos (by linarith :
+      (0 : ℝ) < 1 + h * Links.scaledRoot ρ σ κ h)
+    rw [khat, div_le_iff₀ hh']
+    linarith
+
+/-- Cochrane (2023), §5.7.1, p. 166 (tool): for `h > 0` and `0 ≤ t`, `n = ⌊t/h⌋` satisfies
+`nh ≤ t < nh + h`. -/
+theorem floor_bounds {t h : ℝ} (hh : 0 < h) (ht : 0 ≤ t) :
+    (⌊t / h⌋₊ : ℝ) * h ≤ t ∧ t < (⌊t / h⌋₊ : ℝ) * h + h := by
+  have h0 : 0 ≤ t / h := div_nonneg ht hh.le
+  constructor
+  · have := Nat.floor_le h0
+    rwa [le_div_iff₀ hh] at this
+  · have := Nat.lt_floor_add_one (t / h)
+    rw [div_lt_iff₀ hh] at this
+    linarith
+
+/-- Cochrane (2023), Fig. 5.1 → (5.96): **the decay bound**: for `h > 0` and `t ∈ [0, T]`,
+`|λ₁^{−⌊t/h⌋} − e^{−λ₂ t}| ≤ |k̂(h) − λ₂| T + λ₂ h`. -/
+theorem decay_bound {ρ σ κ h T t : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hh : 0 < h)
+    (ht : t ∈ Set.Icc 0 T) :
+    |qh ρ σ κ h ^ ⌊t / h⌋₊ - Real.exp (-(CTSimple.lam2 ρ κ σ * t))| ≤
+      |khat ρ σ κ h - CTSimple.lam2 ρ κ σ| * T + CTSimple.lam2 ρ κ σ * h := by
+  have ha := mul_pos hσ hκ
+  have hl2 := CTSimple.lam2_pos (ρ := ρ) hκ hσ
+  obtain ⟨hn1, hn2⟩ := floor_bounds hh ht.1
+  set n := ⌊t / h⌋₊
+  have hnh0 : 0 ≤ (n : ℝ) * h := by positivity
+  rw [qh_pow_eq ha hh n]
+  refine (abs_exp_neg_sub_le (mul_nonneg (khat_nonneg ha hh) hnh0)
+    (mul_nonneg hl2.le ht.1)).trans ?_
+  have e : khat ρ σ κ h * (n * h) - CTSimple.lam2 ρ κ σ * t =
+      (khat ρ σ κ h - CTSimple.lam2 ρ κ σ) * (n * h) +
+        CTSimple.lam2 ρ κ σ * ((n * h) - t) := by ring
+  rw [e]
+  refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+  · rw [abs_mul, abs_of_nonneg hnh0]
+    exact mul_le_mul_of_nonneg_left (hn1.trans ht.2) (abs_nonneg _)
+  · rw [abs_mul, abs_of_pos hl2]
+    refine mul_le_mul_of_nonneg_left ?_ hl2.le
+    rw [abs_le]
+    constructor <;> linarith
+
+/-- Cochrane (2023), Fig. 5.1 → (5.96): **the discrete decay `λ₁^{−⌊t/h⌋}` converges to
+`e^{−λ₂ t}` uniformly on `[0, T]`** as the period length `h → 0⁺`. -/
+theorem tendsto_decay_uniform {ρ σ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (T : ℝ) :
+    TendstoUniformlyOn (fun h t => qh ρ σ κ h ^ ⌊t / h⌋₊)
+      (fun t => Real.exp (-(CTSimple.lam2 ρ κ σ * t))) (𝓝[>] 0) (Set.Icc 0 T) := by
+  have ha := mul_pos hσ hκ
+  refine tendstoUniformlyOn_of_abs_le
+    (B := fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ| * T + CTSimple.lam2 ρ κ σ * h) ?_ ?_
+  · have h1 : Tendsto (fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ|) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_khat (ρ := ρ) ha).sub_const (CTSimple.lam2 ρ κ σ)).abs
+      rwa [sub_self, abs_zero] at this
+    have h2 : Tendsto (fun h : ℝ => CTSimple.lam2 ρ κ σ * h) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_id (x := 𝓝 (0 : ℝ))).const_mul (CTSimple.lam2 ρ κ σ)).mono_left
+        (nhdsWithin_le_nhds (s := Set.Ioi 0))
+      rwa [mul_zero] at this
+    have := (h1.mul_const T).add h2
+    rwa [zero_mul, zero_add] at this
+  · filter_upwards [self_mem_nhdsWithin] with h hh t ht
+    exact decay_bound hσ hκ hh ht
+
+/-- Cochrane (2023), §5.7.1, p. 166 (tool): `|c_h q_h(t) − c₀ e(t)|` is at most
+`|c_h − c₀| + |c₀| |q_h(t) − e(t)|` when `0 ≤ q_h(t) ≤ 1`. -/
+theorem abs_prod_sub_le {c c0 q e : ℝ} (hq0 : 0 ≤ q) (hq1 : q ≤ 1) :
+    |c * q - c0 * e| ≤ |c - c0| + |c0| * |q - e| := by
+  have e1 : c * q - c0 * e = (c - c0) * q + c0 * (q - e) := by ring
+  rw [e1]
+  refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+  · rw [abs_mul, abs_of_nonneg hq0]
+    exact mul_le_of_le_one_right (abs_nonneg _) hq1
+  · rw [abs_mul]
+
+/-- Cochrane (2023), Fig. 5.1 (tool): for `h > 0`, `0 < λ₁^{−1} < 1`. -/
+theorem qh_mem {ρ σ κ h : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hh : 0 < h) (hβ : 0 < 1 - ρ * h) :
+    0 < qh ρ σ κ h ∧ qh ρ σ κ h < 1 := by
+  have ha : 0 < σ * h * (κ * h) := by positivity
+  have h1 := NKModel.one_lt_lam1 ha hβ
+  exact ⟨inv_pos.mpr (by linarith), inv_lt_one_of_one_lt₀ h1⟩
+
+/-- Cochrane (2023), Figs. 5.1–5.3, pp. 122–125 → (5.96), p. 166, **the whole peg response**:
+`FiscalNK`'s response `(1 − ρ/λ₁)λ₁^{−⌊t/h⌋}` per unit of time (`ρ = 1 − rh`) converges to
+`CTSimple`'s `(r + λ₂)e^{−λ₂ t}` uniformly on `[0, T]` as `h → 0⁺`. -/
+theorem peg_response_uniform {ρ σ κ : ℝ} (r : ℝ) (hσ : 0 < σ) (hκ : 0 < κ) (T : ℝ) :
+    TendstoUniformlyOn
+      (fun h t => (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+        qh ρ σ κ h ^ ⌊t / h⌋₊)
+      (fun t => (r + CTSimple.lam2 ρ κ σ) * Real.exp (-(CTSimple.lam2 ρ κ σ * t)))
+      (𝓝[>] 0) (Set.Icc 0 T) := by
+  have ha := mul_pos hσ hκ
+  set c := fun h => (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h with hc
+  set c0 := r + CTSimple.lam2 ρ κ σ
+  have hcl : Tendsto c (𝓝[>] 0) (𝓝 c0) := Links.tendsto_peg_impact r ha
+  set Bd := fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ| * T + CTSimple.lam2 ρ κ σ * h
+  have hBd : Tendsto Bd (𝓝[>] 0) (𝓝 0) := by
+    have h1 : Tendsto (fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ|) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_khat (ρ := ρ) ha).sub_const (CTSimple.lam2 ρ κ σ)).abs
+      rwa [sub_self, abs_zero] at this
+    have h2 : Tendsto (fun h : ℝ => CTSimple.lam2 ρ κ σ * h) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_id (x := 𝓝 (0 : ℝ))).const_mul (CTSimple.lam2 ρ κ σ)).mono_left
+        (nhdsWithin_le_nhds (s := Set.Ioi 0))
+      rwa [mul_zero] at this
+    have := (h1.mul_const T).add h2
+    rwa [zero_mul, zero_add] at this
+  refine tendstoUniformlyOn_of_abs_le (B := fun h => |c h - c0| + |c0| * Bd h) ?_ ?_
+  · have h1 : Tendsto (fun h => |c h - c0|) (𝓝[>] 0) (𝓝 0) := by
+      have := (hcl.sub_const c0).abs
+      rwa [sub_self, abs_zero] at this
+    have := h1.add (hBd.const_mul |c0|)
+    rwa [mul_zero, add_zero] at this
+  · have hβ : ∀ᶠ h in 𝓝[>] (0 : ℝ), 0 < 1 - ρ * h := by
+      have hc1 : Tendsto (fun h : ℝ => 1 - ρ * h) (𝓝 0) (𝓝 (1 - ρ * 0)) :=
+        tendsto_const_nhds.sub (tendsto_id.const_mul ρ)
+      rw [mul_zero, sub_zero] at hc1
+      exact nhdsWithin_le_nhds (hc1.eventually (lt_mem_nhds one_pos))
+    filter_upwards [self_mem_nhdsWithin, hβ] with h hh hb t ht
+    obtain ⟨q0, q1⟩ := qh_mem (ρ := ρ) hσ hκ hh hb
+    refine (abs_prod_sub_le (pow_nonneg q0.le _) (pow_le_one₀ q0.le q1.le)).trans ?_
+    exact add_le_add le_rfl (mul_le_mul_of_nonneg_left (decay_bound hσ hκ hh ht)
+      (abs_nonneg _))
+
+/-- Cochrane (2023), p. 122 (tool): the present value of constant per-period surpluses `s̃₀h`
+discounted at `1 − rh` is `s̃₀/r`. -/
+theorem pvS_const {r s0 h : ℝ} (hrh0 : 0 < r * h) (hrh1 : r * h < 1) (hh : 0 < h) :
+    FiscalNK.pvS (1 - r * h) (fun _ => s0 * h) = s0 / r := by
+  have hr : 0 < r := pos_of_mul_pos_left hrh0 hh.le
+  unfold FiscalNK.pvS
+  rw [tsum_mul_right, tsum_geometric_of_lt_one (by linarith) (by linarith)]
+  field_simp
+  ring
+
+/-- Cochrane (2023), §5.7.1, p. 166 (tool): eventually as `h → 0⁺`, `h > 0`, `0 < 1 − ρh`,
+`0 < rh < 1`. -/
+theorem eventually_small {ρ r : ℝ} (hr : 0 < r) :
+    ∀ᶠ h in 𝓝[>] (0 : ℝ), 0 < h ∧ 0 < 1 - ρ * h ∧ 0 < r * h ∧ r * h < 1 := by
+  have hc : ∀ c : ℝ, ∀ᶠ h in 𝓝[>] (0 : ℝ), 0 < 1 - c * h := fun c => by
+    have hc1 : Tendsto (fun h : ℝ => 1 - c * h) (𝓝 0) (𝓝 (1 - c * 0)) :=
+      tendsto_const_nhds.sub (tendsto_id.const_mul c)
+    rw [mul_zero, sub_zero] at hc1
+    exact nhdsWithin_le_nhds (hc1.eventually (lt_mem_nhds one_pos))
+  filter_upwards [self_mem_nhdsWithin, hc ρ, hc r] with h hh h1 h2
+  exact ⟨hh, h1, mul_pos hr hh, by linarith⟩
+
+/-- Cochrane (2023), Figs. 5.1–5.3, pp. 122–125: **for small period length the discrete peg
+equilibrium exists**: with `h` small there is an equilibrium of (5.15)–(5.16) with bounded
+inflation and debt for the peg `i₀h`, surpluses `s̃₀h` and initial debt `v₀`. -/
+theorem peg_disc_exists {r σ κ ρ v0 i0 s0 : ℝ} (hr : 0 < r) (hσ : 0 < σ) (hκ : 0 < κ) :
+    ∀ᶠ h in 𝓝[>] (0 : ℝ), ∃ x π v, FiscalNK.FTPLNK 𝔼 (σ * h) (1 - ρ * h) (κ * h) (1 - r * h)
+      (fun _ _ => i0 * h) (fun _ _ => s0 * h) (fun _ => v0) x π v ∧ BoundedProc π ∧
+      BoundedProc v := by
+  filter_upwards [eventually_small (ρ := ρ) hr] with h ⟨hh, hb, hrh0, hrh1⟩
+  obtain ⟨hd, -, hdπ, hdv⟩ := FiscalNK.det_eqm 𝔼 (ρ := 1 - r * h) (mul_pos hσ hh)
+    (mul_pos hκ hh) hb (by linarith) (by linarith) (i0 * h) v0 (s := fun _ => s0 * h)
+    (Ms := |s0 * h|) (fun _ => le_rfl)
+  exact ⟨_, _, _, hd, hdπ, hdv⟩
+
+/-- Cochrane (2023), Figs. 5.1–5.3 (tool): the discrete peg inflation per unit of time,
+`piDet/h = i₀ + c(h)(v₀ − i₀h − s̃₀/r) λ₁^{−n}` with `c(h) = (1 − (1 − rh)/λ₁)/h`. -/
+theorem piDet_scaled {r σ κ ρ v0 i0 s0 h : ℝ} (hh : 0 < h) (hrh0 : 0 < r * h)
+    (hrh1 : r * h < 1) (n : ℕ) :
+    FiscalNK.piDet (σ * h) (1 - ρ * h) (κ * h) (1 - r * h) (i0 * h) v0 (fun _ => s0 * h) n / h =
+      i0 + (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+        (v0 - i0 * h - s0 / r) * qh ρ σ κ h ^ n := by
+  rw [FiscalNK.piDet, pvS_const hrh0 hrh1 hh, qh, div_eq_mul_inv (1 - r * h)]
+  field_simp
+
+/-- Cochrane (2023), Figs. 5.1–5.3, pp. 122–125 → §5.7.1, (5.96), p. 166, **the full
+discrete-to-continuous limit of the peg path**: take any family of bounded equilibria of the
+discrete model with period length `h` (eventually as `h → 0⁺`) and any equilibrium `(x, π, v)` of
+the continuous-time step example. Discrete inflation per unit of time at date `⌊t/h⌋` converges
+to `π(t) = (r + λ₂)(v₀ − s̃₀/r)e^{−λ₂ t} + i₀` uniformly on `[0, T]`. -/
+theorem peg_path_uniform {r σ κ ρ v0 i0 s0 : ℝ} (hr : 0 < r) (hσ : 0 < σ) (hκ : 0 < κ)
+    {x π v : ℝ → ℝ}
+    (hct : CTSimple.IsCTEquilibrium r σ κ ρ v0 (fun _ => i0) (fun _ => s0) x π v)
+    (X P V : ℝ → ℕ → Ω → ℝ)
+    (hd : ∀ᶠ h in 𝓝[>] (0 : ℝ), FiscalNK.FTPLNK 𝔼 (σ * h) (1 - ρ * h) (κ * h) (1 - r * h)
+      (fun _ _ => i0 * h) (fun _ _ => s0 * h) (fun _ => v0) (X h) (P h) (V h) ∧
+      BoundedProc (P h) ∧ BoundedProc (V h))
+    (ω : Ω) (T : ℝ) :
+    TendstoUniformlyOn (fun h t => P h ⌊t / h⌋₊ ω / h) π (𝓝[>] 0) (Set.Icc 0 T) := by
+  have ha := mul_pos hσ hκ
+  set c := fun h => (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+    (v0 - i0 * h - s0 / r) with hc
+  set c0 := (r + CTSimple.lam2 ρ κ σ) * (v0 - s0 / r) with hc0
+  have hcl : Tendsto c (𝓝[>] 0) (𝓝 c0) := by
+    have h1 := Links.tendsto_peg_impact (ρ := ρ) r ha
+    have h2 : Tendsto (fun h : ℝ => v0 - i0 * h - s0 / r) (𝓝[>] 0) (𝓝 (v0 - i0 * 0 - s0 / r)) :=
+      ((tendsto_const_nhds.sub ((tendsto_id.const_mul i0))).sub tendsto_const_nhds).mono_left
+        nhdsWithin_le_nhds
+    rw [mul_zero, sub_zero] at h2
+    exact h1.mul h2
+  set Bd := fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ| * T + CTSimple.lam2 ρ κ σ * h
+  have hBd : Tendsto Bd (𝓝[>] 0) (𝓝 0) := by
+    have h1 : Tendsto (fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ|) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_khat (ρ := ρ) ha).sub_const (CTSimple.lam2 ρ κ σ)).abs
+      rwa [sub_self, abs_zero] at this
+    have h2 : Tendsto (fun h : ℝ => CTSimple.lam2 ρ κ σ * h) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_id (x := 𝓝 (0 : ℝ))).const_mul (CTSimple.lam2 ρ κ σ)).mono_left
+        (nhdsWithin_le_nhds (s := Set.Ioi 0))
+      rwa [mul_zero] at this
+    have := (h1.mul_const T).add h2
+    rwa [zero_mul, zero_add] at this
+  refine tendstoUniformlyOn_of_abs_le (B := fun h => |c h - c0| + |c0| * Bd h) ?_ ?_
+  · have h1 : Tendsto (fun h => |c h - c0|) (𝓝[>] 0) (𝓝 0) := by
+      have := (hcl.sub_const c0).abs
+      rwa [sub_self, abs_zero] at this
+    have := h1.add (hBd.const_mul |c0|)
+    rwa [mul_zero, add_zero] at this
+  · filter_upwards [eventually_small (ρ := ρ) hr, hd] with h ⟨hh, hb, hrh0, hrh1⟩
+      ⟨hF, hπb, hvb⟩ t ht
+    obtain ⟨q0, q1⟩ := qh_mem (ρ := ρ) hσ hκ hh hb
+    have hπ := (FiscalNK.det_unique 𝔼 (mul_pos hσ hh) (mul_pos hκ hh) hb (by linarith)
+      (by linarith) (i0 * h) v0 (s := fun _ => s0 * h) (Ms := |s0 * h|) (fun _ => le_rfl)
+      hF hπb hvb).2.1
+    rw [hπ]
+    simp only
+    rw [piDet_scaled hh hrh0 hrh1, CTSimple.ct_step_solution hr hκ hσ hct t ht.1]
+    have e : i0 + (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+        (v0 - i0 * h - s0 / r) * qh ρ σ κ h ^ ⌊t / h⌋₊ -
+        ((r + CTSimple.lam2 ρ κ σ) * (v0 - s0 / r) *
+          Real.exp (-(CTSimple.lam2 ρ κ σ * t)) + i0) =
+        c h * qh ρ σ κ h ^ ⌊t / h⌋₊ - c0 * Real.exp (-(CTSimple.lam2 ρ κ σ * t)) := by
+      simp only [hc, hc0]
+      ring
+    rw [e]
+    refine (abs_prod_sub_le (pow_nonneg q0.le _) (pow_le_one₀ q0.le q1.le)).trans ?_
+    exact add_le_add le_rfl (mul_le_mul_of_nonneg_left (decay_bound hσ hκ hh ht)
+      (abs_nonneg _))
+
+/-- Cochrane (2023), Figs. 5.1–5.3, p. 122 → §5.7.1, p. 166 (`CTSimple.ct_step_debt`): **the real
+value of debt converges too**: along any family of bounded discrete equilibria, debt at date
+`⌊t/h⌋` converges to `v(t) = s̃₀/r + (v₀ − s̃₀/r)e^{−λ₂ t}` uniformly on `[0, T]`. -/
+theorem peg_debt_uniform {r σ κ ρ v0 i0 s0 : ℝ} (hr : 0 < r) (hσ : 0 < σ) (hκ : 0 < κ)
+    {x π v : ℝ → ℝ}
+    (hct : CTSimple.IsCTEquilibrium r σ κ ρ v0 (fun _ => i0) (fun _ => s0) x π v)
+    (X P V : ℝ → ℕ → Ω → ℝ)
+    (hd : ∀ᶠ h in 𝓝[>] (0 : ℝ), FiscalNK.FTPLNK 𝔼 (σ * h) (1 - ρ * h) (κ * h) (1 - r * h)
+      (fun _ _ => i0 * h) (fun _ _ => s0 * h) (fun _ => v0) (X h) (P h) (V h) ∧
+      BoundedProc (P h) ∧ BoundedProc (V h))
+    (ω : Ω) (T : ℝ) :
+    TendstoUniformlyOn (fun h t => V h ⌊t / h⌋₊ ω) v (𝓝[>] 0) (Set.Icc 0 T) := by
+  have ha := mul_pos hσ hκ
+  set c := fun h => (v0 - i0 * h - s0 / r) * qh ρ σ κ h with hc
+  set c0 := v0 - s0 / r with hc0
+  have hq : Tendsto (qh ρ σ κ) (𝓝[>] 0) (𝓝 1) := by
+    have h1 := Links.tendsto_lam1_scaled ρ σ κ
+    have h2 : Tendsto (fun h => NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) (𝓝[>] 0) (𝓝 1) := by
+      have hid : Tendsto (fun h : ℝ => h) (𝓝[>] 0) (𝓝 0) := tendsto_id.mono_left
+        nhdsWithin_le_nhds
+      have := (h1.mul hid).const_add 1
+      rw [mul_zero, add_zero] at this
+      refine this.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with h hh
+      have hh' : (h : ℝ) ≠ 0 := (Set.mem_Ioi.mp hh).ne'
+      field_simp
+      ring
+    have := h2.inv₀ one_ne_zero
+    rw [inv_one] at this
+    exact this
+  have hcl : Tendsto c (𝓝[>] 0) (𝓝 c0) := by
+    have h2 : Tendsto (fun h : ℝ => v0 - i0 * h - s0 / r) (𝓝[>] 0) (𝓝 (v0 - i0 * 0 - s0 / r)) :=
+      ((tendsto_const_nhds.sub ((tendsto_id.const_mul i0))).sub tendsto_const_nhds).mono_left
+        nhdsWithin_le_nhds
+    rw [mul_zero, sub_zero] at h2
+    have := h2.mul hq
+    rwa [mul_one] at this
+  set Bd := fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ| * T + CTSimple.lam2 ρ κ σ * h
+  have hBd : Tendsto Bd (𝓝[>] 0) (𝓝 0) := by
+    have h1 : Tendsto (fun h => |khat ρ σ κ h - CTSimple.lam2 ρ κ σ|) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_khat (ρ := ρ) ha).sub_const (CTSimple.lam2 ρ κ σ)).abs
+      rwa [sub_self, abs_zero] at this
+    have h2 : Tendsto (fun h : ℝ => CTSimple.lam2 ρ κ σ * h) (𝓝[>] 0) (𝓝 0) := by
+      have := ((tendsto_id (x := 𝓝 (0 : ℝ))).const_mul (CTSimple.lam2 ρ κ σ)).mono_left
+        (nhdsWithin_le_nhds (s := Set.Ioi 0))
+      rwa [mul_zero] at this
+    have := (h1.mul_const T).add h2
+    rwa [zero_mul, zero_add] at this
+  refine tendstoUniformlyOn_of_abs_le (B := fun h => |c h - c0| + |c0| * Bd h) ?_ ?_
+  · have h1 : Tendsto (fun h => |c h - c0|) (𝓝[>] 0) (𝓝 0) := by
+      have := (hcl.sub_const c0).abs
+      rwa [sub_self, abs_zero] at this
+    have := h1.add (hBd.const_mul |c0|)
+    rwa [mul_zero, add_zero] at this
+  · filter_upwards [eventually_small (ρ := ρ) hr, hd] with h ⟨hh, hb, hrh0, hrh1⟩
+      ⟨hF, hπb, hvb⟩ t ht
+    obtain ⟨q0, q1⟩ := qh_mem (ρ := ρ) hσ hκ hh hb
+    have hV := (FiscalNK.det_unique 𝔼 (mul_pos hσ hh) (mul_pos hκ hh) hb (by linarith)
+      (by linarith) (i0 * h) v0 (s := fun _ => s0 * h) (Ms := |s0 * h|) (fun _ => le_rfl)
+      hF hπb hvb).2.2
+    have hvt := (CTSimple.ct_step_debt hr hκ hσ hct t ht.1).2
+    have hsum : ∑' j, (1 - r * h) ^ j * (s0 * h) = s0 / r := pvS_const hrh0 hrh1 hh
+    rw [hV]
+    simp only [FiscalNK.vDet]
+    rw [pvS_const hrh0 hrh1 hh, hsum]
+    have hvv : v t = c0 * Real.exp (-(CTSimple.lam2 ρ κ σ * t)) + s0 / r := by
+      rw [hc0]; linarith
+    rw [hvv]
+    have e : (v0 - i0 * h - s0 / r) * (NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h))⁻¹ ^
+        (⌊t / h⌋₊ + 1) + s0 / r - (c0 * Real.exp (-(CTSimple.lam2 ρ κ σ * t)) + s0 / r) =
+        c h * qh ρ σ κ h ^ ⌊t / h⌋₊ - c0 * Real.exp (-(CTSimple.lam2 ρ κ σ * t)) := by
+      simp only [hc, qh]
+      ring
+    rw [e]
+    refine (abs_prod_sub_le (pow_nonneg q0.le _) (pow_le_one₀ q0.le q1.le)).trans ?_
+    exact add_le_add le_rfl (mul_le_mul_of_nonneg_left (decay_bound hσ hκ hh ht)
+      (abs_nonneg _))
+
+end Cochrane.StickyPriceFiscal.TidyR5PegLimit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The peg path converges uniformly on all of `[0, ∞)`, output included
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5: Figs. 5.1–5.3, pp. 122–125
+(`FiscalNK.piDet`, `FiscalNK.xDet`, `FiscalNK.vDet`) and §5.7.1, (5.96), p. 166
+(`CTSimple.ct_step_solution`, `CTSimple.ct_step_family`, `CTSimple.ct_step_debt`).
+
+`TidyR5PegLimit` proves uniform convergence on compact intervals. Here both sides decay
+exponentially, so the convergence is uniform on the whole half-line `[0, ∞)`:
+
+* `abs_exp_neg_sub_le_exp`, `mul_exp_neg_le`: `|e^{−x} − e^{−y}| ≤ e^{−m}|x − y|` for
+  `x, y ≥ m`, and `t e^{−at} ≤ 1/a`.
+* `decay_bound_global`, `tendsto_bGlob`: for small `h` and **every** `t ≥ 0`,
+  `|λ₁^{−⌊t/h⌋} − e^{−λ₂t}| ≤ e^{λ₂h/2}(2|k̂(h) − λ₂|/λ₂ + λ₂h) → 0`.
+* `coef_path_uniform_global`: `a + c(h) λ₁^{−⌊t/h⌋} → a + c₀ e^{−λ₂t}` uniformly on `[0, ∞)` when
+  `c(h) → c₀`.
+* `peg_path_uniform_global`, `peg_debt_uniform_global`: inflation per unit of time and debt.
+
+**Output.** With IS slope `σh` and Phillips-curve slope `κh`, discrete output equals
+`(p_j − (1 − ρh)p_{j+1})/κ` where `p = π/h` is inflation per unit of time, and this is `O(h)`:
+the discrete output at date `⌊t/h⌋` **divided by `h`** is the continuous-time output.
+`xDet_scaled` gives the closed form, `peg_output_uniform` the uniform convergence of `x/h` on
+`[0, ∞)` to `x(t) = (λ₁(π₀ − i₀)e^{−λ₂t} + ρi₀)/κ`, and `peg_output_level_vanishes` shows that
+unscaled discrete output tends to `0` uniformly, so `h¹` is the right power.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR5PegLimitFull
+
+open Filter Topology TidyR5PegLimit
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), §5.7.1, p. 166 (tool): for `x, y ≥ m`, `|e^{−x} − e^{−y}| ≤ e^{−m}|x − y|`. -/
+theorem abs_exp_neg_sub_le_exp {x y m : ℝ} (hx : m ≤ x) (hy : m ≤ y) :
+    |Real.exp (-x) - Real.exp (-y)| ≤ Real.exp (-m) * |x - y| := by
+  have key : ∀ a b : ℝ, m ≤ a → a ≤ b →
+      Real.exp (-a) - Real.exp (-b) ≤ Real.exp (-m) * (b - a) := by
+    intro a b ha hab
+    have h1 := Real.add_one_le_exp (-(b - a))
+    have h2 : Real.exp (-b) = Real.exp (-a) * Real.exp (-(b - a)) := by
+      rw [← Real.exp_add]; ring_nf
+    have h3 : Real.exp (-a) ≤ Real.exp (-m) := Real.exp_le_exp.mpr (by linarith)
+    rw [h2]
+    have h4 : Real.exp (-a) - Real.exp (-a) * Real.exp (-(b - a)) ≤ Real.exp (-a) * (b - a) := by
+      nlinarith [Real.exp_pos (-a)]
+    exact h4.trans (mul_le_mul_of_nonneg_right h3 (by linarith))
+  rcases le_total x y with hxy | hxy
+  · have := key x y hx hxy
+    have hm : Real.exp (-y) ≤ Real.exp (-x) := Real.exp_le_exp.mpr (by linarith)
+    rw [abs_of_nonneg (by linarith), abs_of_nonpos (by linarith)]
+    linarith
+  · have := key y x hy hxy
+    have hm : Real.exp (-x) ≤ Real.exp (-y) := Real.exp_le_exp.mpr (by linarith)
+    rw [abs_of_nonpos (by linarith), abs_of_nonneg (by linarith)]
+    linarith
+
+/-- Cochrane (2023), §5.7.1, p. 166 (tool): `t e^{−at} ≤ 1/a` for `a > 0`. -/
+theorem mul_exp_neg_le {a t : ℝ} (ha : 0 < a) : t * Real.exp (-(a * t)) ≤ 1 / a := by
+  have h := Real.add_one_le_exp (a * t)
+  have hp := Real.exp_pos (a * t)
+  have hi : Real.exp (-(a * t)) = (Real.exp (a * t))⁻¹ := Real.exp_neg _
+  rw [hi, le_div_iff₀ ha, mul_comm, ← mul_assoc, ← div_eq_mul_inv, div_le_one hp]
+  linarith
+
+/-- Cochrane (2023), §5.7.1, p. 166 (tool): the global decay bound
+`e^{λ₂h/2}(2|k̂(h) − λ₂|/λ₂ + λ₂h)`. -/
+noncomputable def bGlob (ρ σ κ h : ℝ) : ℝ :=
+  Real.exp (CTSimple.lam2 ρ κ σ * h / 2) *
+    (2 * |khat ρ σ κ h - CTSimple.lam2 ρ κ σ| / CTSimple.lam2 ρ κ σ + CTSimple.lam2 ρ κ σ * h)
+
+/-- Cochrane (2023), Fig. 5.1 → (5.96): **the decay bound on all of `[0, ∞)`**: if `h > 0` and
+`k̂(h) ≥ λ₂/2`, then for every `t ≥ 0`, `|λ₁^{−⌊t/h⌋} − e^{−λ₂t}| ≤ bGlob h`. -/
+theorem decay_bound_global {ρ σ κ h t : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hh : 0 < h)
+    (hk : CTSimple.lam2 ρ κ σ / 2 ≤ khat ρ σ κ h) (ht : 0 ≤ t) :
+    |qh ρ σ κ h ^ ⌊t / h⌋₊ - Real.exp (-(CTSimple.lam2 ρ κ σ * t))| ≤ bGlob ρ σ κ h := by
+  have ha := mul_pos hσ hκ
+  set l := CTSimple.lam2 ρ κ σ with hl
+  have hl2 : 0 < l := CTSimple.lam2_pos hκ hσ
+  obtain ⟨hn1, hn2⟩ := floor_bounds hh ht
+  set n := ⌊t / h⌋₊
+  have hnh0 : 0 ≤ (n : ℝ) * h := by positivity
+  rw [qh_pow_eq ha hh n]
+  have hx : l / 2 * (t - h) ≤ khat ρ σ κ h * (n * h) := by
+    have : l / 2 * (t - h) ≤ l / 2 * (n * h) := mul_le_mul_of_nonneg_left (by linarith)
+      (by linarith)
+    exact this.trans (mul_le_mul_of_nonneg_right hk hnh0)
+  have hy : l / 2 * (t - h) ≤ l * t := by nlinarith
+  refine (abs_exp_neg_sub_le_exp hx hy).trans ?_
+  have hd : |khat ρ σ κ h * (n * h) - l * t| ≤ |khat ρ σ κ h - l| * t + l * h := by
+    have e : khat ρ σ κ h * (n * h) - l * t =
+        (khat ρ σ κ h - l) * (n * h) + l * ((n * h) - t) := by ring
+    rw [e]
+    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+    · rw [abs_mul, abs_of_nonneg hnh0]
+      exact mul_le_mul_of_nonneg_left hn1 (abs_nonneg _)
+    · rw [abs_mul, abs_of_pos hl2]
+      refine mul_le_mul_of_nonneg_left ?_ hl2.le
+      rw [abs_le]
+      constructor <;> linarith
+  have hsplit : Real.exp (-(l / 2 * (t - h))) =
+      Real.exp (l * h / 2) * Real.exp (-(l / 2 * t)) := by
+    rw [← Real.exp_add]; ring_nf
+  have hte := mul_exp_neg_le (a := l / 2) (t := t) (by linarith)
+  have he1 : Real.exp (-(l / 2 * t)) ≤ 1 := Real.exp_le_one_iff.mpr (by nlinarith)
+  have hE := Real.exp_pos (l * h / 2)
+  have hE2 := Real.exp_pos (-(l / 2 * t))
+  calc Real.exp (-(l / 2 * (t - h))) * |khat ρ σ κ h * (n * h) - l * t|
+      ≤ Real.exp (-(l / 2 * (t - h))) * (|khat ρ σ κ h - l| * t + l * h) :=
+        mul_le_mul_of_nonneg_left hd (Real.exp_pos _).le
+    _ = Real.exp (l * h / 2) * (|khat ρ σ κ h - l| * (t * Real.exp (-(l / 2 * t))) +
+          l * h * Real.exp (-(l / 2 * t))) := by rw [hsplit]; ring
+    _ ≤ Real.exp (l * h / 2) * (|khat ρ σ κ h - l| * (1 / (l / 2)) + l * h * 1) := by
+        refine mul_le_mul_of_nonneg_left (add_le_add ?_ ?_) hE.le
+        · exact mul_le_mul_of_nonneg_left hte (abs_nonneg _)
+        · exact mul_le_mul_of_nonneg_left he1 (by positivity)
+    _ = bGlob ρ σ κ h := by
+        rw [bGlob, ← hl]
+        field_simp
+
+/-- Cochrane (2023), §5.7.1, p. 165: `bGlob h → 0` as `h → 0⁺`. -/
+theorem tendsto_bGlob {ρ σ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) :
+    Tendsto (bGlob ρ σ κ) (𝓝[>] 0) (𝓝 0) := by
+  have ha := mul_pos hσ hκ
+  set l := CTSimple.lam2 ρ κ σ
+  have hid : Tendsto (fun h : ℝ => h) (𝓝[>] 0) (𝓝 0) := tendsto_id.mono_left nhdsWithin_le_nhds
+  have h1 : Tendsto (fun h => |khat ρ σ κ h - l|) (𝓝[>] 0) (𝓝 0) := by
+    have := ((tendsto_khat (ρ := ρ) ha).sub_const l).abs
+    rwa [sub_self, abs_zero] at this
+  have hE : Tendsto (fun h => Real.exp (l * h / 2)) (𝓝[>] 0) (𝓝 (Real.exp (l * 0 / 2))) :=
+    (Real.continuous_exp.tendsto _).comp (((hid.const_mul l)).div_const 2)
+  have h2 := ((h1.const_mul 2).div_const l).add (hid.const_mul l)
+  have := hE.mul h2
+  simp only [mul_zero, zero_div, add_zero] at this
+  exact this
+
+/-- Cochrane (2023), §5.7.1, p. 165: eventually as `h → 0⁺`, `k̂(h) ≥ λ₂/2`. -/
+theorem eventually_khat_ge {ρ σ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) :
+    ∀ᶠ h in 𝓝[>] (0 : ℝ), CTSimple.lam2 ρ κ σ / 2 ≤ khat ρ σ κ h := by
+  have hl2 : 0 < CTSimple.lam2 ρ κ σ := CTSimple.lam2_pos hκ hσ
+  exact ((tendsto_khat (ρ := ρ) (mul_pos hσ hκ)).eventually
+    (lt_mem_nhds (by linarith : CTSimple.lam2 ρ κ σ / 2 < CTSimple.lam2 ρ κ σ))).mono
+    fun _ h => h.le
+
+/-- Cochrane (2023), Figs. 5.1–5.3 → (5.96): **uniform convergence on `[0, ∞)` of every path of
+the form `a + c(h) λ₁^{−⌊t/h⌋}`** to `a + c₀ e^{−λ₂t}` when `c(h) → c₀`. -/
+theorem coef_path_uniform_global {ρ σ κ a c0 : ℝ} {c : ℝ → ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hc : Tendsto c (𝓝[>] 0) (𝓝 c0)) :
+    TendstoUniformlyOn (fun h t => a + c h * qh ρ σ κ h ^ ⌊t / h⌋₊)
+      (fun t => a + c0 * Real.exp (-(CTSimple.lam2 ρ κ σ * t))) (𝓝[>] 0) (Set.Ici 0) := by
+  refine tendstoUniformlyOn_of_abs_le (B := fun h => |c h - c0| + |c0| * bGlob ρ σ κ h) ?_ ?_
+  · have h1 : Tendsto (fun h => |c h - c0|) (𝓝[>] 0) (𝓝 0) := by
+      have := (hc.sub_const c0).abs
+      rwa [sub_self, abs_zero] at this
+    have := h1.add ((tendsto_bGlob (ρ := ρ) hσ hκ).const_mul |c0|)
+    rwa [mul_zero, add_zero] at this
+  · filter_upwards [eventually_small (ρ := ρ) (r := 1) one_pos, eventually_khat_ge (ρ := ρ) hσ hκ]
+      with h ⟨hh, hb, _, _⟩ hk t ht
+    obtain ⟨q0, q1⟩ := qh_mem (ρ := ρ) hσ hκ hh hb
+    rw [show a + c h * qh ρ σ κ h ^ ⌊t / h⌋₊ -
+        (a + c0 * Real.exp (-(CTSimple.lam2 ρ κ σ * t))) =
+        c h * qh ρ σ κ h ^ ⌊t / h⌋₊ - c0 * Real.exp (-(CTSimple.lam2 ρ κ σ * t)) by ring]
+    refine (abs_prod_sub_le (pow_nonneg q0.le _) (pow_le_one₀ q0.le q1.le)).trans ?_
+    exact add_le_add le_rfl (mul_le_mul_of_nonneg_left
+      (decay_bound_global hσ hκ hh hk (Set.mem_Ici.mp ht)) (abs_nonneg _))
+
+/-- Cochrane (2023), Figs. 5.1–5.3 → (5.96), p. 166: **inflation converges uniformly on all of
+`[0, ∞)`**: along any family of bounded discrete equilibria, inflation per unit of time at date
+`⌊t/h⌋` converges to `π(t)` uniformly in `t ≥ 0`. -/
+theorem peg_path_uniform_global {r σ κ ρ v0 i0 s0 : ℝ} (hr : 0 < r) (hσ : 0 < σ) (hκ : 0 < κ)
+    {x π v : ℝ → ℝ}
+    (hct : CTSimple.IsCTEquilibrium r σ κ ρ v0 (fun _ => i0) (fun _ => s0) x π v)
+    (X P V : ℝ → ℕ → Ω → ℝ)
+    (hd : ∀ᶠ h in 𝓝[>] (0 : ℝ), FiscalNK.FTPLNK 𝔼 (σ * h) (1 - ρ * h) (κ * h) (1 - r * h)
+      (fun _ _ => i0 * h) (fun _ _ => s0 * h) (fun _ => v0) (X h) (P h) (V h) ∧
+      BoundedProc (P h) ∧ BoundedProc (V h))
+    (ω : Ω) :
+    TendstoUniformlyOn (fun h t => P h ⌊t / h⌋₊ ω / h) π (𝓝[>] 0) (Set.Ici 0) := by
+  have ha := mul_pos hσ hκ
+  set c := fun h => (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+    (v0 - i0 * h - s0 / r) with hc
+  have hcl : Tendsto c (𝓝[>] 0) (𝓝 ((r + CTSimple.lam2 ρ κ σ) * (v0 - s0 / r))) := by
+    have h1 := Links.tendsto_peg_impact (ρ := ρ) r ha
+    have h2 : Tendsto (fun h : ℝ => v0 - i0 * h - s0 / r) (𝓝[>] 0) (𝓝 (v0 - i0 * 0 - s0 / r)) :=
+      ((tendsto_const_nhds.sub ((tendsto_id.const_mul i0))).sub tendsto_const_nhds).mono_left
+        nhdsWithin_le_nhds
+    rw [mul_zero, sub_zero] at h2
+    exact h1.mul h2
+  refine ((coef_path_uniform_global (ρ := ρ) (a := i0) hσ hκ hcl).congr ?_).congr_right ?_
+  · filter_upwards [eventually_small (ρ := ρ) hr, hd] with h ⟨hh, hb, hrh0, hrh1⟩
+      ⟨hF, hπb, hvb⟩ t _
+    have hπ := (FiscalNK.det_unique 𝔼 (mul_pos hσ hh) (mul_pos hκ hh) hb (by linarith)
+      (by linarith) (i0 * h) v0 (s := fun _ => s0 * h) (Ms := |s0 * h|) (fun _ => le_rfl)
+      hF hπb hvb).2.1
+    simp only [hπ, hc]
+    rw [piDet_scaled hh hrh0 hrh1]
+  · intro t ht
+    simp only
+    rw [CTSimple.ct_step_solution hr hκ hσ hct t (Set.mem_Ici.mp ht)]
+    ring
+
+/-- Cochrane (2023), Figs. 5.1–5.3 → p. 166 (`CTSimple.ct_step_debt`): **debt converges uniformly
+on all of `[0, ∞)`** to `v(t) = s̃₀/r + (v₀ − s̃₀/r)e^{−λ₂t}`. -/
+theorem peg_debt_uniform_global {r σ κ ρ v0 i0 s0 : ℝ} (hr : 0 < r) (hσ : 0 < σ) (hκ : 0 < κ)
+    {x π v : ℝ → ℝ}
+    (hct : CTSimple.IsCTEquilibrium r σ κ ρ v0 (fun _ => i0) (fun _ => s0) x π v)
+    (X P V : ℝ → ℕ → Ω → ℝ)
+    (hd : ∀ᶠ h in 𝓝[>] (0 : ℝ), FiscalNK.FTPLNK 𝔼 (σ * h) (1 - ρ * h) (κ * h) (1 - r * h)
+      (fun _ _ => i0 * h) (fun _ _ => s0 * h) (fun _ => v0) (X h) (P h) (V h) ∧
+      BoundedProc (P h) ∧ BoundedProc (V h))
+    (ω : Ω) :
+    TendstoUniformlyOn (fun h t => V h ⌊t / h⌋₊ ω) v (𝓝[>] 0) (Set.Ici 0) := by
+  set c := fun h => (v0 - i0 * h - s0 / r) * qh ρ σ κ h with hc
+  have hq : Tendsto (qh ρ σ κ) (𝓝[>] 0) (𝓝 1) := by
+    have h1 := Links.tendsto_lam1_scaled ρ σ κ
+    have h2 : Tendsto (fun h => NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) (𝓝[>] 0) (𝓝 1) := by
+      have hid : Tendsto (fun h : ℝ => h) (𝓝[>] 0) (𝓝 0) := tendsto_id.mono_left
+        nhdsWithin_le_nhds
+      have := (h1.mul hid).const_add 1
+      rw [mul_zero, add_zero] at this
+      refine this.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with h hh
+      have hh' : (h : ℝ) ≠ 0 := (Set.mem_Ioi.mp hh).ne'
+      field_simp
+      ring
+    have := h2.inv₀ one_ne_zero
+    rw [inv_one] at this
+    exact this
+  have hcl : Tendsto c (𝓝[>] 0) (𝓝 (v0 - s0 / r)) := by
+    have h2 : Tendsto (fun h : ℝ => v0 - i0 * h - s0 / r) (𝓝[>] 0) (𝓝 (v0 - i0 * 0 - s0 / r)) :=
+      ((tendsto_const_nhds.sub ((tendsto_id.const_mul i0))).sub tendsto_const_nhds).mono_left
+        nhdsWithin_le_nhds
+    rw [mul_zero, sub_zero] at h2
+    have := h2.mul hq
+    rwa [mul_one] at this
+  refine ((coef_path_uniform_global (ρ := ρ) (a := s0 / r) hσ hκ hcl).congr ?_).congr_right ?_
+  · filter_upwards [eventually_small (ρ := ρ) hr, hd] with h ⟨hh, hb, hrh0, hrh1⟩
+      ⟨hF, hπb, hvb⟩ t _
+    have hV := (FiscalNK.det_unique 𝔼 (mul_pos hσ hh) (mul_pos hκ hh) hb (by linarith)
+      (by linarith) (i0 * h) v0 (s := fun _ => s0 * h) (Ms := |s0 * h|) (fun _ => le_rfl)
+      hF hπb hvb).2.2
+    have hsum : ∑' j, (1 - r * h) ^ j * (s0 * h) = s0 / r := pvS_const hrh0 hrh1 hh
+    simp only [hV, hc, FiscalNK.vDet]
+    rw [pvS_const hrh0 hrh1 hh, hsum, qh]
+    ring
+  · intro t ht
+    have hvt := (CTSimple.ct_step_debt hr hκ hσ hct t (Set.mem_Ici.mp ht)).2
+    simp only
+    linarith
+
+/-- Cochrane (2023), (5.2), p. 118 and Figs. 5.1–5.3 (tool): discrete output per period length,
+`xDet/h = ρi₀/κ + [c(h)(v₀ − i₀h − s̃₀/r) e(h)/κ] λ₁^{−n}` with
+`c(h) = (1 − (1 − rh)/λ₁)/h` and `e(h) = (1 − (1 − ρh)/λ₁)/h`. -/
+theorem xDet_scaled {r σ κ ρ v0 i0 s0 h : ℝ} (hκ : 0 < κ) (hh : 0 < h) (hrh0 : 0 < r * h)
+    (hrh1 : r * h < 1) (n : ℕ) :
+    FiscalNK.xDet (σ * h) (1 - ρ * h) (κ * h) (1 - r * h) (i0 * h) v0 (fun _ => s0 * h) n / h =
+      ρ * i0 / κ + (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+        (v0 - i0 * h - s0 / r) *
+        ((1 - (1 - ρ * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h) / κ *
+        qh ρ σ κ h ^ n := by
+  have hp : ∀ m : ℕ, FiscalNK.piDet (σ * h) (1 - ρ * h) (κ * h) (1 - r * h) (i0 * h) v0
+      (fun _ => s0 * h) m = h * (i0 + (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h)
+        (κ * h)) / h * (v0 - i0 * h - s0 / r) * qh ρ σ κ h ^ m) := fun m => by
+    rw [← piDet_scaled (σ := σ) (ρ := ρ) hh hrh0 hrh1 m]
+    field_simp
+  rw [FiscalNK.xDet, hp, hp, pow_succ]
+  generalize (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+    (v0 - i0 * h - s0 / r) = C
+  have hq : qh ρ σ κ h = (NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h))⁻¹ := rfl
+  rw [hq]
+  generalize NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h) = L
+  generalize (L⁻¹) ^ n = Q
+  rw [div_eq_mul_inv (1 - ρ * h) L]
+  field_simp
+  ring
+
+/-- Cochrane (2023), Figs. 5.1–5.3 → (5.92) and p. 166 (`CTSimple.ct_step_family`): **output
+converges uniformly on `[0, ∞)` once divided by the period length**: along any family of bounded
+discrete equilibria, `x^h_{⌊t/h⌋}/h → x(t) = (λ₁(π₀ − i₀)e^{−λ₂t} + ρi₀)/κ` uniformly in
+`t ≥ 0` (IS slope `σh` and Phillips-curve slope `κh` make discrete output `h` times the
+continuous-time output). -/
+theorem peg_output_uniform {r σ κ ρ v0 i0 s0 : ℝ} (hr : 0 < r) (hσ : 0 < σ) (hκ : 0 < κ)
+    {x π v : ℝ → ℝ}
+    (hct : CTSimple.IsCTEquilibrium r σ κ ρ v0 (fun _ => i0) (fun _ => s0) x π v)
+    (X P V : ℝ → ℕ → Ω → ℝ)
+    (hd : ∀ᶠ h in 𝓝[>] (0 : ℝ), FiscalNK.FTPLNK 𝔼 (σ * h) (1 - ρ * h) (κ * h) (1 - r * h)
+      (fun _ _ => i0 * h) (fun _ _ => s0 * h) (fun _ => v0) (X h) (P h) (V h) ∧
+      BoundedProc (P h) ∧ BoundedProc (V h))
+    (ω : Ω) :
+    TendstoUniformlyOn (fun h t => X h ⌊t / h⌋₊ ω / h) x (𝓝[>] 0) (Set.Ici 0) := by
+  have ha := mul_pos hσ hκ
+  set c := fun h => (1 - (1 - r * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h *
+    (v0 - i0 * h - s0 / r) *
+    ((1 - (1 - ρ * h) / NKModel.lam1 (σ * h) (1 - ρ * h) (κ * h)) / h) / κ with hc
+  set c0 := (r + CTSimple.lam2 ρ κ σ) * (v0 - s0 / r) * CTSimple.lam1 ρ κ σ / κ with hc0
+  have hcl : Tendsto c (𝓝[>] 0) (𝓝 c0) := by
+    have h1 := Links.tendsto_peg_impact (ρ := ρ) r ha
+    have h3 := Links.tendsto_peg_impact (ρ := ρ) ρ ha
+    rw [show ρ + CTSimple.lam2 ρ κ σ = CTSimple.lam1 ρ κ σ by
+      linarith [CTSimple.lam_sub ρ κ σ]] at h3
+    have h2 : Tendsto (fun h : ℝ => v0 - i0 * h - s0 / r) (𝓝[>] 0) (𝓝 (v0 - i0 * 0 - s0 / r)) :=
+      ((tendsto_const_nhds.sub ((tendsto_id.const_mul i0))).sub tendsto_const_nhds).mono_left
+        nhdsWithin_le_nhds
+    rw [mul_zero, sub_zero] at h2
+    exact ((h1.mul h2).mul h3).div_const κ
+  refine ((coef_path_uniform_global (ρ := ρ) (a := ρ * i0 / κ) hσ hκ hcl).congr ?_).congr_right
+    ?_
+  · filter_upwards [eventually_small (ρ := ρ) hr, hd] with h ⟨hh, hb, hrh0, hrh1⟩
+      ⟨hF, hπb, hvb⟩ t _
+    have hx := (FiscalNK.det_unique 𝔼 (mul_pos hσ hh) (mul_pos hκ hh) hb (by linarith)
+      (by linarith) (i0 * h) v0 (s := fun _ => s0 * h) (Ms := |s0 * h|) (fun _ => le_rfl)
+      hF hπb hvb).1
+    simp only [hx, hc]
+    rw [xDet_scaled hκ hh hrh0 hrh1]
+  · intro t ht
+    have hπ0 := CTSimple.ct_step_solution hr hκ hσ hct 0 le_rfl
+    simp only [mul_zero, neg_zero, Real.exp_zero, mul_one] at hπ0
+    have hxt := (CTSimple.ct_step_family hκ hσ hct.1 t (Set.mem_Ici.mp ht)).2
+    simp only [hc0]
+    rw [hxt, hπ0]
+    field_simp
+    ring
+
+/-- Cochrane (2023), Figs. 5.1–5.3 → p. 166: **the unscaled discrete output vanishes**: along
+any family of bounded discrete equilibria, `x^h_{⌊t/h⌋} → 0` uniformly on `[0, ∞)`; so `h¹` is
+the scaling that matches the continuous-time output (`peg_output_uniform`). -/
+theorem peg_output_level_vanishes {r σ κ ρ v0 i0 s0 : ℝ} (hr : 0 < r) (hσ : 0 < σ)
+    (hκ : 0 < κ) {x π v : ℝ → ℝ}
+    (hct : CTSimple.IsCTEquilibrium r σ κ ρ v0 (fun _ => i0) (fun _ => s0) x π v)
+    (X P V : ℝ → ℕ → Ω → ℝ)
+    (hd : ∀ᶠ h in 𝓝[>] (0 : ℝ), FiscalNK.FTPLNK 𝔼 (σ * h) (1 - ρ * h) (κ * h) (1 - r * h)
+      (fun _ _ => i0 * h) (fun _ _ => s0 * h) (fun _ => v0) (X h) (P h) (V h) ∧
+      BoundedProc (P h) ∧ BoundedProc (V h))
+    (ω : Ω) :
+    TendstoUniformlyOn (fun h t => X h ⌊t / h⌋₊ ω) (fun _ => 0) (𝓝[>] 0) (Set.Ici 0) := by
+  obtain ⟨K, hK⟩ := hct.1.2.1
+  have hu := peg_output_uniform 𝔼 hr hσ hκ hct X P V hd ω
+  rw [Metric.tendstoUniformlyOn_iff] at hu
+  have hid : Tendsto (fun h : ℝ => h * (K + 1)) (𝓝[>] 0) (𝓝 0) := by
+    have := ((tendsto_id (x := 𝓝 (0 : ℝ))).mul_const (K + 1)).mono_left
+      (nhdsWithin_le_nhds (s := Set.Ioi 0))
+    rwa [zero_mul] at this
+  refine tendstoUniformlyOn_of_abs_le (B := fun h => h * (K + 1)) hid ?_
+  filter_upwards [hu 1 one_pos, self_mem_nhdsWithin] with h hh hpos t ht
+  have hh0 : 0 < h := hpos
+  have h1 := hh t ht
+  rw [Real.dist_eq] at h1
+  have h2 := hK t (Set.mem_Ici.mp ht)
+  have h3 : |X h ⌊t / h⌋₊ ω / h| ≤ K + 1 := by
+    have := abs_sub_abs_le_abs_sub (X h ⌊t / h⌋₊ ω / h) (x t)
+    rw [abs_sub_comm (X h ⌊t / h⌋₊ ω / h)] at this
+    linarith
+  rw [sub_zero, show X h ⌊t / h⌋₊ ω = h * (X h ⌊t / h⌋₊ ω / h) by field_simp, abs_mul,
+    abs_of_pos hh0]
+  exact mul_le_mul_of_nonneg_left h3 hh0.le
+
+end Cochrane.StickyPriceFiscal.TidyR5PegLimitFull
+
 set_option linter.style.longLine false
 #print axioms Cochrane.StickyPriceFiscal.SchurStable
 #print axioms Cochrane.StickyPriceFiscal.disc
@@ -26117,3 +28354,98 @@ set_option linter.style.longLine false
 #print axioms Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.exV
 #print axioms Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.ex_gap
 #print axioms Cochrane.StickyPriceFiscal.PolicyRulesMeasureStationary.iid_stationary_from_one
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.resA
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.resC
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.impactRHS
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.resonant_eta
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.ltd_ar1_resonant
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.ltd_ar1_resonant_exists
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.ltd_ar1_resonant_existsUnique
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.resC_eq_impactRHS
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.continuousAt_impactRHS
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.tendsto_ar1_resonant
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Resonant.tendsto_ar1_impact_resonant
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.pP
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.pQ
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.omStar
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.lam2_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.pP_sub_pQ
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.pP_pQ_one
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.pP_pQ_pos
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.factor_identity
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.impactRHS_eq_factor
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.eqm_impact
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.q_facts
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.impact_neg_iff
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.impact_neg_iff_omStar
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.omStar_one
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.omStar_cross
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.omStar_strictAntiOn
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.omStar_strictMonoOn
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.omStar_rho_eq_beta
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.persistence_helps
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.persistence_hurts
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.recip_gap_lt
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.impact_recip_form
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.persistence_magnifies
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.factor_tendsto_one
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.tendsto_impact_one
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.persistence_needed
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.rho_gt_beta_reversal
+#print axioms Cochrane.StickyPriceFiscal.TidyR5Persistence.rho_gt_beta_reversal_eqm
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wv
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wdv
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wf
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wv_hasDerivAt
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wv_continuous
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wf_measurable
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wv_wdv_bound
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.sq_le_four_exp
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wf_disc_bound
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wf_integrable
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wdv_seq
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wf_no_right_limit
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.wf_not_continuousAt
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.witness_ctsimple_hyps
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.witness_flow
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.witness_not_covered
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.flow_integrated_int
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.tvc_iff_integral_int
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.IntegralIntStmt
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.integralIntStmt_holds
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.tvc_shift_limit
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.tendsto_integral_Ioi_right
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.forwardStmt_of_integralIntStmt
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.tvc_iff_forward_of_integralInt
+#print axioms Cochrane.StickyPriceFiscal.TidyR5TVC.witness_valuation
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.qh
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.khat
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.tendstoUniformlyOn_of_abs_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.abs_exp_neg_sub_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.qh_pow_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.khat_nonneg
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.tendsto_khat
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.floor_bounds
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.decay_bound
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.tendsto_decay_uniform
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.abs_prod_sub_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.qh_mem
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.peg_response_uniform
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.pvS_const
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.eventually_small
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.peg_disc_exists
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.piDet_scaled
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.peg_path_uniform
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimit.peg_debt_uniform
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.abs_exp_neg_sub_le_exp
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.mul_exp_neg_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.bGlob
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.decay_bound_global
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.tendsto_bGlob
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.eventually_khat_ge
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.coef_path_uniform_global
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.peg_path_uniform_global
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.peg_debt_uniform_global
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.xDet_scaled
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.peg_output_uniform
+#print axioms Cochrane.StickyPriceFiscal.TidyR5PegLimitFull.peg_output_level_vanishes

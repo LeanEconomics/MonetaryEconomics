@@ -9,7 +9,9 @@ book pages; "App." marks the Online Appendix, whose equations are numbered (1.21
 table, section or page. Rows follow the book section by section, and each heading names the modules
 that formalise the section: §§5.1–5.7 with the appendix sections next to the sections that use
 them and the §5.5 model in a genuine probability model right after §5.5, then the links between
-sections, the copied Blanchard–Kahn theorem, the copied measure-theoretic core and the shared tools.
+sections (including continuous-time transversality with discontinuous forcing and the
+discrete-to-continuous limit of the peg path), the copied Blanchard–Kahn theorem, the copied
+measure-theoretic core and the shared tools.
 Survey codes E19–E54 refer to `notes/survey_cochrane_ch4-5.md`; corrections are explained in
 [corrections](corrections.md).
 
@@ -105,6 +107,27 @@ economy. Continuous-time statements are about deterministic paths after a date-0
 | Cochrane pp. 131–132 | the joint monetary–fiscal contraction: `π_{1+j} = 1 − (1 − ρ/λ₁)(1 + S)λ₁^{−j}`; disinflationary iff `S > (ρ/λ₁)/(1 − ρ/λ₁)`; decreasing in `S` | `HigherOrLower.joint_contraction`, `HigherOrLower.joint_contraction_disinflation_iff`, `HigherOrLower.joint_contraction_strictAnti` |
 | Cochrane p. 131 ("persistent and unexpected") | an unexpected AR(1) rise `i_t = η^t` with long-term debt: `q_t = −η^t/(1 − ω̃η)`, `π_t = Aη^t + Cλ₁^{−t}`, and the impact response in closed form | `LongTermDebt.ar1A`, `LongTermDebt.ar1C`, `LongTermDebt.ltd_ar1`, `LongTermDebt.ar1_impact` |
 | Cochrane p. 131 (persistence correction) | with `ρ = β`, an AR(1) rise of any persistence `0 ≤ η < 1` is disinflationary on impact iff `ω̃ > ρ/λ₁`; persistence only enlarges the disinflation; with one-period debt there is none | `LongTermDebt.ar1_impact_rho_eq_beta`, `LongTermDebt.ar1_disinflation_iff_rho_eq_beta`, `LongTermDebt.ar1_magnitude_rho_eq_beta`, `LongTermDebt.ar1_short_debt_no_disinflation` |
+
+## §5.3 The AR(1) rise: the resonant case and persistence for every `ρ`, p. 131 (TidyR5Resonant, TidyR5Persistence)
+
+`LongTermDebt.ltd_ar1` excludes the resonant persistence `η = 1/λ₁`, and `LongTermDebt` settles the
+role of persistence only for `ρ = β`. These modules close both gaps. Write `q = 1/λ₁`,
+`P(η) = (1 − ρq) − (ρ(1 − q) + βq(1 − ρ))η` and `Q(η) = ρq[(1 + β − ρ − βq) − (1 − ρq)βη]`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 131 (resonant case `λ₁η = 1`) | the coefficients of the resonant solution, `resA = σκ/(1 − λ₂η)` on `tηᵗ` and the impact `resC`; the right side of `LongTermDebt.ar1_impact` as a function of `η` defined everywhere; in the resonant case `η = 1/λ₁ ∈ (0, 1)` | `TidyR5Resonant.resA`, `TidyR5Resonant.resC`, `TidyR5Resonant.impactRHS`, `TidyR5Resonant.resonant_eta` |
+| Cochrane §5.3, p. 131 | **the resonant AR(1) rise**: every equilibrium with bounded inflation and debt and adapted bounded bond prices has `q_t = −ηᵗ/(1 − ω̃η)` and `π_t = resA·t·ηᵗ + resC·ηᵗ` | `TidyR5Resonant.ltd_ar1_resonant` |
+| Cochrane §5.3, p. 131; p. 128 | the resonant equilibrium exists and is unique | `TidyR5Resonant.ltd_ar1_resonant_exists`, `TidyR5Resonant.ltd_ar1_resonant_existsUnique` |
+| Cochrane p. 131 | the right side of `LongTermDebt.ar1_impact` is continuous through the resonance and equals `resC` there | `TidyR5Resonant.resC_eq_impactRHS`, `TidyR5Resonant.continuousAt_impactRHS` |
+| Cochrane §5.3, p. 131 | **the resonant path is the limit of the non-resonant ones**: for every date `t`, `A(η)ηᵗ + C(η)λ₁^{−t} → resA·t·λ₁^{−t} + resC·λ₁^{−t}` as `η → 1/λ₁`; the impact is the case `t = 0` | `TidyR5Resonant.tendsto_ar1_resonant`, `TidyR5Resonant.tendsto_ar1_impact_resonant` |
+| Cochrane (5.6), p. 119; p. 131 (tools) | `λ₂ = β/λ₁`; the linear functions `P`, `Q`, the identities `P(η) − ηQ(η) = (1 − ρq)(1 − ρη)(1 − βqη)`, `P(1) = (1 − ρ)(1 − βq)`, `Q(1) = ρq(1 − ρ)(1 − βq)`, positivity of `P` and `Q`; the model's `q` satisfies the hypotheses | `TidyR5Persistence.lam2_eq`, `TidyR5Persistence.pP`, `TidyR5Persistence.pQ`, `TidyR5Persistence.pP_sub_pQ`, `TidyR5Persistence.pP_pQ_one`, `TidyR5Persistence.pP_pQ_pos`, `TidyR5Persistence.q_facts` |
+| Cochrane p. 131 | **the impact in factored form**, `(Q(η) − ω̃P(η))/((1 − ρη)(1 − βqη)(1 − ω̃η))`; it is `π₀` of every AR(1) equilibrium, resonant or not | `TidyR5Persistence.factor_identity`, `TidyR5Persistence.impactRHS_eq_factor`, `TidyR5Persistence.eqm_impact` |
+| Cochrane §5.3, p. 131 | **disinflation on impact iff `ω̃ > ω*(η) = Q(η)/P(η)`**; `ω*(1) = ρ/λ₁`, the permanent-rise threshold | `TidyR5Persistence.omStar`, `TidyR5Persistence.impact_neg_iff`, `TidyR5Persistence.impact_neg_iff_omStar`, `TidyR5Persistence.omStar_one` |
+| Cochrane p. 131 and Fig. 5.4 | as `η → 1⁻` the AR(1) impact tends to the permanent-rise impact `(ρ/λ₁ − ω̃)/(1 − ω̃)` | `TidyR5Persistence.factor_tendsto_one`, `TidyR5Persistence.tendsto_impact_one` |
+| Cochrane p. 131 | the cross-product identity `Q(η₂)P(η₁) − Q(η₁)P(η₂) = (η₂ − η₁)ρq(1 − q)(1 − βq)(1 − ρ)(ρ − β)`: `ω*` is strictly decreasing in `η` for `ρ < β`, constant for `ρ = β`, strictly increasing for `ρ > β` | `TidyR5Persistence.omStar_cross`, `TidyR5Persistence.omStar_strictAntiOn`, `TidyR5Persistence.omStar_rho_eq_beta`, `TidyR5Persistence.omStar_strictMonoOn` |
+| Cochrane p. 131 ("must be persistent"; "long-lasting … most likely to be disinflationary"), `ρ ≤ β` | **the book's claims hold**: if a rise disinflates on impact, so does every more persistent one, and by strictly more; for `ρ < β` some `ω̃` make a one-period rise non-disinflationary while sufficiently persistent rises disinflate | `TidyR5Persistence.persistence_helps`, `TidyR5Persistence.recip_gap_lt`, `TidyR5Persistence.impact_recip_form`, `TidyR5Persistence.persistence_magnifies`, `TidyR5Persistence.persistence_needed` |
+| Cochrane p. 131, `ρ > β` (correction) | **the claims are reversed**: if a rise disinflates, so does every less persistent one; at `ω̃ = ρ/λ₁` every AR(1) rise with `η < 1` lowers inflation on impact, the impact rises to `0` as `η → 1` and is not antitone in `η`, and every equilibrium after the permanent rise has `π₀ = 0` | `TidyR5Persistence.persistence_hurts`, `TidyR5Persistence.rho_gt_beta_reversal`, `TidyR5Persistence.rho_gt_beta_reversal_eqm` |
 
 ## §5.4 A surplus process, (5.22)–(5.28), pp. 134–137, Fig. 5.5; App. A2, (2.1)–(2.3), p. 595 (SurplusProcess)
 
@@ -386,6 +409,47 @@ the §5.2 parameters into those of §5.5 with all rule coefficients zero and `om
 | Cochrane (5.44), p. 140 | **the NonlinearCT form follows from the CTSimple form**, without the continuity of the surplus | `LinksTidy.integral_of_forward`, `LinksTidy.integralStmt_of_forwardStmt`, `LinksTidy.tvc_iff_integral_of_forward` |
 | Cochrane (5.95), p. 165 | **the CTSimple form follows from the NonlinearCT form for forcing continuous on `[t, ∞)`**: the path shifted to the valuation date and extended linearly to the left satisfies NonlinearCT's flow | `LinksTidy.shiftExt`, `LinksTidy.shiftExt_flow`, `LinksTidy.forwardContStmt_of_integralStmt`, `LinksTidy.tvc_iff_forward_of_integral` |
 | Cochrane (5.95), p. 165 | CTSimple's hypotheses do not force continuous forcing on `[t, ∞)` | `LinksTidy.forward_hyps_discontinuous` |
+
+## Continuous-time transversality with discontinuous forcing, (5.44), p. 140, and (5.95), p. 165 (TidyR5TVC)
+
+`LinksTidy.forward_hyps_discontinuous` has a witness discontinuous only at the valuation date.
+`TidyR5TVC` builds an interior (Darboux-type) witness, `wv τ = (τ − 1)² sin(1/(τ − 1))` with
+`a = 2`, shows that `NonlinearCT.tvc_iff_integral` cannot reach it, and derives the full
+`CTSimple.tvc_iff_forward` along NonlinearCT's route with merely integrable forcing.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (5.95), p. 165 (witness) | the path `wv`, its derivative `wdv` (with `wdv 1 = 0`) and the forcing `wf = 2wv − wv′`; `wv` is differentiable everywhere and continuous; `wdv` and `wf` are measurable | `TidyR5TVC.wv`, `TidyR5TVC.wdv`, `TidyR5TVC.wf`, `TidyR5TVC.wv_hasDerivAt`, `TidyR5TVC.wv_continuous`, `TidyR5TVC.wf_measurable` |
+| Cochrane (5.95), p. 165; §5.7.1 (tools) | `\|wv τ\| ≤ (τ − 1)²`, `\|wdv τ\| ≤ 2\|τ − 1\| + 1`; `(τ + 2)² ≤ 4e^τ`; `\|e^{−2τ}wf τ\| ≤ 8e^{−τ}`, so the discounted forcing is integrable on `(0, ∞)` | `TidyR5TVC.wv_wdv_bound`, `TidyR5TVC.sq_le_four_exp`, `TidyR5TVC.wf_disc_bound`, `TidyR5TVC.wf_integrable` |
+| Cochrane (5.95), p. 165 | `wdv = −1` along `1 + 1/(2πn)` and `= 1` along `1 + 1/(2πn + π)`; **the forcing has no right limit at the interior point `1`** and is not continuous there | `TidyR5TVC.wdv_seq`, `TidyR5TVC.wf_no_right_limit`, `TidyR5TVC.wf_not_continuousAt` |
+| Cochrane (5.95), p. 165; (5.43), p. 140 | the witness satisfies CTSimple's hypotheses at `a = 2`, `t = 0`, with forcing discontinuous at `1 ∈ (0, ∞)`, and NonlinearCT's flow `db/dt = 2b − s` | `TidyR5TVC.witness_ctsimple_hyps`, `TidyR5TVC.witness_flow` |
+| Cochrane (5.44), p. 140 | **`NonlinearCT.tvc_iff_integral` does not cover the witness**: for every shift `t′ ≤ 1`, every surplus putting the data in NonlinearCT's form is discontinuous on `[0, ∞)` | `TidyR5TVC.witness_not_covered` |
+| Cochrane (5.44), p. 140 | (5.44) and the transversality theorem by NonlinearCT's own argument with merely integrable discounted forcing; the statement `IntegralIntStmt` (NonlinearCT's without continuity) holds | `TidyR5TVC.flow_integrated_int`, `TidyR5TVC.tvc_iff_integral_int`, `TidyR5TVC.IntegralIntStmt`, `TidyR5TVC.integralIntStmt_holds` |
+| Cochrane (5.44), (5.95); §5.7.1, p. 165 (tools) | a relative-time discounted limit gives the absolute-time one; `∫_{t′}^∞ g → ∫_t^∞ g` as `t′ → t⁺` | `TidyR5TVC.tvc_shift_limit`, `TidyR5TVC.tendsto_integral_Ioi_right` |
+| Cochrane (5.44), (5.95), p. 165 | **the full `CTSimple.tvc_iff_forward` (any integrable forcing, no derivative at the valuation date) follows from `IntegralIntStmt`**; the instance covers the witness: `wv(0) = ∫_0^∞ e^{−2τ}wf(τ)dτ` | `TidyR5TVC.forwardStmt_of_integralIntStmt`, `TidyR5TVC.tvc_iff_forward_of_integralInt`, `TidyR5TVC.witness_valuation` |
+
+## The discrete-to-continuous limit of the peg path, Figs. 5.1–5.3, pp. 122–125 → (5.96), p. 166 (TidyR5PegLimit, TidyR5PegLimitFull)
+
+`Links` proves convergence of the roots, the impact coefficient and the decay factor. These modules
+prove convergence of the whole path as the period length `h → 0⁺`: with IS slope `σh`,
+Phillips-curve slope `κh`, `β = 1 − ρh`, debt discount `1 − rh`, peg `i₀h` and surpluses `s̃₀h` per
+period, continuous time `t` is date `⌊t/h⌋` and inflation is divided by `h`. `TidyR5PegLimit` proves
+uniform convergence on every `[0, T]`; `TidyR5PegLimitFull` on all of `[0, ∞)`, and adds output.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane Fig. 5.1, p. 122; §5.7.1, p. 165 | the per-period decay `λ₁⁻¹` and the implied continuous rate `k̂(h) = log λ₁/h`; `λ₁^{−n} = e^{−k̂(h)nh}`, `k̂(h) ≥ 0`, `0 < λ₁⁻¹ < 1`, and `k̂(h) → λ₂` | `TidyR5PegLimit.qh`, `TidyR5PegLimit.khat`, `TidyR5PegLimit.qh_pow_eq`, `TidyR5PegLimit.khat_nonneg`, `TidyR5PegLimit.qh_mem`, `TidyR5PegLimit.tendsto_khat` |
+| Cochrane §5.7.1, pp. 165–166 (tools) | uniform convergence from an eventual uniform bound; `e^{−x}` is 1-Lipschitz on `[0, ∞)`; `⌊t/h⌋h ≤ t < ⌊t/h⌋h + h`; a product bound; small-`h` facts; the present value of `s̃₀h` at `1 − rh` is `s̃₀/r` | `TidyR5PegLimit.tendstoUniformlyOn_of_abs_le`, `TidyR5PegLimit.abs_exp_neg_sub_le`, `TidyR5PegLimit.floor_bounds`, `TidyR5PegLimit.abs_prod_sub_le`, `TidyR5PegLimit.eventually_small`, `TidyR5PegLimit.pvS_const` |
+| Cochrane Fig. 5.1 → (5.96) | `\|λ₁^{−⌊t/h⌋} − e^{−λ₂t}\| ≤ \|k̂(h) − λ₂\|T + λ₂h` on `[0, T]`, so the decay converges uniformly there | `TidyR5PegLimit.decay_bound`, `TidyR5PegLimit.tendsto_decay_uniform` |
+| Cochrane Figs. 5.1–5.3 → (5.96) | the peg response `(1 − ρ/λ₁)λ₁^{−⌊t/h⌋}/h → (r + λ₂)e^{−λ₂t}` uniformly on `[0, T]` | `TidyR5PegLimit.peg_response_uniform` |
+| Cochrane Figs. 5.1–5.3, pp. 122–125 | for small `h` the discrete peg equilibrium exists; inflation per unit of time is `i₀ + c(h)(v₀ − i₀h − s̃₀/r)λ₁^{−n}` | `TidyR5PegLimit.peg_disc_exists`, `TidyR5PegLimit.piDet_scaled` |
+| Cochrane Figs. 5.1–5.3 → (5.96), p. 166 | **along any family of bounded discrete equilibria, inflation per unit of time → `π(t) = (r + λ₂)(v₀ − s̃₀/r)e^{−λ₂t} + i₀`, and debt → `v(t) = s̃₀/r + (v₀ − s̃₀/r)e^{−λ₂t}`, uniformly on `[0, T]`** | `TidyR5PegLimit.peg_path_uniform`, `TidyR5PegLimit.peg_debt_uniform` |
+| Cochrane §5.7.1, pp. 165–166 (tools) | `\|e^{−x} − e^{−y}\| ≤ e^{−m}\|x − y\|` for `x, y ≥ m`; `te^{−at} ≤ 1/a`; eventually `k̂(h) ≥ λ₂/2` | `TidyR5PegLimitFull.abs_exp_neg_sub_le_exp`, `TidyR5PegLimitFull.mul_exp_neg_le`, `TidyR5PegLimitFull.eventually_khat_ge` |
+| Cochrane Fig. 5.1 → (5.96) | for small `h` and every `t ≥ 0`, `\|λ₁^{−⌊t/h⌋} − e^{−λ₂t}\| ≤ e^{λ₂h/2}(2\|k̂(h) − λ₂\|/λ₂ + λ₂h)`, and this bound → 0 | `TidyR5PegLimitFull.bGlob`, `TidyR5PegLimitFull.decay_bound_global`, `TidyR5PegLimitFull.tendsto_bGlob` |
+| Cochrane Figs. 5.1–5.3 → (5.96) | if `c(h) → c₀`, then `a + c(h)λ₁^{−⌊t/h⌋} → a + c₀e^{−λ₂t}` uniformly on `[0, ∞)` | `TidyR5PegLimitFull.coef_path_uniform_global` |
+| Cochrane Figs. 5.1–5.3 → (5.96), p. 166 | **inflation per unit of time and debt converge uniformly on all of `[0, ∞)`** | `TidyR5PegLimitFull.peg_path_uniform_global`, `TidyR5PegLimitFull.peg_debt_uniform_global` |
+| Cochrane (5.2), p. 118, with period `h` | `xDet/h = ρi₀/κ + [c(h)(v₀ − i₀h − s̃₀/r)e(h)/κ]λ₁^{−n}`, `e(h) = (1 − (1 − ρh)/λ₁)/h` | `TidyR5PegLimitFull.xDet_scaled` |
+| Cochrane (5.92) and p. 166 (`CTSimple.ct_step_family`) | **output divided by the period length converges**: `x^h_{⌊t/h⌋}/h → x(t) = (λ₁(π₀ − i₀)e^{−λ₂t} + ρi₀)/κ` uniformly on `[0, ∞)`; unscaled output → 0 uniformly, so `h¹` is the right scaling | `TidyR5PegLimitFull.peg_output_uniform`, `TidyR5PegLimitFull.peg_output_level_vanishes` |
 
 ## The general Blanchard–Kahn theorem (BKCopy)
 

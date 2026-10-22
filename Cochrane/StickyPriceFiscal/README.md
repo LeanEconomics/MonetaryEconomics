@@ -14,8 +14,8 @@ genuine probability model, with Mathlib's conditional expectation (`PolicyRulesM
 `PolicyRulesMeasureNews`, `PolicyRulesMeasureStationary`). The continuous-time models (§5.7)
 are about deterministic paths after a date-0 shock, which is how the book computes its responses.
 "Determinate" means that exactly one bounded equilibrium exists for every admissible forcing and
-initial condition. The library contains **1155 theorems**, including the shared core; 939 of them
-are in the twenty-three chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
+initial condition. The library contains **1237 theorems**, including the shared core; 1021 of them
+are in the twenty-eight chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
 Blanchard–Kahn theorem (`BKCopy`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
@@ -72,11 +72,22 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   is in `(1.015, 1.016)` (`FiscalNK.fiscal_shock`, `FiscalNK.fig53_impact`,
   `FiscalNK.fiscal_shock_pv_one`, `FiscalNK.fig53_cumulative`; E28).
 * **AR(1) rise with long-term debt, and the p. 131 persistence correction.** For `i_t = η^t`,
-  `π_t = Aη^t + Cλ₁^{−t}` in closed form (`LongTermDebt.ltd_ar1`, `LongTermDebt.ar1_impact`).
-  With `ρ = β`, as in the book's calibrations, a rise of **any** persistence `0 ≤ η < 1` is
-  disinflationary on impact iff `ω̃ > ρ/λ₁`, the permanent-rise condition
-  (`LongTermDebt.ar1_disinflation_iff_rho_eq_beta`). So "the interest-rate rise must be
-  persistent" (p. 131) is not a precondition: persistence only enlarges the disinflation
+  `π_t = Aη^t + Cλ₁^{−t}` in closed form (`LongTermDebt.ltd_ar1`, `LongTermDebt.ar1_impact`). In
+  the resonant case `λ₁η = 1` the equilibrium exists, is unique, has the double-root form
+  `π_t = resA·tηᵗ + resC·ηᵗ`, and is the limit of the non-resonant paths
+  (`TidyR5Resonant.ltd_ar1_resonant_existsUnique`, `TidyR5Resonant.tendsto_ar1_resonant`). For
+  every `ρ`, the rise disinflates on impact iff `ω̃ > ω*(η) = Q(η)/P(η)`, with `ω*(1) = ρ/λ₁`
+  (`TidyR5Persistence.impact_neg_iff_omStar`, `TidyR5Persistence.omStar_one`), and `ω*` falls,
+  stays constant or rises with persistence as `ρ < β`, `ρ = β` or `ρ > β`
+  (`TidyR5Persistence.omStar_cross`). So the book's "the interest-rate rise must be persistent"
+  and "long-lasting … most likely to be disinflationary" (p. 131) **hold for `ρ ≤ β` and are
+  reversed for `ρ > β`**: for `ρ ≤ β` persistence helps and magnifies the disinflation, and for
+  `ρ < β` it is needed for some maturities (`TidyR5Persistence.persistence_helps`,
+  `TidyR5Persistence.persistence_magnifies`, `TidyR5Persistence.persistence_needed`); for `ρ > β`
+  less persistence helps, and at `ω̃ = ρ/λ₁` every transitory rise disinflates while the permanent
+  one does not (`TidyR5Persistence.persistence_hurts`, `TidyR5Persistence.rho_gt_beta_reversal_eqm`).
+  With `ρ = β`, as in the book's calibrations, the sign does not depend on persistence
+  (`LongTermDebt.ar1_disinflation_iff_rho_eq_beta`) and persistence only enlarges the disinflation
   (`LongTermDebt.ar1_magnitude_rho_eq_beta`). Long-term debt and surprise are necessary
   (`LongTermDebt.ar1_short_debt_no_disinflation`, `HigherOrLower.anticipated_rise_no_disinflation`).
 
@@ -268,12 +279,32 @@ passive in the §5.4 sense (`Links.alpha_iff_pf_gRoot`, `Links.determinate_regio
   Conversely `CTSimple.tvc_iff_forward` is re-derived from `NonlinearCT.tvc_iff_integral` for
   forcing continuous on `[t, ∞)` (`LinksTidy.tvc_iff_forward_of_integral`).
 
+`TidyR5TVC` removes that restriction. An interior (Darboux-type) witness,
+`wv τ = (τ − 1)² sin(1/(τ − 1))`, satisfies CTSimple's hypotheses with forcing that has no right
+limit at `1` (`TidyR5TVC.witness_ctsimple_hyps`, `TidyR5TVC.wf_no_right_limit`), and
+`NonlinearCT.tvc_iff_integral` cannot be applied to it at any shift (`TidyR5TVC.witness_not_covered`).
+NonlinearCT's own argument works with merely integrable forcing (`TidyR5TVC.tvc_iff_integral_int`),
+and that statement yields the full `CTSimple.tvc_iff_forward` for any integrable forcing
+(`TidyR5TVC.forwardStmt_of_integralIntStmt`, `TidyR5TVC.tvc_iff_forward_of_integralInt`), which
+covers the witness (`TidyR5TVC.witness_valuation`).
+
+`TidyR5PegLimit` and `TidyR5PegLimitFull` prove **the discrete-to-continuous limit of the whole peg
+path**. With period length `h` (IS slope `σh`, Phillips-curve slope `κh`), along any family of
+bounded discrete equilibria inflation per unit of time and the real value of debt at date `⌊t/h⌋`
+converge to the continuous-time step example (5.96) uniformly on all of `[0, ∞)`
+(`TidyR5PegLimit.peg_path_uniform`, `TidyR5PegLimit.peg_debt_uniform` on `[0, T]`;
+`TidyR5PegLimitFull.peg_path_uniform_global`, `TidyR5PegLimitFull.peg_debt_uniform_global`), and
+discrete output divided by `h` converges uniformly to continuous-time output, while unscaled output
+tends to zero (`TidyR5PegLimitFull.peg_output_uniform`, `TidyR5PegLimitFull.peg_output_level_vanishes`).
+
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise. The main corrections are:
 * (5.38), p. 139: active iff `γ ≠ α`, not iff `γ = 0` (E33);
 * (5.41), p. 139: the sign of `β_sε` in the debt equation (found during formalisation);
-* p. 131: persistence is not needed for a disinflationary rate rise (found during formalisation);
+* p. 131: the claims that a disinflationary rate rise must be persistent hold only for `ρ ≤ β` and
+  are reversed for `ρ > β`; with the book's `ρ = β` persistence does not affect the sign (found
+  during formalisation);
 * p. 121, pp. 136–137, 148 and App. pp. 574–576: `ρ = 1` and unit eigenvalues are not
   forward-looking roots; the exact model-level answers above (E20, E32);
 * p. 148 at `ρ = 1`: strict stationarity selects `π* = π` but not `v = v*`, and the survey's E32
@@ -296,8 +327,6 @@ Not formalised:
 * numbers that need a full numerical solution: most Table 5.1 entries, Figs. 5.6–5.9, Table 5.2
   rows 2–3 (`1.28`, `0.50`), and the hump shape and timing of Figs. 5.14–5.15. Fig. 5.5 itself is
   not formalised, only the facts it plots;
-* for `ρ ≠ β`, the dependence of the AR(1) impact response on persistence beyond the closed form
-  `LongTermDebt.ar1_impact`; the resonant case `λ₁η = 1` is excluded;
 * the other discrete-time sections in a genuine probability model: only the §5.5 model
   (existence, uniqueness, the closed form, the boundaries) and the `ρ = 1` stationarity question are
   restated with measure-theoretic expectations; §§5.1–5.4 and 5.6, the responses and Table 5.1 are
@@ -311,13 +340,11 @@ Not formalised:
   (`CTSurplus.hs_pv`, `CTSurplus.hs_innovation`);
 * stochastic continuous time: `dε` and `dδ` are date-0 jumps followed by perfect foresight, as in
   the book's responses, not diffusions;
-* the full discrete-to-continuous limit of the peg path: only the roots, the impact coefficient
-  and the decay factor are shown to converge (`Links`);
-* `CTSimple.tvc_iff_forward` derived from `NonlinearCT.tvc_iff_integral` for discontinuous forcing.
-  `NonlinearCT` assumes a continuous surplus, so its theorem says nothing about `CTSimple` data
-  whose forcing `av − v′` is discontinuous, and `CTSimple`'s hypotheses allow that
-  (`LinksTidy.forward_hyps_discontinuous`). The witness is discontinuous only at the endpoint `t`;
-  no interior (Darboux-type) witness is built. The other direction holds in full.
+* `CTSimple.tvc_iff_forward` from `NonlinearCT.tvc_iff_integral` itself for interior-discontinuous
+  forcing: the theorem as stated assumes a continuous surplus and provably cannot reach such data
+  (`TidyR5TVC.witness_not_covered`). The full CTSimple theorem is derived instead from the same
+  statement with the continuity hypothesis dropped (`TidyR5TVC.IntegralIntStmt`), which is proved
+  by NonlinearCT's argument.
 
 ## Library map
 
@@ -352,6 +379,11 @@ Not formalised:
 | [PolicyRulesMeasure](StickyPriceFiscal/PolicyRulesMeasure.lean) | 53 | §5.5, (5.61)–(5.73), App. §§1.9, 1.11, in a probability model: the block without Blanchard–Kahn, uniqueness for every `α` and on the unit root, determinacy, the closed form, existence at the boundaries |
 | [PolicyRulesMeasureNews](StickyPriceFiscal/PolicyRulesMeasureNews.lean) | 27 | §5.5 with recurring news: exact determinacy in `α` and on the unit root for every such system, the i.i.d. and coin economies, equality with the `truncSystem` verdicts, means of equilibria, the finite-space bridge to `PolicyRules` |
 | [PolicyRulesMeasureStationary](StickyPriceFiscal/PolicyRulesMeasureStationary.lean) | 9 | §§5.4.1, 5.5, p. 148: strict stationarity at `ρ = 1`; it selects `π* = π`, not `v* = v`; the survey's example (E32) |
+| [TidyR5Resonant](StickyPriceFiscal/TidyR5Resonant.lean) | 8 | §5.3, p. 131: the resonant AR(1) rise `λ₁η = 1` with long-term debt: closed form, existence and uniqueness, the limit of the non-resonant paths |
+| [TidyR5Persistence](StickyPriceFiscal/TidyR5Persistence.lean) | 25 | §5.3, p. 131: the AR(1) impact for every `ρ`: the maturity threshold `ω*(η)`, its monotonicity in persistence, the book's claims for `ρ ≤ β` and their reversal for `ρ > β` |
+| [TidyR5TVC](StickyPriceFiscal/TidyR5TVC.lean) | 21 | (5.44), p. 140, and (5.95), p. 165: an interior discontinuous-forcing witness, NonlinearCT's transversality theorem with integrable forcing, and the full `CTSimple.tvc_iff_forward` derived from it |
+| [TidyR5PegLimit](StickyPriceFiscal/TidyR5PegLimit.lean) | 17 | Figs. 5.1–5.3 → (5.96): the discrete peg path (inflation, debt) converges to the continuous-time one uniformly on `[0, T]` |
+| [TidyR5PegLimitFull](StickyPriceFiscal/TidyR5PegLimitFull.lean) | 11 | Figs. 5.1–5.3 → (5.96): uniform convergence on all of `[0, ∞)`, and output divided by the period length |
 
 ## Modelling conventions
 

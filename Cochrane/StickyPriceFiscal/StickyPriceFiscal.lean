@@ -32,3 +32,8 @@ import StickyPriceFiscal.ExpectationsMeasureIID
 import StickyPriceFiscal.PolicyRulesMeasure
 import StickyPriceFiscal.PolicyRulesMeasureNews
 import StickyPriceFiscal.PolicyRulesMeasureStationary
+import StickyPriceFiscal.TidyR5Resonant
+import StickyPriceFiscal.TidyR5Persistence
+import StickyPriceFiscal.TidyR5TVC
+import StickyPriceFiscal.TidyR5PegLimit
+import StickyPriceFiscal.TidyR5PegLimitFull
