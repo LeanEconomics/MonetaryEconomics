@@ -1,0 +1,3076 @@
+{
+  "checked_at_utc": "2026-10-20T08:48:44.052562+00:00",
+  "theorems": 238,
+  "module_theorems": {
+    "TwoPeriodModel/Determinacy.lean": 23,
+    "TwoPeriodModel/Expectations.lean": 20,
+    "TwoPeriodModel/ExpectationsFiniteTree.lean": 21,
+    "TwoPeriodModel/ForwardSolution.lean": 44,
+    "TwoPeriodModel/TwoPeriod.lean": 34,
+    "TwoPeriodModel/MonetaryFiscal.lean": 16,
+    "TwoPeriodModel/DebtSales.lean": 19,
+    "TwoPeriodModel/PriceLevelTarget.lean": 17,
+    "TwoPeriodModel/ActivePassive.lean": 25,
+    "TwoPeriodModel/Links.lean": 19
+  },
+  "audited_declarations": 303,
+  "declarations": [
+    {
+      "name": "Cochrane.TwoPeriodModel.SchurStable",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.disc",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.root\u2081",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.root\u2082",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.root_sum",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.root_prod",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.root_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.normSq_root_of_neg",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.norm_root_of_nonneg",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.schurStable_iff_roots",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.chSeq",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.convSeq",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.convSeq_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.chSeq_eq_convSeq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.norm_convSeq_le",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.abs_chSeq_le",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.tendsto_chSeq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.tr2",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.det2",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.tr2_eq_trace",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.det2_eq_det",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.sq_eq_cayleyHamilton",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.pow_succ_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.abs_pow_entry_le",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.tendsto_pow_entry",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.BoundedSeq",
+      "kind": "def",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.homogeneous_iterate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.abs_mulVec_le",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.homogeneous_eq_zero",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.eq_root_of_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.exists_eigenvector",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.exists_bounded_homogeneous",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Determinacy.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem",
+      "kind": "structure",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.E",
+      "kind": "projection",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.const",
+      "kind": "projection",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.mono",
+      "kind": "projection",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.tower",
+      "kind": "projection",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.known",
+      "kind": "projection",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.perfectForesight",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.BoundedProc",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.BoundedVec",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.Adapted",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.IsAR1",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.E_neg",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.bounded_E",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.ar1_iterate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forward_iterate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forward_ar1_solves",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.E_tsum",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_summable",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_solves",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_bounded",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.eq_forwardSeries",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_adapted",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.PullOut",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.Solves",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.AdaptedVec",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.system_iterate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.system_unique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.system_not_unique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.Determinate",
+      "kind": "def",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationSystem.determinate_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.perfectForesight_pullOut",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Expectations.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree",
+      "kind": "structure",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mk",
+      "kind": "constructor",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.prob",
+      "kind": "projection",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.prob_pos",
+      "kind": "projection",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.prob_sum",
+      "kind": "projection",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.info",
+      "kind": "projection",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.refines",
+      "kind": "projection",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mass",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.num",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mass_pos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mass_congr",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.num_congr",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_congr",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_add",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_smul",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condELin",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_const",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_mono",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_known",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_tower",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.toExpectationSystem",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_of_trivial",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinObs",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinTree",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinSystem",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.firstHeads",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinSystem_E0_firstHeads",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinSystem_not_perfectForesight",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinShock",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1",
+      "kind": "def",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinShock_measurable",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1_measurable",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinShock_mean_zero",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1_isAR1",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1_nondegenerate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.finiteTree_pullOut",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ExpectationsFiniteTree.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.Solves",
+      "kind": "def",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.E_of_known",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.solves_adapted",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.iterate_A15",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.tendsto_partial_A16",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.summable_A16",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.eq_forwardSeries_abs",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_solves_abs",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_bounded_abs",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_adapted_abs",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.existsUnique_bounded",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.ScalarEq",
+      "kind": "def",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.scalarEq_one_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.scalarSol",
+      "kind": "def",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.scalarSol_apply",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.scalarEq_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.scalar_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.scalar_homog",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.scalar_determinate_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily",
+      "kind": "def",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_succ",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_adapted",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_solves",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_bounded",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.eq_sunspotFamily",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.homog_solves",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.solves_add_homog",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.bounded_solutions_not_countable",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.exists_bounded_of_one_lt",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.existsUnique_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.printed_A17_one_solves",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.printed_A17_fails_neg_one",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.unit_sunspot_solves",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.unit_sunspot_bounded",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_solves_of_decay",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.ar1_decay",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.no_bounded_solution_unit",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.solves_iff_forwardSeries",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.predetermined_restriction",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.hasSum_geometric_ratio",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.tsum_geometric_ratio",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.summable_geom_mul",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.abel_tsum",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.sum_weights_by_parts",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.tsum_weights_by_parts",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.abs_lt_abs_of_sub_pos_add_pos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.abs_lt_abs_iff_of_add_pos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ForwardSolution.E_tsum_dom",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ForwardSolution.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.Known",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_const",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_E",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_mono",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_add",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_sub",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_smul",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_mul",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_inv",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_div",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_none",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.excess_money_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.money_shortage_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.propTax_real",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.Valuation1",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.Flow0",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.BondPrice0",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.rate",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.bondPrice_eq_inv_one_add_rate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.bondPrice_R",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.Valuation0",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.pv",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.known_pv",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.flow_real",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.revenue_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.valuation0_of_flow",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.flow_iff_valuation0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.Equilibrium",
+      "kind": "def",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.price1_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.price0_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.equilibrium_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.equilibrium_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.no_equilibrium_of_s1_nonpos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.no_equilibrium_of_pv_nonpos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.price0_strictAnti_beta",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.price0_strictAnti_Es1",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.price0_eq_of_pv_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.price0_any_level",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TwoPeriod.coin_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TwoPeriod.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.eq_1_8",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.revenue_invariant",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.shareSplit_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.shareSplit_unique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.doubling",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.rate_strictAnti",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.shareSplit_rate_rises",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.TargetEquilibrium",
+      "kind": "def",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.expected_inflation",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.E0_invP1",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.target_bond_demand",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.target_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.determinate_under_peg",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.fisherian_two_period",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.innov",
+      "kind": "def",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.unexpected_inflation",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.inflation_decomposition",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.MonetaryFiscal.no_fiscal_news",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/MonetaryFiscal.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.price0_formula",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.equityIssue_price1",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.equityIssue_revenue",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.equityIssue_lowers_price0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.equityIssue_funds_deficit",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.borrow_price0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.borrow_value_rises",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.borrow_keeps_price1_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.borrow_implementable",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.borrow_debt_corrected",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.borrow_printed_fails",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.inflate_price0_rises",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.inflate_value_unchanged",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.inflate_real_debt_falls_by_deficit",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.ar1_price0_rises_more",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.ar1_value_falls",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.maturing_value_change",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.sShape_two_period",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.DebtSales.steady_price0_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/DebtSales.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price1_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price1",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_pv",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_valuation",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_borrow",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_inflate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_superinflate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price0_strictAnti_B0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.RuleTargetEquilibrium",
+      "kind": "def",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_target_price0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_target_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_higher_rate_lowers_price0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_higher_rate_fiscal_tightening",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_flat_demand",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_revenue",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.PriceLevelTarget.unit_elastic",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/PriceLevelTarget.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.budget_any_price",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.valuation_of_zero_money",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.money_zero_of_valuation",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.money_nonzero_off_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.eqmSet",
+      "kind": "def",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.passive_eqmSet",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.passive_indeterminate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.passive_taxRate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.passive_taxRate_strictAnti",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.active_unique_of_strictAnti",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.active_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.fixed_surplus_active",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.propTax_active",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.multiple_crossings",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.value_decomp",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.value_decomp_innov",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gammaRule",
+      "kind": "def",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gamma_eqmSet",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gamma_eqmSet_passive",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gamma_eqmSet_empty",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gamma_rule_determinate_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gamma_rule_general_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.less_than_one_for_one_not_necessary",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gamma_rule_random",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.gamma_not_identified",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.obs_equiv_two_period",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.ActivePassive.rule_regression_gamma_one",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/ActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.abs_rec_le",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.Debt45",
+      "kind": "def",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.dRec",
+      "kind": "def",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.eq_dRec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.rec_bounded",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.rec_unbounded",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.LocallyRicardian",
+      "kind": "def",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.locallyRicardian_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.passive_locallyRicardian",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.fixed_surplus_not_locallyRicardian",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.locallyRicardian_iff_interval",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.two_period_indeterminate_imp_locallyRicardian",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.locallyRicardian_two_period_determinate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.not_locallyRicardian_two_period_determinate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.discount",
+      "kind": "def",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.ricardian_step",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.ricardian_discounted",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.ricardian_tvc",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.ricardian_tvc_fails_of_alpha_zero",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.passive_is_alpha_one",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.passive_valuation_any_price",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.alpha_one_debt_retired",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.Links.zero_surplus_restricts_prices",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/Links.lean"
+    }
+  ],
+  "full_build": "passed",
+  "fresh_source_compilation": "passed",
+  "fresh_source_lint_options": [
+    "-Dlinter.mathlibStandardSet=true",
+    "-Dlinter.style.header=false"
+  ],
+  "axioms": {
+    "Cochrane.TwoPeriodModel.SchurStable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.root\u2081": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.root\u2082": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.root_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.root_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.root_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.normSq_root_of_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.norm_root_of_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.schurStable_iff_roots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.convSeq_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.chSeq_eq_convSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.norm_convSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.abs_chSeq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.tendsto_chSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.tr2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.det2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.tr2_eq_trace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.det2_eq_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.sq_eq_cayleyHamilton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.pow_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.abs_pow_entry_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.tendsto_pow_entry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.BoundedSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.homogeneous_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.abs_mulVec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.homogeneous_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.eq_root_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.exists_eigenvector": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.exists_bounded_homogeneous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.BoundedProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.BoundedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.Adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.IsAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.E_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.bounded_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.ar1_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forward_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forward_ar1_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.E_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.eq_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.forwardSeries_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.PullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.AdaptedVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.system_iterate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.system_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.system_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.Determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationSystem.determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.perfectForesight_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.prob_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.prob_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.info": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.refines": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mass": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.num": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mass_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.mass_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.num_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_of_const_on_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.FiniteTree.condE_of_trivial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinObs": [],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinSystem_E0_firstHeads": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinSystem_not_perfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinShock_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinShock_mean_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1_isAR1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.coinAR1_nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ExpectationsFiniteTree.finiteTree_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.E_of_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.solves_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.iterate_A15": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.tendsto_partial_A16": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.summable_A16": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.eq_forwardSeries_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_solves_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_bounded_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_adapted_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.existsUnique_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.ScalarEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.scalarEq_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.scalarSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.scalarSol_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.scalarEq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.scalar_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.scalar_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.scalar_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.sunspotFamily_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.eq_sunspotFamily": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.homog_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.solves_add_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.bounded_solutions_not_countable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.exists_bounded_of_one_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.printed_A17_one_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.printed_A17_fails_neg_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.unit_sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.unit_sunspot_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.forwardSeries_solves_of_decay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.ar1_decay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.no_bounded_solution_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.solves_iff_forwardSeries": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.predetermined_restriction": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.hasSum_geometric_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.tsum_geometric_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.abel_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.sum_weights_by_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.tsum_weights_by_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.abs_lt_abs_of_sub_pos_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.abs_lt_abs_iff_of_add_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ForwardSolution.E_tsum_dom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.Known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_div": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.lastDay_none": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.excess_money_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.money_shortage_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.propTax_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.Valuation1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.Flow0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.BondPrice0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.bondPrice_eq_inv_one_add_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.bondPrice_R": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.Valuation0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.known_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.flow_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.revenue_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.valuation0_of_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.flow_iff_valuation0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.price1_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.price0_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.equilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.equilibrium_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.no_equilibrium_of_s1_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.no_equilibrium_of_pv_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.price0_strictAnti_beta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.price0_strictAnti_Es1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.price0_eq_of_pv_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.price0_any_level": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TwoPeriod.coin_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.eq_1_8": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.revenue_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.shareSplit_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.shareSplit_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.doubling": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.rate_strictAnti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.shareSplit_rate_rises": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.TargetEquilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.expected_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.E0_invP1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.target_bond_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.target_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.determinate_under_peg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.fisherian_two_period": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.unexpected_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.inflation_decomposition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.MonetaryFiscal.no_fiscal_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.price0_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.equityIssue_price1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.equityIssue_revenue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.equityIssue_lowers_price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.equityIssue_funds_deficit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.borrow_price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.borrow_value_rises": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.borrow_keeps_price1_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.borrow_implementable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.borrow_debt_corrected": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.borrow_printed_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.inflate_price0_rises": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.inflate_value_unchanged": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.inflate_real_debt_falls_by_deficit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.ar1_price0_rises_more": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.ar1_value_falls": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.maturing_value_change": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.sShape_two_period": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.DebtSales.steady_price0_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price1_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_borrow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_inflate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_superinflate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_price0_strictAnti_B0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.RuleTargetEquilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_target_price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_target_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_higher_rate_lowers_price0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_higher_rate_fiscal_tightening": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_flat_demand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.rule_revenue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.PriceLevelTarget.unit_elastic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.budget_any_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.valuation_of_zero_money": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.money_zero_of_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.money_nonzero_off_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.eqmSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.passive_eqmSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.passive_indeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.passive_taxRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.passive_taxRate_strictAnti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.active_unique_of_strictAnti": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.active_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.fixed_surplus_active": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.propTax_active": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.multiple_crossings": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.value_decomp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.value_decomp_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gammaRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gamma_eqmSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gamma_eqmSet_passive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gamma_eqmSet_empty": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gamma_rule_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gamma_rule_general_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.less_than_one_for_one_not_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gamma_rule_random": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.gamma_not_identified": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.obs_equiv_two_period": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.ActivePassive.rule_regression_gamma_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.abs_rec_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.Debt45": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.dRec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.eq_dRec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.rec_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.rec_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.LocallyRicardian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.locallyRicardian_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.passive_locallyRicardian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.fixed_surplus_not_locallyRicardian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.locallyRicardian_iff_interval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.two_period_indeterminate_imp_locallyRicardian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.locallyRicardian_two_period_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.not_locallyRicardian_two_period_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.discount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.ricardian_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.ricardian_discounted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.ricardian_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.ricardian_tvc_fails_of_alpha_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.passive_is_alpha_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.passive_valuation_any_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.alpha_one_debt_retired": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.Links.zero_surplus_restricts_prices": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "TwoPeriodModel/Determinacy.lean": "390e7b220c98fd7641f39f19d98b390afada25087a98f867620a5182dc85d45b",
+    "TwoPeriodModel/Expectations.lean": "64aeb991ad706c0009227c31825854b4a40f547937aa2b678f4fc12226c818d6",
+    "TwoPeriodModel/ExpectationsFiniteTree.lean": "da3468eb682717617bf3840bc91a29b9e6709ffceb66ed3e59bc128c7068b00c",
+    "TwoPeriodModel/ForwardSolution.lean": "75de5ea66aea316beed64cbef3f171147e9f7b33b3b4fbf6f68bd9e4b56a0c3c",
+    "TwoPeriodModel/TwoPeriod.lean": "7b6ac4fe23b9458bfcd7e8ad8d0ec426e1da2917cb5708bbebb8e42a72d1e35c",
+    "TwoPeriodModel/MonetaryFiscal.lean": "eb702e3f5adea06b86616c687006391b17b4064557a6226a3d081817c11b30e5",
+    "TwoPeriodModel/DebtSales.lean": "813b7f88c1a33a0f2138842b01ec0e866900345790b3a1573abf417ca85fdcee",
+    "TwoPeriodModel/PriceLevelTarget.lean": "949724bf7a2a2dff3526e88504ec5892cec27e22e4c91656a90264c1b28cd9ee",
+    "TwoPeriodModel/ActivePassive.lean": "8faa2df00355a0ea04f50703164675cd317ad6be127c6c74f27d41dda2be4e40",
+    "TwoPeriodModel/Links.lean": "57081d078e6d6db7e57406def9080c16c46b53affd6b7785c72b53d4622f8fe1",
+    "TwoPeriodModel.lean": "5eb46d6e3ee53852fc448caf078f570513681d51ef4e9a0e000ed1d44f027748",
+    "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
+    "lakefile.toml": "9ac16666879d690ac60eecff848439219c51d18f77aaf98a44da5645c7a3c7e7",
+    "lake-manifest.json": "07f4accbc406d033adc9082d8da1cb7e081478e58a8f3dbbbfcb9000b78abb2b",
+    "proof-manifest.json": "9823a979b03c3fc35ec0e33aaf7fbbbb354e409e8fa261805fdba36b1db6e669",
+    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "fresh_audit_sha256": "ccaf2243d783e3e1ca570b84d311166b6f3111cc0520fb0cd5155b38669d6677",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 1: A two-period model. The last day and the two-period fiscal-theory equilibrium (existence and uniqueness of the price level given surpluses, for any expectation system); monetary and fiscal policy: share splits, interest-rate targets and the Fisherian response, the expected/unexpected inflation decomposition; debt sales and Table 1.1 (borrow, inflate, AR(1), s-shaped surpluses) with the borrowing condition corrected; a price-level target rule; active versus passive policy, the gamma-rule determinacy condition corrected, non-identification and observational equivalence; links to Woodford's locally Ricardian policy and Ricardian transversality results.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 1, pp. 4-19."
+}

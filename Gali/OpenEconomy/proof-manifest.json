@@ -1,0 +1,39 @@
+{
+  "library": "OpenEconomy",
+  "modules": [
+    "OpenEconomy/Determinacy.lean",
+    "OpenEconomy/Expectations.lean",
+    "OpenEconomy/ExpectationsFiniteTree.lean",
+    "OpenEconomy/Preferences.lean",
+    "OpenEconomy/Identities.lean",
+    "OpenEconomy/RiskSharing.lean",
+    "OpenEconomy/UIP.lean",
+    "OpenEconomy/AggregateDemand.lean",
+    "OpenEconomy/Supply.lean",
+    "OpenEconomy/TaylorRule.lean",
+    "OpenEconomy/OptimalPolicy.lean",
+    "OpenEconomy/Welfare.lean",
+    "OpenEconomy/SimpleRules.lean",
+    "OpenEconomy/Ex8_1.lean",
+    "OpenEconomy/Ex8_2.lean"
+  ],
+  "theorem_counts": {
+    "OpenEconomy/Determinacy.lean": 23,
+    "OpenEconomy/Expectations.lean": 20,
+    "OpenEconomy/ExpectationsFiniteTree.lean": 21,
+    "OpenEconomy/Preferences.lean": 53,
+    "OpenEconomy/Identities.lean": 14,
+    "OpenEconomy/RiskSharing.lean": 17,
+    "OpenEconomy/UIP.lean": 12,
+    "OpenEconomy/AggregateDemand.lean": 40,
+    "OpenEconomy/Supply.lean": 40,
+    "OpenEconomy/TaylorRule.lean": 50,
+    "OpenEconomy/OptimalPolicy.lean": 53,
+    "OpenEconomy/Welfare.lean": 40,
+    "OpenEconomy/SimpleRules.lean": 21,
+    "OpenEconomy/Ex8_1.lean": 32,
+    "OpenEconomy/Ex8_2.lean": 28
+  },
+  "scope": "Galí, Monetary Policy, Inflation, and the Business Cycle (2nd ed.), Chapter 8: Monetary Policy in the Open Economy, with Appendix 8.1 and Exercises 8.1-8.2. Home-bias CES preferences and their Cobb-Douglas limit; price and exchange-rate identities; complete-markets risk sharing on an event tree; uncovered interest parity; aggregate demand and supply of the small open economy; the open-economy Taylor rule, determinacy and monetary-shock responses; optimal policy in the special case (strict domestic inflation targeting) with the second-order welfare criterion; simple rules; and the exercises.",
+  "source": "Jordi Galí, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the New Keynesian Framework and Its Applications, 2nd ed., Princeton University Press, 2015, Chapter 8, pp. 223-260."
+}

@@ -1,0 +1,41 @@
+{
+  "library": "DebtDeficitsInflation",
+  "modules": [
+    "DebtDeficitsInflation/Determinacy.lean",
+    "DebtDeficitsInflation/Expectations.lean",
+    "DebtDeficitsInflation/ExpectationsFiniteTree.lean",
+    "DebtDeficitsInflation/ForwardSolution.lean",
+    "DebtDeficitsInflation/Innovations.lean",
+    "DebtDeficitsInflation/LinearizedIdentities.lean",
+    "DebtDeficitsInflation/LinearizationDerivation.lean",
+    "DebtDeficitsInflation/SurplusMA.lean",
+    "DebtDeficitsInflation/SurplusProcessFacts.lean",
+    "DebtDeficitsInflation/GeneralizedHRS.lean",
+    "DebtDeficitsInflation/PresentValueExamples.lean",
+    "DebtDeficitsInflation/VARIdentities.lean",
+    "DebtDeficitsInflation/ConditioningDown.lean",
+    "DebtDeficitsInflation/Invertibility.lean",
+    "DebtDeficitsInflation/PermanentTransitory.lean",
+    "DebtDeficitsInflation/Links.lean"
+  ],
+  "theorem_counts": {
+    "DebtDeficitsInflation/Determinacy.lean": 23,
+    "DebtDeficitsInflation/Expectations.lean": 20,
+    "DebtDeficitsInflation/ExpectationsFiniteTree.lean": 21,
+    "DebtDeficitsInflation/ForwardSolution.lean": 44,
+    "DebtDeficitsInflation/Innovations.lean": 45,
+    "DebtDeficitsInflation/LinearizedIdentities.lean": 36,
+    "DebtDeficitsInflation/LinearizationDerivation.lean": 18,
+    "DebtDeficitsInflation/SurplusMA.lean": 48,
+    "DebtDeficitsInflation/SurplusProcessFacts.lean": 12,
+    "DebtDeficitsInflation/GeneralizedHRS.lean": 31,
+    "DebtDeficitsInflation/PresentValueExamples.lean": 6,
+    "DebtDeficitsInflation/VARIdentities.lean": 47,
+    "DebtDeficitsInflation/ConditioningDown.lean": 17,
+    "DebtDeficitsInflation/Invertibility.lean": 74,
+    "DebtDeficitsInflation/PermanentTransitory.lean": 32,
+    "DebtDeficitsInflation/Links.lean": 19
+  },
+  "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 4 (with Online Appendix A2): Debt, deficits, discount rates and inflation. Innovations, martingale-difference shocks and moving-average representations; the linearised flow and present-value identities, derived as exact derivatives; unexpected inflation equals minus a(rho) times the surplus shock, with the AR(1), MA(1), ARMA and permanent-transitory cases; the surplus-process facts and debt feedback; the generalised decompositions (4.11)-(4.13) with Campbell-Shiller and Campbell-Ammer; VAR identities, Cholesky ordering and the present-value tautology; conditioning down; invertibility and Hilbert-space Wold statements; Hansen-Sargent. Data, estimates and figures are out of scope. Printed errors corrected with Lean counterexamples.",
+  "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 4, pp. 81-116, and Online Appendix A2, pp. 593-611."
+}
