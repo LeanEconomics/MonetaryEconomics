@@ -19,8 +19,8 @@ core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`
 row uses it. Theorem FR is also proved on measure-theoretic expectation systems
 (`ExpectationsMeasure.MeasExpectationSystem`, with Mathlib's `condExp` and equations a.e.) in
 `FiscalRulesMeasure`, `FiscalRulesTargetMeasure`, `FiscalRulesTargetOpen`,
-`FiscalRulesBelowCounter`, `FiscalRulesTargetClose`, `FiscalRulesTargetFinal`, `TidyR5FiscalLink`, `TidyR5NoExist` and
-`TidyR5ExistSet`, listed after the §9.3.1–§9.3.2 section;
+`FiscalRulesBelowCounter`, `FiscalRulesTargetClose`, `FiscalRulesTargetFinal`, `TidyR5FiscalLink`, `TidyR5NoExist`,
+`TidyR5ExistSet`, `TidyR6ContinuationLimit` and `TidyR6ExistNoGo`, listed after the §9.3.1–§9.3.2 section;
 the copied measure core is listed before the shared tools.
 
 ## §8.1 Indexed debt and the shared valuation machinery, (8.1), pp. 239–240 (PresentValue, RealDebt)
@@ -78,6 +78,46 @@ the copied measure core is listed before the shared tools.
 | same, measurable streams (supporting) | if `e^{−r̲τ}y` is integrable on `(0, ∞)`, `G` is integrable on `(0, 1)` and `e^{−λτ}y` is integrable for every `λ ≥ r̲`; an integrable `g` on `(0, 1)` with all moments zero vanishes a.e. (Weierstrass, then Mathlib's `ae_eq_zero_of_integral_contDiff_smul_eq_zero`); Laplace uniqueness a.e. on `(0, ∞)` | `TidyR5MatchingMeas.G_integrableOn`, `TidyR5MatchingMeas.integrableOn_shift`, `TidyR5MatchingMeas.moments_zero_ae`, `TidyR5MatchingMeas.laplace_unique_ae` |
 | Cochrane §8.4, pp. 250–251, continuous-time converse for measurable streams | for measurable `y` with `e^{−r̲τ}y ∈ L¹(0, ∞)`, zero present value along every constant real-rate path `λ ≥ r̲` gives `y = 0` a.e. on `(0, ∞)`; the same for essentially bounded `y` with `r̲ > 0`; price-level form `x = κs` a.e. | `TidyR5MatchingMeas.matching_necessary_meas`, `TidyR5MatchingMeas.matching_necessary_bdd`, `TidyR5MatchingMeas.price_insulated_only_if_matching_meas` |
 | Cochrane §8.4, p. 250 (E8.3) | under uncertainty, matching `B^{(t+τ)}E_t(1/P_{t+τ}) = s_{t+τ}` does not cancel the rates: `E₀[D/P_τ] = 1 ≠ 3/4 = E₀[Ds_τ]` in the coin-flip tree | `MaturityBuffer.matching_fails_under_uncertainty` |
+
+## §8.4 Total inflation under long-term debt, (8.4), p. 250 (TidyR6TotalInflation)
+
+Write `x_j = ΔE_{t+1}π_{t+1+j}` and `C` for the right-hand side of (8.4), so that (8.4) is `∑ ωʲx_j = C` and total inflation is `∑ x_j`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §8.4, p. 250 | short-term debt (`ω = 0`): `x_0 = C`, and (8.4) leaves later inflation unconstrained; for `0 ≤ ω ≤ 1` and nonnegative summable `x`, `∑ ωʲx_j ≤ ∑ x_j` | `TidyR6TotalInflation.short_debt_total`, `TidyR6TotalInflation.weighted_le` |
+| Cochrane §8.4, p. 250, "at the cost of more total inflation" | with nonnegative inflation news, total inflation is at least `C`; with `ω < 1` equality holds iff all inflation is immediate | `TidyR6TotalInflation.total_ge`, `TidyR6TotalInflation.total_eq_iff` |
+| same, the precise cost | reducing current inflation by `Δ = C − x_0` costs at least `Δ(1 − ω)/ω` in total inflation, and the bound is attained; the cost per unit spread falls strictly as `ω` rises, and perpetuities spread at no cost | `TidyR6TotalInflation.total_ge_spread`, `TidyR6TotalInflation.total_spread_attained`, `TidyR6TotalInflation.spread_cost_antitone`, `TidyR6TotalInflation.perpetuity_total` |
+| same, counterexample (correction) | with a geometric profile `x_j = aφʲ`, total inflation is `C(1 − ωφ)/(1 − φ)`: strictly increasing in the spreading `φ`, strictly *decreasing* in the maturity `ω` | `TidyR6TotalInflation.geometric_total`, `TidyR6TotalInflation.geometric_total_strictMono_phi`, `TidyR6TotalInflation.geometric_total_strictAnti_omega` |
+| same | the sign condition is needed: with deflation news a path satisfying (8.4) has total inflation `C − (1 − ω) < C` | `TidyR6TotalInflation.total_lt_without_sign` |
+| Cochrane (8.4), p. 250, via (3.20)–(3.21) | with no real-rate news, news satisfying `MaturityBuffer.Identity320` and `MaturityBuffer.Identity321` have total inflation at least `C + (C − x_0)(1 − ω)/ω` | `TidyR6TotalInflation.total_ge_of_identities` |
+
+## §8.4 Continuous-time matching for measures and conditionally convergent present values, pp. 250–251 (TidyR6MatchingGeneral)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §8.4, p. 250 (supporting) | the discount weight `e^{−r̲τ}` as a measurable density; the stream discounted at `r̲`, a finite measure when its present value converges absolutely; its transport to `[0, 1]` by the measurable embedding `τ ↦ e^{−τ}` | `TidyR6MatchingGeneral.wgt`, `TidyR6MatchingGeneral.wgt_measurable`, `TidyR6MatchingGeneral.wMeas`, `TidyR6MatchingGeneral.wMeas_finite`, `TidyR6MatchingGeneral.pushM`, `TidyR6MatchingGeneral.expNeg_embedding`, `TidyR6MatchingGeneral.pushM_ae` |
+| same (supporting) | the `n`-th moment of the transported stream is the present value at `r̲ + n`; finite measures on `[0, 1]` with the same moments agree; the transport is injective on streams with absolutely convergent present values | `TidyR6MatchingGeneral.pushM_moment`, `TidyR6MatchingGeneral.eq_of_moments`, `TidyR6MatchingGeneral.pushM_injective` |
+| Cochrane §8.4, pp. 250–251, converse for payment streams that are measures | two measures on `[0, ∞)` (continuous or lumpy payments, e.g. Dirac masses at maturity dates) with absolutely convergent present values at `r̲` and equal present values along every constant real-rate path `λ ≥ r̲` coincide on `[0, ∞)` | `TidyR6MatchingGeneral.matching_necessary_measure` |
+| same (supporting) | the truncated present value `Φ(x) = ∫₀ˣ e^{−r̲τ}y`; continuity of the discount factor and of `Φ`; interval integrability of the discounted stream; integration by parts `∫₀^T e^{−(r̲+c)τ}y = e^{−cT}Φ(T) + c∫₀^T e^{−cτ}Φ` | `TidyR6MatchingGeneral.prim`, `TidyR6MatchingGeneral.disc_continuous`, `TidyR6MatchingGeneral.g_intervalIntegrable`, `TidyR6MatchingGeneral.prim_continuousOn`, `TidyR6MatchingGeneral.ibp` |
+| Cochrane §8.4, pp. 250–251, converse for conditionally convergent present values | a locally integrable stream whose improper present values exist and vanish for every `λ ≥ r̲` is `0` a.e. on `(0, ∞)` | `TidyR6MatchingGeneral.matching_necessary_improper` |
+| same, the class | it contains the absolutely convergent class of `TidyR5MatchingMeas.matching_necessary_meas`, and strictly: the alternating harmonic step stream converges conditionally at `λ = 0` but is not integrable | `TidyR6MatchingGeneral.improper_of_integrable`, `TidyR6MatchingGeneral.alt`, `TidyR6MatchingGeneral.alt_props`, `TidyR6MatchingGeneral.alt_ii`, `TidyR6MatchingGeneral.alt_piece`, `TidyR6MatchingGeneral.alt_blocks`, `TidyR6MatchingGeneral.improper_class_strictly_larger` |
+| same, outside the class | `y = e^{τ²}` has no present value at any rate (`e^{−λτ}y ≥ 1` eventually; the truncated present values diverge), yet its Lean "present value" (the integral, `0` by convention) is `0` at every rate and `y ≠ 0`: a convergence hypothesis is needed | `TidyR6MatchingGeneral.junk_ge_one`, `TidyR6MatchingGeneral.no_present_value`, `TidyR6MatchingGeneral.junk_counterexample` |
+
+## (3.17)–(3.21), (8.4) and (9.22) derived from the nonlinear identities, pp. 62–65, 250, 275 and App. pp. 556–564 (TidyR6Linearise)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. (1.9)–(1.11), p. 558, the scalar step | `\|log(1 + u) − u\| ≤ 2u²` for `\|u\| ≤ 1/2`; `\|eᶻ − 1\| ≤ 2\|z\|` for `\|z\| ≤ 1`; `log(c eᶻ + y) = log A + (c/A)z + (y − ȳ)/A + R` with `\|R\| ≤ 2u² + (c/A)z²`, and the explicit bound `2η² + ρδ_z²`; the linear coefficients are the exact partial derivatives | `TidyR6Linearise.log_one_add_sub_le`, `TidyR6Linearise.exp_sub_one_le`, `TidyR6Linearise.log_lin`, `TidyR6Linearise.log_lin_bound`, `TidyR6Linearise.log_lin_hasDerivAt` |
+| Cochrane App. (1.11)–(1.13), p. 558 | `A = e^{v̄} + s̄y`, `ρ = e^{v̄}/A ∈ (0, 1)`, `κ`, the scaled surplus `s̃ = sy/A`, the flow remainder `R` | `TidyR6Linearise.A0`, `TidyR6Linearise.rho`, `TidyR6Linearise.rho_mem`, `TidyR6Linearise.kap`, `TidyR6Linearise.stil`, `TidyR6Linearise.remF` |
+| Cochrane (3.17), p. 63, from App. (1.9) | the exact flow gives `v_t + r_{t+1} − g_{t+1} = κ + ρv_{t+1} + s̃_{t+1} + R_{t+1}` exactly; `\|R\| ≤ 2η² + ρδ_v²` near the expansion point, and `R` is bounded when the processes are | `TidyR6Linearise.flow_exact`, `TidyR6Linearise.remF_bound`, `TidyR6Linearise.remF_succ_le` |
+| Cochrane (3.18)–(3.20), pp. 63–65 (supporting) | the innovation `ΔE_{t+1}` is linear, kills constants and variables known at `t`, and is at most `2K` for a variable bounded by `K`; iterating `a_j = ρa_{j+1} + w_{j+1}` forward; `\|∑ ρʲx_j\| ≤ K/(1 − ρ)` | `TidyR6Linearise.innov_add`, `TidyR6Linearise.innov_sub`, `TidyR6Linearise.innov_smul`, `TidyR6Linearise.innov_const`, `TidyR6Linearise.innov_known`, `TidyR6Linearise.innov_bound`, `TidyR6Linearise.forward_sum`, `TidyR6Linearise.discounted_le` |
+| Cochrane (3.20), p. 65 | the unexpected-inflation identity derived from the nonlinear flow, growth included, with the remainder news `−∑ ρʲΔE R_{t+1+j}`, at most `2B/(1 − ρ)` in absolute value | `TidyR6Linearise.unexpected_inflation_identity`, `TidyR6Linearise.remainder_sum_le` |
+| same, as used for (8.4) | with no growth, `MaturityBuffer.Identity320` holds exactly with the surplus news augmented by the remainder news | `TidyR6Linearise.identity320_of_flow` |
+| Cochrane App. (1.22)–(1.24), p. 563 | the exact coefficient `ω̂ = ωQ̄/(1 + ωQ̄) ∈ (0, 1)` of the geometric-portfolio return, equal to `ω/(1 + i)` at the steady-state price (the book further replaces it by `ω`); the return remainder and its bound | `TidyR6Linearise.what`, `TidyR6Linearise.what_mem`, `TidyR6Linearise.what_steady`, `TidyR6Linearise.remQ`, `TidyR6Linearise.remQ_bound` |
+| Cochrane (3.21), p. 65, App. (1.22)–(1.25) | the bond-return identity derived from the exact return, with remainder news; `MaturityBuffer.Identity321` with maturity `ω̂` | `TidyR6Linearise.bond_return_identity`, `TidyR6Linearise.identity321_of_return` |
+| Cochrane (8.4), p. 250; (3.22), p. 65 | (8.4) with maturity `ω̂` derived from the nonlinear identities, error at most `2B_q/(1 − ω̂) + 2B/(1 − ρ)` | `TidyR6Linearise.identity84_of_nonlinear` |
+| Cochrane (9.22), p. 275 | with one-period debt and no growth, `SpreadTarget.Valuation` follows from the exact flow with fiscal shock = surplus news + remainder news | `TidyR6Linearise.epsF`, `TidyR6Linearise.valuation922_of_flow` |
 
 ## §8.5 Default, (8.5)–(8.7), pp. 254–255 (Default)
 
@@ -256,6 +296,17 @@ All rows cite p. 267 unless marked. The space is `Ω = ℕ → ℝ` with i.i.d. 
 | same, finite and infinite orbits | the backward images of the terminal points `(D*(1 − ξ), ξ)` stay in the box, depend continuously on `ξ` and grow at most geometrically; for `D* < d₀ < 0` and every horizon the intermediate value theorem gives a finite orbit from `d₀`, with continuation prices bounded below uniformly in the horizon; compactness gives an infinite orbit, which `Pc` turns into an equilibrium bounded above by `σ` | `TidyR5ExistSet.term`, `TidyR5ExistSet.itr`, `TidyR5ExistSet.itr_mem`, `TidyR5ExistSet.itr_continuousOn`, `TidyR5ExistSet.itr_one`, `TidyR5ExistSet.itr_bounds`, `TidyR5ExistSet.finite_orbit`, `TidyR5ExistSet.x_le_bx`, `TidyR5ExistSet.finite_orbit_lower`, `TidyR5ExistSet.infinite_orbit`, `TidyR5ExistSet.Pc`, `TidyR5ExistSet.orbit_eqm` |
 | Cochrane pp. 266–267, the exact existence set (settle-or-continue, `σ > 1`, `0 < p < 1`) | every bounded-above equilibrium has `d₀ > −1/(1 − β)`; one exists iff `−1/(1 − β) < d₀ ≤ 0`, so the set is `(−1/(1 − β), 0]`, not `{0}`; for `d₀ < 0` none has prices bounded away from zero | `TidyR5ExistSet.lower_end`, `TidyR5ExistSet.existsAbove_iff`, `TidyR5ExistSet.existsAbove_set`, `TidyR5ExistSet.d0_neg_not_bounded_below` |
 
+## §9.3.2 Theorem FR (d): the continuation limit and the no-go theorem for existence, pp. 266–267 (TidyR6ContinuationLimit, TidyR6ExistNoGo)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §9.3.2, pp. 266–267, settle-or-continue target, the continuation path | the scaled debt deviation is nonpositive at every date; (9.12) as `u_{t+1} = u_t − c(W_{t+1} − u_t)`; the key inequality `σx_t ≤ σ + (1 − β)D_{t+1}`; `x_t` and `D_t` nonincreasing, `x_t ≤ 1` | `TidyR6ContinuationLimit.orbit_all_nonpos`, `TidyR6ContinuationLimit.rate_inv`, `TidyR6ContinuationLimit.settled_ge_price`, `TidyR6ContinuationLimit.price_antitone`, `TidyR6ContinuationLimit.debt_antitone` |
+| same, the limits (correction to our own record) | with `D_0 < 0`, `x_t → 0` and `D_t → −1/(1 − β)`, with `x_{t+1}/x_t → (1 − p)/γ`; with `D_0 = 0` the path is the target | `TidyR6ContinuationLimit.orbit_limits`, `TidyR6ContinuationLimit.orbit_ratio`, `TidyR6ContinuationLimit.orbit_zero` |
+| Cochrane pp. 266–267, equilibria with `b₀ = b̄ + θd₀` | every bounded-above equilibrium yields such a path with `D_0 = d₀`; for `d₀ < 0` continuation prices decrease monotonically to `0` at the rate `(1 − p)/γ`, and the settlement price tends to `σ − 1`; for `d₀ = 0` the target; for every `d₀ ∈ (−1/(1 − β), 0)` an equilibrium exists and all have continuation prices tending to zero | `TidyR6ContinuationLimit.eqm_orbit`, `TidyR6ContinuationLimit.eqm_continuation_tendsto_zero`, `TidyR6ContinuationLimit.eqm_settled_tendsto`, `TidyR6ContinuationLimit.eqm_ratio_tendsto`, `TidyR6ContinuationLimit.eqm_continuation_antitone`, `TidyR6ContinuationLimit.eqm_zero_target`, `TidyR6ContinuationLimit.exists_and_tendsto_zero` |
+| Cochrane (9.9), pp. 266–267, two targets on one space | the settlement-date law `gProb`; the one-shot target `x_k = 1 + (σ − 1)βᵏ ∈ [1, σ]`; it and the settle-or-continue target live on the same space, start at `1` and have the same realised present value `(1 + (σ − 1)β^{k+1})/(1 − β)` in every state | `TidyR6ExistNoGo.gProb`, `TidyR6ExistNoGo.same_measure`, `TidyR6ExistNoGo.xOS`, `TidyR6ExistNoGo.xOS_bounds`, `TidyR6ExistNoGo.targets_at_zero`, `TidyR6ExistNoGo.pvS`, `TidyR6ExistNoGo.pv_tgtS`, `TidyR6ExistNoGo.pv_osTarget` |
+| Cochrane pp. 266–267, existence (correction to our own record) | the one-shot system has an equilibrium for an explicit `d₀ ≥ β > 0`, the settle-or-continue system for none; hence no condition `C(μ, PV*, d₀)` characterises existence | `TidyR6ExistNoGo.oneShot_exists_pos`, `TidyR6ExistNoGo.existence_differs`, `TidyR6ExistNoGo.no_condition_on_pv` |
+| same, the sharpest bound | `inf_k PV*(k) = 1/(1 − β)`, not attained; the necessary condition `d₀ > −PV*` is `d₀ ≥ −inf PV*`, and the existence set comes arbitrarily close to it | `TidyR6ExistNoGo.pvS_inf`, `TidyR6ExistNoGo.lower_bound_sharp` |
+
 ## §9.3.3 Fiscal rules in practice, (9.13)–(9.14), pp. 267–269 (FiscalRules)
 
 | Book | Claim | Lean |
@@ -381,6 +432,19 @@ All rows cite p. 267 unless marked. The space is `Ω = ℕ → ℝ` with i.i.d. 
 | --- | --- | --- |
 | Cochrane §24.3, p. 527 (Daniel 2001b) | separate surplus pools: unique price levels and `e = (B₁/V₁)/(B₂/V₂)`, at every date and state | `ExchangeRates.separate_pools_determinate`, `ExchangeRates.separate_pools_exchange_rate`, `ExchangeRates.exchange_rate_eq_ratio_pv` |
 | Cochrane §24.3, p. 527 (Dupor 2000) | a common pool: every `e > 0` is consistent with unique price levels, so the set of equilibrium exchange rates is the positive half-line | `ExchangeRates.common_pool_exchange_rate_free`, `ExchangeRates.common_pool_indeterminate` |
+
+## §24.3 Daniel (2001a): the collapse of a peg with long-term debt, p. 527 (TidyR6DanielPeg)
+
+Perfect foresight, purchasing-power parity and a constant real rate; `B_j` is the nominal debt due at `j`, `𝒮` the present value of surpluses, `S̄` the peg.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (7.2), p. 213; §24.3, p. 527 | an equilibrium path: positive and `∑ βʲB_j/P_j = 𝒮`; the implied rate `1 + i_t = P_{t+1}/(βP_t)` | `TidyR6DanielPeg.Eqm`, `TidyR6DanielPeg.rate` |
+| Cochrane §24.3, p. 527 (supporting) | `H_T` and `N_T`, the discounted debt due before and from `T`; `∑ βʲB_j` converges; `A = H_T + N_T`; `N_{T+1} = N_T − β^TB_T ≥ 0` | `TidyR6DanielPeg.head`, `TidyR6DanielPeg.tail`, `TidyR6DanielPeg.summable_debt`, `TidyR6DanielPeg.head_add_tail`, `TidyR6DanielPeg.tail_succ` |
+| Cochrane §24.3, p. 527, "fiscal policy makes the crisis inevitable" | the peg is an equilibrium forever iff `A/S̄ = 𝒮`; if `𝒮 < A/S̄` every equilibrium leaves the peg, and before a common date `T*` | `TidyR6DanielPeg.peg_forever_iff`, `TidyR6DanielPeg.collapse_inevitable`, `TidyR6DanielPeg.max_delay` |
+| same, "without long-term bonds the collapse must be instantaneous" | with one-period debt only, `P_0 = B_0/𝒮 > S̄` | `TidyR6DanielPeg.short_debt_instant` |
+| same, "with long-term bonds the collapse can be delayed" | an equilibrium holding the peg at `0` exists iff `N_1 > 0` and `B_0 < S̄𝒮`, or `N_1 = 0` and `B_0 = S̄𝒮` | `TidyR6DanielPeg.peg_at_zero_iff` |
+| same, "monetary policy determines its timing and the size of the depreciation" | holding the peg before `T` and devaluing to `S_T = N_T/(𝒮 − H_T/S̄)` is an equilibrium, the only one of that form; `S_T > S̄` iff the peg is unsupported; later collapse, larger devaluation; the rate equals the world rate except at `T − 1` | `TidyR6DanielPeg.pegPath`, `TidyR6DanielPeg.devalue`, `TidyR6DanielPeg.delayed_eqm`, `TidyR6DanielPeg.delayed_unique`, `TidyR6DanielPeg.devalue_gt_iff`, `TidyR6DanielPeg.devalue_mono`, `TidyR6DanielPeg.rate_path` |
 
 ## Links between Chapters 8, 9 and 10 (Links)
 

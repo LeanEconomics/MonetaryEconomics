@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-22T09:34:24.221569+00:00",
-  "theorems": 869,
+  "checked_at_utc": "2026-10-29T21:56:14.234704+00:00",
+  "theorems": 969,
   "module_theorems": {
     "AssetsRulesBalanceSheets/Determinacy.lean": 23,
     "AssetsRulesBalanceSheets/Expectations.lean": 20,
@@ -39,9 +39,15 @@
     "AssetsRulesBalanceSheets/TidyR5NoExist.lean": 32,
     "AssetsRulesBalanceSheets/TidyR5Matching.lean": 11,
     "AssetsRulesBalanceSheets/TidyR5ExistSet.lean": 16,
-    "AssetsRulesBalanceSheets/TidyR5MatchingMeas.lean": 7
+    "AssetsRulesBalanceSheets/TidyR5MatchingMeas.lean": 7,
+    "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean": 15,
+    "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean": 13,
+    "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean": 10,
+    "AssetsRulesBalanceSheets/TidyR6Linearise.lean": 27,
+    "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean": 22,
+    "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean": 13
   },
-  "audited_declarations": 1103,
+  "audited_declarations": 1225,
   "declarations": [
     {
       "name": "Cochrane.AssetsRulesBalanceSheets.SchurStable",
@@ -5557,6 +5563,616 @@
       "name": "Cochrane.AssetsRulesBalanceSheets.TidyR5MatchingMeas.price_insulated_only_if_matching_meas",
       "kind": "theorem",
       "module": "AssetsRulesBalanceSheets/TidyR5MatchingMeas.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_all_nonpos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.rate_inv",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.settled_ge_price",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.price_antitone",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.debt_antitone",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_limits",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_ratio",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_orbit",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_continuation_tendsto_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_settled_tendsto",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_ratio_tendsto",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_continuation_antitone",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_zero_target",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.exists_and_tendsto_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.Eqm",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.head",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.tail",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.pegPath",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.rate",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.summable_debt",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.head_add_tail",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.tail_succ",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.peg_forever_iff",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.collapse_inevitable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.max_delay",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.short_debt_instant",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.peg_at_zero_iff",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.delayed_eqm",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.delayed_unique",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue_gt_iff",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue_mono",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.rate_path",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pvS",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.xOS",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.xOS_bounds",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pv_tgtS",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pv_osTarget",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.targets_at_zero",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.gProb",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.same_measure",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.oneShot_exists_pos",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.existence_differs",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.no_condition_on_pv",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pvS_inf",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.lower_bound_sharp",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_one_add_sub_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.exp_sub_one_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin_bound",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin_hasDerivAt",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.A0",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.rho",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.kap",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.stil",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.rho_mem",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.flow_exact",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF_bound",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_add",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_sub",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_smul",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_const",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_known",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_bound",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.forward_sum",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.discounted_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF_succ_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.unexpected_inflation_identity",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remainder_sum_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity320_of_flow",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remQ",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what_mem",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what_steady",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remQ_bound",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.bond_return_identity",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity321_of_return",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity84_of_nonlinear",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.epsF",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.valuation922_of_flow",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6Linearise.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wgt",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wMeas",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wgt_measurable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.expNeg_embedding",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wMeas_finite",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_ae",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_moment",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.eq_of_moments",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_injective",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.matching_necessary_measure",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.prim",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.disc_continuous",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.g_intervalIntegrable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.prim_continuousOn",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.ibp",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.matching_necessary_improper",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.improper_of_integrable",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt",
+      "kind": "def",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_props",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_ii",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_piece",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_blocks",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.improper_class_strictly_larger",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.junk_ge_one",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.no_present_value",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.junk_counterexample",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.short_debt_total",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.weighted_le",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_eq_iff",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge_spread",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_spread_attained",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.spread_cost_antitone",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.perpetuity_total",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total_strictMono_phi",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total_strictAnti_omega",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_lt_without_sign",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
+    },
+    {
+      "name": "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge_of_identities",
+      "kind": "theorem",
+      "module": "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean"
     }
   ],
   "full_build": "passed",
@@ -11057,6 +11673,616 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_all_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.rate_inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.settled_ge_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.price_antitone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.debt_antitone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_limits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_orbit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_continuation_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_settled_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_ratio_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_continuation_antitone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_zero_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.exists_and_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.Eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.head": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.tail": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.pegPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.summable_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.head_add_tail": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.tail_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.peg_forever_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.collapse_inevitable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.max_delay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.short_debt_instant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.peg_at_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.delayed_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.delayed_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue_gt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.rate_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pvS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.xOS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.xOS_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pv_tgtS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pv_osTarget": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.targets_at_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.gProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.same_measure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.oneShot_exists_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.existence_differs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.no_condition_on_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pvS_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.lower_bound_sharp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_one_add_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.exp_sub_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.A0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.rho": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.kap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.stil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.rho_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.flow_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.forward_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.discounted_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF_succ_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.unexpected_inflation_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remainder_sum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity320_of_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what_steady": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remQ_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.bond_return_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity321_of_return": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity84_of_nonlinear": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.epsF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.valuation922_of_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wgt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wMeas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wgt_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.expNeg_embedding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wMeas_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_moment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.eq_of_moments": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.matching_necessary_measure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.prim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.disc_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.g_intervalIntegrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.prim_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.ibp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.matching_necessary_improper": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.improper_of_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_ii": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_piece": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_blocks": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.improper_class_strictly_larger": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.junk_ge_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.no_present_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.junk_counterexample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.short_debt_total": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.weighted_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_eq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge_spread": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_spread_attained": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.spread_cost_antitone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.perpetuity_total": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total_strictMono_phi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total_strictAnti_omega": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_lt_without_sign": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge_of_identities": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -11098,15 +12324,21 @@
     "AssetsRulesBalanceSheets/TidyR5Matching.lean": "d12fccb63ba301ecb6d8ac11b7374ebb09192e2335c2ff1616d046c13d240e19",
     "AssetsRulesBalanceSheets/TidyR5ExistSet.lean": "3d65b57bf3a47be0aee8a840b61cc0d2cb034a3e3e6cb3fcca7b82320fae49eb",
     "AssetsRulesBalanceSheets/TidyR5MatchingMeas.lean": "27438e075789f3e6333905882391bd36549b7aadd829b8941930a3d73a48f463",
-    "AssetsRulesBalanceSheets.lean": "3bc514ef20fc008bf10d74a3ff05c3da1117bfdddaa410c1df7b5f80adee6bbc",
+    "AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean": "1541ed80dafd5ef11c45f925d14e5916cb114673850085944653a1690dee168f",
+    "AssetsRulesBalanceSheets/TidyR6DanielPeg.lean": "ce4f1c6a71fd2723f07a230c27a7518bee6aab7d85a22e04154405accd48ef22",
+    "AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean": "0e5b9854de194b575412fa2392228b210fef3109518098632fdbdc2ce0d9617a",
+    "AssetsRulesBalanceSheets/TidyR6Linearise.lean": "28ef070548f1ef36b3027a3a43bb1ea53a7308a8f681a07113a046a74807706f",
+    "AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean": "50faa38361c05893ab9453029f5576d800d2688a813d30d2e82a99794e8eed93",
+    "AssetsRulesBalanceSheets/TidyR6TotalInflation.lean": "8ce69922bfb179feea3aea9b2e8150be24d91d2225524b3aaef56f81e3c1d9ff",
+    "AssetsRulesBalanceSheets.lean": "da95af9d91905df18a061dca0ceab002b0b6bdfa6f882d6a04974f21782030ee",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "4459cee1a6f920870caaa72e93b085ab3e3641fb9cfdbcf3001b24a887fc013d",
     "lake-manifest.json": "8e19a4aeec76fb6856c5d793c1eb5fef1657b0af91f8c50e4bd582de963d31d0",
-    "proof-manifest.json": "ee3547e5619d2f6744a779a3a507e82a70013443abf26945b042cf89cd8b7b9f",
+    "proof-manifest.json": "3f2bad2db43cd0ca6d8a0591116506932641b8cd7d4e9b1c1d76a8bd3e59a17a",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "930be0b1996a0a0ee2879aafe4f9cb4ffdb43333cda300e3b4686fc4b2a9126c",
+  "fresh_audit_sha256": "9ddacbc721dc1555a311506c6723df1fbbd7970c3cd053ed4a62c1dd0049ff2f",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 8-10 (Part II: Assets, rules, and institutions), with the exchange-rate claims of Ch24 and the real-bills claim of Ch11. Indexed and foreign debt, currency pegs and the gold standard; capital structure and the cashless limit; maturity as a buffer; default and haircuts; central-bank independence; better rules: inflation targets (0 < alpha < 2), fiscal rules (only P = P* under perfect foresight; false in general under uncertainty with an explicit sunspot tree; restored for prices bounded on one side), the fiscal Taylor rule, mixed debt rules, spread targets and swaps, an indexed-debt peg and a CPI standard; pots of assets, shares as money, balance sheets; separate versus common surplus pools and the exchange rate. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapters 8-10, pp. 238-311; also pp. 322 and 527."

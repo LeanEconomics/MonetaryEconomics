@@ -13,10 +13,10 @@ real rate `1/β`, and nominal, indexed, foreign-currency or defaultable one-peri
 variables are `Ω → ℝ` under an arbitrary `ExpectationSystem`, so the structural results hold under
 perfect foresight and under genuine uncertainty; comparative statics, numbers and some witnesses
 are deterministic. Theorem FR is also proved on genuine probability spaces, with Mathlib's
-conditional expectation. The library contains **869 theorems**, including the shared core; 653 of
-them are in the thirty-two chapter modules (seventeen for the book's sections, plus the shared
-`PresentValue`, the cross-chapter `Links`, the six measure-theoretic Theorem FR modules and the
-seven TidyR5 supplements).
+conditional expectation. The library contains **969 theorems**, including the shared core; 753 of
+them are in the thirty-eight chapter modules (seventeen for the book's sections, plus the shared
+`PresentValue`, the cross-chapter `Links`, the six measure-theoretic Theorem FR modules, the
+seven TidyR5 supplements and the six TidyR6 supplements).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. "Theorem IT", "Theorem FR",
@@ -43,8 +43,21 @@ Headline results, in the namespace `Cochrane.AssetsRulesBalanceSheets`:
   from real rates under perfect foresight, and only matching does (`MaturityBuffer.price_insulated`,
   `MaturityBuffer.price_insulated_only_if_matching`; in continuous time via uniqueness of the
   Laplace transform, `TidyR5Matching.matching_necessary_cont`,
-  `TidyR5MatchingMeas.matching_necessary_meas`), but not under uncertainty
-  (`MaturityBuffer.matching_fails_under_uncertainty`). An expected haircut does not move `P_t`
+  `TidyR5MatchingMeas.matching_necessary_meas`; for payment streams that are measures, lumpy
+  maturities included, `TidyR6MatchingGeneral.matching_necessary_measure`, and for conditionally
+  convergent present values, a strictly larger class,
+  `TidyR6MatchingGeneral.matching_necessary_improper`,
+  `TidyR6MatchingGeneral.improper_class_strictly_larger`; without a convergence hypothesis the
+  claim fails, `TidyR6MatchingGeneral.junk_counterexample`), but not under uncertainty
+  (`MaturityBuffer.matching_fails_under_uncertainty`). (3.20), (3.21), (8.4) and (9.22) are derived
+  from the exact nonlinear flow and portfolio return, with explicit second-order error bounds
+  (`TidyR6Linearise.unexpected_inflation_identity`, `TidyR6Linearise.bond_return_identity`,
+  `TidyR6Linearise.identity84_of_nonlinear`, `TidyR6Linearise.valuation922_of_flow`); the exact
+  maturity coefficient is `ω/(1 + i)`, not `ω` (`TidyR6Linearise.what_steady`). Spreading inflation
+  forward costs total inflation, at least `Δ(1 − ω)/ω` for a reduction `Δ` of current inflation
+  (`TidyR6TotalInflation.total_ge`, `TidyR6TotalInflation.total_ge_spread`), a cost that falls as
+  maturity lengthens; for a fixed geometric profile longer maturity means *less* total inflation
+  (`TidyR6TotalInflation.geometric_total_strictAnti_omega`). An expected haircut does not move `P_t`
   (`Default.expected_default_no_effect`); "2 bonds at 50% = 1 bond" (`Default.scaled_flow_iff`);
   an independent central bank turns a fiscal shortfall into default instead of inflation
   (`CentralBankIndependence.independence_default_vs_inflation`).
@@ -82,7 +95,13 @@ Headline results, in the namespace `Cochrane.AssetsRulesBalanceSheets`:
   value leaves `P` unchanged (`PotOfAssets.real_bills_real_asset`). Separate surplus pools give a
   determinate exchange rate, the ratio of debt to surplus present values
   (`ExchangeRates.separate_pools_exchange_rate`); a common pool leaves every rate `e > 0`
-  consistent with equilibrium (`ExchangeRates.common_pool_indeterminate`).
+  consistent with equilibrium (`ExchangeRates.common_pool_indeterminate`). Daniel's (2001a) peg
+  collapse: if surpluses do not support the peg the collapse is inevitable and happens within a
+  finite window (`TidyR6DanielPeg.collapse_inevitable`, `TidyR6DanielPeg.max_delay`); with
+  one-period debt only it is instantaneous (`TidyR6DanielPeg.short_debt_instant`); with long-term
+  debt monetary policy chooses the date `T`, which fixes a unique devaluation that grows with `T`
+  (`TidyR6DanielPeg.peg_at_zero_iff`, `TidyR6DanielPeg.delayed_eqm`,
+  `TidyR6DanielPeg.delayed_unique`, `TidyR6DanielPeg.devalue_mono`).
 * **Genuine probability models.** Theorem FR is restated on measure-theoretic expectation systems
   (`FiscalRulesMeasure.RuleEqm`). The settle-or-continue tree of part (b) becomes a genuine
   probability space, the settlement date `ω ∈ ℕ` with infinitely many atoms, on which Mathlib's
@@ -126,7 +145,16 @@ Headline results, in the namespace `Cochrane.AssetsRulesBalanceSheets`:
   `TidyR5NoExist.d0_nonneg_not_sufficient`); the exact existence set there is `(−1/(1 − β), 0]`
   (`TidyR5ExistSet.existsAbove_iff`), and `{0}` when prices are also bounded away from zero
   (`TidyR5NoExist.existsBoth_iff`), so no threshold or open condition characterises existence
-  (`TidyR5NoExist.existsAbove_not_upward_closed`, `TidyR5NoExist.existsBoth_not_open`). A comparison identity, a submartingale whose drift
+  (`TidyR5NoExist.existsAbove_not_upward_closed`, `TidyR5NoExist.existsBoth_not_open`). More
+  generally, no condition on the probability measure and the realised present value of the target
+  does: a one-shot target on the same space with the same realised present value in every state
+  admits an equilibrium for some `d₀ > 0` (`TidyR6ExistNoGo.no_condition_on_pv`,
+  `TidyR6ExistNoGo.existence_differs`), and the necessary bound `d₀ ≥ −inf PV*` is sharp
+  (`TidyR6ExistNoGo.lower_bound_sharp`). For `d₀ < 0` every bounded-above equilibrium has
+  continuation prices decreasing monotonically to zero at the asymptotic rate `(1 − p)/γ`
+  (`TidyR6ContinuationLimit.eqm_continuation_tendsto_zero`,
+  `TidyR6ContinuationLimit.eqm_ratio_tendsto`, `TidyR6ContinuationLimit.exists_and_tendsto_zero`).
+  A comparison identity, a submartingale whose drift
   is `βᵗN_t⁻¹(P'_t − P_t)²/(P_tP'_t) ≥ 0`, shows that two equilibria bounded away from zero, both
   possibly unbounded above, with the same initial debt (`b̄` or not) coincide under the date-0
   deflator bound alone (`FiscalRulesTargetFinal.compare_identity_below`,
@@ -238,7 +266,10 @@ the printed text precise. The main corrections are the confirmed errors of the c
 In addition, (8.4) prints `r_{t+j}` where (3.22) has `r_{t+1+j}` (E8.5, found during
 formalisation), the `θ_{iπ} = 0` display of p. 270 has `b_t` for `b_{t−1}` (E9.3), the footnote
 formula for `r_t` on p. 276 divides by zero at `θ = 1` (E9.5), and the Dupor–Daniel exchange-rate
-material is in §24.3, not §24.2 as the survey cites it.
+material is in §24.3, not §24.2 as the survey cites it. Two statements are made precise during
+formalisation: the remark of §8.4 that longer maturity spreads inflation "at the cost of more total
+inflation" holds for spreading, not for maturity (`TidyR6TotalInflation`), and the exact maturity
+weight in (3.21) and Appendix (1.24) is `ω/(1 + i)`, which the book approximates by `ω`.
 
 Not formalised:
 * the institutional and historical passages: §8.2's interpretation of pegs and the gold standard
@@ -247,24 +278,21 @@ Not formalised:
   identities in `BalanceSheets` (the ECB, crypto-currencies and "how much money");
 * the out-of-equilibrium dynamics of §10.1.2: the conversion right is formalised by the
   arbitrage inequalities and the transversality asymmetry, not as a tâtonnement;
-* the remark of §8.4 that longer maturity means more total inflation, which (8.4) alone does not
-  determine;
-* (3.20)–(3.21) and (9.22) are taken as model equations (the linearisations of Chapter 3),
-  not derived from the nonlinear valuation equation;
-* the continuous-time converse of the matching claim of §8.4 for streams outside the class of
-  `TidyR5MatchingMeas.matching_necessary_meas` (measurable, with `e^{−r̲τ}y` integrable on
-  `(0, ∞)`); for that class the conclusion is `y = 0` almost everywhere, the strongest possible,
-  since a null-set change moves no present value;
-* in Theorem FR (d) with a stochastic target and `b₀ ≠ b̄`: a closed-form existence condition in
-  terms of primitives for a general target whose present value has news at infinitely many dates
-  (the exact condition is the implicit one of `FiscalRulesTargetFinal.exists_iff_pathwise` and
-  `FiscalRulesTargetFinal.exists_iff_forward`; explicit sets are proved for a predetermined target
-  value, for one-shot news and for the settle-or-continue target, and no threshold or open
-  condition can work in general); on the settle-or-continue target with `d₀ < 0`, that the
-  continuation prices tend to zero (only that no equilibrium is bounded away from zero is proved,
-  `TidyR5ExistSet.d0_neg_not_bounded_below`);
-* Daniel's (2001a) collapse of a peg with long-term debt, which the survey lists as optional for
-  Chapter 7.
+* the continuous-time matching claim of §8.4 for tempered distributions that are not measures
+  (they are not payment streams with a present value in the book's sense, and Mathlib has no
+  distributional Laplace transform), and for measure-valued streams whose present values converge
+  only conditionally (`TidyR6MatchingGeneral.matching_necessary_measure` assumes absolute
+  convergence); the classical fact that convergence at `r̲` implies convergence at every `λ > r̲`
+  is not formalised, and convergence at every `λ ≥ r̲` is assumed instead, which is the claim's
+  hypothesis;
+* in the derivation of (3.21), the geometric-portfolio return `R = (1 + ωQ_{t+1})/Q_t` is taken
+  from Appendix (1.22) as the exact return at geometric maturity weights, and the book's claim that
+  changes in the maturity structure have no first-order effect is a modelling step, not derived;
+  the links to `MaturityBuffer.Identity320` and to (9.22) assume no growth (the general (3.20)
+  theorem, `TidyR6Linearise.unexpected_inflation_identity`, allows growth);
+* Daniel's (2001a) own continuous-time money model: the peg collapse is formalised in the book's
+  framework (perfect foresight, purchasing-power parity, a constant real rate), with a one-time
+  devaluation path (`TidyR6DanielPeg`).
 
 ## Library map
 
@@ -308,6 +336,12 @@ Not formalised:
 | [TidyR5Matching](AssetsRulesBalanceSheets/TidyR5Matching.lean) | 11 | §8.4: moment and Laplace-transform uniqueness; matching is necessary in continuous time for bounded continuous mismatch streams, constant rate paths sufficing |
 | [TidyR5ExistSet](AssetsRulesBalanceSheets/TidyR5ExistSet.lean) | 16 | §9.3.2: the exact existence set `(−1/(1 − β), 0]` on the settle-or-continue target, by a backward orbit, the intermediate value theorem and compactness |
 | [TidyR5MatchingMeas](AssetsRulesBalanceSheets/TidyR5MatchingMeas.lean) | 7 | §8.4: the continuous-time converse for measurable mismatch streams with an absolutely convergent transform, `y = 0` a.e. |
+| [TidyR6ContinuationLimit](AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean) | 15 | §9.3.2: on the settle-or-continue target with `d₀ < 0`, every bounded-above equilibrium has continuation prices decreasing to zero at the asymptotic rate `(1 − p)/γ`, scaled debt tending to `−1/(1 − β)` and settlement prices tending to `σ − 1`; `d₀ = 0` gives the target |
+| [TidyR6DanielPeg](AssetsRulesBalanceSheets/TidyR6DanielPeg.lean) | 13 | §24.3 and (7.2): Daniel (2001a) under perfect foresight and PPP: the inevitable collapse of an unsupported peg, instantaneous with one-period debt, delayed at the monetary authority's choice with long-term debt; the devaluation, its size and the rate path |
+| [TidyR6ExistNoGo](AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean) | 10 | §9.3.2: two targets on the same space with the same realised present value and different existence sets; no condition on `(μ, PV*, d₀)` characterises existence; the bound `d₀ ≥ −inf PV*` is sharp |
+| [TidyR6Linearise](AssetsRulesBalanceSheets/TidyR6Linearise.lean) | 27 | (3.17)–(3.21), App. (1.9)–(1.25), (8.4), (9.22): the linearisations derived from the exact flow and portfolio return with second-order remainder bounds; the coefficient `ω/(1 + i)` |
+| [TidyR6MatchingGeneral](AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean) | 22 | §8.4: the continuous-time converse for payment streams that are measures and for conditionally convergent present values, a strictly larger class; the counterexample `e^{τ²}` without a convergence hypothesis |
+| [TidyR6TotalInflation](AssetsRulesBalanceSheets/TidyR6TotalInflation.lean) | 13 | §8.4, (8.4): spreading costs total inflation, the exact cost `(1 − ω)/ω` per unit spread, perpetuities, the geometric counterexample in `ω`, the sign condition, the link to (3.20)–(3.21) |
 
 ## Modelling conventions
 
@@ -411,7 +445,10 @@ link theorem:
 
 Within the Cochrane projects, `MaturityBuffer` takes the linearised identities (3.20)–(3.21) of
 Chapter 3 (`Generality`) as model equations, and `Links.valuation_of_short_debt` shows that the
-linearised valuation equation (9.22) is their one-period-debt case. The present-value machinery
+linearised valuation equation (9.22) is their one-period-debt case; `TidyR6Linearise` derives
+(3.20), (3.21) and (9.22) from the nonlinear identities in this project, with error bounds
+(`TidyR6Linearise.identity320_of_flow`, `TidyR6Linearise.identity321_of_return`,
+`TidyR6Linearise.valuation922_of_flow`). The present-value machinery
 of `PresentValue` restates, for one-period debt, what `IntertemporalModel` (Chapter 2) and
 `LongTermDebtDynamics` (Chapter 7) prove for their settings.
 

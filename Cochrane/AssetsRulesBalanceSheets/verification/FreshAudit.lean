@@ -37,6 +37,13 @@ import Mathlib.MeasureTheory.Integral.ExpDecay
 import Mathlib.MeasureTheory.Measure.OpenPos
 import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
 import Mathlib.Analysis.Distribution.AEEqOfIntegralContDiff
+import Mathlib.Topology.Algebra.InfiniteSum.Order
+import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+import Mathlib.MeasureTheory.Measure.HasOuterApproxClosed
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
+import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+import Mathlib.MeasureTheory.Function.Floor
+import Mathlib.Analysis.PSeries
 set_option autoImplicit false
 
 /-
@@ -22921,6 +22928,2833 @@ theorem price_insulated_only_if_matching_meas {rl κ : ℝ} (hκ : κ ≠ 0) {x 
 
 end Cochrane.AssetsRulesBalanceSheets.TidyR5MatchingMeas
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Theorem FR (d) on the settle-or-continue target: the continuation prices tend to zero
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 9 "Better rules", §9.3.2,
+eqs. (9.8)–(9.12), pp. 266–267 (Theorem FR; stochastic target, `b₀ = b̄ + θ d₀`).
+
+The module TidyR5ExistSet proves that on the settle-or-continue system (`gSys`, target
+`tgtS σ`, `σ > 1`) an equilibrium with prices bounded above exists iff `−1/(1 − β) < d₀ ≤ 0`, and
+(`TidyR5ExistSet.d0_neg_not_bounded_below`) that for `d₀ < 0` no such equilibrium has prices
+bounded away from zero. Here the behaviour of **every** such equilibrium is pinned down exactly.
+
+## Main results
+
+* `settled_ge_price` (the key inequality): along the continuation path the continuation price
+  never exceeds the price the target would settle at next period divided by `σ`,
+  `σ x_t ≤ σ + (1 − β) D_{t+1}`. If it did, the gap `δ_t = σ/(σ + (1 − β) D_{t+1}) − 1/x_t`
+  would grow (`δ_{t+1} ≥ (1 + c) δ_t`, `c = p/(σ(1 − p))`) and `1/x_t` would fall by at least
+  `c δ_{t₀}` per period, eventually below zero.
+* `price_antitone`, `debt_antitone`: hence the continuation price `x_t` and the scaled debt
+  deviation `D_t` are both nonincreasing, and `x_t ≤ 1`.
+* `orbit_limits` (**the continuation prices tend to zero**): if `D_0 < 0` then `x_t → 0` and
+  `D_t → D* = −1/(1 − β)`; the only other possible limit, the fixed point `(D, x) = (0, 1)`, is
+  excluded because `D` is nonincreasing from `D_0 < 0`. Moreover `x_{t+1}/x_t → (1 − p)/γ`
+  (`orbit_ratio`), so the decay is asymptotically geometric at the rate of the continue
+  probability divided by the target real-rate factor `γ = p/σ + 1 − p`.
+* `orbit_zero`: if `D_0 = 0` the continuation path is the target, `x ≡ 1`, `D ≡ 0`.
+* `eqm_continuation_tendsto_zero`, `eqm_settled_tendsto`, `eqm_ratio_tendsto`,
+  `eqm_continuation_antitone`, `eqm_zero_target` (**the equilibrium statements**): in every
+  equilibrium of the rule on `gSys` with prices bounded above and `b₀ = b̄ + θ d₀`, `d₀ < 0`, the
+  continuation prices `P_t(continue)` decrease monotonically to `0` at the asymptotic rate
+  `(1 − p)/γ`, the scaled debt tends to `D*`, and the price on settlement tends to `σ − 1`; for
+  `d₀ = 0` the continuation price is `1` and the settled price `σ` at every date.
+* `exists_and_tendsto_zero`: for every `d₀ ∈ (−1/(1 − β), 0)` an equilibrium exists and every
+  equilibrium has continuation prices tending to zero.
+-/
+
+namespace Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit
+
+open Filter Topology
+open FiscalRulesMeasure TidyR5NoExist TidyR5ExistSet
+
+variable {β σ p : ℝ}
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: along the continuation path (hypotheses of
+`TidyR5NoExist.orbit_nonpos`) the scaled debt deviation is nonpositive at **every** date, by
+`TidyR5NoExist.orbit_nonpos` applied to the shifted path. -/
+theorem orbit_all_nonpos (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 1 < σ) (hp0 : 0 < p) (hp1 : p < 1)
+    {M K : ℝ} {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t) (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hflow : ∀ t, a t = x t - 1 + β * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (hxM : ∀ t, x t ≤ M) (haK : ∀ t, a t ≤ K) (s : ℕ) : a s ≤ 0 := by
+  have e : ∀ t, t + s + 1 = t + 1 + s := fun t => by omega
+  have := orbit_nonpos hβ0 hβ1 hσ hp0 hp1 (a := fun t => a (t + s)) (x := fun t => x (t + s))
+    (M := M) (K := K) (fun t => hx _) (fun t => by simpa only [e] using hy (t + s))
+    (fun t => by simpa only [e] using hflow (t + s))
+    (fun t => by simpa only [e] using hrate (t + s)) (fun t => hxM _) (fun t => haK _)
+  simpa using this
+
+/-- Cochrane (2023), eq. (9.12), p. 267: with `u_t = 1/x_t`, `W_t = σ/(σ + (1 − β) D_t)` and
+`c = p/(σ(1 − p))`, the interest-rate target on the continuation path reads
+`u_{t+1} = u_t − c (W_{t+1} − u_t)`. -/
+theorem rate_inv (hσ : 1 < σ) (hp1 : p < 1) {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t)
+    (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (t : ℕ) :
+    1 / x (t + 1) = 1 / x t - p / (σ * (1 - p)) *
+      (σ / (σ + (1 - β) * a (t + 1)) - 1 / x t) := by
+  have hσ0 : σ ≠ 0 := by positivity
+  have h1p : 1 - p ≠ 0 := by linarith
+  have hX := (hx t).ne'
+  have hZ := (hx (t + 1)).ne'
+  have hY := (hy t).ne'
+  have h := hrate t
+  generalize x t = X at h hX ⊢
+  generalize x (t + 1) = Z at h hZ ⊢
+  generalize σ + (1 - β) * a (t + 1) = Y at h hY ⊢
+  field_simp at h ⊢
+  linear_combination h
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**the key inequality**): on a bounded continuation path
+(hypotheses of `TidyR5NoExist.orbit_nonpos`) the continuation price never exceeds the next
+period's settled price divided by `σ`: `σ x_t ≤ σ + (1 − β) D_{t+1}`. -/
+theorem settled_ge_price (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 1 < σ) (hp0 : 0 < p) (hp1 : p < 1)
+    {M K : ℝ} {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t) (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hflow : ∀ t, a t = x t - 1 + β * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (hxM : ∀ t, x t ≤ M) (haK : ∀ t, a t ≤ K) (t : ℕ) :
+    σ * x t ≤ σ + (1 - β) * a (t + 1) := by
+  have hnp := orbit_all_nonpos hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK
+  have hσ0 : 0 < σ := by linarith
+  have h1β : 0 < 1 - β := by linarith
+  set c : ℝ := p / (σ * (1 - p)) with hc
+  have hc0 : 0 < c := div_pos hp0 (mul_pos hσ0 (by linarith))
+  set u : ℕ → ℝ := fun t => 1 / x t with hu
+  set W : ℕ → ℝ := fun t => σ / (σ + (1 - β) * a t) with hW
+  have hu0 : ∀ t, 0 < u t := fun t => one_div_pos.2 (hx t)
+  have hrec : ∀ t, u (t + 1) = u t - c * (W (t + 1) - u t) := fun t =>
+    rate_inv hσ hp1 hx hy hrate t
+  -- `δ > 0` means `σ x > y`
+  have hδ : ∀ s, 0 < W (s + 1) - u s → σ + (1 - β) * a (s + 1) < σ * x s := fun s h => by
+    have hy1 := hy s
+    have hxs := hx s
+    simp only [hW, hu] at h
+    rw [sub_pos, div_lt_div_iff₀ hxs hy1] at h
+    linarith
+  by_contra hcon
+  push Not at hcon
+  set t0 := t with ht0
+  set δ0 := W (t0 + 1) - u t0 with hδ0
+  have hδ0p : 0 < δ0 := by
+    simp only [hδ0, hW, hu]
+    rw [sub_pos, div_lt_div_iff₀ (hx t0) (hy t0)]
+    linarith
+  have claim : ∀ n : ℕ, δ0 ≤ W (t0 + n + 1) - u (t0 + n) ∧
+      u (t0 + n) ≤ u t0 - n * (c * δ0) := by
+    intro n
+    induction n with
+    | zero => simp [hδ0]
+    | succ n ih =>
+      obtain ⟨h1, h2⟩ := ih
+      set s := t0 + n with hs
+      have es : t0 + (n + 1) = s + 1 := by omega
+      rw [es]
+      have hδs : 0 < W (s + 1) - u s := hδ0p.trans_le h1
+      have hus : u (s + 1) = u s - c * (W (s + 1) - u s) := hrec s
+      -- the continuation price rises
+      have hxx : x s < x (s + 1) := by
+        have : u (s + 1) < u s := by rw [hus]; nlinarith
+        simp only [hu] at this
+        rwa [div_lt_div_iff₀ (hx (s + 1)) (hx s), one_mul, one_mul] at this
+      -- the price exceeds next period's settled price over `σ`
+      have hxy := hδ s hδs
+      -- the debt falls
+      have hna := hnp (s + 1)
+      have hfl := hflow (s + 1)
+      have hdeb : a (s + 1 + 1) < a (s + 1) := by
+        have h3 : (1 - β) * a (s + 1) ≤ (1 - β) * a (s + 1) / σ := by
+          rw [le_div_iff₀ hσ0]
+          have : (1 - β) * a (s + 1) ≤ 0 := mul_nonpos_of_nonneg_of_nonpos h1β.le hna
+          nlinarith
+        have h4 : 1 + (1 - β) * a (s + 1) < x (s + 1) := by
+          have : σ + (1 - β) * a (s + 1) = σ * (1 + (1 - β) * a (s + 1) / σ) := by
+            field_simp
+          rw [this] at hxy
+          have h5 : 1 + (1 - β) * a (s + 1) / σ < x s := by
+            by_contra hh
+            push Not at hh
+            nlinarith
+          linarith
+        nlinarith
+      have hW2 : W (s + 1) ≤ W (s + 1 + 1) := by
+        simp only [hW]
+        have hp2 := hy (s + 1)
+        exact div_le_div_of_nonneg_left hσ0.le hp2 (by nlinarith)
+      constructor
+      · have : W (s + 1) - u (s + 1) = (1 + c) * (W (s + 1) - u s) := by rw [hus]; ring
+        nlinarith
+      · rw [hus]
+        push_cast
+        nlinarith
+  obtain ⟨n, hn⟩ := exists_nat_gt (u t0 / (c * δ0))
+  have h2 := (claim n).2
+  have hcd : 0 < c * δ0 := mul_pos hc0 hδ0p
+  rw [div_lt_iff₀ hcd] at hn
+  linarith [hu0 (t0 + n)]
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: on a bounded continuation path the continuation price is
+nonincreasing, `x_{t+1} ≤ x_t`, and `x_t ≤ 1`. -/
+theorem price_antitone (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 1 < σ) (hp0 : 0 < p) (hp1 : p < 1)
+    {M K : ℝ} {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t) (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hflow : ∀ t, a t = x t - 1 + β * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (hxM : ∀ t, x t ≤ M) (haK : ∀ t, a t ≤ K) (t : ℕ) :
+    x (t + 1) ≤ x t ∧ x t ≤ 1 := by
+  have hσ0 : 0 < σ := by linarith
+  have h1β : 0 < 1 - β := by linarith
+  have hkey := settled_ge_price hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK t
+  have hnp := orbit_all_nonpos hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK (t + 1)
+  have hrec := rate_inv hσ hp1 hx hy hrate t
+  have hc0 : 0 < p / (σ * (1 - p)) := div_pos hp0 (mul_pos hσ0 (by linarith))
+  have hδ : σ / (σ + (1 - β) * a (t + 1)) - 1 / x t ≤ 0 := by
+    rw [sub_nonpos, div_le_div_iff₀ (hy t) (hx t)]
+    linarith
+  constructor
+  · have : 1 / x t ≤ 1 / x (t + 1) := by rw [hrec]; nlinarith
+    rwa [div_le_div_iff₀ (hx t) (hx (t + 1)), one_mul, one_mul] at this
+  · nlinarith
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: on a bounded continuation path the scaled debt
+deviation is nonincreasing, `D_{t+1} ≤ D_t`. If it rose once, `η_t = (1 − β) D_t + 1 − x_t`
+(`β (D_{t+1} − D_t) = η_t`) would stay above its initial positive value and `D` would become
+positive, contradicting `orbit_all_nonpos`. -/
+theorem debt_antitone (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 1 < σ) (hp0 : 0 < p) (hp1 : p < 1)
+    {M K : ℝ} {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t) (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hflow : ∀ t, a t = x t - 1 + β * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (hxM : ∀ t, x t ≤ M) (haK : ∀ t, a t ≤ K) (t : ℕ) : a (t + 1) ≤ a t := by
+  have hnp := orbit_all_nonpos hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK
+  have hxa := price_antitone hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK
+  have h1β : 0 < 1 - β := by linarith
+  have hstep : ∀ s, β * (a (s + 1) - a s) = (1 - β) * a s + 1 - x s := fun s => by
+    have := hflow s
+    linarith
+  by_contra hcon
+  push Not at hcon
+  set η0 := (1 - β) * a t + 1 - x t with hη0
+  have hη0p : 0 < η0 := by
+    have := hstep t
+    rw [← hη0] at this
+    have : 0 < β * (a (t + 1) - a t) := mul_pos hβ0 (by linarith)
+    linarith
+  have claim : ∀ n : ℕ, η0 ≤ (1 - β) * a (t + n) + 1 - x (t + n) ∧
+      a t + n * (η0 / β) ≤ a (t + n) := by
+    intro n
+    induction n with
+    | zero => simp [hη0]
+    | succ n ih =>
+      obtain ⟨h1, h2⟩ := ih
+      set s := t + n with hs
+      have es : t + (n + 1) = s + 1 := by omega
+      rw [es]
+      have hd := hstep s
+      have hd' : a (s + 1) - a s = ((1 - β) * a s + 1 - x s) / β := by
+        field_simp
+        linarith
+      have hx1 := (hxa s).1
+      have hpos : 0 ≤ (1 - β) * a s + 1 - x s := hη0p.le.trans h1
+      have hq : η0 / β ≤ ((1 - β) * a s + 1 - x s) / β :=
+        div_le_div_of_nonneg_right h1 hβ0.le
+      constructor
+      · have : 0 ≤ (1 - β) * (a (s + 1) - a s) := by
+          rw [hd']
+          exact mul_nonneg h1β.le (div_nonneg hpos hβ0.le)
+        nlinarith
+      · push_cast
+        nlinarith
+  obtain ⟨n, hn⟩ := exists_nat_gt (-a t / (η0 / β))
+  have hq : 0 < η0 / β := div_pos hη0p hβ0
+  rw [div_lt_iff₀ hq] at hn
+  have := (claim n).2
+  linarith [hnp (t + n)]
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**the continuation prices tend to zero**): on a bounded
+continuation path with `D_0 < 0`, the continuation price tends to `0` and the scaled debt
+deviation tends to `D* = −1/(1 − β)`. Both are monotone (`price_antitone`, `debt_antitone`); a
+positive limit price would make the limit a fixed point of the flow and (9.12), whose only fixed
+point is `(D, x) = (0, 1)`, impossible as `D` is nonincreasing from `D_0 < 0`. -/
+theorem orbit_limits (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 1 < σ) (hp0 : 0 < p) (hp1 : p < 1)
+    {M K : ℝ} {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t) (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hflow : ∀ t, a t = x t - 1 + β * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (hxM : ∀ t, x t ≤ M) (haK : ∀ t, a t ≤ K) (ha0 : a 0 < 0) :
+    Tendsto x atTop (𝓝 0) ∧ Tendsto a atTop (𝓝 (Dst β)) := by
+  have hσ0 : 0 < σ := by linarith
+  have h1β : 0 < 1 - β := by linarith
+  have hxa : Antitone x := antitone_nat_of_succ_le fun t =>
+    (price_antitone hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK t).1
+  have haa : Antitone a := antitone_nat_of_succ_le fun t =>
+    debt_antitone hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK t
+  -- lower bounds
+  have hxB : BddBelow (Set.range x) := ⟨0, by rintro _ ⟨t, rfl⟩; exact (hx t).le⟩
+  have haL : ∀ t, -(σ / (1 - β)) ≤ a t := fun t => by
+    have h1 := hy t
+    have h2 := haa (Nat.le_succ t)
+    have : -(σ / (1 - β)) < a (t + 1) := by
+      rw [neg_lt, lt_div_iff₀ h1β]
+      nlinarith
+    linarith
+  have haB : BddBelow (Set.range a) := ⟨-(σ / (1 - β)), by rintro _ ⟨t, rfl⟩; exact haL t⟩
+  set L := ⨅ t, x t with hL
+  set A := ⨅ t, a t with hA
+  have hxL : Tendsto x atTop (𝓝 L) := tendsto_atTop_ciInf hxa hxB
+  have haA : Tendsto a atTop (𝓝 A) := tendsto_atTop_ciInf haa haB
+  have hxL1 : Tendsto (fun t => x (t + 1)) atTop (𝓝 L) := hxL.comp (tendsto_add_atTop_nat 1)
+  have haA1 : Tendsto (fun t => a (t + 1)) atTop (𝓝 A) := haA.comp (tendsto_add_atTop_nat 1)
+  have hL0 : 0 ≤ L := le_ciInf fun t => (hx t).le
+  have hAa0 : A ≤ a 0 := ciInf_le haB 0
+  -- the flow in the limit
+  have hflowL : A = L - 1 + β * A := by
+    have h1 : Tendsto (fun t => x t - 1 + β * a (t + 1)) atTop (𝓝 (L - 1 + β * A)) :=
+      (hxL.sub_const 1).add (haA1.const_mul β)
+    have h2 : Tendsto (fun t => x t - 1 + β * a (t + 1)) atTop (𝓝 A) :=
+      haA.congr fun t => hflow t
+    exact tendsto_nhds_unique h2 h1
+  have hLz : L = 0 := by
+    by_contra hne
+    have hLp : 0 < L := lt_of_le_of_ne hL0 (Ne.symm hne)
+    have hyA : 0 < σ + (1 - β) * A := by nlinarith
+    have hT : Tendsto (fun t => x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)))
+        atTop (𝓝 (L * (p / (σ + (1 - β) * A) + (1 - p) / L))) :=
+      hxL.mul (((tendsto_const_nhds.add (haA1.const_mul (1 - β))).inv₀ hyA.ne'
+        |>.const_mul p |>.congr fun t => by simp [div_eq_mul_inv]).add
+        ((hxL1.inv₀ hLp.ne').const_mul (1 - p) |>.congr fun t => by simp [div_eq_mul_inv]))
+    have hT2 : L * (p / (σ + (1 - β) * A) + (1 - p) / L) = p / σ + (1 - p) :=
+      tendsto_nhds_unique hT (tendsto_const_nhds.congr fun t => (hrate t).symm)
+    have e : (1 - β) * A = L - 1 := by linarith
+    rw [e] at hT2 hyA
+    have hy' : 0 < σ + (L - 1) := hyA
+    field_simp at hT2
+    have : (σ - 1) * (L - 1) = 0 := by nlinarith
+    rcases mul_eq_zero.1 this with h | h
+    · linarith
+    · have hL1 : L = 1 := by linarith
+      rw [hL1] at e
+      have : A = 0 := by
+        have : (1 - β) * A = 0 := by linarith
+        rcases mul_eq_zero.1 this with h | h
+        · linarith
+        · exact h
+      linarith
+  refine ⟨hLz ▸ hxL, ?_⟩
+  have : A = Dst β := by
+    rw [hLz] at hflowL
+    simp only [Dst]
+    field_simp
+    linarith
+  exact this ▸ haA
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**the rate of decay**): on a bounded continuation path
+with `D_0 < 0` the continuation price falls asymptotically geometrically,
+`x_{t+1}/x_t → (1 − p)/γ` with `γ = p/σ + 1 − p` (`TidyR5ExistSet.gam`). -/
+theorem orbit_ratio (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 1 < σ) (hp0 : 0 < p) (hp1 : p < 1)
+    {M K : ℝ} {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t) (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hflow : ∀ t, a t = x t - 1 + β * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (hxM : ∀ t, x t ≤ M) (haK : ∀ t, a t ≤ K) (ha0 : a 0 < 0) :
+    Tendsto (fun t => x (t + 1) / x t) atTop (𝓝 ((1 - p) / gam p σ)) := by
+  have hσ0 : 0 < σ := by linarith
+  have h1β : 0 < 1 - β := by linarith
+  obtain ⟨hx0, haD⟩ := orbit_limits hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK ha0
+  obtain ⟨-, e2⟩ := Dst_props hβ1
+  have haD1 : Tendsto (fun t => a (t + 1)) atTop (𝓝 (Dst β)) :=
+    haD.comp (tendsto_add_atTop_nat 1)
+  have hyD : σ + (1 - β) * Dst β = σ - 1 := by rw [e2]; ring
+  have hy1 : Tendsto (fun t => σ + (1 - β) * a (t + 1)) atTop (𝓝 (σ - 1)) := by
+    rw [← hyD]
+    exact tendsto_const_nhds.add (haD1.const_mul (1 - β))
+  -- `x_{t+1}/x_t = (1 - p) / (γ - p x_t / y_{t+1})`
+  have hform : ∀ t, x (t + 1) / x t =
+      (1 - p) / (gam p σ - p * x t / (σ + (1 - β) * a (t + 1))) := fun t => by
+    have h := hrate t
+    have hX := (hx t).ne'
+    have hZ := (hx (t + 1)).ne'
+    have hY := (hy t).ne'
+    have hden : gam p σ - p * x t / (σ + (1 - β) * a (t + 1)) = (1 - p) * x t / x (t + 1) := by
+      unfold gam
+      rw [← h]
+      field_simp
+      ring
+    rw [hden]
+    have h1p : 1 - p ≠ 0 := by linarith
+    field_simp
+  have hden : Tendsto (fun t => gam p σ - p * x t / (σ + (1 - β) * a (t + 1))) atTop
+      (𝓝 (gam p σ)) := by
+    have : Tendsto (fun t => p * x t / (σ + (1 - β) * a (t + 1))) atTop (𝓝 (p * 0 / (σ - 1))) :=
+      (hx0.const_mul p).div hy1 (by linarith)
+    simpa using (tendsto_const_nhds (x := gam p σ)).sub this
+  have hγ : 0 < gam p σ := by unfold gam; have : 0 < p / σ := div_pos hp0 hσ0; linarith
+  exact (tendsto_const_nhds.div hden hγ.ne').congr fun t => (hform t).symm
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: on a bounded continuation path with `D_0 = 0` the path
+is the target's, `x ≡ 1` and `D ≡ 0`. -/
+theorem orbit_zero (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 1 < σ) (hp0 : 0 < p) (hp1 : p < 1)
+    {M K : ℝ} {a x : ℕ → ℝ} (hx : ∀ t, 0 < x t) (hy : ∀ t, 0 < σ + (1 - β) * a (t + 1))
+    (hflow : ∀ t, a t = x t - 1 + β * a (t + 1))
+    (hrate : ∀ t, x t * (p / (σ + (1 - β) * a (t + 1)) + (1 - p) / x (t + 1)) = p / σ + (1 - p))
+    (hxM : ∀ t, x t ≤ M) (haK : ∀ t, a t ≤ K) (ha0 : a 0 = 0) :
+    ∀ t, a t = 0 ∧ x t = 1 := by
+  have hnp := orbit_all_nonpos hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK
+  have hxa := price_antitone hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK
+  have haa := debt_antitone hβ0 hβ1 hσ hp0 hp1 hx hy hflow hrate hxM haK
+  have hA : ∀ t, a t = 0 := by
+    intro t
+    induction t with
+    | zero => exact ha0
+    | succ t ih =>
+      have h1 := hflow t
+      have h2 := (hxa t).2
+      have h3 := hnp (t + 1)
+      rw [ih] at h1
+      nlinarith
+  intro t
+  refine ⟨hA t, ?_⟩
+  have := hflow t
+  rw [hA t, hA (t + 1)] at this
+  linarith
+
+/-! ### The equilibrium statements -/
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: in an equilibrium of the rule on `gSys` with target
+`tgtS σ`, prices bounded above and `b₀ = b̄ + θ d₀`, the continuation path `(aC, P_t(t))`
+satisfies all the hypotheses of `TidyR5NoExist.orbit_nonpos`, with `aC_0 = d₀`. -/
+theorem eqm_orbit {θ bbar M d0 : ℝ} (hp0 : 0 < p) (hp1 : p < 1) (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hθ : θ ≠ 0) (hσ : 1 < σ) {P b : ℕ → ℕ → ℝ}
+    (hE : RuleEqm (gSys hp0 hp1) β θ bbar (tgtS σ) P b) (hPM : ∀ t ω, P t ω ≤ M)
+    (hb0 : ∀ ω, b 0 ω = bbar + θ * d0) :
+    (∀ t, 0 < P t t) ∧ (∀ t, 0 < σ + (1 - β) * aC θ bbar b (t + 1)) ∧
+      (∀ t, aC θ bbar b t = P t t - 1 + β * aC θ bbar b (t + 1)) ∧
+      (∀ t, P t t * (p / (σ + (1 - β) * aC θ bbar b (t + 1)) + (1 - p) / P (t + 1) (t + 1)) =
+        p / σ + (1 - p)) ∧ (∀ t, P (t + 1) t = σ + (1 - β) * aC θ bbar b (t + 1)) ∧
+      (∃ K, ∀ t, aC θ bbar b t ≤ K) ∧ aC θ bbar b 0 = d0 := by
+  obtain ⟨h1, h2, h3, K, hK⟩ := continuation_relations hp0 hp1 hβ0 hβ1 hθ hσ.le hE hPM
+  have hP := hE.1
+  refine ⟨fun t => hP t t, fun t => by rw [← h2 t]; exact hP _ _, h1, h3, h2, ⟨K, hK⟩, ?_⟩
+  simp only [aC, hb0 0]
+  field_simp
+  ring
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**the continuation prices tend to zero**): on the
+settle-or-continue system (`σ > 1`, `0 < p < 1`, `0 < β < 1`, `θ ≠ 0`), every equilibrium of the
+rule with prices bounded above and initial debt `b₀ = b̄ + θ d₀`, `d₀ < 0`, has continuation
+prices `P_t` (on the path not yet settled) tending to `0` and scaled debt deviation tending to
+`D* = −1/(1 − β)`. -/
+theorem eqm_continuation_tendsto_zero {θ bbar M d0 : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) (hneg : d0 < 0) {P b : ℕ → ℕ → ℝ}
+    (hE : RuleEqm (gSys hp0 hp1) β θ bbar (tgtS σ) P b) (hPM : ∀ t ω, P t ω ≤ M)
+    (hb0 : ∀ ω, b 0 ω = bbar + θ * d0) :
+    Tendsto (fun t => P t t) atTop (𝓝 0) ∧ Tendsto (aC θ bbar b) atTop (𝓝 (Dst β)) := by
+  obtain ⟨hx, hy, hfl, hr, -, ⟨K, hK⟩, h0⟩ := eqm_orbit hp0 hp1 hβ0 hβ1 hθ hσ hE hPM hb0
+  exact orbit_limits hβ0 hβ1 hσ hp0 hp1 (x := fun t => P t t) hx hy hfl hr (fun t => hPM t t) hK
+    (h0 ▸ hneg)
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: in the same situation, the price on settlement at date
+`t + 1` tends to `σ − 1`: a late settlement inherits the minimal debt `D*`. -/
+theorem eqm_settled_tendsto {θ bbar M d0 : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) (hneg : d0 < 0) {P b : ℕ → ℕ → ℝ}
+    (hE : RuleEqm (gSys hp0 hp1) β θ bbar (tgtS σ) P b) (hPM : ∀ t ω, P t ω ≤ M)
+    (hb0 : ∀ ω, b 0 ω = bbar + θ * d0) :
+    Tendsto (fun t => P (t + 1) t) atTop (𝓝 (σ - 1)) := by
+  obtain ⟨-, -, -, -, hset, -, -⟩ := eqm_orbit hp0 hp1 hβ0 hβ1 hθ hσ hE hPM hb0
+  have hD := (eqm_continuation_tendsto_zero hp0 hp1 hβ0 hβ1 hθ hσ hneg hE hPM hb0).2
+  obtain ⟨-, e2⟩ := Dst_props hβ1
+  have h := tendsto_const_nhds (x := σ) |>.add ((hD.comp (tendsto_add_atTop_nat 1)).const_mul
+    (1 - β))
+  rw [e2] at h
+  exact (h.congr fun t => (hset t).symm).trans (le_of_eq (by ring_nf))
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: in the same situation the continuation prices decay
+asymptotically geometrically, `P_{t+1}(continue)/P_t(continue) → (1 − p)/γ`, `γ = p/σ + 1 − p`. -/
+theorem eqm_ratio_tendsto {θ bbar M d0 : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) (hneg : d0 < 0) {P b : ℕ → ℕ → ℝ}
+    (hE : RuleEqm (gSys hp0 hp1) β θ bbar (tgtS σ) P b) (hPM : ∀ t ω, P t ω ≤ M)
+    (hb0 : ∀ ω, b 0 ω = bbar + θ * d0) :
+    Tendsto (fun t => P (t + 1) (t + 1) / P t t) atTop (𝓝 ((1 - p) / gam p σ)) := by
+  obtain ⟨hx, hy, hfl, hr, -, ⟨K, hK⟩, h0⟩ := eqm_orbit hp0 hp1 hβ0 hβ1 hθ hσ hE hPM hb0
+  exact orbit_ratio hβ0 hβ1 hσ hp0 hp1 (x := fun t => P t t) hx hy hfl hr (fun t => hPM t t) hK
+    (h0 ▸ hneg)
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: in every equilibrium with prices bounded above (any
+`d₀`), the continuation price is nonincreasing and at most `1`, and the scaled debt deviation is
+nonincreasing. -/
+theorem eqm_continuation_antitone {θ bbar M d0 : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) {P b : ℕ → ℕ → ℝ}
+    (hE : RuleEqm (gSys hp0 hp1) β θ bbar (tgtS σ) P b) (hPM : ∀ t ω, P t ω ≤ M)
+    (hb0 : ∀ ω, b 0 ω = bbar + θ * d0) (t : ℕ) :
+    P (t + 1) (t + 1) ≤ P t t ∧ P t t ≤ 1 ∧ aC θ bbar b (t + 1) ≤ aC θ bbar b t := by
+  obtain ⟨hx, hy, hfl, hr, -, ⟨K, hK⟩, -⟩ := eqm_orbit hp0 hp1 hβ0 hβ1 hθ hσ hE hPM hb0
+  exact ⟨(price_antitone hβ0 hβ1 hσ hp0 hp1 (x := fun t => P t t) hx hy hfl hr
+      (fun t => hPM t t) hK t).1,
+    (price_antitone hβ0 hβ1 hσ hp0 hp1 (x := fun t => P t t) hx hy hfl hr
+      (fun t => hPM t t) hK t).2,
+    debt_antitone hβ0 hβ1 hσ hp0 hp1 (x := fun t => P t t) hx hy hfl hr (fun t => hPM t t) hK t⟩
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267: with `d₀ = 0` every equilibrium with prices bounded
+above follows the target on the continuation path and on settlement: `P_t(continue) = 1`,
+`P_{t+1}(settle at t + 1) = σ`, `D ≡ 0`. -/
+theorem eqm_zero_target {θ bbar M : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) {P b : ℕ → ℕ → ℝ}
+    (hE : RuleEqm (gSys hp0 hp1) β θ bbar (tgtS σ) P b) (hPM : ∀ t ω, P t ω ≤ M)
+    (hb0 : ∀ ω, b 0 ω = bbar + θ * 0) (t : ℕ) :
+    P t t = 1 ∧ P (t + 1) t = σ ∧ aC θ bbar b t = 0 := by
+  obtain ⟨hx, hy, hfl, hr, hset, ⟨K, hK⟩, h0⟩ := eqm_orbit hp0 hp1 hβ0 hβ1 hθ hσ hE hPM hb0
+  have h := orbit_zero hβ0 hβ1 hσ hp0 hp1 (x := fun t => P t t) hx hy hfl hr (fun t => hPM t t)
+    hK h0
+  refine ⟨(h t).2, ?_, (h t).1⟩
+  rw [hset t, (h (t + 1)).1]
+  ring
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**existence and the limit, together**): on the
+settle-or-continue system, for every `d₀ ∈ (−1/(1 − β), 0)` an equilibrium with prices bounded
+above and `b₀ = b̄ + θ d₀` exists (`TidyR5ExistSet.existsAbove_iff`), and in every such
+equilibrium the continuation prices tend to `0`. -/
+theorem exists_and_tendsto_zero {θ bbar d0 : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) (hl : -(1 / (1 - β)) < d0)
+    (hneg : d0 < 0) :
+    ExistsAbove (gSys hp0 hp1) β θ bbar (tgtS σ) d0 ∧
+      ∀ (P b : ℕ → ℕ → ℝ) (M : ℝ), RuleEqm (gSys hp0 hp1) β θ bbar (tgtS σ) P b →
+        (∀ t ω, P t ω ≤ M) → (∀ ω, b 0 ω = bbar + θ * d0) →
+        Tendsto (fun t => P t t) atTop (𝓝 0) :=
+  ⟨(existsAbove_iff hp0 hp1 hβ0 hβ1 hθ hσ).2 ⟨hl, hneg.le⟩, fun _ _ _ hE hPM hb0 =>
+    (eqm_continuation_tendsto_zero hp0 hp1 hβ0 hβ1 hθ hσ hneg hE hPM hb0).1⟩
+
+end Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Daniel (2001a): the collapse of a peg with long-term debt
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.3, p. 527 (Daniel
+(2001a), "A Fiscal Theory of Currency Crises"), with the long-term-debt valuation equation of
+Chapter 7 (eq. (7.2), p. 213, and Online Appendix §1.2.1, pp. 559–561). The book quotes Daniel:
+without long-term government bonds the exchange-rate collapse must be instantaneous; with
+long-term bonds the collapse can be delayed at the discretion of the monetary authority; fiscal
+policy makes the crisis inevitable, monetary policy determines its timing and the size of the
+depreciation.
+
+## The model
+
+A small open economy under perfect foresight with purchasing-power parity and foreign price level
+`1`, so the price level `P_j` is the exchange rate. At date `0` the government owes nominal
+zero-coupon debt `B_j ≥ 0` due at date `j` (bounded), and the present value of real primary
+surpluses is `𝒮 > 0` (fiscal policy). With the real rate `1/β − 1` and the expectations hypothesis
+the date-0 price of the bond due at `j` is `Q^{(j)} = βʲ P_0/P_j`, so the valuation equation (7.3)
+is (7.2), `∑ⱼ βʲ B_j/P_j = 𝒮` (`Eqm`). Monetary policy chooses the price path among the
+solutions (an interest-rate path, `1 + i_t = P_{t+1}/(β P_t)`, `rate`). The peg is `P_j = S̄`.
+
+## Main results
+
+* `peg_forever_iff`: the peg can be held forever iff `A/S̄ = 𝒮`, with `A = ∑ βʲ B_j`.
+* `collapse_inevitable` (**fiscal policy makes the crisis inevitable**): if `A/S̄ > 𝒮`, every
+  equilibrium depreciates above the peg at some date; `max_delay` (**within a finite window**):
+  there is a date `T*` before which every equilibrium abandons the peg.
+* `short_debt_instant` (**no long-term bonds: the collapse is instantaneous**): with one-period
+  debt only, every equilibrium has `P_0 = B_0/𝒮 > S̄`.
+* `peg_at_zero_iff` (**long-term bonds make delay possible**): an equilibrium holding the peg at
+  date `0` exists iff either there is long-term debt and `B_0 < S̄ 𝒮`, or there is none and
+  `B_0 = S̄ 𝒮`.
+* `delayed_eqm`, `delayed_unique` (**monetary policy chooses the timing**): for every `T ≥ 1` with
+  `∑_{j<T} βʲ B_j < S̄ 𝒮` and long-term debt outstanding past `T`, holding the peg through `T − 1`
+  and devaluing once to `S_T = N_T/(𝒮 − H_T/S̄)` (`H_T`, `N_T` the discounted debt due before and
+  from `T`) is an equilibrium, and the only one of this form; `devalue_gt_iff`: `S_T > S̄` iff the
+  peg is unsupported; `rate_path`: the interest rate stays at the world rate except at `T − 1`.
+* `devalue_mono` (**and the magnitude**): a later collapse means a larger devaluation,
+  `S_T ≤ S_{T+1}`.
+-/
+
+namespace Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg
+
+open Filter Topology
+
+/-- Cochrane (2023), eq. (7.2), p. 213, and §24.3, p. 527 (Daniel (2001a)): an equilibrium price
+(exchange-rate) path — positive, and satisfying the valuation equation
+`∑ⱼ βʲ B_j/P_j = 𝒮` with the date-0 maturity structure `B` and surplus present value `𝒮`. -/
+def Eqm (β sv : ℝ) (B P : ℕ → ℝ) : Prop := (∀ j, 0 < P j) ∧ HasSum (fun j => β ^ j * B j / P j) sv
+
+/-- Cochrane (2023), §24.3, p. 527: the discounted debt due before date `T`,
+`H_T = ∑_{j<T} βʲ B_j`. -/
+noncomputable def head (β : ℝ) (B : ℕ → ℝ) (T : ℕ) : ℝ := ∑ j ∈ Finset.range T, β ^ j * B j
+
+/-- Cochrane (2023), §24.3, p. 527: the discounted debt due from date `T` on,
+`N_T = ∑_{j ≥ T} βʲ B_j`. -/
+noncomputable def tail (β : ℝ) (B : ℕ → ℝ) (T : ℕ) : ℝ := ∑' j, β ^ (j + T) * B (j + T)
+
+/-- Cochrane (2023), §24.3, p. 527: the path that holds the peg `S̄` before `T` and is `S_T`
+from `T` on. -/
+noncomputable def pegPath (Sb ST : ℝ) (T j : ℕ) : ℝ := if j < T then Sb else ST
+
+/-- Cochrane (2023), §24.3, p. 527: the devalued exchange rate `S_T = N_T/(𝒮 − H_T/S̄)`. -/
+noncomputable def devalue (β sv Sb : ℝ) (B : ℕ → ℝ) (T : ℕ) : ℝ :=
+  tail β B T / (sv - head β B T / Sb)
+
+/-- Cochrane (2023), Chapter 7, p. 212 (`Q^{(t+1)}_t = β E_t(P_t/P_{t+1})`): the nominal interest
+rate implied by the price path under perfect foresight, `1 + i_t = P_{t+1}/(β P_t)`. -/
+noncomputable def rate (β : ℝ) (P : ℕ → ℝ) (t : ℕ) : ℝ := P (t + 1) / (β * P t) - 1
+
+variable {β : ℝ} {B : ℕ → ℝ}
+
+/-- Cochrane (2023), §24.3, p. 527: with `0 < β < 1` and `0 ≤ B_j ≤ K`, the discounted debt
+`∑ βʲ B_j` converges. -/
+theorem summable_debt (hβ0 : 0 < β) (hβ1 : β < 1) (hB0 : ∀ j, 0 ≤ B j) {K : ℝ}
+    (hBK : ∀ j, B j ≤ K) : Summable (fun j => β ^ j * B j) :=
+  ((summable_geometric_of_lt_one hβ0.le hβ1).mul_right K).of_nonneg_of_le
+    (fun j => mul_nonneg (pow_nonneg hβ0.le j) (hB0 j))
+    fun j => mul_le_mul_of_nonneg_left (hBK j) (pow_nonneg hβ0.le j)
+
+/-- Cochrane (2023), §24.3, p. 527: `A = H_T + N_T`. -/
+theorem head_add_tail (hs : Summable (fun j => β ^ j * B j)) (T : ℕ) :
+    head β B T + tail β B T = ∑' j, β ^ j * B j :=
+  hs.sum_add_tsum_nat_add T
+
+/-- Cochrane (2023), §24.3, p. 527: the tail is nonnegative and `N_{T+1} = N_T − β^T B_T`. -/
+theorem tail_succ (hβ0 : 0 < β) (hB0 : ∀ j, 0 ≤ B j) (hs : Summable (fun j => β ^ j * B j))
+    (T : ℕ) : 0 ≤ tail β B T ∧ tail β B (T + 1) = tail β B T - β ^ T * B T := by
+  have h1 := head_add_tail hs T
+  have h2 := head_add_tail hs (T + 1)
+  refine ⟨tsum_nonneg fun j => mul_nonneg (pow_nonneg hβ0.le _) (hB0 _), ?_⟩
+  simp only [head, Finset.sum_range_succ] at h1 h2
+  linarith
+
+/-- Cochrane (2023), §24.3, p. 527 (**a permanent peg**): the peg `P ≡ S̄ > 0` is an equilibrium iff
+`A/S̄ = 𝒮`: the surpluses exactly support the debt at the pegged exchange rate. -/
+theorem peg_forever_iff {sv Sb : ℝ} (hSb : 0 < Sb) (hs : Summable (fun j => β ^ j * B j)) :
+    Eqm β sv B (fun _ => Sb) ↔ (∑' j, β ^ j * B j) / Sb = sv := by
+  have h := hs.hasSum.div_const Sb
+  constructor
+  · rintro ⟨-, hE⟩
+    exact h.unique hE
+  · intro he
+    exact ⟨fun _ => hSb, he ▸ h⟩
+
+/-- Cochrane (2023), §24.3, p. 527 (**fiscal policy makes the crisis inevitable**): if the peg is
+unsupported, `𝒮 < A/S̄`, then in every equilibrium the exchange rate exceeds the peg at some
+date. -/
+theorem collapse_inevitable {sv Sb : ℝ} (hβ0 : 0 < β) (hB0 : ∀ j, 0 ≤ B j)
+    (hs : Summable (fun j => β ^ j * B j)) (hgap : sv < (∑' j, β ^ j * B j) / Sb) {P : ℕ → ℝ}
+    (hE : Eqm β sv B P) : ∃ j, Sb < P j := by
+  by_contra hcon
+  push Not at hcon
+  have hle : ∀ j, β ^ j * B j / Sb ≤ β ^ j * B j / P j := fun j =>
+    div_le_div_of_nonneg_left (mul_nonneg (pow_nonneg hβ0.le j) (hB0 j)) (hE.1 j) (hcon j)
+  have := hasSum_le hle (hs.hasSum.div_const Sb) hE.2
+  linarith
+
+/-- Cochrane (2023), §24.3, p. 527 (**the window is finite**): if the peg is unsupported,
+`𝒮 < A/S̄`, there is a date `T*` such that every equilibrium leaves the peg before `T*`. -/
+theorem max_delay {sv Sb : ℝ} (hβ0 : 0 < β) (hB0 : ∀ j, 0 ≤ B j)
+    (hs : Summable (fun j => β ^ j * B j)) (hgap : sv < (∑' j, β ^ j * B j) / Sb) :
+    ∃ Tstar : ℕ, ∀ P, Eqm β sv B P → ∃ j < Tstar, P j ≠ Sb := by
+  have hlim : Tendsto (fun T => head β B T / Sb) atTop (𝓝 ((∑' j, β ^ j * B j) / Sb)) :=
+    hs.hasSum.tendsto_sum_nat.div_const Sb
+  obtain ⟨Tstar, hT⟩ := (hlim.eventually (lt_mem_nhds hgap)).exists
+  refine ⟨Tstar, fun P hE => ?_⟩
+  by_contra hcon
+  push Not at hcon
+  have hnn : ∀ j, 0 ≤ β ^ j * B j / P j := fun j =>
+    div_nonneg (mul_nonneg (pow_nonneg hβ0.le j) (hB0 j)) (hE.1 j).le
+  have h1 := sum_le_hasSum (Finset.range Tstar) (fun j _ => hnn j) hE.2
+  have h2 : ∑ j ∈ Finset.range Tstar, β ^ j * B j / P j = head β B Tstar / Sb := by
+    rw [head, Finset.sum_div]
+    exact Finset.sum_congr rfl fun j hj => by rw [hcon j (Finset.mem_range.1 hj)]
+  rw [h2] at h1
+  linarith
+
+/-- Cochrane (2023), §24.3, p. 527 (**without long-term bonds the collapse is instantaneous**): if
+all debt is one-period (`B_j = 0` for `j ≥ 1`) and `B_0 > 0`, every equilibrium has
+`P_0 = B_0/𝒮`; if the peg is unsupported (`𝒮 < B_0/S̄`), then `P_0 > S̄`: the peg breaks at
+once. -/
+theorem short_debt_instant {sv Sb : ℝ} (hSb : 0 < Sb) (hB1 : ∀ j, 1 ≤ j → B j = 0)
+    (hBpos : 0 < B 0) (hsv : 0 < sv) (hgap : sv < B 0 / Sb) {P : ℕ → ℝ} (hE : Eqm β sv B P) :
+    P 0 = B 0 / sv ∧ Sb < P 0 := by
+  have hsum : HasSum (fun j => β ^ j * B j / P j) (B 0 / P 0) := by
+    have := hasSum_ite_eq 0 (B 0 / P 0)
+    convert this using 1
+    funext j
+    rcases j with _ | j
+    · simp
+    · simp [hB1 (j + 1) (by omega)]
+  have he := hsum.unique hE.2
+  have hP0 := hE.1 0
+  have h1 : P 0 = B 0 / sv := by
+    rw [← he]
+    field_simp
+  refine ⟨h1, ?_⟩
+  rw [h1, lt_div_iff₀ hsv]
+  rw [lt_div_iff₀ hSb] at hgap
+  linarith
+
+/-- Cochrane (2023), §24.3, p. 527 (**long-term bonds make delay possible**): with
+`0 ≤ B_j ≤ K`, an equilibrium holding the peg at date `0` (`P_0 = S̄`) exists iff either there is
+long-term debt (`N_1 > 0`) and `B_0 < S̄ 𝒮`, or there is none (`N_1 = 0`) and `B_0 = S̄ 𝒮`. -/
+theorem peg_at_zero_iff {sv Sb K : ℝ} (hSb : 0 < Sb) (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hB0 : ∀ j, 0 ≤ B j) (hBK : ∀ j, B j ≤ K) :
+    (∃ P, Eqm β sv B P ∧ P 0 = Sb) ↔
+      (0 < tail β B 1 ∧ B 0 < Sb * sv) ∨ (tail β B 1 = 0 ∧ B 0 = Sb * sv) := by
+  have hs := summable_debt hβ0 hβ1 hB0 hBK
+  have hs1 : HasSum (fun j => β ^ (j + 1) * B (j + 1)) (tail β B 1) :=
+    ((summable_nat_add_iff 1).2 hs).hasSum
+  have hN0 := (tail_succ hβ0 hB0 hs 1).1
+  constructor
+  · rintro ⟨P, ⟨hP, hE⟩, hP0⟩
+    have hsplit := (hasSum_nat_add_iff' 1).2 hE
+    simp only [Finset.sum_range_one, pow_zero, one_mul, hP0] at hsplit
+    have hnn : ∀ j, 0 ≤ β ^ (j + 1) * B (j + 1) / P (j + 1) := fun j =>
+      div_nonneg (mul_nonneg (pow_nonneg hβ0.le _) (hB0 _)) (hP _).le
+    rcases hN0.lt_or_eq with hN | hN
+    · left
+      refine ⟨hN, ?_⟩
+      -- some term of the tail is positive, so the tail value is positive
+      have hex : ∃ j, 0 < β ^ (j + 1) * B (j + 1) := by
+        by_contra hc
+        push Not at hc
+        have : tail β B 1 ≤ 0 := hasSum_le (fun j => hc j) hs1 hasSum_zero
+        linarith
+      obtain ⟨j, hj⟩ := hex
+      have hpos : 0 < sv - B 0 / Sb := by
+        have h1 := le_hasSum hsplit j fun i _ => hnn i
+        have h2 : 0 < β ^ (j + 1) * B (j + 1) / P (j + 1) := div_pos hj (hP _)
+        linarith
+      rw [sub_pos, div_lt_iff₀ hSb] at hpos
+      linarith
+    · right
+      refine ⟨hN.symm, ?_⟩
+      have hz : ∀ j, β ^ (j + 1) * B (j + 1) = 0 := by
+        have := (hasSum_zero_iff_of_nonneg fun j => mul_nonneg (pow_nonneg hβ0.le (j + 1))
+          (hB0 (j + 1))).1 (hN ▸ hs1)
+        exact fun j => congrFun this j
+      have hz' : (fun j => β ^ (j + 1) * B (j + 1) / P (j + 1)) = fun _ => 0 := by
+        funext j
+        rw [hz j, zero_div]
+      rw [hz'] at hsplit
+      have := hasSum_zero.unique hsplit
+      field_simp at this
+      linarith
+  · rintro (⟨hN, hB⟩ | ⟨hN, hB⟩)
+    · -- hold the peg at date 0, then a constant price
+      set c := tail β B 1 / (sv - B 0 / Sb) with hc
+      have hden : 0 < sv - B 0 / Sb := by
+        rw [sub_pos, div_lt_iff₀ hSb]
+        linarith
+      have hc0 : 0 < c := div_pos hN hden
+      refine ⟨fun j => if j = 0 then Sb else c,
+        ⟨fun j => by dsimp only; split_ifs <;> assumption, ?_⟩, by simp⟩
+      rw [← hasSum_nat_add_iff' 1]
+      simp only [Finset.sum_range_one, pow_zero, one_mul, ↓reduceIte, Nat.add_one_ne_zero]
+      have : sv - B 0 / Sb = tail β B 1 / c := by
+        rw [hc]
+        field_simp
+      rw [this]
+      exact hs1.div_const c
+    · refine ⟨fun _ => Sb, ⟨fun _ => hSb, ?_⟩, rfl⟩
+      rw [← hasSum_nat_add_iff' 1]
+      simp only [Finset.sum_range_one, pow_zero, one_mul]
+      have hz : ∀ j, β ^ (j + 1) * B (j + 1) = 0 := by
+        have := (hasSum_zero_iff_of_nonneg fun j => mul_nonneg (pow_nonneg hβ0.le (j + 1))
+          (hB0 (j + 1))).1 (hN ▸ hs1)
+        exact fun j => congrFun this j
+      have e : (fun j => β ^ (j + 1) * B (j + 1) / Sb) = fun _ => 0 := by
+        funext j
+        rw [hz j, zero_div]
+      rw [e, hB, mul_div_cancel_left₀ sv hSb.ne', sub_self]
+      exact hasSum_zero
+
+/-- Cochrane (2023), §24.3, p. 527 (**the delayed collapse**): for `T`, if
+`H_T = ∑_{j<T} βʲ B_j < S̄ 𝒮` and long-term debt is outstanding past `T` (`N_T > 0`), the path
+holding the peg `S̄` before `T` and equal to `S_T = N_T/(𝒮 − H_T/S̄)` from `T` on is an
+equilibrium. -/
+theorem delayed_eqm {sv Sb : ℝ} (hSb : 0 < Sb) (hs : Summable (fun j => β ^ j * B j)) {T : ℕ}
+    (hH : head β B T < Sb * sv) (hN : 0 < tail β B T) :
+    Eqm β sv B (pegPath Sb (devalue β sv Sb B T) T) := by
+  have hden : 0 < sv - head β B T / Sb := by
+    rw [sub_pos, div_lt_iff₀ hSb]
+    linarith
+  have hST : 0 < devalue β sv Sb B T := div_pos hN hden
+  refine ⟨fun j => by unfold pegPath; split_ifs <;> assumption, ?_⟩
+  rw [← hasSum_nat_add_iff' T]
+  have e1 : ∑ i ∈ Finset.range T, β ^ i * B i / pegPath Sb (devalue β sv Sb B T) T i =
+      head β B T / Sb := by
+    rw [head, Finset.sum_div]
+    exact Finset.sum_congr rfl fun i hi => by
+      simp [pegPath, Finset.mem_range.1 hi]
+  have e2 : (fun n => β ^ (n + T) * B (n + T) / pegPath Sb (devalue β sv Sb B T) T (n + T)) =
+      fun n => β ^ (n + T) * B (n + T) / devalue β sv Sb B T := by
+    funext n
+    have : ¬ n + T < T := by omega
+    simp [pegPath, this]
+  rw [e1, e2]
+  have e3 : sv - head β B T / Sb = tail β B T / devalue β sv Sb B T := by
+    unfold devalue
+    field_simp
+  rw [e3]
+  exact ((summable_nat_add_iff T).2 hs).hasSum.div_const _
+
+/-- Cochrane (2023), §24.3, p. 527 (**the size of the devaluation is determined by the timing**):
+if a path holding the peg before `T` and constant at `c` from `T` on is an equilibrium and
+`N_T > 0`, then `c = S_T`. -/
+theorem delayed_unique {sv Sb c : ℝ} (hs : Summable (fun j => β ^ j * B j)) {T : ℕ}
+    (hN : 0 < tail β B T) (hE : Eqm β sv B (pegPath Sb c T)) : c = devalue β sv Sb B T := by
+  have hc : 0 < c := by
+    have := hE.1 T
+    simpa [pegPath] using this
+  have h := (hasSum_nat_add_iff' T).2 hE.2
+  have e1 : ∑ i ∈ Finset.range T, β ^ i * B i / pegPath Sb c T i = head β B T / Sb := by
+    rw [head, Finset.sum_div]
+    exact Finset.sum_congr rfl fun i hi => by
+      simp [pegPath, Finset.mem_range.1 hi]
+  have e2 : (fun n => β ^ (n + T) * B (n + T) / pegPath Sb c T (n + T)) =
+      fun n => β ^ (n + T) * B (n + T) / c := by
+    funext n
+    have : ¬ n + T < T := by omega
+    simp [pegPath, this]
+  rw [e1, e2] at h
+  have h2 := ((summable_nat_add_iff T).2 hs).hasSum.div_const c
+  have he : tail β B T / c = sv - head β B T / Sb := h2.unique h
+  have hden : sv - head β B T / Sb ≠ 0 := by
+    rw [← he]
+    exact (div_pos hN hc).ne'
+  unfold devalue
+  rw [← he]
+  field_simp
+
+/-- Cochrane (2023), §24.3, p. 527: the delayed devaluation exceeds the peg, `S_T > S̄`, iff the
+peg is unsupported, `S̄ 𝒮 < A` (given `H_T < S̄ 𝒮`). -/
+theorem devalue_gt_iff {sv Sb : ℝ} (hSb : 0 < Sb) (hs : Summable (fun j => β ^ j * B j))
+    {T : ℕ} (hH : head β B T < Sb * sv) :
+    Sb < devalue β sv Sb B T ↔ Sb * sv < ∑' j, β ^ j * B j := by
+  have hA := head_add_tail hs T
+  have hden : 0 < sv - head β B T / Sb := by
+    rw [sub_pos, div_lt_iff₀ hSb]
+    linarith
+  unfold devalue
+  rw [lt_div_iff₀ hden]
+  have e : Sb * (sv - head β B T / Sb) = Sb * sv - head β B T := by
+    field_simp
+  rw [e]
+  constructor <;> intro h <;> linarith
+
+/-- Cochrane (2023), §24.3, p. 527 (**a later collapse means a larger devaluation**): if the peg
+is unsupported (`S̄ 𝒮 < A`) and `H_{T+1} < S̄ 𝒮` (so both collapse dates are feasible), then
+`S_T ≤ S_{T+1}`. -/
+theorem devalue_mono {sv Sb : ℝ} (hSb : 0 < Sb) (hβ0 : 0 < β) (hB0 : ∀ j, 0 ≤ B j)
+    (hs : Summable (fun j => β ^ j * B j)) (hgap : Sb * sv < ∑' j, β ^ j * B j) {T : ℕ}
+    (hH : head β B (T + 1) < Sb * sv) :
+    devalue β sv Sb B T ≤ devalue β sv Sb B (T + 1) := by
+  set A := ∑' j, β ^ j * B j with hAdef
+  set G := A - Sb * sv with hG
+  have hG0 : 0 < G := by linarith
+  have hA0 := head_add_tail hs T
+  have hA1 := head_add_tail hs (T + 1)
+  obtain ⟨-, hts⟩ := tail_succ hβ0 hB0 hs T
+  have hbT : 0 ≤ β ^ T * B T := mul_nonneg (pow_nonneg hβ0.le T) (hB0 T)
+  -- `S_T = S̄ N_T/(N_T − G)` with `N_T > G`
+  have hform : ∀ k, head β B k < Sb * sv →
+      devalue β sv Sb B k = Sb * tail β B k / (tail β B k - G) := fun k hk => by
+    have hk' := head_add_tail hs k
+    unfold devalue
+    have h1 : sv - head β B k / Sb = (tail β B k - G) / Sb := by
+      rw [hG]
+      field_simp
+      linarith
+    rw [h1]
+    have : tail β B k - G ≠ 0 := by
+      have : tail β B k - G = Sb * sv - head β B k := by rw [hG]; linarith
+      rw [this]
+      linarith
+    field_simp
+  have hH0 : head β B T < Sb * sv := by
+    have : head β B (T + 1) = head β B T + β ^ T * B T := by
+      simp [head, Finset.sum_range_succ]
+    linarith
+  rw [hform T hH0, hform (T + 1) hH]
+  have hd1 : 0 < tail β B (T + 1) - G := by linarith
+  have hd0 : 0 < tail β B T - G := by linarith
+  rw [div_le_div_iff₀ hd0 hd1]
+  have key : Sb * G * tail β B (T + 1) = Sb * G * tail β B T - Sb * G * (β ^ T * B T) := by
+    rw [hts]
+    ring
+  nlinarith [key, mul_nonneg (mul_nonneg hSb.le hG0.le) hbT]
+
+/-- Cochrane (2023), Chapter 7, p. 212, and §24.3, p. 527: along the delayed-collapse path the
+nominal interest rate equals the world rate `1/β − 1` at every date except `T − 1`, where it is
+`S_T/(β S̄) − 1` (uncovered interest parity: the expected devaluation is priced one period
+ahead). -/
+theorem rate_path {Sb ST : ℝ} (hβ0 : 0 < β) (hSb : 0 < Sb) (hST : 0 < ST) {T : ℕ} (t : ℕ) :
+    rate β (pegPath Sb ST T) t =
+      if t + 1 = T then ST / (β * Sb) - 1 else 1 / β - 1 := by
+  unfold rate pegPath
+  by_cases h1 : t + 1 = T
+  · subst h1
+    simp
+  · simp only [h1, ↓reduceIte]
+    by_cases h2 : t + 1 < T
+    · have h3 : t < T := by omega
+      simp only [h2, h3, ↓reduceIte]
+      field_simp
+    · have h3 : ¬ t < T := by omega
+      simp only [h2, h3, ↓reduceIte]
+      field_simp
+
+end Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Theorem FR (d): existence is not a function of the target's realised present value
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 9 "Better rules", §9.3.2,
+eqs. (9.8)–(9.12), pp. 266–267 (Theorem FR; stochastic target `P*`, `b₀ = b̄ + θ d₀ ≠ b̄`).
+
+The exact existence condition for an equilibrium with prices bounded above is the implicit one of
+`FiscalRulesTargetFinal.exists_iff_pathwise`. The natural explicit candidate is a condition on the
+realised present value of the target, `PV*(ω) = ∑ₛ βˢ P*_s(ω)`: the necessary condition
+`d₀ + PV*(ω) > 0` a.e. (`FiscalRulesTargetFinal.exists_imp_pos`) is of this kind, and it is exact
+when `PV*` is predetermined (`FiscalRulesTargetFinal.predetermined_exists_iff`) and, in the
+one-shot class, when the target's infimum is an atom
+(`FiscalRulesTargetClose.oneShot_exists_iff_atom`).
+
+This module settles the question in general.
+
+## Main results
+
+* `pv_tgtS`, `pv_osTarget`: on the same probability space `(ℕ, ∑ p(1 − p)ᵏ δ_k)`, the
+  settle-or-continue target `tgtS σ` (news at every date) and the one-shot target
+  `osTarget 1 (xOS σ β)` with `xOS σ β k = 1 + (σ − 1) βᵏ` (all news at date `1`) have the **same
+  realised present value in every state**, `PV*(k) = (1 + (σ − 1) β^{k+1})/(1 − β)`, the same date-0
+  value `1` and the same bounds `1 ≤ P* ≤ σ`.
+* `oneShot_exists_pos`: on the one-shot system an equilibrium with prices bounded above exists for
+  the explicit `d₀ = E[1/x]/E[1/(x + 1 − β)] − (1 − β) ≥ β > 0`, while on the settle-or-continue
+  system none exists for any `d₀ > 0` (`TidyR5NoExist.no_eqm_pos`).
+* `no_condition_on_pv` (**the no-go theorem**): there is no condition `C(μ, PV*, d₀)` on the
+  probability measure, the realised present value of the target and `d₀` that characterises
+  existence on every system: any such condition — on the law of `PV*`, its essential infimum or
+  supremum, its moments — gives the same answer for the two targets above but the existence sets
+  differ. Existence depends on the information structure (when the news in `PV*` arrives), which is
+  exactly what `FiscalRulesTargetFinal.exists_iff_pathwise` encodes.
+* `lower_bound_sharp` (**the sharpest positive statement in terms of `inf PV*`**): the necessary
+  condition `d₀ > −PV*(ω)` a.e. cannot be improved as a lower bound depending on the infimum of the
+  realised present value alone: on the settle-or-continue system `inf_k PV*(k) = 1/(1 − β)` and the
+  existence set is `(−1/(1 − β), 0]`, whose infimum is exactly `−inf PV*`.
+-/
+
+namespace Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure FiscalRulesMeasure FiscalRulesTargetClose FiscalRulesTargetFinal
+open TidyR5NoExist TidyR5ExistSet
+
+/-- Cochrane (2023), §9.3.2, p. 267: the realised present value of the settle-or-continue target
+in the state "settles at `k + 1`", `(1 + (σ − 1) β^{k+1})/(1 − β)`. -/
+noncomputable def pvS (σ β : ℝ) (k : ℕ) : ℝ := (1 + (σ - 1) * β ^ (k + 1)) / (1 - β)
+
+/-- Cochrane (2023), §9.3.2, p. 267: the one-shot target level revealed at date `1`,
+`x_k = 1 + (σ − 1) βᵏ`, chosen so that the one-shot target has the same realised present value
+as the settle-or-continue target. -/
+noncomputable def xOS (σ β : ℝ) (k : ℕ) : ℝ := 1 + (σ - 1) * β ^ k
+
+/-- Cochrane (2023), §9.3.2, p. 267: `1 ≤ x_k ≤ σ` for `σ ≥ 1`, `0 < β < 1`. -/
+theorem xOS_bounds {σ β : ℝ} (hσ : 1 ≤ σ) (hβ0 : 0 < β) (hβ1 : β < 1) (k : ℕ) :
+    1 ≤ xOS σ β k ∧ xOS σ β k ≤ σ := by
+  have h1 : 0 ≤ β ^ k := pow_nonneg hβ0.le k
+  have h2 : β ^ k ≤ 1 := pow_le_one₀ hβ0.le hβ1.le
+  unfold xOS
+  constructor <;> nlinarith
+
+/-- Cochrane (2023), eq. (9.9), p. 266: the realised present value of the settle-or-continue
+target in state `k` is `pvS σ β k`. -/
+theorem pv_tgtS {σ β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (k : ℕ) :
+    HasSum (fun s => β ^ s * tgtS σ s k) (pvS σ β k) := by
+  have h1β : (1 : ℝ) - β ≠ 0 := by linarith
+  have hg := hasSum_geometric_of_lt_one hβ0.le hβ1
+  have htail : HasSum (fun s => (σ - 1) * (if k < s then β ^ s else 0))
+      ((σ - 1) * (β ^ (k + 1) * (1 - β)⁻¹)) := by
+    refine HasSum.mul_left _ ?_
+    rw [← hasSum_nat_add_iff' (k + 1)]
+    have e : ∑ i ∈ Finset.range (k + 1), (if k < i then β ^ i else 0) = 0 :=
+      Finset.sum_eq_zero fun i hi => by
+        have : ¬ k < i := by have := Finset.mem_range.1 hi; omega
+        simp [this]
+    rw [e, sub_zero]
+    have : (fun n => if k < n + (k + 1) then β ^ (n + (k + 1)) else 0) =
+        fun n => β ^ (k + 1) * β ^ n := by
+      funext n
+      have : k < n + (k + 1) := by omega
+      simp only [this, ↓reduceIte]
+      ring
+    rw [this]
+    exact hg.mul_left _
+  have hsum := hg.add htail
+  convert hsum using 1
+  · funext s
+    unfold tgtS
+    by_cases hs : s ≤ k
+    · have : ¬ k < s := by omega
+      simp [hs, this]
+    · have : k < s := by omega
+      simp only [hs, ↓reduceIte, this]
+      ring
+  · unfold pvS
+    field_simp
+
+/-- Cochrane (2023), eq. (9.9), p. 266: the realised present value of the one-shot target
+`osTarget 1 (xOS σ β)` in state `k` is the same `pvS σ β k`. -/
+theorem pv_osTarget {σ β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (k : ℕ) :
+    HasSum (fun s => β ^ s * osTarget 1 (xOS σ β) s k) (pvS σ β k) := by
+  have h1β : (1 : ℝ) - β ≠ 0 := by linarith
+  have hg := hasSum_geometric_of_lt_one hβ0.le hβ1
+  rw [← hasSum_nat_add_iff' 1]
+  have e : (fun n => β ^ (n + 1) * osTarget 1 (xOS σ β) (n + 1) k) =
+      fun n => (β * xOS σ β k) * β ^ n := by
+    funext n
+    simp only [osTarget]
+    ring
+  rw [e]
+  convert hg.mul_left (β * xOS σ β k) using 1
+  simp only [Finset.sum_range_one, pow_zero, osTarget, one_mul]
+  unfold pvS xOS
+  field_simp
+  ring
+
+/-- Cochrane (2023), §9.3.2, p. 267: both targets start at `P*_0 = 1`. -/
+theorem targets_at_zero (σ β : ℝ) (k : ℕ) :
+    tgtS σ 0 k = 1 ∧ osTarget 1 (xOS σ β) 0 k = 1 := by
+  simp [tgtS, osTarget]
+
+/-- Cochrane (2023), §9.3.2, p. 267: the settlement-date law as a probability measure on `ℕ`. -/
+noncomputable def gProb {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1) : ProbabilityMeasure ℕ :=
+  ⟨gMeasure p, ⟨gMeasure_univ hp0 hp1⟩⟩
+
+/-- Cochrane (2023), §9.3.2, p. 267: the one-shot system and the settle-or-continue system live on
+the same probability space `(ℕ, gMeasure p)`. -/
+theorem same_measure {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1) :
+    (oneShot (gProb hp0 hp1)).μ = gMeasure p ∧ (gSys hp0 hp1).μ = gMeasure p :=
+  ⟨rfl, rfl⟩
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**existence for a positive `d₀` with one-shot news**):
+on the one-shot system over `(ℕ, gMeasure p)` with target `osTarget 1 (xOS σ β)`, an equilibrium
+with prices bounded above and `b₀ = b̄ + θ d₀` exists for
+`d₀ = E[1/x]/E[1/(x + 1 − β)] − (1 − β)`, and this `d₀` is at least `β > 0`. -/
+theorem oneShot_exists_pos {p β θ bbar σ : ℝ} (hp0 : 0 < p) (hp1 : p < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) :
+    ∃ d0 : ℝ, β ≤ d0 ∧
+      ExistsAbove (oneShot (gProb hp0 hp1)) β θ bbar (osTarget 1 (xOS σ β)) d0 := by
+  set Pm := gProb hp0 hp1 with hPm
+  set μ := (oneShot Pm).μ with hμ
+  have hprob : IsProbabilityMeasure μ := ⟨gMeasure_univ hp0 hp1⟩
+  have h1β : 0 < 1 - β := by linarith
+  set x := xOS σ β with hxdef
+  have hxb := xOS_bounds hσ.le hβ0 hβ1
+  have hx0 : ∀ k, 0 < x k := fun k => one_pos.trans_le (hxb k).1
+  have hxm : Measurable x := measurable_of_countable x
+  have hint : ∀ c : ℝ, 0 ≤ c → Integrable (fun k => 1 / (x k + c)) μ := fun c hc =>
+    Integrable.of_bound (measurable_of_countable _).aestronglyMeasurable 1
+      (Eventually.of_forall fun k => by
+        rw [Real.norm_eq_abs, abs_of_pos (one_div_pos.2 (by linarith [hx0 k]))]
+        rw [div_le_one (by linarith [hx0 k])]
+        linarith [(hxb k).1])
+  set E1 := ∫ k, 1 / x k ∂μ with hE1
+  set E2 := ∫ k, 1 / (x k + (1 - β) * 1) ∂μ with hE2
+  have hE2pos : 1 / (σ + 1) ≤ E2 := by
+    have h := integral_mono (integrable_const (1 / (σ + 1))) (hint ((1 - β) * 1) (by linarith))
+      (fun k => by
+        simp only
+        rw [div_le_div_iff₀ (by linarith) (by linarith [hx0 k])]
+        linarith [(hxb k).2])
+    rw [integral_const, probReal_univ, one_smul] at h
+    exact h
+  have hE2p : 0 < E2 := (by positivity : (0 : ℝ) < 1 / (σ + 1)).trans_le hE2pos
+  have hE12 : E2 ≤ E1 := by
+    have hint0 : Integrable (fun k => 1 / x k) μ :=
+      (hint 0 le_rfl).congr (ae_of_all _ fun k => by simp only [add_zero])
+    have hle : ∀ k, 1 / (x k + (1 - β) * 1) ≤ 1 / x k := fun k =>
+      div_le_div_of_nonneg_left zero_le_one (hx0 k) (by linarith)
+    exact integral_mono (hint ((1 - β) * 1) (by linarith)) hint0 hle
+  refine ⟨E1 / E2 - (1 - β), ?_, ?_⟩
+  · have : 1 ≤ E1 / E2 := (one_le_div hE2p).2 hE12
+    linarith
+  · have hiff := oneShot_exists_iff Pm hβ0 hβ1 hθ (bbar := bbar) (d0 := E1 / E2 - (1 - β))
+      (p0 := 1) hxm one_pos (fun k => ⟨(hxb k).1, (hxb k).2⟩) one_pos
+    refine hiff.2 ⟨1, Eventually.of_forall fun k => by linarith [hx0 k], ?_, hint _ (by linarith),
+      ?_⟩
+    · have : 0 < E1 / E2 := div_pos (hE2p.trans_le hE12) hE2p
+      linarith
+    · have e : (1 : ℝ) + (E1 / E2 - (1 - β)) - β * 1 = E1 / E2 := by ring
+      rw [e, one_mul, ← hE2, div_mul_cancel₀ _ hE2p.ne']
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**the two systems disagree**): for every `0 < p < 1`,
+`0 < β < 1`, `σ > 1`, `θ ≠ 0`, `b̄` there is `d₀ > 0` for which an equilibrium with prices bounded
+above exists with the one-shot target and none exists with the settle-or-continue target, although
+both targets have the same realised present value in every state of the same probability space. -/
+theorem existence_differs {p β θ bbar σ : ℝ} (hp0 : 0 < p) (hp1 : p < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) :
+    ∃ d0 : ℝ, 0 < d0 ∧
+      ExistsAbove (oneShot (gProb hp0 hp1)) β θ bbar (osTarget 1 (xOS σ β)) d0 ∧
+      ¬ ExistsAbove (gSys hp0 hp1) β θ bbar (tgtS σ) d0 := by
+  obtain ⟨d0, hd0, hex⟩ := oneShot_exists_pos hp0 hp1 hβ0 hβ1 hθ (bbar := bbar) hσ
+  refine ⟨d0, hβ0.trans_le hd0, hex, fun h => ?_⟩
+  have := ((existsAbove_iff hp0 hp1 hβ0 hβ1 hθ hσ).1 h).2
+  linarith
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**no condition on the realised present value of the
+target characterises existence**): there is no condition `C(μ, PV*, d₀)` — on the probability
+measure, the realised present value of the target `PV*(ω) = ∑ₛ βˢ P*_s(ω)` and `d₀` — such that,
+on both the settle-or-continue system and the one-shot system over `(ℕ, gMeasure p)`, an
+equilibrium with prices bounded above and `b₀ = b̄ + θ d₀` exists iff `C(μ, PV*, d₀)`. Both
+targets have the same `μ` and the same `PV*` (`pv_tgtS`, `pv_osTarget`), but the existence sets
+differ (`existence_differs`). In particular no condition on the law, the essential infimum or
+supremum, or the moments of the realised present value can work. -/
+theorem no_condition_on_pv {p β θ bbar σ : ℝ} (hp0 : 0 < p) (hp1 : p < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) :
+    ¬ ∃ C : Measure ℕ → (ℕ → ℝ) → ℝ → Prop,
+      (∀ d0, ExistsAbove (gSys hp0 hp1) β θ bbar (tgtS σ) d0 ↔
+        C (gSys hp0 hp1).μ (fun k => ∑' s, β ^ s * tgtS σ s k) d0) ∧
+      ∀ d0, ExistsAbove (oneShot (gProb hp0 hp1)) β θ bbar (osTarget 1 (xOS σ β)) d0 ↔
+        C (oneShot (gProb hp0 hp1)).μ (fun k => ∑' s, β ^ s * osTarget 1 (xOS σ β) s k) d0 := by
+  rintro ⟨C, h1, h2⟩
+  obtain ⟨d0, -, hex, hno⟩ := existence_differs hp0 hp1 hβ0 hβ1 hθ (bbar := bbar) hσ
+  have epv : (fun k => ∑' s, β ^ s * osTarget 1 (xOS σ β) s k) =
+      fun k => ∑' s, β ^ s * tgtS σ s k := by
+    funext k
+    rw [(pv_osTarget hβ0 hβ1 k).tsum_eq, (pv_tgtS hβ0 hβ1 k).tsum_eq]
+  have hC := (h2 d0).1 hex
+  rw [epv] at hC
+  exact hno ((h1 d0).2 hC)
+
+/-- Cochrane (2023), §9.3.2, p. 267: the infimum over states of the realised present value of the
+settle-or-continue target is `1/(1 − β)` (approached as settlement recedes, never attained). -/
+theorem pvS_inf {σ β : ℝ} (hσ : 1 < σ) (hβ0 : 0 < β) (hβ1 : β < 1) :
+    (∀ k, 1 / (1 - β) < pvS σ β k) ∧ Tendsto (pvS σ β) atTop (𝓝 (1 / (1 - β))) := by
+  have h1β : 0 < 1 - β := by linarith
+  constructor
+  · intro k
+    unfold pvS
+    have : 0 < (σ - 1) * β ^ (k + 1) := mul_pos (by linarith) (pow_pos hβ0 _)
+    rw [div_lt_div_iff_of_pos_right h1β]
+    linarith
+  · have h := ((tendsto_pow_atTop_nhds_zero_of_lt_one hβ0.le hβ1).comp
+      (tendsto_add_atTop_nat 1)).const_mul (σ - 1) |>.const_add 1 |>.div_const (1 - β)
+    rw [show 1 / (1 - β) = (1 + (σ - 1) * 0) / (1 - β) by ring]
+    exact h
+
+/-- Cochrane (2023), §9.3.2, pp. 266–267 (**the necessary lower bound is sharp**): on the
+settle-or-continue system the necessary condition `d₀ > −PV*(k)` for every `k` is equivalent to
+`d₀ ≥ −1/(1 − β) = −inf PV*`, and the existence set `(−1/(1 − β), 0]` comes arbitrarily close to
+this bound: for every `ε > 0` some `d₀ < −inf PV* + ε` admits an equilibrium. So no lower bound
+expressed through the infimum of the realised present value improves on `d₀ ≥ −inf PV*`. -/
+theorem lower_bound_sharp {p β θ bbar σ : ℝ} (hp0 : 0 < p) (hp1 : p < 1) (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hθ : θ ≠ 0) (hσ : 1 < σ) :
+    (∀ d0, (∀ k, 0 < d0 + pvS σ β k) ↔ -(1 / (1 - β)) ≤ d0) ∧
+      ∀ ε, 0 < ε → ∃ d0, d0 < -(1 / (1 - β)) + ε ∧
+        ExistsAbove (gSys hp0 hp1) β θ bbar (tgtS σ) d0 := by
+  obtain ⟨hgt, hlim⟩ := pvS_inf hσ hβ0 hβ1
+  have h1β : 0 < 1 - β := by linarith
+  refine ⟨fun d0 => ⟨fun h => ?_, fun h k => by linarith [hgt k]⟩, fun ε hε => ?_⟩
+  · have hl : Tendsto (fun k => d0 + pvS σ β k) atTop (𝓝 (d0 + 1 / (1 - β))) :=
+      hlim.const_add d0
+    have := ge_of_tendsto' hl fun k => (h k).le
+    linarith
+  · have hc : 0 < 1 / (1 - β) := by positivity
+    set m := min ε (1 / (1 - β)) with hm
+    have hm0 : 0 < m := lt_min hε hc
+    have hm1 : m ≤ ε := min_le_left _ _
+    have hm2 : m ≤ 1 / (1 - β) := min_le_right _ _
+    refine ⟨-(1 / (1 - β)) + m / 2, by linarith,
+      (existsAbove_iff hp0 hp1 hβ0 hβ1 hθ hσ).2 ⟨by linarith, by linarith⟩⟩
+
+end Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# (3.20), (3.21) and (9.22) derived from the nonlinear valuation equation, with remainders
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, §3.5, eqs. (3.17)–(3.21), pp. 62–65,
+Online Appendix §§1.2–1.3, eqs. (1.9)–(1.13) and (1.21)–(1.25), pp. 556–564, and §9.4.1,
+eq. (9.22), p. 275.
+
+The module MaturityBuffer takes the linearised identities (3.20)–(3.21) as model equations
+(`MaturityBuffer.Identity320`, `MaturityBuffer.Identity321`), and the module SpreadTarget takes
+(9.22) as one (`SpreadTarget.Valuation`). Here they are derived from the exact nonlinear
+identities, with an explicit second-order bound on the error.
+
+## The linearisation with remainder
+
+* `log_one_add_sub_le`, `exp_sub_one_le`, `log_lin` (**the scalar step**): for `c > 0`,
+  `A = c + ȳ > 0`, `|z| ≤ 1` and `u = (c(eᶻ − 1) + (y − ȳ))/A` with `|u| ≤ 1/2`,
+  `log(c eᶻ + y) = log A + (c/A) z + (y − ȳ)/A + R` with `|R| ≤ 2u² + (c/A) z²`;
+  `log_lin_bound`: `|R| ≤ 2(2ρδ_z + δ_y/A)² + ρδ_z²` when `|z| ≤ δ_z ≤ 1`, `|y − ȳ| ≤ δ_y`.
+  `log_lin_hasDerivAt`: the linear coefficients are the exact partial derivatives.
+
+## (3.17) and (3.20)
+
+* The exact flow (1.9) is `v_t + r_{t+1} − g_{t+1} = log(sy_{t+1} + e^{v_{t+1}})` (`v` the log
+  value of debt to GDP, `r` the log real return, `g` log growth, `sy` the surplus to GDP ratio).
+  Around `(v̄, s̄y)`, `s̄y > 0`: `ρ = e^{v̄}/(e^{v̄} + s̄y) ∈ (0, 1)` (`rho_mem`),
+  `s̃ = sy/(e^{v̄} + s̄y)` (the book's `ρ sy/e^{v̄}`), and `flow_exact`:
+  `v_t + r_{t+1} − g_{t+1} = κ + ρ v_{t+1} + s̃_{t+1} + R_{t+1}` exactly, with the remainder
+  `R = remF` bounded by `remF_bound`.
+* `unexpected_inflation_identity` (**(3.20) with remainder**): for bounded processes with `v`
+  adapted and `r = rⁿ − π`, at every date and state
+  `ΔE π_{t+1} − ΔE rⁿ_{t+1} = −∑ ρʲ ΔE s̃_{t+1+j} − ∑ ρʲ ΔE g_{t+1+j} + ∑_{j≥1} ρʲ ΔE r_{t+1+j}
+  − ∑ ρʲ ΔE R_{t+1+j}`; `remainder_sum_le`: the last term is at most `2B/(1 − ρ)` when `|R| ≤ B`.
+* `identity320_of_flow`: hence `MaturityBuffer.Identity320` holds exactly with the surplus news
+  augmented by the remainder news.
+
+## (3.21)
+
+* The exact return on a geometric portfolio (1.22) is `rⁿ_{t+1} = log(1 + ω e^{q_{t+1}}) − q_t`.
+  Linearising at `q̄` gives the coefficient `ω̂ = ωQ̄/(1 + ωQ̄)` (`what`), which at the steady-state
+  price `Q̄ = 1/(1 + i − ω)` is `ω/(1 + i)` (`what_steady`), not `ω`.
+* `bond_return_identity` (**(3.21) with remainder**): `ΔE rⁿ_{t+1} =
+  −∑_{j≥1} ω̂ʲ ΔE(r_{t+1+j} + π_{t+1+j}) + ∑ ω̂ʲ ΔE R^q_{t+1+j}`; `identity321_of_return`.
+* `identity84_of_nonlinear`: (8.4) with maturity `ω̂` holds with the error
+  `∑ ω̂ʲ ΔE R^q − ∑ ρʲ ΔE R`, bounded by `2B_q/(1 − ω̂) + 2B/(1 − ρ)`.
+
+## (9.22)
+
+* `valuation922_of_flow` (**(9.22) with remainder**): with one-period debt, `rⁿ_{t+1} = i_t`
+  known at `t`, the valuation equation `SpreadTarget.Valuation` holds with the fiscal shock
+  `ε_{t+1} = ∑ ρʲ ΔE(s̃_{t+1+j} + R_{t+1+j})` (no growth), whose remainder part is at most
+  `2B/(1 − ρ)`.
+-/
+
+namespace Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise
+
+open Real Filter Topology
+
+/-! ### The scalar linearisation with an explicit remainder -/
+
+/-- Cochrane (2023), Online Appendix eq. (1.9), p. 558 (Taylor step for the logarithm): for
+`|u| ≤ 1/2`, `|log(1 + u) − u| ≤ 2u²`. -/
+theorem log_one_add_sub_le {u : ℝ} (hu : |u| ≤ 1 / 2) : |log (1 + u) - u| ≤ 2 * u ^ 2 := by
+  have hx : |(-u)| < 1 := by rw [abs_neg]; linarith
+  have h := Real.abs_log_sub_add_sum_range_le hx 1
+  simp only [Finset.range_one, Finset.sum_singleton, zero_add, pow_one, Nat.cast_zero,
+    div_one, sub_neg_eq_add, abs_neg] at h
+  have e : -u + log (1 + u) = log (1 + u) - u := by ring
+  rw [e] at h
+  refine h.trans ?_
+  have h1 : 1 / 2 ≤ 1 - |u| := by linarith
+  rw [div_le_iff₀ (by linarith), sq_abs]
+  nlinarith [sq_nonneg u]
+
+/-- Cochrane (2023), Online Appendix eq. (1.9), p. 558 (Taylor step for the exponential): for
+`|z| ≤ 1`, `|eᶻ − 1| ≤ 2|z|`. -/
+theorem exp_sub_one_le {z : ℝ} (hz : |z| ≤ 1) : |exp z - 1| ≤ 2 * |z| := by
+  have h := Real.abs_exp_sub_one_sub_id_le hz
+  have h2 : z ^ 2 ≤ |z| := by
+    rw [← sq_abs]
+    nlinarith [abs_nonneg z]
+  calc |exp z - 1| = |(exp z - 1 - z) + z| := by ring_nf
+    _ ≤ |exp z - 1 - z| + |z| := abs_add_le _ _
+    _ ≤ 2 * |z| := by linarith
+
+/-- Cochrane (2023), Online Appendix eqs. (1.9)–(1.11), p. 558 (**the linearisation with
+remainder**): for `c > 0`, `A = c + ȳ > 0`, `|z| ≤ 1` and `u = (c(eᶻ − 1) + (y − ȳ))/A` with
+`|u| ≤ 1/2`, `log(c eᶻ + y) = log A + (c/A) z + (y − ȳ)/A + R` with `|R| ≤ 2u² + (c/A) z²`. -/
+theorem log_lin {c ybar z y : ℝ} (hc : 0 < c) (hA : 0 < c + ybar) (hz : |z| ≤ 1)
+    (hu : |(c * (exp z - 1) + (y - ybar)) / (c + ybar)| ≤ 1 / 2) :
+    |log (c * exp z + y) - (log (c + ybar) + c / (c + ybar) * z + (y - ybar) / (c + ybar))| ≤
+      2 * ((c * (exp z - 1) + (y - ybar)) / (c + ybar)) ^ 2 + c / (c + ybar) * z ^ 2 := by
+  set A := c + ybar with hAdef
+  set u := (c * (exp z - 1) + (y - ybar)) / A with hudef
+  have hu1 : 0 < 1 + u := by
+    have := neg_abs_le u
+    linarith
+  have he : c * exp z + y = A * (1 + u) := by
+    rw [hudef]
+    field_simp
+    ring
+  have hlog : log (c * exp z + y) = log A + log (1 + u) := by
+    rw [he, Real.log_mul hA.ne' hu1.ne']
+  have hdiff : log (c * exp z + y) - (log A + c / A * z + (y - ybar) / A) =
+      (log (1 + u) - u) + c / A * (exp z - 1 - z) := by
+    rw [hlog, hudef]
+    field_simp
+    ring
+  rw [hdiff]
+  have hρ : 0 < c / A := div_pos hc hA
+  calc |(log (1 + u) - u) + c / A * (exp z - 1 - z)|
+      ≤ |log (1 + u) - u| + |c / A * (exp z - 1 - z)| := abs_add_le _ _
+    _ ≤ 2 * u ^ 2 + c / A * z ^ 2 := by
+      refine add_le_add (log_one_add_sub_le hu) ?_
+      rw [abs_mul, abs_of_pos hρ]
+      exact mul_le_mul_of_nonneg_left (Real.abs_exp_sub_one_sub_id_le hz) hρ.le
+
+/-- Cochrane (2023), Online Appendix eqs. (1.9)–(1.11), p. 558 (**the explicit second-order
+bound**): with `ρ = c/A`, if `|z| ≤ δ_z ≤ 1`, `|y − ȳ| ≤ δ_y` and `η = 2ρδ_z + δ_y/A ≤ 1/2`, the
+remainder of `log_lin` is at most `2η² + ρδ_z²`. -/
+theorem log_lin_bound {c ybar z y δz δy : ℝ} (hc : 0 < c) (hA : 0 < c + ybar) (hz : |z| ≤ δz)
+    (hδz : δz ≤ 1) (hy : |y - ybar| ≤ δy)
+    (hη : 2 * (c / (c + ybar)) * δz + δy / (c + ybar) ≤ 1 / 2) :
+    |log (c * exp z + y) - (log (c + ybar) + c / (c + ybar) * z + (y - ybar) / (c + ybar))| ≤
+      2 * (2 * (c / (c + ybar)) * δz + δy / (c + ybar)) ^ 2 + c / (c + ybar) * δz ^ 2 := by
+  set A := c + ybar with hAdef
+  have hρ : 0 < c / A := div_pos hc hA
+  have hz1 : |z| ≤ 1 := hz.trans hδz
+  have hδz0 : 0 ≤ δz := (abs_nonneg z).trans hz
+  have hδy0 : 0 ≤ δy := (abs_nonneg _).trans hy
+  have hu : |(c * (exp z - 1) + (y - ybar)) / A| ≤ 2 * (c / A) * δz + δy / A := by
+    rw [add_div]
+    have h1 : |c * (exp z - 1) / A| ≤ 2 * (c / A) * δz := by
+      rw [abs_div, abs_of_pos hA, abs_mul, abs_of_pos hc]
+      have := exp_sub_one_le hz1
+      rw [div_le_iff₀ hA]
+      have : c * |exp z - 1| ≤ c * (2 * δz) :=
+        mul_le_mul_of_nonneg_left (this.trans (by linarith)) hc.le
+      have e : 2 * (c / A) * δz * A = c * (2 * δz) := by field_simp
+      linarith
+    have h2 : |(y - ybar) / A| ≤ δy / A := by
+      rw [abs_div, abs_of_pos hA]
+      exact div_le_div_of_nonneg_right hy hA.le
+    calc |c * (exp z - 1) / A + (y - ybar) / A| ≤ |c * (exp z - 1) / A| + |(y - ybar) / A| :=
+          abs_add_le _ _
+      _ ≤ 2 * (c / A) * δz + δy / A := add_le_add h1 h2
+      _ = 2 * (c / A) * δz + δy / A := rfl
+  have hu' : |(c * (exp z - 1) + (y - ybar)) / A| ≤ 1 / 2 := hu.trans hη
+  refine (log_lin hc hA hz1 hu').trans (add_le_add ?_ ?_)
+  · have h0 : 0 ≤ |(c * (exp z - 1) + (y - ybar)) / A| := abs_nonneg _
+    have := pow_le_pow_left₀ h0 hu 2
+    rw [sq_abs] at this
+    linarith
+  · refine mul_le_mul_of_nonneg_left ?_ hρ.le
+    rw [← sq_abs]
+    exact pow_le_pow_left₀ (abs_nonneg z) hz 2
+
+/-- Cochrane (2023), Online Appendix eq. (1.11), p. 558: the linear coefficients are the
+exact partial derivatives at the expansion point: `∂/∂z log(c eᶻ + ȳ)|_{z=0} = c/A` and
+`∂/∂y log(c + y)|_{y=ȳ} = 1/A`. -/
+theorem log_lin_hasDerivAt {c ybar : ℝ} (hA : 0 < c + ybar) :
+    HasDerivAt (fun z => log (c * exp z + ybar)) (c / (c + ybar)) 0 ∧
+      HasDerivAt (fun y => log (c + y)) (1 / (c + ybar)) ybar := by
+  constructor
+  · have h1 : HasDerivAt (fun z => c * exp z + ybar) (c * exp 0) 0 :=
+      ((hasDerivAt_exp 0).const_mul c).add_const ybar
+    have h2 := h1.log (by simpa using hA.ne')
+    simpa using h2
+  · have h1 : HasDerivAt (fun y => c + y) 1 ybar := (hasDerivAt_id ybar).const_add c
+    have h2 := h1.log (by simpa using hA.ne')
+    simpa using h2
+
+/-! ### The flow identity (3.17) -/
+
+/-- Cochrane (2023), Online Appendix eq. (1.11), p. 558: `A = e^{v̄} + s̄y`. -/
+noncomputable def A0 (vbar sybar : ℝ) : ℝ := exp vbar + sybar
+
+/-- Cochrane (2023), eq. (1.12), p. 558: the linearisation constant
+`ρ = e^{v̄}/(e^{v̄} + s̄y)` (`= e^{−(r − g)}` at a steady state). -/
+noncomputable def rho (vbar sybar : ℝ) : ℝ := exp vbar / A0 vbar sybar
+
+/-- Cochrane (2023), eq. (1.11), p. 558: the constant of the linearised flow,
+`κ = log A − ρ v̄ − s̄y/A`. -/
+noncomputable def kap (vbar sybar : ℝ) : ℝ :=
+  log (A0 vbar sybar) - rho vbar sybar * vbar - sybar / A0 vbar sybar
+
+/-- Cochrane (2023), eq. (1.13), p. 558: the scaled surplus `s̃ = sy/A = ρ sy/e^{v̄}`. -/
+noncomputable def stil {Ω : Type*} (vbar sybar : ℝ) (sy : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) : ℝ :=
+  sy t ω / A0 vbar sybar
+
+/-- Cochrane (2023), eqs. (1.9)–(1.13), p. 558: the remainder of the linearised flow,
+`R_t = log(sy_t + e^{v_t}) − κ − ρ v_t − s̃_t`. -/
+noncomputable def remF {Ω : Type*} (vbar sybar : ℝ) (v sy : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) : ℝ :=
+  log (sy t ω + exp (v t ω)) - kap vbar sybar - rho vbar sybar * v t ω - stil vbar sybar sy t ω
+
+/-- Cochrane (2023), eq. (1.12), p. 558: for a positive steady-state surplus `s̄y > 0`,
+`0 < ρ < 1` and `A > 0`. -/
+theorem rho_mem {vbar sybar : ℝ} (hs : 0 < sybar) :
+    0 < A0 vbar sybar ∧ 0 < rho vbar sybar ∧ rho vbar sybar < 1 := by
+  have he := exp_pos vbar
+  have hA : 0 < A0 vbar sybar := by unfold A0; linarith
+  refine ⟨hA, div_pos he hA, ?_⟩
+  rw [rho, div_lt_one hA]
+  unfold A0
+  linarith
+
+/-- Cochrane (2023), eq. (3.17), p. 63, and Online Appendix eq. (1.11), p. 558 (**the linearised
+flow, exactly**): if the exact flow (1.9) `v_t + r_{t+1} − g_{t+1} = log(sy_{t+1} + e^{v_{t+1}})`
+holds, then `v_t + r_{t+1} − g_{t+1} = κ + ρ v_{t+1} + s̃_{t+1} + R_{t+1}` with `R = remF`. -/
+theorem flow_exact {Ω : Type*} {vbar sybar : ℝ} {v r g sy : ℕ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (h : v t ω + r (t + 1) ω - g (t + 1) ω = log (sy (t + 1) ω + exp (v (t + 1) ω))) :
+    v t ω + r (t + 1) ω - g (t + 1) ω = kap vbar sybar + rho vbar sybar * v (t + 1) ω +
+      stil vbar sybar sy (t + 1) ω + remF vbar sybar v sy (t + 1) ω := by
+  rw [h]
+  unfold remF
+  ring
+
+/-- Cochrane (2023), Online Appendix eqs. (1.9)–(1.13), p. 558 (**the remainder bound**): if
+`|v_t − v̄| ≤ δ_v ≤ 1`, `|sy_t − s̄y| ≤ δ_s` and `η = 2ρδ_v + δ_s/A ≤ 1/2`, then
+`|R_t| ≤ 2η² + ρδ_v²`. -/
+theorem remF_bound {Ω : Type*} {vbar sybar δv δs : ℝ} (hs : 0 < sybar) {v sy : ℕ → Ω → ℝ}
+    {t : ℕ} {ω : Ω} (hv : |v t ω - vbar| ≤ δv) (hδv : δv ≤ 1) (hsy : |sy t ω - sybar| ≤ δs)
+    (hη : 2 * rho vbar sybar * δv + δs / A0 vbar sybar ≤ 1 / 2) :
+    |remF vbar sybar v sy t ω| ≤
+      2 * (2 * rho vbar sybar * δv + δs / A0 vbar sybar) ^ 2 + rho vbar sybar * δv ^ 2 := by
+  have hA : 0 < exp vbar + sybar := (rho_mem (vbar := vbar) hs).1
+  have h := log_lin_bound (c := exp vbar) (ybar := sybar) (z := v t ω - vbar) (y := sy t ω)
+    (exp_pos vbar) hA hv hδv hsy hη
+  have e1 : exp vbar * exp (v t ω - vbar) + sy t ω = sy t ω + exp (v t ω) := by
+    rw [← exp_add]
+    ring_nf
+  rw [e1] at h
+  have e2 : remF vbar sybar v sy t ω = log (sy t ω + exp (v t ω)) -
+      (log (exp vbar + sybar) + exp vbar / (exp vbar + sybar) * (v t ω - vbar) +
+        (sy t ω - sybar) / (exp vbar + sybar)) := by
+    unfold remF kap stil rho A0
+    field_simp
+    ring
+  rw [e2]
+  exact h
+
+/-! ### Innovations -/
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), eq. (3.20), p. 65: the innovation `ΔE_{t+1}` is additive. -/
+theorem innov_add (t : ℕ) (x y : Ω → ℝ) :
+    SpreadTarget.innov 𝔼 t (x + y) = SpreadTarget.innov 𝔼 t x + SpreadTarget.innov 𝔼 t y := by
+  unfold SpreadTarget.innov
+  rw [map_add, map_add]
+  abel
+
+/-- Cochrane (2023), eq. (3.20), p. 65: the innovation `ΔE_{t+1}` commutes with differences. -/
+theorem innov_sub (t : ℕ) (x y : Ω → ℝ) :
+    SpreadTarget.innov 𝔼 t (x - y) = SpreadTarget.innov 𝔼 t x - SpreadTarget.innov 𝔼 t y := by
+  unfold SpreadTarget.innov
+  rw [map_sub, map_sub]
+  abel
+
+/-- Cochrane (2023), eq. (3.20), p. 65: the innovation `ΔE_{t+1}` is homogeneous. -/
+theorem innov_smul (t : ℕ) (c : ℝ) (x : Ω → ℝ) :
+    SpreadTarget.innov 𝔼 t (c • x) = c • SpreadTarget.innov 𝔼 t x := by
+  unfold SpreadTarget.innov
+  rw [map_smul, map_smul, smul_sub]
+
+/-- Cochrane (2023), eq. (3.20), p. 65: constants carry no news. -/
+theorem innov_const (t : ℕ) (c : ℝ) : SpreadTarget.innov 𝔼 t (fun _ => c) = 0 := by
+  unfold SpreadTarget.innov
+  rw [𝔼.const, 𝔼.const, sub_self]
+
+/-- Cochrane (2023), p. 65 ("since `v_t` is known at time `t`, it usefully disappears from this
+innovation accounting"): a variable known at `t` has no date-`t + 1` news. -/
+theorem innov_known {t : ℕ} {x : Ω → ℝ} (hx : 𝔼.E t x = x) : SpreadTarget.innov 𝔼 t x = 0 := by
+  unfold SpreadTarget.innov
+  have h : 𝔼.E (t + 1) x = x := by
+    calc 𝔼.E (t + 1) x = 𝔼.E (t + 1) (𝔼.E t x) := by rw [hx]
+      _ = 𝔼.E t x := 𝔼.known (Nat.le_succ t) x
+      _ = x := hx
+  rw [h, hx, sub_self]
+
+/-- Cochrane (2023), eq. (3.20), p. 65: the news in a variable bounded by `K` is at most `2K`. -/
+theorem innov_bound {K : ℝ} {x : Ω → ℝ} (hx : ∀ ω, |x ω| ≤ K) (t : ℕ) (ω : Ω) :
+    |SpreadTarget.innov 𝔼 t x ω| ≤ 2 * K := by
+  unfold SpreadTarget.innov
+  simp only [Pi.sub_apply]
+  have h1 := 𝔼.abs_E_le hx (t + 1) ω
+  have h2 := 𝔼.abs_E_le hx t ω
+  calc |𝔼.E (t + 1) x ω - 𝔼.E t x ω| ≤ |𝔼.E (t + 1) x ω| + |𝔼.E t x ω| := abs_sub _ _
+    _ ≤ 2 * K := by linarith
+
+/-! ### Forward iteration of news -/
+
+/-- Cochrane (2023), eqs. (3.18)–(3.19), p. 63 (iterating forward): if `a` is bounded,
+`0 ≤ ρ < 1` and `a_j = ρ a_{j+1} + w_{j+1}` with `w` bounded, then `∑ ρʲ w_{j+1} = a_0`. -/
+theorem forward_sum {ρ K Kw : ℝ} (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1) {a w : ℕ → ℝ}
+    (ha : ∀ j, |a j| ≤ K) (hw : ∀ j, |w j| ≤ Kw) (hrec : ∀ j, a j = ρ * a (j + 1) + w (j + 1)) :
+    HasSum (fun j => ρ ^ j * w (j + 1)) (a 0) := by
+  have hpart : ∀ n, a 0 = ∑ j ∈ Finset.range n, ρ ^ j * w (j + 1) + ρ ^ n * a n := by
+    intro n
+    induction n with
+    | zero => simp
+    | succ n ih =>
+      rw [Finset.sum_range_succ, ih, hrec n]
+      ring
+  have hsum : Summable (fun j => ρ ^ j * w (j + 1)) :=
+    Summable.of_norm_bounded ((summable_geometric_of_lt_one hρ0 hρ1).mul_right Kw) fun j => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow, abs_of_nonneg hρ0]
+      exact mul_le_mul_of_nonneg_left (hw _) (pow_nonneg hρ0 j)
+  have hlim : Tendsto (fun n => ρ ^ n * a n) atTop (𝓝 0) := by
+    have hg := (tendsto_pow_atTop_nhds_zero_of_lt_one hρ0 hρ1).mul_const K
+    rw [zero_mul] at hg
+    refine squeeze_zero_norm (fun n => ?_) hg
+    rw [Real.norm_eq_abs, abs_mul, abs_pow, abs_of_nonneg hρ0]
+    exact mul_le_mul_of_nonneg_left (ha n) (pow_nonneg hρ0 n)
+  rw [hsum.hasSum_iff_tendsto_nat]
+  have h2 : Tendsto (fun n => a 0 - ρ ^ n * a n) atTop (𝓝 (a 0 - 0)) :=
+    tendsto_const_nhds.sub hlim
+  rw [sub_zero] at h2
+  exact h2.congr fun n => by rw [hpart n]; ring
+
+/-- Cochrane (2023), eq. (3.20), p. 65 (supporting lemma): for `0 ≤ ρ < 1` a bounded sequence
+`|x_j| ≤ K` has a summable discounted sum, `|∑ ρʲ x_j| ≤ K/(1 − ρ)`. -/
+theorem discounted_le {ρ K : ℝ} (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1) {x : ℕ → ℝ} (hx : ∀ j, |x j| ≤ K) :
+    Summable (fun j => ρ ^ j * x j) ∧ |∑' j, ρ ^ j * x j| ≤ K / (1 - ρ) := by
+  have hg := hasSum_geometric_of_lt_one hρ0 hρ1
+  have hb : ∀ j, |ρ ^ j * x j| ≤ ρ ^ j * K := fun j => by
+    rw [abs_mul, abs_pow, abs_of_nonneg hρ0]
+    exact mul_le_mul_of_nonneg_left (hx j) (pow_nonneg hρ0 j)
+  have hs : Summable (fun j => ρ ^ j * x j) :=
+    Summable.of_norm_bounded (hg.summable.mul_right K) fun j => by
+      rw [Real.norm_eq_abs]; exact hb j
+  refine ⟨hs, ?_⟩
+  have hK : HasSum (fun j => ρ ^ j * K) (K / (1 - ρ)) := by
+    have := hg.mul_right K
+    rwa [← div_eq_inv_mul] at this
+  rw [abs_le]
+  constructor
+  · have := hasSum_le (fun j => (neg_le_of_abs_le (hb j))) hK.neg hs.hasSum
+    linarith
+  · exact hasSum_le (fun j => (le_abs_self _).trans (hb j)) hs.hasSum hK
+
+/-! ### (3.20) with remainder -/
+
+/-- Cochrane (2023), Online Appendix eq. (1.11), p. 558: the flow remainder is bounded when the
+model's processes are: from (1.9),
+`|R_{t+1}| ≤ K_v + K_r + K_g + |κ| + ρ K_v + K_s/A`. -/
+theorem remF_succ_le {vbar sybar Kv Kr Kg Ks : ℝ} (hs : 0 < sybar) {v r g sy : ℕ → Ω → ℝ}
+    (hflow : ∀ t ω, v t ω + r (t + 1) ω - g (t + 1) ω = log (sy (t + 1) ω + exp (v (t + 1) ω)))
+    (hvK : ∀ t ω, |v t ω| ≤ Kv) (hrK : ∀ t ω, |r t ω| ≤ Kr) (hgK : ∀ t ω, |g t ω| ≤ Kg)
+    (hsK : ∀ t ω, |sy t ω| ≤ Ks) (t : ℕ) (ω : Ω) :
+    |remF vbar sybar v sy (t + 1) ω| ≤
+      Kv + Kr + Kg + |kap vbar sybar| + rho vbar sybar * Kv + Ks / A0 vbar sybar := by
+  obtain ⟨hA, hρ0, -⟩ := rho_mem (vbar := vbar) hs
+  have e : remF vbar sybar v sy (t + 1) ω = v t ω + r (t + 1) ω - g (t + 1) ω -
+      kap vbar sybar - rho vbar sybar * v (t + 1) ω - sy (t + 1) ω / A0 vbar sybar := by
+    unfold remF stil
+    rw [hflow t ω]
+  rw [e]
+  have h1 := hvK t ω
+  have h2 := hrK (t + 1) ω
+  have h3 := hgK (t + 1) ω
+  have h4 : |rho vbar sybar * v (t + 1) ω| ≤ rho vbar sybar * Kv := by
+    rw [abs_mul, abs_of_pos hρ0]
+    exact mul_le_mul_of_nonneg_left (hvK _ _) hρ0.le
+  have h5 : |sy (t + 1) ω / A0 vbar sybar| ≤ Ks / A0 vbar sybar := by
+    rw [abs_div, abs_of_pos hA]
+    exact div_le_div_of_nonneg_right (hsK _ _) hA.le
+  have := abs_sub (v t ω + r (t + 1) ω - g (t + 1) ω - kap vbar sybar -
+    rho vbar sybar * v (t + 1) ω) (sy (t + 1) ω / A0 vbar sybar)
+  have := abs_sub (v t ω + r (t + 1) ω - g (t + 1) ω - kap vbar sybar)
+    (rho vbar sybar * v (t + 1) ω)
+  have := abs_sub (v t ω + r (t + 1) ω - g (t + 1) ω) (kap vbar sybar)
+  have := abs_sub (v t ω + r (t + 1) ω) (g (t + 1) ω)
+  have := abs_add_le (v t ω) (r (t + 1) ω)
+  linarith
+
+/-- Cochrane (2023), eq. (3.20), p. 65 (**the unexpected-inflation identity derived from the
+nonlinear flow, with remainder**): let `v` (log debt to GDP), `r` (log real return), `g` (log
+growth), `sy` (surplus to GDP) be bounded, `v` adapted, `r = rⁿ − π`, and let the exact flow (1.9)
+hold. Linearise at `(v̄, s̄y)`, `s̄y > 0`. Then at every date and state
+`ΔE π_{t+1} − ΔE rⁿ_{t+1} = −∑ ρʲ ΔE s̃_{t+1+j} − ∑ ρʲ ΔE g_{t+1+j} + ∑_{j≥0} ρ^{j+1} ΔE r_{t+2+j}
+− ∑ ρʲ ΔE R_{t+1+j}`, all sums converging, with `R = remF` the linearisation remainder. -/
+theorem unexpected_inflation_identity {vbar sybar Kv Kr Kg Ks : ℝ} (hs : 0 < sybar)
+    {v r g sy infl rn : ℕ → Ω → ℝ}
+    (hflow : ∀ t ω, v t ω + r (t + 1) ω - g (t + 1) ω = log (sy (t + 1) ω + exp (v (t + 1) ω)))
+    (hva : ∀ t, 𝔼.E t (v t) = v t) (hr : ∀ t, r t = rn t - infl t)
+    (hvK : ∀ t ω, |v t ω| ≤ Kv) (hrK : ∀ t ω, |r t ω| ≤ Kr) (hgK : ∀ t ω, |g t ω| ≤ Kg)
+    (hsK : ∀ t ω, |sy t ω| ≤ Ks) (t : ℕ) (ω : Ω) :
+    SpreadTarget.innov 𝔼 t (infl (t + 1)) ω - SpreadTarget.innov 𝔼 t (rn (t + 1)) ω =
+      -(∑' j, rho vbar sybar ^ j * SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω) -
+        (∑' j, rho vbar sybar ^ j * SpreadTarget.innov 𝔼 t (g (t + 1 + j)) ω) +
+        (∑' j, rho vbar sybar ^ (j + 1) * SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω) -
+        ∑' j, rho vbar sybar ^ j *
+          SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω := by
+  obtain ⟨hA, hρ0, hρ1⟩ := rho_mem (vbar := vbar) hs
+  set ρ := rho vbar sybar with hρdef
+  set KR := Kv + Kr + Kg + |kap vbar sybar| + ρ * Kv + Ks / A0 vbar sybar with hKR
+  have hRK := remF_succ_le (vbar := vbar) hs hflow hvK hrK hgK hsK
+  have hsK' : ∀ s ω', |stil vbar sybar sy s ω'| ≤ Ks / A0 vbar sybar := fun s ω' => by
+    unfold stil
+    rw [abs_div, abs_of_pos hA]
+    exact div_le_div_of_nonneg_right (hsK _ _) hA.le
+  -- the linearised flow as an identity of random variables
+  have hfun : ∀ s, v s = (fun _ => kap vbar sybar) + ρ • v (s + 1) + stil vbar sybar sy (s + 1) +
+      g (s + 1) - r (s + 1) + remF vbar sybar v sy (s + 1) := fun s => by
+    funext ω'
+    have h := flow_exact (vbar := vbar) (sybar := sybar) (hflow s ω')
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    linarith
+  have hinnov : ∀ s, SpreadTarget.innov 𝔼 t (v s) ω =
+      ρ * SpreadTarget.innov 𝔼 t (v (s + 1)) ω +
+        (SpreadTarget.innov 𝔼 t (stil vbar sybar sy (s + 1)) ω +
+          SpreadTarget.innov 𝔼 t (g (s + 1)) ω - SpreadTarget.innov 𝔼 t (r (s + 1)) ω +
+          SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (s + 1)) ω) := fun s => by
+    rw [hfun s, innov_add, innov_sub, innov_add, innov_add, innov_add, innov_const, innov_smul]
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    ring
+  set a : ℕ → ℝ := fun j => SpreadTarget.innov 𝔼 t (v (t + 1 + j)) ω with ha
+  set Ns : ℕ → ℝ := fun j => SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω with hNs
+  set Ng : ℕ → ℝ := fun j => SpreadTarget.innov 𝔼 t (g (t + 1 + j)) ω with hNg
+  set Nr : ℕ → ℝ := fun j => SpreadTarget.innov 𝔼 t (r (t + 1 + j)) ω with hNr
+  set NR : ℕ → ℝ := fun j =>
+    SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω with hNR
+  set w : ℕ → ℝ := fun j => Ns j + Ng j - Nr j + NR j with hw
+  have hbs : ∀ j, |Ns j| ≤ 2 * (Ks / A0 vbar sybar) := fun j => innov_bound 𝔼 (hsK' _) t ω
+  have hbg : ∀ j, |Ng j| ≤ 2 * Kg := fun j => innov_bound 𝔼 (hgK _) t ω
+  have hbr : ∀ j, |Nr j| ≤ 2 * Kr := fun j => innov_bound 𝔼 (hrK _) t ω
+  have hbR : ∀ j, |NR j| ≤ 2 * KR := fun j => innov_bound 𝔼 (fun ω' => by
+    have := hRK (t + j) ω'
+    rwa [show t + j + 1 = t + 1 + j by omega] at this) t ω
+  have hba : ∀ j, |a j| ≤ 2 * Kv := fun j => innov_bound 𝔼 (hvK _) t ω
+  have hbw : ∀ j, |w j| ≤ 2 * (Ks / A0 vbar sybar) + 2 * Kg + 2 * Kr + 2 * KR := fun j => by
+    have := abs_add_le (Ns j + Ng j - Nr j) (NR j)
+    have := abs_sub (Ns j + Ng j) (Nr j)
+    have := abs_add_le (Ns j) (Ng j)
+    simp only [hw]
+    linarith [hbs j, hbg j, hbr j, hbR j]
+  have h0 : 0 = ρ * a 0 + w 0 := by
+    have := hinnov t
+    rw [innov_known 𝔼 (hva t)] at this
+    simpa [ha, hw, hNs, hNg, hNr, hNR] using this
+  have hrec : ∀ j, a j = ρ * a (j + 1) + w (j + 1) := fun j => hinnov (t + 1 + j)
+  have hfw := forward_sum hρ0.le hρ1 hba hbw hrec
+  -- `∑ ρʲ w_j = 0`
+  have hW : HasSum (fun j => ρ ^ j * w j) 0 := by
+    rw [← hasSum_nat_add_iff' 1]
+    have := hfw.mul_left ρ
+    simp only [Finset.sum_range_one, pow_zero, one_mul]
+    rw [show (0 : ℝ) - w 0 = ρ * a 0 by linarith]
+    exact this.congr_fun fun j => by ring
+  obtain ⟨hsS, -⟩ := discounted_le hρ0.le hρ1 hbs
+  obtain ⟨hsG, -⟩ := discounted_le hρ0.le hρ1 hbg
+  obtain ⟨hsr, -⟩ := discounted_le hρ0.le hρ1 hbr
+  obtain ⟨hsR, -⟩ := discounted_le hρ0.le hρ1 hbR
+  have hW2 : HasSum (fun j => ρ ^ j * w j) ((∑' j, ρ ^ j * Ns j) + (∑' j, ρ ^ j * Ng j) -
+      (∑' j, ρ ^ j * Nr j) + ∑' j, ρ ^ j * NR j) :=
+    (((hsS.hasSum.add hsG.hasSum).sub hsr.hasSum).add hsR.hasSum).congr_fun fun j => by
+      simp only [hw]; ring
+  have hzero := hW.unique hW2
+  have hr0 : Nr 0 = SpreadTarget.innov 𝔼 t (rn (t + 1)) ω -
+      SpreadTarget.innov 𝔼 t (infl (t + 1)) ω := by
+    simp only [hNr, add_zero, hr (t + 1), innov_sub, Pi.sub_apply]
+  have hrsplit : ∑' j, ρ ^ j * Nr j = Nr 0 + ∑' j, ρ ^ (j + 1) * Nr (j + 1) := by
+    rw [hsr.tsum_eq_zero_add]
+    simp
+  rw [hrsplit, hr0] at hzero
+  have e1 : (∑' j, ρ ^ (j + 1) * Nr (j + 1)) =
+      ∑' j, ρ ^ (j + 1) * SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω := rfl
+  linarith
+
+/-- Cochrane (2023), eq. (3.20), p. 65 (**the size of the error**): if the flow remainder is bounded
+by `B` at every date from `t + 1` on, its discounted news is at most `2B/(1 − ρ)`. -/
+theorem remainder_sum_le {vbar sybar B : ℝ} (hs : 0 < sybar) {v sy : ℕ → Ω → ℝ} (t : ℕ)
+    (hB : ∀ s ω, |remF vbar sybar v sy (t + 1 + s) ω| ≤ B) (ω : Ω) :
+    |∑' j, rho vbar sybar ^ j * SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω| ≤
+      2 * B / (1 - rho vbar sybar) := by
+  obtain ⟨-, hρ0, hρ1⟩ := rho_mem (vbar := vbar) hs
+  exact (discounted_le hρ0.le hρ1 fun j => innov_bound 𝔼 (hB j) t ω).2
+
+/-- Cochrane (2023), eq. (3.20), p. 65, as used for (8.4), p. 250 (**`MaturityBuffer.Identity320`
+derived**): with no growth (`g = 0`), the news `πN j = ΔE π_{t+1+j}`, `rN j = ΔE r_{t+1+j}`,
+`rn = ΔE rⁿ_{t+1}` and the surplus news augmented by the remainder news,
+`sN j = ΔE s̃_{t+1+j} + ΔE R_{t+1+j}`, satisfy `MaturityBuffer.Identity320` exactly. -/
+theorem identity320_of_flow {vbar sybar Kv Kr Ks : ℝ} (hs : 0 < sybar)
+    {v r sy infl rn : ℕ → Ω → ℝ}
+    (hflow : ∀ t ω, v t ω + r (t + 1) ω - 0 = log (sy (t + 1) ω + exp (v (t + 1) ω)))
+    (hva : ∀ t, 𝔼.E t (v t) = v t) (hr : ∀ t, r t = rn t - infl t)
+    (hvK : ∀ t ω, |v t ω| ≤ Kv) (hrK : ∀ t ω, |r t ω| ≤ Kr) (hsK : ∀ t ω, |sy t ω| ≤ Ks)
+    (t : ℕ) (ω : Ω) :
+    MaturityBuffer.Identity320 (rho vbar sybar)
+      (fun j => SpreadTarget.innov 𝔼 t (infl (t + 1 + j)) ω)
+      (fun j => SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω +
+        SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω)
+      (fun j => SpreadTarget.innov 𝔼 t (r (t + 1 + j)) ω)
+      (SpreadTarget.innov 𝔼 t (rn (t + 1)) ω) := by
+  obtain ⟨hA, hρ0, hρ1⟩ := rho_mem (vbar := vbar) hs
+  have h := unexpected_inflation_identity 𝔼 (vbar := vbar) (g := fun _ _ => 0) (Kg := 0) hs hflow
+    hva hr hvK hrK
+    (fun _ _ => by simp) hsK t ω
+  have hg0 : (∑' j, rho vbar sybar ^ j *
+      SpreadTarget.innov 𝔼 t ((fun _ _ => (0 : ℝ)) (t + 1 + j)) ω) = 0 := by
+    simp [innov_const]
+  rw [hg0] at h
+  have hRK := remF_succ_le (vbar := vbar) (g := fun _ _ => 0) (Kg := 0) hs hflow hvK hrK
+    (fun _ _ => by simp) hsK
+  have hsK' : ∀ s ω', |stil vbar sybar sy s ω'| ≤ Ks / A0 vbar sybar := fun s ω' => by
+    unfold stil
+    rw [abs_div, abs_of_pos hA]
+    exact div_le_div_of_nonneg_right (hsK _ _) hA.le
+  obtain ⟨h1, -⟩ := discounted_le hρ0.le hρ1 fun j => innov_bound 𝔼 (hsK' (t + 1 + j)) t ω
+  obtain ⟨h2, -⟩ := discounted_le hρ0.le hρ1 fun j =>
+    innov_bound 𝔼 (x := remF vbar sybar v sy (t + 1 + j)) (fun ω' => by
+      have := hRK (t + j) ω'
+      rwa [show t + j + 1 = t + 1 + j by omega] at this) t ω
+  unfold MaturityBuffer.Identity320
+  have e : ∑' j, rho vbar sybar ^ j *
+      (SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω +
+        SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω) =
+      (∑' j, rho vbar sybar ^ j * SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω) +
+      ∑' j, rho vbar sybar ^ j *
+        SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω := by
+    rw [← h1.tsum_add h2]
+    exact tsum_congr fun j => by ring
+  simp only [add_zero]
+  rw [e]
+  linarith
+
+/-! ### (3.21) with remainder -/
+
+/-- Cochrane (2023), Online Appendix eq. (1.22), p. 563: the exact linear coefficient of the
+return on a geometric portfolio, `ω̂ = ωQ̄/(1 + ωQ̄)` with `Q̄ = e^{q̄}`. -/
+noncomputable def what (om qbar : ℝ) : ℝ := om * exp qbar / (om * exp qbar + 1)
+
+/-- Cochrane (2023), Online Appendix eq. (1.22), p. 563: the remainder of the linearised return,
+`R^q_t = log(1 + ω e^{q_t}) − log(1 + ωQ̄) − ω̂ (q_t − q̄)`. -/
+noncomputable def remQ {Ω : Type*} (om qbar : ℝ) (q : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) : ℝ :=
+  log (1 + om * exp (q t ω)) - log (1 + om * exp qbar) - what om qbar * (q t ω - qbar)
+
+/-- Cochrane (2023), Online Appendix eq. (1.22), p. 563: for `ω > 0`, `0 < ω̂ < 1`. -/
+theorem what_mem {om qbar : ℝ} (hom : 0 < om) : 0 < what om qbar ∧ what om qbar < 1 := by
+  have h : 0 < om * exp qbar := mul_pos hom (exp_pos qbar)
+  unfold what
+  exact ⟨div_pos h (by linarith), (div_lt_one (by linarith)).2 (by linarith)⟩
+
+/-- Cochrane (2023), Online Appendix eqs. (1.23)–(1.24), p. 563 (**the coefficient is
+`ω/(1 + i)`**): at the steady-state portfolio price `Q̄ = 1/(1 + i − ω)` (`1 + i − ω > 0`,
+`1 + i > 0`), `ω̂ = ω/(1 + i)`; the book's (1.24) and (3.21) further replace it by `ω`. -/
+theorem what_steady {om i qbar : ℝ} (h : 0 < 1 + i - om) (hi : 0 < 1 + i)
+    (hq : exp qbar = 1 / (1 + i - om)) : what om qbar = om / (1 + i) := by
+  have h2 : (1 + i - om) ≠ 0 := h.ne'
+  unfold what
+  rw [hq]
+  have e : om * (1 / (1 + i - om)) + 1 = (1 + i) / (1 + i - om) := by
+    have h1 : (1 + i) ≠ 0 := hi.ne'
+    field_simp
+    ring
+  rw [e, mul_one_div, div_div_div_cancel_right₀ h2]
+
+/-- Cochrane (2023), Online Appendix eq. (1.22), p. 563 (**the return remainder bound**): if
+`ω > 0`, `|q_t − q̄| ≤ δ ≤ 1` and `2ω̂δ ≤ 1/2`, then `|R^q_t| ≤ 2(2ω̂δ)² + ω̂δ²`. -/
+theorem remQ_bound {om qbar δ : ℝ} (hom : 0 < om) {q : ℕ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (hq : |q t ω - qbar| ≤ δ) (hδ : δ ≤ 1) (hη : 2 * what om qbar * δ ≤ 1 / 2) :
+    |remQ om qbar q t ω| ≤ 2 * (2 * what om qbar * δ) ^ 2 + what om qbar * δ ^ 2 := by
+  have hc : 0 < om * exp qbar := mul_pos hom (exp_pos qbar)
+  have hA : 0 < om * exp qbar + 1 := by linarith
+  have h := log_lin_bound (c := om * exp qbar) (ybar := 1) (z := q t ω - qbar) (y := 1)
+    (δy := 0) hc hA hq hδ (by simp) (by simpa [what] using hη)
+  have e1 : om * exp qbar * exp (q t ω - qbar) + 1 = 1 + om * exp (q t ω) := by
+    rw [mul_assoc, ← exp_add]
+    ring_nf
+  rw [e1] at h
+  simp only [sub_self, zero_div, add_zero] at h
+  have e2 : remQ om qbar q t ω = log (1 + om * exp (q t ω)) -
+      (log (om * exp qbar + 1) + om * exp qbar / (om * exp qbar + 1) * (q t ω - qbar)) := by
+    unfold remQ what
+    rw [add_comm (om * exp qbar) 1]
+    ring
+  rw [e2]
+  simpa [what] using h
+
+/-- Cochrane (2023), eq. (3.21), p. 65, and Online Appendix eqs. (1.22)–(1.25), pp. 563–564
+(**the bond-return identity derived from the exact return, with remainder**): let `q` (the log
+price of the geometric portfolio) be adapted and bounded, `rⁿ` bounded, and the exact return
+(1.22) `rⁿ_{t+1} = log(1 + ω e^{q_{t+1}}) − q_t` hold with `ω > 0`. Then
+`ΔE rⁿ_{t+1} = −∑_{j≥0} ω̂^{j+1} ΔE rⁿ_{t+2+j} + ∑ ω̂ʲ ΔE R^q_{t+1+j}`. -/
+theorem bond_return_identity {om qbar Kq Kn : ℝ} (hom : 0 < om) {q rn : ℕ → Ω → ℝ}
+    (hret : ∀ t ω, rn (t + 1) ω = log (1 + om * exp (q (t + 1) ω)) - q t ω)
+    (hqa : ∀ t, 𝔼.E t (q t) = q t) (hqK : ∀ t ω, |q t ω| ≤ Kq) (hnK : ∀ t ω, |rn t ω| ≤ Kn)
+    (t : ℕ) (ω : Ω) :
+    SpreadTarget.innov 𝔼 t (rn (t + 1)) ω =
+      -(∑' j, what om qbar ^ (j + 1) * SpreadTarget.innov 𝔼 t (rn (t + 1 + (j + 1))) ω) +
+        ∑' j, what om qbar ^ j * SpreadTarget.innov 𝔼 t (remQ om qbar q (t + 1 + j)) ω := by
+  obtain ⟨hw0, hw1⟩ := what_mem (qbar := qbar) hom
+  set ŵ := what om qbar with hŵ
+  set c0 := log (1 + om * exp qbar) - ŵ * qbar with hc0
+  have hfun : ∀ s, rn (s + 1) = (fun _ => c0) + ŵ • q (s + 1) - q s + remQ om qbar q (s + 1) :=
+    fun s => by
+      funext ω'
+      simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, remQ, hc0, hret s ω']
+      ring
+  have hinnov : ∀ s, SpreadTarget.innov 𝔼 t (rn (s + 1)) ω =
+      ŵ * SpreadTarget.innov 𝔼 t (q (s + 1)) ω - SpreadTarget.innov 𝔼 t (q s) ω +
+        SpreadTarget.innov 𝔼 t (remQ om qbar q (s + 1)) ω := fun s => by
+    rw [hfun s, innov_add, innov_sub, innov_add, innov_const, innov_smul]
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    ring
+  -- the remainder is bounded
+  set KQ := Kn + Kq + |log (1 + om * exp qbar)| + ŵ * (Kq + |qbar|) with hKQ
+  have hRQ : ∀ s ω', |remQ om qbar q (s + 1) ω'| ≤ KQ := fun s ω' => by
+    have e : remQ om qbar q (s + 1) ω' = rn (s + 1) ω' + q s ω' - log (1 + om * exp qbar) -
+        ŵ * (q (s + 1) ω' - qbar) := by
+      unfold remQ
+      rw [hret s ω']
+      ring
+    rw [e]
+    have h1 : |ŵ * (q (s + 1) ω' - qbar)| ≤ ŵ * (Kq + |qbar|) := by
+      rw [abs_mul, abs_of_pos hw0]
+      refine mul_le_mul_of_nonneg_left ((abs_sub _ _).trans ?_) hw0.le
+      linarith [hqK (s + 1) ω']
+    have := abs_sub (rn (s + 1) ω' + q s ω' - log (1 + om * exp qbar))
+      (ŵ * (q (s + 1) ω' - qbar))
+    have := abs_sub (rn (s + 1) ω' + q s ω') (log (1 + om * exp qbar))
+    have := abs_add_le (rn (s + 1) ω') (q s ω')
+    linarith [hnK (s + 1) ω', hqK s ω']
+  set b : ℕ → ℝ := fun j => SpreadTarget.innov 𝔼 t (q (t + 1 + j)) ω with hb
+  set m : ℕ → ℝ := fun j => SpreadTarget.innov 𝔼 t (rn (t + 1 + j)) ω with hm
+  set Rq : ℕ → ℝ := fun j => SpreadTarget.innov 𝔼 t (remQ om qbar q (t + 1 + j)) ω with hRq
+  have hbb : ∀ j, |b j| ≤ 2 * Kq := fun j => innov_bound 𝔼 (hqK _) t ω
+  have hbm : ∀ j, |m j| ≤ 2 * Kn := fun j => innov_bound 𝔼 (hnK _) t ω
+  have hbR : ∀ j, |Rq j| ≤ 2 * KQ := fun j => innov_bound 𝔼 (fun ω' => by
+    have := hRQ (t + j) ω'
+    rwa [show t + j + 1 = t + 1 + j by omega] at this) t ω
+  have hm0 : m 0 = ŵ * b 0 + Rq 0 := by
+    have := hinnov t
+    simp only [innov_known 𝔼 (hqa t), Pi.zero_apply, sub_zero] at this
+    exact this
+  have hrec : ∀ j, b j = ŵ * b (j + 1) + (Rq (j + 1) - m (j + 1)) := fun j => by
+    have := hinnov (t + 1 + j)
+    change m (j + 1) = ŵ * b (j + 1) - b j + Rq (j + 1) at this
+    linarith
+  have hbw : ∀ j, |Rq j - m j| ≤ 2 * KQ + 2 * Kn := fun j => by
+    have := abs_sub (Rq j) (m j)
+    linarith [hbR j, hbm j]
+  have hfw := forward_sum hw0.le hw1 hbb hbw hrec
+  obtain ⟨hsR, -⟩ := discounted_le hw0.le hw1 hbR
+  obtain ⟨hsm, -⟩ := discounted_le hw0.le hw1 hbm
+  have hsR1 : Summable (fun j => ŵ ^ j * Rq (j + 1)) := by
+    have := (summable_nat_add_iff 1).2 hsR
+    exact (this.div_const ŵ).congr fun j => by rw [pow_succ]; field_simp
+  have hsm1 : Summable (fun j => ŵ ^ j * m (j + 1)) := by
+    have := (summable_nat_add_iff 1).2 hsm
+    exact (this.div_const ŵ).congr fun j => by rw [pow_succ]; field_simp
+  have hb0 : b 0 = (∑' j, ŵ ^ j * Rq (j + 1)) - ∑' j, ŵ ^ j * m (j + 1) := by
+    rw [← hsR1.tsum_sub hsm1, ← hfw.tsum_eq]
+    exact tsum_congr fun j => by ring
+  have eR : ∑' j, ŵ ^ j * Rq j = Rq 0 + ŵ * ∑' j, ŵ ^ j * Rq (j + 1) := by
+    rw [hsR.tsum_eq_zero_add, ← tsum_mul_left]
+    simp only [pow_zero, one_mul]
+    congr 1
+    exact tsum_congr fun j => by ring
+  have em : ∑' j, ŵ ^ (j + 1) * m (j + 1) = ŵ * ∑' j, ŵ ^ j * m (j + 1) := by
+    rw [← tsum_mul_left]
+    exact tsum_congr fun j => by ring
+  have e1 : (∑' j, ŵ ^ (j + 1) * SpreadTarget.innov 𝔼 t (rn (t + 1 + (j + 1))) ω) =
+      ∑' j, ŵ ^ (j + 1) * m (j + 1) := rfl
+  have e2 : (∑' j, ŵ ^ j * SpreadTarget.innov 𝔼 t (remQ om qbar q (t + 1 + j)) ω) =
+      ∑' j, ŵ ^ j * Rq j := rfl
+  have e3 : SpreadTarget.innov 𝔼 t (rn (t + 1)) ω = m 0 := rfl
+  rw [e1, e2, e3, eR, em, hm0, hb0]
+  ring
+
+/-- Cochrane (2023), eq. (3.21), p. 65, as used for (8.4), p. 250 (**`MaturityBuffer.Identity321`
+derived**): under the hypotheses of `bond_return_identity` and `rⁿ = r + π`, the news satisfy
+`MaturityBuffer.Identity321` with maturity `ω̂ = ωQ̄/(1 + ωQ̄)` and the bond-return news net of the
+remainder news, `ΔE rⁿ_{t+1} − ∑ ω̂ʲ ΔE R^q_{t+1+j}`. -/
+theorem identity321_of_return {om qbar Kq Kn : ℝ} (hom : 0 < om) {q rn r infl : ℕ → Ω → ℝ}
+    (hret : ∀ t ω, rn (t + 1) ω = log (1 + om * exp (q (t + 1) ω)) - q t ω)
+    (hqa : ∀ t, 𝔼.E t (q t) = q t) (hqK : ∀ t ω, |q t ω| ≤ Kq) (hnK : ∀ t ω, |rn t ω| ≤ Kn)
+    (hrn : ∀ t, rn t = r t + infl t) (t : ℕ) (ω : Ω) :
+    MaturityBuffer.Identity321 (what om qbar)
+      (fun j => SpreadTarget.innov 𝔼 t (infl (t + 1 + j)) ω)
+      (fun j => SpreadTarget.innov 𝔼 t (r (t + 1 + j)) ω)
+      (SpreadTarget.innov 𝔼 t (rn (t + 1)) ω -
+        ∑' j, what om qbar ^ j * SpreadTarget.innov 𝔼 t (remQ om qbar q (t + 1 + j)) ω) := by
+  have h := bond_return_identity 𝔼 (qbar := qbar) hom hret hqa hqK hnK t ω
+  unfold MaturityBuffer.Identity321
+  have e : ∀ j, SpreadTarget.innov 𝔼 t (rn (t + 1 + (j + 1))) ω =
+      SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω +
+        SpreadTarget.innov 𝔼 t (infl (t + 1 + (j + 1))) ω := fun j => by
+    rw [hrn, innov_add, Pi.add_apply]
+  simp only [e] at h
+  linarith
+
+/-- Cochrane (2023), eq. (8.4), p. 250, and eq. (3.22), p. 65 (**(8.4) derived from the nonlinear
+identities, with the error explicit**): under the hypotheses of `identity320_of_flow` (no growth)
+and `bond_return_identity`, with `r = rⁿ − π`, at every date and state
+`∑ ω̂ʲ ΔE π_{t+1+j} = −∑ ρʲ ΔE s̃_{t+1+j} + ∑_{j≥0} (ρ^{j+1} − ω̂^{j+1}) ΔE r_{t+2+j} + e`, with
+`e = ∑ ω̂ʲ ΔE R^q_{t+1+j} − ∑ ρʲ ΔE R_{t+1+j}`; if `|R| ≤ B` and `|R^q| ≤ B_q` from `t + 1` on,
+`|e| ≤ 2B_q/(1 − ω̂) + 2B/(1 − ρ)`. The maturity weight is `ω̂ = ω/(1 + i)` (`what_steady`). -/
+theorem identity84_of_nonlinear {vbar sybar Kv Kr Ks om qbar Kq Kn B Bq : ℝ} (hs : 0 < sybar)
+    (hom : 0 < om) {v r sy infl rn q : ℕ → Ω → ℝ}
+    (hflow : ∀ t ω, v t ω + r (t + 1) ω - 0 = log (sy (t + 1) ω + exp (v (t + 1) ω)))
+    (hret : ∀ t ω, rn (t + 1) ω = log (1 + om * exp (q (t + 1) ω)) - q t ω)
+    (hva : ∀ t, 𝔼.E t (v t) = v t) (hqa : ∀ t, 𝔼.E t (q t) = q t)
+    (hr : ∀ t, r t = rn t - infl t)
+    (hvK : ∀ t ω, |v t ω| ≤ Kv) (hrK : ∀ t ω, |r t ω| ≤ Kr) (hsK : ∀ t ω, |sy t ω| ≤ Ks)
+    (hqK : ∀ t ω, |q t ω| ≤ Kq) (hnK : ∀ t ω, |rn t ω| ≤ Kn) (t : ℕ) (ω : Ω) :
+    ∑' j, what om qbar ^ j * SpreadTarget.innov 𝔼 t (infl (t + 1 + j)) ω =
+      -(∑' j, rho vbar sybar ^ j * SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω) +
+      (∑' j, (rho vbar sybar ^ (j + 1) - what om qbar ^ (j + 1)) *
+        SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω) +
+      ((∑' j, what om qbar ^ j * SpreadTarget.innov 𝔼 t (remQ om qbar q (t + 1 + j)) ω) -
+        ∑' j, rho vbar sybar ^ j * SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω) ∧
+    ((∀ s ω', |remF vbar sybar v sy (t + 1 + s) ω'| ≤ B) →
+      (∀ s ω', |remQ om qbar q (t + 1 + s) ω'| ≤ Bq) →
+      |(∑' j, what om qbar ^ j * SpreadTarget.innov 𝔼 t (remQ om qbar q (t + 1 + j)) ω) -
+        ∑' j, rho vbar sybar ^ j * SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω| ≤
+        2 * Bq / (1 - what om qbar) + 2 * B / (1 - rho vbar sybar)) := by
+  obtain ⟨hA, hρ0, hρ1⟩ := rho_mem (vbar := vbar) hs
+  obtain ⟨hw0, hw1⟩ := what_mem (qbar := qbar) hom
+  set ρ := rho vbar sybar with hρdef
+  set ŵ := what om qbar with hŵ
+  constructor
+  · have h320 := identity320_of_flow 𝔼 (vbar := vbar) (sybar := sybar) hs hflow hva hr hvK hrK
+      hsK t ω
+    unfold MaturityBuffer.Identity320 at h320
+    have hrn : ∀ t, rn t = r t + infl t := fun t => by rw [hr t]; abel
+    have hbond := bond_return_identity 𝔼 (qbar := qbar) hom hret hqa hqK hnK t ω
+    have e : ∀ j, SpreadTarget.innov 𝔼 t (rn (t + 1 + (j + 1))) ω =
+        SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω +
+          SpreadTarget.innov 𝔼 t (infl (t + 1 + (j + 1))) ω := fun j => by
+      rw [hrn, innov_add, Pi.add_apply]
+    simp only [e] at hbond
+    -- summability
+    have hiK : ∀ s ω', |infl s ω'| ≤ Kn + Kr := fun s ω' => by
+      have : infl s ω' = rn s ω' - r s ω' := by rw [hr s]; simp
+      rw [this]
+      exact (abs_sub _ _).trans (add_le_add (hnK s ω') (hrK s ω'))
+    obtain ⟨sπ, -⟩ := discounted_le hw0.le hw1 fun j =>
+      innov_bound 𝔼 (x := infl (t + 1 + j)) (hiK _) t ω
+    obtain ⟨srw, -⟩ := discounted_le hw0.le hw1 fun j =>
+      innov_bound 𝔼 (x := r (t + 1 + j)) (hrK _) t ω
+    obtain ⟨srρ, -⟩ := discounted_le hρ0.le hρ1 fun j =>
+      innov_bound 𝔼 (x := r (t + 1 + j)) (hrK _) t ω
+    have sπ1 := (summable_nat_add_iff 1).2 sπ
+    have srw1 := (summable_nat_add_iff 1).2 srw
+    have srρ1 := (summable_nat_add_iff 1).2 srρ
+    have hRK := remF_succ_le (vbar := vbar) (g := fun _ _ => 0) (Kg := 0) hs hflow hvK hrK
+      (fun _ _ => by simp) hsK
+    have hsK' : ∀ s ω', |stil vbar sybar sy s ω'| ≤ Ks / A0 vbar sybar := fun s ω' => by
+      unfold stil
+      rw [abs_div, abs_of_pos hA]
+      exact div_le_div_of_nonneg_right (hsK _ _) hA.le
+    obtain ⟨ss, -⟩ := discounted_le hρ0.le hρ1 fun j =>
+      innov_bound 𝔼 (x := stil vbar sybar sy (t + 1 + j)) (hsK' _) t ω
+    obtain ⟨sR, -⟩ := discounted_le hρ0.le hρ1 fun j =>
+      innov_bound 𝔼 (x := remF vbar sybar v sy (t + 1 + j)) (fun ω' => by
+        have := hRK (t + j) ω'
+        rwa [show t + j + 1 = t + 1 + j by omega] at this) t ω
+    have eS : ∑' j, ρ ^ j * (SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω +
+        SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω) =
+        (∑' j, ρ ^ j * SpreadTarget.innov 𝔼 t (stil vbar sybar sy (t + 1 + j)) ω) +
+        ∑' j, ρ ^ j * SpreadTarget.innov 𝔼 t (remF vbar sybar v sy (t + 1 + j)) ω := by
+      rw [← ss.tsum_add sR]
+      exact tsum_congr fun j => by ring
+    have eM : ∑' j, ŵ ^ (j + 1) * (SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω +
+        SpreadTarget.innov 𝔼 t (infl (t + 1 + (j + 1))) ω) =
+        (∑' j, ŵ ^ (j + 1) * SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω) +
+        ∑' j, ŵ ^ (j + 1) * SpreadTarget.innov 𝔼 t (infl (t + 1 + (j + 1))) ω := by
+      rw [← srw1.tsum_add sπ1]
+      exact tsum_congr fun j => by ring
+    have eD : ∑' j, (ρ ^ (j + 1) - ŵ ^ (j + 1)) *
+        SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω =
+        (∑' j, ρ ^ (j + 1) * SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω) -
+        ∑' j, ŵ ^ (j + 1) * SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω := by
+      rw [← srρ1.tsum_sub srw1]
+      exact tsum_congr fun j => by ring
+    have eP : ∑' j, ŵ ^ j * SpreadTarget.innov 𝔼 t (infl (t + 1 + j)) ω =
+        SpreadTarget.innov 𝔼 t (infl (t + 1)) ω +
+        ∑' j, ŵ ^ (j + 1) * SpreadTarget.innov 𝔼 t (infl (t + 1 + (j + 1))) ω := by
+      rw [sπ.tsum_eq_zero_add]
+      simp
+    rw [eS] at h320
+    rw [eM] at hbond
+    rw [eP, eD]
+    simp only [add_zero] at h320
+    linarith
+  · intro hB hBq
+    have h1 := (discounted_le hw0.le hw1 fun j =>
+      innov_bound 𝔼 (x := remQ om qbar q (t + 1 + j)) (hBq j) t ω).2
+    have h2 := (discounted_le hρ0.le hρ1 fun j =>
+      innov_bound 𝔼 (x := remF vbar sybar v sy (t + 1 + j)) (hB j) t ω).2
+    exact (abs_sub _ _).trans (add_le_add h1 h2)
+
+/-! ### (9.22) with remainder -/
+
+/-- Cochrane (2023), eq. (9.22), p. 275: the fiscal shock of the derived valuation equation,
+`ε_{t+1} = ∑ ρʲ ΔE_{t+1}(s̃_{t+1+j} + R_{t+1+j})` — the surplus news plus the linearisation
+remainder news (`ε_0` is unused). -/
+noncomputable def epsF {Ω : Type*} (𝔼 : ExpectationSystem Ω) (vbar sybar : ℝ)
+    (v sy : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ∑' j, rho vbar sybar ^ j * (SpreadTarget.innov 𝔼 (n - 1) (stil vbar sybar sy (n + j)) ω +
+    SpreadTarget.innov 𝔼 (n - 1) (remF vbar sybar v sy (n + j)) ω)
+
+/-- Cochrane (2023), eq. (9.22), p. 275 (**(9.22) derived from the nonlinear flow**): with no
+growth, one-period debt (`rⁿ_{t+1} = i_t`, `i` known at `t`), real return `r = rⁿ − π`, bounded
+`v`, `r`, `sy` and `v` adapted, the exact flow (1.9) implies the linearised valuation equation
+`SpreadTarget.Valuation` with `ρ = e^{v̄}/(e^{v̄} + s̄y)` and fiscal shock `epsF` — the surplus news
+plus the remainder news, the latter at most `2B/(1 − ρ)` when `|R| ≤ B`
+(`remainder_sum_le`). -/
+theorem valuation922_of_flow {vbar sybar Kv Kr Ks : ℝ} (hs : 0 < sybar)
+    {v r sy infl rn i : ℕ → Ω → ℝ}
+    (hflow : ∀ t ω, v t ω + r (t + 1) ω - 0 = log (sy (t + 1) ω + exp (v (t + 1) ω)))
+    (hva : ∀ t, 𝔼.E t (v t) = v t) (hr : ∀ t, r t = rn t - infl t)
+    (hrn : ∀ t, rn (t + 1) = i t) (hia : ∀ t, 𝔼.E t (i t) = i t)
+    (hvK : ∀ t ω, |v t ω| ≤ Kv) (hrK : ∀ t ω, |r t ω| ≤ Kr) (hsK : ∀ t ω, |sy t ω| ≤ Ks) :
+    SpreadTarget.Valuation 𝔼 (rho vbar sybar) infl i (epsF 𝔼 vbar sybar v sy) := by
+  obtain ⟨hA, hρ0, hρ1⟩ := rho_mem (vbar := vbar) hs
+  intro t
+  funext ω
+  have h := identity320_of_flow 𝔼 (vbar := vbar) (sybar := sybar) hs hflow hva hr hvK hrK hsK t ω
+  unfold MaturityBuffer.Identity320 at h
+  have hi0 : SpreadTarget.innov 𝔼 t (rn (t + 1)) ω = 0 := by
+    rw [hrn t, innov_known 𝔼 (hia t), Pi.zero_apply]
+  rw [hi0, sub_zero] at h
+  have e1 : ∀ j, SpreadTarget.innov 𝔼 t (r (t + 1 + (j + 1))) ω =
+      SpreadTarget.innov 𝔼 t (i (t + 1 + j) - infl (t + 2 + j)) ω := fun j => by
+    rw [hr, show t + 1 + (j + 1) = (t + 1 + j) + 1 by omega, hrn,
+      show t + 1 + j + 1 = t + 2 + j by omega]
+  simp only [e1] at h
+  simp only [Pi.add_apply, Pi.neg_apply]
+  rw [h]
+  unfold epsF
+  simp only [show t + 1 - 1 = t by omega]
+
+end Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Continuous-time matching: wider classes of payment streams
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 8, §8.4, pp. 250–251 (the
+continuous-time present-value relation; matching makes real rates cancel, and "otherwise, the
+mismatch ... determines how the price level reacts to real interest rates").
+
+`TidyR5MatchingMeas.matching_necessary_meas` proves the converse of
+`MaturityBuffer.matching_cancels` for measurable mismatch streams `y` whose present value converges
+absolutely at the lowest rate `r̲` (`e^{−r̲τ} y ∈ L¹(0, ∞)`). The converse is extended here in the
+two directions in which a "present value of a payment stream" still makes sense, and the claim is
+shown to fail beyond them.
+
+## Main results
+
+* `matching_necessary_measure` (**payment streams that are measures**): debt can mature in lumps
+  at discrete dates (Dirac masses) as well as continuously. If two positive measures `μ, ν` on
+  `[0, ∞)` (e.g. the positive and negative parts of a signed mismatch stream) have absolutely
+  convergent present values at `r̲` and the same present value along every constant real-rate
+  path `λ ≥ r̲`, then they coincide on `[0, ∞)`. The proof pushes `e^{−r̲τ}μ` forward by
+  `τ ↦ e^{−τ}` to `[0, 1]`, uses Weierstrass and `ext_of_forall_integral_eq_of_IsFiniteMeasure`, and
+  undoes the push-forward and the density (`pushM_injective`).
+* `matching_necessary_improper` (**conditionally convergent present values**): for a locally
+  integrable stream `y` whose present values `lim_{T→∞} ∫₀^T e^{−λτ} y(τ) dτ` exist and vanish for
+  every `λ ≥ r̲` (convergence may be conditional), `y = 0` a.e. on `(0, ∞)`. Proof: with
+  `Φ(T) = ∫₀^T e^{−r̲τ} y`, integration by parts for absolutely continuous functions
+  (`AbsolutelyContinuousOnInterval.integral_mul_deriv_eq_deriv_mul`) gives
+  `∫₀^T e^{−(r̲+c)τ} y = e^{−cT}Φ(T) + c ∫₀^T e^{−cτ}Φ`, so the bounded continuous `Φ` has vanishing
+  Laplace transform, `Φ ≡ 0` (`TidyR5Matching.laplace_unique`), and by the Lebesgue
+  differentiation theorem `y = 0` a.e.
+* `improper_of_integrable`: this class contains the class of
+  `TidyR5MatchingMeas.matching_necessary_meas` (absolutely convergent present values are limits
+  of the truncated ones), and
+  `improper_class_strictly_larger`: it is strictly larger.
+* `junk_counterexample` (**outside the class the claim fails**): `y(τ) = e^{τ²}` has no present
+  value at any rate (`no_present_value`: the truncated present values are unbounded), so with
+  Lean's convention for non-integrable functions its "present value" is `0` along every constant
+  rate path, yet `y ≠ 0` everywhere. A convergence hypothesis on the present value is therefore
+  necessary; the improper class above is the natural class of function streams on which the claim
+  has content (its maximality is not proved).
+-/
+
+namespace Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral
+
+open MeasureTheory Filter Topology Real
+
+/-! ### Payment streams that are measures -/
+
+/-- Cochrane (2023), §8.4, p. 250: the discount weight at the lowest rate, `e^{−r̲τ}`, as an
+extended nonnegative density. -/
+noncomputable def wgt (rl : ℝ) (τ : ℝ) : ENNReal := ENNReal.ofReal (exp (-(rl * τ)))
+
+/-- Cochrane (2023), §8.4, p. 250: the stream `μ` on `[0, ∞)` discounted at `r̲`. -/
+noncomputable def wMeas (rl : ℝ) (μ : Measure ℝ) : Measure ℝ :=
+  (μ.restrict (Set.Ici 0)).withDensity (wgt rl)
+
+/-- Cochrane (2023), §8.4, p. 250: the discounted stream transported to `[0, 1]` by
+`τ ↦ e^{−τ}`. -/
+noncomputable def pushM (rl : ℝ) (μ : Measure ℝ) : Measure ℝ :=
+  (wMeas rl μ).map (fun τ => exp (-τ))
+
+/-- Cochrane (2023), §8.4, p. 250: the discount weight is measurable. -/
+theorem wgt_measurable (rl : ℝ) : Measurable (wgt rl) :=
+  ENNReal.measurable_ofReal.comp ((continuous_exp.comp
+    ((continuous_const.mul continuous_id).neg)).measurable)
+
+/-- Cochrane (2023), §8.4, p. 250: `τ ↦ e^{−τ}` is a measurable embedding of `ℝ` into `ℝ`. -/
+theorem expNeg_embedding : MeasurableEmbedding (fun τ : ℝ => exp (-τ)) := by
+  refine MeasurableEmbedding.of_measurable_inverse (g := fun x => -log x)
+    (continuous_exp.comp continuous_neg).measurable ?_ (measurable_log.neg) fun τ => by
+      simp
+  have : Set.range (fun τ : ℝ => exp (-τ)) = Set.Ioi 0 := by
+    ext x
+    simp only [Set.mem_range, Set.mem_Ioi]
+    constructor
+    · rintro ⟨τ, rfl⟩
+      exact exp_pos _
+    · intro hx
+      exact ⟨-log x, by simp [exp_log hx]⟩
+  rw [this]
+  exact measurableSet_Ioi
+
+/-- Cochrane (2023), §8.4, p. 250: if the present value at `r̲` converges absolutely, the
+discounted stream is a finite measure. -/
+theorem wMeas_finite {rl : ℝ} {μ : Measure ℝ}
+    (hμ : Integrable (fun τ => exp (-(rl * τ))) (μ.restrict (Set.Ici 0))) :
+    IsFiniteMeasure (wMeas rl μ) := by
+  refine ⟨?_⟩
+  rw [wMeas, withDensity_apply _ MeasurableSet.univ, Measure.restrict_univ]
+  exact hμ.lintegral_lt_top
+
+/-- Cochrane (2023), §8.4, p. 250: the transported stream lives on `[0, 1]`. -/
+theorem pushM_ae (rl : ℝ) (μ : Measure ℝ) : ∀ᵐ x ∂pushM rl μ, x ∈ Set.Icc (0 : ℝ) 1 := by
+  rw [pushM, expNeg_embedding.ae_map_iff]
+  have h : ∀ᵐ τ ∂(μ.restrict (Set.Ici 0)), τ ∈ Set.Ici (0 : ℝ) := ae_restrict_mem measurableSet_Ici
+  have h2 := (withDensity_absolutelyContinuous (μ.restrict (Set.Ici 0)) (wgt rl)).ae_le h
+  filter_upwards [h2] with τ hτ
+  exact ⟨(exp_pos _).le, exp_le_one_iff.2 (by linarith [Set.mem_Ici.1 hτ])⟩
+
+/-- Cochrane (2023), §8.4, p. 250 (**the moments are present values**): the `n`-th moment of the
+transported stream is the present value at the constant rate `r̲ + n`,
+`∫ xⁿ d(pushM) = ∫_{[0,∞)} e^{−(r̲+n)τ} dμ`. -/
+theorem pushM_moment (rl : ℝ) (μ : Measure ℝ) (n : ℕ) :
+    ∫ x, x ^ n ∂pushM rl μ = ∫ τ in Set.Ici 0, exp (-((rl + n) * τ)) ∂μ := by
+  rw [pushM, expNeg_embedding.integral_map, wMeas,
+    integral_withDensity_eq_integral_toReal_smul (wgt_measurable rl)]
+  · refine integral_congr_ae (Eventually.of_forall fun τ => ?_)
+    simp only [wgt, ENNReal.toReal_ofReal (exp_pos _).le, smul_eq_mul]
+    rw [← exp_nat_mul, ← exp_add]
+    ring_nf
+  · exact Eventually.of_forall fun τ => ENNReal.ofReal_lt_top
+
+/-- Cochrane (2023), §8.4, p. 250 (supporting lemma, **moment determinacy on `[0, 1]`**): two
+finite measures on `ℝ` living on `[0, 1]` with the same moments `∫ xⁿ` agree. -/
+theorem eq_of_moments {p q : Measure ℝ} [IsFiniteMeasure p] [IsFiniteMeasure q]
+    (hp : ∀ᵐ x ∂p, x ∈ Set.Icc (0 : ℝ) 1) (hq : ∀ᵐ x ∂q, x ∈ Set.Icc (0 : ℝ) 1)
+    (hmom : ∀ n : ℕ, ∫ x, x ^ n ∂p = ∫ x, x ^ n ∂q) : p = q := by
+  -- integrability of continuous functions bounded on `[0, 1]`
+  have hint : ∀ (m : Measure ℝ) [IsFiniteMeasure m], (∀ᵐ x ∂m, x ∈ Set.Icc (0 : ℝ) 1) →
+      ∀ φ : ℝ → ℝ, Continuous φ → Integrable φ m := by
+    intro m _ hm φ hφ
+    obtain ⟨C, hC⟩ :=
+      isCompact_Icc.exists_bound_of_continuousOn (hφ.continuousOn (s := Set.Icc 0 1))
+    exact Integrable.of_bound hφ.aestronglyMeasurable C (hm.mono fun x hx => hC x hx)
+  have hpoly : ∀ r : Polynomial ℝ, ∫ x, r.eval x ∂p = ∫ x, r.eval x ∂q := by
+    intro r
+    have e : ∀ (m : Measure ℝ) [IsFiniteMeasure m], (∀ᵐ x ∂m, x ∈ Set.Icc (0 : ℝ) 1) →
+        ∫ x, r.eval x ∂m = ∑ i ∈ Finset.range (r.natDegree + 1), r.coeff i * ∫ x, x ^ i ∂m := by
+      intro m _ hm
+      have : (fun x => r.eval x) = fun x => ∑ i ∈ Finset.range (r.natDegree + 1),
+          r.coeff i * x ^ i := by
+        funext x
+        rw [Polynomial.eval_eq_sum_range]
+      rw [this, integral_finsetSum]
+      · exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
+      · intro i _
+        exact (hint m hm _ (continuous_pow i)).const_mul _
+    rw [e p hp, e q hq]
+    exact Finset.sum_congr rfl fun i _ => by rw [hmom i]
+  apply ext_of_forall_integral_eq_of_IsFiniteMeasure
+  intro f
+  set K := p.real Set.univ + q.real Set.univ with hK
+  have hK0 : 0 ≤ K := by positivity
+  have hle : ∀ ε, 0 < ε → |∫ x, f x ∂p - ∫ x, f x ∂q| ≤ ε * K := by
+    intro ε hε
+    obtain ⟨r, hr⟩ := exists_polynomial_near_of_continuousOn 0 1 f f.continuous.continuousOn ε hε
+    have hfi : ∀ (m : Measure ℝ) [IsFiniteMeasure m], (∀ᵐ x ∂m, x ∈ Set.Icc (0 : ℝ) 1) →
+        |∫ x, f x ∂m - ∫ x, r.eval x ∂m| ≤ ε * m.real Set.univ := by
+      intro m _ hm
+      rw [← integral_sub (hint m hm _ f.continuous) (hint m hm _ r.continuous)]
+      have := norm_integral_le_of_norm_le_const (μ := m) (f := fun x => f x - r.eval x)
+        (C := ε) (hm.mono fun x hx => by
+          rw [Real.norm_eq_abs, abs_sub_comm]
+          exact (hr x hx).le)
+      rwa [Real.norm_eq_abs] at this
+    have h1 := hfi p hp
+    have h2 := hfi q hq
+    rw [hpoly r] at h1
+    have := abs_sub_le (∫ x, f x ∂p) (∫ x, r.eval x ∂q) (∫ x, f x ∂q)
+    rw [abs_sub_comm (∫ x, r.eval x ∂q)] at this
+    calc |∫ x, f x ∂p - ∫ x, f x ∂q| ≤ ε * p.real Set.univ + ε * q.real Set.univ := by
+          linarith
+      _ = ε * K := by ring
+  by_contra hne
+  have hpos : 0 < |∫ x, f x ∂p - ∫ x, f x ∂q| := abs_pos.2 (sub_ne_zero.2 hne)
+  have := hle (|∫ x, f x ∂p - ∫ x, f x ∂q| / (2 * (K + 1))) (by positivity)
+  have e2 : |∫ x, f x ∂p - ∫ x, f x ∂q| / (2 * (K + 1)) * K ≤
+      |∫ x, f x ∂p - ∫ x, f x ∂q| / 2 := by
+    rw [div_mul_eq_mul_div, div_le_div_iff₀ (by positivity) (by norm_num)]
+    nlinarith
+  linarith
+
+/-- Cochrane (2023), §8.4, p. 250 (supporting lemma): the transport is injective on streams with
+absolutely convergent present values: `pushM r̲ μ = pushM r̲ ν` forces `μ = ν` on `[0, ∞)`. -/
+theorem pushM_injective {rl : ℝ} {μ ν : Measure ℝ} (h : pushM rl μ = pushM rl ν) :
+    μ.restrict (Set.Ici 0) = ν.restrict (Set.Ici 0) := by
+  have hw : wMeas rl μ = wMeas rl ν := by
+    rw [← expNeg_embedding.comap_map (wMeas rl μ), ← expNeg_embedding.comap_map (wMeas rl ν)]
+    exact congrArg (Measure.comap _) h
+  have hne0 : ∀ τ, wgt rl τ ≠ 0 := fun τ => by
+    simp [wgt, exp_pos]
+  have hnetop : ∀ τ, wgt rl τ ≠ ⊤ := fun τ => ENNReal.ofReal_ne_top
+  rw [← withDensity_inv_same (μ := μ.restrict (Set.Ici 0)) (wgt_measurable rl)
+      (Eventually.of_forall hne0) (Eventually.of_forall hnetop),
+    ← withDensity_inv_same (μ := ν.restrict (Set.Ici 0)) (wgt_measurable rl)
+      (Eventually.of_forall hne0) (Eventually.of_forall hnetop)]
+  exact congrArg (fun m => m.withDensity fun x => (wgt rl x)⁻¹) hw
+
+/-- Cochrane (2023), §8.4, pp. 250–251 (**the converse for payment streams that are measures**):
+let `μ, ν` be measures on `ℝ` (streams of real payments on `[0, ∞)`, continuous or lumpy — e.g.
+debt maturing at discrete dates is a sum of Dirac masses; a signed mismatch stream is the
+difference of its positive and negative parts) whose present values at the lowest rate `r̲`
+converge absolutely. If the two streams have the same present value
+`∫_{[0,∞)} e^{−λτ} dμ = ∫_{[0,∞)} e^{−λτ} dν` along every constant real-rate path `λ ≥ r̲`, then
+`μ = ν` on `[0, ∞)`: the maturity structure must match the surpluses exactly. -/
+theorem matching_necessary_measure {rl : ℝ} {μ ν : Measure ℝ}
+    (hμ : Integrable (fun τ => exp (-(rl * τ))) (μ.restrict (Set.Ici 0)))
+    (hν : Integrable (fun τ => exp (-(rl * τ))) (ν.restrict (Set.Ici 0)))
+    (h : ∀ l, rl ≤ l → ∫ τ in Set.Ici 0, exp (-(l * τ)) ∂μ = ∫ τ in Set.Ici 0, exp (-(l * τ)) ∂ν) :
+    μ.restrict (Set.Ici 0) = ν.restrict (Set.Ici 0) := by
+  have := wMeas_finite hμ
+  have := wMeas_finite hν
+  have : IsFiniteMeasure (pushM rl μ) := Measure.isFiniteMeasure_map _ _
+  have : IsFiniteMeasure (pushM rl ν) := Measure.isFiniteMeasure_map _ _
+  refine pushM_injective (eq_of_moments (pushM_ae rl μ) (pushM_ae rl ν) fun n => ?_)
+  rw [pushM_moment, pushM_moment]
+  exact h _ (by have : (0 : ℝ) ≤ n := n.cast_nonneg; linarith)
+
+/-! ### Conditionally convergent present values -/
+
+/-- Cochrane (2023), §8.4, p. 250: the truncated present value of the mismatch stream at the
+lowest rate, `Φ(x) = ∫₀ˣ e^{−r̲τ} y(τ) dτ`. -/
+noncomputable def prim (rl : ℝ) (y : ℝ → ℝ) (x : ℝ) : ℝ := ∫ τ in (0 : ℝ)..x, exp (-(rl * τ)) * y τ
+
+/-- Cochrane (2023), §8.4, p. 250: the discount factor `e^{−λτ}` is continuous. -/
+theorem disc_continuous (l : ℝ) : Continuous (fun τ : ℝ => exp (-(l * τ))) :=
+  continuous_exp.comp ((continuous_const.mul continuous_id).neg)
+
+/-- Cochrane (2023), §8.4, p. 250: for a locally integrable stream the discounted stream is
+interval integrable on every `[0, T]`. -/
+theorem g_intervalIntegrable {rl : ℝ} {y : ℝ → ℝ}
+    (hloc : ∀ T, 0 ≤ T → IntervalIntegrable y volume 0 T) {T : ℝ} (hT : 0 ≤ T) :
+    IntervalIntegrable (fun τ => exp (-(rl * τ)) * y τ) volume 0 T :=
+  (hloc T hT).continuousOn_mul (disc_continuous rl).continuousOn
+
+/-- Cochrane (2023), §8.4, p. 250: the truncated present value is continuous on `[0, ∞)`. -/
+theorem prim_continuousOn {rl : ℝ} {y : ℝ → ℝ}
+    (hloc : ∀ T, 0 ≤ T → IntervalIntegrable y volume 0 T) :
+    ContinuousOn (prim rl y) (Set.Ici 0) := by
+  intro x hx
+  have hx0 : 0 ≤ x := hx
+  have hc := intervalIntegral.continuousOn_primitive_interval'
+    (g_intervalIntegrable (rl := rl) hloc (by linarith : (0 : ℝ) ≤ x + 1))
+    (Set.left_mem_uIcc (a := (0 : ℝ)) (b := x + 1))
+  rw [Set.uIcc_of_le (by linarith : (0 : ℝ) ≤ x + 1)] at hc
+  refine (hc x ⟨hx0, by linarith⟩).mono_of_mem_nhdsWithin ?_
+  refine mem_nhdsWithin.2 ⟨Set.Iio (x + 1), isOpen_Iio, by simp, fun z hz => ?_⟩
+  exact ⟨hz.2, le_of_lt hz.1⟩
+
+/-- Cochrane (2023), §8.4, p. 250 (**integration by parts**): for `c > 0`, `T ≥ 0`,
+`∫₀^T e^{−(r̲+c)τ} y = e^{−cT} Φ(T) + c ∫₀^T e^{−cτ} Φ(τ) dτ`, by
+`AbsolutelyContinuousOnInterval.integral_mul_deriv_eq_deriv_mul` and Lebesgue differentiation
+(`IntervalIntegrable.ae_hasDerivAt_integral`). -/
+theorem ibp {rl c : ℝ} {y : ℝ → ℝ} (hloc : ∀ T, 0 ≤ T → IntervalIntegrable y volume 0 T)
+    {T : ℝ} (hT : 0 ≤ T) :
+    ∫ τ in (0 : ℝ)..T, exp (-((rl + c) * τ)) * y τ =
+      exp (-(c * T)) * prim rl y T + c * ∫ τ in (0 : ℝ)..T, exp (-(c * τ)) * prim rl y τ := by
+  set g : ℝ → ℝ := fun τ => exp (-(rl * τ)) * y τ with hg
+  set f : ℝ → ℝ := fun τ => exp (-(c * τ)) with hf
+  have hgi := g_intervalIntegrable (rl := rl) hloc hT
+  have hfd : ∀ x, HasDerivAt f (-c * exp (-(c * x))) x := fun x => by
+    have h0 : HasDerivAt (fun x => c * x) c x := by simpa using (hasDerivAt_id x).const_mul c
+    have h1 : HasDerivAt (fun x => -(c * x)) (-c) x := h0.neg
+    exact HasDerivAt.congr_deriv h1.exp (by ring)
+  have hcd : ContDiff ℝ 1 f := Real.contDiff_exp.comp ((contDiff_const.mul contDiff_id).neg)
+  have hfac : AbsolutelyContinuousOnInterval f 0 T := hcd.contDiffOn.absolutelyContinuousOnInterval
+  have hΦac : AbsolutelyContinuousOnInterval (prim rl y) 0 T :=
+    hgi.absolutelyContinuousOnInterval_intervalIntegral (Set.left_mem_uIcc)
+  have hibp := hfac.integral_mul_deriv_eq_deriv_mul hΦac
+  have hderf : deriv f = fun x => -c * exp (-(c * x)) := funext fun x => (hfd x).deriv
+  have hderΦ : ∀ᵐ x, x ∈ Set.uIoc 0 T → f x * deriv (prim rl y) x = f x * g x := by
+    filter_upwards [hgi.ae_hasDerivAt_integral] with x hx hxm
+    have h := hx (Set.uIoc_subset_uIcc hxm) 0 Set.left_mem_uIcc
+    rw [show (fun x => ∫ t in (0 : ℝ)..x, g t) = prim rl y from rfl] at h
+    rw [h.deriv]
+  rw [intervalIntegral.integral_congr_ae hderΦ, hderf] at hibp
+  have hΦ0 : prim rl y 0 = 0 := intervalIntegral.integral_same
+  have e1 : (fun τ => exp (-((rl + c) * τ)) * y τ) = fun τ => f τ * g τ := by
+    funext τ
+    simp only [hf, hg, ← mul_assoc, ← exp_add]
+    ring_nf
+  rw [e1, hibp, hΦ0, mul_zero, sub_zero]
+  have e2 : ∫ x in (0 : ℝ)..T, -c * exp (-(c * x)) * prim rl y x =
+      -c * ∫ x in (0 : ℝ)..T, exp (-(c * x)) * prim rl y x := by
+    rw [← intervalIntegral.integral_const_mul]
+    exact intervalIntegral.integral_congr fun x _ => by ring
+  rw [e2]
+  ring
+
+/-- Cochrane (2023), §8.4, pp. 250–251 (**the converse for conditionally convergent present
+values**): let the mismatch stream `y` be locally integrable on `[0, ∞)` and let its present value
+along every constant real-rate path `λ ≥ r̲` exist as an improper integral and vanish,
+`∫₀^T e^{−λτ} y(τ) dτ → 0` as `T → ∞` (the convergence may be conditional). Then `y = 0` a.e. on
+`(0, ∞)`. -/
+theorem matching_necessary_improper {rl : ℝ} {y : ℝ → ℝ}
+    (hloc : ∀ T, 0 ≤ T → IntervalIntegrable y volume 0 T)
+    (h : ∀ l, rl ≤ l → Tendsto (fun T => ∫ τ in (0 : ℝ)..T, exp (-(l * τ)) * y τ) atTop (𝓝 0)) :
+    ∀ᵐ τ ∂(volume.restrict (Set.Ioi 0)), y τ = 0 := by
+  have hΦc := prim_continuousOn (rl := rl) hloc
+  have hΦlim : Tendsto (prim rl y) atTop (𝓝 0) := h rl le_rfl
+  -- `Φ` is bounded on `[0, ∞)`
+  obtain ⟨M, hM⟩ : ∃ M, ∀ τ, 0 ≤ τ → |prim rl y τ| ≤ M := by
+    obtain ⟨T0, hT0⟩ := eventually_atTop.1 (hΦlim.eventually (Metric.closedBall_mem_nhds 0 one_pos))
+    obtain ⟨C, hC⟩ := isCompact_Icc.exists_bound_of_continuousOn
+      (hΦc.mono (fun z hz => hz.1 : Set.Icc 0 (max T0 0) ⊆ Set.Ici 0))
+    refine ⟨max C 1, fun τ hτ => ?_⟩
+    rcases le_total τ (max T0 0) with h1 | h1
+    · exact (hC τ ⟨hτ, h1⟩).trans (le_max_left _ _)
+    · have := hT0 τ (le_trans (le_max_left _ _) h1)
+      rw [Real.dist_eq, sub_zero] at this
+      exact this.trans (le_max_right _ _)
+  -- the Laplace transform of `Φ` vanishes
+  have hLap : ∀ c, 0 < c → ∫ τ in Set.Ioi 0, exp (-(c * τ)) * prim rl y τ = 0 := by
+    intro c hc
+    have hint := TidyR5Matching.integrableOn_disc hc hΦc hM
+    have h1 : Tendsto (fun T => exp (-(c * T)) * prim rl y T +
+        c * ∫ τ in (0 : ℝ)..T, exp (-(c * τ)) * prim rl y τ) atTop
+        (𝓝 (0 * 0 + c * ∫ τ in Set.Ioi 0, exp (-(c * τ)) * prim rl y τ)) := by
+      refine Tendsto.add (Tendsto.mul ?_ hΦlim)
+        ((intervalIntegral_tendsto_integral_Ioi 0 hint tendsto_id).const_mul c)
+      exact Real.tendsto_exp_neg_atTop_nhds_zero.comp (tendsto_id.const_mul_atTop hc)
+    have h2 : Tendsto (fun T => exp (-(c * T)) * prim rl y T +
+        c * ∫ τ in (0 : ℝ)..T, exp (-(c * τ)) * prim rl y τ) atTop (𝓝 0) :=
+      (h (rl + c) (by linarith)).congr' (eventually_atTop.2 ⟨0, fun T hT => ibp hloc hT⟩)
+    have := tendsto_nhds_unique h1 h2
+    simp only [mul_zero, zero_add, mul_eq_zero] at this
+    rcases this with h3 | h3
+    · linarith
+    · exact h3
+  have hΦ0 : ∀ τ, 0 ≤ τ → prim rl y τ = 0 :=
+    TidyR5Matching.laplace_unique one_pos hΦc hM fun n => hLap _ (by positivity)
+  -- Lebesgue differentiation: `e^{−r̲τ} y = Φ' = 0` a.e. on `(0, ∞)`
+  have hder : ∀ N : ℕ, ∀ᵐ x, x ∈ Set.uIcc 0 (N : ℝ) → ∀ c ∈ Set.uIcc 0 (N : ℝ),
+      HasDerivAt (fun x => ∫ t in c..x, exp (-(rl * t)) * y t) (exp (-(rl * x)) * y x) x :=
+    fun N => (g_intervalIntegrable (rl := rl) hloc (Nat.cast_nonneg N)).ae_hasDerivAt_integral
+  rw [ae_restrict_iff' measurableSet_Ioi]
+  filter_upwards [ae_all_iff.2 hder] with x hx hx0
+  have hx0' : 0 < x := hx0
+  obtain ⟨N, hN⟩ := exists_nat_gt x
+  have hmem : x ∈ Set.uIcc 0 (N : ℝ) := by
+    rw [Set.uIcc_of_le (Nat.cast_nonneg N)]
+    exact ⟨hx0'.le, hN.le⟩
+  have h1 : HasDerivAt (prim rl y) (exp (-(rl * x)) * y x) x :=
+    hx N hmem 0 Set.left_mem_uIcc
+  have heq : prim rl y =ᶠ[𝓝 x] fun _ => (0 : ℝ) :=
+    Filter.eventually_of_mem (Ioi_mem_nhds hx0') fun z hz => hΦ0 z (le_of_lt hz)
+  have h2 : HasDerivAt (prim rl y) 0 x := (hasDerivAt_const x (0 : ℝ)).congr_of_eventuallyEq heq
+  have h3 := h1.unique h2
+  rcases mul_eq_zero.1 h3 with h4 | h4
+  · exact absurd h4 (exp_pos _).ne'
+  · exact h4
+
+/-- Cochrane (2023), §8.4, p. 250 (**the improper class contains the absolutely
+convergent class**): if `e^{−r̲τ} y` is integrable on `(0, ∞)` (the class of
+`TidyR5MatchingMeas.matching_necessary_meas`), then `y` is locally integrable on `[0, ∞)` and for
+every `λ ≥ r̲` the truncated present values converge to the present value
+`∫_{(0,∞)} e^{−λτ} y`; so `matching_necessary_improper` contains
+`TidyR5MatchingMeas.matching_necessary_meas`. -/
+theorem improper_of_integrable {rl : ℝ} {y : ℝ → ℝ}
+    (hint : IntegrableOn (fun τ => exp (-(rl * τ)) * y τ) (Set.Ioi 0)) :
+    (∀ T, 0 ≤ T → IntervalIntegrable y volume 0 T) ∧
+      ∀ l, rl ≤ l → Tendsto (fun T => ∫ τ in (0 : ℝ)..T, exp (-(l * τ)) * y τ) atTop
+        (𝓝 (∫ τ in Set.Ioi 0, exp (-(l * τ)) * y τ)) := by
+  refine ⟨fun T hT => ?_, fun l hl =>
+    intervalIntegral_tendsto_integral_Ioi 0 (TidyR5MatchingMeas.integrableOn_shift hl hint)
+      tendsto_id⟩
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hT]
+  have hsub : IntegrableOn (fun τ => exp (-(rl * τ)) * y τ) (Set.Ioc 0 T) :=
+    hint.mono_set Set.Ioc_subset_Ioi_self
+  have hm : AEStronglyMeasurable (fun τ => exp (rl * τ)) (volume.restrict (Set.Ioc 0 T)) :=
+    (continuous_exp.comp (continuous_const.mul continuous_id)).aestronglyMeasurable
+  refine IntegrableOn.congr_fun (hsub.bdd_mul hm (c := exp (|rl| * T)) ?_) (fun τ _ => ?_)
+    measurableSet_Ioc
+  · filter_upwards [self_mem_ae_restrict measurableSet_Ioc] with τ hτ
+    rw [Real.norm_eq_abs, abs_of_pos (exp_pos _), exp_le_exp]
+    have h1 : rl * τ ≤ |rl| * τ := mul_le_mul_of_nonneg_right (le_abs_self rl) hτ.1.le
+    have h2 : |rl| * τ ≤ |rl| * T := mul_le_mul_of_nonneg_left hτ.2 (abs_nonneg rl)
+    linarith
+  · rw [← mul_assoc, ← exp_add]
+    simp
+
+/-! ### The improper class is strictly larger -/
+
+/-- Cochrane (2023), §8.4, p. 250 (an example stream): the alternating harmonic step stream,
+`y(τ) = (−1)ᵏ/(k + 1)` on `[k, k + 1)`. -/
+noncomputable def alt (τ : ℝ) : ℝ := (-1) ^ (⌊τ⌋₊) / ((⌊τ⌋₊ : ℝ) + 1)
+
+/-- Cochrane (2023), §8.4, p. 250: the example stream is measurable and bounded by `1`. -/
+theorem alt_props : Measurable alt ∧ ∀ τ, |alt τ| ≤ 1 := by
+  refine ⟨(Measurable.of_discrete (f := fun n : ℕ => (-1 : ℝ) ^ n / ((n : ℝ) + 1))).comp
+    Nat.measurable_floor, fun τ => ?_⟩
+  unfold alt
+  rw [abs_div, abs_pow, abs_neg, abs_one, one_pow, abs_of_pos (by positivity)]
+  exact (div_le_one (by positivity)).2 (by linarith [(Nat.cast_nonneg _ : (0 : ℝ) ≤ ⌊τ⌋₊)])
+
+/-- Cochrane (2023), §8.4, p. 250: the example stream is interval integrable on every interval. -/
+theorem alt_ii (a b : ℝ) : IntervalIntegrable alt volume a b := by
+  have : IsFiniteMeasure (volume.restrict (Set.uIoc a b)) :=
+    isFiniteMeasure_restrict.2 (by rw [Set.uIoc]; exact measure_Ioc_lt_top.ne)
+  exact intervalIntegrable_iff.2 (Integrable.of_bound alt_props.1.aestronglyMeasurable 1
+    (Eventually.of_forall fun τ => by rw [Real.norm_eq_abs]; exact alt_props.2 τ))
+
+/-- Cochrane (2023), §8.4, p. 250: on `[k, T]`, `T ≤ k + 1`, the stream and its absolute value are
+the constants `(−1)ᵏ/(k + 1)` and `1/(k + 1)`, so their integrals are `(T − k)` times those. -/
+theorem alt_piece (k : ℕ) {T : ℝ} (hk : (k : ℝ) ≤ T) (hT : T ≤ k + 1) :
+    ∫ τ in (k : ℝ)..T, alt τ = (T - k) * ((-1) ^ k / ((k : ℝ) + 1)) ∧
+      ∫ τ in (k : ℝ)..T, |alt τ| = (T - k) * (1 / ((k : ℝ) + 1)) := by
+  have hne : ∀ᵐ x ∂(volume : Measure ℝ), x ≠ T := by simp [ae_iff, measure_singleton]
+  have hval : ∀ x, x ∈ Set.Ioc (k : ℝ) T → x ≠ T → alt x = (-1) ^ k / ((k : ℝ) + 1) := by
+    intro x hx hxT
+    have hfl : ⌊x⌋₊ = k := by
+      rw [Nat.floor_eq_iff (by linarith [hx.1, (Nat.cast_nonneg k : (0 : ℝ) ≤ k)])]
+      exact ⟨hx.1.le, lt_of_lt_of_le (lt_of_le_of_ne hx.2 hxT) hT⟩
+    simp [alt, hfl]
+  constructor
+  · rw [intervalIntegral.integral_congr_ae (g := fun _ => (-1) ^ k / ((k : ℝ) + 1)) ?_,
+      intervalIntegral.integral_const, smul_eq_mul]
+    filter_upwards [hne] with x hxT hx
+    rw [Set.uIoc_of_le hk] at hx
+    exact hval x hx hxT
+  · rw [intervalIntegral.integral_congr_ae (g := fun _ => 1 / ((k : ℝ) + 1)) ?_,
+      intervalIntegral.integral_const, smul_eq_mul]
+    filter_upwards [hne] with x hxT hx
+    rw [Set.uIoc_of_le hk] at hx
+    rw [hval x hx hxT, abs_div, abs_pow, abs_neg, abs_one, one_pow,
+      abs_of_pos (by positivity)]
+
+/-- Cochrane (2023), §8.4, p. 250: over `[0, n]` the stream integrates to the alternating
+harmonic partial sum and its absolute value to the harmonic partial sum. -/
+theorem alt_blocks (n : ℕ) :
+    ∫ τ in (0 : ℝ)..n, alt τ = ∑ k ∈ Finset.range n, (-1) ^ k * (1 / ((k : ℝ) + 1)) ∧
+      ∫ τ in (0 : ℝ)..n, |alt τ| = ∑ k ∈ Finset.range n, 1 / ((k : ℝ) + 1) := by
+  constructor
+  · rw [← Nat.cast_zero, ← intervalIntegral.sum_integral_adjacent_intervals
+      (a := fun k : ℕ => (k : ℝ)) fun k _ => alt_ii _ _]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [Nat.cast_succ, (alt_piece k (T := (k : ℝ) + 1) (by linarith) le_rfl).1]
+    ring
+  · rw [← Nat.cast_zero, ← intervalIntegral.sum_integral_adjacent_intervals
+      (a := fun k : ℕ => (k : ℝ)) fun k _ => (alt_ii _ _).abs]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [Nat.cast_succ, (alt_piece k (T := (k : ℝ) + 1) (by linarith) le_rfl).2]
+    ring
+
+/-- Cochrane (2023), §8.4, p. 250 (**the improper class is strictly larger**): the alternating
+harmonic step stream `alt` is locally integrable, its truncated present values converge at every
+rate `λ ≥ 0` (conditionally at `λ = 0`), but `e^{−0·τ} alt` is not integrable on `(0, ∞)`: with
+`r̲ = 0` it belongs to the class of `matching_necessary_improper` and not to the class of
+`TidyR5MatchingMeas.matching_necessary_meas`. -/
+theorem improper_class_strictly_larger :
+    (∀ T, 0 ≤ T → IntervalIntegrable alt volume 0 T) ∧
+      (∀ l, 0 ≤ l → ∃ L, Tendsto (fun T => ∫ τ in (0 : ℝ)..T, exp (-(l * τ)) * alt τ) atTop
+        (𝓝 L)) ∧
+      ¬ IntegrableOn (fun τ => exp (-(0 * τ)) * alt τ) (Set.Ioi 0) := by
+  have hfa : Antitone (fun k : ℕ => 1 / ((k : ℝ) + 1)) := fun i j hij => by
+    have : (i : ℝ) ≤ j := Nat.cast_le.2 hij
+    exact one_div_le_one_div_of_le (by positivity) (by linarith)
+  obtain ⟨L0, hL0⟩ := hfa.tendsto_alternating_series_of_tendsto_zero
+    tendsto_one_div_add_atTop_nhds_zero_nat
+  refine ⟨fun T _ => alt_ii 0 T, fun l hl => ?_, fun hint => ?_⟩
+  · rcases hl.lt_or_eq with hl | rfl
+    · have hexp : IntegrableOn (fun τ => exp (-l * τ)) (Set.Ioi 0) :=
+        exp_neg_integrableOn_Ioi 0 hl
+      have hint : IntegrableOn (fun τ => exp (-(l * τ)) * alt τ) (Set.Ioi 0) := by
+        refine hexp.mono' (((disc_continuous l).measurable.mul alt_props.1).aestronglyMeasurable)
+          (Eventually.of_forall fun τ => ?_)
+        rw [Real.norm_eq_abs, abs_mul, abs_of_pos (exp_pos _), neg_mul]
+        exact mul_le_of_le_one_right (exp_pos _).le (alt_props.2 τ)
+      exact ⟨_, ((improper_of_integrable (rl := l) hint).2 l le_rfl)⟩
+    · refine ⟨L0, ?_⟩
+      have hsplit : ∀ T, 0 ≤ T → ∫ τ in (0 : ℝ)..T, exp (-(0 * τ)) * alt τ =
+          (∑ k ∈ Finset.range ⌊T⌋₊, (-1) ^ k * (1 / ((k : ℝ) + 1))) +
+            (T - ⌊T⌋₊) * ((-1) ^ ⌊T⌋₊ / ((⌊T⌋₊ : ℝ) + 1)) := fun T hT => by
+        simp only [zero_mul, neg_zero, exp_zero, one_mul]
+        rw [← intervalIntegral.integral_add_adjacent_intervals (alt_ii 0 (⌊T⌋₊ : ℝ))
+          (alt_ii _ T), (alt_blocks ⌊T⌋₊).1,
+          (alt_piece ⌊T⌋₊ (Nat.floor_le hT) (Nat.lt_floor_add_one T).le).1]
+      have hflo : Tendsto (fun x : ℝ => ⌊x⌋₊) atTop atTop := tendsto_nat_floor_atTop
+      have hrem : Tendsto (fun T : ℝ => (T - ⌊T⌋₊) * ((-1) ^ ⌊T⌋₊ / ((⌊T⌋₊ : ℝ) + 1))) atTop
+          (𝓝 0) := by
+        have hb0 : Tendsto (fun n : ℕ => 1 / ((n : ℝ) + 1)) atTop (𝓝 0) :=
+          tendsto_one_div_add_atTop_nhds_zero_nat
+        have hb := hb0.comp hflo
+        refine squeeze_zero_norm' (eventually_atTop.2 ⟨0, fun T hT => ?_⟩) hb
+        rw [Real.norm_eq_abs, abs_mul, abs_div, abs_pow, abs_neg, abs_one, one_pow,
+          abs_of_pos (by positivity : (0 : ℝ) < (⌊T⌋₊ : ℝ) + 1)]
+        have h1 : |T - ⌊T⌋₊| ≤ 1 := by
+          rw [abs_le]
+          constructor <;> linarith [Nat.floor_le hT, Nat.lt_floor_add_one T]
+        simp only [Function.comp]
+        calc |T - ⌊T⌋₊| * (1 / ((⌊T⌋₊ : ℝ) + 1)) ≤ 1 * (1 / ((⌊T⌋₊ : ℝ) + 1)) :=
+              mul_le_mul_of_nonneg_right h1 (by positivity)
+          _ = 1 / ((⌊T⌋₊ : ℝ) + 1) := one_mul _
+      have := (hL0.comp hflo).add hrem
+      rw [add_zero] at this
+      exact this.congr' (eventually_atTop.2 ⟨0, fun T hT => (hsplit T hT).symm⟩)
+  · have hint' : IntegrableOn alt (Set.Ioi 0) := hint.congr_fun (fun τ _ => by simp)
+      measurableSet_Ioi
+    have hb : ∀ n : ℕ, ∑ k ∈ Finset.range n, 1 / ((k : ℝ) + 1) ≤ ∫ τ in Set.Ioi 0, |alt τ| := by
+      intro n
+      rw [← (alt_blocks n).2, intervalIntegral.integral_of_le (Nat.cast_nonneg n)]
+      exact setIntegral_mono_set hint'.abs (Eventually.of_forall fun τ => abs_nonneg _)
+        Set.Ioc_subset_Ioi_self.eventuallyLE
+    obtain ⟨n, hn⟩ := ((Real.tendsto_sum_range_one_div_nat_succ_atTop).eventually_gt_atTop
+      (∫ τ in Set.Ioi 0, |alt τ|)).exists
+    exact absurd (hb n) (not_le.2 hn)
+
+/-! ### Outside the class the claim fails -/
+
+/-- Cochrane (2023), §8.4, p. 250 (supporting lemma): for every rate `λ`, the discounted stream
+`e^{−λτ} e^{τ²}` is at least `1` beyond `max λ 0`. -/
+theorem junk_ge_one (l : ℝ) {τ : ℝ} (hτ : max l 0 ≤ τ) : 1 ≤ exp (-(l * τ)) * exp (τ ^ 2) := by
+  rw [← exp_add, one_le_exp_iff]
+  have h1 : l ≤ τ := (le_max_left _ _).trans hτ
+  have h2 : 0 ≤ τ := (le_max_right _ _).trans hτ
+  nlinarith
+
+/-- Cochrane (2023), §8.4, p. 250 (**no present value**): for the stream `y(τ) = e^{τ²}` the
+truncated present values `∫₀^T e^{−λτ} y` diverge to `+∞` at every rate `λ`; in particular they
+converge at no rate, and `e^{−λτ} y` is integrable on `(0, ∞)` at no rate. -/
+theorem no_present_value (l : ℝ) :
+    Tendsto (fun T => ∫ τ in (0 : ℝ)..T, exp (-(l * τ)) * exp (τ ^ 2)) atTop atTop ∧
+      ¬ IntegrableOn (fun τ => exp (-(l * τ)) * exp (τ ^ 2)) (Set.Ioi 0) := by
+  set a := max l 0 with ha
+  have ha0 : 0 ≤ a := le_max_right _ _
+  have hcont : Continuous (fun τ => exp (-(l * τ)) * exp (τ ^ 2)) :=
+    (disc_continuous l).mul (continuous_exp.comp (continuous_pow 2))
+  constructor
+  · refine tendsto_atTop_mono' atTop (eventually_atTop.2 ⟨a, fun T hT => ?_⟩)
+      (tendsto_atTop_add_const_right atTop (-a) tendsto_id)
+    change T + -a ≤ ∫ τ in (0 : ℝ)..T, exp (-(l * τ)) * exp (τ ^ 2)
+    rw [← intervalIntegral.integral_add_adjacent_intervals (b := a)
+      (hcont.intervalIntegrable _ _) (hcont.intervalIntegrable _ _)]
+    have h1 : 0 ≤ ∫ τ in (0 : ℝ)..a, exp (-(l * τ)) * exp (τ ^ 2) :=
+      intervalIntegral.integral_nonneg ha0 fun τ _ => (mul_pos (exp_pos _) (exp_pos _)).le
+    have h2 : ∫ τ in a..T, (1 : ℝ) ≤ ∫ τ in a..T, exp (-(l * τ)) * exp (τ ^ 2) :=
+      intervalIntegral.integral_mono_on hT intervalIntegrable_const (hcont.intervalIntegrable _ _)
+        fun τ hτ => junk_ge_one l hτ.1
+    simp only [intervalIntegral.integral_const, smul_eq_mul, mul_one] at h2
+    linarith
+  · intro hint
+    have h1 : IntegrableOn (fun _ => (1 : ℝ)) (Set.Ioi a) := by
+      refine ((hint.mono_set (Set.Ioi_subset_Ioi ha0)).mono' ?_ ?_)
+      · exact aestronglyMeasurable_const
+      · filter_upwards [self_mem_ae_restrict measurableSet_Ioi] with τ hτ
+        rw [Real.norm_eq_abs, abs_one]
+        exact junk_ge_one l (le_of_lt hτ)
+    rw [integrableOn_const_iff] at h1
+    rcases h1 with h1 | h1
+    · simp at h1
+    · rw [Real.volume_Ioi] at h1
+      exact lt_irrefl _ h1
+
+/-- Cochrane (2023), §8.4, pp. 250–251 (**outside the class the claim fails**): there is a stream
+`y` (namely `e^{τ²}`), nonzero everywhere and hence not `0` a.e. on `(0, ∞)`, whose present value
+in Lean's sense, `∫_{(0,∞)} e^{−λτ} y` (`0` by convention when the integrand is not integrable), is
+`0` along every constant real-rate path `λ`. Without a convergence hypothesis on the present value
+the matching claim is false; and since the truncated present values of this stream diverge at
+every rate (`no_present_value`), the conditionally convergent class of
+`matching_necessary_improper` is the natural class on which the claim has content (maximality
+is not proved). -/
+theorem junk_counterexample :
+    ∃ y : ℝ → ℝ, (∀ l, ∫ τ in Set.Ioi 0, MaturityBuffer.cdisc (fun _ => l) τ * y τ = 0) ∧
+      (∀ τ, y τ ≠ 0) ∧ ¬ ∀ᵐ τ ∂(volume.restrict (Set.Ioi (0 : ℝ))), y τ = 0 := by
+  refine ⟨fun τ => exp (τ ^ 2), fun l => ?_, fun τ => (exp_pos _).ne', fun hae => ?_⟩
+  · simp only [TidyR5Matching.cdisc_const]
+    exact integral_undef (no_present_value l).2
+  · have hne : volume.restrict (Set.Ioi (0 : ℝ)) ≠ 0 := by
+      rw [Ne, Measure.restrict_eq_zero, Real.volume_Ioi]
+      exact ENNReal.top_ne_zero
+    have : (ae (volume.restrict (Set.Ioi (0 : ℝ)))).NeBot := ae_neBot.2 hne
+    obtain ⟨τ, hτ⟩ := hae.exists
+    exact (exp_pos _).ne' hτ
+
+end Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Long-term debt and total inflation: what (8.4) does and does not say
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 8, §8.4, eq. (8.4), p. 250:
+"The longer the maturity of debt `ω`, the more the revision in present value of surpluses can be
+spread to future inflation, though at the cost of more total inflation."
+
+Write `x_j = ΔE_{t+1} π_{t+1+j}` for the inflation news and `C` for the right-hand side of (8.4)
+(with no real-rate news `C = −∑ ρʲ ΔE s_{t+1+j}`, the same for every maturity). Then (8.4) is
+`∑ ωʲ x_j = C`, and total inflation is `∑ x_j` (the revision of the long-run price level).
+
+## Main results
+
+* `total_ge` (**spreading costs total inflation**): for `0 ≤ ω ≤ 1` and nonnegative inflation news,
+  total inflation is at least `C`, the total under short-term debt (`short_debt_total`); with
+  `ω < 1` equality holds iff there is no inflation after the first period (`total_eq_iff`).
+* `total_ge_spread` (**the precise cost**): for `0 < ω ≤ 1`, if current inflation is reduced by
+  `Δ = C − x_0` (spreading `Δ` forward), total inflation is at least `C + Δ (1 − ω)/ω`; the bound is
+  attained by putting all deferred inflation one period ahead (`total_spread_attained`). With
+  short-term debt (`ω = 0`) nothing can be spread: `x_0 = C`.
+* `spread_cost_antitone`: the minimal cost `(1 − ω)/ω` per unit spread falls as the maturity
+  lengthens; perpetuities (`ω = 1`) spread at no cost in total inflation (`perpetuity_total`).
+* `geometric_total`, `geometric_total_strictMono_phi`, `geometric_total_strictAnti_omega`
+  (**the counterexample**): with a geometric inflation profile `x_j = a φʲ`, total inflation is
+  `C (1 − ωφ)/(1 − φ)`: increasing in the spreading `φ` but strictly *decreasing* in the maturity
+  `ω`. So "longer maturity means more total inflation" is false as a statement about `ω` alone: it
+  is spreading, not maturity, that costs total inflation; (8.4) alone does not determine the path.
+* `total_lt_without_sign` (**the sign condition is needed**): with deflation news allowed, a path
+  satisfying (8.4) can have total inflation below `C`.
+* `total_ge_of_identities`: the link to `MaturityBuffer.identity_84` with no real-rate news.
+-/
+
+namespace Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation
+
+open Filter Topology
+
+/-- Cochrane (2023), §8.4, p. 250: with short-term debt (`ω = 0`) the identity
+`∑ ωʲ x_j = C` reads `x_0 = C`: all of the revision is immediate inflation, and the total is
+`C` plus any later inflation news, which (8.4) leaves unconstrained. -/
+theorem short_debt_total {C : ℝ} {x : ℕ → ℝ} (hx : Summable x)
+    (h : ∑' j, (0 : ℝ) ^ j * x j = C) : x 0 = C ∧ ∑' j, x j = C + ∑' j, x (j + 1) := by
+  have e : ∑' j, (0 : ℝ) ^ j * x j = x 0 := by
+    rw [tsum_eq_single 0 fun j hj => by simp [hj]]
+    simp
+  rw [e] at h
+  exact ⟨h, by rw [hx.tsum_eq_zero_add, h]⟩
+
+/-- Cochrane (2023), §8.4, p. 250 (supporting lemma): for `0 ≤ ω ≤ 1` and nonnegative summable
+`x`, the weighted sum `∑ ωʲ x_j` is summable and at most `∑ x_j`. -/
+theorem weighted_le {ω : ℝ} (hω0 : 0 ≤ ω) (hω1 : ω ≤ 1) {x : ℕ → ℝ} (hx0 : ∀ j, 0 ≤ x j)
+    (hx : Summable x) : Summable (fun j => ω ^ j * x j) ∧ ∑' j, ω ^ j * x j ≤ ∑' j, x j := by
+  have hle : ∀ j, ω ^ j * x j ≤ x j := fun j =>
+    mul_le_of_le_one_left (hx0 j) (pow_le_one₀ hω0 hω1)
+  have hs : Summable (fun j => ω ^ j * x j) :=
+    hx.of_nonneg_of_le (fun j => mul_nonneg (pow_nonneg hω0 j) (hx0 j)) hle
+  exact ⟨hs, hs.tsum_le_tsum hle hx⟩
+
+/-- Cochrane (2023), §8.4, p. 250 (**spreading costs total inflation**): if `0 ≤ ω ≤ 1`, the
+inflation news are nonnegative and summable and satisfy (8.4) `∑ ωʲ x_j = C`, then total inflation
+`∑ x_j` is at least `C`, the total under short-term debt. -/
+theorem total_ge {ω C : ℝ} (hω0 : 0 ≤ ω) (hω1 : ω ≤ 1) {x : ℕ → ℝ} (hx0 : ∀ j, 0 ≤ x j)
+    (hx : Summable x) (h : ∑' j, ω ^ j * x j = C) : C ≤ ∑' j, x j :=
+  h ▸ (weighted_le hω0 hω1 hx0 hx).2
+
+/-- Cochrane (2023), §8.4, p. 250: with `0 ≤ ω < 1` and nonnegative summable news satisfying
+(8.4), total inflation equals `C` iff all the inflation is immediate (`x_j = 0` for `j ≥ 1`). -/
+theorem total_eq_iff {ω C : ℝ} (hω0 : 0 ≤ ω) (hω1 : ω < 1) {x : ℕ → ℝ} (hx0 : ∀ j, 0 ≤ x j)
+    (hx : Summable x) (h : ∑' j, ω ^ j * x j = C) :
+    ∑' j, x j = C ↔ ∀ j, x (j + 1) = 0 := by
+  obtain ⟨hs, -⟩ := weighted_le hω0 hω1.le hx0 hx
+  have hd : Summable (fun j => (1 - ω ^ j) * x j) :=
+    (hx.sub hs).congr fun j => by ring
+  have hdiff : ∑' j, x j - C = ∑' j, (1 - ω ^ j) * x j := by
+    rw [← h, ← hx.tsum_sub hs]
+    exact tsum_congr fun j => by ring
+  have hnn : ∀ j, 0 ≤ (1 - ω ^ j) * x j := fun j =>
+    mul_nonneg (by linarith [pow_le_one₀ hω0 hω1.le (n := j)]) (hx0 j)
+  constructor
+  · intro htot j
+    have h0 : ∑' j, (1 - ω ^ j) * x j = 0 := by rw [← hdiff, htot, sub_self]
+    have hz := (hasSum_zero_iff_of_nonneg hnn).1 (h0 ▸ hd.hasSum)
+    have := congrFun hz (j + 1)
+    simp only [Pi.zero_apply] at this
+    have hpos : 0 < 1 - ω ^ (j + 1) := by
+      have : ω ^ (j + 1) < 1 := pow_lt_one₀ hω0 hω1 (Nat.succ_ne_zero j)
+      linarith
+    rcases mul_eq_zero.1 this with h1 | h1
+    · linarith
+    · exact h1
+  · intro hz
+    have : ∀ j, (1 - ω ^ j) * x j = 0 := fun j => by
+      rcases j with _ | j
+      · simp
+      · rw [hz j, mul_zero]
+    rw [tsum_congr this, tsum_zero] at hdiff
+    linarith
+
+/-- Cochrane (2023), §8.4, p. 250 (**the precise cost of spreading**): for `0 < ω ≤ 1` and
+nonnegative summable inflation news satisfying (8.4) `∑ ωʲ x_j = C`, let `Δ = C − x_0` be the
+reduction of current inflation below its short-debt value. Then total inflation is at least
+`C + Δ (1 − ω)/ω`. -/
+theorem total_ge_spread {ω C : ℝ} (hω0 : 0 < ω) (hω1 : ω ≤ 1) {x : ℕ → ℝ} (hx0 : ∀ j, 0 ≤ x j)
+    (hx : Summable x) (h : ∑' j, ω ^ j * x j = C) :
+    C + (C - x 0) * (1 - ω) / ω ≤ ∑' j, x j := by
+  obtain ⟨hs, -⟩ := weighted_le hω0.le hω1 hx0 hx
+  have hx1 : Summable (fun j => x (j + 1)) := (summable_nat_add_iff 1).2 hx
+  have hs1 : Summable (fun j => ω ^ (j + 1) * x (j + 1)) := (summable_nat_add_iff 1).2 hs
+  have hsplit : C = x 0 + ∑' j, ω ^ (j + 1) * x (j + 1) := by
+    rw [← h, hs.tsum_eq_zero_add]
+    simp
+  have hle : ∀ j, ω ^ (j + 1) * x (j + 1) ≤ ω * x (j + 1) := fun j => by
+    refine mul_le_mul_of_nonneg_right ?_ (hx0 _)
+    calc ω ^ (j + 1) = ω * ω ^ j := pow_succ' ω j
+      _ ≤ ω * 1 := mul_le_mul_of_nonneg_left (pow_le_one₀ hω0.le hω1) hω0.le
+      _ = ω := mul_one ω
+  have hb : ∑' j, ω ^ (j + 1) * x (j + 1) ≤ ω * ∑' j, x (j + 1) := by
+    rw [← tsum_mul_left]
+    exact hs1.tsum_le_tsum hle (hx1.mul_left ω)
+  have htot : ∑' j, x j = x 0 + ∑' j, x (j + 1) := hx.tsum_eq_zero_add
+  rw [htot]
+  have hΔ : C - x 0 ≤ ω * ∑' j, x (j + 1) := by linarith
+  have : (C - x 0) / ω ≤ ∑' j, x (j + 1) := by
+    rw [div_le_iff₀ hω0]
+    linarith
+  have e : C + (C - x 0) * (1 - ω) / ω = x 0 + (C - x 0) / ω := by
+    field_simp
+    ring
+  rw [e]
+  linarith
+
+/-- Cochrane (2023), §8.4, p. 250: the bound of `total_ge_spread` is attained. For `0 < ω` and
+`0 ≤ Δ ≤ C`, the path `x_0 = C − Δ`, `x_1 = Δ/ω`, `x_j = 0` otherwise, satisfies (8.4) and has
+total inflation `C + Δ (1 − ω)/ω`. -/
+theorem total_spread_attained {ω C Δ : ℝ} (hω0 : 0 < ω) :
+    let x : ℕ → ℝ := fun j => if j = 0 then C - Δ else if j = 1 then Δ / ω else 0
+    ∑' j, ω ^ j * x j = C ∧ ∑' j, x j = C + Δ * (1 - ω) / ω := by
+  intro x
+  have hsupp : ∀ j ∉ ({0, 1} : Finset ℕ), x j = 0 := fun j hj => by
+    simp only [Finset.mem_insert, Finset.mem_singleton, not_or] at hj
+    simp [x, hj.1, hj.2]
+  constructor
+  · rw [tsum_eq_sum (s := {0, 1}) fun j hj => by rw [hsupp j hj, mul_zero]]
+    simp only [Finset.mem_singleton, zero_ne_one, not_false_eq_true, Finset.sum_insert,
+      Finset.sum_singleton, pow_zero, one_mul, pow_one, x]
+    simp only [↓reduceIte, one_ne_zero]
+    field_simp
+    ring
+  · rw [tsum_eq_sum (s := {0, 1}) fun j hj => hsupp j hj]
+    simp only [Finset.mem_singleton, zero_ne_one, not_false_eq_true, Finset.sum_insert,
+      Finset.sum_singleton, x, ↓reduceIte, one_ne_zero]
+    field_simp
+    ring
+
+/-- Cochrane (2023), §8.4, p. 250: the minimal total-inflation cost per unit of current inflation
+spread forward, `(1 − ω)/ω`, is strictly decreasing in the maturity `ω ∈ (0, 1]`. -/
+theorem spread_cost_antitone {ω ω' : ℝ} (hω0 : 0 < ω) (hωω : ω < ω') :
+    (1 - ω') / ω' < (1 - ω) / ω := by
+  have hω'0 : 0 < ω' := hω0.trans hωω
+  rw [div_lt_div_iff₀ hω'0 hω0]
+  nlinarith
+
+/-- Cochrane (2023), §8.4, p. 250: with perpetuities (`ω = 1`) total inflation always equals the
+revision `C`, however it is spread. -/
+theorem perpetuity_total {C : ℝ} {x : ℕ → ℝ} (h : ∑' j, (1 : ℝ) ^ j * x j = C) :
+    ∑' j, x j = C := by
+  simpa using h
+
+/-- Cochrane (2023), §8.4, p. 250: with a geometric inflation profile `x_j = a φʲ`, `0 ≤ φ < 1`,
+`0 ≤ ω ≤ 1`, the identity (8.4) `∑ ωʲ x_j = C` forces `a = C (1 − ωφ)`, and total inflation is
+`C (1 − ωφ)/(1 − φ)`. -/
+theorem geometric_total {ω φ a C : ℝ} (hω0 : 0 ≤ ω) (hω1 : ω ≤ 1) (hφ0 : 0 ≤ φ) (hφ1 : φ < 1)
+    (h : ∑' j, ω ^ j * (a * φ ^ j) = C) :
+    a = C * (1 - ω * φ) ∧ ∑' j, a * φ ^ j = C * (1 - ω * φ) / (1 - φ) := by
+  have hωφ : ω * φ < 1 := by nlinarith
+  have hωφ0 : 0 ≤ ω * φ := mul_nonneg hω0 hφ0
+  have e1 : ∑' j, ω ^ j * (a * φ ^ j) = a / (1 - ω * φ) := by
+    have : (fun j => ω ^ j * (a * φ ^ j)) = fun j => a * (ω * φ) ^ j := by
+      funext j; rw [mul_pow]; ring
+    rw [this, tsum_mul_left, tsum_geometric_of_lt_one hωφ0 hωφ, div_eq_mul_inv]
+  have ha : a = C * (1 - ω * φ) := by
+    rw [e1] at h
+    have : 1 - ω * φ ≠ 0 := by linarith
+    field_simp at h
+    linarith
+  refine ⟨ha, ?_⟩
+  rw [tsum_mul_left, tsum_geometric_of_lt_one hφ0 hφ1, ha, div_eq_mul_inv]
+
+/-- Cochrane (2023), §8.4, p. 250: with a geometric profile, for `C > 0` and `ω < 1`, total
+inflation `C (1 − ωφ)/(1 − φ)` is strictly increasing in the spreading parameter `φ < 1`:
+spreading inflation forward costs total inflation. -/
+theorem geometric_total_strictMono_phi {ω C φ φ' : ℝ} (hC : 0 < C) (hω1 : ω < 1)
+    (hφφ : φ < φ') (hφ'1 : φ' < 1) :
+    C * (1 - ω * φ) / (1 - φ) < C * (1 - ω * φ') / (1 - φ') := by
+  have h1 : 0 < 1 - φ := by linarith
+  have h2 : 0 < 1 - φ' := by linarith
+  rw [div_lt_div_iff₀ h1 h2]
+  have : 0 < C * (1 - ω) * (φ' - φ) := by
+    have : 0 < 1 - ω := by linarith
+    have : 0 < φ' - φ := by linarith
+    positivity
+  nlinarith
+
+/-- Cochrane (2023), §8.4, p. 250 (**the counterexample**): with a geometric profile
+`0 < φ < 1` and `C > 0`, total inflation `C (1 − ωφ)/(1 − φ)` is strictly *decreasing* in the
+maturity `ω`: for the same shape of the inflation response, longer debt means less total inflation
+(and less current inflation `C (1 − ωφ)`). So "longer maturity, more total inflation" does not
+follow from (8.4); the cost comes from spreading (`geometric_total_strictMono_phi`,
+`total_ge_spread`). -/
+theorem geometric_total_strictAnti_omega {ω ω' C φ : ℝ} (hC : 0 < C) (hφ0 : 0 < φ)
+    (hφ1 : φ < 1) (hωω : ω < ω') :
+    C * (1 - ω' * φ) / (1 - φ) < C * (1 - ω * φ) / (1 - φ) ∧
+      C * (1 - ω' * φ) < C * (1 - ω * φ) := by
+  have h1 : 0 < 1 - φ := by linarith
+  have h2 : C * (1 - ω' * φ) < C * (1 - ω * φ) := by
+    have : 0 < C * ((ω' - ω) * φ) := mul_pos hC (mul_pos (by linarith) hφ0)
+    nlinarith
+  exact ⟨div_lt_div_of_pos_right h2 h1, h2⟩
+
+/-- Cochrane (2023), §8.4, p. 250 (**the sign condition is needed**): for `0 < ω < 1` and any `C`,
+the path `x_0 = C + ω`, `x_1 = −1`, `x_j = 0` otherwise satisfies (8.4) `∑ ωʲ x_j = C` but has total
+inflation `C − (1 − ω) < C`: with deflation news, spreading need not cost total inflation. -/
+theorem total_lt_without_sign {ω C : ℝ} (hω1 : ω < 1) :
+    let x : ℕ → ℝ := fun j => if j = 0 then C + ω else if j = 1 then -1 else 0
+    ∑' j, ω ^ j * x j = C ∧ ∑' j, x j = C - (1 - ω) ∧ ∑' j, x j < C := by
+  intro x
+  have hsupp : ∀ j ∉ ({0, 1} : Finset ℕ), x j = 0 := fun j hj => by
+    simp only [Finset.mem_insert, Finset.mem_singleton, not_or] at hj
+    simp [x, hj.1, hj.2]
+  have e2 : ∑' j, x j = C - (1 - ω) := by
+    rw [tsum_eq_sum (s := {0, 1}) fun j hj => hsupp j hj]
+    simp only [Finset.mem_singleton, zero_ne_one, not_false_eq_true, Finset.sum_insert,
+      Finset.sum_singleton, x, ↓reduceIte, one_ne_zero]
+    ring
+  refine ⟨?_, e2, by rw [e2]; linarith⟩
+  rw [tsum_eq_sum (s := {0, 1}) fun j hj => by rw [hsupp j hj, mul_zero]]
+  simp only [Finset.mem_singleton, zero_ne_one, not_false_eq_true, Finset.sum_insert,
+    Finset.sum_singleton, pow_zero, one_mul, pow_one, x, ↓reduceIte, one_ne_zero]
+  ring
+
+/-- Cochrane (2023), eq. (8.4), p. 250 (**the link to the identities**): if the news satisfy
+(3.20)–(3.21) (`MaturityBuffer.Identity320`, `MaturityBuffer.Identity321`) with maturity
+`0 < ω ≤ 1` and no real-rate news, and the inflation news are nonnegative and summable, then total
+inflation is at least the surplus revision `C = −∑ ρʲ ΔE s_{t+1+j}` plus `(C − x_0)(1 − ω)/ω`. -/
+theorem total_ge_of_identities {ρ ω rn : ℝ} (hω0 : 0 < ω) (hω1 : ω ≤ 1) {πN sN : ℕ → ℝ}
+    (hπ0 : ∀ j, 0 ≤ πN j) (hπ : Summable πN)
+    (h320 : MaturityBuffer.Identity320 ρ πN sN (fun _ => 0) rn)
+    (h321 : MaturityBuffer.Identity321 ω πN (fun _ => 0) rn) :
+    -(∑' j, ρ ^ j * sN j) + (-(∑' j, ρ ^ j * sN j) - πN 0) * (1 - ω) / ω ≤ ∑' j, πN j := by
+  have hs := (weighted_le hω0.le hω1 hπ0 hπ).1
+  have h84 := MaturityBuffer.identity_84 (ρ := ρ) (w := ω) (rn := rn) (sN := sN)
+    (rN := fun _ => 0) (by simp) ((summable_nat_add_iff 1).2 hs) (by simp) h320 h321
+  simp only [mul_zero, tsum_zero, add_zero] at h84
+  exact total_ge_spread hω0 hω1 hπ0 hπ h84
+
+end Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation
+
 set_option linter.style.longLine false
 #print axioms Cochrane.AssetsRulesBalanceSheets.SchurStable
 #print axioms Cochrane.AssetsRulesBalanceSheets.disc
@@ -24025,3 +26859,125 @@ set_option linter.style.longLine false
 #print axioms Cochrane.AssetsRulesBalanceSheets.TidyR5MatchingMeas.matching_necessary_meas
 #print axioms Cochrane.AssetsRulesBalanceSheets.TidyR5MatchingMeas.matching_necessary_bdd
 #print axioms Cochrane.AssetsRulesBalanceSheets.TidyR5MatchingMeas.price_insulated_only_if_matching_meas
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_all_nonpos
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.rate_inv
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.settled_ge_price
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.price_antitone
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.debt_antitone
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_limits
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_ratio
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.orbit_zero
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_orbit
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_continuation_tendsto_zero
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_settled_tendsto
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_ratio_tendsto
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_continuation_antitone
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.eqm_zero_target
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ContinuationLimit.exists_and_tendsto_zero
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.Eqm
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.head
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.tail
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.pegPath
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.rate
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.summable_debt
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.head_add_tail
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.tail_succ
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.peg_forever_iff
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.collapse_inevitable
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.max_delay
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.short_debt_instant
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.peg_at_zero_iff
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.delayed_eqm
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.delayed_unique
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue_gt_iff
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.devalue_mono
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6DanielPeg.rate_path
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pvS
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.xOS
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.xOS_bounds
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pv_tgtS
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pv_osTarget
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.targets_at_zero
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.gProb
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.same_measure
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.oneShot_exists_pos
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.existence_differs
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.no_condition_on_pv
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.pvS_inf
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6ExistNoGo.lower_bound_sharp
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_one_add_sub_le
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.exp_sub_one_le
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin_bound
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.log_lin_hasDerivAt
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.A0
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.rho
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.kap
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.stil
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.rho_mem
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.flow_exact
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF_bound
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_add
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_sub
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_smul
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_const
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_known
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.innov_bound
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.forward_sum
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.discounted_le
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remF_succ_le
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.unexpected_inflation_identity
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remainder_sum_le
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity320_of_flow
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remQ
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what_mem
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.what_steady
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.remQ_bound
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.bond_return_identity
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity321_of_return
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.identity84_of_nonlinear
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.epsF
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6Linearise.valuation922_of_flow
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wgt
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wMeas
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wgt_measurable
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.expNeg_embedding
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.wMeas_finite
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_ae
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_moment
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.eq_of_moments
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.pushM_injective
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.matching_necessary_measure
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.prim
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.disc_continuous
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.g_intervalIntegrable
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.prim_continuousOn
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.ibp
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.matching_necessary_improper
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.improper_of_integrable
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_props
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_ii
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_piece
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.alt_blocks
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.improper_class_strictly_larger
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.junk_ge_one
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.no_present_value
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6MatchingGeneral.junk_counterexample
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.short_debt_total
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.weighted_le
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_eq_iff
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge_spread
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_spread_attained
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.spread_cost_antitone
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.perpetuity_total
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total_strictMono_phi
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.geometric_total_strictAnti_omega
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_lt_without_sign
+#print axioms Cochrane.AssetsRulesBalanceSheets.TidyR6TotalInflation.total_ge_of_identities
