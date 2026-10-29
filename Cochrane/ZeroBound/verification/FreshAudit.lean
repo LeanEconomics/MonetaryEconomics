@@ -35,6 +35,27 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.Normed.Group.Tannery
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.InnerProductSpace.Projection.Minimal
+import Mathlib.Analysis.Normed.Ring.InfiniteSum
+import Mathlib.Analysis.Normed.Module.FiniteDimension
+import Mathlib.Analysis.LocallyConvex.Separation
+import Mathlib.Analysis.Convex.Function
+import Mathlib.Analysis.Calculus.LocalExtr.Basic
+import Mathlib.Analysis.Calculus.Deriv.Prod
+import Mathlib.Analysis.Calculus.Deriv.Pow
+import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.PullOut
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.Probability.Process.Filtration
+import Mathlib.Probability.Process.Adapted
+import Mathlib.Probability.CondVar
+import Mathlib.Probability.ProductMeasure
+import Mathlib.Probability.Independence.InfinitePi
+import Mathlib.Probability.ConditionalExpectation
+import Mathlib.Analysis.ODE.ExistUnique
+import Mathlib.Analysis.Calculus.FDeriv.Extend
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+import Mathlib.LinearAlgebra.Matrix.Notation
 set_option autoImplicit false
 
 /-
@@ -17190,6 +17211,6707 @@ theorem cert_zero_forever :
 
 end Cochrane.ZeroBound.LiftoffRhoZero
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Bounded sequences, discounted sums and the dispersion recursion
+
+Restated from the Woodford Chapter 6 project (`StabilizationWelfare`, module of the same name
+without the `TidyR6Woodford` prefix), with only the namespace changed, for the common model of
+Cochrane (2023), Chapter 20, and Woodford's Proposition 6.9 (`TidyR6CommonModel`).
+
+Woodford (2003), *Interest and Prices*, Chapter 6: the discounted sums of bounded sequences that
+every welfare criterion of the chapter uses (§2, (2.21)–(2.22), p. 400; App. E.2–E.3,
+pp. 695–697; App. E.7, p. 706; (4.18)–(4.20), p. 428; (5.2), p. 456), collected in one place.
+
+* Bounded families (`Bdd`) and their algebra; the lag `lagS`; bounded processes
+  (`BoundedProc`) and their algebra (`bdd_mul`, `bdd_sq`, `bdd_shift`, `bdd_congr`,
+  `boundedProc_lincomb`, `bdd_of_continuous`).
+* Discounted sums: `summable_geom_bdd`, `Bdd.summable`, `abs_tsum_le`, `tsum_geom_shift`,
+  `tsum_telescope`, `tsum_telescope_add`, `tsum_add3`; bounded solutions of
+  `v_t = d_t + βv_{t+1}` are discounted sums (`forward_real`); the expected discounted sum
+  `dsum` of a bounded process (`hasSum_dsum`, `abs_E0_le`); the lagged process `lagP`
+  (`lagP_apply`, `lagP_known`).
+* The dispersion recursion `Δ_t = αΔ_{t−1} + c q_t` of Proposition 6.3 (p. 400): integrated
+  (`disp_integrated`), discounted (`dispersion_tsum` for bounded sequences, any `α`, `|β| < 1`;
+  `disp_discounted_hasSum`, a Cauchy product needing only `∑ βᵗ|q_t| < ∞`), and in the Calvo
+  form with an initial dispersion `Δ_{−1}` (`disp_bdd`, `disp_discounted`).
+-/
+
+namespace Cochrane.ZeroBound.TidyR6WoodfordSequences
+
+open Filter Topology
+
+/-! ### Bounded families -/
+
+/-- Woodford (2003), App. E.3, p. 697 (discounted sums of bounded sequences): a real family is
+bounded. -/
+def Bdd {ι : Type*} (a : ι → ℝ) : Prop := ∃ M, ∀ i, |a i| ≤ M
+
+namespace Bdd
+
+variable {ι κ : Type*}
+
+/-- Woodford (2003), App. E.3, p. 697: constants are bounded. -/
+theorem const (c : ℝ) : Bdd (fun _ : ι => c) := ⟨|c|, fun _ => le_rfl⟩
+
+/-- Woodford (2003), App. E.3, p. 697: the bound may be taken nonnegative. -/
+theorem nonneg_bound {a : ι → ℝ} (ha : Bdd a) : ∃ M, 0 ≤ M ∧ ∀ i, |a i| ≤ M := by
+  obtain ⟨M, hM⟩ := ha
+  exact ⟨max M 0, le_max_right _ _, fun i => le_max_of_le_left (hM i)⟩
+
+/-- Woodford (2003), App. E.3, p. 697: sums of bounded families are bounded. -/
+theorem add {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) : Bdd (fun i => a i + b i) := by
+  obtain ⟨A, hA⟩ := ha
+  obtain ⟨B, hB⟩ := hb
+  exact ⟨A + B, fun i => (abs_add_le _ _).trans (add_le_add (hA i) (hB i))⟩
+
+/-- Woodford (2003), App. E.3, p. 697: negatives of bounded families are bounded. -/
+theorem neg {a : ι → ℝ} (ha : Bdd a) : Bdd (fun i => -a i) := by
+  obtain ⟨A, hA⟩ := ha
+  exact ⟨A, fun i => by rw [abs_neg]; exact hA i⟩
+
+/-- Woodford (2003), App. E.3, p. 697: differences of bounded families are bounded. -/
+theorem sub {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) : Bdd (fun i => a i - b i) := by
+  simpa [sub_eq_add_neg] using ha.add hb.neg
+
+/-- Woodford (2003), App. E.3, p. 697: products of bounded families are bounded. -/
+theorem mul {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) : Bdd (fun i => a i * b i) := by
+  obtain ⟨A, hA0, hA⟩ := ha.nonneg_bound
+  obtain ⟨B, -, hB⟩ := hb.nonneg_bound
+  exact ⟨A * B, fun i => by
+    rw [abs_mul]; exact mul_le_mul (hA i) (hB i) (abs_nonneg _) hA0⟩
+
+/-- Woodford (2003), App. E.3, p. 697: quotients by a constant are bounded. -/
+theorem div_const {a : ι → ℝ} (ha : Bdd a) (c : ℝ) : Bdd (fun i => a i / c) := by
+  simpa [div_eq_mul_inv] using ha.mul (const c⁻¹)
+
+/-- Woodford (2003), App. E.3, p. 697: powers of bounded families are bounded. -/
+theorem pow {a : ι → ℝ} (ha : Bdd a) (n : ℕ) : Bdd (fun i => a i ^ n) := by
+  induction n with
+  | zero => simpa using const (ι := ι) 1
+  | succ n ih => simpa [pow_succ] using ih.mul ha
+
+/-- Woodford (2003), (2.21): linear combinations of bounded families are bounded. -/
+theorem lin {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) (c d : ℝ) :
+    Bdd fun i => c * a i + d * b i :=
+  ((const c).mul ha).add ((const d).mul hb)
+
+/-- Woodford (2003), App. E.3, p. 697: reindexing a bounded family keeps it bounded. -/
+theorem comp {a : ι → ℝ} (ha : Bdd a) (f : κ → ι) : Bdd (fun j => a (f j)) := by
+  obtain ⟨A, hA⟩ := ha
+  exact ⟨A, fun j => hA (f j)⟩
+
+/-- Woodford (2003), App. E.3, p. 697: the one-period-ahead shift of a bounded sequence is
+bounded. -/
+theorem shift {a : ℕ → ℝ} (ha : Bdd a) : Bdd (fun t => a (t + 1)) := ha.comp _
+
+end Bdd
+
+/-- Woodford (2003), App. E.3, p. 696: the lagged sequence `a_{t−1}` with initial value
+`a_{−1}`. -/
+def lagS (am1 : ℝ) (a : ℕ → ℝ) : ℕ → ℝ
+  | 0 => am1
+  | t + 1 => a t
+
+/-- Woodford (2003), p. 696: the lag at `t + 1` is the value at `t`. -/
+@[simp] theorem lagS_succ (am1 : ℝ) (a : ℕ → ℝ) (t : ℕ) : lagS am1 a (t + 1) = a t := rfl
+
+/-- Woodford (2003), p. 696: the lag at date `0` is the initial value. -/
+@[simp] theorem lagS_zero (am1 : ℝ) (a : ℕ → ℝ) : lagS am1 a 0 = am1 := rfl
+
+/-- Woodford (2003), p. 696: the lag of a bounded sequence is bounded. -/
+theorem Bdd.lagS {a : ℕ → ℝ} (ha : Bdd a) (am1 : ℝ) : Bdd (lagS am1 a) := by
+  obtain ⟨A, hA⟩ := ha
+  refine ⟨max |am1| A, fun t => ?_⟩
+  cases t with
+  | zero => exact le_max_left _ _
+  | succ t => exact le_max_of_le_right (hA t)
+
+/-- Woodford (2003), p. 696: the lag of the zero sequence with zero initial value is zero. -/
+@[simp] theorem lagS_zero_seq (t : ℕ) : lagS 0 (fun _ => 0) t = 0 := by
+  cases t <;> rfl
+
+/-- Woodford (2003), p. 697: the lag of a difference is the difference of the lags. -/
+theorem lagS_sub (am1 bm1 : ℝ) (a b : ℕ → ℝ) (t : ℕ) :
+    lagS (am1 - bm1) (fun s => a s - b s) t = lagS am1 a t - lagS bm1 b t := by
+  cases t <;> rfl
+
+/-! ### Discounted sums -/
+
+/-- Woodford (2003), (2.21), p. 400: geometrically weighted bounded sequences are summable
+(`|β| < 1`). -/
+theorem summable_geom_bdd {β M : ℝ} (hβ : |β| < 1) {a : ℕ → ℝ} (ha : ∀ t, |a t| ≤ M) :
+    Summable (fun t => β ^ t * a t) :=
+  Summable.of_norm_bounded ((summable_geometric_of_lt_one (abs_nonneg β) hβ).mul_right M)
+    (fun t => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left (ha t) (pow_nonneg (abs_nonneg β) t))
+
+/-- Woodford (2003), (2.21), p. 400: absolute summability of `βᵗ a_t` for a bounded sequence
+(`|β| < 1`). -/
+theorem summable_norm_geom_bdd {β M : ℝ} (hβ : |β| < 1) {a : ℕ → ℝ} (ha : ∀ t, |a t| ≤ M) :
+    Summable (fun t => ‖β ^ t * a t‖) := by
+  have h := summable_geom_bdd (β := |β|) (a := fun t => |a t|) (by rwa [abs_abs]) (fun t => by
+    rw [abs_abs]; exact ha t)
+  refine h.congr fun t => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+
+/-- Woodford (2003), App. E.3, p. 697: a bounded sequence is summable against `βᵗ`,
+`0 ≤ β < 1`. -/
+theorem Bdd.summable {a : ℕ → ℝ} (ha : Bdd a) {β : ℝ} (h0 : 0 ≤ β) (h1 : β < 1) :
+    Summable (fun t => β ^ t * a t) := by
+  obtain ⟨A, hA⟩ := ha
+  exact summable_geom_bdd (by rwa [abs_of_nonneg h0]) hA
+
+/-- Woodford (2003), (2.21): `|∑ βᵗ f_t| ≤ B/(1 − β)` when `|f_t| ≤ B` (`0 ≤ β < 1`; survey
+error 25: a uniform bound `B = O(ε³)` gives an `O(ε³)` discounted remainder). -/
+theorem abs_tsum_le {f : ℕ → ℝ} {B β : ℝ} (hf : ∀ t, |f t| ≤ B) (hβ0 : 0 ≤ β) (hβ1 : β < 1) :
+    |∑' t, β ^ t * f t| ≤ B / (1 - β) := by
+  have hs := Bdd.summable (a := f) ⟨B, hf⟩ hβ0 hβ1
+  have hg := (hasSum_geometric_of_lt_one hβ0 hβ1).mul_left B
+  have h1 : |∑' t, β ^ t * f t| ≤ ∑' t, |β ^ t * f t| := by
+    have := norm_tsum_le_tsum_norm (f := fun t => β ^ t * f t)
+      (by simpa only [Real.norm_eq_abs] using hs.abs)
+    simpa only [Real.norm_eq_abs] using this
+  have h2 : ∑' t, |β ^ t * f t| ≤ ∑' t, B * β ^ t := by
+    refine hs.abs.tsum_le_tsum (fun t => ?_) hg.summable
+    rw [abs_mul, abs_pow, abs_of_nonneg hβ0, mul_comm]
+    exact mul_le_mul_of_nonneg_right (hf t) (pow_nonneg hβ0 t)
+  rw [hg.tsum_eq] at h2
+  calc _ ≤ _ := h1.trans h2
+    _ = B / (1 - β) := by rw [div_eq_mul_inv]
+
+/-- Woodford (2003), p. 458: shifting a discounted sum by one period,
+`∑ βᵗ a_t = a_0 + β ∑ βᵗ a_{t+1}`. -/
+theorem tsum_geom_shift {β : ℝ} {a : ℕ → ℝ} (hs : Summable (fun t => β ^ t * a t)) :
+    ∑' t, β ^ t * a t = a 0 + β * ∑' t, β ^ t * a (t + 1) := by
+  rw [hs.tsum_eq_zero_add, ← tsum_mul_left]
+  simp only [pow_zero, one_mul]
+  congr 1
+  exact tsum_congr fun t => by ring
+
+/-- **Woodford (2003), App. E.3, p. 697 (the discounted shift).** For a bounded sequence `K`
+and `0 ≤ β < 1`, `∑ βᵗ (K_t − β K_{t+1}) = K_0`: every "lagged" term of a period loss can be
+moved one period forward at the cost of an initial-condition term. -/
+theorem tsum_telescope {β : ℝ} (h0 : 0 ≤ β) (h1 : β < 1) {K : ℕ → ℝ} (hK : Bdd K) :
+    ∑' t, β ^ t * (K t - β * K (t + 1)) = K 0 := by
+  have hs := hK.summable h0 h1
+  have hs1 := hK.shift.summable h0 h1
+  have hfun : (fun t => β ^ t * (K t - β * K (t + 1))) =
+      fun t => β ^ t * K t - β * (β ^ t * K (t + 1)) := by
+    funext t; ring
+  rw [hfun, hs.tsum_sub (hs1.mul_left β), tsum_mul_left, tsum_geom_shift hs]
+  ring
+
+/-- **Woodford (2003), App. E.3, p. 697.** If `F_t = G_t + (K_t − β K_{t+1})` with `G`, `K`
+bounded, then `∑ βᵗ F_t = ∑ βᵗ G_t + K_0`. -/
+theorem tsum_telescope_add {β : ℝ} (h0 : 0 ≤ β) (h1 : β < 1) {F G K : ℕ → ℝ} (hG : Bdd G)
+    (hK : Bdd K) (h : ∀ t, F t = G t + (K t - β * K (t + 1))) :
+    ∑' t, β ^ t * F t = ∑' t, β ^ t * G t + K 0 := by
+  have hK' : Bdd (fun t => K t - β * K (t + 1)) := hK.sub ((Bdd.const β).mul hK.shift)
+  have hfun : (fun t => β ^ t * F t) =
+      fun t => β ^ t * G t + β ^ t * (K t - β * K (t + 1)) := by
+    funext t; rw [h t]; ring
+  rw [hfun, (hG.summable h0 h1).tsum_add (hK'.summable h0 h1), tsum_telescope h0 h1 hK]
+
+/-- Woodford (2003), App. E.3, p. 697: discounted sums are linear on bounded sequences,
+`∑ βᵗ(k a_t + b_t + c_t) = k ∑ βᵗ a_t + ∑ βᵗ b_t + ∑ βᵗ c_t`. -/
+theorem tsum_add3 {β : ℝ} (h0 : 0 ≤ β) (h1 : β < 1) (k : ℝ) {a b c : ℕ → ℝ} (ha : Bdd a)
+    (hb : Bdd b) (hc : Bdd c) :
+    ∑' t, β ^ t * (k * a t + b t + c t) =
+      k * ∑' t, β ^ t * a t + ∑' t, β ^ t * b t + ∑' t, β ^ t * c t := by
+  have hfun : (fun t => β ^ t * (k * a t + b t + c t)) =
+      fun t => (k * (β ^ t * a t) + β ^ t * b t) + β ^ t * c t := by
+    funext t; ring
+  rw [hfun, (((ha.summable h0 h1).mul_left k).add (hb.summable h0 h1)).tsum_add
+    (hc.summable h0 h1), ((ha.summable h0 h1).mul_left k).tsum_add (hb.summable h0 h1),
+    tsum_mul_left]
+
+/-- Woodford (2003), §3.2 and p. 458 ("forward integrated"): a bounded solution of
+`v_t = d_t + β v_{t+1}` (`|β| < 1`) is the discounted sum `v_0 = ∑ βᵗ d_t`. -/
+theorem forward_real {β M : ℝ} (hβ : |β| < 1) {v d : ℕ → ℝ} (hv : ∀ t, |v t| ≤ M)
+    (h : ∀ t, v t = d t + β * v (t + 1)) : v 0 = ∑' t, β ^ t * d t := by
+  have hs : Summable (fun t => β ^ t * v t) := summable_geom_bdd hβ hv
+  have hs1 : Summable (fun t => β ^ t * v (t + 1)) := summable_geom_bdd hβ (fun t => hv (t + 1))
+  have hd : ∀ t, β ^ t * d t = β ^ t * v t - β * (β ^ t * v (t + 1)) := fun t => by
+    linear_combination (-(β ^ t)) * h t
+  rw [tsum_congr hd, hs.tsum_sub (hs1.mul_left β), tsum_mul_left, tsum_geom_shift hs]
+  ring
+
+/-! ### The dispersion recursion of Proposition 6.3 -/
+
+/-- Woodford (2003), p. 400 (integrating (2.20) forward, exact): if
+`V_{t+1} = α V_t + c q_t` then `V_{t+1} = α^{t+1} V_0 + ∑_{s ≤ t} α^{t−s} c q_s`
+(with `V_0 = Δ_{−1}` the inherited dispersion). -/
+theorem disp_integrated {α c : ℝ} {V q : ℕ → ℝ} (hrec : ∀ t, V (t + 1) = α * V t + c * q t)
+    (t : ℕ) :
+    V (t + 1) = α ^ (t + 1) * V 0 + ∑ s ∈ Finset.range (t + 1), α ^ (t - s) * (c * q s) := by
+  induction t with
+  | zero => simp [hrec 0]
+  | succ t ih =>
+    rw [hrec (t + 1), ih, Finset.sum_range_succ _ (t + 1), Nat.sub_self, pow_zero, one_mul,
+      mul_add, Finset.mul_sum]
+    have : ∀ s ∈ Finset.range (t + 1), α * (α ^ (t - s) * (c * q s)) =
+        α ^ (t + 1 - s) * (c * q s) := by
+      intro s hs
+      rw [Finset.mem_range] at hs
+      rw [Nat.sub_add_comm (Nat.lt_succ_iff.mp hs), pow_succ]
+      ring
+    rw [Finset.sum_congr rfl this]
+    ring
+
+/-- Woodford (2003), proof of Propositions 6.3/6.4 (App. E.2, p. 695, integrated): if
+`Δ_t = α Δ_{t−1} + k p_t` (here `d t = Δ_{t−1}`) with `Δ`, `p` bounded and `|β| < 1`, then
+`(1 − αβ) ∑ βᵗ Δ_t = α Δ_{−1} + k ∑ βᵗ p_t`. -/
+theorem dispersion_tsum {α β k M N : ℝ} (hβ : |β| < 1) {d p : ℕ → ℝ} (hd : ∀ t, |d t| ≤ M)
+    (hp : ∀ t, |p t| ≤ N) (hrec : ∀ t, d (t + 1) = α * d t + k * p t) :
+    (1 - α * β) * ∑' t, β ^ t * d (t + 1) = α * d 0 + k * ∑' t, β ^ t * p t := by
+  have hs : Summable (fun t => β ^ t * d t) := summable_geom_bdd hβ hd
+  have hsp : Summable (fun t => β ^ t * p t) := summable_geom_bdd hβ hp
+  have e1 : ∑' t, β ^ t * d (t + 1) = α * ∑' t, β ^ t * d t + k * ∑' t, β ^ t * p t := by
+    rw [← tsum_mul_left, ← tsum_mul_left, ← (hs.mul_left α).tsum_add (hsp.mul_left k)]
+    exact tsum_congr fun t => by rw [hrec t]; ring
+  have e2 := tsum_geom_shift hs
+  rw [e2] at e1
+  linear_combination e1
+
+/-- Woodford (2003), p. 400 (**the discounted sum, exact, genuine `tsum`s**): if
+`V_{t+1} = α V_t + c q_t`, `0 ≤ α`, `0 ≤ β`, `αβ < 1` and `∑ βᵗ q_t` converges absolutely,
+then `∑ βᵗ V_{t+1}` converges and equals `(α V_0 + c ∑ βᵗ q_t)/(1 − αβ)` (a Cauchy product
+of `∑ (αβ)ᵏ` with `∑ βˢ q_s`; no bound on `V` is needed). -/
+theorem disp_discounted_hasSum {α β c : ℝ} (hα : 0 ≤ α) (hβ : 0 ≤ β) (hαβ : α * β < 1)
+    {V q : ℕ → ℝ} (hrec : ∀ t, V (t + 1) = α * V t + c * q t)
+    (hq : Summable fun t => ‖β ^ t * q t‖) :
+    HasSum (fun t => β ^ t * V (t + 1)) ((α * V 0 + c * ∑' t, β ^ t * q t) / (1 - α * β)) := by
+  set f : ℕ → ℝ := fun k => (α * β) ^ k with hfdef
+  set g : ℕ → ℝ := fun s => β ^ s * q s with hgdef
+  have hab0 : 0 ≤ α * β := mul_nonneg hα hβ
+  have hf : Summable fun k => ‖f k‖ := by
+    simpa [hfdef, Real.norm_eq_abs, abs_of_nonneg (pow_nonneg hab0 _)] using
+      summable_geometric_of_lt_one hab0 hαβ
+  have hcp := tsum_mul_tsum_eq_tsum_sum_range_of_summable_norm hf hq
+  have hcs := (summable_norm_sum_mul_range_of_summable_norm hf hq).of_norm
+  have hterm : ∀ t, β ^ t * V (t + 1) = (α * V 0) * f t +
+      c * ∑ k ∈ Finset.range (t + 1), f k * g (t - k) := by
+    intro t
+    rw [disp_integrated hrec t]
+    have hr := Finset.sum_range_reflect (fun k => f k * g (t - k)) (t + 1)
+    simp only [Nat.add_sub_cancel] at hr
+    rw [← hr, mul_add, Finset.mul_sum, Finset.mul_sum]
+    have : ∀ s ∈ Finset.range (t + 1), β ^ t * (α ^ (t - s) * (c * q s)) =
+        c * (f (t - s) * g (t - (t - s))) := by
+      intro s hs
+      rw [Finset.mem_range] at hs
+      have hst : s ≤ t := Nat.lt_succ_iff.mp hs
+      rw [Nat.sub_sub_self hst]
+      simp only [hfdef, hgdef]
+      have : β ^ t = β ^ (t - s) * β ^ s := by rw [← pow_add, Nat.sub_add_cancel hst]
+      rw [this, mul_pow]
+      ring
+    rw [Finset.sum_congr rfl this, pow_succ]
+    simp only [hfdef]
+    ring
+  have hgeo : HasSum f (1 - α * β)⁻¹ := hasSum_geometric_of_lt_one hab0 hαβ
+  have hA : HasSum (fun t => (α * V 0) * f t) ((α * V 0) * (1 - α * β)⁻¹) := hgeo.mul_left _
+  have hB : HasSum (fun t => c * ∑ k ∈ Finset.range (t + 1), f k * g (t - k))
+      (c * ((∑' k, f k) * ∑' s, g s)) := by
+    rw [hcp]
+    exact hcs.hasSum.mul_left c
+  have h := hA.add hB
+  rw [hgeo.tsum_eq] at h
+  have hpos : (1 : ℝ) - α * β ≠ 0 := by linarith
+  convert h using 1
+  · funext t
+    exact hterm t
+  · field_simp
+
+/-- Woodford (2003), (2.20) and (2.24), pp. 399, 402 (the exact second-order law of motion,
+Proposition 6.3): `Δ_t = αΔ_{t−1} + α/(1 − α) p_t²`, with `p_t = π_t` (Calvo) or
+`p_t = π_t − γπ_{t−1}` (indexation). A bounded `p` gives a bounded `Δ`. -/
+theorem disp_bdd {α Δm1 : ℝ} {Δ p : ℕ → ℝ} (hα0 : 0 ≤ α) (hα1 : α < 1) (hp : Bdd p)
+    (hrec : ∀ t, Δ t = α * lagS Δm1 Δ t + α / (1 - α) * p t ^ 2) : Bdd Δ := by
+  obtain ⟨M, hM0, hM⟩ := hp.nonneg_bound
+  have h1α : 0 < 1 - α := by linarith
+  set B := max |Δm1| (α * M ^ 2 / (1 - α) ^ 2) with hB
+  have hB1 : α * M ^ 2 / (1 - α) ^ 2 ≤ B := le_max_right _ _
+  have hB0 : 0 ≤ B := le_trans (abs_nonneg _) (le_max_left _ _)
+  have hstep : ∀ t, |lagS Δm1 Δ t| ≤ B → |Δ t| ≤ B := by
+    intro t ht
+    rw [hrec t]
+    have hp2 : p t ^ 2 ≤ M ^ 2 := by
+      have := hM t
+      have h' : |p t| ^ 2 ≤ M ^ 2 := pow_le_pow_left₀ (abs_nonneg _) this 2
+      simpa [sq_abs] using h'
+    have hc : α / (1 - α) * p t ^ 2 ≤ (1 - α) * B := by
+      have h2 : α * M ^ 2 ≤ (1 - α) ^ 2 * B := by
+        rw [div_le_iff₀ (by positivity)] at hB1; linarith
+      rw [div_mul_eq_mul_div, div_le_iff₀ h1α]
+      nlinarith
+    have hc0 : 0 ≤ α / (1 - α) * p t ^ 2 := by positivity
+    calc |α * lagS Δm1 Δ t + α / (1 - α) * p t ^ 2|
+        ≤ |α * lagS Δm1 Δ t| + |α / (1 - α) * p t ^ 2| := abs_add_le _ _
+      _ = α * |lagS Δm1 Δ t| + α / (1 - α) * p t ^ 2 := by
+          rw [abs_mul, abs_of_nonneg hα0, abs_of_nonneg hc0]
+      _ ≤ α * B + (1 - α) * B := add_le_add (mul_le_mul_of_nonneg_left ht hα0) hc
+      _ = B := by ring
+  refine ⟨B, fun t => ?_⟩
+  induction t with
+  | zero => exact hstep 0 (le_max_left _ _)
+  | succ t ih => exact hstep (t + 1) ih
+
+/-- **Woodford (2003), p. 400 (the discounted dispersion, exact Layer-A form).** Under (2.20),
+`∑ βᵗ Δ_t = [αΔ_{−1} + α/(1 − α) ∑ βᵗ p_t²]/(1 − αβ)`; the `Δ_{−1}` term is t.i.p. -/
+theorem disp_discounted {α β Δm1 : ℝ} {Δ p : ℕ → ℝ} (h0 : 0 ≤ β) (h1 : β < 1) (hα0 : 0 ≤ α)
+    (hα1 : α < 1) (hp : Bdd p)
+    (hrec : ∀ t, Δ t = α * lagS Δm1 Δ t + α / (1 - α) * p t ^ 2) :
+    ∑' t, β ^ t * Δ t = (α * Δm1 + α / (1 - α) * ∑' t, β ^ t * p t ^ 2) / (1 - α * β) := by
+  obtain ⟨M, hM⟩ := (disp_bdd hα0 hα1 hp hrec).lagS Δm1
+  obtain ⟨N, hN⟩ := hp.pow 2
+  have hab : 0 < 1 - α * β := by nlinarith
+  have h := dispersion_tsum (β := β) (by rw [abs_of_nonneg h0]; exact h1) hM hN
+    (fun t => by simp only [lagS_succ]; exact hrec t)
+  simp only [lagS_succ, lagS_zero] at h
+  rw [eq_div_iff hab.ne']
+  linarith
+
+/-! ### Bounded processes and their expected discounted sums -/
+
+variable {Ω : Type*}
+
+/-- Woodford (2003), (5.2): products of bounded processes are bounded. -/
+theorem bdd_mul {X Y : ℕ → Ω → ℝ} (hX : BoundedProc X) (hY : BoundedProc Y) :
+    BoundedProc (fun t => X t * Y t) := by
+  obtain ⟨M, hM⟩ := hX
+  obtain ⟨N, hN⟩ := hY
+  refine ⟨M * N, fun t w => ?_⟩
+  dsimp only
+  rw [Pi.mul_apply, abs_mul]
+  exact mul_le_mul (hM t w) (hN t w) (abs_nonneg _) ((abs_nonneg _).trans (hM t w))
+
+/-- Woodford (2003), (5.2): squares of bounded processes are bounded. -/
+theorem bdd_sq {X : ℕ → Ω → ℝ} (hX : BoundedProc X) : BoundedProc (fun t => X t ^ 2) := by
+  obtain ⟨M, hM⟩ := bdd_mul hX hX
+  refine ⟨M, fun t w => ?_⟩
+  have h := hM t w
+  dsimp only at h ⊢
+  rw [Pi.mul_apply] at h
+  rw [Pi.pow_apply, sq]
+  exact h
+
+/-- Woodford (2003), (5.2): shifts of bounded processes are bounded. -/
+theorem bdd_shift {X : ℕ → Ω → ℝ} (hX : BoundedProc X) : BoundedProc (fun t => X (t + 1)) := by
+  obtain ⟨M, hM⟩ := hX
+  exact ⟨M, fun t w => hM (t + 1) w⟩
+
+/-- Woodford (2003), (5.2): boundedness transfers along pointwise equality. -/
+theorem bdd_congr {X Y : ℕ → Ω → ℝ} (hX : BoundedProc X) (h : ∀ t w, Y t w = X t w) :
+    BoundedProc Y := by
+  obtain ⟨M, hM⟩ := hX
+  exact ⟨M, fun t w => by rw [h]; exact hM t w⟩
+
+/-- Woodford (2003), (4.18)–(4.20), p. 428: bounded processes are closed under affine
+combinations. -/
+theorem boundedProc_lincomb {f g : ℕ → Ω → ℝ} (hf : BoundedProc f) (hg : BoundedProc g)
+    (a b c : ℝ) : BoundedProc (fun t ω => a * f t ω + b * g t ω + c) := by
+  obtain ⟨M, hM⟩ := hf
+  obtain ⟨N, hN⟩ := hg
+  refine ⟨|a| * M + |b| * N + |c|, fun t ω => ?_⟩
+  calc |a * f t ω + b * g t ω + c| ≤ |a * f t ω| + |b * g t ω| + |c| := abs_add_three _ _ _
+    _ = |a| * |f t ω| + |b| * |g t ω| + |c| := by rw [abs_mul, abs_mul]
+    _ ≤ |a| * M + |b| * N + |c| := by
+      gcongr
+      · exact hM t ω
+      · exact hN t ω
+
+/-- Woodford (2003), (5.2)–(5.4): a continuous function of finitely many bounded processes is a
+bounded process. -/
+theorem bdd_of_continuous {n : ℕ} (φ : (Fin n → ℝ) → ℝ) (hφ : Continuous φ)
+    (X : Fin n → ℕ → Ω → ℝ) (hX : ∀ i, BoundedProc (X i)) :
+    BoundedProc (fun t w => φ (fun i => X i t w)) := by
+  choose M hM using hX
+  set B : ℝ := ∑ i, |M i| with hB
+  have hB0 : 0 ≤ B := Finset.sum_nonneg fun i _ => abs_nonneg _
+  obtain ⟨C, hC⟩ := (isCompact_closedBall (0 : Fin n → ℝ) B).exists_bound_of_continuousOn
+    hφ.continuousOn
+  refine ⟨C, fun t w => ?_⟩
+  have hmem : (fun i => X i t w) ∈ Metric.closedBall (0 : Fin n → ℝ) B := by
+    rw [Metric.mem_closedBall, dist_zero_right, pi_norm_le_iff_of_nonneg hB0]
+    intro i
+    rw [Real.norm_eq_abs]
+    calc |X i t w| ≤ M i := hM i t w
+      _ ≤ |M i| := le_abs_self _
+      _ ≤ B := Finset.single_le_sum (f := fun i => |M i|) (fun j _ => abs_nonneg _)
+          (Finset.mem_univ i)
+  have := hC _ hmem
+  rwa [Real.norm_eq_abs] at this
+
+variable (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), (5.2): the expected discounted sum `E_0 ∑ βᵗ X_t`, evaluated in state `w`
+as `∑ βᵗ E_0 X_t` (equal to `E_0` of the pathwise sum for bounded `X`, `E_tsum_dom`). -/
+noncomputable def dsum (β : ℝ) (X : ℕ → Ω → ℝ) (w : Ω) : ℝ :=
+  ∑' t, β ^ t * 𝔼.E 0 (X t) w
+
+/-- Woodford (2003), (5.2): `E_0` of a bounded process is a bounded real sequence. -/
+theorem abs_E0_le {X : ℕ → Ω → ℝ} {M : ℝ} (hM : ∀ t w, |X t w| ≤ M) (w : Ω) (t : ℕ) :
+    |𝔼.E 0 (X t) w| ≤ M := 𝔼.abs_E_le (hM t) 0 w
+
+/-- Woodford (2003), (5.2): the discounted expected sum of a bounded process converges. -/
+theorem hasSum_dsum {β : ℝ} (hβ : |β| < 1) {X : ℕ → Ω → ℝ} (hX : BoundedProc X) (w : Ω) :
+    HasSum (fun t => β ^ t * 𝔼.E 0 (X t) w) (dsum 𝔼 β X w) := by
+  obtain ⟨M, hM⟩ := hX
+  exact (summable_geom_bdd hβ (fun t => abs_E0_le 𝔼 hM w t)).hasSum
+
+/-- Woodford (2003), Ch. 5 §1.2, p. 333 and (2.28) of Ch. 3 (restated): the lagged process
+`x_{t−1}` with initial value `x_{−1}`. -/
+def lagP (xm1 : Ω → ℝ) (x : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => xm1
+  | t + 1 => x t
+
+/-- Woodford (2003), p. 333: the lag of a process, state by state, is the lag of the path. -/
+theorem lagP_apply (xm1 : Ω → ℝ) (x : ℕ → Ω → ℝ) (t : ℕ) (w : Ω) :
+    lagP xm1 x t w = lagS (xm1 w) (fun s => x s w) t := by
+  cases t <;> rfl
+
+/-- Woodford (2003), p. 333: the lag of an adapted process with `x_{−1}` known at date 0 is known
+at date `t`. -/
+theorem lagP_known {xm1 : Ω → ℝ} (hm : 𝔼.E 0 xm1 = xm1) {x : ℕ → Ω → ℝ} (hx : 𝔼.Adapted x)
+    (t : ℕ) : 𝔼.E t (lagP xm1 x t) = lagP xm1 x t := by
+  cases t with
+  | zero => exact hm
+  | succ t => exact ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (hx t)
+
+end Cochrane.ZeroBound.TidyR6WoodfordSequences
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The zero interest-rate lower bound (Woodford 2003, §6.4.2, App. E.5)
+
+Restated from the Woodford Chapter 6 project (`StabilizationWelfare`, module of the same name
+without the `TidyR6Woodford` prefix), with only the namespace changed, for the common model of
+Cochrane (2023), Chapter 20, and Woodford's Proposition 6.9 (`TidyR6CommonModel`).
+
+Woodford (2003), *Interest and Prices*, Chapter 6, §4.2 "The Zero Interest-Rate Lower Bound",
+pp. 427–435, with the proof of Proposition 6.9 in Appendix E.5, pp. 700–703.
+
+## Main results
+
+* `mean_ge_k_sd_iff`: "the mean is at least `k` standard deviations above zero" is equivalent
+  to `E i² ≤ (1 + k⁻²)(E i)²` and `E i ≥ 0` (p. 428); `K_value` (`K = 1.196` at `k = 2.26`);
+  `one_lt_K`.
+* `dAvg`: the discounted average `Ê[f] = (1−β) Σ βᵗ E₀ f_t` (a genuine `tsum`), with
+  linearity (`dAvg_lincomb`), monotonicity, `dAvg_const`, Jensen `dAvg_sq_ge`, and the
+  completing-the-square step (E.25) `dAvg_complete_square`.
+* `lagrangian_sufficiency`: Lagrangian sufficiency on an arbitrary set of policies.
+* `kkt_exists`: Kuhn–Tucker multipliers for two convex constraints on a convex set of policies in
+  any real vector space, under a Slater point, via finite-dimensional separation
+  (`geometric_hahn_banach_open` in `ℝ × ℝ × ℝ`).
+* `optimal_reformulated`, `prop_6_9_multipliers`: the book's reformulation with the linear
+  constraints `m₁ ≥ m̄₁`, `m₂ ≤ m̄₂` and the multipliers of (E.23).
+* `det_component_mean`: the decomposition argument that (E.20) never binds, made precise.
+* `valueFn`, `envelope`: the envelope step `μ₁ = 2K m̄₁ μ₂` (E.24), under differentiability of
+  the value function at `(m̄₁, m̄₂)`.
+* `binds_of_unconstrained_infeasible`, `mu2_pos`, `zero_multiplier_of_feasible_min`,
+  `binding_zero_multiplier_case`: "`λ̃_i > 0` iff (E.21) binds", made precise.
+* `iStarStar_pos`, `iStarStar_K_one` (survey error 22: `K > 1` is needed; at `K = 1` only
+  `i** ≥ 0`), `one_le_K_of_feasible`.
+* `prop_6_9`: Proposition 6.9 (4.21) assembled; `prop_6_9_slack`.
+* `loss_4_22`, `iHat_between`, `iHat_either_sign`: (4.22), `λ̂_i = λ_i + μ₂`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR6WoodfordZLB
+
+open Filter Topology
+open TidyR6WoodfordSequences (bdd_sq boundedProc_lincomb dsum hasSum_dsum)
+
+/-! ### The moment form of the lower-bound constraint -/
+
+/-- Woodford (2003), p. 428: for `k > 0`, the requirement that
+the mean be at least `k` standard deviations, `k √(E i² − (E i)²) ≤ E i`, is equivalent to
+`E i² ≤ (1 + k⁻²)(E i)²` together with `E i ≥ 0`. -/
+theorem mean_ge_k_sd_iff {k m1 m2 : ℝ} (hk : 0 < k) :
+    k * Real.sqrt (m2 - m1 ^ 2) ≤ m1 ↔ m2 ≤ (1 + k⁻¹ ^ 2) * m1 ^ 2 ∧ 0 ≤ m1 := by
+  have hk' := hk.ne'
+  constructor
+  · intro h
+    have hm1 : 0 ≤ m1 := le_trans (by positivity) h
+    have h2 : Real.sqrt (m2 - m1 ^ 2) ≤ m1 / k := by
+      rw [le_div_iff₀ hk]; linarith
+    rw [Real.sqrt_le_left (by positivity)] at h2
+    refine ⟨?_, hm1⟩
+    have : m2 - m1 ^ 2 ≤ k⁻¹ ^ 2 * m1 ^ 2 := by
+      calc m2 - m1 ^ 2 ≤ (m1 / k) ^ 2 := h2
+        _ = k⁻¹ ^ 2 * m1 ^ 2 := by field_simp
+    linarith
+  · rintro ⟨h, hm1⟩
+    have h2 : m2 - m1 ^ 2 ≤ (m1 / k) ^ 2 := by
+      calc m2 - m1 ^ 2 ≤ k⁻¹ ^ 2 * m1 ^ 2 := by linarith
+        _ = (m1 / k) ^ 2 := by field_simp
+    have h3 := (Real.sqrt_le_left (by positivity)).mpr h2
+    rw [le_div_iff₀ hk] at h3
+    linarith
+
+/-- Woodford (2003), p. 428: `K ≡ 1 + k⁻²`. -/
+noncomputable def bigK (k : ℝ) : ℝ := 1 + k⁻¹ ^ 2
+
+/-- Woodford (2003), Table 6.1 and p. 434: at `k = 2.26`, `K = 1.1958… ≈ 1.196`. -/
+theorem K_value : |bigK 2.26 - 1.196| < 0.0005 := by
+  unfold bigK; rw [abs_lt]; constructor <;> norm_num
+
+/-- Woodford (2003), p. 428: for every finite `k ≠ 0`, `K = 1 + k⁻² > 1`. -/
+theorem one_lt_K {k : ℝ} (hk : k ≠ 0) : 1 < bigK k := by
+  unfold bigK
+  have : 0 < k⁻¹ ^ 2 := by positivity
+  linarith
+
+/-- Woodford (2003), p. 428 (Jensen): with `(E i)² ≤ E i²`, the constraint
+`E i² ≤ K (E i)²` with `K < 1` forces `E i = 0`; a meaningful bound needs `K ≥ 1`. -/
+theorem one_le_K_of_feasible {K m1 m2 : ℝ} (hK : K < 1) (hJ : m1 ^ 2 ≤ m2)
+    (hc : m2 ≤ K * m1 ^ 2) : m1 = 0 := by
+  have : (1 - K) * m1 ^ 2 ≤ 0 := by nlinarith
+  have h2 : m1 ^ 2 ≤ 0 := by
+    by_contra h
+    push Not at h
+    nlinarith
+  exact pow_eq_zero_iff (n := 2) (by norm_num) |>.mp (le_antisymm h2 (sq_nonneg m1))
+
+/-! ### Discounted averages `Ê` -/
+
+variable {S : Type*} (𝔼 : ExpectationSystem S)
+
+/-- Woodford (2003), (4.18)–(4.20), p. 428 and (4.23), p. 430: the discounted average
+`Ê[f] = E₀ (1−β) Σ βᵗ f_t`, evaluated in the date-0 state `ω₀`: `(1 − β)` times the expected
+discounted sum `TidyR6WoodfordSequences.dsum` (convergent for bounded processes,
+`TidyR6WoodfordSequences.hasSum_dsum`). -/
+noncomputable def dAvg (β : ℝ) (f : ℕ → S → ℝ) (ω0 : S) : ℝ :=
+  (1 - β) * dsum 𝔼 β f ω0
+
+/-- Woodford (2003), (4.18)–(4.20): `Ê` is linear on bounded processes and `Ê[c] = c`:
+`Ê[a f + b g + c] = a Ê[f] + b Ê[g] + c`. -/
+theorem dAvg_lincomb {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {f g : ℕ → S → ℝ}
+    (hf : BoundedProc f) (hg : BoundedProc g) (a b c : ℝ) (ω0 : S) :
+    dAvg 𝔼 β (fun t ω => a * f t ω + b * g t ω + c) ω0 =
+      a * dAvg 𝔼 β f ω0 + b * dAvg 𝔼 β g ω0 + c := by
+  have hE : ∀ t, 𝔼.E 0 (fun ω => a * f t ω + b * g t ω + c) ω0 =
+      a * 𝔼.E 0 (f t) ω0 + b * 𝔼.E 0 (g t) ω0 + c := by
+    intro t
+    have : (fun ω => a * f t ω + b * g t ω + c) = a • f t + b • g t + (fun _ => c) := by
+      funext ω; simp [smul_eq_mul]
+    rw [this, map_add, map_add, map_smul, map_smul, 𝔼.const]
+    rfl
+  have hsf := (hasSum_dsum 𝔼 (abs_lt.2 ⟨by linarith, hβ1⟩) hf ω0).summable
+  have hsg := (hasSum_dsum 𝔼 (abs_lt.2 ⟨by linarith, hβ1⟩) hg ω0).summable
+  have hgeo : HasSum (fun t => β ^ t * c) (c / (1 - β)) := by
+    have := (hasSum_geometric_of_lt_one hβ0 hβ1).mul_right c
+    rwa [div_eq_inv_mul]
+  have htot := ((hsf.hasSum.mul_left a).add (hsg.hasSum.mul_left b)).add hgeo
+  unfold dAvg dsum
+  rw [show (fun t => β ^ t * 𝔼.E 0 (fun ω => a * f t ω + b * g t ω + c) ω0) =
+      fun t => a * (β ^ t * 𝔼.E 0 (f t) ω0) + b * (β ^ t * 𝔼.E 0 (g t) ω0) + β ^ t * c from
+      funext fun t => by rw [hE t]; ring, htot.tsum_eq]
+  have h1 : 1 - β ≠ 0 := by linarith
+  field_simp
+
+/-- Woodford (2003), (4.18): `Ê[c] = c`. -/
+theorem dAvg_const {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (c : ℝ) (ω0 : S) :
+    dAvg 𝔼 β (fun _ _ => c) ω0 = c := by
+  have h0 : BoundedProc (fun _ _ => (0 : ℝ) : ℕ → S → ℝ) := ⟨0, fun _ _ => by simp⟩
+  have := dAvg_lincomb 𝔼 hβ0 hβ1 h0 h0 0 0 c ω0
+  simpa using this
+
+/-- `Ê` is monotone on bounded processes. -/
+theorem dAvg_mono {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {f g : ℕ → S → ℝ}
+    (hf : BoundedProc f) (hg : BoundedProc g) (hfg : ∀ t ω, f t ω ≤ g t ω) (ω0 : S) :
+    dAvg 𝔼 β f ω0 ≤ dAvg 𝔼 β g ω0 := by
+  unfold dAvg dsum
+  refine mul_le_mul_of_nonneg_left ?_ (by linarith)
+  have hβ : |β| < 1 := abs_lt.2 ⟨by linarith, hβ1⟩
+  refine Summable.tsum_le_tsum (fun t => ?_) (hasSum_dsum 𝔼 hβ hf ω0).summable
+    (hasSum_dsum 𝔼 hβ hg ω0).summable
+  exact mul_le_mul_of_nonneg_left (𝔼.mono 0 (fun ω => hfg t ω) ω0) (pow_nonneg hβ0 t)
+
+/-- Woodford (2003), p. 428 (Jensen): `(Ê i)² ≤ Ê[i²]`, so `K ≥ 1` in (4.19) is forced. -/
+theorem dAvg_sq_ge {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {f : ℕ → S → ℝ}
+    (hf : BoundedProc f) (ω0 : S) :
+    dAvg 𝔼 β f ω0 ^ 2 ≤ dAvg 𝔼 β (fun t ω => f t ω ^ 2) ω0 := by
+  set c := dAvg 𝔼 β f ω0
+  have hsq : BoundedProc (fun t ω => f t ω ^ 2) := bdd_sq hf
+  have hb := boundedProc_lincomb hsq hf 1 (-2 * c) (c ^ 2)
+  have h0 : BoundedProc (fun _ _ => (0 : ℝ) : ℕ → S → ℝ) := ⟨0, fun _ _ => by simp⟩
+  have hmono := dAvg_mono 𝔼 hβ0 hβ1 h0 hb (fun t ω => by
+    show (0 : ℝ) ≤ 1 * f t ω ^ 2 + -2 * c * f t ω + c ^ 2
+    nlinarith [sq_nonneg (f t ω - c)]) ω0
+  rw [dAvg_const 𝔼 hβ0 hβ1, dAvg_lincomb 𝔼 hβ0 hβ1 hsq hf] at hmono
+  nlinarith
+
+/-- Woodford (2003), eq. (E.25), p. 702: completing the square,
+`−μ₁ Ê[i] + μ₂ Ê[i²] = μ₂ Ê[(i − μ₁/(2μ₂))²] − μ₁²/(4μ₂)` for `μ₂ ≠ 0`. -/
+theorem dAvg_complete_square {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {i : ℕ → S → ℝ}
+    (hi : BoundedProc i) {μ1 μ2 : ℝ} (hμ2 : μ2 ≠ 0) (ω0 : S) :
+    -μ1 * dAvg 𝔼 β i ω0 + μ2 * dAvg 𝔼 β (fun t ω => i t ω ^ 2) ω0 =
+      μ2 * dAvg 𝔼 β (fun t ω => (i t ω - μ1 / (2 * μ2)) ^ 2) ω0 - μ1 ^ 2 / (4 * μ2) := by
+  have hsq : BoundedProc (fun t ω => i t ω ^ 2) := bdd_sq hi
+  have hfun : (fun t ω => (i t ω - μ1 / (2 * μ2)) ^ 2) =
+      fun t ω => 1 * i t ω ^ 2 + (-(μ1 / μ2)) * i t ω + (μ1 / (2 * μ2)) ^ 2 := by
+    funext t ω; field_simp; ring
+  rw [hfun, dAvg_lincomb 𝔼 hβ0 hβ1 hsq hi]
+  field_simp
+  ring
+
+/-! ### Lagrangian sufficiency and Kuhn–Tucker existence -/
+
+/-- Woodford (2003), App. E.5, p. 702 (Lagrangian sufficiency): if `p` is feasible
+(`g₁ p, g₂ p ≤ 0`), the multipliers are non-negative and complementary-slack, and `p` minimises
+the Lagrangian `L + μ₁g₁ + μ₂g₂` over `C`, then `p` solves the constrained problem. No structure
+on the set of policies is needed. -/
+theorem lagrangian_sufficiency {X : Type*} {C : Set X} {L g1 g2 : X → ℝ} {p : X}
+    {μ1 μ2 : ℝ} (hμ1 : 0 ≤ μ1) (hμ2 : 0 ≤ μ2) (hs1 : μ1 * g1 p = 0) (hs2 : μ2 * g2 p = 0)
+    (hmin : ∀ q ∈ C, L p + μ1 * g1 p + μ2 * g2 p ≤ L q + μ1 * g1 q + μ2 * g2 q) :
+    ∀ q ∈ C, g1 q ≤ 0 → g2 q ≤ 0 → L p ≤ L q := by
+  intro q hq h1 h2
+  have := hmin q hq
+  nlinarith [mul_nonpos_of_nonneg_of_nonpos hμ1 h1, mul_nonpos_of_nonneg_of_nonpos hμ2 h2]
+
+/-- A continuous linear functional on `ℝ × ℝ × ℝ` in coordinates. -/
+theorem clm_triple (f : StrongDual ℝ (ℝ × ℝ × ℝ)) (z : ℝ × ℝ × ℝ) :
+    f z = z.1 * f (1, 0, 0) + z.2.1 * f (0, 1, 0) + z.2.2 * f (0, 0, 1) := by
+  have hz : z = z.1 • ((1 : ℝ), (0 : ℝ), (0 : ℝ)) + z.2.1 • ((0 : ℝ), (1 : ℝ), (0 : ℝ)) +
+      z.2.2 • ((0 : ℝ), (0 : ℝ), (1 : ℝ)) := by
+    ext <;> simp
+  conv_lhs => rw [hz]
+  rw [map_add, map_add, map_smul, map_smul, map_smul]
+  simp [smul_eq_mul]
+
+/-- An elementary step of the separation argument: if `u ≤ v + c a` for every `c ≥ 0`, then
+`a ≥ 0`. -/
+theorem nonneg_of_forall_le_add_mul {u v a : ℝ} (h : ∀ c : ℝ, 0 ≤ c → u ≤ v + c * a) :
+    0 ≤ a := by
+  by_contra ha
+  push Not at ha
+  have hc : 0 ≤ (|v - u| + 1) / (-a) := div_nonneg (by positivity) (by linarith)
+  have h1 := h _ hc
+  have h2 : (|v - u| + 1) / (-a) * a = -(|v - u| + 1) := by
+    rw [div_mul_eq_mul_div, mul_div_assoc, div_neg, div_self ha.ne, mul_neg_one]
+  rw [h2] at h1
+  linarith [le_abs_self (v - u)]
+
+/-- Woodford (2003), App. E.5, p. 702 ("by the Kuhn–Tucker theorem"), with the hypotheses the
+book leaves implicit: `C` a convex set of policies in a real vector space, `L`, `g₁`, `g₂` convex
+on `C`, a Slater point `p₀ ∈ C` with `g₁ p₀ < 0`, `g₂ p₀ < 0`, and `p` a solution of
+`min L` on `{q ∈ C | g₁ q ≤ 0, g₂ q ≤ 0}`. Then there are multipliers `μ₁, μ₂ ≥ 0`, complementary
+slack, such that `p` minimises `L + μ₁g₁ + μ₂g₂` over `C`. Proof: separate the convex set
+`{(t, s₁, s₂) | ∃ q ∈ C, L q ≤ t, g₁ q ≤ s₁, g₂ q ≤ s₂}` from the open convex set
+`{t < L p, s₁ < 0, s₂ < 0}` in `ℝ³` (`geometric_hahn_banach_open`). -/
+theorem kkt_exists {X : Type*} [AddCommGroup X] [Module ℝ X] {C : Set X} (hC : Convex ℝ C)
+    {L g1 g2 : X → ℝ} (hL : ConvexOn ℝ C L) (hg1 : ConvexOn ℝ C g1) (hg2 : ConvexOn ℝ C g2)
+    {p0 p : X} (hp0 : p0 ∈ C) (h01 : g1 p0 < 0) (h02 : g2 p0 < 0) (hp : p ∈ C)
+    (hp1 : g1 p ≤ 0) (hp2 : g2 p ≤ 0) (hopt : ∀ q ∈ C, g1 q ≤ 0 → g2 q ≤ 0 → L p ≤ L q) :
+    ∃ μ1 μ2 : ℝ, 0 ≤ μ1 ∧ 0 ≤ μ2 ∧ μ1 * g1 p = 0 ∧ μ2 * g2 p = 0 ∧
+      ∀ q ∈ C, L p + μ1 * g1 p + μ2 * g2 p ≤ L q + μ1 * g1 q + μ2 * g2 q := by
+  set A : Set (ℝ × ℝ × ℝ) := {z | ∃ q ∈ C, L q ≤ z.1 ∧ g1 q ≤ z.2.1 ∧ g2 q ≤ z.2.2} with hA
+  set B : Set (ℝ × ℝ × ℝ) := {z | z.1 < L p ∧ z.2.1 < 0 ∧ z.2.2 < 0} with hB
+  have hBopen : IsOpen B :=
+    (isOpen_lt continuous_fst continuous_const).inter
+      ((isOpen_lt (continuous_fst.comp continuous_snd) continuous_const).inter
+        (isOpen_lt (continuous_snd.comp continuous_snd) continuous_const))
+  have hBconv : Convex ℝ B := by
+    intro x hx y hy a b ha hb hab
+    obtain ⟨hx1, hx2, hx3⟩ := hx
+    obtain ⟨hy1, hy2, hy3⟩ := hy
+    have key : ∀ u v w : ℝ, u < w → v < w → a * u + b * v < w := by
+      intro u v w hu hv
+      rcases eq_or_lt_of_le ha with h | h
+      · rw [← h, zero_add] at hab
+        rw [← h, hab]; simp [hv]
+      · have : a * u < a * w := mul_lt_mul_of_pos_left hu h
+        have : b * v ≤ b * w := mul_le_mul_of_nonneg_left hv.le hb
+        have : a * w + b * w = w := by rw [← add_mul, hab, one_mul]
+        linarith
+    refine ⟨?_, ?_, ?_⟩
+    · simpa using key _ _ _ hx1 hy1
+    · simpa using key _ _ _ hx2 hy2
+    · simpa using key _ _ _ hx3 hy3
+  have hAconv : Convex ℝ A := by
+    intro x hx y hy a b ha hb hab
+    obtain ⟨q, hq, hq1, hq2, hq3⟩ := hx
+    obtain ⟨r, hr, hr1, hr2, hr3⟩ := hy
+    refine ⟨a • q + b • r, hC hq hr ha hb hab, ?_, ?_, ?_⟩
+    · have := hL.2 hq hr ha hb hab
+      simp only [smul_eq_mul] at this
+      simp only [Prod.fst_add, Prod.smul_fst, smul_eq_mul]
+      nlinarith
+    · have := hg1.2 hq hr ha hb hab
+      simp only [smul_eq_mul] at this
+      simp only [Prod.snd_add, Prod.smul_snd, Prod.fst_add, Prod.smul_fst, smul_eq_mul]
+      nlinarith
+    · have := hg2.2 hq hr ha hb hab
+      simp only [smul_eq_mul] at this
+      simp only [Prod.snd_add, Prod.smul_snd, smul_eq_mul]
+      nlinarith
+  have hdisj : Disjoint B A := by
+    rw [Set.disjoint_left]
+    rintro z ⟨hz1, hz2, hz3⟩ ⟨q, hq, hq1, hq2, hq3⟩
+    have := hopt q hq (by linarith) (by linarith)
+    linarith
+  obtain ⟨f, u, hfB, hfA⟩ := geometric_hahn_banach_open hBconv hBopen hAconv hdisj
+  set a0 := f (1, 0, 0)
+  set a1 := f (0, 1, 0)
+  set a2 := f (0, 0, 1)
+  have hf : ∀ z, f z = z.1 * a0 + z.2.1 * a1 + z.2.2 * a2 := clm_triple f
+  -- the value point of `p` lies in `A`, and so do all its upward translates
+  have hup : ∀ c₀ c₁ c₂ : ℝ, 0 ≤ c₀ → 0 ≤ c₁ → 0 ≤ c₂ →
+      u ≤ (L p + c₀) * a0 + (g1 p + c₁) * a1 + (g2 p + c₂) * a2 := by
+    intro c₀ c₁ c₂ h0 h1 h2
+    have := hfA (L p + c₀, g1 p + c₁, g2 p + c₂) ⟨p, hp, by simp [h0], by simp [h1], by simp [h2]⟩
+    rwa [hf] at this
+  have ha0 : 0 ≤ a0 := nonneg_of_forall_le_add_mul (u := u)
+    (v := L p * a0 + g1 p * a1 + g2 p * a2)
+    (fun c hc => by have := hup c 0 0 hc le_rfl le_rfl; nlinarith [this])
+  have ha1 : 0 ≤ a1 := nonneg_of_forall_le_add_mul (u := u)
+    (v := L p * a0 + g1 p * a1 + g2 p * a2)
+    (fun c hc => by have := hup 0 c 0 le_rfl hc le_rfl; nlinarith [this])
+  have ha2 : 0 ≤ a2 := nonneg_of_forall_le_add_mul (u := u)
+    (v := L p * a0 + g1 p * a1 + g2 p * a2)
+    (fun c hc => by have := hup 0 0 c le_rfl le_rfl hc; nlinarith [this])
+  -- the corner `(L p, 0, 0)` of `B`
+  have hcorner : L p * a0 ≤ u := by
+    by_contra h
+    push Not at h
+    set δ := (L p * a0 - u) / (2 * (a0 + a1 + a2 + 1)) with hδ
+    have hden : 0 < 2 * (a0 + a1 + a2 + 1) := by linarith
+    have hδpos : 0 < δ := div_pos (by linarith) hden
+    have hmem : (L p - δ, -δ, -δ) ∈ B := ⟨by linarith, by linarith, by linarith⟩
+    have := hfB _ hmem
+    rw [hf] at this
+    simp only at this
+    have hδeq : δ * (2 * (a0 + a1 + a2 + 1)) = L p * a0 - u := by
+      rw [hδ]; field_simp
+    nlinarith
+  -- the Lagrangian inequality with weight `a0`
+  have hlag : ∀ q ∈ C, L p * a0 ≤ L q * a0 + g1 q * a1 + g2 q * a2 := by
+    intro q hq
+    have := hfA (L q, g1 q, g2 q) ⟨q, hq, le_rfl, le_rfl, le_rfl⟩
+    rw [hf] at this
+    simp only at this
+    linarith
+  -- Slater: `a0 > 0`
+  have ha0pos : 0 < a0 := by
+    rcases eq_or_lt_of_le ha0 with h | h
+    · exfalso
+      have h1 := hlag p0 hp0
+      rw [← h] at h1
+      simp only [mul_zero, zero_add] at h1
+      have hz1 : a1 = 0 := by nlinarith [mul_nonpos_of_nonneg_of_nonpos ha1 h01.le,
+        mul_nonpos_of_nonneg_of_nonpos ha2 h02.le]
+      have hz2 : a2 = 0 := by nlinarith [mul_nonpos_of_nonneg_of_nonpos ha1 h01.le,
+        mul_nonpos_of_nonneg_of_nonpos ha2 h02.le]
+      have hmem : (L p - 1, -1, -1) ∈ B := ⟨by linarith, by norm_num, by norm_num⟩
+      have h3 := hfB _ hmem
+      have h4 := hup 0 0 0 le_rfl le_rfl le_rfl
+      rw [hf, ← h, hz1, hz2] at h3
+      rw [← h, hz1, hz2] at h4
+      simp only [mul_zero, add_zero] at h3 h4
+      linarith
+    · exact h
+  have hp' := hlag p hp
+  have hx1 : a1 * g1 p = 0 := by nlinarith [mul_nonpos_of_nonpos_of_nonneg hp1 ha1,
+    mul_nonpos_of_nonpos_of_nonneg hp2 ha2]
+  have hx2 : a2 * g2 p = 0 := by nlinarith [mul_nonpos_of_nonpos_of_nonneg hp1 ha1,
+    mul_nonpos_of_nonpos_of_nonneg hp2 ha2]
+  refine ⟨a1 / a0, a2 / a0, div_nonneg ha1 ha0, div_nonneg ha2 ha0, ?_, ?_, ?_⟩
+  · rw [div_mul_eq_mul_div, hx1, zero_div]
+  · rw [div_mul_eq_mul_div, hx2, zero_div]
+  · intro q hq
+    have h := hlag q hq
+    refine le_of_mul_le_mul_left ?_ ha0pos
+    have e : ∀ x y z : ℝ, a0 * (x + a1 / a0 * y + a2 / a0 * z) = a0 * x + a1 * y + a2 * z := by
+      intro x y z; field_simp
+    rw [e, e]
+    nlinarith
+
+/-! ### Proposition 6.9: the constrained problem and its multipliers -/
+
+/-- Woodford (2003), (4.18)–(4.19), p. 428 / (E.20)–(E.21): a policy `p ∈ C` (`C` = the policies
+consistent with the structural equations) is feasible if `m₁ p ≥ 0` and `m₂ p ≤ K (m₁ p)²`,
+where `m₁, m₂` are the discounted averages of `i` and `i²`. -/
+def Feasible {X : Type*} (C : Set X) (m1 m2 : X → ℝ) (K : ℝ) (p : X) : Prop :=
+  p ∈ C ∧ 0 ≤ m1 p ∧ m2 p ≤ K * m1 p ^ 2
+
+/-- Woodford (2003), Proposition 6.9, p. 428: `p` minimises (4.20) subject to (4.18)–(4.19). -/
+def IsConstrOpt {X : Type*} (C : Set X) (L m1 m2 : X → ℝ) (K : ℝ) (p : X) : Prop :=
+  Feasible C m1 m2 K p ∧ ∀ q, Feasible C m1 m2 K q → L p ≤ L q
+
+/-- Woodford (2003), App. E.5, p. 702: the constrained optimum also solves the problem with
+the constraints `m₁ ≥ m̄₁`, `m₂ ≤ m̄₂` (`m̄ᵢ` its own moments), since any such policy satisfies
+(E.20)–(E.21) (needs `K ≥ 0`). -/
+theorem optimal_reformulated {X : Type*} {C : Set X} {L m1 m2 : X → ℝ} {K : ℝ} {p : X}
+    (hK : 0 ≤ K) (hopt : IsConstrOpt C L m1 m2 K p) :
+    ∀ q ∈ C, m1 p ≤ m1 q → m2 q ≤ m2 p → L p ≤ L q := by
+  intro q hq h1 h2
+  obtain ⟨⟨_, hp1, hp2⟩, hmin⟩ := hopt
+  refine hmin q ⟨hq, le_trans hp1 h1, ?_⟩
+  have : m1 p ^ 2 ≤ m1 q ^ 2 := pow_le_pow_left₀ hp1 h1 2
+  nlinarith
+
+/-- Woodford (2003), (E.23), p. 702: the multiplier form. With `C` convex, `L` convex, `m₁`
+concave and `m₂` convex on `C` (true when the interest path is linear in the policy, see
+`dAvg_affine`, `dAvg_sq_convex`), `K ≥ 0` and a Slater point `p₀ ∈ C` with `m₁ p₀ > m̄₁`,
+`m₂ p₀ < m̄₂`, there are `μ₁, μ₂ ≥ 0` such that the optimum minimises
+`L − μ₁ m₁ + μ₂ m₂` over `C`. -/
+theorem prop_6_9_multipliers {X : Type*} [AddCommGroup X] [Module ℝ X] {C : Set X}
+    (hC : Convex ℝ C) {L m1 m2 : X → ℝ} {K : ℝ} (hL : ConvexOn ℝ C L) (hm1 : ConcaveOn ℝ C m1)
+    (hm2 : ConvexOn ℝ C m2) (hK : 0 ≤ K) {p p0 : X} (hopt : IsConstrOpt C L m1 m2 K p)
+    (hp0 : p0 ∈ C) (h01 : m1 p < m1 p0) (h02 : m2 p0 < m2 p) :
+    ∃ μ1 μ2 : ℝ, 0 ≤ μ1 ∧ 0 ≤ μ2 ∧
+      ∀ q ∈ C, L p - μ1 * m1 p + μ2 * m2 p ≤ L q - μ1 * m1 q + μ2 * m2 q := by
+  have hg1 : ConvexOn ℝ C ((fun _ => m1 p) + -m1) := (convexOn_const _ hC).add hm1.neg
+  have hg2 : ConvexOn ℝ C (m2 + fun _ => -m2 p) := hm2.add (convexOn_const _ hC)
+  obtain ⟨μ1, μ2, hμ1, hμ2, -, -, hlag⟩ := kkt_exists hC hL hg1 hg2 hp0
+    (by simp only [Pi.add_apply, Pi.neg_apply]; linarith)
+    (by simp only [Pi.add_apply]; linarith) hopt.1.1
+    (by simp) (by simp)
+    (fun q hq h1 h2 => optimal_reformulated hK hopt q hq
+      (by simp only [Pi.add_apply, Pi.neg_apply] at h1; linarith)
+      (by simp only [Pi.add_apply] at h2; linarith))
+  refine ⟨μ1, μ2, hμ1, hμ2, fun q hq => ?_⟩
+  have := hlag q hq
+  simp only [Pi.add_apply, Pi.neg_apply] at this
+  linarith
+
+/-! ### The envelope step (E.24) -/
+
+/-- Woodford (2003), App. E.5, p. 702: the value function
+`V(a₁, a₂) = inf {L q | q ∈ C, m₁ q ≥ a₁, m₂ q ≤ a₂}` of the reformulated problem. -/
+noncomputable def valueFn {X : Type*} (C : Set X) (L m1 m2 : X → ℝ) (a : ℝ × ℝ) : ℝ :=
+  sInf (L '' {q | q ∈ C ∧ a.1 ≤ m1 q ∧ m2 q ≤ a.2})
+
+/-- The multipliers give an affine minorant of the value function: wherever the constraint set
+is non-empty, `V(a) ≥ L p + μ₁(a₁ − m̄₁) − μ₂(a₂ − m̄₂)`. -/
+theorem valueFn_ge_lag {X : Type*} {C : Set X} {L m1 m2 : X → ℝ} {p : X} {μ1 μ2 : ℝ}
+    (hμ1 : 0 ≤ μ1) (hμ2 : 0 ≤ μ2)
+    (hlag : ∀ q ∈ C, L p - μ1 * m1 p + μ2 * m2 p ≤ L q - μ1 * m1 q + μ2 * m2 q)
+    {a : ℝ × ℝ} (hne : ∃ q ∈ C, a.1 ≤ m1 q ∧ m2 q ≤ a.2) :
+    L p + μ1 * (a.1 - m1 p) - μ2 * (a.2 - m2 p) ≤ valueFn C L m1 m2 a := by
+  obtain ⟨q0, hq0, hq01, hq02⟩ := hne
+  refine le_csInf ⟨L q0, q0, ⟨hq0, hq01, hq02⟩, rfl⟩ ?_
+  rintro b ⟨q, ⟨hq, hq1, hq2⟩, rfl⟩
+  have := hlag q hq
+  nlinarith [mul_le_mul_of_nonneg_left hq1 hμ1, mul_le_mul_of_nonneg_left hq2 hμ2]
+
+/-- Along the constraint frontier: for `a₁ ≥ 0`, `a₂ ≤ K a₁²` every policy in the constraint
+set of `V(a)` is feasible for the original problem, so `V(a) ≥ L p`. -/
+theorem valueFn_ge_opt {X : Type*} {C : Set X} {L m1 m2 : X → ℝ} {K : ℝ} {p : X}
+    (hK : 0 ≤ K) (hopt : IsConstrOpt C L m1 m2 K p) {a : ℝ × ℝ} (ha1 : 0 ≤ a.1)
+    (ha2 : a.2 ≤ K * a.1 ^ 2) (hne : ∃ q ∈ C, a.1 ≤ m1 q ∧ m2 q ≤ a.2) :
+    L p ≤ valueFn C L m1 m2 a := by
+  obtain ⟨q0, hq0, hq01, hq02⟩ := hne
+  refine le_csInf ⟨L q0, q0, ⟨hq0, hq01, hq02⟩, rfl⟩ ?_
+  rintro b ⟨q, ⟨hq, hq1, hq2⟩, rfl⟩
+  refine hopt.2 q ⟨hq, le_trans ha1 hq1, ?_⟩
+  have : a.1 ^ 2 ≤ m1 q ^ 2 := pow_le_pow_left₀ ha1 hq1 2
+  nlinarith
+
+/-- At the optimum's own moments the value function equals the optimal loss. -/
+theorem valueFn_at {X : Type*} {C : Set X} {L m1 m2 : X → ℝ} {K : ℝ} {p : X}
+    (hK : 0 ≤ K) (hopt : IsConstrOpt C L m1 m2 K p) :
+    valueFn C L m1 m2 (m1 p, m2 p) = L p := by
+  refine IsLeast.csInf_eq ⟨⟨p, ⟨hopt.1.1, le_rfl, le_rfl⟩, rfl⟩, ?_⟩
+  rintro b ⟨q, ⟨hq, hq1, hq2⟩, rfl⟩
+  exact optimal_reformulated hK hopt q hq hq1 hq2
+
+/-- Woodford (2003), eq. (E.24), p. 702: "`μ₁ = 2K m₁ μ₂` since `2K m₁` is the slope of the
+frontier of the constraint set (E.21)". Precisely: if (E.21) binds at the optimum
+(`m̄₂ = K m̄₁²`), (E.20) is slack (`m̄₁ > 0`), there is a Slater point, `(μ₁, μ₂) ≥ 0` satisfy
+(E.23), and the value function `V` is (Fréchet) differentiable at `(m̄₁, m̄₂)`, then
+`μ₁ = 2K m̄₁ μ₂`. (The derivative of `V` is `(μ₁, −μ₂)` and `V` is minimised at `m̄₁` along the
+frontier `a₂ = K a₁²`.) -/
+theorem envelope {X : Type*} {C : Set X} {L m1 m2 : X → ℝ} {K : ℝ} {p p0 : X} (hK : 0 ≤ K)
+    (hopt : IsConstrOpt C L m1 m2 K p) (hbind : m2 p = K * m1 p ^ 2) (hpos : 0 < m1 p)
+    (hp0 : p0 ∈ C) (h01 : m1 p < m1 p0) (h02 : m2 p0 < m2 p) {μ1 μ2 : ℝ} (hμ1 : 0 ≤ μ1)
+    (hμ2 : 0 ≤ μ2)
+    (hlag : ∀ q ∈ C, L p - μ1 * m1 p + μ2 * m2 p ≤ L q - μ1 * m1 q + μ2 * m2 q)
+    {V' : ℝ × ℝ →L[ℝ] ℝ} (hV : HasFDerivAt (valueFn C L m1 m2) V' (m1 p, m2 p)) :
+    μ1 = 2 * K * m1 p * μ2 := by
+  set a1 := m1 p
+  set a2 := m2 p
+  -- near `(a₁, a₂)` the Slater point lies in the constraint set
+  have hU : ∀ᶠ a in 𝓝 (a1, a2), ∃ q ∈ C, a.1 ≤ m1 q ∧ m2 q ≤ a.2 := by
+    have hopen : IsOpen {a : ℝ × ℝ | a.1 < m1 p0 ∧ m2 p0 < a.2} :=
+      (isOpen_lt continuous_fst continuous_const).inter
+        (isOpen_lt continuous_const continuous_snd)
+    filter_upwards [hopen.mem_nhds ⟨h01, h02⟩] with a ha
+    exact ⟨p0, hp0, ha.1.le, ha.2.le⟩
+  -- (B) the derivative of `V` in direction `(1, 2K a₁)` is `μ₁ − 2K a₁ μ₂`
+  set γB : ℝ → ℝ × ℝ := fun t => (a1 + t, a2 + t * (2 * K * a1)) with hγBdef
+  have hγB : HasDerivAt γB ((1 : ℝ), 2 * K * a1) 0 := by
+    refine HasDerivAt.prodMk ?_ ?_
+    · simpa using HasDerivAt.const_add a1 (hasDerivAt_id (0 : ℝ))
+    · simpa using HasDerivAt.const_add a2 (HasDerivAt.mul_const (hasDerivAt_id (0 : ℝ))
+        (2 * K * a1))
+  have hγB0 : γB 0 = (a1, a2) := by simp [hγBdef]
+  have hB := hV.comp_hasDerivAt_of_eq 0 hγB hγB0.symm
+  have hψ : HasDerivAt (fun t => valueFn C L m1 m2 (γB t) - (L p + t * (μ1 - μ2 * (2 * K * a1))))
+      (V' ((1 : ℝ), 2 * K * a1) - (μ1 - μ2 * (2 * K * a1))) 0 := by
+    refine HasDerivAt.sub hB ?_
+    simpa using HasDerivAt.const_add (L p) (HasDerivAt.mul_const (hasDerivAt_id (0 : ℝ))
+      (μ1 - μ2 * (2 * K * a1)))
+  have hminB : IsLocalMin
+      (fun t => valueFn C L m1 m2 (γB t) - (L p + t * (μ1 - μ2 * (2 * K * a1)))) 0 := by
+    have hcont : Tendsto γB (𝓝 0) (𝓝 (a1, a2)) := by
+      rw [← hγB0]; exact hγB.continuousAt.tendsto
+    filter_upwards [hcont.eventually hU] with t ht
+    have h1 := valueFn_ge_lag hμ1 hμ2 hlag ht
+    have h0 : valueFn C L m1 m2 (γB 0) = L p := by rw [hγB0]; exact valueFn_at hK hopt
+    simp only [hγBdef] at h1 ⊢
+    simp only [hγBdef] at h0
+    rw [h0]
+    nlinarith
+  have hzeroB := hminB.hasDerivAt_eq_zero hψ
+  -- (A) along the frontier `a₂ = K a₁²` the value function is minimised at `a₁`
+  set γA : ℝ → ℝ × ℝ := fun t => (a1 + t, K * (a1 + t) ^ 2) with hγAdef
+  have hγA : HasDerivAt γA ((1 : ℝ), 2 * K * a1) 0 := by
+    refine HasDerivAt.prodMk ?_ ?_
+    · simpa using HasDerivAt.const_add a1 (hasDerivAt_id (0 : ℝ))
+    · have := HasDerivAt.const_mul K (HasDerivAt.pow (HasDerivAt.const_add a1
+        (hasDerivAt_id' (0 : ℝ))) 2)
+      convert this using 1
+      norm_num
+      ring
+  have hγA0 : γA 0 = (a1, a2) := by simp [hγAdef, hbind]
+  have hA := hV.comp_hasDerivAt_of_eq 0 hγA hγA0.symm
+  have hminA : IsLocalMin (fun t => valueFn C L m1 m2 (γA t)) 0 := by
+    have hcont : Tendsto γA (𝓝 0) (𝓝 (a1, a2)) := by
+      rw [← hγA0]; exact hγA.continuousAt.tendsto
+    have hnn : ∀ᶠ t in 𝓝 (0 : ℝ), 0 ≤ a1 + t := by
+      have : Set.Ioi (-a1) ∈ 𝓝 (0 : ℝ) := Ioi_mem_nhds (by linarith)
+      filter_upwards [this] with t ht
+      simp only [Set.mem_Ioi] at ht
+      linarith
+    filter_upwards [hcont.eventually hU, hnn] with t ht htn
+    have h1 := valueFn_ge_opt hK hopt (a := γA t) htn le_rfl ht
+    have h0 : valueFn C L m1 m2 (γA 0) = L p := by rw [hγA0]; exact valueFn_at hK hopt
+    simp only [hγAdef] at h1 h0 ⊢
+    linarith
+  have hzeroA := hminA.hasDerivAt_eq_zero hA
+  rw [sub_eq_zero] at hzeroB
+  rw [hzeroB] at hzeroA
+  linarith
+
+/-! ### When does the interest-rate penalty appear? -/
+
+/-- Woodford (2003), p. 701 ("`λ̃_i > 0` iff (E.21) binds"), the binding half made precise: if
+(E.20) is slack (`m̄₁ > 0`) and NO unconstrained minimiser of `L` over `C` satisfies
+(E.20)–(E.21) (the sense of "binds" on p. 429: (4.19) is violated by the unconstrained
+optimum), then (E.21) holds with equality at the constrained optimum. Needs `L` convex, `m₁`
+affine and `m₂` convex on the convex set `C`. -/
+theorem binds_of_unconstrained_infeasible {X : Type*} [AddCommGroup X] [Module ℝ X]
+    {C : Set X} {L m1 m2 : X → ℝ} {K : ℝ} (hL : ConvexOn ℝ C L) (hm1 : ConvexOn ℝ C m1)
+    (hm1' : ConcaveOn ℝ C m1) (hm2 : ConvexOn ℝ C m2) {p : X}
+    (hopt : IsConstrOpt C L m1 m2 K p) (hpos : 0 < m1 p)
+    (hno : ∀ q ∈ C, (∀ r ∈ C, L q ≤ L r) → ¬ Feasible C m1 m2 K q) :
+    m2 p = K * m1 p ^ 2 := by
+  obtain ⟨⟨hp, _, hp2⟩, hmin⟩ := hopt
+  by_contra hne
+  have hlt : m2 p < K * m1 p ^ 2 := lt_of_le_of_ne hp2 hne
+  refine hno p hp (fun q hq => ?_) ⟨hp, hpos.le, hp2⟩
+  by_contra hLq
+  push Not at hLq
+  -- small steps from `p` towards `q` stay feasible and lower the loss
+  set A : ℝ → ℝ := fun t => (1 - t) * m1 p + t * m1 q
+  set D : ℝ → ℝ := fun t => K * A t ^ 2 - ((1 - t) * m2 p + t * m2 q)
+  have hA : Tendsto A (𝓝 0) (𝓝 (m1 p)) := by
+    have : Continuous A := by fun_prop
+    simpa [A] using this.tendsto 0
+  have hD : Tendsto D (𝓝 0) (𝓝 (K * m1 p ^ 2 - m2 p)) := by
+    have : Continuous D := by fun_prop
+    simpa [D, A] using this.tendsto 0
+  have hev : ∀ᶠ t in 𝓝[>] (0 : ℝ), 0 < A t ∧ 0 < D t ∧ t < 1 := by
+    have h1 := hA.eventually (lt_mem_nhds hpos)
+    have h2 := hD.eventually (lt_mem_nhds (by linarith : (0 : ℝ) < K * m1 p ^ 2 - m2 p))
+    have h3 : ∀ᶠ t in 𝓝 (0 : ℝ), t < 1 := gt_mem_nhds (by norm_num)
+    exact nhdsWithin_le_nhds (h1.and (h2.and h3))
+  obtain ⟨t, ⟨hAt, hDt, ht1⟩, ht0⟩ := (hev.and self_mem_nhdsWithin).exists
+  replace ht0 : 0 < t := ht0
+  have hab : (1 - t) + t = 1 := by ring
+  have hpt : (1 - t) • p + t • q ∈ C := hm1.1 hp hq (by linarith) ht0.le hab
+  have hm1eq : m1 ((1 - t) • p + t • q) = A t := by
+    have h1 := hm1.2 hp hq (by linarith) ht0.le hab
+    have h2 := hm1'.2 hp hq (by linarith) ht0.le hab
+    simp only [smul_eq_mul] at h1 h2
+    exact le_antisymm h1 h2
+  have hm2le : m2 ((1 - t) • p + t • q) ≤ (1 - t) * m2 p + t * m2 q := by
+    have := hm2.2 hp hq (by linarith) ht0.le hab
+    simpa [smul_eq_mul] using this
+  have hLle : L ((1 - t) • p + t • q) ≤ (1 - t) * L p + t * L q := by
+    have := hL.2 hp hq (by linarith) ht0.le hab
+    simpa [smul_eq_mul] using this
+  have hfeas : Feasible C m1 m2 K ((1 - t) • p + t • q) := by
+    refine ⟨hpt, by rw [hm1eq]; exact hAt.le, ?_⟩
+    rw [hm1eq]
+    simp only [D] at hDt
+    linarith
+  have := hmin _ hfeas
+  nlinarith
+
+/-- Woodford (2003), p. 701: "`λ̃_i = μ₂ > 0` if (E.21) binds", made precise: under the
+hypotheses of `envelope` (differentiable value function, Slater point) and of
+`binds_of_unconstrained_infeasible` (no unconstrained minimiser is feasible), EVERY multiplier
+pair satisfying (E.23) has `μ₂ > 0`. -/
+theorem mu2_pos {X : Type*} [AddCommGroup X] [Module ℝ X] {C : Set X} {L m1 m2 : X → ℝ}
+    {K : ℝ} (hK : 0 ≤ K) (hL : ConvexOn ℝ C L) (hm1 : ConvexOn ℝ C m1)
+    (hm1' : ConcaveOn ℝ C m1) (hm2 : ConvexOn ℝ C m2) {p p0 : X}
+    (hopt : IsConstrOpt C L m1 m2 K p) (hpos : 0 < m1 p)
+    (hno : ∀ q ∈ C, (∀ r ∈ C, L q ≤ L r) → ¬ Feasible C m1 m2 K q)
+    (hp0 : p0 ∈ C) (h01 : m1 p < m1 p0) (h02 : m2 p0 < m2 p) {μ1 μ2 : ℝ} (hμ1 : 0 ≤ μ1)
+    (hμ2 : 0 ≤ μ2)
+    (hlag : ∀ q ∈ C, L p - μ1 * m1 p + μ2 * m2 p ≤ L q - μ1 * m1 q + μ2 * m2 q)
+    {V' : ℝ × ℝ →L[ℝ] ℝ} (hV : HasFDerivAt (valueFn C L m1 m2) V' (m1 p, m2 p)) :
+    0 < μ2 := by
+  have hbind := binds_of_unconstrained_infeasible hL hm1 hm1' hm2 hopt hpos hno
+  have henv := envelope hK hopt hbind hpos hp0 h01 h02 hμ1 hμ2 hlag hV
+  rcases eq_or_lt_of_le hμ2 with h | h
+  · exfalso
+    rw [← h, mul_zero] at henv
+    refine hno p hopt.1.1 (fun r hr => ?_) hopt.1
+    have := hlag r hr
+    rw [henv, ← h] at this
+    simpa using this
+  · exact h
+
+/-- Woodford (2003), p. 701, the other half: if some unconstrained minimiser of `L` over `C` is
+feasible, then the constrained optimum is itself an unconstrained minimiser, i.e. `λ̃_i = 0`
+(`μ₁ = μ₂ = 0`) is a valid choice in (E.23). -/
+theorem zero_multiplier_of_feasible_min {X : Type*} {C : Set X} {L m1 m2 : X → ℝ} {K : ℝ}
+    {p : X} (hopt : IsConstrOpt C L m1 m2 K p)
+    (hq : ∃ q ∈ C, (∀ r ∈ C, L q ≤ L r) ∧ Feasible C m1 m2 K q) :
+    ∀ r ∈ C, L p - 0 * m1 p + 0 * m2 p ≤ L r - 0 * m1 r + 0 * m2 r := by
+  obtain ⟨q, hqC, hqmin, hqf⟩ := hq
+  intro r hr
+  simp only [zero_mul, sub_zero, add_zero]
+  exact le_trans (hopt.2 q hqf) (hqmin r hr)
+
+/-- Woodford (2003), p. 701 (survey item (e)): "a binding constraint" can carry a zero
+multiplier, so "`λ̃_i > 0` iff (E.21) binds" is false if "binds" only means equality. Here
+`L = 0`, `m₁ = 1`, `m₂ = 2`, `K = 2`: (E.21) holds with equality, yet `μ = 0` satisfies
+(E.23). -/
+theorem binding_zero_multiplier_case :
+    IsConstrOpt (Set.univ : Set ℝ) (fun _ => 0) (fun _ => 1) (fun _ => 2) 2 0 ∧
+      (2 : ℝ) = 2 * 1 ^ 2 ∧
+      ∀ r ∈ (Set.univ : Set ℝ), (0 : ℝ) - 0 * 1 + 0 * 2 ≤ 0 - 0 * 1 + 0 * 2 := by
+  refine ⟨⟨⟨Set.mem_univ _, by norm_num, by norm_num⟩, fun _ _ => le_rfl⟩, by norm_num,
+    fun _ _ => le_rfl⟩
+
+/-! ### The target rate `i**` -/
+
+/-- Woodford (2003), App. E.5, p. 703: `i** = K m̄₁ − ī > 0` given `m̄₁ ≥ ī > 0` and `K > 1`. -/
+theorem iStarStar_pos {K m1 ib : ℝ} (hK : 1 < K) (hm : ib ≤ m1) (hib : 0 < ib) :
+    0 < K * m1 - ib := by nlinarith
+
+/-- Woodford (2003), Prop. 6.9 (survey error 22): `K > 1` is needed for `i** > 0`; at `K = 1`
+and `m̄₁ = ī` one gets `i** = 0`. -/
+theorem iStarStar_K_one {ib : ℝ} : (1 : ℝ) * ib - ib = 0 := by ring
+
+/-- Woodford (2003), Prop. 6.9: with only `K ≥ 1` the conclusion weakens to `i** ≥ 0`. -/
+theorem iStarStar_nonneg {K m1 ib : ℝ} (hK : 1 ≤ K) (hm : ib ≤ m1) (hib : 0 ≤ ib) :
+    0 ≤ K * m1 - ib := by nlinarith
+
+/-- Woodford (2003), App. E.5: a Slater point for the reformulated problem forces positive
+interest-rate variability at the optimum: by Jensen `m₂ ≥ m₁²` for every policy, so
+`m̄₂ > m̄₁²`. -/
+theorem slater_needs_variance {m1p m2p m1q m2q : ℝ} (hm1p : 0 ≤ m1p) (hJ : m1q ^ 2 ≤ m2q)
+    (h1 : m1p < m1q) (h2 : m2q < m2p) : m1p ^ 2 < m2p := by nlinarith
+
+/-! ### The decomposition argument: (E.20) never binds -/
+
+/-- Woodford (2003), App. E.5, p. 701 (survey item (a)), made precise. Policies are pairs
+`(d, s)` of a deterministic component and a stabilisation component (independently
+specifiable); the loss separates, `L = L_d(d) + L_s(s)`; the deterministic part fixes
+`m₁ = M(d)`, and `m₂ − m₁² = v(s)` depends on the stabilisation part only. If `d*` is the
+unique minimiser of `L_d` (every `d ∈ C_d` with `L_d(d) ≤ L_d(d*)` is `d*`) and
+`K ≥ 1`, every constrained optimum has `m̄₁ ≥ M(d*)`. With `M(d*) ≥ ī > 0` (Chapter 7) this
+gives `m̄₁ > 0`: (E.20) does not bind. -/
+theorem det_component_mean {D T : Type*} {CD : Set D} {CT : Set T} {Ld : D → ℝ}
+    {Ls : T → ℝ} {M : D → ℝ} {v : T → ℝ} {K : ℝ} (hK : 1 ≤ K) {dstar : D} (hds : dstar ∈ CD)
+    (huniq : ∀ d ∈ CD, Ld d ≤ Ld dstar → d = dstar)
+    {z : D × T}
+    (hopt : IsConstrOpt (CD ×ˢ CT) (fun w => Ld w.1 + Ls w.2) (fun w => M w.1)
+      (fun w => M w.1 ^ 2 + v w.2) K z) :
+    M dstar ≤ M z.1 := by
+  obtain ⟨⟨hz, hz1, hz2⟩, hopt⟩ := hopt
+  by_contra hlt
+  push Not at hlt
+  have hsq : M z.1 ^ 2 ≤ M dstar ^ 2 := pow_le_pow_left₀ hz1 hlt.le 2
+  have hfeas : Feasible (CD ×ˢ CT) (fun w => M w.1) (fun w => M w.1 ^ 2 + v w.2) K
+      (dstar, z.2) := by
+    refine ⟨⟨hds, hz.2⟩, le_trans hz1 hlt.le, ?_⟩
+    simp only at hz2 ⊢
+    nlinarith
+  have h1 := hopt _ hfeas
+  simp only at h1
+  have := huniq z.1 hz.1 (by linarith)
+  rw [this] at hlt
+  exact lt_irrefl _ hlt
+
+/-! ### Concrete moments: the interest path is linear in the policy -/
+
+/-- Woodford (2003), (4.18): if the interest-rate path is a linear function of the policy and
+bounded on `C`, the discounted mean `m₁ = Ê[i]` is affine (convex and concave) on `C`. -/
+theorem dAvg_affine {X : Type*} [AddCommGroup X] [Module ℝ X] {C : Set X} (hC : Convex ℝ C)
+    {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (intr : X →ₗ[ℝ] (ℕ → S → ℝ))
+    (hb : ∀ p ∈ C, BoundedProc (intr p)) (ω0 : S) :
+    ConvexOn ℝ C (fun p => dAvg 𝔼 β (intr p) ω0) ∧
+      ConcaveOn ℝ C (fun p => dAvg 𝔼 β (intr p) ω0) := by
+  have heq : ∀ x ∈ C, ∀ y ∈ C, ∀ a b : ℝ, dAvg 𝔼 β (intr (a • x + b • y)) ω0 =
+      a * dAvg 𝔼 β (intr x) ω0 + b * dAvg 𝔼 β (intr y) ω0 := by
+    intro x hx y hy a b
+    have h := dAvg_lincomb 𝔼 hβ0 hβ1 (hb x hx) (hb y hy) a b 0 ω0
+    rw [add_zero] at h
+    rw [← h]
+    congr 1
+    funext t ω
+    simp [map_add, map_smul, smul_eq_mul]
+  refine ⟨⟨hC, fun x hx y hy a b _ _ _ => ?_⟩, ⟨hC, fun x hx y hy a b _ _ _ => ?_⟩⟩
+  · simp only [smul_eq_mul]; rw [heq x hx y hy]
+  · simp only [smul_eq_mul]; rw [heq x hx y hy]
+
+/-- Woodford (2003), (4.19): under the same hypotheses the discounted second moment
+`m₂ = Ê[i²]` is convex on `C`. -/
+theorem dAvg_sq_convex {X : Type*} [AddCommGroup X] [Module ℝ X] {C : Set X} (hC : Convex ℝ C)
+    {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (intr : X →ₗ[ℝ] (ℕ → S → ℝ))
+    (hb : ∀ p ∈ C, BoundedProc (intr p)) (ω0 : S) :
+    ConvexOn ℝ C (fun p => dAvg 𝔼 β (fun t ω => intr p t ω ^ 2) ω0) := by
+  refine ⟨hC, fun x hx y hy a b ha hb' hab => ?_⟩
+  have hbx := hb x hx
+  have hby := hb y hy
+  have hxy := hb _ (hC hx hy ha hb' hab)
+  have hpt : ∀ t ω, intr (a • x + b • y) t ω ^ 2 ≤
+      a * intr x t ω ^ 2 + b * intr y t ω ^ 2 + 0 := by
+    intro t ω
+    simp only [map_add, map_smul, Pi.add_apply, Pi.smul_apply, smul_eq_mul, add_zero]
+    have hb2 : b = 1 - a := by linarith
+    rw [hb2]
+    nlinarith [sq_nonneg (intr x t ω - intr y t ω), mul_nonneg ha (by linarith : 0 ≤ 1 - a)]
+  have sx : BoundedProc (fun t ω => intr x t ω ^ 2) := bdd_sq hbx
+  have sy : BoundedProc (fun t ω => intr y t ω ^ 2) := bdd_sq hby
+  have sxy : BoundedProc (fun t ω => intr (a • x + b • y) t ω ^ 2) := bdd_sq hxy
+  have := dAvg_mono 𝔼 hβ0 hβ1 sxy (boundedProc_lincomb sx sy a b 0) hpt ω0
+  rw [dAvg_lincomb 𝔼 hβ0 hβ1 sx sy, add_zero] at this
+  simpa [smul_eq_mul] using this
+
+/-! ### Proposition 6.9 assembled -/
+
+/-- Woodford (2003), Proposition 6.9, eq. (4.21), p. 428 (proof App. E.5, pp. 701–703), in full.
+Policies form a convex set `C` in a real vector space; the interest path `i = intr p` is linear
+in the policy and bounded on `C`; `m₁ = Ê[i]`, `m₂ = Ê[i²]`; the loss `L` (4.20) is convex. Let
+`p` minimise `L` subject to (4.18)–(4.19) with `K > 1`. Assume (E.20) is slack with
+`m̄₁ ≥ ī > 0` (`det_component_mean`), a Slater point for the reformulated constraints, that no
+unconstrained minimiser of `L` satisfies (4.18)–(4.19) ((4.19) "binds"), and that the value
+function is differentiable at `(m̄₁, m̄₂)`. Then there are multipliers `μ₁ ≥ 0`, `λ̃_i = μ₂ > 0`
+with `μ₁ = 2K m̄₁ μ₂` such that `p` minimises, with no constraints but `C`,
+`L̃ = L + λ̃_i Ê[(î − i**)²]`, `î = i − ī`, and `i** = K m̄₁ − ī > 0`. -/
+theorem prop_6_9 {X : Type*} [AddCommGroup X] [Module ℝ X] {C : Set X} (hC : Convex ℝ C)
+    {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (intr : X →ₗ[ℝ] (ℕ → S → ℝ))
+    (hb : ∀ p ∈ C, BoundedProc (intr p)) (ω0 : S) {L : X → ℝ} (hL : ConvexOn ℝ C L)
+    {K ib : ℝ} (hK : 1 < K) (hib : 0 < ib) {p p0 : X}
+    (hopt : IsConstrOpt C L (fun q => dAvg 𝔼 β (intr q) ω0)
+      (fun q => dAvg 𝔼 β (fun t ω => intr q t ω ^ 2) ω0) K p)
+    (hm1 : ib ≤ dAvg 𝔼 β (intr p) ω0) (hp0 : p0 ∈ C)
+    (h01 : dAvg 𝔼 β (intr p) ω0 < dAvg 𝔼 β (intr p0) ω0)
+    (h02 : dAvg 𝔼 β (fun t ω => intr p0 t ω ^ 2) ω0 <
+      dAvg 𝔼 β (fun t ω => intr p t ω ^ 2) ω0)
+    (hno : ∀ q ∈ C, (∀ r ∈ C, L q ≤ L r) → ¬ Feasible C (fun q => dAvg 𝔼 β (intr q) ω0)
+      (fun q => dAvg 𝔼 β (fun t ω => intr q t ω ^ 2) ω0) K q)
+    {V' : ℝ × ℝ →L[ℝ] ℝ}
+    (hV : HasFDerivAt (valueFn C L (fun q => dAvg 𝔼 β (intr q) ω0)
+      (fun q => dAvg 𝔼 β (fun t ω => intr q t ω ^ 2) ω0)) V'
+      (dAvg 𝔼 β (intr p) ω0, dAvg 𝔼 β (fun t ω => intr p t ω ^ 2) ω0)) :
+    ∃ μ1 μ2 : ℝ, 0 ≤ μ1 ∧ 0 < μ2 ∧ μ1 = 2 * K * dAvg 𝔼 β (intr p) ω0 * μ2 ∧
+      0 < K * dAvg 𝔼 β (intr p) ω0 - ib ∧
+      ∀ q ∈ C, L p + μ2 * dAvg 𝔼 β
+          (fun t ω => (intr p t ω - ib - (K * dAvg 𝔼 β (intr p) ω0 - ib)) ^ 2) ω0 ≤
+        L q + μ2 * dAvg 𝔼 β
+          (fun t ω => (intr q t ω - ib - (K * dAvg 𝔼 β (intr p) ω0 - ib)) ^ 2) ω0 := by
+  obtain ⟨hm1c, hm1c'⟩ := dAvg_affine 𝔼 hC hβ0 hβ1 intr hb ω0
+  have hm2c := dAvg_sq_convex 𝔼 hC hβ0 hβ1 intr hb ω0
+  have hK0 : 0 ≤ K := by linarith
+  have hpos : 0 < dAvg 𝔼 β (intr p) ω0 := lt_of_lt_of_le hib hm1
+  obtain ⟨μ1, μ2, hμ1, hμ2, hlag⟩ :=
+    prop_6_9_multipliers hC hL hm1c' hm2c hK0 hopt hp0 h01 h02
+  have hμ2pos := mu2_pos hK0 hL hm1c hm1c' hm2c hopt hpos hno hp0 h01 h02 hμ1 hμ2 hlag hV
+  have hbind := binds_of_unconstrained_infeasible hL hm1c hm1c' hm2c hopt hpos hno
+  have henv := envelope hK0 hopt hbind hpos hp0 h01 h02 hμ1 hμ2 hlag hV
+  refine ⟨μ1, μ2, hμ1, hμ2pos, henv, iStarStar_pos hK hm1 hib, fun q hq => ?_⟩
+  -- (E.25): complete the square, with `μ₁/(2μ₂) = K m̄₁`
+  have hc : μ1 / (2 * μ2) = K * dAvg 𝔼 β (intr p) ω0 := by
+    rw [henv]; field_simp
+  have hsq : ∀ r ∈ C, μ2 * dAvg 𝔼 β
+      (fun t ω => (intr r t ω - ib - (K * dAvg 𝔼 β (intr p) ω0 - ib)) ^ 2) ω0 =
+      -μ1 * dAvg 𝔼 β (intr r) ω0 + μ2 * dAvg 𝔼 β (fun t ω => intr r t ω ^ 2) ω0 +
+        μ1 ^ 2 / (4 * μ2) := by
+    intro r hr
+    rw [dAvg_complete_square 𝔼 hβ0 hβ1 (hb r hr) hμ2pos.ne', hc]
+    have : (fun t ω => (intr r t ω - ib - (K * dAvg 𝔼 β (intr p) ω0 - ib)) ^ 2) =
+        fun t ω => (intr r t ω - K * dAvg 𝔼 β (intr p) ω0) ^ 2 := by
+      funext t ω; ring
+    rw [this]
+    ring
+  rw [hsq p hopt.1.1, hsq q hq]
+  have := hlag q hq
+  linarith
+
+/-- Woodford (2003), Prop. 6.9, the slack case: if some unconstrained minimiser of the loss
+satisfies (4.18)–(4.19), the constrained optimum minimises `L` itself over `C` (`λ̃_i = 0`). -/
+theorem prop_6_9_slack {X : Type*} {C : Set X} {L m1 m2 : X → ℝ} {K : ℝ} {p : X}
+    (hopt : IsConstrOpt C L m1 m2 K p)
+    (hq : ∃ q ∈ C, (∀ r ∈ C, L q ≤ L r) ∧ Feasible C m1 m2 K q) : ∀ r ∈ C, L p ≤ L r := by
+  intro r hr
+  have := zero_multiplier_of_feasible_min hopt hq r hr
+  simpa using this
+
+/-! ### Both considerations together: (4.22) -/
+
+/-- Woodford (2003), eq. (4.22), p. 429: `λ_i(î − i*)² + μ₂(î − i**)² = λ̂_i(î − î_tgt)² + const`
+with `λ̂_i = λ_i + μ₂` and `î_tgt = (λ_i i* + μ₂ i**)/(λ_i + μ₂)`. -/
+theorem loss_4_22 {li μ2 iS iSS ih : ℝ} (h : li + μ2 ≠ 0) :
+    li * (ih - iS) ^ 2 + μ2 * (ih - iSS) ^ 2 =
+      (li + μ2) * (ih - (li * iS + μ2 * iSS) / (li + μ2)) ^ 2 +
+        li * μ2 * (iSS - iS) ^ 2 / (li + μ2) := by
+  field_simp
+  ring
+
+/-- Woodford (2003), p. 429: the combined target `î_tgt` is intermediate between `i*` and `i**`. -/
+theorem iHat_between {li μ2 iS iSS : ℝ} (hli : 0 ≤ li) (hμ : 0 ≤ μ2) (hsum : 0 < li + μ2)
+    (hle : iS ≤ iSS) :
+    iS ≤ (li * iS + μ2 * iSS) / (li + μ2) ∧ (li * iS + μ2 * iSS) / (li + μ2) ≤ iSS := by
+  constructor
+  · rw [le_div_iff₀ hsum]; nlinarith
+  · rw [div_le_iff₀ hsum]; nlinarith
+
+/-- Woodford (2003), p. 429: "`î` ... may have either sign": with `i* = −1 < 0 < 1 = i**` the
+target is `1/2` for `(λ_i, μ₂) = (1, 3)` and `−1/2` for `(3, 1)`. -/
+theorem iHat_either_sign :
+    ((1 : ℝ) * (-1) + 3 * 1) / (1 + 3) = 1 / 2 ∧ ((3 : ℝ) * (-1) + 1 * 1) / (3 + 1) = -1 / 2 := by
+  constructor <;> norm_num
+
+end Cochrane.ZeroBound.TidyR6WoodfordZLB
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A common model for the zero bound of Chapter 20 and Woodford's Proposition 6.9
+
+Cochrane (2023), Chapter 20, §§20.1–20.2.4, pp. 465–480 (the new-Keynesian model at the bound,
+the natural-rate trap, forward guidance and lift-off), linked with Woodford (2003), Chapter 6,
+§4.2, Proposition 6.9, p. 428 (proof App. E.5, pp. 700–703), which replaces the bound
+`i_t ≥ 0` by the moment constraints `Ê[i] ≥ 0`, `Ê[i²] ≤ K Ê[i]²` (`TidyR6WoodfordZLB`).
+
+`LinksGaliWoodford.Moments` compares the two constraints only on abstract interest-rate paths.
+Here both problems are special cases of one model, the discrete model of `LinksGaliWoodford`
+(Galí's and Cochrane's: `π_t = βπ_{t+1} + κx_t`, the IS curve with natural rate `rⁿ`, which for
+`rⁿ = natRate ρ η t_Z` is the trap of §20.2.2) with Galí's loss `∑βᵗ(π_t² + ϑx_t²)`:
+* policies are `(x, π, c)` (`Pol`), the structural set is `Cset` (`c = 1`, the Phillips curve at
+  every date, finite loss), the interest rate `i = rateLin p`,
+  `i_t = c rⁿ_t + π_{t+1} + σ(x_{t+1} − x_t)`, is LINEAR in the policy, and the moments are
+  `m₁ = (1 − β)∑βᵗi_t`, `m₂ = (1 − β)∑βᵗi_t²` (`mom1`, `mom2`; for bounded rates they are
+  Woodford's `TidyR6WoodfordZLB.dAvg` under perfect foresight, `mom1_eq_dAvg`, `mom2_eq_dAvg`);
+* **the zero bound of Chapter 20 is the special case `i ≥ 0` at every date**: the pathwise
+  optimum of the common model is exactly Galí's commitment optimum `LinksGaliWoodford.Optimal`
+  (`pathOpt_iff`), which exists and is unique (`pathOpt_existsUnique`, from
+  `LiftoffStructure.optimal_exists_unique`);
+* **Woodford's constraint is the other special case**: Proposition 6.9 holds in the common model
+  (`prop_6_9_common`), from the restated abstract steps of the Woodford project; the structural
+  hypotheses — `Cset` convex, the loss convex, `m₁` affine, `m₂` convex — are proved here
+  (`cset_convex`, `loss_convexOn`, `mom1_affine`, `mom2_convexOn`), and the moment-constrained
+  optimum is unique (`momOpt_unique`).
+
+The two problems are compared inside the model: every pathwise-feasible policy has
+`Ê[i] ≥ 0` (`pathwise_mom1_nonneg`); at Woodford's calibration (`β = 0.99`, `K = 1 + 2.26⁻²`)
+and the trap `rⁿ = natRate 1 1 0`, neither feasible set contains the other, with model-feasible
+witnesses (`neither_in_model`); and the optimal losses compare as the constraint sets do, with
+equality and the same optimum when each optimum satisfies the other constraint
+(`values_compare`).
+-/
+
+namespace Cochrane.ZeroBound.TidyR6CommonModel
+
+open Filter Topology
+open Cochrane.ZeroBound Cochrane.ZeroBound.LinksGaliWoodford Cochrane.ZeroBound.TidyR6WoodfordZLB
+
+/-! ## The common model -/
+
+/-- Cochrane (2023), §20.2.4, p. 479, and Woodford (2003), §6.4.2, p. 428: a policy is an
+output-gap path, an inflation path and the coefficient `c` of the natural rate (`c = 1` on the
+structural set), so that the interest rate is linear in the policy. -/
+abbrev Pol : Type := (ℕ → ℝ) × (ℕ → ℝ) × ℝ
+
+/-- Cochrane (2023), eq. (5.1), p. 118, and Galí (2015), eq. (30): the interest rate implied by
+the IS curve, `i_t = c rⁿ_t + π_{t+1} + σ(x_{t+1} − x_t)`, a linear map of the policy. -/
+def rateLin (σ : ℝ) (rn : ℕ → ℝ) : Pol →ₗ[ℝ] (ℕ → ℝ) where
+  toFun p := fun t => p.2.2 * rn t + p.2.1 (t + 1) + σ * (p.1 (t + 1) - p.1 t)
+  map_add' p q := by
+    funext t
+    simp only [Prod.fst_add, Prod.snd_add, Pi.add_apply]
+    ring
+  map_smul' a p := by
+    funext t
+    simp only [Prod.smul_fst, Prod.smul_snd, Pi.smul_apply, smul_eq_mul, RingHom.id_apply]
+    ring
+
+/-- Cochrane (2023), eq. (5.2), p. 118, and Woodford (2003), p. 428 (the structural equations):
+the policies of the common model: `c = 1`, the Phillips curve at every date and finite loss. -/
+def Cset (β κ ϑ : ℝ) : Set Pol :=
+  {p | p.2.2 = 1 ∧ (∀ t, NKPC β κ p.1 p.2.1 t) ∧ Summable (lossTerm β ϑ p.1 p.2.1)}
+
+/-- Cochrane (2023), p. 485, and Galí (2015), p. 148: the loss `∑βᵗ(π_t² + ϑx_t²)`. -/
+noncomputable def Lfun (β ϑ : ℝ) (p : Pol) : ℝ := loss β ϑ p.1 p.2.1
+
+/-- Woodford (2003), (4.18), p. 428: the discounted mean `Ê[i] = (1 − β)∑βᵗi_t`. -/
+noncomputable def mom1 (β σ : ℝ) (rn : ℕ → ℝ) (p : Pol) : ℝ :=
+  (1 - β) * ∑' t, β ^ t * rateLin σ rn p t
+
+/-- Woodford (2003), (4.19), p. 428: the discounted second moment `Ê[i²] = (1 − β)∑βᵗi_t²`. -/
+noncomputable def mom2 (β σ : ℝ) (rn : ℕ → ℝ) (p : Pol) : ℝ :=
+  (1 - β) * ∑' t, β ^ t * rateLin σ rn p t ^ 2
+
+/-- Cochrane (2023), eq. (5.1): on the structural set the linear rate is the implied rate of
+`LinksGaliWoodford`. -/
+theorem rateLin_eq {β κ ϑ σ : ℝ} {rn : ℕ → ℝ} {p : Pol} (hp : p ∈ Cset β κ ϑ) (t : ℕ) :
+    rateLin σ rn p t = impliedRate σ rn p.1 p.2.1 t := by
+  simp only [rateLin, LinearMap.coe_mk, AddHom.coe_mk, impliedRate, hp.1, one_mul]
+
+/-! ## Summability and the structure of the problem -/
+
+/-- Galí (2015), p. 148: `(a + b)² ≤ 2a² + 2b²`. -/
+theorem sq_add_le (a b : ℝ) : (a + b) ^ 2 ≤ 2 * a ^ 2 + 2 * b ^ 2 := by
+  nlinarith [sq_nonneg (a - b)]
+
+/-- Galí (2015), p. 148: convexity of squares, `(au + bv)² ≤ au² + bv²` for `a, b ≥ 0`,
+`a + b = 1`. -/
+theorem sq_convex {a b u v : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hab : a + b = 1) :
+    (a * u + b * v) ^ 2 ≤ a * u ^ 2 + b * v ^ 2 := by
+  have hb' : b = 1 - a := by linarith
+  subst hb'
+  nlinarith [sq_nonneg (u - v), mul_nonneg ha hb]
+
+/-- Woodford (2003), App. E.3, p. 697: on the structural set, with a bounded natural rate,
+`βᵗi_t²` is summable. -/
+theorem summable_rate_sq {β κ ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) {p : Pol} (hp : p ∈ Cset β κ ϑ) :
+    Summable fun t => β ^ t * rateLin σ rn p t ^ 2 := by
+  obtain ⟨M, hM⟩ := hrn
+  obtain ⟨hpc, -, hs⟩ := hp
+  have hs1 : Summable fun t => lossTerm β ϑ p.1 p.2.1 (t + 1) := hs.comp_injective
+    (add_left_injective 1)
+  have hg : Summable fun t : ℕ => β ^ t := summable_geometric_of_lt_one hβ.le hβ1
+  have hbound : ∀ t, β ^ t * rateLin σ rn p t ^ 2 ≤
+      4 * M ^ 2 * β ^ t + (4 / β + 4 * σ ^ 2 / (β * ϑ)) * lossTerm β ϑ p.1 p.2.1 (t + 1) +
+        4 * σ ^ 2 / ϑ * lossTerm β ϑ p.1 p.2.1 t := by
+    intro t
+    have hbt : 0 < β ^ t := pow_pos hβ t
+    have hr : rateLin σ rn p t = p.2.2 * rn t + p.2.1 (t + 1) + σ * (p.1 (t + 1) - p.1 t) := rfl
+    rw [hr, hpc, one_mul]
+    have h4 : (rn t + p.2.1 (t + 1) + σ * (p.1 (t + 1) - p.1 t)) ^ 2 ≤
+        4 * rn t ^ 2 + 4 * p.2.1 (t + 1) ^ 2 + 4 * σ ^ 2 * p.1 (t + 1) ^ 2 +
+          4 * σ ^ 2 * p.1 t ^ 2 := by
+      nlinarith [sq_nonneg (rn t - p.2.1 (t + 1)), sq_nonneg (rn t + p.2.1 (t + 1) -
+        σ * p.1 (t + 1) - σ * p.1 t), sq_nonneg (σ * p.1 (t + 1) + σ * p.1 t),
+        sq_nonneg (rn t + p.2.1 (t + 1) - σ * (p.1 (t + 1) - p.1 t)),
+        sq_nonneg (σ * p.1 (t + 1) - σ * p.1 t - rn t + p.2.1 (t + 1)),
+        sq_nonneg (rn t - p.2.1 (t + 1) + σ * p.1 (t + 1) + σ * p.1 t)]
+    have hrn2 : rn t ^ 2 ≤ M ^ 2 := by
+      have := hM t
+      nlinarith [abs_nonneg (rn t), sq_abs (rn t)]
+    have hL1 : lossTerm β ϑ p.1 p.2.1 (t + 1) =
+        β * β ^ t * (p.2.1 (t + 1) ^ 2 + ϑ * p.1 (t + 1) ^ 2) := by
+      unfold lossTerm; rw [pow_succ]; ring
+    have hL0 : lossTerm β ϑ p.1 p.2.1 t = β ^ t * (p.2.1 t ^ 2 + ϑ * p.1 t ^ 2) := rfl
+    rw [hL1, hL0]
+    have e1 : (4 / β + 4 * σ ^ 2 / (β * ϑ)) * (β * β ^ t * (p.2.1 (t + 1) ^ 2 +
+        ϑ * p.1 (t + 1) ^ 2)) = β ^ t * (4 * p.2.1 (t + 1) ^ 2 + 4 * σ ^ 2 * p.1 (t + 1) ^ 2) +
+        β ^ t * (4 * ϑ / 1 * p.1 (t + 1) ^ 2 + 4 * σ ^ 2 / ϑ * p.2.1 (t + 1) ^ 2) := by
+      field_simp
+      ring
+    have e2 : 4 * σ ^ 2 / ϑ * (β ^ t * (p.2.1 t ^ 2 + ϑ * p.1 t ^ 2)) =
+        β ^ t * (4 * σ ^ 2 * p.1 t ^ 2) + β ^ t * (4 * σ ^ 2 / ϑ * p.2.1 t ^ 2) := by
+      field_simp
+      ring
+    rw [e1, e2]
+    have n1 : 0 ≤ β ^ t * (4 * ϑ / 1 * p.1 (t + 1) ^ 2 + 4 * σ ^ 2 / ϑ * p.2.1 (t + 1) ^ 2) := by
+      positivity
+    have n2 : 0 ≤ β ^ t * (4 * σ ^ 2 / ϑ * p.2.1 t ^ 2) := by positivity
+    have := mul_le_mul_of_nonneg_left h4 hbt.le
+    nlinarith [mul_le_mul_of_nonneg_left hrn2 hbt.le]
+  refine Summable.of_nonneg_of_le (fun t => by positivity) hbound ?_
+  exact ((hg.mul_left _).add (hs1.mul_left _)).add (hs.mul_left _)
+
+/-- Woodford (2003), App. E.3, p. 697: on the structural set, `βᵗ|i_t|` is summable
+(`|i| ≤ (1 + i²)/2`), so `Ê[i]` is a genuine sum. -/
+theorem summable_rate {β κ ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) {p : Pol} (hp : p ∈ Cset β κ ϑ) :
+    Summable fun t => β ^ t * rateLin σ rn p t := by
+  have h2 := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hp
+  have hg : Summable fun t : ℕ => β ^ t := summable_geometric_of_lt_one hβ.le hβ1
+  refine Summable.of_norm_bounded ((hg.add h2).div_const 2) fun t => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_of_pos (pow_pos hβ t)]
+  have : |rateLin σ rn p t| ≤ (1 + rateLin σ rn p t ^ 2) / 2 := by
+    nlinarith [sq_nonneg (|rateLin σ rn p t| - 1), sq_abs (rateLin σ rn p t)]
+  have hb := mul_le_mul_of_nonneg_left this (pow_pos hβ t).le
+  linarith
+
+/-- Galí (2015), p. 149, and Woodford (2003), p. 428: the structural set is convex, and the loss
+of a convex combination is at most the combination of the losses (termwise). -/
+theorem lossTerm_convex {β ϑ a b : ℝ} (hβ : 0 ≤ β) (hϑ : 0 ≤ ϑ) (ha : 0 ≤ a) (hb : 0 ≤ b)
+    (hab : a + b = 1) (x π y q : ℕ → ℝ) (t : ℕ) :
+    lossTerm β ϑ (fun s => a * x s + b * y s) (fun s => a * π s + b * q s) t ≤
+      a * lossTerm β ϑ x π t + b * lossTerm β ϑ y q t := by
+  unfold lossTerm
+  have h1 := sq_convex (u := π t) (v := q t) ha hb hab
+  have h2 := sq_convex (u := x t) (v := y t) ha hb hab
+  have hbt : 0 ≤ β ^ t := pow_nonneg hβ t
+  nlinarith [mul_le_mul_of_nonneg_left h1 hbt, mul_le_mul_of_nonneg_left h2 hbt,
+    mul_le_mul_of_nonneg_left h2 (mul_nonneg hbt hϑ)]
+
+/-- Woodford (2003), App. E.5, p. 701 (the policy set `C` is convex): `Cset` is convex. -/
+theorem cset_convex {β κ ϑ : ℝ} (hβ : 0 ≤ β) (hϑ : 0 ≤ ϑ) : Convex ℝ (Cset β κ ϑ) := by
+  intro p hp q hq a b ha hb hab
+  refine ⟨?_, fun t => ?_, ?_⟩
+  · simp only [Prod.snd_add, Prod.smul_snd, smul_eq_mul, hp.1, hq.1]; linarith
+  · have h1 := hp.2.1 t
+    have h2 := hq.2.1 t
+    unfold NKPC at h1 h2 ⊢
+    simp only [Prod.fst_add, Prod.snd_add, Prod.smul_fst, Prod.smul_snd, Pi.add_apply,
+      Pi.smul_apply, smul_eq_mul]
+    rw [h1, h2]
+    ring
+  · have e1 : (a • p + b • q).1 = fun s => a * p.1 s + b * q.1 s := by
+      funext s; simp
+    have e2 : (a • p + b • q).2.1 = fun s => a * p.2.1 s + b * q.2.1 s := by
+      funext s; simp
+    rw [e1, e2]
+    refine Summable.of_nonneg_of_le (fun t => ?_) (lossTerm_convex hβ hϑ ha hb hab _ _ _ _)
+      ((hp.2.2.mul_left a).add (hq.2.2.mul_left b))
+    unfold lossTerm; positivity
+
+/-- Woodford (2003), (4.20), p. 428: the loss is convex on the structural set. -/
+theorem loss_convexOn {β κ ϑ : ℝ} (hβ : 0 ≤ β) (hϑ : 0 ≤ ϑ) :
+    ConvexOn ℝ (Cset β κ ϑ) (Lfun β ϑ) := by
+  refine ⟨cset_convex hβ hϑ, fun p hp q hq a b ha hb hab => ?_⟩
+  have e1 : (a • p + b • q).1 = fun s => a * p.1 s + b * q.1 s := by
+    funext s; simp
+  have e2 : (a • p + b • q).2.1 = fun s => a * p.2.1 s + b * q.2.1 s := by
+    funext s; simp
+  have hS := (cset_convex (κ := κ) hβ hϑ hp hq ha hb hab).2.2
+  rw [e1, e2] at hS
+  simp only [Lfun, smul_eq_mul, e1, e2, loss]
+  rw [← tsum_mul_left, ← tsum_mul_left, ← (hp.2.2.mul_left a).tsum_add (hq.2.2.mul_left b)]
+  exact hS.tsum_le_tsum (lossTerm_convex hβ hϑ ha hb hab _ _ _ _)
+    ((hp.2.2.mul_left a).add (hq.2.2.mul_left b))
+
+/-- Woodford (2003), App. E.5, p. 701 (`m₁` linear in the policy): on the structural set,
+`Ê[i]` of a combination is the combination of the `Ê[i]`. -/
+theorem mom1_comb {β κ ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) {p q : Pol} (hp : p ∈ Cset β κ ϑ) (hq : q ∈ Cset β κ ϑ)
+    (a b : ℝ) : mom1 β σ rn (a • p + b • q) = a * mom1 β σ rn p + b * mom1 β σ rn q := by
+  have h1 := summable_rate (σ := σ) hβ hβ1 hϑ hrn hp
+  have h2 := summable_rate (σ := σ) hβ hβ1 hϑ hrn hq
+  unfold mom1
+  have e : (fun t => β ^ t * rateLin σ rn (a • p + b • q) t) =
+      fun t => a * (β ^ t * rateLin σ rn p t) + b * (β ^ t * rateLin σ rn q t) := by
+    funext t
+    simp only [map_add, map_smul, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  rw [e, (h1.mul_left a).tsum_add (h2.mul_left b), tsum_mul_left, tsum_mul_left]
+  ring
+
+/-- Woodford (2003), App. E.5, p. 701 (`m₁` linear in the policy): on the structural set
+`Ê[i]` is affine. -/
+theorem mom1_affine {β κ ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) :
+    ConvexOn ℝ (Cset β κ ϑ) (mom1 β σ rn) ∧ ConcaveOn ℝ (Cset β κ ϑ) (mom1 β σ rn) := by
+  have hC := cset_convex (κ := κ) hβ.le hϑ.le
+  exact ⟨⟨hC, fun p hp q hq a b _ _ _ => by rw [mom1_comb hβ hβ1 hϑ hrn hp hq a b]; simp⟩,
+    ⟨hC, fun p hp q hq a b _ _ _ => by rw [mom1_comb hβ hβ1 hϑ hrn hp hq a b]; simp⟩⟩
+
+/-- Woodford (2003), App. E.5, p. 701 (`m₂` convex in the policy): on the structural set
+`Ê[i²]` is convex. -/
+theorem mom2_convexOn {β κ ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) : ConvexOn ℝ (Cset β κ ϑ) (mom2 β σ rn) := by
+  have hC := cset_convex (κ := κ) hβ.le hϑ.le
+  refine ⟨hC, fun p hp q hq a b ha hb hab => ?_⟩
+  have h1 := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hp
+  have h2 := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hq
+  have h3 := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn (hC hp hq ha hb hab)
+  unfold mom2
+  simp only [smul_eq_mul]
+  have hle : ∑' t, β ^ t * rateLin σ rn (a • p + b • q) t ^ 2 ≤
+      a * ∑' t, β ^ t * rateLin σ rn p t ^ 2 + b * ∑' t, β ^ t * rateLin σ rn q t ^ 2 := by
+    rw [← tsum_mul_left, ← tsum_mul_left, ← (h1.mul_left a).tsum_add (h2.mul_left b)]
+    refine h3.tsum_le_tsum (fun t => ?_) ((h1.mul_left a).add (h2.mul_left b))
+    simp only [map_add, map_smul, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    have := sq_convex (u := rateLin σ rn p t) (v := rateLin σ rn q t) ha hb hab
+    have hbt : 0 ≤ β ^ t := pow_nonneg hβ.le t
+    nlinarith [mul_le_mul_of_nonneg_left this hbt]
+  have : 0 ≤ 1 - β := by linarith
+  nlinarith [mul_le_mul_of_nonneg_left hle this]
+
+/-! ## Woodford's Proposition 6.9 in the common model -/
+
+/-- Woodford (2003), (E.25), p. 703: completing the square,
+`(1 − β)∑βᵗ(i_t − c)² = Ê[i²] − 2cÊ[i] + c²`. -/
+theorem avg_sq_dev {β κ ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) {p : Pol} (hp : p ∈ Cset β κ ϑ) (c : ℝ) :
+    (1 - β) * ∑' t, β ^ t * (rateLin σ rn p t - c) ^ 2 =
+      mom2 β σ rn p - 2 * c * mom1 β σ rn p + c ^ 2 := by
+  have h1 := summable_rate (σ := σ) hβ hβ1 hϑ hrn hp
+  have h2 := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hp
+  have hg : Summable fun t : ℕ => β ^ t := summable_geometric_of_lt_one hβ.le hβ1
+  have e : (fun t => β ^ t * (rateLin σ rn p t - c) ^ 2) = fun t =>
+      β ^ t * rateLin σ rn p t ^ 2 + (-(2 * c)) * (β ^ t * rateLin σ rn p t) +
+        c ^ 2 * β ^ t := by
+    funext t; ring
+  rw [e, (h2.add (h1.mul_left _)).tsum_add (hg.mul_left _), h2.tsum_add (h1.mul_left _),
+    tsum_mul_left, tsum_mul_left, tsum_geometric_of_lt_one hβ.le hβ1]
+  unfold mom1 mom2
+  have : 1 - β ≠ 0 := by linarith
+  field_simp
+  ring
+
+/-- Woodford (2003), Proposition 6.9, eq. (4.21), p. 428, **in the common model** (Cochrane's
+zero-bound model of Chapter 20 with Galí's loss): let `p` minimise the loss over the structural
+set subject to `Ê[i] ≥ 0`, `Ê[i²] ≤ KÊ[i]²` with `K > 1`. Under Woodford's remaining hypotheses
+(`Ê[i] ≥ ī > 0` at the optimum, a Slater point, no unconstrained minimiser satisfies the
+constraints, the value function differentiable at the optimum's moments) there are multipliers
+`μ₁ ≥ 0`, `μ₂ > 0`, `μ₁ = 2KÊ[i]μ₂`, with `i** = KÊ[i] − ī > 0`, such that `p` minimises, over
+the structural set alone, `L + μ₂Ê[(i − ī − i**)²]`. -/
+theorem prop_6_9_common {β κ ϑ σ K ib : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ)
+    {rn : ℕ → ℝ} (hrn : ∃ M, ∀ t, |rn t| ≤ M) (hK : 1 < K) (hib : 0 < ib) {p p0 : Pol}
+    (hopt : IsConstrOpt (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ rn) (mom2 β σ rn) K p)
+    (hm1 : ib ≤ mom1 β σ rn p) (hp0 : p0 ∈ Cset β κ ϑ)
+    (h01 : mom1 β σ rn p < mom1 β σ rn p0) (h02 : mom2 β σ rn p0 < mom2 β σ rn p)
+    (hno : ∀ q ∈ Cset β κ ϑ, (∀ r ∈ Cset β κ ϑ, Lfun β ϑ q ≤ Lfun β ϑ r) →
+      ¬ Feasible (Cset β κ ϑ) (mom1 β σ rn) (mom2 β σ rn) K q)
+    {V' : ℝ × ℝ →L[ℝ] ℝ}
+    (hV : HasFDerivAt (valueFn (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ rn) (mom2 β σ rn)) V'
+      (mom1 β σ rn p, mom2 β σ rn p)) :
+    ∃ μ1 μ2 : ℝ, 0 ≤ μ1 ∧ 0 < μ2 ∧ μ1 = 2 * K * mom1 β σ rn p * μ2 ∧
+      0 < K * mom1 β σ rn p - ib ∧
+      ∀ q ∈ Cset β κ ϑ, Lfun β ϑ p + μ2 * ((1 - β) * ∑' t, β ^ t *
+          (rateLin σ rn p t - ib - (K * mom1 β σ rn p - ib)) ^ 2) ≤
+        Lfun β ϑ q + μ2 * ((1 - β) * ∑' t, β ^ t *
+          (rateLin σ rn q t - ib - (K * mom1 β σ rn p - ib)) ^ 2) := by
+  have hC := cset_convex (κ := κ) hβ.le hϑ.le
+  have hL := loss_convexOn (κ := κ) hβ.le hϑ.le
+  obtain ⟨hm1c, hm1c'⟩ := mom1_affine (κ := κ) (σ := σ) hβ hβ1 hϑ hrn
+  have hm2c := mom2_convexOn (κ := κ) (σ := σ) hβ hβ1 hϑ hrn
+  have hK0 : 0 ≤ K := by linarith
+  have hpos : 0 < mom1 β σ rn p := lt_of_lt_of_le hib hm1
+  obtain ⟨μ1, μ2, hμ1, hμ2, hlag⟩ :=
+    prop_6_9_multipliers hC hL hm1c' hm2c hK0 hopt hp0 h01 h02
+  have hμ2pos := mu2_pos hK0 hL hm1c hm1c' hm2c hopt hpos hno hp0 h01 h02 hμ1 hμ2 hlag hV
+  have hbind := binds_of_unconstrained_infeasible hL hm1c hm1c' hm2c hopt hpos hno
+  have henv := envelope hK0 hopt hbind hpos hp0 h01 h02 hμ1 hμ2 hlag hV
+  refine ⟨μ1, μ2, hμ1, hμ2pos, henv, iStarStar_pos hK hm1 hib, fun q hq => ?_⟩
+  have hsq : ∀ r ∈ Cset β κ ϑ, μ2 * ((1 - β) * ∑' t, β ^ t *
+      (rateLin σ rn r t - ib - (K * mom1 β σ rn p - ib)) ^ 2) =
+      -μ1 * mom1 β σ rn r + μ2 * mom2 β σ rn r + μ2 * (K * mom1 β σ rn p) ^ 2 := by
+    intro r hr
+    have e : (fun t => β ^ t * (rateLin σ rn r t - ib - (K * mom1 β σ rn p - ib)) ^ 2) =
+        fun t => β ^ t * (rateLin σ rn r t - K * mom1 β σ rn p) ^ 2 := by
+      funext t; ring
+    rw [e, avg_sq_dev hβ hβ1 hϑ hrn hr, henv]
+    ring
+  rw [hsq p hopt.1.1, hsq q hq]
+  have := hlag q hq
+  linarith
+
+/-- Woodford (2003), (4.18)–(4.19), p. 428: for bounded rate paths the common model's moments
+are Woodford's discounted averages under perfect foresight. -/
+theorem mom1_eq_dAvg (β σ : ℝ) (rn : ℕ → ℝ) (p : Pol) :
+    mom1 β σ rn p = dAvg perfectForesight β (fun t _ => rateLin σ rn p t) () := rfl
+
+/-- Woodford (2003), (4.19), p. 428: the second moment as a discounted average. -/
+theorem mom2_eq_dAvg (β σ : ℝ) (rn : ℕ → ℝ) (p : Pol) :
+    mom2 β σ rn p = dAvg perfectForesight β (fun t _ => rateLin σ rn p t ^ 2) () := rfl
+
+/-! ## The zero bound of Chapter 20 as the other special case -/
+
+/-- Cochrane (2023), §20.2.4, p. 479, and Galí (2015), p. 148: the pathwise-optimal policy of
+the common model: on the structural set, `i_t ≥ 0` at every date, and minimal loss among such
+policies. -/
+def PathOpt (β κ σ ϑ : ℝ) (rn : ℕ → ℝ) (p : Pol) : Prop :=
+  p ∈ Cset β κ ϑ ∧ (∀ t, 0 ≤ rateLin σ rn p t) ∧
+    ∀ q ∈ Cset β κ ϑ, (∀ t, 0 ≤ rateLin σ rn q t) → Lfun β ϑ p ≤ Lfun β ϑ q
+
+/-- Cochrane (2023), §20.1, p. 465 (the bound `i ≥ 0`), Galí (2015), p. 149: the Phillips
+curve and `i ≥ 0` at every date is exactly Galí's feasibility (`σ > 0`). -/
+theorem feasible_iff {β κ σ : ℝ} (hσ : 0 < σ) (rn x π : ℕ → ℝ) :
+    Feasible β κ σ rn x π ↔ (∀ t, NKPC β κ x π t) ∧ ∀ t, 0 ≤ impliedRate σ rn x π t := by
+  constructor
+  · intro h
+    refine ⟨fun t => (h t).1, fun t => ?_⟩
+    rw [impliedRate_eq hσ.ne']
+    exact mul_nonneg hσ.le (by linarith [(h t).2])
+  · rintro ⟨h1, h2⟩ t
+    refine ⟨h1 t, ?_⟩
+    have := h2 t
+    rw [impliedRate_eq hσ.ne'] at this
+    have := (mul_nonneg_iff_of_pos_left hσ).mp this
+    linarith
+
+/-- Cochrane (2023), §20.2.4, p. 479: **the zero bound of Chapter 20 is a special case of the
+common model** — its pathwise optimum is exactly Galí's commitment optimum. -/
+theorem pathOpt_iff {β κ σ ϑ : ℝ} (hσ : 0 < σ) {rn x π : ℕ → ℝ} :
+    PathOpt β κ σ ϑ rn (x, π, 1) ↔ Optimal β κ σ ϑ rn x π := by
+  have hrate : ∀ (y q : ℕ → ℝ) t, rateLin σ rn (y, q, 1) t = impliedRate σ rn y q t :=
+    fun y q t => by simp [rateLin, impliedRate]
+  constructor
+  · rintro ⟨⟨-, hN, hS⟩, hpos, hmin⟩
+    refine ⟨(feasible_iff hσ rn x π).mpr ⟨hN, fun t => by rw [← hrate]; exact hpos t⟩, hS,
+      fun y q hF hSq => ?_⟩
+    obtain ⟨hN', hpos'⟩ := (feasible_iff hσ rn y q).mp hF
+    exact hmin (y, q, 1) ⟨rfl, hN', hSq⟩ fun t => by rw [hrate]; exact hpos' t
+  · rintro ⟨hF, hS, hmin⟩
+    obtain ⟨hN, hpos⟩ := (feasible_iff hσ rn x π).mp hF
+    refine ⟨⟨rfl, hN, hS⟩, fun t => by rw [hrate]; exact hpos t, fun q hq hqpos => ?_⟩
+    obtain ⟨hc, hN', hSq⟩ := hq
+    have hq' : q = (q.1, q.2.1, 1) := by rw [← hc]
+    have hF' : Feasible β κ σ rn q.1 q.2.1 := (feasible_iff hσ rn _ _).mpr ⟨hN', fun t => by
+      have := hqpos t
+      rwa [hq', hrate] at this⟩
+    exact hmin _ _ hF' hSq
+
+/-- Cochrane (2023), §20.2.4 and Galí (2015), §5.4.2: in the common model with the trap
+`rⁿ = natRate ρ η t_Z`, the pathwise optimum exists and is unique (it is Galí's commitment
+optimum, `LiftoffStructure.optimal_exists_unique`). -/
+theorem pathOpt_existsUnique {β κ σ ϑ ρ η : ℝ} (hβ : 0 < β) (hσ : 0 < σ) (hϑ : 0 < ϑ)
+    (hρ : 0 ≤ ρ) (tZ : ℕ) :
+    ∃! p : Pol, PathOpt β κ σ ϑ (natRate ρ η tZ) p := by
+  obtain ⟨x, π, hopt, huniq⟩ := LiftoffStructure.optimal_exists_unique (κ := κ) (η := η) hβ hσ
+    hϑ hρ tZ
+  refine ⟨(x, π, 1), (pathOpt_iff hσ).mpr hopt, fun p hp => ?_⟩
+  have hc : p.2.2 = 1 := hp.1.1
+  have hp' : p = (p.1, p.2.1, 1) := by rw [← hc]
+  rw [hp'] at hp ⊢
+  obtain ⟨h1, h2⟩ := huniq _ _ ((pathOpt_iff hσ).mp hp)
+  rw [h1, h2]
+
+/-! ## Comparing the two problems inside the model -/
+
+/-- Woodford (2003), p. 428, and Cochrane (2023), §20.1: every pathwise-feasible policy of the
+common model has `Ê[i] ≥ 0`. -/
+theorem pathwise_mom1_nonneg {β σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) {rn : ℕ → ℝ} {p : Pol}
+    (hpos : ∀ t, 0 ≤ rateLin σ rn p t) : 0 ≤ mom1 β σ rn p := by
+  unfold mom1
+  exact mul_nonneg (by linarith) (tsum_nonneg fun t => mul_nonneg (pow_nonneg hβ.le t) (hpos t))
+
+/-- Woodford (2003), p. 428, and Cochrane (2023), §20.2.4: **the optimal losses compare as the
+constraint sets do.** If `p` is the pathwise optimum and `w` a moment-constrained optimum: when
+`p` satisfies Woodford's constraint, `L(w) ≤ L(p)`; when `w` satisfies the pathwise bound,
+`L(p) ≤ L(w)`; when both hold the losses are equal and `w` is itself a pathwise optimum. -/
+theorem values_compare {β κ ϑ σ K : ℝ} (hβ : 0 < β) (hβ1 : β < 1) {rn : ℕ → ℝ}
+    {p w : Pol} (hp : PathOpt β κ σ ϑ rn p)
+    (hw : IsConstrOpt (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ rn) (mom2 β σ rn) K w) :
+    (mom2 β σ rn p ≤ K * mom1 β σ rn p ^ 2 → Lfun β ϑ w ≤ Lfun β ϑ p) ∧
+      ((∀ t, 0 ≤ rateLin σ rn w t) → Lfun β ϑ p ≤ Lfun β ϑ w) ∧
+      (mom2 β σ rn p ≤ K * mom1 β σ rn p ^ 2 → (∀ t, 0 ≤ rateLin σ rn w t) →
+        Lfun β ϑ p = Lfun β ϑ w ∧ PathOpt β κ σ ϑ rn w) := by
+  have h1 : mom2 β σ rn p ≤ K * mom1 β σ rn p ^ 2 → Lfun β ϑ w ≤ Lfun β ϑ p := fun h =>
+    hw.2 p ⟨hp.1, pathwise_mom1_nonneg hβ hβ1 hp.2.1, h⟩
+  have h2 : (∀ t, 0 ≤ rateLin σ rn w t) → Lfun β ϑ p ≤ Lfun β ϑ w := fun h =>
+    hp.2.2 w hw.1.1 h
+  refine ⟨h1, h2, fun ha hb => ⟨le_antisymm (h2 hb) (h1 ha), hw.1.1, hb, fun q hq hqpos => ?_⟩⟩
+  exact le_trans (h1 ha) (hp.2.2 q hq hqpos)
+
+/-- Cochrane (2023), §20.2.2 (the trap, `t_Z = 0`): the model-feasible policy whose rate is `c`
+at date 0 and the natural rate `ρ` afterwards: `x₀ = −(η + c)/σ`, `π₀ = κx₀`, zero after. -/
+noncomputable def spikePol (κ σ η c : ℝ) : Pol :=
+  (fun t => if t = 0 then -(η + c) / σ else 0, fun t => if t = 0 then κ * (-(η + c) / σ) else 0,
+    1)
+
+/-- Cochrane (2023), §20.2.2: the spike policy is in the structural set and its rate is `c` at
+date 0 and `ρ` afterwards. -/
+theorem spikePol_spec {β κ ϑ σ ρ η c : ℝ} (hσ : σ ≠ 0) :
+    spikePol κ σ η c ∈ Cset β κ ϑ ∧
+      ∀ t, rateLin σ (natRate ρ η 0) (spikePol κ σ η c) t = if t = 0 then c else ρ := by
+  refine ⟨⟨rfl, fun t => ?_, ?_⟩, fun t => ?_⟩
+  · unfold NKPC spikePol
+    rcases t with _ | t <;> simp
+  · refine summable_of_ne_finset_zero (s := {0}) fun t ht => ?_
+    have : t ≠ 0 := by simpa using ht
+    simp [lossTerm, spikePol, this]
+  · simp only [rateLin, LinearMap.coe_mk, AddHom.coe_mk, spikePol, natRate]
+    rcases t with _ | t
+    · simp
+      field_simp
+      ring
+    · simp
+
+/-- Woodford (2003), p. 428: the discounted moments of a path equal to `c` at date 0 and `ρ`
+afterwards: `Ê[i] = (1 − β)c + βρ`, `Ê[i²] = (1 − β)c² + βρ²`. -/
+theorem spike_moments {β κ σ ρ η c : ℝ} (hβ : 0 ≤ β) (hβ1 : β < 1) (hσ : σ ≠ 0) :
+    mom1 β σ (natRate ρ η 0) (spikePol κ σ η c) = (1 - β) * c + β * ρ ∧
+      mom2 β σ (natRate ρ η 0) (spikePol κ σ η c) = (1 - β) * c ^ 2 + β * ρ ^ 2 := by
+  have hr := (spikePol_spec (β := β) (κ := κ) (ϑ := 1) (ρ := ρ) (η := η) (c := c) hσ).2
+  have hg := hasSum_geometric_of_lt_one hβ hβ1
+  have key : ∀ a b : ℝ, HasSum (fun t : ℕ => β ^ t * (if t = 0 then a else b))
+      (a + b * (β / (1 - β))) := by
+    intro a b
+    have h1 := (hg.mul_left b).add (hasSum_ite_eq 0 (a - b))
+    convert h1 using 1
+    · funext t
+      by_cases ht : t = 0
+      · subst ht; simp
+      · simp [ht, mul_comm]
+    · have hne : 1 - β ≠ 0 := by linarith
+      field_simp
+      ring
+  have hne : 1 - β ≠ 0 := by linarith
+  constructor
+  · unfold mom1
+    have e : (fun t => β ^ t * rateLin σ (natRate ρ η 0) (spikePol κ σ η c) t) =
+        fun t : ℕ => β ^ t * (if t = 0 then c else ρ) := by
+      funext t; rw [hr t]
+    rw [e, (key c ρ).tsum_eq]
+    field_simp
+  · unfold mom2
+    have e : (fun t => β ^ t * rateLin σ (natRate ρ η 0) (spikePol κ σ η c) t ^ 2) =
+        fun t : ℕ => β ^ t * (if t = 0 then c ^ 2 else ρ ^ 2) := by
+      funext t
+      rw [hr t]
+      by_cases ht : t = 0 <;> simp [ht]
+    rw [e, (key _ _).tsum_eq]
+    field_simp
+
+/-- Woodford (2003), Table 6.1, p. 434 (`K = 1 + 2.26⁻²`, `β = 0.99`), in the common model with
+the trap `rⁿ = natRate 1 1 0` (`σ = κ = ϑ = 1`): **neither constraint implies the other for
+model-feasible policies.** A spike rate `i₀ = 1000`, then `1`, is pathwise feasible but violates
+Woodford's constraint; a rate `i₀ = −1/100`, then `1`, satisfies Woodford's constraint but
+violates the bound. -/
+theorem neither_in_model :
+    (spikePol 1 1 1 1000 ∈ Cset (99 / 100) 1 1 ∧
+      (∀ t, 0 ≤ rateLin 1 (natRate 1 1 0) (spikePol 1 1 1 1000) t) ∧
+      ¬ (mom2 (99 / 100) 1 (natRate 1 1 0) (spikePol 1 1 1 1000) ≤
+        bigK 2.26 * mom1 (99 / 100) 1 (natRate 1 1 0) (spikePol 1 1 1 1000) ^ 2)) ∧
+    (spikePol 1 1 1 (-1 / 100) ∈ Cset (99 / 100) 1 1 ∧
+      ¬ (∀ t, 0 ≤ rateLin 1 (natRate 1 1 0) (spikePol 1 1 1 (-1 / 100)) t) ∧
+      0 ≤ mom1 (99 / 100) 1 (natRate 1 1 0) (spikePol 1 1 1 (-1 / 100)) ∧
+      mom2 (99 / 100) 1 (natRate 1 1 0) (spikePol 1 1 1 (-1 / 100)) ≤
+        bigK 2.26 * mom1 (99 / 100) 1 (natRate 1 1 0) (spikePol 1 1 1 (-1 / 100)) ^ 2) := by
+  obtain ⟨hA, hrA⟩ := spikePol_spec (β := 99 / 100) (κ := 1) (ϑ := 1) (ρ := 1) (η := 1)
+    (c := 1000) one_ne_zero
+  obtain ⟨hB, hrB⟩ := spikePol_spec (β := 99 / 100) (κ := 1) (ϑ := 1) (ρ := 1) (η := 1)
+    (c := -1 / 100) one_ne_zero
+  obtain ⟨mA1, mA2⟩ := spike_moments (κ := 1) (ρ := 1) (η := 1) (c := 1000)
+    (by norm_num : (0 : ℝ) ≤ 99 / 100) (by norm_num) one_ne_zero
+  obtain ⟨mB1, mB2⟩ := spike_moments (κ := 1) (ρ := 1) (η := 1) (c := -1 / 100)
+    (by norm_num : (0 : ℝ) ≤ 99 / 100) (by norm_num) one_ne_zero
+  have hK : bigK 2.26 = 15269 / 12769 := by unfold bigK; norm_num
+  refine ⟨⟨hA, fun t => ?_, ?_⟩, ⟨hB, fun h => ?_, ?_, ?_⟩⟩
+  · rw [hrA t]; split_ifs <;> norm_num
+  · rw [mA1, mA2, hK]; norm_num
+  · have := h 0
+    rw [hrB 0] at this
+    norm_num at this
+  · rw [mB1]; norm_num
+  · rw [mB1, mB2, hK]; norm_num
+
+/-! ## Uniqueness of the moment-constrained optimum -/
+
+/-- Woodford (2003), (4.19), p. 428 (the constraint set is convex: `√Ê[i²] ≤ √K Ê[i]` is a
+second-order cone): if `∑βᵗu_t² ≤ K a²` and `∑βᵗv_t² ≤ K b²` with `a, b ≥ 0`, then
+`∑βᵗ((u_t + v_t)/2)² ≤ K((a + b)/2)²`. -/
+theorem soc_mid {β K a b : ℝ} (hβ : 0 < β) (ha : 0 ≤ a) (hb : 0 ≤ b)
+    {u v : ℕ → ℝ} (hu : Summable fun t => β ^ t * u t ^ 2)
+    (hv : Summable fun t => β ^ t * v t ^ 2) (hA : ∑' t, β ^ t * u t ^ 2 ≤ K * a ^ 2)
+    (hB : ∑' t, β ^ t * v t ^ 2 ≤ K * b ^ 2) :
+    ∑' t, β ^ t * ((u t + v t) / 2) ^ 2 ≤ K * ((a + b) / 2) ^ 2 := by
+  have hA0 : 0 ≤ ∑' t, β ^ t * u t ^ 2 := tsum_nonneg fun t => by positivity
+  have hB0 : 0 ≤ ∑' t, β ^ t * v t ^ 2 := tsum_nonneg fun t => by positivity
+  have hzero : ∀ {w : ℕ → ℝ}, Summable (fun t => β ^ t * w t ^ 2) →
+      ∑' t, β ^ t * w t ^ 2 ≤ 0 → ∀ t, w t = 0 := fun {w} hw h t => by
+    have := eq_zero_of_tsum_nonpos (fun t => by positivity) hw h t
+    rcases mul_eq_zero.mp this with h' | h'
+    · exact absurd h' (pow_pos hβ t).ne'
+    · exact pow_eq_zero_iff (n := 2) (by norm_num) |>.mp h'
+  rcases ha.lt_or_eq with ha' | ha'
+  · rcases hb.lt_or_eq with hb' | hb'
+    · -- both positive: weights `λ = b/a`
+      have hpt : ∀ t, β ^ t * ((u t + v t) / 2) ^ 2 ≤
+          ((1 + b / a) * (β ^ t * u t ^ 2) + (1 + a / b) * (β ^ t * v t ^ 2)) / 4 := by
+        intro t
+        have hbt : 0 ≤ β ^ t := pow_nonneg hβ.le t
+        have key : 2 * (u t * v t) ≤ b / a * u t ^ 2 + a / b * v t ^ 2 := by
+          have : 0 ≤ (b / a) * (u t - a / b * v t) ^ 2 := by positivity
+          have e : (b / a) * (u t - a / b * v t) ^ 2 =
+              b / a * u t ^ 2 + a / b * v t ^ 2 - 2 * (u t * v t) := by
+            field_simp; ring
+          linarith
+        have : ((u t + v t) / 2) ^ 2 ≤
+            ((1 + b / a) * u t ^ 2 + (1 + a / b) * v t ^ 2) / 4 := by nlinarith
+        nlinarith [mul_le_mul_of_nonneg_left this hbt]
+      have hs : Summable fun t => β ^ t * ((u t + v t) / 2) ^ 2 :=
+        Summable.of_nonneg_of_le (fun t => by positivity) hpt
+          (((hu.mul_left _).add (hv.mul_left _)).div_const 4)
+      calc ∑' t, β ^ t * ((u t + v t) / 2) ^ 2
+          ≤ ∑' t, ((1 + b / a) * (β ^ t * u t ^ 2) + (1 + a / b) * (β ^ t * v t ^ 2)) / 4 :=
+            hs.tsum_le_tsum hpt (((hu.mul_left _).add (hv.mul_left _)).div_const 4)
+        _ = ((1 + b / a) * ∑' t, β ^ t * u t ^ 2 + (1 + a / b) * ∑' t, β ^ t * v t ^ 2) / 4 := by
+            rw [tsum_div_const, (hu.mul_left _).tsum_add (hv.mul_left _), tsum_mul_left,
+              tsum_mul_left]
+        _ ≤ ((1 + b / a) * (K * a ^ 2) + (1 + a / b) * (K * b ^ 2)) / 4 := by
+            have h1 : 0 ≤ 1 + b / a := by positivity
+            have h2 : 0 ≤ 1 + a / b := by positivity
+            nlinarith [mul_le_mul_of_nonneg_left hA h1, mul_le_mul_of_nonneg_left hB h2]
+        _ = K * ((a + b) / 2) ^ 2 := by field_simp; ring
+    · -- `b = 0`
+      subst hb'
+      have hv0 := hzero hv (by nlinarith)
+      have e : (fun t => β ^ t * ((u t + v t) / 2) ^ 2) = fun t => (β ^ t * u t ^ 2) / 4 := by
+        funext t; rw [hv0 t]; ring
+      rw [e, tsum_div_const]
+      nlinarith
+  · -- `a = 0`
+    subst ha'
+    have hu0 := hzero hu (by nlinarith)
+    have e : (fun t => β ^ t * ((u t + v t) / 2) ^ 2) = fun t => (β ^ t * v t ^ 2) / 4 := by
+      funext t; rw [hu0 t]; ring
+    rw [e, tsum_div_const]
+    nlinarith
+
+/-- Woodford (2003), Proposition 6.9, p. 428 (the optimal policy is well defined): in the common
+model the moment-constrained optimum is unique (any `K`, `0 < β < 1`, `ϑ > 0`, bounded natural
+rate): the constraint set is convex (`soc_mid`) and the loss strictly convex. -/
+theorem momOpt_unique {β κ ϑ σ K : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ)
+    {rn : ℕ → ℝ} (hrn : ∃ M, ∀ t, |rn t| ≤ M) {w1 w2 : Pol}
+    (h1 : IsConstrOpt (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ rn) (mom2 β σ rn) K w1)
+    (h2 : IsConstrOpt (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ rn) (mom2 β σ rn) K w2) :
+    w1 = w2 := by
+  obtain ⟨⟨hw1, a1, b1⟩, o1⟩ := h1
+  obtain ⟨⟨hw2, a2, b2⟩, o2⟩ := h2
+  have hC := cset_convex (κ := κ) hβ.le hϑ.le
+  set w : Pol := (1 / 2 : ℝ) • w1 + (1 / 2 : ℝ) • w2 with hwd
+  have hw : w ∈ Cset β κ ϑ := hC hw1 hw2 (by norm_num) (by norm_num) (by norm_num)
+  have hm1 : mom1 β σ rn w = (mom1 β σ rn w1 + mom1 β σ rn w2) / 2 := by
+    rw [hwd, mom1_comb hβ hβ1 hϑ hrn hw1 hw2]; ring
+  have hβ1' : 0 < 1 - β := by linarith
+  -- feasibility of the midpoint
+  have hm2 : mom2 β σ rn w ≤ K * mom1 β σ rn w ^ 2 := by
+    have hu := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hw1
+    have hv := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hw2
+    have hA : ∑' t, β ^ t * rateLin σ rn w1 t ^ 2 ≤ K / (1 - β) * mom1 β σ rn w1 ^ 2 := by
+      unfold mom2 at b1
+      rw [div_mul_eq_mul_div, le_div_iff₀ hβ1']
+      linarith
+    have hB : ∑' t, β ^ t * rateLin σ rn w2 t ^ 2 ≤ K / (1 - β) * mom1 β σ rn w2 ^ 2 := by
+      unfold mom2 at b2
+      rw [div_mul_eq_mul_div, le_div_iff₀ hβ1']
+      linarith
+    have := soc_mid hβ a1 a2 hu hv hA hB
+    have e : ∀ t, rateLin σ rn w t = (rateLin σ rn w1 t + rateLin σ rn w2 t) / 2 := fun t => by
+      simp only [hwd, map_add, map_smul, Pi.add_apply, Pi.smul_apply, smul_eq_mul]; ring
+    unfold mom2
+    simp only [e]
+    rw [hm1]
+    have := mul_le_mul_of_nonneg_left this hβ1'.le
+    rw [show (1 - β) * (K / (1 - β) * ((mom1 β σ rn w1 + mom1 β σ rn w2) / 2) ^ 2) =
+      K * ((mom1 β σ rn w1 + mom1 β σ rn w2) / 2) ^ 2 by field_simp] at this
+    exact this
+  have hfw : Feasible (Cset β κ ϑ) (mom1 β σ rn) (mom2 β σ rn) K w :=
+    ⟨hw, by rw [hm1]; linarith, hm2⟩
+  -- strict convexity of the loss
+  have c1 := hw1.1
+  have hs1 := hw1.2.2
+  have c2 := hw2.1
+  have hs2 := hw2.2.2
+  set D : ℕ → ℝ := fun t => β ^ t * ((w1.2.1 t - w2.2.1 t) ^ 2 + ϑ * (w1.1 t - w2.1 t) ^ 2)
+    with hDdef
+  have hD0 : ∀ t, 0 ≤ D t := fun t => by simp only [hDdef]; positivity
+  have hDs : Summable D := by
+    refine Summable.of_nonneg_of_le hD0 (fun t => ?_) ((hs1.add hs2).mul_left 2)
+    simp only [hDdef, lossTerm]
+    have hp : 0 ≤ β ^ t := pow_nonneg hβ.le t
+    have : (w1.2.1 t - w2.2.1 t) ^ 2 + ϑ * (w1.1 t - w2.1 t) ^ 2 ≤
+        2 * ((w1.2.1 t ^ 2 + ϑ * w1.1 t ^ 2) + (w2.2.1 t ^ 2 + ϑ * w2.1 t ^ 2)) := by
+      nlinarith [sq_nonneg (w1.2.1 t + w2.2.1 t), sq_nonneg (w1.1 t + w2.1 t)]
+    nlinarith
+  have hterm : ∀ t, lossTerm β ϑ w.1 w.2.1 t =
+      (lossTerm β ϑ w1.1 w1.2.1 t + lossTerm β ϑ w2.1 w2.2.1 t) / 2 - D t / 4 := by
+    intro t
+    simp only [hwd, lossTerm, hDdef, Prod.fst_add, Prod.snd_add, Prod.smul_fst, Prod.smul_snd,
+      Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hlm : Lfun β ϑ w = (Lfun β ϑ w1 + Lfun β ϑ w2) / 2 - (∑' t, D t) / 4 := by
+    unfold Lfun loss
+    rw [show lossTerm β ϑ w.1 w.2.1 = fun t =>
+      (lossTerm β ϑ w1.1 w1.2.1 t + lossTerm β ϑ w2.1 w2.2.1 t) / 2 - D t / 4 from funext hterm]
+    rw [((hs1.add hs2).div_const 2).tsum_sub (hDs.div_const 4), tsum_div_const,
+      tsum_div_const, hs1.tsum_add hs2]
+  have l12 := o1 w2 ⟨hw2, a2, b2⟩
+  have l21 := o2 w1 ⟨hw1, a1, b1⟩
+  have l1m := o1 w hfw
+  have hz := eq_zero_of_tsum_nonpos hD0 hDs (by linarith)
+  have hx : w1.1 = w2.1 := funext fun t => by
+    have := (sq_terms_zero hβ hϑ t (hz t)).2; linarith
+  have hπ : w1.2.1 = w2.2.1 := funext fun t => by
+    have := (sq_terms_zero hβ hϑ t (hz t)).1; linarith
+  exact Prod.ext hx (Prod.ext hπ (c1.trans c2.symm))
+
+end Cochrane.ZeroBound.TidyR6CommonModel
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Existence of Woodford's moment-constrained optimum in the common model
+
+Cochrane (2023), Chapter 20, §20.2.4, p. 479, with Woodford (2003), Chapter 6, §4.2,
+Proposition 6.9, p. 428. Woodford's proposition takes the constrained optimum as given; in the
+common model of `TidyR6CommonModel` it exists whenever the moment constraints can be met, and it
+is unique (`TidyR6CommonModel.momOpt_unique`).
+
+The proof codes paths in the Hilbert space `ℓ²(ℕ ⊕ ℕ)` of `LiftoffStructure` (the loss is the
+squared norm, `LiftoffStructure.loss_dec`). The scaled interest rate `√βᵗ i_t` of a coded path is
+an affine, Lipschitz map into `ℓ²(ℕ)` (`scaledRate`, `scaledRate_lipschitz`), so
+`Ê[i²] = (1 − β)‖√βᵗi‖²` and `Ê[i] = (1 − β)⟪√βᵗ, √βᵗi⟫` are continuous (`mom2_code`,
+`mom1_code`); the constraint `√Ê[i²] ≤ √K Ê[i]` is a second-order cone, so the feasible codes
+form a closed convex set (`soc_comb`, `wset_closed`, `wset_convex`); the minimal-norm element is
+the optimum (`momOpt_exists`, `momOpt_exists_iff`). At Woodford's calibration in the trap of
+§20.2.2 (`t_Z = 0`) a feasible policy exists as soon as `Kβ ≥ 1`, so the optimum exists and is
+unique (`momOpt_existsUnique_trap`).
+-/
+
+namespace Cochrane.ZeroBound.TidyR6CommonModelExist
+
+open Filter Topology
+open Cochrane.ZeroBound Cochrane.ZeroBound.LinksGaliWoodford Cochrane.ZeroBound.TidyR6WoodfordZLB
+open Cochrane.ZeroBound.TidyR6CommonModel
+open Cochrane.ZeroBound.LiftoffStructure (PathSpace decX decP enc decX_enc decP_enc loss_dec
+  memℓp_enc coord_continuous sqrt_pow_sq)
+
+/-! ## The second-order cone -/
+
+/-- Woodford (2003), (4.19), p. 428: the moment constraint is a second-order cone. If
+`∑βᵗu_t² ≤ K a²` and `∑βᵗv_t² ≤ K b²` with `a, b ≥ 0`, then for `α, γ ≥ 0`
+`∑βᵗ(αu_t + γv_t)² ≤ K(αa + γb)²`. -/
+theorem soc_comb {β K a b α γ : ℝ} (hβ : 0 < β) (ha : 0 ≤ a) (hb : 0 ≤ b) (hα : 0 ≤ α)
+    (hγ : 0 ≤ γ) {u v : ℕ → ℝ} (hu : Summable fun t => β ^ t * u t ^ 2)
+    (hv : Summable fun t => β ^ t * v t ^ 2) (hA : ∑' t, β ^ t * u t ^ 2 ≤ K * a ^ 2)
+    (hB : ∑' t, β ^ t * v t ^ 2 ≤ K * b ^ 2) :
+    ∑' t, β ^ t * (α * u t + γ * v t) ^ 2 ≤ K * (α * a + γ * b) ^ 2 := by
+  have hzero : ∀ {w : ℕ → ℝ}, Summable (fun t => β ^ t * w t ^ 2) →
+      ∑' t, β ^ t * w t ^ 2 ≤ 0 → ∀ t, w t = 0 := fun {w} hw h t => by
+    have := eq_zero_of_tsum_nonpos (fun t => by positivity) hw h t
+    rcases mul_eq_zero.mp this with h' | h'
+    · exact absurd h' (pow_pos hβ t).ne'
+    · exact pow_eq_zero_iff (n := 2) (by norm_num) |>.mp h'
+  have hA0 : 0 ≤ ∑' t, β ^ t * u t ^ 2 := tsum_nonneg fun t => by positivity
+  have hB0 : 0 ≤ ∑' t, β ^ t * v t ^ 2 := tsum_nonneg fun t => by positivity
+  -- the degenerate cases: one of the two terms vanishes identically
+  have hone : ∀ {w : ℕ → ℝ} {c d : ℝ}, Summable (fun t => β ^ t * w t ^ 2) →
+      ∑' t, β ^ t * w t ^ 2 ≤ K * d ^ 2 →
+      ∑' t, β ^ t * (c * w t) ^ 2 ≤ K * (c * d) ^ 2 := fun {w c d} hw h => by
+    have e : (fun t => β ^ t * (c * w t) ^ 2) = fun t => c ^ 2 * (β ^ t * w t ^ 2) := by
+      funext t; ring
+    rw [e, tsum_mul_left]
+    nlinarith [sq_nonneg c]
+  by_cases h1 : α * a = 0
+  · have hu0 : ∀ t, α * u t = 0 := by
+      rcases mul_eq_zero.mp h1 with h | h
+      · intro t; rw [h, zero_mul]
+      · subst h
+        have := hzero hu (by nlinarith)
+        intro t; rw [this t, mul_zero]
+    have e : (fun t => β ^ t * (α * u t + γ * v t) ^ 2) = fun t => β ^ t * (γ * v t) ^ 2 := by
+      funext t; rw [hu0 t, zero_add]
+    rw [e, h1, zero_add]
+    exact hone hv hB
+  by_cases h2 : γ * b = 0
+  · have hv0 : ∀ t, γ * v t = 0 := by
+      rcases mul_eq_zero.mp h2 with h | h
+      · intro t; rw [h, zero_mul]
+      · subst h
+        have := hzero hv (by nlinarith)
+        intro t; rw [this t, mul_zero]
+    have e : (fun t => β ^ t * (α * u t + γ * v t) ^ 2) = fun t => β ^ t * (α * u t) ^ 2 := by
+      funext t; rw [hv0 t, add_zero]
+    rw [e, h2, add_zero]
+    exact hone hu hA
+  have hP : 0 < α * a := lt_of_le_of_ne (mul_nonneg hα ha) (Ne.symm h1)
+  have hQ : 0 < γ * b := lt_of_le_of_ne (mul_nonneg hγ hb) (Ne.symm h2)
+  set l := γ * b / (α * a) with hl
+  have hl0 : 0 < l := div_pos hQ hP
+  have hpt : ∀ t, β ^ t * (α * u t + γ * v t) ^ 2 ≤
+      (1 + l) * α ^ 2 * (β ^ t * u t ^ 2) + (1 + 1 / l) * γ ^ 2 * (β ^ t * v t ^ 2) := by
+    intro t
+    have hbt : 0 ≤ β ^ t := pow_nonneg hβ.le t
+    have key : 2 * (α * u t) * (γ * v t) ≤ l * (α * u t) ^ 2 + 1 / l * (γ * v t) ^ 2 := by
+      have : 0 ≤ l * (α * u t - 1 / l * (γ * v t)) ^ 2 := by positivity
+      have e : l * (α * u t - 1 / l * (γ * v t)) ^ 2 =
+          l * (α * u t) ^ 2 + 1 / l * (γ * v t) ^ 2 - 2 * (α * u t) * (γ * v t) := by
+        field_simp; ring
+      linarith
+    have : (α * u t + γ * v t) ^ 2 ≤ (1 + l) * α ^ 2 * u t ^ 2 + (1 + 1 / l) * γ ^ 2 * v t ^ 2 := by
+      nlinarith
+    nlinarith [mul_le_mul_of_nonneg_left this hbt]
+  have hsR : Summable fun t =>
+      (1 + l) * α ^ 2 * (β ^ t * u t ^ 2) + (1 + 1 / l) * γ ^ 2 * (β ^ t * v t ^ 2) :=
+    (hu.mul_left _).add (hv.mul_left _)
+  have hs : Summable fun t => β ^ t * (α * u t + γ * v t) ^ 2 :=
+    Summable.of_nonneg_of_le (fun t => by positivity) hpt hsR
+  calc ∑' t, β ^ t * (α * u t + γ * v t) ^ 2
+      ≤ ∑' t, ((1 + l) * α ^ 2 * (β ^ t * u t ^ 2) + (1 + 1 / l) * γ ^ 2 * (β ^ t * v t ^ 2)) :=
+        hs.tsum_le_tsum hpt hsR
+    _ = (1 + l) * α ^ 2 * ∑' t, β ^ t * u t ^ 2 + (1 + 1 / l) * γ ^ 2 * ∑' t, β ^ t * v t ^ 2 := by
+        rw [(hu.mul_left _).tsum_add (hv.mul_left _), tsum_mul_left, tsum_mul_left]
+    _ ≤ (1 + l) * α ^ 2 * (K * a ^ 2) + (1 + 1 / l) * γ ^ 2 * (K * b ^ 2) := by
+        have c1 : 0 ≤ (1 + l) * α ^ 2 := by positivity
+        have c2 : 0 ≤ (1 + 1 / l) * γ ^ 2 := by positivity
+        nlinarith [mul_le_mul_of_nonneg_left hA c1, mul_le_mul_of_nonneg_left hB c2]
+    _ = K * (α * a + γ * b) ^ 2 := by
+        have hαn : α ≠ 0 := by rintro rfl; simp at hP
+        have han : a ≠ 0 := by rintro rfl; simp at hP
+        have hγn : γ ≠ 0 := by rintro rfl; simp at hQ
+        have hbn : b ≠ 0 := by rintro rfl; simp at hQ
+        rw [hl]
+        field_simp
+        ring
+
+/-! ## Coded paths and their interest rates -/
+
+/-- Galí (2015), p. 148, with Cochrane (2023), §20.2.4: the policy decoded from `z ∈ ℓ²(ℕ ⊕ ℕ)`,
+`(decX z, decP z, 1)`. -/
+noncomputable def decPol (β ϑ : ℝ) (z : ℕ ⊕ ℕ → ℝ) : Pol := (decX β ϑ z, decP β z, 1)
+
+/-- Woodford (2003), (4.19), p. 428: the scaled interest rate `√βᵗ i_t` of a coded path. -/
+noncomputable def srate (β ϑ σ : ℝ) (rn : ℕ → ℝ) (z : ℕ ⊕ ℕ → ℝ) (t : ℕ) : ℝ :=
+  Real.sqrt β ^ t * rateLin σ rn (decPol β ϑ z) t
+
+/-- Woodford (2003), (4.19): the scaled rate in code coordinates,
+`√βᵗi_t = √βᵗ rⁿ_t + z(inl(t+1))/√β + σ z(inr(t+1))/(√β√ϑ) − σ z(inr t)/√ϑ`. -/
+theorem srate_eq {β ϑ σ : ℝ} (hβ : 0 < β) (hϑ : 0 < ϑ) (rn : ℕ → ℝ) (z : ℕ ⊕ ℕ → ℝ) (t : ℕ) :
+    srate β ϑ σ rn z t = Real.sqrt β ^ t * rn t + z (Sum.inl (t + 1)) / Real.sqrt β +
+      σ * z (Sum.inr (t + 1)) / (Real.sqrt β * Real.sqrt ϑ) - σ * z (Sum.inr t) / Real.sqrt ϑ := by
+  have hs : 0 < Real.sqrt β := Real.sqrt_pos.mpr hβ
+  have hs2 : 0 < Real.sqrt ϑ := Real.sqrt_pos.mpr hϑ
+  have hp : Real.sqrt β ^ t ≠ 0 := pow_ne_zero _ hs.ne'
+  simp only [srate, rateLin, LinearMap.coe_mk, AddHom.coe_mk, decPol, decX, decP, one_mul,
+    pow_succ]
+  field_simp
+  ring
+
+/-- Woodford (2003), (4.19): differences of scaled rates are bounded by the code distance,
+`(√βᵗ(i_t − i'_t))² ≤ C(d(inl(t+1))² + d(inr(t+1))² + d(inr t)²)`, `d = z − z'`. -/
+theorem srate_sub_sq {β ϑ σ : ℝ} (hβ : 0 < β) (hϑ : 0 < ϑ) (rn : ℕ → ℝ) (z z' : ℕ ⊕ ℕ → ℝ)
+    (t : ℕ) :
+    (srate β ϑ σ rn z t - srate β ϑ σ rn z' t) ^ 2 ≤
+      3 * (1 / β + σ ^ 2 / (β * ϑ) + σ ^ 2 / ϑ) *
+        ((z (Sum.inl (t + 1)) - z' (Sum.inl (t + 1))) ^ 2 +
+          (z (Sum.inr (t + 1)) - z' (Sum.inr (t + 1))) ^ 2 +
+          (z (Sum.inr t) - z' (Sum.inr t)) ^ 2) := by
+  have hs : 0 < Real.sqrt β := Real.sqrt_pos.mpr hβ
+  have hs2 : 0 < Real.sqrt ϑ := Real.sqrt_pos.mpr hϑ
+  set A := z (Sum.inl (t + 1)) - z' (Sum.inl (t + 1))
+  set B := z (Sum.inr (t + 1)) - z' (Sum.inr (t + 1))
+  set C := z (Sum.inr t) - z' (Sum.inr t)
+  have e : srate β ϑ σ rn z t - srate β ϑ σ rn z' t =
+      A / Real.sqrt β + σ * B / (Real.sqrt β * Real.sqrt ϑ) - σ * C / Real.sqrt ϑ := by
+    rw [srate_eq hβ hϑ, srate_eq hβ hϑ]
+    simp only [A, B, C]
+    field_simp
+    ring
+  rw [e]
+  set a := A / Real.sqrt β
+  set b := σ * B / (Real.sqrt β * Real.sqrt ϑ)
+  set c := σ * C / Real.sqrt ϑ
+  have h3 : (a + b - c) ^ 2 ≤ 3 * (a ^ 2 + b ^ 2 + c ^ 2) := by
+    nlinarith [sq_nonneg (a - b), sq_nonneg (a + c), sq_nonneg (b + c)]
+  have ea : a ^ 2 = 1 / β * A ^ 2 := by
+    simp only [a]; rw [div_pow, Real.sq_sqrt hβ.le]; ring
+  have eb : b ^ 2 = σ ^ 2 / (β * ϑ) * B ^ 2 := by
+    simp only [b]; rw [div_pow, mul_pow, mul_pow, Real.sq_sqrt hβ.le, Real.sq_sqrt hϑ.le]; ring
+  have ec : c ^ 2 = σ ^ 2 / ϑ * C ^ 2 := by
+    simp only [c]; rw [div_pow, mul_pow, Real.sq_sqrt hϑ.le]; ring
+  have k1 : 0 ≤ 1 / β := by positivity
+  have k2 : 0 ≤ σ ^ 2 / (β * ϑ) := by positivity
+  have k3 : 0 ≤ σ ^ 2 / ϑ := by positivity
+  rw [ea, eb, ec] at h3
+  nlinarith [mul_nonneg k1 (sq_nonneg B), mul_nonneg k1 (sq_nonneg C),
+    mul_nonneg k2 (sq_nonneg A), mul_nonneg k2 (sq_nonneg C), mul_nonneg k3 (sq_nonneg A),
+    mul_nonneg k3 (sq_nonneg B)]
+
+/-- Galí (2015), p. 148: the squares of an `ℓ²(ℕ ⊕ ℕ)` element, read along the shifted and
+unshifted coordinates, have total at most `2‖z‖²`. -/
+theorem sum_three_le (z : PathSpace) :
+    Summable (fun t => z (Sum.inl (t + 1)) ^ 2 + z (Sum.inr (t + 1)) ^ 2 + z (Sum.inr t) ^ 2) ∧
+      ∑' t, (z (Sum.inl (t + 1)) ^ 2 + z (Sum.inr (t + 1)) ^ 2 + z (Sum.inr t) ^ 2) ≤
+        2 * ‖z‖ ^ 2 := by
+  set f : ℕ ⊕ ℕ → ℝ := fun i => z i ^ 2 with hf
+  have hs : Summable f := LiftoffStructure.summable_sq z
+  have hl : Summable (f ∘ Sum.inl) := hs.comp_injective Sum.inl_injective
+  have hr : Summable (f ∘ Sum.inr) := hs.comp_injective Sum.inr_injective
+  have hl1 : Summable fun t => (f ∘ Sum.inl) (t + 1) := hl.comp_injective (add_left_injective 1)
+  have hr1 : Summable fun t => (f ∘ Sum.inr) (t + 1) := hr.comp_injective (add_left_injective 1)
+  have e : (fun t => z (Sum.inl (t + 1)) ^ 2 + z (Sum.inr (t + 1)) ^ 2 + z (Sum.inr t) ^ 2) =
+      fun t => (f ∘ Sum.inl) (t + 1) + (f ∘ Sum.inr) (t + 1) + (f ∘ Sum.inr) t := rfl
+  rw [e]
+  refine ⟨(hl1.add hr1).add hr, ?_⟩
+  have h3 : ∑' i, f i = ∑' t, (f ∘ Sum.inl) t + ∑' t, (f ∘ Sum.inr) t := Summable.tsum_sum hl hr
+  have hn : ‖z‖ ^ 2 = ∑' i, f i := LiftoffStructure.norm_sq_eq z
+  rw [(hl1.add hr1).tsum_add hr, hl1.tsum_add hr1, hn, h3]
+  have a1 : ∑' t, (f ∘ Sum.inl) (t + 1) ≤ ∑' t, (f ∘ Sum.inl) t := by
+    rw [hl.tsum_eq_zero_add]
+    have : 0 ≤ (f ∘ Sum.inl) 0 := sq_nonneg _
+    linarith
+  have a2 : ∑' t, (f ∘ Sum.inr) (t + 1) ≤ ∑' t, (f ∘ Sum.inr) t := by
+    rw [hr.tsum_eq_zero_add]
+    have : 0 ≤ (f ∘ Sum.inr) 0 := sq_nonneg _
+    linarith
+  have a3 : 0 ≤ ∑' t, (f ∘ Sum.inl) t := tsum_nonneg fun t => sq_nonneg _
+  linarith
+
+/-- Woodford (2003), (4.19): `ℓ²(ℕ)`, the space of scaled interest-rate paths. -/
+abbrev Seq2 : Type := lp (fun _ : ℕ => ℝ) 2
+
+/-- Galí (2015), p. 148: `‖f‖² = ∑ f_t²` in `ℓ²(ℕ)`. -/
+theorem seq_norm_sq (f : Seq2) : ‖f‖ ^ 2 = ∑' t, f t ^ 2 := by
+  have h := lp.norm_rpow_eq_tsum (p := (2 : ENNReal)) (by norm_num) f
+  rw [show (2 : ENNReal).toReal = (2 : ℝ) by norm_num, Real.rpow_two] at h
+  rw [h]
+  congr 1
+  funext i
+  rw [Real.norm_eq_abs, Real.rpow_two, sq_abs]
+
+/-- Galí (2015), p. 148: a real sequence with summable squares is in `ℓ²(ℕ)`. -/
+theorem memℓp_of_sq {f : ℕ → ℝ} (h : Summable fun t => f t ^ 2) :
+    Memℓp (fun t => f t) 2 := by
+  refine (memℓp_gen_iff (p := (2 : ENNReal)) (by norm_num)).2 ?_
+  refine h.congr fun i => ?_
+  rw [Real.norm_eq_abs, show (2 : ENNReal).toReal = (2 : ℝ) by norm_num, Real.rpow_two, sq_abs]
+
+/-- Woodford (2003), (4.19): the scaled rate of a coded path has summable squares (bounded
+natural rate). -/
+theorem srate_sq_summable {β ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) (z : PathSpace) :
+    Summable fun t => srate β ϑ σ rn z t ^ 2 := by
+  obtain ⟨M, hM⟩ := hrn
+  have h3 := (sum_three_le z).1
+  have hg : Summable fun t : ℕ => β ^ t := summable_geometric_of_lt_one hβ.le hβ1
+  have hpt : ∀ t, srate β ϑ σ rn z t ^ 2 ≤ 2 * (M ^ 2 * β ^ t) +
+      2 * (3 * (1 / β + σ ^ 2 / (β * ϑ) + σ ^ 2 / ϑ) *
+        (z (Sum.inl (t + 1)) ^ 2 + z (Sum.inr (t + 1)) ^ 2 + z (Sum.inr t) ^ 2)) := by
+    intro t
+    have h0 := srate_sub_sq (σ := σ) hβ hϑ rn z 0 t
+    simp only [Pi.zero_apply, sub_zero] at h0
+    have hz0 : srate β ϑ σ rn 0 t = Real.sqrt β ^ t * rn t := by
+      rw [srate_eq hβ hϑ]; simp
+    have hr2 : (Real.sqrt β ^ t * rn t) ^ 2 ≤ M ^ 2 * β ^ t := by
+      rw [mul_pow, sqrt_pow_sq hβ.le]
+      have : rn t ^ 2 ≤ M ^ 2 := by
+        have := hM t
+        nlinarith [abs_nonneg (rn t), sq_abs (rn t)]
+      nlinarith [pow_pos hβ t]
+    rw [hz0] at h0
+    have := sq_add_le (srate β ϑ σ rn z t - Real.sqrt β ^ t * rn t) (Real.sqrt β ^ t * rn t)
+    rw [sub_add_cancel] at this
+    linarith
+  exact Summable.of_nonneg_of_le (fun t => sq_nonneg _) hpt
+    ((hg.mul_left _).mul_left 2 |>.add ((h3.mul_left _).mul_left 2))
+
+/-- Woodford (2003), (4.19): the scaled interest-rate path of a code, as an element of
+`ℓ²(ℕ)`. -/
+noncomputable def scaledRate {β ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) (z : PathSpace) : Seq2 :=
+  ⟨fun t => srate β ϑ σ rn z t, memℓp_of_sq (srate_sq_summable hβ hβ1 hϑ hrn z)⟩
+
+/-- Woodford (2003), (4.19): the scaled interest rate is Lipschitz in the code. -/
+theorem scaledRate_lipschitz {β ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) :
+    LipschitzWith (Real.toNNReal (Real.sqrt (6 * (1 / β + σ ^ 2 / (β * ϑ) + σ ^ 2 / ϑ))))
+      (scaledRate (σ := σ) hβ hβ1 hϑ hrn) := by
+  set C := 3 * (1 / β + σ ^ 2 / (β * ϑ) + σ ^ 2 / ϑ) with hC
+  have hC0 : 0 ≤ C := by positivity
+  refine LipschitzWith.of_dist_le_mul fun z z' => ?_
+  rw [dist_eq_norm, dist_eq_norm, Real.coe_toNNReal _ (Real.sqrt_nonneg _)]
+  have hsq : ‖scaledRate (σ := σ) hβ hβ1 hϑ hrn z - scaledRate (σ := σ) hβ hβ1 hϑ hrn z'‖ ^ 2 ≤
+      2 * C * ‖z - z'‖ ^ 2 := by
+    rw [seq_norm_sq]
+    obtain ⟨h3s, h3⟩ := sum_three_le (z - z')
+    have hpt : ∀ t, (scaledRate (σ := σ) hβ hβ1 hϑ hrn z -
+        scaledRate (σ := σ) hβ hβ1 hϑ hrn z') t ^ 2 ≤
+        C * ((z - z') (Sum.inl (t + 1)) ^ 2 + (z - z') (Sum.inr (t + 1)) ^ 2 +
+          (z - z') (Sum.inr t) ^ 2) := by
+      intro t
+      simp only [lp.coeFn_sub, Pi.sub_apply, scaledRate]
+      exact srate_sub_sq hβ hϑ rn z z' t
+    have hsum : Summable fun t =>
+        (scaledRate (σ := σ) hβ hβ1 hϑ hrn z - scaledRate (σ := σ) hβ hβ1 hϑ hrn z') t ^ 2 :=
+      Summable.of_nonneg_of_le (fun t => sq_nonneg _) hpt (h3s.mul_left C)
+    calc ∑' t, (scaledRate (σ := σ) hβ hβ1 hϑ hrn z - scaledRate (σ := σ) hβ hβ1 hϑ hrn z') t ^ 2
+        ≤ ∑' t, C * ((z - z') (Sum.inl (t + 1)) ^ 2 + (z - z') (Sum.inr (t + 1)) ^ 2 +
+          (z - z') (Sum.inr t) ^ 2) := hsum.tsum_le_tsum hpt (h3s.mul_left C)
+      _ ≤ C * (2 * ‖z - z'‖ ^ 2) := by rw [tsum_mul_left]; exact mul_le_mul_of_nonneg_left h3 hC0
+      _ = 2 * C * ‖z - z'‖ ^ 2 := by ring
+  have h6 : 6 * (1 / β + σ ^ 2 / (β * ϑ) + σ ^ 2 / ϑ) = 2 * C := by rw [hC]; ring
+  rw [h6]
+  calc ‖scaledRate (σ := σ) hβ hβ1 hϑ hrn z - scaledRate (σ := σ) hβ hβ1 hϑ hrn z'‖
+      = Real.sqrt (‖scaledRate (σ := σ) hβ hβ1 hϑ hrn z -
+          scaledRate (σ := σ) hβ hβ1 hϑ hrn z'‖ ^ 2) :=
+        (Real.sqrt_sq (norm_nonneg _)).symm
+    _ ≤ Real.sqrt (2 * C * ‖z - z'‖ ^ 2) := Real.sqrt_le_sqrt hsq
+    _ = Real.sqrt (2 * C) * ‖z - z'‖ := by
+        rw [Real.sqrt_mul (by positivity), Real.sqrt_sq (norm_nonneg _)]
+
+/-- Woodford (2003), (4.19), p. 428: `Ê[i²] = (1 − β)‖√βᵗ i‖²` for a coded path. -/
+theorem mom2_code {β ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) (z : PathSpace) :
+    mom2 β σ rn (decPol β ϑ z) = (1 - β) * ‖scaledRate (σ := σ) hβ hβ1 hϑ hrn z‖ ^ 2 := by
+  rw [seq_norm_sq]
+  unfold mom2
+  congr 1
+  refine tsum_congr fun t => ?_
+  simp only [scaledRate, srate]
+  rw [mul_pow, sqrt_pow_sq hβ.le]
+
+/-- Woodford (2003), (4.18): the weights `√βᵗ`, an element of `ℓ²(ℕ)`. -/
+noncomputable def sqrtWeights {β : ℝ} (hβ : 0 < β) (hβ1 : β < 1) : Seq2 :=
+  ⟨fun t => Real.sqrt β ^ t, memℓp_of_sq (by
+    simp only [sqrt_pow_sq hβ.le]; exact summable_geometric_of_lt_one hβ.le hβ1)⟩
+
+/-- Woodford (2003), (4.18), p. 428: `Ê[i] = (1 − β)⟪√βᵗ, √βᵗ i⟫` for a coded path. -/
+theorem mom1_code {β ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) (z : PathSpace) :
+    mom1 β σ rn (decPol β ϑ z) =
+      (1 - β) * inner ℝ (sqrtWeights hβ hβ1) (scaledRate (σ := σ) hβ hβ1 hϑ hrn z) := by
+  rw [lp.inner_eq_tsum]
+  unfold mom1
+  congr 1
+  refine tsum_congr fun t => ?_
+  simp only [scaledRate, srate, sqrtWeights, Real.inner_apply]
+  rw [← mul_assoc, ← mul_pow, Real.mul_self_sqrt hβ.le]
+
+/-- Woodford (2003), (4.18)–(4.19): both moments are continuous functions of the code. -/
+theorem moms_continuous {β ϑ σ : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) :
+    Continuous (fun z : PathSpace => mom1 β σ rn (decPol β ϑ z)) ∧
+      Continuous (fun z : PathSpace => mom2 β σ rn (decPol β ϑ z)) := by
+  have hV := (scaledRate_lipschitz (σ := σ) hβ hβ1 hϑ hrn).continuous
+  refine ⟨?_, ?_⟩
+  · simp only [mom1_code hβ hβ1 hϑ hrn]
+    exact continuous_const.mul (continuous_const.inner hV)
+  · simp only [mom2_code hβ hβ1 hϑ hrn]
+    exact continuous_const.mul (hV.norm.pow 2)
+
+/-! ## The feasible codes -/
+
+/-- Woodford (2003), (4.18)–(4.19), p. 428: the codes of policies satisfying the structural
+equations and Woodford's moment constraints. -/
+def Wset (β κ ϑ σ K : ℝ) (rn : ℕ → ℝ) : Set PathSpace :=
+  {z | (∀ t, NKPC β κ (decX β ϑ z) (decP β z) t) ∧ 0 ≤ mom1 β σ rn (decPol β ϑ z) ∧
+    mom2 β σ rn (decPol β ϑ z) ≤ K * mom1 β σ rn (decPol β ϑ z) ^ 2}
+
+/-- Galí (2015), p. 148: a decoded path with the Phillips curve is in the structural set. -/
+theorem decPol_mem {β κ ϑ : ℝ} (hβ : 0 < β) (hϑ : 0 < ϑ) (z : PathSpace)
+    (h : ∀ t, NKPC β κ (decX β ϑ z) (decP β z) t) : decPol β ϑ z ∈ Cset β κ ϑ :=
+  ⟨rfl, h, (loss_dec hβ hϑ z).1⟩
+
+/-- Woodford (2003), (4.18)–(4.19): the feasible codes are closed. -/
+theorem wset_closed {β κ ϑ σ K : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ) {rn : ℕ → ℝ}
+    (hrn : ∃ M, ∀ t, |rn t| ≤ M) : IsClosed (Wset β κ ϑ σ K rn) := by
+  obtain ⟨h1, h2⟩ := moms_continuous (σ := σ) hβ hβ1 hϑ hrn
+  have hP : ∀ t, Continuous fun z : PathSpace => decP β z t := fun t => by
+    simp only [decP]; exact (coord_continuous _).div_const _
+  have hX : ∀ t, Continuous fun z : PathSpace => decX β ϑ z t := fun t => by
+    simp only [decX]; exact (coord_continuous _).div_const _
+  have e : Wset β κ ϑ σ K rn = (⋂ t, {z : PathSpace |
+      decP β z t = β * decP β z (t + 1) + κ * decX β ϑ z t}) ∩
+      ({z | 0 ≤ mom1 β σ rn (decPol β ϑ z)} ∩
+        {z | mom2 β σ rn (decPol β ϑ z) ≤ K * mom1 β σ rn (decPol β ϑ z) ^ 2}) := by
+    ext z
+    simp only [Wset, NKPC, Set.mem_ofPred_eq, Set.mem_iInter, Set.mem_inter_iff]
+  rw [e]
+  exact (isClosed_iInter fun t => isClosed_eq (hP t)
+    (((hP _).const_mul β).add ((hX t).const_mul κ))).inter
+    ((isClosed_le continuous_const h1).inter (isClosed_le h2 (continuous_const.mul (h1.pow 2))))
+
+/-- Galí (2015), p. 149: decoding commutes with convex combinations. -/
+theorem decPol_comb {β ϑ a b : ℝ} (hab : a + b = 1) (z w : PathSpace) :
+    decPol β ϑ ⇑(a • z + b • w) = a • decPol β ϑ z + b • decPol β ϑ w := by
+  refine Prod.ext ?_ (Prod.ext ?_ ?_)
+  · funext t
+    simp only [decPol, decX, lp.coeFn_add, lp.coeFn_smul, Pi.add_apply, Pi.smul_apply,
+      smul_eq_mul, Prod.fst_add, Prod.smul_fst]
+    ring
+  · funext t
+    simp only [decPol, decP, lp.coeFn_add, lp.coeFn_smul, Pi.add_apply, Pi.smul_apply,
+      smul_eq_mul, Prod.snd_add, Prod.smul_snd, Prod.fst_add, Prod.smul_fst]
+    ring
+  · simp only [decPol, Prod.snd_add, Prod.smul_snd, smul_eq_mul, mul_one, hab]
+
+/-- Woodford (2003), (4.18)–(4.19): the feasible codes are convex (the second-order cone
+`soc_comb`). -/
+theorem wset_convex {β κ ϑ σ K : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ)
+    {rn : ℕ → ℝ} (hrn : ∃ M, ∀ t, |rn t| ≤ M) : Convex ℝ (Wset β κ ϑ σ K rn) := by
+  intro z hz w hw a b ha hb hab
+  have hzC := decPol_mem (κ := κ) hβ hϑ z hz.1
+  have hwC := decPol_mem (κ := κ) hβ hϑ w hw.1
+  have hcomb := decPol_comb (β := β) (ϑ := ϑ) hab z w
+  have hmemC : a • decPol β ϑ z + b • decPol β ϑ w ∈ Cset β κ ϑ :=
+    cset_convex hβ.le hϑ.le hzC hwC ha hb hab
+  have hm1 := mom1_comb (σ := σ) hβ hβ1 hϑ hrn hzC hwC a b
+  refine ⟨?_, ?_, ?_⟩
+  · intro t
+    have := hmemC.2.1 t
+    rw [← hcomb] at this
+    exact this
+  · rw [hcomb, hm1]
+    exact add_nonneg (mul_nonneg ha hz.2.1) (mul_nonneg hb hw.2.1)
+  · rw [hcomb, hm1]
+    have hβ1' : 0 < 1 - β := by linarith
+    have hu := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hzC
+    have hv := summable_rate_sq (σ := σ) hβ hβ1 hϑ hrn hwC
+    have hA : ∑' t, β ^ t * rateLin σ rn (decPol β ϑ z) t ^ 2 ≤
+        K / (1 - β) * mom1 β σ rn (decPol β ϑ z) ^ 2 := by
+      have := hz.2.2
+      unfold mom2 at this
+      rw [div_mul_eq_mul_div, le_div_iff₀ hβ1']
+      linarith
+    have hB : ∑' t, β ^ t * rateLin σ rn (decPol β ϑ w) t ^ 2 ≤
+        K / (1 - β) * mom1 β σ rn (decPol β ϑ w) ^ 2 := by
+      have := hw.2.2
+      unfold mom2 at this
+      rw [div_mul_eq_mul_div, le_div_iff₀ hβ1']
+      linarith
+    have hS := soc_comb hβ hz.2.1 hw.2.1 ha hb hu hv hA hB
+    have e : ∀ t, rateLin σ rn (a • decPol β ϑ z + b • decPol β ϑ w) t =
+        a * rateLin σ rn (decPol β ϑ z) t + b * rateLin σ rn (decPol β ϑ w) t := fun t => by
+      simp only [map_add, map_smul, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    unfold mom2
+    simp only [e]
+    have := mul_le_mul_of_nonneg_left hS hβ1'.le
+    rw [show (1 - β) * (K / (1 - β) * (a * mom1 β σ rn (decPol β ϑ z) +
+      b * mom1 β σ rn (decPol β ϑ w)) ^ 2) = K * (a * mom1 β σ rn (decPol β ϑ z) +
+      b * mom1 β σ rn (decPol β ϑ w)) ^ 2 by field_simp] at this
+    exact this
+
+/-! ## Existence -/
+
+/-- Woodford (2003), Proposition 6.9, p. 428, in the common model: **the moment-constrained
+optimum exists** whenever some policy of the structural set satisfies Woodford's constraints
+(`0 < β < 1`, `ϑ > 0`, bounded natural rate). -/
+theorem momOpt_exists {β κ ϑ σ K : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ)
+    {rn : ℕ → ℝ} (hrn : ∃ M, ∀ t, |rn t| ≤ M)
+    (hne : ∃ q, Feasible (Cset β κ ϑ) (mom1 β σ rn) (mom2 β σ rn) K q) :
+    ∃ w, IsConstrOpt (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ rn) (mom2 β σ rn) K w := by
+  -- the code of a feasible policy is a feasible code
+  have hcode : ∀ q, Feasible (Cset β κ ϑ) (mom1 β σ rn) (mom2 β σ rn) K q →
+      ∃ zq : PathSpace, zq ∈ Wset β κ ϑ σ K rn ∧ decPol β ϑ zq = q ∧ ‖zq‖ ^ 2 = Lfun β ϑ q := by
+    intro q ⟨⟨hc, hN, hS⟩, h1, h2⟩
+    refine ⟨⟨enc β ϑ q.1 q.2.1, memℓp_enc hβ hϑ hS⟩, ?_⟩
+    have hdec : decPol β ϑ (enc β ϑ q.1 q.2.1) = q := by
+      refine Prod.ext (decX_enc hβ hϑ _ _) (Prod.ext (decP_enc hβ ϑ _ _) hc.symm)
+    have hdec' : decPol β ϑ ⇑(⟨enc β ϑ q.1 q.2.1, memℓp_enc hβ hϑ hS⟩ : PathSpace) = q := hdec
+    refine ⟨⟨?_, ?_, ?_⟩, hdec', ?_⟩
+    · intro t
+      change NKPC β κ (decX β ϑ (enc β ϑ q.1 q.2.1)) (decP β (enc β ϑ q.1 q.2.1)) t
+      rw [decX_enc hβ hϑ, decP_enc hβ]; exact hN t
+    · rw [hdec']; exact h1
+    · rw [hdec']; exact h2
+    · have := (loss_dec hβ hϑ ⟨enc β ϑ q.1 q.2.1, memℓp_enc hβ hϑ hS⟩).2
+      rw [← this]
+      change loss β ϑ (decX β ϑ (enc β ϑ q.1 q.2.1)) (decP β (enc β ϑ q.1 q.2.1)) = Lfun β ϑ q
+      rw [decX_enc hβ hϑ, decP_enc hβ]
+      rfl
+  obtain ⟨q0, hq0⟩ := hne
+  obtain ⟨z0, hz0, -, -⟩ := hcode q0 hq0
+  obtain ⟨v, hvK, hv⟩ := exists_norm_eq_iInf_of_complete_convex ⟨z0, hz0⟩
+    (wset_closed (κ := κ) (σ := σ) (K := K) hβ hβ1 hϑ hrn).isComplete
+    (wset_convex (κ := κ) hβ hβ1 hϑ hrn) 0
+  refine ⟨decPol β ϑ v, ⟨decPol_mem hβ hϑ v hvK.1, hvK.2.1, hvK.2.2⟩, fun q hq => ?_⟩
+  obtain ⟨zq, hzq, -, hLq⟩ := hcode q hq
+  have hle : ‖v‖ ≤ ‖zq‖ := by
+    have h1 : ‖(0 : PathSpace) - v‖ ≤ ‖(0 : PathSpace) - zq‖ := by
+      rw [hv]
+      exact ciInf_le ⟨0, by rintro _ ⟨u, rfl⟩; exact norm_nonneg _⟩
+        (⟨zq, hzq⟩ : Wset β κ ϑ σ K rn)
+    simpa only [zero_sub, norm_neg] using h1
+  have hLv : Lfun β ϑ (decPol β ϑ v) = ‖v‖ ^ 2 := (loss_dec hβ hϑ v).2
+  rw [hLv, ← hLq]
+  exact pow_le_pow_left₀ (norm_nonneg _) hle 2
+
+/-- Woodford (2003), Proposition 6.9 in the common model: the moment-constrained optimum exists
+**iff** the constraints can be met by some policy of the structural set, and it is then unique
+(`TidyR6CommonModel.momOpt_unique`). -/
+theorem momOpt_exists_iff {β κ ϑ σ K : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ)
+    {rn : ℕ → ℝ} (hrn : ∃ M, ∀ t, |rn t| ≤ M) :
+    (∃! w, IsConstrOpt (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ rn) (mom2 β σ rn) K w) ↔
+      ∃ q, Feasible (Cset β κ ϑ) (mom1 β σ rn) (mom2 β σ rn) K q := by
+  constructor
+  · rintro ⟨w, hw, -⟩
+    exact ⟨w, hw.1⟩
+  · intro hne
+    obtain ⟨w, hw⟩ := momOpt_exists hβ hβ1 hϑ hrn hne
+    exact ⟨w, hw, fun w' hw' => momOpt_unique hβ hβ1 hϑ hrn hw' hw⟩
+
+/-- Cochrane (2023), §20.2.2 (the trap `rⁿ = natRate ρ η 0`), with Woodford's constraint: if
+`ρ ≥ 0` and `Kβ ≥ 1`, the moment-constrained optimum of the common model exists and is unique
+(the policy with rate `0` at date 0 and `ρ` afterwards is feasible). At Woodford's calibration
+`β = 0.99`, `K = 1 + 2.26⁻²` the condition `Kβ ≥ 1` holds (`woodford_calibration_ok`). -/
+theorem momOpt_existsUnique_trap {β κ ϑ σ K ρ η : ℝ} (hβ : 0 < β) (hβ1 : β < 1) (hϑ : 0 < ϑ)
+    (hσ : 0 < σ) (hρ : 0 ≤ ρ) (hKβ : 1 ≤ K * β) :
+    ∃! w, IsConstrOpt (Cset β κ ϑ) (Lfun β ϑ) (mom1 β σ (natRate ρ η 0))
+      (mom2 β σ (natRate ρ η 0)) K w := by
+  have hrn : ∃ M, ∀ t, |natRate ρ η 0 t| ≤ M := ⟨|η| + |ρ|, fun t => by
+    unfold natRate
+    split_ifs
+    · rw [abs_neg]; linarith [abs_nonneg ρ]
+    · linarith [abs_nonneg η]⟩
+  refine (momOpt_exists_iff hβ hβ1 hϑ hrn).mpr ⟨spikePol κ σ η 0, ?_⟩
+  obtain ⟨hC, -⟩ := spikePol_spec (β := β) (κ := κ) (ϑ := ϑ) (ρ := ρ) (η := η) (c := 0) hσ.ne'
+  obtain ⟨m1, m2⟩ := spike_moments (κ := κ) (ρ := ρ) (η := η) (c := 0) hβ.le hβ1 hσ.ne'
+  refine ⟨hC, ?_, ?_⟩
+  · rw [m1]; positivity
+  · rw [m1, m2]
+    have : β * ρ ^ 2 ≤ K * β * (β * ρ ^ 2) := by
+      have h0 : 0 ≤ β * ρ ^ 2 := by positivity
+      nlinarith
+    nlinarith
+
+/-- Woodford (2003), Table 6.1, p. 434: at `β = 0.99` and `K = 1 + 2.26⁻²`, `Kβ ≥ 1`. -/
+theorem woodford_calibration_ok : (1 : ℝ) ≤ bigK 2.26 * (99 / 100) := by
+  unfold bigK; norm_num
+
+end Cochrane.ZeroBound.TidyR6CommonModelExist
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The nonlinear helicopter `P = B/S` and the linearised valuation equation
+
+Cochrane (2023), Chapter 21, pp. 487–491 (the fiscal helicopter, partial backing and "bad fiscal
+news can only affect unexpected inflation"), with the frictionless valuation equation of §2
+(`B_{t}/P_{t+1} = E_{t+1}∑βʲs_{t+1+j}`, eq. (2.4)–(2.5), pp. 22–23) and its linearisation
+`π_{t+1} − E_tπ_{t+1} = −ε_{t+1}` ((3.17)/(5.13); `Covid.fiscal_news_only_unexpected`).
+
+`Covid` treats the helicopter in levels, `P = B/S` (`Covid.priceLevel`), and `Links` only the
+frictionless limit of the sticky-price impact coefficient (`Links.fiscal_impact_frictionless`).
+Here the nonlinear valuation equation itself is linearised, for an arbitrary `ExpectationSystem`.
+
+## Main results
+
+* `NonlinValuation`: `B_t/P_{t+1} = S_{t+1}` with `S_{t+1} = ∑βʲE_{t+1}s_{t+1+j}` a genuine sum.
+* **Exact relation** (`unexpected_log_inflation`): unexpected log inflation is minus the news in
+  the log present value of surpluses, `π_{t+1} − E_tπ_{t+1} = −(log S_{t+1} − E_t log S_{t+1})`,
+  with no approximation.
+* The linearised news `ε_{t+1} = (S_{t+1} − E_tS_{t+1})/E_tS_{t+1}` (`relNews`) is a news
+  shock, `E_tε_{t+1} = 0` (`E_relNews`), and **the linearisation with explicit remainder**
+  (`linearisation_remainder`): `π_{t+1} − E_tπ_{t+1} = −ε_{t+1} + R_{t+1}`, where
+  `R = q(ε) − E_tq(ε)`, `q(x) = x − log(1 + x)`, and `0 ≤ q(x) ≤ x²/(1 + x)` (`q_bounds`), so
+  `−E_t[ε²/(1 + ε)] ≤ R ≤ ε²/(1 + ε)` (`remainder_bounds`). The linear term is the exact
+  derivative (`hasDerivAt_neg_log`), the remainder is second order (`q_isBigO`), and the linear
+  valuation equation holds exactly for the corrected news `ε − R` (`linear_valuation_exact`).
+* The hypotheses (pull-out, functions of known variables are known) hold under perfect foresight
+  and on every finite event tree (`perfectForesight_knownFns`, `finiteTree_knownFns`); under
+  perfect foresight the remainder vanishes (`perfectForesight_remainder_zero`).
+* The helicopter (pp. 488, 490): debt `(1 + Δ)B`, surpluses `(1 + fΔ)S` are fiscal news
+  `ε_h = −(1 − f)Δ/(1 + Δ)` per unit of debt (`helicopter_news`); the price ratio is exactly
+  `1/(1 + ε_h)` (`priceRatio_eq_news`), its log is `−log(1 + ε_h)` (`log_priceRatio`), the
+  linearised valuation equation predicts `−ε_h` with remainder `q(ε_h)` (`helicopter_remainder`),
+  and to first order in `Δ` both agree with `(1 − f)Δ` (`hasDerivAt_neg_news`). At the book's
+  numbers: linear `1/13`, exact log `log(13/12)`, level `1/12` (`helicopter_book_numbers`).
+-/
+
+namespace Cochrane.ZeroBound.TidyR6CovidValuation
+
+open Filter Topology Asymptotics
+open Cochrane.ZeroBound
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ## The nonlinear valuation equation -/
+
+/-- Cochrane (2023), eqs. (2.4)–(2.5), pp. 22–23, as used on p. 487: the frictionless valuation
+equation for one-period nominal debt `B_t` maturing at `t + 1`, `B_t/P_{t+1} = S_{t+1}`, where
+`S_{t+1} = ∑_{j ≥ 0} βʲ E_{t+1}s_{t+1+j}` is the present value of real surpluses (a genuine
+`HasSum`). -/
+def NonlinValuation (β : ℝ) (B P S s : ℕ → Ω → ℝ) : Prop :=
+  (∀ t ω, HasSum (fun j => β ^ j * 𝔼.E (t + 1) (s (t + 1 + j)) ω) (S (t + 1) ω)) ∧
+    ∀ t ω, B t ω / P (t + 1) ω = S (t + 1) ω
+
+/-- Cochrane (2023), p. 487: log inflation `π_{t+1} = log P_{t+1} − log P_t`. -/
+noncomputable def logInfl (P : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => Real.log (P (t + 1) ω) - Real.log (P t ω)
+
+/-- Cochrane (2023), p. 487: the valuation equation in logs, `log P_{t+1} = log B_t − log S_{t+1}`
+(positive debt and surpluses). -/
+theorem log_price_eq {β : ℝ} {B P S s : ℕ → Ω → ℝ} (h : NonlinValuation 𝔼 β B P S s)
+    (hB : ∀ t ω, 0 < B t ω) (hP : ∀ t ω, 0 < P t ω) (t : ℕ) (ω : Ω) :
+    Real.log (P (t + 1) ω) = Real.log (B t ω) - Real.log (S (t + 1) ω) := by
+  rw [← h.2 t ω, Real.log_div (hB t ω).ne' (hP (t + 1) ω).ne']
+  ring
+
+/-- Cochrane (2023), p. 491 ("bad fiscal news can only affect unexpected inflation"), exact
+nonlinear form: if `log B_t` and `log P_t` are known at `t`, unexpected log inflation is minus
+the news in the log present value of surpluses,
+`π_{t+1} − E_tπ_{t+1} = −(log S_{t+1} − E_t log S_{t+1})`, for any `ExpectationSystem`. -/
+theorem unexpected_log_inflation {β : ℝ} {B P S s : ℕ → Ω → ℝ}
+    (h : NonlinValuation 𝔼 β B P S s) (hB : ∀ t ω, 0 < B t ω) (hP : ∀ t ω, 0 < P t ω) (t : ℕ)
+    (hBk : 𝔼.E t (fun ω => Real.log (B t ω)) = fun ω => Real.log (B t ω))
+    (hPk : 𝔼.E t (fun ω => Real.log (P t ω)) = fun ω => Real.log (P t ω)) :
+    logInfl P t - 𝔼.E t (logInfl P t) =
+      -((fun ω => Real.log (S (t + 1) ω)) - 𝔼.E t (fun ω => Real.log (S (t + 1) ω))) := by
+  have e : logInfl P t = (fun ω => Real.log (B t ω)) - (fun ω => Real.log (S (t + 1) ω)) -
+      (fun ω => Real.log (P t ω)) := by
+    funext ω
+    simp only [logInfl, Pi.sub_apply, log_price_eq 𝔼 h hB hP t ω]
+  rw [e, map_sub, map_sub, hBk, hPk]
+  abel
+
+/-! ## Linearisation with an explicit remainder -/
+
+/-- Cochrane (2023), p. 491: the property that a function of a variable known at `t` is known
+at `t` (true for every `σ`-algebra; for the abstract `ExpectationSystem` it is an extra
+hypothesis, like `ExpectationSystem.PullOut`). -/
+def KnownFns : Prop :=
+  ∀ t (a : Ω → ℝ) (g : ℝ → ℝ), 𝔼.E t a = a → 𝔼.E t (fun ω => g (a ω)) = fun ω => g (a ω)
+
+/-- Cochrane (2023), p. 491: perfect foresight satisfies `KnownFns`. -/
+theorem perfectForesight_knownFns : KnownFns perfectForesight := fun _ _ _ _ => rfl
+
+/-- Cochrane (2023), p. 491: every finite event tree satisfies `KnownFns` (a variable known at
+`t` is constant on date-`t` cells, so is any function of it). -/
+theorem finiteTree_knownFns {Ω' : Type*} [Fintype Ω']
+    (T : ExpectationsFiniteTree.FiniteTree Ω') : KnownFns T.toExpectationSystem := by
+  intro t a g ha
+  rw [ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E] at ha ⊢
+  funext ω
+  refine T.condE_of_const_on_cell fun ω' h => ?_
+  have : a ω' = a ω := by rw [← ha, T.condE_congr a h]
+  rw [this]
+
+/-- Cochrane (2023), (5.13) and p. 491: the linearised fiscal news, the surprise in the present
+value of surpluses relative to its expected value, `ε_{t+1} = S_{t+1}/E_tS_{t+1} − 1`. -/
+noncomputable def relNews (S : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => S (t + 1) ω / 𝔼.E t (S (t + 1)) ω - 1
+
+/-- Cochrane (2023), p. 491: the linearised news is a news shock, `E_tε_{t+1} = 0` (pull-out of
+the known `1/E_tS_{t+1}`, with `E_tS_{t+1} > 0`). -/
+theorem E_relNews (hPO : 𝔼.PullOut) (hK : KnownFns 𝔼) {S : ℕ → Ω → ℝ} (t : ℕ)
+    (hV : ∀ ω, 0 < 𝔼.E t (S (t + 1)) ω) : 𝔼.E t (relNews 𝔼 S t) = 0 := by
+  set V := 𝔼.E t (S (t + 1))
+  have hVk : 𝔼.E t V = V := 𝔼.E_E_self t _
+  have hinv : 𝔼.E t (fun ω => (V ω)⁻¹) = fun ω => (V ω)⁻¹ := hK t V (fun x => x⁻¹) hVk
+  have e : relNews 𝔼 S t = (fun ω => (V ω)⁻¹) * S (t + 1) - fun _ => 1 := by
+    funext ω
+    simp only [relNews, Pi.mul_apply, Pi.sub_apply, V]
+    ring
+  rw [e, map_sub, hPO t _ _ hinv, 𝔼.const]
+  funext ω
+  simp only [Pi.sub_apply, Pi.mul_apply, Pi.zero_apply]
+  rw [inv_mul_cancel₀ (hV ω).ne', sub_self]
+
+/-- Cochrane (2023), p. 491: the second-order term `q(x) = x − log(1 + x)` of the log
+linearisation. -/
+noncomputable def q (x : ℝ) : ℝ := x - Real.log (1 + x)
+
+/-- Cochrane (2023), p. 491: for `x > −1`, `0 ≤ q(x) ≤ x²/(1 + x)` (from
+`x/(1 + x) ≤ log(1 + x) ≤ x`). -/
+theorem q_bounds {x : ℝ} (hx : -1 < x) : 0 ≤ q x ∧ q x ≤ x ^ 2 / (1 + x) := by
+  have h1 : 0 < 1 + x := by linarith
+  have hu := Real.log_le_sub_one_of_pos h1
+  have hl := Real.one_sub_inv_le_log_of_pos h1
+  unfold q
+  refine ⟨by linarith, ?_⟩
+  have e : x ^ 2 / (1 + x) = x - (1 - (1 + x)⁻¹) := by
+    field_simp
+    ring
+  rw [e]
+  linarith
+
+/-- Cochrane (2023), p. 491: the linear term is the exact derivative of `−log(1 + ε)` at the
+steady state `ε = 0`: `d/dε[−log(1 + ε)] = −1`. -/
+theorem hasDerivAt_neg_log : HasDerivAt (fun ε : ℝ => -Real.log (1 + ε)) (-1) 0 := by
+  have h1 : HasDerivAt (fun ε : ℝ => 1 + ε) 1 0 := by
+    simpa using (hasDerivAt_id' (0 : ℝ)).const_add 1
+  have h3 : HasDerivAt (fun ε : ℝ => -Real.log (1 + ε)) (-(1 / (1 + 0))) 0 :=
+    (h1.log (by norm_num)).neg
+  simpa using h3
+
+/-- Cochrane (2023), p. 491: the remainder is second order, `q(ε) = O(ε²)` as `ε → 0`. -/
+theorem q_isBigO : q =O[𝓝 0] fun x : ℝ => x ^ 2 := by
+  refine Asymptotics.IsBigO.of_bound 2 ?_
+  filter_upwards [Ioo_mem_nhds (show (-1 / 2 : ℝ) < 0 by norm_num)
+    (show (0 : ℝ) < 1 / 2 by norm_num)] with x hx
+  obtain ⟨h0, h1⟩ := q_bounds (show -1 < x by linarith [hx.1])
+  have hpos : 1 / 2 ≤ 1 + x := by linarith [hx.1]
+  rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg h0, abs_of_nonneg (sq_nonneg x)]
+  calc q x ≤ x ^ 2 / (1 + x) := h1
+    _ ≤ x ^ 2 / (1 / 2) := div_le_div_of_nonneg_left (sq_nonneg x) (by norm_num) hpos
+    _ = 2 * x ^ 2 := by ring
+
+/-- Cochrane (2023), p. 491: the remainder of the linearised valuation equation,
+`R_{t+1} = q(ε_{t+1}) − E_tq(ε_{t+1})`. -/
+noncomputable def remainder (S : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  (fun ω => q (relNews 𝔼 S t ω)) - 𝔼.E t (fun ω => q (relNews 𝔼 S t ω))
+
+/-- Cochrane (2023), p. 491 and (5.13): **the linearisation of the nonlinear valuation equation
+with explicit remainder.** Under pull-out and `KnownFns`, with positive debt, prices and present
+values, `log B_t`, `log P_t` known at `t` and `E_tS_{t+1} > 0`:
+`π_{t+1} − E_tπ_{t+1} = −ε_{t+1} + R_{t+1}`. -/
+theorem linearisation_remainder (hPO : 𝔼.PullOut) (hK : KnownFns 𝔼) {β : ℝ}
+    {B P S s : ℕ → Ω → ℝ} (h : NonlinValuation 𝔼 β B P S s) (hB : ∀ t ω, 0 < B t ω)
+    (hP : ∀ t ω, 0 < P t ω) (hS : ∀ t ω, 0 < S t ω) (t : ℕ)
+    (hBk : 𝔼.E t (fun ω => Real.log (B t ω)) = fun ω => Real.log (B t ω))
+    (hPk : 𝔼.E t (fun ω => Real.log (P t ω)) = fun ω => Real.log (P t ω))
+    (hV : ∀ ω, 0 < 𝔼.E t (S (t + 1)) ω) :
+    logInfl P t - 𝔼.E t (logInfl P t) = -relNews 𝔼 S t + remainder 𝔼 S t := by
+  set V := 𝔼.E t (S (t + 1))
+  have hVk : 𝔼.E t V = V := 𝔼.E_E_self t _
+  have hlogV : 𝔼.E t (fun ω => Real.log (V ω)) = fun ω => Real.log (V ω) :=
+    hK t V Real.log hVk
+  have hε := E_relNews 𝔼 hPO hK t hV
+  -- `log S = log V + ε − q(ε)`
+  have hsplit : (fun ω => Real.log (S (t + 1) ω)) = (fun ω => Real.log (V ω)) +
+      relNews 𝔼 S t - fun ω => q (relNews 𝔼 S t ω) := by
+    funext ω
+    have h1 : 1 + relNews 𝔼 S t ω = S (t + 1) ω / V ω := by
+      simp only [relNews, V]; ring
+    simp only [Pi.add_apply, Pi.sub_apply, q, h1]
+    rw [Real.log_div (hS (t + 1) ω).ne' (hV ω).ne']
+    ring
+  rw [unexpected_log_inflation 𝔼 h hB hP t hBk hPk, hsplit, map_sub, map_add, hlogV, hε,
+    remainder]
+  abel
+
+/-- Cochrane (2023), p. 491: explicit bounds on the remainder,
+`−E_t[ε²/(1 + ε)] ≤ R_{t+1} ≤ ε²/(1 + ε)` (here `ε > −1` since `S, E_tS > 0`). -/
+theorem remainder_bounds {S : ℕ → Ω → ℝ} (t : ℕ) (hS : ∀ t ω, 0 < S t ω)
+    (hV : ∀ ω, 0 < 𝔼.E t (S (t + 1)) ω) (ω : Ω) :
+    -𝔼.E t (fun ω => relNews 𝔼 S t ω ^ 2 / (1 + relNews 𝔼 S t ω)) ω ≤ remainder 𝔼 S t ω ∧
+      remainder 𝔼 S t ω ≤ relNews 𝔼 S t ω ^ 2 / (1 + relNews 𝔼 S t ω) := by
+  have hgt : ∀ ω, -1 < relNews 𝔼 S t ω := fun ω => by
+    have : 0 < S (t + 1) ω / 𝔼.E t (S (t + 1)) ω := div_pos (hS _ ω) (hV ω)
+    simp only [relNews]; linarith
+  have hq0 : (0 : Ω → ℝ) ≤ fun ω => q (relNews 𝔼 S t ω) := fun ω => (q_bounds (hgt ω)).1
+  have hq1 : (fun ω => q (relNews 𝔼 S t ω)) ≤
+      fun ω => relNews 𝔼 S t ω ^ 2 / (1 + relNews 𝔼 S t ω) := fun ω => (q_bounds (hgt ω)).2
+  have m0 := 𝔼.mono t hq0 ω
+  have m1 := 𝔼.mono t hq1 ω
+  rw [map_zero] at m0
+  simp only [Pi.zero_apply] at m0
+  simp only [remainder, Pi.sub_apply]
+  constructor
+  · linarith [(q_bounds (hgt ω)).1]
+  · linarith [(q_bounds (hgt ω)).2]
+
+/-- Cochrane (2023), p. 491 and `Covid.fiscal_news_only_unexpected`: the linear valuation
+equation `π_{t+1} − E_tπ_{t+1} = −ε̃_{t+1}` holds exactly for the corrected news
+`ε̃ = ε − R`, which is itself a news shock, `E_tε̃_{t+1} = 0`. -/
+theorem linear_valuation_exact (hPO : 𝔼.PullOut) (hK : KnownFns 𝔼) {β : ℝ}
+    {B P S s : ℕ → Ω → ℝ} (h : NonlinValuation 𝔼 β B P S s) (hB : ∀ t ω, 0 < B t ω)
+    (hP : ∀ t ω, 0 < P t ω) (hS : ∀ t ω, 0 < S t ω) (t : ℕ)
+    (hBk : 𝔼.E t (fun ω => Real.log (B t ω)) = fun ω => Real.log (B t ω))
+    (hPk : 𝔼.E t (fun ω => Real.log (P t ω)) = fun ω => Real.log (P t ω))
+    (hV : ∀ ω, 0 < 𝔼.E t (S (t + 1)) ω) :
+    logInfl P t - 𝔼.E t (logInfl P t) = -(relNews 𝔼 S t - remainder 𝔼 S t) ∧
+      𝔼.E t (relNews 𝔼 S t - remainder 𝔼 S t) = 0 := by
+  refine ⟨by rw [linearisation_remainder 𝔼 hPO hK h hB hP hS t hBk hPk hV]; abel, ?_⟩
+  rw [map_sub, E_relNews 𝔼 hPO hK t hV, remainder, map_sub, 𝔼.E_E_self, sub_self, sub_zero]
+
+/-- Cochrane (2023), p. 491: under perfect foresight there is no news, so the remainder
+vanishes. -/
+theorem perfectForesight_remainder_zero {S : ℕ → Unit → ℝ} (t : ℕ) :
+    remainder perfectForesight S t = 0 := by
+  funext ω
+  simp [remainder, perfectForesight]
+
+/-! ## The helicopter drop (pp. 488, 490) -/
+
+/-- Cochrane (2023), p. 488: the fiscal news of a helicopter with debt `(1 + Δ)B` and surpluses
+`(1 + fΔ)S`, measured as the change in surplus backing per unit of nominal debt,
+`ε_h = (1 + fΔ)/(1 + Δ) − 1`. -/
+noncomputable def heliNews (f Δ : ℝ) : ℝ := (1 + f * Δ) / (1 + Δ) - 1
+
+/-- Cochrane (2023), p. 488: `ε_h = −(1 − f)Δ/(1 + Δ)`. -/
+theorem helicopter_news {f Δ : ℝ} (hΔ : 1 + Δ ≠ 0) : heliNews f Δ = -((1 - f) * Δ / (1 + Δ)) := by
+  unfold heliNews
+  field_simp
+  ring
+
+/-- Cochrane (2023), p. 488: the exact helicopter price ratio is `1/(1 + ε_h)`. -/
+theorem priceRatio_eq_news {f Δ : ℝ} (hΔ : 1 + Δ ≠ 0) :
+    Covid.priceRatio f Δ = 1 / (1 + heliNews f Δ) := by
+  unfold Covid.priceRatio heliNews
+  field_simp
+  ring_nf
+
+/-- Cochrane (2023), p. 488: exact log price change, `log(P′/P) = −log(1 + ε_h)`. -/
+theorem log_priceRatio {f Δ : ℝ} (hΔ : 1 + Δ ≠ 0) :
+    Real.log (Covid.priceRatio f Δ) = -Real.log (1 + heliNews f Δ) := by
+  rw [priceRatio_eq_news hΔ, one_div, Real.log_inv]
+
+/-- Cochrane (2023), p. 488: the linearised valuation equation predicts the log price change
+`−ε_h`; the exact log change exceeds it by `q(ε_h) ∈ [0, ε_h²/(1 + ε_h)]`. -/
+theorem helicopter_remainder {f Δ : ℝ} (hΔ : 0 < 1 + Δ) (hf : 0 < 1 + f * Δ) :
+    Real.log (Covid.priceRatio f Δ) = -heliNews f Δ + q (heliNews f Δ) ∧
+      0 ≤ q (heliNews f Δ) ∧
+      q (heliNews f Δ) ≤ heliNews f Δ ^ 2 / (1 + heliNews f Δ) := by
+  have hgt : -1 < heliNews f Δ := by
+    unfold heliNews
+    have : 0 < (1 + f * Δ) / (1 + Δ) := div_pos hf hΔ
+    linarith
+  refine ⟨?_, (q_bounds hgt).1, (q_bounds hgt).2⟩
+  rw [log_priceRatio hΔ.ne', q]
+  ring
+
+/-- Cochrane (2023), p. 488: to first order in `Δ`, the linearised prediction `−ε_h` agrees with
+the book's `(1 − f)Δ` (`Covid.hasDerivAt_priceRatio`): `d(−ε_h)/dΔ = 1 − f` at `Δ = 0`. -/
+theorem hasDerivAt_neg_news (f : ℝ) : HasDerivAt (fun Δ => -heliNews f Δ) (1 - f) 0 := by
+  have h1 : HasDerivAt (fun Δ : ℝ => 1 + f * Δ) f 0 := by
+    simpa using ((hasDerivAt_id' (0 : ℝ)).const_mul f).const_add 1
+  have h2 : HasDerivAt (fun Δ : ℝ => 1 + Δ) 1 0 := by
+    simpa using (hasDerivAt_id' (0 : ℝ)).const_add 1
+  have h := ((h1.div h2 (by norm_num)).sub_const 1).neg
+  unfold heliNews
+  convert h using 1
+  simp
+
+/-- Cochrane (2023), p. 488 (survey error E10): at two-thirds backing of 30% new debt the news
+is `ε_h = −1/13`; the linearised valuation equation gives `1/13` (7.7%), the exact price ratio
+is `13/12` (8.33% in levels, `log(13/12)` in logs), and the first-order term in `Δ` is `1/10`. -/
+theorem helicopter_book_numbers :
+    heliNews (2 / 3) (3 / 10) = -1 / 13 ∧ Covid.priceRatio (2 / 3) (3 / 10) = 13 / 12 ∧
+      Real.log (Covid.priceRatio (2 / 3) (3 / 10)) = Real.log (13 / 12) ∧
+      -heliNews (2 / 3) (3 / 10) < Real.log (13 / 12) ∧
+      Real.log (13 / 12) < 13 / 12 - 1 ∧ (13 / 12 : ℝ) - 1 < (1 - 2 / 3) * (3 / 10) := by
+  have hn : heliNews (2 / 3) (3 / 10) = -1 / 13 := by unfold heliNews; norm_num
+  have hp : Covid.priceRatio (2 / 3) (3 / 10) = 13 / 12 := by
+    unfold Covid.priceRatio; norm_num
+  have hr := helicopter_remainder (f := 2 / 3) (Δ := 3 / 10) (by norm_num) (by norm_num)
+  have hq : 0 < q (-1 / 13) := by
+    unfold q
+    have := Real.log_lt_sub_one_of_pos (show (0 : ℝ) < 1 + -1 / 13 by norm_num)
+      (by norm_num)
+    linarith
+  have hlog : Real.log (13 / 12 : ℝ) < 13 / 12 - 1 :=
+    Real.log_lt_sub_one_of_pos (by norm_num) (by norm_num)
+  refine ⟨hn, hp, by rw [hp], ?_, hlog, by norm_num⟩
+  rw [← hp, hr.1, hn]
+  linarith
+
+end Cochrane.ZeroBound.TidyR6CovidValuation
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Measure-theoretic conditional expectations
+
+Restated from the Cochrane `ObservationalEquivalence` project (module of the same name
+without the `TidyR6` prefix), with only the namespace changed, for the stochastic versions of
+the orbit results of §20.2.1 (`TidyR6OrbitStochastic`).
+
+Cochrane (2023), Ch. 2, §2.3–2.4, pp. 29–30 (expectations `E_t`, the news operator
+`ΔE_{t+1} = E_{t+1} − E_t` of eq. (2.13), forward-looking present values) and §2.7, p. 42 (AR(1)
+surpluses). The core `ExpectationSystem` defines `E_t` on **all** functions `Ω → ℝ` with exact
+equalities; on a countable `Ω` this forces finitely supported forecasts (proved in the Woodford
+Chapter 2 project, SGUStochasticMeasure.expectationSystem_finite_support), so no genuine
+infinite-horizon model with nondegenerate shocks fits it. This module is an **additive bridge**:
+a probability space with a filtration and Mathlib's `condExp`, with every property stated in its
+almost-everywhere form. Existing core theorems are untouched.
+
+## How to use (API)
+
+* `MeasExpectationSystem Ω` (fields `P : ProbabilityMeasure Ω`, `𝓕 : Filtration ℕ _`);
+  `S.μ` the measure, `S.E t x = S.μ[x | S.𝓕 t]`.
+* Carriers: plain functions `Ω → ℝ` and processes `ℕ → Ω → ℝ`; `S.BddRV x` (a.e. measurable,
+  essentially bounded; closed under `add`, `sub`, `smul`, `mul`, `sq`, `E`; `.integrable`),
+  `S.BddProc x` (uniform essential bound), Mathlib's `StronglyAdapted S.𝓕 x` (adapted).
+* Axioms (a.e.): `E_add`, `E_sub`, `E_smul`, `E_const` (exact), `E_zero`, `E_mono`, `E_tower`,
+  `E_known` (exact), `E_E_self`, `E_of_stronglyMeasurable` (exact), `E_of_aestronglyMeasurable`,
+  `E_congr`, `E_pullOut`, `abs_E_le`, `integral_E`, `stronglyMeasurable_E`, `integrable_E`.
+* News: `innov t x = ΔE_{t+1} x`, `E_innov` (martingale difference), `E_mul_innov`,
+  `E_sub_E_eq_sum_innov`, `eq_E_add_innov`.
+* Series: `E_hasSum` (`E_t` through a dominated `tsum`).
+* Forward equation `z_t = a E_t z_{t+1} + u_t` (`Solves`): `forwardSol` (with `forwardSol_hasSum`:
+  it is `∑ aᵏ E_t u_{t+k}`), `forwardSol_solves`, `forward_unique`, `existsUnique_forward`;
+  for `|a| ≥ 1`: `sunspot`, `sunspot_solves`, `not_unique_of_one_le`, `sunspot_not_predictable`;
+  criteria `unique_iff`, `existsUnique_iff`.
+* AR(1) with martingale-difference shocks: `ar1_E`, `ar1_E_sq_dev`, `ar1_condVar`,
+  `ar1_condVar_closed`.
+* Bridges: `toExpectationSystem` (finite discrete full-support `Ω` → core system, with
+  `toExpectationSystem_E`, `toExpectationSystem_pullOut`) and `TreeBridge.treeSystem` (core
+  `FiniteTree` → measure system, `TreeBridge.treeSystem_E`: `E_t` equals the cell average at every
+  state, `TreeBridge.treeSystem_toExpectationSystem_E`: round trip).
+
+The genuine infinite-horizon instance (i.i.d. shocks on `ℕ → ℝ`) is `TidyR6ExpectationsMeasureIID`.
+To copy into another project: rename the namespace prefix and the `import` of
+`ExpectationsFiniteTree`; the module uses the core only through `ExpectationSystem`,
+`ExpectationSystem.PullOut`, `ExpectationsFiniteTree.FiniteTree` and its `condE`,
+`condE_of_trivial`, `condE_tower`, `condE_congr`, `condE_of_const_on_cell`,
+`toExpectationSystem_E`, `finiteTree_pullOut`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR6ExpectationsMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+
+variable (Ω : Type*) [mΩ : MeasurableSpace Ω]
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30 (the conditional expectations `E_t`): a probability space
+`(Ω, P)` with a filtration `𝓕 : ℕ → MeasurableSpace Ω`; `E_t x := P[x | 𝓕 t]`. -/
+structure MeasExpectationSystem where
+  /-- The probability measure. -/
+  P : ProbabilityMeasure Ω
+  /-- The information available at each date. -/
+  𝓕 : Filtration ℕ mΩ
+
+namespace MeasExpectationSystem
+
+variable {Ω} (S : MeasExpectationSystem Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the probability measure as a measure. -/
+abbrev μ : Measure Ω := S.P
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x = μ[x | 𝓕 t]`, Mathlib's conditional expectation. -/
+noncomputable abbrev E (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.μ[x | S.𝓕 t]
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable (a.e. strongly measurable and
+essentially bounded). -/
+def BddRV (x : Ω → ℝ) : Prop := AEStronglyMeasurable x S.μ ∧ ∃ M, ∀ᵐ ω ∂S.μ, |x ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a uniformly (essentially) bounded process. -/
+def BddProc (x : ℕ → Ω → ℝ) : Prop := ∃ M, ∀ t, ∀ᵐ ω ∂S.μ, |x t ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable is integrable. -/
+theorem BddRV.integrable {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) : Integrable x S.μ := by
+  obtain ⟨hm, M, hM⟩ := hx
+  exact Integrable.of_bound hm M (hM.mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is additive (a.e.). -/
+theorem E_add {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x + y) =ᵐ[S.μ] S.E t x + S.E t y := condExp_add hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` commutes with differences (a.e.). -/
+theorem E_sub {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x - y) =ᵐ[S.μ] S.E t x - S.E t y := condExp_sub hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is homogeneous (a.e.). -/
+theorem E_smul (c : ℝ) (x : Ω → ℝ) (t : ℕ) : S.E t (c • x) =ᵐ[S.μ] c • S.E t x :=
+  condExp_smul c x _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: constants are known (exactly). -/
+theorem E_const (t : ℕ) (c : ℝ) : S.E t (fun _ => c) = fun _ => c :=
+  condExp_const (S.𝓕.le t) c
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t 0 = 0`. -/
+theorem E_zero (t : ℕ) : S.E t 0 = 0 := condExp_zero
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is monotone (a.e.). -/
+theorem E_mono {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ)
+    (hxy : x ≤ᵐ[S.μ] y) (t : ℕ) : S.E t x ≤ᵐ[S.μ] S.E t y := condExp_mono hx hy hxy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the law of iterated expectations `E_s E_t = E_s`, `s ≤ t`
+(a.e.). -/
+theorem E_tower {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.E t x) =ᵐ[S.μ] S.E s x :=
+  condExp_condExp_of_le (S.𝓕.mono hst) (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is `𝓕 t`-strongly measurable. -/
+theorem stronglyMeasurable_E (t : ℕ) (x : Ω → ℝ) : StronglyMeasurable[S.𝓕 t] (S.E t x) :=
+  stronglyMeasurable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is integrable. -/
+theorem integrable_E (t : ℕ) (x : Ω → ℝ) : Integrable (S.E t x) S.μ := integrable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is known at `t` is its own forecast (exactly). -/
+theorem E_of_stronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    (hi : Integrable x S.μ) : S.E t x = x :=
+  condExp_of_stronglyMeasurable (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is a.e. known at `t` is a.e. its own forecast. -/
+theorem E_of_aestronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : AEStronglyMeasurable[S.𝓕 t] x S.μ)
+    (hi : Integrable x S.μ) : S.E t x =ᵐ[S.μ] x :=
+  condExp_of_aestronglyMeasurable' (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: earlier forecasts are known later, `E_t E_s = E_s` for
+`s ≤ t` (exactly). -/
+theorem E_known {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E t (S.E s x) = S.E s x :=
+  S.E_of_stronglyMeasurable ((S.stronglyMeasurable_E s x).mono (S.𝓕.mono hst))
+    (S.integrable_E s x)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is idempotent (exactly). -/
+theorem E_E_self (t : ℕ) (x : Ω → ℝ) : S.E t (S.E t x) = S.E t x := S.E_known le_rfl x
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` respects a.e. equality. -/
+theorem E_congr {x y : Ω → ℝ} (h : x =ᵐ[S.μ] y) (t : ℕ) : S.E t x =ᵐ[S.μ] S.E t y :=
+  condExp_congr_ae h
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the unconditional mean of a forecast is the mean. -/
+theorem integral_E (t : ℕ) (x : Ω → ℝ) : ∫ ω, S.E t x ω ∂S.μ = ∫ ω, x ω ∂S.μ :=
+  integral_condExp (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: **pull-out** — a bounded factor known at `t` comes out of
+`E_t` (a.e.). -/
+theorem E_pullOut {t : ℕ} {f y : Ω → ℝ} (hf : StronglyMeasurable[S.𝓕 t] f) {C : ℝ}
+    (hfC : ∀ᵐ ω ∂S.μ, |f ω| ≤ C) (hy : Integrable y S.μ) :
+    S.E t (f * y) =ᵐ[S.μ] f * S.E t y := by
+  have hint : Integrable (f * y) S.μ :=
+    hy.bdd_mul (hf.mono (S.𝓕.le t)).aestronglyMeasurable
+      (hfC.mono fun ω h => by rwa [Real.norm_eq_abs])
+  exact condExp_mul_of_stronglyMeasurable_left hf hint hy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `|E_t x| ≤ M` a.e. whenever `|x| ≤ M` a.e. -/
+theorem abs_E_le {x : Ω → ℝ} {M : ℝ} (hx : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |S.E t x ω| ≤ M :=
+  ae_bdd_abs_condExp_of_ae_bdd_abs hx
+
+/-! ### Bounded random variables -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: a variable known at `t` with an a.e. bound is bounded. -/
+theorem BddRV.of_stronglyMeasurable {S : MeasExpectationSystem Ω}
+    {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    {M : ℝ} (hM : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) : S.BddRV x :=
+  ⟨(hx.mono (S.𝓕.le t)).aestronglyMeasurable, M, hM⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: constants are bounded. -/
+theorem BddRV.const {S : MeasExpectationSystem Ω} (c : ℝ) : S.BddRV (fun _ => c) :=
+  ⟨aestronglyMeasurable_const, |c|, Eventually.of_forall fun _ => le_rfl⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: sums of bounded variables are bounded. -/
+theorem BddRV.add {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x + y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.add hym, M + N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  exact (abs_add_le _ _).trans (add_le_add h1 h2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: multiples of bounded variables are bounded. -/
+theorem BddRV.smul {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (c : ℝ) : S.BddRV (c • x) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  refine ⟨hxm.const_smul c, |c| * M, ?_⟩
+  filter_upwards [hM] with ω h1
+  rw [Pi.smul_apply, smul_eq_mul, abs_mul]
+  exact mul_le_mul_of_nonneg_left h1 (abs_nonneg c)
+
+/-- Cochrane (2023), Ch. 2, p. 29: differences of bounded variables are bounded. -/
+theorem BddRV.sub {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x - y) := by
+  have h := hx.add (hy.smul (-1))
+  rwa [neg_one_smul, ← sub_eq_add_neg] at h
+
+/-- Cochrane (2023), Ch. 2, p. 29: products of bounded variables are bounded. -/
+theorem BddRV.mul {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x * y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.mul hym, M * N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  rw [Pi.mul_apply, abs_mul]
+  exact mul_le_mul h1 h2 (abs_nonneg _) ((abs_nonneg _).trans h1)
+
+/-- Cochrane (2023), Ch. 2, p. 29: forecasts of bounded variables are bounded. -/
+theorem BddRV.E {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (t : ℕ) : S.BddRV (S.E t x) := by
+  obtain ⟨-, M, hM⟩ := hx
+  exact ⟨(S.integrable_E t x).aestronglyMeasurable, M, S.abs_E_le hM t⟩
+
+/-! ### Innovations (news) -/
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation `ΔE_{t+1} x = E_{t+1} x − E_t x`. -/
+noncomputable def innov (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.E (t + 1) x - S.E t x
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation is known at `t + 1`. -/
+theorem stronglyMeasurable_innov (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (S.innov t x) :=
+  (S.stronglyMeasurable_E (t + 1) x).sub
+    ((S.stronglyMeasurable_E t x).mono (S.𝓕.mono (Nat.le_succ t)))
+
+/-- Cochrane (2023), eq. (2.13), p. 30: **innovations are martingale differences**,
+`E_s ΔE_{t+1} x = 0` a.e. for every `s ≤ t`. -/
+theorem E_innov {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.innov t x) =ᵐ[S.μ] 0 := by
+  filter_upwards [S.E_sub (S.integrable_E (t + 1) x) (S.integrable_E t x) s,
+    S.E_tower (hst.trans (Nat.le_succ t)) x, S.E_tower hst x] with ω h1 h2 h3
+  rw [innov, h1, Pi.sub_apply, h2, h3, sub_self, Pi.zero_apply]
+
+/-- Cochrane (2023), eq. (2.13), p. 30: news is uncorrelated with anything known before it,
+`E_t (w ΔE_{t+1} x) = 0` for bounded `w` known at `t` and bounded `x`. -/
+theorem E_mul_innov {t : ℕ} {w : Ω → ℝ} (hw : StronglyMeasurable[S.𝓕 t] w) {C : ℝ}
+    (hwC : ∀ᵐ ω ∂S.μ, |w ω| ≤ C) (x : Ω → ℝ) :
+    S.E t (w * S.innov t x) =ᵐ[S.μ] 0 := by
+  have hi : Integrable (S.innov t x) S.μ := (S.integrable_E _ x).sub (S.integrable_E _ x)
+  filter_upwards [S.E_pullOut hw hwC hi, S.E_innov le_rfl x] with ω h1 h2
+  rw [h1, Pi.mul_apply, h2]
+  simp
+
+/-- Cochrane (2023), eq. (2.13), p. 30: forecast revisions telescope into news,
+`E_{t+n} x − E_t x = ∑_{i<n} ΔE_{t+i+1} x` (exactly). -/
+theorem E_sub_E_eq_sum_innov (t n : ℕ) (x : Ω → ℝ) :
+    S.E (t + n) x - S.E t x = ∑ i ∈ Finset.range n, S.innov (t + i) x := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ← ih, innov, ← add_assoc]
+    abel
+
+/-- Cochrane (2023), eq. (2.17), p. 35: a variable known at `t + 1` is its forecast plus its
+news, `x = E_t x + ΔE_{t+1} x` (exactly). -/
+theorem eq_E_add_innov {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 (t + 1)] x)
+    (hi : Integrable x S.μ) : x = S.E t x + S.innov t x := by
+  rw [innov, S.E_of_stronglyMeasurable hx hi]
+  abel
+
+/-! ### `E_t` and dominated infinite sums -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values as infinite sums): **`E_t` passes through a
+dominated series** — if `|f_k| ≤ c_k` a.e. with `∑ c_k < ∞`, then a.e.
+`∑_k E_t f_k = E_t ∑_k f_k` (as a genuine `HasSum`). -/
+theorem E_hasSum {f : ℕ → Ω → ℝ} {c : ℕ → ℝ} (hc : Summable c)
+    (hm : ∀ k, AEStronglyMeasurable (f k) S.μ) (hf : ∀ k, ∀ᵐ ω ∂S.μ, |f k ω| ≤ c k) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => S.E t (f k) ω) (S.E t (fun ω' => ∑' k, f k ω') ω) := by
+  set F : Ω → ℝ := fun ω' => ∑' k, f k ω' with hF
+  have hall : ∀ᵐ ω ∂S.μ, ∀ k, |f k ω| ≤ c k := ae_all_iff.2 hf
+  have hsum : ∀ᵐ ω ∂S.μ, Summable (fun k => f k ω) := hall.mono fun ω h =>
+    Summable.of_norm_bounded hc (fun k => by rw [Real.norm_eq_abs]; exact h k)
+  have hFm : AEStronglyMeasurable F S.μ := by
+    refine aestronglyMeasurable_of_tendsto_ae atTop
+      (f := fun N ω => ∑ k ∈ Finset.range N, f k ω)
+      (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => hm k) ?_
+    filter_upwards [hsum] with ω h
+    exact h.hasSum.tendsto_sum_nat
+  -- the tail bound
+  have htail : ∀ N, ∀ᵐ ω ∂S.μ,
+      |F ω - ∑ k ∈ Finset.range N, f k ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    filter_upwards [hall, hsum] with ω h hs
+    change |∑' k, f k ω - ∑ k ∈ Finset.range N, f k ω| ≤ _
+    rw [← hs.sum_add_tsum_nat_add N, add_sub_cancel_left, ← Real.norm_eq_abs]
+    exact tsum_of_norm_bounded ((summable_nat_add_iff N).2 hc).hasSum
+      (fun k => by rw [Real.norm_eq_abs]; exact h (k + N))
+  have hbF : ∀ᵐ ω ∂S.μ, |F ω| ≤ ∑' k, c k := by
+    filter_upwards [htail 0] with ω h
+    simpa using h
+  have hint : ∀ k, Integrable (f k) S.μ := fun k => BddRV.integrable (S := S) ⟨hm k, c k, hf k⟩
+  have hFi : Integrable F S.μ := BddRV.integrable (S := S) ⟨hFm, _, hbF⟩
+  have hdiff : ∀ N, ∀ᵐ ω ∂S.μ,
+      |S.E t F ω - ∑ k ∈ Finset.range N, S.E t (f k) ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    have hpi : Integrable (∑ k ∈ Finset.range N, f k) S.μ :=
+      integrable_finsetSum' _ fun k _ => hint k
+    have hEs : S.E t (∑ k ∈ Finset.range N, f k) =ᵐ[S.μ] ∑ k ∈ Finset.range N, S.E t (f k) :=
+      condExp_finsetSum (fun k _ => hint k) (S.𝓕 t)
+    filter_upwards [S.E_sub hFi hpi t, hEs,
+      S.abs_E_le (x := F - ∑ k ∈ Finset.range N, f k) (by
+        filter_upwards [htail N] with ω h
+        simpa [Finset.sum_apply] using h) t] with ω h1 h2 h3
+    rw [h1, Pi.sub_apply, h2, Finset.sum_apply] at h3
+    exact h3
+  have hEb : ∀ᵐ ω ∂S.μ, ∀ k, |S.E t (f k) ω| ≤ c k :=
+    ae_all_iff.2 fun k => S.abs_E_le (hf k) t
+  filter_upwards [ae_all_iff.2 hdiff, hEb] with ω hd hb
+  have hs : Summable fun k => ‖S.E t (f k) ω‖ :=
+    Summable.of_nonneg_of_le (fun _ => norm_nonneg _)
+      (fun k => by rw [Real.norm_eq_abs]; exact hb k) hc
+  rw [hasSum_iff_tendsto_nat_of_summable_norm hs, tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero_norm (fun N => ?_) (tendsto_sum_nat_add c)
+  rw [norm_norm, Real.norm_eq_abs, abs_sub_comm]
+  exact hd N
+
+/-! ### Forward solutions: existence and uniqueness for `|a| < 1` -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values): the realised discounted sum
+`∑_k aᵏ u_{t+k}`. -/
+noncomputable def discSum (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => ∑' k, a ^ k * u (t + k) ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: a geometric series with bounded terms is summable. -/
+theorem summable_geom_mul {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    Summable (fun k => a ^ k * x k) :=
+  Summable.of_norm_bounded ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the bound `|∑ aᵏ x_k| ≤ M / (1 − |a|)`. -/
+theorem abs_tsum_geom_mul_le {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    |∑' k, a ^ k * x k| ≤ M / (1 - |a|) := by
+  rw [← Real.norm_eq_abs, div_eq_inv_mul]
+  refine tsum_of_norm_bounded ((hasSum_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => ?_)
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+  exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k)
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum satisfies `U_t = u_t + a U_{t+1}` wherever
+it converges. -/
+theorem discSum_succ {a : ℝ} {u : ℕ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (hs : Summable (fun k => a ^ k * u (t + k) ω)) :
+    discSum a u t ω = u t ω + a * discSum a u (t + 1) ω := by
+  unfold discSum
+  rw [hs.tsum_eq_zero_add, pow_zero, one_mul, add_zero, ← tsum_mul_left]
+  congr 1
+  refine tsum_congr fun k => ?_
+  rw [show t + (k + 1) = t + 1 + k by omega, pow_succ]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum of a bounded process is bounded a.e. -/
+theorem discSum_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |discSum a u t ω| ≤ M / (1 - |a|) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact abs_tsum_geom_mul_le ha fun k => h (t + k)
+
+/-- Cochrane (2023), Ch. 2, p. 29: `U_t = u_t + a U_{t+1}` a.e. -/
+theorem discSum_rec {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    discSum a u t =ᵐ[S.μ] u t + a • discSum a u (t + 1) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  rw [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+  exact discSum_succ (summable_geom_mul ha fun k => h (t + k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum is a.e. strongly measurable. -/
+theorem aestronglyMeasurable_discSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    AEStronglyMeasurable (discSum a u t) S.μ := by
+  refine aestronglyMeasurable_of_tendsto_ae atTop
+    (f := fun N ω => ∑ k ∈ Finset.range N, a ^ k * u (t + k) ω)
+    (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => (hm (t + k)).const_mul _) ?_
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact (summable_geom_mul ha fun k => h (t + k)).hasSum.tendsto_sum_nat
+
+/-- Cochrane (2023), Ch. 2, p. 29: `z` solves `z_t = a E_t z_{t+1} + u_t` (a.e. at every
+date). -/
+def Solves (a : ℝ) (u z : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, z t =ᵐ[S.μ] a • S.E t (z (t + 1)) + u t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution `z_t = E_t ∑_k aᵏ u_{t+k}`. -/
+noncomputable def forwardSol (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ := S.E t (discSum a u t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is adapted. -/
+theorem forwardSol_adapted (a : ℝ) (u : ℕ → Ω → ℝ) : StronglyAdapted S.𝓕 (S.forwardSol a u) :=
+  fun t => S.stronglyMeasurable_E t _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is bounded by `M / (1 − |a|)`. -/
+theorem forwardSol_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) : S.BddProc (S.forwardSol a u) :=
+  ⟨M / (1 - |a|), fun t => S.abs_E_le (S.discSum_bdd ha hb t) t⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence** — for `|a| < 1` and bounded adapted `u`, the
+forward solution solves `z_t = a E_t z_{t+1} + u_t`. -/
+theorem forwardSol_solves {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) :
+    S.Solves a u (S.forwardSol a u) := by
+  intro t
+  have hm : ∀ t, AEStronglyMeasurable (u t) S.μ :=
+    fun t => ((hua t).mono (S.𝓕.le t)).aestronglyMeasurable
+  have hDi : ∀ s, Integrable (discSum a u s) S.μ := fun s =>
+    BddRV.integrable ⟨S.aestronglyMeasurable_discSum ha hm hb s, _, S.discSum_bdd ha hb s⟩
+  have hui : Integrable (u t) S.μ := BddRV.integrable ⟨hm t, M, hb t⟩
+  have hEu : S.E t (u t) = u t := S.E_of_stronglyMeasurable (hua t) hui
+  filter_upwards [S.E_congr (S.discSum_rec ha hb t) t, S.E_add hui ((hDi (t + 1)).smul a) t,
+    S.E_smul a (discSum a u (t + 1)) t, S.E_tower (Nat.le_succ t) (discSum a u (t + 1))]
+    with ω h1 h2 h3 h4
+  change S.E t (discSum a u t) ω = (a • S.E t (S.E (t + 1) (discSum a u (t + 1))) + u t) ω
+  rw [h1, h2, Pi.add_apply, hEu, h3, Pi.add_apply, Pi.smul_apply, Pi.smul_apply, h4,
+    add_comm]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is the genuine forward sum
+`z_t = ∑_k aᵏ E_t u_{t+k}` (a.e., as a convergent series). -/
+theorem forwardSol_hasSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => a ^ k * S.E t (u (t + k)) ω) (S.forwardSol a u t ω) := by
+  have hsm : ∀ k, S.E t (fun ω => a ^ k * u (t + k) ω) =ᵐ[S.μ] a ^ k • S.E t (u (t + k)) :=
+    fun k => S.E_smul (a ^ k) (u (t + k)) t
+  filter_upwards [S.E_hasSum (f := fun k ω => a ^ k * u (t + k) ω)
+    ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => (hm (t + k)).const_mul _) (fun k => by
+      filter_upwards [hb (t + k)] with ω h
+      rw [abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left h (pow_nonneg (abs_nonneg a) k)) t,
+    ae_all_iff.2 hsm] with ω h1 h2
+  have e : (fun k => a ^ k * S.E t (u (t + k)) ω) =
+      fun k => S.E t (fun ω => a ^ k * u (t + k) ω) ω := by
+    funext k
+    rw [h2 k, Pi.smul_apply, smul_eq_mul]
+  rw [e]
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: iterating a homogeneous forward equation,
+`d_t = a^{k+1} E_t d_{t+k+1}` a.e. -/
+theorem iterate_homog {a : ℝ} {d : ℕ → Ω → ℝ} (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)))
+    (t k : ℕ) : d t =ᵐ[S.μ] a ^ (k + 1) • S.E t (d (t + (k + 1))) := by
+  induction k with
+  | zero => simpa using hd t
+  | succ k ih =>
+    have h2 := hd (t + (k + 1))
+    have e : t + (k + 1) + 1 = t + (k + 1 + 1) := rfl
+    rw [e] at h2
+    filter_upwards [ih, S.E_congr h2 t, S.E_smul a (S.E (t + (k + 1)) (d (t + (k + 1 + 1)))) t,
+      S.E_tower (Nat.le_add_right t (k + 1)) (d (t + (k + 1 + 1)))] with ω e1 e2 e3 e4
+    rw [e1, Pi.smul_apply, e2, e3, Pi.smul_apply, e4, Pi.smul_apply, smul_eq_mul, smul_eq_mul,
+      smul_eq_mul, pow_succ]
+    ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: **uniqueness** — for `|a| < 1` the equation
+`z_t = a E_t z_{t+1} + u_t` has at most one bounded (a.e. measurable) solution, up to a.e.
+equality at every date. -/
+theorem forward_unique {a : ℝ} (ha : |a| < 1) {u z₁ z₂ : ℕ → Ω → ℝ} (h₁ : S.Solves a u z₁)
+    (h₂ : S.Solves a u z₂) (hm₁ : ∀ t, AEStronglyMeasurable (z₁ t) S.μ)
+    (hm₂ : ∀ t, AEStronglyMeasurable (z₂ t) S.μ) (hb₁ : S.BddProc z₁) (hb₂ : S.BddProc z₂) :
+    ∀ t, z₁ t =ᵐ[S.μ] z₂ t := by
+  obtain ⟨M₁, hM₁⟩ := hb₁
+  obtain ⟨M₂, hM₂⟩ := hb₂
+  have hi₁ : ∀ t, Integrable (z₁ t) S.μ := fun t => BddRV.integrable ⟨hm₁ t, M₁, hM₁ t⟩
+  have hi₂ : ∀ t, Integrable (z₂ t) S.μ := fun t => BddRV.integrable ⟨hm₂ t, M₂, hM₂ t⟩
+  set d : ℕ → Ω → ℝ := fun t => z₁ t - z₂ t with hd_def
+  have hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)) := by
+    intro t
+    filter_upwards [h₁ t, h₂ t, S.E_sub (hi₁ (t + 1)) (hi₂ (t + 1)) t] with ω e1 e2 e3
+    simp only [hd_def, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    rw [e1, e2, e3]
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    ring
+  have hdb : ∀ s, ∀ᵐ ω ∂S.μ, |d s ω| ≤ M₁ + M₂ := fun s => by
+    filter_upwards [hM₁ s, hM₂ s] with ω e1 e2
+    exact (abs_sub _ _).trans (add_le_add e1 e2)
+  intro t
+  have hk : ∀ k : ℕ, ∀ᵐ ω ∂S.μ, |d t ω| ≤ |a| ^ (k + 1) * (M₁ + M₂) := by
+    intro k
+    filter_upwards [S.iterate_homog hd t k, S.abs_E_le (hdb (t + (k + 1))) t] with ω e1 e2
+    rw [e1, Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow]
+    exact mul_le_mul_of_nonneg_left e2 (pow_nonneg (abs_nonneg a) _)
+  filter_upwards [ae_all_iff.2 hk] with ω h
+  have hlim : Tendsto (fun k : ℕ => |a| ^ (k + 1) * (M₁ + M₂)) atTop (𝓝 0) := by
+    have := ((tendsto_pow_atTop_nhds_zero_of_lt_one (abs_nonneg a) ha).comp
+      (tendsto_add_atTop_nat 1)).mul_const (M₁ + M₂)
+    simpa using this
+  have h0 : d t ω = 0 := abs_nonpos_iff.mp (ge_of_tendsto' hlim h)
+  simpa [hd_def, sub_eq_zero] using h0
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness** of the bounded adapted solution
+of `z_t = a E_t z_{t+1} + u_t` for `|a| < 1` and bounded adapted `u`: it is the forward solution
+`∑ aᵏ E_t u_{t+k}` (`forwardSol_hasSum`), and every bounded a.e.-measurable solution equals it
+a.e. at every date. -/
+theorem existsUnique_forward {a : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u) :
+    (S.Solves a u (S.forwardSol a u) ∧ StronglyAdapted S.𝓕 (S.forwardSol a u) ∧
+      S.BddProc (S.forwardSol a u)) ∧
+    ∀ z, S.Solves a u z → (∀ t, AEStronglyMeasurable (z t) S.μ) → S.BddProc z →
+      ∀ t, z t =ᵐ[S.μ] S.forwardSol a u t := by
+  obtain ⟨M, hb⟩ := hub
+  refine ⟨⟨S.forwardSol_solves ha hua hb, S.forwardSol_adapted a u, S.forwardSol_bdd ha hb⟩,
+    fun z hz hzm hzb => S.forward_unique ha hz (S.forwardSol_solves ha hua hb) hzm
+      (fun t => ((S.forwardSol_adapted a u t).mono (S.𝓕.le t)).aestronglyMeasurable) hzb
+      (S.forwardSol_bdd ha hb)⟩
+
+/-! ### Nonuniqueness for `|a| ≥ 1`: genuinely random sunspots -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (multiple equilibria when the root is not stable): the sunspot
+started by a date-`s+1` shock `η`: `d_t = 0` for `t ≤ s` and `d_t = a^{-(t-s-1)} (η − E_s η)`
+for `t > s`. -/
+noncomputable def sunspot (a : ℝ) (s : ℕ) (η : Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  if t ≤ s then 0 else a⁻¹ ^ (t - (s + 1)) • (η - S.E s η)
+
+/-- Cochrane (2023), Ch. 2, p. 29: at date `s + 1` the sunspot is the news `η − E_s η`. -/
+theorem sunspot_succ (a : ℝ) (s : ℕ) (η : Ω → ℝ) : S.sunspot a s η (s + 1) = η - S.E s η := by
+  simp [sunspot]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot is adapted. -/
+theorem sunspot_adapted (a : ℝ) {s : ℕ} {η : Ω → ℝ} (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) :
+    StronglyAdapted S.𝓕 (S.sunspot a s η) := by
+  intro t
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact stronglyMeasurable_zero
+  · simp only [h, ↓reduceIte]
+    have h1 : s + 1 ≤ t := by omega
+    exact ((hη.mono (S.𝓕.mono h1)).sub
+      ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono (by omega)))).const_smul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the sunspot of a bounded shock is bounded. -/
+theorem sunspot_bdd {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B) : S.BddProc (S.sunspot a s η) := by
+  obtain ⟨ω₀, hω₀⟩ := hηb.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hω₀
+  refine ⟨B + B, fun t => ?_⟩
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact Eventually.of_forall fun ω => by simp; linarith
+  · simp only [h, ↓reduceIte]
+    filter_upwards [hηb, S.abs_E_le hηb s] with ω h1 h2
+    rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow, Pi.sub_apply]
+    have hp : |a⁻¹| ^ (t - (s + 1)) ≤ 1 :=
+      pow_le_one₀ (abs_nonneg _) (by rw [abs_inv]; exact inv_le_one_of_one_le₀ ha)
+    have hs : |η ω - S.E s η ω| ≤ B + B := (abs_sub _ _).trans (add_le_add h1 h2)
+    calc |a⁻¹| ^ (t - (s + 1)) * |η ω - S.E s η ω| ≤ 1 * (B + B) :=
+          mul_le_mul hp hs (abs_nonneg _) zero_le_one
+      _ = B + B := one_mul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot solves the homogeneous equation
+`d_t = a E_t d_{t+1}` (a.e.) for every `a ≠ 0`. -/
+theorem sunspot_solves {a : ℝ} (ha : a ≠ 0) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηi : Integrable η S.μ) (t : ℕ) :
+    S.sunspot a s η t =ᵐ[S.μ] a • S.E t (S.sunspot a s η (t + 1)) := by
+  rcases lt_trichotomy t s with h | rfl | h
+  · have h1 : t ≤ s := h.le
+    have h2 : t + 1 ≤ s := h
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte, S.E_zero, smul_zero]
+    rfl
+  · rw [S.sunspot_succ]
+    unfold sunspot
+    simp only [le_refl, ↓reduceIte]
+    filter_upwards [S.E_sub hηi (S.integrable_E t η) t] with ω h1
+    rw [Pi.smul_apply, h1, Pi.sub_apply, S.E_E_self, sub_self, smul_zero, Pi.zero_apply]
+  · have h1 : ¬ t ≤ s := by omega
+    have h2 : ¬ t + 1 ≤ s := by omega
+    have hν : StronglyMeasurable[S.𝓕 t] (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) :=
+      ((hη.mono (S.𝓕.mono h)).sub
+        ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono h.le))).const_smul _
+    have hνi : Integrable (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) S.μ :=
+      (hηi.sub (S.integrable_E s η)).smul _
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte]
+    rw [S.E_of_stronglyMeasurable hν hνi, smul_smul]
+    have e : t + 1 - (s + 1) = t - (s + 1) + 1 := by omega
+    rw [e, pow_succ, ← mul_assoc, mul_comm a, mul_assoc, mul_inv_cancel₀ ha, mul_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: adding a solution of the homogeneous equation to a solution
+gives a solution. -/
+theorem solves_add {a : ℝ} {u z d : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1))) (hzi : ∀ t, Integrable (z t) S.μ)
+    (hdi : ∀ t, Integrable (d t) S.μ) : S.Solves a u (fun t => z t + d t) := by
+  intro t
+  filter_upwards [hz t, hd t, S.E_add (hzi (t + 1)) (hdi (t + 1)) t] with ω e1 e2 e3
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 e3 ⊢
+  rw [e1, e2, e3]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot shock is genuinely random — `η − E_s η` is not
+a.e. equal to any variable known at date `s` — unless `η` is a.e. its own date-`s` forecast. -/
+theorem sunspot_not_predictable {s : ℕ} {η : Ω → ℝ} (hηi : Integrable η S.μ)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {g : Ω → ℝ} (hg : StronglyMeasurable[S.𝓕 s] g) :
+    ¬ (η - S.E s η) =ᵐ[S.μ] g := by
+  intro h
+  have hνi : Integrable (η - S.E s η) S.μ := hηi.sub (S.integrable_E s η)
+  have hgi : Integrable g S.μ := hνi.congr h
+  have h0 : S.E s (η - S.E s η) =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_sub hηi (S.integrable_E s η) s] with ω h1
+    rw [h1, Pi.sub_apply, S.E_E_self, sub_self, Pi.zero_apply]
+  have hg0 : g =ᵐ[S.μ] 0 := by
+    have := (S.E_congr h s).symm.trans h0
+    rwa [S.E_of_stronglyMeasurable hg hgi] at this
+  apply hηr
+  filter_upwards [h.trans hg0] with ω h1
+  rw [Pi.sub_apply, Pi.zero_apply, sub_eq_zero] at h1
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: **nonuniqueness for `|a| ≥ 1`** — next to every bounded
+adapted solution of `z_t = a E_t z_{t+1} + u_t` there is another one, `z + d` with the sunspot
+`d` driven by any bounded date-`s+1` shock `η` that is not a.e. its own date-`s` forecast; the
+two differ with positive probability at date `s + 1`. -/
+theorem not_unique_of_one_le {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {u z : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hza : StronglyAdapted S.𝓕 z) (hzb : S.BddProc z) :
+    ∃ z', S.Solves a u z' ∧ StronglyAdapted S.𝓕 z' ∧ S.BddProc z' ∧
+      ¬ z' (s + 1) =ᵐ[S.μ] z (s + 1) := by
+  have ha0 : a ≠ 0 := fun h => by rw [h, abs_zero] at ha; linarith
+  have hηi : Integrable η S.μ := BddRV.integrable (BddRV.of_stronglyMeasurable hη hηb)
+  obtain ⟨M, hM⟩ := hzb
+  obtain ⟨M', hM'⟩ := S.sunspot_bdd (s := s) ha hηb
+  have hzi : ∀ t, Integrable (z t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hza t) (hM t))
+  have hdi : ∀ t, Integrable (S.sunspot a s η t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (S.sunspot_adapted a hη t) (hM' t))
+  refine ⟨fun t => z t + S.sunspot a s η t,
+    S.solves_add hz (S.sunspot_solves ha0 hη hηi) hzi hdi,
+    fun t => (hza t).add (S.sunspot_adapted a hη t), ⟨M + M', fun t => ?_⟩, ?_⟩
+  · filter_upwards [hM t, hM' t] with ω h1 h2
+    exact (abs_add_le _ _).trans (add_le_add h1 h2)
+  · intro h
+    apply hηr
+    filter_upwards [h] with ω h1
+    rw [S.sunspot_succ, Pi.add_apply, Pi.sub_apply, add_eq_left, sub_eq_zero] at h1
+    exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: the zero process solves `z_t = a E_t z_{t+1}`. -/
+theorem solves_zero (a : ℝ) : S.Solves a 0 0 := fun t => by
+  rw [Pi.zero_apply, Pi.zero_apply, S.E_zero, smul_zero, add_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy criterion** — on a filtration carrying some
+genuinely random bounded news (a bounded date-`s+1` variable that is not a.e. its own date-`s`
+forecast), bounded adapted solutions of `z_t = a E_t z_{t+1} + u_t` are unique (for every
+bounded adapted `u`) if and only if `|a| < 1`. -/
+theorem unique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+      StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h 0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂
+    exact S.forward_unique ha h₁ h₂ (fun t => ((ha₁ t).mono (S.𝓕.le t)).aestronglyMeasurable)
+      (fun t => ((ha₂ t).mono (S.𝓕.le t)).aestronglyMeasurable) hb₁ hb₂
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness iff `|a| < 1`** — under genuinely
+random news, every bounded adapted `u` has a bounded adapted solution, unique up to a.e.
+equality, exactly when `|a| < 1`. -/
+theorem existsUnique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 u → S.BddProc u →
+      (∃ z, S.Solves a u z ∧ StronglyAdapted S.𝓕 z ∧ S.BddProc z) ∧
+      ∀ z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+        StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    have h0 := (h 0 (fun _ => stronglyMeasurable_zero)
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩).2
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u hua hub
+    obtain ⟨⟨h1, h2, h3⟩, -⟩ := S.existsUnique_forward ha hua hub
+    exact ⟨⟨_, h1, h2, h3⟩, fun z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂ =>
+      (S.unique_iff hnd a).2 ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂⟩
+
+/-! ### AR(1) processes driven by martingale-difference shocks -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the square of a bounded variable is bounded. -/
+theorem BddRV.sq {S : MeasExpectationSystem Ω} {x : Ω → ℝ} (hx : S.BddRV x) : S.BddRV (x ^ 2) := by
+  rw [pow_two]
+  exact hx.mul hx
+
+/-- Cochrane (2023), p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`): for
+`u_{t+1} = ρ u_t + ε_{t+1}` with bounded adapted `u` and martingale-difference shocks
+(`E_t ε_{t+1} = 0`), `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem ar1_E {ρ : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0) (t j : ℕ) :
+    S.E t (u (t + j)) =ᵐ[S.μ] ρ ^ j • u t := by
+  obtain ⟨M, hM⟩ := hub
+  have hui : ∀ s, Integrable (u s) S.μ := fun s =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hua s) (hM s))
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεi : ∀ s, Integrable (ε (s + 1)) S.μ := fun s => by
+    rw [hεe]
+    exact (hui _).sub ((hui s).smul ρ)
+  induction j with
+  | zero =>
+    rw [add_zero, pow_zero, one_smul, S.E_of_stronglyMeasurable (hua t) (hui t)]
+  | succ j ih =>
+    have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+    have hz : S.E t (ε (t + j + 1)) =ᵐ[S.μ] 0 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (ε (t + j + 1))).symm,
+        S.E_congr (hmd (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_zero]
+    rw [e]
+    filter_upwards [S.E_add ((hui _).smul ρ) (hεi (t + j)) t, S.E_smul ρ (u (t + j)) t, ih, hz]
+      with ω h1 h2 h3 h4
+    rw [h1, Pi.add_apply, h2, h4, Pi.smul_apply, h3, Pi.smul_apply, Pi.smul_apply, smul_eq_mul,
+      smul_eq_mul, smul_eq_mul, Pi.zero_apply, add_zero, pow_succ]
+    ring
+
+/-- Cochrane (2023), p. 42: with conditionally homoskedastic shocks (`E_t ε_{t+1}² = σ²`), the
+squared forecast error of an AR(1) has conditional mean `σ² ∑_{i<j} ρ^{2i}`. -/
+theorem ar1_E_sq_dev {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    S.E t ((u (t + j) - ρ ^ j • u t) ^ 2) =ᵐ[S.μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  obtain ⟨M, hM⟩ := hub
+  have hB : ∀ s, S.BddRV (u s) := fun s => BddRV.of_stronglyMeasurable (hua s) (hM s)
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεB : ∀ s, S.BddRV (ε (s + 1)) := fun s => by
+    rw [hεe]
+    exact (hB _).sub ((hB s).smul ρ)
+  induction j with
+  | zero =>
+    have h0 : (u (t + 0) - ρ ^ 0 • u t) ^ 2 = 0 := by
+      funext ω
+      simp
+    rw [h0, S.E_zero]
+    exact Eventually.of_forall fun ω => by simp
+  | succ j ih =>
+    set w := u (t + j) - ρ ^ j • u t with hw
+    set e' := ε (t + j + 1) with he'
+    have hwB : S.BddRV w := (hB _).sub ((hB t).smul _)
+    have hwm : StronglyMeasurable[S.𝓕 (t + j)] w :=
+      (hua (t + j)).sub (((hua t).mono (S.𝓕.mono (Nat.le_add_right t j))).const_smul _)
+    have hsplit : (u (t + (j + 1)) - ρ ^ (j + 1) • u t) ^ 2 =
+        ρ ^ 2 • w ^ 2 + (2 * ρ) • (w * e') + e' ^ 2 := by
+      have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+      rw [e]
+      funext ω
+      simp only [hw, he', Pi.add_apply, Pi.smul_apply, Pi.pow_apply, Pi.sub_apply, Pi.mul_apply,
+        smul_eq_mul]
+      ring
+    have hcross : S.E t (w * e') =ᵐ[S.μ] 0 := by
+      obtain ⟨-, C, hC⟩ := hwB
+      have hz : w * S.E (t + j) e' =ᵐ[S.μ] 0 := by
+        filter_upwards [hmd (t + j)] with ω h
+        rw [Pi.mul_apply, he', h, Pi.zero_apply, mul_zero]
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (w * e')).symm,
+        S.E_congr (S.E_pullOut hwm hC (hεB (t + j)).integrable) t, S.E_congr hz t]
+        with ω h1 h2 h3
+      rw [h1, h2, h3, S.E_zero]
+    have hsq : S.E t (e' ^ 2) =ᵐ[S.μ] fun _ => σ2 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (e' ^ 2)).symm,
+        S.E_congr (hvar (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_const]
+    have I1 : Integrable (ρ ^ 2 • w ^ 2) S.μ := hwB.sq.integrable.smul _
+    have I2 : Integrable ((2 * ρ) • (w * e')) S.μ := (hwB.mul (hεB (t + j))).integrable.smul _
+    have I3 : Integrable (e' ^ 2) S.μ := (hεB (t + j)).sq.integrable
+    have hs : ∑ i ∈ Finset.range (j + 1), ρ ^ (2 * i) =
+        ρ ^ 2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) + 1 := by
+      rw [Finset.sum_range_succ', Finset.mul_sum]
+      congr 1
+      exact Finset.sum_congr rfl fun i _ => by ring
+    rw [hsplit]
+    filter_upwards [S.E_add (I1.add I2) I3 t, S.E_add I1 I2 t, S.E_smul (ρ ^ 2) (w ^ 2) t,
+      S.E_smul (2 * ρ) (w * e') t, ih, hcross, hsq] with ω h1 h2 h3 h4 h5 h6 h7
+    rw [h1, Pi.add_apply, h2, Pi.add_apply, h3, h4, Pi.smul_apply, Pi.smul_apply, h5, h6, h7, hs,
+      Pi.zero_apply, smul_eq_mul, smul_eq_mul]
+    ring
+
+/-- Cochrane (2023), p. 42: **conditional variance of an AR(1)** —
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. (Mathlib's `condVar`). -/
+theorem ar1_condVar {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  change S.E t ((u (t + j) - S.E t (u (t + j))) ^ 2) =ᵐ[S.μ] _
+  refine (S.E_congr ?_ t).trans (S.ar1_E_sq_dev hrec hua hub hmd hvar t j)
+  filter_upwards [S.ar1_E hrec hua hub hmd t j] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, Pi.sub_apply, h]
+
+/-- Cochrane (2023), p. 42: the closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)` for
+`ρ² ≠ 1`. -/
+theorem ar1_condVar_closed {ρ σ2 : ℝ} (hρ : ρ ^ 2 ≠ 1) {u ε : ℕ → Ω → ℝ}
+    (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  refine (S.ar1_condVar hrec hua hub hmd hvar t j).trans (Eventually.of_forall fun _ => ?_)
+  have h1 : 1 - ρ ^ 2 ≠ 0 := sub_ne_zero.mpr (Ne.symm hρ)
+  have hs : ∑ i ∈ Finset.range j, ρ ^ (2 * i) = (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+    simp_rw [pow_mul]
+    rw [geom_sum_eq hρ, eq_div_iff h1, div_mul_eq_mul_div, div_eq_iff (sub_ne_zero.mpr hρ)]
+    ring
+  change σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) = σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)
+  rw [hs, mul_div_assoc]
+
+/-! ### Bridge to the core `ExpectationSystem` on a finite, fully supported state space -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. equality is
+equality. -/
+theorem eq_of_ae_eq (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f =ᵐ[S.μ] g) : f = g := by
+  funext ω
+  by_contra hne
+  have h0 : S.μ {ω' | f ω' ≠ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. inequality is
+inequality. -/
+theorem le_of_ae_le (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f ≤ᵐ[S.μ] g) : f ≤ g := by
+  intro ω
+  by_contra hne
+  have h0 : S.μ {ω' | ¬ f ω' ≤ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t` as a linear map on all of `Ω → ℝ`, for a finite discrete
+state space with full support. -/
+noncomputable def ELin [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (t : ℕ) : (Ω → ℝ) →ₗ[ℝ] (Ω → ℝ) where
+  toFun := S.E t
+  map_add' _ _ := S.eq_of_ae_eq hfull (S.E_add Integrable.of_finite Integrable.of_finite t)
+  map_smul' c x := S.eq_of_ae_eq hfull (S.E_smul c x t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (b)** — on a finite discrete state space with full
+support, a measure-theoretic expectation system is a core `ExpectationSystem`, with the same
+`E_t` at every state, so every core theorem applies to it. -/
+noncomputable def toExpectationSystem [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : ExpectationSystem Ω where
+  E := S.ELin hfull
+  const := S.E_const
+  mono t _ _ h := S.le_of_ae_le hfull
+    (S.E_mono Integrable.of_finite Integrable.of_finite (Eventually.of_forall h) t)
+  tower hst x := S.eq_of_ae_eq hfull (S.E_tower hst x)
+  known hst x := S.E_known hst x
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system's `E_t` is Mathlib's conditional
+expectation, exactly. -/
+theorem toExpectationSystem_E [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) (t : ℕ) (x : Ω → ℝ) :
+    (S.toExpectationSystem hfull).E t x = S.E t x := rfl
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system obtained from a measure-theoretic one has the
+pull-out property, so `PullOut`-hypothesis theorems of the core apply too. -/
+theorem toExpectationSystem_pullOut [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : (S.toExpectationSystem hfull).PullOut := by
+  have := Fintype.ofFinite Ω
+  intro t a y ha
+  rw [toExpectationSystem_E] at ha ⊢
+  rw [toExpectationSystem_E]
+  have hm : StronglyMeasurable[S.𝓕 t] a := ha ▸ S.stronglyMeasurable_E t a
+  refine S.eq_of_ae_eq hfull (S.E_pullOut hm (C := ∑ ω, |a ω|)
+    (Eventually.of_forall fun ω => ?_) Integrable.of_finite)
+  exact Finset.single_le_sum (f := fun ω => |a ω|) (fun _ _ => abs_nonneg _)
+    (Finset.mem_univ ω)
+
+end MeasExpectationSystem
+
+/-! ### Bridge (a): every finite event tree is a measure-theoretic expectation system -/
+
+namespace TreeBridge
+
+open ExpectationsFiniteTree
+
+variable {Ω} [Fintype Ω] (T : FiniteTree Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree with an uninformative date prepended (date `0`
+knows nothing, date `t + 1` knows what the original tree knows at `t`). -/
+def trivialFirst : FiniteTree Ω where
+  prob := T.prob
+  prob_pos := T.prob_pos
+  prob_sum := T.prob_sum
+  info n := match n with
+    | 0 => Setoid.ker (fun _ : Ω => ())
+    | n + 1 => T.info n
+  refines := by
+    intro s t hst a b h
+    cases s with
+    | zero => exact Setoid.ker_def.2 rfl
+    | succ s =>
+      cases t with
+      | zero => omega
+      | succ t => exact T.refines (by omega) a b h
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: **the law of total expectation on a finite tree**,
+`∑ p(ω) E_t x(ω) = ∑ p(ω) x(ω)`. -/
+theorem sum_prob_condE (t : ℕ) (x : Ω → ℝ) :
+    ∑ ω, T.prob ω * T.condE t x ω = ∑ ω, T.prob ω * x ω := by
+  obtain ⟨ω₀⟩ : Nonempty Ω := by
+    by_contra h
+    rw [not_nonempty_iff] at h
+    have := T.prob_sum
+    simp at this
+  have htriv : ∀ a b, (trivialFirst T).info 0 a b := fun _ _ => Setoid.ker_def.2 rfl
+  have h1 := (trivialFirst T).condE_of_trivial htriv ((trivialFirst T).condE (t + 1) x) ω₀
+  have h2 := (trivialFirst T).condE_of_trivial htriv x ω₀
+  rw [(trivialFirst T).condE_tower (Nat.zero_le (t + 1)) x] at h1
+  exact h1.symm.trans h2
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probabilities as a measure,
+`μ = ∑_ω p(ω) δ_ω`. -/
+noncomputable def treeMeasure : Measure Ω := ∑ ω, ENNReal.ofReal (T.prob ω) • Measure.dirac ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: `μ{ω} = p(ω)`. -/
+theorem treeMeasure_singleton [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    treeMeasure T {ω} = ENNReal.ofReal (T.prob ω) := by
+  classical
+  rw [treeMeasure, Measure.finsetSum_apply, Finset.sum_eq_single ω]
+  · rw [Measure.smul_apply, Measure.dirac_apply_of_mem (Set.mem_singleton ω), smul_eq_mul,
+      mul_one]
+  · intro b _ hb
+    rw [Measure.smul_apply, Measure.dirac_apply, Set.indicator_of_notMem (by simpa using hb),
+      smul_eq_mul, mul_zero]
+  · intro h
+    exact absurd (Finset.mem_univ ω) h
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree measure is a probability measure. -/
+theorem treeMeasure_univ : treeMeasure T Set.univ = 1 := by
+  rw [treeMeasure, Measure.finsetSum_apply]
+  simp only [Measure.smul_apply, measure_univ, smul_eq_mul, mul_one]
+  rw [← ENNReal.ofReal_sum_of_nonneg (fun ω _ => (T.prob_pos ω).le), T.prob_sum,
+    ENNReal.ofReal_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probability measure. -/
+noncomputable def treeProb : ProbabilityMeasure Ω := ⟨treeMeasure T, ⟨treeMeasure_univ T⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the tree measure are weighted sums. -/
+theorem integral_treeProb [DiscreteMeasurableSpace Ω] (f : Ω → ℝ) :
+    ∫ ω, f ω ∂(treeProb T : Measure Ω) = ∑ ω, T.prob ω * f ω := by
+  rw [integral_fintype Integrable.of_finite]
+  refine Finset.sum_congr rfl fun ω _ => ?_
+  have h : (treeProb T : Measure Ω) {ω} = ENNReal.ofReal (T.prob ω) := treeMeasure_singleton T ω
+  rw [measureReal_def, h, ENNReal.toReal_ofReal (T.prob_pos ω).le, smul_eq_mul]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's information as a filtration, `𝓕_t = σ(cell_t)`. -/
+def treeFiltration [DiscreteMeasurableSpace Ω] : Filtration ℕ mΩ where
+  seq t := MeasurableSpace.comap (Quotient.mk (T.info t)) ⊤
+  mono' s t hst := by
+    intro A hA
+    obtain ⟨B, -, rfl⟩ := MeasurableSpace.measurableSet_comap.1 hA
+    exact MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (Quotient.mk (T.info s)) (fun a b h => Quotient.sound (T.refines hst a b h))
+        ⁻¹' B, MeasurableSpace.measurableSet_top, rfl⟩
+  le' _ _ _ := MeasurableSet.of_discrete
+
+/-- Cochrane (2023), Ch. 2, p. 29: the cell average `E_t x` is `𝓕_t`-measurable. -/
+theorem stronglyMeasurable_condE [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[treeFiltration T t] (T.condE t x) := by
+  have hm : Measurable[treeFiltration T t] (T.condE t x) := fun U _ =>
+    MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (T.condE t x) (fun _ _ h => T.condE_congr x h) ⁻¹' U,
+        MeasurableSpace.measurableSet_top, rfl⟩
+  exact hm.stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: the finite tree as a measure-theoretic expectation system. -/
+noncomputable def treeSystem [DiscreteMeasurableSpace Ω] : MeasExpectationSystem Ω :=
+  ⟨treeProb T, treeFiltration T⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: every state of the tree has positive probability. -/
+theorem treeSystem_fullSupport [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    (treeSystem T).μ {ω} ≠ 0 := by
+  change treeMeasure T {ω} ≠ 0
+  rw [treeMeasure_singleton, ne_eq, ENNReal.ofReal_eq_zero, not_le]
+  exact T.prob_pos ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (a)** — the tree's cell average is Mathlib's
+conditional expectation `μ[x | 𝓕_t]`, at every state and for every `x`. -/
+theorem treeSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    (treeSystem T).E t x = T.condE t x := by
+  classical
+  set S := treeSystem T
+  refine (S.eq_of_ae_eq (treeSystem_fullSupport T)
+    (ae_eq_condExp_of_forall_setIntegral_eq (S.𝓕.le t) Integrable.of_finite
+      (fun _ _ _ => Integrable.of_finite.integrableOn) (fun A hA _ => ?_)
+      (stronglyMeasurable_condE T t x).aestronglyMeasurable)).symm
+  obtain ⟨B, -, hB⟩ := MeasurableSpace.measurableSet_comap.1 hA
+  set a : Ω → ℝ := A.indicator fun _ => 1 with ha
+  have hcell : ∀ ω ω', T.info t ω' ω → (ω' ∈ A ↔ ω ∈ A) := fun ω ω' h => by
+    rw [← hB, Set.mem_preimage, Set.mem_preimage, Quotient.sound h]
+  have hacell : T.condE t a = a := by
+    funext ω
+    refine T.condE_of_const_on_cell fun ω' h => ?_
+    simp only [ha, Set.indicator, hcell ω ω' h]
+  have hind : ∀ y : Ω → ℝ, A.indicator y = a * y := fun y => by
+    funext ω
+    by_cases h : ω ∈ A <;> simp [ha, Set.indicator, h]
+  have hpo := finiteTree_pullOut T t a x hacell
+  rw [FiniteTree.toExpectationSystem_E, FiniteTree.toExpectationSystem_E] at hpo
+  rw [← integral_indicator MeasurableSet.of_discrete,
+    ← integral_indicator MeasurableSet.of_discrete]
+  change ∫ ω, A.indicator (T.condE t x) ω ∂(treeProb T : Measure Ω) =
+    ∫ ω, A.indicator x ω ∂(treeProb T : Measure Ω)
+  rw [integral_treeProb, integral_treeProb, hind, hind, ← hpo, sum_prob_condE]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the round trip — the core system obtained from the tree's
+measure-theoretic system (bridge (b)) is the tree's own core system. -/
+theorem treeSystem_toExpectationSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    ((treeSystem T).toExpectationSystem (treeSystem_fullSupport T)).E t x =
+      T.toExpectationSystem.E t x := by
+  rw [MeasExpectationSystem.toExpectationSystem_E, treeSystem_E,
+    FiniteTree.toExpectationSystem_E]
+
+end TreeBridge
+
+end Cochrane.ZeroBound.TidyR6ExpectationsMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A genuine infinite-horizon expectation system: i.i.d. shocks
+
+Restated from the Cochrane `ObservationalEquivalence` project (module of the same name
+without the `TidyR6` prefix), with only the namespace changed, for the stochastic versions of
+the orbit results of §20.2.1 (`TidyR6OrbitStochastic`).
+
+Cochrane (2023), Ch. 2, §2.4, pp. 29–30 (unexpected inflation driven by news `ΔE_{t+1}`) and
+§2.7, p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`). The state space is `Ω = ℕ → ℝ` with the
+infinite product `ν^ℕ` of a law `ν` on `ℝ` (Mathlib's `Measure.infinitePi`, built by
+Ionescu-Tulcea/Carathéodory), the shocks are the coordinates `ε_t(ω) = ω_t`, and the filtration is
+the natural one, `𝓕_t = σ(ε_0, …, ε_t)` (Mathlib's `Filtration.piLE`).
+
+## How to use (API)
+
+* `iidSystem ν : MeasExpectationSystem (ℕ → ℝ)` for any `ν : ProbabilityMeasure ℝ`; `shock t`.
+* Independence: `indep_future` (future shocks ⟂ `𝓕_t`), `E_future` (`E_t g = E g` for `g`
+  measurable w.r.t. the future), `E_shock_fun` (`E_t f(ε_{t+1}) = ∫ f dν`), `integral_shock_fun`.
+* Moments (mean `0`, variance `σ² > 0`): `E_shock_zero`, `E_shock_sq_eq`, `condVar_shock`
+  (`Var_t ε_{t+1} = σ²`).
+* Nondegeneracy, not finitely supported: `shock_not_ae_E`, `singleton_lt_one`, `iid_singleton`
+  (every history is null), `iid_countable_null`, `iid_not_finitely_supported`.
+* Determinacy: `iid_news`, `iid_existsUnique_iff`, `iid_sunspot`.
+* AR(1): `ar1`, `ar1_succ`, `ar1_adapted`, `ar1_bdd`, `iid_ar1_E`, `iid_ar1_condVar`,
+  `iid_ar1_condVar_closed`.
+* The fair `±1` coin: `coin`, `coin_mean`, `coin_var`, `coin_bdd`, `coin_economy`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open TidyR6ExpectationsMeasure
+
+variable (ν : ProbabilityMeasure ℝ)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the law of the i.i.d. shock sequence, the infinite product
+`ν^ℕ` on `Ω = ℕ → ℝ`. -/
+noncomputable def iidProb : ProbabilityMeasure (ℕ → ℝ) :=
+  ⟨Measure.infinitePi (fun _ => (ν : Measure ℝ)), inferInstance⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. expectation system — `Ω = ℕ → ℝ`, `μ = ν^ℕ`, and the
+natural filtration `𝓕_t = σ(ε_0, …, ε_t)`. -/
+noncomputable def iidSystem : MeasExpectationSystem (ℕ → ℝ) := ⟨iidProb ν, Filtration.piLE⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock `ε_t(ω) = ω_t`. -/
+def shock (t : ℕ) (ω : ℕ → ℝ) : ℝ := ω t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock of date `s ≤ t` is known at `t`. -/
+theorem measurable_shock {s t : ℕ} (hst : s ≤ t) : Measurable[(iidSystem ν).𝓕 t] (shock s) := by
+  change Measurable[MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi] (fun ω => Preorder.restrictLe (π := fun _ : ℕ => ℝ) t ω ⟨s, hst⟩)
+  exact (measurable_pi_apply (⟨s, hst⟩ : Set.Iic t)).comp (comap_measurable _)
+
+/-! ### Independence: the future is independent of the present information -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra generated by the date-`j` shock. -/
+abbrev coordSigma (j : ℕ) : MeasurableSpace (ℕ → ℝ) :=
+  MeasurableSpace.comap (fun ω : ℕ → ℝ => ω j) inferInstance
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra of the future shocks `ε_{t+1}, ε_{t+2}, …`. -/
+abbrev futureSigma (t : ℕ) : MeasurableSpace (ℕ → ℝ) := ⨆ j ∈ Set.Ioi t, coordSigma j
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock σ-algebra is a sub-σ-algebra. -/
+theorem coordSigma_le (j : ℕ) : coordSigma j ≤ MeasurableSpace.pi :=
+  (measurable_pi_apply j).comap_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: the future σ-algebra is a sub-σ-algebra. -/
+theorem futureSigma_le (t : ℕ) : futureSigma t ≤ MeasurableSpace.pi :=
+  iSup₂_le fun j _ => coordSigma_le j
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shocks are mutually independent under `ν^ℕ`. -/
+theorem iIndep_coord : iIndep coordSigma (iidSystem ν).μ :=
+  (iIndepFun_infinitePi (P := fun _ => (ν : Measure ℝ)) (X := fun _ => id)
+    (fun _ => measurable_id)).iIndep
+
+/-- Cochrane (2023), Ch. 2, p. 29: date-`t` information is generated by `ε_0, …, ε_t`. -/
+theorem filtration_le_past (t : ℕ) :
+    (iidSystem ν).𝓕 t ≤ ⨆ j ∈ Set.Iic t, coordSigma j := by
+  change MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi ≤ _
+  simp only [MeasurableSpace.pi, MeasurableSpace.comap_iSup, MeasurableSpace.comap_comp]
+  refine iSup_le fun j => ?_
+  exact le_iSup₂ (f := fun i (_ : i ∈ Set.Iic t) => coordSigma i) j.1 j.2
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the future shocks are independent of date-`t` information**.
+-/
+theorem indep_future (t : ℕ) : Indep (futureSigma t) ((iidSystem ν).𝓕 t) (iidSystem ν).μ :=
+  indep_of_indep_of_le_right (indep_iSup_of_disjoint coordSigma_le (iIndep_coord ν)
+    (Set.disjoint_left.2 fun _ h1 h2 => absurd (Set.mem_Ioi.1 h1) (not_lt.2 (Set.mem_Iic.1 h2))))
+    (filtration_le_past ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **independence ⇒ the forecast of a function of the future is its
+unconditional mean**, `E_t g = E g` a.e. -/
+theorem E_future (t : ℕ) {g : (ℕ → ℝ) → ℝ} (hg : StronglyMeasurable[futureSigma t] g) :
+    (iidSystem ν).E t g =ᵐ[(iidSystem ν).μ] fun _ => ∫ ω, g ω ∂(iidSystem ν).μ :=
+  condExp_indep_eq (futureSigma_le t) ((iidSystem ν).𝓕.le t) hg (indep_future ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: a function of the next shock is measurable for the future. -/
+theorem measurable_future_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    Measurable[futureSigma t] (fun ω : ℕ → ℝ => f (ω (t + 1))) :=
+  hf.comp (Measurable.of_comap_le
+    (le_iSup₂ (f := fun i (_ : i ∈ Set.Ioi t) => coordSigma i) (t + 1) (Nat.lt_succ_self t)))
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock has law `ν`, so `E f(ε_i) = ∫ f dν`. -/
+theorem integral_shock_fun (i : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    ∫ ω, f (ω i) ∂(iidSystem ν).μ = ∫ x, f x ∂(ν : Measure ℝ) := by
+  have h := integral_map (μ := Measure.infinitePi (fun _ => (ν : Measure ℝ)))
+    (φ := fun ω : ℕ → ℝ => ω i) (measurable_pi_apply i).aemeasurable
+    (f := f) hf.aestronglyMeasurable
+  rw [Measure.infinitePi_map_eval] at h
+  exact h.symm
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t f(ε_{t+1}) = ∫ f dν` a.e. -/
+theorem E_shock_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    (iidSystem ν).E t (fun ω => f (ω (t + 1))) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, f x ∂(ν : Measure ℝ) := by
+  rw [← integral_shock_fun ν (t + 1) hf]
+  exact E_future ν t (measurable_future_fun t hf).stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1} = E ε` a.e. -/
+theorem E_shock (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] fun _ => ∫ x, x ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t measurable_id
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1}² = E ε²` a.e. -/
+theorem E_shock_sq (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, x ^ 2 ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t (measurable_id.pow_const 2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock is bounded when `ν` has bounded support. -/
+theorem shock_ae_bdd {B : ℝ} (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |shock t ω| ≤ B :=
+  (measurePreserving_eval_infinitePi (fun _ => (ν : Measure ℝ)) t).quasiMeasurePreserving.ae hbdd
+
+/-! ### Mean-zero, nondegenerate shocks -/
+
+variable {ν}
+
+/-- Cochrane (2023), Ch. 2, p. 29: with mean-zero shocks, `E_t ε_{t+1} = 0` a.e. -/
+theorem E_shock_zero (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] 0 := by
+  filter_upwards [E_shock ν t] with ω h
+  rw [h, hmean, Pi.zero_apply]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **constant conditional variance**, `E_t ε_{t+1}² = σ²` a.e. -/
+theorem E_shock_sq_eq {σ2 : ℝ} (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  filter_upwards [E_shock_sq ν t] with ω h
+  rw [h, hvar]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the conditional variance of the next shock is `σ²`. -/
+theorem condVar_shock {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    Var[shock (t + 1); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  change (iidSystem ν).E t ((shock (t + 1) - (iidSystem ν).E t (shock (t + 1))) ^ 2) =ᵐ[_] _
+  refine ((iidSystem ν).E_congr ?_ t).trans (E_shock_sq_eq hvar t)
+  filter_upwards [E_shock_zero hmean t] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, h, Pi.zero_apply, sub_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the shocks are nondegenerate at every date** — `ε_{t+1}` is
+not a.e. equal to its date-`t` forecast (a fortiori not known at `t`). -/
+theorem shock_not_ae_E {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (t : ℕ) :
+    ¬ shock (t + 1) =ᵐ[(iidSystem ν).μ] (iidSystem ν).E t (shock (t + 1)) := by
+  intro h
+  have h0 := h.trans (E_shock_zero hmean t)
+  have hi : ∫ ω, (ω (t + 1)) ^ 2 ∂(iidSystem ν).μ = 0 := by
+    refine integral_eq_zero_of_ae ?_
+    filter_upwards [h0] with ω h1
+    simp only [shock, Pi.zero_apply] at h1
+    simp [h1]
+  rw [integral_shock_fun ν (t + 1) (f := fun x => x ^ 2) (measurable_id.pow_const 2), hvar] at hi
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: a nondegenerate mean-zero law has no atom of mass one. -/
+theorem singleton_lt_one {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (x : ℝ) :
+    (ν : Measure ℝ) {x} < 1 := by
+  refine lt_of_le_of_ne prob_le_one fun h1 => ?_
+  have hae : ∀ᵐ y ∂(ν : Measure ℝ), y = x := by
+    rw [ae_iff]
+    have hs : {y : ℝ | ¬ y = x} = {x}ᶜ := by
+      ext y
+      simp
+    rw [hs, prob_compl_eq_zero_iff (measurableSet_singleton x)]
+    exact h1
+  have hm : ∫ y, y ∂(ν : Measure ℝ) = x := by
+    rw [integral_congr_ae (f := fun y => y) (g := fun _ => x) hae]
+    simp
+  have hv : ∫ y, y ^ 2 ∂(ν : Measure ℝ) = x ^ 2 := by
+    rw [integral_congr_ae (f := fun y => y ^ 2) (g := fun _ => x ^ 2)
+      (hae.mono fun y h => by rw [h])]
+    simp
+  rw [hmean] at hm
+  rw [hvar, ← hm] at hv
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: the atoms of a nondegenerate mean-zero law are uniformly below
+one: `ν{x} ≤ q < 1` for all `x`. -/
+theorem exists_singleton_le {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) :
+    ∃ q < 1, ∀ x, (ν : Measure ℝ) {x} ≤ q := by
+  by_cases h : ∃ x₀, 2⁻¹ < (ν : Measure ℝ) {x₀}
+  · obtain ⟨x₀, hx₀⟩ := h
+    refine ⟨max 2⁻¹ ((ν : Measure ℝ) {x₀}),
+      max_lt (ENNReal.inv_lt_one.2 ENNReal.one_lt_two) (singleton_lt_one hmean hvar hσ x₀),
+      fun x => ?_⟩
+    by_cases hx : x = x₀
+    · rw [hx]
+      exact le_max_right _ _
+    · by_contra hlt
+      push Not at hlt
+      have h1 : (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} ≤ 1 := by
+        rw [← measure_union (Set.disjoint_singleton.2 hx) (measurableSet_singleton _)]
+        exact prob_le_one
+      have h2 : 1 < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} := by
+        calc (1 : ENNReal) = 2⁻¹ + 2⁻¹ := ENNReal.inv_two_add_inv_two.symm
+          _ < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} :=
+            ENNReal.add_lt_add (lt_of_le_of_lt (le_max_left _ _) hlt) hx₀
+      exact absurd h1 (not_le.2 h2)
+  · push Not at h
+    exact ⟨2⁻¹, ENNReal.inv_lt_one.2 ENNReal.one_lt_two, h⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **every single history has probability zero** under `ν^ℕ`. -/
+theorem iid_singleton {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (ω : ℕ → ℝ) :
+    (iidSystem ν).μ {ω} = 0 := by
+  obtain ⟨q, hq, hle⟩ := exists_singleton_le hmean hvar hσ
+  have hb : ∀ n, (iidSystem ν).μ {ω} ≤ q ^ n := by
+    intro n
+    calc (iidSystem ν).μ {ω}
+        ≤ Measure.infinitePi (fun _ => (ν : Measure ℝ))
+            (Set.pi ↑(Finset.range n) fun i => {ω i}) :=
+          measure_mono fun ω' h i _ => by rw [Set.mem_singleton_iff.mp h]; rfl
+      _ = ∏ i ∈ Finset.range n, (ν : Measure ℝ) {ω i} :=
+          Measure.infinitePi_pi (fun _ => (ν : Measure ℝ)) fun i _ => measurableSet_singleton _
+      _ ≤ q ^ n := by
+          simpa using Finset.prod_le_pow_card (Finset.range n) _ q fun i _ => hle (ω i)
+  exact le_antisymm (ge_of_tendsto' (ENNReal.tendsto_pow_atTop_nhds_zero_of_lt_one hq) hb)
+    bot_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: **not finitely (or countably) supported** — every countable set
+of histories is null, in contrast with a finite event tree. -/
+theorem iid_countable_null {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) {F : Set (ℕ → ℝ)}
+    (hF : F.Countable) : (iidSystem ν).μ F = 0 := by
+  have : NullSingletonClass (iidSystem ν).μ := ⟨iid_singleton hmean hvar hσ⟩
+  exact hF.measure_zero _
+
+/-- Cochrane (2023), Ch. 2, p. 29: no finite set of histories carries the probability. -/
+theorem iid_not_finitely_supported {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (F : Finset (ℕ → ℝ)) :
+    (iidSystem ν).μ ↑F ≠ 1 := by
+  rw [iid_countable_null hmean hvar hσ F.countable_toSet]
+  exact zero_ne_one
+
+/-! ### Determinacy with i.i.d. news -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. filtration carries genuinely random bounded news. -/
+theorem iid_news {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) :
+    ∃ s η B, StronglyMeasurable[(iidSystem ν).𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂(iidSystem ν).μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[(iidSystem ν).μ] (iidSystem ν).E s η :=
+  ⟨0, shock 1, B, (measurable_shock ν le_rfl).stronglyMeasurable, shock_ae_bdd ν hbdd 1,
+    shock_not_ae_E hmean hvar hσ 0⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy in the i.i.d. economy** — bounded adapted
+solutions of `z_t = a E_t z_{t+1} + u_t` exist and are unique for every bounded adapted `u` iff
+`|a| < 1`. -/
+theorem iid_existsUnique_iff {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (a : ℝ) :
+    (∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem ν).𝓕 u → (iidSystem ν).BddProc u →
+      (∃ z, (iidSystem ν).Solves a u z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+        (iidSystem ν).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem ν).Solves a u z₁ → (iidSystem ν).Solves a u z₂ →
+        StronglyAdapted (iidSystem ν).𝓕 z₁ → StronglyAdapted (iidSystem ν).𝓕 z₂ →
+        (iidSystem ν).BddProc z₁ → (iidSystem ν).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem ν).μ] z₂ t) ↔ |a| < 1 :=
+  (iidSystem ν).existsUnique_iff (iid_news hmean hvar hσ hbdd) a
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the i.i.d. economy has a bounded, genuinely random
+sunspot solution of `z_t = a E_t z_{t+1}` next to `z = 0`, driven by the date-1 shock. -/
+theorem iid_sunspot {σ2 B a : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (ha : 1 ≤ |a|) :
+    ∃ z, (iidSystem ν).Solves a 0 z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+      (iidSystem ν).BddProc z ∧ ¬ z 1 =ᵐ[(iidSystem ν).μ] 0 :=
+  (iidSystem ν).not_unique_of_one_le ha (measurable_shock ν le_rfl).stronglyMeasurable
+    (shock_ae_bdd ν hbdd 1) (shock_not_ae_E hmean hvar hσ 0) ((iidSystem ν).solves_zero a)
+    (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+
+/-! ### AR(1) with i.i.d. innovations -/
+
+/-- Cochrane (2023), p. 42: the AR(1) `u_0 = ε_0`, `u_{t+1} = ρ u_t + ε_{t+1}`. -/
+def ar1 (ρ : ℝ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => shock 0
+  | t + 1 => fun ω => ρ * ar1 ρ t ω + shock (t + 1) ω
+
+/-- Cochrane (2023), p. 42: the AR(1) law of motion. -/
+theorem ar1_succ (ρ : ℝ) (t : ℕ) : ar1 ρ (t + 1) = ρ • ar1 ρ t + shock (t + 1) := rfl
+
+variable (ν) in
+/-- Cochrane (2023), p. 42: the AR(1) is adapted. -/
+theorem ar1_adapted (ρ : ℝ) : StronglyAdapted (iidSystem ν).𝓕 (ar1 ρ) := by
+  intro t
+  induction t with
+  | zero => exact (measurable_shock ν le_rfl).stronglyMeasurable
+  | succ t ih =>
+    rw [ar1_succ]
+    exact ((ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t))).const_smul ρ).add
+      (measurable_shock ν le_rfl).stronglyMeasurable
+
+/-- Cochrane (2023), p. 42: for `|ρ| < 1` and shocks bounded by `B`, `|u_t| ≤ B / (1 − |ρ|)`. -/
+theorem ar1_bdd {ρ B : ℝ} (hρ : |ρ| < 1) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |ar1 ρ t ω| ≤ B / (1 - |ρ|) := by
+  obtain ⟨x₀, hx₀⟩ := hbdd.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hx₀
+  have h1 : 0 < 1 - |ρ| := by linarith
+  filter_upwards [ae_all_iff.2 (shock_ae_bdd ν hbdd)] with ω h
+  induction t with
+  | zero =>
+    refine (h 0).trans ?_
+    rw [le_div_iff₀ h1]
+    nlinarith [abs_nonneg ρ]
+  | succ t ih =>
+    change |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ _
+    have key : |ρ| * (B / (1 - |ρ|)) + B = B / (1 - |ρ|) := by
+      field_simp
+      ring
+    calc |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ |ρ| * |ar1 ρ t ω| + |shock (t + 1) ω| := by
+          rw [← abs_mul]
+          exact abs_add_le _ _
+      _ ≤ |ρ| * (B / (1 - |ρ|)) + B :=
+          add_le_add (mul_le_mul_of_nonneg_left ih (abs_nonneg ρ)) (h (t + 1))
+      _ = B / (1 - |ρ|) := key
+
+/-- Cochrane (2023), p. 42: **AR(1) forecasts**, `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem iid_ar1_E {ρ B : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    (iidSystem ν).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem ν).μ] ρ ^ j • ar1 ρ t :=
+  (iidSystem ν).ar1_E (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) t j
+
+/-- Cochrane (2023), p. 42: **AR(1) conditional variance**,
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. -/
+theorem iid_ar1_condVar {ρ B σ2 : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B)
+    (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) :=
+  (iidSystem ν).ar1_condVar (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-- Cochrane (2023), p. 42: closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem iid_ar1_condVar_closed {ρ B σ2 : ℝ} (hρ : |ρ| < 1)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  have hρ2 : ρ ^ 2 ≠ 1 := by
+    intro h
+    have : |ρ| ^ 2 = 1 := by rw [sq_abs]; exact h
+    nlinarith [abs_nonneg ρ]
+  exact (iidSystem ν).ar1_condVar_closed hρ2 (ar1_succ ρ) (ar1_adapted ν ρ)
+    ⟨_, ar1_bdd hρ hbdd⟩ (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-! ### A concrete law: the fair `±1` coin -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin `ν = ½ δ₁ + ½ δ₋₁` as a measure. -/
+noncomputable def coinMeasure : Measure ℝ :=
+  (2⁻¹ : ENNReal) • (Measure.dirac 1 + Measure.dirac (-1))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin has total mass one. -/
+theorem coinMeasure_univ : coinMeasure Set.univ = 1 := by
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+  rw [one_add_one_eq_two, ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin as a probability measure. -/
+noncomputable def coin : ProbabilityMeasure ℝ := ⟨coinMeasure, ⟨coinMeasure_univ⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the coin, `∫ f dν = (f 1 + f (−1)) / 2`. -/
+theorem integral_coin (f : ℝ → ℝ) :
+    ∫ x, f x ∂(coin : Measure ℝ) = (f 1 + f (-1)) / 2 := by
+  change ∫ x, f x ∂coinMeasure = _
+  rw [coinMeasure, integral_smul_measure, integral_add_measure (integrable_dirac enorm_lt_top)
+    (integrable_dirac enorm_lt_top), integral_dirac, integral_dirac, ENNReal.toReal_inv,
+    ENNReal.toReal_ofNat, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has mean zero. -/
+theorem coin_mean : ∫ x, x ∂(coin : Measure ℝ) = 0 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has variance one. -/
+theorem coin_var : ∫ x, x ^ 2 ∂(coin : Measure ℝ) = 1 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin is bounded by one. -/
+theorem coin_bdd : ∀ᵐ x ∂(coin : Measure ℝ), |x| ≤ 1 := by
+  change ∀ᵐ x ∂coinMeasure, |x| ≤ 1
+  rw [ae_iff]
+  have hs : MeasurableSet {x : ℝ | ¬ |x| ≤ 1} :=
+    (measurableSet_le continuous_abs.measurable measurable_const).compl
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, Measure.dirac_apply' _ hs,
+    Set.indicator, Set.mem_ofPred_eq]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29 and p. 42: **the coin economy** — `ε_t = ±1` i.i.d. fair coins —
+satisfies everything: `E_t ε_{t+1} = 0`, `Var_t ε_{t+1} = 1`, every history is null, the shock is
+never predictable, determinacy holds iff `|a| < 1`, and the AR(1) has
+`Var_t(u_{t+j}) = (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem coin_economy (ρ a : ℝ) (hρ : |ρ| < 1) :
+    (∀ t, (iidSystem coin).E t (shock (t + 1)) =ᵐ[(iidSystem coin).μ] 0) ∧
+    (∀ t, Var[shock (t + 1); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1) ∧
+    (∀ ω, (iidSystem coin).μ {ω} = 0) ∧
+    (∀ t, ¬ shock (t + 1) =ᵐ[(iidSystem coin).μ] (iidSystem coin).E t (shock (t + 1))) ∧
+    ((∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem coin).𝓕 u →
+      (iidSystem coin).BddProc u →
+      (∃ z, (iidSystem coin).Solves a u z ∧ StronglyAdapted (iidSystem coin).𝓕 z ∧
+        (iidSystem coin).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem coin).Solves a u z₁ → (iidSystem coin).Solves a u z₂ →
+        StronglyAdapted (iidSystem coin).𝓕 z₁ → StronglyAdapted (iidSystem coin).𝓕 z₂ →
+        (iidSystem coin).BddProc z₁ → (iidSystem coin).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem coin).μ] z₂ t) ↔ |a| < 1) ∧
+    (∀ t j, (iidSystem coin).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem coin).μ] ρ ^ j • ar1 ρ t) ∧
+    (∀ t j, Var[ar1 ρ (t + j); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)) :=
+  ⟨E_shock_zero coin_mean, condVar_shock coin_mean coin_var,
+    iid_singleton coin_mean coin_var one_pos, shock_not_ae_E coin_mean coin_var one_pos,
+    iid_existsUnique_iff coin_mean coin_var one_pos coin_bdd a,
+    iid_ar1_E hρ coin_mean coin_bdd, iid_ar1_condVar_closed hρ coin_mean coin_var coin_bdd⟩
+
+end Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The early lift-off of Figure 20.3 in the continuous-time limit
+
+Cochrane (2023), Chapter 20, §20.2.1, pp. 471–474 and Figure 20.3 (the rule
+`i = max[π* + φ(π − π*), 0]` with a natural-rate shock; survey error E3: the rate lifts off before
+`T`), compared with the delayed lift-off of §20.2.4, p. 479 (`ForwardGuidance.delayPi`).
+
+The models of Figure 20.3 (static IS curve, discrete time, period 1) and of §20.2.4 (Werning's
+continuous-time model, dynamic IS curve, an exogenous rate path) do not match. We build the
+family of discrete models with period `h`: the model of `ZLBRule` with Phillips-curve slope `κh`
+(rates per unit of time), whose map is an exact semi-implicit Euler step of the continuous-time
+model `dπ/dt = σκ(i(π) − π − u)` (`fmap_scheme`); at `h = 1` it is Figure 20.3
+(`fig203_member`). Throughout, `σκ > 0`, `φ > 1`, `π* > 0` and the shock is deep enough that
+there is no steady state during the trap, `π*(φ − 1)/φ < −u` (the case of Figure 20.3, survey
+E2, `ZLBRule.steady_exists_iff`).
+
+## Main results
+
+* Discrete, every period `h > 0` and trap length `N` periods (`sel_path`, `rate_pos_iff`,
+  `AA_gt_kink_iff`): along the path selected by `π_N = π*`, the rate is positive at date
+  `N − k` iff `k·log c_h < Λ`, where `c_h = (1 + φσκh)/(1 + σκh)` and
+  `Λ = −log(1 − π*(φ − 1)/(−φu))`. The explicit selected path is `selPath`.
+* The continuous-time limit model (`CTEq`, `piC`): `piC_solves` (existence), `ct_unique` (with
+  local boundedness after `T`, the solution is unique), `ct_liftoff` (the rate is zero exactly up
+  to `t_L = T − Λ/(σκ(φ − 1))` and positive after).
+* **Convergence** for `h = T/N → 0`: `liftoff_eps` (for every `ε > 0` and all large `N` the rate
+  is zero at every grid date `≤ t_L − ε` and positive at every grid date `≥ t_L + ε`),
+  `liftoff_time_tendsto` (the discrete lift-off time tends to `max(t_L, 0)`) and `path_tendsto`
+  (the inflation path converges pointwise on `[0, T]` to the continuous-time path).
+* **The two lift-offs genuinely differ** (`early_vs_delayed`): the limit of Figure 20.3 lifts
+  off strictly before the end of the trap, `t_L < T`, for every calibration, so survey error E3
+  is not a discretisation artefact; delayed lift-off (`ForwardGuidance.delayI`) keeps the rate at
+  zero until `L ≥ T`. On the nonempty interval `(max(t_L, 0), T)` the rule's rate is positive and
+  the delayed rate is zero. At the Figure 20.3 calibration `t_L = 10 − 2 log 2 ≈ 8.61`, while the
+  period-1 model lifts off at date 8 (`fig203_member`).
+-/
+
+namespace Cochrane.ZeroBound.TidyR6LiftoffLimit
+
+open Filter Topology
+open Cochrane.ZeroBound Cochrane.ZeroBound.ZLBRule
+
+/-! ## Constants -/
+
+/-- Cochrane (2023), eq. (20.4), p. 472: the shifted steady state `ū = u/(φ − 1)` of the active
+branch (`π* + ū` is the upper steady state when it exists). -/
+noncomputable def ubar (φ u : ℝ) : ℝ := u / (φ - 1)
+
+/-- Cochrane (2023), p. 472: `q = 1 − π*(φ − 1)/(φ(−u))`, in `(0, 1)` when there is no steady
+state. -/
+noncomputable def qq (φ πs u : ℝ) : ℝ := 1 - πs * (φ - 1) / (φ * -u)
+
+/-- Cochrane (2023), p. 472: `Λ = −log q`, the log growth of the distance to `ū` from `π*` down
+to the kink. -/
+noncomputable def Lam (φ πs u : ℝ) : ℝ := -Real.log (qq φ πs u)
+
+/-- Cochrane (2023), eq. (20.4), p. 472: the continuous-time slope `σκ(φ − 1)` of the active
+branch. -/
+noncomputable def a0 (σ κ φ : ℝ) : ℝ := σ * κ * (φ - 1)
+
+/-- Cochrane (2023), p. 472: the length `s* = Λ/(σκ(φ − 1))` of the positive-rate spell before
+`T` in the continuous-time limit. -/
+noncomputable def sStar (σ κ φ πs u : ℝ) : ℝ := Lam φ πs u / a0 σ κ φ
+
+/-- Cochrane (2023), p. 472: the continuous-time lift-off date `t_L = T − s*`. -/
+noncomputable def tL (σ κ φ πs u T : ℝ) : ℝ := T - sStar σ κ φ πs u
+
+/-- Cochrane (2023), p. 472: `−ū(1 − q) = π*/φ`, the distance from `π*` to the kink. -/
+theorem ubar_one_sub_qq {φ πs u : ℝ} (hφ : 1 < φ) (hu : u < 0) :
+    -ubar φ u * (1 - qq φ πs u) = πs / φ := by
+  have h1 : φ - 1 ≠ 0 := by linarith
+  have h2 : φ ≠ 0 := by linarith
+  have h3 : u ≠ 0 := hu.ne
+  unfold ubar qq
+  field_simp
+  ring
+
+/-- Cochrane (2023), p. 472: under the standing hypotheses `u < 0`, `ū < 0`, `0 < q < 1`,
+`Λ > 0`, `σκ(φ − 1) > 0` and `s* > 0`. -/
+theorem consts_pos {σ κ φ πs u : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) :
+    u < 0 ∧ ubar φ u < 0 ∧ 0 < qq φ πs u ∧ qq φ πs u < 1 ∧ 0 < Lam φ πs u ∧ 0 < a0 σ κ φ ∧
+      0 < sStar σ κ φ πs u := by
+  have hk0 := (kink_mem hφ hπs).1
+  have hu : u < 0 := by linarith
+  have hub : ubar φ u < 0 := div_neg_of_neg_of_pos hu (by linarith)
+  have hθ : πs * (φ - 1) / (φ * -u) = kink φ πs / -u := by
+    unfold kink
+    have : φ ≠ 0 := by linarith
+    field_simp
+  have hθ0 : 0 < kink φ πs / -u := div_pos hk0 (by linarith)
+  have hθ1 : kink φ πs / -u < 1 := (div_lt_one (by linarith)).mpr hk
+  have hq0 : 0 < qq φ πs u := by unfold qq; rw [hθ]; linarith
+  have hq1 : qq φ πs u < 1 := by unfold qq; rw [hθ]; linarith
+  have hL : 0 < Lam φ πs u := by
+    unfold Lam
+    have := Real.log_neg hq0 hq1
+    linarith
+  have ha : 0 < a0 σ κ φ := by unfold a0; nlinarith
+  exact ⟨hu, hub, hq0, hq1, hL, ha, div_pos hL ha⟩
+
+/-- Cochrane (2023), p. 472: `e^{−σκ(φ−1)s*} = q`. -/
+theorem exp_sStar {σ κ φ πs u : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) : Real.exp (-(a0 σ κ φ * sStar σ κ φ πs u)) = qq φ πs u := by
+  obtain ⟨-, -, hq0, -, -, ha, -⟩ := consts_pos hσκ hφ hπs hk
+  unfold sStar Lam
+  rw [mul_div_cancel₀ _ ha.ne', neg_neg, Real.exp_log hq0]
+
+/-! ## The discrete model with period `h` -/
+
+/-- Cochrane (2023), eq. (20.4), p. 472, with period `h`: the active-branch slope
+`c_h = (1 + φσκh)/(1 + σκh)`. -/
+noncomputable def cc (σ κ φ h : ℝ) : ℝ := slopeR σ (h * κ) φ
+
+/-- Cochrane (2023), p. 472, with period `h`: the candidate active-branch path `k` periods
+before `T`, `A_k = π* + ū(1 − c_h^{−k})`. -/
+noncomputable def AA (σ κ φ πs u h : ℝ) (k : ℕ) : ℝ := πs + ubar φ u * (1 - (cc σ κ φ h)⁻¹ ^ k)
+
+/-- Cochrane (2023), eq. (20.2), p. 472, with period `h`: the coefficient `σκh` is positive. -/
+theorem ah_pos {σ κ h : ℝ} (hσκ : 0 < σ * κ) (hh : 0 < h) : 0 < σ * (h * κ) := by
+  have : σ * (h * κ) = h * (σ * κ) := by ring
+  rw [this]
+  exact mul_pos hh hσκ
+
+/-- Cochrane (2023), eq. (20.2), p. 472: the period-`h` map is an exact semi-implicit Euler step
+of the continuous-time model `dπ/dt = σκ(i(π) − π − u)`:
+`(f_h(π) − π)/h = σκ(i(π) − f_h(π) − u)`. -/
+theorem fmap_scheme {σ κ φ πs u h : ℝ} (hh : 0 < h) (hσκ : 0 < σ * κ) (π : ℝ) :
+    (fmap σ (h * κ) φ πs u π - π) / h =
+      σ * κ * (rule φ πs π - fmap σ (h * κ) φ πs u π - u) := by
+  have ha : 0 < σ * (h * κ) := ah_pos hσκ hh
+  have hne : 1 + σ * h * κ ≠ 0 := by
+    have : σ * h * κ = σ * (h * κ) := by ring
+    rw [this]; linarith
+  unfold fmap
+  field_simp
+  ring
+
+/-- Cochrane (2023), eq. (20.4), p. 472: `c_h > 1`. -/
+theorem cc_gt_one {σ κ φ h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hh : 0 < h) :
+    1 < cc σ κ φ h :=
+  (slope_right_gt_one_iff (ah_pos hσκ hh)).mpr hφ
+
+/-- Cochrane (2023), eq. (20.4), p. 472: the active-branch line
+`ℓ(π) = π* + c_h(π − π*) − σκh u/(1 + σκh)` lies below the map everywhere. -/
+theorem line_le {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hh : 0 < h) (π : ℝ) :
+    πs + cc σ κ φ h * (π - πs) - σ * (h * κ) / (1 + σ * (h * κ)) * u ≤
+      fmap σ (h * κ) φ πs u π := by
+  have ha := ah_pos hσκ hh
+  have hr : πs + φ * (π - πs) ≤ rule φ πs π := le_max_left _ _
+  have e : fmap σ (h * κ) φ πs u π -
+      (πs + cc σ κ φ h * (π - πs) - σ * (h * κ) / (1 + σ * (h * κ)) * u) =
+      σ * (h * κ) * (rule φ πs π - (πs + φ * (π - πs))) / (1 + σ * (h * κ)) := by
+    have hne : 1 + σ * h * κ ≠ 0 := by
+      have : σ * h * κ = σ * (h * κ) := by ring
+      rw [this]; linarith
+    unfold fmap cc slopeR
+    field_simp
+    ring
+  have : 0 ≤ σ * (h * κ) * (rule φ πs π - (πs + φ * (π - πs))) / (1 + σ * (h * κ)) :=
+    div_nonneg (mul_nonneg ha.le (by linarith)) (by linarith)
+  linarith
+
+/-- Cochrane (2023), eq. (20.4), p. 472: on the active branch the map is the line. -/
+theorem line_eq {σ κ φ πs u h π : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hh : 0 < h)
+    (hπ : kink φ πs ≤ π) :
+    fmap σ (h * κ) φ πs u π =
+      πs + cc σ κ φ h * (π - πs) - σ * (h * κ) / (1 + σ * (h * κ)) * u := by
+  have := eq20_4 (u := u) (ah_pos hσκ hh) (active_of_kink_le (by linarith) hπ)
+  unfold cc
+  linarith
+
+/-- Cochrane (2023), eq. (20.3), p. 472: on the zero-bound branch the map is
+`π/(1 + σκh) − σκh u/(1 + σκh)`. -/
+theorem zlb_eq {σ κ φ πs u h π : ℝ} (hφ : 1 < φ) (hπ : π ≤ kink φ πs) :
+    fmap σ (h * κ) φ πs u π =
+      1 / (1 + σ * (h * κ)) * π - σ * (h * κ) / (1 + σ * (h * κ)) * u :=
+  eq20_3 ((kink_iff (by linarith)).mpr hπ)
+
+/-- Cochrane (2023), p. 472 (survey E2): with no steady state, the map lies strictly above the
+diagonal, `π < f_h(π)`. -/
+theorem lt_fmap {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hh : 0 < h)
+    (hk : kink φ πs < -u) (π : ℝ) : π < fmap σ (h * κ) φ πs u π := by
+  have ha := ah_pos hσκ hh
+  have hpos : 0 < rule φ πs π - π - u := by
+    have h0 : 0 ≤ rule φ πs π := le_max_right _ _
+    have h1 : πs + φ * (π - πs) ≤ rule φ πs π := le_max_left _ _
+    rcases le_total π (kink φ πs) with hπ | hπ
+    · linarith
+    · have : (φ - 1) * (kink φ πs - πs) = -kink φ πs := by
+        unfold kink; field_simp; ring
+      have h2 : (φ - 1) * (kink φ πs - πs) ≤ (φ - 1) * (π - πs) :=
+        mul_le_mul_of_nonneg_left (by linarith) (by linarith)
+      nlinarith
+  have e : fmap σ (h * κ) φ πs u π - π =
+      σ * (h * κ) * (rule φ πs π - π - u) / (1 + σ * (h * κ)) := by
+    have hne : 1 + σ * h * κ ≠ 0 := by
+      have : σ * h * κ = σ * (h * κ) := by ring
+      rw [this]; linarith
+    unfold fmap
+    field_simp
+    ring
+  have : 0 < σ * (h * κ) * (rule φ πs π - π - u) / (1 + σ * (h * κ)) :=
+    div_pos (mul_pos ha hpos) (by linarith)
+  linarith
+
+/-- Cochrane (2023), p. 472: the line maps `A_{k+1}` to `A_k`. -/
+theorem line_AA {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hh : 0 < h) (k : ℕ) :
+    πs + cc σ κ φ h * (AA σ κ φ πs u h (k + 1) - πs) - σ * (h * κ) / (1 + σ * (h * κ)) * u =
+      AA σ κ φ πs u h k := by
+  have ha := ah_pos hσκ hh
+  have hc := cc_gt_one hσκ hφ hh
+  have hc0 : cc σ κ φ h ≠ 0 := by linarith
+  have hcm : cc σ κ φ h - 1 = (φ - 1) * (σ * (h * κ)) / (1 + σ * (h * κ)) := by
+    have hne : 1 + σ * h * κ ≠ 0 := by
+      have : σ * h * κ = σ * (h * κ) := by ring
+      rw [this]; linarith
+    unfold cc slopeR
+    field_simp
+    ring
+  have hφ1 : φ - 1 ≠ 0 := by linarith
+  unfold AA ubar
+  rw [pow_succ]
+  set X := (cc σ κ φ h)⁻¹ ^ k
+  have hinv : cc σ κ φ h * (cc σ κ φ h)⁻¹ = 1 := mul_inv_cancel₀ hc0
+  have e : cc σ κ φ h * (u / (φ - 1)) - σ * (h * κ) / (1 + σ * (h * κ)) * u = u / (φ - 1) := by
+    have : cc σ κ φ h = 1 + (φ - 1) * (σ * (h * κ)) / (1 + σ * (h * κ)) := by linarith
+    rw [this]
+    field_simp
+    ring
+  linear_combination e - u / (φ - 1) * X * hinv
+
+/-- Cochrane (2023), p. 472: `A_0 = π*`. -/
+theorem AA_zero (σ κ φ πs u h : ℝ) : AA σ κ φ πs u h 0 = πs := by
+  simp [AA]
+
+/-- Cochrane (2023), p. 472: `A_k` is antitone in `k` (inflation falls going back in time). -/
+theorem AA_antitone {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hh : 0 < h) (hu : u < 0) :
+    Antitone (AA σ κ φ πs u h) := by
+  have hc := cc_gt_one hσκ hφ hh
+  have hub : ubar φ u < 0 := div_neg_of_neg_of_pos hu (by linarith)
+  refine antitone_nat_of_succ_le fun k => ?_
+  have h0 : 0 < (cc σ κ φ h)⁻¹ := inv_pos.mpr (by linarith)
+  have h1 : (cc σ κ φ h)⁻¹ < 1 := inv_lt_one_of_one_lt₀ hc
+  have : (cc σ κ φ h)⁻¹ ^ (k + 1) ≤ (cc σ κ φ h)⁻¹ ^ k :=
+    pow_le_pow_of_le_one h0.le h1.le (Nat.le_succ k)
+  unfold AA
+  nlinarith
+
+/-- Cochrane (2023), p. 472, Figure 20.3 with period `h`: **the selected path before `T`.** If
+`p_N = π*` and `p_{n+1} = f_h(p_n)` before `N`, then `k ≤ N` periods before `N` the path is
+`A_k` when `A_k` lies above the kink, and lies at or below the kink otherwise. -/
+theorem sel_path {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hh : 0 < h) {N : ℕ} {p : ℕ → ℝ} (hN : p N = πs)
+    (hrec : ∀ n, n < N → p (n + 1) = fmap σ (h * κ) φ πs u (p n)) :
+    ∀ k, k ≤ N → (kink φ πs < AA σ κ φ πs u h k → p (N - k) = AA σ κ φ πs u h k) ∧
+      (AA σ κ φ πs u h k ≤ kink φ πs → p (N - k) ≤ kink φ πs) := by
+  have ha := ah_pos hσκ hh
+  have hc := cc_gt_one hσκ hφ hh
+  have hu := (consts_pos hσκ hφ hπs hk).1
+  have hkp := (kink_mem hφ hπs).2
+  have hinj := (fmap_strictMono (σ := σ) (κ := h * κ) (φ := φ) (πs := πs) (u := u)
+    (by linarith) ha).injective
+  intro k
+  induction k with
+  | zero =>
+    intro _
+    rw [AA_zero, Nat.sub_zero, hN]
+    exact ⟨fun _ => rfl, fun h => absurd h (not_le.mpr hkp)⟩
+  | succ k ih =>
+    intro hk1
+    obtain ⟨ih1, ih2⟩ := ih (by omega)
+    have hstep : p (N - k) = fmap σ (h * κ) φ πs u (p (N - (k + 1))) := by
+      have := hrec (N - (k + 1)) (by omega)
+      rwa [show N - (k + 1) + 1 = N - k by omega] at this
+    have hmono : AA σ κ φ πs u h (k + 1) ≤ AA σ κ φ πs u h k :=
+      AA_antitone hσκ hφ hh hu (Nat.le_succ k)
+    constructor
+    · intro hA
+      have e1 := ih1 (lt_of_lt_of_le hA hmono)
+      have e2 : fmap σ (h * κ) φ πs u (AA σ κ φ πs u h (k + 1)) = AA σ κ φ πs u h k := by
+        rw [line_eq hσκ hφ hh hA.le, line_AA hσκ hφ hh]
+      exact hinj (by rw [← hstep, e1, e2])
+    · intro hA
+      by_cases hAk : kink φ πs < AA σ κ φ πs u h k
+      · have e1 := ih1 hAk
+        have hle := line_le (u := u) (φ := φ) (πs := πs) hσκ hh (p (N - (k + 1)))
+        rw [← hstep, e1, ← line_AA hσκ hφ hh k] at hle
+        have : p (N - (k + 1)) ≤ AA σ κ φ πs u h (k + 1) := by
+          by_contra hcon
+          push Not at hcon
+          have := mul_lt_mul_of_pos_left (sub_lt_sub_right hcon πs) (by linarith : 0 < cc σ κ φ h)
+          linarith
+        linarith
+      · push Not at hAk
+        have := ih2 hAk
+        have hg := lt_fmap (u := u) hσκ hφ hh hk (p (N - (k + 1)))
+        rw [← hstep] at hg
+        linarith
+
+/-- Cochrane (2023), eq. (20.1), p. 472: for `φ > 0` the rate is positive iff inflation is above
+the kink. -/
+theorem rule_pos_iff {φ πs x : ℝ} (hφ : 0 < φ) : 0 < rule φ πs x ↔ kink φ πs < x := by
+  unfold rule
+  constructor
+  · intro h
+    by_contra hc
+    push Not at hc
+    rw [max_eq_right ((kink_iff hφ).mpr hc)] at h
+    exact lt_irrefl 0 h
+  · intro h
+    have : 0 < πs + φ * (x - πs) := by
+      by_contra hc
+      push Not at hc
+      exact absurd ((kink_iff hφ).mp hc) (not_le.mpr h)
+    exact lt_of_lt_of_le this (le_max_left _ _)
+
+/-- Cochrane (2023), p. 472, Figure 20.3 with period `h` (survey E3): on the selected path the
+rate at date `n ≤ N` is positive iff `A_{N−n}` lies above the kink. -/
+theorem rate_pos_iff {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hh : 0 < h) {N : ℕ} {p : ℕ → ℝ} (hN : p N = πs)
+    (hrec : ∀ n, n < N → p (n + 1) = fmap σ (h * κ) φ πs u (p n)) {n : ℕ} (hn : n ≤ N) :
+    0 < rule φ πs (p n) ↔ kink φ πs < AA σ κ φ πs u h (N - n) := by
+  have hsp := sel_path hσκ hφ hπs hk hh hN hrec (N - n) (by omega)
+  rw [show N - (N - n) = n by omega] at hsp
+  rw [rule_pos_iff (by linarith)]
+  constructor
+  · intro h
+    by_contra hc
+    push Not at hc
+    linarith [hsp.2 hc]
+  · intro h
+    rw [hsp.1 h]
+    exact h
+
+/-- Cochrane (2023), p. 472: `A_k` lies above the kink iff `k·log c_h < Λ`. -/
+theorem AA_gt_kink_iff {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hh : 0 < h) (k : ℕ) :
+    kink φ πs < AA σ κ φ πs u h k ↔ (k : ℝ) * Real.log (cc σ κ φ h) < Lam φ πs u := by
+  obtain ⟨hu, hub, hq0, -, -, -, -⟩ := consts_pos hσκ hφ hπs hk
+  have hc := cc_gt_one hσκ hφ hh
+  have hX : 0 < (cc σ κ φ h)⁻¹ ^ k := pow_pos (inv_pos.mpr (by linarith)) k
+  have hid : AA σ κ φ πs u h k - kink φ πs =
+      -ubar φ u * ((cc σ κ φ h)⁻¹ ^ k - qq φ πs u) := by
+    have h1 := ubar_one_sub_qq (πs := πs) hφ hu
+    have h2 : πs - kink φ πs = πs / φ := by
+      unfold kink; field_simp; ring
+    unfold AA
+    linear_combination h2 - h1
+  have hlog : Real.log ((cc σ κ φ h)⁻¹ ^ k) = -((k : ℝ) * Real.log (cc σ κ φ h)) := by
+    rw [Real.log_pow, Real.log_inv]
+    ring
+  constructor
+  · intro hA
+    have : qq φ πs u < (cc σ κ φ h)⁻¹ ^ k := by
+      by_contra hcon
+      push Not at hcon
+      have := mul_nonpos_of_nonneg_of_nonpos (by linarith : 0 ≤ -ubar φ u) (by linarith :
+        (cc σ κ φ h)⁻¹ ^ k - qq φ πs u ≤ 0)
+      linarith
+    have := Real.log_lt_log hq0 this
+    unfold Lam
+    linarith
+  · intro hA
+    have : Real.log (qq φ πs u) < Real.log ((cc σ κ φ h)⁻¹ ^ k) := by
+      unfold Lam at hA
+      linarith
+    have hlt := (Real.log_lt_log_iff hq0 hX).mp this
+    have := mul_pos (by linarith : 0 < -ubar φ u) (by linarith :
+      0 < (cc σ κ φ h)⁻¹ ^ k - qq φ πs u)
+    linarith
+
+/-! ## Limits as the period shrinks -/
+
+/-- Cochrane (2023), eq. (20.4), p. 472: per unit of time, the log growth of the active branch
+tends to the continuous-time rate, `log(c_h)/h → σκ(φ − 1)` as `h → 0⁺`. -/
+theorem tendsto_logcc {σ κ φ : ℝ} :
+    Tendsto (fun h => Real.log (cc σ κ φ h) / h) (𝓝[>] 0) (𝓝 (a0 σ κ φ)) := by
+  have hnum : HasDerivAt (fun h : ℝ => 1 + φ * (σ * (h * κ))) (φ * (σ * κ)) 0 := by
+    have := ((((hasDerivAt_id' (0 : ℝ)).mul_const κ).const_mul σ).const_mul φ).const_add 1
+    convert this using 1
+    ring
+  have hden : HasDerivAt (fun h : ℝ => 1 + σ * (h * κ)) (σ * κ) 0 := by
+    have := (((hasDerivAt_id' (0 : ℝ)).mul_const κ).const_mul σ).const_add 1
+    convert this using 1
+    ring
+  have hq := hnum.div hden (by simp)
+  have hl := hq.log (by simp)
+  have hs := hl.tendsto_slope_zero_right
+  have h2 := hs.congr' (f₂ := fun h => Real.log (cc σ κ φ h) / h) (by
+    filter_upwards [self_mem_nhdsWithin] with t _
+    simp [cc, slopeR, smul_eq_mul, div_eq_inv_mul])
+  convert h2 using 2
+  simp only [Pi.div_apply, mul_zero, zero_mul, add_zero, one_pow, div_one, mul_one, one_mul]
+  unfold a0
+  ring
+
+/-- Cochrane (2023), p. 472: the period `h = T/N` tends to `0⁺` as the number of periods in the
+trap grows. -/
+theorem tendsto_T_div {T : ℝ} (hT : 0 < T) : Tendsto (fun N : ℕ => T / N) atTop (𝓝[>] 0) :=
+  tendsto_nhdsWithin_iff.mpr ⟨tendsto_const_div_atTop_nhds_zero_nat T,
+    (eventually_gt_atTop 0).mono fun N hN => Set.mem_Ioi.mpr (div_pos hT (by exact_mod_cast hN))⟩
+
+/-- Cochrane (2023), p. 472, Figure 20.3 in the continuous-time limit: **convergence of the
+lift-off date.** For every `ε > 0`, for all large `N` (period `h = T/N`), along the path selected
+by `π_N = π*` the rate is zero at every grid date `nh ≤ t_L − ε` and positive at every grid date
+`nh ≥ t_L + ε` (`n ≤ N`). -/
+theorem liftoff_eps {σ κ φ πs u T ε : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hT : 0 < T) (hε : 0 < ε) :
+    ∀ᶠ N : ℕ in atTop, ∀ p : ℕ → ℝ, p N = πs →
+      (∀ n, n < N → p (n + 1) = fmap σ (T / N * κ) φ πs u (p n)) →
+      ∀ n, n ≤ N → ((n : ℝ) * (T / N) ≤ tL σ κ φ πs u T - ε → rule φ πs (p n) = 0) ∧
+        (tL σ κ φ πs u T + ε ≤ (n : ℝ) * (T / N) → 0 < rule φ πs (p n)) := by
+  obtain ⟨-, -, -, -, hL, ha, hs⟩ := consts_pos hσκ hφ hπs hk
+  set S := sStar σ κ φ πs u with hS
+  have hLs : Lam φ πs u = a0 σ κ φ * S := by
+    rw [hS, sStar]
+    field_simp
+  set r1 := Lam φ πs u / (S + ε) with hr1d
+  set r2 := a0 σ κ φ + a0 σ κ φ * ε / S with hr2d
+  have hr1 : r1 < a0 σ κ φ := by
+    rw [hr1d, div_lt_iff₀ (by linarith), hLs]
+    nlinarith
+  have hr2 : a0 σ κ φ < r2 := by
+    have : 0 < a0 σ κ φ * ε / S := by positivity
+    linarith
+  have hev := (tendsto_logcc.comp (tendsto_T_div hT)).eventually (Ioo_mem_nhds hr1 hr2)
+  filter_upwards [hev, eventually_gt_atTop 0] with N hN hN0 p hpN hrec n hn
+  have hNr : (0 : ℝ) < N := by exact_mod_cast hN0
+  have hh : 0 < T / N := div_pos hT hNr
+  obtain ⟨hra, hrb⟩ := hN
+  simp only [Function.comp] at hra hrb
+  set r := Real.log (cc σ κ φ (T / N)) / (T / N) with hrd
+  have hlogc : Real.log (cc σ κ φ (T / N)) = T / N * r := by
+    rw [hrd]; field_simp
+  have hkh : ((N - n : ℕ) : ℝ) * (T / N) = T - n * (T / N) := by
+    rw [Nat.cast_sub hn]
+    field_simp
+  have key : 0 < rule φ πs (p n) ↔ (T - n * (T / N)) * r < Lam φ πs u := by
+    rw [rate_pos_iff hσκ hφ hπs hk hh hpN hrec hn, AA_gt_kink_iff hσκ hφ hπs hk hh, hlogc,
+      ← mul_assoc, hkh]
+  have hr0 : 0 < r := lt_trans (div_pos hL (by linarith)) hra
+  have hnT : (n : ℝ) * (T / N) ≤ T := by
+    have : (n : ℝ) ≤ N := by exact_mod_cast hn
+    calc (n : ℝ) * (T / N) ≤ N * (T / N) := by gcongr
+      _ = T := by field_simp
+  constructor
+  · intro hle
+    have hnot : ¬ 0 < rule φ πs (p n) := by
+      rw [key, not_lt]
+      have h1 : S + ε ≤ T - n * (T / N) := by
+        have : tL σ κ φ πs u T = T - S := rfl
+        linarith
+      calc Lam φ πs u = (S + ε) * r1 := by rw [hr1d]; field_simp
+        _ ≤ (S + ε) * r := by gcongr
+        _ ≤ (T - n * (T / N)) * r := by gcongr
+    exact le_antisymm (not_lt.mp hnot) (le_max_right _ _)
+  · intro hge
+    rw [key]
+    have h1 : T - n * (T / N) ≤ S - ε := by
+      have : tL σ κ φ πs u T = T - S := rfl
+      linarith
+    by_cases hse : S - ε ≤ 0
+    · have : T - n * (T / N) = 0 := by linarith
+      rw [this, zero_mul]
+      exact hL
+    · push Not at hse
+      calc (T - n * (T / N)) * r ≤ (S - ε) * r := by gcongr
+        _ < (S - ε) * r2 := by gcongr
+        _ = a0 σ κ φ * (S ^ 2 - ε ^ 2) / S := by rw [hr2d]; field_simp; ring
+        _ < Lam φ πs u := by
+          rw [div_lt_iff₀ hs, hLs]
+          nlinarith [mul_pos ha (mul_pos hε hε)]
+
+/-! ## The explicit selected path and its lift-off date -/
+
+/-- Cochrane (2023), eq. (20.2), p. 472, with period `h`: the explicit inverse of the
+(strictly increasing, onto) map: the active-branch inverse above `f_h(kink)`, the zero-bound
+inverse below. -/
+noncomputable def finv (σ κ φ πs u h y : ℝ) : ℝ :=
+  if fmap σ (h * κ) φ πs u (kink φ πs) ≤ y then
+    πs + (y - πs + σ * (h * κ) / (1 + σ * (h * κ)) * u) / cc σ κ φ h
+  else (1 + σ * (h * κ)) * y + σ * (h * κ) * u
+
+/-- Cochrane (2023), eq. (20.2), p. 472: `f_h(finv(y)) = y`. -/
+theorem fmap_finv {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hh : 0 < h) (y : ℝ) :
+    fmap σ (h * κ) φ πs u (finv σ κ φ πs u h y) = y := by
+  have ha := ah_pos hσκ hh
+  have hc := cc_gt_one hσκ hφ hh
+  have hkink := line_eq (u := u) hσκ hφ hh (le_refl (kink φ πs))
+  have hkz := zlb_eq (σ := σ) (κ := κ) (u := u) (h := h) hφ (le_refl (kink φ πs))
+  have hne : 1 + σ * h * κ ≠ 0 := by
+    have : σ * h * κ = σ * (h * κ) := by ring
+    rw [this]; linarith
+  unfold finv
+  split_ifs with hy
+  · set x := πs + (y - πs + σ * (h * κ) / (1 + σ * (h * κ)) * u) / cc σ κ φ h
+    have hlx : πs + cc σ κ φ h * (x - πs) - σ * (h * κ) / (1 + σ * (h * κ)) * u = y := by
+      simp only [x]
+      field_simp
+      ring
+    have hxk : kink φ πs ≤ x := by
+      by_contra hcon
+      push Not at hcon
+      have := mul_lt_mul_of_pos_left (sub_lt_sub_right hcon πs) (by linarith : 0 < cc σ κ φ h)
+      linarith
+    rw [line_eq hσκ hφ hh hxk, hlx]
+  · push Not at hy
+    set x := (1 + σ * (h * κ)) * y + σ * (h * κ) * u
+    have hzx : 1 / (1 + σ * (h * κ)) * x - σ * (h * κ) / (1 + σ * (h * κ)) * u = y := by
+      simp only [x]
+      field_simp
+      ring
+    have hxk : x ≤ kink φ πs := by
+      by_contra hcon
+      push Not at hcon
+      have h1 : 1 / (1 + σ * (h * κ)) * kink φ πs < 1 / (1 + σ * (h * κ)) * x :=
+        mul_lt_mul_of_pos_left hcon (by positivity)
+      linarith
+    rw [zlb_eq hφ hxk, hzx]
+
+/-- Cochrane (2023), Figure 20.3 with period `h`: the selected path, `π*` from `N` on and the
+inverse map iterated backward before `N`. -/
+noncomputable def selPath (σ κ φ πs u h : ℝ) (N n : ℕ) : ℝ :=
+  if N ≤ n then πs else (finv σ κ φ πs u h)^[N - n] πs
+
+/-- Cochrane (2023), Figure 20.3: `π_N = π*` on the selected path. -/
+theorem selPath_N (σ κ φ πs u h : ℝ) (N : ℕ) : selPath σ κ φ πs u h N N = πs := by
+  simp [selPath]
+
+/-- Cochrane (2023), eq. (20.2), p. 472: the selected path solves the model before `N`. -/
+theorem selPath_rec {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hh : 0 < h) (N : ℕ) :
+    ∀ n, n < N → selPath σ κ φ πs u h N (n + 1) =
+      fmap σ (h * κ) φ πs u (selPath σ κ φ πs u h N n) := by
+  intro n hn
+  have h1 : selPath σ κ φ πs u h N (n + 1) = (finv σ κ φ πs u h)^[N - (n + 1)] πs := by
+    unfold selPath
+    by_cases hN : N ≤ n + 1
+    · simp only [hN, ↓reduceIte, show N - (n + 1) = 0 by omega, Function.iterate_zero, id]
+    · simp only [hN, ↓reduceIte]
+  have h2 : selPath σ κ φ πs u h N n =
+      finv σ κ φ πs u h ((finv σ κ φ πs u h)^[N - (n + 1)] πs) := by
+    unfold selPath
+    simp only [show ¬ N ≤ n by omega, ↓reduceIte]
+    rw [show N - n = N - (n + 1) + 1 by omega, Function.iterate_succ_apply']
+  rw [h1, h2, fmap_finv hσκ hφ hh]
+
+/-- Cochrane (2023), Figure 20.3 with period `h`: the lift-off date, the first date with a
+positive rate on the selected path. -/
+noncomputable def liftIdx (σ κ φ πs u h : ℝ) (N : ℕ) : ℕ :=
+  sInf {n | 0 < rule φ πs (selPath σ κ φ πs u h N n)}
+
+/-- Cochrane (2023), Figure 20.3: the rate is positive at `N` (it is `π* > 0`). -/
+theorem rate_N_pos {σ κ φ πs u h : ℝ} (hφ : 1 < φ) (hπs : 0 < πs) (N : ℕ) :
+    0 < rule φ πs (selPath σ κ φ πs u h N N) := by
+  rw [selPath_N, rule_pos_iff (by linarith)]
+  exact (kink_mem hφ hπs).2
+
+/-- Cochrane (2023), Figure 20.3: lift-off happens by `N`, and the rate is positive there. -/
+theorem liftIdx_spec {σ κ φ πs u h : ℝ} (hφ : 1 < φ) (hπs : 0 < πs) (N : ℕ) :
+    liftIdx σ κ φ πs u h N ≤ N ∧
+      0 < rule φ πs (selPath σ κ φ πs u h N (liftIdx σ κ φ πs u h N)) ∧
+      ∀ n, n < liftIdx σ κ φ πs u h N → rule φ πs (selPath σ κ φ πs u h N n) = 0 := by
+  have hmem : N ∈ {n | 0 < rule φ πs (selPath σ κ φ πs u h N n)} := rate_N_pos hφ hπs N
+  refine ⟨Nat.sInf_le hmem, Nat.sInf_mem ⟨N, hmem⟩, fun n hn => ?_⟩
+  have := Nat.notMem_of_lt_sInf hn
+  simp only [Set.mem_ofPred_eq, not_lt] at this
+  exact le_antisymm this (le_max_right _ _)
+
+/-- Cochrane (2023), Figure 20.3 in the continuous-time limit: **the discrete lift-off time
+converges**, `h·liftIdx → max(t_L, 0)` as `h = T/N → 0`. -/
+theorem liftoff_time_tendsto {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hT : 0 < T) :
+    Tendsto (fun N : ℕ => (liftIdx σ κ φ πs u (T / N) N : ℝ) * (T / N)) atTop
+      (𝓝 (max (tL σ κ φ πs u T) 0)) := by
+  rw [Metric.tendsto_atTop]
+  intro δ hδ
+  have hε : 0 < δ / 2 := by linarith
+  obtain ⟨N1, hN1⟩ := eventually_atTop.mp (liftoff_eps (u := u) hσκ hφ hπs hk hT hε)
+  obtain ⟨N2, hN2⟩ := eventually_atTop.mp
+    ((tendsto_order.mp (tendsto_const_div_atTop_nhds_zero_nat T)).2 (δ / 2) hε)
+  refine ⟨max (max N1 N2) 1, fun N hN => ?_⟩
+  have hN0 : 1 ≤ N := le_trans (le_max_right _ _) hN
+  have hNr : (0 : ℝ) < N := by exact_mod_cast hN0
+  have hh : 0 < T / N := div_pos hT hNr
+  have hhd : T / N < δ / 2 := hN2 N (le_trans (le_trans (le_max_right _ _) (le_max_left _ _)) hN)
+  have hE := hN1 N (le_trans (le_trans (le_max_left _ _) (le_max_left _ _)) hN)
+    (selPath σ κ φ πs u (T / N) N) (selPath_N _ _ _ _ _ _ N) (selPath_rec hσκ hφ hh N)
+  obtain ⟨hLN, hLpos, -⟩ := liftIdx_spec (σ := σ) (κ := κ) (u := u) (h := T / N) hφ hπs N
+  set L := liftIdx σ κ φ πs u (T / N) N
+  set t0 := tL σ κ φ πs u T
+  have hx0 : 0 ≤ (L : ℝ) * (T / N) := by positivity
+  -- lower bound
+  have hlow : t0 - δ / 2 < (L : ℝ) * (T / N) := by
+    by_contra hcon
+    push Not at hcon
+    have := (hE L hLN).1 hcon
+    linarith
+  -- upper bound
+  have hup : (L : ℝ) * (T / N) < max t0 0 + δ / 2 + T / N := by
+    set x := (t0 + δ / 2) / (T / N)
+    set m := ⌈x⌉₊
+    by_cases hm : m ≤ N
+    · have hmx : t0 + δ / 2 ≤ (m : ℝ) * (T / N) := by
+        have := Nat.le_ceil x
+        rw [div_le_iff₀ hh] at this
+        exact this
+      have hpos := (hE m hm).2 hmx
+      have hLm : L ≤ m := Nat.sInf_le hpos
+      have hmlt : (m : ℝ) < max x 0 + 1 := by
+        rcases le_or_gt x 0 with hx | hx
+        · have : m = 0 := Nat.ceil_eq_zero.mpr hx
+          rw [this, Nat.cast_zero]
+          linarith [le_max_right x 0]
+        · have := Nat.ceil_lt_add_one hx.le
+          linarith [le_max_left x 0]
+      have hxm : max x 0 * (T / N) = max (t0 + δ / 2) 0 := by
+        rw [max_mul_of_nonneg _ _ hh.le, zero_mul]
+        simp only [x, div_mul_cancel₀ _ hh.ne']
+      calc (L : ℝ) * (T / N) ≤ m * (T / N) := by gcongr
+        _ < (max x 0 + 1) * (T / N) := by gcongr
+        _ = max (t0 + δ / 2) 0 + T / N := by rw [add_mul, one_mul, hxm]
+        _ ≤ max t0 0 + δ / 2 + T / N := by
+          have : max (t0 + δ / 2) 0 ≤ max t0 0 + δ / 2 :=
+            max_le (by linarith [le_max_left t0 0]) (by linarith [le_max_right t0 0])
+          linarith
+    · push Not at hm
+      have hxN : (N : ℝ) < x := Nat.lt_ceil.mp hm
+      have hT' : T < t0 + δ / 2 := by
+        rw [lt_div_iff₀ hh] at hxN
+        have : (N : ℝ) * (T / N) = T := by field_simp
+        linarith
+      have : (L : ℝ) * (T / N) ≤ T := by
+        calc (L : ℝ) * (T / N) ≤ N * (T / N) := by gcongr
+          _ = T := by field_simp
+      linarith [le_max_left t0 0]
+  rw [Real.dist_eq, abs_lt]
+  constructor
+  · rcases le_total t0 0 with h0 | h0
+    · rw [max_eq_right h0]; linarith
+    · rw [max_eq_left h0]; linarith
+  · linarith
+
+/-! ## The continuous-time limit model -/
+
+/-- Cochrane (2023), §20.2.1, p. 471, in continuous time (the limit of `fmap_scheme`): the
+right-hand side `σκ(i(π) − π − u)` of `dπ/dt`, with `i(π) = max[π* + φ(π − π*), 0]`. -/
+noncomputable def vfield (σ κ φ πs u x : ℝ) : ℝ := σ * κ * (rule φ πs x - x - u)
+
+/-- Cochrane (2023), §20.2.1 and Figure 20.3, in continuous time: `π` is continuous on
+`[0, ∞)`, solves `dπ/dt = σκ(i(π) − π − u)` on `(0, T]` (left derivative at `T`, the natural
+rate `u` during the trap) and `dπ/dt = σκ(i(π) − π)` after `T`. -/
+def CTEq (σ κ φ πs u T : ℝ) (π : ℝ → ℝ) : Prop :=
+  ContinuousOn π (Set.Ici 0) ∧
+    (∀ t ∈ Set.Ioc 0 T, HasDerivWithinAt π (vfield σ κ φ πs u (π t)) (Set.Iic t) t) ∧
+    ∀ t, T < t → HasDerivAt π (vfield σ κ φ πs 0 (π t)) t
+
+/-- Cochrane (2023), p. 472, continuous time: the active-branch path ending at `π_T = π*`,
+`π* + ū(1 − e^{−σκ(φ−1)(T−t)})`. -/
+noncomputable def piAct (σ κ φ πs u T t : ℝ) : ℝ :=
+  πs + ubar φ u * (1 - Real.exp (-(a0 σ κ φ * (T - t))))
+
+/-- Cochrane (2023), p. 472, continuous time: the zero-bound path reaching the kink at `t_L`,
+`−u + (π*(φ − 1)/φ + u)e^{σκ(t_L − t)}`. -/
+noncomputable def piZlb (σ κ φ πs u T t : ℝ) : ℝ :=
+  -u + (kink φ πs + u) * Real.exp (σ * κ * (tL σ κ φ πs u T - t))
+
+/-- Cochrane (2023), p. 472, continuous time: the trap path, zero-bound before `t_L`, active
+after. -/
+noncomputable def piG (σ κ φ πs u T t : ℝ) : ℝ :=
+  if tL σ κ φ πs u T ≤ t then piAct σ κ φ πs u T t else piZlb σ κ φ πs u T t
+
+/-- Cochrane (2023), Figure 20.3 in continuous time: the selected path, `piG` up to `T` and
+`π*` afterwards. -/
+noncomputable def piC (σ κ φ πs u T t : ℝ) : ℝ :=
+  if t ≤ T then piG σ κ φ πs u T t else πs
+
+/-- Cochrane (2023), eq. (20.1): `π* − π*(φ − 1)/φ = π*/φ`. -/
+theorem sub_kink {φ πs : ℝ} (hφ : 1 < φ) : πs - kink φ πs = πs / φ := by
+  unfold kink
+  have : φ ≠ 0 := by linarith
+  field_simp
+  ring
+
+/-- Cochrane (2023), p. 472: `piAct − kink = ū(q − e^{−σκ(φ−1)(T−t)})`. -/
+theorem piAct_sub_kink {σ κ φ πs u T : ℝ} (hφ : 1 < φ) (hu : u < 0) (t : ℝ) :
+    piAct σ κ φ πs u T t - kink φ πs =
+      ubar φ u * (qq φ πs u - Real.exp (-(a0 σ κ φ * (T - t)))) := by
+  have h1 := ubar_one_sub_qq (πs := πs) hφ hu
+  have h2 := sub_kink (πs := πs) hφ
+  unfold piAct
+  linear_combination h2 - h1
+
+/-- Cochrane (2023), p. 472: at or after `t_L` the active path is at or above the kink, strictly
+after `t_L`. -/
+theorem piAct_ge {σ κ φ πs u T t : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (ht : tL σ κ φ πs u T ≤ t) :
+    kink φ πs ≤ piAct σ κ φ πs u T t ∧
+      (tL σ κ φ πs u T < t → kink φ πs < piAct σ κ φ πs u T t) := by
+  obtain ⟨hu, hub, -, -, -, ha, -⟩ := consts_pos hσκ hφ hπs hk
+  have he := exp_sStar hσκ hφ hπs hk
+  have hd := piAct_sub_kink (σ := σ) (κ := κ) (πs := πs) (T := T) hφ hu t
+  have htl : tL σ κ φ πs u T = T - sStar σ κ φ πs u := rfl
+  have hmono : ∀ {x y : ℝ}, x ≤ y → Real.exp (-(a0 σ κ φ * y)) ≤ Real.exp (-(a0 σ κ φ * x)) :=
+    fun hxy => Real.exp_le_exp.mpr (by nlinarith)
+  constructor
+  · have : qq φ πs u ≤ Real.exp (-(a0 σ κ φ * (T - t))) := by
+      rw [← he]; exact hmono (by linarith)
+    nlinarith
+  · intro hlt
+    have : qq φ πs u < Real.exp (-(a0 σ κ φ * (T - t))) := by
+      rw [← he]; exact Real.exp_lt_exp.mpr (by nlinarith)
+    nlinarith
+
+/-- Cochrane (2023), p. 472: up to `t_L` the zero-bound path is at or below the kink, strictly
+before `t_L`. -/
+theorem piZlb_le {σ κ φ πs u T t : ℝ} (hσκ : 0 < σ * κ) (hk : kink φ πs < -u)
+    (ht : t ≤ tL σ κ φ πs u T) :
+    piZlb σ κ φ πs u T t ≤ kink φ πs ∧
+      (t < tL σ κ φ πs u T → piZlb σ κ φ πs u T t < kink φ πs) := by
+  have hku : kink φ πs + u < 0 := by linarith
+  have e : piZlb σ κ φ πs u T t - kink φ πs =
+      (kink φ πs + u) * (Real.exp (σ * κ * (tL σ κ φ πs u T - t)) - 1) := by
+    unfold piZlb; ring
+  constructor
+  · have : 1 ≤ Real.exp (σ * κ * (tL σ κ φ πs u T - t)) :=
+      Real.one_le_exp (mul_nonneg hσκ.le (by linarith))
+    nlinarith
+  · intro hlt
+    have : 1 < Real.exp (σ * κ * (tL σ κ φ πs u T - t)) :=
+      Real.one_lt_exp_iff.mpr (mul_pos hσκ (by linarith))
+    nlinarith
+
+/-- Cochrane (2023), eq. (20.4) in continuous time: on the active branch
+`σκ(i(x) − x − u) = σκ((φ − 1)(x − π*) − u)`. -/
+theorem vfield_active {σ κ φ πs u x : ℝ} (hφ : 1 < φ) (hx : kink φ πs ≤ x) :
+    vfield σ κ φ πs u x = σ * κ * ((φ - 1) * (x - πs) - u) := by
+  unfold vfield rule
+  rw [max_eq_left (active_of_kink_le (by linarith) hx)]
+  ring
+
+/-- Cochrane (2023), eq. (20.3) in continuous time: on the zero-bound branch
+`σκ(i(x) − x − u) = σκ(−x − u)`. -/
+theorem vfield_zlb {σ κ φ πs u x : ℝ} (hφ : 1 < φ) (hx : x ≤ kink φ πs) :
+    vfield σ κ φ πs u x = σ * κ * (-x - u) := by
+  unfold vfield rule
+  rw [max_eq_right ((kink_iff (by linarith)).mpr hx)]
+  ring
+
+/-- Cochrane (2023), p. 472: the active path solves the active-branch ODE. -/
+theorem hasDerivAt_piAct {σ κ φ πs u T : ℝ} (hφ : 1 < φ) (t : ℝ) :
+    HasDerivAt (piAct σ κ φ πs u T)
+      (σ * κ * ((φ - 1) * (piAct σ κ φ πs u T t - πs) - u)) t := by
+  have hg : HasDerivAt (fun s => -(a0 σ κ φ * (T - s))) (a0 σ κ φ) t := by
+    have := ((hasDerivAt_id' t).const_sub T).const_mul (a0 σ κ φ) |>.neg
+    convert this using 1; ring
+  have h := ((hg.exp).const_sub 1).const_mul (ubar φ u) |>.const_add πs
+  unfold piAct
+  refine h.congr_deriv ?_
+  have hφ1 : φ - 1 ≠ 0 := by linarith
+  unfold ubar a0
+  field_simp
+  ring
+
+/-- Cochrane (2023), p. 472: the zero-bound path solves the zero-bound ODE. -/
+theorem hasDerivAt_piZlb {σ κ φ πs u T : ℝ} (t : ℝ) :
+    HasDerivAt (piZlb σ κ φ πs u T) (σ * κ * (-piZlb σ κ φ πs u T t - u)) t := by
+  have hg : HasDerivAt (fun s => σ * κ * (tL σ κ φ πs u T - s)) (-(σ * κ)) t := by
+    have := ((hasDerivAt_id' t).const_sub (tL σ κ φ πs u T)).const_mul (σ * κ)
+    convert this using 1; ring
+  have h := ((hg.exp).const_mul (kink φ πs + u)).const_add (-u)
+  unfold piZlb
+  refine h.congr_deriv ?_
+  ring
+
+/-- Cochrane (2023), p. 472: `piAct(t_L) = π*(φ − 1)/φ`. -/
+theorem piAct_tL {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) : piAct σ κ φ πs u T (tL σ κ φ πs u T) = kink φ πs := by
+  have hu := (consts_pos hσκ hφ hπs hk).1
+  have hd := piAct_sub_kink (σ := σ) (κ := κ) (πs := πs) (T := T) hφ hu (tL σ κ φ πs u T)
+  rw [show T - tL σ κ φ πs u T = sStar σ κ φ πs u by unfold tL; ring,
+    exp_sStar hσκ hφ hπs hk, sub_self, mul_zero] at hd
+  linarith
+
+/-- Cochrane (2023), p. 472: the trap path is continuous. -/
+theorem piG_continuous {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) : Continuous (piG σ κ φ πs u T) := by
+  unfold piG
+  refine Continuous.if_le ?_ ?_ continuous_const continuous_id ?_
+  · unfold piAct; fun_prop
+  · unfold piZlb; fun_prop
+  · intro x hx
+    rw [← hx, piAct_tL hσκ hφ hπs hk]
+    unfold piZlb
+    simp
+
+/-- Cochrane (2023), eq. (20.1): the right-hand side is continuous. -/
+theorem vfield_continuous (σ κ φ πs u : ℝ) : Continuous (vfield σ κ φ πs u) := by
+  unfold vfield rule
+  fun_prop
+
+/-- Cochrane (2023), p. 472: the trap path solves `dπ/dt = σκ(i(π) − π − u)` at every date
+(including `t_L`, where the two branches meet with the same slope). -/
+theorem hasDerivAt_piG {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (t : ℝ) :
+    HasDerivAt (piG σ κ φ πs u T) (vfield σ κ φ πs u (piG σ κ φ πs u T t)) t := by
+  refine hasDerivAt_of_hasDerivAt_of_ne' (x := tL σ κ φ πs u T) (fun y hy => ?_)
+    (piG_continuous hσκ hφ hπs hk).continuousAt
+    ((vfield_continuous σ κ φ πs u).comp (piG_continuous hσκ hφ hπs hk)).continuousAt t
+  rcases lt_or_gt_of_ne hy with hlt | hgt
+  · have hev : piG σ κ φ πs u T =ᶠ[𝓝 y] piZlb σ κ φ πs u T := by
+      filter_upwards [Iio_mem_nhds hlt] with z hz
+      simp [piG, not_le.mpr (Set.mem_Iio.mp hz)]
+    have hy' : piG σ κ φ πs u T y = piZlb σ κ φ πs u T y := hev.eq_of_nhds
+    change HasDerivAt _ (vfield σ κ φ πs u (piG σ κ φ πs u T y)) y
+    rw [hy', vfield_zlb hφ (piZlb_le hσκ hk hlt.le).1]
+    exact (hasDerivAt_piZlb y).congr_of_eventuallyEq hev
+  · have hev : piG σ κ φ πs u T =ᶠ[𝓝 y] piAct σ κ φ πs u T := by
+      filter_upwards [Ioi_mem_nhds hgt] with z hz
+      simp [piG, (Set.mem_Ioi.mp hz).le]
+    have hy' : piG σ κ φ πs u T y = piAct σ κ φ πs u T y := hev.eq_of_nhds
+    change HasDerivAt _ (vfield σ κ φ πs u (piG σ κ φ πs u T y)) y
+    rw [hy', vfield_active hφ (piAct_ge hσκ hφ hπs hk hgt.le).1]
+    exact (hasDerivAt_piAct hφ y).congr_of_eventuallyEq hev
+
+/-- Cochrane (2023), p. 472: `t_L < T`. -/
+theorem tL_lt {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) : tL σ κ φ πs u T < T := by
+  have := (consts_pos hσκ hφ hπs hk).2.2.2.2.2.2
+  unfold tL; linarith
+
+/-- Cochrane (2023), p. 472: `piG(T) = π*`. -/
+theorem piG_T {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) : piG σ κ φ πs u T T = πs := by
+  simp [piG, (tL_lt (T := T) hσκ hφ hπs hk).le, piAct]
+
+/-- Cochrane (2023), Figure 20.3 in continuous time: the selected path is continuous. -/
+theorem piC_continuous {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) : Continuous (piC σ κ φ πs u T) := by
+  unfold piC
+  refine Continuous.if_le (piG_continuous hσκ hφ hπs hk) continuous_const continuous_id
+    continuous_const ?_
+  intro x hx
+  rw [hx, piG_T hσκ hφ hπs hk]
+
+/-- Cochrane (2023), Figure 20.3 in continuous time: **existence** — the selected path solves the
+continuous-time model. -/
+theorem piC_solves {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) : CTEq σ κ φ πs u T (piC σ κ φ πs u T) := by
+  refine ⟨(piC_continuous hσκ hφ hπs hk).continuousOn, fun t ht => ?_, fun t ht => ?_⟩
+  · have heq : Set.EqOn (piC σ κ φ πs u T) (piG σ κ φ πs u T) (Set.Iic t) := fun s hs => by
+      simp [piC, le_trans (Set.mem_Iic.mp hs) ht.2]
+    rw [heq (Set.mem_Iic.mpr le_rfl)]
+    exact (hasDerivAt_piG hσκ hφ hπs hk t).hasDerivWithinAt.congr heq
+      (heq (Set.mem_Iic.mpr le_rfl))
+  · have hev : piC σ κ φ πs u T =ᶠ[𝓝 t] fun _ => πs := by
+      filter_upwards [Ioi_mem_nhds ht] with z hz
+      simp [piC, not_le.mpr (Set.mem_Ioi.mp hz)]
+    have hv : vfield σ κ φ πs 0 πs = 0 := by
+      unfold vfield rule; simp [max_eq_left hπs.le]
+    rw [hev.eq_of_nhds, hv]
+    exact (hasDerivAt_const t πs).congr_of_eventuallyEq hev
+
+/-- Cochrane (2023), eq. (20.1): the right-hand side is Lipschitz with constant `σκ(φ + 1)`. -/
+theorem vfield_lipschitz {σ κ φ πs u : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) :
+    LipschitzWith (Real.toNNReal (σ * κ * (φ + 1))) (vfield σ κ φ πs u) := by
+  refine LipschitzWith.of_dist_le_mul fun x y => ?_
+  rw [Real.dist_eq, Real.dist_eq, Real.coe_toNNReal _ (by nlinarith)]
+  have h1 := abs_max_sub_max_le_abs (πs + φ * (x - πs)) (πs + φ * (y - πs)) 0
+  have h2 : |πs + φ * (x - πs) - (πs + φ * (y - πs))| = φ * |x - y| := by
+    rw [show πs + φ * (x - πs) - (πs + φ * (y - πs)) = φ * (x - y) by ring, abs_mul,
+      abs_of_pos (by linarith)]
+  have h3 : vfield σ κ φ πs u x - vfield σ κ φ πs u y =
+      σ * κ * ((rule φ πs x - rule φ πs y) - (x - y)) := by
+    unfold vfield; ring
+  rw [h3, abs_mul, abs_of_pos hσκ]
+  have h4 : |rule φ πs x - rule φ πs y - (x - y)| ≤ |rule φ πs x - rule φ πs y| + |x - y| :=
+    abs_sub _ _
+  unfold rule at h4
+  have h5 : |rule φ πs x - rule φ πs y - (x - y)| ≤ (φ + 1) * |x - y| := by
+    unfold rule; nlinarith
+  calc σ * κ * |rule φ πs x - rule φ πs y - (x - y)| ≤ σ * κ * ((φ + 1) * |x - y|) :=
+        mul_le_mul_of_nonneg_left h5 hσκ.le
+    _ = σ * κ * (φ + 1) * |x - y| := by ring
+
+/-- Cochrane (2023), Figure 20.3 in continuous time: **uniqueness** (the continuous-time
+counterpart of `ZLBRule.fig203_selection`). If `π` solves the model and stays within
+`ε < π* − π*(φ − 1)/φ` of `π*` from `T` on (local boundedness under the active rule), then
+`π = π*` from `T` on and `π` is the path `piC` on `[0, ∞)`. -/
+theorem ct_unique {σ κ φ πs u T ε : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hT : 0 < T) {π : ℝ → ℝ} (h : CTEq σ κ φ πs u T π)
+    (hε : ε < πs - kink φ πs) (hb : ∀ t, T ≤ t → |π t - πs| ≤ ε) :
+    ∀ t, 0 ≤ t → π t = piC σ κ φ πs u T t := by
+  obtain ⟨hc, hd, hd'⟩ := h
+  have ha := (consts_pos hσκ hφ hπs hk).2.2.2.2.2.1
+  -- after `T`
+  have hafter : ∀ t, T ≤ t → π t - πs = 0 := by
+    refine ContinuousTimeNK.unstable_bdd_zero (f := fun t => π t - πs) (a := a0 σ κ φ) (S := ∅) ha
+      Set.countable_empty ((hc.mono (Set.Ici_subset_Ici.mpr hT.le)).sub continuousOn_const)
+      (fun t ht _ => ?_) hb
+    have hπt : kink φ πs ≤ π t := by
+      have := hb t ht.le
+      rw [abs_le] at this
+      linarith
+    have := (hd' t ht).sub_const πs
+    rw [vfield_active hφ hπt] at this
+    refine this.congr_deriv ?_
+    unfold a0; ring
+  have hπT : π T = piC σ κ φ πs u T T := by
+    have := hafter T le_rfl
+    simp only [piC, le_rfl, ↓reduceIte, piG_T hσκ hφ hπs hk]
+    linarith
+  -- on `[0, T]`
+  have hon : Set.EqOn π (piC σ κ φ πs u T) (Set.Icc 0 T) := by
+    have hsol := piC_solves (u := u) (T := T) hσκ hφ hπs hk
+    refine ODE_solution_unique_of_mem_Icc_left (v := fun _ x => vfield σ κ φ πs u x)
+      (s := fun _ => Set.univ) (K := Real.toNNReal (σ * κ * (φ + 1)))
+      (fun _ _ => (vfield_lipschitz hσκ hφ).lipschitzOnWith)
+      (hc.mono Set.Icc_subset_Ici_self) hd (fun _ _ => Set.mem_univ _)
+      (hsol.1.mono Set.Icc_subset_Ici_self) hsol.2.1 (fun _ _ => Set.mem_univ _) hπT
+  intro t ht
+  by_cases htT : t ≤ T
+  · exact hon ⟨ht, htT⟩
+  · push Not at htT
+    have := hafter t htT.le
+    simp only [piC, not_le.mpr htT, ↓reduceIte]
+    linarith
+
+/-- Cochrane (2023), Figure 20.3 in continuous time, survey error E3: on `[0, T]` the rate is
+positive exactly after `t_L`: `i(π_t) > 0 ↔ t_L < t`. -/
+theorem ct_liftoff {σ κ φ πs u T t : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (htT : t ≤ T) :
+    0 < rule φ πs (piC σ κ φ πs u T t) ↔ tL σ κ φ πs u T < t := by
+  rw [rule_pos_iff (by linarith)]
+  simp only [piC, htT, ↓reduceIte, piG]
+  constructor
+  · intro h
+    by_contra hcon
+    push Not at hcon
+    rcases hcon.lt_or_eq with hlt | heq
+    · simp only [not_le.mpr hlt, ↓reduceIte] at h
+      linarith [(piZlb_le hσκ hk hlt.le).1]
+    · simp only [heq, le_rfl, ↓reduceIte, piAct_tL hσκ hφ hπs hk] at h
+      exact lt_irrefl _ h
+  · intro h
+    simp only [h.le, ↓reduceIte]
+    exact (piAct_ge hσκ hφ hπs hk h.le).2 h
+
+/-! ## Convergence of the discrete paths -/
+
+/-- Cochrane (2023), eq. (20.3), p. 472: per unit of time, the log growth of the zero-bound
+branch tends to `σκ`, `log(1 + σκh)/h → σκ` as `h → 0⁺`. -/
+theorem tendsto_log1p {σ κ : ℝ} :
+    Tendsto (fun h => Real.log (1 + σ * (h * κ)) / h) (𝓝[>] 0) (𝓝 (σ * κ)) := by
+  have hden : HasDerivAt (fun h : ℝ => 1 + σ * (h * κ)) (σ * κ) 0 := by
+    have := (((hasDerivAt_id' (0 : ℝ)).mul_const κ).const_mul σ).const_add 1
+    convert this using 1
+    ring
+  have hl := hden.log (by simp)
+  have hs := hl.tendsto_slope_zero_right
+  have h2 := hs.congr' (f₂ := fun h => Real.log (1 + σ * (h * κ)) / h) (by
+    filter_upwards [self_mem_nhdsWithin] with t _
+    simp [smul_eq_mul, div_eq_inv_mul])
+  convert h2 using 2
+  simp
+
+/-- Cochrane (2023), p. 472: `(c⁻¹)ᵏ = e^{−(kh)(log c/h)}`. -/
+theorem inv_pow_eq_exp {c h : ℝ} (hc : 0 < c) (hh : 0 < h) (k : ℕ) :
+    c⁻¹ ^ k = Real.exp (-((k : ℝ) * h * (Real.log c / h))) := by
+  rw [show -((k : ℝ) * h * (Real.log c / h)) = k * Real.log c⁻¹ by
+    rw [Real.log_inv]; field_simp, Real.exp_nat_mul, Real.exp_log (inv_pos.mpr hc)]
+
+/-- Cochrane (2023), p. 472: `(1 + b)ᵐ = e^{(mh)(log(1 + b)/h)}`. -/
+theorem pow_eq_exp {b h : ℝ} (hb : 0 < 1 + b) (hh : 0 < h) (m : ℕ) :
+    (1 + b) ^ m = Real.exp ((m : ℝ) * h * (Real.log (1 + b) / h)) := by
+  rw [show (m : ℝ) * h * (Real.log (1 + b) / h) = m * Real.log (1 + b) by field_simp,
+    Real.exp_nat_mul, Real.exp_log hb]
+
+/-- Cochrane (2023), p. 472: `(L − n)h = max(Lh − nh, 0)` for truncated subtraction. -/
+theorem natSub_mul {h : ℝ} (hh : 0 ≤ h) (L n : ℕ) :
+    ((L - n : ℕ) : ℝ) * h = max ((L : ℝ) * h - n * h) 0 := by
+  rcases le_total n L with hnL | hnL
+  · rw [Nat.cast_sub hnL, sub_mul, max_eq_left]
+    have : (n : ℝ) ≤ L := by exact_mod_cast hnL
+    nlinarith
+  · rw [Nat.sub_eq_zero_of_le hnL, Nat.cast_zero, zero_mul, max_eq_right]
+    have : (L : ℝ) ≤ n := by exact_mod_cast hnL
+    nlinarith
+
+/-- Cochrane (2023), eq. (20.3), p. 472: on the zero-bound spell before lift-off the selected
+path is `p_{L−j} = −u + (1 + σκh)ʲ(p_L + u)`. -/
+theorem zlb_back {σ κ φ πs u h : ℝ} (hφ : 1 < φ) {N : ℕ} {p : ℕ → ℝ}
+    (hrec : ∀ n, n < N → p (n + 1) = fmap σ (h * κ) φ πs u (p n)) {L : ℕ} (hLN : L ≤ N)
+    (hzero : ∀ n, n < L → rule φ πs (p n) = 0) (hσh : 0 < 1 + σ * (h * κ)) :
+    ∀ j, j ≤ L → p (L - j) = -u + (1 + σ * (h * κ)) ^ j * (p L + u) := by
+  intro j
+  induction j with
+  | zero => intro _; simp
+  | succ j ih =>
+    intro hj
+    have hn : L - (j + 1) < L := by omega
+    have hle : p (L - (j + 1)) ≤ kink φ πs := by
+      have := hzero _ hn
+      by_contra hcon
+      push Not at hcon
+      have := (rule_pos_iff (πs := πs) (by linarith)).mpr hcon
+      linarith
+    have hstep := hrec (L - (j + 1)) (by omega)
+    rw [show L - (j + 1) + 1 = L - j by omega, ih (by omega), zlb_eq hφ hle] at hstep
+    have hne' : 1 + σ * h * κ ≠ 0 := by
+      have : σ * h * κ = σ * (h * κ) := by ring
+      rw [this]; exact hσh.ne'
+    have hy : p (L - (j + 1)) = (1 + σ * (h * κ)) * (-u + (1 + σ * (h * κ)) ^ j * (p L + u)) +
+        σ * (h * κ) * u := by
+      rw [hstep]; field_simp; ring
+    rw [hy, pow_succ]
+    ring
+
+/-- Cochrane (2023), p. 472: on the selected path, once the rate is positive it stays positive
+up to `N`. -/
+theorem pos_of_ge {σ κ φ πs u h : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hh : 0 < h) {N : ℕ} {p : ℕ → ℝ} (hN : p N = πs)
+    (hrec : ∀ n, n < N → p (n + 1) = fmap σ (h * κ) φ πs u (p n)) {L n : ℕ} (hLn : L ≤ n)
+    (hnN : n ≤ N) (hL : 0 < rule φ πs (p L)) : 0 < rule φ πs (p n) := by
+  have hu := (consts_pos hσκ hφ hπs hk).1
+  rw [rate_pos_iff hσκ hφ hπs hk hh hN hrec (le_trans hLn hnN)] at hL
+  rw [rate_pos_iff hσκ hφ hπs hk hh hN hrec hnN]
+  exact lt_of_lt_of_le hL (AA_antitone hσκ hφ hh hu (by omega))
+
+/-- Cochrane (2023), p. 472: a sequence that at each date equals one of two sequences with the
+same limit has that limit. -/
+theorem tendsto_of_or {f x y : ℕ → ℝ} {l : ℝ} (h : ∀ᶠ N in atTop, f N = x N ∨ f N = y N)
+    (hx : Tendsto x atTop (𝓝 l)) (hy : Tendsto y atTop (𝓝 l)) : Tendsto f atTop (𝓝 l) := by
+  rw [Metric.tendsto_nhds] at hx hy ⊢
+  intro ε hε
+  filter_upwards [h, hx ε hε, hy ε hε] with N hN h1 h2
+  rcases hN with e | e <;> rw [e] <;> assumption
+
+/-- Cochrane (2023), p. 472: the limit of the zero-bound part, at `0 ≤ t ≤ t_L`. -/
+theorem ylim_eq {σ κ φ πs u T t : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (ht0 : 0 ≤ t) (ht : t ≤ tL σ κ φ πs u T) :
+    -u + Real.exp (max (max (tL σ κ φ πs u T) 0 - t) 0 * (σ * κ)) *
+      (πs + ubar φ u * (1 - Real.exp (-((T - max (tL σ κ φ πs u T) 0) * a0 σ κ φ))) + u) =
+      piZlb σ κ φ πs u T t := by
+  have hu := (consts_pos hσκ hφ hπs hk).1
+  have h0 : max (tL σ κ φ πs u T) 0 = tL σ κ φ πs u T := max_eq_left (by linarith)
+  have h1 : max (tL σ κ φ πs u T - t) 0 = tL σ κ φ πs u T - t := max_eq_left (by linarith)
+  have h2 : -((T - tL σ κ φ πs u T) * a0 σ κ φ) = -(a0 σ κ φ * sStar σ κ φ πs u) := by
+    unfold tL; ring
+  have h3 : πs + ubar φ u * (1 - qq φ πs u) = kink φ πs := by
+    have a := ubar_one_sub_qq (πs := πs) hφ hu
+    have b := sub_kink (πs := πs) hφ
+    linarith
+  rw [h0, h1, h2, exp_sStar hσκ hφ hπs hk, h3]
+  unfold piZlb
+  ring_nf
+
+/-- Cochrane (2023), Figure 20.3 in the continuous-time limit: **convergence of the inflation
+path.** For `0 ≤ t ≤ T`, the selected discrete path with period `h = T/N`, read at the grid date
+`⌊t/h⌋`, converges to the continuous-time path `piC` as `N → ∞`. -/
+theorem path_tendsto {σ κ φ πs u T t : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hT : 0 < T) (ht0 : 0 ≤ t) (htT : t ≤ T) :
+    Tendsto (fun N : ℕ => selPath σ κ φ πs u (T / N) N ⌊t / (T / N)⌋₊) atTop
+      (𝓝 (piC σ κ φ πs u T t)) := by
+  obtain ⟨hu, -, -, -, -, -, -⟩ := consts_pos hσκ hφ hπs hk
+  have hev1 : ∀ᶠ N : ℕ in atTop, (0 : ℝ) < N :=
+    (eventually_gt_atTop 0).mono fun N hN => by exact_mod_cast hN
+  have hnN : ∀ N : ℕ, (0 : ℝ) < N → ⌊t / (T / N)⌋₊ ≤ N := fun N hN => by
+    refine Nat.floor_le_of_le ?_
+    rw [div_le_iff₀ (div_pos hT hN)]
+    calc t ≤ T := htT
+      _ = N * (T / N) := by field_simp
+  have hnh : Tendsto (fun N : ℕ => (⌊t / (T / N)⌋₊ : ℝ) * (T / N)) atTop (𝓝 t) := by
+    have hh0 := tendsto_const_div_atTop_nhds_zero_nat T
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' (g := fun N : ℕ => t - T / N)
+      (h := fun _ => t) ?_ tendsto_const_nhds ?_ ?_
+    · simpa using hh0.const_sub t
+    · filter_upwards [hev1] with N hN
+      have hhp : 0 < T / N := div_pos hT hN
+      have := Nat.lt_floor_add_one (t / (T / N))
+      rw [div_lt_iff₀ hhp, add_mul, one_mul] at this
+      linarith
+    · filter_upwards [hev1] with N hN
+      have hhp : 0 < T / N := div_pos hT hN
+      have := Nat.floor_le (div_nonneg ht0 hhp.le)
+      rwa [le_div_iff₀ hhp] at this
+  have hr := tendsto_logcc (σ := σ) (κ := κ) (φ := φ) |>.comp (tendsto_T_div hT)
+  have hρ := tendsto_log1p (σ := σ) (κ := κ) |>.comp (tendsto_T_div hT)
+  have hLh := liftoff_time_tendsto (u := u) hσκ hφ hπs hk hT
+  have hexp : Continuous Real.exp := Real.continuous_exp
+  -- the active part
+  have hX : Tendsto (fun N : ℕ => AA σ κ φ πs u (T / N) (N - ⌊t / (T / N)⌋₊)) atTop
+      (𝓝 (piAct σ κ φ πs u T t)) := by
+    have hk' : Tendsto (fun N : ℕ => ((N - ⌊t / (T / N)⌋₊ : ℕ) : ℝ) * (T / N)) atTop
+        (𝓝 (T - t)) := by
+      refine (tendsto_const_nhds.sub hnh).congr' ?_
+      filter_upwards [hev1] with N hN
+      rw [Nat.cast_sub (hnN N hN), sub_mul]
+      field_simp
+    have he := (hexp.tendsto _).comp ((hk'.mul hr).neg)
+    have hlim := ((tendsto_const_nhds (x := (1 : ℝ))).sub he).const_mul (ubar φ u) |>.const_add πs
+    have hval : piAct σ κ φ πs u T t =
+        πs + ubar φ u * (1 - Real.exp (-((T - t) * a0 σ κ φ))) := by
+      unfold piAct; ring_nf
+    rw [hval]
+    refine hlim.congr' ?_
+    filter_upwards [hev1] with N hN
+    have hhp : 0 < T / N := div_pos hT hN
+    simp only [Function.comp, AA]
+    rw [inv_pow_eq_exp (by linarith [cc_gt_one hσκ hφ hhp]) hhp]
+  -- the zero-bound part
+  set Lf := fun N : ℕ => liftIdx σ κ φ πs u (T / N) N
+  have hY : Tendsto (fun N : ℕ => -u + (1 + σ * (T / N * κ)) ^ (Lf N - ⌊t / (T / N)⌋₊) *
+      (AA σ κ φ πs u (T / N) (N - Lf N) + u)) atTop
+      (𝓝 (-u + Real.exp (max (max (tL σ κ φ πs u T) 0 - t) 0 * (σ * κ)) *
+        (πs + ubar φ u * (1 - Real.exp (-((T - max (tL σ κ φ πs u T) 0) * a0 σ κ φ))) +
+          u))) := by
+    have hm : Tendsto (fun N : ℕ => ((Lf N - ⌊t / (T / N)⌋₊ : ℕ) : ℝ) * (T / N)) atTop
+        (𝓝 (max (max (tL σ κ φ πs u T) 0 - t) 0)) := by
+      refine ((hLh.sub hnh).max tendsto_const_nhds).congr' ?_
+      filter_upwards [hev1] with N hN
+      rw [natSub_mul (div_pos hT hN).le]
+    have hNL : Tendsto (fun N : ℕ => ((N - Lf N : ℕ) : ℝ) * (T / N)) atTop
+        (𝓝 (T - max (tL σ κ φ πs u T) 0)) := by
+      refine (tendsto_const_nhds.sub hLh).congr' ?_
+      filter_upwards [hev1] with N hN
+      have hLN := (liftIdx_spec (σ := σ) (κ := κ) (u := u) (h := T / N) hφ hπs N).1
+      rw [Nat.cast_sub hLN, sub_mul]
+      field_simp
+    have hA := ((tendsto_const_nhds (x := (1 : ℝ))).sub ((hexp.tendsto _).comp
+      ((hNL.mul hr).neg))).const_mul (ubar φ u) |>.const_add πs
+    have hP := (hexp.tendsto _).comp (hm.mul hρ)
+    have hlim := ((hP.mul (hA.add_const u)).const_add (-u))
+    refine hlim.congr' ?_
+    filter_upwards [hev1] with N hN
+    have hhp : 0 < T / N := div_pos hT hN
+    simp only [Function.comp, AA]
+    rw [inv_pow_eq_exp (by linarith [cc_gt_one hσκ hφ hhp]) hhp,
+      pow_eq_exp (by linarith [ah_pos hσκ hhp]) hhp]
+  -- the structure of the selected path
+  have hstruct : ∀ N : ℕ, (0 : ℝ) < N →
+      (Lf N ≤ ⌊t / (T / N)⌋₊ → selPath σ κ φ πs u (T / N) N ⌊t / (T / N)⌋₊ =
+        AA σ κ φ πs u (T / N) (N - ⌊t / (T / N)⌋₊)) ∧
+      (⌊t / (T / N)⌋₊ ≤ Lf N → selPath σ κ φ πs u (T / N) N ⌊t / (T / N)⌋₊ =
+        -u + (1 + σ * (T / N * κ)) ^ (Lf N - ⌊t / (T / N)⌋₊) *
+          (AA σ κ φ πs u (T / N) (N - Lf N) + u)) := by
+    intro N hN
+    have hhp : 0 < T / N := div_pos hT hN
+    have hrec := selPath_rec (u := u) (πs := πs) hσκ hφ hhp N
+    have hNN := selPath_N σ κ φ πs u (T / N) N
+    obtain ⟨hLN, hLpos, hzero⟩ := liftIdx_spec (σ := σ) (κ := κ) (u := u) (h := T / N) hφ hπs N
+    replace hLN : Lf N ≤ N := hLN
+    replace hLpos : 0 < rule φ πs (selPath σ κ φ πs u (T / N) N (Lf N)) := hLpos
+    replace hzero : ∀ n, n < Lf N → rule φ πs (selPath σ κ φ πs u (T / N) N n) = 0 := hzero
+    have hsel := sel_path hσκ hφ hπs hk hhp hNN hrec
+    have hpL : selPath σ κ φ πs u (T / N) N (Lf N) = AA σ κ φ πs u (T / N) (N - Lf N) := by
+      have h1 := (rate_pos_iff hσκ hφ hπs hk hhp hNN hrec hLN).mp hLpos
+      have := (hsel (N - Lf N) (by omega)).1 h1
+      rwa [show N - (N - Lf N) = Lf N by omega] at this
+    constructor
+    · intro hle
+      have hpos := pos_of_ge hσκ hφ hπs hk hhp hNN hrec hle (hnN N hN) hLpos
+      have h1 := (rate_pos_iff hσκ hφ hπs hk hhp hNN hrec (hnN N hN)).mp hpos
+      have := (hsel (N - ⌊t / (T / N)⌋₊) (by omega)).1 h1
+      rwa [show N - (N - ⌊t / (T / N)⌋₊) = ⌊t / (T / N)⌋₊ by have := hnN N hN; omega] at this
+    · intro hle
+      have := zlb_back hφ hrec hLN hzero (by linarith [ah_pos hσκ hhp])
+        (Lf N - ⌊t / (T / N)⌋₊) (by omega)
+      rw [show Lf N - (Lf N - ⌊t / (T / N)⌋₊) = ⌊t / (T / N)⌋₊ by omega, hpL] at this
+      exact this
+  rcases lt_trichotomy t (tL σ κ φ πs u T) with hlt | heq | hgt
+  · -- before lift-off
+    have hval : piC σ κ φ πs u T t = piZlb σ κ φ πs u T t := by
+      simp [piC, htT, piG, not_le.mpr hlt]
+    rw [hval, ← ylim_eq hσκ hφ hπs hk ht0 hlt.le]
+    refine hY.congr' ?_
+    have hε : 0 < (tL σ κ φ πs u T - t) / 2 := by linarith
+    filter_upwards [liftoff_eps (u := u) hσκ hφ hπs hk hT hε, hev1] with N hE hN
+    have hhp : 0 < T / N := div_pos hT hN
+    have hzero := (hE _ (selPath_N σ κ φ πs u (T / N) N)
+      (selPath_rec hσκ hφ hhp N) _ (hnN N hN)).1 (by
+        have := Nat.floor_le (div_nonneg ht0 hhp.le)
+        rw [le_div_iff₀ hhp] at this
+        linarith)
+    have hlt' : ⌊t / (T / N)⌋₊ ≤ Lf N := by
+      by_contra hcon
+      push Not at hcon
+      have := pos_of_ge hσκ hφ hπs hk hhp (selPath_N σ κ φ πs u (T / N) N)
+        (selPath_rec hσκ hφ hhp N) hcon.le (hnN N hN)
+        (liftIdx_spec (σ := σ) (κ := κ) (u := u) (h := T / N) hφ hπs N).2.1
+      linarith
+    exact ((hstruct N hN).2 hlt').symm
+  · -- at lift-off
+    have hval : piC σ κ φ πs u T t = piZlb σ κ φ πs u T t := by
+      have htT' : tL σ κ φ πs u T ≤ T := heq ▸ htT
+      simp only [piC, heq, htT', ↓reduceIte, piG, le_rfl]
+      rw [piAct_tL hσκ hφ hπs hk]
+      unfold piZlb
+      simp
+    have hX' : Tendsto (fun N : ℕ => AA σ κ φ πs u (T / N) (N - ⌊t / (T / N)⌋₊)) atTop
+        (𝓝 (piZlb σ κ φ πs u T t)) := by
+      have : piZlb σ κ φ πs u T t = piAct σ κ φ πs u T t := by
+        rw [heq, piAct_tL hσκ hφ hπs hk]
+        unfold piZlb
+        simp only [sub_self, mul_zero, Real.exp_zero, mul_one]
+        ring
+      rw [this]
+      exact hX
+    have hY' := hY
+    rw [ylim_eq hσκ hφ hπs hk ht0 heq.le] at hY'
+    rw [hval]
+    refine tendsto_of_or ?_ hX' hY'
+    filter_upwards [hev1] with N hN
+    rcases le_total (Lf N) ⌊t / (T / N)⌋₊ with hle | hle
+    · exact Or.inl ((hstruct N hN).1 hle)
+    · exact Or.inr ((hstruct N hN).2 hle)
+  · -- after lift-off
+    have hval : piC σ κ φ πs u T t = piAct σ κ φ πs u T t := by
+      simp [piC, htT, piG, hgt.le]
+    rw [hval]
+    refine hX.congr' ?_
+    have hε : 0 < (t - tL σ κ φ πs u T) / 2 := by linarith
+    filter_upwards [liftoff_eps (u := u) hσκ hφ hπs hk hT hε, hev1,
+      hnh.eventually (lt_mem_nhds (show tL σ κ φ πs u T + (t - tL σ κ φ πs u T) / 2 < t by
+        linarith))] with N hE hN hgtN
+    have hhp : 0 < T / N := div_pos hT hN
+    have hpos := (hE _ (selPath_N σ κ φ πs u (T / N) N)
+      (selPath_rec hσκ hφ hhp N) _ (hnN N hN)).2 hgtN.le
+    have h1 := (rate_pos_iff hσκ hφ hπs hk hhp (selPath_N σ κ φ πs u (T / N) N)
+      (selPath_rec hσκ hφ hhp N) (hnN N hN)).mp hpos
+    have := (sel_path hσκ hφ hπs hk hhp (selPath_N σ κ φ πs u (T / N) N)
+      (selPath_rec hσκ hφ hhp N) (N - ⌊t / (T / N)⌋₊) (by omega)).1 h1
+    rw [show N - (N - ⌊t / (T / N)⌋₊) = ⌊t / (T / N)⌋₊ by have := hnN N hN; omega] at this
+    exact this.symm
+
+/-! ## Early versus delayed lift-off, and Figure 20.3 -/
+
+/-- Cochrane (2023), §20.2.1 (Figure 20.3, survey E3) against §20.2.4, p. 479 (delayed
+lift-off): **the two lift-offs genuinely differ.** In the continuous-time limit of Figure 20.3
+the rate lifts off strictly before the end of the trap, `t_L < T`, for every calibration; under
+delayed lift-off (`ForwardGuidance.delayI`, lift-off at any `L ≥ T`) the rate is zero until
+`L`. On the nonempty interval `(max(t_L, 0), T)` the rule's rate is positive and the delayed
+rate is zero. -/
+theorem early_vs_delayed {σ κ φ πs u T : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    (hk : kink φ πs < -u) (hT : 0 < T) (u2 L : ℝ) (hL : T ≤ L) :
+    tL σ κ φ πs u T < T ∧ (Set.Ioo (max (tL σ κ φ πs u T) 0) T).Nonempty ∧
+      ∀ t ∈ Set.Ioo (max (tL σ κ φ πs u T) 0) T,
+        0 < rule φ πs (piC σ κ φ πs u T t) ∧ ForwardGuidance.delayI u2 L t = 0 := by
+  have htl := tL_lt (T := T) hσκ hφ hπs hk
+  refine ⟨htl, Set.nonempty_Ioo.mpr (max_lt htl hT), fun t ht => ⟨?_, ?_⟩⟩
+  · exact (ct_liftoff hσκ hφ hπs hk ht.2.le).mpr (lt_of_le_of_lt (le_max_left _ _) ht.1)
+  · simp [ForwardGuidance.delayI, lt_of_lt_of_le ht.2 hL]
+
+/-- Cochrane (2023), Figure 20.3, p. 473 (`σ = 1`, `κ = 1/2`, `φ = 2`, `π* = 2`, `u = −2`,
+`T = 10`): the period-1 member of the family is the model of `ZLBRule`, with `c₁ = 4/3`,
+`Λ = log 2`, `σκ(φ − 1) = 1/2`; it lifts off at date `8` (survey E3), while the continuous-time
+limit lifts off at `t_L = 10 − 2 log 2 ∈ (8.6, 8.62)`. -/
+theorem fig203_member :
+    fmap 1 (1 * (1 / 2)) 2 2 (-2) = fmap 1 (1 / 2) 2 2 (-2) ∧ cc 1 (1 / 2) 2 1 = 4 / 3 ∧
+      Lam 2 2 (-2) = Real.log 2 ∧ a0 1 (1 / 2) 2 = 1 / 2 ∧
+      tL 1 (1 / 2) 2 2 (-2) 10 = 10 - 2 * Real.log 2 ∧
+      (86 / 10 : ℝ) < 10 - 2 * Real.log 2 ∧ 10 - 2 * Real.log 2 < (862 / 100 : ℝ) ∧
+      liftIdx 1 (1 / 2) 2 2 (-2) 1 10 = 8 := by
+  have hσκ : (0 : ℝ) < 1 * (1 / 2) := by norm_num
+  have hφ : (1 : ℝ) < 2 := by norm_num
+  have hπs : (0 : ℝ) < 2 := by norm_num
+  have hk : kink 2 2 < -(-2 : ℝ) := by rw [kink_fig203.1]; norm_num
+  have hc : cc 1 (1 / 2) 2 1 = 4 / 3 := by unfold cc slopeR; norm_num
+  have hL : Lam 2 2 (-2) = Real.log 2 := by
+    unfold Lam qq
+    rw [show (1 : ℝ) - 2 * (2 - 1) / (2 * -(-2)) = 2⁻¹ by norm_num, Real.log_inv, neg_neg]
+  have ha : a0 1 (1 / 2) 2 = 1 / 2 := by unfold a0; norm_num
+  have htl : tL 1 (1 / 2) 2 2 (-2) 10 = 10 - 2 * Real.log 2 := by
+    unfold tL sStar; rw [hL, ha]; ring
+  have l1 := Real.log_two_gt_d9
+  have l2 := Real.log_two_lt_d9
+  -- the rate is positive at `n ≤ 10` iff `(10 − n) log(4/3) < log 2`
+  have hrate : ∀ n, n ≤ 10 → (0 < rule 2 2 (selPath 1 (1 / 2) 2 2 (-2) 1 10 n) ↔
+      ((10 - n : ℕ) : ℝ) * Real.log (4 / 3) < Real.log 2) := by
+    intro n hn
+    rw [rate_pos_iff hσκ hφ hπs hk one_pos (selPath_N _ _ _ _ _ _ 10)
+      (selPath_rec hσκ hφ one_pos 10) hn, AA_gt_kink_iff hσκ hφ hπs hk one_pos, hc, hL]
+  have hl43 : 0 < Real.log (4 / 3 : ℝ) := Real.log_pos (by norm_num)
+  have h8 : 0 < rule 2 2 (selPath 1 (1 / 2) 2 2 (-2) 1 10 8) := by
+    rw [hrate 8 (by norm_num)]
+    norm_num
+    rw [← Real.log_rpow (by norm_num)]
+    exact Real.log_lt_log (by positivity) (by norm_num)
+  have hlt : ∀ n, n < 8 → ¬ 0 < rule 2 2 (selPath 1 (1 / 2) 2 2 (-2) 1 10 n) := by
+    intro n hn
+    rw [hrate n (by omega), not_lt]
+    have h3 : (3 : ℝ) ≤ ((10 - n : ℕ) : ℝ) := by
+      have : 3 ≤ 10 - n := by omega
+      exact_mod_cast this
+    have h64 : Real.log 2 < 3 * Real.log (4 / 3) := by
+      rw [← Real.log_rpow (by norm_num)]
+      exact Real.log_lt_log (by norm_num) (by norm_num)
+    nlinarith
+  refine ⟨by norm_num, hc, hL, ha, htl, by linarith, by linarith, ?_⟩
+  apply le_antisymm (Nat.sInf_le h8)
+  refine le_csInf ⟨8, h8⟩ fun n hn => ?_
+  by_contra hcon
+  push Not at hcon
+  exact hlt n hcon hn
+
+end Cochrane.ZeroBound.TidyR6LiftoffLimit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Stochastic versions of the global orbit results of §20.2.1
+
+Cochrane (2023), Chapter 20, §20.2.1, pp. 472–474 ("Equilibria in which inflation undershoots
+the time-`T` target `π*` return back to zero inflation and zero interest rates … `π_t = π*` is
+the only locally bounded equilibrium, but … not the only globally bounded one").
+
+`ZLBRule` proves the global statements for orbits `π_{t+1} = f(π_t)` (perfect foresight) of the
+map `f = ZLBRule.fmap σ κ φ π* 0`: orbits above `π*` explode (`ZLBRule.orbit_above`), orbits
+below converge to zero inflation and zero rates (`ZLBRule.orbit_below_tendsto_zero`,
+`ZLBRule.orbit_below_rate_zero`), and the bounded orbits are exactly `π₀ ≤ π*`
+(`ZLBRule.bounded_orbits_eq`). Here the model is `E_tπ_{t+1} = f(π_t)` with genuine uncertainty.
+
+## Main results
+
+For every `ExpectationSystem`:
+* `fmap_eq_max`: `f = max(ℓ, z)`, the maximum of the active line `ℓ` and the zero-bound line `z`.
+* `stoch_line_ge`, `stoch_explodes` (stochastic `ZLBRule.orbit_above`):
+  `E_tπ_{t+k} − π* ≥ cᵏ(π_t − π*)`, so if `π_t > π*` in some state, expected inflation explodes
+  there; `bounded_le_target`: every bounded solution has `π_t ≤ π*` in every state.
+* `stoch_jensen`: `E_tπ_{t+k} ≥ fᵏ(π_t)` (the expected path lies above the deterministic orbit),
+  and `stoch_expected_eventually` (what survives of `ZLBRule.orbit_below_tendsto_zero`): along every
+  bounded solution expected inflation is eventually in `[−ε, π*]` for every `ε > 0`.
+* `bounded_init_iff` (stochastic `ZLBRule.bounded_orbits_eq`): a bounded solution from a
+  deterministic `π₀` exists iff `π₀ ≤ π*`.
+* `resolved_dichotomy`: once uncertainty is resolved (`E_tπ_{t+1} = π_{t+1}` from some date on),
+  each state's path either sits at `π*` or converges to zero inflation with the rate eventually
+  zero; every finite event tree resolves its uncertainty (`finiteTree_stabilises`), so the
+  deterministic results hold on every finite tree (`finiteTree_dichotomy`).
+
+On a genuine probability space (`TidyR6ExpectationsMeasure`), with the a.e. equations:
+* `meas_line_ge`, `meas_bounded_le_target`, `meas_jensen`, `meas_expected_eventually`: the same
+  statements almost surely.
+* **Counterexamples** (`cex_solves`, `cex_mean`, `cex_rate_mean`, `cex_not_ae_tendsto_zero`,
+  `cex_not_ae_rate_zero`, `cex_not_ae_expected_zero`): at the Figure 20.3 calibration
+  (`σ = 1`, `κ = 1/2`, `φ = 2`, `π* = 2`, `u = 0`) and i.i.d. Bernoulli(1/12) shocks, the
+  process that starts at `π₀ = 3/2 < π*` and switches between `3/2` and `−1/2` when the shock
+  hits is a bounded adapted solution, with `E[π_t] = 1/2 + (5/6)ᵗ → 1/2` and
+  `E[i_t] = P(i_t > 0) = 1/2 + (5/6)ᵗ/2 → 1/2`. Hence the stochastic versions of
+  `ZLBRule.orbit_below_tendsto_zero` and `ZLBRule.orbit_below_rate_zero` are false: `π_t ↛ 0`
+  a.e., the rate is
+  not eventually zero a.e., and `E_0π_t ↛ 0` a.e.
+
+The continuous-time results of §§20.2.2–20.2.5 have no stochastic version here: that would need
+Itô calculus (stochastic differential equations), which Mathlib does not provide.
+-/
+
+namespace Cochrane.ZeroBound.TidyR6OrbitStochastic
+
+open Filter Topology MeasureTheory
+open Cochrane.ZeroBound Cochrane.ZeroBound.ZLBRule
+
+/-! ## The map as a maximum of two lines -/
+
+/-- Cochrane (2023), eqs. (20.3)–(20.4), p. 472: the map is the maximum of the active line
+`π* + c(π − π*) − σκu/(1 + σκ)` and the zero-bound line `π/(1 + σκ) − σκu/(1 + σκ)`. -/
+theorem fmap_eq_max {σ κ φ πs u : ℝ} (hσκ : 0 < σ * κ) (x : ℝ) :
+    fmap σ κ φ πs u x = max (πs + slopeR σ κ φ * (x - πs) - σ * κ / (1 + σ * κ) * u)
+      (1 / (1 + σ * κ) * x - σ * κ / (1 + σ * κ) * u) := by
+  have h1 : 0 < 1 + σ * κ := by linarith
+  have e1 : πs + slopeR σ κ φ * (x - πs) - σ * κ / (1 + σ * κ) * u =
+      (x + σ * κ * (πs + φ * (x - πs)) - σ * κ * u) / (1 + σ * κ) := by
+    unfold slopeR; field_simp; ring
+  have e2 : 1 / (1 + σ * κ) * x - σ * κ / (1 + σ * κ) * u =
+      (x + σ * κ * 0 - σ * κ * u) / (1 + σ * κ) := by
+    field_simp; ring
+  rw [e1, e2, max_div_div_right h1.le]
+  unfold fmap rule
+  congr 1
+  rw [mul_max_of_nonneg _ _ hσκ.le]
+  rcases le_total (σ * κ * (πs + φ * (x - πs))) (σ * κ * 0) with h | h
+  · rw [max_eq_right h, max_eq_right (by linarith)]
+  · rw [max_eq_left h, max_eq_left (by linarith)]
+
+/-- Cochrane (2023), eq. (20.4), p. 472, `u = 0`: the active line lies below the map,
+`π* + c(π − π*) ≤ f(π)`. -/
+theorem line_le_fmap {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (x : ℝ) :
+    πs + slopeR σ κ φ * (x - πs) ≤ fmap σ κ φ πs 0 x := by
+  rw [fmap_eq_max hσκ, mul_zero, sub_zero, sub_zero]
+  exact le_max_left _ _
+
+/-! ## Every `ExpectationSystem` -/
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), §20.2.1, p. 472: expectations of an affine function,
+`E_t[a + bx] = a + bE_tx`. -/
+theorem E_affine (t : ℕ) (a b : ℝ) (x : Ω → ℝ) :
+    𝔼.E t (fun ω => a + b * x ω) = fun ω => a + b * 𝔼.E t x ω := by
+  have e : (fun ω => a + b * x ω) = (fun _ => a) + b • x := by
+    funext ω; simp
+  rw [e, map_add, map_smul, 𝔼.const]
+  funext ω
+  simp
+
+/-- Cochrane (2023), §20.2.1, p. 472: the model `E_tπ_{t+1} = f(π_t)` with `u = 0`, in every
+state. -/
+def Solves (σ κ φ πs : ℝ) (π : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, 𝔼.E t (π (t + 1)) = fun ω => fmap σ κ φ πs 0 (π t ω)
+
+/-- Cochrane (2023), p. 473 ("alternative equilibria diverge from the inflation target"), for
+every `ExpectationSystem`: `E_tπ_{t+k} − π* ≥ cᵏ(π_t − π*)`. -/
+theorem stoch_line_ge {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) {π : ℕ → Ω → ℝ}
+    (ha : 𝔼.Adapted π) (h : Solves 𝔼 σ κ φ πs π) (t k : ℕ) (ω : Ω) :
+    πs + slopeR σ κ φ ^ k * (π t ω - πs) ≤ 𝔼.E t (π (t + k)) ω := by
+  have hc : 0 < slopeR σ κ φ := by
+    have := (slope_right_gt_one_iff (φ := φ) hσκ).mpr hφ; linarith
+  induction k generalizing ω with
+  | zero => simp [ha t]
+  | succ k ih =>
+    have h1 : 𝔼.E t (π (t + (k + 1))) = 𝔼.E t (fun ω => fmap σ κ φ πs 0 (π (t + k) ω)) := by
+      rw [← h (t + k), 𝔼.tower (by omega), show t + k + 1 = t + (k + 1) by ring]
+    have h2 : 𝔼.E t (fun ω => (πs - slopeR σ κ φ * πs) + slopeR σ κ φ * π (t + k) ω) ≤
+        𝔼.E t (fun ω => fmap σ κ φ πs 0 (π (t + k) ω)) :=
+      𝔼.mono t fun ω => by have := line_le_fmap (φ := φ) (πs := πs) hσκ (π (t + k) ω); linarith
+    rw [E_affine] at h2
+    have h3 := h2 ω
+    rw [h1]
+    have := mul_le_mul_of_nonneg_left (ih ω) hc.le
+    simp only at h3
+    rw [pow_succ]
+    nlinarith
+
+/-- Cochrane (2023), p. 473, stochastic `ZLBRule.orbit_above`: if `π_t > π*` in some state, the
+expected inflation path explodes there, `E_tπ_{t+k} → ∞` as `k → ∞`. -/
+theorem stoch_explodes {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) {π : ℕ → Ω → ℝ}
+    (ha : 𝔼.Adapted π) (h : Solves 𝔼 σ κ φ πs π) {t : ℕ} {ω : Ω} (hω : πs < π t ω) :
+    Tendsto (fun k => 𝔼.E t (π (t + k)) ω) atTop atTop := by
+  have hc := (slope_right_gt_one_iff (φ := φ) hσκ).mpr hφ
+  have hp := ((tendsto_pow_atTop_atTop_of_one_lt hc).atTop_mul_const (sub_pos.mpr hω)).atTop_add
+    (tendsto_const_nhds (x := πs))
+  refine tendsto_atTop_mono (fun k => ?_) hp
+  have := stoch_line_ge 𝔼 hσκ hφ ha h t k ω
+  linarith
+
+/-- Cochrane (2023), pp. 473–474, stochastic `ZLBRule.bounded_orbits_eq` (⊆): every bounded
+adapted solution has `π_t ≤ π*` at every date and in every state. -/
+theorem bounded_le_target {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) {π : ℕ → Ω → ℝ}
+    (hb : BoundedProc π) (ha : 𝔼.Adapted π) (h : Solves 𝔼 σ κ φ πs π) (t : ℕ) (ω : Ω) :
+    π t ω ≤ πs := by
+  obtain ⟨M, hM⟩ := hb
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨k, hk⟩ := ((stoch_explodes 𝔼 hσκ hφ ha h hcon).eventually_gt_atTop M).exists
+  have := 𝔼.abs_E_le (fun ω => hM (t + k) ω) t ω
+  linarith [le_abs_self (𝔼.E t (π (t + k)) ω)]
+
+/-- Cochrane (2023), p. 473, for every `ExpectationSystem` (Jensen for the convex map
+`f = max(ℓ, z)`): the expected path lies above the deterministic orbit,
+`fᵏ(π_t) ≤ E_tπ_{t+k}`. -/
+theorem stoch_jensen {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) {π : ℕ → Ω → ℝ}
+    (ha : 𝔼.Adapted π) (h : Solves 𝔼 σ κ φ πs π) (t k : ℕ) (ω : Ω) :
+    (fmap σ κ φ πs 0)^[k] (π t ω) ≤ 𝔼.E t (π (t + k)) ω := by
+  have hmono := fmap_strictMono (σ := σ) (κ := κ) (φ := φ) (πs := πs) (u := 0) (by linarith) hσκ
+  induction k generalizing ω with
+  | zero => simp [ha t]
+  | succ k ih =>
+    have h1 : 𝔼.E t (π (t + (k + 1))) = 𝔼.E t (fun ω => fmap σ κ φ πs 0 (π (t + k) ω)) := by
+      rw [← h (t + k), 𝔼.tower (by omega), show t + k + 1 = t + (k + 1) by ring]
+    have hA : 𝔼.E t (fun ω => (πs - slopeR σ κ φ * πs) + slopeR σ κ φ * π (t + k) ω) ≤
+        𝔼.E t (fun ω => fmap σ κ φ πs 0 (π (t + k) ω)) :=
+      𝔼.mono t fun ω => by
+        have := line_le_fmap (φ := φ) (πs := πs) hσκ (π (t + k) ω); linarith
+    have hZ : 𝔼.E t (fun ω => 0 + 1 / (1 + σ * κ) * π (t + k) ω) ≤
+        𝔼.E t (fun ω => fmap σ κ φ πs 0 (π (t + k) ω)) :=
+      𝔼.mono t fun ω => by
+        have := le_max_right (πs + slopeR σ κ φ * (π (t + k) ω - πs) - σ * κ / (1 + σ * κ) * 0)
+          (1 / (1 + σ * κ) * π (t + k) ω - σ * κ / (1 + σ * κ) * 0)
+        rw [← fmap_eq_max hσκ] at this
+        simpa using this
+    rw [E_affine] at hA hZ
+    have hA' := hA ω
+    have hZ' := hZ ω
+    simp only at hA' hZ'
+    have hf : fmap σ κ φ πs 0 (𝔼.E t (π (t + k)) ω) ≤ 𝔼.E t (π (t + (k + 1))) ω := by
+      rw [h1, fmap_eq_max hσκ]
+      refine max_le ?_ ?_ <;> simp only [mul_zero, sub_zero] <;> linarith
+    rw [Function.iterate_succ_apply']
+    exact le_trans (hmono.monotone (ih ω)) hf
+
+/-- Cochrane (2023), p. 473 ("return back to zero inflation"), what survives under uncertainty:
+along every bounded adapted solution, for every `ε > 0`, expected inflation `E_tπ_{t+k}` is
+eventually in `[−ε, π*]`. -/
+theorem stoch_expected_eventually {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    {π : ℕ → Ω → ℝ} (hb : BoundedProc π) (ha : 𝔼.Adapted π) (h : Solves 𝔼 σ κ φ πs π) (t : ℕ)
+    (ω : Ω) {ε : ℝ} (hε : 0 < ε) :
+    ∀ᶠ k in atTop, -ε ≤ 𝔼.E t (π (t + k)) ω ∧ 𝔼.E t (π (t + k)) ω ≤ πs := by
+  have hup : ∀ k, 𝔼.E t (π (t + k)) ω ≤ πs := fun k => by
+    have := 𝔼.mono t (fun ω => bounded_le_target 𝔼 hσκ hφ hb ha h (t + k) ω :
+      π (t + k) ≤ fun _ => πs) ω
+    rwa [𝔼.const] at this
+  have hfix : fmap σ κ φ πs 0 πs = πs := (fixed_u_zero hφ hσκ hπs).mpr (Or.inr rfl)
+  have hx : ∀ k, (fmap σ κ φ πs 0)^[k + 1] (π t ω) =
+      fmap σ κ φ πs 0 ((fmap σ κ φ πs 0)^[k] (π t ω)) := fun k =>
+    Function.iterate_succ_apply' _ _ _
+  have hlow : ∀ᶠ k in atTop, -ε ≤ (fmap σ κ φ πs 0)^[k] (π t ω) := by
+    rcases (bounded_le_target 𝔼 hσκ hφ hb ha h t ω).lt_or_eq with hlt | heq
+    · exact ((orbit_below_tendsto_zero (x := fun k => (fmap σ κ φ πs 0)^[k] (π t ω)) hφ hσκ hπs
+        hx (by simpa using hlt)).eventually (Ioi_mem_nhds (by linarith : -ε < 0))).mono
+        fun _ hk => le_of_lt hk
+    · exact Eventually.of_forall fun k => by
+        rw [heq, Function.iterate_fixed hfix]; linarith
+  filter_upwards [hlow] with k hk
+  exact ⟨le_trans hk (stoch_jensen 𝔼 hσκ hφ ha h t k ω), hup k⟩
+
+/-- Cochrane (2023), pp. 473–474, stochastic `ZLBRule.bounded_orbits_eq`: for every
+`ExpectationSystem` (with at least one state), a bounded adapted solution starting from the
+deterministic value `π₀` exists iff `π₀ ≤ π*`. -/
+theorem bounded_init_iff [Nonempty Ω] {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ)
+    (hπs : 0 < πs) (p0 : ℝ) :
+    (∃ π : ℕ → Ω → ℝ, BoundedProc π ∧ 𝔼.Adapted π ∧ Solves 𝔼 σ κ φ πs π ∧
+      π 0 = fun _ => p0) ↔ p0 ≤ πs := by
+  constructor
+  · rintro ⟨π, hb, ha, h, h0⟩
+    have := bounded_le_target 𝔼 hσκ hφ hb ha h 0 (Classical.arbitrary Ω)
+    rwa [h0] at this
+  · intro hp
+    have hmem : p0 ∈ {π0 : ℝ | ∃ M, ∀ t, |(fmap σ κ φ πs 0)^[t] π0| ≤ M} := by
+      rw [bounded_orbits_eq hφ hσκ hπs]; exact hp
+    obtain ⟨M, hM⟩ := hmem
+    refine ⟨fun t _ => (fmap σ κ φ πs 0)^[t] p0, ⟨M, fun t _ => hM t⟩,
+      fun t => 𝔼.const t _, fun t => ?_, rfl⟩
+    rw [𝔼.const]
+    funext ω
+    exact Function.iterate_succ_apply' _ _ _
+
+/-- Cochrane (2023), p. 473, under uncertainty that is resolved from date `T₀` on
+(`E_tπ_{t+1} = π_{t+1}` for `t ≥ T₀`): in every state, the bounded solution either stays at `π*`
+from `T₀` on, or converges to zero inflation with the rate eventually zero. -/
+theorem resolved_dichotomy {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    {π : ℕ → Ω → ℝ} (hb : BoundedProc π) (ha : 𝔼.Adapted π) (h : Solves 𝔼 σ κ φ πs π) {T0 : ℕ}
+    (hres : ∀ t, T0 ≤ t → 𝔼.E t (π (t + 1)) = π (t + 1)) (ω : Ω) :
+    (∀ t, T0 ≤ t → π t ω = πs) ∨
+      (Tendsto (fun t => π t ω) atTop (𝓝 0) ∧ ∀ᶠ t in atTop, rule φ πs (π t ω) = 0) := by
+  set x : ℕ → ℝ := fun k => π (T0 + k) ω with hxd
+  have hx : ∀ k, x (k + 1) = fmap σ κ φ πs 0 (x k) := fun k => by
+    have := congrFun (h (T0 + k)) ω
+    rw [hres (T0 + k) (by omega)] at this
+    simpa [hxd, ← add_assoc] using this
+  have hfix : fmap σ κ φ πs 0 πs = πs := (fixed_u_zero hφ hσκ hπs).mpr (Or.inr rfl)
+  rcases (bounded_le_target 𝔼 hσκ hφ hb ha h T0 ω).lt_or_eq with hlt | heq
+  · right
+    have h0 : x 0 < πs := by simpa [hxd] using hlt
+    have ht := orbit_below_tendsto_zero hφ hσκ hπs hx h0
+    have hr := orbit_below_rate_zero hφ hσκ hπs hx h0
+    refine ⟨(tendsto_add_atTop_iff_nat T0).mp ?_, ?_⟩
+    · refine ht.congr fun k => ?_
+      simp [hxd, add_comm]
+    · obtain ⟨N, hN⟩ := eventually_atTop.mp hr
+      refine eventually_atTop.mpr ⟨T0 + N, fun t ht => ?_⟩
+      have := hN (t - T0) (by omega)
+      simpa [hxd, show T0 + (t - T0) = t by omega] using this
+  · left
+    intro t ht
+    have hxk : ∀ k, x k = πs := by
+      intro k
+      induction k with
+      | zero => simpa [hxd] using heq
+      | succ k ih => rw [hx, ih, hfix]
+    have := hxk (t - T0)
+    simpa [hxd, show T0 + (t - T0) = t by omega] using this
+
+/-! ## Finite event trees resolve their uncertainty -/
+
+/-- Cochrane (2023), p. 473 (the finite-tree instances of the core): the information partitions
+of a finite event tree stabilise — from some date `T₀` on, `ω ~_t ω'` iff `ω ~_{T₀} ω'`. -/
+theorem finiteTree_stabilises {Ω' : Type*} [Fintype Ω'] (T : ExpectationsFiniteTree.FiniteTree Ω') :
+    ∃ T0, ∀ t, T0 ≤ t → ∀ a b, T.info t a b ↔ T.info T0 a b := by
+  classical
+  let g : ℕ → ℕ := fun t => (Finset.univ.filter fun p : Ω' × Ω' => T.info t p.1 p.2).card
+  have hanti : ∀ {s t}, s ≤ t → (Finset.univ.filter fun p : Ω' × Ω' => T.info t p.1 p.2) ⊆
+      Finset.univ.filter fun p : Ω' × Ω' => T.info s p.1 p.2 := fun hst p hp => by
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hp ⊢
+    exact T.refines hst _ _ hp
+  obtain ⟨T0, hT0⟩ : ∃ T0, ∀ t, g T0 ≤ g t := by
+    obtain ⟨T0, hT0⟩ := Nat.sInf_mem (⟨g 0, 0, rfl⟩ : (Set.range g).Nonempty)
+    exact ⟨T0, fun t => hT0 ▸ Nat.sInf_le ⟨t, rfl⟩⟩
+  refine ⟨T0, fun t ht a b => ⟨fun h => T.refines ht a b h, fun h => ?_⟩⟩
+  have heq := Finset.eq_of_subset_of_card_le (hanti ht) (hT0 t)
+  have hmem : (a, b) ∈ Finset.univ.filter fun p : Ω' × Ω' => T.info T0 p.1 p.2 := by
+    simpa using h
+  rw [← heq] at hmem
+  simpa using hmem
+
+/-- Cochrane (2023), pp. 472–474 on every finite event tree (the core's genuine-uncertainty
+instances): every bounded adapted solution is, in every state, either at `π*` from some date on
+or converging to zero inflation with the rate eventually zero — the deterministic global results
+survive, because a finite tree's uncertainty is resolved after finitely many dates. -/
+theorem finiteTree_dichotomy {Ω' : Type*} [Fintype Ω'] (T : ExpectationsFiniteTree.FiniteTree Ω')
+    {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs) {π : ℕ → Ω' → ℝ}
+    (hb : BoundedProc π) (ha : T.toExpectationSystem.Adapted π)
+    (h : Solves T.toExpectationSystem σ κ φ πs π) :
+    ∃ T0, ∀ ω, (∀ t, T0 ≤ t → π t ω = πs) ∨
+      (Tendsto (fun t => π t ω) atTop (𝓝 0) ∧ ∀ᶠ t in atTop, rule φ πs (π t ω) = 0) := by
+  obtain ⟨T0, hT0⟩ := finiteTree_stabilises T
+  refine ⟨T0, resolved_dichotomy _ hσκ hφ hπs hb ha h fun t ht => ?_⟩
+  rw [ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E]
+  funext ω
+  refine T.condE_of_const_on_cell fun ω' hω' => ?_
+  have hcell : T.info (t + 1) ω' ω := by
+    rw [hT0 (t + 1) (by omega)]
+    exact (hT0 t ht ω' ω).mp hω'
+  have := ha (t + 1)
+  rw [ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E] at this
+  rw [← this, T.condE_congr _ hcell]
+
+/-! ## A genuine probability space: the a.e. versions -/
+
+open TidyR6ExpectationsMeasure TidyR6ExpectationsMeasureIID ProbabilityTheory
+
+variable {Ωm : Type*} [MeasurableSpace Ωm] (S : MeasExpectationSystem Ωm)
+
+/-- Cochrane (2023), §20.2.1, p. 472, on a probability space: the model
+`E_tπ_{t+1} = f(π_t)` (`u = 0`) almost surely, `E_t = μ[· | 𝓕_t]`. -/
+def MeasSolves (σ κ φ πs : ℝ) (π : ℕ → Ωm → ℝ) : Prop :=
+  ∀ t, S.E t (π (t + 1)) =ᵐ[S.μ] fun ω => fmap σ κ φ πs 0 (π t ω)
+
+/-- Cochrane (2023), §20.2.1, p. 472, on a probability space: conditional expectations of an
+affine function, `E_t[a + bx] = a + bE_tx` a.e. -/
+theorem meas_E_affine {x : Ωm → ℝ} (hx : Integrable x S.μ) (t : ℕ) (a b : ℝ) :
+    S.E t (fun ω => a + b * x ω) =ᵐ[S.μ] fun ω => a + b * S.E t x ω := by
+  have e : (fun ω => a + b * x ω) = (fun _ => a) + b • x := by
+    funext ω; simp
+  rw [e]
+  have h1 := S.E_add (integrable_const a) (hx.smul b) t
+  have h2 := S.E_smul b x t
+  filter_upwards [h1, h2] with ω h1 h2
+  rw [h1, Pi.add_apply, h2, S.E_const]
+  simp
+
+/-- Cochrane (2023), §20.2.1: a bounded adapted process is integrable at every date. -/
+theorem integrable_of_bdd {π : ℕ → Ωm → ℝ} (had : StronglyAdapted S.𝓕 π) (hb : BoundedProc π)
+    (t : ℕ) : Integrable (π t) S.μ := by
+  obtain ⟨M, hM⟩ := hb
+  exact Integrable.of_bound ((had t).mono (S.𝓕.le t)).aestronglyMeasurable M
+    (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact hM t ω)
+
+/-- Cochrane (2023), p. 473, on a probability space: `E_tπ_{t+k} − π* ≥ cᵏ(π_t − π*)` a.e. -/
+theorem meas_line_ge {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) {π : ℕ → Ωm → ℝ}
+    (had : StronglyAdapted S.𝓕 π) (hb : BoundedProc π) (h : MeasSolves S σ κ φ πs π)
+    (t k : ℕ) : ∀ᵐ ω ∂S.μ, πs + slopeR σ κ φ ^ k * (π t ω - πs) ≤ S.E t (π (t + k)) ω := by
+  have hc : 0 < slopeR σ κ φ := by
+    have := (slope_right_gt_one_iff (φ := φ) hσκ).mpr hφ; linarith
+  have hint := integrable_of_bdd S had hb
+  induction k with
+  | zero =>
+    have := S.E_of_stronglyMeasurable (had t) (hint t)
+    exact Eventually.of_forall fun ω => by simp [this]
+  | succ k ih =>
+    have hT : S.E t (π (t + (k + 1))) =ᵐ[S.μ] S.E t (S.E (t + k) (π (t + k + 1))) := by
+      rw [show t + (k + 1) = t + k + 1 by ring]
+      exact (S.E_tower (by omega) _).symm
+    have hC := S.E_congr (h (t + k)) t
+    have hfi : Integrable (fun ω => fmap σ κ φ πs 0 (π (t + k) ω)) S.μ :=
+      (S.integrable_E (t + k) _).congr (h (t + k))
+    have hli : Integrable (fun ω => (πs - slopeR σ κ φ * πs) + slopeR σ κ φ * π (t + k) ω)
+        S.μ := (integrable_const _).add ((hint (t + k)).const_mul _)
+    have hM := S.E_mono hli hfi (Eventually.of_forall fun ω => by
+      have := line_le_fmap (φ := φ) (πs := πs) hσκ (π (t + k) ω); simp only; linarith) t
+    have hA := meas_E_affine S (hint (t + k)) t (πs - slopeR σ κ φ * πs) (slopeR σ κ φ)
+    filter_upwards [hT, hC, hM, hA, ih] with ω h1 h2 h3 h4 h5
+    rw [h1, h2]
+    rw [h4] at h3
+    have := mul_le_mul_of_nonneg_left h5 hc.le
+    rw [pow_succ]
+    nlinarith
+
+/-- Cochrane (2023), pp. 473–474, on a probability space: every bounded adapted solution has
+`π_t ≤ π*` almost surely. -/
+theorem meas_bounded_le_target {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ)
+    {π : ℕ → Ωm → ℝ} (had : StronglyAdapted S.𝓕 π) (hb : BoundedProc π)
+    (h : MeasSolves S σ κ φ πs π) (t : ℕ) : ∀ᵐ ω ∂S.μ, π t ω ≤ πs := by
+  obtain ⟨M, hM⟩ := hb
+  have hc := (slope_right_gt_one_iff (φ := φ) hσκ).mpr hφ
+  have hall := ae_all_iff.mpr (meas_line_ge S hσκ hφ had ⟨M, hM⟩ h t)
+  have hbd : ∀ᵐ ω ∂S.μ, ∀ k, |S.E t (π (t + k)) ω| ≤ M :=
+    ae_all_iff.mpr fun k => S.abs_E_le (Eventually.of_forall (hM (t + k))) t
+  filter_upwards [hall, hbd] with ω h1 h2
+  by_contra hcon
+  push Not at hcon
+  have hp := ((tendsto_pow_atTop_atTop_of_one_lt hc).atTop_mul_const (sub_pos.mpr hcon))
+  obtain ⟨k, hk⟩ := (hp.eventually_gt_atTop (M - πs)).exists
+  linarith [h1 k, le_abs_self (S.E t (π (t + k)) ω), h2 k]
+
+/-- Cochrane (2023), p. 473, on a probability space (Jensen for `f = max(ℓ, z)`):
+`fᵏ(π_t) ≤ E_tπ_{t+k}` a.e. -/
+theorem meas_jensen {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) {π : ℕ → Ωm → ℝ}
+    (had : StronglyAdapted S.𝓕 π) (hb : BoundedProc π) (h : MeasSolves S σ κ φ πs π)
+    (t k : ℕ) : ∀ᵐ ω ∂S.μ, (fmap σ κ φ πs 0)^[k] (π t ω) ≤ S.E t (π (t + k)) ω := by
+  have hmono := fmap_strictMono (σ := σ) (κ := κ) (φ := φ) (πs := πs) (u := 0) (by linarith) hσκ
+  have hint := integrable_of_bdd S had hb
+  induction k with
+  | zero =>
+    have := S.E_of_stronglyMeasurable (had t) (hint t)
+    exact Eventually.of_forall fun ω => by simp [this]
+  | succ k ih =>
+    have hT : S.E t (π (t + (k + 1))) =ᵐ[S.μ] S.E t (S.E (t + k) (π (t + k + 1))) := by
+      rw [show t + (k + 1) = t + k + 1 by ring]
+      exact (S.E_tower (by omega) _).symm
+    have hC := S.E_congr (h (t + k)) t
+    have hfi : Integrable (fun ω => fmap σ κ φ πs 0 (π (t + k) ω)) S.μ :=
+      (S.integrable_E (t + k) _).congr (h (t + k))
+    have hli : Integrable (fun ω => (πs - slopeR σ κ φ * πs) + slopeR σ κ φ * π (t + k) ω)
+        S.μ := (integrable_const _).add ((hint (t + k)).const_mul _)
+    have hzi : Integrable (fun ω => 0 + 1 / (1 + σ * κ) * π (t + k) ω) S.μ :=
+      (integrable_const _).add ((hint (t + k)).const_mul _)
+    have hMA := S.E_mono hli hfi (Eventually.of_forall fun ω => by
+      have := line_le_fmap (φ := φ) (πs := πs) hσκ (π (t + k) ω); simp only; linarith) t
+    have hMZ := S.E_mono hzi hfi (Eventually.of_forall fun ω => by
+      have := le_max_right (πs + slopeR σ κ φ * (π (t + k) ω - πs) - σ * κ / (1 + σ * κ) * 0)
+        (1 / (1 + σ * κ) * π (t + k) ω - σ * κ / (1 + σ * κ) * 0)
+      rw [← fmap_eq_max hσκ] at this
+      simp only
+      linarith) t
+    have hA := meas_E_affine S (hint (t + k)) t (πs - slopeR σ κ φ * πs) (slopeR σ κ φ)
+    have hZ := meas_E_affine S (hint (t + k)) t 0 (1 / (1 + σ * κ))
+    filter_upwards [hT, hC, hMA, hMZ, hA, hZ, ih] with ω h1 h2 h3 h4 h5 h6 h7
+    rw [h5] at h3
+    rw [h6] at h4
+    have hf : fmap σ κ φ πs 0 (S.E t (π (t + k)) ω) ≤ S.E t (π (t + (k + 1))) ω := by
+      rw [h1, h2, fmap_eq_max hσκ]
+      refine max_le ?_ ?_ <;> simp only [mul_zero, sub_zero] at h3 h4 ⊢ <;> linarith
+    rw [Function.iterate_succ_apply']
+    exact le_trans (hmono.monotone h7) hf
+
+/-- Cochrane (2023), p. 473, on a probability space: along every bounded adapted solution,
+almost surely, for every `ε > 0` expected inflation `E_tπ_{t+k}` is eventually in `[−ε, π*]`. -/
+theorem meas_expected_eventually {σ κ φ πs : ℝ} (hσκ : 0 < σ * κ) (hφ : 1 < φ) (hπs : 0 < πs)
+    {π : ℕ → Ωm → ℝ} (had : StronglyAdapted S.𝓕 π) (hb : BoundedProc π)
+    (h : MeasSolves S σ κ φ πs π) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ ε, 0 < ε →
+      ∀ᶠ k in atTop, -ε ≤ S.E t (π (t + k)) ω ∧ S.E t (π (t + k)) ω ≤ πs := by
+  have hint := integrable_of_bdd S had hb
+  have hup : ∀ᵐ ω ∂S.μ, ∀ k, S.E t (π (t + k)) ω ≤ πs := ae_all_iff.mpr fun k => by
+    have := S.E_mono (hint (t + k)) (integrable_const πs)
+      (meas_bounded_le_target S hσκ hφ had hb h (t + k)) t
+    rwa [S.E_const] at this
+  filter_upwards [ae_all_iff.mpr (meas_jensen S hσκ hφ had hb h t),
+    meas_bounded_le_target S hσκ hφ had hb h t, hup] with ω h1 h2 h3 ε hε
+  have hfix : fmap σ κ φ πs 0 πs = πs := (fixed_u_zero hφ hσκ hπs).mpr (Or.inr rfl)
+  have hx : ∀ k, (fmap σ κ φ πs 0)^[k + 1] (π t ω) =
+      fmap σ κ φ πs 0 ((fmap σ κ φ πs 0)^[k] (π t ω)) := fun k =>
+    Function.iterate_succ_apply' _ _ _
+  have hlow : ∀ᶠ k in atTop, -ε ≤ (fmap σ κ φ πs 0)^[k] (π t ω) := by
+    rcases h2.lt_or_eq with hlt | heq
+    · exact ((orbit_below_tendsto_zero (x := fun k => (fmap σ κ φ πs 0)^[k] (π t ω)) hφ hσκ hπs
+        hx (by simpa using hlt)).eventually (Ioi_mem_nhds (by linarith : -ε < 0))).mono
+        fun _ hk => le_of_lt hk
+    · exact Eventually.of_forall fun k => by
+        rw [heq, Function.iterate_fixed hfix]; linarith
+  filter_upwards [hlow] with k hk
+  exact ⟨le_trans hk (h1 k), h3 k⟩
+
+/-! ## The counterexample on the i.i.d. space -/
+
+/-- Cochrane (2023), §20.2.1 (counterexample): the Bernoulli(1/12) law
+`(1/12)δ₁ + (11/12)δ₀` as a measure. -/
+noncomputable def bernMeasure : Measure ℝ :=
+  ENNReal.ofReal (1 / 12) • Measure.dirac 1 + ENNReal.ofReal (11 / 12) • Measure.dirac 0
+
+/-- Cochrane (2023), §20.2.1: the Bernoulli law has total mass one. -/
+theorem bernMeasure_univ : bernMeasure Set.univ = 1 := by
+  simp only [bernMeasure, Measure.add_apply, Measure.smul_apply, measure_univ, smul_eq_mul,
+    mul_one]
+  rw [← ENNReal.ofReal_add (by norm_num) (by norm_num)]
+  norm_num
+
+/-- Cochrane (2023), §20.2.1: the Bernoulli(1/12) law as a probability measure. -/
+noncomputable def bern : ProbabilityMeasure ℝ := ⟨bernMeasure, ⟨bernMeasure_univ⟩⟩
+
+/-- Cochrane (2023), §20.2.1: `∫ f d(Bernoulli) = f(1)/12 + 11f(0)/12`. -/
+theorem integral_bern (f : ℝ → ℝ) :
+    ∫ x, f x ∂(bern : Measure ℝ) = 1 / 12 * f 1 + 11 / 12 * f 0 := by
+  change ∫ x, f x ∂bernMeasure = _
+  rw [bernMeasure, integral_add_measure
+    ((integrable_dirac enorm_lt_top).smul_measure ENNReal.ofReal_ne_top)
+    ((integrable_dirac enorm_lt_top).smul_measure ENNReal.ofReal_ne_top),
+    integral_smul_measure, integral_smul_measure, integral_dirac, integral_dirac,
+    ENNReal.toReal_ofReal (by norm_num), ENNReal.toReal_ofReal (by norm_num), smul_eq_mul,
+    smul_eq_mul]
+
+/-- Cochrane (2023), §20.2.1: the switch indicator `g(y) = 1` if `y = 1`, `0` otherwise. -/
+noncomputable def gsw (y : ℝ) : ℝ := if y = 1 then 1 else 0
+
+/-- Cochrane (2023), §20.2.1: the switch indicator is measurable. -/
+theorem gsw_measurable : Measurable gsw :=
+  Measurable.ite (measurableSet_singleton 1) measurable_const measurable_const
+
+/-- Cochrane (2023), §20.2.1 (counterexample): inflation starts at `3/2` and switches between
+`3/2` and `−1/2` (`π ↦ 1 − π`) whenever the shock equals `1`. -/
+noncomputable def cexPi : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => fun _ => 3 / 2
+  | t + 1 => fun ω => cexPi t ω + gsw (ω (t + 1)) * (1 - 2 * cexPi t ω)
+
+/-- Cochrane (2023), §20.2.1: the counterexample takes only the values `−1/2` and `3/2`. -/
+theorem cexPi_values (t : ℕ) (ω : ℕ → ℝ) : cexPi t ω = -1 / 2 ∨ cexPi t ω = 3 / 2 := by
+  induction t with
+  | zero => right; rfl
+  | succ t ih =>
+    simp only [cexPi, gsw]
+    split_ifs <;> rcases ih with h | h <;> rw [h] <;> norm_num
+
+/-- Cochrane (2023), §20.2.1: the counterexample is bounded by `3/2`. -/
+theorem cexPi_bdd (t : ℕ) (ω : ℕ → ℝ) : |cexPi t ω| ≤ 3 / 2 := by
+  rcases cexPi_values t ω with h | h <;> rw [h] <;> norm_num [abs_of_pos, abs_of_neg]
+
+/-- Cochrane (2023), §20.2.1: the counterexample is adapted to the natural filtration. -/
+theorem cexPi_meas (t : ℕ) : Measurable[(iidSystem bern).𝓕 t] (cexPi t) := by
+  induction t with
+  | zero => exact measurable_const
+  | succ t ih =>
+    have h1 : Measurable[(iidSystem bern).𝓕 (t + 1)] (cexPi t) :=
+      ih.mono ((iidSystem bern).𝓕.mono (Nat.le_succ t)) le_rfl
+    have h2 : Measurable[(iidSystem bern).𝓕 (t + 1)] (fun ω : ℕ → ℝ => gsw (ω (t + 1))) :=
+      gsw_measurable.comp (measurable_shock bern le_rfl)
+    exact h1.add (h2.mul (measurable_const.sub (measurable_const.mul h1)))
+
+/-- Cochrane (2023), Figure 20.3 calibration, `u = 0`: on `{−1/2, 3/2}` the map is affine,
+`f(π) = (5/6)π + 1/12`. -/
+theorem fmap_cex (x : ℝ) (hx : x = -1 / 2 ∨ x = 3 / 2) :
+    fmap 1 (1 / 2) 2 2 0 x = 5 / 6 * x + 1 / 12 := by
+  rcases hx with rfl | rfl
+  · unfold fmap rule; rw [max_eq_right (by norm_num)]; norm_num
+  · unfold fmap rule; rw [max_eq_left (by norm_num)]; norm_num
+
+/-- Cochrane (2023), §20.2.1 (counterexample): `E_tπ_{t+1} = (5/6)π_t + 1/12` a.e. -/
+theorem cex_E (t : ℕ) : (iidSystem bern).E t (cexPi (t + 1)) =ᵐ[(iidSystem bern).μ]
+    fun ω => 5 / 6 * cexPi t ω + 1 / 12 := by
+  set S := iidSystem bern
+  have hm : StronglyMeasurable[S.𝓕 t] (cexPi t) := (cexPi_meas t).stronglyMeasurable
+  have hi : Integrable (cexPi t) S.μ :=
+    Integrable.of_bound (hm.mono (S.𝓕.le t)).aestronglyMeasurable (3 / 2)
+      (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact cexPi_bdd t ω)
+  have hg : Integrable (fun ω : ℕ → ℝ => gsw (ω (t + 1))) S.μ :=
+    Integrable.of_bound (gsw_measurable.comp (measurable_pi_apply (t + 1))).aestronglyMeasurable
+      1 (Eventually.of_forall fun ω => by unfold gsw; split_ifs <;> norm_num)
+  have hfm : StronglyMeasurable[S.𝓕 t] (fun ω => 1 - 2 * cexPi t ω) :=
+    (measurable_const.sub (measurable_const.mul (cexPi_meas t))).stronglyMeasurable
+  have hprod := S.E_pullOut hfm (C := 2) (Eventually.of_forall fun ω => by
+    rcases cexPi_values t ω with h | h <;> rw [h] <;> norm_num) hg
+  have hsh := E_shock_fun bern t gsw_measurable
+  have hint : ∫ x, gsw x ∂(bern : Measure ℝ) = 1 / 12 := by
+    rw [integral_bern]; simp [gsw]
+  have e : cexPi (t + 1) = cexPi t + (fun ω => 1 - 2 * cexPi t ω) * fun ω => gsw (ω (t + 1)) := by
+    funext ω; simp only [cexPi, Pi.add_apply, Pi.mul_apply]; ring
+  rw [e]
+  have hpi : Integrable ((fun ω => 1 - 2 * cexPi t ω) * fun ω => gsw (ω (t + 1))) S.μ :=
+    hg.bdd_mul (c := 2) (hfm.mono (S.𝓕.le t)).aestronglyMeasurable (Eventually.of_forall fun ω => by
+      rw [Real.norm_eq_abs]
+      rcases cexPi_values t ω with h | h <;> norm_num [h])
+  have hadd := S.E_add hi hpi t
+  rw [S.E_of_stronglyMeasurable hm hi] at hadd
+  filter_upwards [hadd, hprod, hsh] with ω h1 h2 h3
+  rw [h1, Pi.add_apply, h2, Pi.mul_apply, h3, hint]
+  ring
+
+/-- Cochrane (2023), §20.2.1, pp. 473–474 (counterexample on a genuine probability space):
+at the Figure 20.3 calibration with `u = 0`, the switching process is a bounded adapted solution
+of `E_tπ_{t+1} = f(π_t)`, starting from the deterministic `π₀ = 3/2 < π* = 2`. -/
+theorem cex_solves :
+    StronglyAdapted (iidSystem bern).𝓕 cexPi ∧ BoundedProc cexPi ∧
+      MeasSolves (iidSystem bern) 1 (1 / 2) 2 2 cexPi ∧ cexPi 0 = (fun _ => 3 / 2) := by
+  refine ⟨fun t => (cexPi_meas t).stronglyMeasurable, ⟨3 / 2, cexPi_bdd⟩, fun t => ?_, rfl⟩
+  filter_upwards [cex_E t] with ω h
+  rw [h, fmap_cex _ (cexPi_values t ω)]
+
+/-- Cochrane (2023), §20.2.1 (counterexample): mean inflation is `E[π_t] = 1/2 + (5/6)ᵗ`, which
+tends to `1/2`, not to zero. -/
+theorem cex_mean (t : ℕ) : ∫ ω, cexPi t ω ∂(iidSystem bern).μ = 1 / 2 + (5 / 6) ^ t := by
+  set S := iidSystem bern
+  induction t with
+  | zero => simp [cexPi]; norm_num
+  | succ t ih =>
+    have hi : Integrable (cexPi t) S.μ :=
+      Integrable.of_bound (((cexPi_meas t).mono (S.𝓕.le t) le_rfl).aestronglyMeasurable) (3 / 2)
+        (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact cexPi_bdd t ω)
+    rw [← S.integral_E t, integral_congr_ae (cex_E t), integral_add (hi.const_mul _)
+      (integrable_const _), integral_const_mul, ih, integral_const]
+    simp
+    ring
+
+/-- Cochrane (2023), §20.2.1 (counterexample): the rate `i_t = max[π* + φ(π_t − π*), 0]` takes
+only the values `0` and `1`, `i_t = (π_t + 1/2)/2`, so its mean is the probability that the rate
+is positive, `E[i_t] = 1/2 + (5/6)ᵗ/2 → 1/2`. -/
+theorem cex_rate_mean (t : ℕ) :
+    (∀ ω, rule 2 2 (cexPi t ω) = (cexPi t ω + 1 / 2) / 2 ∧
+      (rule 2 2 (cexPi t ω) = 0 ∨ rule 2 2 (cexPi t ω) = 1)) ∧
+    ∫ ω, rule 2 2 (cexPi t ω) ∂(iidSystem bern).μ = 1 / 2 + (5 / 6) ^ t / 2 := by
+  have hval : ∀ ω, rule 2 2 (cexPi t ω) = (cexPi t ω + 1 / 2) / 2 ∧
+      (rule 2 2 (cexPi t ω) = 0 ∨ rule 2 2 (cexPi t ω) = 1) := fun ω => by
+    rcases cexPi_values t ω with h | h <;> rw [h] <;> unfold rule
+    · rw [max_eq_right (by norm_num)]; norm_num
+    · rw [max_eq_left (by norm_num)]; norm_num
+  refine ⟨hval, ?_⟩
+  have hi : Integrable (cexPi t) (iidSystem bern).μ :=
+    Integrable.of_bound
+      (((cexPi_meas t).mono ((iidSystem bern).𝓕.le t) le_rfl).aestronglyMeasurable) (3 / 2)
+      (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact cexPi_bdd t ω)
+  rw [integral_congr_ae (Eventually.of_forall fun ω => (hval ω).1)]
+  simp only [div_eq_mul_inv]
+  rw [integral_mul_const, integral_add hi (integrable_const _), integral_const]
+  have := cex_mean t
+  simp only [div_eq_mul_inv] at this
+  rw [this]
+  simp
+  ring
+
+/-- Cochrane (2023), §20.2.1: dominated convergence for the counterexample, `|F_t| ≤ 3/2`. -/
+theorem cex_dct {F : ℕ → (ℕ → ℝ) → ℝ} {l : ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (F t) (iidSystem bern).μ)
+    (hb : ∀ t, ∀ᵐ ω ∂(iidSystem bern).μ, |F t ω| ≤ 3 / 2)
+    (hl : ∀ᵐ ω ∂(iidSystem bern).μ, Tendsto (fun t => F t ω) atTop (𝓝 l)) :
+    Tendsto (fun t => ∫ ω, F t ω ∂(iidSystem bern).μ) atTop (𝓝 l) := by
+  have := tendsto_integral_of_dominated_convergence (fun _ => (3 / 2 : ℝ)) hm
+    (integrable_const _) (fun t => (hb t).mono fun ω h => by rwa [Real.norm_eq_abs]) hl
+  simpa using this
+
+/-- Cochrane (2023), p. 473, survey of the global results: **the stochastic version of
+`ZLBRule.orbit_below_tendsto_zero` is false.** In the counterexample, inflation does not
+converge to zero almost surely (although `π₀ < π*` and the solution is bounded). -/
+theorem cex_not_ae_tendsto_zero :
+    ¬ ∀ᵐ ω ∂(iidSystem bern).μ, Tendsto (fun t => cexPi t ω) atTop (𝓝 0) := by
+  intro h
+  have h1 := cex_dct (fun t => ((cexPi_meas t).mono ((iidSystem bern).𝓕.le t)
+    le_rfl).aestronglyMeasurable) (fun t => Eventually.of_forall (cexPi_bdd t)) h
+  have h2 : Tendsto (fun t => ∫ ω, cexPi t ω ∂(iidSystem bern).μ) atTop (𝓝 (1 / 2)) := by
+    simp only [cex_mean]
+    simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num : (0 : ℝ) ≤ 5 / 6)
+      (by norm_num)).const_add (1 / 2 : ℝ)
+  have := tendsto_nhds_unique h1 h2
+  norm_num at this
+
+/-- Cochrane (2023), p. 473 ("return back to … zero interest rates"): **the stochastic version
+of `ZLBRule.orbit_below_rate_zero` is false.** In the counterexample the rate is not eventually
+zero almost surely; indeed `P(i_t > 0) = E[i_t] → 1/2`. -/
+theorem cex_not_ae_rate_zero :
+    ¬ ∀ᵐ ω ∂(iidSystem bern).μ, ∀ᶠ t in atTop, rule 2 2 (cexPi t ω) = 0 := by
+  intro h
+  have hl : ∀ᵐ ω ∂(iidSystem bern).μ, Tendsto (fun t => rule 2 2 (cexPi t ω)) atTop (𝓝 0) :=
+    h.mono fun ω hω => tendsto_const_nhds.congr' (hω.mono fun t ht => ht.symm)
+  have hrm : ∀ t, Measurable (fun ω => rule 2 2 (cexPi t ω)) := fun t => by
+    have := (cexPi_meas t).mono ((iidSystem bern).𝓕.le t) le_rfl
+    unfold rule
+    exact (measurable_const.add (measurable_const.mul (this.sub measurable_const))).max
+      measurable_const
+  have h1 := cex_dct (fun t => (hrm t).aestronglyMeasurable) (fun t => Eventually.of_forall
+    fun ω => by
+      rcases ((cex_rate_mean t).1 ω).2 with h | h <;> rw [h] <;> norm_num) hl
+  have h2 : Tendsto (fun t => ∫ ω, rule 2 2 (cexPi t ω) ∂(iidSystem bern).μ) atTop
+      (𝓝 (1 / 2)) := by
+    simp only [fun t => (cex_rate_mean t).2]
+    simpa using ((tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num : (0 : ℝ) ≤ 5 / 6)
+      (by norm_num)).div_const 2).const_add (1 / 2 : ℝ)
+  have := tendsto_nhds_unique h1 h2
+  norm_num at this
+
+/-- Cochrane (2023), p. 473: **expected inflation does not return to zero either**: in the
+counterexample `E_0π_t ↛ 0` almost surely (its mean is `E[π_t] → 1/2`). -/
+theorem cex_not_ae_expected_zero :
+    ¬ ∀ᵐ ω ∂(iidSystem bern).μ,
+      Tendsto (fun t => (iidSystem bern).E 0 (cexPi t) ω) atTop (𝓝 0) := by
+  intro h
+  have h1 := cex_dct (fun t => ((iidSystem bern).integrable_E 0 (cexPi t)).aestronglyMeasurable)
+    (fun t => (iidSystem bern).abs_E_le (Eventually.of_forall (cexPi_bdd t)) 0) h
+  have h2 : Tendsto (fun t => ∫ ω, (iidSystem bern).E 0 (cexPi t) ω ∂(iidSystem bern).μ) atTop
+      (𝓝 (1 / 2)) := by
+    simp only [(iidSystem bern).integral_E, cex_mean]
+    simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num : (0 : ℝ) ≤ 5 / 6)
+      (by norm_num)).const_add (1 / 2 : ℝ)
+  have := tendsto_nhds_unique h1 h2
+  norm_num at this
+
+end Cochrane.ZeroBound.TidyR6OrbitStochastic
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Leaving the active-money regime moves an eigenvalue across the unit circle
+
+Cochrane (2023), Chapter 24, p. 523: "Shifting from active-fiscal passive-money to active-money
+passive-fiscal requires a discrete shift in variables, to move eigenvalues from stable to
+unstable. But if we are simply viewing shifting correlations … a shift of `θ` in `i*_t = θπ*_t`
+… has no such momentous or discontinuous consequences."
+
+The model is the Leeper model (23.1)–(23.4) of `FutureSelection.LeeperEq` with constant
+coefficients `φ`, `γ`, `0 < ρ < 1`, under perfect foresight and without disturbances; the regime
+parameters are `(φ, γ)`. Its transition matrix is `diag(φ, λ)`, `λ = (1 − γ)/ρ`.
+
+## Main results
+
+* Eigenvalues: `leeper_charpoly` (`det(A − zI) = (φ − z)(λ − z)`), `eig_continuous` (the
+  eigenvalues are continuous in the regime parameters).
+* The complete determinacy map (`leeper_pf_char`, `bounded_geom_iff`, `mem_eqSet_iff`): for
+  `c₀ ≠ 0` there is exactly one bounded equilibrium iff `(φ, γ)` is active-money/passive-fiscal
+  (`1 < |φ|`, `|λ| ≤ 1`) or active-fiscal/passive-money (`|φ| ≤ 1`, `1 < |λ|`)
+  (`existsUnique_iff`); none iff both eigenvalues lie outside the unit circle
+  (`eqSet_empty_iff`); uncountably many iff both lie inside or on it (`eqSet_uncountable`).
+  Initial inflation is `π₀ = 0` in the first regime and `π₀ = c₀` in the second
+  (`am_pi0`, `af_pi0`).
+* **The p. 523 claim** (`path_crosses`): along every continuous path of regime parameters from
+  the active-money to the active-fiscal regime, `|φ|` crosses `1`, `|λ|` crosses `1`, and at some
+  intermediate parameter the two eigenvalues have equal modulus, where the model has no unique
+  bounded equilibrium. Hence the two determinate regions cannot be joined inside the determinate
+  region (`no_determinate_path`), and the equilibrium response `∂π₀/∂c₀` jumps from `0` to `1`
+  (`pi0_response_jump`): a regime change is a discrete shift.
+* The contrast (`ftpl_existsUnique`, `ftpl_continuous_theta`): in the frictionless fiscal-theory
+  equilibrium with an on-equilibrium rate `i_t = θπ_t + w_t`, for an arbitrary
+  `ExpectationSystem`, every `θ ∈ ℝ` gives exactly one equilibrium and it is continuous
+  (polynomial) in `θ`; nothing happens at `|θ| = 1`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR6RegimeEigen
+
+open Filter Topology
+open Cochrane.ZeroBound Cochrane.ZeroBound.FutureSelection
+
+/-! ## The eigenvalues -/
+
+/-- Cochrane (2023), (23.1)–(23.4), p. 512 and p. 523: the fiscal eigenvalue `λ = (1 − γ)/ρ` of
+the Leeper model (from `ρE_tv_{t+1} = (1 − γ)v_t`, `FutureSelection.leeper_debt_eq`). -/
+noncomputable def lamF (ρ γ : ℝ) : ℝ := (1 - γ) / ρ
+
+/-- Cochrane (2023), p. 523: the transition matrix of `(π, v)` in the Leeper model without
+disturbances, `diag(φ, λ)`. -/
+noncomputable def leeperMatrix (ρ φ γ : ℝ) : Matrix (Fin 2) (Fin 2) ℝ := !![φ, 0; 0, lamF ρ γ]
+
+/-- Cochrane (2023), p. 523: the eigenvalues are `φ` and `λ`:
+`det(A − zI) = (φ − z)(λ − z)`. -/
+theorem leeper_charpoly (ρ φ γ z : ℝ) :
+    (leeperMatrix ρ φ γ - z • (1 : Matrix (Fin 2) (Fin 2) ℝ)).det =
+      (φ - z) * (lamF ρ γ - z) := by
+  rw [Matrix.det_fin_two]
+  simp [leeperMatrix]
+
+/-- Cochrane (2023), p. 523 ("to move eigenvalues"): the eigenvalues `(φ, λ)` are continuous
+functions of the regime parameters `(φ, γ)`. -/
+theorem eig_continuous (ρ : ℝ) : Continuous fun q : ℝ × ℝ => (q.1, lamF ρ q.2) := by
+  unfold lamF
+  fun_prop
+
+/-! ## The determinacy map -/
+
+/-- Cochrane (2023), p. 523: the active-money / passive-fiscal regime, `1 < |φ|`, `|λ| ≤ 1`. -/
+def AM (ρ φ γ : ℝ) : Prop := 1 < |φ| ∧ |lamF ρ γ| ≤ 1
+
+/-- Cochrane (2023), p. 523: the active-fiscal / passive-money regime, `|φ| ≤ 1`, `1 < |λ|`. -/
+def AF (ρ φ γ : ℝ) : Prop := |φ| ≤ 1 ∧ 1 < |lamF ρ γ|
+
+/-- Cochrane (2023), (23.1)–(23.4): the Leeper model with constant coefficients, perfect
+foresight and no disturbances. -/
+def LEq (ρ φ γ c0 : ℝ) (π v : ℕ → Unit → ℝ) : Prop :=
+  LeeperEq perfectForesight ρ (fun _ => φ) (fun _ => γ) (fun _ => c0) 0 0 π v
+
+/-- Cochrane (2023), p. 523: the inflation path `π_t = φᵗp`. -/
+def eqPi (φ p : ℝ) : ℕ → Unit → ℝ := fun t _ => φ ^ t * p
+
+/-- Cochrane (2023), p. 523: the debt path `v_t = λᵗ(c₀ − p)/ρ`. -/
+noncomputable def eqV (ρ γ c0 p : ℝ) : ℕ → Unit → ℝ := fun t _ => lamF ρ γ ^ t * ((c0 - p) / ρ)
+
+/-- Cochrane (2023), (23.1)–(23.4): the solutions of the model are exactly the paths
+`π_t = φᵗπ₀`, `v_t = λᵗ(c₀ − π₀)/ρ` (`ρ ≠ 0`). -/
+theorem leeper_pf_char {ρ φ γ c0 : ℝ} (hρ : ρ ≠ 0) (π v : ℕ → Unit → ℝ) :
+    LEq ρ φ γ c0 π v ↔ π = eqPi φ (π 0 ()) ∧ v = eqV ρ γ c0 (π 0 ()) := by
+  constructor
+  · rintro ⟨h0, h⟩
+    have hπ : ∀ t, π t () = φ ^ t * π 0 () := by
+      intro t
+      induction t with
+      | zero => simp
+      | succ t ih =>
+        have := congrFun (h t).1 ()
+        simp only [perfectForesight, LinearMap.id_apply, Pi.add_apply, Pi.smul_apply,
+          smul_eq_mul, Pi.zero_apply, add_zero] at this
+        rw [this, ih, pow_succ]
+        ring
+    have hv0 : v 0 () = (c0 - π 0 ()) / ρ := by
+      have := congrFun h0 ()
+      simp only [Pi.smul_apply, smul_eq_mul, Pi.sub_apply] at this
+      field_simp
+      linarith
+    have hv : ∀ t, v t () = lamF ρ γ ^ t * v 0 () := by
+      intro t
+      induction t with
+      | zero => simp
+      | succ t ih =>
+        have a := congrFun (h t).1 ()
+        have b := congrFun (h t).2 ()
+        simp only [perfectForesight, LinearMap.id_apply, Pi.add_apply, Pi.smul_apply,
+          smul_eq_mul, Pi.zero_apply, add_zero, Pi.sub_apply] at a b
+        rw [a] at b
+        have : v (t + 1) () = lamF ρ γ * v t () := by
+          unfold lamF
+          field_simp
+          linarith
+        rw [this, ih, pow_succ]
+        ring
+    refine ⟨funext fun t => funext fun u => ?_, funext fun t => funext fun u => ?_⟩
+    · cases u; exact hπ t
+    · cases u; rw [hv t, hv0]; rfl
+  · rintro ⟨hπ, hv⟩
+    rw [hπ, hv]
+    refine ⟨?_, fun t => ⟨?_, ?_⟩⟩
+    · funext u
+      simp only [eqV, eqPi, Pi.smul_apply, smul_eq_mul, Pi.sub_apply, pow_zero, one_mul]
+      field_simp
+    · funext u
+      simp only [perfectForesight, LinearMap.id_apply, eqPi, Pi.add_apply, Pi.smul_apply,
+        smul_eq_mul, Pi.zero_apply, add_zero, pow_succ]
+      ring
+    · funext u
+      simp only [eqV, eqPi, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply, add_zero,
+        Pi.sub_apply, lamF, pow_succ]
+      field_simp
+      ring
+
+/-- Cochrane (2023), p. 523: a geometric path `aᵗc` is bounded iff `|a| ≤ 1` or `c = 0`. -/
+theorem bounded_geom_iff (a c : ℝ) :
+    BoundedProc (fun t (_ : Unit) => a ^ t * c) ↔ |a| ≤ 1 ∨ c = 0 := by
+  constructor
+  · rintro ⟨M, hM⟩
+    by_contra hcon
+    push Not at hcon
+    obtain ⟨ha, hc⟩ := hcon
+    have hcpos : 0 < |c| := abs_pos.mpr hc
+    have ht := (tendsto_pow_atTop_atTop_of_one_lt ha).atTop_mul_const hcpos
+    obtain ⟨t, htt⟩ := (ht.eventually (eventually_gt_atTop M)).exists
+    have := hM t ()
+    rw [abs_mul, abs_pow] at this
+    linarith
+  · rintro (h | h)
+    · refine ⟨|c|, fun t _ => ?_⟩
+      rw [abs_mul, abs_pow]
+      exact mul_le_of_le_one_left (abs_nonneg c) (pow_le_one₀ (abs_nonneg a) h)
+    · exact ⟨0, fun t _ => by simp [h]⟩
+
+/-- Cochrane (2023), p. 523: the bounded equilibria of the Leeper model. -/
+def EqSet (ρ φ γ c0 : ℝ) : Set ((ℕ → Unit → ℝ) × (ℕ → Unit → ℝ)) :=
+  {z | BoundedProc z.1 ∧ BoundedProc z.2 ∧ LEq ρ φ γ c0 z.1 z.2}
+
+/-- Cochrane (2023), p. 523: the admissible initial inflation rates: a bounded inflation path
+needs `|φ| ≤ 1` or `π₀ = 0`, a bounded debt path needs `|λ| ≤ 1` or `π₀ = c₀`. -/
+def Adm (ρ φ γ c0 p : ℝ) : Prop := (|φ| ≤ 1 ∨ p = 0) ∧ (|lamF ρ γ| ≤ 1 ∨ p = c0)
+
+/-- Cochrane (2023), p. 523: the bounded equilibria are exactly `(φᵗp, λᵗ(c₀ − p)/ρ)` for
+admissible `p` (`ρ > 0`). -/
+theorem mem_eqSet_iff {ρ φ γ c0 : ℝ} (hρ : 0 < ρ) (z : (ℕ → Unit → ℝ) × (ℕ → Unit → ℝ)) :
+    z ∈ EqSet ρ φ γ c0 ↔ ∃ p, Adm ρ φ γ c0 p ∧ z = (eqPi φ p, eqV ρ γ c0 p) := by
+  have hb2 : ∀ p, BoundedProc (eqV ρ γ c0 p) ↔ |lamF ρ γ| ≤ 1 ∨ p = c0 := fun p => by
+    rw [show eqV ρ γ c0 p = fun t (_ : Unit) => lamF ρ γ ^ t * ((c0 - p) / ρ) from rfl,
+      bounded_geom_iff]
+    refine or_congr_right ⟨fun h => ?_, fun h => by rw [h]; simp⟩
+    rw [div_eq_zero_iff] at h
+    rcases h with h | h
+    · linarith
+    · exact absurd h hρ.ne'
+  constructor
+  · rintro ⟨hb1, hb2', heq⟩
+    obtain ⟨hπ, hv⟩ := (leeper_pf_char hρ.ne' z.1 z.2).mp heq
+    refine ⟨z.1 0 (), ⟨?_, ?_⟩, Prod.ext hπ hv⟩
+    · rw [hπ] at hb1
+      exact (bounded_geom_iff φ _).mp hb1
+    · rw [hv] at hb2'
+      exact (hb2 _).mp hb2'
+  · rintro ⟨p, ⟨h1, h2⟩, rfl⟩
+    refine ⟨(bounded_geom_iff φ p).mpr h1, (hb2 p).mpr h2, ?_⟩
+    rw [leeper_pf_char hρ.ne']
+    refine ⟨?_, ?_⟩ <;> simp [eqPi]
+
+/-- Cochrane (2023), p. 523: the equilibrium map `p ↦ (φᵗp, λᵗ(c₀ − p)/ρ)` is injective. -/
+theorem eqMap_injective (ρ φ γ c0 : ℝ) :
+    Function.Injective fun p : ℝ => (eqPi φ p, eqV ρ γ c0 p) := by
+  intro p p' h
+  have := congrFun (congrFun (congrArg Prod.fst h) 0) ()
+  simpa [eqPi] using this
+
+/-- Cochrane (2023), p. 523: **the determinacy map.** For `ρ > 0` and `c₀ ≠ 0` there is exactly
+one bounded equilibrium iff the regime parameters are active-money/passive-fiscal or
+active-fiscal/passive-money. -/
+theorem existsUnique_iff {ρ φ γ c0 : ℝ} (hρ : 0 < ρ) (hc0 : c0 ≠ 0) :
+    (∃! z, z ∈ EqSet ρ φ γ c0) ↔ AM ρ φ γ ∨ AF ρ φ γ := by
+  have hp : (∃! z, z ∈ EqSet ρ φ γ c0) ↔ ∃! p, Adm ρ φ γ c0 p := by
+    constructor
+    · rintro ⟨z, hz, hu⟩
+      obtain ⟨p, hp, rfl⟩ := (mem_eqSet_iff hρ z).mp hz
+      refine ⟨p, hp, fun p' hp' => eqMap_injective ρ φ γ c0 ?_⟩
+      exact hu _ ((mem_eqSet_iff hρ _).mpr ⟨p', hp', rfl⟩)
+    · rintro ⟨p, hp, hu⟩
+      refine ⟨(eqPi φ p, eqV ρ γ c0 p), (mem_eqSet_iff hρ _).mpr ⟨p, hp, rfl⟩, fun z hz => ?_⟩
+      obtain ⟨p', hp', rfl⟩ := (mem_eqSet_iff hρ z).mp hz
+      rw [hu p' hp']
+  rw [hp]
+  unfold AM AF Adm
+  constructor
+  · rintro ⟨p, ⟨h1, h2⟩, hu⟩
+    by_cases hφ : |φ| ≤ 1 <;> by_cases hlam : |lamF ρ γ| ≤ 1
+    · exfalso
+      have a := hu (p + 1) ⟨Or.inl hφ, Or.inl hlam⟩
+      linarith
+    · exact Or.inr ⟨hφ, lt_of_not_ge hlam⟩
+    · exact Or.inl ⟨lt_of_not_ge hφ, hlam⟩
+    · exfalso
+      have a := h1.resolve_left hφ
+      have b := h2.resolve_left hlam
+      exact hc0 (b ▸ a)
+  · rintro (⟨h1, h2⟩ | ⟨h1, h2⟩)
+    · refine ⟨0, ⟨Or.inr rfl, Or.inl h2⟩, fun p hp => ?_⟩
+      exact hp.1.resolve_left (not_le.mpr h1)
+    · refine ⟨c0, ⟨Or.inl h1, Or.inr rfl⟩, fun p hp => ?_⟩
+      exact hp.2.resolve_left (not_le.mpr h2)
+
+/-- Cochrane (2023), p. 523: with both eigenvalues outside the unit circle (both policies
+active) there is no bounded equilibrium (`c₀ ≠ 0`), and conversely. -/
+theorem eqSet_empty_iff {ρ φ γ c0 : ℝ} (hρ : 0 < ρ) (hc0 : c0 ≠ 0) :
+    EqSet ρ φ γ c0 = ∅ ↔ 1 < |φ| ∧ 1 < |lamF ρ γ| := by
+  rw [Set.eq_empty_iff_forall_notMem]
+  constructor
+  · intro h
+    by_contra hcon
+    rw [not_and_or, not_lt, not_lt] at hcon
+    rcases hcon with hφ | hlam
+    · exact h _ ((mem_eqSet_iff hρ _).mpr ⟨c0, ⟨Or.inl hφ, Or.inr rfl⟩, rfl⟩)
+    · exact h _ ((mem_eqSet_iff hρ _).mpr ⟨0, ⟨Or.inr rfl, Or.inl hlam⟩, rfl⟩)
+  · rintro ⟨hφ, hlam⟩ z hz
+    obtain ⟨p, ⟨h1, h2⟩, -⟩ := (mem_eqSet_iff hρ z).mp hz
+    have a := h1.resolve_left (not_le.mpr hφ)
+    have b := h2.resolve_left (not_le.mpr hlam)
+    exact hc0 (b ▸ a)
+
+/-- Cochrane (2023), p. 523: with both eigenvalues inside or on the unit circle (both policies
+passive) the bounded equilibria form an uncountable family. -/
+theorem eqSet_uncountable {ρ φ γ c0 : ℝ} (hρ : 0 < ρ) (hφ : |φ| ≤ 1) (hlam : |lamF ρ γ| ≤ 1) :
+    ¬ (EqSet ρ φ γ c0).Countable := by
+  intro hc
+  have hsub : Set.range (fun p : ℝ => (eqPi φ p, eqV ρ γ c0 p)) ⊆ EqSet ρ φ γ c0 := by
+    rintro _ ⟨p, rfl⟩
+    exact (mem_eqSet_iff hρ _).mpr ⟨p, ⟨Or.inl hφ, Or.inl hlam⟩, rfl⟩
+  have h2 := (hc.mono hsub).preimage (eqMap_injective ρ φ γ c0)
+  rw [Set.preimage_range] at h2
+  exact Cardinal.not_countable_real h2
+
+/-- Cochrane (2023), p. 523: in the active-money regime the unique equilibrium has `π₀ = 0`:
+inflation does not respond to the fiscal state `c₀`. -/
+theorem am_pi0 {ρ φ γ c0 : ℝ} (hρ : 0 < ρ) (h : AM ρ φ γ) {z} (hz : z ∈ EqSet ρ φ γ c0) :
+    z.1 0 () = 0 := by
+  obtain ⟨p, ⟨h1, -⟩, rfl⟩ := (mem_eqSet_iff hρ z).mp hz
+  simp [eqPi, h1.resolve_left (not_le.mpr h.1)]
+
+/-- Cochrane (2023), p. 523: in the active-fiscal regime the unique equilibrium has `π₀ = c₀`:
+inflation absorbs the fiscal state one for one. -/
+theorem af_pi0 {ρ φ γ c0 : ℝ} (hρ : 0 < ρ) (h : AF ρ φ γ) {z} (hz : z ∈ EqSet ρ φ γ c0) :
+    z.1 0 () = c0 := by
+  obtain ⟨p, ⟨-, h2⟩, rfl⟩ := (mem_eqSet_iff hρ z).mp hz
+  simp [eqPi, h2.resolve_left (not_le.mpr h.2)]
+
+/-! ## Paths of regime parameters (p. 523) -/
+
+/-- Cochrane (2023), p. 523: at parameters where the two eigenvalues have equal modulus there is
+no unique bounded equilibrium (`ρ > 0`, `c₀ ≠ 0`). -/
+theorem not_unique_of_eq_modulus {ρ φ γ c0 : ℝ} (hρ : 0 < ρ) (hc0 : c0 ≠ 0)
+    (h : |φ| = |lamF ρ γ|) : ¬ ∃! z, z ∈ EqSet ρ φ γ c0 := by
+  rw [existsUnique_iff hρ hc0]
+  rintro (⟨a, b⟩ | ⟨a, b⟩) <;> linarith
+
+/-- Cochrane (2023), p. 523, **"requires a discrete shift … to move eigenvalues from stable to
+unstable"**: along every continuous path `s ↦ (φ(s), γ(s))`, `s ∈ [0, 1]`, from the
+active-money regime to the active-fiscal regime, the monetary eigenvalue reaches the unit circle
+(at some `s > 0`), the fiscal eigenvalue reaches it (at some `s < 1`), and at some intermediate
+parameter the two eigenvalues have equal modulus, so that (for `ρ > 0`, `c₀ ≠ 0`) the model has
+no unique bounded equilibrium there. -/
+theorem path_crosses {ρ c0 : ℝ} (hρ : 0 < ρ) (hc0 : c0 ≠ 0) {φ γ : ℝ → ℝ}
+    (hφc : ContinuousOn φ (Set.Icc 0 1)) (hγc : ContinuousOn γ (Set.Icc 0 1))
+    (h0 : AM ρ (φ 0) (γ 0)) (h1 : AF ρ (φ 1) (γ 1)) :
+    (∃ s ∈ Set.Ioc (0 : ℝ) 1, |φ s| = 1) ∧ (∃ s ∈ Set.Ico (0 : ℝ) 1, |lamF ρ (γ s)| = 1) ∧
+      ∃ s ∈ Set.Ioo (0 : ℝ) 1, |φ s| = |lamF ρ (γ s)| ∧
+        ¬ ∃! z, z ∈ EqSet ρ (φ s) (γ s) c0 := by
+  have hlamc : ContinuousOn (fun s => |lamF ρ (γ s)|) (Set.Icc 0 1) := by
+    unfold lamF
+    exact ((continuousOn_const.sub hγc).div_const ρ).abs
+  have hφa : ContinuousOn (fun s => |φ s|) (Set.Icc 0 1) := hφc.abs
+  refine ⟨?_, ?_, ?_⟩
+  · obtain ⟨s, hs, hs1⟩ := intermediate_value_Icc' (zero_le_one' ℝ) hφa ⟨h1.1, h0.1.le⟩
+    refine ⟨s, ⟨lt_of_le_of_ne hs.1 ?_, hs.2⟩, hs1⟩
+    rintro rfl
+    exact absurd hs1 (ne_of_gt h0.1)
+  · obtain ⟨s, hs, hs1⟩ := intermediate_value_Icc (zero_le_one' ℝ) hlamc ⟨h0.2, h1.2.le⟩
+    refine ⟨s, ⟨hs.1, lt_of_le_of_ne hs.2 ?_⟩, hs1⟩
+    rintro rfl
+    exact absurd hs1 (ne_of_gt h1.2)
+  · have hF : ContinuousOn (fun s => |φ s| - |lamF ρ (γ s)|) (Set.Icc 0 1) := hφa.sub hlamc
+    obtain ⟨s, hs, hs0⟩ := intermediate_value_Ioo' (zero_le_one' ℝ) hF
+      (show (0 : ℝ) ∈ Set.Ioo (|φ 1| - |lamF ρ (γ 1)|) (|φ 0| - |lamF ρ (γ 0)|) from
+        ⟨by linarith [h1.1, h1.2], by linarith [h0.1, h0.2]⟩)
+    have he : |φ s| = |lamF ρ (γ s)| := by linarith
+    exact ⟨s, hs, he, not_unique_of_eq_modulus hρ hc0 he⟩
+
+/-- Cochrane (2023), p. 523: the active-money and active-fiscal regions cannot be joined by a
+continuous path of regime parameters along which the equilibrium stays unique. -/
+theorem no_determinate_path {ρ c0 : ℝ} (hρ : 0 < ρ) (hc0 : c0 ≠ 0) {φ γ : ℝ → ℝ}
+    (hφc : ContinuousOn φ (Set.Icc 0 1)) (hγc : ContinuousOn γ (Set.Icc 0 1))
+    (h0 : AM ρ (φ 0) (γ 0)) (h1 : AF ρ (φ 1) (γ 1)) :
+    ¬ ∀ s ∈ Set.Icc (0 : ℝ) 1, ∃! z, z ∈ EqSet ρ (φ s) (γ s) c0 := by
+  intro h
+  obtain ⟨-, -, s, hs, -, hn⟩ := path_crosses hρ hc0 hφc hγc h0 h1
+  exact hn (h s ⟨hs.1.le, hs.2.le⟩)
+
+/-- Cochrane (2023), p. 523 ("momentous or discontinuous consequences"): the equilibrium
+response of initial inflation to the fiscal state is `π₀ = r·c₀` with `r = 0` throughout the
+active-money regime and `r = 1` throughout the active-fiscal regime; along any continuous path
+between them it jumps, passing through a parameter with no unique equilibrium
+(`path_crosses`). -/
+theorem pi0_response_jump {ρ c0 : ℝ} (hρ : 0 < ρ) (hc0 : c0 ≠ 0) {φ γ : ℝ → ℝ}
+    (h0 : AM ρ (φ 0) (γ 0)) (h1 : AF ρ (φ 1) (γ 1)) :
+    (∃! z, z ∈ EqSet ρ (φ 0) (γ 0) c0) ∧ (∃! z, z ∈ EqSet ρ (φ 1) (γ 1) c0) ∧
+      (∀ z ∈ EqSet ρ (φ 0) (γ 0) c0, z.1 0 () = 0 * c0) ∧
+      ∀ z ∈ EqSet ρ (φ 1) (γ 1) c0, z.1 0 () = 1 * c0 :=
+  ⟨(existsUnique_iff hρ hc0).mpr (Or.inl h0), (existsUnique_iff hρ hc0).mpr (Or.inr h1),
+    fun z hz => by rw [zero_mul]; exact am_pi0 hρ h0 hz,
+    fun z hz => by rw [one_mul]; exact af_pi0 hρ h1 hz⟩
+
+/-! ## The contrast: on-equilibrium correlations (p. 523) -/
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Cochrane (2023), p. 523 (with (5.10)–(5.12), p. 116, frictionless): the fiscal-theory
+equilibrium with an on-equilibrium interest-rate correlation `i_t = θπ_t + w_t`: the Fisher
+equation `E_tπ_{t+1} = i_t`, unexpected inflation equal to minus the fiscal news,
+`π_{t+1} − E_tπ_{t+1} = −ε_{t+1}`, and `π₀ = −ε₀` from the steady state. -/
+def FTPLEq (θ : ℝ) (w ε π : ℕ → Ω → ℝ) : Prop :=
+  π 0 = -ε 0 ∧ ∀ t, 𝔼.E t (π (t + 1)) = θ • π t + w t ∧
+    π (t + 1) - 𝔼.E t (π (t + 1)) = -ε (t + 1)
+
+/-- Cochrane (2023), p. 523: the equilibrium path `π_{t+1} = θπ_t + w_t − ε_{t+1}`,
+`π₀ = −ε₀`. -/
+def ftplPi (θ : ℝ) (w ε : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => -ε 0
+  | t + 1 => θ • ftplPi θ w ε t + w t - ε (t + 1)
+
+/-- Cochrane (2023), p. 523 ("a shift of `θ` … has no such momentous or discontinuous
+consequences"): for EVERY `θ ∈ ℝ` (including `|θ| = 1` and `|θ| > 1`), adapted `w`, `ε` and news
+`E_tε_{t+1} = 0`, there is exactly one adapted equilibrium, `ftplPi`. -/
+theorem ftpl_existsUnique (θ : ℝ) {w ε : ℕ → Ω → ℝ} (hw : 𝔼.Adapted w) (hε : 𝔼.Adapted ε)
+    (hn : ∀ t, 𝔼.E t (ε (t + 1)) = 0) :
+    ∃! π : ℕ → Ω → ℝ, 𝔼.Adapted π ∧ FTPLEq 𝔼 θ w ε π := by
+  have hkn : ∀ {x : ℕ → Ω → ℝ}, 𝔼.Adapted x → ∀ t, 𝔼.E (t + 1) (x t) = x t := by
+    intro x hx t
+    rw [← hx t, 𝔼.known (Nat.le_succ t), hx t]
+  have hEt : ∀ t, 𝔼.E t (ftplPi θ w ε (t + 1)) =
+      θ • 𝔼.E t (ftplPi θ w ε t) + w t := by
+    intro t
+    simp only [ftplPi, map_sub, map_add, map_smul, hw t, hn t, sub_zero]
+  have had : 𝔼.Adapted (ftplPi θ w ε) := by
+    intro t
+    induction t with
+    | zero => simp only [ftplPi, map_neg, hε 0]
+    | succ t ih =>
+      have h1 : 𝔼.E (t + 1) (ftplPi θ w ε t) = ftplPi θ w ε t := by
+        rw [← ih, 𝔼.known (Nat.le_succ t)]
+      simp only [ftplPi, map_sub, map_add, map_smul, h1, hkn hw t, hε (t + 1)]
+  refine ⟨ftplPi θ w ε, ⟨had, rfl, fun t => ⟨by rw [hEt, had t], ?_⟩⟩, ?_⟩
+  · rw [hEt, had t]
+    simp only [ftplPi]
+    abel
+  · rintro π ⟨-, h0, h⟩
+    funext t
+    induction t with
+    | zero => exact h0
+    | succ t ih =>
+      have a := (h t).1
+      have b := (h t).2
+      rw [a, ih] at b
+      simp only [ftplPi]
+      linear_combination b
+
+/-- Cochrane (2023), p. 523: the equilibrium is a continuous (polynomial) function of `θ` at
+every date and state; nothing happens at `|θ| = 1`. -/
+theorem ftpl_continuous_theta (w ε : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    Continuous fun θ => ftplPi θ w ε t ω := by
+  induction t with
+  | zero => exact continuous_const
+  | succ t ih =>
+    simp only [ftplPi, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    exact ((continuous_id.mul ih).add continuous_const).sub continuous_const
+
+end Cochrane.ZeroBound.TidyR6RegimeEigen
+
 set_option linter.style.longLine false
 #print axioms Cochrane.ZeroBound.SchurStable
 #print axioms Cochrane.ZeroBound.discQ
@@ -18183,3 +24905,446 @@ set_option linter.style.longLine false
 #print axioms Cochrane.ZeroBound.LiftoffRhoZero.zfXi2
 #print axioms Cochrane.ZeroBound.LiftoffRhoZero.nat_mul_half_pow_le
 #print axioms Cochrane.ZeroBound.LiftoffRhoZero.cert_zero_forever
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.const
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.nonneg_bound
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.add
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.neg
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.sub
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.mul
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.div_const
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.pow
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.lin
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.comp
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.shift
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_succ
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_zero
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.lagS
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_zero_seq
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_sub
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.summable_geom_bdd
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.summable_norm_geom_bdd
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.summable
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.abs_tsum_le
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_geom_shift
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_telescope
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_telescope_add
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_add3
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.forward_real
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_integrated
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.dispersion_tsum
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_discounted_hasSum
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_bdd
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_discounted
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_mul
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_sq
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_shift
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_congr
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.boundedProc_lincomb
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_of_continuous
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.dsum
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.abs_E0_le
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.hasSum_dsum
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP_apply
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP_known
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.mean_ge_k_sd_iff
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.bigK
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.K_value
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.one_lt_K
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.one_le_K_of_feasible
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_lincomb
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_const
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_mono
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_sq_ge
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_complete_square
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.lagrangian_sufficiency
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.clm_triple
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.nonneg_of_forall_le_add_mul
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.kkt_exists
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.Feasible
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.IsConstrOpt
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.optimal_reformulated
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9_multipliers
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_ge_lag
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_ge_opt
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_at
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.envelope
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.binds_of_unconstrained_infeasible
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.mu2_pos
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.zero_multiplier_of_feasible_min
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.binding_zero_multiplier_case
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_pos
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_K_one
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_nonneg
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.slater_needs_variance
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.det_component_mean
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_affine
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_sq_convex
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9_slack
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.loss_4_22
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.iHat_between
+#print axioms Cochrane.ZeroBound.TidyR6WoodfordZLB.iHat_either_sign
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.Pol
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.rateLin
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.Cset
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.Lfun
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.mom1
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.mom2
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.rateLin_eq
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.sq_add_le
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.sq_convex
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.summable_rate_sq
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.summable_rate
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.lossTerm_convex
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.cset_convex
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.loss_convexOn
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.mom1_comb
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.mom1_affine
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.mom2_convexOn
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.avg_sq_dev
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.prop_6_9_common
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.mom1_eq_dAvg
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.mom2_eq_dAvg
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.PathOpt
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.feasible_iff
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.pathOpt_iff
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.pathOpt_existsUnique
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.pathwise_mom1_nonneg
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.values_compare
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.spikePol
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.spikePol_spec
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.spike_moments
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.neither_in_model
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.soc_mid
+#print axioms Cochrane.ZeroBound.TidyR6CommonModel.momOpt_unique
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.soc_comb
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.decPol
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.srate
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.srate_eq
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.srate_sub_sq
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.sum_three_le
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.Seq2
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.seq_norm_sq
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.memℓp_of_sq
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.srate_sq_summable
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.scaledRate
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.scaledRate_lipschitz
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.mom2_code
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.sqrtWeights
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.mom1_code
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.moms_continuous
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.Wset
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.decPol_mem
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.wset_closed
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.decPol_comb
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.wset_convex
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_exists
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_exists_iff
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_existsUnique_trap
+#print axioms Cochrane.ZeroBound.TidyR6CommonModelExist.woodford_calibration_ok
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.NonlinValuation
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.logInfl
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.log_price_eq
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.unexpected_log_inflation
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.KnownFns
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.perfectForesight_knownFns
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.finiteTree_knownFns
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.relNews
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.E_relNews
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.q
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.q_bounds
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.hasDerivAt_neg_log
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.q_isBigO
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.remainder
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.linearisation_remainder
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.remainder_bounds
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.linear_valuation_exact
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.perfectForesight_remainder_zero
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.heliNews
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_news
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.priceRatio_eq_news
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.log_priceRatio
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_remainder
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.hasDerivAt_neg_news
+#print axioms Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_book_numbers
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.mk
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.P
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.𝓕
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.μ
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddProc
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_add
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_sub
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_smul
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_const
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_zero
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_mono
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_tower
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.integrable_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_known
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_E_self
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_congr
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.integral_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_pullOut
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.abs_E_le
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.const
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.add
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.smul
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.sub
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.mul
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.innov
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_innov
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_mul_innov
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_hasSum
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_succ
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_bdd
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_rec
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.Solves
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.iterate_homog
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forward_unique
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_succ
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_solves
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.solves_add
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.solves_zero
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.unique_iff
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.sq
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_condVar
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ELin
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.trivialFirst
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.sum_prob_condE
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure_singleton
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure_univ
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeProb
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.integral_treeProb
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeFiltration
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_fullSupport
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iidProb
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iidSystem
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.measurable_shock
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coordSigma
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.futureSigma
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coordSigma_le
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.futureSigma_le
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iIndep_coord
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.filtration_le_past
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.indep_future
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_future
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.measurable_future_fun
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.integral_shock_fun
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_fun
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_sq
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock_ae_bdd
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_zero
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_sq_eq
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.condVar_shock
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock_not_ae_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.singleton_lt_one
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.exists_singleton_le
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_singleton
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_countable_null
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_not_finitely_supported
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_news
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_existsUnique_iff
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_sunspot
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_succ
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_adapted
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_bdd
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_E
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_condVar
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_condVar_closed
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coinMeasure
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coinMeasure_univ
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.integral_coin
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_mean
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_var
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_bdd
+#print axioms Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_economy
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.ubar
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.qq
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.Lam
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.a0
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.sStar
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.tL
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.ubar_one_sub_qq
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.consts_pos
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.exp_sStar
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.cc
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.AA
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.ah_pos
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.fmap_scheme
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.cc_gt_one
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.line_le
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.line_eq
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.zlb_eq
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.lt_fmap
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.line_AA
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_zero
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_antitone
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.sel_path
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.rule_pos_iff
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.rate_pos_iff
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_gt_kink_iff
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_logcc
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_T_div
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.liftoff_eps
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.finv
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.fmap_finv
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath_N
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath_rec
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.liftIdx
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.rate_N_pos
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.liftIdx_spec
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.liftoff_time_tendsto
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.CTEq
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piZlb
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piG
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piC
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.sub_kink
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_sub_kink
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_ge
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piZlb_le
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_active
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_zlb
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piAct
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piZlb
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_tL
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piG_continuous
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_continuous
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piG
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.tL_lt
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piG_T
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piC_continuous
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.piC_solves
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_lipschitz
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.ct_unique
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.ct_liftoff
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_log1p
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.inv_pow_eq_exp
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.pow_eq_exp
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.natSub_mul
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.zlb_back
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.pos_of_ge
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_of_or
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.ylim_eq
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.path_tendsto
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.early_vs_delayed
+#print axioms Cochrane.ZeroBound.TidyR6LiftoffLimit.fig203_member
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.fmap_eq_max
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.line_le_fmap
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.E_affine
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.Solves
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_line_ge
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_explodes
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.bounded_le_target
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_jensen
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_expected_eventually
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.bounded_init_iff
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.resolved_dichotomy
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.finiteTree_stabilises
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.finiteTree_dichotomy
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.MeasSolves
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_E_affine
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.integrable_of_bdd
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_line_ge
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_bounded_le_target
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_jensen
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_expected_eventually
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.bernMeasure
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.bernMeasure_univ
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.bern
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.integral_bern
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.gsw
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.gsw_measurable
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_values
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_bdd
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_meas
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.fmap_cex
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_E
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_solves
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_mean
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_rate_mean
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_dct
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_tendsto_zero
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_rate_zero
+#print axioms Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_expected_zero
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.lamF
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.leeperMatrix
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.leeper_charpoly
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.eig_continuous
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.AM
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.AF
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.LEq
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.eqPi
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.eqV
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.leeper_pf_char
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.bounded_geom_iff
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.EqSet
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.Adm
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.mem_eqSet_iff
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.eqMap_injective
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.existsUnique_iff
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.eqSet_empty_iff
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.eqSet_uncountable
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.am_pi0
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.af_pi0
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.not_unique_of_eq_modulus
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.path_crosses
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.no_determinate_path
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.pi0_response_jump
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.FTPLEq
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.ftplPi
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.ftpl_existsUnique
+#print axioms Cochrane.ZeroBound.TidyR6RegimeEigen.ftpl_continuous_theta

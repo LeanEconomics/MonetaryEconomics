@@ -15,11 +15,13 @@ every equation holds state by state. The continuous-time Werning model of §§20
 deterministic paths `ℝ → ℝ`, exact derivatives off a countable set of dates, and genuine
 improper integrals. In both, an equilibrium is a solution of the model equations, "determinate"
 means exactly one bounded solution, and the fiscal theory selects instead through the valuation
-equation. The library contains **781 theorems**, including the shared core; 673 of them are in
-the eighteen chapter modules, 49 of these in a verbatim copy of Woodford Chapter 2 results
-(`GlobalDynamics`), and 261 in the five modules on Galí's and Woodford's treatments of the bound
+equation. The library contains **1132 theorems**, including the shared core and its
+measure-theoretic copy (`TidyR6ExpectationsMeasure`, `TidyR6ExpectationsMeasureIID`, 108); 916 of
+them are in the twenty-six chapter modules, 124 of these in verbatim copies of Woodford results
+(`GlobalDynamics`, 49, from Chapter 2; `TidyR6WoodfordSequences` and `TidyR6WoodfordZLB`, 75,
+from Chapter 6), and 305 in the seven modules on Galí's and Woodford's treatments of the bound
 (`LinksGaliWoodford`, `LinksGaliWoodfordLimit`, `LiftoffTiming`, `LiftoffStructure`,
-`LiftoffRhoZero`).
+`LiftoffRhoZero`, `TidyR6CommonModel`, `TidyR6CommonModelExist`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E1–E11 and E20 refer to
@@ -45,7 +47,19 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   Global versus local: the bounded orbits are exactly `π₀ ≤ π*`, a continuum returning to zero
   inflation and zero rates, while `π*` is the only locally bounded one
   (`ZLBRule.bounded_orbits_eq`, `ZLBRule.orbit_below_rate_zero`,
-  `ZLBRule.locally_bounded_unique_E`).
+  `ZLBRule.locally_bounded_unique_E`). Under uncertainty orbits above `π*` still explode in
+  expectation, bounded solutions stay below `π*`, and a bounded solution from `π₀` exists iff
+  `π₀ ≤ π*`, for every expectation system and almost surely on a probability space
+  (`TidyR6OrbitStochastic.stoch_explodes`, `TidyR6OrbitStochastic.bounded_le_target`,
+  `TidyR6OrbitStochastic.bounded_init_iff`); the return to zero holds on every finite tree
+  (`TidyR6OrbitStochastic.finiteTree_dichotomy`) but not with genuine uncertainty: a bounded
+  solution with i.i.d. shocks has `E[π_t] → 1/2` and the rate positive with probability tending to
+  `1/2` (`TidyR6OrbitStochastic.cex_not_ae_tendsto_zero`,
+  `TidyR6OrbitStochastic.cex_not_ae_rate_zero`). The early lift-off survives the continuous-time
+  limit: in the period-`h` family of Figure 20.3 the lift-off date converges to
+  `t_L = T − Λ/(σκ(φ − 1)) < T` (`TidyR6LiftoffLimit.liftoff_time_tendsto`,
+  `TidyR6LiftoffLimit.path_tendsto`, `TidyR6LiftoffLimit.ct_liftoff`), so it differs from delayed
+  lift-off (`TidyR6LiftoffLimit.early_vs_delayed`).
 * **Future selection.** An active rule from date `T` on selects a unique bounded equilibrium
   whatever the policy before `T`, provided the rule coefficient `φ_t` is nonzero
   (`FutureSelection.future_selection`); the hypothesis `φ_t ≠ 0`, implicit in the book, cannot be
@@ -53,6 +67,12 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   expected switch to active fiscal policy selects, and fiscal shocks move inflation even while
   money is active (`FutureSelection.fiscal_switch_selects`,
   `FutureSelection.fiscal_switch_unexpected_inflation`, `FutureSelection.fiscal_switch_example`).
+  Leaving the active-money regime is a discrete shift (p. 523): every continuous path of Leeper
+  parameters from active money to active fiscal moves both eigenvalues across the unit circle and
+  passes a point with no unique equilibrium, and the response of `π₀` jumps from 0 to 1
+  (`TidyR6RegimeEigen.path_crosses`, `TidyR6RegimeEigen.no_determinate_path`,
+  `TidyR6RegimeEigen.pi0_response_jump`), while a shift of `θ` in `i = θπ + w` is harmless
+  (`TidyR6RegimeEigen.ftpl_existsUnique`, `TidyR6RegimeEigen.ftpl_continuous_theta`).
 * **Gabaix's model.** The peg is determinate iff `(1 − M)(1 − βM^f) > σκ`, exactly
   (`Gabaix.gabaix_determinate_iff`); it never is at `M = 1` or for `κ ≥ 1/σ`
   (`Gabaix.rational_IS_indeterminate`, `Gabaix.frictionless_limit_indeterminate`). E8: "`M` less
@@ -64,7 +84,12 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   `−f(1 − f)Δ²/(1 + fΔ)` (`Covid.hasDerivAt_priceRatio`, `Covid.priceRatio_remainder`). E11: the
   1981 windfall is a real return of about 11.5%, not 12% (`Covid.windfall_real_return`).
   Disinflation with falling expected inflation costs `(1 − β)/κ` per point of inflation, less
-  than without (`Covid.joint_less_painful`).
+  than without (`Covid.joint_less_painful`). The nonlinear valuation equation `P = B/S` gives
+  unexpected log inflation exactly minus the news in `log S`, and its linearisation holds with an
+  explicit second-order remainder (`TidyR6CovidValuation.unexpected_log_inflation`,
+  `TidyR6CovidValuation.linearisation_remainder`, `TidyR6CovidValuation.remainder_bounds`); for the
+  helicopter of p. 488 the linear prediction is `1/13` against an exact `1/12` in levels and
+  `log(13/12)` in logs (`TidyR6CovidValuation.helicopter_book_numbers`).
 * **The continuous-time Werning model.** The bounded paths of the experiment are exactly a
   one-parameter family indexed by `π_T` (`WerningModel.bdd_path_iff`). For continuous forcing,
   (20.8)–(20.10) are exactly the forward-stable solutions, in bijection with the constant `C`
@@ -107,8 +132,12 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   `LiftoffTiming.comm_gt_disc_opt`, `LiftoffTiming.comm_loss_lt_opt`). The sign condition fails at
   an exact optimum (`LinksGaliWoodford.cex_xi_neg`). Discrete trap paths converge to Werning's
   continuous ones (`LinksGaliWoodfordLimit.trap_tendsto`). Neither Woodford's moment constraint
-  nor the pathwise bound implies the other (`LinksGaliWoodford.Moments.neither_implies`). See
-  the relation to the Woodford and Galí projects below.
+  nor the pathwise bound implies the other (`LinksGaliWoodford.Moments.neither_implies`). A common
+  model contains both: Galí's and Cochrane's discrete model with Galí's loss, in which the
+  pathwise optimum is exactly Galí's commitment optimum (`TidyR6CommonModel.pathOpt_iff`) and
+  Proposition 6.9 holds (`TidyR6CommonModel.prop_6_9_common`), its optimum existing iff the moment
+  constraints can be met and then unique (`TidyR6CommonModelExist.momOpt_exists_iff`,
+  `TidyR6CommonModel.momOpt_unique`). See the relation to the Woodford and Galí projects below.
 * **The commitment optimum.** At the optimum the bound binds on the whole shock, so the lift-off
   date satisfies `t_C ≥ t_Z` and Galí's guess is without loss of generality
   (`LiftoffTiming.optimal_trap_binds`, `LiftoffTiming.liftoff_ge`,
@@ -148,6 +177,13 @@ The weak inequality `t_C ≥ t_Z`, Galí's guess, holds at every optimum (`Lifto
 and with a zero post-shock natural rate the rate lifts off iff `σκ < ϑ`
 (`LiftoffStructure.rho_zero_no_liftoff`, `LiftoffRhoZero.rho_zero_liftoff_iff`).
 
+Three statements are made precise. The claim of p. 473 that undershooting equilibria "return
+back to zero inflation and zero interest rates" holds under perfect foresight and on finite trees
+but fails under genuine uncertainty (`TidyR6OrbitStochastic.cex_not_ae_tendsto_zero`). The
+linearised valuation equation predicts `1/13` for the helicopter of p. 488, against the exact
+`1/12` in levels and `log(13/12)` in logs, complementing E10. The remark of p. 523 on moving
+eigenvalues is confirmed (`TidyR6RegimeEigen.path_crosses`).
+
 Not formalised:
 * the empirical and narrative parts of Chapters 20–21: the U.S. and Japanese experience, QE, the
   Occam discussion and the list of patches, the 2020 FOMC strategy, secular stagnation, the
@@ -160,21 +196,20 @@ Not formalised:
   observational-equivalence remark of p. 476 and the Markov-switching determinacy of Chapter 24
   (`ObservationalEquivalence`). The fiscal side of the p. 476 remark is
   `ZLBSelection.jump_eq_fiscal`;
-* the Chapter 24 remark that leaving the active-money regime "requires a discrete shift … to move
-  eigenvalues" (p. 523), and the literature reviews of §§20.2.6 and 24;
+* the literature reviews of §§20.2.6 and 24;
 * the verbal claim that it is "impossible to produce a deep recession without deep but improving
   deflation" (p. 477), which has no precise statement;
 * the illustrative numbers of Figures 20.4–20.6 (`π_0 = −132.46%`, `π_T ≈ 1.01%`, multipliers of
   66 and 528); only the E20 point `T = 1` is formalised;
-* an exact relation between the discrete early lift-off of Figure 20.3 and the continuous-time
-  delayed lift-off, whose models and parameters do not match, and between the nonlinear Covid
-  helicopter `P = B/S` and the linearised valuation equations, beyond the frictionless limit of
-  the impact coefficient (`Links.fiscal_impact_frictionless`);
-* a structural link with Woodford's Proposition 6.9, which shares no model equations with
-  Chapter 20; the link is at the level of the constraint;
-* stochastic versions of the continuous-time results, and of the global orbit results of
-  §20.2.1, which are under perfect foresight as in the book; local uniqueness and the Figure
-  20.3 selection hold for any expectation operator.
+* stochastic versions of the continuous-time results of §§20.2.2–20.2.5, which would need Itô
+  calculus (stochastic differential equations), not available in Mathlib; the discrete-time and
+  finite-tree results of `TidyR6OrbitStochastic` are the substitute;
+* a nonlinear sticky-price valuation equation: the linearisation with remainder is of the
+  frictionless `P = B/S` of Chapter 21, and the sticky-price (5.13) is linked to it only through
+  the frictionless limit of the impact coefficient (`Links.fiscal_impact_frictionless`);
+* convergence of Figure 20.3 to Werning's model: the period-`h` family converges to the
+  continuous-time model with the static IS curve of §20.2.1, not to Werning's dynamic-IS model of
+  §§20.2.2–20.2.4; that the two lift-offs differ is proved instead (`TidyR6LiftoffLimit.early_vs_delayed`).
 
 ## Library map
 
@@ -202,6 +237,16 @@ Not formalised:
 | [LiftoffTiming](ZeroBound/LiftoffTiming.lean) | 69 | Galí's commitment optimum: necessity of the KKT conditions with transversality, `π_t ≤ η`, the bound binds on the whole shock, `t_C ≥ t_Z`; the commitment theorems without that hypothesis |
 | [LiftoffStructure](ZeroBound/LiftoffStructure.lean) | 30 | Existence (Hilbert projection in a weighted `ℓ²`) and uniqueness of the optimum; no re-binding, finite lift-off, the post-lift-off closed form; the full characterisation; the `ρ = 0` dichotomy and `ρ > 0` necessary |
 | [LiftoffRhoZero](ZeroBound/LiftoffRhoZero.lean) | 20 | The `ρ = 0` case classified: rate zero forever iff `ϑ ≤ σκ`, finite lift-off iff `σκ < ϑ`; the shapes of both branches; the verification theorem for `ρ = 0`; exact certificates on each side |
+| [TidyR6WoodfordSequences](ZeroBound/TidyR6WoodfordSequences.lean) | 40 | Bounded sequences and processes, discounted sums, the dispersion recursion (verbatim from the Woodford Chapter 6 project's `Sequences`) |
+| [TidyR6WoodfordZLB](ZeroBound/TidyR6WoodfordZLB.lean) | 35 | Woodford's moment constraint, Kuhn–Tucker multipliers and Proposition 6.9 (verbatim from the Woodford Chapter 6 project's `ZLB`) |
+| [TidyR6CommonModel](ZeroBound/TidyR6CommonModel.lean) | 25 | A common model for the bound and Proposition 6.9: the linear rate, convexity, Proposition 6.9 in the model, the bound as Galí's commitment optimum, uniqueness, comparisons of the two constraints |
+| [TidyR6CommonModelExist](ZeroBound/TidyR6CommonModelExist.lean) | 19 | Existence of the moment-constrained optimum in `ℓ²(ℕ ⊕ ℕ)`: iff the constraints can be met; existence and uniqueness in the trap at Woodford's calibration |
+| [TidyR6CovidValuation](ZeroBound/TidyR6CovidValuation.lean) | 18 | Chapter 21: the nonlinear valuation equation `P = B/S`, exact unexpected log inflation, the linearisation with explicit remainder, the helicopter numbers `1/13`, `1/12`, `log(13/12)` |
+| [TidyR6ExpectationsMeasure](ZeroBound/TidyR6ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations with Mathlib's `condExp` (copied from `ObservationalEquivalence`): the axioms a.e., news, the forward equation and sunspots, AR(1), bridges to and from the core |
+| [TidyR6ExpectationsMeasureIID](ZeroBound/TidyR6ExpectationsMeasureIID.lean) | 37 | The i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (copied from `ObservationalEquivalence`): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [TidyR6LiftoffLimit](ZeroBound/TidyR6LiftoffLimit.lean) | 56 | §20.2.1: the period-`h` family of Figure 20.3, its continuous-time limit with lift-off at `t_L < T`, convergence of the lift-off date and path, early versus delayed lift-off |
+| [TidyR6OrbitStochastic](ZeroBound/TidyR6OrbitStochastic.lean) | 33 | §20.2.1: the global orbit results under uncertainty, for every expectation system, on finite trees and a.e.; the i.i.d. counterexample to the return to zero |
+| [TidyR6RegimeEigen](ZeroBound/TidyR6RegimeEigen.lean) | 17 | Chapter 24, p. 523: the Leeper eigenvalues, the determinacy map, every path between the regimes crosses the unit circle, the jump in `∂π₀/∂c₀`; `θ` shifts are harmless |
 
 ## Modelling conventions
 
@@ -212,7 +257,10 @@ Not formalised:
   tree (`ExpectationsFiniteTree.coinSystem`) gives a genuinely random sunspot at the peg
   (`ZLBPeg.coin_sunspot_equilibrium`). The worked examples
   `FutureSelection.zero_coefficient_not_unique` and `FutureSelection.fiscal_switch_example`, the
-  orbit results of `ZLBRule` and `Links.peg_pf_path` are under perfect foresight.
+  orbit results of `ZLBRule` and `Links.peg_pf_path` are under perfect foresight; the orbit results
+  under uncertainty are in `TidyR6OrbitStochastic`, which also uses the measure-theoretic
+  expectations of `TidyR6ExpectationsMeasure` (Mathlib's `condExp`, equations almost
+  everywhere).
 * **Equilibrium and determinacy.** An equilibrium is an adapted process satisfying the model at
   every date and state, and the new-Keynesian selection is the bounded one (`BoundedProc`). A
   linear system is determinate when it has at most one bounded adapted solution for every
@@ -359,8 +407,22 @@ and a lift-off date `t_C + 1`, in the discrete model `π_t = βπ_{t+1} + κx_t`
 **Woodford (2003), Chapter 6, §4.2, in the `StabilizationWelfare` project (`ZLB.lean`).**
 Proposition 6.9 replaces the bound by a constraint on the discounted mean and second moment of
 the interest rate, `Ê[i] ≥ 0` and `Ê[i²] ≤ K(Ê[i])²`. In `ZLB.lean` it is stated over an abstract
-convex policy set, so it shares no IS or Phillips-curve equations with Chapter 20, and the link
-is at the level of the constraint.
+convex policy set. That module and `Sequences` are copied here verbatim, with only the namespace
+changed (`TidyR6WoodfordZLB`, `TidyR6WoodfordSequences`), and `TidyR6CommonModel` instantiates the
+policy set with the discrete model of Chapter 20 and Galí's loss, so that both problems live in
+one model.
+* The common model. The interest rate implied by the IS curve is linear in the policy, the
+  structural hypotheses of Proposition 6.9 are proved (`TidyR6CommonModel.cset_convex`,
+  `TidyR6CommonModel.loss_convexOn`, `TidyR6CommonModel.mom1_affine`,
+  `TidyR6CommonModel.mom2_convexOn`), and the proposition holds there
+  (`TidyR6CommonModel.prop_6_9_common`). The zero bound is the other special case: the pathwise
+  optimum is exactly `LinksGaliWoodford.Optimal` (`TidyR6CommonModel.pathOpt_iff`). The
+  moment-constrained optimum exists iff the constraints can be met, and is unique
+  (`TidyR6CommonModelExist.momOpt_exists_iff`, `TidyR6CommonModel.momOpt_unique`); in the trap it
+  exists whenever `Kβ ≥ 1`, which holds at Woodford's calibration
+  (`TidyR6CommonModelExist.momOpt_existsUnique_trap`). Model-feasible witnesses show that neither
+  constraint implies the other (`TidyR6CommonModel.neither_in_model`), and the optimal losses
+  compare as the constraint sets do (`TidyR6CommonModel.values_compare`).
 * Neither constraint implies the other (`LinksGaliWoodford.Moments.neither_implies`). The
   pathwise bound gives `Ê[i] ≥ 0` (`LinksGaliWoodford.Moments.pathwise_mean_nonneg`), and gives
   Woodford's constraint under a band condition (`LinksGaliWoodford.Moments.band_moment_feasible`).
@@ -395,7 +457,9 @@ is at the level of the constraint.
   remark of p. 476 and the Leeper model (23.1)–(23.4) with constant coefficients and its four
   regions (`LeeperRegions`), and the Markov-switching determinacy condition of Davig and Leeper
   (`MarkovRegimes`). `FutureSelection` treats the same model with time-varying coefficients and a
-  deterministic switch.
+  deterministic switch, and `TidyR6RegimeEigen` with constant coefficients along a continuous path
+  of parameters. The measure-theoretic expectations (`TidyR6ExpectationsMeasure`,
+  `TidyR6ExpectationsMeasureIID`) are copied from that project with the namespace renamed.
 
 ## Build and verify
 

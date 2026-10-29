@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-22T00:50:55.963482+00:00",
-  "theorems": 781,
+  "checked_at_utc": "2026-10-29T21:10:33.106483+00:00",
+  "theorems": 1132,
   "module_theorems": {
     "ZeroBound/Determinacy.lean": 23,
     "ZeroBound/Expectations.lean": 20,
@@ -23,9 +23,19 @@
     "ZeroBound/LinksGaliWoodfordLimit.lean": 19,
     "ZeroBound/LiftoffTiming.lean": 69,
     "ZeroBound/LiftoffStructure.lean": 30,
-    "ZeroBound/LiftoffRhoZero.lean": 20
+    "ZeroBound/LiftoffRhoZero.lean": 20,
+    "ZeroBound/TidyR6WoodfordSequences.lean": 40,
+    "ZeroBound/TidyR6WoodfordZLB.lean": 35,
+    "ZeroBound/TidyR6CommonModel.lean": 25,
+    "ZeroBound/TidyR6CommonModelExist.lean": 19,
+    "ZeroBound/TidyR6CovidValuation.lean": 18,
+    "ZeroBound/TidyR6ExpectationsMeasure.lean": 71,
+    "ZeroBound/TidyR6ExpectationsMeasureIID.lean": 37,
+    "ZeroBound/TidyR6LiftoffLimit.lean": 56,
+    "ZeroBound/TidyR6OrbitStochastic.lean": 33,
+    "ZeroBound/TidyR6RegimeEigen.lean": 17
   },
-  "audited_declarations": 992,
+  "audited_declarations": 1435,
   "declarations": [
     {
       "name": "Cochrane.ZeroBound.SchurStable",
@@ -4986,6 +4996,2221 @@
       "name": "Cochrane.ZeroBound.LiftoffRhoZero.cert_zero_forever",
       "kind": "theorem",
       "module": "ZeroBound/LiftoffRhoZero.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.nonneg_bound",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.neg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.div_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.pow",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.lin",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.comp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.shift",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.lagS",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_zero_seq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.summable_geom_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.summable_norm_geom_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.summable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.abs_tsum_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_geom_shift",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_telescope",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_telescope_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_add3",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.forward_real",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_integrated",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.dispersion_tsum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_discounted_hasSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_discounted",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_shift",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_congr",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.boundedProc_lincomb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_of_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.dsum",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.abs_E0_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.hasSum_dsum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP_apply",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP_known",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordSequences.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.mean_ge_k_sd_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.bigK",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.K_value",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.one_lt_K",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.one_le_K_of_feasible",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_lincomb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_sq_ge",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_complete_square",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.lagrangian_sufficiency",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.clm_triple",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.nonneg_of_forall_le_add_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.kkt_exists",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.Feasible",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.IsConstrOpt",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.optimal_reformulated",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9_multipliers",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_ge_lag",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_ge_opt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_at",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.envelope",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.binds_of_unconstrained_infeasible",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.mu2_pos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.zero_multiplier_of_feasible_min",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.binding_zero_multiplier_case",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_pos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_K_one",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_nonneg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.slater_needs_variance",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.det_component_mean",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_affine",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_sq_convex",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9_slack",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.loss_4_22",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.iHat_between",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6WoodfordZLB.iHat_either_sign",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6WoodfordZLB.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.Pol",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.rateLin",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.Cset",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.Lfun",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.mom1",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.mom2",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.rateLin_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.sq_add_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.sq_convex",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.summable_rate_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.summable_rate",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.lossTerm_convex",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.cset_convex",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.loss_convexOn",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.mom1_comb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.mom1_affine",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.mom2_convexOn",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.avg_sq_dev",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.prop_6_9_common",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.mom1_eq_dAvg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.mom2_eq_dAvg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.PathOpt",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.feasible_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.pathOpt_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.pathOpt_existsUnique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.pathwise_mom1_nonneg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.values_compare",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.spikePol",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.spikePol_spec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.spike_moments",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.neither_in_model",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.soc_mid",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModel.momOpt_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModel.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.soc_comb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.decPol",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.srate",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.srate_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.srate_sub_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.sum_three_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.Seq2",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.seq_norm_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.mem\u2113p_of_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.srate_sq_summable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.scaledRate",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.scaledRate_lipschitz",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.mom2_code",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.sqrtWeights",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.mom1_code",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.moms_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.Wset",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.decPol_mem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.wset_closed",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.decPol_comb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.wset_convex",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_exists",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_exists_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_existsUnique_trap",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CommonModelExist.woodford_calibration_ok",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CommonModelExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.NonlinValuation",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.logInfl",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.log_price_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.unexpected_log_inflation",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.KnownFns",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.perfectForesight_knownFns",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.finiteTree_knownFns",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.relNews",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.E_relNews",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.q",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.q_bounds",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.hasDerivAt_neg_log",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.q_isBigO",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.remainder",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.linearisation_remainder",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.remainder_bounds",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.linear_valuation_exact",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.perfectForesight_remainder_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.heliNews",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_news",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.priceRatio_eq_news",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.log_priceRatio",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_remainder",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.hasDerivAt_neg_news",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_book_numbers",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6CovidValuation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem",
+      "kind": "structure",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddProc",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.smul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_rec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.Solves",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.iterate_homog",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forward_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_solves",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.solves_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.solves_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.unique_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_condVar",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ELin",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.trivialFirst",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.sum_prob_condE",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure_singleton",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure_univ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeProb",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.integral_treeProb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeFiltration",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_fullSupport",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iidProb",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iidSystem",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.measurable_shock",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coordSigma",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.futureSigma",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coordSigma_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.futureSigma_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iIndep_coord",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.filtration_le_past",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.indep_future",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_future",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.measurable_future_fun",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.integral_shock_fun",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_fun",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock_ae_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_sq_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.condVar_shock",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock_not_ae_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.singleton_lt_one",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.exists_singleton_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_singleton",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_countable_null",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_not_finitely_supported",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_news",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_existsUnique_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_sunspot",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_adapted",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_condVar",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_condVar_closed",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coinMeasure",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.integral_coin",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_mean",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_var",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_economy",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6ExpectationsMeasureIID.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.ubar",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.qq",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.Lam",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.a0",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.sStar",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.tL",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.ubar_one_sub_qq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.consts_pos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.exp_sStar",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.cc",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.ah_pos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.fmap_scheme",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.cc_gt_one",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.line_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.line_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.zlb_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.lt_fmap",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.line_AA",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_antitone",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.sel_path",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.rule_pos_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.rate_pos_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_gt_kink_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_logcc",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_T_div",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftoff_eps",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.finv",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.fmap_finv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath_N",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath_rec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftIdx",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.rate_N_pos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftIdx_spec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftoff_time_tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.CTEq",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piZlb",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piG",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piC",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.sub_kink",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_sub_kink",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_ge",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piZlb_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_active",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_zlb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piAct",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piZlb",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_tL",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piG_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piG",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.tL_lt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piG_T",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piC_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.piC_solves",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_lipschitz",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.ct_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.ct_liftoff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_log1p",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.inv_pow_eq_exp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.pow_eq_exp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.natSub_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.zlb_back",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.pos_of_ge",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_of_or",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.ylim_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.path_tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.early_vs_delayed",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6LiftoffLimit.fig203_member",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6LiftoffLimit.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.fmap_eq_max",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.line_le_fmap",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.E_affine",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.Solves",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_line_ge",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_explodes",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.bounded_le_target",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_jensen",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_expected_eventually",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.bounded_init_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.resolved_dichotomy",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.finiteTree_stabilises",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.finiteTree_dichotomy",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.MeasSolves",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_E_affine",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.integrable_of_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_line_ge",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_bounded_le_target",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_jensen",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_expected_eventually",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.bernMeasure",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.bernMeasure_univ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.bern",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.integral_bern",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.gsw",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.gsw_measurable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_values",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_meas",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.fmap_cex",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_E",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_solves",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_mean",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_rate_mean",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_dct",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_tendsto_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_rate_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_expected_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6OrbitStochastic.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.lamF",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.leeperMatrix",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.leeper_charpoly",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.eig_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.AM",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.AF",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.LEq",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.eqPi",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.eqV",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.leeper_pf_char",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.bounded_geom_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.EqSet",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.Adm",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.mem_eqSet_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.eqMap_injective",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.existsUnique_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.eqSet_empty_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.eqSet_uncountable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.am_pi0",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.af_pi0",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.not_unique_of_eq_modulus",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.path_crosses",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.no_determinate_path",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.pi0_response_jump",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.FTPLEq",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.ftplPi",
+      "kind": "def",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.ftpl_existsUnique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR6RegimeEigen.ftpl_continuous_theta",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR6RegimeEigen.lean"
     }
   ],
   "full_build": "passed",
@@ -9949,6 +12174,2221 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.nonneg_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.div_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.lin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.lagS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_zero_seq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagS_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.summable_geom_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.summable_norm_geom_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.Bdd.summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.abs_tsum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_geom_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_telescope": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_telescope_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.tsum_add3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.forward_real": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_integrated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.dispersion_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_discounted_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.disp_discounted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.boundedProc_lincomb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.bdd_of_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.dsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.abs_E0_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.hasSum_dsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordSequences.lagP_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.mean_ge_k_sd_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.bigK": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.K_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.one_lt_K": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.one_le_K_of_feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_lincomb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_sq_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_complete_square": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.lagrangian_sufficiency": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.clm_triple": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.nonneg_of_forall_le_add_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.kkt_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.Feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.IsConstrOpt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.optimal_reformulated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9_multipliers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_ge_lag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_ge_opt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.valueFn_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.envelope": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.binds_of_unconstrained_infeasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.mu2_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.zero_multiplier_of_feasible_min": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.binding_zero_multiplier_case": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_K_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.iStarStar_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.slater_needs_variance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.det_component_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.dAvg_sq_convex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.prop_6_9_slack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.loss_4_22": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.iHat_between": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6WoodfordZLB.iHat_either_sign": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.Pol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.rateLin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.Cset": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.Lfun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.mom1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.mom2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.rateLin_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.sq_add_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.sq_convex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.summable_rate_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.summable_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.lossTerm_convex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.cset_convex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.loss_convexOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.mom1_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.mom1_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.mom2_convexOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.avg_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.prop_6_9_common": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.mom1_eq_dAvg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.mom2_eq_dAvg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.PathOpt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.feasible_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.pathOpt_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.pathOpt_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.pathwise_mom1_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.values_compare": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.spikePol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.spikePol_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.spike_moments": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.neither_in_model": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.soc_mid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModel.momOpt_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.soc_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.decPol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.srate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.srate_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.srate_sub_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.sum_three_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.Seq2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.seq_norm_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.mem\u2113p_of_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.srate_sq_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.scaledRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.scaledRate_lipschitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.mom2_code": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.sqrtWeights": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.mom1_code": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.moms_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.Wset": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.decPol_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.wset_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.decPol_comb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.wset_convex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.momOpt_existsUnique_trap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CommonModelExist.woodford_calibration_ok": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.NonlinValuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.logInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.log_price_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.unexpected_log_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.KnownFns": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.perfectForesight_knownFns": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.finiteTree_knownFns": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.relNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.E_relNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.q_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.hasDerivAt_neg_log": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.q_isBigO": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.remainder": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.linearisation_remainder": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.remainder_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.linear_valuation_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.perfectForesight_remainder_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.heliNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.priceRatio_eq_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.log_priceRatio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_remainder": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.hasDerivAt_neg_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6CovidValuation.helicopter_book_numbers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.discSum_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.iterate_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.forward_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.solves_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.solves_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.unique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.BddRV.sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.ELin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.trivialFirst": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.sum_prob_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.integral_treeProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iidProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iidSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.measurable_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coordSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.futureSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coordSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.futureSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iIndep_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.filtration_le_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.indep_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.measurable_future_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.integral_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock_ae_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.E_shock_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.condVar_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.shock_not_ae_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.singleton_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.exists_singleton_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_countable_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_not_finitely_supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.ar1_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_condVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.iid_ar1_condVar_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.integral_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_var": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6ExpectationsMeasureIID.coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.ubar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.qq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.Lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.a0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.sStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.tL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.ubar_one_sub_qq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.consts_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.exp_sStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.cc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.ah_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.fmap_scheme": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.cc_gt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.line_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.line_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.zlb_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.lt_fmap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.line_AA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_antitone": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.sel_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.rule_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.rate_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.AA_gt_kink_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_logcc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_T_div": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftoff_eps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.finv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.fmap_finv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath_N": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.selPath_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftIdx": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.rate_N_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftIdx_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.liftoff_time_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.CTEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piZlb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.sub_kink": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_sub_kink": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piZlb_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_active": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_zlb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piAct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piZlb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piAct_tL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piG_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.hasDerivAt_piG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.tL_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piG_T": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piC_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.piC_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.vfield_lipschitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.ct_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.ct_liftoff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_log1p": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.inv_pow_eq_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.pow_eq_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.natSub_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.zlb_back": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.pos_of_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.tendsto_of_or": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.ylim_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.path_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.early_vs_delayed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6LiftoffLimit.fig203_member": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.fmap_eq_max": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.line_le_fmap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.E_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.Solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_line_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_explodes": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.bounded_le_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_jensen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.stoch_expected_eventually": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.bounded_init_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.resolved_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.finiteTree_stabilises": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.finiteTree_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.MeasSolves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_E_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.integrable_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_line_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_bounded_le_target": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_jensen": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.meas_expected_eventually": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.bernMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.bernMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.bern": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.integral_bern": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.gsw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.gsw_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cexPi_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.fmap_cex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_rate_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_dct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_rate_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6OrbitStochastic.cex_not_ae_expected_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.lamF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.leeperMatrix": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.leeper_charpoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.eig_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.AM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.AF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.LEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.eqPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.eqV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.leeper_pf_char": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.bounded_geom_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.EqSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.Adm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.mem_eqSet_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.eqMap_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.eqSet_empty_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.eqSet_uncountable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.am_pi0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.af_pi0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.not_unique_of_eq_modulus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.path_crosses": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.no_determinate_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.pi0_response_jump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.FTPLEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.ftplPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.ftpl_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR6RegimeEigen.ftpl_continuous_theta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -9974,15 +14414,25 @@
     "ZeroBound/LiftoffTiming.lean": "7b9b24e71f07943afc71273e5f64dbef7f36c3358fdadb2647459c897b604633",
     "ZeroBound/LiftoffStructure.lean": "d6a526b268826f95c310e2e9033eac5d7eef18e0935d436ccdc671c52c73f3aa",
     "ZeroBound/LiftoffRhoZero.lean": "6ebbd63b5158d7875880e9faca1476c1fb9eda511b0d068885a309d9cf348e2f",
-    "ZeroBound.lean": "0d517c68c903547140fa232361e66c247af566a8f6d0fa061f865e963b2c8be5",
+    "ZeroBound/TidyR6WoodfordSequences.lean": "a241542a0d18e62dc830c1c4c40bbd1100f262bcd5497c11ba8bd720049afaea",
+    "ZeroBound/TidyR6WoodfordZLB.lean": "6e07fa54e0a8f899188e6a2cfce9702325a5862cd29eb5766836494f14debd3a",
+    "ZeroBound/TidyR6CommonModel.lean": "e81da3edac0c708baedb7e77d0bccf8f8cce5c6e09b26eec8b354a1298f92ab3",
+    "ZeroBound/TidyR6CommonModelExist.lean": "04601fc453be76bb550a8c595e6dee8a1eba07b8e5a3b3380a2516a2a0309a18",
+    "ZeroBound/TidyR6CovidValuation.lean": "875150a7cb1dc5b058ccde6492ac31e119377a37eca6ba04629c563270c57e94",
+    "ZeroBound/TidyR6ExpectationsMeasure.lean": "446089134fe4aab6da4b50bd3e0352c83fea2669cc06bba302b8d38747a6754f",
+    "ZeroBound/TidyR6ExpectationsMeasureIID.lean": "f902ce79447d316fbf30ce43d1637d59ad8b518b11fa2ba5833e00411d526609",
+    "ZeroBound/TidyR6LiftoffLimit.lean": "afcac7c479b590395744f98265f690c449e4e4008d9fe20449c4ed29cc07cc91",
+    "ZeroBound/TidyR6OrbitStochastic.lean": "996a3f972705075ea07e60ecab1d0f58086745776097efb2413fa48f4d3a1aa3",
+    "ZeroBound/TidyR6RegimeEigen.lean": "84e097db255eb2deb18cf434c5a9b2f04599c3fb15cea9db6c91236fe1ae931f",
+    "ZeroBound.lean": "1ce8be57717088a50a2ab1779eaf8a8f878c9bb4c38b37948481285f5b142d23",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "7ef77f0cb3da29c46a8a062c4c8b974cf418e49cf41e435f74ac0f4ddfacc5ed",
     "lake-manifest.json": "b69d55f3c11b62b0f7b40bcc8cbee17a9071adc355272601c2b0faddab148f14",
-    "proof-manifest.json": "197899cd25a670c0c490afa112c871366abbf9929d28841f97605ef583d6f524",
-    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "proof-manifest.json": "c95630ba135d7cddb7cc04bdbe10093a30b8505a65594ab15ebd526a5419f2bd",
+    "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "af18251eb1f83053c8f9da6d0f08f5e209aa254608ae00d40402eeae78c96648",
+  "fresh_audit_sha256": "b1de03d4bd03d8846280332c9d1f8c5a5758ec46c34e60b6adf9df48af7bd65e",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models; links to Gali (optimal commitment at the zero bound as delayed lift-off, the discretionary path as the end-of-shock lift-off, the commitment path strictly above both, the sign condition behind Gali (42)-(43) characterised and shown to fail at an exact optimum, discrete trap paths converging to the continuous Werning paths) and to Woodford (his interest-rate-variance constraint and the pathwise zero bound: neither implies the other; the zero-bound steady state under Woodford welfare). The Gali commitment optimum is fully characterised: it exists and is unique, the optimality conditions are necessary, the zero bound binds on the whole shock (t_C >= t_Z), the zero-rate spell is an initial interval with a positive rate after lift-off (rho > 0; at rho = 0 a dichotomy, and the rate never lifts off when sigma kappa = vartheta), and every hypothesis of Gali algorithm holds at the optimum. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 20, pp. 465-485, Chapter 21, pp. 486-494, and Chapter 24, pp. 522-524."
