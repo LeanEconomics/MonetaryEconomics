@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-22T08:04:02.677284+00:00",
-  "theorems": 258,
+  "checked_at_utc": "2026-10-29T21:02:34.331011+00:00",
+  "theorems": 344,
   "module_theorems": {
     "TwoPeriodModel/Determinacy.lean": 23,
     "TwoPeriodModel/Expectations.lean": 20,
@@ -13,9 +13,15 @@
     "TwoPeriodModel/ActivePassive.lean": 25,
     "TwoPeriodModel/Links.lean": 19,
     "TwoPeriodModel/TidyR5SingleCrossing.lean": 9,
-    "TwoPeriodModel/TidyR5GammaRandom.lean": 11
+    "TwoPeriodModel/TidyR5GammaRandom.lean": 11,
+    "TwoPeriodModel/TidyR6Household.lean": 15,
+    "TwoPeriodModel/TidyR6HouseholdMeasure.lean": 13,
+    "TwoPeriodModel/TidyR6InfiniteHorizon.lean": 17,
+    "TwoPeriodModel/TidyR6InfiniteActivePassive.lean": 11,
+    "TwoPeriodModel/TidyR6Regression.lean": 9,
+    "TwoPeriodModel/TidyR6Truncation.lean": 21
   },
-  "audited_declarations": 329,
+  "audited_declarations": 475,
   "declarations": [
     {
       "name": "Cochrane.TwoPeriodModel.SchurStable",
@@ -1661,6 +1667,736 @@
       "name": "Cochrane.TwoPeriodModel.TidyR5GammaRandom.gamma_random_one_state_fails",
       "kind": "theorem",
       "module": "TwoPeriodModel/TidyR5GammaRandom.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env",
+      "kind": "structure",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.mk",
+      "kind": "constructor",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.Bm1",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.y0",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.y1",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.P0",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.P1",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.Q0",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.s0",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Env.s1",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Plan",
+      "kind": "structure",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Plan.mk",
+      "kind": "constructor",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Plan.c0",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Plan.B0",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Plan.c1",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Plan.M1",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Budget0",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Budget1",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Feasible",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.value",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Optimal",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Euler",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.Faithful0",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.le_tangent",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.hasDerivAt_E_comp",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.money_zero_of_optimal",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.pointSystem",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.money_zero_needs_faithful",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.dev",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.dev_feasible",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.euler_of_optimal",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.optimal_of_euler",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.optimal_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.euler_const_iff_bondPrice",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.euler_iff_sdf",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.CompEqm",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.compEqm_iff_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.finiteTree_faithful0",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.finiteTree_compEqm_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.finiteTree_compEqm_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Household.coin_compEqm",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Household.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem",
+      "kind": "structure",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.mk",
+      "kind": "constructor",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.P",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.E",
+      "kind": "abbrev",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.exists_abs_le_of_continuous",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.integrable_comp_of_bdd",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.hasDerivAt_integral_comp",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.integral_mul_E",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MFeasible",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.expU",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MOptimal",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MEuler",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.BddAt",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.expU_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_money_zero_of_optimal",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.abs_weight_le",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_euler_of_optimal",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_optimal_of_euler",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_optimal_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MBondPrice",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_bondPrice_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_euler_const_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MEquilibrium",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MCompEqm",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_compEqm_iff_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6HouseholdMeasure.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.Flow",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.BondPrice",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.realDebt",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.TVC",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.Equilibrium",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.pvInf",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.DebtKnown",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.debtKnown_at",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.revenue_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.realDebt_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.flow_of_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.realDebt_adapted",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.tendsto_tvc_term",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.tvc_iff_valuation",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.pvInf_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.pvInf_adapted",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.valuation_of_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.equilibrium_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.equilibrium_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.no_equilibrium_of_pv_nonpos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price0_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price0_eq_of_pv_eq",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price0_indep_debt",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price1_scales_with_debt",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteHorizon.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.E_pos_of_pos",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.ruleSurplus",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.RuleEqm",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.ruleF",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.rule_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.stable_tendsto_zero",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passive_tvc",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passiveDebt",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passive_every_price",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passive_indeterminate",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.active_tvc_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.active_valuation",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.active_existsUnique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.determinate0_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.gamma_three_active",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6InfiniteActivePassive.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.ssr",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.IsOLS",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.mean",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.olsSlope",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.ssr_nonneg",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.ols_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.olsSlope_eq_one",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.equilibrium_data",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.ols_consistent_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.gamma_not_identified_sample",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.popSSR",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.IsPopOLS",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.popOLS_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.popOLS_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Regression.gamma_not_identified_pop",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Regression.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSteps",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_last",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_unique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_closed",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_known",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_tendsto",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.FinEqm",
+      "kind": "def",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_one_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_one_zero",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.flow_iff_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_iff",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_exists",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_unique",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_price_tendsto",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_limit_is_equilibrium",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.restrict_twoPeriod",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.extend_twoPeriod",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_rec",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_realDebt",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_gamma_one",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_tendsto",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
+    },
+    {
+      "name": "Cochrane.TwoPeriodModel.TidyR6Truncation.truncation_diverges",
+      "kind": "theorem",
+      "module": "TwoPeriodModel/TidyR6Truncation.lean"
     }
   ],
   "full_build": "passed",
@@ -3310,6 +4046,736 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.Bm1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.y0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.y1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.P0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.P1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.Q0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.s0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Env.s1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Plan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Plan.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Plan.c0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Plan.B0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Plan.c1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Plan.M1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Budget0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Budget1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Euler": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.Faithful0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.le_tangent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.hasDerivAt_E_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.money_zero_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.pointSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.money_zero_needs_faithful": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.dev_feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.euler_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.optimal_of_euler": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.optimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.euler_const_iff_bondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.euler_iff_sdf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.CompEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.compEqm_iff_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.finiteTree_faithful0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.finiteTree_compEqm_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.finiteTree_compEqm_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Household.coin_compEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MeasSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.exists_abs_le_of_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.integrable_comp_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.hasDerivAt_integral_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.integral_mul_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MFeasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.expU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MOptimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MEuler": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.BddAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.expU_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_money_zero_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.abs_weight_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_euler_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_optimal_of_euler": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_optimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MBondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_bondPrice_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_euler_const_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MEquilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.MCompEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6HouseholdMeasure.m_compEqm_iff_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.Flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.BondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.realDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.TVC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.pvInf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.DebtKnown": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.debtKnown_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.revenue_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.realDebt_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.flow_of_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.realDebt_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.tendsto_tvc_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.tvc_iff_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.pvInf_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.pvInf_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.valuation_of_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.equilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.equilibrium_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.no_equilibrium_of_pv_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price0_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price0_eq_of_pv_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price0_indep_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteHorizon.price1_scales_with_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.E_pos_of_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.ruleSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.RuleEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.ruleF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.rule_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.stable_tendsto_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passive_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passiveDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passive_every_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.passive_indeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.active_tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.active_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.active_existsUnique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.determinate0_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6InfiniteActivePassive.gamma_three_active": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.ssr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.IsOLS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.olsSlope": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.ssr_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.ols_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.olsSlope_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.equilibrium_data": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.ols_consistent_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.gamma_not_identified_sample": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.popSSR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.IsPopOLS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.popOLS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.popOLS_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Regression.gamma_not_identified_pop": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSteps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_last": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_closed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.FinEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finSol_one_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.flow_iff_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_price_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finEqm_limit_is_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.restrict_twoPeriod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.extend_twoPeriod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_realDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_gamma_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.finRule_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.TwoPeriodModel.TidyR6Truncation.truncation_diverges": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -3325,15 +4791,21 @@
     "TwoPeriodModel/Links.lean": "57081d078e6d6db7e57406def9080c16c46b53affd6b7785c72b53d4622f8fe1",
     "TwoPeriodModel/TidyR5SingleCrossing.lean": "211e7e273623585a9b32a49e12e7c7f2eb927dede38d7c83121b33308bad1916",
     "TwoPeriodModel/TidyR5GammaRandom.lean": "6879af19f65774416e020cd55b57ee31f78b5a9abe8a4668ede640581da2f5c4",
-    "TwoPeriodModel.lean": "0e78c067e446c85f5ea0466ba359b27ca4181d97f43e7e18a6d89858e7c458e5",
+    "TwoPeriodModel/TidyR6Household.lean": "43d847e61291873ccafde20d02b83d1968ac31c10516c997ba655326c5e3fcee",
+    "TwoPeriodModel/TidyR6HouseholdMeasure.lean": "c283d0066f84e8b47a743469dbb7e83e8e2ec82f4153d5fdc823accb0068ce3b",
+    "TwoPeriodModel/TidyR6InfiniteHorizon.lean": "f3306218c2cc5ed2b151ccb4dbabcdbb7db7e225dd24a855437892d8c04fc0ab",
+    "TwoPeriodModel/TidyR6InfiniteActivePassive.lean": "a8e0f5b0413e83e0d9b9a8e521bd78d6859800a04bcef10fe2d048535fab1871",
+    "TwoPeriodModel/TidyR6Regression.lean": "4cde762fcad9feb3fcf3bea89e63a65da9997d197743beb80c693ff969d0fb87",
+    "TwoPeriodModel/TidyR6Truncation.lean": "a6ace9665066ce6a9bcd64e34da562fe54f486a22c1af5422b9b0673086a5a46",
+    "TwoPeriodModel.lean": "515197bc23b2ad0ddeafdd245b88bd69932848beab3ad8d1ffff2f64af19f7c5",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "9ac16666879d690ac60eecff848439219c51d18f77aaf98a44da5645c7a3c7e7",
     "lake-manifest.json": "07f4accbc406d033adc9082d8da1cb7e081478e58a8f3dbbbfcb9000b78abb2b",
-    "proof-manifest.json": "bd43544868c35ce30a6f0bb404e22795a4c69dcc1d8042c2b760f981cacd5041",
-    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "proof-manifest.json": "96dd373ddfd8d8ef86e2ff36f402cd4d205d97c1d4f76363482055717c88a589",
+    "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "0eba432e6a43681ea3b181a1a846a97cee3aa8a45a8fb712aa96a5dc793d1dee",
+  "fresh_audit_sha256": "598d44de80b396191a1fc2624708f75b616e62160f0a3834f69ea2c939706261",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 1: A two-period model. The last day and the two-period fiscal-theory equilibrium (existence and uniqueness of the price level given surpluses, for any expectation system); monetary and fiscal policy: share splits, interest-rate targets and the Fisherian response, the expected/unexpected inflation decomposition; debt sales and Table 1.1 (borrow, inflate, AR(1), s-shaped surpluses) with the borrowing condition corrected; a price-level target rule; active versus passive policy, the gamma-rule determinacy condition corrected, non-identification and observational equivalence; links to Woodford's locally Ricardian policy and Ricardian transversality results.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 1, pp. 4-19."
