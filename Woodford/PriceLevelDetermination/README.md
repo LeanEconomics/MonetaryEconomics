@@ -10,7 +10,7 @@ Determination under Interest-Rate Rules" (pp. 61–138), together with the proof
 perfect foresight and genuine uncertainty; log-linear equations are exact derivatives of the
 nonlinear model, and the exact nonlinear model is linked to them by implicit-function theorems
 on bounded sequences and on bounded processes under uncertainty, for scalar equations and for
-`n`-dimensional systems with predetermined variables. The library contains **1732 theorems**,
+`n`-dimensional systems with predetermined variables. The library contains **1823 theorems**,
 including the shared core.
 
 Headline results, in the namespace `Woodford.PriceLevelDetermination`:
@@ -119,18 +119,63 @@ Headline results, in the namespace `Woodford.PriceLevelDetermination`:
   (`InertialBoundaryExist.exists_unique_affine`, `InertialBoundaryExistCube.exists_unique_cube`).
   For a resonant shock `ν_t = δσᵗ` the equilibrium is exactly `î_t = σᵗ∛(−δ)`
   (`InertialBoundaryExist.resonant_cube_root`, `InertialBoundaryExistCube.resonant_cube_root_pi`).
+* **Nonlinear sunspots decided by the higher-order terms.** On a one-dimensional critical
+  direction, `E_t[x_{t+1} − g(x_t)] = 0` with `g'(0) = σ = ±1`, write
+  `g(g(x)) = x + c xᵐ + o(xᵐ)` with `c ≠ 0`, `m ≥ 2`: random sunspots exist at every scale on the
+  coin tree iff `c < 0` or `m` is even (`TidyR6CriticalCriterion.coin_sunspots_iff`). In `g`'s
+  own leading coefficient this gives the unit-root and odd-order flip-root criteria, with
+  uniqueness under every informationally closed expectation system in the repelling cases
+  (`TidyR6CriticalCriterion.unit_root_criterion`, `TidyR6CriticalCriterion.flip_root_criterion`,
+  `TidyR6CriticalCriterion.unique_of_one_step`); at a flip root of even order the criterion must
+  be read from `g ∘ g` (`TidyR6CriticalCriterion.flip_even_undecided`). For analytic `g` the
+  characterisation is complete (`TidyR6CriticalAnalytic.analytic_coin_sunspots_iff`). No
+  criterion in the Taylor jet exists in general: two `C^∞` maps with equal derivatives of every
+  order and the same (A.8) give opposite answers (`TidyR6CriticalCriterion.flat_undecided`). In
+  `n` dimensions, sign-definite conditions on `g` decide in both directions
+  (`TidyR6ForwardSunspots.unique_of_repelAnn`, `TidyR6ForwardSunspots.no_coin_sunspot_of_two_step`,
+  `TidyR6ForwardSunspots.coin_sunspot_of_pair`).
+* **The boundary of Proposition 2.8 for every rule and every expectation system.** For every rule
+  strictly differentiable at the steady state (in particular every `C¹` rule, including rules
+  nonlinear in `π`) with `φ_π ≠ 0`, `|φ_π + ρ| = 1`, no shocks and `î_{−1} = 0`, the sunspot
+  question is decided by the diagonal `D(y) = Ψ(y, y)`: sunspots iff the leading coefficient of
+  `D ∘ D − id` is negative or of even order (`TidyR6InertialEveryRule.inertial_coin_iff`,
+  `TidyR6InertialEveryRule.inertial_diag_criterion`,
+  `TidyR6InertialEveryRule.inertial_unique_of_repel`), completely for analytic rules
+  (`TidyR6InertialAnalytic.inertial_analytic_iff`); for the cubic rules
+  `φ_ππ + ρî + κî³`, sunspots iff `(φ_π + ρ)κ < 0` (`TidyR6InertialEveryRule.ruleCubI_criterion`).
+  The rule `φ_ππ + h(î_{−1})` needs no informational closure: uniqueness for every expectation
+  system when `h` is continuous (`TidyR6InertialAnyExpectation.unique_affine_any`), existence
+  and uniqueness for small shocks when `h` is Lipschitz on bounded intervals
+  (`TidyR6InertialAnyExist.exists_unique_affine_any`,
+  `TidyR6InertialAnyExist.boundary_affine_any_shocks`), including the non-closed `skewSystem`
+  (`TidyR6InertialAnyExpectation.unique_affine_skew`), and on a filtered probability space with
+  Mathlib conditional expectation (`TidyR6InertialMeasure.unique_affine_measure`,
+  `TidyR6InertialMeasureExist.exists_unique_affine_measure`). The cube rule `ρî_{−1} + σπ³` is
+  unique whenever cubes of known variables are known, in particular under pull-out
+  (`TidyR6InertialAnyExpectation.unique_cube_of_cube_known`,
+  `TidyR6InertialAnyExpectation.unique_cube_pullOut`), and on probability spaces
+  (`TidyR6InertialMeasure.unique_cube_measure`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: outside the cases where (A.8) is onto or bounded below, the existence of nonlinear
-sunspots of `n`-dimensional systems is not characterised in terms of the higher-order terms; it
-is only shown, by explicit pairs, that the linearisation does not decide it. The uniqueness and
-existence results on the boundary of Proposition 2.8 assume informational closure (perfect
-foresight, every finite event tree), and they cover the specific expanding rules stated
-(`InertialBoundary.unique_affine`, `InertialBoundary.unique_cube`), not every rule with those
-slopes. Figures 2.1–2.5 are formalised only through their closed forms and spot values.
+Not covered: outside the cases where (A.8) is onto or bounded below, nonlinear sunspots are
+characterised by the higher-order terms on a one-dimensional critical direction (completely for
+analytic maps) and on the boundary of Proposition 2.8 for every rule with `φ_π ≠ 0`; the affine
+boundary rule is settled for every expectation system and on probability spaces. Four gaps
+remain. (1) `n`-dimensional systems whose critical direction is coupled to hyperbolic
+directions: this needs a stochastic centre-manifold reduction, which fails pointwise because the
+hyperbolic components depend on the whole future path, not on the critical coordinate; only the
+sign-definite `n`-dimensional conditions of `TidyR6ForwardSunspots` are proved there. (2) The
+cube rule `ρî_{−1} + σπ³`: uniqueness for an arbitrary expectation system (it is proved when cubes
+of known variables are known and on probability spaces; there is no counterexample), and existence
+beyond informational closure, which needs a known variable frozen inside `E_t` of a nonlinear
+function. (3) Existence and uniqueness with shocks for rules nonlinear in `π` (covered only for
+rules affine in `π`). (4) `φ_π = 0` for every rule: the higher-order terms involve both `π` and
+`î`, the answer depends on `î_{−1}`, and only the cube rule is done. A criterion in the Taylor
+jet alone is impossible in general (`TidyR6CriticalCriterion.flat_undecided`). Figures 2.1–2.5 are
+formalised only through their closed forms and spot values.
 
 ## Library map
 
@@ -182,6 +227,15 @@ slopes. Figures 2.1–2.5 are formalised only through their closed forms and spo
 | [SunspotsNotOntoMore](PriceLevelDetermination/SunspotsNotOntoMore.lean) | 27 | A.3, two-dimensional examples: (A.8) one-to-one with non-closed range, and Fredholm neither one-to-one nor onto, each undecided by the linearisation |
 | [InertialBoundaryExist](PriceLevelDetermination/InertialBoundaryExist.lean) | 16 | Prop. 2.8 boundary: existence and uniqueness for expanding forward recursions; the affine rule has exactly one equilibrium for small shocks, of order `‖e‖^{1/3}`; the resonant cube root; the cubic-in-π rule under perfect foresight |
 | [InertialBoundaryExistCube](PriceLevelDetermination/InertialBoundaryExistCube.lean) | 20 | Prop. 2.8 boundary, `φ_π = 0`: the rule `ρî_{−1} + σπ³` has exactly one equilibrium for small shocks on every informationally closed expectation system; the resonant cube root under uncertainty |
+| [TidyR6ForwardSunspots](PriceLevelDetermination/TidyR6ForwardSunspots.lean) | 15 | A.3: sunspots of `n`-dimensional forward systems `E_t[x_{t+1} − g(x_t)] = 0` decided by `g` itself: no sunspots when `g` (or, on the coin tree, `g ∘ g`) repels on annuli; random sunspots from a two-step invariant set |
+| [TidyR6CriticalCriterion](PriceLevelDetermination/TidyR6CriticalCriterion.lean) | 25 | A.3: the leading-coefficient criterion on a one-dimensional critical direction (both directions); unit and flip roots; the flip-root even-order and flat `C^∞` counterexamples |
+| [TidyR6CriticalAnalytic](PriceLevelDetermination/TidyR6CriticalAnalytic.lean) | 4 | A.3: the complete characterisation for analytic maps; the analytic dichotomy |
+| [TidyR6InertialEveryRule](PriceLevelDetermination/TidyR6InertialEveryRule.lean) | 14 | Prop. 2.8 boundary, `φ_π ≠ 0`: every strictly differentiable rule, decided by the diagonal `Ψ(y, y)` in both directions; the cubic rules for all signs |
+| [TidyR6InertialAnalytic](PriceLevelDetermination/TidyR6InertialAnalytic.lean) | 2 | Prop. 2.8 boundary: the complete characterisation for analytic rules |
+| [TidyR6InertialAnyExpectation](PriceLevelDetermination/TidyR6InertialAnyExpectation.lean) | 9 | Prop. 2.8 boundary without informational closure: uniqueness for the affine rule under every expectation system, the skew system; the cube rule when cubes of known variables are known |
+| [TidyR6InertialAnyExist](PriceLevelDetermination/TidyR6InertialAnyExist.lean) | 7 | Prop. 2.8 boundary: existence and uniqueness for the affine rule with small shocks under every expectation system; the backward step `E_t g(y) = w` |
+| [TidyR6InertialMeasure](PriceLevelDetermination/TidyR6InertialMeasure.lean) | 11 | Prop. 2.8 boundary on a filtered probability space with Mathlib conditional expectation: uniqueness a.s. for the affine and cube rules |
+| [TidyR6InertialMeasureExist](PriceLevelDetermination/TidyR6InertialMeasureExist.lean) | 4 | Prop. 2.8 boundary on a probability space: existence and uniqueness a.s. for the affine rule with small shocks |
 
 ## Relation to the Woodford Chapter 4 project
 

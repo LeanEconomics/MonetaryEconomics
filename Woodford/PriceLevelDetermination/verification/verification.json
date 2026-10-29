@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-22T02:31:48.896666+00:00",
-  "theorems": 1732,
+  "checked_at_utc": "2026-10-29T10:13:50.276969+00:00",
+  "theorems": 1823,
   "module_theorems": {
     "PriceLevelDetermination/Determinacy.lean": 23,
     "PriceLevelDetermination/Expectations.lean": 20,
@@ -47,9 +47,18 @@
     "PriceLevelDetermination/InertialBoundary.lean": 19,
     "PriceLevelDetermination/SunspotsNotOntoMore.lean": 27,
     "PriceLevelDetermination/InertialBoundaryExist.lean": 16,
-    "PriceLevelDetermination/InertialBoundaryExistCube.lean": 20
+    "PriceLevelDetermination/InertialBoundaryExistCube.lean": 20,
+    "PriceLevelDetermination/TidyR6ForwardSunspots.lean": 15,
+    "PriceLevelDetermination/TidyR6CriticalCriterion.lean": 25,
+    "PriceLevelDetermination/TidyR6CriticalAnalytic.lean": 4,
+    "PriceLevelDetermination/TidyR6InertialEveryRule.lean": 14,
+    "PriceLevelDetermination/TidyR6InertialAnalytic.lean": 2,
+    "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean": 9,
+    "PriceLevelDetermination/TidyR6InertialAnyExist.lean": 7,
+    "PriceLevelDetermination/TidyR6InertialMeasure.lean": 11,
+    "PriceLevelDetermination/TidyR6InertialMeasureExist.lean": 4
   },
-  "audited_declarations": 2317,
+  "audited_declarations": 2431,
   "declarations": [
     {
       "name": "Woodford.PriceLevelDetermination.SchurStable",
@@ -11635,6 +11644,576 @@
       "name": "Woodford.PriceLevelDetermination.InertialBoundaryExistCube.resonant_cube_root_pi",
       "kind": "theorem",
       "module": "PriceLevelDetermination/InertialBoundaryExistCube.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.Gfwd",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.known_vec",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.fwd_E",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.eq_zero_of_annulus",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.RepelAnn",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.eq_zero_of_norm",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.unique_of_repelAnn",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.unique_of_repelAnn_global",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_E_late",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_step_late",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_eq_zero_of_two_step",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.no_coin_sunspot_of_two_step",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.pathProc",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.norm_pathProc_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.solvesSV_pathProc",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.orb",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.norm_orb_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.orb_succ",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_sunspot_of_pair",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6ForwardSunspots.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lift",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.norm_fin1",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lift_comp",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.CoinSunspots",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.repelAnn_lift",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.bound_of_isLittleO",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.hasDerivAt_of_expansion",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.near_lip",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.comp_expansion",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lower_of_expansion",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.side_estimate",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.coinSunspots_of_side",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.not_coinSunspots_of_repel",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.coin_sunspots_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.unique_of_one_step",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.unit_root_criterion",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flip_root_criterion",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gFlipA",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gFlipB",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flip_even_undecided",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gm",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gp",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.glue_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl_cases",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.abs_gp_gm",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.contDiff_fl",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flat_of_eqOn",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl_flat",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.hasDerivAt_fl",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fderiv_Gfwd_lift",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flat_undecided",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalCriterion.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.coinSunspots_of_involutive",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalAnalytic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.expansion_of_factor",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalAnalytic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.analytic_dichotomy",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalAnalytic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.analytic_coin_sunspots_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6CriticalAnalytic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.strict_bound",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.pi_gap",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.pi_bounds",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.hasDerivAt_diag",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.rule_pathwise",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.fisher_E",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_unique_of_repel",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.InertialCoinSunspots",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_no_coin_sunspot",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.dorb",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.abs_dorb_le",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertProc",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.solvesSV_inertProc",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_coin_sunspot_of_side",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_coin_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_diag_criterion",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.ruleCubI_criterion",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialEveryRule.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnalytic.inertial_coin_sunspot_of_involutive",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnalytic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnalytic.inertial_analytic_iff",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnalytic.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.conc_lower",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.conc_upper",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.exists_sign_of_expanding",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_affine_any",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.boundary_affine_any",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_affine_skew",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.cube_known_of_pullOut",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_cube_of_cube_known",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_cube_pullOut",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.damp_lip",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.eq_zero_of_le_geom",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.stepIter",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.step_solve",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.step_contract",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.stepMap",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.backV",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.exists_expanding_any",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.exists_unique_affine_any",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.boundary_affine_any_shocks",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialAnyExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.ae_push",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.MeasEq",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.integrable_of_known",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.condExp_known_sub",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI_known",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI_bound",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.fisher_ae",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.rule_ae_affine",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.unique_affine_measure",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.rule_ae_cube",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.antitone_cbrt_bound",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.unique_cube_measure",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasure.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.clip",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.clip_props",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.ginv",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.ginv_props",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.bseq",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.bseq_props",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.backM",
+      "kind": "def",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
+    },
+    {
+      "name": "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.exists_unique_affine_measure",
+      "kind": "theorem",
+      "module": "PriceLevelDetermination/TidyR6InertialMeasureExist.lean"
     }
   ],
   "full_build": "passed",
@@ -23188,6 +23767,576 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.Gfwd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.known_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.fwd_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.eq_zero_of_annulus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.RepelAnn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.eq_zero_of_norm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.unique_of_repelAnn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.unique_of_repelAnn_global": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_E_late": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_step_late": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_eq_zero_of_two_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.no_coin_sunspot_of_two_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.pathProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.norm_pathProc_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.solvesSV_pathProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.orb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.norm_orb_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.orb_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_sunspot_of_pair": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.norm_fin1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lift_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.CoinSunspots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.repelAnn_lift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.bound_of_isLittleO": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.hasDerivAt_of_expansion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.near_lip": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.comp_expansion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lower_of_expansion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.side_estimate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.coinSunspots_of_side": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.not_coinSunspots_of_repel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.coin_sunspots_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.unique_of_one_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.unit_root_criterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flip_root_criterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gFlipA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gFlipB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flip_even_undecided": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.glue_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl_cases": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.abs_gp_gm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.contDiff_fl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flat_of_eqOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl_flat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.hasDerivAt_fl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fderiv_Gfwd_lift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flat_undecided": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.coinSunspots_of_involutive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.expansion_of_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.analytic_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.analytic_coin_sunspots_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.strict_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.pi_gap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.pi_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.hasDerivAt_diag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.rule_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.fisher_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_unique_of_repel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.InertialCoinSunspots": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_no_coin_sunspot": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.dorb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.abs_dorb_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.solvesSV_inertProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_coin_sunspot_of_side": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_coin_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_diag_criterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.ruleCubI_criterion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnalytic.inertial_coin_sunspot_of_involutive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnalytic.inertial_analytic_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.conc_lower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.conc_upper": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.exists_sign_of_expanding": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_affine_any": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.boundary_affine_any": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_affine_skew": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.cube_known_of_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_cube_of_cube_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_cube_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.damp_lip": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.eq_zero_of_le_geom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.stepIter": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.step_solve": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.step_contract": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.stepMap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.backV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.exists_expanding_any": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.exists_unique_affine_any": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.boundary_affine_any_shocks": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.ae_push": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.MeasEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.integrable_of_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.condExp_known_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.fisher_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.rule_ae_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.unique_affine_measure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.rule_ae_cube": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.antitone_cbrt_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasure.unique_cube_measure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.clip": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.clip_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.ginv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.ginv_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.bseq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.bseq_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.backM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.exists_unique_affine_measure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -23237,15 +24386,24 @@
     "PriceLevelDetermination/SunspotsNotOntoMore.lean": "e70605ad5da0166b6b238adbded8cc67c4cca2b13c97008bec98eef7f4ecdec1",
     "PriceLevelDetermination/InertialBoundaryExist.lean": "cee3f562f406980e295a6cf01d8b62819e60ec8b1e972d57aec0b07eae7885cd",
     "PriceLevelDetermination/InertialBoundaryExistCube.lean": "a1cd2d9ba457fa5f49155eacfc8d0deed3f6a2c7bef485732460572238c926f3",
-    "PriceLevelDetermination.lean": "62cacd45f5dcb92b32d2b103b27e92737e7139ed657a74344cf348ef475c4323",
+    "PriceLevelDetermination/TidyR6ForwardSunspots.lean": "1a6ce3a8d6dd452ab1a9a79955ff4ae843ae025459056e1c512a832ac7568113",
+    "PriceLevelDetermination/TidyR6CriticalCriterion.lean": "46ca900addc912182bd07f531c77dd6d62ed6a9d968de0ccf9be6113476bbfeb",
+    "PriceLevelDetermination/TidyR6CriticalAnalytic.lean": "d991dff908649fcc8ddadc53e4fd73271fa8983408ea16fd222f56f705fe9ce1",
+    "PriceLevelDetermination/TidyR6InertialEveryRule.lean": "db763808baa5f54d5d0e4cc33f119985680dcd9f5492f72e8e4cb07d0441d0bf",
+    "PriceLevelDetermination/TidyR6InertialAnalytic.lean": "823b431619e713271a834720e3e93f52f200572dae40c6a0d5d065788300b5b0",
+    "PriceLevelDetermination/TidyR6InertialAnyExpectation.lean": "b165fa3861bf92778e7ec40f3bd8379c47a45075346e169ee448244c9fdef72c",
+    "PriceLevelDetermination/TidyR6InertialAnyExist.lean": "a18a7ebe8f96c7d8e7d61be8e668f00cd298f358a2d3bde55915615784633946",
+    "PriceLevelDetermination/TidyR6InertialMeasure.lean": "bf07688d518fbbd272c6c7c2996ec12181f6c4ccfb68c25d0da22013450abd06",
+    "PriceLevelDetermination/TidyR6InertialMeasureExist.lean": "150a7b1603421aed1e40eae6138e7761849583c993a427415925599a8938bbef",
+    "PriceLevelDetermination.lean": "44d71effb1cbee1ee1adf1069d8dbc39245b5a880f446f00cb90bc17f48057fb",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "54d71d0b018bbe74721b0737c8a3763e33c31272978e97950f95f9e182e5a59a",
     "lake-manifest.json": "e908365bf29aa95e2d844a30e95f4e926befe3dfe9ea1a75c7d7824102fe2090",
-    "proof-manifest.json": "828025834e72f24cd8ce12e67122e8de738c3a511e666565a7e121af2a4f0261",
+    "proof-manifest.json": "f9b1eec1edd951b4bd46f818ea344665924503df0e09d820973a9c6b9f563169",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "84ace355a1dfd693e4e015963b7e41f5f4aa026fc4557c44ebe21dce5bd7d8fe",
+  "fresh_audit_sha256": "beb3065614ca5443e954a16795a8e77ba12f82b5a9152ea6a8238f7f0ea63ce8",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Woodford, Interest and Prices, Chapter 2: Price-Level Determination under Interest-Rate Rules, with Appendix A. Asset pricing, the intertemporal budget constraint, transversality and bubbles; the forward-solution theory (A.14)-(A.17) with exact determinacy conditions; Wicksellian, exogenous-rate, Taylor-rule, inertial and money-growth regimes, linear and exact nonlinear (implicit-function theorem on bounded sequences, second-order accuracy); non-separable utility, calibration and the short-period limit; global perfect-foresight dynamics, self-fulfilling deflations, money-targeting dynamics, timing and the Schmitt-Grohe-Uribe example. Post-book: the stochastic (L-infinity processes with E_t) version of the Appendix A.3 implicit-function theorem with the C1 vs C2 accuracy distinction (E18), stochastic local (in)determinacy of Propositions 2.3, 2.6-2.8 and 2.11-2.13 with genuinely random sunspots, the stochastic transversality condition and the level forms; the p.137 claim that the target is the unique stochastic equilibrium in the Schmitt-Grohe-Uribe example is true on finite trees but refuted by a perpetual sunspot on a geometric probability space with Mathlib conditional expectation; n-dimensional systems with predetermined variables: the (A.9) root condition made exact (generically iff fails in exactly two ways; unit-circle roots always destroy existence), the nonlinear local theorem at any steady state with its converse and second-order bound, a copy of the general Blanchard-Kahn theorem, and the inertial rule (Proposition 2.8) as a two-dimensional application. Under uncertainty, n-dimensional systems with predetermined variables: the determinacy criterion is unchanged (the same exact root condition), explicit decision rule, failure modes identical to perfect foresight, random sunspots (linear, and nonlinear whenever (A.8) is onto but not one-to-one), the nonlinear local theorem in the book form (A.11) and in the forecast form under informational closure, at any steady state with converse and second-order bound, and the inertial rule under uncertainty.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 2, pp. 61-138, and Appendix A, pp. 627-655."
