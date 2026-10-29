@@ -24,7 +24,12 @@ multiplicities, and Example B's full kernel); those rows follow the
 general theory. The later `TidyR5a*` and `TidyR5b*` modules (the exogenous instrument of p. 546,
 fn 8, necessity of the first-order conditions, partial selections, the case-(ii) examples, the
 remark of p. 553, Proposition 8.3 on the circle, `γ = 0`, Rule III, the rule system at `λₓ = 0`,
-the limit `λ_i → 0`, and the (2.20) region beyond perfect foresight) are listed next, before §2.1.
+the limit `λ_i → 0`, and the (2.20) region beyond perfect foresight) are listed next, followed by
+the `TidyR6a*` and `TidyR6b*` modules (the singular-pencil Blanchard–Kahn theorem and the stacked
+system (1.1) + (1.9), deflating splits and their count data, the remark of p. 553 and Propositions
+8.1 and 8.3 on a probability space, the generalised Taylor principle within (3.7), random
+pre-sample values, necessity of the first-order conditions on a probability space, and existence
+for the rule system, the limit `λ_i → 0`, Rule III and the (2.20) region there), all before §2.1.
 The copied measure-theoretic core
 (`ExpectationsMeasure`, `ExpectationsMeasureIID`) is listed just before the shared tools.
 Results restated from earlier chapters (the Chapter 3 quadratic roots, the Chapter 4
@@ -635,6 +640,158 @@ directions, then for every `Ẽ` through a decomposition of the pencil.
 | (2.20), App. G.7, probability space | the complex forward solution `v_t = E_t∑aᵏh_{t+k}` solves `v = aEv' + h` a.s.; the operator `𝒵`; one stage `(𝒵 − Z)y = h` and the cubic have bounded adapted a.s. solutions | `TidyR5bCondExpC.fwdSum`, `TidyR5bCondExpC.summable_geomC`, `TidyR5bCondExpC.norm_tsum_geomC_le`, `TidyR5bCondExpC.fwdSum_succ`, `TidyR5bCondExpC.fwdSum_spec`, `TidyR5bCondExpC.fwdC`, `TidyR5bCondExpC.fwdC_solves`, `TidyR5bCondExpC.fwdC_bdd`, `TidyR5bCondExpC.ZC`, `TidyR5bCondExpC.ZC_lin`, `TidyR5bCondExpC.ZC_congr`, `TidyR5bCondExpC.backRecC_adC`, `TidyR5bCondExpC.backRecC_bdd`, `TidyR5bCondExpC.stage_exists`, `TidyR5bCondExpC.ZC_adC`, `TidyR5bCondExpC.ZC_bdC`, `TidyR5bCondExpC.cubic_exists` |
 | (2.20), probability space (real form) | the real `𝒵`, its linearity and bounds; the real cubic has a bounded adapted a.s. solution | `TidyR5bStickyExists.Zm`, `TidyR5bStickyExists.re_ZC`, `TidyR5bStickyExists.E_comb6`, `TidyR5bStickyExists.Zm_comb6`, `TidyR5bStickyExists.Zm_adapted`, `TidyR5bStickyExists.Zm_bdd`, `TidyR5bStickyExists.comb6M`, `TidyR5bStickyExists.RCub`, `TidyR5bStickyExists.cubicR_exists` |
 | (2.11)–(2.20), probability space ("if") | the plan and multipliers read off the real wage satisfy (2.11)–(2.19) a.s.; existence under `StableRoots`; existence for all data iff `StableRoots` | `TidyR5bStickyExists.forcingFm`, `TidyR5bStickyExists.xOfM`, `TidyR5bStickyExists.gOfM`, `TidyR5bStickyExists.mpOfM`, `TidyR5bStickyExists.mwOfM`, `TidyR5bStickyExists.upsOfM`, `TidyR5bStickyExists.piOfM`, `TidyR5bStickyExists.piwOfM`, `TidyR5bStickyExists.cubic_imp_focM`, `TidyR5bStickyExists.exists_meas_of_stableRoots`, `TidyR5bStickyExists.exists_meas_iff_stableRoots` |
+
+## The general and singular-pencil Blanchard–Kahn theorems, App. C.1, p. 670 (TidyR6aGeneralBK, TidyR6aGeneralBKPencil, TidyR6aGeneralBKSingular, TidyR6aBKRandom)
+
+The stacked system (1.1) + (1.9) has a singular lead matrix, so its determinacy needs the
+Blanchard–Kahn theorem for singular pencils (King–Watson, Klein). The first three modules are
+copies of the Cochrane KeynesianStickyPrices project's `TidyR5GeneralBK`, `TidyR5GeneralBKPencil`
+and `TidyR5GeneralBKSingular` (themselves restated from the Woodford Chapter 4 project), with the
+namespaces renamed; they use this project's `BKInvariantSplit` and `BKForward`. `TidyR6aBKRandom`
+lets the predetermined initial values be random variables known at date 0.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. C.1, pp. 670–672 (tools) | complexification, inverses of unstable matrices, closure of bounded and adapted vector processes, block rows and the identities of the existence and uniqueness steps, the backward recursion for the predetermined block | `TidyR6aGeneralBK.map_ofReal_mulVec`, `TidyR6aGeneralBK.det_ne_zero_of_unstable`, `TidyR6aGeneralBK.inv_stable`, `TidyR6aGeneralBK.boundedV_add`, `TidyR6aGeneralBK.boundedV_sub`, `TidyR6aGeneralBK.boundedV_neg`, `TidyR6aGeneralBK.adaptedV_add`, `TidyR6aGeneralBK.adaptedV_sub`, `TidyR6aGeneralBK.adaptedV_neg`, `TidyR6aGeneralBK.eval_split`, `TidyR6aGeneralBK.mv_inl`, `TidyR6aGeneralBK.mv_inr`, `TidyR6aGeneralBK.zx_block_eq`, `TidyR6aGeneralBK.identity_zhat`, `TidyR6aGeneralBK.identity_x`, `TidyR6aGeneralBK.identity_exist`, `TidyR6aGeneralBK.identity_exist_x`, `TidyR6aGeneralBK.xrecR`, `TidyR6aGeneralBK.xrecR_bounded`, `TidyR6aGeneralBK.xrecR_known`, `TidyR6aGeneralBK.fsolves_iff_cform` |
+| App. C.1, p. 670 | the system `E_ty_{t+1} = Ay_t + w_t`, its bounded equilibria and determinacy; sufficiency of the Blanchard–Kahn conditions | `TidyR6aGeneralBK.Solves`, `TidyR6aGeneralBK.Equil`, `TidyR6aGeneralBK.Determinate`, `TidyR6aGeneralBK.determinate_of` |
+| App. C.1, pp. 670–672, fn. 1–2 | each failure: a unit-circle eigenvalue gives non-existence by resonance for some bounded forcing; without genericity, multiplicity; too few or too many stable directions | `TidyR6aGeneralBK.sum_q_mulVec`, `TidyR6aGeneralBK.false_of_linear_growth`, `TidyR6aGeneralBK.no_bounded_resonance`, `TidyR6aGeneralBK.exists_left_eigvec_unit`, `TidyR6aGeneralBK.nonexist_of_unit`, `TidyR6aGeneralBK.not_determinate_of_unit`, `TidyR6aGeneralBK.mult_of_not_genericX`, `TidyR6aGeneralBK.not_determinate_of_not_genericX`, `TidyR6aGeneralBK.nonexist_of_lt`, `TidyR6aGeneralBK.not_determinate_of_lt`, `TidyR6aGeneralBK.not_determinate_of_gt` |
+| App. C.1, p. 670, fn. 1–2 | **the Blanchard–Kahn theorem**: determinate iff no unit eigenvalue, the stable subspace has dimension `\|X\|`, and genericity; the counting forms; independence of the expectation system; bounded orbits are the stable subspace | `TidyR6aGeneralBK.determinate_iff`, `TidyR6aGeneralBK.determinate_iff_count`, `TidyR6aGeneralBK.determinate_iff_unstableCount`, `TidyR6aGeneralBK.determinate_iff_perfectForesight`, `TidyR6aGeneralBK.mem_boundedOrbits_of_tendsto`, `TidyR6aGeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit`, `TidyR6aGeneralBK.mem_boundedOrbits_iff_tendsto` |
+| App. C.1, p. 670 | `A₀ E_t y_{t+1} = A₁ y_t + w_t` with `A₀` invertible reduces to `A₀⁻¹A₁` | `TidyR6aGeneralBKPencil.SolvesPencil`, `TidyR6aGeneralBKPencil.EquilPencil`, `TidyR6aGeneralBKPencil.DeterminatePencil`, `TidyR6aGeneralBKPencil.solvesPencil_iff`, `TidyR6aGeneralBKPencil.equilPencil_iff`, `TidyR6aGeneralBKPencil.determinatePencil_iff` |
+| App. C.1, p. 670 | the pencil polynomial `det(λA₀ − A₁)`; Blanchard–Kahn for pencils | `TidyR6aGeneralBKPencil.pencilPoly`, `TidyR6aGeneralBKPencil.pencilPoly_eq`, `TidyR6aGeneralBKPencil.eigs_pencil`, `TidyR6aGeneralBKPencil.mem_eigs_pencil_iff`, `TidyR6aGeneralBKPencil.determinatePencil_iff_count` |
+| App. C.1, p. 670 | the Fitting decomposition | `TidyR6aGeneralBKSingular.pow_mulVec_eq`, `TidyR6aGeneralBKSingular.exists_fitting`, `TidyR6aGeneralBKSingular.Fitting`, `TidyR6aGeneralBKSingular.Fitting.basic`, `TidyR6aGeneralBKSingular.pow_bound_of_pow_eq_zero` |
+| App. C.1, p. 670 | reduction of a regular pencil to the standard form `Â = cP − Ni + 2Q` | `TidyR6aGeneralBKSingular.ahat`, `TidyR6aGeneralBKSingular.ahat_proj`, `TidyR6aGeneralBKSingular.split_ahat`, `TidyR6aGeneralBKSingular.split_pencil`, `TidyR6aGeneralBKSingular.twoBlock_iff`, `TidyR6aGeneralBKSingular.twoBlock_existsUnique`, `TidyR6aGeneralBKSingular.rmat`, `TidyR6aGeneralBKSingular.kmat`, `TidyR6aGeneralBKSingular.commute_rmat`, `TidyR6aGeneralBKSingular.kmat_pow`, `TidyR6aGeneralBKSingular.nil_facts`, `TidyR6aGeneralBKSingular.pencilV_step`, `TidyR6aGeneralBKSingular.pencilV_existsUnique`, `TidyR6aGeneralBKSingular.pencil_reduce`, `TidyR6aGeneralBKSingular.pencil_iff_ahat`, `TidyR6aGeneralBKSingular.pencil_Vpart`, `TidyR6aGeneralBKSingular.ahat_Vpart`, `TidyR6aGeneralBKSingular.determinatePencil_iff_ahat` |
+| App. C.1, p. 670 (tools) | vector-process and matrix identities; polynomial evaluation | `TidyR6aGeneralBKSingular.adaptedV_Enext`, `TidyR6aGeneralBKSingular.boundedV_Enext`, `TidyR6aGeneralBKSingular.boundedV_smul`, `TidyR6aGeneralBKSingular.adaptedV_smul`, `TidyR6aGeneralBKSingular.Enext_mv`, `TidyR6aGeneralBKSingular.smul_mv`, `TidyR6aGeneralBKSingular.mv_smul`, `TidyR6aGeneralBKSingular.mv_smul_one`, `TidyR6aGeneralBKSingular.zero_mv`, `TidyR6aGeneralBKSingular.neg_mv`, `TidyR6aGeneralBKSingular.mvQ_idem`, `TidyR6aGeneralBKSingular.factor_idem`, `TidyR6aGeneralBKSingular.det_one_add_smul_nilpotent`, `TidyR6aGeneralBKSingular.scalar_eq_smul_one`, `TidyR6aGeneralBKSingular.eval_det_mapMatrix`, `TidyR6aGeneralBKSingular.eval_fpoly`, `TidyR6aGeneralBKSingular.eval_gpoly`, `TidyR6aGeneralBKSingular.eval_pencilPoly`, `TidyR6aGeneralBKSingular.ahat_comm`, `TidyR6aGeneralBKSingular.det_NPQ_ne_zero`, `TidyR6aGeneralBKSingular.exists_regular_point` |
+| App. C.1, p. 670 | the eigenvalues of `Â` are the finite generalised eigenvalues together with `2`s; bounded orbits correspond | `TidyR6aGeneralBKSingular.fpoly`, `TidyR6aGeneralBKSingular.gpoly`, `TidyR6aGeneralBKSingular.poly_relations`, `TidyR6aGeneralBKSingular.gpoly_roots`, `TidyR6aGeneralBKSingular.eigs_ahat`, `TidyR6aGeneralBKSingular.noUnit_ahat_iff`, `TidyR6aGeneralBKSingular.stableCount_ahat`, `TidyR6aGeneralBKSingular.PencilBounded`, `TidyR6aGeneralBKSingular.mem_boundedOrbits_ahat` |
+| App. C.1, p. 670, fn. 2 | Blanchard–Kahn for arbitrary pencils (King–Watson, Klein): a singular pencil has no solution for some forcing; infinite eigenvalues count as unstable | `TidyR6aGeneralBKSingular.nonexist_of_not_regular`, `TidyR6aGeneralBKSingular.GenericPencil`, `TidyR6aGeneralBKSingular.determinatePencil_iff_general`, `TidyR6aGeneralBKSingular.unstable_add_infinite` |
+| App. C.1, p. 670 | determinacy of the standard form does not depend on whether the initial value `x₀` is random (bounded, known at 0) or a number | `TidyR6aBKRandom.determinateR_iff` |
+| App. C.1, p. 670 and fn. 1–2 | **Blanchard–Kahn for arbitrary pencils with random initial conditions**: determinate iff the pencil is regular, no root of `det(λA₀ − A₁)` on the unit circle, exactly `\|X\|` roots in the open disc, and `GenericPencil` | `TidyR6aBKRandom.EquilPencilR`, `TidyR6aBKRandom.DeterminatePencilR`, `TidyR6aBKRandom.determinatePencilR_iff_ahat`, `TidyR6aBKRandom.determinatePencilR_iff`, `TidyR6aBKRandom.determinatePencilR_iff_general` |
+
+## Blanchard–Kahn determinacy of the stacked system (1.1) + (1.9), pp. 537–542, Assumption 8.1 (TidyR6aStackedBK)
+
+The plan and the multipliers are stacked as `x_t = (y_t, φ_t)` with predetermined block
+`(Z_t, M_{t−1})`; (1.1) + (1.9) is then `F E_t x_{t+1} = G x_t + w_t` with `F` singular. Stated at
+`t₀ = 0`. Determinacy is Blanchard–Kahn determinacy: a unique bounded equilibrium for every bounded
+adapted forcing of all the stacked rows and every bounded initial `(Z_0, M_{−1})` known at 0.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.1) + (1.9) (tools) | the stacked coordinates in Blanchard–Kahn order; the matrices `F`, `G`; the stacked process, forcing and initial condition; reading the plan and the multipliers back | `TidyR6aStackedBK.eSf`, `TidyR6aStackedBK.eSi`, `TidyR6aStackedBK.eS`, `TidyR6aStackedBK.A0`, `TidyR6aStackedBK.A1`, `TidyR6aStackedBK.stk`, `TidyR6aStackedBK.wS`, `TidyR6aStackedBK.x0S`, `TidyR6aStackedBK.elim_add`, `TidyR6aStackedBK.elim_eq_iff`, `TidyR6aStackedBK.reindex_mulVec_eS`, `TidyR6aStackedBK.stk_eS`, `TidyR6aStackedBK.unY`, `TidyR6aStackedBK.unΦ`, `TidyR6aStackedBK.stk_un` |
+| (1.1), (1.9), p. 540 | the stacked rows are the first-order conditions and the structural equations; the multipliers `ξ_t` are known at `t` | `TidyR6aStackedBK.pencil_pt_iff`, `TidyR6aStackedBK.solvesPencil_stk_iff`, `TidyR6aStackedBK.xi_known`, `TidyR6aStackedBK.struct_pt_iff` |
+| pp. 541–542 | at `t₀ = 0` the bounded solutions of (1.1) + (1.9) are exactly the equilibria of the stacked pencil system | `TidyR6aStackedBK.focSystem_pre`, `TidyR6aStackedBK.equil_of_focSystem`, `TidyR6aStackedBK.focSystem_of_equil` |
+| (1.1) + (1.9), App. C.1 | the pencil polynomial of the stacked system is the Euler polynomial `det(νF − G)` | `TidyR6aStackedBK.pencilPoly_map` |
+| (1.1) + (1.9), App. C.1 | **stacked determinacy** ⟺ Euler polynomial nonzero, no root on the unit circle, `n = n_Z + n_z` roots in the open disc, and genericity (any expectation system) | `TidyR6aStackedBK.stack_determinate_iff_count`, `TidyR6aStackedBK.noUnit_iff` |
+| Assumption 8.1, p. 541 | the perfect-foresight Assumption 8.1 gives genericity, and with no Euler root on the unit circle gives stacked determinacy; stacked determinacy gives the corrected Assumption 8.1 for every expectation system and the book's form under perfect foresight | `TidyR6aStackedBK.generic_of_assumption81`, `TidyR6aStackedBK.determinate_of_assumption81`, `TidyR6aStackedBK.assumption81MB_of_determinate`, `TidyR6aStackedBK.assumption81_of_determinate` |
+| Assumption 8.1, p. 541, App. C.1 | **the exact relation**: stacked determinacy ⟺ perfect-foresight Assumption 8.1 ∧ no Euler root on the unit circle; then exactly `n` roots lie in the closed (= open) disc (`OptimalRulesMeasureMultiplicity.card_closedDisk_eq`) | `TidyR6aStackedBK.stack_determinate_iff`, `TidyR6aStackedBK.stack_determinate_card` |
+| Assumption 8.1, p. 541 | Assumption 8.1 alone does not give stacked determinacy: Example B (`OptimalRulesMeasureCounterexample.eBP`) has the Euler root `1` | `TidyR6aStackedBK.eB_not_determinate` |
+
+## Every deflating split carries its own selection and count data, Assumption 8.2 and App. G.1 (TidyR6aSelDeflating)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. G.1, (G.4), fn 2 | the selection of a split: the nonzero eigenvalues of `Ψ` with multiplicity, conjugation-closed, nonzero roots of (1.15) with `\|μ\| < β⁻¹`; the columns of `J` are independent | `TidyR6aSelDeflating.selOf`, `TidyR6aSelDeflating.mem_selOf`, `TidyR6aSelDeflating.count_selOf`, `TidyR6aSelDeflating.selOf_conjClosed`, `TidyR6aSelDeflating.mem_selOf_split`, `TidyR6aSelDeflating.indep_of_split` |
+| App. G.1, Assumption 8.2 | every deflating split is a real selection for its own selection; a selection with count data is that selection | `TidyR6aSelDeflating.toRealSel`, `TidyR6aSelDeflating.sel_eq_selOf` |
+| App. G.1, (G.4), (1.20) | **`ker A` lies in the column space of `J` for every deflating split**, forced by the invertibility of `K` | `TidyR6aSelDeflating.J_mulVec_blocks`, `TidyR6aSelDeflating.deflate_blocks`, `TidyR6aSelDeflating.Kmat_transpose`, `TidyR6aSelDeflating.Kt_mulVec_ker`, `TidyR6aSelDeflating.ker_le_colSpan` |
+| App. G.1 | the count data of a split holds iff the zero eigenvalue of `Ψ` has multiplicity `n − rank A`; it is automatic when the zero root is semisimple | `TidyR6aSelDeflating.countData_iff`, `TidyR6aSelDeflating.countData_of_semisimple` |
+| App. G.1, Assumption 8.2 | counterexample: a split through a Jordan chain of a non-semisimple zero root lacks the count data for every selection | `TidyR6aSelDeflating.chainSys`, `TidyR6aSelDeflating.chainJ`, `TidyR6aSelDeflating.chainSplit`, `TidyR6aSelDeflating.chain_ker`, `TidyR6aSelDeflating.chain_rank`, `TidyR6aSelDeflating.chain_rootMult`, `TidyR6aSelDeflating.chain_not_countData`, `TidyR6aSelDeflating.chain_reg`, `TidyR6aSelDeflating.chain_not_zeroSemisimple` |
+| (1.21), Prop 8.1, Assumptions 8.2 and 8.4 | `Υ` is the same for every deflating split selecting `sel` (with the count data) iff `TidyR5bCyclicSel.CyclicPartial`; no count data needed for a semisimple zero root | `TidyR6aSelDeflating.Υ_unique_iff_split`, `TidyR6aSelDeflating.Υ_unique_iff_split_semisimple` |
+
+## The remark of p. 553 without side hypotheses, and Proposition 8.1 on a probability space (TidyR6aReRepBase, TidyR6aReRepMeasure, TidyR6aProp81Measure)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.3), (1.18), p. 552 | **a bounded solution of (1.18) always exists**: a constant plan with `T̃'W(Tv − τ*) = 0` and zero multipliers | `TidyR6aReRepBase.exists_xproc_zero`, `TidyR6aReRepBase.exists_base` |
+| p. 553 | the exact criterion with no solvability hypothesis: on a nonempty sample space, `Λ`, `Υ` unique iff `Λ` power-bounded | `TidyR6aReRepBase.unique_iff_powBdd_uncond` |
+| p. 553 | the nonempty sample space cannot be dropped: on an empty space every `(Λ, Υ)` is a representation | `TidyR6aReRepBase.anyRep`, `TidyR6aReRepBase.nonempty_needed` |
+| (1.18)–(1.21), Prop 8.1, p. 553, with `condExp` | (1.18), (1.20), (1.21) a.s.; multipliers known at their date; the equivalence and the representation structure on a probability space | `TidyR6aReRepMeasure.MEq118`, `TidyR6aReRepMeasure.MEq120`, `TidyR6aReRepMeasure.MEq121`, `TidyR6aReRepMeasure.MMultKnown`, `TidyR6aReRepMeasure.MProp81Equiv`, `TidyR6aReRepMeasure.MProp81Conclusion` |
+| p. 540, (1.18)–(1.20) (tools) | boundedness, measurability and integrability; conditional expectations of known and summed vectors; countably many a.s. statements | `TidyR6aReRepMeasure.mboundedV_xproc`, `TidyR6aReRepMeasure.ae_forall_ge`, `TidyR6aReRepMeasure.ae_bddS`, `TidyR6aReRepMeasure.mknownV_mulVec`, `TidyR6aReRepMeasure.mknownV_sub_mulVec`, `TidyR6aReRepMeasure.mknownV_mono`, `TidyR6aReRepMeasure.integrable_comp`, `TidyR6aReRepMeasure.integrable_mulVec`, `TidyR6aReRepMeasure.EVm_of_known`, `TidyR6aReRepMeasure.EVm_congr`, `TidyR6aReRepMeasure.EVm_add` |
+| (1.18), p. 552 | (1.18) has a bounded solution on every probability space, along which `q = r = 0` a.s. | `TidyR6aReRepMeasure.mbase`, `TidyR6aReRepMeasure.mbase_QR` |
+| p. 553, with `condExp` | two representations agree on bounded orbits of `Λ`; uniqueness for power-bounded `Λ` | `TidyR6aReRepMeasure.magree_on_bddOrbit`, `TidyR6aReRepMeasure.munique_of_powBdd` |
+| Prop 8.1, p. 553, with `condExp` | re-representation with any `Λ'` having the same bounded homogeneous solutions; the conjugated and sign-flipped representations | `TidyR6aReRepMeasure.RecSolMm`, `TidyR6aReRepMeasure.mnormalize`, `TidyR6aReRepMeasure.reQMm`, `TidyR6aReRepMeasure.mreRep_equiv`, `TidyR6aReRepMeasure.mreRep`, `TidyR6aReRepMeasure.mconj_rep`, `TidyR6aReRepMeasure.mneg_rep` |
+| p. 553, with `condExp` | **on every probability space, `Λ` and `Υ` are unique iff `Λ` is power-bounded**, with no other hypothesis | `TidyR6aReRepMeasure.mnot_unique_of_not_powBdd`, `TidyR6aReRepMeasure.munique_iff_powBdd` |
+| (1.20)–(1.21), (G.4), Prop 8.1 (tools) | the operators `E_t R(L⁻¹)`, `E_t Q(L⁻¹)`, bounded and adapted; the rows of (1.18) | `TidyR6aProp81Measure.mRop`, `TidyR6aProp81Measure.mQop`, `TidyR6aProp81Measure.madaptedV_xproc`, `TidyR6aProp81Measure.integrable_mulVec'`, `TidyR6aProp81Measure.J_lhs`, `TidyR6aProp81Measure.Mpart_lhs`, `TidyR6aProp81Measure.mRop_bdd`, `TidyR6aProp81Measure.mRop_adapted`, `TidyR6aProp81Measure.mQop_bdd`, `TidyR6aProp81Measure.mQop_adapted` |
+| Prop 8.1, p. 553, App. G.1, with `condExp` | **Proposition 8.1 on every filtered probability space** from any deflating split, with `Λ = β⁻¹K⁻¹Ẽ'`, `Υ = −(J₁')⁻¹J₂'Ẽ'` | `TidyR6aProp81Measure.mprop81_equiv`, `TidyR6aProp81Measure.mprop81`, `TidyR6aProp81Measure.mprop81_matrices` |
+| p. 553, with `condExp` | the representation from a deflating split is the only one iff its `Λ` is power-bounded | `TidyR6aProp81Measure.mprop81_unique_iff` |
+
+## Proposition 8.3 under the full Assumption 8.1 on a probability space (TidyR6aProp83Measure)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.3), (1.9), (1.15) (tools) | `T'WT = I`; the quadratic factor has no root on the circle | `TidyR6aProp83Measure.p83_TWT`, `TidyR6aProp83Measure.quad_ne_zero` |
+| (1.1) + (1.9) | the Euler pencil of `p83Problem` has no root on the unit circle | `TidyR6aProp83Measure.p83_noEulerRoot` |
+| Assumption 8.1, p. 541 | the corrected full Assumption 8.1 on every probability space; the form with a predetermined initial multiplier; the book's form at `t₀ = 0` when date-0 information is essentially bounded (`OptimalRulesMeasure.BddInfo`) | `TidyR6aProp83Measure.m_p83_assumption81MB`, `TidyR6aProp83Measure.m_p83_assumption81M`, `TidyR6aProp83Measure.m_p83_assumption81` |
+| Prop 8.1, (1.20), (1.22) | the natural representation `Λ = diag(4, 1)` with one zero of `α(L)` inside; a second one with a Jordan block | `TidyR6aProp83Measure.mp83Rep`, `TidyR6aProp83Measure.mp83Rep_Λ`, `TidyR6aProp83Measure.mp83Rep_zeros`, `TidyR6aProp83Measure.jordan_noRecSol`, `TidyR6aProp83Measure.mp83Rep'` |
+| Prop 8.3, pp. 556–557 | **the counterexample on every probability space and on the i.i.d. coin economy**: the full Assumption 8.1, Assumptions 8.3 and 8.7 (`m = 1`) hold, and `α(L) = (1 − L)²` has no zero inside | `TidyR6aProp83Measure.m_prop83_fails_on_circle`, `TidyR6aProp83Measure.m_prop83_fails_iid` |
+
+## Necessity of the generalised Taylor principle within the family (3.7), Ch. 4, fn 27 (TidyR6aTaylorNecessity)
+
+Determinacy here is Blanchard–Kahn determinacy of the pencil of (2.1), (3.1), (3.7) in
+`y = (π, x, i; i_{−1}, i_{−2}, x_{−1})`, with forcing allowed in every row.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (2.1), (3.1), (3.7), App. C.1 | the pencil and its rows; `det(λA₀ − A₁) = −λC(λ)`; its roots | `TidyR6aTaylorNecessity.e6`, `TidyR6aTaylorNecessity.A0g`, `TidyR6aTaylorNecessity.A1g`, `TidyR6aTaylorNecessity.pencil_rows`, `TidyR6aTaylorNecessity.charC`, `TidyR6aTaylorNecessity.charC_eval`, `TidyR6aTaylorNecessity.pencilPoly_eq`, `TidyR6aTaylorNecessity.roots_pencil` |
+| Ch. 4, fn 27 | `C(1) = −σκ(φπ + ρ₁ − 1)`; `C(−1)` | `TidyR6aTaylorNecessity.charC_one`, `TidyR6aTaylorNecessity.charC_neg_one` |
+| App. C.1, fn 27 (tools) | the parity argument: `p(1)p(−1) < 0` with no root on the circle forces an odd number of roots inside | `TidyR6aTaylorNecessity.parity_prod`, `TidyR6aTaylorNecessity.roots_conjClosed`, `TidyR6aTaylorNecessity.eval_one_mul_eval_neg_one`, `TidyR6aTaylorNecessity.odd_inside` |
+| fn 27, §3.1 | **the principle is necessary for determinacy when `φπ, φₓ ≥ 0` and `1 + ρ₁ + 2ρ₂ > 0`** (the book's signs) | `TidyR6aTaylorNecessity.gtp_necessary` |
+| fn 27, §3.1; Ch. 4, Prop 4.3 | **not necessary in general**: `ρ₁ = ρ₂ = φₓ = 0` with `φπ < −1 − 2(1 + β)/(σκ)` is determinate under every expectation system | `TidyR6aTaylorNecessity.quadQ`, `TidyR6aTaylorNecessity.charC_zero`, `TidyR6aTaylorNecessity.quadQ_root_gt`, `TidyR6aTaylorNecessity.roots_pencil_zero`, `TidyR6aTaylorNecessity.generic_zero`, `TidyR6aTaylorNecessity.gtp_not_necessary` |
+
+## Proposition 8.5 with random pre-sample values, §3.1, pp. 583–585 (TidyR6aRuleRandomHistory)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (2.1), (3.1), (3.7), p. 584 | lags, the rule and its equilibria with random pre-sample values; constant ones give `IRuleBasic.RuleEqm` | `TidyR6aRuleRandomHistory.lagR`, `TidyR6aRuleRandomHistory.lagR_const`, `TidyR6aRuleRandomHistory.RuleR`, `TidyR6aRuleRandomHistory.RuleEqmR`, `TidyR6aRuleRandomHistory.ruleEqmR_const`, `TidyR6aRuleRandomHistory.RuleHomR`, `TidyR6aRuleRandomHistory.HomR` |
+| Prop 8.5 (tools) | equilibria and homogeneous solutions add; scaled deterministic responses; zero history gives zero | `TidyR6aRuleRandomHistory.lagR_add`, `TidyR6aRuleRandomHistory.lagR_sub`, `TidyR6aRuleRandomHistory.eqm_add_hom`, `TidyR6aRuleRandomHistory.eqm_sub_eqm`, `TidyR6aRuleRandomHistory.E_scale`, `TidyR6aRuleRandomHistory.lagR_scale`, `TidyR6aRuleRandomHistory.hom_scale`, `TidyR6aRuleRandomHistory.hom_zero`, `TidyR6aRuleRandomHistory.exists_unit_response`, `TidyR6aRuleRandomHistory.bounded_scale` |
+| Prop 8.5, p. 584 | **determinacy for bounded pre-sample values known at date 0** | `TidyR6aRuleRandomHistory.rule_determinate_random` |
+| (3.3)–(3.5), pp. 584–585 | the first-order conditions and multipliers with random pre-sample values; the Lagrangian identity and sufficiency | `TidyR6aRuleRandomHistory.FOC3R`, `TidyR6aRuleRandomHistory.FOC4R`, `TidyR6aRuleRandomHistory.FOCR`, `TidyR6aRuleRandomHistory.lagrangian_identityR`, `TidyR6aRuleRandomHistory.plan_optimalR`, `TidyR6aRuleRandomHistory.mult1hR`, `TidyR6aRuleRandomHistory.mult2R`, `TidyR6aRuleRandomHistory.mult2hR`, `TidyR6aRuleRandomHistory.lag_mult1R`, `TidyR6aRuleRandomHistory.lag_mult2R`, `TidyR6aRuleRandomHistory.rule_iff_foc3R`, `TidyR6aRuleRandomHistory.foc4_multR`, `TidyR6aRuleRandomHistory.mult2R_adapted`, `TidyR6aRuleRandomHistory.mult_bounded` |
+| p. 585 | **the rule is optimal from a timeless perspective with random pre-sample values** (pull-out assumed) | `TidyR6aRuleRandomHistory.rule_eqm_optimal_random` |
+
+## Necessity of the first-order conditions on a probability space, §1.1, pp. 538–543 (TidyR6bFOCMeasure)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.10), fn 6, p. 540 (tools) | unconditional means of random vectors and their algebra; `∫ E_t x = ∫ x`; integrability from essential boundedness | `TidyR6bFOCMeasure.meanV`, `TidyR6bFOCMeasure.meanV_add`, `TidyR6bFOCMeasure.meanV_sub`, `TidyR6bFOCMeasure.meanV_mulVec`, `TidyR6bFOCMeasure.meanV_smul`, `TidyR6bFOCMeasure.meanV_congr`, `TidyR6bFOCMeasure.meanV_const`, `TidyR6bFOCMeasure.meanV_EVm`, `TidyR6bFOCMeasure.meanV_lin3`, `TidyR6bFOCMeasure.intV`, `TidyR6bFOCMeasure.aemeas_of_adapted`, `TidyR6bFOCMeasure.abs_meanV_le`, `TidyR6bFOCMeasure.intMulVec`, `TidyR6bFOCMeasure.EVm_add_known`, `TidyR6bFOCMeasure.foc_expr_eq`, `TidyR6bFOCMeasure.mul_of_cols'` |
+| pp. 541–542 | the weak system `MFOCSystemI` (`M_t` known at `t` for `t ≥ t₀`); the full `OptimalRulesMeasure.MFOCSystem` implies it | `TidyR6bFOCMeasure.MFOCSystemI`, `TidyR6bFOCMeasure.mFOCSystemI_of` |
+| (1.1), (1.9), (1.10), p. 542 | the mean paths solve the perfect-foresight system; deterministic responses to the initial multipliers on every probability space; the affine family | `TidyR6bFOCMeasure.mean_struct`, `TidyR6bFOCMeasure.mean_foc`, `TidyR6bFOCMeasure.exists_homResp_meas`, `TidyR6bFOCMeasure.m_combo` |
+| p. 541 | the Lagrangian identity with an initial term; sufficiency and strict convexity for the weak system | `TidyR6bFOCMeasure.m_lagrangian_gap_init`, `TidyR6bFOCMeasure.m_J_le_init`, `TidyR6bFOCMeasure.m_targets_eq_init`, `TidyR6bFOCMeasure.init_zero_of`, `TidyR6bFOCMeasure.init_zero_of_M`, `TidyR6bFOCMeasure.init_term_eq`, `TidyR6bFOCMeasure.m_optimalSubjectTo_of_I` |
+| (1.10), p. 542, p. 539 | the variational step a.s.; feasibility respects a.s. equality | `TidyR6bFOCMeasure.ae_orth_kernel`, `TidyR6bFOCMeasure.mFeasible_congr` |
+| p. 541 | **necessity of (1.1) + (1.9) on every filtered probability space**, with bounded `M_{t₀−1}` known at `t₀`; optimal subject to (1.6) ⟺ the first-order conditions | `TidyR6bFOCMeasure.m_foc_necessary`, `TidyR6bFOCMeasure.m_optimalSubjectTo_iff` |
+| p. 541 | the full `OptimalRulesMeasure.MFOCSystem` holds iff `M_{t₀−1}` has an `𝓕_{t₀−1}`-version; under `PredInfo`, the book's Assumption 8.1, and at `t₀ = 0` | `TidyR6bFOCMeasure.mFOCSystem_of_I`, `TidyR6bFOCMeasure.m_foc_necessary_pred`, `TidyR6bFOCMeasure.m_foc_necessary_book`, `TidyR6bFOCMeasure.m_foc_necessary_zero` |
+| p. 538, (1.8) | `t₀`-optimal ⟺ (1.1) + (1.9) with `M_{t₀−1} = 0` | `TidyR6bFOCMeasure.MT0Optimal`, `TidyR6bFOCMeasure.m_t0Optimal_of_foc`, `TidyR6bFOCMeasure.m_t0Optimal_foc_necessary`, `TidyR6bFOCMeasure.m_t0Optimal_iff` |
+| §§3.1–3.2, p. 541 | the equivalence with no hypothesis left for the basic and inflation-inertia models | `TidyR6bFOCMeasure.nk_m_optimalSubjectTo_iff`, `TidyR6bFOCMeasure.in_m_optimalSubjectTo_iff` |
+
+## The rule system of p. 593 on a probability space: existence for `λₓ > 0` (TidyR6bRuleSystemMeasure)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (1.1), (1.9), (3.3)–(3.5), pp. 584, 592 | the model rows with conditional expectations at `(t, ω)`; the disturbance vector | `TidyR6bRuleSystemMeasure.in_struct_atM`, `TidyR6bRuleSystemMeasure.in_foc_atM`, `TidyR6bRuleSystemMeasure.nk_struct_atM`, `TidyR6bRuleSystemMeasure.nk_foc_atM`, `TidyR6bRuleSystemMeasure.cNK_bddM`, `TidyR6bRuleSystemMeasure.cNK_adaptedM` |
+| (3.15), (3.4), (3.5) ⇒ (3.16), pp. 592–593 | the Euler equation (3.16) holds a.s. along the first-order conditions | `TidyR6bRuleSystemMeasure.E_aff22`, `TidyR6bRuleSystemMeasure.euler_alg`, `TidyR6bRuleSystemMeasure.eulerM_of_focs` |
+| (3.4)–(3.5), p. 593 | the pre-sample multipliers inferred from the history | `TidyR6bRuleSystemMeasure.X1of`, `TidyR6bRuleSystemMeasure.X2of`, `TidyR6bRuleSystemMeasure.M0of`, `TidyR6bRuleSystemMeasure.abs_lin3_le`, `TidyR6bRuleSystemMeasure.M0of_spec` |
+| p. 593 | **existence for `λₓ > 0`, every `0 ≤ γ ≤ 1`**, on every filtered probability space; determinacy for every `λₓ ≥ 0` | `TidyR6bRuleSystemMeasure.existsM_pos`, `TidyR6bRuleSystemMeasure.existsM_zero`, `TidyR6bRuleSystemMeasure.rule_system_existsM`, `TidyR6bRuleSystemMeasure.rule_system_existsUniqueM`, `TidyR6bRuleSystemMeasure.rule_system_existsUniqueM_nonneg` |
+| p. 593 | a solution exists iff the history is essentially bounded and known at the right dates | `TidyR6bRuleSystemMeasure.historyM_of_sol`, `TidyR6bRuleSystemMeasure.rule_system_existsM_iff` |
+
+## The limit `λ_i → 0` on a probability space with existence, p. 591 (TidyR6bLambdaILimitExists)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| §3.1, p. 593 (tools) | the filtration delayed by two dates; placing a §3.1 process in the rule system | `TidyR6bLambdaILimitExists.unshift2`, `TidyR6bLambdaILimitExists.unshift2_E`, `TidyR6bLambdaILimitExists.place`, `TidyR6bLambdaILimitExists.E_aff22'` |
+| Prop 8.5, p. 584 | equilibria under (3.7) are the `γ = 0` rule system on the delayed filtration; they exist and are a.s. unique on every probability space | `TidyR6bLambdaILimitExists.ruleSolM_of_eqm`, `TidyR6bLambdaILimitExists.rule_eqm_existsM`, `TidyR6bLambdaILimitExists.rule_eqm_uniqueM` |
+| (2.1), (2.5)–(2.8), p. 561 | the (2.5) solution exists and is a.s. unique on every probability space | `TidyR6bLambdaILimitExists.mu25`, `TidyR6bLambdaILimitExists.z25`, `TidyR6bLambdaILimitExists.x25`, `TidyR6bLambdaILimitExists.pi25`, `TidyR6bLambdaILimitExists.x25_eq`, `TidyR6bLambdaILimitExists.mu25_facts`, `TidyR6bLambdaILimitExists.crit25_existsM`, `TidyR6bLambdaILimitExists.crit25_uniqueM` |
+| p. 591 | **the paths converge a.s. as `λ_i → 0`, with no existence hypothesis** | `TidyR6bLambdaILimitExists.paths_convergeM_exists` |
+
+## Rule III on VAR economies, (3.24), p. 595 (TidyR6bRuleIIIVar)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (3.24), Prop 8.2, pp. 538–539, 555 | on every VAR economy Rule III's criterion determines an a.s. unique bounded plan, optimal from a timeless perspective: for any quasi-split with `FactsQ`, at every `0 < γ ≤ 1`, and with both packagings from one `Λ'` | `TidyR6bRuleIIIVar.QuasiCase.m_prop82_IIIQ_var`, `TidyR6bRuleIIIVar.AllCases.m_prop82_III_all_var`, `TidyR6bRuleIIIVar.AllCases.m_prop82_III_all_both` |
+
+## The (2.20) region on a probability space: general initial values and uniqueness, §2.2, pp. 565–567 (TidyR6bStickyGeneral)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (2.20) | the cubic equation and the first-order conditions for general essentially bounded `𝓕₀`-measurable initial values; the initial values are affine | `TidyR6bStickyGeneral.cubicR_existsG`, `TidyR6bStickyGeneral.cubic_imp_focMG`, `TidyR6bStickyGeneral.affine3`, `TidyR6bStickyGeneral.initS1_eq`, `TidyR6bStickyGeneral.initS2_eq` |
+| (2.11)–(2.20), `κ_w ≠ κ_p` | existence under `StableRoots` for general initial values | `TidyR6bStickyGeneral.exists_meas_of_stableRootsG` |
+| (2.11)–(2.20), p. 540 | **a.s. uniqueness** by forecast transfer to the perfect-foresight problem with zero data | `TidyR6bStickyGeneral.fc_lin`, `TidyR6bStickyGeneral.P0`, `TidyR6bStickyGeneral.pf_zero`, `TidyR6bStickyGeneral.sub_spec`, `TidyR6bStickyGeneral.lagW_sub`, `TidyR6bStickyGeneral.uniqueM` |
+| (2.20), `κ_w ≠ κ_p` | existence and a.s. uniqueness for all data ⟺ `StableRoots`, on every filtered probability space | `TidyR6bStickyGeneral.existsUniqueM_of_stableRoots`, `TidyR6bStickyGeneral.existsUniqueM_iff_stableRoots` |
 
 ## §2.1 A model with inflation inertia, pp. 560–565 (InflTargetInertia)
 

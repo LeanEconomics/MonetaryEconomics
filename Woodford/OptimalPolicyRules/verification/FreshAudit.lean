@@ -80204,6 +80204,10270 @@ theorem exists_meas_iff_stableRoots {P : SW} (hβ0 : 0 < P.beta) (hβ1 : P.beta 
 
 end Woodford.OptimalPolicyRules.TidyR5bStickyExists
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The general Blanchard–Kahn theorem
+
+Restated from the Cochrane KeynesianStickyPrices project (module TidyR5GeneralBK, itself
+restated from the Woodford Chapter 4 project, NeoWicksellianFramework.GeneralBK) with the
+namespaces renamed, for the stacked first-order system (1.1) + (1.9) of Chapter 8 (module
+TidyR6aStackedBK).
+
+Woodford (2003), *Interest and Prices*, Appendix C.1, p. 670 (Props. C.1, C.2 and footnotes
+1–2), which *assumes* the counting rule of Blanchard and Kahn (1980). This module proves the
+general rule, for any number of predetermined and non-predetermined variables and any
+`ExpectationSystem` (perfect foresight and genuine uncertainty alike), with existence and
+uniqueness among bounded adapted processes.
+
+## Setting
+
+The state is `y_t = (z_t, x_t)` with index type `Z ⊕ X`: `z_t` non-predetermined, `x_t`
+predetermined. `E_t y_{t+1} = A y_t + w_t` (`Solves`) for a real matrix `A`; an equilibrium
+(`Equil`) is a bounded adapted solution whose predetermined block `x_{t+1}` is known at date `t`
+and starts at the given `x_0`. `Determinate`: for every bounded adapted forcing `w` and every
+`x_0` there is exactly one equilibrium.
+
+## Main results
+
+* `determinate_of` (**sufficiency**, any `ExpectationSystem`): no eigenvalue of `A` on the unit
+  circle (`NoUnit`), the bounded-orbit (stable) subspace of dimension `|X|`, and genericity
+  (`GenericX`: the stable subspace meets `{x = 0}` only in `0`) imply determinacy. Proof: the
+  stable subspace is the graph of `G` (`BKInvariantSplit.exists_graph`);
+  `ẑ_t = z_t − G x_t` solves
+  `E_t ẑ_{t+1} = C ẑ_t + ŵ_t` with all eigenvalues of `C` outside the closed disc, so it is the
+  forward solution through `C⁻¹`; then `x_{t+1} = Λ x_t + A_xz ẑ_t + w^x_t` with `Λ` stable is
+  solved backward from `x_0`.
+* Necessity, for every `ExpectationSystem` on a nonempty state space, failure by failure:
+  - an eigenvalue on the unit circle gives **non-existence** by resonance: a bounded
+    deterministic forcing `w_t = Re(μ^{t+1} b)` admits no bounded solution at all
+    (`nonexist_of_unit`);
+  - a failure of genericity gives **non-uniqueness**: next to every equilibrium there is another
+    one, obtained by adding a bounded orbit with `x_0 = 0` (`mult_of_not_genericX`); this
+    covers a stable subspace of dimension larger than `|X|`
+    (`BKInvariantSplit.not_genericX_of_lt`);
+  - a stable subspace of dimension smaller than `|X|` gives **non-existence** for some `x_0`
+    already with `w = 0` (`nonexist_of_lt`).
+* `determinate_iff` (**the Blanchard–Kahn theorem**): `Determinate ↔ NoUnit ∧ dim = |X| ∧ GenericX`;
+  `determinate_iff_count`: the same with the dimension replaced by the number of eigenvalues in
+  the open unit disc counted with algebraic multiplicity (`stableCount A = |X|`);
+  `determinate_iff_unstableCount`: equivalently `|Z|` eigenvalues outside the closed disc.
+* `determinate_iff_perfectForesight`: determinacy does not depend on the expectation system.
+* `mem_boundedOrbits_iff_tendsto_of_noUnit`: with no eigenvalue on the unit circle the
+  bounded-orbit subspace is the stable invariant subspace `{v : Aᵗ v → 0}`, and its dimension is
+  the number of stable eigenvalues (`BKInvariantSplit.finrank_eq_stableCount`), so (ii) can
+  be read
+  either way.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aGeneralBK
+
+open Filter Topology BKInvariantSplit BKForward
+open scoped Matrix
+
+/-! ### Small tools -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a complexified real vector under a complexified
+real matrix. -/
+theorem map_ofReal_mulVec {m n : Type*} [Fintype n] (K : Matrix m n ℝ) (v : n → ℝ) :
+    K.map Complex.ofReal *ᵥ (fun i => (v i : ℂ)) = fun i => ((K *ᵥ v) i : ℂ) := by
+  funext i
+  simp [Matrix.mulVec, dotProduct, Complex.ofReal_sum]
+
+variable {κ : Type*} [Fintype κ] [DecidableEq κ]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a matrix with all eigenvalues outside the closed
+unit disc is invertible. -/
+theorem det_ne_zero_of_unstable {K : Matrix κ κ ℝ} (h : ∀ μ ∈ eigs K, 1 < ‖μ‖) : K.det ≠ 0 := by
+  intro hd
+  obtain ⟨v, hv0, hv⟩ := Matrix.exists_mulVec_eq_zero_iff.mpr hd
+  have h0 : (0 : ℂ) ∈ eigs K := by
+    refine mem_eigs_of_eigvec (c := fun i => (v i : ℂ)) ?_ ?_
+    · intro hc
+      apply hv0
+      funext i
+      have := congrFun hc i
+      simpa using this
+    · rw [map_ofReal_mulVec, hv]
+      funext i
+      simp
+  have := h 0 h0
+  norm_num at this
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): if every eigenvalue of `K` lies outside the closed
+unit disc, every eigenvalue of `K⁻¹` lies in the open disc. -/
+theorem inv_stable {K : Matrix κ κ ℝ} (h : ∀ μ ∈ eigs K, 1 < ‖μ‖) : ∀ μ ∈ eigs K⁻¹, ‖μ‖ < 1 := by
+  have hdet := det_ne_zero_of_unstable h
+  have hKK : K * K⁻¹ = 1 := Matrix.mul_nonsing_inv K (isUnit_iff_ne_zero.mpr hdet)
+  intro μ hμ
+  obtain ⟨c, hc0, hc⟩ := exists_eigvec hμ
+  have hmap : K.map Complex.ofReal * K⁻¹.map Complex.ofReal = 1 := by
+    have e : (K * K⁻¹).map Complex.ofReal = K.map Complex.ofReal * K⁻¹.map Complex.ofReal :=
+      Matrix.map_mul (f := Complex.ofRealHom)
+    rw [← e, hKK]
+    exact Matrix.map_one _ (by simp) (by simp)
+  have hc' : μ • (K.map Complex.ofReal *ᵥ c) = c := by
+    calc μ • (K.map Complex.ofReal *ᵥ c) = K.map Complex.ofReal *ᵥ (μ • c) :=
+          (Matrix.mulVec_smul _ _ _).symm
+      _ = (K.map Complex.ofReal * K⁻¹.map Complex.ofReal) *ᵥ c := by
+          rw [← hc, Matrix.mulVec_mulVec]
+      _ = c := by rw [hmap, Matrix.one_mulVec]
+  have hμ0 : μ ≠ 0 := by
+    intro h0
+    apply hc0
+    rw [← hc', h0, zero_smul]
+  have hev : K.map Complex.ofReal *ᵥ c = μ⁻¹ • c := (eq_inv_smul_iff₀ hμ0).mpr hc'
+  have h1 := h μ⁻¹ (mem_eigs_of_eigvec hc0 hev)
+  rw [norm_inv] at h1
+  exact (one_lt_inv₀ (norm_pos_iff.mpr hμ0)).mp h1
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): sums of bounded vector processes are bounded. -/
+theorem boundedV_add {a b : ℕ → κ → Ω → ℝ} (ha : BoundedV a) (hb : BoundedV b) :
+    BoundedV (fun t => a t + b t) := by
+  obtain ⟨A, hA⟩ := ha
+  obtain ⟨B, hB⟩ := hb
+  exact ⟨A + B, fun t i ω => (abs_add_le _ _).trans (add_le_add (hA t i ω) (hB t i ω))⟩
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): differences of bounded vector processes are
+bounded. -/
+theorem boundedV_sub {a b : ℕ → κ → Ω → ℝ} (ha : BoundedV a) (hb : BoundedV b) :
+    BoundedV (fun t => a t - b t) := by
+  obtain ⟨A, hA⟩ := ha
+  obtain ⟨B, hB⟩ := hb
+  exact ⟨A + B, fun t i ω => (abs_sub _ _).trans (add_le_add (hA t i ω) (hB t i ω))⟩
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): negatives of bounded vector processes are
+bounded. -/
+theorem boundedV_neg {a : ℕ → κ → Ω → ℝ} (ha : BoundedV a) : BoundedV (fun t => -a t) := by
+  obtain ⟨A, hA⟩ := ha
+  exact ⟨A, fun t i ω => by simpa using hA t i ω⟩
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): sums of adapted vector processes are adapted. -/
+theorem adaptedV_add {a b : ℕ → κ → Ω → ℝ} (ha : AdaptedV 𝔼 a) (hb : AdaptedV 𝔼 b) :
+    AdaptedV 𝔼 (fun t => a t + b t) := fun t i => by
+  simp only [Pi.add_apply, map_add, ha t i, hb t i]
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): differences of adapted vector processes are
+adapted. -/
+theorem adaptedV_sub {a b : ℕ → κ → Ω → ℝ} (ha : AdaptedV 𝔼 a) (hb : AdaptedV 𝔼 b) :
+    AdaptedV 𝔼 (fun t => a t - b t) := fun t i => by
+  simp only [Pi.sub_apply, map_sub, ha t i, hb t i]
+
+omit [Fintype κ] [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): negatives of adapted vector processes are
+adapted. -/
+theorem adaptedV_neg {a : ℕ → κ → Ω → ℝ} (ha : AdaptedV 𝔼 a) : AdaptedV 𝔼 (fun t => -a t) :=
+  fun t i => by simp only [Pi.neg_apply, map_neg, ha t i]
+
+/-! ### The system -/
+
+/-- Woodford (2003), (C.19) and App. C.1, p. 670: `y` solves `E_t y_{t+1} = A y_t + w_t`. -/
+def Solves {ι : Type*} [Fintype ι] (A : Matrix ι ι ℝ) (w y : ℕ → ι → Ω → ℝ) : Prop :=
+  ∀ t i, 𝔼.E t (y (t + 1) i) = mv A (y t) i + w t i
+
+variable {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X]
+
+/-- Woodford (2003), App. C.1, pp. 670–672 (Blanchard and Kahn 1980): a (bounded) rational
+expectations equilibrium of `E_t y_{t+1} = A y_t + w_t` with state `y = (z, x)`: `y` solves the
+system, is adapted and bounded, the predetermined block `x_{t+1}` is known at date `t`, and
+`x_0` is the given vector. -/
+def Equil (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (w : ℕ → Z ⊕ X → Ω → ℝ) (x0 : X → ℝ)
+    (y : ℕ → Z ⊕ X → Ω → ℝ) : Prop :=
+  Solves 𝔼 A w y ∧ AdaptedV 𝔼 y ∧
+    (∀ t j, 𝔼.E t (y (t + 1) (Sum.inr j)) = y (t + 1) (Sum.inr j)) ∧
+    (∀ j, y 0 (Sum.inr j) = fun _ => x0 j) ∧ BoundedV y
+
+/-- Woodford (2003), App. C.1, p. 670 (determinacy, Blanchard and Kahn 1980): for every bounded
+adapted forcing and every initial value of the predetermined variables there is exactly one
+bounded equilibrium. -/
+def Determinate (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) : Prop :=
+  ∀ w : ℕ → Z ⊕ X → Ω → ℝ, BoundedV w → AdaptedV 𝔼 w → ∀ x0 : X → ℝ, ∃! y, Equil 𝔼 A w x0 y
+
+omit [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): a random state vector at a fixed outcome, split
+into its blocks. -/
+theorem eval_split (y : Z ⊕ X → Ω → ℝ) (ω : Ω) :
+    (fun k => y k ω) = Sum.elim (fun i => y (Sum.inl i) ω) (fun j => y (Sum.inr j) ω) := by
+  funext k
+  rcases k with i | j <;> rfl
+
+/-! ### Identities behind the change of variables `ẑ = z − G x` -/
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): the rows of `A y` for the non-predetermined block,
+`(A y)_z = A_zz z + A_zx x`. -/
+theorem mv_inl (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (y : Z ⊕ X → Ω → ℝ) :
+    (fun i => mv A y (Sum.inl i)) =
+      mv A.toBlocks₁₁ (fun i => y (Sum.inl i)) + mv A.toBlocks₁₂ (fun j => y (Sum.inr j)) := by
+  funext i
+  simp only [mv, Fintype.sum_sum_type, Pi.add_apply]
+  rfl
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): the rows of `A y` for the predetermined block,
+`(A y)_x = A_xz z + A_xx x`. -/
+theorem mv_inr (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (y : Z ⊕ X → Ω → ℝ) :
+    (fun j => mv A y (Sum.inr j)) =
+      mv A.toBlocks₂₁ (fun i => y (Sum.inl i)) + mv A.toBlocks₂₂ (fun j => y (Sum.inr j)) := by
+  funext j
+  simp only [mv, Fintype.sum_sum_type, Pi.add_apply]
+  rfl
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (tool): the invariance of the graph solved for `A_zx`:
+`A_zx = G A_xz G + G A_xx − A_zz G`. -/
+theorem zx_block_eq {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) :
+    A.toBlocks₁₂ = G * A.toBlocks₂₁ * G + G * A.toBlocks₂₂ - A.toBlocks₁₁ * G := by
+  rw [eq_sub_iff_add_eq, add_comm, hinv, lam, Matrix.mul_add, Matrix.mul_assoc]
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (uniqueness step): for random `(z, x)`,
+`A_zz z + A_zx x + w^z − G (A_xz z + A_xx x + w^x) = C (z − G x) + (w^z − G w^x)`. -/
+theorem identity_zhat {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) (z wz : Z → Ω → ℝ)
+    (x wx : X → Ω → ℝ) :
+    mv A.toBlocks₁₁ z + mv A.toBlocks₁₂ x + wz -
+        mv G (mv A.toBlocks₂₁ z + mv A.toBlocks₂₂ x + wx) =
+      mv (cmat A G) (z - mv G x) + (wz - mv G wx) := by
+  rw [zx_block_eq hinv, cmat]
+  simp only [add_mv, sub_mv, mv_add, mv_sub, ← mv_mv]
+  abel
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (the predetermined block):
+`A_xz z + A_xx x = A_xz (z − G x) + Λ x`. -/
+theorem identity_x (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) (z : Z → Ω → ℝ)
+    (x : X → Ω → ℝ) :
+    mv A.toBlocks₂₁ z + mv A.toBlocks₂₂ x = mv A.toBlocks₂₁ (z - mv G x) + mv (lam A G) x := by
+  rw [lam]
+  simp only [add_mv, mv_sub, ← mv_mv]
+  abel
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (existence step): with `z = ẑ + G x`,
+`C ẑ + (w^z − G w^x) + G (Λ x + (A_xz ẑ + w^x)) = A_zz z + A_zx x + w^z`. -/
+theorem identity_exist {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {G : Matrix Z X ℝ}
+    (hinv : A.toBlocks₁₁ * G + A.toBlocks₁₂ = G * lam A G) (a wz : Z → Ω → ℝ)
+    (b c : X → Ω → ℝ) :
+    mv (cmat A G) a + (wz - mv G c) + mv G (mv (lam A G) b + (mv A.toBlocks₂₁ a + c)) =
+      mv A.toBlocks₁₁ (a + mv G b) + mv A.toBlocks₁₂ b + wz := by
+  rw [zx_block_eq hinv, cmat, lam]
+  simp only [add_mv, sub_mv, mv_add, ← mv_mv]
+  abel_nf
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672 (existence step, predetermined block):
+`Λ x + (A_xz ẑ + w^x) = A_xz (ẑ + G x) + A_xx x + w^x`. -/
+theorem identity_exist_x (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (G : Matrix Z X ℝ) (a : Z → Ω → ℝ)
+    (b c : X → Ω → ℝ) :
+    mv (lam A G) b + (mv A.toBlocks₂₁ a + c) =
+      mv A.toBlocks₂₁ (a + mv G b) + mv A.toBlocks₂₂ b + c := by
+  rw [lam]
+  simp only [add_mv, mv_add, ← mv_mv]
+  abel
+
+/-! ### The backward recursion for the predetermined block -/
+
+/-- Woodford (2003), App. C.1, p. 672: the predetermined block `x_{t+1} = Λ x_t + g_t`,
+`x_0` given, as a process of random variables. -/
+def xrecR (L : Matrix X X ℝ) (g : ℕ → X → Ω → ℝ) (x0 : X → ℝ) : ℕ → X → Ω → ℝ
+  | 0 => fun j _ => x0 j
+  | t + 1 => mv L (xrecR L g x0 t) + g t
+
+omit [DecidableEq Z] in
+/-- Woodford (2003), App. C.1, p. 672: the backward recursion is bounded when `Λ` is stable and
+`g` is bounded. -/
+theorem xrecR_bounded {L : Matrix X X ℝ} (hL : ∀ μ ∈ eigs L, ‖μ‖ < 1) {g : ℕ → X → Ω → ℝ}
+    (hg : BoundedV g) (x0 : X → ℝ) : BoundedV (xrecR L g x0) := by
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hLp⟩ := pow_entry_bound L hL
+  obtain ⟨F, hF⟩ := hg
+  refine ⟨Fintype.card X * Cb * (∑ j, |x0 j| + max F 0 / (1 - ρ)), fun t j ω => ?_⟩
+  have hrec : ∀ t, (fun j => xrecR L g x0 (t + 1) j ω) =
+      L *ᵥ (fun j => xrecR L g x0 t j ω) + fun j => g t j ω := by
+    intro t
+    funext j
+    simp only [xrecR, Pi.add_apply, mv_apply]
+  exact rec_bounded (x := fun t j => xrecR L g x0 t j ω) (f := fun t j => g t j ω) hCb hρ0.le
+    hρ1 hLp hrec (le_max_right _ _) (Finset.sum_nonneg fun _ _ => abs_nonneg _)
+    (fun t j => (hF t j ω).trans (le_max_left _ _))
+    (fun j => Finset.single_le_sum (f := fun j => |x0 j|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ j)) t j
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 672: the backward recursion is known one period ahead:
+`x_t` is known at `t` and so is `x_{t+1}` (when `g` is adapted). -/
+theorem xrecR_known {L : Matrix X X ℝ} {g : ℕ → X → Ω → ℝ} (hg : AdaptedV 𝔼 g) (x0 : X → ℝ) :
+    ∀ t j, 𝔼.E t (xrecR L g x0 t j) = xrecR L g x0 t j ∧
+      𝔼.E t (xrecR L g x0 (t + 1) j) = xrecR L g x0 (t + 1) j := by
+  have hnext : ∀ t, (∀ j, 𝔼.E t (xrecR L g x0 t j) = xrecR L g x0 t j) →
+      ∀ j, 𝔼.E t (xrecR L g x0 (t + 1) j) = xrecR L g x0 (t + 1) j := by
+    intro t ht j
+    simp only [xrecR, Pi.add_apply, map_add, E_mv 𝔼, hg t j]
+    congr 2
+    funext k
+    exact ht k
+  have hcur : ∀ t j, 𝔼.E t (xrecR L g x0 t j) = xrecR L g x0 t j := by
+    intro t
+    induction t with
+    | zero => intro j; exact 𝔼.const 0 (x0 j)
+    | succ t ih =>
+      intro j
+      rw [← hnext t ih j, 𝔼.known (Nat.le_succ t)]
+  exact fun t j => ⟨hcur t j, hnext t (hcur t) j⟩
+
+/-! ### Sufficiency -/
+
+/-- Woodford (2003), App. C.1, p. 672 (tool): with `K C = C K = 1`, the forward form
+`ẑ_t = K E_t ẑ_{t+1} − K ŵ_t` is the system `E_t ẑ_{t+1} = C ẑ_t + ŵ_t`. -/
+theorem fsolves_iff_cform {C K : Matrix Z Z ℝ} (hKC : K * C = 1) (hCK : C * K = 1)
+    (wh zh : ℕ → Z → Ω → ℝ) :
+    FSolves 𝔼 K (fun t => -mv K (wh t)) zh ↔
+      ∀ t, (fun i => 𝔼.E t (zh (t + 1) i)) = mv C (zh t) + wh t := by
+  constructor
+  · intro h t
+    have e := congrArg (mv C) (h t)
+    rw [mv_add, mv_neg, mv_mv, mv_mv, hCK, mv_one, mv_one] at e
+    rw [e]
+    abel
+  · intro h t
+    simp only [h t, mv_add, mv_mv, hKC, mv_one, add_neg_cancel_right]
+
+/-- **Blanchard–Kahn, sufficiency** (Woodford (2003), App. C.1, p. 670; Blanchard and Kahn 1980):
+for any expectation system, if no eigenvalue of `A` lies on the unit circle, the stable
+(bounded-orbit) subspace has dimension equal to the number of predetermined variables, and it
+meets `{x = 0}` only in `0`, then for every bounded adapted forcing and every `x_0` there is
+exactly one bounded equilibrium. -/
+theorem determinate_of {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (hnu : NoUnit A)
+    (hd : Module.finrank ℝ (boundedOrbits A) = Fintype.card X) (hg : GenericX A) :
+    Determinate 𝔼 A := by
+  obtain ⟨G, hG⟩ := exists_graph hd hg
+  have hinv := graph_invariant hG
+  have hΛ := lam_stable hG hnu
+  have hC := cmat_unstable hG hg hΛ
+  have hdet : IsUnit (cmat A G).det := isUnit_iff_ne_zero.mpr (det_ne_zero_of_unstable hC)
+  have hKC : (cmat A G)⁻¹ * cmat A G = 1 := Matrix.nonsing_inv_mul _ hdet
+  have hCK : cmat A G * (cmat A G)⁻¹ = 1 := Matrix.mul_nonsing_inv _ hdet
+  obtain ⟨CbK, ρK, -, hρK0, hρK1, hKpow⟩ := pow_entry_bound _ (inv_stable hC)
+  intro w hwb hwa x0
+  set wz : ℕ → Z → Ω → ℝ := fun t i => w t (Sum.inl i) with hwz
+  set wx : ℕ → X → Ω → ℝ := fun t j => w t (Sum.inr j) with hwx
+  have hwzb : BoundedV wz := by
+    obtain ⟨M, hM⟩ := hwb; exact ⟨M, fun t i ω => hM t _ ω⟩
+  have hwxb : BoundedV wx := by
+    obtain ⟨M, hM⟩ := hwb; exact ⟨M, fun t j ω => hM t _ ω⟩
+  have hwzA : AdaptedV 𝔼 wz := fun t i => hwa t (Sum.inl i)
+  have hwxA : AdaptedV 𝔼 wx := fun t j => hwa t (Sum.inr j)
+  set wh : ℕ → Z → Ω → ℝ := fun t => wz t - mv G (wx t) with hwh
+  have hwhb : BoundedV wh := boundedV_sub hwzb (boundedV_mv G hwxb)
+  have hwhA : AdaptedV 𝔼 wh := adaptedV_sub 𝔼 hwzA (adaptedV_mv 𝔼 G hwxA)
+  have hfb : BoundedV (fun t => -mv (cmat A G)⁻¹ (wh t)) :=
+    boundedV_neg (boundedV_mv _ hwhb)
+  have hfA : AdaptedV 𝔼 (fun t => -mv (cmat A G)⁻¹ (wh t)) :=
+    adaptedV_neg 𝔼 (adaptedV_mv 𝔼 _ hwhA)
+  obtain ⟨Mf, hMf⟩ := hfb
+  obtain ⟨zh, hzh, hzhA, hzhb⟩ := fsolves_exists 𝔼 hρK0.le hρK1 hKpow hMf hfA
+  have hzhE := (fsolves_iff_cform 𝔼 hKC hCK wh zh).mp hzh
+  set g : ℕ → X → Ω → ℝ := fun t => mv A.toBlocks₂₁ (zh t) + wx t with hgdef
+  have hgA : AdaptedV 𝔼 g := adaptedV_add 𝔼 (adaptedV_mv 𝔼 _ hzhA) hwxA
+  have hgb : BoundedV g := boundedV_add (boundedV_mv _ hzhb) hwxb
+  set xr := xrecR (lam A G) g x0 with hxr
+  have hxrb : BoundedV xr := xrecR_bounded hΛ hgb x0
+  have hxrK := xrecR_known 𝔼 (L := lam A G) hgA x0
+  have hxr1 : ∀ t, xr (t + 1) = mv (lam A G) (xr t) + g t := fun t => rfl
+  set y : ℕ → Z ⊕ X → Ω → ℝ := fun t => Sum.elim (zh t + mv G (xr t)) (xr t) with hy
+  have hyz : ∀ t, (fun i => y t (Sum.inl i)) = zh t + mv G (xr t) := fun t => rfl
+  have hyx : ∀ t, (fun j => y t (Sum.inr j)) = xr t := fun t => rfl
+  -- every equilibrium is `y`
+  have huniq : ∀ y', Equil 𝔼 A w x0 y' → y' = y := by
+    rintro y' ⟨hs, ha, hk, h0, hb⟩
+    set zh' : ℕ → Z → Ω → ℝ :=
+      fun t => (fun i => y' t (Sum.inl i)) - mv G (fun j => y' t (Sum.inr j)) with hzh'
+    have hzh'A : AdaptedV 𝔼 zh' :=
+      adaptedV_sub 𝔼 (fun t i => ha t (Sum.inl i))
+        (adaptedV_mv 𝔼 G (fun t j => ha t (Sum.inr j)))
+    have hb1 : BoundedV (fun t i => y' t (Sum.inl i)) := by
+      obtain ⟨M, hM⟩ := hb; exact ⟨M, fun t i ω => hM t _ ω⟩
+    have hb2 : BoundedV (fun t j => y' t (Sum.inr j)) := by
+      obtain ⟨M, hM⟩ := hb; exact ⟨M, fun t j ω => hM t _ ω⟩
+    have hzh'b : BoundedV zh' := boundedV_sub hb1 (boundedV_mv G hb2)
+    have hEz : ∀ t, (fun i => 𝔼.E t (y' (t + 1) (Sum.inl i))) =
+        (fun i => mv A (y' t) (Sum.inl i)) + wz t := fun t => by
+      funext i; rw [hs t]; rfl
+    have hEx : ∀ t, (fun j => 𝔼.E t (y' (t + 1) (Sum.inr j))) =
+        (fun j => mv A (y' t) (Sum.inr j)) + wx t := fun t => by
+      funext j; rw [hs t]; rfl
+    have hcf : ∀ t, (fun i => 𝔼.E t (zh' (t + 1) i)) = mv (cmat A G) (zh' t) + wh t := by
+      intro t
+      have hE : (fun i => 𝔼.E t (zh' (t + 1) i)) =
+          (fun i => 𝔼.E t (y' (t + 1) (Sum.inl i))) -
+            mv G (fun j => 𝔼.E t (y' (t + 1) (Sum.inr j))) := by
+        funext i
+        simp only [hzh', Pi.sub_apply, map_sub, E_mv 𝔼]
+      rw [hE, hEz, hEx, mv_inl, mv_inr, identity_zhat hinv]
+    have hzz : zh' = zh :=
+      fsolves_unique 𝔼 hρK0.le hρK1 hKpow ((fsolves_iff_cform 𝔼 hKC hCK wh zh').mpr hcf) hzh
+        hzh'A hzhA hzh'b ⟨_, hzhb.choose_spec⟩
+    have hxx : ∀ t, (fun j => y' t (Sum.inr j)) = xr t := by
+      intro t
+      induction t with
+      | zero => funext j; exact h0 j
+      | succ t ih =>
+        have e1 : (fun j => y' (t + 1) (Sum.inr j)) =
+            (fun j => 𝔼.E t (y' (t + 1) (Sum.inr j))) := by
+          funext j; exact (hk t j).symm
+        have hz't : (fun i => y' t (Sum.inl i)) - mv G (fun j => y' t (Sum.inr j)) = zh' t := rfl
+        rw [e1, hEx, mv_inr, identity_x A G, hz't, hzz, ih, hxr1]
+        simp only [hgdef]
+        abel
+    funext t k
+    rcases k with i | j
+    · have e := congrFun (congrArg (fun f => f t) hzz) i
+      simp only [hzh', Pi.sub_apply, hxx t] at e
+      have e2 : y' t (Sum.inl i) = zh t i + mv G (xr t) i := by
+        rw [← e]; abel
+      rw [e2]
+      rfl
+    · exact congrFun (hxx t) j
+  refine ⟨y, ⟨?_, ?_, ?_, ?_, ?_⟩, huniq⟩
+  · -- the system
+    intro t k
+    rcases k with i | j
+    · have hv : (fun i => 𝔼.E t (y (t + 1) (Sum.inl i))) =
+          (fun i => mv A (y t) (Sum.inl i)) + wz t := by
+        have e1 : (fun i => 𝔼.E t (y (t + 1) (Sum.inl i))) =
+            (fun i => 𝔼.E t (zh (t + 1) i)) + mv G (fun j => 𝔼.E t (xr (t + 1) j)) := by
+          funext i
+          simp only [hy, Sum.elim_inl, Pi.add_apply, map_add, E_mv 𝔼]
+        have e2 : (fun j => 𝔼.E t (xr (t + 1) j)) = xr (t + 1) := by
+          funext j; exact (hxrK t j).2
+        rw [e1, e2, hzhE t, hxr1, mv_inl, hyz, hyx, hwh, hgdef]
+        exact identity_exist hinv _ _ _ _
+      exact congrFun hv i
+    · have hv : (fun j => 𝔼.E t (y (t + 1) (Sum.inr j))) =
+          (fun j => mv A (y t) (Sum.inr j)) + wx t := by
+        have e1 : (fun j => 𝔼.E t (y (t + 1) (Sum.inr j))) = xr (t + 1) := by
+          funext j; exact (hxrK t j).2
+        rw [e1, hxr1, mv_inr, hyz, hyx, hgdef]
+        exact identity_exist_x A G _ _ _
+      exact congrFun hv j
+  · -- adapted
+    intro t k
+    rcases k with i | j
+    · simp only [hy, Sum.elim_inl, Pi.add_apply, map_add, E_mv 𝔼, hzhA t i]
+      congr 2
+      funext j
+      exact (hxrK t j).1
+    · exact (hxrK t j).1
+  · -- the predetermined block is known one period ahead
+    intro t j
+    exact (hxrK t j).2
+  · -- the initial condition
+    intro j
+    rfl
+  · -- boundedness
+    obtain ⟨Mz, hMz⟩ := hzhb
+    obtain ⟨Mx, hMx⟩ := hxrb
+    obtain ⟨Mg, hMg⟩ := boundedV_mv G ⟨Mx, hMx⟩
+    refine ⟨max (Mz + Mg) Mx, fun t k ω => ?_⟩
+    rcases k with i | j
+    · change |zh t i ω + mv G (xr t) i ω| ≤ _
+      exact ((abs_add_le _ _).trans (add_le_add (hMz t i ω) (hMg t i ω))).trans
+        (le_max_left _ _)
+    · exact (hMx t j ω).trans (le_max_right _ _)
+
+/-! ### Necessity (i): an eigenvalue on the unit circle gives non-existence by resonance -/
+
+open ComplexConjugate
+
+omit [DecidableEq κ] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): for a left eigenvector `q A = μ q`,
+`q · (A e) = μ (q · e)`. -/
+theorem sum_q_mulVec {A : Matrix κ κ ℝ} {μ : ℂ} {q : κ → ℂ}
+    (hq : q ᵥ* A.map Complex.ofReal = μ • q) (e : κ → ℝ) :
+    ∑ i, q i * ((A *ᵥ e) i : ℂ) = μ * ∑ j, q j * (e j : ℂ) := by
+  have hcol : ∀ j, ∑ i, q i * (A i j : ℂ) = μ * q j := fun j => by
+    have := congrFun hq j
+    simpa [Matrix.vecMul, dotProduct] using this
+  simp only [Matrix.mulVec, dotProduct, Complex.ofReal_sum, Complex.ofReal_mul, Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  simp_rw [← mul_assoc]
+  rw [← Finset.sum_mul, hcol j, mul_assoc]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a linear lower bound `a + T c − K` with `c > 0`
+cannot stay below a constant. -/
+theorem false_of_linear_growth {a c K Q : ℝ} (hc : 0 < c) (h : ∀ T : ℕ, a + T * c - K ≤ Q) :
+    False := by
+  obtain ⟨T, hT⟩ := exists_nat_gt ((Q + K - a) / c)
+  have := h T
+  rw [div_lt_iff₀ hc] at hT
+  linarith
+
+omit [DecidableEq κ] in
+/-- **Resonance** (Woodford (2003), App. C.1, p. 670, fn. 1: the boundary case): let `‖μ‖ = 1`
+and `q A = μ q`, `q ≠ 0` (with `q` real when `μ = ±1`). Then the deterministic system
+`e_{t+1} = A e_t + w_t` with the bounded forcing `w_{t,i} = Re(μ^{t+1} q̄_i)` has no bounded
+solution: `d_t = (q · e_t) μ̄ᵗ` grows like `t ∑|q_i|²/2`. -/
+theorem no_bounded_resonance {A : Matrix κ κ ℝ} {μ : ℂ} (hμ : ‖μ‖ = 1) {q : κ → ℂ}
+    (hq0 : q ≠ 0) (hq : q ᵥ* A.map Complex.ofReal = μ • q)
+    (hre : μ ^ 2 = 1 → ∀ i, (q i).im = 0) {e : ℕ → κ → ℝ}
+    (he : ∀ t, e (t + 1) = A *ᵥ e t + fun i => (μ ^ (t + 1) * conj (q i)).re)
+    {B : ℝ} (hB : ∀ t i, |e t i| ≤ B) : False := by
+  set m : ℕ → ℂ := fun t => ∑ i, q i * (e t i : ℂ) with hm
+  set N : ℝ := ∑ i, ‖q i‖ ^ 2 with hN
+  set σ : ℂ := ∑ i, q i ^ 2 with hσ
+  set ζ : ℂ := conj μ ^ 2 with hζ
+  have hμc : μ * conj μ = 1 := by
+    rw [Complex.mul_conj, Complex.normSq_eq_norm_sq, hμ]
+    norm_num
+  have hN0 : 0 < N := by
+    obtain ⟨i, hi⟩ : ∃ i, q i ≠ 0 := by
+      by_contra hne
+      push Not at hne
+      exact hq0 (funext hne)
+    exact Finset.sum_pos' (fun i _ => by positivity)
+      ⟨i, Finset.mem_univ i, by have := norm_pos_iff.mpr hi; positivity⟩
+  have hNc : (N : ℂ) = ∑ i, q i * conj (q i) := by
+    rw [hN]
+    push_cast
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Complex.mul_conj, Complex.normSq_eq_norm_sq]
+    push_cast
+    ring
+  have hqw : ∀ t, ∑ i, q i * (((μ ^ (t + 1) * conj (q i)).re : ℝ) : ℂ) =
+      (μ ^ (t + 1) * (N : ℂ) + conj μ ^ (t + 1) * σ) / 2 := by
+    intro t
+    rw [hNc, hσ, Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib, Finset.sum_div]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Complex.re_eq_add_conj, map_mul, map_pow, Complex.conj_conj]
+    ring
+  have hm_succ : ∀ t, m (t + 1) = μ * m t + (μ ^ (t + 1) * (N : ℂ) + conj μ ^ (t + 1) * σ) / 2 := by
+    intro t
+    simp only [hm, he t, Pi.add_apply, Complex.ofReal_add, mul_add, Finset.sum_add_distrib]
+    rw [sum_q_mulVec hq, hqw]
+  set d : ℕ → ℂ := fun t => m t * conj μ ^ t with hd
+  have hd_succ : ∀ t, d (t + 1) = d t + ((N : ℂ) + σ * ζ ^ (t + 1)) / 2 := by
+    intro t
+    have h1 : μ ^ (t + 1) * conj μ ^ (t + 1) = 1 := by rw [← mul_pow, hμc, one_pow]
+    have h2 : μ * conj μ ^ (t + 1) = conj μ ^ t := by
+      rw [pow_succ]
+      linear_combination (conj μ ^ t) * hμc
+    have h3 : conj μ ^ (t + 1) * conj μ ^ (t + 1) = ζ ^ (t + 1) := by
+      rw [hζ, ← pow_mul, ← pow_add]
+      ring_nf
+    simp only [hd]
+    rw [hm_succ t]
+    linear_combination (m t) * h2 + ((N : ℂ) / 2) * h1 + (σ / 2) * h3
+  set S : ℕ → ℂ := fun T => ∑ s ∈ Finset.range T, ζ ^ (s + 1) with hS
+  have hd_closed : ∀ T : ℕ, d T = d 0 + ((T * N / 2 : ℝ) : ℂ) + σ / 2 * S T := by
+    intro T
+    induction T with
+    | zero => simp [hS]
+    | succ T ih =>
+      rw [hd_succ T, ih]
+      simp only [hS, Finset.sum_range_succ]
+      push_cast
+      ring
+  set Q : ℝ := ∑ i, ‖q i‖ * B with hQ
+  have hdQ : ∀ T, ‖d T‖ ≤ Q := by
+    intro T
+    simp only [hd, hm, norm_mul, norm_pow, Complex.norm_conj, hμ, one_pow, mul_one]
+    refine (norm_sum_le _ _).trans (Finset.sum_le_sum fun i _ => ?_)
+    rw [norm_mul, Complex.norm_real, Real.norm_eq_abs]
+    exact mul_le_mul_of_nonneg_left (hB T i) (norm_nonneg _)
+  -- the oscillating part is bounded below
+  obtain ⟨K, hK⟩ : ∃ K : ℝ, ∀ T, -K ≤ (σ / 2 * S T).re := by
+    by_cases hζ1 : ζ = 1
+    · have hμ2 : μ ^ 2 = 1 := by
+        have := congrArg conj hζ1
+        rw [hζ, map_pow, Complex.conj_conj, map_one] at this
+        exact this
+      have hreal := hre hμ2
+      have hσN : σ = (N : ℂ) := by
+        rw [hσ, hNc]
+        refine Finset.sum_congr rfl fun i _ => ?_
+        have hqi : q i = ((q i).re : ℂ) := Complex.ext rfl (by simp [hreal i])
+        rw [hqi, Complex.conj_ofReal]
+        ring
+      refine ⟨0, fun T => ?_⟩
+      have hST : S T = (T : ℂ) := by simp [hS, hζ1]
+      rw [hσN, hST]
+      have : ((N : ℂ) / 2 * (T : ℂ)).re = N / 2 * T := by
+        rw [show ((N : ℂ) / 2 * (T : ℂ)) = ((N / 2 * T : ℝ) : ℂ) by push_cast; ring,
+          Complex.ofReal_re]
+      rw [this]
+      have : 0 ≤ N / 2 * T := by positivity
+      linarith
+    · have hζn : ‖ζ‖ = 1 := by rw [hζ, norm_pow, Complex.norm_conj, hμ, one_pow]
+      have hζ1' : ζ - 1 ≠ 0 := sub_ne_zero.mpr hζ1
+      refine ⟨‖σ‖ / ‖ζ - 1‖, fun T => ?_⟩
+      have hSb : ‖S T‖ ≤ 2 / ‖ζ - 1‖ := by
+        have e : S T = ζ * ((ζ ^ T - 1) / (ζ - 1)) := by
+          rw [hS, ← geom_sum_eq hζ1 T, Finset.mul_sum]
+          exact Finset.sum_congr rfl fun s _ => by ring
+        rw [e, norm_mul, hζn, one_mul, norm_div]
+        refine div_le_div_of_nonneg_right ?_ (norm_nonneg _)
+        calc ‖ζ ^ T - 1‖ ≤ ‖ζ ^ T‖ + ‖(1 : ℂ)‖ := norm_sub_le _ _
+          _ = 2 := by rw [norm_pow, hζn, one_pow, norm_one]; norm_num
+      have hb : ‖σ / 2 * S T‖ ≤ ‖σ‖ / ‖ζ - 1‖ := by
+        rw [norm_mul, norm_div, Complex.norm_two]
+        calc ‖σ‖ / 2 * ‖S T‖ ≤ ‖σ‖ / 2 * (2 / ‖ζ - 1‖) :=
+              mul_le_mul_of_nonneg_left hSb (by positivity)
+          _ = ‖σ‖ / ‖ζ - 1‖ := by ring
+      have := Complex.abs_re_le_norm (σ / 2 * S T)
+      have := neg_abs_le (σ / 2 * S T).re
+      linarith
+  refine false_of_linear_growth (a := (d 0).re) (c := N / 2) (K := K) (Q := Q)
+    (by positivity) fun T => ?_
+  have h1 : (d T).re = (d 0).re + T * N / 2 + (σ / 2 * S T).re := by
+    rw [hd_closed T, Complex.add_re, Complex.add_re, Complex.ofReal_re]
+  have h2 : (d T).re ≤ Q := (Complex.re_le_norm _).trans (hdQ T)
+  have h3 := hK T
+  have : (T : ℝ) * (N / 2) = T * N / 2 := by ring
+  linarith
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an eigenvalue on the unit circle has a left
+eigenvector, which can be chosen real when the eigenvalue is `±1`. -/
+theorem exists_left_eigvec_unit {A : Matrix κ κ ℝ} {μ : ℂ} (hμ : μ ∈ eigs A) :
+    ∃ q : κ → ℂ, q ≠ 0 ∧ q ᵥ* A.map Complex.ofReal = μ • q ∧
+      (μ ^ 2 = 1 → ∀ i, (q i).im = 0) := by
+  by_cases h2 : μ ^ 2 = 1
+  · obtain ⟨r, hr⟩ : ∃ r : ℝ, μ = (r : ℂ) := by
+      have : (μ - 1) * (μ + 1) = 0 := by linear_combination h2
+      rcases mul_eq_zero.mp this with e | e
+      · exact ⟨1, by push_cast; linear_combination e⟩
+      · exact ⟨-1, by push_cast; linear_combination e⟩
+    have hdetC := (mem_eigs_iff A μ).mp hμ
+    have hmap : Matrix.scalar κ μ - A.map Complex.ofReal =
+        (Matrix.scalar κ r - A).map Complex.ofReal := by
+      ext i j
+      by_cases hij : i = j
+      · subst hij; simp [hr]
+      · simp [Matrix.scalar_apply, Matrix.diagonal_apply_ne _ hij]
+    have hdetR : (Matrix.scalar κ r - A).det = 0 := by
+      have e := RingHom.map_det Complex.ofRealHom (Matrix.scalar κ r - A)
+      rw [hmap] at hdetC
+      have e2 : (Complex.ofRealHom.mapMatrix (Matrix.scalar κ r - A)) =
+          (Matrix.scalar κ r - A).map Complex.ofReal := rfl
+      rw [e2, hdetC] at e
+      exact Complex.ofReal_eq_zero.mp e
+    obtain ⟨p, hp0, hp⟩ := Matrix.exists_vecMul_eq_zero_iff.mpr hdetR
+    refine ⟨fun i => (p i : ℂ), ?_, ?_, fun _ i => by simp⟩
+    · intro h
+      apply hp0
+      funext i
+      have := congrFun h i
+      simpa using this
+    · rw [Matrix.vecMul_sub, sub_eq_zero] at hp
+      funext j
+      have hj := congrFun hp j
+      have h1 : (p ᵥ* Matrix.scalar κ r) j = r * p j := by
+        simp [Matrix.scalar_apply, Matrix.vecMul_diagonal, mul_comm]
+      have e : ∑ i, p i * A i j = r * p j := by
+        calc ∑ i, p i * A i j = (p ᵥ* A) j := rfl
+          _ = r * p j := hj.symm.trans h1
+      simp only [Matrix.vecMul, dotProduct, Matrix.map_apply, Pi.smul_apply, smul_eq_mul, hr]
+      exact_mod_cast e
+  · obtain ⟨q, hq0, hq⟩ := exists_left_eigvec hμ
+    exact ⟨q, hq0, hq, fun h => absurd h h2⟩
+
+/-- **Non-existence at a unit-circle eigenvalue** (Woodford (2003), App. C.1, p. 670, fn. 1;
+Blanchard and Kahn 1980): if `A` has an eigenvalue `μ` with `|μ| = 1`, there is a bounded
+adapted (indeed deterministic) forcing, `w_{t,i} = Re(μ^{t+1} q̄_i)` for a left eigenvector `q`,
+for which `E_t y_{t+1} = A y_t + w_t` has no bounded solution at all, adapted or not, whatever the
+predetermined restrictions. Taking `E_0` of a solution reduces to `no_bounded_resonance`. -/
+theorem nonexist_of_unit [Nonempty Ω] {A : Matrix κ κ ℝ} {μ : ℂ} (hμ : μ ∈ eigs A)
+    (h1 : ‖μ‖ = 1) :
+    ∃ w : ℕ → κ → Ω → ℝ, BoundedV w ∧ AdaptedV 𝔼 w ∧
+      ∀ y, Solves 𝔼 A w y → BoundedV y → False := by
+  obtain ⟨q, hq0, hq, hre⟩ := exists_left_eigvec_unit hμ
+  refine ⟨fun t i _ => (μ ^ (t + 1) * conj (q i)).re, ⟨∑ i, ‖q i‖, fun t i _ => ?_⟩,
+    fun t i => 𝔼.const t _, ?_⟩
+  · refine (Complex.abs_re_le_norm _).trans ?_
+    rw [norm_mul, norm_pow, h1, one_pow, one_mul, Complex.norm_conj]
+    exact Finset.single_le_sum (f := fun i => ‖q i‖) (fun _ _ => norm_nonneg _)
+      (Finset.mem_univ i)
+  · rintro y hy ⟨B, hB⟩
+    obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+    refine no_bounded_resonance h1 hq0 hq hre (e := fun t i => 𝔼.E 0 (y t i) ω₀) (fun t => ?_)
+      (B := B) (fun t i => 𝔼.abs_E_le (hB t i) 0 ω₀)
+    funext i
+    have e1 : 𝔼.E 0 (y (t + 1) i) = 𝔼.E 0 (𝔼.E t (y (t + 1) i)) :=
+      (𝔼.tower (Nat.zero_le t) _).symm
+    rw [e1, hy t i, map_add, E_mv 𝔼, 𝔼.const, Pi.add_apply, Pi.add_apply, mv_apply]
+
+/-- Woodford (2003), App. C.1, p. 670, fn. 1: with an eigenvalue on the unit circle the system is
+not determinate (equilibrium fails to exist for some bounded forcing). -/
+theorem not_determinate_of_unit [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {μ : ℂ}
+    (hμ : μ ∈ eigs A) (h1 : ‖μ‖ = 1) : ¬ Determinate 𝔼 A := by
+  intro hdet
+  obtain ⟨w, hwb, hwa, hno⟩ := nonexist_of_unit 𝔼 hμ h1
+  obtain ⟨y, ⟨hs, -, -, -, hb⟩, -⟩ := hdet w hwb hwa 0
+  exact hno y hs hb
+
+/-! ### Necessity (ii): genericity and the dimension of the stable subspace -/
+
+/-- **Non-uniqueness without genericity** (Woodford (2003), App. C.1, p. 672, fn. 2; Blanchard
+and Kahn 1980): if a nonzero bounded orbit `Aᵗ v` starts with `x = 0`, then next to every
+equilibrium there is another one (add the deterministic path `Aᵗ v`). -/
+theorem mult_of_not_genericX [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (h : ¬ GenericX A)
+    {w : ℕ → Z ⊕ X → Ω → ℝ} {x0 : X → ℝ} {y : ℕ → Z ⊕ X → Ω → ℝ} (hy : Equil 𝔼 A w x0 y) :
+    ∃ y', Equil 𝔼 A w x0 y' ∧ y' ≠ y := by
+  unfold GenericX at h
+  push Not at h
+  obtain ⟨v, ⟨C, hC⟩, hvx, hv0⟩ := h
+  obtain ⟨hs, ha, hk, h0, ⟨M, hM⟩⟩ := hy
+  set y' : ℕ → Z ⊕ X → Ω → ℝ := fun t k => y t k + fun _ => (A ^ t *ᵥ v) k with hy'
+  refine ⟨y', ⟨fun t k => ?_, fun t k => ?_, fun t j => ?_, fun j => ?_, ⟨M + C, ?_⟩⟩, ?_⟩
+  · simp only [hy', map_add, 𝔼.const, hs t k]
+    funext ω
+    simp only [Pi.add_apply, mv_apply]
+    rw [show (fun j => y t j ω + (A ^ t *ᵥ v) j) = (fun j => y t j ω) + A ^ t *ᵥ v from rfl,
+      Matrix.mulVec_add, Pi.add_apply, Matrix.mulVec_mulVec, ← pow_succ']
+    ring
+  · simp only [hy', map_add, 𝔼.const, ha t k]
+  · simp only [hy', map_add, 𝔼.const, hk t j]
+  · simp only [hy', pow_zero, Matrix.one_mulVec, hvx j, h0 j]
+    funext ω
+    simp
+  · intro t k ω
+    exact (abs_add_le _ _).trans (add_le_add (hM t k ω) (hC t k))
+  · intro he
+    apply hv0
+    funext k
+    obtain ⟨ω⟩ := ‹Nonempty Ω›
+    have := congrFun (congrFun (congrFun he 0) k) ω
+    simpa [hy'] using this
+
+/-- Woodford (2003), App. C.1, p. 672, fn. 2: without genericity the system is not
+determinate (already for `w = 0`, `x_0 = 0` there are two equilibria). -/
+theorem not_determinate_of_not_genericX [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : ¬ GenericX A) : ¬ Determinate 𝔼 A := by
+  intro hdet
+  have hb0 : BoundedV (0 : ℕ → Z ⊕ X → Ω → ℝ) := ⟨0, fun _ _ _ => by simp⟩
+  have ha0 : AdaptedV 𝔼 (0 : ℕ → Z ⊕ X → Ω → ℝ) := fun t k => by simp
+  obtain ⟨y, hy, huniq⟩ := hdet 0 hb0 ha0 0
+  obtain ⟨y', hy', hne⟩ := mult_of_not_genericX 𝔼 h hy
+  exact hne (huniq y' hy')
+
+/-- **Non-existence with too few stable directions** (Woodford (2003), App. C.1, p. 670;
+Blanchard and Kahn 1980): if the bounded-orbit subspace has dimension below the number of
+predetermined variables, some initial `x_0` admits no equilibrium even with `w = 0`. Taking
+`E_0` of an equilibrium gives, outcome by outcome, a bounded orbit starting at `(z_0, x_0)`. -/
+theorem nonexist_of_lt [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Module.finrank ℝ (boundedOrbits A) < Fintype.card X) :
+    ∃ x0 : X → ℝ, ∀ y, ¬ Equil 𝔼 A 0 x0 y := by
+  obtain ⟨x0, hx0⟩ := exists_unreached_of_lt h
+  refine ⟨x0, fun y hy => ?_⟩
+  obtain ⟨hs, -, -, h0, ⟨M, hM⟩⟩ := hy
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  set e : ℕ → Z ⊕ X → ℝ := fun t k => 𝔼.E 0 (y t k) ω₀ with he
+  have hstep : ∀ t, e (t + 1) = A *ᵥ e t := by
+    intro t
+    funext k
+    have e1 : 𝔼.E 0 (y (t + 1) k) = 𝔼.E 0 (𝔼.E t (y (t + 1) k)) :=
+      (𝔼.tower (Nat.zero_le t) _).symm
+    simp only [he]
+    rw [e1, hs t k, Pi.zero_apply, Pi.zero_apply, add_zero, E_mv 𝔼, mv_apply]
+  have hmem := mem_boundedOrbits_of_orbit hstep (fun t k => 𝔼.abs_E_le (hM t k) 0 ω₀)
+  apply hx0 _ hmem
+  funext j
+  simp only [he, h0 j, 𝔼.const]
+
+/-- Woodford (2003), App. C.1, p. 670: too few stable directions — not determinate. -/
+theorem not_determinate_of_lt [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Module.finrank ℝ (boundedOrbits A) < Fintype.card X) : ¬ Determinate 𝔼 A := by
+  intro hdet
+  obtain ⟨x0, hx0⟩ := nonexist_of_lt 𝔼 h
+  obtain ⟨y, hy, -⟩ := hdet 0 ⟨0, fun _ _ _ => by simp⟩ (fun t k => by simp) x0
+  exact hx0 y hy
+
+/-- Woodford (2003), App. C.1, p. 672, fn. 2: too many stable directions — not determinate
+(genericity must fail, so equilibria are not unique). -/
+theorem not_determinate_of_gt [Nonempty Ω] {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : Fintype.card X < Module.finrank ℝ (boundedOrbits A)) : ¬ Determinate 𝔼 A :=
+  not_determinate_of_not_genericX 𝔼 (not_genericX_of_lt h)
+
+/-! ### The Blanchard–Kahn theorem -/
+
+/-- **The Blanchard–Kahn theorem** (Woodford (2003), App. C.1, p. 670 and fn. 1–2, which the book
+takes from Blanchard and Kahn (1980)): for any expectation system on a nonempty state space, the
+system `E_t y_{t+1} = A y_t + w_t` with `|X|` predetermined variables is determinate iff
+(i) no eigenvalue of `A` lies on the unit circle, (ii) the stable (bounded-orbit) subspace has
+dimension `|X|`, and (iii) the stable subspace meets `{x = 0}` only in `0`. -/
+theorem determinate_iff [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ NoUnit A ∧ Module.finrank ℝ (boundedOrbits A) = Fintype.card X ∧
+      GenericX A := by
+  constructor
+  · intro hdet
+    have hnu : NoUnit A := fun μ hμ h1 => not_determinate_of_unit 𝔼 hμ h1 hdet
+    have hg : GenericX A := by
+      by_contra hg
+      exact not_determinate_of_not_genericX 𝔼 hg hdet
+    refine ⟨hnu, ?_, hg⟩
+    rcases lt_trichotomy (Module.finrank ℝ (boundedOrbits A)) (Fintype.card X) with h | h | h
+    · exact absurd hdet (not_determinate_of_lt 𝔼 h)
+    · exact h
+    · exact absurd hdet (not_determinate_of_gt 𝔼 h)
+  · rintro ⟨hnu, hd, hg⟩
+    exact determinate_of 𝔼 hnu hd hg
+
+/-- **The Blanchard–Kahn counting rule** (Woodford (2003), App. C.1, p. 670 and fn. 1–2; Blanchard
+and Kahn 1980): determinate iff no eigenvalue on the unit circle, exactly `|X|` eigenvalues in
+the open unit disc counted with algebraic multiplicity, and genericity. -/
+theorem determinate_iff_count [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ NoUnit A ∧ stableCount A = Fintype.card X ∧ GenericX A := by
+  rw [determinate_iff]
+  constructor
+  · rintro ⟨hnu, hd, hg⟩
+    exact ⟨hnu, (finrank_eq_iff_stableCount_eq hnu hg).mp hd, hg⟩
+  · rintro ⟨hnu, hc, hg⟩
+    exact ⟨hnu, (finrank_eq_iff_stableCount_eq hnu hg).mpr hc, hg⟩
+
+/-- **The Blanchard–Kahn counting rule, unstable form** (Woodford (2003), App. C.1, p. 670;
+Blanchard and Kahn 1980): determinate iff no eigenvalue on the unit circle, exactly as many
+eigenvalues outside the unit circle (with multiplicity) as non-predetermined variables, and
+genericity. -/
+theorem determinate_iff_unstableCount [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ NoUnit A ∧ unstableCount A = Fintype.card Z ∧ GenericX A := by
+  rw [determinate_iff_count]
+  constructor
+  · rintro ⟨hnu, hc, hg⟩
+    refine ⟨hnu, ?_, hg⟩
+    have := stableCount_add_unstableCount hnu
+    rw [Fintype.card_sum, hc] at this
+    omega
+  · rintro ⟨hnu, hc, hg⟩
+    refine ⟨hnu, ?_, hg⟩
+    have := stableCount_add_unstableCount hnu
+    rw [Fintype.card_sum, hc] at this
+    omega
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 670: determinacy does not depend on the expectation system —
+it holds under any expectation system on a nonempty state space iff it holds under perfect
+foresight. -/
+theorem determinate_iff_perfectForesight [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    Determinate 𝔼 A ↔ Determinate perfectForesight A := by
+  classical
+  rw [determinate_iff, determinate_iff]
+
+/-! ### The bounded-orbit subspace is the stable subspace -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a vector whose orbit tends to `0` has a bounded
+orbit. -/
+theorem mem_boundedOrbits_of_tendsto {A : Matrix κ κ ℝ} {v : κ → ℝ}
+    (h : Tendsto (fun t => A ^ t *ᵥ v) atTop (𝓝 0)) : v ∈ boundedOrbits A := by
+  obtain ⟨C, hC⟩ := isBounded_iff_forall_norm_le.mp
+    (Metric.isBounded_range_of_tendsto (fun t => A ^ t *ᵥ v) h)
+  exact ⟨C, fun t i => (norm_le_pi_norm (A ^ t *ᵥ v) i).trans (hC _ ⟨t, rfl⟩) |>.trans' le_rfl⟩
+
+/-- Woodford (2003), App. C.1, p. 670 (Blanchard and Kahn 1980): with no eigenvalue on the unit
+circle, the bounded-orbit subspace is exactly the stable subspace `{v : Aᵗ v → 0}`. -/
+theorem mem_boundedOrbits_iff_tendsto_of_noUnit {A : Matrix κ κ ℝ} (hnu : NoUnit A)
+    (v : κ → ℝ) : v ∈ boundedOrbits A ↔ Tendsto (fun t => A ^ t *ᵥ v) atTop (𝓝 0) :=
+  ⟨tendsto_of_mem_boundedOrbits hnu, mem_boundedOrbits_of_tendsto⟩
+
+/-- Woodford (2003), App. C.1, p. 670 (Blanchard and Kahn 1980): under the Blanchard–Kahn
+conditions every bounded orbit tends to `0` — the bounded-orbit subspace is exactly the stable
+subspace `{v : Aᵗ v → 0}`. -/
+theorem mem_boundedOrbits_iff_tendsto {A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (hnu : NoUnit A)
+    (hd : Module.finrank ℝ (boundedOrbits A) = Fintype.card X) (hg : GenericX A)
+    (v : Z ⊕ X → ℝ) :
+    v ∈ boundedOrbits A ↔ Tendsto (fun t => A ^ t *ᵥ v) atTop (𝓝 0) := by
+  refine ⟨fun hv => ?_, mem_boundedOrbits_of_tendsto⟩
+  obtain ⟨G, hG⟩ := exists_graph hd hg
+  have hinv := graph_invariant hG
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hL⟩ := pow_entry_bound _ (lam_stable hG hnu)
+  set x : X → ℝ := fun j => v (Sum.inr j) with hx
+  have hvg : v = graphV G x := by
+    funext k
+    rcases k with i | j
+    · exact hG.2 v hv i
+    · rfl
+  set Xb : ℝ := ∑ j, |x j| with hXb
+  have hXb0 : 0 ≤ Xb := Finset.sum_nonneg fun _ _ => abs_nonneg _
+  have hxj : ∀ j, |x j| ≤ Xb := fun j =>
+    Finset.single_le_sum (f := fun j => |x j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ j)
+  set aG : ℝ := ∑ i, ∑ j, |G i j| with haG
+  have hLx : ∀ t j, |(lam A G ^ t *ᵥ x) j| ≤ Fintype.card X * (Cb * ρ ^ t * Xb) :=
+    fun t j => BKInvariantSplit.abs_mulVec_le _ _ (hL t) hxj j
+  have hlim : Tendsto (fun t : ℕ => (Fintype.card X : ℝ) * (Cb * ρ ^ t * Xb)) atTop (𝓝 0) := by
+    have := ((tendsto_pow_atTop_nhds_zero_of_lt_one hρ0.le hρ1).const_mul Cb).mul_const Xb
+    simpa using this.const_mul (Fintype.card X : ℝ)
+  have hlim2 : Tendsto (fun t : ℕ => (Fintype.card X : ℝ) *
+      (aG * ((Fintype.card X : ℝ) * (Cb * ρ ^ t * Xb)))) atTop (𝓝 0) := by
+    simpa using (hlim.const_mul aG).const_mul (Fintype.card X : ℝ)
+  rw [hvg, tendsto_pi_nhds]
+  intro k
+  simp only [pow_mulVec_graphV hinv]
+  rcases k with i | j
+  · refine squeeze_zero_norm (fun t => ?_) hlim2
+    rw [Real.norm_eq_abs]
+    exact BKInvariantSplit.abs_mulVec_le G _ (abs_entry_le_sum G) (hLx t) i
+  · refine squeeze_zero_norm (fun t => ?_) hlim
+    rw [Real.norm_eq_abs]
+    exact hLx t j
+
+end Woodford.OptimalPolicyRules.TidyR6aGeneralBK
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Blanchard–Kahn theorem for systems in pencil form
+
+Restated from the Cochrane KeynesianStickyPrices project (module TidyR5GeneralBKPencil, itself
+restated from the Woodford Chapter 4 project, NeoWicksellianFramework.GeneralBKPencil) with the
+namespaces renamed, for the stacked first-order system (1.1) + (1.9) of Chapter 8 (module
+TidyR6aStackedBK).
+
+Woodford (2003), *Interest and Prices*, Appendix C.1, p. 670 (the models of Chapter 4 are first
+written as `A₀ E_t y_{t+1} = A₁ y_t + w_t` and then solved for `E_t y_{t+1}`); Blanchard and Kahn
+(1980).
+
+* `equilPencil_iff`, `determinatePencil_iff`: when `A₀` is invertible, the system
+  `A₀ E_t y_{t+1} = A₁ y_t + w_t` has the same equilibria as `E_t y_{t+1} = A₀⁻¹A₁ y_t + A₀⁻¹w_t`,
+  and (since `w ↦ A₀⁻¹ w` is a bijection of bounded adapted forcings) it is determinate iff
+  `A₀⁻¹A₁` is.
+* `pencilPoly A₀ A₁ = det(λA₀ − A₁)`, `pencilPoly_eq`: it equals `det A₀ · charpoly(A₀⁻¹A₁)`, so
+  the generalised eigenvalues of the pencil, the roots of `det(λA₀ − A₁)` with multiplicity, are
+  the eigenvalues of `A₀⁻¹A₁` (`eigs_pencil`, `mem_eigs_pencil_iff`).
+* `determinatePencil_iff_count` (**Blanchard–Kahn for pencils**): determinate iff no generalised
+  eigenvalue on the unit circle, exactly `|X|` of them in the open disc, and genericity.
+
+Singular `A₀` (the King–Watson (1998) / Klein (2000) case, with infinite generalised
+eigenvalues counted as unstable) is treated in TidyR6aGeneralBKSingular.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil
+
+open Polynomial BKInvariantSplit BKForward TidyR6aGeneralBK
+open scoped Matrix
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+variable {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X]
+
+/-- Woodford (2003), App. C.1, p. 670: `y` solves `A₀ E_t y_{t+1} = A₁ y_t + w_t`. -/
+def SolvesPencil {ι : Type*} [Fintype ι] (A0 A1 : Matrix ι ι ℝ) (w y : ℕ → ι → Ω → ℝ) : Prop :=
+  ∀ t, mv A0 (fun i => 𝔼.E t (y (t + 1) i)) = mv A1 (y t) + w t
+
+/-- Woodford (2003), App. C.1, p. 670: a bounded equilibrium of the pencil system with
+predetermined block `x` (known one period ahead, `x_0` given). -/
+def EquilPencil (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (w : ℕ → Z ⊕ X → Ω → ℝ) (x0 : X → ℝ)
+    (y : ℕ → Z ⊕ X → Ω → ℝ) : Prop :=
+  SolvesPencil 𝔼 A0 A1 w y ∧ AdaptedV 𝔼 y ∧
+    (∀ t j, 𝔼.E t (y (t + 1) (Sum.inr j)) = y (t + 1) (Sum.inr j)) ∧
+    (∀ j, y 0 (Sum.inr j) = fun _ => x0 j) ∧ BoundedV y
+
+/-- Woodford (2003), App. C.1, p. 670: determinacy of the pencil system. -/
+def DeterminatePencil (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) : Prop :=
+  ∀ w : ℕ → Z ⊕ X → Ω → ℝ, BoundedV w → AdaptedV 𝔼 w →
+    ∀ x0 : X → ℝ, ∃! y, EquilPencil 𝔼 A0 A1 w x0 y
+
+/-- Woodford (2003), App. C.1, p. 670: with `A₀` invertible, `A₀ E_t y_{t+1} = A₁ y_t + w_t` iff
+`E_t y_{t+1} = A₀⁻¹A₁ y_t + A₀⁻¹ w_t`. -/
+theorem solvesPencil_iff {ι : Type*} [Fintype ι] [DecidableEq ι] {A0 A1 : Matrix ι ι ℝ}
+    (h : IsUnit A0.det) (w y : ℕ → ι → Ω → ℝ) :
+    SolvesPencil 𝔼 A0 A1 w y ↔ Solves 𝔼 (A0⁻¹ * A1) (fun t => mv A0⁻¹ (w t)) y := by
+  constructor
+  · intro hs t i
+    have e := congrArg (mv A0⁻¹) (hs t)
+    rw [mv_mv, Matrix.nonsing_inv_mul _ h, mv_one, mv_add, mv_mv] at e
+    exact congrFun e i
+  · intro hs t
+    have e : (fun i => 𝔼.E t (y (t + 1) i)) = mv (A0⁻¹ * A1) (y t) + mv A0⁻¹ (w t) := by
+      funext i
+      exact hs t i
+    rw [e, mv_add, mv_mv, mv_mv, Matrix.mul_nonsing_inv_cancel_left _ _ h,
+      Matrix.mul_nonsing_inv _ h, mv_one]
+
+/-- Woodford (2003), App. C.1, p. 670: with `A₀` invertible the pencil system and the reduced
+system `E_t y_{t+1} = A₀⁻¹A₁ y_t + A₀⁻¹ w_t` have the same equilibria. -/
+theorem equilPencil_iff {A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (h : IsUnit A0.det)
+    (w : ℕ → Z ⊕ X → Ω → ℝ) (x0 : X → ℝ) (y : ℕ → Z ⊕ X → Ω → ℝ) :
+    EquilPencil 𝔼 A0 A1 w x0 y ↔ Equil 𝔼 (A0⁻¹ * A1) (fun t => mv A0⁻¹ (w t)) x0 y := by
+  unfold EquilPencil Equil
+  rw [solvesPencil_iff 𝔼 h]
+
+/-- **Pencil reduction** (Woodford (2003), App. C.1, p. 670): with `A₀` invertible,
+`A₀ E_t y_{t+1} = A₁ y_t + w_t` is determinate iff `E_t y_{t+1} = A₀⁻¹A₁ y_t + w_t` is. -/
+theorem determinatePencil_iff {A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} (h : IsUnit A0.det) :
+    DeterminatePencil 𝔼 A0 A1 ↔ Determinate 𝔼 (A0⁻¹ * A1) := by
+  constructor
+  · intro hd w hwb hwa x0
+    have hfb : BoundedV (fun t => mv A0 (w t)) := boundedV_mv A0 hwb
+    have hfa : AdaptedV 𝔼 (fun t => mv A0 (w t)) := adaptedV_mv 𝔼 A0 hwa
+    have hback : (fun t => mv A0⁻¹ (mv A0 (w t))) = w := by
+      funext t
+      rw [mv_mv, Matrix.nonsing_inv_mul _ h, mv_one]
+    obtain ⟨y, hy, hu⟩ := hd _ hfb hfa x0
+    refine ⟨y, ?_, fun y' hy' => hu y' ?_⟩
+    · have := (equilPencil_iff 𝔼 h _ x0 y).mp hy
+      rwa [hback] at this
+    · refine (equilPencil_iff 𝔼 h _ x0 y').mpr ?_
+      rw [hback]
+      exact hy'
+  · intro hd w hwb hwa x0
+    obtain ⟨y, hy, hu⟩ := hd _ (boundedV_mv _ hwb) (adaptedV_mv 𝔼 _ hwa) x0
+    exact ⟨y, (equilPencil_iff 𝔼 h w x0 y).mpr hy,
+      fun y' hy' => hu y' ((equilPencil_iff 𝔼 h w x0 y').mp hy')⟩
+
+/-- Woodford (2003), App. C.1, p. 670: the pencil polynomial `det(λA₀ − A₁)`. -/
+noncomputable def pencilPoly {ι : Type*} [Fintype ι] [DecidableEq ι] (A0 A1 : Matrix ι ι ℝ) :
+    ℝ[X] :=
+  (Matrix.scalar ι (Polynomial.X : ℝ[X]) * (C : ℝ →+* ℝ[X]).mapMatrix A0 -
+    (C : ℝ →+* ℝ[X]).mapMatrix A1).det
+
+/-- Woodford (2003), App. C.1, p. 670: `det(λA₀ − A₁) = det A₀ · det(λ − A₀⁻¹A₁)`. -/
+theorem pencilPoly_eq {ι : Type*} [Fintype ι] [DecidableEq ι] {A0 A1 : Matrix ι ι ℝ}
+    (h : IsUnit A0.det) : pencilPoly A0 A1 = C A0.det * (A0⁻¹ * A1).charpoly := by
+  set CA0 := (C : ℝ →+* ℝ[X]).mapMatrix A0 with hCA0
+  have hcomm : Matrix.scalar ι (Polynomial.X : ℝ[X]) * CA0 =
+      CA0 * Matrix.scalar ι (Polynomial.X : ℝ[X]) :=
+    (Matrix.scalar_commute _ (fun r => Commute.all _ r) CA0)
+  have hA1 : (C : ℝ →+* ℝ[X]).mapMatrix A1 = CA0 * (C : ℝ →+* ℝ[X]).mapMatrix (A0⁻¹ * A1) := by
+    rw [hCA0, ← map_mul, Matrix.mul_nonsing_inv_cancel_left _ _ h]
+  have e : Matrix.scalar ι (Polynomial.X : ℝ[X]) * CA0 - (C : ℝ →+* ℝ[X]).mapMatrix A1 =
+      CA0 * (A0⁻¹ * A1).charmatrix := by
+    rw [hcomm, hA1, ← Matrix.mul_sub]
+    rfl
+  rw [pencilPoly, e, Matrix.det_mul, hCA0, ← RingHom.map_det, Matrix.charpoly]
+
+/-- Woodford (2003), App. C.1, p. 670: the generalised eigenvalues of the pencil, the roots of
+`det(λA₀ − A₁)` counted with multiplicity, are the eigenvalues of `A₀⁻¹A₁`. -/
+theorem eigs_pencil {ι : Type*} [Fintype ι] [DecidableEq ι] {A0 A1 : Matrix ι ι ℝ}
+    (h : IsUnit A0.det) :
+    eigs (A0⁻¹ * A1) = ((pencilPoly A0 A1).map Complex.ofRealHom).roots := by
+  have hd : (Complex.ofRealHom A0.det) ≠ 0 := by
+    simpa using h.ne_zero
+  rw [pencilPoly_eq h, Polynomial.map_mul, Polynomial.map_C, roots_C_mul _ hd, eigs,
+    charpoly_map_ofReal]
+
+/-- Woodford (2003), App. C.1, p. 670: `μ` is a generalised eigenvalue iff `det(μA₀ − A₁) = 0`. -/
+theorem mem_eigs_pencil_iff {ι : Type*} [Fintype ι] [DecidableEq ι] {A0 A1 : Matrix ι ι ℝ}
+    (h : IsUnit A0.det) (μ : ℂ) :
+    μ ∈ eigs (A0⁻¹ * A1) ↔ ((pencilPoly A0 A1).map Complex.ofRealHom).IsRoot μ := by
+  rw [eigs_pencil h, mem_roots]
+  rw [pencilPoly_eq h, Polynomial.map_mul, Polynomial.map_C]
+  refine mul_ne_zero (by simpa using h.ne_zero) ((Matrix.charpoly_monic _).map _).ne_zero
+
+/-- **Blanchard–Kahn for pencils** (Woodford (2003), App. C.1, p. 670; Blanchard and Kahn 1980):
+with `A₀` invertible and any expectation system on a nonempty state space,
+`A₀ E_t y_{t+1} = A₁ y_t + w_t` is determinate iff no root of `det(λA₀ − A₁)` lies on the unit
+circle, exactly `|X|` roots (with multiplicity) lie in the open unit disc, and the stable
+subspace of `A₀⁻¹A₁` meets `{x = 0}` only in `0`. -/
+theorem determinatePencil_iff_count [Nonempty Ω] {A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (h : IsUnit A0.det) :
+    DeterminatePencil 𝔼 A0 A1 ↔
+      (∀ μ ∈ ((pencilPoly A0 A1).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card (((pencilPoly A0 A1).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card X ∧ GenericX (A0⁻¹ * A1) := by
+  rw [determinatePencil_iff 𝔼 h, determinate_iff_count, NoUnit, stableCount, eigs_pencil h]
+
+end Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Blanchard–Kahn theorem for singular pencils (Klein; King–Watson)
+
+Restated from the Cochrane KeynesianStickyPrices project (module TidyR5GeneralBKSingular, itself
+restated from the Woodford Chapter 4 project, NeoWicksellianFramework.GeneralBKSingular) with the
+namespaces renamed, for the stacked first-order system (1.1) + (1.9) of Chapter 8 (module
+TidyR6aStackedBK).
+
+Woodford (2003), *Interest and Prices*, Appendix C.1, p. 670 (models first written as
+`A₀ E_t y_{t+1} = A₁ y_t + w_t`, where `A₀` may be singular because some equations are static);
+Blanchard and Kahn (1980); the singular case is that of King and Watson (1998) and Klein (2000).
+
+No invertibility of `A₀` is assumed. With `pencilPoly A₀ A₁ = det(λA₀ − A₁)`:
+
+* `nonexist_of_not_regular`: if the pencil is singular (`det(λA₀ − A₁) ≡ 0`), a polynomial left
+  null vector `q(λ)` gives a linear restriction `∑ q_k · w_k = 0` on the forcing of every
+  solution, so for a bounded deterministic forcing `w_t = ρᵗ q(ρ)` no solution exists at all.
+* For a regular pencil choose `c` with `det(cA₀ − A₁) ≠ 0` (`exists_regular_point`) and put
+  `N = (cA₀ − A₁)⁻¹A₀`. The Fitting decomposition of `N` (`exists_fitting`, `Fitting`) splits the
+  state space into the range of `P`, where `N` is invertible with inverse `Ni` (the finite
+  generalised eigenvalues), and the range of `Q`, where `N` is nilpotent (the infinite ones).
+* `determinatePencil_iff_ahat`: the pencil system is determinate iff the standard-form system
+  `E_t y_{t+1} = Â y_t + w_t` is, `Â = cP − Ni + 2Q` (`ahat`). The `Q` block of the pencil is
+  purely forward-looking with a nilpotent forward matrix (`pencilV_existsUnique`, `kmat_pow`);
+  the `Q` block of `Â` is the unstable `E_t q_{t+1} = 2q_t + g_t` (`twoBlock_existsUnique`);
+  equilibria correspond (`pencil_iff_ahat`).
+* `poly_relations`: `det(λA₀ − A₁) = κ f(λ)` with `κ ≠ 0` and `det(λ − Â) = f(λ) g(λ)`, where all
+  roots of `g` equal `2` (`gpoly_roots`); hence `eigs_ahat`, `noUnit_ahat_iff`,
+  `stableCount_ahat`: the eigenvalues of `Â` in or on the unit circle are exactly the roots of
+  `det(λA₀ − A₁)` there, with multiplicity.
+* `mem_boundedOrbits_ahat`: the bounded orbits of `Â` are the initial values of bounded
+  deterministic solutions of `A₀ y_{t+1} = A₁ y_t` (`PencilBounded`).
+* `determinatePencil_iff_general` (**Blanchard–Kahn for arbitrary pencils**): for any expectation
+  system on a nonempty state space, `A₀ E_t y_{t+1} = A₁ y_t + w_t` is determinate iff the pencil
+  is regular, no root of `det(λA₀ − A₁)` lies on the unit circle, exactly `|X|` roots (with
+  multiplicity) lie in the open unit disc, and no nonzero bounded deterministic solution starts
+  with `x_0 = 0` (`GenericPencil`).
+* `unstable_add_infinite`: the infinite generalised eigenvalues (`n − deg det(λA₀ − A₁)` of them)
+  count as unstable — with the roots outside the unit circle they number `|Z|`.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular
+
+open Polynomial Filter Topology BKInvariantSplit BKForward TidyR6aGeneralBK
+open TidyR6aGeneralBKPencil
+open scoped Matrix
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-! ### The Fitting decomposition of `N` -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): powers of a matrix act as powers of its linear
+map. -/
+theorem pow_mulVec_eq (N : Matrix ι ι ℝ) (k : ℕ) (x : ι → ℝ) :
+    N ^ k *ᵥ x = (Matrix.toLin' N ^ k) x := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    rw [pow_succ', ← Matrix.mulVec_mulVec, ih, pow_succ', Module.End.mul_apply,
+      Matrix.toLin'_apply]
+
+/-- **The Fitting decomposition** (Woodford (2003), App. C.1, p. 670, the tool for singular
+pencils): for a square matrix `N` there are complementary idempotents `P`, `Q` commuting with `N`
+and a matrix `Ni` with `N Ni = Ni N = P` (`N` is invertible on the range of `P`), `Q Ni = Ni Q = 0`,
+and `Nᵐ Q = 0` (`N` is nilpotent on the range of `Q`). -/
+theorem exists_fitting (N : Matrix ι ι ℝ) :
+    ∃ (m : ℕ) (P Q Ni : Matrix ι ι ℝ), P + Q = 1 ∧ P * Q = 0 ∧ Q * P = 0 ∧
+      N * P = P * N ∧ N * Q = Q * N ∧ N * Ni = P ∧ Ni * N = P ∧ Q * Ni = 0 ∧ Ni * Q = 0 ∧
+      N ^ m * Q = 0 := by
+  set φ := Matrix.toLin' N with hφ
+  obtain ⟨m0, hm0⟩ := Filter.eventually_atTop.mp (φ.eventually_isCompl_ker_pow_range_pow)
+  set m := m0 + 1 with hm
+  have hc : IsCompl (LinearMap.ker (φ ^ m)) (LinearMap.range (φ ^ m)) := hm0 m (by omega)
+  set V := LinearMap.ker (φ ^ m) with hV
+  set U := LinearMap.range (φ ^ m) with hU
+  set Pl := U.projection V hc.symm with hPl
+  set Ql := V.projection U hc with hQl
+  have hPQ : ∀ x, Pl x + Ql x = x := fun x => by
+    rw [add_comm]; exact Submodule.projection_add_projection_eq_self hc x
+  have hφU : ∀ u ∈ U, φ u ∈ U := by
+    rintro _ ⟨y, rfl⟩
+    exact ⟨φ y, by rw [← Module.End.mul_apply, ← pow_succ, pow_succ', Module.End.mul_apply]⟩
+  have hφV : ∀ v ∈ V, φ v ∈ V := by
+    intro v hv
+    rw [hV, LinearMap.mem_ker] at hv ⊢
+    rw [← Module.End.mul_apply, ← pow_succ, pow_succ', Module.End.mul_apply, hv, map_zero]
+  have hPU : ∀ x, Pl x ∈ U := fun x => Submodule.projection_apply_mem _ x
+  have hQV : ∀ x, Ql x ∈ V := fun x => Submodule.projection_apply_mem _ x
+  have hPleft : ∀ u ∈ U, Pl u = u := fun u hu => Submodule.projection_apply_of_mem_left _ hu
+  have hPright : ∀ v ∈ V, Pl v = 0 := fun v hv => Submodule.projection_apply_of_mem_right _ hv
+  have hQleft : ∀ v ∈ V, Ql v = v := fun v hv => Submodule.projection_apply_of_mem_left _ hv
+  have hQright : ∀ u ∈ U, Ql u = 0 := fun u hu => Submodule.projection_apply_of_mem_right _ hu
+  have hφP : ∀ x, φ (Pl x) = Pl (φ x) := by
+    intro x
+    conv_rhs => rw [← hPQ x, map_add, map_add, hPleft _ (hφU _ (hPU x)),
+      hPright _ (hφV _ (hQV x)), add_zero]
+  have hφQ : ∀ x, φ (Ql x) = Ql (φ x) := by
+    intro x
+    conv_rhs => rw [← hPQ x, map_add, map_add, hQright _ (hφU _ (hPU x)),
+      hQleft _ (hφV _ (hQV x)), zero_add]
+  set ψ : U →ₗ[ℝ] U := φ.restrict hφU with hψ
+  have hψinj : Function.Injective ψ := by
+    rw [← LinearMap.ker_eq_bot, LinearMap.ker_eq_bot']
+    intro u hu
+    have h0 : φ u = 0 := by
+      have := congrArg Subtype.val hu
+      simpa [hψ, LinearMap.restrict_apply] using this
+    have huV : (u : ι → ℝ) ∈ V := by
+      rw [hV, LinearMap.mem_ker, hm, pow_succ, Module.End.mul_apply, h0, map_zero]
+    have := hc.disjoint.le_bot ⟨huV, u.2⟩
+    exact Subtype.ext ((Submodule.mem_bot ℝ).mp this)
+  have hψsurj : Function.Surjective ψ := LinearMap.injective_iff_surjective.mp hψinj
+  set eψ := LinearEquiv.ofBijective ψ ⟨hψinj, hψsurj⟩ with heψ
+  set pU := U.projectionOnto V hc.symm with hpU
+  have hpUval : ∀ x, ((pU x : U) : ι → ℝ) = Pl x := fun x => rfl
+  set Nl : (ι → ℝ) →ₗ[ℝ] (ι → ℝ) := U.subtype ∘ₗ eψ.symm.toLinearMap ∘ₗ pU with hNl
+  have hNlU : ∀ x, Nl x ∈ U := fun x => (eψ.symm (pU x)).2
+  have hφNl : ∀ x, φ (Nl x) = Pl x := by
+    intro x
+    have := congrArg Subtype.val (eψ.apply_symm_apply (pU x))
+    rw [hpUval] at this
+    rw [← this]
+    rfl
+  have hpUφ : ∀ x, pU (φ x) = ψ (pU x) := by
+    intro x
+    apply Subtype.ext
+    rw [hpUval]
+    change Pl (φ x) = φ (Pl x)
+    exact (hφP x).symm
+  have hNlφ : ∀ x, Nl (φ x) = Pl x := by
+    intro x
+    change ((eψ.symm (pU (φ x)) : U) : ι → ℝ) = Pl x
+    rw [hpUφ]
+    have : eψ.symm (ψ (pU x)) = pU x := eψ.symm_apply_apply (pU x)
+    rw [this, hpUval]
+  have hNlQ : ∀ x, Nl (Ql x) = 0 := by
+    intro x
+    have : pU (Ql x) = 0 := (Submodule.projectionOnto_apply_eq_zero_iff _).mpr (hQV x)
+    change ((eψ.symm (pU (Ql x)) : U) : ι → ℝ) = 0
+    rw [this, map_zero]
+    rfl
+  refine ⟨m, LinearMap.toMatrix' Pl, LinearMap.toMatrix' Ql, LinearMap.toMatrix' Nl,
+    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> refine matrix_eq_of_mulVec fun x => ?_ <;>
+    simp only [Matrix.add_mulVec, ← Matrix.mulVec_mulVec, LinearMap.toMatrix'_mulVec,
+      Matrix.one_mulVec, Matrix.zero_mulVec]
+  · exact hPQ x
+  · exact hPright _ (hQV x)
+  · exact hQright _ (hPU x)
+  · have := hφP x; simpa [hφ, Matrix.toLin'_apply] using this
+  · have := hφQ x; simpa [hφ, Matrix.toLin'_apply] using this
+  · have := hφNl x; simpa [hφ, Matrix.toLin'_apply] using this
+  · have := hNlφ x; simpa [hφ, Matrix.toLin'_apply] using this
+  · exact hQright _ (hNlU x)
+  · exact hNlQ x
+  · rw [pow_mulVec_eq, ← hφ]
+    exact hQV x
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the data of a Fitting decomposition of `N`
+(the conclusion of `exists_fitting`). -/
+def Fitting (N : Matrix ι ι ℝ) (m : ℕ) (P Q Ni : Matrix ι ι ℝ) : Prop :=
+  P + Q = 1 ∧ P * Q = 0 ∧ Q * P = 0 ∧ N * P = P * N ∧ N * Q = Q * N ∧ N * Ni = P ∧
+    Ni * N = P ∧ Q * Ni = 0 ∧ Ni * Q = 0 ∧ N ^ m * Q = 0
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): consequences of a Fitting decomposition:
+idempotents, `P Ni = Ni`, and `Q N P = 0`. -/
+theorem Fitting.basic {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ}
+    (hF : Fitting N m P Q Ni) :
+    P * P = P ∧ Q * Q = Q ∧ P * Ni = Ni ∧ Q * N * P = 0 := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, -⟩ := hF
+  have hP : P = 1 - Q := eq_sub_of_add_eq h1
+  have hQ : Q = 1 - P := eq_sub_of_add_eq' h1
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · calc P * P = P * (1 - Q) := by rw [← hP]
+      _ = P := by rw [Matrix.mul_sub, h2, Matrix.mul_one, sub_zero]
+  · calc Q * Q = Q * (1 - P) := by rw [← hQ]
+      _ = Q := by rw [Matrix.mul_sub, h3, Matrix.mul_one, sub_zero]
+  · calc P * Ni = (1 - Q) * Ni := by rw [← hP]
+      _ = Ni := by rw [Matrix.sub_mul, h8, Matrix.one_mul, sub_zero]
+  · rw [← h5, Matrix.mul_assoc, h3, Matrix.mul_zero]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a nilpotent matrix has geometrically bounded
+powers (they vanish from `n` on). -/
+theorem pow_bound_of_pow_eq_zero {K : Matrix ι ι ℝ} {n : ℕ} (h : K ^ n = 0) :
+    ∃ Cb ρ : ℝ, 0 ≤ Cb ∧ 0 < ρ ∧ ρ < 1 ∧ ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k := by
+  set Cb : ℝ := ∑ k ∈ Finset.range n, 2 ^ k * ∑ i, ∑ j, |(K ^ k) i j| with hCb
+  have hterm : ∀ k, 0 ≤ 2 ^ k * ∑ i, ∑ j, |(K ^ k) i j| := fun k =>
+    mul_nonneg (by positivity) (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ =>
+      abs_nonneg _)
+  refine ⟨Cb, 1 / 2, Finset.sum_nonneg fun k _ => hterm k, by norm_num, by norm_num,
+    fun k i j => ?_⟩
+  by_cases hk : k < n
+  · have h1 : |(K ^ k) i j| * 2 ^ k ≤ Cb := by
+      calc |(K ^ k) i j| * 2 ^ k ≤ 2 ^ k * ∑ i, ∑ j, |(K ^ k) i j| := by
+            rw [mul_comm]
+            exact mul_le_mul_of_nonneg_left (abs_entry_le_sum _ i j) (by positivity)
+        _ ≤ Cb := Finset.single_le_sum (f := fun k => 2 ^ k * ∑ i, ∑ j, |(K ^ k) i j|)
+            (fun k _ => hterm k) (Finset.mem_range.mpr hk)
+    have h2 : (0 : ℝ) < 2 ^ k := by positivity
+    rw [div_pow, one_pow, ← div_eq_mul_one_div, le_div_iff₀ h2]
+    exact h1
+  · have : K ^ k = 0 := by
+      rw [show k = n + (k - n) by omega, pow_add, h, Matrix.zero_mul]
+    rw [this, Matrix.zero_apply, abs_zero]
+    exact mul_nonneg (Finset.sum_nonneg fun k _ => hterm k) (by positivity)
+
+/-! ### The standard-form matrix `Â` -/
+
+/-- Woodford (2003), App. C.1, p. 670: the standard-form matrix `Â = cP − Ni + 2Q` of a regular
+pencil — the finite generalised eigenvalues on the range of `P`, and the (unstable) value `2` in
+place of the infinite ones on the range of `Q`. -/
+def ahat (c : ℝ) (P Q Ni : Matrix ι ι ℝ) : Matrix ι ι ℝ := c • P - Ni + (2 : ℝ) • Q
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `P Â = cP − Ni` and `Q Â = 2Q`. -/
+theorem ahat_proj {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting N m P Q Ni)
+    (c : ℝ) : P * ahat c P Q Ni = c • P - Ni ∧ Q * ahat c P Q Ni = (2 : ℝ) • Q := by
+  obtain ⟨hPP, hQQ, hPN, -⟩ := hF.basic
+  obtain ⟨-, h2, h3, -, -, -, -, h8, -, -⟩ := hF
+  constructor
+  · rw [ahat, Matrix.mul_add, Matrix.mul_sub, Matrix.mul_smul, Matrix.mul_smul, hPP, hPN, h2,
+      smul_zero, add_zero]
+  · rw [ahat, Matrix.mul_add, Matrix.mul_sub, Matrix.mul_smul, Matrix.mul_smul, h3, h8, hQQ,
+      smul_zero, zero_sub, neg_zero, zero_add]
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), App. C.1, p. 670: the standard-form system `E_t y_{t+1} = Â y_t + ŵ_t`
+splits into its `P` and `Q` parts, `P E_t y_{t+1} = (cP − Ni) y_t + P ŵ_t` and
+`Q E_t y_{t+1} = 2 Q y_t + Q ŵ_t`. -/
+theorem split_ahat {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ}
+    (hF : Fitting N m P Q Ni) (c : ℝ) (e y g : ι → Ω → ℝ) :
+    e = mv (ahat c P Q Ni) y + g ↔
+      mv P e = mv (c • P - Ni) y + mv P g ∧ mv Q e = mv ((2 : ℝ) • Q) y + mv Q g := by
+  obtain ⟨hPA, hQA⟩ := ahat_proj hF c
+  obtain ⟨h1, -⟩ := hF
+  have hsplit : ∀ a : ι → Ω → ℝ, a = mv P a + mv Q a := fun a => by
+    rw [← add_mv, h1, mv_one]
+  constructor
+  · intro h
+    rw [h, mv_add, mv_add, mv_mv, mv_mv, hPA, hQA]
+    exact ⟨rfl, rfl⟩
+  · rintro ⟨hp, hq⟩
+    calc e = mv P e + mv Q e := hsplit e
+      _ = (mv (c • P - Ni) y + mv P g) + (mv ((2 : ℝ) • Q) y + mv Q g) := by rw [hp, hq]
+      _ = (mv (P * ahat c P Q Ni) y + mv (Q * ahat c P Q Ni) y) + (mv P g + mv Q g) := by
+          rw [hPA, hQA]; abel
+      _ = mv (ahat c P Q Ni) y + g := by rw [← mv_mv, ← mv_mv, ← hsplit, ← hsplit]
+
+/-- Woodford (2003), App. C.1, p. 670: the reduced pencil equation
+`N E_t y_{t+1} = (cN − 1) y_t + g_t` splits into its `P` part, solved for `P E_t y_{t+1}` by
+`Ni`, and its `Q` part. -/
+theorem split_pencil {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ}
+    (hF : Fitting N m P Q Ni) (c : ℝ) (e y g : ι → Ω → ℝ) :
+    mv N e = mv (c • N - 1) y + g ↔
+      mv P e = mv (c • P - Ni) y + mv Ni g ∧
+        mv N (mv Q e) = mv (c • N - 1) (mv Q y) + mv Q g := by
+  obtain ⟨h1, -, -, h4, h5, h6, h7, -, -, -⟩ := hF
+  have hNiA : Ni * (c • N - 1) = c • P - Ni := by
+    rw [Matrix.mul_sub, Matrix.mul_smul, h7, Matrix.mul_one]
+  have hQA : Q * (c • N - 1) = (c • N - 1) * Q := by
+    rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_smul, Matrix.smul_mul, h5, Matrix.mul_one,
+      Matrix.one_mul]
+  constructor
+  · intro h
+    constructor
+    · have := congrArg (mv Ni) h
+      rwa [mv_mv, h7, mv_add, mv_mv, hNiA] at this
+    · calc mv N (mv Q e) = mv Q (mv N e) := by rw [mv_mv, mv_mv, h5]
+        _ = mv Q (mv (c • N - 1) y + g) := by rw [h]
+        _ = _ := by rw [mv_add, mv_mv, mv_mv, hQA]
+  · rintro ⟨hp, hq⟩
+    have hsplit : ∀ a : ι → Ω → ℝ, a = mv P a + mv Q a := fun a => by
+      rw [← add_mv, h1, mv_one]
+    have hNP : mv N (mv P e) = mv (c • (N * P) - P) y + mv P g := by
+      rw [hp, mv_add, mv_mv, mv_mv, Matrix.mul_sub, Matrix.mul_smul, h6]
+    calc mv N e = mv N (mv P e) + mv N (mv Q e) := by rw [← mv_add, ← hsplit]
+      _ = mv (c • (N * P) - P) y + mv P g + (mv (c • N - 1) (mv Q y) + mv Q g) := by
+          rw [hNP, hq]
+      _ = mv (c • (N * P) - P + (c • N - 1) * Q) y + (mv P g + mv Q g) := by
+          rw [add_mv, ← mv_mv]; abel
+      _ = mv (c • N - 1) y + g := by
+          rw [← hsplit g]
+          congr 2
+          rw [Matrix.sub_mul, Matrix.smul_mul, Matrix.one_mul]
+          have : c • (N * P) - P + (c • (N * Q) - Q) = c • (N * (P + Q)) - (P + Q) := by
+            rw [Matrix.mul_add, smul_add]; abel
+          rw [this, h1, Matrix.mul_one]
+
+/-! ### The two forward blocks -/
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): the one-step-ahead expectations of any process
+form an adapted process. -/
+theorem adaptedV_Enext (q : ℕ → ι → Ω → ℝ) :
+    AdaptedV 𝔼 (fun t i => 𝔼.E t (q (t + 1) i)) := fun t _ => 𝔼.E_E_self t _
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): one-step-ahead expectations of a bounded process
+are bounded. -/
+theorem boundedV_Enext {q : ℕ → ι → Ω → ℝ} (hq : BoundedV q) :
+    BoundedV (fun t i => 𝔼.E t (q (t + 1) i)) := by
+  obtain ⟨M, hM⟩ := hq
+  exact ⟨M, fun t i ω => 𝔼.abs_E_le (hM (t + 1) i) t ω⟩
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): scalar multiples of bounded vector processes are
+bounded. -/
+theorem boundedV_smul (r : ℝ) {q : ℕ → ι → Ω → ℝ} (hq : BoundedV q) :
+    BoundedV (fun t => r • q t) := by
+  obtain ⟨M, hM⟩ := hq
+  exact ⟨|r| * M, fun t i ω => by
+    simp only [Pi.smul_apply, smul_eq_mul, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hM t i ω) (abs_nonneg r)⟩
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): scalar multiples of adapted vector processes are
+adapted. -/
+theorem adaptedV_smul (r : ℝ) {q : ℕ → ι → Ω → ℝ} (hq : AdaptedV 𝔼 q) :
+    AdaptedV 𝔼 (fun t => r • q t) := fun t i => by
+  simp only [Pi.smul_apply, map_smul, hq t i]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): `E_t` commutes with a constant matrix acting on the
+next-period vector. -/
+theorem Enext_mv (M : Matrix ι ι ℝ) (q : ℕ → ι → Ω → ℝ) (t : ℕ) :
+    (fun i => 𝔼.E t (mv M (q (t + 1)) i)) = mv M (fun i => 𝔼.E t (q (t + 1) i)) := by
+  funext i
+  exact E_mv 𝔼 t M _ i
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): a scalar multiple of a matrix acts by scaling. -/
+theorem smul_mv (r : ℝ) (M : Matrix ι ι ℝ) (a : ι → Ω → ℝ) : mv (r • M) a = r • mv M a := by
+  funext i
+  simp only [mv, Matrix.smul_apply, smul_eq_mul, Pi.smul_apply, Finset.smul_sum, smul_smul]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): a matrix acting on a scaled vector. -/
+theorem mv_smul (M : Matrix ι ι ℝ) (r : ℝ) (a : ι → Ω → ℝ) : mv M (r • a) = r • mv M a := by
+  funext i
+  simp only [mv, Pi.smul_apply, smul_smul, Finset.smul_sum, mul_comm]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a multiple of the identity acts by scaling. -/
+theorem mv_smul_one (r : ℝ) (a : ι → Ω → ℝ) : mv (r • (1 : Matrix ι ι ℝ)) a = r • a := by
+  rw [smul_mv, mv_one]
+
+/-- Woodford (2003), App. C.1, p. 670: the standard-form `Q` block `E_t q_{t+1} = 2 q_t + g_t` is
+the forward system `q_t = ½ E_t q_{t+1} − ½ g_t`. -/
+theorem twoBlock_iff (q g : ℕ → ι → Ω → ℝ) :
+    (∀ t, (fun i => 𝔼.E t (q (t + 1) i)) = (2 : ℝ) • q t + g t) ↔
+      FSolves 𝔼 ((2⁻¹ : ℝ) • (1 : Matrix ι ι ℝ)) (fun t => -((2⁻¹ : ℝ) • g t)) q := by
+  unfold FSolves
+  simp only [mv_smul_one]
+  constructor
+  · intro h t
+    rw [h t, smul_add, smul_smul]
+    norm_num
+  · intro h t
+    have := h t
+    have e : (fun i => 𝔼.E t (q (t + 1) i)) = (2 : ℝ) • (q t + (2⁻¹ : ℝ) • g t) := by
+      rw [this, add_assoc]
+      simp [smul_smul]
+    rw [e, smul_add, smul_smul]
+    norm_num
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670: `E_t q_{t+1} = 2 q_t + g_t` has exactly one bounded
+adapted solution for every bounded adapted `g` (its forward solution). -/
+theorem twoBlock_existsUnique [Finite ι] {g : ℕ → ι → Ω → ℝ} (hgb : BoundedV g)
+    (hga : AdaptedV 𝔼 g) :
+    ∃! q, (∀ t, (fun i => 𝔼.E t (q (t + 1) i)) = (2 : ℝ) • q t + g t) ∧ AdaptedV 𝔼 q ∧
+      BoundedV q := by
+  have := Fintype.ofFinite ι
+  classical
+  have hK : ∀ k i j, |(((2⁻¹ : ℝ) • (1 : Matrix ι ι ℝ)) ^ k) i j| ≤ 1 * (1 / 2) ^ k := by
+    intro k i j
+    rw [smul_pow, one_pow, Matrix.smul_apply, Matrix.one_apply, smul_eq_mul, abs_mul]
+    split_ifs <;> norm_num
+  obtain ⟨Mf, hMf⟩ := boundedV_neg (boundedV_smul (2⁻¹ : ℝ) hgb)
+  obtain ⟨q, hq, hqa, hqb⟩ := fsolves_exists 𝔼 (by norm_num) (by norm_num) hK hMf
+    (adaptedV_neg 𝔼 (adaptedV_smul 𝔼 _ hga))
+  refine ⟨q, ⟨(twoBlock_iff 𝔼 q g).mpr hq, hqa, hqb⟩, fun q' ⟨hq', hqa', hqb'⟩ => ?_⟩
+  exact fsolves_unique 𝔼 (by norm_num) (by norm_num) hK ((twoBlock_iff 𝔼 q' g).mp hq') hq
+    hqa' hqa hqb' hqb
+
+/-- Woodford (2003), App. C.1, p. 670: `R = ∑_{k<m} (cN)ᵏ`, the inverse of `1 − cN` on the
+nilpotent block. -/
+noncomputable def rmat (c : ℝ) (N : Matrix ι ι ℝ) (m : ℕ) : Matrix ι ι ℝ :=
+  ∑ k ∈ Finset.range m, (c • N) ^ k
+
+/-- Woodford (2003), App. C.1, p. 670: the forward matrix `K = −R N Q` of the nilpotent block. -/
+noncomputable def kmat (c : ℝ) (N Q : Matrix ι ι ℝ) (m : ℕ) : Matrix ι ι ℝ :=
+  -(rmat c N m * N * Q)
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): matrices commuting with `N` commute with `R`. -/
+theorem commute_rmat {c : ℝ} {N M : Matrix ι ι ℝ} (h : Commute M N) (m : ℕ) :
+    Commute M (rmat c N m) :=
+  Commute.sum_right _ _ _ fun k _ => (h.smul_right c).pow_right k
+
+/-- Woodford (2003), App. C.1, p. 670: the forward matrix of the nilpotent block is nilpotent,
+`K^{m+1} = 0`. -/
+theorem kmat_pow {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting N m P Q Ni)
+    (c : ℝ) : kmat c N Q m ^ (m + 1) = 0 := by
+  obtain ⟨-, -, -, -, h5, -, -, -, -, h10⟩ := hF
+  have hRN : Commute (rmat c N m) N := (commute_rmat (Commute.refl N) m).symm
+  have hRQ : Commute (rmat c N m) Q := (commute_rmat (Commute.symm h5) m).symm
+  have hNQ : Commute N Q := h5
+  have hRNQ : Commute (rmat c N m * N) Q := Commute.mul_left hRQ hNQ
+  have h0 : N ^ (m + 1) * Q ^ (m + 1) = 0 := by
+    rw [pow_succ', pow_succ', Matrix.mul_assoc, ← Matrix.mul_assoc (N ^ m), h10, Matrix.zero_mul,
+      Matrix.mul_zero]
+  rw [kmat, neg_pow, hRNQ.mul_pow, hRN.mul_pow, Matrix.mul_assoc (rmat c N m ^ (m + 1)), h0,
+    Matrix.mul_zero, mul_zero]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): the zero matrix acts as zero. -/
+theorem zero_mv (a : ι → Ω → ℝ) : mv (0 : Matrix ι ι ℝ) a = 0 := by
+  funext i
+  simp [mv]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. C.1, p. 670 (tool): the action of a negated matrix. -/
+theorem neg_mv (M : Matrix ι ι ℝ) (a : ι → Ω → ℝ) : mv (-M) a = -mv M a := by
+  funext i
+  simp [mv, Finset.sum_neg_distrib]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): matrix facts for the nilpotent block:
+`R(1 − cN) = (1 − cN)R = 1 − (cN)ᵐ`, `(cN)ᵐ Q = 0`, `(1 − cN)K = −NQ`, `QK = KQ = K`,
+`QR = RQ`. -/
+theorem nil_facts {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting N m P Q Ni)
+    (c : ℝ) :
+    rmat c N m * (1 - c • N) = 1 - (c • N) ^ m ∧ (1 - c • N) * rmat c N m = 1 - (c • N) ^ m ∧
+      (c • N) ^ m * Q = 0 ∧ (1 - c • N) * kmat c N Q m = -(N * Q) ∧
+      Q * kmat c N Q m = kmat c N Q m ∧ kmat c N Q m * Q = kmat c N Q m ∧
+      Q * rmat c N m = rmat c N m * Q := by
+  obtain ⟨-, hQQ, -, -⟩ := hF.basic
+  obtain ⟨-, -, -, -, h5, -, -, -, -, h10⟩ := hF
+  have hRm : rmat c N m * (1 - c • N) = 1 - (c • N) ^ m := geom_sum_mul_neg _ _
+  have hmR : (1 - c • N) * rmat c N m = 1 - (c • N) ^ m := mul_neg_geom_sum _ _
+  have hz : (c • N) ^ m * Q = 0 := by rw [smul_pow, Matrix.smul_mul, h10, smul_zero]
+  have hQR : Q * rmat c N m = rmat c N m * Q := commute_rmat (Commute.symm h5) m
+  refine ⟨hRm, hmR, hz, ?_, ?_, ?_, hQR⟩
+  · rw [kmat, Matrix.mul_neg, ← Matrix.mul_assoc, ← Matrix.mul_assoc, hmR, Matrix.sub_mul,
+      Matrix.sub_mul, Matrix.one_mul, Matrix.mul_assoc ((c • N) ^ m), h5, ← Matrix.mul_assoc,
+      hz, Matrix.zero_mul, sub_zero]
+  · rw [kmat, Matrix.mul_neg, ← Matrix.mul_assoc, ← Matrix.mul_assoc, hQR, Matrix.mul_assoc _ Q,
+      ← h5, ← Matrix.mul_assoc, Matrix.mul_assoc _ N Q, Matrix.mul_assoc, Matrix.mul_assoc,
+      hQQ]
+  · rw [kmat, Matrix.neg_mul, Matrix.mul_assoc _ Q Q, hQQ]
+
+/-- Woodford (2003), App. C.1, p. 670: on the nilpotent block (`Q`-invariant vectors), the
+pencil equation `N e = (cN − 1) a + b` is the forward relation `a = K e + R b`. -/
+theorem pencilV_step {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ}
+    (hF : Fitting N m P Q Ni) (c : ℝ) {e a b : ι → Ω → ℝ} (ha : mv Q a = a) (hb : mv Q b = b)
+    (he : mv Q e = e) :
+    mv N e = mv (c • N - 1) a + b ↔ a = mv (kmat c N Q m) e + mv (rmat c N m) b := by
+  obtain ⟨hRm, hmR, hz, hK, -, -, -⟩ := nil_facts hF c
+  have hfix : ∀ v : ι → Ω → ℝ, mv Q v = v → mv (1 - (c • N) ^ m) v = v := by
+    intro v hv
+    have h0 : mv ((c • N) ^ m) v = 0 :=
+      calc mv ((c • N) ^ m) v = mv ((c • N) ^ m) (mv Q v) := by rw [hv]
+        _ = 0 := by rw [mv_mv, hz, zero_mv]
+    rw [sub_mv, mv_one, h0, sub_zero]
+  constructor
+  · intro h
+    have h1 : mv (1 - c • N) a = b - mv N e := by
+      rw [h, sub_mv, sub_mv, mv_one]
+      abel
+    calc a = mv (1 - (c • N) ^ m) a := (hfix a ha).symm
+      _ = mv (rmat c N m) (mv (1 - c • N) a) := by rw [mv_mv, hRm]
+      _ = mv (kmat c N Q m) e + mv (rmat c N m) b := by
+          rw [h1, mv_sub, kmat, neg_mv, ← mv_mv, ← mv_mv, he, mv_mv]
+          abel
+  · intro h
+    have h1 : mv (1 - c • N) a = b - mv N e := by
+      rw [h, mv_add, mv_mv, mv_mv, hmR, hfix b hb, hK, neg_mv, ← mv_mv, he]
+      abel
+    have h2 : mv (c • N - 1) a = -mv (1 - c • N) a := by
+      rw [← neg_mv, neg_sub]
+    rw [h2, h1]
+    abel
+
+/-- Woodford (2003), App. C.1, p. 670: the nilpotent block `N E_t q_{t+1} = (cN − 1) q_t + g_t`
+(`g` in the range of `Q`) has exactly one bounded adapted solution in the range of `Q` — its
+forward solution with the nilpotent matrix `K` (finitely many terms). -/
+theorem pencilV_existsUnique {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ}
+    (hF : Fitting N m P Q Ni) (c : ℝ) {g : ℕ → ι → Ω → ℝ} (hgQ : ∀ t, mv Q (g t) = g t)
+    (hgb : BoundedV g) (hga : AdaptedV 𝔼 g) :
+    (∃ q : ℕ → ι → Ω → ℝ, (∀ t, mv Q (q t) = q t) ∧
+      (∀ t, mv N (fun i => 𝔼.E t (q (t + 1) i)) = mv (c • N - 1) (q t) + g t) ∧
+      AdaptedV 𝔼 q ∧ BoundedV q) ∧
+    ∀ q₁ q₂ : ℕ → ι → Ω → ℝ, (∀ t, mv Q (q₁ t) = q₁ t) →
+      (∀ t, mv N (fun i => 𝔼.E t (q₁ (t + 1) i)) = mv (c • N - 1) (q₁ t) + g t) →
+      AdaptedV 𝔼 q₁ → BoundedV q₁ → (∀ t, mv Q (q₂ t) = q₂ t) →
+      (∀ t, mv N (fun i => 𝔼.E t (q₂ (t + 1) i)) = mv (c • N - 1) (q₂ t) + g t) →
+      AdaptedV 𝔼 q₂ → BoundedV q₂ → q₁ = q₂ := by
+  obtain ⟨-, -, -, -, hQK, hKQ, hQR⟩ := nil_facts hF c
+  obtain ⟨Cb, ρ, -, hρ0, hρ1, hK⟩ := pow_bound_of_pow_eq_zero (kmat_pow hF c)
+  have hfb : BoundedV (fun t => mv (rmat c N m) (g t)) := boundedV_mv _ hgb
+  have hfa : AdaptedV 𝔼 (fun t => mv (rmat c N m) (g t)) := adaptedV_mv 𝔼 _ hga
+  -- the pencil equation for `Q`-invariant processes is the forward system
+  have hiff : ∀ q : ℕ → ι → Ω → ℝ, (∀ t, mv Q (q t) = q t) →
+      ((∀ t, mv N (fun i => 𝔼.E t (q (t + 1) i)) = mv (c • N - 1) (q t) + g t) ↔
+        FSolves 𝔼 (kmat c N Q m) (fun t => mv (rmat c N m) (g t)) q) := by
+    intro q hq
+    have hEq : ∀ t, mv Q (fun i => 𝔼.E t (q (t + 1) i)) = fun i => 𝔼.E t (q (t + 1) i) := by
+      intro t
+      rw [← Enext_mv, hq]
+    unfold FSolves
+    exact forall_congr' fun t => pencilV_step hF c (hq t) (hgQ t) (hEq t)
+  obtain ⟨Mf, hMf⟩ := hfb
+  obtain ⟨s, hs, hsa, hsb⟩ := fsolves_exists 𝔼 hρ0.le hρ1 hK hMf hfa
+  have hsQ : ∀ t, mv Q (s t) = s t := by
+    have hs' : FSolves 𝔼 (kmat c N Q m) (fun t => mv (rmat c N m) (g t))
+        (fun t => mv Q (s t)) := by
+      intro t
+      have e := congrArg (mv Q) (hs t)
+      rw [mv_add, mv_mv, hQK, mv_mv, hQR, ← mv_mv, hgQ] at e
+      change mv Q (s t) = mv (kmat c N Q m) (fun j => 𝔼.E t (mv Q (s (t + 1)) j)) +
+        mv (rmat c N m) (g t)
+      rw [e, Enext_mv, mv_mv, hKQ]
+    have := fsolves_unique 𝔼 hρ0.le hρ1 hK hs' hs (adaptedV_mv 𝔼 Q hsa) hsa
+      (boundedV_mv Q hsb) hsb
+    exact fun t => congrFun this t
+  refine ⟨⟨s, hsQ, (hiff s hsQ).mpr hs, hsa, hsb⟩, ?_⟩
+  intro q₁ q₂ h1Q h1 h1a h1b h2Q h2 h2a h2b
+  exact fsolves_unique 𝔼 hρ0.le hρ1 hK ((hiff q₁ h1Q).mp h1) ((hiff q₂ h2Q).mp h2) h1a h2a h1b h2b
+
+/-! ### Pencil equilibria are standard-form equilibria -/
+
+/-- Woodford (2003), App. C.1, p. 670: with `B = cA₀ − A₁` invertible and `N = B⁻¹A₀`, the pencil
+equation `A₀ E_t y_{t+1} = A₁ y_t + w_t` is `N E_t y_{t+1} = (cN − 1) y_t + B⁻¹ w_t`. -/
+theorem pencil_reduce {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det)
+    (e y w : ι → Ω → ℝ) :
+    mv A0 e = mv A1 y + w ↔
+      mv ((c • A0 - A1)⁻¹ * A0) e = mv (c • ((c • A0 - A1)⁻¹ * A0) - 1) y +
+        mv (c • A0 - A1)⁻¹ w := by
+  set B := c • A0 - A1 with hBdef
+  have hA1 : A1 = c • A0 - B := by rw [hBdef]; abel
+  have h1 : B⁻¹ * A1 = c • (B⁻¹ * A0) - 1 := by
+    rw [hA1, Matrix.mul_sub, Matrix.mul_smul, Matrix.nonsing_inv_mul _ hB]
+  have h2 : B * (c • (B⁻¹ * A0) - 1) = A1 := by
+    rw [Matrix.mul_sub, Matrix.mul_smul, Matrix.mul_nonsing_inv_cancel_left _ _ hB,
+      Matrix.mul_one, hA1]
+  constructor
+  · intro h
+    have := congrArg (mv B⁻¹) h
+    rwa [mv_mv, mv_add, mv_mv, h1] at this
+  · intro h
+    have := congrArg (mv B) h
+    rwa [mv_mv, Matrix.mul_nonsing_inv_cancel_left _ _ hB, mv_add, mv_mv, h2, mv_mv,
+      Matrix.mul_nonsing_inv _ hB, mv_one] at this
+
+/-- Woodford (2003), App. C.1, p. 670: when the `Q` block of `y` is a process `q` solving both the
+pencil's nilpotent block and the standard form's `2`-block, and the `P` parts of the forcings
+agree, `y` solves the pencil system iff it solves `E_t y_{t+1} = Â y_t + ŵ_t`. -/
+theorem pencil_iff_ahat {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det) {m : ℕ}
+    {P Q Ni : Matrix ι ι ℝ} (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni)
+    {w wh y q : ℕ → ι → Ω → ℝ}
+    (hPw : ∀ t, mv P (wh t) = mv Ni (mv (c • A0 - A1)⁻¹ (w t)))
+    (hq2 : ∀ t, (fun i => 𝔼.E t (q (t + 1) i)) = (2 : ℝ) • q t + mv Q (wh t))
+    (hqN : ∀ t, mv ((c • A0 - A1)⁻¹ * A0) (fun i => 𝔼.E t (q (t + 1) i)) =
+      mv (c • ((c • A0 - A1)⁻¹ * A0) - 1) (q t) + mv Q (mv (c • A0 - A1)⁻¹ (w t)))
+    (hyq : ∀ t, mv Q (y t) = q t) :
+    SolvesPencil 𝔼 A0 A1 w y ↔ Solves 𝔼 (ahat c P Q Ni) wh y := by
+  have hEyq : ∀ t, mv Q (fun i => 𝔼.E t (y (t + 1) i)) = fun i => 𝔼.E t (q (t + 1) i) := by
+    intro t
+    rw [← Enext_mv, hyq]
+  have hS : Solves 𝔼 (ahat c P Q Ni) wh y ↔
+      ∀ t, (fun i => 𝔼.E t (y (t + 1) i)) = mv (ahat c P Q Ni) (y t) + wh t := by
+    constructor
+    · intro h t; funext i; exact h t i
+    · intro h t i; exact congrFun (h t) i
+  rw [hS]
+  unfold SolvesPencil
+  refine forall_congr' fun t => ?_
+  rw [pencil_reduce hB, split_pencil hF, split_ahat hF, hPw, hEyq, hyq, hqN t, hq2 t, smul_mv,
+    hyq]
+  simp only [and_true]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a `Q`-image process is `Q`-invariant. -/
+theorem mvQ_idem {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting N m P Q Ni)
+    (a : ι → Ω → ℝ) : mv Q (mv Q a) = mv Q a := by
+  rw [mv_mv, hF.basic.2.1]
+
+variable {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the nilpotent-block part of a pencil solution. -/
+theorem pencil_Vpart {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det) {m : ℕ}
+    {P Q Ni : Matrix ι ι ℝ} (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni)
+    {w y : ℕ → ι → Ω → ℝ} (hy : SolvesPencil 𝔼 A0 A1 w y) (t : ℕ) :
+    mv ((c • A0 - A1)⁻¹ * A0) (fun i => 𝔼.E t (mv Q (y (t + 1)) i)) =
+      mv (c • ((c • A0 - A1)⁻¹ * A0) - 1) (mv Q (y t)) + mv Q (mv (c • A0 - A1)⁻¹ (w t)) := by
+  have h := ((split_pencil hF c _ _ _).mp ((pencil_reduce hB _ _ _).mp (hy t))).2
+  rw [Enext_mv]
+  exact h
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): the `2`-block part of a standard-form solution. -/
+theorem ahat_Vpart {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting N m P Q Ni)
+    (c : ℝ) {wh y : ℕ → ι → Ω → ℝ} (hy : Solves 𝔼 (ahat c P Q Ni) wh y) (t : ℕ) :
+    (fun i => 𝔼.E t (mv Q (y (t + 1)) i)) = (2 : ℝ) • mv Q (y t) + mv Q (wh t) := by
+  have e : (fun i => 𝔼.E t (y (t + 1) i)) = mv (ahat c P Q Ni) (y t) + wh t := by
+    funext i; exact hy t i
+  have h := ((split_ahat hF c _ _ _).mp e).2
+  rw [Enext_mv, h, smul_mv]
+
+variable {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X]
+
+/-- **Singular pencils reduce to standard form** (Woodford (2003), App. C.1, p. 670; King and
+Watson (1998), Klein (2000)): if `det(cA₀ − A₁) ≠ 0` and `(P, Q, Ni)` is a Fitting decomposition
+of `N = (cA₀ − A₁)⁻¹A₀`, the pencil system `A₀ E_t y_{t+1} = A₁ y_t + w_t` (with `A₀` possibly
+singular) is determinate iff the standard-form system `E_t y_{t+1} = Â y_t + w_t` is,
+`Â = cP − Ni + 2Q`. -/
+theorem determinatePencil_iff_ahat {A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {c : ℝ}
+    (hB : IsUnit (c • A0 - A1).det) {m : ℕ} {P Q Ni : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni) :
+    DeterminatePencil 𝔼 A0 A1 ↔ Determinate 𝔼 (ahat c P Q Ni) := by
+  set B := c • A0 - A1 with hBdef
+  set N := B⁻¹ * A0 with hN
+  obtain ⟨hPP, hQQ, hPNi, hQNP⟩ := hF.basic
+  have hFc := hF
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, -⟩ := hFc
+  have hNiA : Ni * (c • N - 1) = c • P - Ni := by
+    rw [Matrix.mul_sub, Matrix.mul_smul, h7, Matrix.mul_one]
+  have hQA : Q * (c • N - 1) = (c • N - 1) * Q := by
+    rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_smul, Matrix.smul_mul, h5, Matrix.mul_one,
+      Matrix.one_mul]
+  have hPq : ∀ a : Z ⊕ X → Ω → ℝ, mv Q a = a → mv P a = 0 := fun a ha => by
+    rw [← ha, mv_mv, h2, zero_mv]
+  have hNiq : ∀ a : Z ⊕ X → Ω → ℝ, mv Q a = a → mv Ni a = 0 := fun a ha => by
+    rw [← ha, mv_mv, h9, zero_mv]
+  have hQidem : ∀ a : Z ⊕ X → Ω → ℝ, mv Q (mv Q a) = mv Q a := fun a => by rw [mv_mv, hQQ]
+  have hEQ : ∀ (q : ℕ → Z ⊕ X → Ω → ℝ) t, (∀ t, mv Q (q t) = q t) →
+      mv Q (fun i => 𝔼.E t (q (t + 1) i)) = fun i => 𝔼.E t (q (t + 1) i) := by
+    intro q t hq
+    rw [← Enext_mv, hq]
+  constructor
+  · -- pencil determinacy gives standard-form determinacy
+    intro hd wh hwb hwa x0
+    obtain ⟨q, ⟨hq2, hqa, hqb⟩, hqu⟩ :=
+      twoBlock_existsUnique 𝔼 (boundedV_mv Q hwb) (adaptedV_mv 𝔼 Q hwa)
+    have hqQ : ∀ t, mv Q (q t) = q t := by
+      have h' : (fun t => mv Q (q t)) = q := by
+        refine hqu _ ⟨fun t => ?_, adaptedV_mv 𝔼 Q hqa, boundedV_mv Q hqb⟩
+        change (fun i => 𝔼.E t (mv Q (q (t + 1)) i)) = (2 : ℝ) • mv Q (q t) + mv Q (wh t)
+        rw [Enext_mv, hq2 t, mv_add, mv_smul, hQidem]
+      exact fun t => congrFun h' t
+    set wt : ℕ → Z ⊕ X → Ω → ℝ := fun t => mv N (mv P (wh t)) +
+      (mv N (fun i => 𝔼.E t (q (t + 1) i)) - mv (c • N - 1) (q t)) with hwt
+    have hwtb : BoundedV wt := boundedV_add (boundedV_mv N (boundedV_mv P hwb))
+      (boundedV_sub (boundedV_mv N (boundedV_Enext 𝔼 hqb)) (boundedV_mv _ hqb))
+    have hwta : AdaptedV 𝔼 wt := adaptedV_add 𝔼 (adaptedV_mv 𝔼 N (adaptedV_mv 𝔼 P hwa))
+      (adaptedV_sub 𝔼 (adaptedV_mv 𝔼 N (adaptedV_Enext 𝔼 q)) (adaptedV_mv 𝔼 _ hqa))
+    have hBw : ∀ t, mv B⁻¹ (mv B (wt t)) = wt t := fun t => by
+      rw [mv_mv, Matrix.nonsing_inv_mul _ hB, mv_one]
+    have hPw : ∀ t, mv P (wh t) = mv Ni (mv B⁻¹ (mv B (wt t))) := by
+      intro t
+      rw [hBw, hwt]
+      simp only
+      rw [mv_add, mv_sub, mv_mv N P, mv_mv Ni (N * P), ← Matrix.mul_assoc Ni N P, h7, hPP,
+        mv_mv Ni N, h7, hPq _ (hEQ q t hqQ), mv_mv Ni (c • N - 1), hNiA, sub_mv, smul_mv,
+        hPq _ (hqQ t), hNiq _ (hqQ t), smul_zero, sub_zero, sub_zero, add_zero]
+    have hqN : ∀ t, mv N (fun i => 𝔼.E t (q (t + 1) i)) =
+        mv (c • N - 1) (q t) + mv Q (mv B⁻¹ (mv B (wt t))) := by
+      intro t
+      rw [hBw, hwt]
+      simp only
+      have e1 : mv Q (mv N (mv P (wh t))) = 0 := by
+        rw [mv_mv N P, mv_mv Q (N * P), ← Matrix.mul_assoc Q N P, hQNP, zero_mv]
+      have e2 : mv Q (mv N (fun i => 𝔼.E t (q (t + 1) i))) =
+          mv N (fun i => 𝔼.E t (q (t + 1) i)) := by
+        rw [mv_mv Q N, ← h5, ← mv_mv N Q, hEQ q t hqQ]
+      have e3 : mv Q (mv (c • N - 1) (q t)) = mv (c • N - 1) (q t) := by
+        rw [mv_mv Q (c • N - 1), hQA, ← mv_mv (c • N - 1) Q, hqQ t]
+      rw [mv_add, mv_sub, e1, e2, e3, zero_add]
+      abel
+    obtain ⟨y, hy, hyu⟩ := hd (fun t => mv B (wt t)) (boundedV_mv B hwtb)
+      (adaptedV_mv 𝔼 B hwta) x0
+    have hgb : BoundedV (fun t => mv Q (mv B⁻¹ (mv B (wt t)))) :=
+      boundedV_mv Q (boundedV_mv _ (boundedV_mv B hwtb))
+    have hga : AdaptedV 𝔼 (fun t => mv Q (mv B⁻¹ (mv B (wt t)))) :=
+      adaptedV_mv 𝔼 Q (adaptedV_mv 𝔼 _ (adaptedV_mv 𝔼 B hwta))
+    have hVu := (pencilV_existsUnique 𝔼 hF c (g := fun t => mv Q (mv B⁻¹ (mv B (wt t))))
+      (fun t => hQidem _) hgb hga).2
+    have hyq : ∀ t, mv Q (y t) = q t := by
+      have := hVu (fun t => mv Q (y t)) q (fun t => hQidem _)
+        (fun t => pencil_Vpart 𝔼 hB hF hy.1 t) (adaptedV_mv 𝔼 Q hy.2.1)
+        (boundedV_mv Q hy.2.2.2.2) hqQ hqN hqa hqb
+      exact fun t => congrFun this t
+    refine ⟨y, ⟨(pencil_iff_ahat 𝔼 hB hF (w := fun t => mv B (wt t)) hPw hq2 hqN hyq).mp hy.1,
+      hy.2⟩, fun y'' hy'' => ?_⟩
+    have hyq'' : ∀ t, mv Q (y'' t) = q t := by
+      have := hqu (fun t => mv Q (y'' t)) ⟨fun t => ahat_Vpart 𝔼 hF c hy''.1 t,
+        adaptedV_mv 𝔼 Q hy''.2.1, boundedV_mv Q hy''.2.2.2.2⟩
+      exact fun t => congrFun this t
+    exact hyu y'' ⟨(pencil_iff_ahat 𝔼 hB hF (w := fun t => mv B (wt t)) hPw hq2 hqN
+      hyq'').mpr hy''.1, hy''.2⟩
+  · -- standard-form determinacy gives pencil determinacy
+    intro hd w hwb hwa x0
+    have hgQ : ∀ t, mv Q (mv Q (mv B⁻¹ (w t))) = mv Q (mv B⁻¹ (w t)) := fun t => hQidem _
+    have hgb : BoundedV (fun t => mv Q (mv B⁻¹ (w t))) := boundedV_mv Q (boundedV_mv _ hwb)
+    have hga : AdaptedV 𝔼 (fun t => mv Q (mv B⁻¹ (w t))) :=
+      adaptedV_mv 𝔼 Q (adaptedV_mv 𝔼 _ hwa)
+    obtain ⟨⟨s, hsQ, hs, hsa, hsb⟩, hsu⟩ := pencilV_existsUnique 𝔼 hF c hgQ hgb hga
+    set wh : ℕ → Z ⊕ X → Ω → ℝ := fun t => mv Ni (mv B⁻¹ (w t)) +
+      ((fun i => 𝔼.E t (s (t + 1) i)) - (2 : ℝ) • s t) with hwh
+    have hwhb : BoundedV wh := boundedV_add (boundedV_mv Ni (boundedV_mv _ hwb))
+      (boundedV_sub (boundedV_Enext 𝔼 hsb) (boundedV_smul 2 hsb))
+    have hwha : AdaptedV 𝔼 wh := adaptedV_add 𝔼 (adaptedV_mv 𝔼 Ni (adaptedV_mv 𝔼 _ hwa))
+      (adaptedV_sub 𝔼 (adaptedV_Enext 𝔼 s) (adaptedV_smul 𝔼 2 hsa))
+    have hPw : ∀ t, mv P (wh t) = mv Ni (mv B⁻¹ (w t)) := by
+      intro t
+      simp only [hwh]
+      rw [mv_add, mv_sub, mv_mv P Ni, hPNi, hPq _ (hEQ s t hsQ), mv_smul, hPq _ (hsQ t),
+        smul_zero, sub_zero, add_zero]
+    have hq2 : ∀ t, (fun i => 𝔼.E t (s (t + 1) i)) = (2 : ℝ) • s t + mv Q (wh t) := by
+      intro t
+      simp only [hwh]
+      rw [mv_add, mv_sub, mv_mv Q Ni, h8, zero_mv, hEQ s t hsQ, mv_smul, hsQ t]
+      abel
+    obtain ⟨y, hy, hyu⟩ := hd wh hwhb hwha x0
+    have h2u := twoBlock_existsUnique 𝔼 (boundedV_mv Q hwhb) (adaptedV_mv 𝔼 Q hwha)
+    have hyq : ∀ t, mv Q (y t) = s t := by
+      have := h2u.unique ⟨fun t => ahat_Vpart 𝔼 hF c hy.1 t, adaptedV_mv 𝔼 Q hy.2.1,
+        boundedV_mv Q hy.2.2.2.2⟩ ⟨hq2, hsa, hsb⟩
+      exact fun t => congrFun this t
+    refine ⟨y, ⟨(pencil_iff_ahat 𝔼 hB hF hPw hq2 hs hyq).mpr hy.1, hy.2⟩, fun y'' hy'' => ?_⟩
+    have hyq'' : ∀ t, mv Q (y'' t) = s t := by
+      have := hsu (fun t => mv Q (y'' t)) s (fun t => hQidem _)
+        (fun t => pencil_Vpart 𝔼 hB hF hy''.1 t) (adaptedV_mv 𝔼 Q hy''.2.1)
+        (boundedV_mv Q hy''.2.2.2.2) hsQ hs hsa hsb
+      exact fun t => congrFun this t
+    exact hyu y'' ⟨(pencil_iff_ahat 𝔼 hB hF hPw hq2 hs hyq'').mp hy''.1, hy''.2⟩
+
+/-! ### The generalised eigenvalues -/
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): an element commuting with complementary
+idempotents `p`, `q` factors as `x = (xp + q)(p + xq)`. -/
+theorem factor_idem {R : Type*} [Ring R] {x p q : R} (h1 : p + q = 1) (hpq : p * q = 0)
+    (hqp : q * p = 0) (hpp : p * p = p) (hqq : q * q = q) (hxp : x * p = p * x)
+    (hxq : x * q = q * x) : x = (x * p + q) * (p + x * q) := by
+  have e1 : x * p * p = x * p := by rw [mul_assoc, hpp]
+  have e2 : x * p * (x * q) = 0 := by
+    rw [mul_assoc, ← mul_assoc p x q, ← hxp, mul_assoc x p q, hpq, mul_zero, mul_zero]
+  have e3 : q * (x * q) = x * q := by rw [← mul_assoc, ← hxq, mul_assoc, hqq]
+  rw [add_mul, mul_add, mul_add, e1, e2, hqp, e3, add_zero, zero_add, ← mul_add, h1, mul_one]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `det(1 + sM) = 1` for nilpotent `M`. -/
+theorem det_one_add_smul_nilpotent {M : Matrix ι ι ℝ} (hM : IsNilpotent M) (s : ℝ) :
+    (1 + s • M).det = 1 := by
+  obtain ⟨r, hr, hrp⟩ := Polynomial.isUnit_iff.mp (Matrix.isUnit_charpolyRev_of_isNilpotent hM)
+  have h0 := Matrix.eval_charpolyRev (M := M)
+  rw [← hrp, eval_C] at h0
+  have hcr : M.charpolyRev = 1 := by rw [← hrp, h0, C_1]
+  have e : (1 + s • M).det = M.charpolyRev.eval (-s) := by
+    rw [Matrix.charpolyRev, ← coe_evalRingHom, RingHom.map_det]
+    congr 1
+    ext i j
+    by_cases hij : i = j
+    · subst hij; simp [mul_comm s]
+    · simp [Matrix.one_apply_ne hij, mul_comm s]
+  rw [e, hcr, eval_one]
+
+/-- Woodford (2003), App. C.1, p. 670: the factor `det((λ − Â)P + Q)` of the characteristic
+polynomial of `Â` — the finite generalised eigenvalues. -/
+noncomputable def fpoly (A P Q : Matrix ι ι ℝ) : ℝ[X] :=
+  (A.charmatrix * (C : ℝ →+* ℝ[X]).mapMatrix P + (C : ℝ →+* ℝ[X]).mapMatrix Q).det
+
+/-- Woodford (2003), App. C.1, p. 670: the factor `det(P + (λ − 2)Q)` of the characteristic
+polynomial of `Â` — the placeholder value `2` for the infinite generalised eigenvalues. -/
+noncomputable def gpoly (P Q : Matrix ι ι ℝ) : ℝ[X] :=
+  ((C : ℝ →+* ℝ[X]).mapMatrix P +
+    Matrix.scalar ι (Polynomial.X - C 2 : ℝ[X]) * (C : ℝ →+* ℝ[X]).mapMatrix Q).det
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): evaluating the determinant of a polynomial matrix. -/
+theorem eval_det_mapMatrix (M : Matrix ι ι ℝ[X]) (r : ℝ) :
+    M.det.eval r = ((evalRingHom r).mapMatrix M).det := by
+  rw [← coe_evalRingHom, RingHom.map_det]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `f(r) = det((r − Â)P + Q)`. -/
+theorem eval_fpoly (A P Q : Matrix ι ι ℝ) (r : ℝ) :
+    (fpoly A P Q).eval r = ((r • 1 - A) * P + Q).det := by
+  rw [fpoly, eval_det_mapMatrix]
+  congr 1
+  rw [map_add, map_mul]
+  congr 2
+  · ext i j
+    by_cases hij : i = j
+    · subst hij; simp
+    · simp [hij, Matrix.one_apply_ne hij]
+  · ext i j; simp
+  · ext i j; simp
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `g(r) = det(P + (r − 2)Q)`. -/
+theorem eval_gpoly (P Q : Matrix ι ι ℝ) (r : ℝ) :
+    (gpoly P Q).eval r = (P + (r - 2) • Q).det := by
+  rw [gpoly, eval_det_mapMatrix]
+  congr 1
+  rw [map_add, map_mul]
+  congr 1
+  · ext i j; simp
+  · ext i j
+    simp [Matrix.scalar_apply, Matrix.diagonal_mul, Matrix.smul_apply]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `det(rA₀ − A₁)` as the value of `pencilPoly`. -/
+theorem eval_pencilPoly (A0 A1 : Matrix ι ι ℝ) (r : ℝ) :
+    (pencilPoly A0 A1).eval r = (r • A0 - A1).det := by
+  rw [pencilPoly, eval_det_mapMatrix]
+  congr 1
+  rw [map_sub, map_mul]
+  ext i j
+  simp [Matrix.scalar_apply, Matrix.diagonal_mul, Matrix.smul_apply]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `Â` commutes with `P` and `Q`: `ÂP = PÂ = cP − Ni`,
+`ÂQ = QÂ = 2Q`. -/
+theorem ahat_comm {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting N m P Q Ni)
+    (c : ℝ) : ahat c P Q Ni * P = c • P - Ni ∧ ahat c P Q Ni * Q = (2 : ℝ) • Q ∧
+      P * ahat c P Q Ni = c • P - Ni ∧ Q * ahat c P Q Ni = (2 : ℝ) • Q := by
+  obtain ⟨hPP, hQQ, -, -⟩ := hF.basic
+  obtain ⟨hPA, hQA⟩ := ahat_proj hF c
+  obtain ⟨h1, h2, h3, -, -, -, -, -, h9, -⟩ := hF
+  have hNiP : Ni * P = Ni := by
+    calc Ni * P = Ni * (P + Q) := by rw [Matrix.mul_add, h9, add_zero]
+      _ = Ni := by rw [h1, Matrix.mul_one]
+  refine ⟨?_, ?_, hPA, hQA⟩
+  · rw [ahat, Matrix.add_mul, Matrix.sub_mul, Matrix.smul_mul, Matrix.smul_mul, hPP, hNiP, h3,
+      smul_zero, add_zero]
+  · rw [ahat, Matrix.add_mul, Matrix.sub_mul, Matrix.smul_mul, Matrix.smul_mul, h2, h9, hQQ,
+      smul_zero, zero_sub, neg_zero, zero_add]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `scalar r = r • 1`. -/
+theorem scalar_eq_smul_one (r : ℝ) : Matrix.scalar ι r = r • (1 : Matrix ι ι ℝ) := by
+  ext i j
+  by_cases hij : i = j
+  · subst hij; simp
+  · simp [hij, Matrix.one_apply_ne hij]
+
+/-- **The characteristic polynomials** (Woodford (2003), App. C.1, p. 670; King and Watson (1998),
+Klein (2000)): `det(λA₀ − A₁) = κ f(λ)` with `κ = det(cA₀ − A₁) det(NP + Q) ≠ 0`, and
+`det(λ − Â) = f(λ) g(λ)`. -/
+theorem poly_relations {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det) {m : ℕ}
+    {P Q Ni : Matrix ι ι ℝ} (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni) :
+    pencilPoly A0 A1 = C ((c • A0 - A1).det * ((c • A0 - A1)⁻¹ * A0 * P + Q).det) *
+        fpoly (ahat c P Q Ni) P Q ∧
+      (ahat c P Q Ni).charpoly = fpoly (ahat c P Q Ni) P Q * gpoly P Q := by
+  set B := c • A0 - A1 with hBdef
+  set N := B⁻¹ * A0 with hN
+  set Ah := ahat c P Q Ni with hAh
+  obtain ⟨hPP, hQQ, hPNi, hQNP⟩ := hF.basic
+  obtain ⟨hAP, hAQ, hPA, hQA⟩ := ahat_comm hF c
+  have hFc := hF
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hFc
+  -- the factor `det((r − Â)P + Q) · det(P + (r − 2)Q)` of `det(r − Â)`
+  have hfac1 : ∀ r : ℝ, (r • 1 - Ah).det =
+      ((r • 1 - Ah) * P + Q).det * (P + (r - 2) • Q).det := by
+    intro r
+    have hxp : (r • 1 - Ah) * P = P * (r • 1 - Ah) := by
+      rw [Matrix.sub_mul, Matrix.mul_sub, Matrix.smul_mul, Matrix.mul_smul, Matrix.one_mul,
+        Matrix.mul_one, hAP, hPA]
+    have hxq : (r • 1 - Ah) * Q = Q * (r • 1 - Ah) := by
+      rw [Matrix.sub_mul, Matrix.mul_sub, Matrix.smul_mul, Matrix.mul_smul, Matrix.one_mul,
+        Matrix.mul_one, hAQ, hQA]
+    have hq2 : (r • 1 - Ah) * Q = (r - 2) • Q := by
+      rw [Matrix.sub_mul, Matrix.smul_mul, Matrix.one_mul, hAQ, sub_smul]
+    conv_lhs => rw [factor_idem h1 h2 h3 hPP hQQ hxp hxq]
+    rw [Matrix.det_mul, hq2]
+  -- `NQ` is nilpotent
+  have hNQ : IsNilpotent (N * Q) := by
+    refine ⟨m + 1, ?_⟩
+    rw [(show Commute N Q from h5).mul_pow, pow_succ', pow_succ', Matrix.mul_assoc,
+      ← Matrix.mul_assoc (N ^ m), h10, Matrix.zero_mul, Matrix.mul_zero]
+  -- the factor of `det(rA₀ − A₁)`
+  have hfac2 : ∀ r : ℝ, (r • A0 - A1).det =
+      B.det * (N * P + Q).det * ((r • 1 - Ah) * P + Q).det := by
+    intro r
+    set Y := (r - c) • N + 1 with hY
+    have hBY : r • A0 - A1 = B * Y := by
+      rw [hY, Matrix.mul_add, Matrix.mul_smul, Matrix.mul_one, hN,
+        Matrix.mul_nonsing_inv_cancel_left _ _ hB, hBdef, sub_smul]
+      abel
+    have hyp : Y * P = P * Y := by
+      rw [hY, Matrix.add_mul, Matrix.mul_add, Matrix.smul_mul, Matrix.mul_smul, h4,
+        Matrix.one_mul, Matrix.mul_one]
+    have hyq : Y * Q = Q * Y := by
+      rw [hY, Matrix.add_mul, Matrix.mul_add, Matrix.smul_mul, Matrix.mul_smul, h5,
+        Matrix.one_mul, Matrix.mul_one]
+    have hdet1 : (P + Y * Q).det = 1 := by
+      have : P + Y * Q = 1 + (r - c) • (N * Q) := by
+        rw [hY, Matrix.add_mul, Matrix.smul_mul, Matrix.one_mul, ← h1]
+        abel
+      rw [this, det_one_add_smul_nilpotent hNQ]
+    have hD : Y * P + Q = (N * P + Q) * ((r • 1 - Ah) * P + Q) := by
+      rw [Matrix.sub_mul, Matrix.smul_mul, Matrix.one_mul, hAP, hY]
+      simp only [Matrix.add_mul, Matrix.mul_add, Matrix.sub_mul, Matrix.mul_sub,
+        Matrix.smul_mul, Matrix.mul_smul, Matrix.mul_assoc, Matrix.one_mul, hPP, hPNi, h6, h2, h3,
+        h8, hQQ, Matrix.mul_zero, add_zero, zero_add, sub_smul]
+      abel
+    rw [hBY, Matrix.det_mul, factor_idem h1 h2 h3 hPP hQQ hyp hyq, Matrix.det_mul, hdet1,
+      mul_one, hD, Matrix.det_mul, ← mul_assoc]
+  constructor
+  · refine Polynomial.funext fun r => ?_
+    rw [eval_pencilPoly, eval_mul, eval_C, eval_fpoly, hfac2]
+  · refine Polynomial.funext fun r => ?_
+    rw [Matrix.eval_charpoly, eval_mul, eval_fpoly, eval_gpoly, scalar_eq_smul_one, hfac1]
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): `NP + Q` is invertible, with inverse `Ni + Q`. -/
+theorem det_NPQ_ne_zero {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ}
+    (hF : Fitting N m P Q Ni) : (N * P + Q).det ≠ 0 := by
+  obtain ⟨-, hQQ, hPNi, -⟩ := hF.basic
+  obtain ⟨h1, h2, -, -, -, h6, -, h8, -, -⟩ := hF
+  have h : (N * P + Q) * (Ni + Q) = 1 := by
+    rw [Matrix.add_mul, Matrix.mul_add, Matrix.mul_add, Matrix.mul_assoc, hPNi, h6,
+      Matrix.mul_assoc, h2, Matrix.mul_zero, h8, hQQ, add_zero, zero_add, h1]
+  intro h0
+  have := congrArg Matrix.det h
+  rw [Matrix.det_mul, h0, zero_mul, Matrix.det_one] at this
+  exact zero_ne_one this
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): every complex root of `g(λ) = det(P + (λ − 2)Q)` is
+`2`. -/
+theorem gpoly_roots {N : Matrix ι ι ℝ} {m : ℕ} {P Q Ni : Matrix ι ι ℝ}
+    (hF : Fitting N m P Q Ni) : ∀ μ ∈ ((gpoly P Q).map Complex.ofRealHom).roots, μ = 2 := by
+  obtain ⟨hPP, hQQ, -, -⟩ := hF.basic
+  obtain ⟨h1, h2, h3, -⟩ := hF
+  intro μ hμ
+  have hne : (gpoly P Q).map Complex.ofRealHom ≠ 0 := fun h0 => by simp [h0] at hμ
+  rw [mem_roots hne, IsRoot, eval_map, ← coe_eval₂RingHom, gpoly, RingHom.map_det] at hμ
+  set Pc := P.map Complex.ofReal with hPc
+  set Qc := Q.map Complex.ofReal with hQc
+  have hmap : (eval₂RingHom Complex.ofRealHom μ).mapMatrix
+      ((C : ℝ →+* ℝ[X]).mapMatrix P +
+        Matrix.scalar ι (Polynomial.X - C 2 : ℝ[X]) * (C : ℝ →+* ℝ[X]).mapMatrix Q) =
+      Pc + (μ - 2) • Qc := by
+    ext i j
+    simp [hPc, hQc, Matrix.scalar_apply, Matrix.diagonal_mul, Matrix.smul_apply]
+  rw [hmap] at hμ
+  obtain ⟨v, hv0, hv⟩ := Matrix.exists_mulVec_eq_zero_iff.mpr hμ
+  have hm : ∀ M M' : Matrix ι ι ℝ, (M * M').map Complex.ofReal =
+      M.map Complex.ofReal * M'.map Complex.ofReal := fun M M' =>
+    Matrix.map_mul (f := Complex.ofRealHom)
+  have hPPc : Pc * Pc = Pc := by rw [hPc, ← hm, hPP]
+  have hQQc : Qc * Qc = Qc := by rw [hQc, ← hm, hQQ]
+  have hPQc : Pc * Qc = 0 := by rw [hPc, hQc, ← hm, h2, Matrix.map_zero _ (by simp)]
+  have hQPc : Qc * Pc = 0 := by rw [hPc, hQc, ← hm, h3, Matrix.map_zero _ (by simp)]
+  have h1c : Pc + Qc = 1 := by
+    rw [hPc, hQc, ← Matrix.map_add _ (by simp), h1]
+    exact Matrix.map_one _ (by simp) (by simp)
+  have hPv : Pc *ᵥ v = 0 := by
+    have := congrArg (Pc *ᵥ ·) hv
+    simp only [Matrix.mulVec_zero, Matrix.mulVec_mulVec, Matrix.mul_add, Matrix.mul_smul,
+      hPPc, hPQc, smul_zero, add_zero] at this
+    exact this
+  have hQv : (μ - 2) • (Qc *ᵥ v) = 0 := by
+    have := congrArg (Qc *ᵥ ·) hv
+    simp only [Matrix.mulVec_zero, Matrix.mulVec_mulVec, Matrix.mul_add, Matrix.mul_smul,
+      hQPc, hQQc, zero_add, Matrix.smul_mulVec] at this
+    exact this
+  by_contra h2'
+  have hQv' : Qc *ᵥ v = 0 := (smul_eq_zero.mp hQv).resolve_left (sub_ne_zero.mpr h2')
+  apply hv0
+  rw [← Matrix.one_mulVec v, ← h1c, Matrix.add_mulVec, hPv, hQv', add_zero]
+
+/-- Woodford (2003), App. C.1, p. 670: the eigenvalues of `Â`, with multiplicity, are the roots of
+`det(λA₀ − A₁)` together with copies of the placeholder `2`. -/
+theorem eigs_ahat {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det) {m : ℕ}
+    {P Q Ni : Matrix ι ι ℝ} (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni) :
+    eigs (ahat c P Q Ni) = ((pencilPoly A0 A1).map Complex.ofRealHom).roots +
+      ((gpoly P Q).map Complex.ofRealHom).roots := by
+  obtain ⟨hp, hc⟩ := poly_relations hB hF
+  have hκ : (Complex.ofRealHom ((c • A0 - A1).det * ((c • A0 - A1)⁻¹ * A0 * P + Q).det)) ≠ 0 := by
+    simpa using mul_ne_zero hB.ne_zero (det_NPQ_ne_zero hF)
+  have hne : (fpoly (ahat c P Q Ni) P Q).map Complex.ofRealHom *
+      (gpoly P Q).map Complex.ofRealHom ≠ 0 := by
+    rw [← Polynomial.map_mul, ← hc]
+    exact ((Matrix.charpoly_monic _).map _).ne_zero
+  rw [eigs, charpoly_map_ofReal, hc, Polynomial.map_mul, roots_mul hne, hp, Polynomial.map_mul,
+    Polynomial.map_C, roots_C_mul _ hκ]
+
+/-- Woodford (2003), App. C.1, p. 670: no eigenvalue of `Â` on the unit circle iff no root of
+`det(λA₀ − A₁)` on it. -/
+theorem noUnit_ahat_iff {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det) {m : ℕ}
+    {P Q Ni : Matrix ι ι ℝ} (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni) :
+    NoUnit (ahat c P Q Ni) ↔ ∀ μ ∈ ((pencilPoly A0 A1).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1 := by
+  rw [NoUnit, eigs_ahat hB hF]
+  constructor
+  · intro h μ hμ
+    exact h μ (Multiset.mem_add.mpr (Or.inl hμ))
+  · intro h μ hμ
+    rcases Multiset.mem_add.mp hμ with h1 | h2
+    · exact h μ h1
+    · rw [gpoly_roots hF μ h2]
+      norm_num
+
+/-- Woodford (2003), App. C.1, p. 670: the eigenvalues of `Â` in the open unit disc are the roots
+of `det(λA₀ − A₁)` there, with multiplicity. -/
+theorem stableCount_ahat {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det)
+    {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni) :
+    stableCount (ahat c P Q Ni) =
+      Multiset.card (((pencilPoly A0 A1).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) := by
+  have hg0 : ((gpoly P Q).map Complex.ofRealHom).roots.filter (fun μ => ‖μ‖ < 1) = 0 :=
+    Multiset.filter_eq_nil.mpr (fun μ hμ => by rw [gpoly_roots hF μ hμ]; norm_num)
+  rw [stableCount, eigs_ahat hB hF, Multiset.filter_add, hg0, add_zero]
+
+/-- Woodford (2003), App. C.1, p. 670: `v` starts a bounded deterministic solution of
+`A₀ y_{t+1} = A₁ y_t`. -/
+def PencilBounded (A0 A1 : Matrix ι ι ℝ) (v : ι → ℝ) : Prop :=
+  ∃ y : ℕ → ι → ℝ, y 0 = v ∧ (∃ C, ∀ t i, |y t i| ≤ C) ∧ ∀ t, A0 *ᵥ y (t + 1) = A1 *ᵥ y t
+
+/-- Woodford (2003), App. C.1, p. 670: the bounded orbits of `Â` are exactly the initial values of
+bounded deterministic solutions of the pencil system `A₀ y_{t+1} = A₁ y_t` — the stable deflating
+subspace of the pencil. -/
+theorem mem_boundedOrbits_ahat {A0 A1 : Matrix ι ι ℝ} {c : ℝ} (hB : IsUnit (c • A0 - A1).det)
+    {m : ℕ} {P Q Ni : Matrix ι ι ℝ} (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni)
+    (v : ι → ℝ) : v ∈ boundedOrbits (ahat c P Q Ni) ↔ PencilBounded A0 A1 v := by
+  set B := c • A0 - A1 with hBdef
+  set N := B⁻¹ * A0 with hN
+  set Ah := ahat c P Q Ni with hAh
+  obtain ⟨hPP, hQQ, hPNi, -⟩ := hF.basic
+  obtain ⟨hAP, hAQ, -, hQA⟩ := ahat_comm hF c
+  obtain ⟨hRm, -, hz, -, -, hKQ, hQR⟩ := nil_facts hF c
+  have hKpow := kmat_pow hF c
+  have hFc := hF
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hFc
+  have hBN : B * N = A0 := Matrix.mul_nonsing_inv_cancel_left _ _ hB
+  have hBA : B * (c • N - 1) = A1 := by
+    rw [Matrix.mul_sub, Matrix.mul_smul, hBN, Matrix.mul_one, hBdef]; abel
+  have hred : ∀ a b : ι → ℝ, A0 *ᵥ a = A1 *ᵥ b ↔ N *ᵥ a = (c • N - 1) *ᵥ b := by
+    intro a b
+    constructor
+    · intro h
+      have := congrArg (B⁻¹ *ᵥ ·) h
+      simp only [Matrix.mulVec_mulVec] at this
+      rw [← hBA, ← Matrix.mul_assoc, Matrix.nonsing_inv_mul _ hB, Matrix.one_mul] at this
+      exact this
+    · intro h
+      rw [← hBN, ← hBA, ← Matrix.mulVec_mulVec, h, Matrix.mulVec_mulVec]
+  constructor
+  · rintro ⟨C, hC⟩
+    -- the `Q` component of a bounded orbit vanishes
+    have hQpow : ∀ t, Q * Ah ^ t = (2 : ℝ) ^ t • Q := by
+      intro t
+      induction t with
+      | zero => simp
+      | succ t ih =>
+        rw [pow_succ, ← Matrix.mul_assoc, ih, Matrix.smul_mul, hQA, smul_smul, pow_succ]
+    have hQv : Q *ᵥ v = 0 := by
+      funext i
+      by_contra hi
+      have hb : ∀ t : ℕ, ‖(2 : ℂ) ^ t * ((Q *ᵥ v) i : ℂ)‖ ≤
+          Fintype.card ι * ((∑ i, ∑ j, |Q i j|) * C) := by
+        intro t
+        have e : (Q *ᵥ (Ah ^ t *ᵥ v)) i = 2 ^ t * (Q *ᵥ v) i := by
+          rw [Matrix.mulVec_mulVec, hQpow, Matrix.smul_mulVec, Pi.smul_apply, smul_eq_mul]
+        rw [← Complex.ofReal_ofNat, ← Complex.ofReal_pow, ← Complex.ofReal_mul, Complex.norm_real,
+          Real.norm_eq_abs, ← e]
+        exact BKInvariantSplit.abs_mulVec_le Q _ (BKInvariantSplit.abs_entry_le_sum Q)
+          (hC t) i
+      have := norm_le_one_of_bounded_pow_mul (by exact_mod_cast hi) hb
+      norm_num at this
+    have hQy : ∀ t, Q *ᵥ (Ah ^ t *ᵥ v) = 0 := by
+      intro t
+      rw [Matrix.mulVec_mulVec, hQpow, Matrix.smul_mulVec, hQv, smul_zero]
+    refine ⟨fun t => Ah ^ t *ᵥ v, by simp, ⟨C, hC⟩, fun t => (hred _ _).mpr ?_⟩
+    change N *ᵥ (Ah ^ (t + 1) *ᵥ v) = (c • N - 1) *ᵥ (Ah ^ t *ᵥ v)
+    rw [pow_succ', ← Matrix.mulVec_mulVec v Ah (Ah ^ t),
+      Matrix.mulVec_mulVec (Ah ^ t *ᵥ v) N Ah]
+    set u := Ah ^ t *ᵥ v with hu
+    have hPu : P *ᵥ u = u := by
+      conv_rhs => rw [← Matrix.one_mulVec u, ← h1, Matrix.add_mulVec, hQy t, add_zero]
+    have hNA : N * Ah = c • (N * P) - P + (2 : ℝ) • (N * Q) := by
+      rw [hAh, ahat, Matrix.mul_add, Matrix.mul_sub, Matrix.mul_smul, Matrix.mul_smul, h6]
+    rw [hNA, Matrix.add_mulVec, Matrix.sub_mulVec, Matrix.smul_mulVec, Matrix.smul_mulVec,
+      ← Matrix.mulVec_mulVec u N P, ← Matrix.mulVec_mulVec u N Q, hQy t, Matrix.mulVec_zero,
+      smul_zero, add_zero, hPu, Matrix.sub_mulVec, Matrix.smul_mulVec, Matrix.one_mulVec]
+  · rintro ⟨y, hy0, ⟨C, hC⟩, hy⟩
+    have hNy : ∀ t, N *ᵥ y (t + 1) = (c • N - 1) *ᵥ y t := fun t => (hred _ _).mp (hy t)
+    -- the `Q` component: `Q y_t = K Q y_{t+1}`, and `K` is nilpotent
+    have hRQN : rmat c N m * Q * N = -kmat c N Q m := by
+      rw [kmat, neg_neg, Matrix.mul_assoc, ← h5, ← Matrix.mul_assoc]
+    have hQc : Q * (c • N - 1) = (c • N - 1) * Q := by
+      rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_smul, Matrix.smul_mul, h5, Matrix.mul_one,
+        Matrix.one_mul]
+    have hRQA : rmat c N m * Q * (c • N - 1) = -Q := by
+      calc rmat c N m * Q * (c • N - 1) = rmat c N m * ((c • N - 1) * Q) := by
+            rw [Matrix.mul_assoc, hQc]
+        _ = -(rmat c N m * (1 - c • N) * Q) := by
+            rw [← neg_sub (1 : Matrix ι ι ℝ) (c • N), Matrix.neg_mul, Matrix.mul_neg,
+              Matrix.mul_assoc]
+        _ = -Q := by rw [hRm, Matrix.sub_mul, Matrix.one_mul, hz, sub_zero]
+    have hKP : kmat c N Q m * P = 0 := by
+      rw [kmat, Matrix.neg_mul, Matrix.mul_assoc, h3, Matrix.mul_zero, neg_zero]
+    have hQstep : ∀ t, Q *ᵥ y t = kmat c N Q m *ᵥ (Q *ᵥ y (t + 1)) := by
+      intro t
+      have e := congrArg ((rmat c N m * Q) *ᵥ ·) (hNy t)
+      simp only [Matrix.mulVec_mulVec] at e
+      rw [hRQN, hRQA, Matrix.neg_mulVec, Matrix.neg_mulVec, neg_inj] at e
+      rw [← e, Matrix.mulVec_mulVec, hKQ]
+    have hQiter : ∀ k t, Q *ᵥ y t = kmat c N Q m ^ k *ᵥ (Q *ᵥ y (t + k)) := by
+      intro k
+      induction k with
+      | zero => intro t; simp
+      | succ k ih =>
+        intro t
+        rw [ih t, hQstep (t + k), Matrix.mulVec_mulVec, ← pow_succ, show t + k + 1 = t + (k + 1)
+          by omega]
+    have hQ0 : ∀ t, Q *ᵥ y t = 0 := fun t => by
+      rw [hQiter (m + 1) t, hKpow, Matrix.zero_mulVec]
+    -- the `P` component: `P y_{t+1} = (cP − Ni) y_t`, so `y_{t+1} = Â y_t`
+    have hstep : ∀ t, y (t + 1) = Ah *ᵥ y t := by
+      intro t
+      have hP : P *ᵥ y (t + 1) = (c • P - Ni) *ᵥ y t := by
+        have e := congrArg (Ni *ᵥ ·) (hNy t)
+        simp only [Matrix.mulVec_mulVec] at e
+        rw [h7, Matrix.mul_sub, Matrix.mul_smul, h7, Matrix.mul_one] at e
+        exact e
+      calc y (t + 1) = P *ᵥ y (t + 1) + Q *ᵥ y (t + 1) := by
+            rw [← Matrix.add_mulVec, h1, Matrix.one_mulVec]
+        _ = (c • P - Ni) *ᵥ y t + (2 : ℝ) • (Q *ᵥ y t) := by
+            rw [hP, hQ0, hQ0, smul_zero]
+        _ = Ah *ᵥ y t := by
+            rw [hAh, ahat, Matrix.add_mulVec, Matrix.smul_mulVec]
+    rw [← hy0]
+    exact mem_boundedOrbits_of_orbit hstep hC
+
+/-! ### Singular pencils: non-existence -/
+
+/-- **A singular pencil admits no solution for some forcing** (Woodford (2003), App. C.1, p. 670;
+King and Watson (1998)): if `det(λA₀ − A₁) ≡ 0`, a polynomial left null vector
+`q(λ) = ∑ q_k λᵏ` of `λA₀ − A₁` makes `∑_k q_k · w_{t+k}` vanish along every solution, so the
+bounded deterministic forcing `w_t = ρᵗ q(ρ)` (some `ρ ∈ [0, 1]` with `q(ρ) ≠ 0`) has no
+solution at all. -/
+theorem nonexist_of_not_regular [Nonempty Ω] {A0 A1 : Matrix ι ι ℝ}
+    (h : pencilPoly A0 A1 = 0) :
+    ∃ w : ℕ → ι → Ω → ℝ, BoundedV w ∧ AdaptedV 𝔼 w ∧
+      ∀ y, SolvesPencil 𝔼 A0 A1 w y → False := by
+  obtain ⟨q, hq0, hq⟩ := Matrix.exists_vecMul_eq_zero_iff.mpr h
+  set cK : ℕ → ι → ℝ := fun k i => (q i).coeff k with hcK
+  -- the coefficient identities `q_{k+1} A₁ = q_k A₀`, `q_0 A₁ = 0`
+  have hrow : ∀ j, ∑ i, (q i * Polynomial.X * C (A0 i j) - q i * C (A1 i j)) = 0 := by
+    intro j
+    have := congrFun hq j
+    simp only [Matrix.vecMul, dotProduct, Pi.zero_apply, Matrix.sub_apply, Matrix.scalar_apply,
+      Matrix.diagonal_mul, RingHom.mapMatrix_apply, Matrix.map_apply] at this
+    rw [← this]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    ring
+  have hsucc : ∀ k, cK (k + 1) ᵥ* A1 = cK k ᵥ* A0 := by
+    intro k
+    funext j
+    have := congrArg (fun p => p.coeff (k + 1)) (hrow j)
+    simp only [Polynomial.finsetSum_coeff, coeff_sub, coeff_mul_C, coeff_mul_X,
+      coeff_zero, Finset.sum_sub_distrib] at this
+    simp only [Matrix.vecMul, dotProduct, hcK]
+    linarith
+  have hzero : cK 0 ᵥ* A1 = 0 := by
+    funext j
+    have := congrArg (fun p => p.coeff 0) (hrow j)
+    simp only [Polynomial.finsetSum_coeff, coeff_sub, coeff_mul_C, coeff_mul_X_zero, zero_mul,
+      zero_sub, coeff_zero, Finset.sum_neg_distrib, neg_eq_zero] at this
+    simp only [Matrix.vecMul, dotProduct, hcK, Pi.zero_apply]
+    exact this
+  -- a bound on the degrees
+  set K : ℕ := Finset.univ.sup (fun i => (q i).natDegree) with hK
+  have hdeg : ∀ i, (q i).natDegree < K + 1 := fun i =>
+    Nat.lt_succ_of_le (Finset.le_sup (f := fun i => (q i).natDegree) (Finset.mem_univ i))
+  have hcK0 : cK (K + 1) = 0 := by
+    funext i
+    exact coeff_eq_zero_of_natDegree_lt (hdeg i)
+  -- a point `ρ ∈ [0, 1]` with `q(ρ) ≠ 0`
+  obtain ⟨i0, hi0⟩ : ∃ i, q i ≠ 0 := by
+    by_contra hne
+    push Not at hne
+    exact hq0 (funext hne)
+  obtain ⟨ρ, ⟨hρ0, hρ1⟩, hρ⟩ := (Set.Icc_infinite (zero_lt_one' ℝ)).exists_notMem_finset
+    (q i0).roots.toFinset
+  have hρq : (q i0).eval ρ ≠ 0 := by
+    intro h0
+    exact hρ (Multiset.mem_toFinset.mpr ((mem_roots hi0).mpr h0))
+  set qρ : ι → ℝ := fun i => (q i).eval ρ with hqρ
+  have hqρsum : ∀ i, qρ i = ∑ k ∈ Finset.range (K + 1), cK k i * ρ ^ k := fun i =>
+    eval_eq_sum_range' (hdeg i) ρ
+  refine ⟨fun t i _ => ρ ^ t * qρ i, ⟨∑ i, |qρ i|, fun t i _ => ?_⟩, fun t i => 𝔼.const t _, ?_⟩
+  · rw [abs_mul, abs_pow, abs_of_nonneg hρ0]
+    calc ρ ^ t * |qρ i| ≤ 1 * |qρ i| :=
+          mul_le_mul_of_nonneg_right (pow_le_one₀ hρ0 hρ1) (abs_nonneg _)
+      _ ≤ ∑ i, |qρ i| := by
+          rw [one_mul]
+          exact Finset.single_le_sum (f := fun i => |qρ i|) (fun _ _ => abs_nonneg _)
+            (Finset.mem_univ i)
+  · intro y hy
+    obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+    set e : ℕ → ι → ℝ := fun s i => 𝔼.E 0 (y s i) ω₀ with he
+    have hstep : ∀ s, A0 *ᵥ e (s + 1) = A1 *ᵥ e s + fun i => ρ ^ s * qρ i := by
+      intro s
+      funext i
+      have h1 := congrArg (fun f => 𝔼.E 0 (f i) ω₀) (hy s)
+      simp only [E_mv 𝔼, Pi.add_apply, map_add, 𝔼.const] at h1
+      have h2 : (fun j => 𝔼.E 0 (𝔼.E s (y (s + 1) j))) = fun j => 𝔼.E 0 (y (s + 1) j) := by
+        funext j; exact 𝔼.tower (Nat.zero_le s) _
+      rw [h2] at h1
+      rw [mv_apply, mv_apply] at h1
+      simpa [he, Pi.add_apply] using h1
+    -- telescoping
+    set c : ℕ → ℝ := fun k => (cK k ᵥ* A1) ⬝ᵥ e k with hc
+    have hinc : ∀ k, cK k ⬝ᵥ (fun i => ρ ^ k * qρ i) = c (k + 1) - c k := by
+      intro k
+      have e1 : (fun i => ρ ^ k * qρ i) = A0 *ᵥ e (k + 1) - A1 *ᵥ e k := by
+        rw [hstep k]; abel
+      rw [e1, dotProduct_sub, Matrix.dotProduct_mulVec, Matrix.dotProduct_mulVec, hc]
+      simp only
+      rw [hsucc]
+    have hsum : ∑ k ∈ Finset.range (K + 1), cK k ⬝ᵥ (fun i => ρ ^ k * qρ i) = 0 := by
+      rw [Finset.sum_congr rfl fun k _ => hinc k, Finset.sum_range_sub, hc]
+      simp only
+      rw [hcK0, hzero, Matrix.zero_vecMul, zero_dotProduct, zero_dotProduct, sub_zero]
+    have hpos : 0 < ∑ k ∈ Finset.range (K + 1), cK k ⬝ᵥ (fun i => ρ ^ k * qρ i) := by
+      have e2 : ∑ k ∈ Finset.range (K + 1), cK k ⬝ᵥ (fun i => ρ ^ k * qρ i) =
+          ∑ i, qρ i * qρ i := by
+        simp only [dotProduct]
+        rw [Finset.sum_comm]
+        refine Finset.sum_congr rfl fun i _ => ?_
+        calc ∑ k ∈ Finset.range (K + 1), cK k i * (ρ ^ k * qρ i) =
+            (∑ k ∈ Finset.range (K + 1), cK k i * ρ ^ k) * qρ i := by
+              rw [Finset.sum_mul]
+              exact Finset.sum_congr rfl fun k _ => by ring
+          _ = qρ i * qρ i := by rw [← hqρsum i]
+      rw [e2]
+      exact Finset.sum_pos' (fun i _ => mul_self_nonneg _)
+        ⟨i0, Finset.mem_univ _, mul_self_pos.mpr hρq⟩
+    linarith
+
+/-! ### The Blanchard–Kahn theorem for arbitrary pencils -/
+
+/-- Woodford (2003), App. C.1, p. 672, fn. 2 (genericity for pencils): no nonzero bounded
+deterministic solution of `A₀ y_{t+1} = A₁ y_t` starts with `x_0 = 0`. -/
+def GenericPencil (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) : Prop :=
+  ∀ v, PencilBounded A0 A1 v → (∀ j, v (Sum.inr j) = 0) → v = 0
+
+/-- Woodford (2003), App. C.1, p. 670 (tool): a nonzero pencil polynomial has a point where
+`det(cA₀ − A₁) ≠ 0`. -/
+theorem exists_regular_point {A0 A1 : Matrix ι ι ℝ} (h : pencilPoly A0 A1 ≠ 0) :
+    ∃ c : ℝ, IsUnit (c • A0 - A1).det := by
+  by_contra hne
+  push Not at hne
+  apply h
+  refine Polynomial.funext fun r => ?_
+  rw [eval_pencilPoly, eval_zero]
+  by_contra h0
+  exact hne r (isUnit_iff_ne_zero.mpr h0)
+
+/-- **The Blanchard–Kahn theorem for arbitrary pencils** (Woodford (2003), App. C.1, p. 670 and
+fn. 1–2; Blanchard and Kahn (1980), King and Watson (1998), Klein (2000)): for any expectation
+system on a nonempty state space, `A₀ E_t y_{t+1} = A₁ y_t + w_t` (with `A₀` possibly singular,
+`x` predetermined) is determinate iff the pencil is regular (`det(λA₀ − A₁) ≢ 0`), no root of
+`det(λA₀ − A₁)` lies on the unit circle, exactly `|X|` roots (with multiplicity) lie in the open
+unit disc, and genericity holds for the bounded deterministic solutions. -/
+theorem determinatePencil_iff_general [Nonempty Ω] (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    DeterminatePencil 𝔼 A0 A1 ↔ pencilPoly A0 A1 ≠ 0 ∧
+      (∀ μ ∈ ((pencilPoly A0 A1).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card (((pencilPoly A0 A1).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card X ∧ GenericPencil A0 A1 := by
+  by_cases hreg : pencilPoly A0 A1 = 0
+  · constructor
+    · intro hd
+      exfalso
+      obtain ⟨w, hwb, hwa, hno⟩ := nonexist_of_not_regular 𝔼 hreg
+      obtain ⟨y, hy, -⟩ := hd w hwb hwa 0
+      exact hno y hy.1
+    · rintro ⟨h, -⟩
+      exact absurd hreg h
+  · obtain ⟨c, hB⟩ := exists_regular_point hreg
+    obtain ⟨m, P, Q, Ni, hFit⟩ := exists_fitting ((c • A0 - A1)⁻¹ * A0)
+    have hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni := hFit
+    have hgen : GenericX (ahat c P Q Ni) ↔ GenericPencil A0 A1 := by
+      unfold GenericX GenericPencil
+      exact forall_congr' fun v => by rw [mem_boundedOrbits_ahat hB hF]
+    rw [determinatePencil_iff_ahat 𝔼 hB hF, determinate_iff_count, noUnit_ahat_iff hB hF,
+      stableCount_ahat hB hF, hgen]
+    simp only [hreg, ne_eq, not_false_eq_true, true_and]
+
+/-- Woodford (2003), App. C.1, p. 670 (the infinite generalised eigenvalues are unstable): under
+the conditions of `determinatePencil_iff_general`, the roots of `det(λA₀ − A₁)` outside the
+closed unit disc together with the `n − deg det(λA₀ − A₁)` infinite generalised eigenvalues
+number exactly `|Z|`, the non-predetermined variables. -/
+theorem unstable_add_infinite {A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (hreg : pencilPoly A0 A1 ≠ 0)
+    (hnu : ∀ μ ∈ ((pencilPoly A0 A1).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1)
+    (hc : Multiset.card (((pencilPoly A0 A1).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card X) :
+    Multiset.card (((pencilPoly A0 A1).map Complex.ofRealHom).roots.filter (fun μ => 1 < ‖μ‖)) +
+        (Fintype.card (Z ⊕ X) - (pencilPoly A0 A1).natDegree) = Fintype.card Z := by
+  obtain ⟨c, hB⟩ := exists_regular_point hreg
+  obtain ⟨m, P, Q, Ni, hFit⟩ := exists_fitting ((c • A0 - A1)⁻¹ * A0)
+  have hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni := hFit
+  obtain ⟨hp, hcp⟩ := poly_relations hB hF
+  set p := pencilPoly A0 A1 with hpdef
+  set rts := (p.map Complex.ofRealHom).roots with hrts
+  have hcard : Multiset.card rts = p.natDegree := by
+    rw [hrts, IsAlgClosed.card_roots_eq_natDegree, natDegree_map]
+  have hdeg : p.natDegree ≤ Fintype.card (Z ⊕ X) := by
+    have hκ : (c • A0 - A1).det * ((c • A0 - A1)⁻¹ * A0 * P + Q).det ≠ 0 :=
+      mul_ne_zero hB.ne_zero (det_NPQ_ne_zero hF)
+    have h1 : p.natDegree = (fpoly (ahat c P Q Ni) P Q).natDegree := by
+      rw [hp, natDegree_C_mul hκ]
+    have h2 : (fpoly (ahat c P Q Ni) P Q).natDegree ≤ (ahat c P Q Ni).charpoly.natDegree :=
+      natDegree_le_of_dvd ⟨gpoly P Q, hcp⟩ (Matrix.charpoly_monic _).ne_zero
+    rw [h1, ← Matrix.charpoly_natDegree_eq_dim (ahat c P Q Ni)]
+    exact h2
+  have hsplit : Multiset.card (rts.filter (fun μ => ‖μ‖ < 1)) +
+      Multiset.card (rts.filter (fun μ => 1 < ‖μ‖)) = Multiset.card rts := by
+    rw [← Multiset.card_add]
+    congr 1
+    conv_rhs => rw [← Multiset.filter_add_not (fun μ : ℂ => ‖μ‖ < 1) rts]
+    congr 1
+    refine Multiset.filter_congr fun μ hμ => ?_
+    have := hnu μ hμ
+    constructor
+    · intro h1; exact not_lt.mpr h1.le
+    · intro h1; exact lt_of_le_of_ne (not_lt.mp h1) (Ne.symm this)
+  rw [Fintype.card_sum] at hdeg ⊢
+  rw [hc, hcard] at hsplit
+  omega
+
+end Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The singular-pencil Blanchard–Kahn theorem with random initial conditions
+
+Woodford (2003), *Interest and Prices*, Appendix C.1, p. 670 (Blanchard and Kahn 1980; King and
+Watson 1998; Klein 2000). The copied chain TidyR6aGeneralBK, TidyR6aGeneralBKPencil,
+TidyR6aGeneralBKSingular takes the initial value `x₀` of the predetermined block to be a
+**number**. Chapter 8 needs initial conditions `Z_{t₀}`, `M_{t₀−1}` that are random variables
+known at date `0`, as in `GeneralBKCopy.Determinate`. Here:
+
+* `determinateR_iff`: for the standard form `E_t y_{t+1} = Ay_t + w_t`, determinacy with random
+  bounded `x₀` known at `0` (`GeneralBKCopy.Determinate`) is equivalent to determinacy with
+  deterministic `x₀` (`TidyR6aGeneralBK.Determinate`), on any nonempty sample space;
+* `EquilPencilR`, `DeterminatePencilR`: the pencil system `A₀E_ty_{t+1} = A₁y_t + w_t` with random
+  `x₀`; `determinatePencilR_iff_ahat` (the reduction of TidyR6aGeneralBKSingular with random
+  `x₀`, its proof restated from there), `determinatePencilR_iff`,
+  **`determinatePencilR_iff_general`**: Klein's theorem with random initial conditions —
+  determinate iff the pencil is regular, no root of `det(λA₀ − A₁)` is on the unit circle,
+  exactly `|X|` lie inside, and `TidyR6aGeneralBKSingular.GenericPencil` holds.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aBKRandom
+
+open Polynomial BKInvariantSplit BKForward TidyR6aGeneralBKPencil TidyR6aGeneralBKSingular
+open GeneralBKCopy
+open scoped Matrix
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+variable {Z X : Type*} [Fintype Z] [Fintype X] [DecidableEq Z] [DecidableEq X]
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 670: **determinacy does not depend on whether `x₀` is random**:
+on a nonempty sample space, the standard-form system is determinate for every bounded `x₀` known
+at `0` iff it is determinate for every deterministic `x₀`. -/
+theorem determinateR_iff [Nonempty Ω] (A : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    GeneralBKCopy.Determinate 𝔼 A ↔ TidyR6aGeneralBK.Determinate 𝔼 A := by
+  classical
+  constructor
+  · intro hR w hwb hwa x0
+    obtain ⟨y, hy, hu⟩ := hR w hwb hwa (fun j _ => x0 j) (fun j => 𝔼.const 0 (x0 j))
+      ⟨∑ j, |x0 j|, fun j _ => Finset.single_le_sum (f := fun j => |x0 j|)
+        (fun _ _ => abs_nonneg _) (Finset.mem_univ j)⟩
+    exact ⟨y, hy, fun y' hy' => hu y' hy'⟩
+  · intro hD
+    obtain ⟨hnu, hd, hg⟩ := (TidyR6aGeneralBK.determinate_iff 𝔼 A).mp hD
+    exact GeneralBKCopy.determinate_of 𝔼 hnu hd hg
+
+/-- Woodford (2003), App. C.1, p. 670: a bounded equilibrium of the pencil system
+`A₀ E_t y_{t+1} = A₁ y_t + w_t` whose predetermined block starts at the **random** vector `x₀`. -/
+def EquilPencilR (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) (w : ℕ → Z ⊕ X → Ω → ℝ) (x0 : X → Ω → ℝ)
+    (y : ℕ → Z ⊕ X → Ω → ℝ) : Prop :=
+  SolvesPencil 𝔼 A0 A1 w y ∧ AdaptedV 𝔼 y ∧
+    (∀ t j, 𝔼.E t (y (t + 1) (Sum.inr j)) = y (t + 1) (Sum.inr j)) ∧
+    (∀ j, y 0 (Sum.inr j) = x0 j) ∧ BoundedV y
+
+/-- Woodford (2003), App. C.1, p. 670: determinacy of the pencil system with random initial
+conditions: for every bounded adapted forcing and every bounded `x₀` known at date `0` there is
+exactly one bounded equilibrium. -/
+def DeterminatePencilR (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) : Prop :=
+  ∀ w : ℕ → Z ⊕ X → Ω → ℝ, BoundedV w → AdaptedV 𝔼 w → ∀ x0 : X → Ω → ℝ,
+    (∀ j, 𝔼.E 0 (x0 j) = x0 j) → (∃ K, ∀ j ω, |x0 j ω| ≤ K) → ∃! y, EquilPencilR 𝔼 A0 A1 w x0 y
+
+/-- **Singular pencils reduce to standard form, with random initial conditions** (Woodford (2003),
+App. C.1, p. 670; King and Watson (1998), Klein (2000)); the proof is restated from
+`TidyR6aGeneralBKSingular.determinatePencil_iff_ahat`. -/
+theorem determinatePencilR_iff_ahat {A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ} {c : ℝ}
+    (hB : IsUnit (c • A0 - A1).det) {m : ℕ} {P Q Ni : Matrix (Z ⊕ X) (Z ⊕ X) ℝ}
+    (hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni) :
+    DeterminatePencilR 𝔼 A0 A1 ↔ GeneralBKCopy.Determinate 𝔼 (ahat c P Q Ni) := by
+  set B := c • A0 - A1 with hBdef
+  set N := B⁻¹ * A0 with hN
+  obtain ⟨hPP, hQQ, hPNi, hQNP⟩ := hF.basic
+  have hFc := hF
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, -⟩ := hFc
+  have hNiA : Ni * (c • N - 1) = c • P - Ni := by
+    rw [Matrix.mul_sub, Matrix.mul_smul, h7, Matrix.mul_one]
+  have hQA : Q * (c • N - 1) = (c • N - 1) * Q := by
+    rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_smul, Matrix.smul_mul, h5, Matrix.mul_one,
+      Matrix.one_mul]
+  have hPq : ∀ a : Z ⊕ X → Ω → ℝ, mv Q a = a → mv P a = 0 := fun a ha => by
+    rw [← ha, mv_mv, h2, zero_mv]
+  have hNiq : ∀ a : Z ⊕ X → Ω → ℝ, mv Q a = a → mv Ni a = 0 := fun a ha => by
+    rw [← ha, mv_mv, h9, zero_mv]
+  have hQidem : ∀ a : Z ⊕ X → Ω → ℝ, mv Q (mv Q a) = mv Q a := fun a => by rw [mv_mv, hQQ]
+  have hEQ : ∀ (q : ℕ → Z ⊕ X → Ω → ℝ) t, (∀ t, mv Q (q t) = q t) →
+      mv Q (fun i => 𝔼.E t (q (t + 1) i)) = fun i => 𝔼.E t (q (t + 1) i) := by
+    intro q t hq
+    rw [← Enext_mv, hq]
+  constructor
+  · -- pencil determinacy gives standard-form determinacy
+    intro hd wh hwb hwa x0 hx0k hx0b
+    obtain ⟨q, ⟨hq2, hqa, hqb⟩, hqu⟩ :=
+      twoBlock_existsUnique 𝔼 (boundedV_mv Q hwb) (adaptedV_mv 𝔼 Q hwa)
+    have hqQ : ∀ t, mv Q (q t) = q t := by
+      have h' : (fun t => mv Q (q t)) = q := by
+        refine hqu _ ⟨fun t => ?_, adaptedV_mv 𝔼 Q hqa, boundedV_mv Q hqb⟩
+        change (fun i => 𝔼.E t (mv Q (q (t + 1)) i)) = (2 : ℝ) • mv Q (q t) + mv Q (wh t)
+        rw [Enext_mv, hq2 t, mv_add, mv_smul, hQidem]
+      exact fun t => congrFun h' t
+    set wt : ℕ → Z ⊕ X → Ω → ℝ := fun t => mv N (mv P (wh t)) +
+      (mv N (fun i => 𝔼.E t (q (t + 1) i)) - mv (c • N - 1) (q t)) with hwt
+    have hwtb : BoundedV wt := boundedV_add (boundedV_mv N (boundedV_mv P hwb))
+      (boundedV_sub (boundedV_mv N (boundedV_Enext 𝔼 hqb)) (boundedV_mv _ hqb))
+    have hwta : AdaptedV 𝔼 wt := adaptedV_add 𝔼 (adaptedV_mv 𝔼 N (adaptedV_mv 𝔼 P hwa))
+      (adaptedV_sub 𝔼 (adaptedV_mv 𝔼 N (adaptedV_Enext 𝔼 q)) (adaptedV_mv 𝔼 _ hqa))
+    have hBw : ∀ t, mv B⁻¹ (mv B (wt t)) = wt t := fun t => by
+      rw [mv_mv, Matrix.nonsing_inv_mul _ hB, mv_one]
+    have hPw : ∀ t, mv P (wh t) = mv Ni (mv B⁻¹ (mv B (wt t))) := by
+      intro t
+      rw [hBw, hwt]
+      simp only
+      rw [mv_add, mv_sub, mv_mv N P, mv_mv Ni (N * P), ← Matrix.mul_assoc Ni N P, h7, hPP,
+        mv_mv Ni N, h7, hPq _ (hEQ q t hqQ), mv_mv Ni (c • N - 1), hNiA, sub_mv, smul_mv,
+        hPq _ (hqQ t), hNiq _ (hqQ t), smul_zero, sub_zero, sub_zero, add_zero]
+    have hqN : ∀ t, mv N (fun i => 𝔼.E t (q (t + 1) i)) =
+        mv (c • N - 1) (q t) + mv Q (mv B⁻¹ (mv B (wt t))) := by
+      intro t
+      rw [hBw, hwt]
+      simp only
+      have e1 : mv Q (mv N (mv P (wh t))) = 0 := by
+        rw [mv_mv N P, mv_mv Q (N * P), ← Matrix.mul_assoc Q N P, hQNP, zero_mv]
+      have e2 : mv Q (mv N (fun i => 𝔼.E t (q (t + 1) i))) =
+          mv N (fun i => 𝔼.E t (q (t + 1) i)) := by
+        rw [mv_mv Q N, ← h5, ← mv_mv N Q, hEQ q t hqQ]
+      have e3 : mv Q (mv (c • N - 1) (q t)) = mv (c • N - 1) (q t) := by
+        rw [mv_mv Q (c • N - 1), hQA, ← mv_mv (c • N - 1) Q, hqQ t]
+      rw [mv_add, mv_sub, e1, e2, e3, zero_add]
+      abel
+    obtain ⟨y, hy, hyu⟩ := hd (fun t => mv B (wt t)) (boundedV_mv B hwtb)
+      (adaptedV_mv 𝔼 B hwta) x0 hx0k hx0b
+    have hgb : BoundedV (fun t => mv Q (mv B⁻¹ (mv B (wt t)))) :=
+      boundedV_mv Q (boundedV_mv _ (boundedV_mv B hwtb))
+    have hga : AdaptedV 𝔼 (fun t => mv Q (mv B⁻¹ (mv B (wt t)))) :=
+      adaptedV_mv 𝔼 Q (adaptedV_mv 𝔼 _ (adaptedV_mv 𝔼 B hwta))
+    have hVu := (pencilV_existsUnique 𝔼 hF c (g := fun t => mv Q (mv B⁻¹ (mv B (wt t))))
+      (fun t => hQidem _) hgb hga).2
+    have hyq : ∀ t, mv Q (y t) = q t := by
+      have := hVu (fun t => mv Q (y t)) q (fun t => hQidem _)
+        (fun t => pencil_Vpart 𝔼 hB hF hy.1 t) (adaptedV_mv 𝔼 Q hy.2.1)
+        (boundedV_mv Q hy.2.2.2.2) hqQ hqN hqa hqb
+      exact fun t => congrFun this t
+    refine ⟨y, ⟨(pencil_iff_ahat 𝔼 hB hF (w := fun t => mv B (wt t)) hPw hq2 hqN hyq).mp hy.1,
+      hy.2⟩, fun y'' hy'' => ?_⟩
+    have hyq'' : ∀ t, mv Q (y'' t) = q t := by
+      have := hqu (fun t => mv Q (y'' t)) ⟨fun t => ahat_Vpart 𝔼 hF c hy''.1 t,
+        adaptedV_mv 𝔼 Q hy''.2.1, boundedV_mv Q hy''.2.2.2.2⟩
+      exact fun t => congrFun this t
+    exact hyu y'' ⟨(pencil_iff_ahat 𝔼 hB hF (w := fun t => mv B (wt t)) hPw hq2 hqN
+      hyq'').mpr hy''.1, hy''.2⟩
+  · -- standard-form determinacy gives pencil determinacy
+    intro hd w hwb hwa x0 hx0k hx0b
+    have hgQ : ∀ t, mv Q (mv Q (mv B⁻¹ (w t))) = mv Q (mv B⁻¹ (w t)) := fun t => hQidem _
+    have hgb : BoundedV (fun t => mv Q (mv B⁻¹ (w t))) := boundedV_mv Q (boundedV_mv _ hwb)
+    have hga : AdaptedV 𝔼 (fun t => mv Q (mv B⁻¹ (w t))) :=
+      adaptedV_mv 𝔼 Q (adaptedV_mv 𝔼 _ hwa)
+    obtain ⟨⟨s, hsQ, hs, hsa, hsb⟩, hsu⟩ := pencilV_existsUnique 𝔼 hF c hgQ hgb hga
+    set wh : ℕ → Z ⊕ X → Ω → ℝ := fun t => mv Ni (mv B⁻¹ (w t)) +
+      ((fun i => 𝔼.E t (s (t + 1) i)) - (2 : ℝ) • s t) with hwh
+    have hwhb : BoundedV wh := boundedV_add (boundedV_mv Ni (boundedV_mv _ hwb))
+      (boundedV_sub (boundedV_Enext 𝔼 hsb) (boundedV_smul 2 hsb))
+    have hwha : AdaptedV 𝔼 wh := adaptedV_add 𝔼 (adaptedV_mv 𝔼 Ni (adaptedV_mv 𝔼 _ hwa))
+      (adaptedV_sub 𝔼 (adaptedV_Enext 𝔼 s) (adaptedV_smul 𝔼 2 hsa))
+    have hPw : ∀ t, mv P (wh t) = mv Ni (mv B⁻¹ (w t)) := by
+      intro t
+      simp only [hwh]
+      rw [mv_add, mv_sub, mv_mv P Ni, hPNi, hPq _ (hEQ s t hsQ), mv_smul, hPq _ (hsQ t),
+        smul_zero, sub_zero, add_zero]
+    have hq2 : ∀ t, (fun i => 𝔼.E t (s (t + 1) i)) = (2 : ℝ) • s t + mv Q (wh t) := by
+      intro t
+      simp only [hwh]
+      rw [mv_add, mv_sub, mv_mv Q Ni, h8, zero_mv, hEQ s t hsQ, mv_smul, hsQ t]
+      abel
+    obtain ⟨y, hy, hyu⟩ := hd wh hwhb hwha x0 hx0k hx0b
+    have h2u := twoBlock_existsUnique 𝔼 (boundedV_mv Q hwhb) (adaptedV_mv 𝔼 Q hwha)
+    have hyq : ∀ t, mv Q (y t) = s t := by
+      have := h2u.unique ⟨fun t => ahat_Vpart 𝔼 hF c hy.1 t, adaptedV_mv 𝔼 Q hy.2.1,
+        boundedV_mv Q hy.2.2.2.2⟩ ⟨hq2, hsa, hsb⟩
+      exact fun t => congrFun this t
+    refine ⟨y, ⟨(pencil_iff_ahat 𝔼 hB hF hPw hq2 hs hyq).mpr hy.1, hy.2⟩, fun y'' hy'' => ?_⟩
+    have hyq'' : ∀ t, mv Q (y'' t) = s t := by
+      have := hsu (fun t => mv Q (y'' t)) s (fun t => hQidem _)
+        (fun t => pencil_Vpart 𝔼 hB hF hy''.1 t) (adaptedV_mv 𝔼 Q hy''.2.1)
+        (boundedV_mv Q hy''.2.2.2.2) hsQ hs hsa hsb
+      exact fun t => congrFun this t
+    exact hyu y'' ⟨(pencil_iff_ahat 𝔼 hB hF hPw hq2 hs hyq'').mp hy''.1, hy''.2⟩
+
+omit [DecidableEq Z] [DecidableEq X] in
+/-- Woodford (2003), App. C.1, p. 670: on a nonempty sample space the pencil system is
+determinate with random initial conditions iff it is determinate with deterministic ones. -/
+theorem determinatePencilR_iff [Nonempty Ω] (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    DeterminatePencilR 𝔼 A0 A1 ↔ DeterminatePencil 𝔼 A0 A1 := by
+  classical
+  constructor
+  · intro hR w hwb hwa x0
+    obtain ⟨y, hy, hu⟩ := hR w hwb hwa (fun j _ => x0 j) (fun j => 𝔼.const 0 (x0 j))
+      ⟨∑ j, |x0 j|, fun j _ => Finset.single_le_sum (f := fun j => |x0 j|)
+        (fun _ _ => abs_nonneg _) (Finset.mem_univ j)⟩
+    exact ⟨y, hy, fun y' hy' => hu y' hy'⟩
+  · intro hD
+    have hreg : pencilPoly A0 A1 ≠ 0 := by
+      intro h0
+      obtain ⟨w, hwb, hwa, hno⟩ := nonexist_of_not_regular 𝔼 h0
+      obtain ⟨y, hy, -⟩ := hD w hwb hwa 0
+      exact hno y hy.1
+    obtain ⟨c, hB⟩ := exists_regular_point hreg
+    obtain ⟨m, P, Q, Ni, hFit⟩ := exists_fitting ((c • A0 - A1)⁻¹ * A0)
+    have hF : Fitting ((c • A0 - A1)⁻¹ * A0) m P Q Ni := hFit
+    exact (determinatePencilR_iff_ahat 𝔼 hB hF).mpr ((determinateR_iff 𝔼 _).mpr
+      ((determinatePencil_iff_ahat 𝔼 hB hF).mp hD))
+
+/-- **The Blanchard–Kahn theorem for arbitrary pencils with random initial conditions**
+(Woodford (2003), App. C.1, p. 670 and fn. 1–2; Blanchard and Kahn (1980), King and Watson
+(1998), Klein (2000)): for any expectation system on a nonempty sample space,
+`A₀ E_t y_{t+1} = A₁ y_t + w_t` is determinate (every bounded `x₀` known at `0`) iff the pencil is
+regular, no root of `det(λA₀ − A₁)` lies on the unit circle, exactly `|X|` roots lie in the open
+unit disc, and `GenericPencil` holds. -/
+theorem determinatePencilR_iff_general [Nonempty Ω] (A0 A1 : Matrix (Z ⊕ X) (Z ⊕ X) ℝ) :
+    DeterminatePencilR 𝔼 A0 A1 ↔ pencilPoly A0 A1 ≠ 0 ∧
+      (∀ μ ∈ ((pencilPoly A0 A1).map Complex.ofRealHom).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card (((pencilPoly A0 A1).map Complex.ofRealHom).roots.filter
+        (fun μ => ‖μ‖ < 1)) = Fintype.card X ∧ GenericPencil A0 A1 := by
+  rw [determinatePencilR_iff, determinatePencil_iff_general]
+
+end Woodford.OptimalPolicyRules.TidyR6aBKRandom
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The p. 553 criterion without its two side hypotheses
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Proposition 8.1 and the remark after it
+(p. 553), that `Λ` and `Υ` are "uniquely defined".
+
+`TidyR5bReRepUncertain.unique_iff_powBdd_any` proves, for every exact expectation system, that
+`Λ` and `Υ` are the same in every representation of Proposition 8.1 iff `Λ` is power-bounded,
+under two hypotheses: a **nonempty** sample space and **one bounded solution of (1.18)**.
+
+* `exists_xproc_zero`: there is always a constant plan with `T̃'W(τ − τ*) = 0` (the target
+  vector `T̃'Wτ*` lies in the range of `T̃'WT̃`, since `W` is positive definite); with zero
+  multipliers it solves (1.18) (`exists_base`). **The second hypothesis always holds and is
+  dropped**: `unique_iff_powBdd_uncond`.
+* `anyRep`, `nonempty_needed`: on an **empty** sample space every pair `(Λ, Υ)` is a
+  representation, so the criterion fails as soon as there is a multiplier (`ιz` nonempty):
+  **the first hypothesis is needed** (and cannot be removed).
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aReRepBase
+
+open Matrix GeneralSetup Prop81General TargetCriterion.Prop81 GeneralFOC GeneralFOC.LQ
+open TidyR5bReRepConverse TidyR5bReRepUncertain TidyR5bFOCNecessity
+
+variable {Ω : Type*} {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), (1.3) and (1.18) (**a rest point of the target term**): for every LQ problem
+there is a plan vector `v` with `T̃'W(Tv − τ*) = 0` — it is `(u, i = 0)` with
+`T̃'WT̃ u = T̃'Wτ*`, solvable because `T̃'Wτ*` is orthogonal to `ker T̃'WT̃ = ker T̃`. -/
+theorem exists_xproc_zero (P : LQProblem ιZ ιz ιτ) :
+    ∃ v : (ιZ ⊕ ιz) ⊕ Unit → ℝ, P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ v - P.τstar)) = 0 := by
+  classical
+  set L := P.Ttilᵀ * P.W * P.Ttil with hL
+  have hW : P.Wᵀ = P.W := by
+    have := P.W_posDef.isHermitian.eq
+    rwa [conjTranspose_eq_transpose_of_trivial] at this
+  have hLt : Lᵀ = L := by
+    rw [hL, transpose_mul, transpose_mul, transpose_transpose, hW, Matrix.mul_assoc]
+  have hd : P.Ttilᵀ *ᵥ (P.W *ᵥ P.τstar) ∈ LinearMap.range L.mulVecLin := by
+    refine mem_range_of_orth L _ fun w hw => ?_
+    rw [hLt] at hw
+    have h0 : P.Ttil *ᵥ w = 0 := by
+      by_contra hne
+      have hpos := P.W_posDef.dotProduct_mulVec_pos hne
+      have e : star (P.Ttil *ᵥ w) ⬝ᵥ (P.W *ᵥ (P.Ttil *ᵥ w)) = w ⬝ᵥ (L *ᵥ w) := by
+        rw [star_trivial, hL, ← mulVec_mulVec, ← mulVec_mulVec, dotProduct_mulVec w P.Ttilᵀ,
+          vecMul_transpose]
+      rw [e, hw, dotProduct_zero] at hpos
+      exact lt_irrefl _ hpos
+    rw [dotProduct_mulVec, vecMul_transpose, h0, zero_dotProduct]
+  obtain ⟨u, hu⟩ := hd
+  refine ⟨Sum.elim u 0, ?_⟩
+  have hT : P.T *ᵥ Sum.elim u 0 = P.Ttil *ᵥ u := by
+    rw [LQProblem.T, fromCols_mulVec, Sum.elim_comp_inl, Sum.elim_comp_inr, mulVec_zero,
+      add_zero]
+  have hLu : P.Ttilᵀ *ᵥ (P.W *ᵥ (P.Ttil *ᵥ u)) = P.Ttilᵀ *ᵥ (P.W *ᵥ P.τstar) := by
+    rw [mulVec_mulVec, mulVec_mulVec]
+    exact hu
+  rw [hT, mulVec_sub, mulVec_sub, hLu, sub_self]
+
+/-- Woodford (2003), (1.18), p. 552 (**a bounded solution of (1.18) always exists**): the
+constant plan of `exists_xproc_zero` with zero multipliers, under any expectation system. -/
+theorem exists_base (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    ∃ (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ), BoundedV y ∧
+      AdaptedV 𝔼 y ∧ BoundedV φ ∧ MultKnown 𝔼 t0 φ ∧ Eq118 P 𝔼 t0 y φ := by
+  obtain ⟨v, hv⟩ := exists_xproc_zero P
+  refine ⟨fun _ _ => v, fun _ _ => 0, ?_, fun t i => 𝔼.const t _,
+    ⟨0, fun _ _ _ => by simp⟩, fun t _ i => 𝔼.const t 0, fun t _ ω => ?_⟩
+  · refine ⟨∑ i, |v i|, fun t ω i => ?_⟩
+    exact Finset.single_le_sum (f := fun i => |v i|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ i)
+  · have e : EV 𝔼 t (fun _ => (0 : ιZ ⊕ ιz → ℝ)) ω = 0 := by
+      funext i
+      exact congrFun (𝔼.const t 0) ω
+    simp only [e, mulVec_zero, zero_add, smul_zero, sub_zero]
+    exact hv
+
+/-- Woodford (2003), p. 553, the remark after Proposition 8.1 (**exact criterion, no solvability
+hypothesis**): under any expectation system on a nonempty sample space, `Λ` and `Υ` are the same
+in every representation of Proposition 8.1 iff `Λ` is power-bounded. -/
+theorem unique_iff_powBdd_uncond [Nonempty Ω] {𝔼 : ExpectationSystem Ω}
+    {P : LQProblem ιZ ιz ιτ} {t0 : ℕ} (H : Prop81ConclusionM P 𝔼 t0) :
+    (∀ H' : Prop81ConclusionM P 𝔼 t0, H'.Λ = H.Λ ∧ H'.Υ = H.Υ) ↔ PowBdd H.Λ := by
+  obtain ⟨y, φ, hy, hya, hφ, hφk, h118⟩ := exists_base P 𝔼 t0
+  exact unique_iff_powBdd_any H hy hya hφ hφk h118
+
+/-- Woodford (2003), Proposition 8.1 (degenerate case): on an empty sample space every pair
+`(Λ, Υ)` gives a representation (all conditions are vacuous). -/
+def anyRep [IsEmpty Ω] (P : LQProblem ιZ ιz ιτ) (𝔼 : ExpectationSystem Ω) (t0 : ℕ)
+    (Λ : Matrix ιz ιz ℝ) (Υ : Matrix ιZ ιz ℝ) : Prop81ConclusionM P 𝔼 t0 where
+  Λ := Λ
+  Υ := Υ
+  Qop := fun _ _ ω => isEmptyElim ω
+  Rop := fun _ _ ω => isEmptyElim ω
+  equiv := fun _ _ _ _ _ _ =>
+    ⟨fun _ => ⟨fun _ _ ω => isEmptyElim ω, fun _ _ ω => isEmptyElim ω⟩,
+      fun _ _ _ ω => isEmptyElim ω⟩
+  Qbounded := fun _ _ => ⟨0, fun _ ω => isEmptyElim ω⟩
+  Rbounded := fun _ _ => ⟨0, fun _ ω => isEmptyElim ω⟩
+  Qadapted := fun _ _ _ => funext fun ω => isEmptyElim ω
+  Radapted := fun _ _ _ _ => funext fun ω => isEmptyElim ω
+
+/-- **Woodford (2003), p. 553 (the nonempty sample space cannot be dropped)**: on an empty sample
+space, with at least one multiplier, there is a representation with a power-bounded `Λ`
+(`Λ = 0`) that is not the only one (`Λ = 1` is another). -/
+theorem nonempty_needed [IsEmpty Ω] [Nonempty ιz] (P : LQProblem ιZ ιz ιτ)
+    (𝔼 : ExpectationSystem Ω) (t0 : ℕ) :
+    ∃ H : Prop81ConclusionM P 𝔼 t0, PowBdd H.Λ ∧
+      ¬ ∀ H' : Prop81ConclusionM P 𝔼 t0, H'.Λ = H.Λ ∧ H'.Υ = H.Υ := by
+  refine ⟨anyRep P 𝔼 t0 0 0, ⟨1, fun k i j => ?_⟩, fun h => ?_⟩
+  · change |((0 : Matrix ιz ιz ℝ) ^ k) i j| ≤ 1
+    rcases Nat.eq_zero_or_pos k with hk | hk
+    · subst hk
+      rw [pow_zero, one_apply]
+      split_ifs <;> simp
+    · rw [zero_pow hk.ne']
+      simp
+  · obtain ⟨i⟩ := ‹Nonempty ιz›
+    have := congrFun (congrFun (h (anyRep P 𝔼 t0 1 0)).1 i) i
+    change (1 : Matrix ιz ιz ℝ) i i = (0 : Matrix ιz ιz ℝ) i i at this
+    simp at this
+
+end Woodford.OptimalPolicyRules.TidyR6aReRepBase
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.1 representations on a probability space, and the p. 553 criterion there
+
+Woodford (2003), *Interest and Prices*, Chapter 8, (1.18)–(1.21), Proposition 8.1 and the remark
+after it (p. 553), that `Λ` and `Υ` are "uniquely defined".
+
+The core representation `Prop81General.Prop81ConclusionM` lives on the exact expectation systems.
+Here it is formalised on the conditional-expectation model
+`ExpectationsMeasure.MeasExpectationSystem` (Mathlib's `condExp`, equations almost surely,
+processes essentially bounded and adapted).
+
+## Definitions
+
+`MEq118`, `MEq120`, `MEq121` are (1.18), (1.20), (1.21) almost surely for `t ≥ t₀`;
+`MMultKnown`: `M_t` is `𝓕_t`-measurable for `t ≥ t₀`. `MProp81Equiv`: bounded adapted plans and
+bounded a.e.-measurable multipliers with `M_t` known at `t` satisfy (1.18) iff they satisfy
+(1.20) and (1.21), with `q = Q(x)`, `r = R(x)`, `x = T̃'W(τ − τ*)`. `MProp81Conclusion` packages
+`(Λ, Υ, Q, R)` with `Q, R` mapping bounded processes to bounded adapted ones.
+
+## Results
+
+* `mbase`: (1.18) has the bounded solution (constant plan of `TidyR6aReRepBase.exists_xproc_zero`,
+  zero multipliers) on every probability space; along it every representation has `q = r = 0`
+  a.s. (`mbase_QR`).
+* `magree_on_bddOrbit`, `munique_of_powBdd`: two representations agree on the bounded orbits of
+  `Λ`; if `Λ` is power-bounded, `(Λ, Υ)` is the same in every representation.
+* `mreRep_equiv`, `mreRep`: re-representation with any `Λ'` having the same bounded homogeneous
+  solutions (`TidyR5bReRep.HomSame`), on the probability space; `mconj_rep` (`Λ' = GΛG⁻¹`, `G`
+  fixing the bounded orbits) and `mneg_rep` (`Λ = cI`, `|c| > 1`, `Λ' = −cI`).
+* `mnot_unique_of_not_powBdd`, **`munique_iff_powBdd`**: on **every** probability space,
+  `(Λ, Υ)` is the same in every representation **iff** `Λ` is power-bounded. No other
+  hypothesis: a probability space is nonempty, and (1.18) always has a bounded solution.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aReRepMeasure
+
+open MeasureTheory Filter Matrix GeneralSetup Prop81General TargetCriterion.Prop81 GeneralFOC
+open GeneralFOC.LQ TidyR5bReRep TidyR5bReRepConverse ExpectationsMeasure OptimalRulesMeasure
+open TidyR6aReRepBase
+
+variable {Ω : Type*} [MeasurableSpace Ω] {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz]
+  [Fintype ιτ] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-! ### The representation on a probability space -/
+
+/-- Woodford (2003), eq. (1.18), p. 552, almost surely for all `t ≥ t₀`, with Mathlib's
+conditional expectation. -/
+def MEq118 (S : MeasExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ) (t0 : ℕ)
+    (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) : Prop :=
+  ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, P.sys.Ahatᵀ *ᵥ EVm S t (φ (t + 1)) ω +
+    P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ y t ω - P.τstar)) - P.β⁻¹ • (P.sys.Ihatᵀ *ᵥ φ t ω) = 0
+
+omit [Fintype ιZ] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), eq. (1.20), p. 553, almost surely for all `t ≥ t₀`:
+`M_t = Λ M_{t−1} + q_t`. -/
+def MEq120 (S : MeasExpectationSystem Ω) (t0 : ℕ) (Λ : Matrix ιz ιz ℝ)
+    (q : ℕ → Ω → ιz → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) : Prop :=
+  ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, Mpart (φ (t + 1) ω) = Λ *ᵥ Mpart (φ t ω) + q t ω
+
+omit [Fintype ιZ] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), eq. (1.21), p. 553, almost surely for all `t ≥ t₀`:
+`ξ_t = Υ M_{t−1} + r_t`. -/
+def MEq121 (S : MeasExpectationSystem Ω) (t0 : ℕ) (Υ : Matrix ιZ ιz ℝ) (r : ℕ → Ω → ιZ → ℝ)
+    (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) : Prop :=
+  ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, ξpart (φ t ω) = Υ *ᵥ Mpart (φ t ω) + r t ω
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540: the multipliers `M_t` are `𝓕_t`-measurable for `t ≥ t₀`. -/
+def MMultKnown (S : MeasExpectationSystem Ω) (t0 : ℕ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) : Prop :=
+  ∀ t, t0 ≤ t → MKnownV S t (fun ω => Mpart (φ (t + 1) ω))
+
+/-- Woodford (2003), Proposition 8.1, p. 553, on a probability space: bounded adapted plans and
+bounded a.e.-measurable multipliers with `M_t` known at `t` satisfy (1.18) a.s. iff they satisfy
+(1.20) and (1.21) a.s., with `q = Qop(T̃'W(τ − τ*))`, `r = Rop(T̃'W(τ − τ*))`. -/
+def MProp81Equiv (S : MeasExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ) (t0 : ℕ)
+    (Λ : Matrix ιz ιz ℝ) (Υ : Matrix ιZ ιz ℝ)
+    (Qop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ)
+    (Rop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιZ → ℝ) : Prop :=
+  ∀ y φ, MBoundedV S y → MAdaptedV S y → MBoundedV S φ → MAEMeasV S φ → MMultKnown S t0 φ →
+    (MEq118 S P t0 y φ ↔ MEq120 S t0 Λ (Qop (xproc P y)) φ ∧ MEq121 S t0 Υ (Rop (xproc P y)) φ)
+
+/-- Woodford (2003), Proposition 8.1, p. 553, on a probability space: matrices `Λ`, `Υ` and
+operators `Q(L⁻¹)`, `R(L⁻¹)` (bounded processes to bounded adapted processes) with the
+equivalence `MProp81Equiv`. -/
+structure MProp81Conclusion (S : MeasExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ) (t0 : ℕ) where
+  Λ : Matrix ιz ιz ℝ
+  Υ : Matrix ιZ ιz ℝ
+  Qop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ
+  Rop : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιZ → ℝ
+  equiv : MProp81Equiv S P t0 Λ Υ Qop Rop
+  Qbounded : ∀ x, MBoundedV S x → MBoundedV S (Qop x)
+  Rbounded : ∀ x, MBoundedV S x → MBoundedV S (Rop x)
+  Qadapted : ∀ x, MAdaptedV S (Qop x)
+  Radapted : ∀ x, MBoundedV S x → MAdaptedV S (Rop x)
+
+/-! ### Tools -/
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), (1.18) (tool): `x = T̃'W(τ − τ*)` of an essentially bounded plan is
+essentially bounded. -/
+theorem mboundedV_xproc {S : MeasExpectationSystem Ω} (P : LQProblem ιZ ιz ιτ)
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : MBoundedV S y) : MBoundedV S (xproc P y) := by
+  obtain ⟨M, hM⟩ := hy
+  obtain ⟨K1, hK1⟩ := exists_bound_mulVec P.T M
+  obtain ⟨K2, hK2⟩ := exists_bound_mulVec P.W (K1 + ∑ i, |P.τstar i|)
+  obtain ⟨K3, hK3⟩ := exists_bound_mulVec P.Ttilᵀ K2
+  refine ⟨K3, fun t => (hM t).mono fun ω h r => hK3 _ (hK2 _ (fun a => ?_)) r⟩
+  rw [Pi.sub_apply]
+  refine (abs_sub _ _).trans (add_le_add (hK1 _ h a) ?_)
+  exact Finset.single_le_sum (f := fun i => |P.τstar i|) (fun _ _ => abs_nonneg _)
+    (Finset.mem_univ a)
+
+/-- Woodford (2003), (1.20) (tool): countably many almost-sure statements at the dates
+`t ≥ t₀` hold simultaneously almost surely. -/
+theorem ae_forall_ge {μ : Measure Ω} {t0 : ℕ} {p : ℕ → Ω → Prop}
+    (h : ∀ t, t0 ≤ t → ∀ᵐ ω ∂μ, p t ω) : ∀ᵐ ω ∂μ, ∀ t, t0 ≤ t → p t ω := by
+  have h' : ∀ t, ∀ᵐ ω ∂μ, t0 ≤ t → p t ω := fun t => by
+    by_cases ht : t0 ≤ t
+    · exact (h t ht).mono fun _ hp _ => hp
+    · exact Eventually.of_forall fun _ h0 => absurd h0 ht
+  exact ae_all_iff.mpr h'
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), (1.20) (tool): an essentially bounded process has bounded paths almost
+surely. -/
+theorem ae_bddS {S : MeasExpectationSystem Ω} {M : ℕ → Ω → ιz → ℝ} (hM : MBoundedV S M) :
+    ∀ᵐ ω ∂S.μ, BddS (fun t => M t ω) := by
+  obtain ⟨K, hK⟩ := hM
+  filter_upwards [ae_all_iff.mpr hK] with ω h
+  exact ⟨K, fun t i => h t i⟩
+
+/-! ### The base solution of (1.18) -/
+
+/-- Woodford (2003), (1.18), p. 552 (**a bounded solution on every probability space**): the
+constant plan `v` with `T̃'W(Tv − τ*) = 0` and zero multipliers is bounded, adapted, and solves
+(1.18) almost surely. -/
+theorem mbase (S : MeasExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ) (t0 : ℕ)
+    {v : (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hv : P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ v - P.τstar)) = 0) :
+    MBoundedV S (fun (_ : ℕ) (_ : Ω) => v) ∧ MAdaptedV S (fun (_ : ℕ) (_ : Ω) => v) ∧
+      MBoundedV S (fun (_ : ℕ) (_ : Ω) => (0 : ιZ ⊕ ιz → ℝ)) ∧
+      MAEMeasV S (fun (_ : ℕ) (_ : Ω) => (0 : ιZ ⊕ ιz → ℝ)) ∧
+      MMultKnown S t0 (fun (_ : ℕ) (_ : Ω) => (0 : ιZ ⊕ ιz → ℝ)) ∧
+      MEq118 S P t0 (fun _ _ => v) (fun _ _ => 0) := by
+  refine ⟨⟨∑ i, |v i|, fun _ => Eventually.of_forall fun _ i => ?_⟩,
+    fun _ _ => stronglyMeasurable_const, ⟨0, fun _ => Eventually.of_forall fun _ _ => by simp⟩,
+    fun _ _ => aestronglyMeasurable_const, fun _ _ _ => stronglyMeasurable_const,
+    fun t _ => Eventually.of_forall fun ω => ?_⟩
+  · exact Finset.single_le_sum (f := fun i => |v i|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ i)
+  · have e : EVm S t (fun _ => (0 : ιZ ⊕ ιz → ℝ)) ω = 0 := by
+      funext i
+      exact congrFun (S.E_const t 0) ω
+    rw [e, mulVec_zero, zero_add, mulVec_zero, smul_zero, sub_zero]
+    exact hv
+
+/-- Woodford (2003), (1.20)–(1.21) (tool): along the base solution of `mbase` every
+representation has `q_t = 0` and `r_t = 0` almost surely, `t ≥ t₀`. -/
+theorem mbase_QR {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H : MProp81Conclusion S P t0) {v : (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    (hv : P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ v - P.τstar)) = 0) :
+    (∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, H.Qop (xproc P fun _ _ => v) t ω = 0) ∧
+      ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, H.Rop (xproc P fun _ _ => v) t ω = 0 := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := mbase S P t0 hv
+  obtain ⟨e120, e121⟩ := (H.equiv _ _ h1 h2 h3 h4 h5).mp h6
+  refine ⟨fun t ht => (e120 t ht).mono fun ω h => ?_, fun t ht => (e121 t ht).mono fun ω h => ?_⟩
+  · have e0 : Mpart (0 : ιZ ⊕ ιz → ℝ) = 0 := rfl
+    rw [e0, mulVec_zero, zero_add] at h
+    exact h.symm
+  · have e0 : Mpart (0 : ιZ ⊕ ιz → ℝ) = 0 := rfl
+    have e1 : ξpart (0 : ιZ ⊕ ιz → ℝ) = 0 := rfl
+    rw [e0, e1, mulVec_zero, zero_add] at h
+    exact h.symm
+
+/-! ### Uniqueness on the bounded orbits -/
+
+/-- Woodford (2003), p. 553, the remark after Proposition 8.1, **on a probability space**: two
+representations agree on the bounded orbits of `Λ`: if `Λᵏ m` is bounded, `Λ m = Λ' m` and
+`Υ m = Υ' m`. -/
+theorem magree_on_bddOrbit {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H H' : MProp81Conclusion S P t0) (m : ιz → ℝ) (hm : ∃ K, ∀ k i, |(H.Λ ^ k *ᵥ m) i| ≤ K) :
+    H.Λ *ᵥ m = H'.Λ *ᵥ m ∧ H.Υ *ᵥ m = H'.Υ *ᵥ m := by
+  obtain ⟨v, hv⟩ := exists_xproc_zero P
+  obtain ⟨h1, h2, -, -, -, -⟩ := mbase S P t0 hv
+  obtain ⟨hQ, hR⟩ := mbase_QR H hv
+  obtain ⟨hQ', hR'⟩ := mbase_QR H' hv
+  set φ1 : ℕ → Ω → ιZ ⊕ ιz → ℝ := fun s _ => pert t0 H.Λ H.Υ m s with hφ1
+  have hMh : ∀ s ω, Mpart (φ1 s ω) = H.Λ ^ (s - t0) *ᵥ m := fun _ _ => rfl
+  have hξh : ∀ s ω, ξpart (φ1 s ω) = H.Υ *ᵥ (H.Λ ^ (s - t0) *ᵥ m) := fun _ _ => rfl
+  have hb : MBoundedV S φ1 := by
+    obtain ⟨K, hK⟩ := hm
+    obtain ⟨KΥ, hKΥ⟩ := exists_bound_mulVec H.Υ K
+    refine ⟨max K KΥ, fun s => Eventually.of_forall fun ω a => ?_⟩
+    rcases a with a | a
+    · exact (hKΥ _ (fun i => hK _ i) a).trans (le_max_right _ _)
+    · exact (hK _ a).trans (le_max_left _ _)
+  have ha : MAEMeasV S φ1 := fun _ _ => aestronglyMeasurable_const
+  have hk : MMultKnown S t0 φ1 := fun _ _ _ => stronglyMeasurable_const
+  have h120 : MEq120 S t0 H.Λ (H.Qop (xproc P fun _ _ => v)) φ1 := by
+    intro t ht
+    filter_upwards [hQ t ht] with ω hq
+    rw [hMh _ ω, hMh _ ω, hq, add_zero, mulVec_mulVec, ← pow_succ',
+      show t + 1 - t0 = t - t0 + 1 by omega]
+  have h121 : MEq121 S t0 H.Υ (H.Rop (xproc P fun _ _ => v)) φ1 := by
+    intro t ht
+    filter_upwards [hR t ht] with ω hr
+    rw [hξh _ ω, hMh _ ω, hr, add_zero]
+  have h118 := (H.equiv _ _ h1 h2 hb ha hk).mpr ⟨h120, h121⟩
+  obtain ⟨f120, f121⟩ := (H'.equiv _ _ h1 h2 hb ha hk).mp h118
+  obtain ⟨ω, a1, a2, b1, b2⟩ := ((f120 t0 le_rfl).and ((hQ' t0 le_rfl).and
+    ((f121 t0 le_rfl).and (hR' t0 le_rfl)))).exists
+  rw [hMh _ ω, hMh _ ω, a2, add_zero, show t0 + 1 - t0 = 1 by omega, Nat.sub_self, pow_one,
+    pow_zero, one_mulVec] at a1
+  rw [hξh _ ω, hMh _ ω, b2, add_zero, Nat.sub_self, pow_zero, one_mulVec] at b1
+  exact ⟨a1, b1⟩
+
+/-- Woodford (2003), p. 553, **on a probability space**: if `Λ` is power-bounded, `Λ` and `Υ`
+are the same in every representation of Proposition 8.1. -/
+theorem munique_of_powBdd {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H H' : MProp81Conclusion S P t0) (hpb : PowBdd H.Λ) : H.Λ = H'.Λ ∧ H.Υ = H'.Υ := by
+  obtain ⟨K, hK⟩ := hpb
+  have hcol : ∀ j, H.Λ *ᵥ Pi.single j 1 = H'.Λ *ᵥ Pi.single j 1 ∧
+      H.Υ *ᵥ Pi.single j 1 = H'.Υ *ᵥ Pi.single j 1 := fun j =>
+    magree_on_bddOrbit H H' _ ⟨K, fun k i => by
+      rw [mulVec_single_one]
+      exact hK k i j⟩
+  refine ⟨?_, ?_⟩
+  · ext i j
+    have := congrFun (hcol j).1 i
+    simpa [mulVec_single_one] using this
+  · ext i j
+    have := congrFun (hcol j).2 i
+    simpa [mulVec_single_one] using this
+
+/-! ### Vector tools for conditional expectations -/
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): a fixed matrix applied to a random vector known at `t`. -/
+theorem mknownV_mulVec {S : MeasExpectationSystem Ω} {t : ℕ} {κ : Type*} [Fintype κ]
+    (A : Matrix ιz κ ℝ) {a : Ω → κ → ℝ} (ha : MKnownV S t a) :
+    MKnownV S t (fun ω => A *ᵥ a ω) := fun i =>
+  sm_comp ha ((continuous_apply i).comp (continuous_const.matrix_mulVec continuous_id))
+
+omit [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): `a − A b` for random vectors known at `t`. -/
+theorem mknownV_sub_mulVec {S : MeasExpectationSystem Ω} {t : ℕ} (A : Matrix ιz ιz ℝ)
+    {a b : Ω → ιz → ℝ} (ha : MKnownV S t a) (hb : MKnownV S t b) :
+    MKnownV S t (fun ω => a ω - A *ᵥ b ω) := fun i =>
+  sm_comp₂ ha hb (g := fun p => p.1 i - (A *ᵥ p.2) i)
+    (((continuous_apply i).comp continuous_fst).sub
+      ((continuous_apply i).comp (continuous_const.matrix_mulVec continuous_snd)))
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): information known at `s` is known at `t ≥ s`. -/
+theorem mknownV_mono {S : MeasExpectationSystem Ω} {s t : ℕ} (hst : s ≤ t) {a : Ω → ιz → ℝ}
+    (ha : MKnownV S s a) : MKnownV S t a := fun i => (ha i).mono (S.𝓕.mono hst)
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): the components of a bounded a.e.-measurable process are
+integrable. -/
+theorem integrable_comp {S : MeasExpectationSystem Ω} {N : ℕ → Ω → ιz → ℝ} (hb : MBoundedV S N)
+    (hm : MAEMeasV S N) (t : ℕ) (i : ιz) : Integrable (fun ω => N t ω i) S.μ := by
+  obtain ⟨K, hK⟩ := hb
+  exact integrable_of_bound (hm t i) ((hK t).mono fun _ h => h i)
+
+omit [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): `A x` has integrable components when `x` does. -/
+theorem integrable_mulVec {S : MeasExpectationSystem Ω} (A : Matrix ιz ιz ℝ) {x : Ω → ιz → ℝ}
+    (hx : ∀ j, Integrable (fun ω => x ω j) S.μ) (i : ιz) :
+    Integrable (fun ω => (A *ᵥ x ω) i) S.μ := by
+  have e : (fun ω => (A *ᵥ x ω) i) = fun ω => ∑ j, A i j * x ω j := by
+    funext ω
+    simp [mulVec, dotProduct]
+  rw [e]
+  exact integrable_finsetSum _ fun j _ => (hx j).const_mul _
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): `E_t` of a known integrable random vector is itself. -/
+theorem EVm_of_known {S : MeasExpectationSystem Ω} {t : ℕ} {x : Ω → ιz → ℝ}
+    (hk : MKnownV S t x) (hi : ∀ i, Integrable (fun ω => x ω i) S.μ) : EVm S t x = x := by
+  funext ω i
+  exact congrFun (S.E_of_stronglyMeasurable (hk i) (hi i)) ω
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): `E_t` respects a.e. equality of random vectors. -/
+theorem EVm_congr [Countable ιz] {S : MeasExpectationSystem Ω} (t : ℕ) {x y : Ω → ιz → ℝ}
+    (h : ∀ᵐ ω ∂S.μ, x ω = y ω) : ∀ᵐ ω ∂S.μ, EVm S t x ω = EVm S t y ω := by
+  have hc : ∀ i, ∀ᵐ ω ∂S.μ, EVm S t x ω i = EVm S t y ω i := fun i =>
+    S.E_congr (h.mono fun ω hω => congrFun hω i) t
+  filter_upwards [ae_all_iff.mpr hc] with ω hω
+  exact funext hω
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): `E_t` is additive on integrable random vectors (a.e.). -/
+theorem EVm_add [Countable ιz] {S : MeasExpectationSystem Ω} (t : ℕ) {x y : Ω → ιz → ℝ}
+    (hx : ∀ i, Integrable (fun ω => x ω i) S.μ) (hy : ∀ i, Integrable (fun ω => y ω i) S.μ) :
+    ∀ᵐ ω ∂S.μ, EVm S t (fun ω => x ω + y ω) ω = EVm S t x ω + EVm S t y ω := by
+  have hc : ∀ i, ∀ᵐ ω ∂S.μ, EVm S t (fun ω => x ω + y ω) ω i = EVm S t x ω i + EVm S t y ω i :=
+    fun i => S.E_add (hx i) (hy i) t
+  filter_upwards [ae_all_iff.mpr hc] with ω hω
+  exact funext hω
+
+/-! ### Re-representation on a probability space -/
+
+omit [DecidableEq ιz] in
+/-- Woodford (2003), (1.20), on a probability space: `N` is an essentially bounded, a.e.-measurable
+solution of `N_{t+1} = Λ N_t + q_t` (a.s.) from `t₀`, with `N_{t+1}` known at `t`. -/
+def RecSolMm (S : MeasExpectationSystem Ω) (t0 : ℕ) (Λ : Matrix ιz ιz ℝ)
+    (q N : ℕ → Ω → ιz → ℝ) : Prop :=
+  MBoundedV S N ∧ MAEMeasV S N ∧ (∀ t, t0 ≤ t → MKnownV S t (N (t + 1))) ∧
+    ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, N (t + 1) ω = Λ *ᵥ N t ω + q t ω
+
+omit [DecidableEq ιz] in
+/-- Woodford (2003), (1.20) (**normalisation on a probability space**): if `q_{t₀}` is bounded and
+known at `t₀`, a solution can be chosen with `N_{t₀}` known at `t₀`: replace `N_{t₀}` by
+`E_{t₀} N_{t₀}`. -/
+theorem mnormalize {S : MeasExpectationSystem Ω} {t0 : ℕ} {Λ : Matrix ιz ιz ℝ}
+    {q : ℕ → Ω → ιz → ℝ} (hq : MKnownV S t0 (q t0)) (hqb : ∃ K, ∀ᵐ ω ∂S.μ, ∀ i, |q t0 ω i| ≤ K)
+    {N : ℕ → Ω → ιz → ℝ} (hN : RecSolMm S t0 Λ q N) :
+    ∃ N', RecSolMm S t0 Λ q N' ∧ MKnownV S t0 (N' t0) := by
+  classical
+  obtain ⟨⟨K, hK⟩, hm, hk, hr⟩ := hN
+  have hint := integrable_comp ⟨K, hK⟩ hm
+  set N' : ℕ → Ω → ιz → ℝ := fun t => if t = t0 then EVm S t0 (N t0) else N t with hN'
+  have hNs : ∀ t, t ≠ t0 → N' t = N t := fun t h => by rw [hN']; simp [h]
+  have hN0 : N' t0 = EVm S t0 (N t0) := by rw [hN']; simp
+  have hqi : ∀ i, Integrable (fun ω => q t0 ω i) S.μ := fun i => by
+    obtain ⟨Kq, hKq⟩ := hqb
+    exact integrable_of_bound ((hq i).mono (S.𝓕.le t0)).aestronglyMeasurable
+      (hKq.mono fun _ h => h i)
+  refine ⟨N', ⟨⟨K, fun t => ?_⟩, fun t i => ?_, fun t ht => ?_, fun t ht => ?_⟩, ?_⟩
+  · by_cases h : t = t0
+    · rw [h, hN0]
+      have hc : ∀ i, ∀ᵐ ω ∂S.μ, |EVm S t0 (N t0) ω i| ≤ K := fun i =>
+        S.abs_E_le ((hK t0).mono fun _ h => h i) t0
+      exact ae_all_iff.mpr hc
+    · rw [hNs t h]
+      exact hK t
+  · by_cases h : t = t0
+    · rw [h, hN0]
+      exact ((S.stronglyMeasurable_E t0 _).mono (S.𝓕.le t0)).aestronglyMeasurable
+    · rw [hNs t h]
+      exact hm t i
+  · rw [hNs (t + 1) (by omega)]
+    exact hk t ht
+  · rw [hNs (t + 1) (by omega)]
+    by_cases h : t = t0
+    · subst h
+      rw [hN0]
+      have e1 : EVm S t (N (t + 1)) = N (t + 1) := EVm_of_known (hk t le_rfl) (hint (t + 1))
+      have e2 := EVm_congr (S := S) t (hr t le_rfl)
+      have e3 := EVm_add (S := S) t (integrable_mulVec Λ (hint t)) hqi
+      have e4 := EVm_mulVec S t Λ (hint t)
+      have e5 : EVm S t (q t) = q t := EVm_of_known hq hqi
+      filter_upwards [e2, e3, e4] with ω a2 a3 a4
+      rw [← congrFun e1 ω, a2, a3, a4, e5]
+    · rw [hNs t h]
+      exact hr t ht
+  · rw [hN0]
+    exact fun i => S.stronglyMeasurable_E t0 _
+
+open Classical in
+omit [Fintype ιZ] [Fintype ιτ] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), (1.20) (the modified operator `Q'` on a probability space): on a plan whose
+recursion has a solution `N` (chosen with `N_{t₀}` known at `t₀`), `q'_t = N_{t+1} − Λ' N_t` from
+`t₀` on; on a plan with none, the forcing `b x`. -/
+noncomputable def reQMm (S : MeasExpectationSystem Ω) (t0 : ℕ) (Λ Λ' : Matrix ιz ιz ℝ)
+    (Q : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ)
+    (b : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ) :
+    (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ :=
+  fun x => if h : ∃ N, RecSolMm S t0 Λ (Q x) N ∧ MKnownV S t0 (N t0) then
+    fun t ω => if t0 ≤ t then Classical.choose h (t + 1) ω - Λ' *ᵥ Classical.choose h t ω
+      else Q x t ω
+    else b x
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (**re-representation on a probability space**): if
+`Λ'` has the same bounded homogeneous solutions as `H.Λ` (path by path) and, on every bounded
+plan without a solution of the `H.Λ` recursion, the `Λ'` recursion with forcing `b x` has none
+either, then `(Λ', H.Υ, reQMm, H.Rop)` represents the solutions of (1.18) a.s. -/
+theorem mreRep_equiv {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H : MProp81Conclusion S P t0) {Λ' : Matrix ιz ιz ℝ} (hsame : HomSame t0 H.Λ Λ')
+    (b : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ)
+    (hb : ∀ x, MBoundedV S x → ¬ (∃ N, RecSolMm S t0 H.Λ (H.Qop x) N) →
+      ∀ D, ¬ RecSolMm S t0 Λ' (b x) D) :
+    MProp81Equiv S P t0 Λ' H.Υ (reQMm S t0 H.Λ Λ' H.Qop b) H.Rop := by
+  intro y φ hyb hya hφb hφa hφk
+  set x := xproc P y with hx
+  have hxb : MBoundedV S x := mboundedV_xproc P hyb
+  set m : ℕ → Ω → ιz → ℝ := fun t ω => Mpart (φ t ω) with hm
+  have hmb : MBoundedV S m := by
+    obtain ⟨K, hK⟩ := hφb
+    exact ⟨K, fun t => (hK t).mono fun _ h i => h (Sum.inr i)⟩
+  have hma : MAEMeasV S m := fun t i => hφa t (Sum.inr i)
+  have hE120 : ∀ (L : Matrix ιz ιz ℝ) (q' : ℕ → Ω → ιz → ℝ), MEq120 S t0 L q' φ ↔
+      ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, m (t + 1) ω = L *ᵥ m t ω + q' t ω := fun _ _ => Iff.rfl
+  rw [H.equiv y φ hyb hya hφb hφa hφk, hE120, hE120]
+  have hqk : MKnownV S t0 (H.Qop x t0) := H.Qadapted x t0
+  have hqb : ∃ K, ∀ᵐ ω ∂S.μ, ∀ i, |H.Qop x t0 ω i| ≤ K := by
+    obtain ⟨K, hK⟩ := H.Qbounded x hxb
+    exact ⟨K, hK t0⟩
+  by_cases hs : ∃ N, RecSolMm S t0 H.Λ (H.Qop x) N ∧ MKnownV S t0 (N t0)
+  · have hQ : ∀ t, t0 ≤ t → ∀ ω, reQMm S t0 H.Λ Λ' H.Qop b x t ω =
+        Classical.choose hs (t + 1) ω - Λ' *ᵥ Classical.choose hs t ω := by
+      intro t ht ω
+      simp only [reQMm]
+      rw [dite_eq_left hs]
+      simp [ht]
+    obtain ⟨⟨hNb, -, -, hNr⟩, -⟩ := Classical.choose_spec hs
+    set N := Classical.choose hs
+    have hD : ∀ᵐ ω ∂S.μ, BddS (fun t => m t ω - N t ω) := by
+      filter_upwards [ae_bddS hmb, ae_bddS hNb] with ω ⟨K1, h1⟩ ⟨K2, h2⟩
+      exact ⟨K1 + K2, fun t i => (abs_sub _ _).trans (add_le_add (h1 t i) (h2 t i))⟩
+    have hNall := ae_forall_ge hNr
+    constructor
+    · rintro ⟨h1, h2⟩
+      refine ⟨fun t ht => ?_, h2⟩
+      filter_upwards [ae_forall_ge h1, hNall, hD] with ω a1 a2 a3
+      have hDh := ((hsame _ a3).mp fun s hs => by
+        rw [a1 s hs, a2 s hs, mulVec_sub]; abel) t ht
+      rw [hQ t ht ω]
+      have : m (t + 1) ω = N (t + 1) ω + Λ' *ᵥ (m t ω - N t ω) := by rw [← hDh]; abel
+      rw [this, mulVec_sub]
+      abel
+    · rintro ⟨h1, h2⟩
+      refine ⟨fun t ht => ?_, h2⟩
+      filter_upwards [ae_forall_ge h1, hNall, hD] with ω a1 a2 a3
+      have hDh := ((hsame _ a3).mpr fun s hs => by
+        rw [a1 s hs, hQ s hs ω, mulVec_sub]; abel) t ht
+      have : m (t + 1) ω = N (t + 1) ω + H.Λ *ᵥ (m t ω - N t ω) := by rw [← hDh]; abel
+      rw [this, a2 t ht, mulVec_sub]
+      abel
+  · have hQ : reQMm S t0 H.Λ Λ' H.Qop b x = b x := by
+      simp only [reQMm]
+      rw [dite_eq_right hs]
+    have hno : ¬ ∃ N, RecSolMm S t0 H.Λ (H.Qop x) N := fun ⟨N, hN⟩ =>
+      hs (mnormalize hqk hqb hN)
+    rw [hQ]
+    constructor
+    · rintro ⟨h1, -⟩
+      exact absurd ⟨m, hmb, hma, fun t ht => hφk t ht, h1⟩ hno
+    · rintro ⟨h1, -⟩
+      exact absurd ⟨hmb, hma, fun t ht => hφk t ht, h1⟩ (hb x hxb hno m)
+
+/-- Woodford (2003), Proposition 8.1 (**re-representation on a probability space**): the
+representation of `mreRep_equiv` as an `MProp81Conclusion`; the forcing `b` must be adapted, and
+bounded on bounded plans. -/
+noncomputable def mreRep {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H : MProp81Conclusion S P t0) (Λ' : Matrix ιz ιz ℝ) (hsame : HomSame t0 H.Λ Λ')
+    (b : (ℕ → Ω → ιZ ⊕ ιz → ℝ) → ℕ → Ω → ιz → ℝ)
+    (hba : ∀ x, MAdaptedV S (b x)) (hbb : ∀ x, MBoundedV S x → MBoundedV S (b x))
+    (hb : ∀ x, MBoundedV S x → ¬ (∃ N, RecSolMm S t0 H.Λ (H.Qop x) N) →
+      ∀ D, ¬ RecSolMm S t0 Λ' (b x) D) : MProp81Conclusion S P t0 where
+  Λ := Λ'
+  Υ := H.Υ
+  Qop := reQMm S t0 H.Λ Λ' H.Qop b
+  Rop := H.Rop
+  equiv := mreRep_equiv H hsame b hb
+  Qbounded := fun x hx => by
+    by_cases hs : ∃ N, RecSolMm S t0 H.Λ (H.Qop x) N ∧ MKnownV S t0 (N t0)
+    · obtain ⟨⟨⟨K, hK⟩, -, -, -⟩, -⟩ := Classical.choose_spec hs
+      obtain ⟨K', hK'⟩ := exists_bound_mulVec Λ' K
+      obtain ⟨KQ, hKQ⟩ := H.Qbounded x hx
+      refine ⟨K + K' + |KQ|, fun t => ?_⟩
+      filter_upwards [hK t, hK (t + 1), hKQ t] with ω a0 a1 aq
+      intro i
+      simp only [reQMm]
+      rw [dite_eq_left hs]
+      split_ifs
+      · exact ((abs_sub _ _).trans (add_le_add (a1 i) (hK' _ a0 i))).trans
+          (le_add_of_nonneg_right (abs_nonneg _))
+      · have h2 := (abs_nonneg _).trans (a0 i)
+        have h3 := (abs_nonneg _).trans (hK' _ a0 i)
+        linarith [aq i, le_abs_self KQ]
+    · obtain ⟨K, hK⟩ := hbb x hx
+      refine ⟨K, fun t => (hK t).mono fun ω h i => ?_⟩
+      simp only [reQMm]
+      rw [dite_eq_right hs]
+      exact h i
+  Rbounded := H.Rbounded
+  Qadapted := fun x t => by
+    by_cases hs : ∃ N, RecSolMm S t0 H.Λ (H.Qop x) N ∧ MKnownV S t0 (N t0)
+    · obtain ⟨⟨-, -, hk, -⟩, h0⟩ := Classical.choose_spec hs
+      by_cases ht : t0 ≤ t
+      · have e : reQMm S t0 H.Λ Λ' H.Qop b x t = fun ω =>
+            Classical.choose hs (t + 1) ω - Λ' *ᵥ Classical.choose hs t ω := by
+          funext ω
+          simp only [reQMm]
+          rw [dite_eq_left hs]
+          simp [ht]
+        rw [e]
+        have hNt : MKnownV S t (Classical.choose hs t) := by
+          rcases ht.lt_or_eq with hlt | heq
+          · obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
+            exact mknownV_mono (Nat.le_succ s) (hk s (by omega))
+          · rw [← heq]
+            exact h0
+        exact mknownV_sub_mulVec Λ' (hk t ht) hNt
+      · have e : reQMm S t0 H.Λ Λ' H.Qop b x t = H.Qop x t := by
+          funext ω
+          simp only [reQMm]
+          rw [dite_eq_left hs]
+          simp [ht]
+        rw [e]
+        exact H.Qadapted x t
+    · have e : reQMm S t0 H.Λ Λ' H.Qop b x = b x := by
+        simp only [reQMm]
+        rw [dite_eq_right hs]
+      rw [e]
+      exact hba x t
+  Radapted := H.Radapted
+
+/-! ### The two constructions and the exact criterion -/
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (**conjugated representation on a probability
+space**): if `G` (inverse `Gi`) fixes the bounded orbits of `H.Λ`, there is a representation with
+`Λ' = G Λ Gi` and the same `Υ`. -/
+theorem mconj_rep {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H : MProp81Conclusion S P t0) {G Gi : Matrix ιz ιz ℝ} (hGGi : G * Gi = 1)
+    (hGiG : Gi * G = 1) (hfix : ∀ v ∈ bddOrb H.Λ, G *ᵥ v = v) :
+    ∃ H' : MProp81Conclusion S P t0, H'.Λ = G * H.Λ * Gi ∧ H'.Υ = H.Υ := by
+  refine ⟨mreRep H (G * H.Λ * Gi) (conj_homSame t0 hGGi hGiG hfix)
+    (fun x t ω => G *ᵥ H.Qop x t ω) (fun x t => mknownV_mulVec G (H.Qadapted x t))
+    (fun x hx => ?_) (fun x _ hs D hD => ?_), rfl, rfl⟩
+  · obtain ⟨K, hK⟩ := H.Qbounded x hx
+    obtain ⟨K', hK'⟩ := exists_bound_mulVec G K
+    exact ⟨K', fun t => (hK t).mono fun _ h i => hK' _ h i⟩
+  · obtain ⟨⟨K, hK⟩, hm, hk, hr⟩ := hD
+    obtain ⟨K', hK'⟩ := exists_bound_mulVec Gi K
+    refine hs ⟨fun t ω => Gi *ᵥ D t ω, ⟨K', fun t => (hK t).mono fun _ h i => hK' _ h i⟩,
+      fun t i => ?_, fun t ht => mknownV_mulVec Gi (hk t ht), fun t ht => ?_⟩
+    · exact aesm_comp (hm t) ((continuous_apply i).comp (continuous_const.matrix_mulVec
+        continuous_id))
+    · filter_upwards [hr t ht] with ω h
+      rw [h, mulVec_add, mulVec_mulVec, mulVec_mulVec, mulVec_mulVec,
+        ← Matrix.mul_assoc, ← Matrix.mul_assoc, hGiG, Matrix.one_mul, one_mulVec]
+
+/-- Woodford (2003), Proposition 8.1, p. 553 (**sign-flipped representation on a probability
+space**): if `Λ = c I` with `|c| > 1`, then `Λ' = −c I` (same `Υ`) is also a representation;
+the forcing is `(−1)^{t+1} q_t`. -/
+theorem mneg_rep {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H : MProp81Conclusion S P t0) {c : ℝ} (hΛ : H.Λ = c • 1) (hc : 1 < |c|) :
+    ∃ H' : MProp81Conclusion S P t0, H'.Λ = (-c) • 1 ∧ H'.Υ = H.Υ := by
+  have hc2 : 1 < |-c| := by rwa [abs_neg]
+  have hsame : HomSame t0 H.Λ ((-c) • 1) := by
+    intro D hD
+    rw [hΛ]
+    have key : ∀ (d : ℝ), 1 < |d| →
+        (∀ t, t0 ≤ t → D (t + 1) = (d • (1 : Matrix ιz ιz ℝ)) *ᵥ D t) →
+        ∀ (e : ℝ), ∀ t, t0 ≤ t → D (t + 1) = (e • (1 : Matrix ιz ιz ℝ)) *ᵥ D t := by
+      intro d hd h e t ht
+      rw [zero_of_scalar hd hD h t ht, zero_of_scalar hd hD h (t + 1) (by omega), mulVec_zero]
+    exact ⟨fun h => key c hc h (-c), fun h => key (-c) hc2 h c⟩
+  have hsgn : ∀ t : ℕ, ((-1 : ℝ) ^ t) * (-1) ^ t = 1 := fun t => by
+    rw [← mul_pow]; norm_num
+  refine ⟨mreRep H ((-c) • 1) hsame (fun x t ω => ((-1 : ℝ) ^ (t + 1)) • H.Qop x t ω)
+    (fun x t i => ?_) (fun x hx => ?_) (fun x _ hs D hD => ?_), rfl, rfl⟩
+  · exact (H.Qadapted x t i).const_smul ((-1 : ℝ) ^ (t + 1))
+  · obtain ⟨K, hK⟩ := H.Qbounded x hx
+    refine ⟨K, fun t => (hK t).mono fun ω h i => ?_⟩
+    change |(((-1 : ℝ) ^ (t + 1)) • H.Qop x t ω) i| ≤ K
+    rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow, abs_neg, abs_one, one_pow, one_mul]
+    exact h i
+  · obtain ⟨⟨K, hK⟩, hm, hk, hr⟩ := hD
+    refine hs ⟨fun t ω => ((-1 : ℝ) ^ t) • D t ω, ⟨K, fun t => (hK t).mono fun ω h i => ?_⟩,
+      fun t i => (hm t i).const_smul ((-1 : ℝ) ^ t), fun t ht i =>
+        (hk t ht i).const_smul ((-1 : ℝ) ^ (t + 1)), fun t ht => ?_⟩
+    · change |(((-1 : ℝ) ^ t) • D t ω) i| ≤ K
+      rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow, abs_neg, abs_one, one_pow, one_mul]
+      exact h i
+    · filter_upwards [hr t ht] with ω h
+      rw [h, hΛ]
+      funext i
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, smul_mulVec, one_mulVec, mulVec_smul]
+      linear_combination (H.Qop x t ω i) * hsgn (t + 1)
+
+/-- Woodford (2003), p. 553, the remark after Proposition 8.1 (**general converse on a
+probability space**): if `Λ` is not power-bounded, some other representation has a different
+`Λ'` (and the same `Υ`). -/
+theorem mnot_unique_of_not_powBdd {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {t0 : ℕ} (H : MProp81Conclusion S P t0) (hnp : ¬ PowBdd H.Λ) :
+    ∃ H' : MProp81Conclusion S P t0, H'.Λ ≠ H.Λ ∧ H'.Υ = H.Υ := by
+  have hne : Nonempty ιz := by
+    by_contra h0
+    exact hnp ⟨0, fun _ i => absurd ⟨i⟩ h0⟩
+  obtain ⟨i0⟩ := hne
+  by_cases hsc : ∃ c : ℝ, H.Λ = c • 1
+  · obtain ⟨c, hc⟩ := hsc
+    have hc1 : 1 < |c| := by
+      by_contra hle
+      push Not at hle
+      refine hnp ⟨1, fun k i j => ?_⟩
+      rw [hc, smul_pow, one_pow, Matrix.smul_apply, smul_eq_mul, Matrix.one_apply, abs_mul,
+        abs_pow]
+      have h1 : |c| ^ k ≤ 1 := pow_le_one₀ (abs_nonneg c) hle
+      split_ifs <;> simp [h1]
+    obtain ⟨H', h1, h2⟩ := mneg_rep H hc hc1
+    refine ⟨H', fun h => ?_, h2⟩
+    have e := congrFun (congrFun (h1.symm.trans (h.trans hc)) i0) i0
+    simp only [Matrix.smul_apply, Matrix.one_apply_eq, smul_eq_mul, mul_one] at e
+    have hc0 : c ≠ 0 := fun h0 => by rw [h0, abs_zero] at hc1; linarith
+    exact hc0 (by linarith)
+  · have hlt : bddOrb H.Λ < ⊤ := lt_top_iff_ne_top.mpr fun h => hnp (powBdd_of_top h)
+    obtain ⟨f, hf0, hfV⟩ := (bddOrb H.Λ).exists_le_ker_of_lt_top hlt
+    set w : ιz → ℝ := fun i => f (Pi.single i 1) with hw
+    have hwf : ∀ v, w ⬝ᵥ v = f v := by
+      intro v
+      conv_rhs => rw [pi_eq_sum_univ v]
+      rw [map_sum]
+      simp only [map_smul, smul_eq_mul, dotProduct, hw]
+      exact Finset.sum_congr rfl fun i _ => by
+        rw [mul_comm]
+        congr 2
+        funext j
+        simp only [Pi.single_apply, eq_comm]
+    have hw0 : ∃ b, w b ≠ 0 := by
+      by_contra hall
+      push Not at hall
+      refine hf0 (LinearMap.ext fun v => ?_)
+      rw [← hwf, LinearMap.zero_apply, dotProduct]
+      exact Finset.sum_eq_zero fun i _ => by rw [hall i, zero_mul]
+    obtain ⟨b, hb⟩ := hw0
+    have hnc : ∃ i, ∀ s : ℝ, s ≠ 0 →
+        vecMulVec (Pi.single i s) (w ᵥ* H.Λ) ≠ vecMulVec (H.Λ *ᵥ Pi.single i s) w := by
+      by_contra hall
+      push Not at hall
+      exact hsc ⟨_, scalar_of_comm hb hall⟩
+    obtain ⟨i, hi⟩ := hnc
+    obtain ⟨s, hs0, hsdet⟩ : ∃ s : ℝ, s ≠ 0 ∧ 1 + w i * s ≠ 0 := by
+      by_cases h1 : 1 + w i * 1 = 0
+      · refine ⟨2, two_ne_zero, ?_⟩
+        intro h2
+        linarith
+      · exact ⟨1, one_ne_zero, h1⟩
+    set u : ιz → ℝ := Pi.single i s with hu
+    set G : Matrix ιz ιz ℝ := 1 + vecMulVec u w with hG
+    have hdet : IsUnit G.det := by
+      rw [hG, vecMulVec_eq Unit, det_one_add_replicateCol_mul_replicateRow, hu,
+        dotProduct_single]
+      exact isUnit_iff_ne_zero.mpr hsdet
+    have hfix : ∀ v ∈ bddOrb H.Λ, G *ᵥ v = v := by
+      intro v hv
+      have h0 : w ⬝ᵥ v = 0 := by rw [hwf]; exact hfV hv
+      rw [hG, add_mulVec, one_mulVec]
+      conv_rhs => rw [← add_zero v]
+      congr 1
+      funext a
+      simp only [mulVec, dotProduct, vecMulVec_apply, Pi.zero_apply, mul_assoc,
+        ← Finset.mul_sum]
+      rw [show (∑ x, w x * v x) = w ⬝ᵥ v from rfl, h0, mul_zero]
+    obtain ⟨H', h1, h2⟩ := mconj_rep H (mul_nonsing_inv G hdet) (nonsing_inv_mul G hdet) hfix
+    refine ⟨H', fun h => hi s hs0 ?_, h2⟩
+    have hcomm : G * H.Λ = H.Λ * G := by
+      calc G * H.Λ = G * H.Λ * G⁻¹ * G := by
+            rw [Matrix.mul_assoc _ G⁻¹, nonsing_inv_mul G hdet, Matrix.mul_one]
+        _ = H.Λ * G := by rw [← h1, h]
+    rw [hG, Matrix.add_mul, Matrix.mul_add, Matrix.one_mul, Matrix.mul_one, vecMulVec_mul,
+      mul_vecMulVec] at hcomm
+    exact add_left_cancel hcomm
+
+/-- **Woodford (2003), p. 553, the remark after Proposition 8.1 (exact criterion on the
+conditional-expectation model)**: on every probability space, `Λ` and `Υ` are the same in every
+representation of Proposition 8.1 iff `Λ` is power-bounded. No further hypothesis is needed: the
+sample space of a probability measure is nonempty, and (1.18) always has a bounded solution
+(`mbase`). -/
+theorem munique_iff_powBdd {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (H : MProp81Conclusion S P t0) :
+    (∀ H' : MProp81Conclusion S P t0, H'.Λ = H.Λ ∧ H'.Υ = H.Υ) ↔ PowBdd H.Λ := by
+  constructor
+  · intro hall
+    by_contra hnp
+    obtain ⟨H', h1, -⟩ := mnot_unique_of_not_powBdd H hnp
+    exact h1 (hall H').1
+  · intro hpb H'
+    obtain ⟨h1, h2⟩ := munique_of_powBdd H H' hpb
+    exact ⟨h1.symm, h2.symm⟩
+
+end Woodford.OptimalPolicyRules.TidyR6aReRepMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.1 on the conditional-expectation model
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Section 1.4, Proposition 8.1 (pp. 552–553,
+(1.18)–(1.21)) with Appendix G.1 (pp. 716–718), on a filtered probability space with Mathlib's
+conditional expectation.
+
+`Prop81General.prop81` builds a representation from a real deflating pair
+(`PencilSplit.DeflatingSplit`) for every exact expectation system. Here the same construction is
+carried out with `condExp`, giving an inhabitant of `TidyR6aReRepMeasure.MProp81Conclusion` on
+**every** probability space (`mprop81`), with the explicit matrices `Λ = β⁻¹K⁻¹Ẽ'` and
+`Υ = −(J₁')⁻¹J₂'Ẽ'` (`mprop81_matrices`):
+
+* `mRop`: `r_t = (J₁')⁻¹ E_t ∑_k (βΨ')ᵏ βJ'x_{t+k}` (the forward sum `TidyR5aMeasBK.fwdM`);
+* `mQop`: `q_t = −K⁻¹(E_t x^z_t + A₁₂'E_t r_{t+1})`;
+* `mprop81_equiv`: the equivalence (1.18) ⟺ (1.20) ∧ (1.21) almost surely, for essentially
+  bounded adapted plans and essentially bounded a.e.-measurable multipliers with `M_t` known at
+  `t`. The step "(1.18) ⟹ `w_t = J'Î'φ_t` is the forward sum" uses the a.s. forward uniqueness
+  `OptimalRulesMeasureQuasiSplit.m_fwd_zero`.
+
+So the criterion `TidyR6aReRepMeasure.munique_iff_powBdd` applies to `mprop81`
+(`mprop81_unique_iff`): the representation built from a deflating split is the only one iff its
+`Λ` is power-bounded.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aProp81Measure
+
+open MeasureTheory Filter Matrix GeneralSetup Prop81General TargetCriterion.Prop81 GeneralFOC
+open GeneralFOC.LQ PencilSplit ExpectationsMeasure OptimalRulesMeasure TidyR6aReRepMeasure
+open TidyR5bReRepConverse
+
+variable {Ω : Type*} [MeasurableSpace Ω] {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz]
+  [Fintype ιτ] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-! ### The operators -/
+
+/-- Woodford (2003), eq. (1.21), p. 553, with conditional expectations: the operator
+`E_t R(L⁻¹)`, `r_t = (J₁')⁻¹ E_t ∑_{k ≥ 0} (βΨ')ᵏ βJ'x_{t+k}`. -/
+noncomputable def mRop (S : MeasExpectationSystem Ω) {Sy : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit Sy β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιZ → ℝ :=
+  fun t ω => ((J1 D.J)ᵀ)⁻¹ *ᵥ TidyR5aMeasBK.fwdM S (β • D.Ψᵀ) (fpart β D.J x) t ω
+
+/-- Woodford (2003), eq. (1.20), p. 553, with conditional expectations: the operator
+`E_t Q(L⁻¹)`, `q_t = −K⁻¹(E_t x^z_t + A₁₂' E_t r_{t+1})`. -/
+noncomputable def mQop (S : MeasExpectationSystem Ω) {Sy : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit Sy β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : ℕ → Ω → ιz → ℝ :=
+  fun t ω => -((Kmat Sy D.J)⁻¹ *ᵥ (EVm S t (fun ω' => Mpart (x t ω')) ω +
+    Sy.A12ᵀ *ᵥ EVm S t (mRop S D x (t + 1)) ω))
+
+/-! ### Tools -/
+
+omit [DecidableEq ιZ] in
+/-- Woodford (2003), p. 553 (tool): `x = T̃'W(τ − τ*)` of an adapted plan is adapted. -/
+theorem madaptedV_xproc {S : MeasExpectationSystem Ω} (P : LQProblem ιZ ιz ιτ)
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : MAdaptedV S y) : MAdaptedV S (xproc P y) :=
+  fun t i => sm_comp (hy t) (g := fun v => (P.Ttilᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ v - P.τstar))) i)
+    ((continuous_apply i).comp (continuous_const.matrix_mulVec (continuous_const.matrix_mulVec
+      ((continuous_const.matrix_mulVec continuous_id).sub continuous_const))))
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), p. 540 (tool): a fixed matrix applied to a random vector with integrable
+components has integrable components. -/
+theorem integrable_mulVec' {S : MeasExpectationSystem Ω} {κ ι : Type*} [Fintype ι]
+    (A : Matrix κ ι ℝ) {x : Ω → ι → ℝ} (hx : ∀ j, Integrable (fun ω => x ω j) S.μ) (i : κ) :
+    Integrable (fun ω => (A *ᵥ x ω) i) S.μ := by
+  have e : (fun ω => (A *ᵥ x ω) i) = fun ω => ∑ j, A i j * x ω j := by
+    funext ω
+    simp [mulVec, dotProduct]
+  rw [e]
+  exact integrable_finsetSum _ fun j _ => (hx j).const_mul _
+
+/-- Woodford (2003), (1.18) and (G.4) (tool, pointwise): `J'` times the left side of (1.18) is
+`Ψ'(J'Î'e) + J'x − β⁻¹ J'Î'u`. -/
+theorem J_lhs {Sy : LinearRESystem ιZ ιz} {J : Matrix (ιZ ⊕ ιz) ιZ ℝ}
+    {Ψ : Matrix ιZ ιZ ℝ} (hd : Sy.Ahat * J = Sy.Ihat * J * Ψ) (β : ℝ) (e xx u : ιZ ⊕ ιz → ℝ) :
+    Jᵀ *ᵥ (Sy.Ahatᵀ *ᵥ e + xx - β⁻¹ • (Sy.Ihatᵀ *ᵥ u)) =
+      Ψᵀ *ᵥ ((Jᵀ * Sy.Ihatᵀ) *ᵥ e) + Jᵀ *ᵥ xx - β⁻¹ • ((Jᵀ * Sy.Ihatᵀ) *ᵥ u) := by
+  rw [mulVec_sub, mulVec_add, deflate_transpose hd, mulVec_smul, ← mulVec_mulVec,
+    ← mulVec_mulVec]
+
+/-- Woodford (2003), (1.18) (tool, pointwise): the `z`-rows of the left side of (1.18). -/
+theorem Mpart_lhs (Sy : LinearRESystem ιZ ιz) (β : ℝ) (e xx u : ιZ ⊕ ιz → ℝ) :
+    Mpart (Sy.Ahatᵀ *ᵥ e + xx - β⁻¹ • (Sy.Ihatᵀ *ᵥ u)) =
+      Sy.A12ᵀ *ᵥ ξpart e + Sy.A22ᵀ *ᵥ Mpart e + Mpart xx - β⁻¹ • (Sy.Etᵀ *ᵥ Mpart u) := by
+  rw [Ahat_transpose_mulVec, Ihat_transpose_mulVec]
+  rfl
+
+/-! ### Proposition 8.1 -/
+
+/-- **Woodford (2003), Proposition 8.1, p. 553, on a probability space (the equivalence)**: for a
+real deflating pair, essentially bounded adapted plans and essentially bounded a.e.-measurable
+multipliers with `M_t` known at `t` satisfy (1.18) a.s. for all `t ≥ t₀` iff they satisfy (1.20)
+with `Λ = β⁻¹K⁻¹Ẽ'` and (1.21) with `Υ = −(J₁')⁻¹J₂'Ẽ'` a.s., with the operators `mQop`,
+`mRop`. -/
+theorem mprop81_equiv (P : LQProblem ιZ ιz ιτ) (D : DeflatingSplit P.sys P.β)
+    (S : MeasExpectationSystem Ω) (t0 : ℕ) :
+    MProp81Equiv S P t0 (Λmat P.sys P.β D.J) (Υmat P.sys D.J) (mQop S D) (mRop S D) := by
+  intro y φ hyb hya hφb hφa hφk
+  set x := xproc P y with hx
+  have hxb : MBoundedV S x := mboundedV_xproc P hyb
+  have hxa : MAdaptedV S x := madaptedV_xproc P hya
+  set G : Matrix ιZ ιZ ℝ := P.β • D.Ψᵀ with hGdef
+  have hG : PowDecay G := D.powDecay_G P.β_pos
+  set f := fpart P.β D.J x with hf
+  have hfb : MBoundedV S f := by
+    obtain ⟨K, hK⟩ := hxb
+    obtain ⟨K', hK'⟩ := exists_bound_mulVec (P.β • D.Jᵀ) K
+    exact ⟨K', fun t => (hK t).mono fun _ h i => hK' _ h i⟩
+  have hfa : MAdaptedV S f := fun t => mknownV_mulVec (P.β • D.Jᵀ) (hxa t)
+  set F := TidyR5aMeasBK.fwdM S G f with hF
+  have hFrec := TidyR5aMeasBK.fwdM_rec hG hfb hfa
+  have hFb : MBoundedV S F := TidyR5aMeasBK.fwdM_bdd hG hfb
+  have hFi : ∀ t i, Integrable (fun ω => F t ω i) S.μ := fun t i => S.integrable_E t _
+  have hφi : ∀ s i, Integrable (fun ω => φ s ω i) S.μ := integrable_comp hφb hφa
+  have hβ : P.β ≠ 0 := P.β_pos.ne'
+  set w : ℕ → Ω → ιZ → ℝ := fun t ω => (D.Jᵀ * P.sys.Ihatᵀ) *ᵥ φ t ω with hw
+  have hwi : ∀ s i, Integrable (fun ω => w s ω i) S.μ := fun s =>
+    integrable_mulVec' (D.Jᵀ * P.sys.Ihatᵀ) (hφi s)
+  have hEw : ∀ t, ∀ᵐ ω ∂S.μ, EVm S t (w (t + 1)) ω =
+      (D.Jᵀ * P.sys.Ihatᵀ) *ᵥ EVm S t (φ (t + 1)) ω := fun t =>
+    EVm_mulVec S t _ (hφi (t + 1))
+  set L : ℕ → Ω → ιZ ⊕ ιz → ℝ := fun t ω => P.sys.Ahatᵀ *ᵥ EVm S t (φ (t + 1)) ω + x t ω -
+    P.β⁻¹ • (P.sys.Ihatᵀ *ᵥ φ t ω) with hL
+  have h118L : MEq118 S P t0 y φ ↔ ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, L t ω = 0 := Iff.rfl
+  -- the `z`-rows once (1.21) holds at `t + 1`
+  have hMrows : ∀ t, t0 ≤ t → MEq121 S t0 (Υmat P.sys D.J) (mRop S D x) φ →
+      ∀ᵐ ω ∂S.μ, Mpart (L t ω) = Kmat P.sys D.J *ᵥ Mpart (φ (t + 1) ω) +
+        P.sys.A12ᵀ *ᵥ EVm S t (mRop S D x (t + 1)) ω +
+        EVm S t (fun ω' => Mpart (x t ω')) ω - P.β⁻¹ • (P.sys.Etᵀ *ᵥ Mpart (φ t ω)) := by
+    intro t ht h121
+    have hRi : ∀ i, Integrable (fun ω => mRop S D x (t + 1) ω i) S.μ :=
+      integrable_mulVec' ((J1 D.J)ᵀ)⁻¹ (hFi (t + 1))
+    have hMi : ∀ i, Integrable (fun ω => Mpart (φ (t + 1) ω) i) S.μ := fun i => hφi _ _
+    have hξ := EVm_congr (S := S) t (h121 (t + 1) (by omega))
+    have hadd := EVm_add (S := S) t (integrable_mulVec' (Υmat P.sys D.J) hMi) hRi
+    have hmul := EVm_mulVec S t (Υmat P.sys D.J) hMi
+    have hM : EVm S t (fun ω' => Mpart (φ (t + 1) ω')) = fun ω' => Mpart (φ (t + 1) ω') :=
+      EVm_of_known (hφk t ht) hMi
+    have hxz : EVm S t (fun ω' => Mpart (x t ω')) = fun ω' => Mpart (x t ω') :=
+      EVm_of_known (fun i => hxa t (Sum.inr i))
+        (fun i => OptimalRulesMeasureMarkov.integrable_of_adapted hxb hxa t (Sum.inr i))
+    filter_upwards [hξ, hadd, hmul] with ω e1 e2 e3
+    have hξE : ξpart (EVm S t (φ (t + 1)) ω) =
+        EVm S t (fun ω' => ξpart (φ (t + 1) ω')) ω := rfl
+    have hME : Mpart (EVm S t (φ (t + 1)) ω) =
+        EVm S t (fun ω' => Mpart (φ (t + 1) ω')) ω := rfl
+    rw [hL]
+    simp only
+    rw [Mpart_lhs, hξE, hME, e1, e2, e3, hM, hxz, Kmat, add_mulVec, mulVec_add,
+      ← mulVec_mulVec]
+    abel
+  constructor
+  · intro h118
+    have hweq : ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, w t ω = G *ᵥ EVm S t (w (t + 1)) ω + f t ω := by
+      intro t ht
+      filter_upwards [h118 t ht, hEw t] with ω e1 e2
+      have h0 := congrArg (D.Jᵀ *ᵥ ·) e1
+      simp only [mulVec_zero] at h0
+      rw [J_lhs D.deflate, sub_eq_zero] at h0
+      change D.Ψᵀ *ᵥ ((D.Jᵀ * P.sys.Ihatᵀ) *ᵥ EVm S t (φ (t + 1)) ω) + D.Jᵀ *ᵥ x t ω =
+        P.β⁻¹ • ((D.Jᵀ * P.sys.Ihatᵀ) *ᵥ φ t ω) at h0
+      rw [e2, hGdef, hf, fpart, smul_mulVec, smul_mulVec, ← smul_add, h0, smul_smul,
+        mul_inv_cancel₀ hβ, one_smul]
+    have hwb : MBoundedV S w := by
+      obtain ⟨K, hK⟩ := hφb
+      obtain ⟨K', hK'⟩ := exists_bound_mulVec (D.Jᵀ * P.sys.Ihatᵀ) K
+      exact ⟨K', fun t => (hK t).mono fun _ h i => hK' _ h i⟩
+    set d : ℕ → Ω → ιZ → ℝ := fun t ω => w t ω - F t ω with hd
+    have hdb : MBoundedV S d := by
+      obtain ⟨K1, h1⟩ := hwb
+      obtain ⟨K2, h2⟩ := hFb
+      exact ⟨K1 + K2, fun t => by
+        filter_upwards [h1 t, h2 t] with ω a b i
+        exact (abs_sub _ _).trans (add_le_add (a i) (b i))⟩
+    have hdrec : ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, d t ω = G *ᵥ EVm S t (d (t + 1)) ω := by
+      intro t ht
+      have hE := OptimalRulesMeasureMarkov.EVm_affine3 S t (1 : Matrix ιZ ιZ ℝ)
+        (-1 : Matrix ιZ ιZ ℝ) (0 : Matrix ιZ ιZ ℝ) 0 (hwi (t + 1)) (hFi (t + 1)) (hwi (t + 1))
+      filter_upwards [hweq t ht, hFrec t, hE] with ω e1 e2 e3
+      have e4 : EVm S t (d (t + 1)) ω = EVm S t (w (t + 1)) ω - EVm S t (F (t + 1)) ω := by
+        have hfun : d (t + 1) = fun ω => (1 : Matrix ιZ ιZ ℝ) *ᵥ w (t + 1) ω +
+            (-1 : Matrix ιZ ιZ ℝ) *ᵥ F (t + 1) ω + (0 : Matrix ιZ ιZ ℝ) *ᵥ w (t + 1) ω + 0 := by
+          funext ω'
+          rw [one_mulVec, neg_mulVec, one_mulVec, zero_mulVec, add_zero, add_zero,
+            ← sub_eq_add_neg]
+        rw [hfun, e3, one_mulVec, neg_mulVec, one_mulVec, zero_mulVec, add_zero, add_zero,
+          ← sub_eq_add_neg]
+      change F t ω = f t ω + G *ᵥ EVm S t (F (t + 1)) ω at e2
+      change w t ω - F t ω = _
+      rw [e4, e1, e2, mulVec_sub]
+      abel
+    have hwF : ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, w t ω = F t ω := fun t ht =>
+      (OptimalRulesMeasureQuasiSplit.m_fwd_zero hG hdb hdrec t ht).mono fun ω h =>
+        sub_eq_zero.mp h
+    have h121 : MEq121 S t0 (Υmat P.sys D.J) (mRop S D x) φ := by
+      intro t ht
+      filter_upwards [hwF t ht] with ω e
+      refine (eq121_iff P.sys D.J1_det _ _ _).mpr ?_
+      rw [← w_split]
+      exact e
+    refine ⟨fun t ht => ?_, h121⟩
+    filter_upwards [h118 t ht, hMrows t ht h121] with ω e1 e2
+    refine (eq120_iff P.sys P.β D.K_det _ _ _ _).mpr ?_
+    rw [← e2]
+    exact congrArg Mpart e1
+  · rintro ⟨h120, h121⟩
+    rw [h118L]
+    intro t ht
+    have hwF : ∀ s, t0 ≤ s → ∀ᵐ ω ∂S.μ, w s ω = F s ω := fun s hs =>
+      (h121 s hs).mono fun ω h => by
+        have := (eq121_iff P.sys D.J1_det _ _ _).mp h
+        rw [← w_split] at this
+        exact this
+    filter_upwards [hMrows t ht h121, h120 t ht, hwF t ht, hEw t,
+      EVm_congr (S := S) t (hwF (t + 1) (by omega)), hFrec t] with ω e1 e2 e3 e4 e5 e6
+    change F t ω = f t ω + G *ᵥ EVm S t (F (t + 1)) ω at e6
+    have hz : Mpart (L t ω) = 0 := by
+      rw [e1]
+      exact (eq120_iff P.sys P.β D.K_det _ _ _ _).mp e2
+    have hJ : D.Jᵀ *ᵥ L t ω = 0 := by
+      rw [hL]
+      simp only
+      rw [J_lhs D.deflate, ← e4, e5]
+      change D.Ψᵀ *ᵥ EVm S t (F (t + 1)) ω + D.Jᵀ *ᵥ x t ω - P.β⁻¹ • w t ω = 0
+      rw [e3, e6, hGdef, hf, fpart, smul_mulVec, smul_mulVec, ← smul_add, smul_smul,
+        inv_mul_cancel₀ hβ, one_smul, add_comm, sub_self]
+    rw [J_transpose_mulVec] at hJ
+    change (J1 D.J)ᵀ *ᵥ ξpart (L t ω) + (J2 D.J)ᵀ *ᵥ Mpart (L t ω) = 0 at hJ
+    rw [hz, mulVec_zero, add_zero] at hJ
+    have hdet : ((J1 D.J)ᵀ).det ≠ 0 := by rw [det_transpose]; exact D.J1_det
+    have hZ := eq_zero_of_mulVec_eq_zero hdet hJ
+    funext a
+    rcases a with i | r
+    · exact congrFun hZ i
+    · exact congrFun hz r
+
+/-- Woodford (2003), Proposition 8.1, p. 553, on a probability space: `E_t R(L⁻¹)` maps
+essentially bounded processes to essentially bounded processes. -/
+theorem mRop_bdd (S : MeasExpectationSystem Ω) {Sy : LinearRESystem ιZ ιz} {β : ℝ}
+    (hβ : 0 < β) (D : DeflatingSplit Sy β) {x : ℕ → Ω → ιZ ⊕ ιz → ℝ} (hx : MBoundedV S x) :
+    MBoundedV S (mRop S D x) := by
+  have hfb : MBoundedV S (fpart β D.J x) := by
+    obtain ⟨K, hK⟩ := hx
+    obtain ⟨K', hK'⟩ := exists_bound_mulVec (β • D.Jᵀ) K
+    exact ⟨K', fun t => (hK t).mono fun _ h i => hK' _ h i⟩
+  obtain ⟨KF, hKF⟩ := TidyR5aMeasBK.fwdM_bdd (D.powDecay_G hβ) hfb
+  obtain ⟨K', hK'⟩ := exists_bound_mulVec ((J1 D.J)ᵀ)⁻¹ KF
+  exact ⟨K', fun t => (hKF t).mono fun _ h i => hK' _ h i⟩
+
+/-- Woodford (2003), Proposition 8.1, p. 553, on a probability space: `E_t R(L⁻¹)x` is known at
+`t` for every `x`. -/
+theorem mRop_adapted (S : MeasExpectationSystem Ω) {Sy : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit Sy β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : MAdaptedV S (mRop S D x) :=
+  fun t => mknownV_mulVec _ (TidyR5aMeasBK.fwdM_adapted S _ _ t)
+
+/-- Woodford (2003), Proposition 8.1, p. 553, on a probability space: `E_t Q(L⁻¹)` maps
+essentially bounded processes to essentially bounded processes. -/
+theorem mQop_bdd (S : MeasExpectationSystem Ω) {Sy : LinearRESystem ιZ ιz} {β : ℝ}
+    (hβ : 0 < β) (D : DeflatingSplit Sy β) {x : ℕ → Ω → ιZ ⊕ ιz → ℝ} (hx : MBoundedV S x) :
+    MBoundedV S (mQop S D x) := by
+  obtain ⟨Kx, hKx⟩ := hx
+  obtain ⟨KR, hKR⟩ := mRop_bdd S hβ D ⟨Kx, hKx⟩
+  have h1 : ∀ t, ∀ᵐ ω ∂S.μ, ∀ r, |EVm S t (fun ω' => Mpart (x t ω')) ω r| ≤ Kx := fun t =>
+    ae_all_iff.mpr fun r => S.abs_E_le ((hKx t).mono fun _ h => h (Sum.inr r)) t
+  have h2 : ∀ t, ∀ᵐ ω ∂S.μ, ∀ i, |EVm S t (mRop S D x (t + 1)) ω i| ≤ KR := fun t =>
+    ae_all_iff.mpr fun i => S.abs_E_le ((hKR (t + 1)).mono fun _ h => h i) t
+  obtain ⟨KA, hKA⟩ := exists_bound_mulVec Sy.A12ᵀ KR
+  obtain ⟨K, hK⟩ := exists_bound_mulVec (Kmat Sy D.J)⁻¹ (Kx + KA)
+  refine ⟨K, fun t => ?_⟩
+  filter_upwards [h1 t, h2 t] with ω a b r
+  change |(-((Kmat Sy D.J)⁻¹ *ᵥ _)) r| ≤ K
+  rw [Pi.neg_apply, abs_neg]
+  exact hK _ (fun j => (abs_add_le _ _).trans (add_le_add (a j) (hKA _ b j))) r
+
+/-- Woodford (2003), Proposition 8.1, p. 553, on a probability space: `E_t Q(L⁻¹)x` is known at
+`t` for every `x`. -/
+theorem mQop_adapted (S : MeasExpectationSystem Ω) {Sy : LinearRESystem ιZ ιz} {β : ℝ}
+    (D : DeflatingSplit Sy β) (x : ℕ → Ω → ιZ ⊕ ιz → ℝ) : MAdaptedV S (mQop S D x) :=
+  fun t r => sm_comp₂ (fun _ => S.stronglyMeasurable_E t _) (fun _ => S.stronglyMeasurable_E t _)
+    (g := fun p => (-((Kmat Sy D.J)⁻¹ *ᵥ (p.1 + Sy.A12ᵀ *ᵥ p.2))) r)
+    ((continuous_apply r).comp ((continuous_const.matrix_mulVec (continuous_fst.add
+      (continuous_const.matrix_mulVec continuous_snd))).neg))
+
+/-- **Woodford (2003), Proposition 8.1, p. 553, on the conditional-expectation model**: a real
+deflating pair for `n_Z` roots of (1.15) inside `|μ| < β⁻¹` yields `Λ`, `Υ`, `Q(L⁻¹)`, `R(L⁻¹)`
+representing the essentially bounded solutions of (1.18), on every filtered probability space. -/
+noncomputable def mprop81 (P : LQProblem ιZ ιz ιτ) (D : DeflatingSplit P.sys P.β)
+    (S : MeasExpectationSystem Ω) (t0 : ℕ) : MProp81Conclusion S P t0 where
+  Λ := Λmat P.sys P.β D.J
+  Υ := Υmat P.sys D.J
+  Qop := mQop S D
+  Rop := mRop S D
+  equiv := mprop81_equiv P D S t0
+  Qbounded := fun _ hx => mQop_bdd S P.β_pos D hx
+  Rbounded := fun _ hx => mRop_bdd S P.β_pos D hx
+  Qadapted := mQop_adapted S D
+  Radapted := fun y _ => mRop_adapted S D y
+
+/-- Woodford (2003), Proposition 8.1, p. 553: the matrices of `mprop81` are the explicit
+`Λ = β⁻¹K⁻¹Ẽ'` and `Υ = −(J₁')⁻¹J₂'Ẽ'` (the same as for the exact systems,
+`Prop81General.prop81_matrices`). -/
+theorem mprop81_matrices (P : LQProblem ιZ ιz ιτ) (D : DeflatingSplit P.sys P.β)
+    (S : MeasExpectationSystem Ω) (t0 : ℕ) :
+    (mprop81 P D S t0).Λ = Λmat P.sys P.β D.J ∧ (mprop81 P D S t0).Υ = Υmat P.sys D.J :=
+  ⟨rfl, rfl⟩
+
+/-- **Woodford (2003), p. 553, the remark after Proposition 8.1, for the representation from a
+deflating split, on every probability space**: `(Λ, Υ)` of `mprop81` is the same in every
+representation iff `Λ = β⁻¹K⁻¹Ẽ'` is power-bounded. -/
+theorem mprop81_unique_iff (P : LQProblem ιZ ιz ιτ) (D : DeflatingSplit P.sys P.β)
+    (S : MeasExpectationSystem Ω) (t0 : ℕ) :
+    (∀ H' : MProp81Conclusion S P t0, H'.Λ = Λmat P.sys P.β D.J ∧ H'.Υ = Υmat P.sys D.J) ↔
+      PowBdd (Λmat P.sys P.β D.J) :=
+  munique_iff_powBdd (mprop81 P D S t0)
+
+end Woodford.OptimalPolicyRules.TidyR6aProp81Measure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Proposition 8.3 counterexample on a genuine probability space
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Proposition 8.3 (pp. 556–557), Assumption 8.1
+(p. 541), Assumptions 8.3 (App. G.1, p. 716) and 8.7 (p. 556).
+
+`TidyR5bProp83Circle.prop83_fails_on_circle` refutes Proposition 8.3 for `p83Problem`
+(`n_Z = 0`, `n_z = 2`, `β = ½`, roots `½` and `2 = β⁻¹` of (1.15)) under the **perfect-foresight**
+Assumption 8.1. Here the counterexample is carried to **every** filtered probability space with
+Mathlib's conditional expectation, in particular the i.i.d. coin-flip economy:
+
+* `p83_noEulerRoot`: the Euler pencil of (1.1) + (1.9) has no root on the unit circle (its
+  nonzero roots solve `ν = ½`, `ν = 4` or `2ν² − 7ν + 4 = 0`, all real and off the circle).
+  Hence (`OptimalRulesMeasureSpectrum.m_assumption81MB_of_noEulerRoot`) **the full
+  Assumption 8.1 holds on every probability space** (`m_p83_assumption81MB`; also the form with a
+  predetermined initial multiplier, `m_p83_assumption81M`, and the book's own form whenever
+  date-0 information is essentially bounded, `m_p83_assumption81`).
+* `mp83Rep`: the representation of Proposition 8.1 on the probability space built from the empty
+  deflating split (`TidyR6aProp81Measure.mprop81`), `Λ = diag(4, 1)`; its `α(L)` has the one zero
+  `1/4` inside the unit circle (`mp83Rep_zeros`).
+* `mp83Rep'`: a second representation on the same probability space with the Jordan block
+  `Λ' = [[1, 0], [1, 1]]` (`TidyR6aReRepMeasure.mreRep`); `α(L) = (1 − L)²` has **no** zero inside
+  the unit circle although `m = 1`.
+* **`m_prop83_fails_on_circle`**: on every probability space, the full Assumption 8.1,
+  Assumption 8.3 and Assumption 8.7 (`m = 1`) hold, a root lies on `|μ| = β⁻¹`, and the claim of
+  Proposition 8.3 fails for the representation `mp83Rep'`; `m_prop83_fails_iid`: the same on the
+  i.i.d. fair-coin economy (module ExpectationsMeasureIID).
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aProp83Measure
+
+open MeasureTheory Filter Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ PencilSplit
+open PencilEigen Prop81General TargetCriterion.Prop81 TidyR5bReRep TidyR5bProp83Circle Adjugate
+open ExpectationsMeasure OptimalRulesMeasure OptimalRulesMeasureSpectrum TidyR6aReRepMeasure
+open TidyR6aProp81Measure
+
+/-! ### No root of the Euler pencil on the unit circle -/
+
+/-- Woodford (2003), (1.15) (tool): the quadratic `2ν² − 7ν + 4` (the second workhorse equation of
+`p83Problem`) has no root on the unit circle. -/
+theorem quad_ne_zero {ν : ℂ} (hν : ‖ν‖ = 1) : 2 * ν ^ 2 - 7 * ν + 4 ≠ 0 := by
+  intro h
+  have hre := congrArg Complex.re h
+  have him := congrArg Complex.im h
+  simp only [Complex.sub_re, Complex.add_re, Complex.mul_re, pow_two, Complex.re_ofNat,
+    Complex.im_ofNat, Complex.zero_re, Complex.sub_im, Complex.add_im, Complex.mul_im,
+    Complex.zero_im] at hre him
+  have hn : ν.re ^ 2 + ν.im ^ 2 = 1 := by
+    have := Complex.sq_norm ν
+    rw [hν, Complex.normSq_apply] at this
+    nlinarith
+  have hb : ν.im = 0 := by
+    have h1 : ν.im * (4 * ν.re - 7) = 0 := by linarith
+    rcases mul_eq_zero.mp h1 with h2 | h2
+    · exact h2
+    · nlinarith
+  rw [hb] at hre hn
+  nlinarith
+
+/-- Woodford (2003), (1.3) and (1.9) for `p83Problem` (tool): `T'WT = I` (targets `(z₁, z₂, i)`,
+`W = I`), over `ℂ`. -/
+theorem p83_TWT (u : (Empty ⊕ Fin 2) ⊕ Unit → ℂ) :
+    p83Problem.Tᵀ.map Complex.ofReal *ᵥ (p83Problem.W.map Complex.ofReal *ᵥ
+      (p83Problem.T.map Complex.ofReal *ᵥ u)) = u := by
+  have hW : p83Problem.W.map Complex.ofReal = 1 := by
+    simp [p83Problem]
+  rw [hW, one_mulVec, mulVec_mulVec]
+  funext a
+  rcases a with (e | j) | k
+  · exact e.elim
+  · fin_cases j <;> simp [p83Problem, LQProblem.T, mulVec, dotProduct, mul_apply,
+      Fintype.sum_sum_type, Fin.sum_univ_three, Fin.sum_univ_two]
+  · simp [p83Problem, LQProblem.T, mulVec, dotProduct, mul_apply,
+      Fintype.sum_sum_type, Fin.sum_univ_three, Fin.sum_univ_two]
+
+/-- **Woodford (2003), (1.1) + (1.9) for `p83Problem`: the Euler pencil has no root on the unit
+circle.** An eigen-solution `νᵗ(u, p)` with `|ν| = 1` has `z₁ = 0` (`ν ≠ ½`), `M₁ = 0`
+(`ν ≠ 4`) and `(2ν² − 7ν + 4)M₂ = 0`, hence `M₂ = 0`, `z₂ = 0`, `i = 0`. -/
+theorem p83_noEulerRoot : ∀ ν : ℂ, ‖ν‖ = 1 → ¬ EulerRoot p83Problem ν := by
+  rintro ν hν ⟨u, p, hne, h1, h2⟩
+  rw [p83_TWT] at h2
+  have a1 : ν = 2⁻¹ ∨ u (Sum.inl (Sum.inr 0)) = 0 := by
+    have := congrFun h1 (Sum.inr 0)
+    simpa [p83Problem, p83Sys, LinearRESystem.Atil, LinearRESystem.Itil,
+      LinearRESystem.Ahat, LinearRESystem.Ihat, LinearRESystem.Bvec, mulVec, dotProduct,
+      Fintype.sum_sum_type, Fin.sum_univ_two] using this
+  have a2 : ν * u (Sum.inl (Sum.inr 1)) = 2 * u (Sum.inl (Sum.inr 1)) + u (Sum.inr ()) := by
+    have := congrFun h1 (Sum.inr 1)
+    simpa [p83Problem, p83Sys, LinearRESystem.Atil, LinearRESystem.Itil,
+      LinearRESystem.Ahat, LinearRESystem.Ihat, LinearRESystem.Bvec, mulVec, dotProduct,
+      Fintype.sum_sum_type, Fin.sum_univ_two] using this
+  have b1 : ν * (2⁻¹ * p (Sum.inr 0)) + u (Sum.inl (Sum.inr 0)) - 2 * p (Sum.inr 0) = 0 := by
+    have := congrFun h2 (Sum.inl (Sum.inr 0))
+    simpa [p83Problem, p83Sys, LinearRESystem.Atil, LinearRESystem.Itil,
+      LinearRESystem.Ahat, LinearRESystem.Ihat, LinearRESystem.Bvec, mulVec, dotProduct,
+      Fintype.sum_sum_type, Fin.sum_univ_two] using this
+  have b2 : ν * (2 * p (Sum.inr 1)) + u (Sum.inl (Sum.inr 1)) - 2 * p (Sum.inr 1) = 0 := by
+    have := congrFun h2 (Sum.inl (Sum.inr 1))
+    simpa [p83Problem, p83Sys, LinearRESystem.Atil, LinearRESystem.Itil,
+      LinearRESystem.Ahat, LinearRESystem.Ihat, LinearRESystem.Bvec, mulVec, dotProduct,
+      Fintype.sum_sum_type, Fin.sum_univ_two] using this
+  have b3 : ν * p (Sum.inr 1) + u (Sum.inr ()) = 0 := by
+    have := congrFun h2 (Sum.inr ())
+    simpa [p83Problem, p83Sys, LinearRESystem.Atil, LinearRESystem.Itil,
+      LinearRESystem.Ahat, LinearRESystem.Ihat, LinearRESystem.Bvec, mulVec, dotProduct,
+      Fintype.sum_sum_type, Fin.sum_univ_two] using this
+  have hhalf : ν ≠ 2⁻¹ := fun h => by
+    rw [h] at hν
+    norm_num at hν
+  have hfour : ν ≠ 4 := fun h => by
+    rw [h] at hν
+    norm_num at hν
+  have hz1 : u (Sum.inl (Sum.inr 0)) = 0 := a1.resolve_left hhalf
+  have hM1 : p (Sum.inr 0) = 0 := by
+    have : (ν - 4) * p (Sum.inr 0) = 0 := by linear_combination 2 * b1 - 2 * hz1
+    exact (mul_eq_zero.mp this).resolve_left (sub_ne_zero.mpr hfour)
+  have hM2 : p (Sum.inr 1) = 0 := by
+    have : (2 * ν ^ 2 - 7 * ν + 4) * p (Sum.inr 1) = 0 := by
+      linear_combination (ν - 2) * b2 - a2 - b3
+    exact (mul_eq_zero.mp this).resolve_left (quad_ne_zero hν)
+  have hi : u (Sum.inr ()) = 0 := by linear_combination b3 - ν * hM2
+  have hz2 : u (Sum.inl (Sum.inr 1)) = 0 := by linear_combination b2 - (2 * ν - 2) * hM2
+  rcases hne with h | h
+  · apply h
+    funext a
+    rcases a with (e | j) | k
+    · exact e.elim
+    · fin_cases j
+      · exact hz1
+      · exact hz2
+    · exact hi
+  · apply h
+    funext a
+    rcases a with e | j
+    · exact e.elim
+    · fin_cases j
+      · exact hM1
+      · exact hM2
+
+/-! ### The full Assumption 8.1 on every probability space -/
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+
+/-- **Woodford (2003), Assumption 8.1, p. 541, for `p83Problem` on every filtered probability
+space** (bounded initial multiplier known at `t₀ − 1`, the corrected full form): existence and
+a.s. uniqueness of bounded solutions of (1.1) + (1.9) for every bounded adapted disturbance. -/
+theorem m_p83_assumption81MB (S : MeasExpectationSystem Ω) (t0 : ℕ) :
+    MAssumption81MB S p83Problem t0 :=
+  m_assumption81MB_of_noEulerRoot p83_assumption81 p83_noEulerRoot S t0
+
+/-- Woodford (2003), Assumption 8.1, p. 541, for `p83Problem` on every probability space, in the
+form `OptimalRulesMeasure.MAssumption81M` (no predetermined variable, so no bound on `Z_{t₀}` is
+needed). -/
+theorem m_p83_assumption81M (S : MeasExpectationSystem Ω) (t0 : ℕ) :
+    MAssumption81M S p83Problem t0 :=
+  (assumption81M_iff (S := S) (P := p83Problem) (t0 := t0)).mpr
+    ⟨m_p83_assumption81MB S t0, fun h => isEmptyElim (Classical.choice h)⟩
+
+/-- Woodford (2003), **Assumption 8.1, p. 541, in the book's own form**, for `p83Problem` at
+`t₀ = 0` on every probability space whose date-0 information is essentially bounded
+(`OptimalRulesMeasure.BddInfo`; e.g. a trivial `𝓕₀`). -/
+theorem m_p83_assumption81 (S : MeasExpectationSystem Ω) (hb : BddInfo S 0) :
+    MAssumption81 S p83Problem 0 :=
+  (assumption81_iff (S := S) (P := p83Problem) (t0 := 0)).mpr
+    ⟨m_p83_assumption81MB S 0, hb, fun _ hf => hf.aestronglyMeasurable⟩
+
+/-! ### Two representations of Proposition 8.1 on the probability space -/
+
+/-- Woodford (2003), Proposition 8.1 for `p83Problem` on a probability space: the representation
+from the empty split, `Λ = β⁻¹(A₂₂')⁻¹ = diag(4, 1)`. -/
+noncomputable def mp83Rep (S : MeasExpectationSystem Ω) : MProp81Conclusion S p83Problem 0 :=
+  mprop81 p83Problem (emptySplit' p83Sys (1 / 2)) S 0
+
+/-- Woodford (2003), (1.20) for `p83Problem` on a probability space: `Λ = diag(4, 1)`. -/
+theorem mp83Rep_Λ (S : MeasExpectationSystem Ω) : (mp83Rep S).Λ = !![4, 0; 0, 1] :=
+  p83Rep_Λ
+
+/-- Woodford (2003), (1.22): for the natural representation `α(L) = (1 − 4L)(1 − L)` has exactly
+one zero inside the unit circle. -/
+theorem mp83Rep_zeros (S : MeasExpectationSystem Ω) :
+    TargetCriterion.zerosInside (alpha (mp83Rep S).Λ) = 1 := by
+  rw [mp83Rep_Λ, ← p83Rep_Λ]
+  exact natural_zerosInside
+
+/-- Woodford (2003), (1.20) (tool): on a probability space, `M_{t+1} = Λ' M_t + (1, 0)` with the
+Jordan block `Λ' = [[1, 0], [1, 1]]` has no essentially bounded solution. -/
+theorem jordan_noRecSol (S : MeasExpectationSystem Ω) (D : ℕ → Ω → Fin 2 → ℝ) :
+    ¬ RecSolMm S 0 (jΛ 1) (fun _ _ => ![1, 0]) D := by
+  rintro ⟨hb, -, -, hr⟩
+  obtain ⟨ω, h1, h2⟩ := ((ae_bddS hb).and (ae_forall_ge hr)).exists
+  exact jΛ_blowUp 1 0 (fun t => D t ω) h1 fun t ht => h2 t ht
+
+/-- **Woodford (2003), Proposition 8.1 for `p83Problem` on a probability space: the second
+representation**, with the Jordan block `Λ' = [[1, 0], [1, 1]]` (`mreRep`): `diag(4, 1)` and `Λ'`
+have the same bounded homogeneous solutions, and the forcing `(1, 0)` makes the `Λ'` recursion
+explode. -/
+noncomputable def mp83Rep' (S : MeasExpectationSystem Ω) : MProp81Conclusion S p83Problem 0 :=
+  mreRep (mp83Rep S) (jΛ 1)
+    (by
+      rw [mp83Rep_Λ]
+      intro D hD
+      rw [diag_hom (by norm_num) 0 hD, jΛ_hom one_ne_zero 0 hD])
+    (fun _ _ _ => ![1, 0]) (fun _ _ _ => stronglyMeasurable_const)
+    (fun _ _ => ⟨1, fun _ => Eventually.of_forall fun _ i => by fin_cases i <;> simp⟩)
+    (fun _ _ _ D => jordan_noRecSol S D)
+
+/-- **Woodford (2003), Proposition 8.3, pp. 556–557 — the counterexample on every probability
+space.** For `p83Problem` on any filtered probability space: the full Assumption 8.1 holds
+(`MAssumption81MB`), Assumption 8.3 holds, Assumption 8.7 holds with `m = 1`, the root `2` of
+(1.15) lies on `|μ| = β⁻¹`, the natural representation has `m = 1` zero of `α(L)` inside the unit
+circle, but the representation `mp83Rep'` has `α(L) = (1 − L)²` with **none**: the claim of
+Proposition 8.3 fails under the full Assumption 8.1 with genuine conditional expectations. -/
+theorem m_prop83_fails_on_circle (S : MeasExpectationSystem Ω) :
+    MAssumption81MB S p83Problem 0 ∧ Nonempty (Assumption83 p83Sys) ∧
+      p83Sys.stableCount (1 / 2 : ℝ)⁻¹ = Fintype.card Empty + 1 ∧
+      (∃ l ∈ p83Sys.pencilPoly.roots, ‖l‖ = (1 / 2 : ℝ)⁻¹) ∧
+      TargetCriterion.zerosInside (alpha (mp83Rep S).Λ) = 1 ∧
+      TargetCriterion.zerosInside (alpha (mp83Rep' S).Λ) = 0 := by
+  obtain ⟨hc, hr, hn⟩ := p83_stableCount
+  refine ⟨m_p83_assumption81MB S 0, p83_assumption83, hc, ⟨2, hr, hn⟩, mp83Rep_zeros S, ?_⟩
+  change TargetCriterion.zerosInside (alpha (jΛ 1)) = 0
+  exact Prop83.jordanΛ_zeros.1
+
+/-- Woodford (2003), Proposition 8.3: the counterexample on the **i.i.d. fair-coin economy**
+(`ExpectationsMeasureIID.iidSystem` with `ExpectationsMeasureIID.coin`, a genuine
+infinite-horizon probability space with news at every date). -/
+theorem m_prop83_fails_iid :
+    MAssumption81MB (ExpectationsMeasureIID.iidSystem ExpectationsMeasureIID.coin) p83Problem 0 ∧
+      TargetCriterion.zerosInside
+        (alpha (mp83Rep' (ExpectationsMeasureIID.iidSystem ExpectationsMeasureIID.coin)).Λ) = 0 ∧
+      p83Sys.stableCount (1 / 2 : ℝ)⁻¹ = Fintype.card Empty + 1 := by
+  have h := m_prop83_fails_on_circle (ExpectationsMeasureIID.iidSystem ExpectationsMeasureIID.coin)
+  exact ⟨h.1, h.2.2.2.2.2, h.2.2.1⟩
+
+end Woodford.OptimalPolicyRules.TidyR6aProp83Measure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 8.5 with random pre-sample values
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §3.1, (2.1), (3.1), (3.6)–(3.9) (pp. 583–585)
+and Proposition 8.5 (p. 584).
+
+`IRuleBasic.rule_determinate` proves Proposition 8.5 for **numbers** `x_{−1}, i_{−1}, i_{−2}`.
+Under uncertainty the pre-sample values are random variables known at date `0`
+(`𝓕₀`-measurable). Here:
+
+* `lagR`, `RuleR`, `RuleEqmR`: the rule (3.7) and the equilibrium with random pre-sample values;
+  `ruleEqmR_const`: for constant ones they are `IRuleBasic.Rule` and `IRuleBasic.RuleEqm`.
+* `HomR`: the homogeneous system (no disturbances, no intercept); `eqm_add_hom`, `eqm_sub_eqm`,
+  `hom_scale` (a deterministic homogeneous solution times a variable known at `0`),
+  `hom_zero` (a bounded adapted homogeneous solution with zero history vanishes).
+* **`rule_determinate_random`**: for every bounded adapted `(rⁿ, u)` and every **bounded
+  pre-sample values `x_{−1}, i_{−1}, i_{−2}` known at date `0`** there is exactly one bounded
+  adapted equilibrium; it is `e⁰ + x_{−1}R¹ + i_{−1}R² + i_{−2}R³`, with `e⁰` the equilibrium
+  with zero history and `Rᵏ` the deterministic responses to unit histories.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory
+
+open IRuleBasic
+
+variable {Ω : Type*}
+
+/-- Woodford (2003), (3.6)–(3.7), p. 584: a scalar process lagged once, with a **random**
+pre-sample value `z_{−1} = z₀`. -/
+def lagR (z0 : Ω → ℝ) (z : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => z0
+  | t + 1 => z t
+
+/-- Woodford (2003), (3.7): a constant pre-sample value gives `IRuleBasic.lag`. -/
+theorem lagR_const (a : ℝ) (z : ℕ → Ω → ℝ) : lagR (fun _ => a) z = lag a z := by
+  funext t
+  cases t <;> rfl
+
+/-- Woodford (2003), (3.7), p. 584: the rule with random pre-sample values
+`x_{−1}, i_{−1}, i_{−2}`. -/
+def RuleR (c : Calib) (xm1 im1 im2 : Ω → ℝ) (π x i : ℕ → Ω → ℝ) (t : ℕ) : Prop :=
+  i t = (fun _ => (1 - rho1 c.β c.σ c.κ) * c.istar) + rho1 c.β c.σ c.κ • lagR im1 i t
+    + rho2 c.β • (lagR im1 i t - lagR im2 (lagR im1 i) t) + phiPi c.σ c.κ c.li • π t
+    + (phiX c.σ c.lx c.li / 4) • (x t - lagR xm1 x t)
+
+variable (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), (2.1), (3.1), (3.7), p. 584: an equilibrium under the rule from date `0`,
+with random pre-sample values. -/
+def RuleEqmR (c : Calib) (rn u : ℕ → Ω → ℝ) (xm1 im1 im2 : Ω → ℝ) (π x i : ℕ → Ω → ℝ) :
+    Prop :=
+  ∀ t, AS 𝔼 c u π x t ∧ IS 𝔼 c rn π x i t ∧ RuleR c xm1 im1 im2 π x i t
+
+/-- Woodford (2003), (3.7): with constant pre-sample values the equilibrium is
+`IRuleBasic.RuleEqm`. -/
+theorem ruleEqmR_const (c : Calib) (rn u : ℕ → Ω → ℝ) (a b d : ℝ) (π x i : ℕ → Ω → ℝ) :
+    RuleEqmR 𝔼 c rn u (fun _ => a) (fun _ => b) (fun _ => d) π x i ↔
+      RuleEqm 𝔼 c rn u a b d π x i := by
+  unfold RuleEqmR RuleEqm RuleR Rule
+  simp only [lagR_const]
+
+/-- Woodford (2003), (3.7) without the intercept `(1 − ρ₁)i*`: the homogeneous rule. -/
+def RuleHomR (c : Calib) (xm1 im1 im2 : Ω → ℝ) (π x i : ℕ → Ω → ℝ) (t : ℕ) : Prop :=
+  i t = rho1 c.β c.σ c.κ • lagR im1 i t + rho2 c.β • (lagR im1 i t - lagR im2 (lagR im1 i) t) +
+    phiPi c.σ c.κ c.li • π t + (phiX c.σ c.lx c.li / 4) • (x t - lagR xm1 x t)
+
+/-- Woodford (2003), (2.1), (3.1), (3.7): the homogeneous system (no disturbances, no intercept)
+with pre-sample values `x_{−1}, i_{−1}, i_{−2}`. -/
+def HomR (c : Calib) (xm1 im1 im2 : Ω → ℝ) (π x i : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, AS 𝔼 c 0 π x t ∧ IS 𝔼 c 0 π x i t ∧ RuleHomR c xm1 im1 im2 π x i t
+
+/-! ### Linearity -/
+
+/-- Woodford (2003), (3.7) (tool): lags are additive in the pre-sample value and the process. -/
+theorem lagR_add (a a' : Ω → ℝ) (z z' : ℕ → Ω → ℝ) (t : ℕ) :
+    lagR (a + a') (fun s => z s + z' s) t = lagR a z t + lagR a' z' t := by
+  cases t <;> rfl
+
+/-- Woodford (2003), (3.7) (tool): lags commute with differences. -/
+theorem lagR_sub (a a' : Ω → ℝ) (z z' : ℕ → Ω → ℝ) (t : ℕ) :
+    lagR (a - a') (fun s => z s - z' s) t = lagR a z t - lagR a' z' t := by
+  cases t <;> rfl
+
+/-- Woodford (2003), Proposition 8.5 (tool): an equilibrium plus a homogeneous solution is an
+equilibrium with the summed pre-sample values. -/
+theorem eqm_add_hom {c : Calib} {rn u : ℕ → Ω → ℝ} {a b d a' b' d' : Ω → ℝ}
+    {π x i π' x' i' : ℕ → Ω → ℝ} (h : RuleEqmR 𝔼 c rn u a b d π x i)
+    (h' : HomR 𝔼 c a' b' d' π' x' i') :
+    RuleEqmR 𝔼 c rn u (a + a') (b + b') (d + d') (fun t => π t + π' t) (fun t => x t + x' t)
+      (fun t => i t + i' t) := by
+  intro t
+  obtain ⟨h1, h2, h3⟩ := h t
+  obtain ⟨h1', h2', h3'⟩ := h' t
+  refine ⟨?_, ?_, ?_⟩
+  · unfold AS at h1 h1' ⊢
+    rw [map_add]
+    funext ω
+    have e1 := congrFun h1 ω
+    have e2 := congrFun h1' ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at e1 e2 ⊢
+    linarith
+  · unfold IS at h2 h2' ⊢
+    rw [map_add, map_add]
+    funext ω
+    have e1 := congrFun h2 ω
+    have e2 := congrFun h2' ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at e1 e2 ⊢
+    linarith
+  · unfold RuleR at h3 ⊢
+    unfold RuleHomR at h3'
+    have e1 := lagR_add b b' i i'
+    have e2 : lagR (d + d') (lagR (b + b') fun s => i s + i' s) t =
+        lagR d (lagR b i) t + lagR d' (lagR b' i') t := by
+      rw [show (lagR (b + b') fun s => i s + i' s) = fun s => lagR b i s + lagR b' i' s from
+        funext (e1 ·)]
+      exact lagR_add d d' _ _ t
+    rw [e1, e2, lagR_add]
+    funext ω
+    have f1 := congrFun h3 ω
+    have f2 := congrFun h3' ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at f1 f2 ⊢
+    linarith
+
+/-- Woodford (2003), Proposition 8.5 (tool): the difference of two equilibria with the same
+disturbances solves the homogeneous system with the difference of the pre-sample values. -/
+theorem eqm_sub_eqm {c : Calib} {rn u : ℕ → Ω → ℝ} {a b d a' b' d' : Ω → ℝ}
+    {π x i π' x' i' : ℕ → Ω → ℝ} (h : RuleEqmR 𝔼 c rn u a b d π x i)
+    (h' : RuleEqmR 𝔼 c rn u a' b' d' π' x' i') :
+    HomR 𝔼 c (a - a') (b - b') (d - d') (fun t => π t - π' t) (fun t => x t - x' t)
+      (fun t => i t - i' t) := by
+  intro t
+  obtain ⟨h1, h2, h3⟩ := h t
+  obtain ⟨h1', h2', h3'⟩ := h' t
+  refine ⟨?_, ?_, ?_⟩
+  · unfold AS at h1 h1' ⊢
+    rw [map_sub]
+    funext ω
+    have e1 := congrFun h1 ω
+    have e2 := congrFun h1' ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at e1 e2 ⊢
+    linarith
+  · unfold IS at h2 h2' ⊢
+    rw [map_sub, map_sub]
+    funext ω
+    have e1 := congrFun h2 ω
+    have e2 := congrFun h2' ω
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at e1 e2 ⊢
+    linarith
+  · unfold RuleHomR
+    unfold RuleR at h3 h3'
+    have e1 := lagR_sub b b' i i'
+    have e2 : lagR (d - d') (lagR (b - b') fun s => i s - i' s) t =
+        lagR d (lagR b i) t - lagR d' (lagR b' i') t := by
+      rw [show (lagR (b - b') fun s => i s - i' s) = fun s => lagR b i s - lagR b' i' s from
+        funext (e1 ·)]
+      exact lagR_sub d d' _ _ t
+    rw [e1, e2, lagR_sub]
+    funext ω
+    have f1 := congrFun h3 ω
+    have f2 := congrFun h3' ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at f1 f2 ⊢
+    linarith
+
+/-! ### Deterministic responses scaled by date-0 information -/
+
+/-- Woodford (2003), p. 540 (tool): a deterministic number times a variable known at every date is
+known at every date: `E_t(h r) = h r`. -/
+theorem E_scale {h : Ω → ℝ} (hk : ∀ t, 𝔼.E t h = h) (t : ℕ) (r : ℝ) :
+    𝔼.E t (fun ω => h ω * r) = fun ω => h ω * r := by
+  have e : (fun ω => h ω * r) = r • h := by
+    funext ω
+    simp [mul_comm]
+  rw [e, map_smul, hk]
+
+/-- Woodford (2003), (3.7) (tool): lagging a scaled deterministic sequence. -/
+theorem lagR_scale (h : Ω → ℝ) (a : Unit → ℝ) (z : ℕ → Unit → ℝ) (t : ℕ) :
+    lagR (fun ω => h ω * a ()) (fun s ω => h ω * z s ()) t =
+      fun ω => h ω * lagR a z t () := by
+  cases t <;> rfl
+
+/-- Woodford (2003), Proposition 8.5 (tool): a perfect-foresight homogeneous solution, scaled by
+a random `h` known at date `0`, is a homogeneous solution under any expectation system, with the
+pre-sample values scaled by `h`. -/
+theorem hom_scale {c : Calib} {a b d : Unit → ℝ} {π x i : ℕ → Unit → ℝ}
+    (hP : HomR perfectForesight c a b d π x i) {h : Ω → ℝ} (hk : ∀ t, 𝔼.E t h = h) :
+    HomR 𝔼 c (fun ω => h ω * a ()) (fun ω => h ω * b ()) (fun ω => h ω * d ())
+      (fun t ω => h ω * π t ()) (fun t ω => h ω * x t ()) (fun t ω => h ω * i t ()) := by
+  intro t
+  obtain ⟨h1, h2, h3⟩ := hP t
+  have e1 := congrFun h1 ()
+  have e2 := congrFun h2 ()
+  have e3 := congrFun h3 ()
+  simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at e1 e2 e3
+  change π t () = c.κ * x t () + c.β * π (t + 1) () + 0 at e1
+  change x t () = x (t + 1) () - c.σ * (i t () - π (t + 1) () - 0) at e2
+  refine ⟨?_, ?_, ?_⟩
+  · unfold AS
+    rw [E_scale 𝔼 hk]
+    funext ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    rw [e1]
+    ring
+  · unfold IS
+    rw [E_scale 𝔼 hk, E_scale 𝔼 hk]
+    funext ω
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    rw [e2]
+    ring
+  · unfold RuleHomR
+    rw [show (lagR (fun ω => h ω * b ()) fun s ω => h ω * i s ()) =
+        fun s ω => h ω * lagR b i s () from funext (lagR_scale h b i ·), lagR_scale h d (lagR b i),
+      lagR_scale h a x]
+    funext ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    rw [e3]
+    ring
+
+/-- Woodford (2003), Proposition 8.5 (tool): a bounded adapted solution of the homogeneous system
+with zero pre-sample values is zero (uniqueness of `IRuleBasic.rule_determinate`). -/
+theorem hom_zero {c : Calib} (hc : c.Adm) {π x i : ℕ → Ω → ℝ} (hH : HomR 𝔼 c 0 0 0 π x i)
+    (ha : 𝔼.Adapted π ∧ 𝔼.Adapted x ∧ 𝔼.Adapted i)
+    (hb : BoundedProc π ∧ BoundedProc x ∧ BoundedProc i) : π = 0 ∧ x = 0 ∧ i = 0 := by
+  have hz : BoundedProc (0 : ℕ → Ω → ℝ) := ⟨0, fun _ _ => by simp⟩
+  have hza : 𝔼.Adapted (0 : ℕ → Ω → ℝ) := fun t => map_zero _
+  obtain ⟨s, ⟨hs, hsa, hsb⟩, hu⟩ := rule_determinate 𝔼 c hc hz hza hz hza 0 0 0
+  have hR := eqm_add_hom 𝔼 ((ruleEqmR_const 𝔼 c 0 0 0 0 0 _ _ _).mpr hs) hH
+  have e0 : (fun _ : Ω => (0 : ℝ)) + 0 = fun _ => 0 := by
+    funext ω
+    simp
+  rw [e0] at hR
+  have hR' := (ruleEqmR_const 𝔼 c 0 0 0 0 0 _ _ _).mp hR
+  have hsum := hu (fun t => s.1 t + π t, fun t => s.2.1 t + x t, fun t => s.2.2 t + i t)
+    ⟨hR', ⟨fun t => by simp only [map_add, hsa.1 t, ha.1 t],
+      fun t => by simp only [map_add, hsa.2.1 t, ha.2.1 t],
+      fun t => by simp only [map_add, hsa.2.2 t, ha.2.2 t]⟩, ?_⟩
+  · have h1 := congrArg Prod.fst hsum
+    have h2 := congrArg (fun e => e.2.1) hsum
+    have h3 := congrArg (fun e => e.2.2) hsum
+    simp only at h1 h2 h3
+    refine ⟨funext fun t => ?_, funext fun t => ?_, funext fun t => ?_⟩
+    · have := congrFun h1 t
+      simpa using this
+    · have := congrFun h2 t
+      simpa using this
+    · have := congrFun h3 t
+      simpa using this
+  · obtain ⟨⟨K1, h1⟩, ⟨K2, h2⟩, ⟨K3, h3⟩⟩ := hsb
+    obtain ⟨⟨L1, g1⟩, ⟨L2, g2⟩, ⟨L3, g3⟩⟩ := hb
+    exact ⟨⟨K1 + L1, fun t ω => (abs_add_le _ _).trans (add_le_add (h1 t ω) (g1 t ω))⟩,
+      ⟨K2 + L2, fun t ω => (abs_add_le _ _).trans (add_le_add (h2 t ω) (g2 t ω))⟩,
+      ⟨K3 + L3, fun t ω => (abs_add_le _ _).trans (add_le_add (h3 t ω) (g3 t ω))⟩⟩
+
+/-! ### Proposition 8.5 with random pre-sample values -/
+
+/-- Woodford (2003), Proposition 8.5 (tool): the deterministic response to a unit pre-sample
+value, `P(a, b, d) − P(0, 0, 0)` under perfect foresight. -/
+theorem exists_unit_response (c : Calib) (hc : c.Adm) (a b d : ℝ) :
+    ∃ r : (ℕ → Unit → ℝ) × (ℕ → Unit → ℝ) × (ℕ → Unit → ℝ),
+      HomR perfectForesight c (fun _ => a) (fun _ => b) (fun _ => d) r.1 r.2.1 r.2.2 ∧
+        BoundedProc r.1 ∧ BoundedProc r.2.1 ∧ BoundedProc r.2.2 := by
+  have hz : BoundedProc (0 : ℕ → Unit → ℝ) := ⟨0, fun _ _ => by simp⟩
+  have hza : perfectForesight.Adapted (0 : ℕ → Unit → ℝ) := fun _ => rfl
+  obtain ⟨P, ⟨hP, -, hPb⟩, -⟩ := rule_determinate perfectForesight c hc hz hza hz hza a b d
+  obtain ⟨P0, ⟨hP0, -, hP0b⟩, -⟩ := rule_determinate perfectForesight c hc hz hza hz hza 0 0 0
+  have hH := eqm_sub_eqm perfectForesight ((ruleEqmR_const _ c 0 0 a b d _ _ _).mpr hP)
+    ((ruleEqmR_const _ c 0 0 0 0 0 _ _ _).mpr hP0)
+  have e : ∀ v : ℝ, (fun _ : Unit => v) - (fun _ => (0 : ℝ)) = fun _ => v := fun v => by
+    funext u
+    simp
+  rw [e, e, e] at hH
+  refine ⟨⟨_, _, _⟩, hH, ?_, ?_, ?_⟩
+  · obtain ⟨K, hK⟩ := hPb.1
+    obtain ⟨L, hL⟩ := hP0b.1
+    exact ⟨K + L, fun t ω => (abs_sub _ _).trans (add_le_add (hK t ω) (hL t ω))⟩
+  · obtain ⟨K, hK⟩ := hPb.2.1
+    obtain ⟨L, hL⟩ := hP0b.2.1
+    exact ⟨K + L, fun t ω => (abs_sub _ _).trans (add_le_add (hK t ω) (hL t ω))⟩
+  · obtain ⟨K, hK⟩ := hPb.2.2
+    obtain ⟨L, hL⟩ := hP0b.2.2
+    exact ⟨K + L, fun t ω => (abs_sub _ _).trans (add_le_add (hK t ω) (hL t ω))⟩
+
+/-- Woodford (2003), Proposition 8.5 (tool): a scaled deterministic bounded sequence is
+bounded when the scale is bounded. -/
+theorem bounded_scale {h : Ω → ℝ} (hb : ∃ K, ∀ ω, |h ω| ≤ K) {r : ℕ → Unit → ℝ}
+    (hr : BoundedProc r) : BoundedProc (fun t ω => h ω * r t ()) := by
+  obtain ⟨K, hK⟩ := hb
+  obtain ⟨L, hL⟩ := hr
+  refine ⟨K * L, fun t ω => ?_⟩
+  rw [abs_mul]
+  exact mul_le_mul (hK ω) (hL t ()) (abs_nonneg _) ((abs_nonneg _).trans (hK ω))
+
+/-- **Woodford (2003), Proposition 8.5, p. 584, with random pre-sample values.** For admissible
+parameters, every bounded adapted `(rⁿ, u)` and every **bounded pre-sample values
+`x_{−1}, i_{−1}, i_{−2}` known at date `0`** (random variables, `E_0 h = h`), there is exactly one
+bounded adapted equilibrium of (2.1), (3.1) under the rule (3.7)–(3.9). -/
+theorem rule_determinate_random (c : Calib) (hc : c.Adm) {rn u : ℕ → Ω → ℝ}
+    (hrb : BoundedProc rn) (hra : 𝔼.Adapted rn) (hub : BoundedProc u) (hua : 𝔼.Adapted u)
+    {xm1 im1 im2 : Ω → ℝ} (hk1 : 𝔼.E 0 xm1 = xm1) (hk2 : 𝔼.E 0 im1 = im1)
+    (hk3 : 𝔼.E 0 im2 = im2) (hb1 : ∃ K, ∀ ω, |xm1 ω| ≤ K) (hb2 : ∃ K, ∀ ω, |im1 ω| ≤ K)
+    (hb3 : ∃ K, ∀ ω, |im2 ω| ≤ K) :
+    ∃! e : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      RuleEqmR 𝔼 c rn u xm1 im1 im2 e.1 e.2.1 e.2.2 ∧
+        (𝔼.Adapted e.1 ∧ 𝔼.Adapted e.2.1 ∧ 𝔼.Adapted e.2.2) ∧
+        (BoundedProc e.1 ∧ BoundedProc e.2.1 ∧ BoundedProc e.2.2) := by
+  have known : ∀ {h : Ω → ℝ}, 𝔼.E 0 h = h → ∀ t, 𝔼.E t h = h := fun {h} hk t => by
+    rw [← hk, 𝔼.known (Nat.zero_le t)]
+  obtain ⟨s, ⟨hs, hsa, hsb⟩, -⟩ := rule_determinate 𝔼 c hc hrb hra hub hua 0 0 0
+  obtain ⟨r1, hr1, hr1b⟩ := exists_unit_response c hc 1 0 0
+  obtain ⟨r2, hr2, hr2b⟩ := exists_unit_response c hc 0 1 0
+  obtain ⟨r3, hr3, hr3b⟩ := exists_unit_response c hc 0 0 1
+  have g1 := hom_scale 𝔼 hr1 (known hk1)
+  have g2 := hom_scale 𝔼 hr2 (known hk2)
+  have g3 := hom_scale 𝔼 hr3 (known hk3)
+  have hE := eqm_add_hom 𝔼 (eqm_add_hom 𝔼 (eqm_add_hom 𝔼
+    ((ruleEqmR_const 𝔼 c rn u 0 0 0 _ _ _).mpr hs) g1) g2) g3
+  have ex : (fun _ : Ω => (0 : ℝ)) + (fun ω => xm1 ω * 1) + (fun ω => im1 ω * 0) +
+      (fun ω => im2 ω * 0) = xm1 := by funext ω; simp
+  have ei : (fun _ : Ω => (0 : ℝ)) + (fun ω => xm1 ω * 0) + (fun ω => im1 ω * 1) +
+      (fun ω => im2 ω * 0) = im1 := by funext ω; simp
+  have ed : (fun _ : Ω => (0 : ℝ)) + (fun ω => xm1 ω * 0) + (fun ω => im1 ω * 0) +
+      (fun ω => im2 ω * 1) = im2 := by funext ω; simp
+  rw [ex, ei, ed] at hE
+  set Qπ : ℕ → Ω → ℝ := fun t => ((s.1 t + fun ω => xm1 ω * r1.1 t ()) +
+    fun ω => im1 ω * r2.1 t ()) + fun ω => im2 ω * r3.1 t () with hQπ
+  set Qx : ℕ → Ω → ℝ := fun t => ((s.2.1 t + fun ω => xm1 ω * r1.2.1 t ()) +
+    fun ω => im1 ω * r2.2.1 t ()) + fun ω => im2 ω * r3.2.1 t () with hQx
+  set Qi : ℕ → Ω → ℝ := fun t => ((s.2.2 t + fun ω => xm1 ω * r1.2.2 t ()) +
+    fun ω => im1 ω * r2.2.2 t ()) + fun ω => im2 ω * r3.2.2 t () with hQi
+  have hA : 𝔼.Adapted Qπ ∧ 𝔼.Adapted Qx ∧ 𝔼.Adapted Qi := by
+    refine ⟨fun t => ?_, fun t => ?_, fun t => ?_⟩
+    · simp only [hQπ, map_add, hsa.1 t, E_scale 𝔼 (known hk1), E_scale 𝔼 (known hk2),
+        E_scale 𝔼 (known hk3)]
+    · simp only [hQx, map_add, hsa.2.1 t, E_scale 𝔼 (known hk1), E_scale 𝔼 (known hk2),
+        E_scale 𝔼 (known hk3)]
+    · simp only [hQi, map_add, hsa.2.2 t, E_scale 𝔼 (known hk1), E_scale 𝔼 (known hk2),
+        E_scale 𝔼 (known hk3)]
+  have add3 : ∀ {p q w z : ℕ → Ω → ℝ}, BoundedProc p → BoundedProc q → BoundedProc w →
+      BoundedProc z → BoundedProc (fun t => p t + q t + w t + z t) :=
+    fun {p q w z} ⟨K1, h1⟩ ⟨K2, h2⟩ ⟨K3, h3⟩ ⟨K4, h4⟩ =>
+      ⟨K1 + K2 + K3 + K4, fun t ω => by
+        simp only [Pi.add_apply]
+        exact (abs_add_le _ _).trans (add_le_add ((abs_add_le _ _).trans (add_le_add
+          ((abs_add_le _ _).trans (add_le_add (h1 t ω) (h2 t ω))) (h3 t ω))) (h4 t ω))⟩
+  have hB : BoundedProc Qπ ∧ BoundedProc Qx ∧ BoundedProc Qi :=
+    ⟨add3 hsb.1 (bounded_scale hb1 hr1b.1) (bounded_scale hb2 hr2b.1)
+        (bounded_scale hb3 hr3b.1),
+      add3 hsb.2.1 (bounded_scale hb1 hr1b.2.1) (bounded_scale hb2 hr2b.2.1)
+        (bounded_scale hb3 hr3b.2.1),
+      add3 hsb.2.2 (bounded_scale hb1 hr1b.2.2) (bounded_scale hb2 hr2b.2.2)
+        (bounded_scale hb3 hr3b.2.2)⟩
+  refine ⟨⟨Qπ, Qx, Qi⟩, ⟨hE, hA, hB⟩, ?_⟩
+  rintro ⟨π', x', i'⟩ ⟨h', ha', hb'⟩
+  have hH := eqm_sub_eqm 𝔼 h' hE
+  rw [sub_self, sub_self, sub_self] at hH
+  have sub_bdd : ∀ {p q : ℕ → Ω → ℝ}, BoundedProc p → BoundedProc q →
+      BoundedProc (fun t => p t - q t) := fun {p q} ⟨K1, h1⟩ ⟨K2, h2⟩ =>
+    ⟨K1 + K2, fun t ω => (abs_sub _ _).trans (add_le_add (h1 t ω) (h2 t ω))⟩
+  obtain ⟨z1, z2, z3⟩ := hom_zero 𝔼 hc hH
+    ⟨fun t => by simp only [map_sub, ha'.1 t, hA.1 t],
+      fun t => by simp only [map_sub, ha'.2.1 t, hA.2.1 t],
+      fun t => by simp only [map_sub, ha'.2.2 t, hA.2.2 t]⟩
+    ⟨sub_bdd hb'.1 hB.1, sub_bdd hb'.2.1 hB.2.1, sub_bdd hb'.2.2 hB.2.2⟩
+  have u1 : π' = Qπ := funext fun t => sub_eq_zero.mp (congrFun z1 t)
+  have u2 : x' = Qx := funext fun t => sub_eq_zero.mp (congrFun z2 t)
+  have u3 : i' = Qi := funext fun t => sub_eq_zero.mp (congrFun z3 t)
+  rw [u1, u2, u3]
+
+/-! ### Optimality with random pre-sample values -/
+
+/-- Woodford (2003), (3.3), p. 584, with random pre-sample multipliers `φ_{1,−1}, φ_{2,−1}`. -/
+def FOC3R (c : Calib) (π φ1 φ2 : ℕ → Ω → ℝ) (φ1h φ2h : Ω → ℝ) (t : ℕ) : Prop :=
+  π t - (c.σ / c.β) • lagR φ1h φ1 t + φ2 t - lagR φ2h φ2 t = 0
+
+/-- Woodford (2003), (3.4), p. 584, with a random pre-sample multiplier `φ_{1,−1}`. -/
+def FOC4R (c : Calib) (x φ1 φ2 : ℕ → Ω → ℝ) (φ1h : Ω → ℝ) (t : ℕ) : Prop :=
+  c.lx • (x t - fun _ => c.xstar) + φ1 t - c.β⁻¹ • lagR φ1h φ1 t - c.κ • φ2 t = 0
+
+/-- Woodford (2003), (3.3)–(3.5), p. 584, with random pre-sample multipliers. -/
+def FOCR (c : Calib) (π x i φ1 φ2 : ℕ → Ω → ℝ) (φ1h φ2h : Ω → ℝ) : Prop :=
+  ∀ t, FOC3R c π φ1 φ2 φ1h φ2h t ∧ FOC4R c x φ1 φ2 φ1h t ∧ FOC5 c i φ1 t
+
+/-- **Woodford (2003), §3.1, pp. 584–585: the Lagrangian identity with random pre-sample
+multipliers** (restated from `IRuleBasic.lagrangian_identity`, with `lagR`; the pre-sample
+multipliers only multiply `π'₀ − π₀` and `x'₀ − x₀`, which vanish). -/
+theorem lagrangian_identityR (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut)
+    {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : Ω → ℝ}
+    (hf : Feasible 𝔼 c rn u π x i) (hfoc : FOCR c π x i φ1 φ2 φ1h φ2h)
+    (hh1 : ∃ K, ∀ ω, |φ1h ω| ≤ K) (hh2 : ∃ K, ∀ ω, |φ2h ω| ≤ K)
+    (hφ1a : 𝔼.Adapted φ1) (hφ2a : 𝔼.Adapted φ2)
+    (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i)
+    (hφ1b : BoundedProc φ1) (hφ2b : BoundedProc φ2)
+    {π' x' i' : ℕ → Ω → ℝ} (hf' : Feasible 𝔼 c rn u π' x' i')
+    (hπb' : BoundedProc π') (hxb' : BoundedProc x') (hib' : BoundedProc i')
+    (h0 : π' 0 = π 0) (hx0 : x' 0 = x 0) (ω : Ω) :
+    Jloss 𝔼 c π' x' i' ω = Jloss 𝔼 c π x i ω +
+      ∑' t, c.β ^ t * 𝔼.E 0 (fun ω' => (π' t ω' - π t ω') ^ 2
+        + c.lx * (x' t ω' - x t ω') ^ 2 + c.li * (i' t ω' - i t ω') ^ 2) ω := by
+  have hc' := hc
+  obtain ⟨hβ0, hβ1, hσ, hκ, hlx, hli⟩ := hc'
+  set dπ : ℕ → Ω → ℝ := fun t => π' t - π t with hdπ
+  set dx : ℕ → Ω → ℝ := fun t => x' t - x t with hdx
+  set di : ℕ → Ω → ℝ := fun t => i' t - i t with hdi
+  set Sq : ℕ → Ω → ℝ := fun t ω' => (π' t ω' - π t ω') ^ 2
+    + c.lx * (x' t ω' - x t ω') ^ 2 + c.li * (i' t ω' - i t ω') ^ 2 with hSq
+  set G : ℕ → Ω → ℝ := fun t => π t * dπ t + c.lx • ((x t - fun _ => c.xstar) * dx t)
+    + c.li • ((i t - fun _ => c.istar) * di t) with hG
+  set b : ℕ → Ω → ℝ := fun t => c.β⁻¹ • (lagR φ1h φ1 t * (c.σ • dπ t + dx t))
+    + lagR φ2h φ2 t * dπ t with hb
+  -- (1) the loss difference
+  have hL : ∀ t, periodLoss c π' x' i' t = periodLoss c π x i t + (2 : ℝ) • G t + Sq t := by
+    intro t
+    funext ω'
+    simp only [periodLoss, hG, hSq, hdπ, hdx, hdi, Pi.add_apply, Pi.smul_apply, Pi.mul_apply,
+      Pi.sub_apply, smul_eq_mul]
+    ring
+  -- (2) the first-order conditions and the constraints
+  have hGb : ∀ t, G t = b t - (c.β • (φ2 t * 𝔼.E t (dπ (t + 1)))
+      + φ1 t * (𝔼.E t (dx (t + 1)) + c.σ • 𝔼.E t (dπ (t + 1)))) := by
+    intro t
+    funext ω'
+    obtain ⟨f3, f4, f5⟩ := hfoc t
+    have f3 := congrFun f3 ω'
+    have f4 := congrFun f4 ω'
+    have f5 := congrFun f5 ω'
+    have a1 := congrFun (hf t).1 ω'
+    have a2 := congrFun (hf' t).1 ω'
+    have s1 := congrFun (hf t).2 ω'
+    have s2 := congrFun (hf' t).2 ω'
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul,
+      Pi.zero_apply] at f3 f4 f5 a1 a2 s1 s2
+    simp only [hG, hb, hdπ, hdx, hdi, map_sub, Pi.add_apply, Pi.sub_apply, Pi.smul_apply,
+      Pi.mul_apply, smul_eq_mul]
+    have hβne : c.β ≠ 0 := hβ0.ne'
+    linear_combination (norm := (field_simp; ring)) (π' t ω' - π t ω') * f3
+      + (x' t ω' - x t ω') * f4 + (i' t ω' - i t ω') * f5
+      - φ2 t ω' * (a2 - a1) - φ1 t ω' * (s2 - s1)
+  -- (3) the pull-out step: `E₀ c'_t = β E₀ b_{t+1}`
+  have hc' : ∀ t, 𝔼.E 0 (c.β • (φ2 t * 𝔼.E t (dπ (t + 1)))
+      + φ1 t * (𝔼.E t (dx (t + 1)) + c.σ • 𝔼.E t (dπ (t + 1)))) = c.β • 𝔼.E 0 (b (t + 1)) := by
+    intro t
+    have e1 : c.β • (φ2 t * 𝔼.E t (dπ (t + 1)))
+        + φ1 t * (𝔼.E t (dx (t + 1)) + c.σ • 𝔼.E t (dπ (t + 1))) =
+        𝔼.E t (c.β • (φ2 t * dπ (t + 1)) + φ1 t * (dx (t + 1) + c.σ • dπ (t + 1))) := by
+      rw [map_add, map_smul, hpo t _ _ (hφ2a t), hpo t _ _ (hφ1a t), map_add, map_smul]
+    have e2 : c.β • (φ2 t * dπ (t + 1)) + φ1 t * (dx (t + 1) + c.σ • dπ (t + 1)) =
+        c.β • b (t + 1) := by
+      have hβne : c.β ≠ 0 := hβ0.ne'
+      funext ω'
+      simp only [hb, lagR, Pi.add_apply, Pi.smul_apply, Pi.mul_apply, smul_eq_mul]
+      field_simp
+      ring
+    rw [e1, 𝔼.tower (Nat.zero_le t), e2, map_smul]
+  -- (4) the initial term vanishes by the commitments (3.6)
+  have hb0 : b 0 = 0 := by
+    funext ω'
+    simp only [hb, hdπ, hdx, lagR, h0, hx0, sub_self, Pi.add_apply, Pi.smul_apply,
+      Pi.mul_apply, smul_eq_mul, Pi.zero_apply]
+    ring
+  -- (5) bounds
+  obtain ⟨Mπ, hMπ⟩ := hπb
+  obtain ⟨Mx, hMx⟩ := hxb
+  obtain ⟨Mπ', hMπ'⟩ := hπb'
+  obtain ⟨Mx', hMx'⟩ := hxb'
+  obtain ⟨M1, hM1⟩ := hφ1b
+  obtain ⟨M2, hM2⟩ := hφ2b
+  obtain ⟨K1, hK1⟩ := hh1
+  obtain ⟨K2, hK2⟩ := hh2
+  set L1M := max M1 K1
+  set L2M := max M2 K2
+  have hl1 : ∀ t ω', |lagR φ1h φ1 t ω'| ≤ L1M := by
+    intro t ω'
+    cases t with
+    | zero => exact (hK1 ω').trans (le_max_right _ _)
+    | succ t => exact (hM1 t ω').trans (le_max_left _ _)
+  have hl2 : ∀ t ω', |lagR φ2h φ2 t ω'| ≤ L2M := by
+    intro t ω'
+    cases t with
+    | zero => exact (hK2 ω').trans (le_max_right _ _)
+    | succ t => exact (hM2 t ω').trans (le_max_left _ _)
+  have hdπb : ∀ t ω', |dπ t ω'| ≤ Mπ' + Mπ := fun t ω' =>
+    (abs_sub _ _).trans (add_le_add (hMπ' t ω') (hMπ t ω'))
+  have hdxb : ∀ t ω', |dx t ω'| ≤ Mx' + Mx := fun t ω' =>
+    (abs_sub _ _).trans (add_le_add (hMx' t ω') (hMx t ω'))
+  set MB := |c.β⁻¹| * (L1M * (|c.σ| * (Mπ' + Mπ) + (Mx' + Mx))) + L2M * (Mπ' + Mπ)
+  have hbb : ∀ t ω', |b t ω'| ≤ MB := by
+    intro t ω'
+    simp only [hb, Pi.add_apply, Pi.smul_apply, Pi.mul_apply, smul_eq_mul]
+    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+    · rw [abs_mul, abs_mul]
+      refine mul_le_mul_of_nonneg_left (mul_le_mul (hl1 t ω') ?_ (abs_nonneg _)
+        ((abs_nonneg _).trans (hl1 t ω'))) (abs_nonneg _)
+      refine (abs_add_le _ _).trans (add_le_add ?_ (hdxb t ω'))
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hdπb t ω') (abs_nonneg _)
+    · rw [abs_mul]
+      exact mul_le_mul (hl2 t ω') (hdπb t ω') (abs_nonneg _) ((abs_nonneg _).trans (hl2 t ω'))
+  -- (6) summing
+  set y : ℕ → ℝ := fun t => c.β ^ t * 𝔼.E 0 (b t) ω with hy
+  have hyb : ∀ t, |y t| ≤ MB * c.β ^ t := by
+    intro t
+    simp only [hy, abs_mul, abs_pow, abs_of_pos hβ0]
+    rw [mul_comm MB]
+    exact mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hbb t) 0 ω) (pow_nonneg hβ0.le t)
+  have key : ∀ t, c.β ^ t * 𝔼.E 0 (periodLoss c π' x' i' t) ω =
+      c.β ^ t * 𝔼.E 0 (periodLoss c π x i t) ω + 2 * (y t - y (t + 1))
+        + c.β ^ t * 𝔼.E 0 (Sq t) ω := by
+    intro t
+    have e := congrFun (congrArg (𝔼.E 0) (hL t)) ω
+    rw [map_add, map_add, map_smul, hGb t, map_sub, hc' t] at e
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul] at e
+    rw [e]
+    simp only [hy, pow_succ]
+    ring
+  obtain ⟨ML, hML⟩ := periodLoss_bounded c hc ⟨Mπ, hMπ⟩ ⟨Mx, hMx⟩ hib
+  obtain ⟨ML', hML'⟩ := periodLoss_bounded c hc ⟨Mπ', hMπ'⟩ ⟨Mx', hMx'⟩ hib'
+  have s1 := summable_disc 𝔼 hβ0.le hβ1 hML ω
+  have s1' := summable_disc 𝔼 hβ0.le hβ1 hML' ω
+  have s2 : Summable (fun t => y t - y (t + 1)) := by
+    refine Summable.of_norm_bounded ((summable_geometric_of_lt_one hβ0.le hβ1).mul_left
+      (2 * MB)) (fun t => ?_)
+    rw [Real.norm_eq_abs]
+    have hp : c.β ^ (t + 1) ≤ c.β ^ t := pow_le_pow_of_le_one hβ0.le hβ1.le (Nat.le_succ t)
+    have hMB : 0 ≤ MB := (abs_nonneg _).trans (hbb 0 ω)
+    calc |y t - y (t + 1)| ≤ |y t| + |y (t + 1)| := abs_sub _ _
+      _ ≤ MB * c.β ^ t + MB * c.β ^ t :=
+          add_le_add (hyb t) ((hyb (t + 1)).trans (mul_le_mul_of_nonneg_left hp hMB))
+      _ = 2 * MB * c.β ^ t := by ring
+  have s3 : Summable (fun t => c.β ^ t * 𝔼.E 0 (Sq t) ω) := by
+    have : (fun t => c.β ^ t * 𝔼.E 0 (Sq t) ω) = fun t =>
+        c.β ^ t * 𝔼.E 0 (periodLoss c π' x' i' t) ω
+          - c.β ^ t * 𝔼.E 0 (periodLoss c π x i t) ω - 2 * (y t - y (t + 1)) := by
+      funext t
+      rw [key t]
+      ring
+    rw [this]
+    exact (s1'.sub s1).sub (s2.mul_left 2)
+  have htel : ∑' t, (y t - y (t + 1)) = 0 := by
+    rw [tsum_telescope hβ0.le hβ1 (C := MB) hyb]
+    simp [hy, hb0]
+  unfold Jloss
+  rw [tsum_congr key, (s1.add (s2.mul_left 2)).tsum_add s3, s1.tsum_add (s2.mul_left 2),
+    tsum_mul_left, htel]
+  ring
+
+
+/-- **Woodford (2003), §3.1: Lagrangian sufficiency with random pre-sample multipliers.** -/
+theorem plan_optimalR (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut)
+    {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : Ω → ℝ}
+    (hf : Feasible 𝔼 c rn u π x i) (hfoc : FOCR c π x i φ1 φ2 φ1h φ2h)
+    (hh1 : ∃ K, ∀ ω, |φ1h ω| ≤ K) (hh2 : ∃ K, ∀ ω, |φ2h ω| ≤ K)
+    (hφ1a : 𝔼.Adapted φ1) (hφ2a : 𝔼.Adapted φ2)
+    (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i)
+    (hφ1b : BoundedProc φ1) (hφ2b : BoundedProc φ2)
+    {π' x' i' : ℕ → Ω → ℝ} (hf' : Feasible 𝔼 c rn u π' x' i')
+    (hπb' : BoundedProc π') (hxb' : BoundedProc x') (hib' : BoundedProc i')
+    (h0 : π' 0 = π 0) (hx0 : x' 0 = x 0) : Jloss 𝔼 c π x i ≤ Jloss 𝔼 c π' x' i' := by
+  intro ω
+  rw [lagrangian_identityR 𝔼 c hc hpo hf hfoc hh1 hh2 hφ1a hφ2a hπb hxb hib hφ1b hφ2b hf' hπb'
+    hxb' hib' h0 hx0 ω]
+  have hlx := hc.2.2.2.2.1
+  have hli := hc.2.2.2.2.2
+  refine le_add_of_nonneg_right (tsum_nonneg fun t => mul_nonneg (pow_nonneg hc.1.le t) ?_)
+  have hm := 𝔼.mono 0 (x := fun _ => (0 : ℝ))
+    (y := fun ω' => (π' t ω' - π t ω') ^ 2 + c.lx * (x' t ω' - x t ω') ^ 2
+      + c.li * (i' t ω' - i t ω') ^ 2) (fun ω' => by positivity)
+  rw [𝔼.const] at hm
+  exact hm ω
+
+/-- Woodford (2003), p. 584: the random pre-sample multiplier `φ_{1,−1} = −(λ_i/σ)(i_{−1} − i*)`. -/
+noncomputable def mult1hR (c : Calib) (im1 : Ω → ℝ) : Ω → ℝ := fun ω => mult1h c (im1 ω)
+
+/-- Woodford (2003), p. 584: `φ_{2t}` read off (3.4) with a random pre-sample `i_{−1}`. -/
+noncomputable def mult2R (c : Calib) (im1 : Ω → ℝ) (x i : ℕ → Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun t => c.κ⁻¹ • (c.lx • (x t - fun _ => c.xstar) + mult1 c i t
+    - c.β⁻¹ • lagR (mult1hR c im1) (mult1 c i) t)
+
+/-- Woodford (2003), p. 585: the random pre-sample multiplier `φ_{2,−1}` from the random
+history. -/
+noncomputable def mult2hR (c : Calib) (xm1 im1 im2 : Ω → ℝ) : Ω → ℝ :=
+  fun ω => mult2h c (xm1 ω) (im1 ω) (im2 ω)
+
+/-- Woodford (2003), p. 584 (tool): the lagged first multiplier, random history. -/
+theorem lag_mult1R (c : Calib) (im1 : Ω → ℝ) (i : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    lagR (mult1hR c im1) (mult1 c i) t ω = -(c.li / c.σ) * (lagR im1 i t ω - c.istar) := by
+  cases t with
+  | zero => rfl
+  | succ t => simp [lagR, mult1, smul_eq_mul]
+
+/-- Woodford (2003), p. 584 (tool): the lagged second multiplier, random history. -/
+theorem lag_mult2R (c : Calib) (xm1 im1 im2 : Ω → ℝ) (x i : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    lagR (mult2hR c xm1 im1 im2) (mult2R c im1 x i) t ω =
+      c.κ⁻¹ * (c.lx * (lagR xm1 x t ω - c.xstar) + -(c.li / c.σ) * (lagR im1 i t ω - c.istar)
+        - c.β⁻¹ * (-(c.li / c.σ) * (lagR im2 (lagR im1 i) t ω - c.istar))) := by
+  cases t with
+  | zero => rfl
+  | succ t =>
+    change mult2R c im1 x i t ω = _
+    simp only [mult2R, Pi.smul_apply, Pi.add_apply, Pi.sub_apply, smul_eq_mul]
+    rw [lag_mult1R]
+    simp [lagR, mult1, smul_eq_mul]
+
+/-- Woodford (2003), (3.7)–(3.9), p. 584 (the elimination of the multipliers, random history):
+the rule holds at `t` iff (3.3) does with the multipliers read off (3.4)–(3.5). -/
+theorem rule_iff_foc3R (c : Calib) (hβ : c.β ≠ 0) (hσ : c.σ ≠ 0) (hκ : c.κ ≠ 0)
+    (hli : c.li ≠ 0) (xm1 im1 im2 : Ω → ℝ) (π x i : ℕ → Ω → ℝ) (t : ℕ) :
+    RuleR c xm1 im1 im2 π x i t ↔
+      FOC3R c π (mult1 c i) (mult2R c im1 x i) (mult1hR c im1) (mult2hR c xm1 im1 im2) t := by
+  unfold RuleR FOC3R
+  rw [funext_iff, funext_iff]
+  refine forall_congr' fun ω => ?_
+  simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+  rw [lag_mult1R, lag_mult2R]
+  simp only [mult2R, mult1, Pi.smul_apply, Pi.add_apply, Pi.sub_apply, smul_eq_mul]
+  rw [lag_mult1R]
+  exact rule_foc3_real c hβ hσ hκ hli _ _ _ _ _ _
+
+/-- Woodford (2003), (3.4), p. 584: `φ₂` read off (3.4) satisfies (3.4), random history. -/
+theorem foc4_multR (c : Calib) (hκ : c.κ ≠ 0) (im1 : Ω → ℝ) (x i : ℕ → Ω → ℝ) (t : ℕ) :
+    FOC4R c x (mult1 c i) (mult2R c im1 x i) (mult1hR c im1) t := by
+  unfold FOC4R mult2R
+  funext ω
+  simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul, Pi.zero_apply]
+  field_simp
+  ring
+
+/-- Woodford (2003), p. 584: with `i_{−1}` known at date `0`, the multiplier `φ₂` of an adapted
+plan is adapted. -/
+theorem mult2R_adapted (c : Calib) {im1 : Ω → ℝ} (hk : 𝔼.E 0 im1 = im1) {x i : ℕ → Ω → ℝ}
+    (hx : 𝔼.Adapted x) (hi : 𝔼.Adapted i) : 𝔼.Adapted (mult2R c im1 x i) := by
+  have hl : ∀ t, 𝔼.E t (lagR (mult1hR c im1) (mult1 c i) t) =
+      lagR (mult1hR c im1) (mult1 c i) t := by
+    intro t
+    cases t with
+    | zero =>
+      have e : lagR (mult1hR c im1) (mult1 c i) 0 =
+          (-(c.li / c.σ)) • im1 + fun _ => c.li / c.σ * c.istar := by
+        funext ω
+        simp only [lagR, mult1hR, mult1h, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+        ring
+      rw [e, map_add, map_smul, hk, 𝔼.const]
+    | succ t => exact ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (mult1_adapted 𝔼 c hi t)
+  intro t
+  simp only [mult2R, map_smul, map_sub, map_add, hx t, 𝔼.const, mult1_adapted 𝔼 c hi t, hl t]
+
+/-- Woodford (2003), p. 584: the multipliers of a bounded plan with bounded random history are
+bounded. -/
+theorem mult_bounded (c : Calib) {im1 : Ω → ℝ} (hb : ∃ K, ∀ ω, |im1 ω| ≤ K)
+    {x i : ℕ → Ω → ℝ} (hx : BoundedProc x) (hi : BoundedProc i) :
+    BoundedProc (mult1 c i) ∧ BoundedProc (mult2R c im1 x i) ∧
+      ∃ K, ∀ ω, |mult1hR c im1 ω| ≤ K := by
+  obtain ⟨Mx, hMx⟩ := hx
+  obtain ⟨Mi, hMi⟩ := hi
+  obtain ⟨K, hK⟩ := hb
+  set B1 := |c.li / c.σ| * (max Mi K + |c.istar|) with hB1
+  have h1 : ∀ t ω, |mult1 c i t ω| ≤ B1 := by
+    intro t ω
+    simp only [mult1, Pi.smul_apply, Pi.sub_apply, smul_eq_mul, abs_mul, abs_neg, hB1]
+    exact mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add
+      ((hMi t ω).trans (le_max_left _ _)) le_rfl)) (abs_nonneg _)
+  have hh : ∀ ω, |mult1hR c im1 ω| ≤ B1 := by
+    intro ω
+    simp only [mult1hR, mult1h, abs_mul, abs_neg, hB1]
+    exact mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add
+      ((hK ω).trans (le_max_right _ _)) le_rfl)) (abs_nonneg _)
+  have hl1 : ∀ t ω, |lagR (mult1hR c im1) (mult1 c i) t ω| ≤ B1 := by
+    intro t ω
+    cases t with
+    | zero => exact hh ω
+    | succ t => exact h1 t ω
+  refine ⟨⟨B1, h1⟩, ⟨|c.κ⁻¹| * (|c.lx| * (Mx + |c.xstar|) + B1 + |c.β⁻¹| * B1), fun t ω => ?_⟩,
+    ⟨B1, hh⟩⟩
+  simp only [mult2R, Pi.smul_apply, Pi.sub_apply, Pi.add_apply, smul_eq_mul, abs_mul]
+  refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+  refine (abs_sub _ _).trans (add_le_add ((abs_add_le _ _).trans (add_le_add ?_ (h1 t ω))) ?_)
+  · rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add (hMx t ω) le_rfl))
+      (abs_nonneg _)
+  · rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hl1 t ω) (abs_nonneg _)
+
+/-- **Woodford (2003), §3.1, p. 585, with random pre-sample values: the rule is optimal from a
+timeless perspective.** Every bounded adapted equilibrium under (3.7)–(3.9) with bounded
+pre-sample values known at date `0` minimises the expected discounted loss among all bounded
+adapted feasible plans with the same `π₀`, `x₀` (pull-out property assumed). -/
+theorem rule_eqm_optimal_random (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut)
+    {rn u π x i : ℕ → Ω → ℝ} {xm1 im1 im2 : Ω → ℝ} (he : RuleEqmR 𝔼 c rn u xm1 im1 im2 π x i)
+    (hk2 : 𝔼.E 0 im1 = im1) (hb1 : ∃ K, ∀ ω, |xm1 ω| ≤ K) (hb2 : ∃ K, ∀ ω, |im1 ω| ≤ K)
+    (hb3 : ∃ K, ∀ ω, |im2 ω| ≤ K) (hπa : 𝔼.Adapted π) (hxa : 𝔼.Adapted x)
+    (hia : 𝔼.Adapted i) (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i) :
+    OptimalGiven 𝔼 c rn u (π 0) (x 0) π x i := by
+  have hc' := hc
+  obtain ⟨hβ0, -, hσ, hκ, -, hli⟩ := hc'
+  have hfoc : FOCR c π x i (mult1 c i) (mult2R c im1 x i) (mult1hR c im1)
+      (mult2hR c xm1 im1 im2) := fun t =>
+    ⟨(rule_iff_foc3R c hβ0.ne' hσ.ne' hκ.ne' hli.ne' xm1 im1 im2 π x i t).mp (he t).2.2,
+      foc4_multR c hκ.ne' im1 x i t, foc5_mult c hσ.ne' i t⟩
+  obtain ⟨hb1', hb2', hh1⟩ := mult_bounded c hb2 hxb hib
+  have hh2 : ∃ K, ∀ ω, |mult2hR c xm1 im1 im2 ω| ≤ K := by
+    obtain ⟨K1, g1⟩ := hb1
+    obtain ⟨K2, g2⟩ := hb2
+    obtain ⟨K3, g3⟩ := hb3
+    refine ⟨|c.κ⁻¹| * (|c.lx| * (K1 + |c.xstar|) + |c.li / c.σ| * (K2 + |c.istar|) +
+      |c.β⁻¹| * (|c.li / c.σ| * (K3 + |c.istar|))), fun ω => ?_⟩
+    simp only [mult2hR, mult2h, mult1h, abs_mul]
+    refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+    refine (abs_sub _ _).trans (add_le_add ((abs_add_le _ _).trans (add_le_add ?_ ?_)) ?_)
+    · rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add (g1 ω) le_rfl))
+        (abs_nonneg _)
+    · rw [abs_mul, abs_neg]
+      exact mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add (g2 ω) le_rfl))
+        (abs_nonneg _)
+    · rw [abs_mul, abs_mul, abs_neg]
+      exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left ((abs_sub _ _).trans
+        (add_le_add (g3 ω) le_rfl)) (abs_nonneg _)) (abs_nonneg _)
+  refine ⟨fun t => ⟨(he t).1, (he t).2.1⟩, ⟨hπa, hxa, hia⟩, ⟨hπb, hxb, hib⟩, rfl, rfl, ?_⟩
+  intro π' x' i' hf' _ ⟨hπb', hxb', hib'⟩ h0 hx0
+  exact plan_optimalR 𝔼 c hc hpo (fun t => ⟨(he t).1, (he t).2.1⟩) hfoc hh1 hh2
+    (mult1_adapted 𝔼 c hia) (mult2R_adapted 𝔼 c hk2 hxa hia) hπb hxb hib hb1' hb2' hf' hπb'
+    hxb' hib' h0 hx0
+
+end Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Every deflating split carries its own selection and count data
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Assumption 8.2 (p. 552), Appendix G.1
+(pp. 716–718), (G.4), (1.20)–(1.21) (p. 553) and Proposition 8.1.
+
+`TidyR5bSelLink.Υ_unique_iff` takes the per-root count data `TidyR5bSelLink.CountData` as a
+hypothesis and is stated for `PencilEigen.RealSelection`s. Here the count data is derived from a
+bare `PencilSplit.DeflatingSplit`, exactly where it can be, and the criterion is extended to all
+deflating splits.
+
+## The selection of a split
+
+A deflating split `A J = Î J Ψ` selects the nonzero eigenvalues of `Ψ`, with multiplicity:
+`selOf Ψ` (conjugation-closed, `selOf_conjClosed`; each element a nonzero root of (1.15) with
+`|μ| < β⁻¹`, `mem_selOf_split`). `toRealSel` turns every deflating split into a real selection
+for `selOf Ψ`, with the same `J` and `Ψ`; `sel_eq_selOf`: a selection with count data is
+necessarily `selOf Ψ`.
+
+## The count data
+
+* `ker_le_colSpan` (**new**): for every deflating split, `ker A` lies in the column space of
+  `J`. The invertibility of `K = A₂₂' + A₁₂'Υ` forces it: for `v ∈ ker A`,
+  `K'(v_z − J₂J₁⁻¹v_Z) = 0` (`Kt_mulVec_ker`).
+* `countData_iff`: the count data for `selOf Ψ` holds **iff** the zero eigenvalue of `Ψ` has
+  multiplicity exactly `n − rank A`.
+* `countData_of_semisimple`: if the zero root of (1.15) is semisimple
+  (`CaseIIBasis.ZeroSemisimple`) and (1.15) is nonzero, **every** deflating split has the count
+  data.
+* `chainSys`, `chainSplit`, `chain_not_countData` (**counterexample**): with a non-semisimple zero
+  root a deflating split can use a Jordan chain of the zero root (`Ψ = [[0, 1], [0, 0]]`, while
+  `n − rank A = 1`); then the count data fails for **every** selection. So `CountData` cannot be
+  derived from a bare deflating split in general, and these are exactly the splits that lack it
+  (`countData_iff`).
+
+## The criterion for all deflating splits
+
+`Υ_unique_iff_split`: under the hypotheses of `TidyR5bSelLink.Υ_unique_iff`, `Υ` (eq. (1.21)) is
+the same for every deflating split that selects `h82.sel` and has the count data iff
+`TidyR5bCyclicSel.CyclicPartial` holds; `Υ_unique_iff_split_semisimple` drops the count data when
+the zero root is semisimple.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aSelDeflating
+
+open Matrix Polynomial GeneralSetup PencilSplit PencilEigen PencilAssumptions PencilRepeated
+  GeneralFOC.Selection TidyR5bPartialSel TidyR5bCyclicSel TidyR5bSelLink CaseIIBasis
+
+variable {ιZ ιz : Type*} [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz]
+
+/-! ### The selection of a deflating split -/
+
+/-- Woodford (2003), App. G.1, (G.4): the roots selected by `Ψ`, the nonzero eigenvalues of `Ψ`
+counted with algebraic multiplicity. -/
+noncomputable def selOf (Ψ : Matrix ιZ ιZ ℝ) : Multiset ℂ :=
+  (Ψ.map Complex.ofReal).charpoly.roots.filter (fun μ => μ ≠ 0)
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1: `μ` is selected iff it is a nonzero eigenvalue of `Ψ`. -/
+theorem mem_selOf {Ψ : Matrix ιZ ιZ ℝ} {μ : ℂ} :
+    μ ∈ selOf Ψ ↔ μ ≠ 0 ∧ (Matrix.scalar ιZ μ - Ψ.map Complex.ofReal).det = 0 := by
+  rw [selOf, Multiset.mem_filter, mem_roots (charpoly_monic _).ne_zero, IsRoot.def,
+    eval_charpoly, and_comm]
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1: a nonzero `μ` is selected as many times as its algebraic
+multiplicity as an eigenvalue of `Ψ`. -/
+theorem count_selOf {Ψ : Matrix ιZ ιZ ℝ} {μ : ℂ} (hμ : μ ≠ 0) :
+    (selOf Ψ).count μ = (Ψ.map Complex.ofReal).charpoly.rootMultiplicity μ := by
+  rw [selOf, Multiset.count_filter_of_pos (p := fun x : ℂ => x ≠ 0) hμ, count_roots]
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1, fn 2: the eigenvalues of a real matrix come in conjugate pairs,
+so the selection of a real `Ψ` is conjugation-closed. -/
+theorem selOf_conjClosed (Ψ : Matrix ιZ ιZ ℝ) : ConjClosed (selOf Ψ) := by
+  set q := (Ψ.map Complex.ofReal).charpoly with hq
+  have hq' : q = Ψ.charpoly.map Complex.ofRealHom := by
+    rw [hq, ← Matrix.charpoly_map]
+    rfl
+  have hmap : q.map (starRingEnd ℂ) = q := by
+    rw [hq', Polynomial.map_map]
+    congr 1
+    ext x
+    simp
+  have hR : q.roots.map (starRingEnd ℂ) = q.roots := by
+    rw [roots_map_of_injective_of_card_eq_natDegree (starRingEnd ℂ).injective
+      (IsAlgClosed.card_roots_eq_natDegree), hmap]
+  have hcnt : ∀ μ, q.roots.count (starRingEnd ℂ μ) = q.roots.count μ := by
+    intro μ
+    conv_lhs => rw [← hR]
+    exact Multiset.count_map_eq_count' _ _ (starRingEnd ℂ).injective μ
+  unfold ConjClosed selOf
+  rw [← hq]
+  ext μ
+  have e : μ = starRingEnd ℂ (starRingEnd ℂ μ) := by simp
+  rw [e, Multiset.count_map_eq_count' _ _ (starRingEnd ℂ).injective, ← e]
+  by_cases h0 : μ = 0
+  · subst h0
+    simp
+  · have h0' : starRingEnd ℂ μ ≠ 0 := by simpa using h0
+    rw [Multiset.count_filter_of_pos (p := fun x : ℂ => x ≠ 0) h0',
+      Multiset.count_filter_of_pos (p := fun x : ℂ => x ≠ 0) h0, hcnt]
+
+/-- Woodford (2003), App. G.1, (G.4): every selected root of a deflating split is a nonzero root
+of (1.15) with `|μ| < β⁻¹`. -/
+theorem mem_selOf_split {S : LinearRESystem ιZ ιz} {β : ℝ} (D : DeflatingSplit S β) {μ : ℂ}
+    (h : μ ∈ selOf D.Ψ) : μ ≠ 0 ∧ S.pencilPoly.eval μ = 0 ∧ ‖μ‖ < β⁻¹ := by
+  obtain ⟨h0, hd⟩ := mem_selOf.mp h
+  exact ⟨h0, D.eig_isRoot hd, D.eig_lt μ hd⟩
+
+/-- Woodford (2003), App. G.1: the columns of `J` are independent, since `J₁` is invertible. -/
+theorem indep_of_split {S : LinearRESystem ιZ ιz} {β : ℝ} (D : DeflatingSplit S β) :
+    LinearIndependent ℝ D.Jᵀ := by
+  refine Fintype.linearIndependent_iff.mpr fun g hg => ?_
+  have hJ : D.J *ᵥ g = 0 := by
+    rw [← hg]
+    funext i
+    simp [mulVec, dotProduct, Finset.sum_apply, mul_comm]
+  have hJ1 : J1 D.J *ᵥ g = 0 := by
+    funext i
+    have := congrFun hJ (Sum.inl i)
+    simpa [mulVec, dotProduct, J1] using this
+  exact congrFun (eq_zero_of_mulVec_eq_zero D.J1_det hJ1)
+
+/-- Woodford (2003), App. G.1, (G.4) and fn 2: **every deflating split is a real selection** for
+the roots it selects, with the same `J` and `Ψ`. -/
+def toRealSel {S : LinearRESystem ιZ ιz} {β : ℝ} (D : DeflatingSplit S β) :
+    RealSelection S (selOf D.Ψ) where
+  J := D.J
+  Ψ := D.Ψ
+  deflate := D.deflate
+  indep := indep_of_split D
+  eig := fun μ hμ => by
+    by_cases h0 : μ = 0
+    · exact Or.inl h0
+    · exact Or.inr (mem_selOf.mpr ⟨h0, hμ⟩)
+
+omit [Fintype ιz] [DecidableEq ιz] in
+/-- Woodford (2003), Assumption 8.2 and App. G.1: **a selection with count data is the selection
+of `Ψ`**: if every eigenvalue of `Ψ` is `0` or in `sel`, the elements of `sel` are nonzero, and
+each is counted as often as its multiplicity, then `sel = selOf Ψ`. -/
+theorem sel_eq_selOf {sel : Multiset ℂ} {Ψ : Matrix ιZ ιZ ℝ} (hnz : ∀ μ ∈ sel, μ ≠ 0)
+    (heig : ∀ μ : ℂ, (Matrix.scalar ιZ μ - Ψ.map Complex.ofReal).det = 0 → μ = 0 ∨ μ ∈ sel)
+    (hcount : ∀ μ ∈ sel, (Ψ.map Complex.ofReal).charpoly.rootMultiplicity μ = sel.count μ) :
+    sel = selOf Ψ := by
+  ext μ
+  by_cases h0 : μ = 0
+  · subst h0
+    rw [Multiset.count_eq_zero.mpr (fun h => hnz 0 h rfl),
+      Multiset.count_eq_zero.mpr (fun h => (mem_selOf.mp h).1 rfl)]
+  · rw [count_selOf h0]
+    by_cases hm : μ ∈ sel
+    · exact (hcount μ hm).symm
+    · rw [Multiset.count_eq_zero.mpr hm, eq_comm, ← count_roots, Multiset.count_eq_zero]
+      intro hr
+      rw [mem_roots (charpoly_monic _).ne_zero, IsRoot.def, eval_charpoly] at hr
+      rcases heig μ hr with h | h
+      · exact h0 h
+      · exact hm h
+
+/-! ### `ker A` lies in every deflating subspace -/
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), App. G.1 (tool): `J` is stacked from its blocks, `J v = (J₁v, J₂v)`. -/
+theorem J_mulVec_blocks {κ : Type*} [Fintype κ] (J : Matrix (ιZ ⊕ ιz) κ ℝ) (w : κ → ℝ) :
+    J *ᵥ w = Sum.elim (J1 J *ᵥ w) (J2 J *ᵥ w) := by
+  funext a
+  rcases a with a | a <;> rfl
+
+/-- Woodford (2003), (G.4) by blocks: `A₁₁J₁ + A₁₂J₂ = J₁Ψ` and `A₂₁J₁ + A₂₂J₂ = ẼJ₂Ψ`. -/
+theorem deflate_blocks {S : LinearRESystem ιZ ιz} {J : Matrix (ιZ ⊕ ιz) ιZ ℝ}
+    {Ψ : Matrix ιZ ιZ ℝ} (hd : S.Ahat * J = S.Ihat * J * Ψ) :
+    S.A11 * J1 J + S.A12 * J2 J = J1 J * Ψ ∧ S.A21 * J1 J + S.A22 * J2 J = S.Et * J2 J * Ψ := by
+  constructor
+  · ext i j
+    have := congrFun (congrFun hd (Sum.inl i)) j
+    simpa [LinearRESystem.Ahat, LinearRESystem.Ihat, mul_apply, Fintype.sum_sum_type, J1, J2,
+      one_apply, ite_mul] using this
+  · ext i j
+    have := congrFun (congrFun hd (Sum.inr i)) j
+    simpa [LinearRESystem.Ahat, LinearRESystem.Ihat, mul_apply, Fintype.sum_sum_type, J1, J2,
+      one_apply, ite_mul] using this
+
+/-- Woodford (2003), (1.20), p. 553 (tool): `K' = A₂₂ − Ẽ J₂ J₁⁻¹ A₁₂`. -/
+theorem Kmat_transpose {S : LinearRESystem ιZ ιz} {J : Matrix (ιZ ⊕ ιz) ιZ ℝ} :
+    (Kmat S J)ᵀ = S.A22 - S.Et * J2 J * (J1 J)⁻¹ * S.A12 := by
+  rw [Kmat, Υmat, transpose_add, transpose_transpose, transpose_mul, transpose_transpose,
+    transpose_neg, transpose_mul, transpose_mul, transpose_transpose, transpose_transpose,
+    transpose_nonsing_inv, transpose_transpose, Matrix.neg_mul, ← sub_eq_add_neg,
+    Matrix.mul_assoc, Matrix.mul_assoc, Matrix.mul_assoc]
+  simp only [Matrix.mul_assoc]
+
+/-- Woodford (2003), App. G.1 and (1.20) (**the key identity**): for `v ∈ ker A`,
+`K'(v_z − J₂J₁⁻¹v_Z) = 0`. -/
+theorem Kt_mulVec_ker {S : LinearRESystem ιZ ιz} {J : Matrix (ιZ ⊕ ιz) ιZ ℝ}
+    {Ψ : Matrix ιZ ιZ ℝ} (hd : S.Ahat * J = S.Ihat * J * Ψ) (hJ1 : (J1 J).det ≠ 0)
+    {v : ιZ ⊕ ιz → ℝ} (hv : S.Ahat *ᵥ v = 0) :
+    (Kmat S J)ᵀ *ᵥ (v ∘ Sum.inr - J2 J *ᵥ ((J1 J)⁻¹ *ᵥ (v ∘ Sum.inl))) = 0 := by
+  obtain ⟨d1, d2⟩ := deflate_blocks hd
+  set G := (J1 J)⁻¹ with hG
+  have hu : IsUnit (J1 J).det := isUnit_iff_ne_zero.mpr hJ1
+  have hJG : J1 J * G = 1 := mul_nonsing_inv _ hu
+  have hGJ : G * J1 J = 1 := nonsing_inv_mul _ hu
+  set vZ := v ∘ Sum.inl
+  set vz := v ∘ Sum.inr
+  have hk : S.Ahat *ᵥ v = Sum.elim (S.A11 *ᵥ vZ + S.A12 *ᵥ vz) (S.A21 *ᵥ vZ + S.A22 *ᵥ vz) := by
+    have e : v = Sum.elim vZ vz := by
+      funext a
+      rcases a with a | a <;> rfl
+    conv_lhs => rw [e]
+    rw [LinearRESystem.Ahat, fromBlocks_mulVec]
+    rfl
+  have k1 : S.A12 *ᵥ vz = -(S.A11 *ᵥ vZ) := by
+    have := congrFun (hk.symm.trans hv)
+    funext i
+    have h := this (Sum.inl i)
+    simp only [Sum.elim_inl, Pi.add_apply, Pi.zero_apply] at h
+    simp only [Pi.neg_apply]
+    linarith
+  have k2 : S.A22 *ᵥ vz = -(S.A21 *ᵥ vZ) := by
+    have := congrFun (hk.symm.trans hv)
+    funext i
+    have h := this (Sum.inr i)
+    simp only [Sum.elim_inr, Pi.add_apply, Pi.zero_apply] at h
+    simp only [Pi.neg_apply]
+    linarith
+  have hA12J2 : S.A12 * J2 J = J1 J * Ψ - S.A11 * J1 J := by rw [← d1]; abel
+  have hA22J2 : S.A22 * J2 J = S.Et * J2 J * Ψ - S.A21 * J1 J := by rw [← d2]; abel
+  rw [Kmat_transpose, sub_mulVec, mulVec_sub, mulVec_sub, k2, ← hG]
+  have e1 : S.A22 *ᵥ (J2 J *ᵥ (G *ᵥ vZ)) = (S.Et * J2 J * Ψ * G) *ᵥ vZ - S.A21 *ᵥ vZ := by
+    rw [mulVec_mulVec, mulVec_mulVec, hA22J2, Matrix.sub_mul, sub_mulVec,
+      Matrix.mul_assoc S.A21, hJG, Matrix.mul_one]
+  have e2 : (S.Et * J2 J * G * S.A12) *ᵥ vz = -((S.Et * J2 J * G * S.A11) *ᵥ vZ) := by
+    rw [← mulVec_mulVec, k1, mulVec_neg, mulVec_mulVec]
+  have e3 : (S.Et * J2 J * G * S.A12) *ᵥ (J2 J *ᵥ (G *ᵥ vZ)) =
+      (S.Et * J2 J * Ψ * G) *ᵥ vZ - (S.Et * J2 J * G * S.A11) *ᵥ vZ := by
+    rw [mulVec_mulVec, mulVec_mulVec, show S.Et * J2 J * G * S.A12 * J2 J * G =
+      S.Et * J2 J * G * (S.A12 * J2 J) * G by simp only [Matrix.mul_assoc], hA12J2,
+      Matrix.mul_sub, Matrix.sub_mul, sub_mulVec]
+    congr 2
+    · rw [show S.Et * J2 J * G * (J1 J * Ψ) * G = S.Et * J2 J * (G * J1 J) * Ψ * G by
+        simp only [Matrix.mul_assoc], hGJ, Matrix.mul_one]
+    · rw [show S.Et * J2 J * G * (S.A11 * J1 J) * G = S.Et * J2 J * G * S.A11 * (J1 J * G) by
+        simp only [Matrix.mul_assoc], hJG, Matrix.mul_one]
+  rw [e1, e2, e3]
+  abel
+
+/-- Woodford (2003), App. G.1, Assumption 8.3 and (1.20) (**`ker A` lies in every deflating
+subspace**): for every deflating split, each `v` with `A v = 0` is `J w` for some `w` — the
+invertibility of `J₁` and of `K = A₂₂' + A₁₂'Υ` forces the zero roots of `ker A` into the
+selection. -/
+theorem ker_le_colSpan {S : LinearRESystem ιZ ιz} {β : ℝ} (D : DeflatingSplit S β) :
+    ∀ v, S.Ahat *ᵥ v = 0 → ∃ w, D.J *ᵥ w = v := by
+  intro v hv
+  have hK := Kt_mulVec_ker D.deflate D.J1_det hv
+  have hKt : ((Kmat S D.J)ᵀ).det ≠ 0 := by rw [det_transpose]; exact D.K_det
+  have hu := eq_zero_of_mulVec_eq_zero hKt hK
+  refine ⟨(J1 D.J)⁻¹ *ᵥ (v ∘ Sum.inl), ?_⟩
+  rw [J_mulVec_blocks]
+  funext a
+  rcases a with a | a
+  · simp only [Sum.elim_inl]
+    rw [mulVec_mulVec, mul_nonsing_inv _ (isUnit_iff_ne_zero.mpr D.J1_det), one_mulVec]
+    rfl
+  · simp only [Sum.elim_inr]
+    have := congrFun hu a
+    simp only [Pi.sub_apply, Pi.zero_apply, Function.comp_apply] at this
+    linarith
+
+/-! ### The count data of a deflating split -/
+
+/-- Woodford (2003), App. G.1 (**the count data of a split, exactly**): a deflating split has the
+count data for the roots it selects iff the zero eigenvalue of `Ψ` has algebraic multiplicity
+exactly `n − rank A` (the other two parts of `TidyR5bSelLink.CountData` always hold). -/
+theorem countData_iff {S : LinearRESystem ιZ ιz} {β : ℝ} (D : DeflatingSplit S β) :
+    CountData S (selOf D.Ψ) D.J D.Ψ ↔
+      (D.Ψ.map Complex.ofReal).charpoly.rootMultiplicity 0 =
+        Fintype.card (ιZ ⊕ ιz) - S.Ahat.rank := by
+  refine ⟨fun h => h.zero_count, fun h => ⟨fun μ hμ => ?_, h, ker_le_colSpan D⟩⟩
+  exact (count_selOf (mem_selOf.mp hμ).1).symm
+
+/-- Woodford (2003), App. G.1 and Assumption 8.3 (**the count data is automatic for a semisimple
+zero root**): if (1.15) is nonzero and its zero root is semisimple
+(`CaseIIBasis.ZeroSemisimple`), every deflating split has the count data for the roots it
+selects. -/
+theorem countData_of_semisimple {S : LinearRESystem ιZ ιz} {β : ℝ} (hreg : S.pencilPoly ≠ 0)
+    (hz : ZeroSemisimple S) (D : DeflatingSplit S β) : CountData S (selOf D.Ψ) D.J D.Ψ := by
+  rw [countData_iff]
+  obtain ⟨s, hs0, hsev⟩ := PencilEigen.Construction.exists_shift hreg
+  have hs : (S.Ahat - s • S.Ihat).det ≠ 0 := by
+    intro h0
+    apply hsev
+    rw [pencilPoly_eval, det_pencil_ofReal, h0, Complex.ofReal_zero]
+  have hsel : ∀ μ ∈ selOf D.Ψ, μ ≠ 0 ∧ S.pencilPoly.eval μ = 0 := fun μ hμ =>
+    ⟨(mem_selOf_split D hμ).1, (mem_selOf_split D hμ).2.1⟩
+  have hP := P_isUnit S hs0 hs hsel (toRealSel D).eig
+  have hfr := finrank_colSpan_inf S hs D.deflate (indep_of_split D) hP (ν0_ne_zero hs0)
+  have hμ0 : (s : ℂ) + (ν0 s)⁻¹ = 0 := by
+    rw [ν0, inv_inv]
+    ring
+  rw [hμ0, maxGen_ν0_eq S hs0 hs hz,
+    inf_eq_right.mpr (eigen_ν0_le S hs0 hs (ker_le_colSpan D)),
+    finrank_eigenspace_ν0 S hs0 hs] at hfr
+  exact hfr.symm
+
+/-! ### A split through a Jordan chain of the zero root -/
+
+/-- Woodford (2003), eq. (1.1), p. 537 (**the counterexample**): `n_Z = 2`, `n_z = 1`,
+`A₁₁ = [[0, 1], [0, 0]]` (a Jordan chain of the zero root), `A₁₂ = 0`, `A₂₁ = 0`, `A₂₂ = 1`,
+`Ẽ = 1`, `B₂ = 1`. -/
+noncomputable def chainSys : LinearRESystem (Fin 2) (Fin 1) where
+  A11 := !![0, 1; 0, 0]
+  A12 := 0
+  A21 := 0
+  A22 := 1
+  Et := 1
+  B2 := ![1]
+  A22_isUnit := by simp
+  B2_ne_zero := by
+    intro h
+    have := congrFun h 0
+    simp at this
+
+/-- Woodford (2003), App. G.1, (G.4) (the counterexample): `J = [e_{Z₁} e_{Z₂}]`. -/
+def chainJ : Matrix (Fin 2 ⊕ Fin 1) (Fin 2) ℝ :=
+  Matrix.of fun a j => Sum.elim (fun i => if i = j then (1 : ℝ) else 0) (fun _ => 0) a
+
+/-- Woodford (2003), App. G.1, (G.4) (**the counterexample split**): `J = [e_{Z₁} e_{Z₂}]` and
+`Ψ = [[0, 1], [0, 0]]`; it is a deflating split for every `β > 0`. -/
+noncomputable def chainSplit {β : ℝ} (hβ : 0 < β) : DeflatingSplit chainSys β where
+  J := chainJ
+  Ψ := !![0, 1; 0, 0]
+  deflate := by
+    ext a j
+    rcases a with a | a <;> fin_cases j <;>
+      simp [chainJ, chainSys, LinearRESystem.Ahat, LinearRESystem.Ihat, mul_apply,
+        Fintype.sum_sum_type]
+  eig_lt := fun μ hμ => by
+    have h : μ ^ 2 = 0 := by
+      rw [det_fin_two] at hμ
+      simpa [Matrix.scalar_apply, sq] using hμ
+    rw [pow_eq_zero_iff two_ne_zero |>.mp h, norm_zero]
+    exact inv_pos.mpr hβ
+  J1_det := by
+    have e : J1 chainJ = 1 := by
+      ext i j
+      simp [chainJ, J1, one_apply]
+    rw [e, det_one]
+    exact one_ne_zero
+  K_det := by
+    have e : Kmat chainSys chainJ = 1 := by
+      simp [Kmat, chainSys]
+    rw [e, det_one]
+    exact one_ne_zero
+
+/-- Woodford (2003), p. 547: `ker A` of `chainSys` is spanned by `e_{Z₁}`. -/
+theorem chain_ker : LinearMap.ker chainSys.Ahat.mulVecLin =
+    Submodule.span ℝ {Pi.single (Sum.inl 0) 1} := by
+  ext x
+  rw [LinearMap.mem_ker, Matrix.mulVecLin_apply, Submodule.mem_span_singleton]
+  constructor
+  · intro h
+    have h0 := congrFun h (Sum.inl 0)
+    have h3 := congrFun h (Sum.inr 0)
+    simp [LinearRESystem.Ahat, mulVec, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two,
+      chainSys] at h0 h3
+    refine ⟨x (Sum.inl 0), funext fun a => ?_⟩
+    rcases a with a | a <;> fin_cases a <;> simp [h0, h3]
+  · rintro ⟨a, rfl⟩
+    funext r
+    rcases r with r | r <;> fin_cases r <;>
+      simp [LinearRESystem.Ahat, mulVec, dotProduct, chainSys, Pi.single_apply]
+
+/-- Woodford (2003), p. 547: `rank A = 2`, so `n − rank A = 1`. -/
+theorem chain_rank : chainSys.Ahat.rank = 2 := by
+  have h := LinearMap.finrank_range_add_finrank_ker chainSys.Ahat.mulVecLin
+  rw [chain_ker, finrank_span_singleton (by
+    intro h0
+    have := congrFun h0 (Sum.inl 0)
+    simp at this), Module.finrank_fintype_fun_eq_card] at h
+  change chainSys.Ahat.rank + 1 = _ at h
+  simp at h
+  omega
+
+/-- Woodford (2003), App. G.1: the zero eigenvalue of `Ψ = [[0, 1], [0, 0]]` has algebraic
+multiplicity `2`. -/
+theorem chain_rootMult {β : ℝ} (hβ : 0 < β) :
+    ((chainSplit hβ).Ψ.map Complex.ofReal).charpoly.rootMultiplicity 0 = 2 := by
+  have e : ((chainSplit hβ).Ψ.map Complex.ofReal).charpoly = X ^ 2 := by
+    rw [charpoly_fin_two]
+    simp [chainSplit, trace_fin_two, det_fin_two]
+  rw [e, show (X : ℂ[X]) ^ 2 = (X - C 0) ^ 2 by simp, rootMultiplicity_X_sub_C_pow]
+
+/-- **Woodford (2003), App. G.1 and Assumption 8.2 (counterexample): a deflating split without
+the count data.** `chainSplit` is a deflating split of `chainSys` whose `Ψ` has the zero
+eigenvalue twice while `n − rank A = 1`, so `TidyR5bSelLink.CountData` fails for **every**
+selection. -/
+theorem chain_not_countData {β : ℝ} (hβ : 0 < β) (sel : Multiset ℂ) :
+    ¬ CountData chainSys sel (chainSplit hβ).J (chainSplit hβ).Ψ := by
+  intro h
+  have h0 := h.zero_count
+  rw [chain_rootMult hβ, chain_rank] at h0
+  simp at h0
+
+/-- Woodford (2003), (1.15): `det(A − 2Î) = −4 ≠ 0` for `chainSys`, so (1.15) is nonzero. -/
+theorem chain_reg : chainSys.pencilPoly ≠ 0 := by
+  intro h
+  have e := congrArg (Polynomial.eval ((2 : ℝ) : ℂ)) h
+  rw [pencilPoly_eval, det_pencil_ofReal, eval_zero] at e
+  have hd : (chainSys.Ahat - (2 : ℝ) • chainSys.Ihat).det = -4 := by
+    have e2 : chainSys.Ahat - (2 : ℝ) • chainSys.Ihat =
+        fromBlocks (!![-2, 1; 0, -2]) 0 0 (-1) := by
+      ext a b
+      rcases a with a | a <;> rcases b with b | b <;> fin_cases a <;> fin_cases b <;>
+        norm_num [chainSys, LinearRESystem.Ahat, LinearRESystem.Ihat]
+    rw [e2, det_fromBlocks_zero₂₁, det_fin_two]
+    simp
+    norm_num
+  rw [hd] at e
+  norm_num at e
+
+/-- Woodford (2003), App. G.1 (**the counterexample is the non-semisimple case**): the zero root
+of `chainSys` is not semisimple, as it must be by `countData_of_semisimple`. -/
+theorem chain_not_zeroSemisimple : ¬ ZeroSemisimple chainSys := fun hz =>
+  chain_not_countData one_pos _ (countData_of_semisimple chain_reg hz (chainSplit one_pos))
+
+/-! ### The uniqueness criterion for all deflating splits -/
+
+/-- Woodford (2003), eq. (1.21), App. G.1, Assumptions 8.2 and 8.4, Proposition 8.1 (**the exact
+criterion for every deflating split**): under the hypotheses of `TidyR5bSelLink.Υ_unique_iff`,
+`Υ` is the same for every deflating split that selects the roots `h82.sel` and has the count
+data iff every partially selected root has a single Jordan chain. -/
+theorem Υ_unique_iff_split {S : LinearRESystem ιZ ιz} {β : ℝ} (hβ : 0 < β)
+    (h82 : Assumption82 S β) (hc : ConjClosed h82.sel) (hreg : S.pencilPoly ≠ 0)
+    (h84 : Assumption84 S h82.sel) (hE : IsUnit S.Et.det) {s : ℝ} (hs0 : s ≠ 0)
+    (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    (∀ D D' : DeflatingSplit S β, selOf D.Ψ = h82.sel → selOf D'.Ψ = h82.sel →
+      CountData S h82.sel D.J D.Ψ → CountData S h82.sel D'.J D'.Ψ →
+        Υmat S D.J = Υmat S D'.J) ↔ CyclicPartial S h82.sel s := by
+  rw [← Υ_unique_iff hβ h82 hc hreg h84 hE hs0 hs]
+  have hnz : ∀ μ ∈ h82.sel, μ ≠ 0 := fun μ hμ => by
+    have := Multiset.mem_of_le h82.sel_le hμ
+    rw [Multiset.mem_filter] at this
+    exact this.2.1
+  constructor
+  · intro h R R' hR hR'
+    have e : ∀ R'' : RealSelection S h82.sel, CountData S h82.sel R''.J R''.Ψ →
+        selOf (splitGen hβ h82 R'' hreg h84).Ψ = h82.sel := fun R'' hR'' =>
+      (sel_eq_selOf hnz R''.eig hR''.sel_count).symm
+    exact h (splitGen hβ h82 R hreg h84) (splitGen hβ h82 R' hreg h84) (e R hR) (e R' hR') hR hR'
+  · intro h D D' hD hD' hcd hcd'
+    exact h ⟨D.J, D.Ψ, D.deflate, indep_of_split D, fun μ hμ => hD ▸ (toRealSel D).eig μ hμ⟩
+      ⟨D'.J, D'.Ψ, D'.deflate, indep_of_split D', fun μ hμ => hD' ▸ (toRealSel D').eig μ hμ⟩
+      hcd hcd'
+
+/-- Woodford (2003), eq. (1.21), App. G.1, Proposition 8.1 (**the criterion with no count data,
+semisimple zero root**): if moreover the zero root is semisimple, `Υ` is the same for every
+deflating split selecting `h82.sel` iff `TidyR5bCyclicSel.CyclicPartial` holds. -/
+theorem Υ_unique_iff_split_semisimple {S : LinearRESystem ιZ ιz} {β : ℝ} (hβ : 0 < β)
+    (h82 : Assumption82 S β) (hc : ConjClosed h82.sel) (hreg : S.pencilPoly ≠ 0)
+    (h84 : Assumption84 S h82.sel) (hE : IsUnit S.Et.det) (hz : ZeroSemisimple S) {s : ℝ}
+    (hs0 : s ≠ 0) (hs : (S.Ahat - s • S.Ihat).det ≠ 0) :
+    (∀ D D' : DeflatingSplit S β, selOf D.Ψ = h82.sel → selOf D'.Ψ = h82.sel →
+        Υmat S D.J = Υmat S D'.J) ↔ CyclicPartial S h82.sel s := by
+  rw [← Υ_unique_iff_split hβ h82 hc hreg h84 hE hs0 hs]
+  constructor
+  · intro h D D' hD hD' _ _
+    exact h D D' hD hD'
+  · intro h D D' hD hD'
+    have c1 := countData_of_semisimple hreg hz D
+    have c2 := countData_of_semisimple hreg hz D'
+    rw [hD] at c1
+    rw [hD'] at c2
+    exact h D D' hD hD' c1 c2
+
+end Woodford.OptimalPolicyRules.TidyR6aSelDeflating
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Blanchard–Kahn determinacy of the stacked system (1.1) + (1.9)
+
+Woodford (2003), *Interest and Prices*, Chapter 8, (1.1) (p. 537), the first-order conditions
+(1.9) (p. 541), Assumption 8.1 (p. 541), with Appendix C.1 (p. 670).
+
+Stack the plan and the multipliers, `x_t = (y_t, φ_t)`, `y_t = (Z_t, z_t, i_t)`,
+`φ_t = (ξ_t, M_{t−1})`. Then (1.1) + (1.9) is the pencil system
+`F E_t x_{t+1} = G x_t + w_t` with `F = [[0, Ã'], [Ĩ, 0]]` and `G = [[−T'WT, β⁻¹Ĩ'], [Ã, 0]]`
+(`OptimalRulesMeasureEulerPencil.Fm`, `Gm`), forcing `w_t = (T'Wτ*, (0, c_t))`, predetermined
+variables `(Z_t, M_{t−1})`. `F` is singular (it has zero rows for the instrument and zero
+columns for the `ξ`'s), so the system is not in Blanchard–Kahn form; the singular-pencil theorem
+(King–Watson, Klein; `TidyR6aBKRandom.determinatePencilR_iff_general`) applies.
+
+* `eS`, `A0`, `A1`: the stacked state reordered as (non-predetermined `(z, i, ξ)`, predetermined
+  `(Z, M)`), and `F`, `G` in that order; `stk`, `wS`, `x0S` the stacked plan, forcing and initial
+  condition.
+* `pencilPoly_map`: `det(λA₀ − A₁)` is the Euler polynomial
+  `OptimalRulesMeasureEulerPencil.eulerPoly` (over `ℂ`).
+* `focSystem_of_equil`, `equil_of_focSystem`: at `t₀ = 0` the bounded solutions of (1.1) + (1.9)
+  (`GeneralFOC.LQ.FOCSystem`) are exactly the equilibria of the stacked pencil system.
+* **`stack_determinate_iff_count`**: for any expectation system on a nonempty sample space the
+  stacked system is determinate iff the Euler polynomial is nonzero, has no root on the unit
+  circle, has exactly `n = n_Z + n_z` roots (with multiplicity) in the open unit disc, and the
+  genericity condition holds.
+* `assumption81MB_of_determinate`: stacked determinacy gives the (corrected) Assumption 8.1 for
+  every expectation system.
+* `determinate_of_assumption81`: conversely the perfect-foresight Assumption 8.1 plus no Euler root
+  on the unit circle give stacked determinacy under every expectation system; the count is
+  `OptimalRulesMeasureMultiplicity.card_closedDisk_eq` (closed disc = open disc), and genericity
+  comes from the uniqueness half of Assumption 8.1.
+* **`stack_determinate_iff`**: stacked determinacy ⟺ perfect-foresight Assumption 8.1 ∧ no root of
+  the Euler pencil on the unit circle; `stack_determinate_card`: then exactly `n` roots lie in the
+  closed (= open) unit disc, the count `OptimalRulesMeasureMultiplicity.card_closedDisk_eq`.
+* `eB_not_determinate`: Assumption 8.1 alone does **not** give Blanchard–Kahn determinacy of the
+  stacked system: the problem `OptimalRulesMeasureCounterexample.eBP` satisfies the
+  perfect-foresight Assumption 8.1 but its Euler pencil has the root `1`.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aStackedBK
+
+open Matrix Polynomial GeneralSetup GeneralFOC GeneralFOC.LQ OptimalRulesMeasureEulerPencil
+open OptimalRulesMeasureSpectrum TidyR6aGeneralBKPencil TidyR6aGeneralBKSingular TidyR6aBKRandom
+
+variable {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+/-! ### The stacked system in Blanchard–Kahn order -/
+
+/-- Woodford (2003), (1.1) + (1.9) (tool): the stacked coordinates `x = (y, φ)`,
+`y = ((Z, z), i)`, `φ = (ξ, M)`, reordered as (non-predetermined `((z, i), ξ)`, predetermined
+`(Z, M)`). -/
+def eSf : ((ιZ ⊕ ιz) ⊕ Unit) ⊕ (ιZ ⊕ ιz) → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz)
+  | Sum.inl (Sum.inl (Sum.inl j)) => Sum.inr (Sum.inl j)
+  | Sum.inl (Sum.inl (Sum.inr r)) => Sum.inl (Sum.inl (Sum.inl r))
+  | Sum.inl (Sum.inr u) => Sum.inl (Sum.inl (Sum.inr u))
+  | Sum.inr (Sum.inl j) => Sum.inl (Sum.inr j)
+  | Sum.inr (Sum.inr r) => Sum.inr (Sum.inr r)
+
+/-- Woodford (2003), (1.1) + (1.9) (tool): the inverse reordering. -/
+def eSi : ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → ((ιZ ⊕ ιz) ⊕ Unit) ⊕ (ιZ ⊕ ιz)
+  | Sum.inl (Sum.inl (Sum.inl r)) => Sum.inl (Sum.inl (Sum.inr r))
+  | Sum.inl (Sum.inl (Sum.inr u)) => Sum.inl (Sum.inr u)
+  | Sum.inl (Sum.inr j) => Sum.inr (Sum.inl j)
+  | Sum.inr (Sum.inl j) => Sum.inl (Sum.inl (Sum.inl j))
+  | Sum.inr (Sum.inr r) => Sum.inr (Sum.inr r)
+
+/-- Woodford (2003), (1.1) + (1.9) (tool): the reordering as an equivalence. -/
+def eS : ((ιZ ⊕ ιz) ⊕ Unit) ⊕ (ιZ ⊕ ιz) ≃ ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) where
+  toFun := eSf
+  invFun := eSi
+  left_inv := by rintro (((j | r) | u) | (j | r)) <;> rfl
+  right_inv := by rintro (((r | u) | j) | (j | r)) <;> rfl
+
+/-- Woodford (2003), (1.1) + (1.9): the lead matrix `F` in Blanchard–Kahn order. -/
+def A0 (P : LQProblem ιZ ιz ιτ) : Matrix (((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz))
+    (((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz)) ℝ :=
+  reindex eS eS (Fm P)
+
+/-- Woodford (2003), (1.1) + (1.9): the current-date matrix `G` in Blanchard–Kahn order. -/
+noncomputable def A1 (P : LQProblem ιZ ιz ιτ) : Matrix (((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz))
+    (((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz)) ℝ :=
+  reindex eS eS (Gm P)
+
+variable {Ω : Type*}
+
+/-- Woodford (2003), (1.1) + (1.9): the stacked process `x_t = (y_t, φ_t)` in Blanchard–Kahn
+order. -/
+def stk (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) :
+    ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Ω → ℝ :=
+  fun t k ω => Sum.elim (y t ω) (φ t ω) (eS.symm k)
+
+/-- Woodford (2003), (1.1) + (1.9): the forcing `w_t = (T'Wτ*, (0, c_t))` of the stacked system
+(rows: the first-order conditions, then the structural equations). -/
+def wS (P : LQProblem ιZ ιz ιτ) (c : ℕ → Ω → ιz → ℝ) :
+    ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Ω → ℝ :=
+  fun t k ω => Sum.elim (P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) (liftDist c t ω) (eS.symm k)
+
+/-- Woodford (2003), p. 541: the initial condition `(Z_0, M_{−1}) = (Z₀, M₀)` of the stacked
+system. -/
+def x0S (Z0 : Ω → ιZ → ℝ) (M0 : Ω → ιz → ℝ) : ιZ ⊕ ιz → Ω → ℝ :=
+  fun k ω => Sum.elim (Z0 ω) (M0 ω) k
+
+/-! ### The pointwise equations -/
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), (1.1) + (1.9) (tool): blockwise addition of stacked vectors. -/
+theorem elim_add {α β : Type*} (a c : α → ℝ) (b d : β → ℝ) :
+    Sum.elim a b + Sum.elim c d = Sum.elim (a + c) (b + d) := by
+  funext x
+  rcases x with x | x <;> rfl
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), (1.1) + (1.9) (tool): stacked vectors are equal iff their blocks are. -/
+theorem elim_eq_iff {α β : Type*} (a c : α → ℝ) (b d : β → ℝ) :
+    Sum.elim a b = Sum.elim c d ↔ a = c ∧ b = d := by
+  constructor
+  · intro h
+    exact ⟨funext fun x => congrFun h (Sum.inl x), funext fun x => congrFun h (Sum.inr x)⟩
+  · rintro ⟨rfl, rfl⟩
+    rfl
+
+/-- Woodford (2003), (1.1) + (1.9), pointwise: `F e = G x + w` iff the first-order conditions
+(1.9) and the structural rows `Ĩ e_y = Ã y + (0, c)` hold. -/
+theorem pencil_pt_iff (P : LQProblem ιZ ιz ιτ) (ey yv : (ιZ ⊕ ιz) ⊕ Unit → ℝ)
+    (eφ φv : ιZ ⊕ ιz → ℝ) (cv : ιz → ℝ) :
+    Fm P *ᵥ Sum.elim ey eφ = Gm P *ᵥ Sum.elim yv φv +
+        Sum.elim (P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) (Sum.elim (0 : ιZ → ℝ) cv) ↔
+      (P.sys.Atilᵀ *ᵥ eφ + P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ yv - P.τstar)) -
+          P.β⁻¹ • (P.sys.Itilᵀ *ᵥ φv) = 0) ∧
+        P.sys.Itil *ᵥ ey = P.sys.Atil *ᵥ yv + Sum.elim (0 : ιZ → ℝ) cv := by
+  have hq : P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ yv - P.τstar)) =
+      Qmat P *ᵥ yv - P.Tᵀ *ᵥ (P.W *ᵥ P.τstar) := by
+    rw [Qmat, mulVec_sub, mulVec_sub, mulVec_mulVec, mulVec_mulVec, Matrix.mul_assoc]
+  simp only [Fm, Gm, fromBlocks_mulVec, Sum.elim_comp_inl, Sum.elim_comp_inr, zero_mulVec,
+    zero_add, add_zero, elim_add, elim_eq_iff]
+  rw [hq, neg_mulVec, smul_mulVec]
+  constructor
+  · rintro ⟨h1, h2⟩
+    refine ⟨?_, h2⟩
+    rw [h1]
+    abel
+  · rintro ⟨h1, h2⟩
+    refine ⟨?_, h2⟩
+    rw [← sub_eq_zero, ← h1]
+    abel
+
+omit [Fintype ιτ] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), (1.1) + (1.9) (tool): the reordered matrix acting on a reordered vector. -/
+theorem reindex_mulVec_eS (M : Matrix (((ιZ ⊕ ιz) ⊕ Unit) ⊕ (ιZ ⊕ ιz))
+    (((ιZ ⊕ ιz) ⊕ Unit) ⊕ (ιZ ⊕ ιz)) ℝ) (v : ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → ℝ)
+    (ρ : ((ιZ ⊕ ιz) ⊕ Unit) ⊕ (ιZ ⊕ ιz)) :
+    (reindex eS eS M *ᵥ v) (eS ρ) = (M *ᵥ (v ∘ eS)) ρ := by
+  rw [reindex_apply, submatrix_mulVec_equiv]
+  simp [Function.comp_def]
+
+/-! ### Solutions of the stacked system -/
+
+omit [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), (1.1) + (1.9) (tool): the stacked process read back in the original
+coordinates. -/
+theorem stk_eS (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) (t : ℕ)
+    (σ : ((ιZ ⊕ ιz) ⊕ Unit) ⊕ (ιZ ⊕ ιz)) :
+    stk y φ t (eS σ) = fun ω => Sum.elim (y t ω) (φ t ω) σ := by
+  funext ω
+  simp [stk]
+
+/-- Woodford (2003), (1.1) + (1.9) on the stacked process: `x = (y, φ)` solves the pencil system
+`F E_t x_{t+1} = G x_t + w_t` iff, at every date and state, the first-order conditions (1.9) and
+the structural rows `Ĩ E_t y_{t+1} = Ã y_t + (0, c_t)` hold. -/
+theorem solvesPencil_stk_iff (𝔼 : ExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ)
+    (c : ℕ → Ω → ιz → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) :
+    SolvesPencil 𝔼 (A0 P) (A1 P) (wS P c) (stk y φ) ↔ ∀ t ω,
+      (P.sys.Atilᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω + P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ y t ω - P.τstar)) -
+          P.β⁻¹ • (P.sys.Itilᵀ *ᵥ φ t ω) = 0) ∧
+        P.sys.Itil *ᵥ EV 𝔼 t (y (t + 1)) ω =
+          P.sys.Atil *ᵥ y t ω + Sum.elim (0 : ιZ → ℝ) (c t ω) := by
+  have hE : ∀ t ω, (fun k => 𝔼.E t (stk y φ (t + 1) k) ω) ∘ eS =
+      Sum.elim (EV 𝔼 t (y (t + 1)) ω) (EV 𝔼 t (φ (t + 1)) ω) := by
+    intro t ω
+    funext σ
+    simp only [Function.comp_apply, stk_eS]
+    rcases σ with a | b <;> rfl
+  have hX : ∀ t ω, (fun k => stk y φ t k ω) ∘ eS = Sum.elim (y t ω) (φ t ω) := by
+    intro t ω
+    funext σ
+    simp only [Function.comp_apply, stk_eS]
+  have hW : ∀ t ω σ, wS P c t (eS σ) ω =
+      Sum.elim (P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) (liftDist c t ω) σ := by
+    intro t ω σ
+    simp [wS]
+  have key : ∀ t ω, (∀ σ, BKForward.mv (A0 P) (fun i => 𝔼.E t (stk y φ (t + 1) i)) (eS σ) ω =
+      (BKForward.mv (A1 P) (stk y φ t) + wS P c t) (eS σ) ω) ↔
+      Fm P *ᵥ Sum.elim (EV 𝔼 t (y (t + 1)) ω) (EV 𝔼 t (φ (t + 1)) ω) =
+        Gm P *ᵥ Sum.elim (y t ω) (φ t ω) +
+          Sum.elim (P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) (liftDist c t ω) := by
+    intro t ω
+    simp only [Pi.add_apply, BKForward.mv_apply, A0, A1, reindex_mulVec_eS, hE, hX, hW]
+    constructor
+    · intro h
+      funext σ
+      exact h σ
+    · intro h σ
+      exact congrFun h σ
+  unfold SolvesPencil
+  constructor
+  · intro h t ω
+    have h1 := (key t ω).mp fun σ => congrFun (congrFun (h t) (eS σ)) ω
+    exact (pencil_pt_iff P _ _ _ _ _).mp h1
+  · intro h t
+    funext k ω
+    obtain ⟨σ, rfl⟩ := eS.surjective k
+    exact (key t ω).mpr ((pencil_pt_iff P _ _ _ _ _).mpr (h t ω)) σ
+
+/-! ### Information -/
+
+/-- Woodford (2003), p. 540 (tool): with the first-order conditions (1.9) at date `t` and `y_t`
+known at `t`, the multipliers `ξ_t` on the predetermined rows are known at `t`
+(`ξ_t = β (Ã'E_tφ_{t+1} + T'W(τ_t − τ*))_Z`). -/
+theorem xi_known (𝔼 : ExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ)
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ} {t : ℕ}
+    (hfoc : ∀ ω, P.sys.Atilᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω +
+      P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ y t ω - P.τstar)) - P.β⁻¹ • (P.sys.Itilᵀ *ᵥ φ t ω) = 0)
+    (hy : KnownV 𝔼 t (y t)) (j : ιZ) :
+    𝔼.E t (fun ω => φ t ω (Sum.inl j)) = fun ω => φ t ω (Sum.inl j) := by
+  set g : Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ := fun ω => P.sys.Atilᵀ *ᵥ EV 𝔼 t (φ (t + 1)) ω +
+    ((P.Tᵀ * P.W * P.T) *ᵥ y t ω + -(P.Tᵀ *ᵥ (P.W *ᵥ P.τstar))) with hgdef
+  have hb : KnownV 𝔼 t (fun ω => (P.Tᵀ * P.W * P.T) *ᵥ y t ω + -(P.Tᵀ *ᵥ (P.W *ᵥ P.τstar))) :=
+    PencilSplit.knownV_mulVec_add 𝔼 _ hy (fun _ => 𝔼.const t _)
+  have hg : KnownV 𝔼 t g := PencilSplit.knownV_mulVec_add 𝔼 _ (PencilSplit.knownV_EV 𝔼 t _) hb
+  have hφ : (fun ω => φ t ω (Sum.inl j)) = P.β • fun ω => g ω (Sum.inl (Sum.inl j)) := by
+    funext ω
+    have h0 := hfoc ω
+    have hT : P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ y t ω - P.τstar)) =
+        (P.Tᵀ * P.W * P.T) *ᵥ y t ω + -(P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) := by
+      rw [mulVec_sub, mulVec_sub, mulVec_mulVec, mulVec_mulVec, Matrix.mul_assoc,
+        sub_eq_add_neg]
+    rw [hT, sub_eq_zero, ← add_assoc] at h0
+    have h1 := congrFun h0 (Sum.inl (Sum.inl j))
+    rw [Itil_transpose_mulVec, Pi.smul_apply, Sum.elim_inl, PencilSplit.Ihat_transpose_mulVec,
+      Sum.elim_inl] at h1
+    simp only [Pi.smul_apply, smul_eq_mul, hgdef, ← add_assoc]
+    rw [h1, Function.comp_apply, smul_eq_mul, ← mul_assoc, mul_inv_cancel₀ P.β_pos.ne', one_mul]
+  rw [hφ, map_smul, hg (Sum.inl (Sum.inl j))]
+
+/-! ### Solutions of (1.1) + (1.9) are the equilibria of the stacked system -/
+
+/-- Woodford (2003), (1.1) + (1.9) (tool): the plan `y` read off a stacked process. -/
+def unY (x : ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Ω → ℝ) :
+    ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ :=
+  fun t ω a => x t (eS (Sum.inl a)) ω
+
+/-- Woodford (2003), (1.1) + (1.9) (tool): the multipliers `φ` read off a stacked process. -/
+def unΦ (x : ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Ω → ℝ) : ℕ → Ω → ιZ ⊕ ιz → ℝ :=
+  fun t ω b => x t (eS (Sum.inr b)) ω
+
+omit [Fintype ιZ] [Fintype ιz] [DecidableEq ιZ] [DecidableEq ιz] in
+/-- Woodford (2003), (1.1) + (1.9) (tool): stacking what was read off gives back the process. -/
+theorem stk_un (x : ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Ω → ℝ) :
+    stk (unY x) (unΦ x) = x := by
+  funext t k ω
+  obtain ⟨σ, rfl⟩ := eS.surjective k
+  rw [stk_eS]
+  rcases σ with a | b <;> rfl
+
+omit [Fintype ιτ] in
+/-- Woodford (2003), eq. (1.1), p. 537 (tool): when `Z_{t+1}` is known at `t`, the stacked
+structural rows `Ĩ E_t y_{t+1} = Ã y_t + (0, c_t)` are (1.1) at `(t, ω)`. -/
+theorem struct_pt_iff (𝔼 : ExpectationSystem Ω) (S : LinearRESystem ιZ ιz)
+    (c : ℕ → Ω → ιz → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) (t : ℕ)
+    (hZ : KnownV 𝔼 t (fun ω => Zpart (y (t + 1) ω))) (ω : Ω) :
+    S.Itil *ᵥ EV 𝔼 t (y (t + 1)) ω = S.Atil *ᵥ y t ω + Sum.elim (0 : ιZ → ℝ) (c t ω) ↔
+      Zpart (y (t + 1) ω) = S.A11 *ᵥ Zpart (y t ω) + S.A12 *ᵥ zpart (y t ω) ∧
+        S.Et *ᵥ EV 𝔼 t (fun ω' => zpart (y (t + 1) ω')) ω =
+          S.A21 *ᵥ Zpart (y t ω) + S.A22 *ᵥ zpart (y t ω) + ipart (y t ω) • S.B2 + c t ω := by
+  have hE : Zpart (EV 𝔼 t (y (t + 1)) ω) = Zpart (y (t + 1) ω) :=
+    congrFun (EV_of_known 𝔼 hZ) ω
+  rw [S.Itil_mulVec, S.Atil_mulVec, elim_add, elim_eq_iff, hE, add_zero]
+  rfl
+
+/-- Woodford (2003), pp. 541–542 and App. C.1 (tool): a bounded solution of (1.1) + (1.9) from
+`t₀ = 0` solves the stacked pencil system, is bounded, has its predetermined block known one
+period ahead, starts at `(Z₀, M₀)`, and is adapted except possibly for `M_{−1} = M₀` at date `0`. -/
+theorem focSystem_pre (𝔼 : ExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ)
+    {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (h : FOCSystem P 𝔼 c 0 Z0 M0 y φ) :
+    SolvesPencil 𝔼 (A0 P) (A1 P) (wS P c) (stk y φ) ∧
+      (∀ t σ, (0 < t ∨ ∀ r, σ ≠ Sum.inr (Sum.inr r)) →
+        𝔼.E t (stk y φ t (eS σ)) = stk y φ t (eS σ)) ∧
+      (∀ t j, 𝔼.E t (stk y φ (t + 1) (Sum.inr j)) = stk y φ (t + 1) (Sum.inr j)) ∧
+      (∀ j, stk y φ 0 (Sum.inr j) = x0S Z0 M0 j) ∧ BKForward.BoundedV (stk y φ) := by
+  obtain ⟨⟨hst, hZ0, hyb, hya⟩, hφb, hmm, hM0eq, hfoc⟩ := h
+  have hZk : ∀ t, KnownV 𝔼 t (fun ω => Zpart (y (t + 1) ω)) := by
+    intro t
+    have e : (fun ω => Zpart (y (t + 1) ω)) =
+        fun ω => P.sys.A11 *ᵥ Zpart (y t ω) + P.sys.A12 *ᵥ zpart (y t ω) :=
+      funext fun ω => (hst t (Nat.zero_le t) ω).1
+    rw [e]
+    exact PencilSplit.knownV_mulVec_add 𝔼 _ (fun j => hya t (Sum.inl (Sum.inl j)))
+      (PencilSplit.knownV_mulVec 𝔼 _ (fun r => hya t (Sum.inl (Sum.inr r))))
+  refine ⟨(solvesPencil_stk_iff 𝔼 P c y φ).mpr fun t ω =>
+      ⟨hfoc t (Nat.zero_le t) ω,
+        (struct_pt_iff 𝔼 P.sys c y t (hZk t) ω).mpr (hst t (Nat.zero_le t) ω)⟩,
+    fun t σ hσ => ?_, fun t j => ?_, fun j => ?_, ?_⟩
+  · rw [stk_eS]
+    rcases σ with a | (j | r)
+    · exact hya t a
+    · exact xi_known 𝔼 P (hfoc t (Nat.zero_le t)) (hya t) j
+    · rcases t with _ | s
+      · rcases hσ with h0 | h0
+        · exact absurd h0 (lt_irrefl 0)
+        · exact absurd rfl (h0 r)
+      · change 𝔼.E (s + 1) (fun ω => φ (s + 1) ω (Sum.inr r)) = fun ω => φ (s + 1) ω (Sum.inr r)
+        rw [← hmm s r, 𝔼.known (Nat.le_succ s)]
+  · rcases j with j | r
+    · exact hZk t j
+    · exact hmm t r
+  · rcases j with j | r
+    · funext ω
+      exact congrFun (hZ0 ω) j
+    · funext ω
+      exact congrFun (hM0eq ω) r
+  · obtain ⟨K1, h1⟩ := hyb
+    obtain ⟨K2, h2⟩ := hφb
+    refine ⟨max K1 K2, fun t k ω => ?_⟩
+    obtain ⟨σ, rfl⟩ := eS.surjective k
+    rw [stk_eS]
+    rcases σ with a | b
+    · exact (h1 t ω a).trans (le_max_left _ _)
+    · exact (h2 t ω b).trans (le_max_right _ _)
+
+/-- Woodford (2003), pp. 541–542 and App. C.1 (**solutions are equilibria**): a bounded solution
+of (1.1) + (1.9) from `t₀ = 0` with `M_{−1} = M₀` known at date `0` is a bounded equilibrium of
+the stacked pencil system with initial condition `(Z₀, M₀)`. -/
+theorem equil_of_focSystem (𝔼 : ExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ)
+    {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (h : FOCSystem P 𝔼 c 0 Z0 M0 y φ) (hM0 : KnownV 𝔼 0 M0) :
+    EquilPencilR 𝔼 (A0 P) (A1 P) (wS P c) (x0S Z0 M0) (stk y φ) := by
+  obtain ⟨hs, ha, hp, hi, hb⟩ := focSystem_pre 𝔼 P h
+  refine ⟨hs, fun t k => ?_, hp, hi, hb⟩
+  obtain ⟨σ, rfl⟩ := eS.surjective k
+  by_cases hσ : 0 < t ∨ ∀ r, σ ≠ Sum.inr (Sum.inr r)
+  · exact ha t σ hσ
+  · push Not at hσ
+    obtain ⟨ht, r, rfl⟩ := hσ
+    obtain rfl : t = 0 := by omega
+    have e := hi (Sum.inr r)
+    change stk y φ 0 (eS (Sum.inr (Sum.inr r))) = fun ω => M0 ω r at e
+    rw [e]
+    exact hM0 r
+
+/-- Woodford (2003), pp. 541–542 and App. C.1 (**equilibria are solutions**): a bounded
+equilibrium of the stacked pencil system with initial condition `(Z₀, M₀)` is a bounded solution
+of (1.1) + (1.9) from `t₀ = 0` with `Z_0 = Z₀`, `M_{−1} = M₀`. -/
+theorem focSystem_of_equil (𝔼 : ExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ)
+    {c : ℕ → Ω → ιz → ℝ} {Z0 : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {x : ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Ω → ℝ}
+    (h : EquilPencilR 𝔼 (A0 P) (A1 P) (wS P c) (x0S Z0 M0) x) :
+    FOCSystem P 𝔼 c 0 Z0 M0 (unY x) (unΦ x) := by
+  rw [← stk_un x] at h
+  obtain ⟨hs, ha, hp, hi, hb⟩ := h
+  have hs' := (solvesPencil_stk_iff 𝔼 P c (unY x) (unΦ x)).mp hs
+  have hZk : ∀ t, KnownV 𝔼 t (fun ω => Zpart (unY x (t + 1) ω)) := fun t j =>
+    hp t (Sum.inl j)
+  refine ⟨⟨fun t _ ω => (struct_pt_iff 𝔼 P.sys c (unY x) t (hZk t) ω).mp (hs' t ω).2,
+    fun ω => funext fun j => congrFun (hi (Sum.inl j)) ω, ?_, fun t a => by
+      have := ha t (eS (Sum.inl a)); rwa [stk_eS] at this⟩,
+    ?_, fun t r => hp t (Sum.inr r), fun ω => funext fun r => congrFun (hi (Sum.inr r)) ω,
+    fun t _ ω => (hs' t ω).1⟩
+  · obtain ⟨K, hK⟩ := hb
+    refine ⟨K, fun t ω a => ?_⟩
+    have := hK t (eS (Sum.inl a)) ω
+    rwa [stk_eS] at this
+  · obtain ⟨K, hK⟩ := hb
+    refine ⟨K, fun t ω b => ?_⟩
+    have := hK t (eS (Sum.inr b)) ω
+    rwa [stk_eS] at this
+
+/-! ### The characteristic polynomial -/
+
+/-- Woodford (2003), (1.1) + (1.9) and App. C.1: **the pencil polynomial of the stacked system
+is the Euler polynomial**, `det(λA₀ − A₁) = det(λF − G)` (over `ℂ`). -/
+theorem pencilPoly_map (P : LQProblem ιZ ιz ιτ) :
+    (pencilPoly (A0 P) (A1 P)).map Complex.ofRealHom = eulerPoly P := by
+  refine Polynomial.funext fun ν => ?_
+  rw [eulerPoly_eval, eval_map, ← coe_eval₂RingHom, pencilPoly, RingHom.map_det,
+    ← det_reindex_self eS (pencilC P ν)]
+  congr 1
+  ext i j
+  simp [A0, A1, pencilC, Matrix.scalar_apply, mul_apply, diagonal, sub_eq_add_neg]
+  ring
+
+/-! ### Determinacy of the stacked system -/
+
+/-- **Woodford (2003), (1.1) + (1.9) and App. C.1 (Blanchard–Kahn for the stacked system; King and
+Watson, Klein)**: for any expectation system on a nonempty sample space, the stacked system is
+determinate (a unique bounded equilibrium for every bounded adapted forcing and every bounded
+initial `(Z_0, M_{−1})` known at `0`) iff the Euler polynomial `det(νF − G)` is nonzero, has no
+root on the unit circle, has exactly `n = n_Z + n_z` roots (with multiplicity) in the open unit
+disc, and the genericity condition `TidyR6aGeneralBKSingular.GenericPencil` holds. -/
+theorem stack_determinate_iff_count [Nonempty Ω] (𝔼 : ExpectationSystem Ω)
+    (P : LQProblem ιZ ιz ιτ) :
+    DeterminatePencilR 𝔼 (A0 P) (A1 P) ↔ eulerPoly P ≠ 0 ∧
+      (∀ μ ∈ (eulerPoly P).roots, ‖μ‖ ≠ 1) ∧
+      Multiset.card ((eulerPoly P).roots.filter (fun μ => ‖μ‖ < 1)) =
+        Fintype.card (ιZ ⊕ ιz) ∧ GenericPencil (A0 P) (A1 P) := by
+  rw [determinatePencilR_iff_general, pencilPoly_map, ← pencilPoly_map,
+    Polynomial.map_ne_zero_iff Complex.ofRealHom.injective, pencilPoly_map]
+
+/-- Woodford (2003), App. G.1 (tool): for a nonzero Euler polynomial, no root lies on the unit
+circle iff the homogeneous perfect-foresight system has no eigen-solution `νᵗ(u, p)` with
+`|ν| = 1`. -/
+theorem noUnit_iff (P : LQProblem ιZ ιz ιτ) (hE : eulerPoly P ≠ 0) :
+    (∀ μ ∈ (eulerPoly P).roots, ‖μ‖ ≠ 1) ↔ ∀ ν : ℂ, ‖ν‖ = 1 → ¬ EulerRoot P ν := by
+  constructor
+  · intro h ν hν hr
+    refine h ν ?_ hν
+    rw [mem_roots hE, IsRoot.def, eulerPoly_eval]
+    exact (eulerRoot_iff P ν).mp hr
+  · intro h μ hμ h1
+    refine h μ h1 ((eulerRoot_iff P μ).mpr ?_)
+    rw [← eulerPoly_eval]
+    exact (mem_roots hE).mp hμ
+
+/-- Woodford (2003), Assumption 8.1 and App. C.1 (**genericity from uniqueness**): under the
+perfect-foresight Assumption 8.1 the stacked pencil satisfies the genericity condition — a bounded
+deterministic solution of `F x_{t+1} = G x_t` with `(Z_0, M_{−1}) = 0`, added to a solution, would
+give a second solution with the same data. -/
+theorem generic_of_assumption81 {P : LQProblem ιZ ιz ιτ}
+    (hA81 : Assumption81 P perfectForesight 0) : GenericPencil (A0 P) (A1 P) := by
+  rintro v ⟨yv, hy0, ⟨C, hC⟩, hrec⟩ hvX
+  obtain ⟨y1, φ1, h1⟩ := hA81.solvable (fun _ _ _ => 0) (fun _ _ => 0) (fun _ _ => 0)
+    ⟨0, fun _ _ _ => by simp⟩ (fun _ _ => perfectForesight.const _ 0)
+    (fun _ => perfectForesight.const _ 0) (fun _ => perfectForesight.const _ 0)
+  have hE1 := equil_of_focSystem perfectForesight P h1 (fun _ => perfectForesight.const _ 0)
+  set x2 : ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Unit → ℝ :=
+    fun t k u => stk y1 φ1 t k u + yv t k with hx2
+  have hEq2 : EquilPencilR perfectForesight (A0 P) (A1 P) (wS P fun _ _ _ => 0)
+      (x0S (fun _ _ => 0) (fun _ _ => 0)) x2 := by
+    obtain ⟨hs, -, -, hi, hb⟩ := hE1
+    refine ⟨fun t => ?_, fun _ _ => rfl, fun _ _ => rfl, fun j => ?_, ?_⟩
+    · funext k u
+      have e1 := congrFun (congrFun (hs t) k) u
+      have e2 := congrFun (hrec t) k
+      simp only [Pi.add_apply, BKForward.mv_apply] at e1 ⊢
+      change (A0 P *ᵥ fun i => stk y1 φ1 (t + 1) i u + yv (t + 1) i) k =
+        (A1 P *ᵥ fun i => stk y1 φ1 t i u + yv t i) k + wS P (fun _ _ _ => 0) t k u
+      have h3 : (fun i => stk y1 φ1 (t + 1) i u + yv (t + 1) i) =
+          (fun i => stk y1 φ1 (t + 1) i u) + yv (t + 1) := rfl
+      have h4 : (fun i => stk y1 φ1 t i u + yv t i) = (fun i => stk y1 φ1 t i u) + yv t := rfl
+      change (A0 P *ᵥ fun i => stk y1 φ1 (t + 1) i u) k =
+        (A1 P *ᵥ fun i => stk y1 φ1 t i u) k + wS P (fun _ _ _ => 0) t k u at e1
+      rw [h3, h4, mulVec_add, mulVec_add, Pi.add_apply, Pi.add_apply, e2, e1]
+      ring
+    · funext u
+      have e := congrFun (hi j) u
+      change stk y1 φ1 0 (Sum.inr j) u + yv 0 (Sum.inr j) = _
+      rw [e, hy0, hvX j]
+      rcases j with j | r <;> simp [x0S]
+    · obtain ⟨K, hK⟩ := hb
+      exact ⟨K + C, fun t k u => (abs_add_le _ _).trans (add_le_add (hK t k u) (hC t k))⟩
+  have hF2 := focSystem_of_equil perfectForesight P hEq2
+  have hU := hA81.unique _ _ _ _ _ _ _ h1 hF2
+  have hz : ∀ t k, yv t k = 0 := by
+    intro t k
+    obtain ⟨σ, rfl⟩ := eS.surjective k
+    obtain ⟨hy, hφ⟩ := hU t (Nat.zero_le t)
+    rcases σ with a | b
+    · have e := congrFun (congrFun hy ()) a
+      change y1 t () a = stk y1 φ1 t (eS (Sum.inl a)) () + yv t (eS (Sum.inl a)) at e
+      rw [stk_eS] at e
+      change y1 t () a = y1 t () a + _ at e
+      linarith
+    · have e := congrFun (congrFun hφ ()) b
+      change φ1 t () b = stk y1 φ1 t (eS (Sum.inr b)) () + yv t (eS (Sum.inr b)) at e
+      rw [stk_eS] at e
+      change φ1 t () b = φ1 t () b + _ at e
+      linarith
+  rw [← hy0]
+  funext k
+  exact hz 0 k
+
+/-- **Woodford (2003), Assumption 8.1 and App. C.1 (sufficiency)**: the perfect-foresight
+Assumption 8.1 and no root of the Euler pencil on the unit circle give determinacy of the
+stacked system under every expectation system (nonempty sample space). The count of
+`OptimalRulesMeasureMultiplicity.card_closedDisk_eq` (exactly `n` roots in the closed unit disc)
+becomes the Blanchard–Kahn count in the open disc. -/
+theorem determinate_of_assumption81 [Nonempty Ω] (𝔼 : ExpectationSystem Ω)
+    {P : LQProblem ιZ ιz ιτ} (hA81 : Assumption81 P perfectForesight 0)
+    (hnu : ∀ ν : ℂ, ‖ν‖ = 1 → ¬ EulerRoot P ν) : DeterminatePencilR 𝔼 (A0 P) (A1 P) := by
+  have hE := OptimalRulesMeasureMultiplicity.eulerPoly_ne_zero hA81
+  exact (stack_determinate_iff_count 𝔼 P).mpr ⟨hE, (noUnit_iff P hE).mpr hnu,
+    (OptimalRulesMeasureMultiplicity.card_openDisk_eq_of_noEulerRoot hA81 hnu).1,
+    generic_of_assumption81 hA81⟩
+
+/-- Woodford (2003), Assumption 8.1, p. 541 (**the corrected Assumption 8.1 from stacked
+determinacy**): if the stacked system is determinate, (1.1) + (1.9) has a unique bounded solution
+for every bounded adapted disturbance, every bounded `Z_0` known at `0` and every bounded `M_{−1}`
+known at `0` (`InertiaAssumption81.Assumption81MB` at `t₀ = 0`). -/
+theorem assumption81MB_of_determinate (𝔼 : ExpectationSystem Ω) {P : LQProblem ιZ ιz ιτ}
+    (hD : DeterminatePencilR 𝔼 (A0 P) (A1 P)) : InertiaAssumption81.Assumption81MB P 𝔼 0 := by
+  refine ⟨fun cc Z0 M0 hcb hca hZk hZb hMb hMk => ?_, fun cc Z0 M0 y y' φ φ' h1 h2 => ?_⟩
+  · have hwb : BKForward.BoundedV (wS P cc) := by
+      obtain ⟨K, hK⟩ := hcb
+      refine ⟨∑ a, |(P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) a| + |K|, fun t k ω => ?_⟩
+      obtain ⟨σ, rfl⟩ := eS.surjective k
+      simp only [wS, Equiv.symm_apply_apply]
+      rcases σ with a | (j | r)
+      · exact (Finset.single_le_sum (f := fun a => |(P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) a|)
+          (fun _ _ => abs_nonneg _) (Finset.mem_univ a)).trans (le_add_of_nonneg_right
+            (abs_nonneg _))
+      · simp only [Sum.elim_inr, liftDist, Sum.elim_inl, Pi.zero_apply, abs_zero]
+        positivity
+      · simp only [Sum.elim_inr, liftDist]
+        exact (hK t ω r).trans ((le_abs_self K).trans (le_add_of_nonneg_left
+          (Finset.sum_nonneg fun _ _ => abs_nonneg _)))
+    have hwa : BKForward.AdaptedV 𝔼 (wS P cc) := by
+      intro t k
+      obtain ⟨σ, rfl⟩ := eS.surjective k
+      have e : wS P cc t (eS σ) =
+          fun ω => Sum.elim (P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) (liftDist cc t ω) σ := by
+        funext ω
+        simp [wS]
+      rw [e]
+      rcases σ with a | (j | r)
+      · exact 𝔼.const t _
+      · exact 𝔼.const t 0
+      · exact hca t r
+    obtain ⟨KZ, hKZ⟩ := hZb
+    obtain ⟨KM, hKM⟩ := hMb
+    obtain ⟨x, hx, -⟩ := hD (wS P cc) hwb hwa (x0S Z0 M0)
+      (fun j => by rcases j with j | r; exacts [hZk j, hMk r])
+      ⟨max KZ KM, fun j ω => by
+        rcases j with j | r
+        · exact (hKZ ω j).trans (le_max_left _ _)
+        · exact (hKM ω r).trans (le_max_right _ _)⟩
+    exact ⟨unY x, unΦ x, focSystem_of_equil 𝔼 P hx⟩
+  · obtain ⟨hs1, ha1, hp1, hi1, hb1⟩ := focSystem_pre 𝔼 P h1
+    obtain ⟨hs2, ha2, hp2, hi2, hb2⟩ := focSystem_pre 𝔼 P h2
+    set x1 := stk y φ with hx1
+    set x2 := stk y' φ' with hx2
+    set d : ℕ → ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) → Ω → ℝ := fun t => x1 t - x2 t with hd
+    have hdE : ∀ t k, 𝔼.E t (d t k) = 𝔼.E t (x1 t k) - 𝔼.E t (x2 t k) := fun t k => by
+      simp only [hd, Pi.sub_apply, map_sub]
+    have hEq : EquilPencilR 𝔼 (A0 P) (A1 P) (fun _ _ _ => 0) (fun _ _ => 0) d := by
+      refine ⟨fun t => ?_, fun t k => ?_, fun t j => ?_, fun j => ?_, ?_⟩
+      · have e : (fun i => 𝔼.E t (d (t + 1) i)) =
+            (fun i => 𝔼.E t (x1 (t + 1) i)) - fun i => 𝔼.E t (x2 (t + 1) i) := by
+          funext i
+          simp only [hd, Pi.sub_apply, map_sub]
+        rw [e, BKForward.mv_sub, hs1 t, hs2 t, hd]
+        simp only [BKForward.mv_sub]
+        funext k ω
+        simp only [Pi.add_apply, Pi.sub_apply]
+        ring
+      · obtain ⟨σ, rfl⟩ := eS.surjective k
+        by_cases hσ : 0 < t ∨ ∀ r, σ ≠ Sum.inr (Sum.inr r)
+        · rw [hdE, ha1 t σ hσ, ha2 t σ hσ]
+          rfl
+        · push Not at hσ
+          obtain ⟨ht, r, rfl⟩ := hσ
+          obtain rfl : t = 0 := by omega
+          have e : d 0 (eS (Sum.inr (Sum.inr r))) = 0 := by
+            change x1 0 (Sum.inr (Sum.inr r)) - x2 0 (Sum.inr (Sum.inr r)) = 0
+            rw [hi1 (Sum.inr r), hi2 (Sum.inr r), sub_self]
+          rw [e, map_zero]
+      · simp only [hd, Pi.sub_apply, map_sub]
+        rw [hp1 t j, hp2 t j]
+      · change x1 0 (Sum.inr j) - x2 0 (Sum.inr j) = _
+        rw [hi1 j, hi2 j, sub_self]
+        rfl
+      · obtain ⟨K1, h1⟩ := hb1
+        obtain ⟨K2, h2⟩ := hb2
+        exact ⟨K1 + K2, fun t k ω => (abs_sub _ _).trans (add_le_add (h1 t k ω) (h2 t k ω))⟩
+    have hZero : EquilPencilR 𝔼 (A0 P) (A1 P) (fun _ _ _ => 0) (fun _ _ => 0)
+        (fun _ _ _ => 0) := by
+      refine ⟨fun t => ?_, fun t _ => 𝔼.const t 0, fun t _ => 𝔼.const t 0, fun _ => rfl,
+        ⟨0, fun _ _ _ => by simp⟩⟩
+      funext k ω
+      simp only [BKForward.mv_apply, 𝔼.const, Pi.add_apply, add_zero]
+      rw [show (fun _ : ((ιz ⊕ Unit) ⊕ ιZ) ⊕ (ιZ ⊕ ιz) => (0 : ℝ)) = 0 from rfl, mulVec_zero,
+        mulVec_zero]
+    obtain ⟨z, -, hu⟩ := hD (fun _ _ _ => 0) ⟨0, fun _ _ _ => by simp⟩ (fun t _ => 𝔼.const t 0)
+      (fun _ _ => 0) (fun _ => 𝔼.const 0 0) ⟨0, fun _ _ => by simp⟩
+    have hd0 : d = fun _ _ _ => 0 := (hu d hEq).trans (hu _ hZero).symm
+    intro t _
+    have hk : ∀ σ ω, Sum.elim (y t ω) (φ t ω) σ = Sum.elim (y' t ω) (φ' t ω) σ := by
+      intro σ ω
+      have e := congrFun (congrFun (congrFun hd0 t) (eS σ)) ω
+      change x1 t (eS σ) ω - x2 t (eS σ) ω = 0 at e
+      rw [hx1, hx2, stk_eS, stk_eS] at e
+      exact sub_eq_zero.mp e
+    exact ⟨funext fun ω => funext fun a => hk (Sum.inl a) ω,
+      funext fun ω => funext fun b => hk (Sum.inr b) ω⟩
+
+/-- Woodford (2003), Assumption 8.1, p. 541 (**the book's Assumption 8.1 under perfect
+foresight**) from determinacy of the stacked system under perfect foresight. -/
+theorem assumption81_of_determinate {P : LQProblem ιZ ιz ιτ}
+    (hD : DeterminatePencilR perfectForesight (A0 P) (A1 P)) :
+    Assumption81 P perfectForesight 0 := by
+  have hB := assumption81MB_of_determinate perfectForesight hD
+  refine ⟨fun c Z0 M0 hcb hca hZk hMk => hB.solvable c Z0 M0 hcb hca hZk ?_ ?_ hMk, hB.unique⟩
+  · exact ⟨∑ j, |Z0 () j|, fun u j => by
+      cases u
+      exact Finset.single_le_sum (f := fun j => |Z0 () j|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ j)⟩
+  · exact ⟨∑ r, |M0 () r|, fun u r => by
+      cases u
+      exact Finset.single_le_sum (f := fun r => |M0 () r|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ r)⟩
+
+/-- **Woodford (2003), (1.1) + (1.9), Assumption 8.1 and App. C.1 (the exact relation)**: for any
+expectation system on a nonempty sample space, the stacked system is Blanchard–Kahn determinate
+**iff** the perfect-foresight Assumption 8.1 holds **and** the Euler pencil has no root on the
+unit circle. In particular determinacy does not depend on the expectation system. -/
+theorem stack_determinate_iff [Nonempty Ω] (𝔼 : ExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ) :
+    DeterminatePencilR 𝔼 (A0 P) (A1 P) ↔
+      Assumption81 P perfectForesight 0 ∧ ∀ ν : ℂ, ‖ν‖ = 1 → ¬ EulerRoot P ν := by
+  constructor
+  · intro hD
+    have hc := (stack_determinate_iff_count 𝔼 P).mp hD
+    exact ⟨assumption81_of_determinate ((stack_determinate_iff_count perfectForesight P).mpr hc),
+      (noUnit_iff P hc.1).mp hc.2.1⟩
+  · rintro ⟨hA, hnu⟩
+    exact determinate_of_assumption81 𝔼 hA hnu
+
+/-- Woodford (2003), Assumption 8.1 and App. C.1 (**the link with the root count**): if the stacked
+system is determinate, the Euler pencil has exactly `n = n_Z + n_z` roots in the **closed** unit
+disc (`OptimalRulesMeasureMultiplicity.card_closedDisk_eq`) and the same `n` in the open disc —
+Blanchard–Kahn's count for the `n` predetermined variables `(Z_t, M_{t−1})`. -/
+theorem stack_determinate_card [Nonempty Ω] (𝔼 : ExpectationSystem Ω) {P : LQProblem ιZ ιz ιτ}
+    (hD : DeterminatePencilR 𝔼 (A0 P) (A1 P)) :
+    Multiset.card ((eulerPoly P).roots.filter fun r => ‖r‖ ≤ 1) = Fintype.card (ιZ ⊕ ιz) ∧
+      Multiset.card ((eulerPoly P).roots.filter fun r => ‖r‖ < 1) = Fintype.card (ιZ ⊕ ιz) := by
+  obtain ⟨hA, hnu⟩ := (stack_determinate_iff 𝔼 P).mp hD
+  exact ⟨OptimalRulesMeasureMultiplicity.card_closedDisk_eq hA,
+    (OptimalRulesMeasureMultiplicity.card_openDisk_eq_of_noEulerRoot hA hnu).1⟩
+
+/-- Woodford (2003), Assumption 8.1 (**it does not give Blanchard–Kahn determinacy of the stacked
+system**): the problem `OptimalRulesMeasureCounterexample.eBP` satisfies the perfect-foresight
+Assumption 8.1, but its Euler pencil has the root `1`, so the stacked system is not determinate
+(for every expectation system): some bounded forcing of the stacked rows has no bounded
+equilibrium. The relation of Assumption 8.1 to Blanchard–Kahn is exactly `stack_determinate_iff`;
+the closed-disc count `OptimalRulesMeasureMultiplicity.card_closedDisk_eq` holds in both cases. -/
+theorem eB_not_determinate [Nonempty Ω] (𝔼 : ExpectationSystem Ω) :
+    Assumption81 OptimalRulesMeasureCounterexample.eBP perfectForesight 0 ∧
+      ¬ DeterminatePencilR 𝔼 (A0 OptimalRulesMeasureCounterexample.eBP)
+        (A1 OptimalRulesMeasureCounterexample.eBP) := by
+  refine ⟨OptimalRulesMeasureCounterexample.eB_pf, fun hD => ?_⟩
+  exact ((stack_determinate_iff 𝔼 _).mp hD).2 1 (by simp) eB_eulerRoot_one
+
+end Woodford.OptimalPolicyRules.TidyR6aStackedBK
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Is the generalised Taylor principle necessary for determinacy within the family (3.7)?
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §3.1, (2.1), (3.1), (3.7) (pp. 583–585), and
+Chapter 4, §2.2, (2.9) and footnote 27 (pp. 255–256); Appendix C.1 (Blanchard–Kahn).
+
+The book does not claim that the generalised Taylor principle (`Tidy.TaylorPrinciple.GTP`,
+`φπ + ρ₁ > 1` for a rule of the form (3.7)) is necessary for determinacy. Both answers are
+proved here, with determinacy in the sense of Appendix C.1 for the system (2.1), (3.1), (3.7)
+written as a pencil `A₀ E_t y_{t+1} = A₁ y_t + w_t` in `y = (π, x, i; i_{−1}, i_{−2}, x_{−1})`
+(the rule is a static row, so `A₀` is singular; `TidyR6aBKRandom.DeterminatePencilR`).
+
+* `A0g`, `A1g`, `pencil_rows`: the pencil and its rows: (2.1), (3.1), (3.7) and the three
+  lag identities.
+* `charC`, `pencilPoly_eq`: `det(λA₀ − A₁) = −λ C(λ)` with
+  `C(λ) = (σκλ − (1−λ)(1−βλ))(λ² − (ρ₁+ρ₂)λ + ρ₂) − σκφπλ² − σ(φₓ/4)λ(λ−1)(1−βλ)`;
+  `charC_one`: `C(1) = −σκ (φπ + ρ₁ − 1)`, the slack of the principle (footnote 27).
+* `odd_inside`: for a real polynomial with no root on the unit circle, `p(1)p(−1) < 0` forces an
+  **odd** number of roots in the open unit disc (the roots pair as `r² − 1`).
+* **`gtp_necessary`** (necessity, corrected statement): if `φπ ≥ 0`, `φₓ ≥ 0` and
+  `1 + ρ₁ + 2ρ₂ > 0` (true for the book's signs), determinacy implies the generalised Taylor
+  principle. Proof: if `φπ + ρ₁ ≤ 1`, either `C(1) = 0` (a unit root) or `C(1) > 0 > C(−1)`, so `C`
+  has an odd number of roots inside and `det(λA₀ − A₁)` cannot have the `3` required.
+* **`gtp_not_necessary`** (refutation without sign restrictions): with `ρ₁ = ρ₂ = φₓ = 0` and
+  `φπ < −1 − 2(1+β)/(σκ)` the system is determinate under every expectation system, although the
+  principle fails (`φπ + ρ₁ − 1 < 0`).
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity
+
+open Matrix Polynomial ComplexConjugate TidyR6aGeneralBKPencil TidyR6aGeneralBKSingular
+open TidyR6aBKRandom Tidy.TaylorPrinciple GeneralFOC.Selection
+
+/-! ### The pencil of (2.1), (3.1), (3.7) -/
+
+/-- Woodford (2003), §3.1 (tool): the coordinates `(π, x, i, i_{−1}, i_{−2}, x_{−1})` as `Fin 6`. -/
+def e6 : Fin 6 ≃ Fin 3 ⊕ Fin 3 where
+  toFun := ![Sum.inl 0, Sum.inl 1, Sum.inl 2, Sum.inr 0, Sum.inr 1, Sum.inr 2]
+  invFun := Sum.elim ![0, 1, 2] ![3, 4, 5]
+  left_inv := by intro i; fin_cases i <;> rfl
+  right_inv := by
+    intro a
+    rcases a with a | a <;> fin_cases a <;> rfl
+
+/-- Woodford (2003), (2.1), (3.1), (3.7): the lead matrix `A₀` (rows: (2.1), (3.1), (3.7), then
+`p_{t+1} = i_t`, `q_{t+1} = p_t`, `r_{t+1} = x_t`; columns `(π, x, i; p, q, r)` with
+`p = i_{−1}`, `q = i_{−2}`, `r = x_{−1}` predetermined). The rule row is static. -/
+def A0g (β σ : ℝ) : Matrix (Fin 3 ⊕ Fin 3) (Fin 3 ⊕ Fin 3) ℝ :=
+  fromBlocks !![β, 0, 0; σ, 1, 0; 0, 0, 0] 0 0 1
+
+/-- Woodford (2003), (2.1), (3.1), (3.7): the current-date matrix `A₁` for a rule of the form
+(3.7) with coefficients `ρ₁, ρ₂, φπ, φₓ`. -/
+noncomputable def A1g (κ σ r1 r2 fp fx : ℝ) : Matrix (Fin 3 ⊕ Fin 3) (Fin 3 ⊕ Fin 3) ℝ :=
+  fromBlocks !![1, -κ, 0; 0, 1, σ; fp, fx / 4, -1] !![0, 0, 0; 0, 0, 0; r1 + r2, -r2, -(fx / 4)]
+    !![0, 0, 1; 0, 0, 0; 0, 1, 0] !![0, 0, 0; 1, 0, 0; 0, 0, 0]
+
+/-- Woodford (2003), (2.1), (3.1), (3.7), pointwise: `A₀ e = A₁ y + w` row by row: `βe_π = π − κx
++ w₀` ((2.1) with `w₀ = −u`), `σe_π + e_x = x + σi + w₁` ((3.1) with `w₁ = −σrⁿ`),
+`0 = φπ π + (φₓ/4)(x − r) − i + (ρ₁+ρ₂)p − ρ₂q + w₂` ((3.7)), and `e_p = i + w₃`,
+`e_q = p + w₄`, `e_r = x + w₅`. -/
+theorem pencil_rows (β σ κ r1 r2 fp fx : ℝ) (e y w : Fin 3 ⊕ Fin 3 → ℝ) :
+    A0g β σ *ᵥ e = A1g κ σ r1 r2 fp fx *ᵥ y + w ↔
+      β * e (Sum.inl 0) = y (Sum.inl 0) - κ * y (Sum.inl 1) + w (Sum.inl 0) ∧
+      σ * e (Sum.inl 0) + e (Sum.inl 1) = y (Sum.inl 1) + σ * y (Sum.inl 2) + w (Sum.inl 1) ∧
+      0 = fp * y (Sum.inl 0) + fx / 4 * (y (Sum.inl 1) - y (Sum.inr 2)) - y (Sum.inl 2) +
+        (r1 + r2) * y (Sum.inr 0) - r2 * y (Sum.inr 1) + w (Sum.inl 2) ∧
+      e (Sum.inr 0) = y (Sum.inl 2) + w (Sum.inr 0) ∧
+      e (Sum.inr 1) = y (Sum.inr 0) + w (Sum.inr 1) ∧
+      e (Sum.inr 2) = y (Sum.inl 1) + w (Sum.inr 2) := by
+  constructor
+  · intro h
+    have h0 := congrFun h (Sum.inl 0)
+    have h1 := congrFun h (Sum.inl 1)
+    have h2 := congrFun h (Sum.inl 2)
+    have h3 := congrFun h (Sum.inr 0)
+    have h4 := congrFun h (Sum.inr 1)
+    have h5 := congrFun h (Sum.inr 2)
+    simp [A0g, A1g, mulVec, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_three,
+      one_apply] at h0 h1 h2 h3 h4 h5
+    refine ⟨by linarith, by linarith, by linarith, by linarith, by linarith, by linarith⟩
+  · rintro ⟨h0, h1, h2, h3, h4, h5⟩
+    funext a
+    rcases a with a | a <;> fin_cases a <;>
+      simp [A0g, A1g, mulVec, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_three,
+        one_apply] <;> linarith
+
+/-- Woodford (2003), §3.1 and Ch. 4, fn 27: the characteristic polynomial of (2.1), (3.1), (3.7),
+`C(λ) = (σκλ − (1−λ)(1−βλ))(λ² − (ρ₁+ρ₂)λ + ρ₂) − σκφπλ² − σ(φₓ/4)λ(λ−1)(1−βλ)`. -/
+noncomputable def charC (β σ κ r1 r2 fp fx : ℝ) : ℝ[X] :=
+  (C (σ * κ) * X - (1 - X) * (1 - C β * X)) * (X ^ 2 - C (r1 + r2) * X + C r2) -
+    C (σ * κ * fp) * X ^ 2 - C (σ * (fx / 4)) * X * (X - 1) * (1 - C β * X)
+
+/-- Woodford (2003), §3.1: `C(λ)` evaluated. -/
+theorem charC_eval (β σ κ r1 r2 fp fx l : ℝ) :
+    (charC β σ κ r1 r2 fp fx).eval l =
+      (σ * κ * l - (1 - l) * (1 - β * l)) * (l ^ 2 - (r1 + r2) * l + r2) -
+        σ * κ * fp * l ^ 2 - σ * (fx / 4) * l * (l - 1) * (1 - β * l) := by
+  simp [charC]
+
+/-- **Woodford (2003), (2.1), (3.1), (3.7) and App. C.1: `det(λA₀ − A₁) = −λ C(λ)`.** -/
+theorem pencilPoly_eq (β σ κ r1 r2 fp fx : ℝ) :
+    pencilPoly (A0g β σ) (A1g κ σ r1 r2 fp fx) = -X * charC β σ κ r1 r2 fp fx := by
+  refine Polynomial.funext fun l => ?_
+  rw [eval_pencilPoly, eval_mul, eval_neg, eval_X, charC_eval, ← det_submatrix_equiv_self e6]
+  have : (l • A0g β σ - A1g κ σ r1 r2 fp fx).submatrix e6 e6 =
+      !![l * β - 1, κ, 0, 0, 0, 0; l * σ, l - 1, -σ, 0, 0, 0;
+        -fp, -(fx / 4), 1, -(r1 + r2), r2, fx / 4;
+        0, 0, -1, l, 0, 0; 0, 0, 0, -1, l, 0; 0, -1, 0, 0, 0, l] := by
+    ext i j
+    fin_cases i <;> fin_cases j <;> simp [e6, A0g, A1g]
+  rw [this]
+  simp [Matrix.det_succ_row_zero, Fin.sum_univ_succ]
+  simp [Fin.succAbove, Fin.lt_def]
+  ring
+
+/-- Woodford (2003), Ch. 4, fn 27, for (3.7): `C(1) = −σκ(φπ + ρ₁ − 1)`, minus `σκ` times the
+slack of the generalised Taylor principle. -/
+theorem charC_one (β σ κ r1 r2 fp fx : ℝ) :
+    (charC β σ κ r1 r2 fp fx).eval 1 = -(σ * κ) * (fp + r1 - 1) := by
+  rw [charC_eval]
+  ring
+
+/-- Woodford (2003), §3.1: `C(−1) = −(σκ + 2(1+β))(1 + ρ₁ + 2ρ₂) − σκφπ − σφₓ(1+β)/2`. -/
+theorem charC_neg_one (β σ κ r1 r2 fp fx : ℝ) :
+    (charC β σ κ r1 r2 fp fx).eval (-1) =
+      -(σ * κ + 2 * (1 + β)) * (1 + r1 + 2 * r2) - σ * κ * fp - σ * fx * (1 + β) / 2 := by
+  rw [charC_eval]
+  ring
+
+/-! ### Parity of the number of roots inside the unit circle -/
+
+/-- Woodford (2003), Ch. 4, fn 27 (tool): for a conjugation-closed multiset with no element on the
+unit circle, `∏ (r² − 1)` is a nonzero real number, negative iff an odd number of elements lie
+inside the unit circle (real `r` inside give `r² − 1 < 0`, real `r` outside `> 0`, and a
+conjugate pair gives `|r² − 1|² > 0` with both members on the same side). -/
+theorem parity_prod : ∀ (n : ℕ) (S : Multiset ℂ), Multiset.card S = n → ConjClosed S →
+    (∀ μ ∈ S, ‖μ‖ ≠ 1) → ∃ x : ℝ, (S.map fun r => r ^ 2 - 1).prod = (x : ℂ) ∧ x ≠ 0 ∧
+      (x < 0 ↔ Odd (Multiset.card (S.filter fun r => ‖r‖ < 1))) := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+    intro S hn hS hS1
+    rcases Multiset.empty_or_exists_mem S with h0 | ⟨μ, hμ⟩
+    · subst h0
+      exact ⟨1, by simp, one_ne_zero, by simp⟩
+    · by_cases hr : conj μ = μ
+      · -- a real element
+        set T := S.erase μ with hT
+        have hST : S = μ ::ₘ T := (Multiset.cons_erase hμ).symm
+        have hTc : ConjClosed T := by
+          unfold ConjClosed
+          rw [hT, Multiset.map_erase _ conj_injective, hS, hr]
+        have hcard : Multiset.card T < n := by
+          rw [← hn, hST, Multiset.card_cons]
+          omega
+        obtain ⟨x, hx, hx0, hxs⟩ := ih _ hcard T rfl hTc fun ν hν =>
+          hS1 ν (Multiset.mem_of_mem_erase hν)
+        set a := μ.re with ha
+        have hμa : μ = (a : ℂ) := (Complex.conj_eq_iff_re.mp hr).symm
+        have hna : |a| ≠ 1 := by
+          have := hS1 μ hμ
+          rwa [hμa, Complex.norm_real, Real.norm_eq_abs] at this
+        have ha2 : a ^ 2 - 1 ≠ 0 := by
+          intro h
+          apply hna
+          have : |a| ^ 2 = 1 := by rw [sq_abs]; linarith
+          nlinarith [abs_nonneg a]
+        refine ⟨(a ^ 2 - 1) * x, ?_, mul_ne_zero ha2 hx0, ?_⟩
+        · rw [hST, Multiset.map_cons, Multiset.prod_cons, hx, hμa]
+          push_cast
+          ring
+        · rw [hST]
+          have hnorm : ‖μ‖ = |a| := by rw [hμa, Complex.norm_real, Real.norm_eq_abs]
+          by_cases hin : ‖μ‖ < 1
+          · rw [Multiset.filter_cons_of_pos (p := fun r : ℂ => ‖r‖ < 1) _ hin, Multiset.card_cons,
+              Nat.odd_add_one, ← hxs]
+            have : a ^ 2 - 1 < 0 := by
+              rw [hnorm] at hin
+              nlinarith [abs_nonneg a, sq_abs a]
+            constructor
+            · intro h hx'
+              nlinarith
+            · intro h
+              have : 0 < x := lt_of_le_of_ne (not_lt.mp h) (Ne.symm hx0)
+              nlinarith
+          · rw [Multiset.filter_cons_of_neg (p := fun r : ℂ => ‖r‖ < 1) _ hin, ← hxs]
+            have hgt : 0 < a ^ 2 - 1 := by
+              rw [hnorm] at hin
+              have h1 : 1 < |a| := lt_of_le_of_ne (not_lt.mp hin) (Ne.symm hna)
+              nlinarith [abs_nonneg a, sq_abs a]
+            constructor
+            · intro h
+              by_contra hx'
+              have : 0 < x := lt_of_le_of_ne (not_lt.mp hx') (Ne.symm hx0)
+              nlinarith
+            · intro h
+              nlinarith
+      · -- a conjugate pair
+        have hc : conj μ ∈ S.erase μ := (Multiset.mem_erase_of_ne hr).mpr (hS.conj_mem hμ)
+        set T := (S.erase μ).erase (conj μ) with hT
+        have hST : S = μ ::ₘ conj μ ::ₘ T := by
+          rw [hT, Multiset.cons_erase hc, Multiset.cons_erase hμ]
+        have hcard : Multiset.card T < n := by
+          rw [← hn, hST, Multiset.card_cons, Multiset.card_cons]
+          omega
+        obtain ⟨x, hx, hx0, hxs⟩ := ih _ hcard T rfl (hS.erase_pair μ) fun ν hν =>
+          hS1 ν (Multiset.mem_of_mem_erase (Multiset.mem_of_mem_erase hν))
+        have hz : μ ^ 2 - 1 ≠ 0 := by
+          intro h
+          have : μ ^ 2 = 1 := by linear_combination h
+          rcases sq_eq_one_iff.mp this with h1 | h1
+          · exact hr (by rw [h1]; simp)
+          · exact hr (by rw [h1]; simp)
+        have hpos : 0 < Complex.normSq (μ ^ 2 - 1) := Complex.normSq_pos.mpr hz
+        refine ⟨Complex.normSq (μ ^ 2 - 1) * x, ?_, mul_ne_zero hpos.ne' hx0, ?_⟩
+        · rw [hST, Multiset.map_cons, Multiset.map_cons, Multiset.prod_cons, Multiset.prod_cons,
+            hx, ← mul_assoc, Complex.ofReal_mul]
+          congr 1
+          rw [← Complex.mul_conj, map_sub, map_pow, map_one]
+        · have hnc : ‖conj μ‖ = ‖μ‖ := Complex.norm_conj μ
+          rw [hST]
+          by_cases hin : ‖μ‖ < 1
+          · rw [Multiset.filter_cons_of_pos (p := fun r : ℂ => ‖r‖ < 1) _ hin,
+              Multiset.filter_cons_of_pos (p := fun r : ℂ => ‖r‖ < 1) _ (hnc ▸ hin),
+              Multiset.card_cons, Multiset.card_cons,
+              add_assoc, show (1 : ℕ) + 1 = 2 from rfl, Nat.odd_add, ← hxs]
+            constructor
+            · intro h
+              have : x < 0 := by
+                by_contra hx'
+                have : 0 < x := lt_of_le_of_ne (not_lt.mp hx') (Ne.symm hx0)
+                nlinarith
+              exact ⟨fun _ => even_two, fun _ => this⟩
+            · intro h
+              have := h.2 even_two
+              nlinarith
+          · rw [Multiset.filter_cons_of_neg (p := fun r : ℂ => ‖r‖ < 1) _ hin,
+              Multiset.filter_cons_of_neg (p := fun r : ℂ => ‖r‖ < 1) _
+                (by rw [hnc]; exact hin), ← hxs]
+            constructor
+            · intro h
+              by_contra hx'
+              have : 0 < x := lt_of_le_of_ne (not_lt.mp hx') (Ne.symm hx0)
+              nlinarith
+            · intro h
+              nlinarith
+
+/-- Woodford (2003), App. C.1 (tool): the roots of a real polynomial, as complex numbers, are
+closed under conjugation. -/
+theorem roots_conjClosed (p : ℝ[X]) : ConjClosed (p.map Complex.ofRealHom).roots := by
+  set q := p.map Complex.ofRealHom
+  have hmap : q.map (starRingEnd ℂ) = q := by
+    rw [Polynomial.map_map]
+    congr 1
+    ext x
+    simp
+  unfold ConjClosed
+  rw [roots_map_of_injective_of_card_eq_natDegree (starRingEnd ℂ).injective
+    (IsAlgClosed.card_roots_eq_natDegree), hmap]
+
+/-- Woodford (2003), App. C.1 (tool): `p(1) p(−1) = lc(p)² ∏ (r² − 1)` over the complex roots. -/
+theorem eval_one_mul_eval_neg_one (p : ℝ[X]) :
+    ((p.eval 1 * p.eval (-1) : ℝ) : ℂ) =
+      ((p.leadingCoeff ^ 2 : ℝ) : ℂ) *
+        ((p.map Complex.ofRealHom).roots.map fun r => r ^ 2 - 1).prod := by
+  set q := p.map Complex.ofRealHom with hq
+  have hfac := C_leadingCoeff_mul_prod_multiset_X_sub_C
+    (IsAlgClosed.card_roots_eq_natDegree (k := ℂ) (p := q))
+  have e1 : ((p.eval 1 : ℝ) : ℂ) = q.eval 1 := by
+    rw [hq, eval_map, ← Complex.ofRealHom_eq_coe, ← map_one Complex.ofRealHom, eval₂_at_apply]
+  have e2 : ((p.eval (-1) : ℝ) : ℂ) = q.eval (-1) := by
+    rw [hq, eval_map, ← Complex.ofRealHom_eq_coe, show (-1 : ℂ) = Complex.ofRealHom (-1) by simp,
+      eval₂_at_apply]
+  have hlc : q.leadingCoeff = ((p.leadingCoeff : ℝ) : ℂ) := by
+    rw [hq, leadingCoeff_map_of_injective Complex.ofRealHom.injective]
+    rfl
+  have h1 : q.eval 1 = q.leadingCoeff * (q.roots.map (eval 1 ∘ fun a : ℂ => X - C a)).prod := by
+    conv_lhs => rw [← hfac]
+    rw [eval_mul, eval_C, eval_multiset_prod, Multiset.map_map]
+  have h2 : q.eval (-1) =
+      q.leadingCoeff * (q.roots.map (eval (-1) ∘ fun a : ℂ => X - C a)).prod := by
+    conv_lhs => rw [← hfac]
+    rw [eval_mul, eval_C, eval_multiset_prod, Multiset.map_map]
+  push_cast
+  rw [e1, e2, h1, h2, hlc]
+  have hprod : (q.roots.map (eval 1 ∘ fun a : ℂ => X - C a)).prod *
+      (q.roots.map (eval (-1) ∘ fun a : ℂ => X - C a)).prod =
+        (q.roots.map fun r => r ^ 2 - 1).prod := by
+    rw [← Multiset.prod_map_mul]
+    congr 1
+    refine Multiset.map_congr rfl fun r _ => ?_
+    simp only [Function.comp_apply, eval_sub, eval_X, eval_C]
+    ring
+  rw [← hprod]
+  ring
+
+/-- **Woodford (2003), App. C.1 and Ch. 4, fn 27 (the parity argument)**: if a real polynomial has
+no root on the unit circle and `p(1) p(−1) < 0`, it has an **odd** number of roots (with
+multiplicity) in the open unit disc. -/
+theorem odd_inside (p : ℝ[X]) (h1 : ∀ r ∈ (p.map Complex.ofRealHom).roots, ‖r‖ ≠ 1)
+    (hs : p.eval 1 * p.eval (-1) < 0) :
+    Odd (Multiset.card ((p.map Complex.ofRealHom).roots.filter fun r => ‖r‖ < 1)) := by
+  obtain ⟨x, hx, -, hxs⟩ := parity_prod _ _ rfl (roots_conjClosed p) h1
+  have e := eval_one_mul_eval_neg_one p
+  rw [hx, ← Complex.ofReal_mul] at e
+  have e' := Complex.ofReal_injective e
+  refine hxs.mp ?_
+  by_contra hx'
+  have : 0 ≤ p.leadingCoeff ^ 2 * x := mul_nonneg (sq_nonneg _) (not_lt.mp hx')
+  linarith
+
+/-! ### The roots of `det(λA₀ − A₁)` -/
+
+/-- Woodford (2003), App. C.1 (tool): the roots of `det(λA₀ − A₁) = −λ C(λ)` are `0` and the roots
+of `C`. -/
+theorem roots_pencil {β σ κ r1 r2 fp fx : ℝ} (hp : charC β σ κ r1 r2 fp fx ≠ 0) :
+    ((pencilPoly (A0g β σ) (A1g κ σ r1 r2 fp fx)).map Complex.ofRealHom).roots =
+      0 ::ₘ ((charC β σ κ r1 r2 fp fx).map Complex.ofRealHom).roots := by
+  rw [pencilPoly_eq, Polynomial.map_mul, Polynomial.map_neg, Polynomial.map_X,
+    roots_mul (mul_ne_zero (neg_ne_zero.mpr X_ne_zero)
+      ((Polynomial.map_ne_zero_iff Complex.ofRealHom.injective).mpr hp)), roots_neg, roots_X,
+    Multiset.singleton_add]
+
+/-- **Woodford (2003), §3.1, Ch. 4, fn 27 and App. C.1: the generalised Taylor principle is
+necessary for determinacy within the family (3.7)** when `φπ ≥ 0`, `φₓ ≥ 0` and
+`1 + ρ₁ + 2ρ₂ > 0` (in particular for the book's signs): for any expectation system on a
+nonempty sample space, if (2.1), (3.1) and the rule (3.7) form a determinate system, then
+`φπ + ρ₁ > 1`. -/
+theorem gtp_necessary {Ω : Type*} [Nonempty Ω] (𝔼 : ExpectationSystem Ω)
+    {β σ κ r1 r2 fp fx : ℝ} (hβ0 : 0 < β) (hσ : 0 < σ) (hκ : 0 < κ) (hfp : 0 ≤ fp)
+    (hfx : 0 ≤ fx) (hr : 0 < 1 + r1 + 2 * r2)
+    (hD : DeterminatePencilR 𝔼 (A0g β σ) (A1g κ σ r1 r2 fp fx)) :
+    GTP β κ 2 (rho37 r1 r2) (pi37 fp) (x37 fx) := by
+  rw [gtp37_iff]
+  obtain ⟨-, hnu, hcnt, -⟩ := (determinatePencilR_iff_general 𝔼 _ _).mp hD
+  set p := charC β σ κ r1 r2 fp fx with hpdef
+  have hm1 : p.eval (-1) < 0 := by
+    rw [hpdef, charC_neg_one]
+    have h1 : 0 < (σ * κ + 2 * (1 + β)) * (1 + r1 + 2 * r2) := mul_pos (by positivity) hr
+    have h2 : 0 ≤ σ * κ * fp := by positivity
+    have h3 : 0 ≤ σ * fx * (1 + β) / 2 := by positivity
+    linarith
+  have hp0 : p ≠ 0 := fun h => by rw [h, eval_zero] at hm1; exact lt_irrefl 0 hm1
+  have hroots := roots_pencil hp0
+  have hp1 : ∀ r ∈ (p.map Complex.ofRealHom).roots, ‖r‖ ≠ 1 := fun r hr =>
+    hnu r (by rw [hroots]; exact Multiset.mem_cons_of_mem hr)
+  have hc2 : Multiset.card ((p.map Complex.ofRealHom).roots.filter fun r => ‖r‖ < 1) = 2 := by
+    rw [hroots, Multiset.filter_cons_of_pos (p := fun r : ℂ => ‖r‖ < 1) _ (by simp),
+      Multiset.card_cons] at hcnt
+    simp at hcnt
+    omega
+  by_contra hg
+  rcases (not_lt.mp hg).eq_or_lt with he | hlt
+  · have h1 : p.eval 1 = 0 := by rw [hpdef, charC_one, he]; ring
+    have hmem : (1 : ℂ) ∈ (p.map Complex.ofRealHom).roots := by
+      rw [mem_roots ((Polynomial.map_ne_zero_iff Complex.ofRealHom.injective).mpr hp0),
+        IsRoot.def, eval_one_map, h1, map_zero]
+    exact hp1 1 hmem (by simp)
+  · have h1 : 0 < p.eval 1 := by
+      rw [hpdef, charC_one]
+      have : 0 < σ * κ := by positivity
+      nlinarith
+    have hodd := odd_inside p hp1 (by nlinarith)
+    rw [hc2] at hodd
+    exact (by decide : ¬ Odd 2) hodd
+
+/-! ### Without sign restrictions the principle is not necessary -/
+
+/-- Woodford (2003), §3.1 with `ρ₁ = ρ₂ = φₓ = 0` (the rule `i_t = i* + φπ π_t`): the quadratic
+factor `Q(λ) = −βλ² + (1 + β + σκ)λ − (1 + σκφπ)` of `C(λ) = λ² Q(λ)`. -/
+noncomputable def quadQ (β σ κ fp : ℝ) : ℝ[X] :=
+  -(C β * X ^ 2) + C (1 + β + σ * κ) * X - C (1 + σ * κ * fp)
+
+/-- Woodford (2003), §3.1: for `ρ₁ = ρ₂ = φₓ = 0`, `C(λ) = λ² Q(λ)`. -/
+theorem charC_zero (β σ κ fp : ℝ) : charC β σ κ 0 0 fp 0 = X ^ 2 * quadQ β σ κ fp := by
+  refine Polynomial.funext fun l => ?_
+  rw [charC_eval]
+  simp [quadQ]
+  ring
+
+/-- Woodford (2003), Ch. 4, Prop. 4.3's second region, for the rule `i_t = i* + φπ π_t`: if
+`φπ < −1 − 2(1+β)/(σκ)` then `Q` has no root in the closed unit disc. -/
+theorem quadQ_root_gt {β σ κ fp : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ) (hκ : 0 < κ)
+    (hfp : fp < -1 - 2 * (1 + β) / (σ * κ)) {l : ℂ}
+    (hl : ((quadQ β σ κ fp).map Complex.ofRealHom).eval l = 0) : 1 < ‖l‖ := by
+  have hsk : 0 < σ * κ := mul_pos hσ hκ
+  have hD : σ * κ * fp < -(σ * κ) - 2 * (1 + β) := by
+    have := (lt_div_iff₀ hsk).mp (show fp + 1 < -(2 * (1 + β)) / (σ * κ) by
+      rw [neg_div]; linarith)
+    nlinarith
+  simp only [quadQ, Polynomial.map_add, Polynomial.map_sub, Polynomial.map_neg,
+    Polynomial.map_mul, Polynomial.map_pow, map_X, map_C, eval_add, eval_sub, eval_neg,
+    eval_mul, eval_pow, eval_C, eval_X, Complex.ofRealHom_eq_coe] at hl
+  have hre := congrArg Complex.re hl
+  have him := congrArg Complex.im hl
+  simp only [Complex.add_re, Complex.sub_re, Complex.neg_re, Complex.mul_re, Complex.ofReal_re,
+    Complex.ofReal_im, pow_two, Complex.zero_re, Complex.add_im, Complex.sub_im,
+    Complex.neg_im, Complex.mul_im, Complex.zero_im] at hre him
+  by_contra hle
+  push Not at hle
+  have hn : l.re ^ 2 + l.im ^ 2 ≤ 1 := by
+    have h1 := Complex.sq_norm l
+    rw [Complex.normSq_apply] at h1
+    nlinarith [norm_nonneg l]
+  have hb : l.im = 0 := by
+    have h1 : l.im * (1 + β + σ * κ - 2 * β * l.re) = 0 := by linarith
+    rcases mul_eq_zero.mp h1 with h2 | h2
+    · exact h2
+    · exfalso
+      have hre1 : l.re ≤ 1 := by nlinarith [sq_nonneg l.im]
+      nlinarith
+  rw [hb] at hre hn
+  have ha1 : -1 ≤ l.re := by nlinarith
+  have ha2 : l.re ≤ 1 := by nlinarith
+  nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ 1 + l.re) (by linarith : (0 : ℝ) ≤ 1 - l.re)]
+
+/-- Woodford (2003), §3.1 (tool): the pencil of the rule `i_t = i* + φπ π_t` is
+`−λ³ Q(λ)`; its roots are `0` (three times) and the roots of `Q`. -/
+theorem roots_pencil_zero {β σ κ fp : ℝ} (hQ : quadQ β σ κ fp ≠ 0) :
+    ((pencilPoly (A0g β σ) (A1g κ σ 0 0 fp 0)).map Complex.ofRealHom).roots =
+      0 ::ₘ 0 ::ₘ 0 ::ₘ ((quadQ β σ κ fp).map Complex.ofRealHom).roots := by
+  have hC : charC β σ κ 0 0 fp 0 ≠ 0 := by
+    rw [charC_zero]
+    exact mul_ne_zero (pow_ne_zero _ X_ne_zero) hQ
+  rw [roots_pencil hC, charC_zero, Polynomial.map_mul, Polynomial.map_pow, Polynomial.map_X,
+    roots_mul (mul_ne_zero (pow_ne_zero _ X_ne_zero)
+      ((Polynomial.map_ne_zero_iff Complex.ofRealHom.injective).mpr hQ)), roots_X_pow,
+    two_nsmul]
+  simp [Multiset.singleton_add]
+
+/-- Woodford (2003), §3.1 and App. C.1 (genericity for the rule `i_t = i* + φπ π_t`): a bounded
+deterministic solution of `A₀ y_{t+1} = A₁ y_t` with `(i_{−1}, i_{−2}, x_{−1}) = 0` vanishes —
+`(π, x)` obey `(π, x)_t = A (π, x)_{t+1}` with `A` Schur-stable, hence are `0`, and `i = φπ π`. -/
+theorem generic_zero {β σ κ fp : ℝ} (hβ0 : 0 < β) (hσ : 0 < σ) (hκ : 0 < κ)
+    (hfp : fp < -1 - 2 * (1 + β) / (σ * κ)) :
+    GenericPencil (A0g β σ) (A1g κ σ 0 0 fp 0) := by
+  rintro v ⟨y, hy0, ⟨Cb, hC⟩, hrec⟩ hvX
+  have hsk : 0 < σ * κ := mul_pos hσ hκ
+  set D := 1 + σ * κ * fp with hDdef
+  have hD : D < -(1 + 2 * β + σ * κ) := by
+    have := (lt_div_iff₀ hsk).mp (show fp + 1 < -(2 * (1 + β)) / (σ * κ) by
+      rw [neg_div]; linarith)
+    rw [hDdef]
+    nlinarith
+  have hD0 : D ≠ 0 := by linarith
+  have rows : ∀ t, β * y (t + 1) (Sum.inl 0) = y t (Sum.inl 0) - κ * y t (Sum.inl 1) ∧
+      σ * y (t + 1) (Sum.inl 0) + y (t + 1) (Sum.inl 1) =
+        y t (Sum.inl 1) + σ * y t (Sum.inl 2) ∧ y t (Sum.inl 2) = fp * y t (Sum.inl 0) := by
+    intro t
+    obtain ⟨h0, h1, h2, -⟩ := (pencil_rows β σ κ 0 0 fp 0 (y (t + 1)) (y t) 0).mp
+      (by rw [add_zero]; exact hrec t)
+    simp only [Pi.zero_apply, add_zero, zero_mul, zero_div, sub_zero] at h0 h1 h2
+    exact ⟨h0, h1, by linarith⟩
+  set A : Matrix (Fin 2) (Fin 2) ℝ :=
+    !![(β + κ * σ) / D, κ / D; σ * (1 - β * fp) / D, 1 / D] with hA
+  set z : ℕ → Fin 2 → Unit → ℝ := fun t i _ => ![y t (Sum.inl 0), y t (Sum.inl 1)] i with hz
+  have hzs : perfectForesight.Solves A 0 z := by
+    intro t i
+    funext u
+    obtain ⟨h0, h1, h2⟩ := rows t
+    fin_cases i
+    · change y t (Sum.inl 0) = (β + κ * σ) / D * y (t + 1) (Sum.inl 0) +
+        κ / D * y (t + 1) (Sum.inl 1) + 0
+      field_simp
+      rw [hDdef]
+      linear_combination (-1 : ℝ) * h0 - κ * h1 - κ * σ * h2
+    · change y t (Sum.inl 1) = σ * (1 - β * fp) / D * y (t + 1) (Sum.inl 0) +
+        1 / D * y (t + 1) (Sum.inl 1) + 0
+      field_simp
+      rw [hDdef]
+      linear_combination (σ * fp) * h0 - (1 : ℝ) * h1 - σ * h2
+  have hS : SchurStable (tr2 A) (det2 A) := by
+    have htr : tr2 A = (1 + β + σ * κ) / D := by
+      simp only [tr2, hA, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+        Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one]
+      field_simp
+      ring
+    have hdet : det2 A = β / D := by
+      simp only [det2, hA, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+        Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one]
+      field_simp
+      rw [hDdef]
+      ring
+    rw [htr, hdet]
+    have hDn : D < 0 := by linarith
+    constructor
+    · rw [abs_lt, lt_div_iff_of_neg hDn, div_lt_iff_of_neg hDn]
+      constructor <;> linarith
+    · rw [abs_of_neg (div_neg_of_pos_of_neg (by linarith) hDn), ← neg_div,
+        div_lt_iff_of_neg hDn, add_mul, one_mul, div_mul_cancel₀ _ hD0]
+      linarith
+  have hzero := perfectForesight.system_unique hS hzs
+    (w := 0) (y := 0) (fun t i => by simp) (fun _ _ => rfl) (fun _ _ => rfl)
+    ⟨Cb, fun t i u => by fin_cases i <;> exact hC t _⟩ ⟨0, fun _ _ _ => by simp⟩
+  have hπ : ∀ t, y t (Sum.inl 0) = 0 := fun t => by
+    have := congrFun (congrFun (congrFun hzero t) 0) ()
+    simpa [hz] using this
+  have hx : ∀ t, y t (Sum.inl 1) = 0 := fun t => by
+    have := congrFun (congrFun (congrFun hzero t) 1) ()
+    simpa [hz] using this
+  rw [← hy0]
+  funext k
+  rcases k with k | j
+  · fin_cases k
+    · exact hπ 0
+    · exact hx 0
+    · change y 0 (Sum.inl 2) = 0
+      rw [(rows 0).2.2, hπ 0, mul_zero]
+  · rw [hy0]
+    exact hvX j
+
+/-- **Woodford (2003), §3.1 and Ch. 4, fn 27: without sign restrictions the generalised Taylor
+principle is not necessary for determinacy within the family (3.7).** For `ρ₁ = ρ₂ = φₓ = 0` and
+`φπ < −1 − 2(1+β)/(σκ)` (a strongly *negative* response to inflation), (2.1), (3.1), (3.7) form a
+determinate system under every expectation system, although `φπ + ρ₁ − 1 < 0`. -/
+theorem gtp_not_necessary {Ω : Type*} [Nonempty Ω] (𝔼 : ExpectationSystem Ω) {β σ κ fp : ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ) (hκ : 0 < κ)
+    (hfp : fp < -1 - 2 * (1 + β) / (σ * κ)) :
+    DeterminatePencilR 𝔼 (A0g β σ) (A1g κ σ 0 0 fp 0) ∧
+      ¬ GTP β κ 2 (rho37 0 0) (pi37 fp) (x37 0) := by
+  have hsk : 0 < σ * κ := mul_pos hσ hκ
+  have hfp1 : fp < -1 := by
+    have : 0 < 2 * (1 + β) / (σ * κ) := by positivity
+    linarith
+  have hQ1 : 0 < (quadQ β σ κ fp).eval 1 := by
+    simp only [quadQ, eval_add, eval_sub, eval_neg, eval_mul, eval_pow, eval_C, eval_X]
+    nlinarith
+  have hQ : quadQ β σ κ fp ≠ 0 := fun h => by rw [h, eval_zero] at hQ1; exact lt_irrefl 0 hQ1
+  have hout : ∀ μ ∈ ((quadQ β σ κ fp).map Complex.ofRealHom).roots, 1 < ‖μ‖ := fun μ hμ =>
+    quadQ_root_gt hβ0 hβ1 hσ hκ hfp ((mem_roots ((Polynomial.map_ne_zero_iff
+      Complex.ofRealHom.injective).mpr hQ)).mp hμ)
+  refine ⟨(determinatePencilR_iff_general 𝔼 _ _).mpr ⟨?_, ?_, ?_, generic_zero hβ0 hσ hκ hfp⟩,
+    ?_⟩
+  · rw [pencilPoly_eq, charC_zero]
+    exact mul_ne_zero (neg_ne_zero.mpr X_ne_zero) (mul_ne_zero (pow_ne_zero _ X_ne_zero) hQ)
+  · intro μ hμ
+    rw [roots_pencil_zero hQ] at hμ
+    simp only [Multiset.mem_cons] at hμ
+    rcases hμ with rfl | rfl | rfl | hμ
+    · simp
+    · simp
+    · simp
+    · exact (hout μ hμ).ne'
+  · rw [roots_pencil_zero hQ]
+    have hf : ((quadQ β σ κ fp).map Complex.ofRealHom).roots.filter (fun r => ‖r‖ < 1) = 0 :=
+      Multiset.filter_eq_nil.mpr fun μ hμ h => absurd h (not_lt.mpr (hout μ hμ).le)
+    simp [hf]
+  · rw [gtp37_iff]
+    linarith
+
+end Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Necessity of the first-order conditions on a probability space
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §1.1 (pp. 538–543): every plan that is optimal
+subject to the initial constraint (1.6) satisfies the first-order conditions (1.9) for some
+initial multipliers `M_{t₀−1}` (asserted on p. 541 without proof).
+
+`TidyR5bFOCNecessity.foc_necessary` proves this for the exact expectation systems with
+faithful expectations, and `TidyR5bFaithNeeded.foc_ae_of_version` gives an almost-sure form on
+the conditional-expectation model under two extra hypotheses (the exact operators are versions
+of `condExp`, and the squared residuals are integrable). Here the general LQ problem is treated
+directly on the measure framework of `OptimalRulesMeasure` (Mathlib's `condExp`, essentially
+bounded adapted plans, equations a.s.), with no such hypothesis: all integrability is derived
+from essential boundedness, and the strict convexity step is a.s. faithfulness of `condExp`.
+
+## The argument
+
+* **Deterministic responses from means** (`exists_homResp_meas`): from the solutions with data
+  `(0, 0, e_j)` and `(0, 0, 0)` (Assumption 8.1, existence half, in the corrected form
+  `OptimalRulesMeasure.MFOCSolvableMB`) the unconditional mean path `t ↦ ∫ (y^j_t − y^0_t) dP` is a
+  bounded deterministic solution of the homogeneous (1.1) + (1.9) with `M_{t₀−1} = e_j`
+  (`∫ E_t x = ∫ x`, `mean_struct`, `mean_foc`).
+* **The affine family** (`m_combo`): `y⁰ + H M`, `φ⁰ + Φ M` solves (1.1) + (1.9) a.s. for every
+  bounded `M` known at `t₀`; `Ẽ z_{t₀} = e⁰ + L M` with the constant matrix `L = Ẽ (H_{t₀})_z`.
+* **The Lagrangian identity with an initial term** (`m_lagrangian_gap_init`), the variational
+  inequality on the countable set of rational scalings and a basis of `ker L'`
+  (`ae_orth_kernel`), so that `ē − e⁰ ∈ range L` a.s.; `M₀ = R(ē − e⁰)`.
+* Strict convexity (`m_targets_eq_init`) gives `T y = T y^{M₀}` a.s.; (1.9) involves the plan only
+  through `T y`.
+
+The initial multiplier `M₀` is known at `t₀` (it depends on the date-`t₀` constraint value);
+(1.9) then holds with `M_t` known at `t` for every `t ≥ t₀` (`MFOCSystemI`). The project's
+`OptimalRulesMeasure.MFOCSystem` asks in addition that `M_{t₀−1}` be known at `t₀ − 1`; this
+holds exactly when `M₀` has such a version (`mFOCSystem_of_I`), in particular under `PredInfo`, or
+under the book's literal Assumption 8.1, or at `t₀ = 0`, or for the `t₀`-optimal plan (`M₀ = 0`).
+
+## Main results
+
+* `m_foc_necessary`: every plan optimal subject to `Ẽ z_{t₀} = ē` satisfies (1.1) + (1.9) a.s.
+  with bounded initial multipliers known at `t₀`.
+* `m_optimalSubjectTo_iff`: **optimality subject to (1.6) ⟺ the first-order conditions**, a.s.
+* `m_foc_necessary_pred`, `m_foc_necessary_book`, `m_foc_necessary_zero`: the full
+  `OptimalRulesMeasure.MFOCSystem` (`M_{t₀−1}` known at `t₀ − 1`) under `PredInfo`, under the
+  book's Assumption 8.1, and at `t₀ = 0`.
+* `m_t0Optimal_foc_necessary`, `m_t0Optimal_iff`: the `t₀`-optimal plan satisfies (1.9) with
+  `M_{t₀−1} = 0`, and conversely.
+* `nk_m_optimalSubjectTo_iff`, `in_m_optimalSubjectTo_iff`: the equivalence with no hypothesis
+  left, for the basic model of §3.1 and the inflation-inertia model of §3.2 (`0 < γ ≤ 1`), on
+  every filtered probability space.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6bFOCMeasure
+
+open MeasureTheory Filter Matrix GeneralSetup GeneralFOC GeneralFOC.LQ
+open ExpectationsMeasure OptimalRulesMeasure
+open TidyR5bFOCNecessity (HomResp comboF comboF_of_le comboF_of_lt Lmat zrows eq110_combo
+  mem_range_of_orth exists_rightInv)
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+
+/-! ### Means of random vectors -/
+
+/-- Woodford (2003), (1.10), p. 542 (tool): the unconditional mean `∫ x dP` of a random vector,
+componentwise. -/
+noncomputable def meanV (S : MeasExpectationSystem Ω) {ι : Type*} (x : Ω → ι → ℝ) : ι → ℝ :=
+  fun i => ∫ ω, x ω i ∂S.μ
+
+/-- Woodford (2003), (1.10) (tool): the mean of a sum. -/
+theorem meanV_add (S : MeasExpectationSystem Ω) {ι : Type*} {x y : Ω → ι → ℝ}
+    (hx : ∀ i, Integrable (fun ω => x ω i) S.μ) (hy : ∀ i, Integrable (fun ω => y ω i) S.μ) :
+    meanV S (fun ω => x ω + y ω) = meanV S x + meanV S y := by
+  funext i
+  exact integral_add (hx i) (hy i)
+
+/-- Woodford (2003), (1.10) (tool): the mean of a difference. -/
+theorem meanV_sub (S : MeasExpectationSystem Ω) {ι : Type*} {x y : Ω → ι → ℝ}
+    (hx : ∀ i, Integrable (fun ω => x ω i) S.μ) (hy : ∀ i, Integrable (fun ω => y ω i) S.μ) :
+    meanV S (fun ω => x ω - y ω) = meanV S x - meanV S y := by
+  funext i
+  exact integral_sub (hx i) (hy i)
+
+/-- Woodford (2003), (1.10) (tool): the mean commutes with a constant matrix. -/
+theorem meanV_mulVec (S : MeasExpectationSystem Ω) {ι κ : Type*} [Fintype ι] (A : Matrix κ ι ℝ)
+    {x : Ω → ι → ℝ} (hx : ∀ i, Integrable (fun ω => x ω i) S.μ) :
+    meanV S (fun ω => A *ᵥ x ω) = A *ᵥ meanV S x := by
+  funext k
+  simp only [meanV, mulVec, dotProduct]
+  rw [integral_finsetSum _ (fun i _ => (hx i).const_mul (A k i))]
+  exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
+
+/-- Woodford (2003), (1.10) (tool): the mean of a scalar random variable times a fixed vector. -/
+theorem meanV_smul (S : MeasExpectationSystem Ω) {ι : Type*} (f : Ω → ℝ) (v : ι → ℝ) :
+    meanV S (fun ω => f ω • v) = (∫ ω, f ω ∂S.μ) • v := by
+  funext i
+  simp only [meanV, Pi.smul_apply, smul_eq_mul]
+  exact integral_mul_const _ _
+
+/-- Woodford (2003), (1.10) (tool): a.s. equal random vectors have the same mean. -/
+theorem meanV_congr (S : MeasExpectationSystem Ω) {ι : Type*} {x y : Ω → ι → ℝ}
+    (h : ∀ᵐ ω ∂S.μ, x ω = y ω) : meanV S x = meanV S y := by
+  funext i
+  exact integral_congr_ae (h.mono fun ω e => congrFun e i)
+
+/-- Woodford (2003), (1.10) (tool): the mean of a constant vector is the vector. -/
+theorem meanV_const (S : MeasExpectationSystem Ω) {ι : Type*} (v : ι → ℝ) :
+    meanV S (fun _ => v) = v := by
+  funext i
+  simp [meanV]
+
+/-- Woodford (2003), (1.10) (law of iterated expectations): `∫ E_t x = ∫ x`. -/
+theorem meanV_EVm (S : MeasExpectationSystem Ω) {ι : Type*} (t : ℕ) (x : Ω → ι → ℝ) :
+    meanV S (EVm S t x) = meanV S x := by
+  funext i
+  exact S.integral_E t _
+
+/-- Woodford (2003), fn 6, p. 539 (tool): the components of an essentially bounded process with
+a.e. strongly measurable components are integrable. -/
+theorem intV {S : MeasExpectationSystem Ω} {ι : Type*} {x : ℕ → Ω → ι → ℝ} (hb : MBoundedV S x)
+    (ha : MAEMeasV S x) (t : ℕ) (i : ι) : Integrable (fun ω => x t ω i) S.μ := by
+  obtain ⟨K, hK⟩ := hb
+  exact integrable_of_bound (ha t i) ((hK t).mono fun ω h => h i)
+
+/-- Woodford (2003), p. 540 (tool): an adapted vector process has a.e. strongly measurable
+components. -/
+theorem aemeas_of_adapted {S : MeasExpectationSystem Ω} {ι : Type*} {x : ℕ → Ω → ι → ℝ}
+    (ha : MAdaptedV S x) : MAEMeasV S x := fun t i =>
+  ((ha t i).mono (S.𝓕.le t)).aestronglyMeasurable
+
+/-- Woodford (2003), fn 6 (tool): the mean of an essentially bounded random vector is bounded by
+the same bound. -/
+theorem abs_meanV_le {S : MeasExpectationSystem Ω} {ι : Type*} {x : Ω → ι → ℝ} {K : ℝ}
+    (h : ∀ᵐ ω ∂S.μ, ∀ i, |x ω i| ≤ K) (i : ι) : |meanV S x i| ≤ K := by
+  have h2 := norm_integral_le_of_norm_le_const (μ := S.μ) (f := fun ω => x ω i) (C := K)
+    (h.mono fun ω e => by rw [Real.norm_eq_abs]; exact e i)
+  simpa [meanV] using h2
+
+/-! ### The weak form of the first-order system -/
+
+variable {ιZ ιz ιτ : Type*} [Fintype ιZ] [Fintype ιz] [Fintype ιτ] [DecidableEq ιZ]
+  [DecidableEq ιz]
+
+/-- Woodford (2003), pp. 541–542: the system (1.1) + (1.9) a.s. from `t₀`, with initial
+conditions `Z_{t₀} = Z₀`, `M_{t₀−1} = M₀` (a.s.), essentially bounded plan and multipliers, and
+the multiplier `M_t` known at `t` for every `t ≥ t₀`. (`OptimalRulesMeasure.MFOCSystem` asks this
+at every date, including `M_{t₀−1}` at `t₀ − 1`.) -/
+def MFOCSystemI (S : MeasExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ) (c : ℕ → Ω → ιz → ℝ)
+    (t0 : ℕ) (Z0 : Ω → ιZ → ℝ) (M0 : Ω → ιz → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ)
+    (φ : ℕ → Ω → ιZ ⊕ ιz → ℝ) : Prop :=
+  MFeasible S P c t0 Z0 y ∧ MBoundedV S φ ∧ MAEMeasV S φ ∧
+    (∀ t, t0 ≤ t → ∀ r, StronglyMeasurable[S.𝓕 t] (fun ω => φ (t + 1) ω (Sum.inr r))) ∧
+    (∀ᵐ ω ∂S.μ, Mpart (φ t0 ω) = M0 ω) ∧ MFOC S P t0 y φ
+
+/-- Woodford (2003), pp. 541–542: a solution of `OptimalRulesMeasure.MFOCSystem` solves the weak
+form. -/
+theorem mFOCSystemI_of {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (h : MFOCSystem S P c t0 Z0 M0 y φ) : MFOCSystemI S P c t0 Z0 M0 y φ :=
+  ⟨h.1, h.2.1, h.2.2.1, fun t _ r => h.2.2.2.1 t r, h.2.2.2.2.1, h.2.2.2.2.2⟩
+
+/-! ### Deterministic responses from unconditional means -/
+
+/-- Woodford (2003), (1.10) (tool): a fixed matrix applied to a random vector with integrable
+components has integrable components. -/
+theorem intMulVec {S : MeasExpectationSystem Ω} {ι κ : Type*} [Fintype ι] (A : Matrix κ ι ℝ)
+    {x : Ω → ι → ℝ} (hx : ∀ i, Integrable (fun ω => x ω i) S.μ) (k : κ) :
+    Integrable (fun ω => (A *ᵥ x ω) k) S.μ := by
+  simp only [mulVec, dotProduct]
+  exact integrable_finsetSum _ (fun i _ => (hx i).const_mul (A k i))
+
+omit [Fintype ιτ] in
+/-- Woodford (2003), (1.1), p. 537 (unconditional means): the mean path of a feasible plan with no
+disturbance satisfies (1.1) under perfect foresight, `Ĩ ŷ_{t+1} = Ã ŷ_t`. -/
+theorem mean_struct {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    {Z0 : Ω → ιZ → ℝ} {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    (h : MFeasible S P (fun _ _ => 0) t0 Z0 y) {t : ℕ} (ht : t0 ≤ t) :
+    P.sys.Itil *ᵥ meanV S (y (t + 1)) = P.sys.Atil *ᵥ meanV S (y t) := by
+  have hI := intV h.2.2.1 (aemeas_of_adapted h.2.2.2)
+  rw [P.sys.Itil_mulVec, P.sys.Atil_mulVec]
+  obtain ⟨h1, h2⟩ := (h.1 t ht)
+  have iZ : ∀ s j, Integrable (fun ω => Zpart (y s ω) j) S.μ := fun s j => hI s _
+  have iz : ∀ s j, Integrable (fun ω => zpart (y s ω) j) S.μ := fun s j => hI s _
+  have ii : ∀ s, Integrable (fun ω => ipart (y s ω)) S.μ := fun s => hI s _
+  have m1 := meanV_congr S h1
+  have m2 := meanV_congr S (h2.mono fun ω e => e.trans (add_zero _))
+  rw [meanV_add S (x := fun ω => P.sys.A11 *ᵥ Zpart (y t ω))
+    (y := fun ω => P.sys.A12 *ᵥ zpart (y t ω)) (intMulVec _ (iZ t)) (intMulVec _ (iz t)),
+    meanV_mulVec S _ (iZ t), meanV_mulVec S _ (iz t)] at m1
+  rw [meanV_mulVec S _ (x := EVm S t (fun ω' => zpart (y (t + 1) ω')))
+    (fun j => S.integrable_E t _), meanV_EVm,
+    meanV_add S (x := fun ω => P.sys.A21 *ᵥ Zpart (y t ω) + P.sys.A22 *ᵥ zpart (y t ω))
+    (y := fun ω => ipart (y t ω) • P.sys.B2)
+    (fun k => (intMulVec _ (iZ t) k).add (intMulVec _ (iz t) k))
+    (fun k => (ii t).mul_const (P.sys.B2 k)),
+    meanV_add S (x := fun ω => P.sys.A21 *ᵥ Zpart (y t ω))
+    (y := fun ω => P.sys.A22 *ᵥ zpart (y t ω)) (intMulVec _ (iZ t)) (intMulVec _ (iz t)),
+    meanV_mulVec S _ (iZ t), meanV_mulVec S _ (iz t), meanV_smul] at m2
+  congr 1
+
+/-- Woodford (2003), (1.9) (tool): the left side of (1.9) as an affine function,
+`Ã'a + T'W(Tv − τ*) − β⁻¹Ĩ'f = Ã'a + (T'WT)v − (β⁻¹Ĩ')f − T'Wτ*`. -/
+theorem foc_expr_eq (P : LQProblem ιZ ιz ιτ) (a f : ιZ ⊕ ιz → ℝ) (v : (ιZ ⊕ ιz) ⊕ Unit → ℝ) :
+    P.sys.Atilᵀ *ᵥ a + P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ v - P.τstar)) - P.β⁻¹ • (P.sys.Itilᵀ *ᵥ f) =
+      P.sys.Atilᵀ *ᵥ a + (P.Tᵀ * (P.W * P.T)) *ᵥ v - (P.β⁻¹ • P.sys.Itilᵀ) *ᵥ f +
+        -(P.Tᵀ *ᵥ (P.W *ᵥ P.τstar)) := by
+  rw [mulVec_sub, mulVec_sub, ← mulVec_mulVec, ← mulVec_mulVec, Matrix.smul_mulVec]
+  abel
+
+/-- Woodford (2003), (1.9) (tool): the mean of an affine function of three random vectors. -/
+theorem meanV_lin3 (S : MeasExpectationSystem Ω) {ι κ1 κ2 κ3 : Type*} [Fintype κ1] [Fintype κ2]
+    [Fintype κ3] (A : Matrix ι κ1 ℝ) (B : Matrix ι κ2 ℝ) (C : Matrix ι κ3 ℝ) (k : ι → ℝ)
+    {a : Ω → κ1 → ℝ} {b : Ω → κ2 → ℝ} {d : Ω → κ3 → ℝ}
+    (ha : ∀ i, Integrable (fun ω => a ω i) S.μ) (hb : ∀ i, Integrable (fun ω => b ω i) S.μ)
+    (hd : ∀ i, Integrable (fun ω => d ω i) S.μ) :
+    meanV S (fun ω => A *ᵥ a ω + B *ᵥ b ω - C *ᵥ d ω + k) =
+      A *ᵥ meanV S a + B *ᵥ meanV S b - C *ᵥ meanV S d + k := by
+  rw [meanV_add S (x := fun ω => A *ᵥ a ω + B *ᵥ b ω - C *ᵥ d ω) (y := fun _ => k)
+    (fun i => ((intMulVec A ha i).add (intMulVec B hb i)).sub (intMulVec C hd i))
+    (fun i => integrable_const _), meanV_const,
+    meanV_sub S (x := fun ω => A *ᵥ a ω + B *ᵥ b ω) (y := fun ω => C *ᵥ d ω)
+    (fun i => (intMulVec A ha i).add (intMulVec B hb i)) (intMulVec C hd),
+    meanV_add S (x := fun ω => A *ᵥ a ω) (y := fun ω => B *ᵥ b ω) (intMulVec A ha)
+    (intMulVec B hb), meanV_mulVec S A ha, meanV_mulVec S B hb, meanV_mulVec S C hd]
+
+/-- Woodford (2003), (1.9), p. 541 (unconditional means): the mean paths of a solution of the
+weak system satisfy (1.9) under perfect foresight,
+`Ã'φ̂_{t+1} + T'W(Tŷ_t − τ*) − β⁻¹Ĩ'φ̂_t = 0` for `t ≥ t₀`. -/
+theorem mean_foc {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {c : ℕ → Ω → ιz → ℝ}
+    {t0 : ℕ} {Z0 : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ} {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ} (h : MFOCSystemI S P c t0 Z0 M0 y φ) {t : ℕ} (ht : t0 ≤ t) :
+    P.sys.Atilᵀ *ᵥ meanV S (φ (t + 1)) + P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ meanV S (y t) - P.τstar)) -
+      P.β⁻¹ • (P.sys.Itilᵀ *ᵥ meanV S (φ t)) = 0 := by
+  have hy := intV h.1.2.2.1 (aemeas_of_adapted h.1.2.2.2)
+  have hφ := intV h.2.1 h.2.2.1
+  have m := meanV_congr S (h.2.2.2.2.2 t ht)
+  rw [meanV_const] at m
+  simp only [foc_expr_eq] at m
+  rw [meanV_lin3 S _ _ _ _ (a := EVm S t (φ (t + 1))) (fun i => S.integrable_E t _) (hy t)
+    (hφ t), meanV_EVm] at m
+  rw [foc_expr_eq]
+  exact m
+
+/-- Woodford (2003), (1.10), p. 542 (tool): the columns of a product with a column-built matrix. -/
+theorem mul_of_cols' {a b c : Type*} [Fintype b] (A : Matrix a b ℝ) (h : c → b → ℝ) :
+    A * Matrix.of (fun v j => h j v) = Matrix.of fun i j => (A *ᵥ h j) i :=
+  TidyR5bFOCNecessity.mul_of_cols A h
+
+/-- Woodford (2003), (1.10), p. 542: **deterministic responses to the initial multipliers exist on
+every filtered probability space** under Assumption 8.1 (existence half, corrected form
+`OptimalRulesMeasure.MFOCSolvableMB`): the unconditional mean paths of the differences of the
+solutions with data `(0, 0, e_j)` and `(0, 0, 0)` form a bounded deterministic solution of the
+homogeneous (1.1) + (1.9) with `Z_{t₀} = 0` and `M_{t₀−1} = e_j` (`∫ E_t x = ∫ x`). -/
+theorem exists_homResp_meas {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (hsolv : MFOCSolvableMB S P t0) :
+    ∃ (H : ℕ → Matrix ((ιZ ⊕ ιz) ⊕ Unit) ιz ℝ) (Φ : ℕ → Matrix (ιZ ⊕ ιz) ιz ℝ),
+      HomResp P t0 H Φ := by
+  have hc := zero_dist (S := S) (ιz := ιz)
+  have hZk : MKnownV S t0 (fun (_ : Ω) (_ : ιZ) => (0 : ℝ)) := fun _ => stronglyMeasurable_const
+  have hZb : MBoundedRV S (fun (_ : Ω) (_ : ιZ) => (0 : ℝ)) :=
+    ⟨0, Eventually.of_forall fun _ _ => by simp⟩
+  have hsol : ∀ v : ιz → ℝ, ∃ y φ, MFOCSystem S P (fun _ _ => 0) t0 (fun _ _ => 0)
+      (fun _ => v) y φ := fun v =>
+    hsolv _ _ _ hc.1 hc.2 hZk hZb ⟨∑ r, |v r|, Eventually.of_forall fun _ r =>
+      Finset.single_le_sum (f := fun r => |v r|) (fun _ _ => abs_nonneg _) (Finset.mem_univ r)⟩
+      (fun _ => stronglyMeasurable_const)
+  choose Y Ph hY using hsol
+  set e : ιz → ιz → ℝ := fun j r => (1 : Matrix ιz ιz ℝ) r j with he
+  set hcol : ιz → ℕ → (ιZ ⊕ ιz) ⊕ Unit → ℝ := fun j t => meanV S (Y (e j) t) - meanV S (Y 0 t)
+    with hhcol
+  set gcol : ιz → ℕ → ιZ ⊕ ιz → ℝ := fun j t => meanV S (Ph (e j) t) - meanV S (Ph 0 t)
+    with hgcol
+  have key1 : ∀ j t, t0 ≤ t → P.sys.Itil *ᵥ hcol j (t + 1) = P.sys.Atil *ᵥ hcol j t := by
+    intro j t ht
+    simp only [hhcol, mulVec_sub]
+    rw [mean_struct (hY (e j)).1 ht, mean_struct (hY 0).1 ht]
+  have key2 : ∀ j t, t0 ≤ t → P.sys.Atilᵀ *ᵥ gcol j (t + 1) +
+      P.Tᵀ *ᵥ (P.W *ᵥ (P.T *ᵥ hcol j t)) - P.β⁻¹ • (P.sys.Itilᵀ *ᵥ gcol j t) = 0 := by
+    intro j t ht
+    have e1 := mean_foc (mFOCSystemI_of (hY (e j))) ht
+    have e0 := mean_foc (mFOCSystemI_of (hY 0)) ht
+    simp only [hhcol, hgcol, mulVec_sub, smul_sub] at e1 e0 ⊢
+    linear_combination (norm := module) e1 - e0
+  have hZ0 : ∀ v, Zpart (meanV S (Y v t0)) = 0 := by
+    intro v
+    have := meanV_congr S (hY v).1.2.1
+    rw [meanV_const] at this
+    exact this
+  have hM0 : ∀ v, Mpart (meanV S (Ph v t0)) = v := by
+    intro v
+    have := meanV_congr S (hY v).2.2.2.2.1
+    rw [meanV_const] at this
+    exact this
+  choose KY hKY using fun v => (hY v).1.2.2.1
+  choose KP hKP using fun v => (hY v).2.1
+  refine ⟨fun t => Matrix.of fun v j => hcol j t v, fun t => Matrix.of fun r j => gcol j t r,
+    fun t ht => ?_, fun t ht => ?_, fun r j => ?_, fun r j => ?_, ?_, ?_⟩
+  · rw [mul_of_cols', mul_of_cols']
+    ext i j
+    simp only [Matrix.of_apply, key1 j t ht]
+  · rw [mul_of_cols', mul_of_cols', mul_of_cols', mul_of_cols', mul_of_cols']
+    ext i j
+    have := congrFun (key2 j t ht) i
+    simp only [Matrix.add_apply, Matrix.sub_apply, Matrix.smul_apply, Matrix.of_apply,
+      Matrix.zero_apply, smul_eq_mul] at this ⊢
+    simpa only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+      using this
+  · have h1 := congrFun (hZ0 (e j)) r
+    have h2 := congrFun (hZ0 0) r
+    simp only [Matrix.of_apply, hhcol, Pi.sub_apply]
+    change Zpart (meanV S (Y (e j) t0)) r - Zpart (meanV S (Y 0 t0)) r = 0
+    rw [h1, h2, Pi.zero_apply, sub_zero]
+  · have h1 := congrFun (hM0 (e j)) r
+    have h2 := congrFun (hM0 0) r
+    simp only [Matrix.of_apply, hgcol, Pi.sub_apply]
+    change Mpart (meanV S (Ph (e j) t0)) r - Mpart (meanV S (Ph 0 t0)) r = _
+    rw [h1, h2, Pi.zero_apply, sub_zero]
+  · refine ⟨(∑ j, |KY (e j)|) + |KY 0|, fun t v j => ?_⟩
+    simp only [Matrix.of_apply, hhcol, Pi.sub_apply]
+    have a1 := abs_meanV_le (hKY (e j) t) v
+    have a2 := abs_meanV_le (hKY 0 t) v
+    have a3 : |KY (e j)| ≤ ∑ j, |KY (e j)| :=
+      Finset.single_le_sum (f := fun j => |KY (e j)|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ j)
+    calc _ ≤ |meanV S (Y (e j) t) v| + |meanV S (Y 0 t) v| := abs_sub _ _
+      _ ≤ |KY (e j)| + |KY 0| := add_le_add (a1.trans (le_abs_self _)) (a2.trans (le_abs_self _))
+      _ ≤ _ := by linarith
+  · refine ⟨(∑ j, |KP (e j)|) + |KP 0|, fun t v j => ?_⟩
+    simp only [Matrix.of_apply, hgcol, Pi.sub_apply]
+    have a1 := abs_meanV_le (hKP (e j) t) v
+    have a2 := abs_meanV_le (hKP 0 t) v
+    have a3 : |KP (e j)| ≤ ∑ j, |KP (e j)| :=
+      Finset.single_le_sum (f := fun j => |KP (e j)|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ j)
+    calc _ ≤ |meanV S (Ph (e j) t) v| + |meanV S (Ph 0 t) v| := abs_sub _ _
+      _ ≤ |KP (e j)| + |KP 0| := add_le_add (a1.trans (le_abs_self _)) (a2.trans (le_abs_self _))
+      _ ≤ _ := by linarith
+
+/-! ### The affine family with conditional expectations -/
+
+/-- Woodford (2003), p. 540 (tool): `E_t(a + b) = E_t a + b` a.s. for `b` known at `t`. -/
+theorem EVm_add_known {S : MeasExpectationSystem Ω} {ι : Type*} [Finite ι] {t : ℕ}
+    {a b : Ω → ι → ℝ} (ha : ∀ i, Integrable (fun ω => a ω i) S.μ) (hbk : MKnownV S t b)
+    (hbi : ∀ i, Integrable (fun ω => b ω i) S.μ) :
+    ∀ᵐ ω ∂S.μ, EVm S t (fun ω => a ω + b ω) ω = EVm S t a ω + b ω := by
+  have h : ∀ i, ∀ᵐ ω ∂S.μ, EVm S t (fun ω => a ω + b ω) ω i = EVm S t a ω i + b ω i := by
+    intro i
+    have e2 := S.E_of_stronglyMeasurable (hbk i) (hbi i)
+    filter_upwards [S.E_add (ha i) (hbi i) t] with ω e
+    change S.E t ((fun ω => a ω i) + fun ω => b ω i) ω = _
+    rw [e, Pi.add_apply, e2]
+    rfl
+  filter_upwards [ae_all_iff.2 h] with ω h
+  funext i
+  exact h i
+
+/-- Woodford (2003), (1.10), p. 542: **the affine family with conditional expectations.** If
+`(y⁰, φ⁰)` solves (1.1) + (1.9) a.s. with `M_{t₀−1} = 0` and `(H, Φ)` are deterministic responses,
+then for every essentially bounded `M` known at `t₀`, the plan `y⁰ + H M` with multipliers
+`φ⁰ + Φ M` solves the weak system (1.1) + (1.9) a.s. with `M_{t₀−1} = M`. -/
+theorem m_combo {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {c : ℕ → Ω → ιz → ℝ}
+    {t0 : ℕ} {Z0 : Ω → ιZ → ℝ} {y0 : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ0 : ℕ → Ω → ιZ ⊕ ιz → ℝ} (h0 : MFOCSystem S P c t0 Z0 0 y0 φ0)
+    {H : ℕ → Matrix ((ιZ ⊕ ιz) ⊕ Unit) ιz ℝ} {Φ : ℕ → Matrix (ιZ ⊕ ιz) ιz ℝ}
+    (hH : HomResp P t0 H Φ) {M : Ω → ιz → ℝ} (hMk : MKnownV S t0 M) (hMb : MBoundedRV S M) :
+    MFOCSystemI S P c t0 Z0 M (comboF t0 y0 H M) (comboF t0 φ0 Φ M) := by
+  obtain ⟨⟨hs0, hZ0, hb0, ha0⟩, hbφ0, hm0, hM0, hM0e, hf0⟩ := h0
+  obtain ⟨hHc, hHf, hHZ, hHM, ⟨KH, hKH⟩, ⟨KΦ, hKΦ⟩⟩ := hH
+  obtain ⟨KM, hKM⟩ := hMb
+  have hMt : ∀ t, t0 ≤ t → MKnownV S t M := fun t ht i => (hMk i).mono (S.𝓕.mono ht)
+  have hMi : ∀ i, Integrable (fun ω => M ω i) S.μ := fun i =>
+    integrable_of_bound ((hMk i).mono (S.𝓕.le t0)).aestronglyMeasurable
+      (hKM.mono fun ω h => h i)
+  have hkn : ∀ {κ : Type _} (G : Matrix κ ιz ℝ) (t : ℕ), t0 ≤ t →
+      MKnownV S t (fun ω => G *ᵥ M ω) := fun G t ht k =>
+    sm_comp (hMt t ht) (g := fun v => (G *ᵥ v) k) (by fun_prop)
+  have hy0i := intV hb0 (aemeas_of_adapted ha0)
+  have hφ0i := intV hbφ0 hm0
+  have hItH : ∀ t, t0 ≤ t → ∀ v : ιz → ℝ,
+      P.sys.Itil *ᵥ (H (t + 1) *ᵥ v) = P.sys.Atil *ᵥ (H t *ᵥ v) := fun t ht v => by
+    rw [mulVec_mulVec, mulVec_mulVec, hHc t ht]
+  have hZH : ∀ t, t0 ≤ t → ∀ v : ιz → ℝ, Zpart (H (t + 1) *ᵥ v) =
+      P.sys.A11 *ᵥ Zpart (H t *ᵥ v) + P.sys.A12 *ᵥ zpart (H t *ᵥ v) := fun t ht v =>
+    funext fun r => by
+      have := congrFun (hItH t ht v) (Sum.inl r)
+      rw [P.sys.Itil_mulVec, P.sys.Atil_mulVec] at this
+      exact this
+  have hzH : ∀ t, t0 ≤ t → ∀ v : ιz → ℝ, P.sys.Et *ᵥ zpart (H (t + 1) *ᵥ v) =
+      P.sys.A21 *ᵥ Zpart (H t *ᵥ v) + P.sys.A22 *ᵥ zpart (H t *ᵥ v) +
+        ipart (H t *ᵥ v) • P.sys.B2 := fun t ht v =>
+    funext fun r => by
+      have := congrFun (hItH t ht v) (Sum.inr r)
+      rw [P.sys.Itil_mulVec, P.sys.Atil_mulVec] at this
+      exact this
+  have hbnd : ∀ {κ : Type _} {G : ℕ → Matrix κ ιz ℝ} {KG : ℝ}, (∀ t k j, |G t k j| ≤ KG) →
+      ∀ t, ∀ᵐ ω ∂S.μ, ∀ k, |(G t *ᵥ M ω) k| ≤ Fintype.card ιz * (|KG| * |KM|) :=
+    fun {κ G KG} hG t => hKM.mono fun ω h k =>
+      TidyR5bFOCNecessity.abs_mulVec_le (A := G t) (v := M ω)
+        (fun k' i' => (hG t k' i').trans (le_abs_self KG))
+        (fun i' => (h i').trans (le_abs_self KM)) k
+  have hc0 : ∀ KG : ℝ, 0 ≤ (Fintype.card ιz : ℝ) * (|KG| * |KM|) := fun KG => by positivity
+  refine ⟨⟨fun t ht => ⟨?_, ?_⟩, ?_, ?_, fun t i => ?_⟩, ?_, fun t i => ?_, fun t ht r => ?_, ?_,
+    fun t ht => ?_⟩
+  · -- predetermined rows
+    filter_upwards [(hs0 t ht).1] with ω e
+    rw [comboF_of_le (by omega), comboF_of_le ht]
+    change Zpart (y0 (t + 1) ω) + Zpart (H (t + 1) *ᵥ M ω) =
+      P.sys.A11 *ᵥ (Zpart (y0 t ω) + Zpart (H t *ᵥ M ω)) +
+        P.sys.A12 *ᵥ (zpart (y0 t ω) + zpart (H t *ᵥ M ω))
+    rw [e, hZH t ht, mulVec_add, mulVec_add]
+    abel
+  · -- expectational rows
+    have hfun : (fun ω' => zpart (comboF t0 y0 H M (t + 1) ω')) =
+        fun ω' => zpart (y0 (t + 1) ω') + zpart (H (t + 1) *ᵥ M ω') := by
+      funext ω'
+      rw [comboF_of_le (by omega)]
+      rfl
+    filter_upwards [(hs0 t ht).2, EVm_add_known (S := S) (t := t)
+      (a := fun ω' => zpart (y0 (t + 1) ω')) (b := fun ω' => zpart (H (t + 1) *ᵥ M ω'))
+      (fun j => hy0i (t + 1) _) (fun j => hkn (H (t + 1)) t ht _)
+      (fun j => intMulVec (H (t + 1)) hMi _)] with ω e ek
+    rw [hfun, ek, mulVec_add, e, hzH t ht, comboF_of_le ht]
+    change _ = P.sys.A21 *ᵥ (Zpart (y0 t ω) + Zpart (H t *ᵥ M ω)) +
+      P.sys.A22 *ᵥ (zpart (y0 t ω) + zpart (H t *ᵥ M ω)) +
+      (ipart (y0 t ω) + ipart (H t *ᵥ M ω)) • P.sys.B2 + c t ω
+    rw [mulVec_add, mulVec_add, add_smul]
+    abel
+  · -- the initial predetermined variables
+    filter_upwards [hZ0] with ω e
+    rw [comboF_of_le le_rfl]
+    have hz : Zpart (H t0 *ᵥ M ω) = 0 := funext fun r => by
+      simp [Zpart, mulVec, dotProduct, hHZ]
+    change Zpart (y0 t0 ω) + Zpart (H t0 *ᵥ M ω) = Z0 ω
+    rw [e, hz, add_zero]
+  · -- boundedness of the plan
+    obtain ⟨K0, hK0⟩ := hb0
+    refine ⟨K0 + Fintype.card ιz * (|KH| * |KM|), fun t => ?_⟩
+    filter_upwards [hK0 t, hbnd hKH t] with ω h1 h2 i
+    by_cases ht : t0 ≤ t
+    · rw [comboF_of_le ht, Pi.add_apply]
+      exact (abs_add_le _ _).trans (add_le_add (h1 i) (h2 i))
+    · rw [comboF_of_lt (by omega)]
+      linarith [h1 i, hc0 KH]
+  · -- adaptedness of the plan
+    by_cases ht : t0 ≤ t
+    · have e : (fun ω => comboF t0 y0 H M t ω i) = fun ω => y0 t ω i + (H t *ᵥ M ω) i := by
+        funext ω
+        rw [comboF_of_le ht]
+        rfl
+      rw [e]
+      exact (ha0 t i).add (hkn (H t) t ht i)
+    · have e : (fun ω => comboF t0 y0 H M t ω i) = fun ω => y0 t ω i := by
+        funext ω
+        rw [comboF_of_lt (by omega)]
+      rw [e]
+      exact ha0 t i
+  · -- boundedness of the multipliers
+    obtain ⟨K0, hK0⟩ := hbφ0
+    refine ⟨K0 + Fintype.card ιz * (|KΦ| * |KM|), fun t => ?_⟩
+    filter_upwards [hK0 t, hbnd hKΦ t] with ω h1 h2 i
+    by_cases ht : t0 ≤ t
+    · rw [comboF_of_le ht, Pi.add_apply]
+      exact (abs_add_le _ _).trans (add_le_add (h1 i) (h2 i))
+    · rw [comboF_of_lt (by omega)]
+      linarith [h1 i, hc0 KΦ]
+  · -- measurability of the multipliers
+    by_cases ht : t0 ≤ t
+    · have e : (fun ω => comboF t0 φ0 Φ M t ω i) = fun ω => φ0 t ω i + (Φ t *ᵥ M ω) i := by
+        funext ω
+        rw [comboF_of_le ht]
+        rfl
+      rw [e]
+      exact (hm0 t i).add (((hkn (Φ t) t ht i).mono (S.𝓕.le t)).aestronglyMeasurable)
+    · have e : (fun ω => comboF t0 φ0 Φ M t ω i) = fun ω => φ0 t ω i := by
+        funext ω
+        rw [comboF_of_lt (by omega)]
+      rw [e]
+      exact hm0 t i
+  · -- `M_t` known at `t` for `t ≥ t₀`
+    have e : (fun ω => comboF t0 φ0 Φ M (t + 1) ω (Sum.inr r)) =
+        fun ω => φ0 (t + 1) ω (Sum.inr r) + (Φ (t + 1) *ᵥ M ω) (Sum.inr r) := by
+      funext ω
+      rw [comboF_of_le (by omega)]
+      rfl
+    rw [e]
+    exact (hM0 t r).add (hkn (Φ (t + 1)) t ht (Sum.inr r))
+  · -- the initial multipliers
+    filter_upwards [hM0e] with ω e
+    rw [comboF_of_le le_rfl]
+    funext r
+    have h1 := congrFun e r
+    simp only [Mpart, Pi.add_apply] at h1 ⊢
+    rw [h1]
+    simp only [Pi.zero_apply, zero_add]
+    simp only [mulVec, dotProduct, hHM]
+    simp [Matrix.one_apply]
+  · -- the first-order conditions
+    have e : comboF t0 φ0 Φ M (t + 1) = fun ω' => φ0 (t + 1) ω' + Φ (t + 1) *ᵥ M ω' :=
+      funext fun ω' => comboF_of_le (by omega) _ _ _ _
+    filter_upwards [hf0 t ht, EVm_add_known (S := S) (t := t) (a := φ0 (t + 1))
+      (b := fun ω' => Φ (t + 1) *ᵥ M ω') (hφ0i (t + 1)) (hkn (Φ (t + 1)) t ht)
+      (intMulVec (Φ (t + 1)) hMi)] with ω hf ek
+    have hhom := congrArg (· *ᵥ M ω) (hHf t ht)
+    simp only [add_mulVec, sub_mulVec, smul_mulVec, zero_mulVec, ← mulVec_mulVec] at hhom
+    rw [e, ek, comboF_of_le ht, comboF_of_le ht]
+    simp only [mulVec_add, mulVec_sub, smul_add] at hf hhom ⊢
+    linear_combination (norm := module) hf + hhom
+
+/-! ### The Lagrangian identity with an initial multiplier term -/
+
+/-- Woodford (2003), p. 541 and survey §4.4: **the Lagrangian identity with a nonzero initial
+term, with genuine conditional expectations.** If `y*` with multipliers `φ` solves the weak system
+(1.1) + (1.9) (`M_t` known at `t` only for `t ≥ t₀`) and `y` is any bounded feasible plan, then a.s.
+`J(y) − J(y*) − β⁻¹ E_{t₀}[φ_{t₀}'Ĩ(y_{t₀} − y*_{t₀})] = ∑_k β^k E_{t₀} ½ (T d)'W(T d)`,
+`d = y − y*`. -/
+theorem m_lagrangian_gap_init {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 Z0' : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y ys : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (hs : MFOCSystemI S P c t0 Z0 M0 ys φ) (hy : MFeasible S P c t0 Z0' y) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => P.β ^ k *
+        S.E t0 (fun ω' => quad P.W (P.T *ᵥ (y (t0 + k) ω' - ys (t0 + k) ω'))) ω)
+      (MJ S P t0 y ω - MJ S P t0 ys ω -
+        P.β⁻¹ * S.E t0 (fun ω' => φ t0 ω' ⬝ᵥ (P.sys.Itil *ᵥ (y t0 ω' - ys t0 ω'))) ω) := by
+  obtain ⟨hys, hbφ, hmφ, hMφ, -, hfoc⟩ := hs
+  have hβ0 := P.β_pos
+  have hβ1 := P.β_lt_one
+  have hWt : P.Wᵀ = P.W := by
+    have := P.W_posDef.isHermitian
+    rwa [IsHermitian, conjTranspose_eq_transpose_of_trivial] at this
+  -- the multipliers truncated before `t₀ + 1` (for the conditional-expectation step)
+  set φt : ℕ → Ω → ιZ ⊕ ιz → ℝ := fun s => if s ≤ t0 then 0 else φ s with hφt
+  have hφt_eq : ∀ s, t0 < s → φt s = φ s := fun s hs => by
+    simp only [hφt, show ¬ s ≤ t0 by omega, ↓reduceIte]
+  obtain ⟨Kφ, hKφ⟩ := hbφ
+  have hbφt : MBoundedV S φt := ⟨max Kφ 0, fun s => by
+    by_cases h : s ≤ t0
+    · exact Eventually.of_forall fun ω i => by simp [hφt, h]
+    · filter_upwards [hKφ s] with ω e i
+      simp only [hφt, h, ↓reduceIte]
+      exact (e i).trans (le_max_left _ _)⟩
+  have hmφt : MAEMeasV S φt := fun s i => by
+    by_cases h : s ≤ t0
+    · simp only [hφt, h, ↓reduceIte, Pi.zero_apply]
+      exact aestronglyMeasurable_const
+    · simp only [hφt, h, ↓reduceIte]
+      exact hmφ s i
+  have hMφt : MMultMeas S φt := fun s r => by
+    by_cases h : s + 1 ≤ t0
+    · simp only [hφt, h, ↓reduceIte, Pi.zero_apply]
+      exact stronglyMeasurable_const
+    · simp only [hφt, h, ↓reduceIte]
+      exact hMφ s (by omega) r
+  have hJy := hasSum_MJ S P t0 hy.2.2.1 hy.2.2.2
+  have hJys := hasSum_MJ S P t0 hys.2.2.1 hys.2.2.2
+  obtain ⟨Ky, hKy⟩ := hy.2.2.1
+  obtain ⟨Kys, hKys⟩ := hys.2.2.1
+  have hyA : ∀ s i, AEStronglyMeasurable (fun ω => y s ω i) S.μ := fun s i =>
+    ((hy.2.2.2 s i).mono (S.𝓕.le s)).aestronglyMeasurable
+  have hysA : ∀ s i, AEStronglyMeasurable (fun ω => ys s ω i) S.μ := fun s i =>
+    ((hys.2.2.2 s i).mono (S.𝓕.le s)).aestronglyMeasurable
+  have hdA : ∀ s i, AEStronglyMeasurable (fun ω => (y s ω - ys s ω) i) S.μ := fun s i =>
+    (hyA s i).sub (hysA s i)
+  have hdb : ∀ s, ∀ᵐ ω ∂S.μ, ∀ i, |(y s ω - ys s ω) i| ≤ Ky + Kys := fun s => by
+    filter_upwards [hKy s, hKys s] with ω h1 h2 i
+    exact (abs_sub _ _).trans (add_le_add (h1 i) (h2 i))
+  set a : ℕ → Ω → ℝ := fun s ω => φ s ω ⬝ᵥ (P.sys.Itil *ᵥ (y s ω - ys s ω)) with ha
+  set b : ℕ → Ω → ℝ := fun s ω => EVm S s (φ (s + 1)) ω ⬝ᵥ (P.sys.Atil *ᵥ (y s ω - ys s ω))
+    with hb
+  set Q : ℕ → Ω → ℝ := fun s ω => quad P.W (P.T *ᵥ (y s ω - ys s ω)) with hQ
+  obtain ⟨KI, hKI⟩ := exists_bound_mulVec P.sys.Itil (Ky + Kys)
+  obtain ⟨KA, hKA⟩ := exists_bound_mulVec P.sys.Atil (Ky + Kys)
+  obtain ⟨KL, hKL⟩ := exists_bound_lossFn P.T P.W P.τstar Ky
+  obtain ⟨KLs, hKLs⟩ := exists_bound_lossFn P.T P.W P.τstar Kys
+  obtain ⟨KQ, hKQ⟩ := exists_bound_lossFn P.T P.W 0 (Ky + Kys)
+  set Ka : ℝ := Fintype.card (ιZ ⊕ ιz) * (Kφ * KI) with hKa
+  have hab : ∀ s, ∀ᵐ ω ∂S.μ, |a s ω| ≤ Ka := fun s => by
+    filter_upwards [hKφ s, hdb s] with ω h1 h2
+    exact abs_dotProduct_le h1 (hKI _ h2)
+  have hai : ∀ s, Integrable (a s) S.μ := fun s =>
+    integrable_of_bound (aesm_comp₂ (v := φ s) (w := fun ω => y s ω - ys s ω)
+      (g := fun p => p.1 ⬝ᵥ (P.sys.Itil *ᵥ p.2)) (hmφ s) (hdA s) (by fun_prop)) (hab s)
+  have hbi : ∀ s, Integrable (b s) S.μ := fun s => by
+    have hEm : ∀ i, AEStronglyMeasurable (fun ω => EVm S s (φ (s + 1)) ω i) S.μ := fun i =>
+      (S.integrable_E s _).aestronglyMeasurable
+    have hEb : ∀ᵐ ω ∂S.μ, ∀ i, |EVm S s (φ (s + 1)) ω i| ≤ Kφ :=
+      ae_all_iff.2 fun i => S.abs_E_le ((hKφ (s + 1)).mono fun ω h => h i) s
+    refine integrable_of_bound (aesm_comp₂ (v := EVm S s (φ (s + 1)))
+      (w := fun ω => y s ω - ys s ω) (g := fun p => p.1 ⬝ᵥ (P.sys.Atil *ᵥ p.2)) hEm (hdA s)
+      (by fun_prop)) (K := Fintype.card (ιZ ⊕ ιz) * (Kφ * KA)) ?_
+    filter_upwards [hEb, hdb s] with ω h1 h2
+    exact abs_dotProduct_le h1 (hKA _ h2)
+  have hLyi : ∀ s, Integrable (fun ω => P.loss (y s ω)) S.μ := fun s =>
+    integrable_of_bound (aesm_comp (hyA s) (continuous_loss P)) (K := KL)
+      ((hKy s).mono fun ω h => hKL _ h)
+  have hLysi : ∀ s, Integrable (fun ω => P.loss (ys s ω)) S.μ := fun s =>
+    integrable_of_bound (aesm_comp (hysA s) (continuous_loss P)) (K := KLs)
+      ((hKys s).mono fun ω h => hKLs _ h)
+  have hQi : ∀ s, Integrable (Q s) S.μ := fun s =>
+    integrable_of_bound (aesm_comp (hdA s) (g := fun v => quad P.W (P.T *ᵥ v))
+      (by unfold quad; fun_prop)) (K := KQ) ((hdb s).mono fun ω h => by
+        have := hKQ _ h
+        simpa [lossFn] using this)
+  -- the pointwise identity from (1.9)
+  have hpt : ∀ k, (fun ω => P.loss (y (t0 + k) ω)) =ᵐ[S.μ]
+      (fun ω => P.loss (ys (t0 + k) ω)) + Q (t0 + k) + P.β⁻¹ • a (t0 + k) - b (t0 + k) := by
+    intro k
+    filter_upwards [hfoc (t0 + k) (Nat.le_add_right _ _)] with ω hf
+    have := lossFn_sub_of_foc hWt hf (y (t0 + k) ω)
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, ha, hb, hQ]
+    change lossFn P.T P.W P.τstar (y (t0 + k) ω) =
+      lossFn P.T P.W P.τstar (ys (t0 + k) ω) + _ + _ - _
+    linarith
+  -- conditional expectations
+  have hEb : ∀ k, S.E t0 (b (t0 + k)) =ᵐ[S.μ] S.E t0 (a (t0 + k + 1)) := by
+    intro k
+    have hn := m_E_next (P := P) hy hys hbφt hmφt hMφt (t := t0 + k) (Nat.le_add_right _ _)
+    rw [hφt_eq (t0 + k + 1) (by omega)] at hn
+    exact (S.E_congr hn.symm t0).trans (S.E_tower (Nat.le_add_right _ _) _)
+  have hkey : ∀ k, ∀ᵐ ω ∂S.μ, S.E t0 (fun ω => P.loss (y (t0 + k) ω)) ω =
+      S.E t0 (fun ω => P.loss (ys (t0 + k) ω)) ω + S.E t0 (Q (t0 + k)) ω +
+        P.β⁻¹ * S.E t0 (a (t0 + k)) ω - S.E t0 (a (t0 + k + 1)) ω := by
+    intro k
+    have i1 := (hLysi (t0 + k)).add (hQi (t0 + k))
+    have i2 := i1.add ((hai (t0 + k)).smul P.β⁻¹)
+    filter_upwards [S.E_congr (hpt k) t0, S.E_sub i2 (hbi (t0 + k)) t0,
+      S.E_add i1 ((hai (t0 + k)).smul P.β⁻¹) t0, S.E_add (hLysi (t0 + k)) (hQi (t0 + k)) t0,
+      S.E_smul P.β⁻¹ (a (t0 + k)) t0, hEb k] with ω e1 e2 e3 e4 e5 e6
+    rw [e1, e2, Pi.sub_apply, e3, Pi.add_apply, e4, Pi.add_apply, e5, e6, Pi.smul_apply,
+      smul_eq_mul]
+  have heb : ∀ k, ∀ᵐ ω ∂S.μ, |S.E t0 (a (t0 + k)) ω| ≤ Ka := fun k =>
+    S.abs_E_le (hab (t0 + k)) t0
+  filter_upwards [hJy, hJys, ae_all_iff.2 hkey, ae_all_iff.2 heb] with ω h1 h2 h3 h5
+  have htel := hasSum_telescope hβ0 hβ1 (e := fun k => S.E t0 (a (t0 + k)) ω) h5
+  simp only [Nat.add_zero] at htel
+  have hfin := (h1.sub h2).sub htel
+  refine hfin.congr_fun fun k => ?_
+  rw [h3 k]
+  simp only [hQ]
+  ring_nf
+
+/-- Woodford (2003), p. 541 and survey §4.4: **Lagrangian sufficiency for the weak system**: if
+`y*` solves (1.1) + (1.9) a.s. and the initial multiplier term vanishes a.s.,
+`φ_{t₀}'Ĩ(y_{t₀} − y*_{t₀}) = 0`, then `J(y*) ≤ J(y)` a.s. -/
+theorem m_J_le_init {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 Z0' : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y ys : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (hs : MFOCSystemI S P c t0 Z0 M0 ys φ) (hy : MFeasible S P c t0 Z0' y)
+    (hinit : ∀ᵐ ω ∂S.μ, φ t0 ω ⬝ᵥ (P.sys.Itil *ᵥ (y t0 ω - ys t0 ω)) = 0) :
+    MJ S P t0 ys ≤ᵐ[S.μ] MJ S P t0 y := by
+  have hnn : ∀ k, ∀ᵐ ω ∂S.μ, 0 ≤ S.E t0
+      (fun ω' => quad P.W (P.T *ᵥ (y (t0 + k) ω' - ys (t0 + k) ω'))) ω := fun k =>
+    condExp_nonneg (Eventually.of_forall fun ω' => quad_nonneg P.W_posDef.posSemidef _)
+  have h0 : S.E t0 (fun ω' => φ t0 ω' ⬝ᵥ (P.sys.Itil *ᵥ (y t0 ω' - ys t0 ω'))) =ᵐ[S.μ] 0 :=
+    (S.E_congr hinit t0).trans (by rw [show (fun _ : Ω => (0 : ℝ)) = 0 from rfl, S.E_zero])
+  filter_upwards [m_lagrangian_gap_init hs hy, ae_all_iff.2 hnn, h0] with ω h1 h2 h3
+  have := h1.nonneg fun k => mul_nonneg (pow_pos P.β_pos k).le (h2 k)
+  rw [h3, Pi.zero_apply, mul_zero, sub_zero] at this
+  linarith
+
+/-- Woodford (2003), p. 541 and fn 8 (uniqueness of the optimum), for the weak system: a bounded
+feasible plan with the same discounted loss as a solution of (1.1) + (1.9), with vanishing
+initial multiplier term, has the same target path a.s. for all `t ≥ t₀` (`W ≻ 0`). -/
+theorem m_targets_eq_init {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 Z0' : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y ys : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (hs : MFOCSystemI S P c t0 Z0 M0 ys φ) (hy : MFeasible S P c t0 Z0' y)
+    (hinit : ∀ᵐ ω ∂S.μ, φ t0 ω ⬝ᵥ (P.sys.Itil *ᵥ (y t0 ω - ys t0 ω)) = 0)
+    (hJ : MJ S P t0 y =ᵐ[S.μ] MJ S P t0 ys) :
+    ∀ t, t0 ≤ t → ∀ᵐ ω ∂S.μ, P.T *ᵥ y t ω = P.T *ᵥ ys t ω := by
+  intro t ht
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le ht
+  set Q : Ω → ℝ := fun ω => quad P.W (P.T *ᵥ (y (t0 + k) ω - ys (t0 + k) ω)) with hQ
+  have hQ0 : 0 ≤ Q := fun ω => quad_nonneg P.W_posDef.posSemidef _
+  have hnn : ∀ j, ∀ᵐ ω ∂S.μ, 0 ≤ S.E t0
+      (fun ω' => quad P.W (P.T *ᵥ (y (t0 + j) ω' - ys (t0 + j) ω'))) ω := fun j =>
+    condExp_nonneg (Eventually.of_forall fun ω' => quad_nonneg P.W_posDef.posSemidef _)
+  have h0 : S.E t0 (fun ω' => φ t0 ω' ⬝ᵥ (P.sys.Itil *ᵥ (y t0 ω' - ys t0 ω'))) =ᵐ[S.μ] 0 :=
+    (S.E_congr hinit t0).trans (by rw [show (fun _ : Ω => (0 : ℝ)) = 0 from rfl, S.E_zero])
+  have hEQ : S.E t0 Q =ᵐ[S.μ] 0 := by
+    filter_upwards [m_lagrangian_gap_init hs hy, ae_all_iff.2 hnn, hJ, h0] with ω h1 h2 h3 h4
+    rw [h3, h4, Pi.zero_apply, mul_zero, sub_zero, sub_self] at h1
+    have hz := congrFun ((hasSum_zero_iff_of_nonneg
+      fun j => mul_nonneg (pow_pos P.β_pos j).le (h2 j)).mp h1) k
+    simp only [Pi.zero_apply, mul_eq_zero, pow_eq_zero_iff', P.β_pos.ne', ne_eq, false_and,
+      false_or] at hz
+    exact hz
+  obtain ⟨Ky, hKy⟩ := hy.2.2.1
+  obtain ⟨Kys, hKys⟩ := hs.1.2.2.1
+  obtain ⟨KQ, hKQ⟩ := exists_bound_lossFn P.T P.W 0 (Ky + Kys)
+  have hQi : Integrable Q S.μ := by
+    refine integrable_of_bound (aesm_comp (g := fun v => quad P.W (P.T *ᵥ v))
+      (fun i => (((hy.2.2.2 (t0 + k) i).mono (S.𝓕.le _)).aestronglyMeasurable).sub
+        (((hs.1.2.2.2 (t0 + k) i).mono (S.𝓕.le _)).aestronglyMeasurable))
+      (by unfold quad; fun_prop)) (K := KQ) ?_
+    filter_upwards [hKy (t0 + k), hKys (t0 + k)] with ω h1 h2
+    have := hKQ (y (t0 + k) ω - ys (t0 + k) ω) fun i =>
+      (abs_sub _ _).trans (add_le_add (h1 i) (h2 i))
+    simpa [lossFn, hQ] using this
+  have hint : ∫ ω, Q ω ∂S.μ = 0 := by
+    rw [← S.integral_E t0 Q]
+    exact integral_eq_zero_of_ae hEQ
+  have hQae : Q =ᵐ[S.μ] 0 := (integral_eq_zero_iff_of_nonneg hQ0 hQi).mp hint
+  filter_upwards [hQae] with ω hq
+  simp only [hQ, Pi.zero_apply, quad, mul_eq_zero, one_div, inv_eq_zero,
+    OfNat.ofNat_ne_zero, false_or] at hq
+  by_contra hne
+  have hne' : P.T *ᵥ (y (t0 + k) ω - ys (t0 + k) ω) ≠ 0 := by
+    rw [mulVec_sub]
+    exact sub_ne_zero.mpr hne
+  have hpos := P.W_posDef.dotProduct_mulVec_pos hne'
+  rw [star_trivial] at hpos
+  linarith
+
+omit [Fintype ιτ] in
+/-- Woodford (2003), p. 541 (tool): the initial multiplier term vanishes when the two plans have
+the same `Z_{t₀}` and the same `Ẽ z_{t₀}` a.s. -/
+theorem init_zero_of {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    {y ys : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (hZ : ∀ᵐ ω ∂S.μ, Zpart (y t0 ω) = Zpart (ys t0 ω))
+    (hE : ∀ᵐ ω ∂S.μ, P.sys.Et *ᵥ zpart (y t0 ω) = P.sys.Et *ᵥ zpart (ys t0 ω)) :
+    ∀ᵐ ω ∂S.μ, φ t0 ω ⬝ᵥ (P.sys.Itil *ᵥ (y t0 ω - ys t0 ω)) = 0 := by
+  filter_upwards [hZ, hE] with ω e1 e2
+  rw [mulVec_sub, P.sys.Itil_mulVec, P.sys.Itil_mulVec, e1, e2, sub_self, dotProduct_zero]
+
+/-- Woodford (2003), p. 541 (**sufficiency for the weak system**): a solution of the weak system
+(1.1) + (1.9) is optimal a.s. subject to its own initial constraint `Ẽ z_{t₀} = ē`. -/
+theorem m_optimalSubjectTo_of_I {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (h : MFOCSystemI S P c t0 Z0 M0 y φ) :
+    MOptimalSubjectTo S P c t0 Z0 (fun ω => P.sys.Et *ᵥ zpart (y t0 ω)) y := by
+  refine ⟨h.1, Eventually.of_forall fun _ => rfl, fun y' hy' he' => ?_⟩
+  refine m_J_le_init h hy' (init_zero_of ?_ he')
+  filter_upwards [hy'.2.1, h.1.2.1] with ω e1 e2
+  rw [e1, e2]
+
+omit [Fintype ιτ] in
+/-- Woodford (2003), p. 541 (tool): the initial multiplier term vanishes when the two plans have
+the same `Z_{t₀}` a.s. and the initial multiplier `M_{t₀−1}` is zero a.s. -/
+theorem init_zero_of_M {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    {y ys : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (hZ : ∀ᵐ ω ∂S.μ, Zpart (y t0 ω) = Zpart (ys t0 ω))
+    (hM : ∀ᵐ ω ∂S.μ, Mpart (φ t0 ω) = 0) :
+    ∀ᵐ ω ∂S.μ, φ t0 ω ⬝ᵥ (P.sys.Itil *ᵥ (y t0 ω - ys t0 ω)) = 0 := by
+  filter_upwards [hZ, hM] with ω e1 e2
+  rw [mulVec_sub, P.sys.Itil_mulVec, P.sys.Itil_mulVec, e1]
+  simp only [dotProduct, Fintype.sum_sum_type, Pi.sub_apply, Sum.elim_inl, Sum.elim_inr, sub_self,
+    mul_zero, Finset.sum_const_zero, zero_add]
+  refine Finset.sum_eq_zero fun r _ => ?_
+  have := congrFun e2 r
+  simp only [Mpart, Pi.zero_apply] at this
+  rw [this, zero_mul]
+
+omit [Fintype ιτ] in
+/-- Woodford (2003), p. 541 (tool): with the same `Z_{t₀}`, the initial multiplier term is
+`M_{t₀−1}'(Ẽ z_{t₀} − Ẽ z*_{t₀})`. -/
+theorem init_term_eq (P : LQProblem ιZ ιz ιτ) {a b : (ιZ ⊕ ιz) ⊕ Unit → ℝ} {f : ιZ ⊕ ιz → ℝ}
+    (hZ : Zpart a = Zpart b) :
+    f ⬝ᵥ (P.sys.Itil *ᵥ (a - b)) = Mpart f ⬝ᵥ (P.sys.Et *ᵥ zpart a - P.sys.Et *ᵥ zpart b) := by
+  rw [mulVec_sub, P.sys.Itil_mulVec, P.sys.Itil_mulVec, hZ]
+  simp only [dotProduct, Fintype.sum_sum_type, Pi.sub_apply, Sum.elim_inl, Sum.elim_inr, sub_self,
+    mul_zero, Finset.sum_const_zero, zero_add, Mpart]
+
+/-! ### The variational inequality -/
+
+omit [DecidableEq ιz] in
+/-- Woodford (2003), (1.10), p. 542 (**the variational step, almost surely**): if for every `w`
+with `L'w = 0` and every real `s`, `s·w'd ≤ J` a.s., then `d` lies in the range of `L` a.s.
+(countably many scalings `±n`, and a basis of `ker L'`). -/
+theorem ae_orth_kernel {S : MeasExpectationSystem Ω} (L : Matrix ιz ιz ℝ) {d : Ω → ιz → ℝ}
+    {J : Ω → ℝ} (h : ∀ w : ιz → ℝ, Lᵀ *ᵥ w = 0 → ∀ s : ℝ, ∀ᵐ ω ∂S.μ, s * (w ⬝ᵥ d ω) ≤ J ω) :
+    ∀ᵐ ω ∂S.μ, d ω ∈ LinearMap.range L.mulVecLin := by
+  -- each kernel vector is a.s. orthogonal to `d`
+  have h1 : ∀ w : ιz → ℝ, Lᵀ *ᵥ w = 0 → ∀ᵐ ω ∂S.μ, w ⬝ᵥ d ω = 0 := by
+    intro w hw
+    have hn : ∀ n : ℕ, ∀ᵐ ω ∂S.μ, (n : ℝ) * (w ⬝ᵥ d ω) ≤ J ω ∧ -(n : ℝ) * (w ⬝ᵥ d ω) ≤ J ω :=
+      fun n => (h w hw n).and (h w hw (-n))
+    filter_upwards [ae_all_iff.2 hn] with ω hω
+    by_contra hne
+    rcases lt_or_gt_of_ne hne with hlt | hgt
+    · obtain ⟨n, hn⟩ := exists_nat_gt (J ω / -(w ⬝ᵥ d ω))
+      have h2 := (hω n).2
+      rw [div_lt_iff₀ (by linarith)] at hn
+      linarith
+    · obtain ⟨n, hn⟩ := exists_nat_gt (J ω / (w ⬝ᵥ d ω))
+      have h2 := (hω n).1
+      rw [div_lt_iff₀ hgt] at hn
+      linarith
+  -- a basis of `ker L'`
+  set b := Module.finBasis ℝ (LinearMap.ker (Lᵀ).mulVecLin) with hb
+  have hbk : ∀ i, Lᵀ *ᵥ (b i : ιz → ℝ) = 0 := fun i => by
+    have := LinearMap.mem_ker.mp (b i).2
+    rwa [Matrix.mulVecLin_apply] at this
+  filter_upwards [ae_all_iff.2 fun i => h1 _ (hbk i)] with ω hω
+  refine mem_range_of_orth L (d ω) fun w hw => ?_
+  have hwK : w ∈ LinearMap.ker (Lᵀ).mulVecLin := by
+    rw [LinearMap.mem_ker, Matrix.mulVecLin_apply]
+    exact hw
+  have hsum := congrArg (Subtype.val) (b.sum_repr ⟨w, hwK⟩)
+  rw [Submodule.coe_sum] at hsum
+  have hsum' : ∑ i, ((b.repr ⟨w, hwK⟩ i • b i : LinearMap.ker (Lᵀ).mulVecLin) : ιz → ℝ) = w :=
+    hsum
+  rw [← hsum']
+  simp only [Submodule.coe_smul, sum_dotProduct, smul_dotProduct, hω, smul_zero,
+    Finset.sum_const_zero]
+
+/-! ### Necessity -/
+
+omit [Fintype ιτ] [DecidableEq ιZ] in
+/-- Woodford (2003), p. 539 (tool): a plan feasible with `Z_{t₀} = Z₀'` is feasible with any `Z₀`
+a.s. equal to `Z₀'`. -/
+theorem mFeasible_congr {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 Z0' : Ω → ιZ → ℝ} (hZ : ∀ᵐ ω ∂S.μ, Z0' ω = Z0 ω)
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (h : MFeasible S P c t0 Z0' y) :
+    MFeasible S P c t0 Z0 y :=
+  ⟨h.1, by filter_upwards [h.2.1, hZ] with ω e1 e2; rw [e1, e2], h.2.2⟩
+
+/-- **Woodford (2003), p. 541 (necessity of the first-order conditions), on every filtered
+probability space with Mathlib's conditional expectation.** Under Assumption 8.1 (existence half,
+corrected form `OptimalRulesMeasure.MFOCSolvableMB`) and a bounded adapted disturbance, every
+bounded plan that minimises (1.2) a.s. among bounded feasible plans subject to `Ẽ z_{t₀} = ē`
+satisfies (1.1) + (1.9) a.s., with bounded multipliers (`M_t` known at `t` for `t ≥ t₀`) and an
+essentially bounded initial multiplier `M_{t₀−1}` known at `t₀`. No faithfulness, version or
+integrability hypothesis: integrability follows from essential boundedness. -/
+theorem m_foc_necessary {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (hsolv : MFOCSolvableMB S P t0) {c : ℕ → Ω → ιz → ℝ} (hcb : MBoundedV S c)
+    (hca : MAdaptedV S c) {Z0 : Ω → ιZ → ℝ} {ebar : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : MOptimalSubjectTo S P c t0 Z0 ebar y) :
+    ∃ M0 : Ω → ιz → ℝ, MKnownV S t0 M0 ∧ MBoundedRV S M0 ∧
+      ∃ φ, MFOCSystemI S P c t0 Z0 M0 y φ := by
+  obtain ⟨hfe, hey, hmin⟩ := hy
+  set Z0' : Ω → ιZ → ℝ := fun ω => Zpart (y t0 ω) with hZ0'
+  have hZk : MKnownV S t0 Z0' := fun r => hfe.2.2.2 t0 _
+  obtain ⟨Ky, hKy⟩ := hfe.2.2.1
+  have hZb : MBoundedRV S Z0' := ⟨Ky, (hKy t0).mono fun ω h r => h _⟩
+  obtain ⟨y0, φ0, h0⟩ := hsolv c Z0' 0 hcb hca hZk hZb
+    ⟨0, Eventually.of_forall fun _ _ => by simp⟩ (fun _ => stronglyMeasurable_const)
+  obtain ⟨H, Φ, hH⟩ := exists_homResp_meas hsolv
+  have hfeas : ∀ y', MFeasible S P c t0 Z0' y' → MFeasible S P c t0 Z0 y' :=
+    fun y' h => mFeasible_congr hfe.2.1 h
+  set L := Lmat P t0 H with hL
+  set d : Ω → ιz → ℝ := fun ω => P.sys.Et *ᵥ zpart (y t0 ω) - P.sys.Et *ᵥ zpart (y0 t0 ω)
+    with hd
+  have hdk : MKnownV S t0 d := fun i =>
+    sm_comp₂ (hfe.2.2.2 t0) (h0.1.2.2.2 t0)
+      (g := fun p => (P.sys.Et *ᵥ zpart p.1 - P.sys.Et *ᵥ zpart p.2) i)
+      (by unfold zpart; fun_prop)
+  obtain ⟨K0, hK0⟩ := h0.1.2.2.1
+  obtain ⟨KE, hKE⟩ := exists_bound_mulVec P.sys.Et (max Ky K0)
+  have hdb : MBoundedRV S d := ⟨KE + KE, by
+    filter_upwards [hKy t0, hK0 t0] with ω e1 e2 i
+    exact (abs_sub _ _).trans (add_le_add
+      (hKE _ (fun j => (e1 _).trans (le_max_left _ _)) i)
+      (hKE _ (fun j => (e2 _).trans (le_max_right _ _)) i))⟩
+  have hdi : ∀ i, Integrable (fun ω => d ω i) S.μ := fun i => by
+    obtain ⟨Kd, hKd⟩ := hdb
+    exact integrable_of_bound ((hdk i).mono (S.𝓕.le t0)).aestronglyMeasurable
+      (hKd.mono fun ω h => h i)
+  have hZy0 : ∀ᵐ ω ∂S.μ, Zpart (y t0 ω) = Zpart (y0 t0 ω) := h0.1.2.1.mono fun ω e => e.symm
+  -- the variational inequality
+  have hvar : ∀ w : ιz → ℝ, Lᵀ *ᵥ w = 0 → ∀ s : ℝ, ∀ᵐ ω ∂S.μ,
+      s * (w ⬝ᵥ d ω) ≤ P.β * MJ S P t0 y ω := by
+    intro w hw s
+    set Ms : Ω → ιz → ℝ := fun _ => s • w with hMs
+    have hc := m_combo h0 hH (M := Ms) (fun _ => stronglyMeasurable_const)
+      ⟨∑ r, |(s • w) r|, Eventually.of_forall fun _ r => Finset.single_le_sum
+        (f := fun r => |(s • w) r|) (fun _ _ => abs_nonneg _) (Finset.mem_univ r)⟩
+    have hwLw : w ⬝ᵥ (L *ᵥ w) = 0 := by
+      rw [dotProduct_mulVec, ← mulVec_transpose, hw, zero_dotProduct]
+    have hinit : (fun ω' => comboF t0 φ0 Φ Ms t0 ω' ⬝ᵥ
+        (P.sys.Itil *ᵥ (y t0 ω' - comboF t0 y0 H Ms t0 ω'))) =ᵐ[S.μ]
+          fun ω' => s * (w ⬝ᵥ d ω') := by
+      filter_upwards [hZy0, hc.2.2.2.2.1] with ω e1 e2
+      have hZc : Zpart (y t0 ω) = Zpart (comboF t0 y0 H Ms t0 ω) := by
+        rw [comboF_of_le le_rfl, e1]
+        funext r
+        simp [Zpart, mulVec, dotProduct, hH.2.2.1]
+      rw [init_term_eq P hZc, e2, eq110_combo, ← hL]
+      simp only [hMs, hd, mulVec_smul]
+      rw [show P.sys.Et *ᵥ zpart (y t0 ω) - (P.sys.Et *ᵥ zpart (y0 t0 ω) + s • L *ᵥ w) =
+        (P.sys.Et *ᵥ zpart (y t0 ω) - P.sys.Et *ᵥ zpart (y0 t0 ω)) - s • L *ᵥ w by abel,
+        dotProduct_sub, smul_dotProduct, smul_dotProduct, dotProduct_smul, hwLw]
+      simp [smul_eq_mul]
+    have hEk : S.E t0 (fun ω' => s * (w ⬝ᵥ d ω')) = fun ω' => s * (w ⬝ᵥ d ω') := by
+      refine S.E_of_stronglyMeasurable ?_ ?_
+      · exact sm_comp hdk (g := fun v => s * (w ⬝ᵥ v)) (by fun_prop)
+      · simp only [dotProduct, Finset.mul_sum]
+        exact integrable_finsetSum _ fun i _ => ((hdi i).const_mul (w i)).const_mul s
+    have hnn : ∀ k, ∀ᵐ ω ∂S.μ, 0 ≤ S.E t0 (fun ω' => quad P.W (P.T *ᵥ
+        (y (t0 + k) ω' - comboF t0 y0 H Ms (t0 + k) ω'))) ω := fun k =>
+      condExp_nonneg (Eventually.of_forall fun ω' => quad_nonneg P.W_posDef.posSemidef _)
+    have hJ0 : ∀ᵐ ω ∂S.μ, 0 ≤ MJ S P t0 (comboF t0 y0 H Ms) ω :=
+      condExp_nonneg (Eventually.of_forall fun ω' => tsum_nonneg fun k =>
+        mul_nonneg (pow_nonneg P.β_pos.le k) (quad_nonneg P.W_posDef.posSemidef _))
+    filter_upwards [m_lagrangian_gap_init hc hfe, S.E_congr hinit t0, ae_all_iff.2 hnn, hJ0]
+      with ω g e n j0
+    rw [e, hEk] at g
+    have h3 := g.nonneg fun k => mul_nonneg (pow_pos P.β_pos k).le (n k)
+    have hβi : P.β * P.β⁻¹ = 1 := mul_inv_cancel₀ P.β_pos.ne'
+    have h4 : P.β⁻¹ * (s * (w ⬝ᵥ d ω)) ≤ MJ S P t0 y ω := by linarith
+    have h5 := mul_le_mul_of_nonneg_left h4 P.β_pos.le
+    rw [← mul_assoc, hβi, one_mul] at h5
+    exact h5
+  have hrange := ae_orth_kernel (S := S) L hvar
+  obtain ⟨R, hR⟩ := exists_rightInv L
+  set M0 : Ω → ιz → ℝ := fun ω => R *ᵥ d ω with hM0
+  have hM0k : MKnownV S t0 M0 := fun i => sm_comp hdk (g := fun v => (R *ᵥ v) i) (by fun_prop)
+  have hM0b : MBoundedRV S M0 := by
+    obtain ⟨Kd, hKd⟩ := hdb
+    obtain ⟨K, hK⟩ := exists_bound_mulVec R Kd
+    exact ⟨K, hKd.mono fun ω h => hK _ h⟩
+  have hc := m_combo h0 hH hM0k hM0b
+  have hEc : ∀ᵐ ω ∂S.μ, P.sys.Et *ᵥ zpart (comboF t0 y0 H M0 t0 ω) =
+      P.sys.Et *ᵥ zpart (y t0 ω) := by
+    filter_upwards [hrange] with ω hω
+    rw [eq110_combo, ← hL, hM0]
+    beta_reduce
+    rw [hR _ hω, hd]
+    beta_reduce
+    abel
+  have hZc : ∀ᵐ ω ∂S.μ, Zpart (y t0 ω) = Zpart (comboF t0 y0 H M0 t0 ω) := by
+    filter_upwards [hc.1.2.1] with ω e
+    rw [e]
+  have hin := init_zero_of (φ := comboF t0 φ0 Φ M0) hZc (hEc.mono fun ω e => e.symm)
+  have hle := m_J_le_init hc hfe hin
+  have hge := hmin _ (hfeas _ hc.1) (by filter_upwards [hEc, hey] with ω e1 e2; rw [e1, e2])
+  have hJ : MJ S P t0 y =ᵐ[S.μ] MJ S P t0 (comboF t0 y0 H M0) := by
+    filter_upwards [hle, hge] with ω e1 e2
+    exact le_antisymm e2 e1
+  have htar := m_targets_eq_init hc hfe hin hJ
+  refine ⟨M0, hM0k, hM0b, comboF t0 φ0 Φ M0, hfe, hc.2.1, hc.2.2.1, hc.2.2.2.1, hc.2.2.2.2.1,
+    fun t ht => ?_⟩
+  filter_upwards [hc.2.2.2.2.2 t ht, htar t ht] with ω e1 e2
+  rw [e2]
+  exact e1
+
+/-- **Woodford (2003), pp. 539–541: optimality subject to (1.6) ⟺ the first-order conditions, on
+every filtered probability space.** Under Assumption 8.1 (existence half, corrected form) and a
+bounded adapted disturbance, a bounded plan minimises (1.2) a.s. among bounded feasible plans
+subject to `Ẽ z_{t₀} = ē` iff it meets the constraint a.s. and solves (1.1) + (1.9) a.s. with some
+essentially bounded initial multiplier `M_{t₀−1}` known at `t₀`. -/
+theorem m_optimalSubjectTo_iff {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (hsolv : MFOCSolvableMB S P t0) {c : ℕ → Ω → ιz → ℝ} (hcb : MBoundedV S c)
+    (hca : MAdaptedV S c) {Z0 : Ω → ιZ → ℝ} {ebar : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} :
+    MOptimalSubjectTo S P c t0 Z0 ebar y ↔
+      (∀ᵐ ω ∂S.μ, P.sys.Et *ᵥ zpart (y t0 ω) = ebar ω) ∧
+        ∃ M0 : Ω → ιz → ℝ, MKnownV S t0 M0 ∧ MBoundedRV S M0 ∧
+          ∃ φ, MFOCSystemI S P c t0 Z0 M0 y φ := by
+  refine ⟨fun hy => ⟨hy.2.1, m_foc_necessary hsolv hcb hca hy⟩, ?_⟩
+  rintro ⟨he, M0, -, -, φ, h⟩
+  have ho := m_optimalSubjectTo_of_I h
+  exact ⟨h.1, he, fun y' hy' he' => ho.2.2 y' hy' (by
+    filter_upwards [he', he] with ω e1 e2
+    rw [e1, e2])⟩
+
+/-! ### The full system with `M_{t₀−1}` known at `t₀ − 1` -/
+
+/-- Woodford (2003), p. 540: **from the weak to the full system.** If the initial multiplier of a
+solution of the weak system has a version known at `t₀ − 1`, the plan solves the full
+`OptimalRulesMeasure.MFOCSystem` (every `M_t` known at `t`, including `M_{t₀−1}`) with that
+version. -/
+theorem mFOCSystem_of_I {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 : Ω → ιZ → ℝ} {M0 : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ}
+    (h : MFOCSystemI S P c t0 Z0 M0 y φ)
+    (hM : ∀ r, AEStronglyMeasurable[S.𝓕 (t0 - 1)] (fun ω => M0 ω r) S.μ) :
+    ∃ M0' : Ω → ιz → ℝ, (∀ᵐ ω ∂S.μ, M0' ω = M0 ω) ∧ MKnownV S (t0 - 1) M0' ∧
+      ∃ φ', MFOCSystem S P c t0 Z0 M0' y φ' := by
+  obtain ⟨hfe, ⟨Kφ, hKφ⟩, hmφ, hMφ, hM0, hfoc⟩ := h
+  set g : ιz → Ω → ℝ := fun r => (hM r).mk _ with hgdef
+  have hg : ∀ r, StronglyMeasurable[S.𝓕 (t0 - 1)] (g r) := fun r => (hM r).stronglyMeasurable_mk
+  have hgae : ∀ r, (fun ω => M0 ω r) =ᵐ[S.μ] g r := fun r => (hM r).ae_eq_mk
+  set M0' : Ω → ιz → ℝ := fun ω r => g r ω with hM0'
+  set φ' : ℕ → Ω → ιZ ⊕ ιz → ℝ := fun t ω =>
+    if t < t0 then 0 else if t = t0 then Sum.elim (fun j => φ t0 ω (Sum.inl j)) (fun r => g r ω)
+      else φ t ω with hφ'
+  have hgt : ∀ t, t0 < t → φ' t = φ t := fun t ht => by
+    funext ω
+    simp only [hφ', show ¬ t < t0 by omega, show t ≠ t0 by omega, ↓reduceIte]
+  have h0 : φ' t0 =ᵐ[S.μ] φ t0 := by
+    filter_upwards [hM0, ae_all_iff.2 hgae] with ω e1 e2
+    simp only [hφ', lt_irrefl, ↓reduceIte]
+    funext ρ
+    rcases ρ with j | r
+    · rfl
+    · simp only [Sum.elim_inr]
+      rw [← e2 r, ← e1]
+      rfl
+  have hMM : ∀ᵐ ω ∂S.μ, M0' ω = M0 ω := by
+    filter_upwards [ae_all_iff.2 hgae] with ω e
+    funext r
+    exact (e r).symm
+  refine ⟨M0', hMM, hg, φ', hfe, ⟨max Kφ 0, fun t => ?_⟩, fun t i => ?_, fun t r => ?_, ?_,
+    fun t ht => ?_⟩
+  · rcases lt_trichotomy t t0 with h1 | rfl | h1
+    · refine Eventually.of_forall fun ω i => ?_
+      simp only [hφ', h1, ↓reduceIte, Pi.zero_apply, abs_zero]
+      exact le_max_right _ _
+    · filter_upwards [h0, hKφ t] with ω e1 e2 i
+      rw [e1]
+      exact (e2 i).trans (le_max_left _ _)
+    · filter_upwards [hKφ t] with ω e i
+      rw [hgt t h1]
+      exact (e i).trans (le_max_left _ _)
+  · rcases lt_trichotomy t t0 with h1 | rfl | h1
+    · simp only [hφ', h1, ↓reduceIte, Pi.zero_apply]
+      exact aestronglyMeasurable_const
+    · exact (hmφ t i).congr (h0.mono fun ω e => (congrFun e i).symm)
+    · rw [hgt t h1]
+      exact hmφ t i
+  · rcases lt_trichotomy (t + 1) t0 with h1 | h1 | h1
+    · simp only [hφ', h1, ↓reduceIte, Pi.zero_apply]
+      exact stronglyMeasurable_const
+    · have ht : t = t0 - 1 := by omega
+      simp only [hφ', h1, lt_irrefl, ↓reduceIte, Sum.elim_inr]
+      rw [ht]
+      exact hg r
+    · rw [hgt (t + 1) h1]
+      exact hMφ t (by omega) r
+  · refine Eventually.of_forall fun ω => ?_
+    simp only [hφ', lt_irrefl, ↓reduceIte]
+    rfl
+  · filter_upwards [hfoc t ht, h0] with ω e1 e2
+    rw [hgt (t + 1) (by omega)]
+    rcases eq_or_lt_of_le ht with h1 | h1
+    · subst h1
+      rw [e2]
+      exact e1
+    · rw [hgt t h1]
+      exact e1
+
+/-- **Woodford (2003), p. 541, necessity of (1.9) in the full form, under `PredInfo`**: if each
+random variable known at `t₀` is a.s. known at `t₀ − 1` (no news at `t₀`), every plan optimal
+subject to `Ẽ z_{t₀} = ē` solves `OptimalRulesMeasure.MFOCSystem` with an essentially bounded
+initial multiplier known at `t₀ − 1`. -/
+theorem m_foc_necessary_pred {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (hsolv : MFOCSolvableMB S P t0) (hpred : PredInfo S t0) {c : ℕ → Ω → ιz → ℝ}
+    (hcb : MBoundedV S c) (hca : MAdaptedV S c) {Z0 : Ω → ιZ → ℝ} {ebar : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : MOptimalSubjectTo S P c t0 Z0 ebar y) :
+    ∃ M0 : Ω → ιz → ℝ, MKnownV S (t0 - 1) M0 ∧ MBoundedRV S M0 ∧
+      ∃ φ, MFOCSystem S P c t0 Z0 M0 y φ := by
+  obtain ⟨M0, hk, ⟨K, hK⟩, φ, h⟩ := m_foc_necessary hsolv hcb hca hy
+  obtain ⟨M0', he, hk', φ', h'⟩ := mFOCSystem_of_I h fun r => hpred _ (hk r)
+  exact ⟨M0', hk', ⟨K, by filter_upwards [he, hK] with ω e1 e2; rw [e1]; exact e2⟩, φ', h'⟩
+
+/-- **Woodford (2003), p. 541, necessity of (1.9) in the full form at `t₀ = 0`**: every plan
+optimal subject to `Ẽ z₀ = ē` solves `OptimalRulesMeasure.MFOCSystem`. -/
+theorem m_foc_necessary_zero {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    (hsolv : MFOCSolvableMB S P 0) {c : ℕ → Ω → ιz → ℝ} (hcb : MBoundedV S c)
+    (hca : MAdaptedV S c) {Z0 : Ω → ιZ → ℝ} {ebar : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : MOptimalSubjectTo S P c 0 Z0 ebar y) :
+    ∃ M0 : Ω → ιz → ℝ, MKnownV S 0 M0 ∧ MBoundedRV S M0 ∧
+      ∃ φ, MFOCSystem S P c 0 Z0 M0 y φ := by
+  obtain ⟨M0, hk, ⟨K, hK⟩, φ, h⟩ := m_foc_necessary hsolv hcb hca hy
+  obtain ⟨M0', he, hk', φ', h'⟩ := mFOCSystem_of_I h fun r => (hk r).aestronglyMeasurable
+  exact ⟨M0', hk', ⟨K, by filter_upwards [he, hK] with ω e1 e2; rw [e1]; exact e2⟩, φ', h'⟩
+
+/-- **Woodford (2003), p. 541, necessity of (1.9) under the book's literal Assumption 8.1**
+(existence for every `Z_{t₀}`, `M_{t₀−1}` known at `t₀`, `OptimalRulesMeasure.MFOCSolvable`):
+every plan optimal subject to `Ẽ z_{t₀} = ē` solves the full `OptimalRulesMeasure.MFOCSystem`
+with an essentially bounded initial multiplier known at `t₀ − 1` (the book's assumption forces the
+needed multiplier to be predictable, `OptimalRulesMeasure.necessary_of_mFOCSystem`). -/
+theorem m_foc_necessary_book {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (hsolv : MFOCSolvable S P t0) {c : ℕ → Ω → ιz → ℝ} (hcb : MBoundedV S c)
+    (hca : MAdaptedV S c) {Z0 : Ω → ιZ → ℝ} {ebar : Ω → ιz → ℝ}
+    {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} (hy : MOptimalSubjectTo S P c t0 Z0 ebar y) :
+    ∃ M0 : Ω → ιz → ℝ, MKnownV S (t0 - 1) M0 ∧ MBoundedRV S M0 ∧
+      ∃ φ, MFOCSystem S P c t0 Z0 M0 y φ := by
+  have hMB : MFOCSolvableMB S P t0 := fun c' Z0' M0' hcb' hca' hZk _ _ hMk =>
+    hsolv c' Z0' M0' hcb' hca' hZk fun i => (hMk i).mono (S.𝓕.mono (Nat.sub_le t0 1))
+  obtain ⟨M0, hk, ⟨K, hK⟩, φ, h⟩ := m_foc_necessary hMB hcb hca hy
+  have hZk : MKnownV S t0 (fun ω => Zpart (y t0 ω)) := fun r => hy.1.2.2.2 t0 _
+  obtain ⟨y1, φ1, h1⟩ := hsolv c _ M0 hcb hca hZk hk
+  have hpre := (necessary_of_mFOCSystem h1).2.2
+  have hM : ∀ r, AEStronglyMeasurable[S.𝓕 (t0 - 1)] (fun ω => M0 ω r) S.μ := by
+    rcases Nat.eq_zero_or_pos t0 with h0 | h0
+    · subst h0
+      exact fun r => (hk r).aestronglyMeasurable
+    · exact hpre h0
+  obtain ⟨M0', he, hk', φ', h'⟩ := mFOCSystem_of_I h hM
+  exact ⟨M0', hk', ⟨K, by filter_upwards [he, hK] with ω e1 e2; rw [e1]; exact e2⟩, φ', h'⟩
+
+/-! ### The `t₀`-optimal plan -/
+
+/-- Woodford (2003), p. 538 and (1.8): `y` is `t₀`-optimal — a bounded feasible plan that
+minimises (1.2) a.s. among all bounded feasible plans from `t₀` (no initial constraint). -/
+def MT0Optimal (S : MeasExpectationSystem Ω) (P : LQProblem ιZ ιz ιτ) (c : ℕ → Ω → ιz → ℝ)
+    (t0 : ℕ) (Z0 : Ω → ιZ → ℝ) (y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ) : Prop :=
+  MFeasible S P c t0 Z0 y ∧ ∀ y', MFeasible S P c t0 Z0 y' → MJ S P t0 y ≤ᵐ[S.μ] MJ S P t0 y'
+
+/-- Woodford (2003), p. 541 and (1.8) (**sufficiency**): a solution of (1.1) + (1.9) with
+`M_{t₀−1} = 0` is `t₀`-optimal, on every filtered probability space. -/
+theorem m_t0Optimal_of_foc {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {c : ℕ → Ω → ιz → ℝ} {t0 : ℕ} {Z0 : Ω → ιZ → ℝ} {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    {φ : ℕ → Ω → ιZ ⊕ ιz → ℝ} (h : MFOCSystem S P c t0 Z0 0 y φ) :
+    MT0Optimal S P c t0 Z0 y := by
+  refine ⟨h.1, fun y' hy' => m_J_le_init (mFOCSystemI_of h) hy' (init_zero_of_M ?_ ?_)⟩
+  · filter_upwards [hy'.2.1, h.1.2.1] with ω e1 e2
+    rw [e1, e2]
+  · exact h.2.2.2.2.1
+
+/-- **Woodford (2003), p. 541 and (1.8), on every filtered probability space (necessity for the
+`t₀`-optimal plan)**: under Assumption 8.1 (existence half, corrected form), every `t₀`-optimal
+plan solves (1.1) + (1.9) a.s. with `M_{t₀−1} = 0` (the full `OptimalRulesMeasure.MFOCSystem`). -/
+theorem m_t0Optimal_foc_necessary {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ}
+    {t0 : ℕ} (hsolv : MFOCSolvableMB S P t0) {c : ℕ → Ω → ιz → ℝ} (hcb : MBoundedV S c)
+    (hca : MAdaptedV S c) {Z0 : Ω → ιZ → ℝ} {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ}
+    (hy : MT0Optimal S P c t0 Z0 y) : ∃ φ, MFOCSystem S P c t0 Z0 0 y φ := by
+  obtain ⟨hfe, hmin⟩ := hy
+  have hZk : MKnownV S t0 (fun ω => Zpart (y t0 ω)) := fun r => hfe.2.2.2 t0 _
+  obtain ⟨Ky, hKy⟩ := hfe.2.2.1
+  obtain ⟨y0, φ0, h0⟩ := hsolv c _ 0 hcb hca hZk ⟨Ky, (hKy t0).mono fun ω h r => h _⟩
+    ⟨0, Eventually.of_forall fun _ _ => by simp⟩ (fun _ => stronglyMeasurable_const)
+  have hin := init_zero_of_M (S := S) (P := P) (y := y) (ys := y0) (φ := φ0)
+    (h0.1.2.1.mono fun ω e => e.symm) h0.2.2.2.2.1
+  have hle := m_J_le_init (mFOCSystemI_of h0) hfe hin
+  have hge := hmin y0 (mFeasible_congr hfe.2.1 h0.1)
+  have hJ : MJ S P t0 y =ᵐ[S.μ] MJ S P t0 y0 := by
+    filter_upwards [hle, hge] with ω e1 e2
+    exact le_antisymm e2 e1
+  have htar := m_targets_eq_init (mFOCSystemI_of h0) hfe hin hJ
+  refine ⟨φ0, hfe, h0.2.1, h0.2.2.1, h0.2.2.2.1, h0.2.2.2.2.1, fun t ht => ?_⟩
+  filter_upwards [h0.2.2.2.2.2 t ht, htar t ht] with ω e1 e2
+  rw [e2]
+  exact e1
+
+/-- **Woodford (2003), p. 541 and (1.8): `t₀`-optimality ⟺ (1.1) + (1.9) with `M_{t₀−1} = 0`**, on
+every filtered probability space, under Assumption 8.1 (existence half, corrected form). -/
+theorem m_t0Optimal_iff {S : MeasExpectationSystem Ω} {P : LQProblem ιZ ιz ιτ} {t0 : ℕ}
+    (hsolv : MFOCSolvableMB S P t0) {c : ℕ → Ω → ιz → ℝ} (hcb : MBoundedV S c)
+    (hca : MAdaptedV S c) {Z0 : Ω → ιZ → ℝ} {y : ℕ → Ω → (ιZ ⊕ ιz) ⊕ Unit → ℝ} :
+    MT0Optimal S P c t0 Z0 y ↔ ∃ φ, MFOCSystem S P c t0 Z0 0 y φ :=
+  ⟨m_t0Optimal_foc_necessary hsolv hcb hca, fun ⟨_, h⟩ => m_t0Optimal_of_foc h⟩
+
+/-! ### The models of §3 -/
+
+/-- **Woodford (2003), §3.1, pp. 583–584, with p. 541: for the basic model on every filtered
+probability space, optimality subject to (1.6) ⟺ the first-order conditions** (no hypothesis
+beyond the admissible calibration and a bounded adapted disturbance; Assumption 8.1 from
+`OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB`). -/
+theorem nk_m_optimalSubjectTo_iff (c : IRuleBasic.Calib) (hc : c.Adm)
+    (S : MeasExpectationSystem Ω) (t0 : ℕ) {cd : ℕ → Ω → Fin 2 → ℝ} (hcb : MBoundedV S cd)
+    (hca : MAdaptedV S cd) {Z0 : Ω → Empty → ℝ} {ebar : Ω → Fin 2 → ℝ}
+    {y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ} :
+    MOptimalSubjectTo S (GeneralLinks.nkProblem c hc) cd t0 Z0 ebar y ↔
+      (∀ᵐ ω ∂S.μ, (GeneralLinks.nkProblem c hc).sys.Et *ᵥ zpart (y t0 ω) = ebar ω) ∧
+        ∃ M0 : Ω → Fin 2 → ℝ, MKnownV S t0 M0 ∧ MBoundedRV S M0 ∧
+          ∃ φ, MFOCSystemI S (GeneralLinks.nkProblem c hc) cd t0 Z0 M0 y φ :=
+  m_optimalSubjectTo_iff (OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB c hc S
+    t0).solvable hcb hca
+
+/-- **Woodford (2003), §3.2, pp. 592–593, with p. 541: for the inflation-inertia model
+(`0 < γ ≤ 1`) on every filtered probability space, optimality subject to (1.6) ⟺ the first-order
+conditions** (Assumption 8.1 from
+`OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB`). -/
+theorem in_m_optimalSubjectTo_iff (c : IRuleBasic.Calib) (γ : ℝ) (hc : c.Adm) (hγ0 : 0 < γ)
+    (hγ1 : γ ≤ 1) (S : MeasExpectationSystem Ω) (t0 : ℕ) {cd : ℕ → Ω → Fin 2 → ℝ}
+    (hcb : MBoundedV S cd) (hca : MAdaptedV S cd) {Z0 : Ω → Unit → ℝ} {ebar : Ω → Fin 2 → ℝ}
+    {y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ} :
+    MOptimalSubjectTo S (GeneralLinksInertia.inProblem c γ hc hγ0.le) cd t0 Z0 ebar y ↔
+      (∀ᵐ ω ∂S.μ, (GeneralLinksInertia.inProblem c γ hc hγ0.le).sys.Et *ᵥ zpart (y t0 ω) =
+        ebar ω) ∧
+        ∃ M0 : Ω → Fin 2 → ℝ, MKnownV S t0 M0 ∧ MBoundedRV S M0 ∧
+          ∃ φ, MFOCSystemI S (GeneralLinksInertia.inProblem c γ hc hγ0.le) cd t0 Z0 M0 y φ :=
+  m_optimalSubjectTo_iff (OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB c γ hc
+    hγ0 hγ1 S t0).solvable hcb hca
+
+end Woodford.OptimalPolicyRules.TidyR6bFOCMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The rule system of p. 593 on a probability space: existence for every `λₓ ≥ 0`
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §3.2, pp. 592–594: the inflation-inertia model
+(2.6) (corrected), (3.1) under commitment to the implicit instrument rule (3.16), on every filtered
+probability space with Mathlib's conditional expectation (`TidyR5aLambdaXZeroMeasure.RuleSolM`).
+
+`TidyR5aLambdaXZeroMeasure.rule_system_uniqueM` proves a.s. uniqueness for every `λₓ ≥ 0` and
+`TidyR5aLambdaXZeroMeasure.rule_system_existsUniqueM_lx0` existence at `λₓ = 0`. This module
+proves **existence for `λₓ > 0`** (every `0 ≤ γ ≤ 1`), porting `TidyRuleSystem.exists_pos` and
+`TidyRuleSystem.exists_zero` to conditional expectations: the bounded optimal plan exists on every
+probability space (`OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB`,
+`OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB`), its first-order conditions (3.15),
+(3.4), (3.5) hold a.s., and they give the rule (3.16) a.s.
+
+* `in_struct_atM`, `in_foc_atM`, `nk_struct_atM`, `nk_foc_atM`: the rows of (1.1) and (1.9) at
+  `(t, ω)` with conditional expectations (read through the perfect-foresight row lemmas at a
+  one-point sample space).
+* `E_aff22`, `euler_alg`, `eulerM_of_focs`: (3.15), (3.4), (3.5) ⇒ (3.16), a.s.
+* `existsM_pos` (`0 < γ ≤ 1`), `existsM_zero` (`γ = 0`): existence for every essentially bounded
+  adapted disturbance and history.
+* `rule_system_existsM`, `rule_system_existsUniqueM`: existence and a.s. uniqueness for
+  `λₓ > 0`, `0 ≤ γ ≤ 1`; `rule_system_existsUniqueM_nonneg`: **for every `λₓ ≥ 0`**;
+  `rule_system_existsM_iff`: a solution exists iff the history is essentially bounded and known
+  at the right dates.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure
+
+open MeasureTheory Filter Matrix GeneralSetup GeneralFOC GeneralFOC.LQ
+open ExpectationsMeasure OptimalRulesMeasure
+open TidyR5aLambdaXZeroMeasure (ASm ISm EulerM fbigM BndM AdaptedM RuleSolM HistoryM E_lin4
+  integrable_of_sm)
+open InflationInertiaRules (ALi qtil)
+open GeneralLinks (piOf xOf iOf cNK)
+open GeneralLinksInertia (inProblem Zof)
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+
+/-! ### Tools -/
+
+/-- Woodford (2003), p. 540 (tool): `E_t(a₁f₁ + a₂f₂ + b₁g₁ + b₂g₂ + b₃g₃ + k) =
+a₁E_tf₁ + a₂E_tf₂ + b₁g₁ + b₂g₂ + b₃g₃ + k` a.s. for integrable `fᵢ` and integrable `gⱼ` known
+at `t`. -/
+theorem E_aff22 (S : MeasExpectationSystem Ω) (t : ℕ) (a1 a2 b1 b2 b3 k : ℝ)
+    {f1 f2 g1 g2 g3 : Ω → ℝ} (h1 : Integrable f1 S.μ) (h2 : Integrable f2 S.μ)
+    (k1 : StronglyMeasurable[S.𝓕 t] g1) (k2 : StronglyMeasurable[S.𝓕 t] g2)
+    (k3 : StronglyMeasurable[S.𝓕 t] g3) (i1 : Integrable g1 S.μ) (i2 : Integrable g2 S.μ)
+    (i3 : Integrable g3 S.μ) :
+    ∀ᵐ ω ∂S.μ, S.E t (fun ω => a1 * f1 ω + a2 * f2 ω + b1 * g1 ω + b2 * g2 ω + b3 * g3 ω + k) ω =
+      a1 * S.E t f1 ω + a2 * S.E t f2 ω + b1 * g1 ω + b2 * g2 ω + b3 * g3 ω + k := by
+  have hk : StronglyMeasurable[S.𝓕 t] (fun ω => b1 * g1 ω + b2 * g2 ω + b3 * g3 ω + k) :=
+    (((k1.const_mul b1).add (k2.const_mul b2)).add (k3.const_mul b3)).add
+      stronglyMeasurable_const
+  have hki : Integrable (fun ω => b1 * g1 ω + b2 * g2 ω + b3 * g3 ω + k) S.μ :=
+    (((i1.const_mul b1).add (i2.const_mul b2)).add (i3.const_mul b3)).add (integrable_const k)
+  have hfi : Integrable (fun ω => a1 * f1 ω + a2 * f2 ω + 0 * f1 ω + 0 * f1 ω) S.μ :=
+    (((h1.const_mul a1).add (h2.const_mul a2)).add (h1.const_mul 0)).add (h1.const_mul 0)
+  have e : (fun ω => a1 * f1 ω + a2 * f2 ω + b1 * g1 ω + b2 * g2 ω + b3 * g3 ω + k) =
+      (fun ω => a1 * f1 ω + a2 * f2 ω + 0 * f1 ω + 0 * f1 ω) +
+        fun ω => b1 * g1 ω + b2 * g2 ω + b3 * g3 ω + k := by
+    funext ω
+    simp only [Pi.add_apply]
+    ring
+  rw [e]
+  filter_upwards [S.E_add hfi hki t, E_lin4 S t a1 a2 0 0 h1 h2 h1 h1] with ω e1 e2
+  rw [e1, Pi.add_apply, e2, S.E_of_stronglyMeasurable hk hki]
+  ring
+
+/-- Woodford (2003), eqs. (3.15), (3.4), (3.5) ⇒ (3.16), pp. 592–593 (the algebra, as in
+`InflationInertiaRules.foc315_iff_euler`): with the multipliers substituted from (3.4)–(3.5),
+(3.15) at date `t + 2` is the Euler equation (3.16) at `t + 2`, in terms of the date-`t + 2`
+forecasts `E i_{t+3}`, `E x_{t+3}`, `E π_{t+3}`. -/
+theorem euler_alg {β γ κ σ lx li xstar istar : ℝ} (hβ : β ≠ 0) (hκ : κ ≠ 0) (hσ : σ ≠ 0)
+    (hli : li ≠ 0) (Ei3 Ex3 Eπ3 i0 i1 i2 x1 x2 π1 π2 : ℝ)
+    (h : π2 - γ * π1 - β * γ * (Eπ3 - γ * π2) - β⁻¹ * σ * (-(li / σ) * (i1 - istar)) -
+      β * γ * ((lx * (Ex3 - xstar) + (-(li / σ)) * (Ei3 - istar) -
+        β⁻¹ * (-(li / σ) * (i2 - istar))) / κ) +
+      (1 + β * γ) * ((lx * (x2 - xstar) + (-(li / σ)) * (i2 - istar) -
+        β⁻¹ * (-(li / σ) * (i1 - istar))) / κ) -
+      (lx * (x1 - xstar) + (-(li / σ)) * (i1 - istar) - β⁻¹ * (-(li / σ) * (i0 - istar))) / κ =
+        0) :
+    β * γ * (Ei3 - istar) - (1 + γ + β * γ) * (i2 - istar) +
+        CubicRoots.coefA2 β γ κ σ * (i1 - istar) - β⁻¹ * (i0 - istar) =
+      -(κ * σ / li * ((π2 - γ * π1) + lx / κ * (x2 - x1)) -
+        β * γ * (κ * σ / li * ((Eπ3 - γ * π2) + lx / κ * (Ex3 - x2)))) := by
+  unfold CubicRoots.coefA2
+  field_simp at h ⊢
+  linear_combination h
+
+/-- **Woodford (2003), eqs. (3.15), (3.4), (3.5) ⇒ (3.16), pp. 592–593, with conditional
+expectations**: for essentially bounded adapted `π, x, i` and an integrable multiplier `Ξ₂`, with
+`Ξ₁ = −(λᵢ/σ)(i − i*)` ((3.5)), (3.4) a.s. at `t + 1, t + 2, t + 3` and (3.15) a.s. at `t + 2`, the
+Euler equation (3.16) holds a.s. at `t + 2`. -/
+theorem eulerM_of_focs (S : MeasExpectationSystem Ω) {β γ κ σ lx li xstar istar : ℝ}
+    (hβ : β ≠ 0) (hκ : κ ≠ 0) (hσ : σ ≠ 0) (hli : li ≠ 0) {π x i Ξ2 : ℕ → Ω → ℝ}
+    (hπa : AdaptedM S π) (hxa : AdaptedM S x) (hia : AdaptedM S i)
+    (hπi : ∀ k, Integrable (π k) S.μ) (hxi : ∀ k, Integrable (x k) S.μ)
+    (hii : ∀ k, Integrable (i k) S.μ) (t : ℕ)
+    (h4 : ∀ k, t + 1 ≤ k → k ≤ t + 3 → ∀ᵐ ω ∂S.μ, lx * (x k ω - xstar) +
+      -(li / σ) * (i k ω - istar) - β⁻¹ * (-(li / σ) * (i (k - 1) ω - istar)) - κ * Ξ2 k ω = 0)
+    (h15 : ∀ᵐ ω ∂S.μ, π (t + 2) ω - γ * π (t + 1) ω -
+      β * γ * S.E (t + 2) (fun ω' => π (t + 3) ω' - γ * π (t + 2) ω') ω -
+      β⁻¹ * σ * (-(li / σ) * (i (t + 1) ω - istar)) - β * γ * S.E (t + 2) (Ξ2 (t + 3)) ω +
+      (1 + β * γ) * Ξ2 (t + 2) ω - Ξ2 (t + 1) ω = 0) :
+    EulerM S β γ κ σ (fun k ω => i k ω - istar) (fbigM S β γ κ σ lx li π x) t := by
+  -- `Ξ₂` at `t + 3` in terms of the target variables
+  have hX3 : Ξ2 (t + 3) =ᵐ[S.μ] fun ω => lx / κ * x (t + 3) ω + (-(li / σ) / κ) * i (t + 3) ω +
+      (β⁻¹ * (li / σ) / κ) * i (t + 2) ω + 0 * i (t + 2) ω + 0 * i (t + 2) ω +
+        (-(lx * xstar) + li / σ * istar - β⁻¹ * (li / σ) * istar) / κ := by
+    filter_upwards [h4 (t + 3) (by omega) le_rfl] with ω e
+    rw [show t + 3 - 1 = t + 2 by omega] at e
+    have h : Ξ2 (t + 3) ω = (lx * (x (t + 3) ω - xstar) + -(li / σ) * (i (t + 3) ω - istar) -
+        β⁻¹ * (-(li / σ) * (i (t + 2) ω - istar))) / κ := by
+      rw [eq_div_iff hκ]
+      linear_combination -e
+    rw [h]
+    ring
+  have hEX := S.E_congr hX3 (t + 2)
+  have hEX' := E_aff22 S (t + 2) (lx / κ) (-(li / σ) / κ) (β⁻¹ * (li / σ) / κ) 0 0
+    ((-(lx * xstar) + li / σ * istar - β⁻¹ * (li / σ) * istar) / κ) (hxi (t + 3)) (hii (t + 3))
+    (hia (t + 2)) (hia (t + 2)) (hia (t + 2)) (hii (t + 2)) (hii (t + 2)) (hii (t + 2))
+  have hEπ := E_aff22 S (t + 2) 1 0 (-γ) 0 0 0 (hπi (t + 3)) (hπi (t + 3)) (hπa (t + 2))
+    (hπa (t + 2)) (hπa (t + 2)) (hπi (t + 2)) (hπi (t + 2)) (hπi (t + 2))
+  have eπ : (fun ω' => π (t + 3) ω' - γ * π (t + 2) ω') = fun ω => 1 * π (t + 3) ω +
+      0 * π (t + 3) ω + (-γ) * π (t + 2) ω + 0 * π (t + 2) ω + 0 * π (t + 2) ω + 0 := by
+    funext ω
+    ring
+  have hEq := E_aff22 S (t + 2) (κ * σ / li) (κ * σ / li * (lx / κ)) (-(κ * σ / li * γ))
+    (-(κ * σ / li * (lx / κ))) 0 0 (hπi (t + 3)) (hxi (t + 3)) (hπa (t + 2)) (hxa (t + 2))
+    (hxa (t + 2)) (hπi (t + 2)) (hxi (t + 2)) (hxi (t + 2))
+  have eq3 : qtil γ κ σ lx li π x (t + 2 + 1) = fun ω => κ * σ / li * π (t + 3) ω +
+      κ * σ / li * (lx / κ) * x (t + 3) ω + (-(κ * σ / li * γ)) * π (t + 2) ω +
+      (-(κ * σ / li * (lx / κ))) * x (t + 2) ω + 0 * x (t + 2) ω + 0 := by
+    funext ω
+    unfold qtil
+    rw [show t + 2 + 1 - 1 = t + 2 by omega, show t + 2 + 1 = t + 3 by omega]
+    ring
+  have hEA := E_aff22 S (t + 2) (β * γ) 0 (-(1 + γ + β * γ)) (CubicRoots.coefA2 β γ κ σ) (-β⁻¹)
+    (-(β * γ) * istar + (1 + γ + β * γ) * istar - CubicRoots.coefA2 β γ κ σ * istar +
+      β⁻¹ * istar) (hii (t + 3)) (hii (t + 3)) (hia (t + 2))
+    ((hia (t + 1)).mono (S.𝓕.mono (by omega))) ((hia t).mono (S.𝓕.mono (by omega)))
+    (hii (t + 2)) (hii (t + 1)) (hii t)
+  have eA : ALi β γ κ σ (fun k ω => i k ω - istar) t = fun ω => β * γ * i (t + 3) ω +
+      0 * i (t + 3) ω + (-(1 + γ + β * γ)) * i (t + 2) ω +
+      CubicRoots.coefA2 β γ κ σ * i (t + 1) ω + (-β⁻¹) * i t ω +
+      (-(β * γ) * istar + (1 + γ + β * γ) * istar - CubicRoots.coefA2 β γ κ σ * istar +
+        β⁻¹ * istar) := by
+    funext ω
+    unfold ALi
+    ring
+  filter_upwards [h15, hEX, hEX', hEπ, hEq, hEA, h4 (t + 2) (by omega) (by omega),
+    h4 (t + 1) le_rfl (by omega)] with ω e15 eX eX' eπ' eq' eA' e2 e1
+  rw [eπ, eπ', eX, eX'] at e15
+  rw [show t + 2 - 1 = t + 1 by omega] at e2
+  rw [show t + 1 - 1 = t by omega] at e1
+  have hΞ2 : Ξ2 (t + 2) ω = (lx * (x (t + 2) ω - xstar) + -(li / σ) * (i (t + 2) ω - istar) -
+      β⁻¹ * (-(li / σ) * (i (t + 1) ω - istar))) / κ := by
+    rw [eq_div_iff hκ]
+    linear_combination -e2
+  have hΞ1 : Ξ2 (t + 1) ω = (lx * (x (t + 1) ω - xstar) + -(li / σ) * (i (t + 1) ω - istar) -
+      β⁻¹ * (-(li / σ) * (i t ω - istar))) / κ := by
+    rw [eq_div_iff hκ]
+    linear_combination -e1
+  rw [hΞ2, hΞ1] at e15
+  unfold fbigM
+  rw [eA, eA', eq3, eq']
+  have key := euler_alg (γ := γ) (lx := lx) (xstar := xstar) (istar := istar) hβ hκ hσ hli
+    (S.E (t + 2) (i (t + 3)) ω) (S.E (t + 2) (x (t + 3)) ω) (S.E (t + 2) (π (t + 3)) ω)
+    (i t ω) (i (t + 1) ω) (i (t + 2) ω) (x (t + 1) ω) (x (t + 2) ω) (π (t + 1) ω) (π (t + 2) ω)
+    (by linear_combination e15)
+  unfold qtil
+  rw [show t + 2 - 1 = t + 1 by omega]
+  linear_combination key
+
+/-! ### The rows of (1.1) and (1.9) with conditional expectations -/
+
+/-- Woodford (2003), (1.1) for the inflation-inertia model at `(t, ω)` with conditional
+expectations: `Z_{t+1} = π_t`, `βE_tπ_{t+1} = −γZ_t + (1 + βγ)π_t − κx_t + c₀` and
+`σE_tπ_{t+1} + E_tx_{t+1} = x_t + σi_t + c₁` (the perfect-foresight row lemma
+`InertiaFOCSystem.in_struct_at` read at a one-point sample space whose date-`t + 1` vector carries
+the conditional forecasts). -/
+theorem in_struct_atM (c : IRuleBasic.Calib) (γ : ℝ) (hc : c.Adm) (hγ : 0 ≤ γ)
+    (S : MeasExpectationSystem Ω) (cd : ℕ → Ω → Fin 2 → ℝ)
+    (y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ) (t : ℕ) (ω : Ω)
+    (h1 : Zpart (y (t + 1) ω) = (inProblem c γ hc hγ).sys.A11 *ᵥ Zpart (y t ω) +
+        (inProblem c γ hc hγ).sys.A12 *ᵥ zpart (y t ω))
+    (h2 : (inProblem c γ hc hγ).sys.Et *ᵥ EVm S t (fun ω' => zpart (y (t + 1) ω')) ω =
+        (inProblem c γ hc hγ).sys.A21 *ᵥ Zpart (y t ω) +
+          (inProblem c γ hc hγ).sys.A22 *ᵥ zpart (y t ω) +
+          ipart (y t ω) • (inProblem c γ hc hγ).sys.B2 + cd t ω) :
+    Zof y (t + 1) ω = piOf y t ω ∧
+        c.β * S.E t (piOf y (t + 1)) ω =
+          -γ * Zof y t ω + (1 + c.β * γ) * piOf y t ω - c.κ * xOf y t ω + cd t ω 0 ∧
+        c.σ * S.E t (piOf y (t + 1)) ω + S.E t (xOf y (t + 1)) ω =
+          xOf y t ω + c.σ * iOf y t ω + cd t ω 1 := by
+  let v1 : (Unit ⊕ Fin 2) ⊕ Unit → ℝ := Sum.elim (Sum.elim (Zpart (y (t + 1) ω))
+    (EVm S t (fun ω' => zpart (y (t + 1) ω')) ω)) (fun _ => 0)
+  let y' : ℕ → Unit → (Unit ⊕ Fin 2) ⊕ Unit → ℝ := fun s _ => match s with
+    | 0 => y t ω
+    | _ + 1 => v1
+  exact (InertiaFOCSystem.in_struct_at c γ hc hγ perfectForesight (fun _ _ => cd t ω) y' 0
+    ()).mp ⟨h1, h2⟩
+
+/-- Woodford (2003), (1.9) for the inflation-inertia model at `(t, ω)` with conditional
+expectations, pp. 541 and 592: the rows of `Z`, `π`, `x` and `i`, with the date-`t` forecasts of
+`φ_{t+1}` (`GeneralLinksInertia.in_foc_at_iff` read at a one-point sample space). -/
+theorem in_foc_atM (c : IRuleBasic.Calib) (γ : ℝ) (hc : c.Adm) (hγ : 0 ≤ γ)
+    (S : MeasExpectationSystem Ω) (y : ℕ → Ω → (Unit ⊕ Fin 2) ⊕ Unit → ℝ)
+    (φ : ℕ → Ω → Unit ⊕ Fin 2 → ℝ) (t : ℕ) (ω : Ω)
+    (h : (inProblem c γ hc hγ).sys.Atilᵀ *ᵥ EVm S t (φ (t + 1)) ω +
+      (inProblem c γ hc hγ).Tᵀ *ᵥ ((inProblem c γ hc hγ).W *ᵥ ((inProblem c γ hc hγ).T *ᵥ y t ω -
+        (inProblem c γ hc hγ).τstar)) - (inProblem c γ hc hγ).β⁻¹ •
+          ((inProblem c γ hc hγ).sys.Itilᵀ *ᵥ φ t ω) = 0) :
+    -γ * S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 0)) ω - γ * (piOf y t ω - γ * Zof y t ω) -
+        c.β⁻¹ * φ t ω (Sum.inl ()) = 0 ∧
+      S.E t (fun ω' => φ (t + 1) ω' (Sum.inl ())) ω +
+        (1 + c.β * γ) * S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 0)) ω +
+        (piOf y t ω - γ * Zof y t ω) - c.β⁻¹ * (c.β * φ t ω (Sum.inr 0) +
+          c.σ * φ t ω (Sum.inr 1)) = 0 ∧
+      -c.κ * S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 0)) ω +
+        S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 1)) ω + c.lx * (xOf y t ω - c.xstar) -
+        c.β⁻¹ * φ t ω (Sum.inr 1) = 0 ∧
+      c.σ * S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 1)) ω + c.li * (iOf y t ω - c.istar) = 0 := by
+  let φ' : ℕ → Unit → Unit ⊕ Fin 2 → ℝ := fun s _ => match s with
+    | 0 => φ t ω
+    | _ + 1 => EVm S t (φ (t + 1)) ω
+  exact (GeneralLinksInertia.in_foc_at_iff c γ hc hγ perfectForesight (fun _ _ => y t ω)
+    (φ := φ') (fun _ _ => rfl) 0 ()).mp h
+
+/-- Woodford (2003), (2.1) and (3.1) as (1.1) for the basic model at `(t, ω)` with conditional
+expectations (`NKAssumption81.NK.nk_struct_at` read at a one-point sample space). -/
+theorem nk_struct_atM (c : IRuleBasic.Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω)
+    (cd : ℕ → Ω → Fin 2 → ℝ) (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ) (t : ℕ) (ω : Ω)
+    (h2 : (GeneralLinks.nkProblem c hc).sys.Et *ᵥ EVm S t (fun ω' => zpart (y (t + 1) ω')) ω =
+        (GeneralLinks.nkProblem c hc).sys.A21 *ᵥ Zpart (y t ω) +
+          (GeneralLinks.nkProblem c hc).sys.A22 *ᵥ zpart (y t ω) +
+          ipart (y t ω) • (GeneralLinks.nkProblem c hc).sys.B2 + cd t ω) :
+    c.β * S.E t (piOf y (t + 1)) ω = piOf y t ω - c.κ * xOf y t ω + cd t ω 0 ∧
+      c.σ * S.E t (piOf y (t + 1)) ω + S.E t (xOf y (t + 1)) ω =
+        xOf y t ω + c.σ * iOf y t ω + cd t ω 1 := by
+  let v1 : (Empty ⊕ Fin 2) ⊕ Unit → ℝ := Sum.elim (Sum.elim (Zpart (y (t + 1) ω))
+    (EVm S t (fun ω' => zpart (y (t + 1) ω')) ω)) (fun _ => 0)
+  let y' : ℕ → Unit → (Empty ⊕ Fin 2) ⊕ Unit → ℝ := fun s _ => match s with
+    | 0 => y t ω
+    | _ + 1 => v1
+  exact (NKAssumption81.NK.nk_struct_at c hc.2.2.1.ne' perfectForesight (fun _ _ => cd t ω) y'
+    0 ()).mp h2
+
+/-- Woodford (2003), (3.3)–(3.5) as (1.9) for the basic model at `(t, ω)` with conditional
+expectations, p. 584 (`GeneralLinks.nk_foc_at_iff` read at a one-point sample space). -/
+theorem nk_foc_atM (c : IRuleBasic.Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω)
+    (y : ℕ → Ω → (Empty ⊕ Fin 2) ⊕ Unit → ℝ) (φ : ℕ → Ω → Empty ⊕ Fin 2 → ℝ) (t : ℕ) (ω : Ω)
+    (h : (GeneralLinks.nkProblem c hc).sys.Atilᵀ *ᵥ EVm S t (φ (t + 1)) ω +
+      (GeneralLinks.nkProblem c hc).Tᵀ *ᵥ ((GeneralLinks.nkProblem c hc).W *ᵥ
+        ((GeneralLinks.nkProblem c hc).T *ᵥ y t ω - (GeneralLinks.nkProblem c hc).τstar)) -
+        (GeneralLinks.nkProblem c hc).β⁻¹ •
+          ((GeneralLinks.nkProblem c hc).sys.Itilᵀ *ᵥ φ t ω) = 0) :
+    piOf y t ω - c.σ / c.β * φ t ω (Sum.inr 1) + S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 0)) ω -
+        φ t ω (Sum.inr 0) = 0 ∧
+      c.lx * (xOf y t ω - c.xstar) + S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 1)) ω -
+        c.β⁻¹ * φ t ω (Sum.inr 1) - c.κ * S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 0)) ω = 0 ∧
+      c.li * (iOf y t ω - c.istar) + c.σ * S.E t (fun ω' => φ (t + 1) ω' (Sum.inr 1)) ω = 0 := by
+  let φ' : ℕ → Unit → Empty ⊕ Fin 2 → ℝ := fun s _ => match s with
+    | 0 => φ t ω
+    | _ + 1 => EVm S t (φ (t + 1)) ω
+  exact (GeneralLinks.nk_foc_at_iff c hc perfectForesight (fun _ _ => y t ω) (φ := φ')
+    (fun _ _ => rfl) 0 ()).mp h
+
+/-! ### Data: disturbances and pre-sample multipliers -/
+
+/-- Woodford (2003), (2.1)/(2.6), (3.1) as (1.1) (tool): the disturbance vector `cNK` of
+essentially bounded disturbances is essentially bounded. -/
+theorem cNK_bddM (c : IRuleBasic.Calib) {S : MeasExpectationSystem Ω} {u rn : ℕ → Ω → ℝ}
+    (hub : BndM S u) (hrb : BndM S rn) : MBoundedV S (cNK c u rn) := by
+  obtain ⟨Cu, hCu⟩ := hub
+  obtain ⟨Cr, hCr⟩ := hrb
+  refine ⟨Cu + |c.σ| * Cr, fun t => ?_⟩
+  filter_upwards [hCu t, hCr t] with ω h1 h2 j
+  have h3 := mul_le_mul_of_nonneg_left h2 (abs_nonneg c.σ)
+  have h4 : 0 ≤ |c.σ| * |rn t ω| := by positivity
+  have h5 : 0 ≤ |u t ω| := abs_nonneg _
+  fin_cases j
+  · change |-u t ω| ≤ _
+    rw [abs_neg]
+    linarith
+  · change |-(c.σ * rn t ω)| ≤ _
+    rw [abs_neg, abs_mul]
+    linarith
+
+/-- Woodford (2003), (2.1)/(2.6), (3.1) as (1.1) (tool): the disturbance vector `cNK` of adapted
+disturbances is adapted. -/
+theorem cNK_adaptedM (c : IRuleBasic.Calib) {S : MeasExpectationSystem Ω} {u rn : ℕ → Ω → ℝ}
+    (hua : AdaptedM S u) (hra : AdaptedM S rn) : MAdaptedV S (cNK c u rn) := by
+  intro t j
+  fin_cases j
+  · exact (hua t).neg
+  · exact ((hra t).const_mul c.σ).neg
+
+/-- Woodford (2003), (3.5), p. 584: the pre-sample multiplier `Ξ₁,₁ = −(λᵢ/σ)(i₁ − i*)` inferred
+from the history. -/
+noncomputable def X1of (c : IRuleBasic.Calib) (i1 : Ω → ℝ) : Ω → ℝ :=
+  fun ω => -(c.li / c.σ) * (i1 ω - c.istar)
+
+/-- Woodford (2003), (3.4)–(3.5), p. 584: the pre-sample multiplier
+`Ξ₂,₁ = (λₓ(x₁ − x*) + Ξ₁,₁ − β⁻¹Ξ₁,₀)/κ` inferred from the history. -/
+noncomputable def X2of (c : IRuleBasic.Calib) (x1 i1 i0 : Ω → ℝ) : Ω → ℝ :=
+  fun ω => (c.lx * (x1 ω - c.xstar) + X1of c i1 ω - c.β⁻¹ * (-(c.li / c.σ) * (i0 ω - c.istar))) /
+    c.κ
+
+/-- Woodford (2003), p. 593: the pre-sample multipliers `M₁ = (Ξ₂,₁, Ξ₁,₁)` inferred from the
+history `(x₁, i₁, i₀)`. -/
+noncomputable def M0of (c : IRuleBasic.Calib) (x1 i1 i0 : Ω → ℝ) : Ω → Fin 2 → ℝ :=
+  fun ω => ![X2of c x1 i1 i0 ω, X1of c i1 ω]
+
+/-- Woodford (2003), p. 593 (tool): an affine combination of three random variables bounded by
+`K` is bounded by `|a|K + |b|K + |d|K + |e|`. -/
+theorem abs_lin3_le {f g h K a b d e : ℝ} (hf : |f| ≤ K) (hg : |g| ≤ K) (hh : |h| ≤ K) :
+    |a * f + b * g + d * h + e| ≤ |a| * K + |b| * K + |d| * K + |e| := by
+  have e1 := abs_add_le (a * f + b * g + d * h) e
+  have e2 := abs_add_le (a * f + b * g) (d * h)
+  have e3 := abs_add_le (a * f) (b * g)
+  rw [abs_mul] at e2 e3
+  rw [abs_mul] at e3
+  have m1 := mul_le_mul_of_nonneg_left hf (abs_nonneg a)
+  have m2 := mul_le_mul_of_nonneg_left hg (abs_nonneg b)
+  have m3 := mul_le_mul_of_nonneg_left hh (abs_nonneg d)
+  linarith
+
+/-- Woodford (2003), p. 593: for an essentially bounded history known at the right dates, the
+pre-sample multipliers `M₁` are essentially bounded and known at date 1. -/
+theorem M0of_spec (c : IRuleBasic.Calib) {S : MeasExpectationSystem Ω} {p1 x1 i1 i0 : Ω → ℝ}
+    (hh : HistoryM S p1 x1 i1 i0) : MKnownV S 1 (M0of c x1 i1 i0) ∧
+      MBoundedRV S (M0of c x1 i1 i0) := by
+  obtain ⟨-, hx1, hi1, hi0, K, hK⟩ := hh
+  have hi0' : StronglyMeasurable[S.𝓕 1] i0 := hi0.mono (S.𝓕.mono (by norm_num))
+  have eX1 : X1of c i1 = fun ω => -(c.li / c.σ) * i1 ω + 0 * x1 ω + 0 * i0 ω +
+      c.li / c.σ * c.istar := by
+    funext ω
+    simp only [X1of]
+    ring
+  have eX2 : X2of c x1 i1 i0 = fun ω => c.lx / c.κ * x1 ω + (-(c.li / c.σ) / c.κ) * i1 ω +
+      (c.β⁻¹ * (c.li / c.σ) / c.κ) * i0 ω +
+        (-(c.lx * c.xstar) + c.li / c.σ * c.istar - c.β⁻¹ * (c.li / c.σ) * c.istar) / c.κ := by
+    funext ω
+    simp only [X2of, X1of]
+    ring
+  refine ⟨fun j => ?_, ⟨max (|-(c.li / c.σ)| * K + |0| * K + |0| * K + |c.li / c.σ * c.istar|)
+    (|c.lx / c.κ| * K + |-(c.li / c.σ) / c.κ| * K + |c.β⁻¹ * (c.li / c.σ) / c.κ| * K +
+      |(-(c.lx * c.xstar) + c.li / c.σ * c.istar - c.β⁻¹ * (c.li / c.σ) * c.istar) / c.κ|), ?_⟩⟩
+  · fin_cases j
+    · change StronglyMeasurable[S.𝓕 1] (X2of c x1 i1 i0)
+      rw [eX2]
+      exact (((hx1.const_mul _).add (hi1.const_mul _)).add (hi0'.const_mul _)).add
+        stronglyMeasurable_const
+    · change StronglyMeasurable[S.𝓕 1] (X1of c i1)
+      rw [eX1]
+      exact (((hi1.const_mul _).add (hx1.const_mul _)).add (hi0'.const_mul _)).add
+        stronglyMeasurable_const
+  · filter_upwards [hK] with ω h j
+    obtain ⟨-, h2, h3, h4⟩ := h
+    fin_cases j
+    · change |X2of c x1 i1 i0 ω| ≤ _
+      rw [eX2]
+      exact (abs_lin3_le h2 h3 h4).trans (le_max_right _ _)
+    · change |X1of c i1 ω| ≤ _
+      rw [eX1]
+      exact (abs_lin3_le h3 h2 h4).trans (le_max_left _ _)
+
+/-! ### Existence for `0 < γ ≤ 1` -/
+
+/-- **Woodford (2003), p. 593, on a filtered probability space: existence for `0 < γ ≤ 1` and
+`λₓ > 0`.** For every essentially bounded adapted disturbance `(u, rⁿ)` and every essentially
+bounded history `(π₁, x₁, i₁, i₀)` (`π₁, x₁, i₁` known at 1, `i₀` at 0), the rule system (2.6),
+(3.1), (3.16) has an essentially bounded adapted solution with that history, with Mathlib's
+conditional expectation: the bounded optimal plan from `t₀ = 2`
+(`OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB`) with `Z₂ = π₁` and `M₁`
+inferred from `(x₁, i₁, i₀)` (`M0of`), with the history glued in at dates 0 and 1. -/
+theorem existsM_pos (c : IRuleBasic.Calib) (hc : c.Adm) {γ : ℝ} (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+    (S : MeasExpectationSystem Ω) {u rn : ℕ → Ω → ℝ} (hua : AdaptedM S u) (hub : BndM S u)
+    (hra : AdaptedM S rn) (hrb : BndM S rn) {p1 x1 i1 i0 : Ω → ℝ}
+    (hh : HistoryM S p1 x1 i1 i0) : ∃ π x i, RuleSolM S c γ u rn p1 x1 i1 i0 π x i := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  have hκ : c.κ ≠ 0 := hc.2.2.2.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  have hb' : c.β⁻¹ * c.β = 1 := inv_mul_cancel₀ hβ
+  have hb : c.β * c.β⁻¹ = 1 := mul_inv_cancel₀ hβ
+  obtain ⟨hMk, hMb⟩ := M0of_spec c hh
+  obtain ⟨hp1, hx1, hi1, hi0, K, hK⟩ := hh
+  set Z0 : Ω → Unit → ℝ := fun ω _ => p1 ω with hZ0d
+  have hZk : MKnownV S 2 Z0 := fun _ => hp1.mono (S.𝓕.mono (by norm_num))
+  have hZb : MBoundedRV S Z0 := ⟨K, hK.mono fun ω h _ => h.1⟩
+  obtain ⟨y, φ, hs⟩ := (OptimalRulesMeasureStabilityModels.Inertia.in_m_assumption81MB c γ hc
+    hγ0 hγ1 S 2).solvable (cNK c u rn) Z0 (M0of c x1 i1 i0) (cNK_bddM c hub hrb)
+    (cNK_adaptedM c hua hra) hZk hZb hMb hMk
+  obtain ⟨⟨hst, hZ0, ⟨My, hMy⟩, hya⟩, ⟨Kφ, hKφ⟩, hφm, hM, hMe, hfoc⟩ := hs
+  -- the rows
+  have hS : ∀ k, 2 ≤ k → ∀ᵐ ω ∂S.μ, Zof y (k + 1) ω = piOf y k ω ∧
+      c.β * S.E k (piOf y (k + 1)) ω =
+        -γ * Zof y k ω + (1 + c.β * γ) * piOf y k ω - c.κ * xOf y k ω + cNK c u rn k ω 0 ∧
+      c.σ * S.E k (piOf y (k + 1)) ω + S.E k (xOf y (k + 1)) ω =
+        xOf y k ω + c.σ * iOf y k ω + cNK c u rn k ω 1 := fun k hk => by
+    filter_upwards [(hst k hk).1, (hst k hk).2] with ω e1 e2
+    exact in_struct_atM c γ hc hγ0.le S _ y k ω e1 e2
+  have hφi : ∀ k j, Integrable (fun ω => φ k ω j) S.μ := fun k j =>
+    integrable_of_bound (hφm k j) ((hKφ k).mono fun ω h => h j)
+  have hEM : ∀ k j, S.E k (fun ω' => φ (k + 1) ω' (Sum.inr j)) =
+      fun ω' => φ (k + 1) ω' (Sum.inr j) := fun k j =>
+    S.E_of_stronglyMeasurable (hM k j) (hφi _ _)
+  have hF : ∀ k, 2 ≤ k → ∀ᵐ ω ∂S.μ,
+      -γ * φ (k + 1) ω (Sum.inr 0) - γ * (piOf y k ω - γ * Zof y k ω) -
+        c.β⁻¹ * φ k ω (Sum.inl ()) = 0 ∧
+      S.E k (fun ω' => φ (k + 1) ω' (Sum.inl ())) ω + (1 + c.β * γ) * φ (k + 1) ω (Sum.inr 0) +
+        (piOf y k ω - γ * Zof y k ω) - c.β⁻¹ * (c.β * φ k ω (Sum.inr 0) +
+          c.σ * φ k ω (Sum.inr 1)) = 0 ∧
+      -c.κ * φ (k + 1) ω (Sum.inr 0) + φ (k + 1) ω (Sum.inr 1) + c.lx * (xOf y k ω - c.xstar) -
+        c.β⁻¹ * φ k ω (Sum.inr 1) = 0 ∧
+      c.σ * φ (k + 1) ω (Sum.inr 1) + c.li * (iOf y k ω - c.istar) = 0 := fun k hk =>
+    (hfoc k hk).mono fun ω e => by
+      have := in_foc_atM c γ hc hγ0.le S y φ k ω e
+      simp only [hEM] at this
+      exact this
+  -- the glued processes
+  set π : ℕ → Ω → ℝ := fun k => if k = 1 then p1 else piOf y k with hπd
+  set x : ℕ → Ω → ℝ := fun k => if k = 1 then x1 else xOf y k with hxd
+  set i : ℕ → Ω → ℝ := fun k => if k = 0 then i0 else if k = 1 then i1 else iOf y k with hid
+  set Ξ2 : ℕ → Ω → ℝ := fun k ω => φ (k + 1) ω (Sum.inr 0) with hΞ2d
+  have hπk : ∀ k, 2 ≤ k → π k = piOf y k := fun k hk => by
+    simp only [hπd, show k ≠ 1 by omega, ↓reduceIte]
+  have hxk : ∀ k, 2 ≤ k → x k = xOf y k := fun k hk => by
+    simp only [hxd, show k ≠ 1 by omega, ↓reduceIte]
+  have hik : ∀ k, 2 ≤ k → i k = iOf y k := fun k hk => by
+    simp only [hid, show k ≠ 0 by omega, show k ≠ 1 by omega, ↓reduceIte]
+  have hπ1 : π 1 = p1 := by simp only [hπd, ↓reduceIte]
+  have hx1' : x 1 = x1 := by simp only [hxd, ↓reduceIte]
+  have hi1' : i 1 = i1 := by simp only [hid, one_ne_zero, ↓reduceIte]
+  have hi0' : i 0 = i0 := by simp only [hid, ↓reduceIte]
+  have hπa : AdaptedM S π := fun k => by
+    rcases Nat.lt_or_ge k 2 with hk | hk
+    · rcases (by omega : k = 0 ∨ k = 1) with rfl | rfl
+      · simp only [hπd, zero_ne_one, ↓reduceIte]
+        exact hya 0 (Sum.inl (Sum.inr 0))
+      · rw [hπ1]; exact hp1
+    · rw [hπk k hk]; exact hya k (Sum.inl (Sum.inr 0))
+  have hxa : AdaptedM S x := fun k => by
+    rcases Nat.lt_or_ge k 2 with hk | hk
+    · rcases (by omega : k = 0 ∨ k = 1) with rfl | rfl
+      · simp only [hxd, zero_ne_one, ↓reduceIte]
+        exact hya 0 (Sum.inl (Sum.inr 1))
+      · rw [hx1']; exact hx1
+    · rw [hxk k hk]; exact hya k (Sum.inl (Sum.inr 1))
+  have hia : AdaptedM S i := fun k => by
+    rcases Nat.lt_or_ge k 2 with hk | hk
+    · rcases (by omega : k = 0 ∨ k = 1) with rfl | rfl
+      · rw [hi0']; exact hi0
+      · rw [hi1']; exact hi1
+    · rw [hik k hk]; exact hya k (Sum.inr ())
+  have hπb : BndM S π := ⟨max My K, fun k => by
+    rcases eq_or_ne k 1 with rfl | hk
+    · rw [hπ1]; exact hK.mono fun ω h => h.1.trans (le_max_right _ _)
+    · simp only [hπd, hk, ↓reduceIte]
+      exact (hMy k).mono fun ω h => (h _).trans (le_max_left _ _)⟩
+  have hxb : BndM S x := ⟨max My K, fun k => by
+    rcases eq_or_ne k 1 with rfl | hk
+    · rw [hx1']; exact hK.mono fun ω h => h.2.1.trans (le_max_right _ _)
+    · simp only [hxd, hk, ↓reduceIte]
+      exact (hMy k).mono fun ω h => (h _).trans (le_max_left _ _)⟩
+  have hib : BndM S i := ⟨max My K, fun k => by
+    rcases eq_or_ne k 0 with rfl | hk0
+    · rw [hi0']; exact hK.mono fun ω h => h.2.2.2.trans (le_max_right _ _)
+    rcases eq_or_ne k 1 with rfl | hk
+    · rw [hi1']; exact hK.mono fun ω h => h.2.2.1.trans (le_max_right _ _)
+    · simp only [hid, hk0, hk, ↓reduceIte]
+      exact (hMy k).mono fun ω h => (h _).trans (le_max_left _ _)⟩
+  have hπi : ∀ k, Integrable (π k) S.μ := fun k =>
+    integrable_of_sm S (hπa k) (hπb.choose_spec k)
+  have hxi : ∀ k, Integrable (x k) S.μ := fun k =>
+    integrable_of_sm S (hxa k) (hxb.choose_spec k)
+  have hii : ∀ k, Integrable (i k) S.μ := fun k =>
+    integrable_of_sm S (hia k) (hib.choose_spec k)
+  have hΞi : ∀ k, Integrable (Ξ2 k) S.μ := fun k => hφi (k + 1) (Sum.inr 0)
+  -- `Z_k = π_{k−1}`
+  have hZ : ∀ k, 2 ≤ k → ∀ᵐ ω ∂S.μ, Zof y k ω = π (k - 1) ω := by
+    intro k hk
+    rcases Nat.lt_or_ge k 3 with h3 | h3
+    · obtain rfl : k = 2 := by omega
+      filter_upwards [hZ0] with ω e
+      rw [show 2 - 1 = 1 from rfl, hπ1]
+      exact congrFun e ()
+    · filter_upwards [hS (k - 1) (by omega)] with ω e
+      have e1 := e.1
+      rw [show k - 1 + 1 = k by omega] at e1
+      rw [e1, hπk (k - 1) (by omega)]
+  -- the multiplier `Ξ₁`
+  have hXi1 : ∀ k, 1 ≤ k → ∀ᵐ ω ∂S.μ,
+      φ (k + 1) ω (Sum.inr 1) = -(c.li / c.σ) * (i k ω - c.istar) := by
+    intro k hk
+    rcases Nat.lt_or_ge k 2 with h2 | h2
+    · obtain rfl : k = 1 := by omega
+      filter_upwards [hMe] with ω e
+      have := congrFun e 1
+      rw [hi1']
+      exact this
+    · filter_upwards [hF k h2] with ω e
+      rw [hik k h2]
+      field_simp
+      linear_combination e.2.2.2
+  have hXi21 : ∀ᵐ ω ∂S.μ, Ξ2 1 ω = X2of c x1 i1 i0 ω := by
+    filter_upwards [hMe] with ω e
+    exact congrFun e 0
+  -- (3.4)
+  have h4 : ∀ k, 1 ≤ k → ∀ᵐ ω ∂S.μ, c.lx * (x k ω - c.xstar) +
+      -(c.li / c.σ) * (i k ω - c.istar) - c.β⁻¹ * (-(c.li / c.σ) * (i (k - 1) ω - c.istar)) -
+        c.κ * Ξ2 k ω = 0 := by
+    intro k hk
+    rcases Nat.lt_or_ge k 2 with h2 | h2
+    · obtain rfl : k = 1 := by omega
+      filter_upwards [hXi21] with ω e
+      rw [e, hx1', hi1', show 1 - 1 = 0 from rfl, hi0']
+      simp only [X2of, X1of]
+      field_simp
+      ring
+    · filter_upwards [hF k h2, hXi1 k (by omega), hXi1 (k - 1) (by omega)] with ω e e1 e2
+      rw [show k - 1 + 1 = k by omega] at e2
+      have e3 := e.2.2.1
+      rw [e1, e2, ← hxk k h2] at e3
+      simp only [hΞ2d]
+      linear_combination e3
+  -- (3.15)
+  have h15 : ∀ k, 2 ≤ k → ∀ᵐ ω ∂S.μ, π k ω - γ * π (k - 1) ω -
+      c.β * γ * S.E k (fun ω' => π (k + 1) ω' - γ * π k ω') ω -
+      c.β⁻¹ * c.σ * (-(c.li / c.σ) * (i (k - 1) ω - c.istar)) -
+      c.β * γ * S.E k (Ξ2 (k + 1)) ω + (1 + c.β * γ) * Ξ2 k ω - Ξ2 (k - 1) ω = 0 := by
+    intro k hk
+    have hφ0 : (fun ω => φ (k + 1) ω (Sum.inl ())) =ᵐ[S.μ] fun ω => (-(c.β * γ)) * Ξ2 (k + 1) ω +
+        (-(c.β * γ)) * π (k + 1) ω + (c.β * γ * γ) * π k ω + 0 * π k ω + 0 * π k ω + 0 := by
+      filter_upwards [hF (k + 1) (by omega), hS k hk] with ω e es
+      have e0 := e.1
+      rw [es.1, ← hπk (k + 1) (by omega), ← hπk k hk] at e0
+      simp only [hΞ2d]
+      linear_combination (-c.β) * e0 - (φ (k + 1) ω (Sum.inl ())) * hb
+    have hE1 := (S.E_congr hφ0 k).trans (E_aff22 S k (-(c.β * γ)) (-(c.β * γ)) (c.β * γ * γ) 0 0 0
+      (hΞi (k + 1)) (hπi (k + 1)) (hπa k) (hπa k) (hπa k) (hπi k) (hπi k) (hπi k))
+    have eπ : (fun ω' => π (k + 1) ω' - γ * π k ω') = fun ω => 1 * π (k + 1) ω +
+        0 * π (k + 1) ω + (-γ) * π k ω + 0 * π k ω + 0 * π k ω + 0 := by
+      funext ω
+      ring
+    have hEπ := E_aff22 S k 1 0 (-γ) 0 0 0 (hπi (k + 1)) (hπi (k + 1)) (hπa k) (hπa k) (hπa k)
+      (hπi k) (hπi k) (hπi k)
+    filter_upwards [hF k hk, hE1, hEπ, hZ k hk, hXi1 (k - 1) (by omega)] with ω e eE eP eZ eX
+    rw [show k - 1 + 1 = k by omega] at eX
+    have e2 := e.2.1
+    rw [eE, eZ, eX, ← hπk k hk] at e2
+    rw [eπ, eP]
+    have hΞk1 : Ξ2 (k - 1) ω = φ k ω (Sum.inr 0) := by
+      simp only [hΞ2d, show k - 1 + 1 = k by omega]
+    rw [hΞk1]
+    simp only [hΞ2d] at e2 ⊢
+    linear_combination e2 + (φ k ω (Sum.inr 0)) * hb'
+  -- (2.6) and (3.1)
+  have hAS : ∀ k, 2 ≤ k → ASm S c.β γ c.κ u π x k := by
+    intro k hk
+    have eπ : (fun ω' => π (k + 1) ω' - γ * π k ω') = fun ω => 1 * π (k + 1) ω +
+        0 * π (k + 1) ω + (-γ) * π k ω + 0 * π k ω + 0 * π k ω + 0 := by
+      funext ω
+      ring
+    filter_upwards [hS k hk, hZ k hk, E_aff22 S k 1 0 (-γ) 0 0 0 (hπi (k + 1)) (hπi (k + 1))
+      (hπa k) (hπa k) (hπa k) (hπi k) (hπi k) (hπi k)] with ω e eZ eP
+    have e1 := e.2.1
+    rw [← hπk (k + 1) (by omega), eZ, ← hπk k hk, ← hxk k hk] at e1
+    rw [eπ, eP]
+    simp only [cNK, Matrix.cons_val_zero] at e1
+    linear_combination -e1
+  have hIS : ∀ k, 2 ≤ k → ISm S c.σ rn π x i k := by
+    intro k hk
+    filter_upwards [hS k hk] with ω e
+    have e1 := e.2.2
+    rw [← hπk (k + 1) (by omega), ← hxk k hk, ← hxk (k + 1) (by omega), ← hik k hk] at e1
+    simp only [cNK, Matrix.cons_val_one, Matrix.cons_val_zero] at e1
+    linear_combination -e1
+  refine ⟨π, x, i, hπa, hxa, hia, hπb, hxb, hib, hAS, hIS, fun t => ?_, hπ1, hx1', hi1', hi0'⟩
+  refine eulerM_of_focs S hβ hκ hσ hli hπa hxa hia hπi hxi hii t
+    (fun k hk1 _ => h4 k (by omega)) ?_
+  have := h15 (t + 2) (by omega)
+  rw [show t + 2 - 1 = t + 1 by omega, show t + 2 + 1 = t + 3 by omega] at this
+  exact this
+
+/-! ### Existence for `γ = 0` -/
+
+/-- **Woodford (2003), p. 593, on a filtered probability space: existence for `γ = 0` and
+`λₓ > 0`.** For every essentially bounded adapted disturbance and every essentially bounded
+history known at the right dates, the rule system at `γ = 0` has an essentially bounded adapted
+solution with that history: the bounded optimal plan of the basic problem from `t₀ = 2`
+(`OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB`) with `M₁` inferred from the history,
+with the history glued in. -/
+theorem existsM_zero (c : IRuleBasic.Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω)
+    {u rn : ℕ → Ω → ℝ} (hua : AdaptedM S u) (hub : BndM S u) (hra : AdaptedM S rn)
+    (hrb : BndM S rn) {p1 x1 i1 i0 : Ω → ℝ} (hh : HistoryM S p1 x1 i1 i0) :
+    ∃ π x i, RuleSolM S c 0 u rn p1 x1 i1 i0 π x i := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hσ : c.σ ≠ 0 := hc.2.2.1.ne'
+  have hκ : c.κ ≠ 0 := hc.2.2.2.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  have hb' : c.β⁻¹ * c.β = 1 := inv_mul_cancel₀ hβ
+  obtain ⟨hMk, hMb⟩ := M0of_spec c hh
+  obtain ⟨hp1, hx1, hi1, hi0, K, hK⟩ := hh
+  set Z0 : Ω → Empty → ℝ := fun _ e => e.elim with hZ0d
+  have hZk : MKnownV S 2 Z0 := fun e => e.elim
+  have hZb : MBoundedRV S Z0 := ⟨0, Eventually.of_forall fun _ e => e.elim⟩
+  obtain ⟨y, φ, hs⟩ := (OptimalRulesMeasureStabilityModels.NK.nk_m_assumption81MB c hc S
+    2).solvable (cNK c u rn) Z0 (M0of c x1 i1 i0) (cNK_bddM c hub hrb)
+    (cNK_adaptedM c hua hra) hZk hZb hMb hMk
+  obtain ⟨⟨hst, -, ⟨My, hMy⟩, hya⟩, ⟨Kφ, hKφ⟩, hφm, hM, hMe, hfoc⟩ := hs
+  have hS : ∀ k, 2 ≤ k → ∀ᵐ ω ∂S.μ,
+      c.β * S.E k (piOf y (k + 1)) ω = piOf y k ω - c.κ * xOf y k ω + cNK c u rn k ω 0 ∧
+      c.σ * S.E k (piOf y (k + 1)) ω + S.E k (xOf y (k + 1)) ω =
+        xOf y k ω + c.σ * iOf y k ω + cNK c u rn k ω 1 := fun k hk => by
+    filter_upwards [(hst k hk).2] with ω e2
+    exact nk_struct_atM c hc S _ y k ω e2
+  have hφi : ∀ k j, Integrable (fun ω => φ k ω j) S.μ := fun k j =>
+    integrable_of_bound (hφm k j) ((hKφ k).mono fun ω h => h j)
+  have hEM : ∀ k j, S.E k (fun ω' => φ (k + 1) ω' (Sum.inr j)) =
+      fun ω' => φ (k + 1) ω' (Sum.inr j) := fun k j =>
+    S.E_of_stronglyMeasurable (hM k j) (hφi _ _)
+  have hF : ∀ k, 2 ≤ k → ∀ᵐ ω ∂S.μ,
+      piOf y k ω - c.σ / c.β * φ k ω (Sum.inr 1) + φ (k + 1) ω (Sum.inr 0) -
+        φ k ω (Sum.inr 0) = 0 ∧
+      c.lx * (xOf y k ω - c.xstar) + φ (k + 1) ω (Sum.inr 1) - c.β⁻¹ * φ k ω (Sum.inr 1) -
+        c.κ * φ (k + 1) ω (Sum.inr 0) = 0 ∧
+      c.li * (iOf y k ω - c.istar) + c.σ * φ (k + 1) ω (Sum.inr 1) = 0 := fun k hk =>
+    (hfoc k hk).mono fun ω e => by
+      have := nk_foc_atM c hc S y φ k ω e
+      simp only [hEM] at this
+      exact this
+  set π : ℕ → Ω → ℝ := fun k => if k = 1 then p1 else piOf y k with hπd
+  set x : ℕ → Ω → ℝ := fun k => if k = 1 then x1 else xOf y k with hxd
+  set i : ℕ → Ω → ℝ := fun k => if k = 0 then i0 else if k = 1 then i1 else iOf y k with hid
+  set Ξ2 : ℕ → Ω → ℝ := fun k ω => φ (k + 1) ω (Sum.inr 0) with hΞ2d
+  have hπk : ∀ k, 2 ≤ k → π k = piOf y k := fun k hk => by
+    simp only [hπd, show k ≠ 1 by omega, ↓reduceIte]
+  have hxk : ∀ k, 2 ≤ k → x k = xOf y k := fun k hk => by
+    simp only [hxd, show k ≠ 1 by omega, ↓reduceIte]
+  have hik : ∀ k, 2 ≤ k → i k = iOf y k := fun k hk => by
+    simp only [hid, show k ≠ 0 by omega, show k ≠ 1 by omega, ↓reduceIte]
+  have hπ1 : π 1 = p1 := by simp only [hπd, ↓reduceIte]
+  have hx1' : x 1 = x1 := by simp only [hxd, ↓reduceIte]
+  have hi1' : i 1 = i1 := by simp only [hid, one_ne_zero, ↓reduceIte]
+  have hi0' : i 0 = i0 := by simp only [hid, ↓reduceIte]
+  have hπa : AdaptedM S π := fun k => by
+    rcases Nat.lt_or_ge k 2 with hk | hk
+    · rcases (by omega : k = 0 ∨ k = 1) with rfl | rfl
+      · simp only [hπd, zero_ne_one, ↓reduceIte]
+        exact hya 0 (Sum.inl (Sum.inr 0))
+      · rw [hπ1]; exact hp1
+    · rw [hπk k hk]; exact hya k (Sum.inl (Sum.inr 0))
+  have hxa : AdaptedM S x := fun k => by
+    rcases Nat.lt_or_ge k 2 with hk | hk
+    · rcases (by omega : k = 0 ∨ k = 1) with rfl | rfl
+      · simp only [hxd, zero_ne_one, ↓reduceIte]
+        exact hya 0 (Sum.inl (Sum.inr 1))
+      · rw [hx1']; exact hx1
+    · rw [hxk k hk]; exact hya k (Sum.inl (Sum.inr 1))
+  have hia : AdaptedM S i := fun k => by
+    rcases Nat.lt_or_ge k 2 with hk | hk
+    · rcases (by omega : k = 0 ∨ k = 1) with rfl | rfl
+      · rw [hi0']; exact hi0
+      · rw [hi1']; exact hi1
+    · rw [hik k hk]; exact hya k (Sum.inr ())
+  have hπb : BndM S π := ⟨max My K, fun k => by
+    rcases eq_or_ne k 1 with rfl | hk
+    · rw [hπ1]; exact hK.mono fun ω h => h.1.trans (le_max_right _ _)
+    · simp only [hπd, hk, ↓reduceIte]
+      exact (hMy k).mono fun ω h => (h _).trans (le_max_left _ _)⟩
+  have hxb : BndM S x := ⟨max My K, fun k => by
+    rcases eq_or_ne k 1 with rfl | hk
+    · rw [hx1']; exact hK.mono fun ω h => h.2.1.trans (le_max_right _ _)
+    · simp only [hxd, hk, ↓reduceIte]
+      exact (hMy k).mono fun ω h => (h _).trans (le_max_left _ _)⟩
+  have hib : BndM S i := ⟨max My K, fun k => by
+    rcases eq_or_ne k 0 with rfl | hk0
+    · rw [hi0']; exact hK.mono fun ω h => h.2.2.2.trans (le_max_right _ _)
+    rcases eq_or_ne k 1 with rfl | hk
+    · rw [hi1']; exact hK.mono fun ω h => h.2.2.1.trans (le_max_right _ _)
+    · simp only [hid, hk0, hk, ↓reduceIte]
+      exact (hMy k).mono fun ω h => (h _).trans (le_max_left _ _)⟩
+  have hπi : ∀ k, Integrable (π k) S.μ := fun k =>
+    integrable_of_sm S (hπa k) (hπb.choose_spec k)
+  have hxi : ∀ k, Integrable (x k) S.μ := fun k =>
+    integrable_of_sm S (hxa k) (hxb.choose_spec k)
+  have hii : ∀ k, Integrable (i k) S.μ := fun k =>
+    integrable_of_sm S (hia k) (hib.choose_spec k)
+  have hXi1 : ∀ k, 1 ≤ k → ∀ᵐ ω ∂S.μ,
+      φ (k + 1) ω (Sum.inr 1) = -(c.li / c.σ) * (i k ω - c.istar) := by
+    intro k hk
+    rcases Nat.lt_or_ge k 2 with h2 | h2
+    · obtain rfl : k = 1 := by omega
+      filter_upwards [hMe] with ω e
+      have := congrFun e 1
+      rw [hi1']
+      exact this
+    · filter_upwards [hF k h2] with ω e
+      rw [hik k h2]
+      field_simp
+      linear_combination e.2.2
+  have hXi21 : ∀ᵐ ω ∂S.μ, Ξ2 1 ω = X2of c x1 i1 i0 ω := by
+    filter_upwards [hMe] with ω e
+    exact congrFun e 0
+  have h4 : ∀ k, 1 ≤ k → ∀ᵐ ω ∂S.μ, c.lx * (x k ω - c.xstar) +
+      -(c.li / c.σ) * (i k ω - c.istar) - c.β⁻¹ * (-(c.li / c.σ) * (i (k - 1) ω - c.istar)) -
+        c.κ * Ξ2 k ω = 0 := by
+    intro k hk
+    rcases Nat.lt_or_ge k 2 with h2 | h2
+    · obtain rfl : k = 1 := by omega
+      filter_upwards [hXi21] with ω e
+      rw [e, hx1', hi1', show 1 - 1 = 0 from rfl, hi0']
+      simp only [X2of, X1of]
+      field_simp
+      ring
+    · filter_upwards [hF k h2, hXi1 k (by omega), hXi1 (k - 1) (by omega)] with ω e e1 e2
+      rw [show k - 1 + 1 = k by omega] at e2
+      have e3 := e.2.1
+      rw [e1, e2, ← hxk k h2] at e3
+      simp only [hΞ2d]
+      linear_combination e3
+  have h15 : ∀ k, 2 ≤ k → ∀ᵐ ω ∂S.μ, π k ω - 0 * π (k - 1) ω -
+      c.β * 0 * S.E k (fun ω' => π (k + 1) ω' - 0 * π k ω') ω -
+      c.β⁻¹ * c.σ * (-(c.li / c.σ) * (i (k - 1) ω - c.istar)) -
+      c.β * 0 * S.E k (Ξ2 (k + 1)) ω + (1 + c.β * 0) * Ξ2 k ω - Ξ2 (k - 1) ω = 0 := by
+    intro k hk
+    filter_upwards [hF k hk, hXi1 (k - 1) (by omega)] with ω e eX
+    rw [show k - 1 + 1 = k by omega] at eX
+    have e1 := e.1
+    rw [eX, ← hπk k hk] at e1
+    have hΞk1 : Ξ2 (k - 1) ω = φ k ω (Sum.inr 0) := by
+      simp only [hΞ2d, show k - 1 + 1 = k by omega]
+    rw [hΞk1]
+    simp only [hΞ2d]
+    have hd : c.σ / c.β = c.β⁻¹ * c.σ := by rw [div_eq_inv_mul]
+    rw [hd] at e1
+    linear_combination e1
+  have hAS : ∀ k, 2 ≤ k → ASm S c.β 0 c.κ u π x k := by
+    intro k hk
+    have eπ : (fun ω' => π (k + 1) ω' - 0 * π k ω') = π (k + 1) := by
+      funext ω
+      ring
+    filter_upwards [hS k hk] with ω e
+    have e1 := e.1
+    rw [← hπk (k + 1) (by omega), ← hπk k hk, ← hxk k hk] at e1
+    rw [eπ]
+    simp only [cNK, Matrix.cons_val_zero] at e1
+    linear_combination -e1
+  have hIS : ∀ k, 2 ≤ k → ISm S c.σ rn π x i k := by
+    intro k hk
+    filter_upwards [hS k hk] with ω e
+    have e1 := e.2
+    rw [← hπk (k + 1) (by omega), ← hxk k hk, ← hxk (k + 1) (by omega), ← hik k hk] at e1
+    simp only [cNK, Matrix.cons_val_one, Matrix.cons_val_zero] at e1
+    linear_combination -e1
+  refine ⟨π, x, i, hπa, hxa, hia, hπb, hxb, hib, hAS, hIS, fun t => ?_, hπ1, hx1', hi1', hi0'⟩
+  refine eulerM_of_focs S hβ hκ hσ hli hπa hxa hia hπi hxi hii t
+    (fun k hk1 _ => h4 k (by omega)) ?_
+  have := h15 (t + 2) (by omega)
+  rw [show t + 2 - 1 = t + 1 by omega, show t + 2 + 1 = t + 3 by omega] at this
+  exact this
+
+/-! ### Existence and uniqueness for every `λₓ ≥ 0` and `0 ≤ γ ≤ 1` -/
+
+/-- **Woodford (2003), p. 593, on a filtered probability space: existence for `λₓ > 0` and every
+`0 ≤ γ ≤ 1`.** -/
+theorem rule_system_existsM (c : IRuleBasic.Calib) (hc : c.Adm) {γ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ ≤ 1) (S : MeasExpectationSystem Ω) {u rn : ℕ → Ω → ℝ} (hua : AdaptedM S u)
+    (hub : BndM S u) (hra : AdaptedM S rn) (hrb : BndM S rn) {p1 x1 i1 i0 : Ω → ℝ}
+    (hh : HistoryM S p1 x1 i1 i0) : ∃ π x i, RuleSolM S c γ u rn p1 x1 i1 i0 π x i := by
+  rcases hγ0.lt_or_eq with hγ | rfl
+  · exact existsM_pos c hc hγ hγ1 S hua hub hra hrb hh
+  · exact existsM_zero c hc S hua hub hra hrb hh
+
+/-- **Woodford (2003), p. 593, on a filtered probability space: the rule system (3.16) is
+determinate for `λₓ > 0` and every `0 ≤ γ ≤ 1`.** For every essentially bounded adapted
+disturbance and every essentially bounded history known at the right dates, (2.6), (3.1),
+(3.16) has an essentially bounded adapted solution with that history (Mathlib's conditional
+expectation), and every such solution agrees with it a.s. at every date `≥ 1`. -/
+theorem rule_system_existsUniqueM (c : IRuleBasic.Calib) (hc : c.Adm) {γ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ ≤ 1) (S : MeasExpectationSystem Ω) {u rn : ℕ → Ω → ℝ} (hua : AdaptedM S u)
+    (hub : BndM S u) (hra : AdaptedM S rn) (hrb : BndM S rn) {p1 x1 i1 i0 : Ω → ℝ}
+    (hh : HistoryM S p1 x1 i1 i0) :
+    ∃ π x i, RuleSolM S c γ u rn p1 x1 i1 i0 π x i ∧
+      ∀ π' x' i', RuleSolM S c γ u rn p1 x1 i1 i0 π' x' i' →
+        ∀ k, 1 ≤ k → π' k =ᵐ[S.μ] π k ∧ x' k =ᵐ[S.μ] x k ∧ i' k =ᵐ[S.μ] i k := by
+  obtain ⟨π, x, i, hsol⟩ := rule_system_existsM c hc hγ0 hγ1 S hua hub hra hrb hh
+  exact ⟨π, x, i, hsol, fun π' x' i' hsol' => TidyR5aLambdaXZeroMeasure.rule_system_uniqueM S c
+    hc.1 hc.2.1 hc.2.2.2.1.ne' hc.2.2.1.ne' hc.2.2.2.2.2 hc.2.2.2.2.1.le hsol' hsol⟩
+
+/-- **Woodford (2003), p. 593, on every filtered probability space: the rule system (3.16) is
+determinate for every `λₓ ≥ 0` and every `0 ≤ γ ≤ 1`** (`0 < β < 1`, `σ, κ, λᵢ > 0`): existence and
+a.s. uniqueness for every essentially bounded adapted disturbance and every essentially bounded
+history known at the right dates (`λₓ = 0`:
+`TidyR5aLambdaXZeroMeasure.rule_system_existsUniqueM_lx0`; `λₓ > 0`:
+`rule_system_existsUniqueM`). -/
+theorem rule_system_existsUniqueM_nonneg (c : IRuleBasic.Calib) (hβ0 : 0 < c.β) (hβ1 : c.β < 1)
+    (hσ : 0 < c.σ) (hκ : 0 < c.κ) (hlx : 0 ≤ c.lx) (hli : 0 < c.li) {γ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ ≤ 1) (S : MeasExpectationSystem Ω) {u rn : ℕ → Ω → ℝ} (hua : AdaptedM S u)
+    (hub : BndM S u) (hra : AdaptedM S rn) (hrb : BndM S rn) {p1 x1 i1 i0 : Ω → ℝ}
+    (hh : HistoryM S p1 x1 i1 i0) :
+    ∃ π x i, RuleSolM S c γ u rn p1 x1 i1 i0 π x i ∧
+      ∀ π' x' i', RuleSolM S c γ u rn p1 x1 i1 i0 π' x' i' →
+        ∀ k, 1 ≤ k → π' k =ᵐ[S.μ] π k ∧ x' k =ᵐ[S.μ] x k ∧ i' k =ᵐ[S.μ] i k := by
+  rcases hlx.lt_or_eq with h | h
+  · exact rule_system_existsUniqueM c ⟨hβ0, hβ1, hσ, hκ, h, hli⟩ hγ0 hγ1 S hua hub hra hrb hh
+  · exact TidyR5aLambdaXZeroMeasure.rule_system_existsUniqueM_lx0 c h.symm hβ0 hβ1 hσ hκ hli hγ0
+      hγ1 S hua hub hra hrb hh
+
+/-- Woodford (2003), p. 593: a solution of the rule system on a probability space has an
+essentially bounded history known at the right dates (the converse of `rule_system_existsM`). -/
+theorem historyM_of_sol {S : MeasExpectationSystem Ω} {c : IRuleBasic.Calib} {γ : ℝ}
+    {u rn : ℕ → Ω → ℝ} {p1 x1 i1 i0 : Ω → ℝ} {π x i : ℕ → Ω → ℝ}
+    (h : RuleSolM S c γ u rn p1 x1 i1 i0 π x i) : HistoryM S p1 x1 i1 i0 := by
+  obtain ⟨hπa, hxa, hia, ⟨Cπ, hCπ⟩, ⟨Cx, hCx⟩, ⟨Ci, hCi⟩, -, -, -, h1, h2, h3, h4⟩ := h
+  subst h1 h2 h3 h4
+  refine ⟨hπa 1, hxa 1, hia 1, hia 0, max (max Cπ Cx) Ci, ?_⟩
+  filter_upwards [hCπ 1, hCx 1, hCi 1, hCi 0] with ω a b d e
+  exact ⟨a.trans ((le_max_left _ _).trans (le_max_left _ _)),
+    b.trans ((le_max_right _ _).trans (le_max_left _ _)), d.trans (le_max_right _ _),
+    e.trans (le_max_right _ _)⟩
+
+/-- **Woodford (2003), p. 593, on a filtered probability space, existence exactly characterised**
+(`λₓ > 0`, `0 ≤ γ ≤ 1`): the rule system has an essentially bounded adapted solution with history
+`(π₁, x₁, i₁, i₀)` iff that history is essentially bounded with `π₁, x₁, i₁` known at 1 and `i₀`
+known at 0. -/
+theorem rule_system_existsM_iff (c : IRuleBasic.Calib) (hc : c.Adm) {γ : ℝ} (hγ0 : 0 ≤ γ)
+    (hγ1 : γ ≤ 1) (S : MeasExpectationSystem Ω) {u rn : ℕ → Ω → ℝ} (hua : AdaptedM S u)
+    (hub : BndM S u) (hra : AdaptedM S rn) (hrb : BndM S rn) (p1 x1 i1 i0 : Ω → ℝ) :
+    (∃ π x i, RuleSolM S c γ u rn p1 x1 i1 i0 π x i) ↔ HistoryM S p1 x1 i1 i0 :=
+  ⟨fun ⟨_, _, _, h⟩ => historyM_of_sol h,
+    fun hh => rule_system_existsM c hc hγ0 hγ1 S hua hub hra hrb hh⟩
+
+end Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The limit `λᵢ → 0` on a probability space: existence of the equilibria
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §3.1, pp. 584 and 591: equilibria under the
+optimal rule (3.7) of the basic model, and the Chapter 7 optimal paths (the criterion (2.5)), on
+every filtered probability space with Mathlib's conditional expectation.
+
+`TidyR5aLambdaILimitMeasure.paths_convergeM` proves that the paths under (3.7) converge a.s. to the
+(2.5) paths as `λᵢ → 0`, taking the existence of both as hypotheses. This module proves both
+existences, so the convergence theorem holds with no existence hypothesis
+(`paths_convergeM_exists`):
+
+* `rule_eqm_existsM`: for every admissible calibration, every essentially bounded adapted
+  disturbance `(rⁿ, u)` and every history `x_{−1}, i_{−1}, i_{−2}`, an essentially bounded adapted
+  equilibrium of (2.1), (3.1) and (3.7) exists (`TidyR5aLambdaILimitMeasure.RuleEqmM`). It is the
+  `γ = 0` rule system of p. 593 (`TidyR6bRuleSystemMeasure.existsM_zero`) on the filtration
+  delayed by two dates (`unshift2`), with the history placed at dates 0 and 1; at `γ = 0` the rule
+  (3.16) is (3.7).
+* `rule_eqm_uniqueM`: it is unique a.s. (`TidyR5aLambdaXZeroMeasure.rule_system_uniqueM` on the
+  delayed filtration).
+* `crit25_existsM`: an essentially bounded adapted solution of (2.1) and (2.5) exists:
+  `x_t = μ₁x_{t−1} + z_t` with `z_t = βμ₁E_t z_{t+1} − (μ₁/φ)u_t` (the forward solution
+  `ExpectationsMeasure.MeasExpectationSystem.forwardSol`), `φ = λₓ/κ`, `μ₁` the stable root of
+  `βμ² − (1 + β + κ/φ)μ + 1` (`QuadraticRoots.lam1`), and `π_t = −φ(x_t − x_{t−1})`.
+* `crit25_uniqueM`: it is unique a.s.
+* `paths_convergeM_exists`: the equilibria exist for every `λᵢ = l_n > 0`, the (2.5) solution
+  exists, and the paths converge a.s., uniformly in the date.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists
+
+open MeasureTheory Filter Topology
+open ExpectationsMeasure
+open IRuleBasic (Calib lag rho1 rho2 phiPi phiX)
+open TidyR5aLambdaXZeroMeasure (BndM AdaptedM RuleSolM HistoryM integrable_of_sm)
+open TidyR5aLambdaILimitMeasure (ASb ISb RuleM RuleEqmM Crit25M i0M)
+open InflationInertiaRules (ALi qtil)
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+
+/-! ### The filtration delayed by two dates -/
+
+/-- Woodford (2003), §3.1 and p. 593 (tool): the filtration delayed by two dates,
+`𝓕'_k = 𝓕_{k−2}` (so the date-`t` information of §3.1 is the date-`t + 2` information of the rule
+system of p. 593). -/
+def unshift2 (S : MeasExpectationSystem Ω) : MeasExpectationSystem Ω where
+  P := S.P
+  𝓕 := ⟨fun s => S.𝓕 (s - 2), fun _ _ h => S.𝓕.mono (by omega), fun _ => S.𝓕.le _⟩
+
+/-- Woodford (2003), p. 593 (tool): `E'_{t+2} = E_t` for the delayed filtration. -/
+theorem unshift2_E (S : MeasExpectationSystem Ω) (t : ℕ) (x : Ω → ℝ) :
+    (unshift2 S).E (t + 2) x = S.E t x := rfl
+
+/-! ### Equilibria under the rule (3.7) -/
+
+/-- **Woodford (2003), Proposition 8.5, p. 584 (existence), on every filtered probability space.**
+For every admissible calibration, every essentially bounded adapted disturbance `(rⁿ, u)` and
+every history `x_{−1}, i_{−1}, i_{−2}`, there is an essentially bounded adapted equilibrium of
+(2.1), (3.1) and the optimal rule (3.7), with Mathlib's conditional expectation. -/
+theorem rule_eqm_existsM (c : Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω)
+    {rn u : ℕ → Ω → ℝ} (hra : AdaptedM S rn) (hrb : BndM S rn) (hua : AdaptedM S u)
+    (hub : BndM S u) (xm1 im1 im2 : ℝ) :
+    ∃ π x i : ℕ → Ω → ℝ, RuleEqmM S c rn u xm1 im1 im2 π x i ∧
+      (AdaptedM S π ∧ AdaptedM S x ∧ AdaptedM S i) ∧ (BndM S π ∧ BndM S x ∧ BndM S i) := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hκ : c.κ ≠ 0 := hc.2.2.2.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  set S' := unshift2 S with hS'
+  obtain ⟨Cu, hCu⟩ := hub
+  obtain ⟨Cr, hCr⟩ := hrb
+  have hh : HistoryM S' (fun _ => 0) (fun _ => xm1) (fun _ => im1) (fun _ => im2) :=
+    ⟨stronglyMeasurable_const, stronglyMeasurable_const, stronglyMeasurable_const,
+      stronglyMeasurable_const, |xm1| + |im1| + |im2|, Eventually.of_forall fun _ => by
+        refine ⟨by simp only [abs_zero]; positivity, ?_, ?_, ?_⟩ <;>
+        linarith [abs_nonneg xm1, abs_nonneg im1, abs_nonneg im2]⟩
+  obtain ⟨π', x', i', h⟩ := TidyR6bRuleSystemMeasure.existsM_zero c hc S'
+    (u := fun k => u (k - 2)) (rn := fun k => rn (k - 2)) (fun k => hua (k - 2))
+    ⟨Cu, fun k => hCu (k - 2)⟩ (fun k => hra (k - 2)) ⟨Cr, fun k => hCr (k - 2)⟩ hh
+  obtain ⟨hπa, hxa, hia, ⟨Cπ, hCπ⟩, ⟨Cx, hCx⟩, ⟨Ci, hCi⟩, hAS, hIS, hEu, h1, h2, h3, h4⟩ := h
+  have hii : ∀ k, Integrable (i' k) S.μ := fun k =>
+    integrable_of_sm S' (hia k) (hCi k)
+  -- the lags
+  have hl1 : ∀ t ω, lag im1 (fun t => i' (t + 2)) t ω = i' (t + 1) ω := by
+    intro t ω
+    cases t with
+    | zero => simp only [lag, zero_add, h3]
+    | succ s => rfl
+  have hl2 : ∀ t ω, lag im2 (lag im1 (fun t => i' (t + 2))) t ω = i' t ω := by
+    intro t ω
+    rcases t with _ | _ | s
+    · simp only [lag, h4]
+    · simp only [lag, h3]
+    · rfl
+  have hlx : ∀ t ω, lag xm1 (fun t => x' (t + 2)) t ω = x' (t + 1) ω := by
+    intro t ω
+    cases t with
+    | zero => simp only [lag, zero_add, h2]
+    | succ s => rfl
+  refine ⟨fun t => π' (t + 2), fun t => x' (t + 2), fun t => i' (t + 2), fun t => ⟨?_, ?_, ?_⟩,
+    ⟨fun t => hπa (t + 2), fun t => hxa (t + 2), fun t => hia (t + 2)⟩,
+    ⟨⟨Cπ, fun t => hCπ (t + 2)⟩, ⟨Cx, fun t => hCx (t + 2)⟩, ⟨Ci, fun t => hCi (t + 2)⟩⟩⟩
+  · -- (2.1)
+    filter_upwards [hAS (t + 2) (by omega)] with ω e
+    have hf : (fun ω' => π' (t + 2 + 1) ω' - 0 * π' (t + 2) ω') = π' (t + 2 + 1) :=
+      funext fun ω' => by ring
+    rw [hf] at e
+    change π' (t + 2) ω - 0 * π' (t + 1) ω =
+      c.κ * x' (t + 2) ω + c.β * S.E t (π' (t + 3)) ω + u t ω at e
+    change π' (t + 2) ω = c.κ * x' (t + 2) ω + c.β * S.E t (π' (t + 3)) ω + u t ω
+    linarith
+  · -- (3.1)
+    filter_upwards [hIS (t + 2) (by omega)] with ω e
+    exact e
+  · -- the rule (3.7) is (3.16) at `γ = 0`
+    have hA : ALi c.β 0 c.κ c.σ (fun k ω => i' k ω - c.istar) t = fun ω =>
+        -(i' (t + 2) ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ * (i' (t + 1) ω - c.istar) -
+          c.β⁻¹ * (i' t ω - c.istar) := by
+      funext ω
+      simp only [ALi]
+      ring
+    have hAk : StronglyMeasurable[S'.𝓕 (t + 2)] (fun ω =>
+        -(i' (t + 2) ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ * (i' (t + 1) ω - c.istar) -
+          c.β⁻¹ * (i' t ω - c.istar)) :=
+      (((hia (t + 2)).sub stronglyMeasurable_const).neg.add
+        ((((hia (t + 1)).mono (S'.𝓕.mono (by omega))).sub stronglyMeasurable_const).const_mul
+          _)).sub
+        ((((hia t).mono (S'.𝓕.mono (by omega))).sub stronglyMeasurable_const).const_mul _)
+    have hAi : Integrable (fun ω =>
+        -(i' (t + 2) ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ * (i' (t + 1) ω - c.istar) -
+          c.β⁻¹ * (i' t ω - c.istar)) S.μ :=
+      (((hii (t + 2)).sub (integrable_const _)).neg.add
+        (((hii (t + 1)).sub (integrable_const _)).const_mul _)).sub
+        (((hii t).sub (integrable_const _)).const_mul _)
+    filter_upwards [hEu t] with ω e
+    rw [hA, S'.E_of_stronglyMeasurable hAk hAi] at e
+    simp only [TidyR5aLambdaXZeroMeasure.fbigM, qtil] at e
+    rw [show t + 2 - 1 = t + 1 by omega] at e
+    have e' : -(i' (t + 2) ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ *
+        (i' (t + 1) ω - c.istar) - c.β⁻¹ * (i' t ω - c.istar) =
+        -(c.κ * c.σ / c.li * ((π' (t + 2) ω - 0 * π' (t + 1) ω) +
+          c.lx / c.κ * (x' (t + 2) ω - x' (t + 1) ω))) := by
+      rw [e]
+      ring
+    change i' (t + 2) ω = (1 - rho1 c.β c.σ c.κ) * c.istar +
+      rho1 c.β c.σ c.κ * lag im1 (fun t => i' (t + 2)) t ω +
+      rho2 c.β * (lag im1 (fun t => i' (t + 2)) t ω -
+        lag im2 (lag im1 (fun t => i' (t + 2))) t ω) +
+      phiPi c.σ c.κ c.li * π' (t + 2) ω +
+      phiX c.σ c.lx c.li / 4 * (x' (t + 2) ω - lag xm1 (fun t => x' (t + 2)) t ω)
+    rw [hl1, hl2, hlx]
+    unfold CubicRoots.coefA2 at e'
+    unfold rho1 rho2 phiPi phiX
+    field_simp at e' ⊢
+    linear_combination -e'
+
+/-- Woodford (2003), §3.1 and p. 593 (tool): a process of §3.1 placed at dates `≥ 2` of the rule
+system, with the values `v₀, v₁` at dates 0 and 1. -/
+def place (v0 v1 : ℝ) (f : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => v0
+  | 1 => fun _ => v1
+  | k + 2 => f k
+
+/-- **Woodford (2003), p. 584 and p. 593: an equilibrium under the rule (3.7) is a solution of the
+rule system at `γ = 0` on the delayed filtration** (with the history at dates 0 and 1): at `γ = 0`
+(3.7) is (3.16). -/
+theorem ruleSolM_of_eqm (c : Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω)
+    {rn u : ℕ → Ω → ℝ} (xm1 im1 im2 : ℝ) {π x i : ℕ → Ω → ℝ}
+    (he : RuleEqmM S c rn u xm1 im1 im2 π x i) (hπa : AdaptedM S π) (hxa : AdaptedM S x)
+    (hia : AdaptedM S i) (hπb : BndM S π) (hxb : BndM S x) (hib : BndM S i) :
+    RuleSolM (unshift2 S) c 0 (fun k => u (k - 2)) (fun k => rn (k - 2)) (fun _ => 0)
+      (fun _ => xm1) (fun _ => im1) (fun _ => im2) (place 0 0 π) (place 0 xm1 x)
+      (place im2 im1 i) := by
+  have hβ : c.β ≠ 0 := hc.1.ne'
+  have hκ : c.κ ≠ 0 := hc.2.2.2.1.ne'
+  have hli : c.li ≠ 0 := hc.2.2.2.2.2.ne'
+  set S' := unshift2 S with hS'
+  obtain ⟨Cπ, hCπ⟩ := hπb
+  obtain ⟨Cx, hCx⟩ := hxb
+  obtain ⟨Ci, hCi⟩ := hib
+  have hplA : ∀ (v0 v1 : ℝ) (f : ℕ → Ω → ℝ), AdaptedM S f → AdaptedM S' (place v0 v1 f) := by
+    intro v0 v1 f hf k
+    rcases k with _ | _ | k
+    · exact stronglyMeasurable_const
+    · exact stronglyMeasurable_const
+    · exact hf k
+  have hplB : ∀ (v0 v1 : ℝ) (f : ℕ → Ω → ℝ) (C : ℝ), (∀ k, ∀ᵐ ω ∂S.μ, |f k ω| ≤ C) →
+      BndM S' (place v0 v1 f) := by
+    intro v0 v1 f C hf
+    refine ⟨max C (|v0| + |v1|), fun k => ?_⟩
+    rcases k with _ | _ | k
+    · exact Eventually.of_forall fun ω => le_max_of_le_right (by
+        simp only [place]; linarith [abs_nonneg v1])
+    · exact Eventually.of_forall fun ω => le_max_of_le_right (by
+        simp only [place]; linarith [abs_nonneg v0])
+    · exact (hf k).mono fun ω h => h.trans (le_max_left _ _)
+  have hia' := hplA im2 im1 i hia
+  have hii : ∀ k, Integrable (place im2 im1 i k) S.μ := fun k =>
+    integrable_of_sm S' (hia' k) ((hplB im2 im1 i Ci hCi).choose_spec k)
+  refine ⟨hplA 0 0 π hπa, hplA 0 xm1 x hxa, hia', hplB 0 0 π Cπ hCπ, hplB 0 xm1 x Cx hCx,
+    hplB im2 im1 i Ci hCi, fun k hk => ?_, fun k hk => ?_, fun t => ?_, rfl, rfl, rfl, rfl⟩
+  · obtain ⟨t, rfl⟩ : ∃ t, k = t + 2 := ⟨k - 2, by omega⟩
+    filter_upwards [(he t).1] with ω e
+    have hf : (fun ω' => place 0 0 π (t + 2 + 1) ω' - 0 * place 0 0 π (t + 2) ω') =
+        π (t + 1) := funext fun ω' => by
+      change π (t + 1) ω' - 0 * π t ω' = π (t + 1) ω'
+      ring
+    rw [hf]
+    change π t ω - 0 * place 0 0 π (t + 1) ω =
+      c.κ * x t ω + c.β * S.E t (π (t + 1)) ω + u t ω
+    rw [e]
+    ring
+  · obtain ⟨t, rfl⟩ : ∃ t, k = t + 2 := ⟨k - 2, by omega⟩
+    filter_upwards [(he t).2.1] with ω e
+    exact e
+  · have hA : ALi c.β 0 c.κ c.σ (fun k ω => place im2 im1 i k ω - c.istar) t = fun ω =>
+        -(place im2 im1 i (t + 2) ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ *
+          (place im2 im1 i (t + 1) ω - c.istar) - c.β⁻¹ * (place im2 im1 i t ω - c.istar) := by
+      funext ω
+      simp only [ALi]
+      ring
+    have hAk : StronglyMeasurable[S'.𝓕 (t + 2)] (fun ω =>
+        -(place im2 im1 i (t + 2) ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ *
+          (place im2 im1 i (t + 1) ω - c.istar) - c.β⁻¹ * (place im2 im1 i t ω - c.istar)) :=
+      (((hia' (t + 2)).sub stronglyMeasurable_const).neg.add
+        ((((hia' (t + 1)).mono (S'.𝓕.mono (by omega))).sub stronglyMeasurable_const).const_mul
+          _)).sub
+        ((((hia' t).mono (S'.𝓕.mono (by omega))).sub stronglyMeasurable_const).const_mul _)
+    have hAi : Integrable (fun ω =>
+        -(place im2 im1 i (t + 2) ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ *
+          (place im2 im1 i (t + 1) ω - c.istar) - c.β⁻¹ * (place im2 im1 i t ω - c.istar)) S.μ :=
+      (((hii (t + 2)).sub (integrable_const _)).neg.add
+        (((hii (t + 1)).sub (integrable_const _)).const_mul _)).sub
+        (((hii t).sub (integrable_const _)).const_mul _)
+    have hl1 : ∀ ω, lag im1 i t ω = place im2 im1 i (t + 1) ω := by
+      intro ω
+      cases t <;> rfl
+    have hl2 : ∀ ω, lag im2 (lag im1 i) t ω = place im2 im1 i t ω := by
+      intro ω
+      rcases t with _ | _ | s <;> rfl
+    have hlx : ∀ ω, lag xm1 x t ω = place 0 xm1 x (t + 1) ω := by
+      intro ω
+      cases t <;> rfl
+    filter_upwards [(he t).2.2] with ω e
+    rw [hA, S'.E_of_stronglyMeasurable hAk hAi]
+    simp only [TidyR5aLambdaXZeroMeasure.fbigM, qtil]
+    rw [show t + 2 - 1 = t + 1 by omega]
+    rw [hl1, hl2, hlx] at e
+    change i t ω = _ at e
+    change -(i t ω - c.istar) + CubicRoots.coefA2 c.β 0 c.κ c.σ *
+        (place im2 im1 i (t + 1) ω - c.istar) - c.β⁻¹ * (place im2 im1 i t ω - c.istar) =
+      -(c.κ * c.σ / c.li * ((π t ω - 0 * place 0 0 π (t + 1) ω) +
+        c.lx / c.κ * (x t ω - place 0 xm1 x (t + 1) ω)) -
+        c.β * 0 * S'.E (t + 2) (qtil 0 c.κ c.σ c.lx c.li (place 0 0 π) (place 0 xm1 x)
+          (t + 2 + 1)) ω)
+    unfold CubicRoots.coefA2
+    unfold rho1 rho2 phiPi phiX at e
+    field_simp at e ⊢
+    linear_combination -e
+
+/-- **Woodford (2003), Proposition 8.5, p. 584 (uniqueness), on every filtered probability
+space**: two essentially bounded adapted equilibria under the optimal rule (3.7) with the same
+disturbances and history agree a.s. at every date (`TidyR5aLambdaXZeroMeasure.rule_system_uniqueM`
+on the delayed filtration, through `ruleSolM_of_eqm`). -/
+theorem rule_eqm_uniqueM (c : Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω)
+    {rn u : ℕ → Ω → ℝ} (xm1 im1 im2 : ℝ) {π x i π' x' i' : ℕ → Ω → ℝ}
+    (he : RuleEqmM S c rn u xm1 im1 im2 π x i) (hπa : AdaptedM S π) (hxa : AdaptedM S x)
+    (hia : AdaptedM S i) (hπb : BndM S π) (hxb : BndM S x) (hib : BndM S i)
+    (he' : RuleEqmM S c rn u xm1 im1 im2 π' x' i') (hπa' : AdaptedM S π') (hxa' : AdaptedM S x')
+    (hia' : AdaptedM S i') (hπb' : BndM S π') (hxb' : BndM S x') (hib' : BndM S i') :
+    ∀ t, π' t =ᵐ[S.μ] π t ∧ x' t =ᵐ[S.μ] x t ∧ i' t =ᵐ[S.μ] i t := by
+  intro t
+  have h := TidyR5aLambdaXZeroMeasure.rule_system_uniqueM (unshift2 S) c hc.1 hc.2.1
+    hc.2.2.2.1.ne' hc.2.2.1.ne' hc.2.2.2.2.2 hc.2.2.2.2.1.le
+    (ruleSolM_of_eqm c hc S xm1 im1 im2 he' hπa' hxa' hia' hπb' hxb' hib')
+    (ruleSolM_of_eqm c hc S xm1 im1 im2 he hπa hxa hia hπb hxb hib) (t + 2) (by omega)
+  exact h
+
+/-! ### The solution of (2.1) and (2.5) -/
+
+/-- Woodford (2003), p. 540 (tool): `E_t(af + bg) = aE_tf + bg` a.s. for integrable `f` and
+integrable `g` known at `t`, written in the form of `TidyR6bRuleSystemMeasure.E_aff22`. -/
+theorem E_aff22' (S : MeasExpectationSystem Ω) (t : ℕ) {f g : Ω → ℝ} (hf : Integrable f S.μ)
+    (hg : StronglyMeasurable[S.𝓕 t] g) (hgi : Integrable g S.μ) (a b : ℝ) :
+    ∀ᵐ ω ∂S.μ, S.E t (fun ω => a * f ω + 0 * f ω + b * g ω + 0 * g ω + 0 * g ω + 0) ω =
+      a * S.E t f ω + 0 * S.E t f ω + b * g ω + 0 * g ω + 0 * g ω + 0 :=
+  TidyR6bRuleSystemMeasure.E_aff22 S t a 0 b 0 0 0 hf hf hg hg hg hgi hgi hgi
+
+/-- Woodford (2003), (2.5)–(2.8), p. 561, survey §4.3: the stable root `μ₁` of
+`βμ² − (1 + β + κ/φ)μ + 1`, `φ = λₓ/κ`. -/
+noncomputable def mu25 (c : Calib) : ℝ := QuadraticRoots.lam1 c.β (c.κ / (c.lx / c.κ))
+
+/-- Woodford (2003), (2.5)–(2.8), p. 561, with conditional expectations: the forward solution
+`z_t = E_t ∑_k (βμ₁)ᵏ (−(μ₁/φ)u_{t+k})` of `z_t = βμ₁E_tz_{t+1} − (μ₁/φ)u_t`. -/
+noncomputable def z25 (S : MeasExpectationSystem Ω) (c : Calib) (u : ℕ → Ω → ℝ) : ℕ → Ω → ℝ :=
+  S.forwardSol (c.β * mu25 c) (fun t ω => -(mu25 c / (c.lx / c.κ)) * u t ω)
+
+/-- Woodford (2003), (2.5)–(2.8), p. 561, with conditional expectations: the output gap
+`x_t = μ₁x_{t−1} + z_t`, `x_{−1}` given. -/
+noncomputable def x25 (S : MeasExpectationSystem Ω) (c : Calib) (xm1 : ℝ) (u : ℕ → Ω → ℝ) :
+    ℕ → Ω → ℝ
+  | 0 => fun ω => mu25 c * xm1 + z25 S c u 0 ω
+  | t + 1 => fun ω => mu25 c * x25 S c xm1 u t ω + z25 S c u (t + 1) ω
+
+/-- Woodford (2003), (2.5), p. 561: inflation from the criterion, `π_t = −φ(x_t − x_{t−1})`. -/
+noncomputable def pi25 (S : MeasExpectationSystem Ω) (c : Calib) (xm1 : ℝ) (u : ℕ → Ω → ℝ) :
+    ℕ → Ω → ℝ :=
+  fun t ω => -(c.lx / c.κ) * (x25 S c xm1 u t ω - lag xm1 (x25 S c xm1 u) t ω)
+
+/-- Woodford (2003), (2.5)–(2.8) (tool): `x_t = μ₁x_{t−1} + z_t` at every date. -/
+theorem x25_eq (S : MeasExpectationSystem Ω) (c : Calib) (xm1 : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ)
+    (ω : Ω) : x25 S c xm1 u t ω = mu25 c * lag xm1 (x25 S c xm1 u) t ω + z25 S c u t ω := by
+  cases t <;> rfl
+
+/-- Woodford (2003), survey §4.3 (tool): `0 < μ₁ < 1` and `|βμ₁| < 1` for an admissible
+calibration. -/
+theorem mu25_facts (c : Calib) (hc : c.Adm) :
+    0 < mu25 c ∧ mu25 c < 1 ∧ |c.β * mu25 c| < 1 ∧
+      c.β * mu25 c ^ 2 - (1 + c.β + c.κ / (c.lx / c.κ)) * mu25 c + 1 = 0 := by
+  have hc' : 0 < c.κ / (c.lx / c.κ) := div_pos hc.2.2.2.1 (div_pos hc.2.2.2.2.1 hc.2.2.2.1)
+  obtain ⟨h0, h1⟩ := QuadraticRoots.beta_lam1_mem hc.1 hc.2.1 hc'
+  exact ⟨QuadraticRoots.lam1_pos hc.1 hc', QuadraticRoots.lam1_lt_one hc.1 hc',
+    by unfold mu25; rw [abs_of_nonneg h0]; exact h1, QuadraticRoots.lam1_root hc.1 hc'⟩
+
+/-- **Woodford (2003), (2.1) and (2.5), p. 561, on every filtered probability space: a solution
+exists.** For an admissible calibration, every essentially bounded adapted cost-push disturbance
+and every `x_{−1}`, `(pi25, x25)` is an essentially bounded adapted solution of (2.1) and the
+criterion (2.5), with Mathlib's conditional expectation. -/
+theorem crit25_existsM (c : Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω) {u : ℕ → Ω → ℝ}
+    (hua : AdaptedM S u) (hub : BndM S u) (xm1 : ℝ) :
+    AdaptedM S (pi25 S c xm1 u) ∧ AdaptedM S (x25 S c xm1 u) ∧ BndM S (pi25 S c xm1 u) ∧
+      BndM S (x25 S c xm1 u) ∧ (∀ t, ASb S c u (pi25 S c xm1 u) (x25 S c xm1 u) t) ∧
+      Crit25M S c xm1 (pi25 S c xm1 u) (x25 S c xm1 u) := by
+  obtain ⟨hμ0, hμ1, ha, hr⟩ := mu25_facts c hc
+  set μ := mu25 c with hμ
+  set φ := c.lx / c.κ with hφ
+  have hφ0 : φ ≠ 0 := (div_pos hc.2.2.2.2.1 hc.2.2.2.1).ne'
+  obtain ⟨Cu, hCu⟩ := hub
+  set g : ℕ → Ω → ℝ := fun t ω => -(μ / φ) * u t ω with hg
+  have hga : StronglyAdapted S.𝓕 g := fun t => (hua t).const_mul _
+  have hgb : ∀ t, ∀ᵐ ω ∂S.μ, |g t ω| ≤ |μ / φ| * Cu := fun t =>
+    (hCu t).mono fun ω h => by
+      simp only [hg, abs_mul, abs_neg]
+      exact mul_le_mul_of_nonneg_left h (abs_nonneg _)
+  have hza : StronglyAdapted S.𝓕 (z25 S c u) := S.forwardSol_adapted _ _
+  obtain ⟨Kz, hKz⟩ : ∃ K, ∀ t, ∀ᵐ ω ∂S.μ, |z25 S c u t ω| ≤ K := S.forwardSol_bdd ha hgb
+  have hzs : S.Solves (c.β * μ) g (z25 S c u) := S.forwardSol_solves ha hga hgb
+  have hzi : ∀ t, Integrable (z25 S c u t) S.μ := fun t => integrable_of_sm S (hza t) (hKz t)
+  -- adaptedness and bounds of `x`
+  have hxa : AdaptedM S (x25 S c xm1 u) := by
+    intro t
+    induction t with
+    | zero => exact stronglyMeasurable_const.add (hza 0)
+    | succ s ih => exact (((ih.mono (S.𝓕.mono (Nat.le_succ s))).const_mul μ)).add (hza (s + 1))
+  set B := max |xm1| (Kz / (1 - μ)) with hB
+  have hKB : Kz ≤ (1 - μ) * B := by
+    have h1 : Kz / (1 - μ) ≤ B := le_max_right _ _
+    rw [div_le_iff₀ (by linarith)] at h1
+    linarith
+  have hB0 : 0 ≤ B := (abs_nonneg xm1).trans (le_max_left _ _)
+  have hxb' : ∀ t, ∀ᵐ ω ∂S.μ, |x25 S c xm1 u t ω| ≤ B := by
+    intro t
+    induction t with
+    | zero =>
+      filter_upwards [hKz 0] with ω h
+      change |μ * xm1 + z25 S c u 0 ω| ≤ B
+      refine (abs_add_le _ _).trans ?_
+      rw [abs_mul, abs_of_pos hμ0]
+      have := mul_le_mul_of_nonneg_left (le_max_left |xm1| (Kz / (1 - μ))) hμ0.le
+      linarith
+    | succ s ih =>
+      filter_upwards [ih, hKz (s + 1)] with ω h1 h2
+      change |μ * x25 S c xm1 u s ω + z25 S c u (s + 1) ω| ≤ B
+      refine (abs_add_le _ _).trans ?_
+      rw [abs_mul, abs_of_pos hμ0]
+      have := mul_le_mul_of_nonneg_left h1 hμ0.le
+      linarith
+  have hxb : BndM S (x25 S c xm1 u) := ⟨B, hxb'⟩
+  have hxi : ∀ t, Integrable (x25 S c xm1 u t) S.μ := fun t => integrable_of_sm S (hxa t) (hxb' t)
+  have hlag : ∀ t, StronglyMeasurable[S.𝓕 t] (lag xm1 (x25 S c xm1 u) t) := by
+    intro t
+    cases t with
+    | zero => exact stronglyMeasurable_const
+    | succ s => exact (hxa s).mono (S.𝓕.mono (Nat.le_succ s))
+  have hlagb : ∀ t, ∀ᵐ ω ∂S.μ, |lag xm1 (x25 S c xm1 u) t ω| ≤ B := by
+    intro t
+    cases t with
+    | zero => exact Eventually.of_forall fun ω => le_max_left _ _
+    | succ s => exact hxb' s
+  refine ⟨fun t => ((hxa t).sub (hlag t)).const_mul _, hxa, ⟨|φ| * (B + B), fun t => ?_⟩, hxb,
+    fun t => ?_, fun t => Eventually.of_forall fun ω => ?_⟩
+  · filter_upwards [hxb' t, hlagb t] with ω h1 h2
+    simp only [pi25]
+    rw [abs_mul, abs_neg]
+    exact mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add h1 h2)) (abs_nonneg _)
+  · -- (2.1)
+    have eπ : pi25 S c xm1 u (t + 1) = fun ω => (-φ) * z25 S c u (t + 1) ω +
+        0 * z25 S c u (t + 1) ω + (φ - φ * μ) * x25 S c xm1 u t ω + 0 * x25 S c xm1 u t ω +
+        0 * x25 S c xm1 u t ω + 0 := by
+      funext ω
+      simp only [pi25, lag]
+      rw [x25_eq S c xm1 u (t + 1) ω]
+      simp only [lag]
+      ring
+    filter_upwards [E_aff22' S t (hzi (t + 1)) (hxa t) (hxi t) (-φ) (φ - φ * μ), hzs t]
+      with ω eE ez
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at ez
+    rw [eπ, eE]
+    simp only [pi25]
+    have hx := x25_eq S c xm1 u t ω
+    have key : μ * (-φ * (x25 S c xm1 u t ω - lag xm1 (x25 S c xm1 u) t ω) -
+        (c.κ * x25 S c xm1 u t ω + c.β * (-φ * S.E t (z25 S c u (t + 1)) ω +
+          (φ - φ * μ) * x25 S c xm1 u t ω) + u t ω)) = 0 := by
+      have hφ' : φ * φ⁻¹ = 1 := mul_inv_cancel₀ hφ0
+      have hκφ : c.κ / φ = c.κ * φ⁻¹ := div_eq_mul_inv _ _
+      rw [hκφ] at hr
+      linear_combination (φ * x25 S c xm1 u t ω) * hr - φ * ez - φ * hx +
+        (c.κ * μ * x25 S c xm1 u t ω + μ * u t ω) * hφ'
+    have := (mul_eq_zero.mp key).resolve_left hμ0.ne'
+    linear_combination this
+  · simp only [pi25]
+    ring
+
+/-- **Woodford (2003), (2.1) and (2.5), p. 561, on every filtered probability space: the solution
+is unique a.s.** Two essentially bounded adapted solutions of (2.1) and (2.5) with the same
+disturbance and the same `x_{−1}` agree a.s. at every date: `w_t = d_t − μ₁d_{t−1}` (`d` the
+difference of the output gaps) solves `w_t = βμ₁E_tw_{t+1}`, so it vanishes
+(`ExpectationsMeasure.MeasExpectationSystem.forward_unique`). -/
+theorem crit25_uniqueM (c : Calib) (hc : c.Adm) (S : MeasExpectationSystem Ω) {u : ℕ → Ω → ℝ}
+    (xm1 : ℝ) {π1 x1 π2 x2 : ℕ → Ω → ℝ} (hπ1a : AdaptedM S π1) (hx1a : AdaptedM S x1)
+    (hπ1b : BndM S π1) (hx1b : BndM S x1) (hAS1 : ∀ t, ASb S c u π1 x1 t)
+    (hc1 : Crit25M S c xm1 π1 x1) (hπ2a : AdaptedM S π2) (hx2a : AdaptedM S x2)
+    (hπ2b : BndM S π2) (hx2b : BndM S x2) (hAS2 : ∀ t, ASb S c u π2 x2 t)
+    (hc2 : Crit25M S c xm1 π2 x2) :
+    ∀ t, π1 t =ᵐ[S.μ] π2 t ∧ x1 t =ᵐ[S.μ] x2 t := by
+  obtain ⟨hμ0, -, ha, hr⟩ := mu25_facts c hc
+  set μ := mu25 c with hμ
+  set φ := c.lx / c.κ with hφ
+  have hφ0 : φ ≠ 0 := (div_pos hc.2.2.2.2.1 hc.2.2.2.1).ne'
+  have hφ' : φ * φ⁻¹ = 1 := mul_inv_cancel₀ hφ0
+  have hκφ : c.κ / φ = c.κ * φ⁻¹ := div_eq_mul_inv _ _
+  rw [hκφ] at hr
+  obtain ⟨Cπ1, hCπ1⟩ := hπ1b
+  obtain ⟨Cπ2, hCπ2⟩ := hπ2b
+  obtain ⟨Cx1, hCx1⟩ := hx1b
+  obtain ⟨Cx2, hCx2⟩ := hx2b
+  have iπ1 : ∀ k, Integrable (π1 k) S.μ := fun k => integrable_of_sm S (hπ1a k) (hCπ1 k)
+  have iπ2 : ∀ k, Integrable (π2 k) S.μ := fun k => integrable_of_sm S (hπ2a k) (hCπ2 k)
+  set d : ℕ → Ω → ℝ := fun t ω => x1 t ω - x2 t ω with hd
+  set p : ℕ → Ω → ℝ := fun t ω => π1 t ω - π2 t ω with hp
+  have hda : AdaptedM S d := fun t => (hx1a t).sub (hx2a t)
+  have hdb : ∀ t, ∀ᵐ ω ∂S.μ, |d t ω| ≤ Cx1 + Cx2 := fun t => by
+    filter_upwards [hCx1 t, hCx2 t] with ω h1 h2
+    exact (abs_sub _ _).trans (add_le_add h1 h2)
+  have hdi : ∀ t, Integrable (d t) S.μ := fun t => integrable_of_sm S (hda t) (hdb t)
+  have hL : ∀ t ω, lag xm1 x1 t ω - lag xm1 x2 t ω = lag 0 d t ω := by
+    intro t ω
+    cases t with
+    | zero => simp [lag]
+    | succ s => rfl
+  have hcrit : ∀ t, ∀ᵐ ω ∂S.μ, p t ω = -φ * (d t ω - lag 0 d t ω) := fun t => by
+    filter_upwards [hc1 t, hc2 t] with ω e1 e2
+    rw [← hL]
+    simp only [hp, hd]
+    linear_combination e1 - e2
+  have hASd : ∀ t, ∀ᵐ ω ∂S.μ, p t ω = c.κ * d t ω + c.β * S.E t (p (t + 1)) ω := fun t => by
+    filter_upwards [hAS1 t, hAS2 t, S.E_sub (iπ1 (t + 1)) (iπ2 (t + 1)) t] with ω e1 e2 e3
+    have e3' : S.E t (p (t + 1)) ω = S.E t (π1 (t + 1)) ω - S.E t (π2 (t + 1)) ω := e3
+    rw [e3']
+    simp only [hp, hd]
+    linear_combination e1 - e2
+  have hEp : ∀ t, S.E t (p (t + 1)) =ᵐ[S.μ] fun ω => -φ * S.E t (d (t + 1)) ω + 0 *
+      S.E t (d (t + 1)) ω + φ * d t ω + 0 * d t ω + 0 * d t ω + 0 := by
+    intro t
+    have h1 : p (t + 1) =ᵐ[S.μ] fun ω => -φ * d (t + 1) ω + 0 * d (t + 1) ω + φ * d t ω +
+        0 * d t ω + 0 * d t ω + 0 := by
+      filter_upwards [hcrit (t + 1)] with ω e
+      rw [e]
+      simp only [lag]
+      ring
+    exact (S.E_congr h1 t).trans (TidyR6bRuleSystemMeasure.E_aff22 S t (-φ) 0 φ 0 0 0
+      (hdi (t + 1)) (hdi (t + 1)) (hda t) (hda t) (hda t) (hdi t) (hdi t) (hdi t))
+  set w : ℕ → Ω → ℝ := fun t ω => d t ω - μ * lag 0 d t ω with hw
+  have hEw : ∀ t, S.E t (w (t + 1)) =ᵐ[S.μ] fun ω => 1 * S.E t (d (t + 1)) ω + 0 *
+      S.E t (d (t + 1)) ω + (-μ) * d t ω + 0 * d t ω + 0 * d t ω + 0 := by
+    intro t
+    have h1 : w (t + 1) = fun ω => 1 * d (t + 1) ω + 0 * d (t + 1) ω + (-μ) * d t ω +
+        0 * d t ω + 0 * d t ω + 0 := by
+      funext ω
+      simp only [hw, lag]
+      ring
+    rw [h1]
+    exact TidyR6bRuleSystemMeasure.E_aff22 S t 1 0 (-μ) 0 0 0 (hdi (t + 1)) (hdi (t + 1)) (hda t)
+      (hda t) (hda t) (hdi t) (hdi t) (hdi t)
+  have hws : S.Solves (c.β * μ) 0 w := by
+    intro t
+    filter_upwards [hcrit t, hASd t, hEp t, hEw t] with ω e1 e2 e3 e4
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply, add_zero]
+    rw [e4]
+    rw [e3, e1] at e2
+    have key : φ * (w t ω - c.β * μ * (1 * S.E t (d (t + 1)) ω + 0 * S.E t (d (t + 1)) ω +
+        (-μ) * d t ω + 0 * d t ω + 0 * d t ω + 0)) = 0 := by
+      simp only [hw]
+      linear_combination (-μ) * e2 + (φ * d t ω) * hr + (c.κ * μ * d t ω) * hφ'
+    exact sub_eq_zero.mp ((mul_eq_zero.mp key).resolve_left hφ0)
+  have hwm : ∀ t, AEStronglyMeasurable (w t) S.μ := fun t => by
+    have hl : StronglyMeasurable[S.𝓕 t] (lag 0 d t) := by
+      cases t with
+      | zero => exact stronglyMeasurable_const
+      | succ s => exact (hda s).mono (S.𝓕.mono (Nat.le_succ s))
+    exact (((hda t).sub (hl.const_mul μ)).mono (S.𝓕.le t)).aestronglyMeasurable
+  have hwb : S.BddProc w := ⟨max (Cx1 + Cx2) 0 + μ * max (Cx1 + Cx2) 0, fun t => by
+    have hl : ∀ᵐ ω ∂S.μ, |lag 0 d t ω| ≤ max (Cx1 + Cx2) 0 := by
+      cases t with
+      | zero => exact Eventually.of_forall fun ω => by simp [lag]
+      | succ s => exact (hdb s).mono fun ω h => h.trans (le_max_left _ _)
+    filter_upwards [hdb t, hl] with ω h1 h2
+    simp only [hw]
+    refine (abs_sub _ _).trans (add_le_add (h1.trans (le_max_left _ _)) ?_)
+    rw [abs_mul, abs_of_pos hμ0]
+    exact mul_le_mul_of_nonneg_left h2 hμ0.le⟩
+  have hw0 := S.forward_unique ha hws (S.solves_zero _) hwm
+    (fun _ => aestronglyMeasurable_const) hwb ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+  have hd0 : ∀ t, d t =ᵐ[S.μ] 0 := by
+    intro t
+    induction t with
+    | zero =>
+      filter_upwards [hw0 0] with ω e
+      simpa [hw, lag] using e
+    | succ s ih =>
+      filter_upwards [hw0 (s + 1), ih] with ω e1 e2
+      simp only [hw, lag, Pi.zero_apply] at e1 e2 ⊢
+      rw [e2, mul_zero, sub_zero] at e1
+      exact e1
+  intro t
+  have hp0 : p t =ᵐ[S.μ] 0 := by
+    have hl0 : lag 0 d t =ᵐ[S.μ] 0 := by
+      cases t with
+      | zero => exact Eventually.of_forall fun ω => rfl
+      | succ s => exact hd0 s
+    filter_upwards [hcrit t, hd0 t, hl0] with ω e1 e2 e3
+    simp only [Pi.zero_apply] at e2 e3 ⊢
+    rw [e1, e2, e3]
+    ring
+  exact ⟨hp0.mono fun ω e => sub_eq_zero.mp e, (hd0 t).mono fun ω e => sub_eq_zero.mp e⟩
+
+/-! ### The limit with no existence hypothesis -/
+
+/-- **Woodford (2003), p. 591, on every filtered probability space, with existence.** Let `l_n > 0`,
+`l_n → 0`. For every essentially bounded adapted disturbance `(rⁿ, u)` and every history
+`x_{−1}, i_{−1}, i_{−2}`, there are essentially bounded adapted equilibria under the optimal rule
+(3.7) with `λᵢ = l_n` (`rule_eqm_existsM`), the (2.5) solution `(pi25, x25)` exists
+(`crit25_existsM`, unique a.s. by `crit25_uniqueM`), and the paths converge: for every `ε > 0`,
+eventually, at every date, `|πⁿ_t − π⁰_t|, |xⁿ_t − x⁰_t|, |iⁿ_t − i⁰_t| ≤ ε` a.s.
+(`TidyR5aLambdaILimitMeasure.paths_convergeM`). -/
+theorem paths_convergeM_exists (c : Calib) (hc : c.Adm) {l : ℕ → ℝ} (hlpos : ∀ n, 0 < l n)
+    (hl : Tendsto l atTop (𝓝 0)) (S : MeasExpectationSystem Ω) {rn u : ℕ → Ω → ℝ}
+    (hra : AdaptedM S rn) (hrb : BndM S rn) (hua : AdaptedM S u) (hub : BndM S u)
+    (xm1 im1 im2 : ℝ) :
+    ∃ e : ℕ → (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      (∀ n, RuleEqmM S { c with li := l n } rn u xm1 im1 im2 (e n).1 (e n).2.1 (e n).2.2 ∧
+        (AdaptedM S (e n).1 ∧ AdaptedM S (e n).2.1 ∧ AdaptedM S (e n).2.2) ∧
+        (BndM S (e n).1 ∧ BndM S (e n).2.1 ∧ BndM S (e n).2.2)) ∧
+      (∀ t, ASb S c u (pi25 S c xm1 u) (x25 S c xm1 u) t) ∧
+      Crit25M S c xm1 (pi25 S c xm1 u) (x25 S c xm1 u) ∧
+      ∀ ε > 0, ∀ᶠ n in atTop, ∀ t, ∀ᵐ ω ∂S.μ, |(e n).1 t ω - pi25 S c xm1 u t ω| ≤ ε ∧
+        |(e n).2.1 t ω - x25 S c xm1 u t ω| ≤ ε ∧
+        |(e n).2.2 t ω - i0M S c rn (pi25 S c xm1 u) (x25 S c xm1 u) t ω| ≤ ε := by
+  have hcn : ∀ n, ({ c with li := l n } : Calib).Adm := fun n =>
+    ⟨hc.1, hc.2.1, hc.2.2.1, hc.2.2.2.1, hc.2.2.2.2.1, hlpos n⟩
+  have hex : ∀ n, ∃ e : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      RuleEqmM S { c with li := l n } rn u xm1 im1 im2 e.1 e.2.1 e.2.2 ∧
+        (AdaptedM S e.1 ∧ AdaptedM S e.2.1 ∧ AdaptedM S e.2.2) ∧
+        (BndM S e.1 ∧ BndM S e.2.1 ∧ BndM S e.2.2) := fun n => by
+    obtain ⟨π, x, i, h⟩ := rule_eqm_existsM _ (hcn n) S hra hrb hua hub xm1 im1 im2
+    exact ⟨(π, x, i), h⟩
+  choose e he using hex
+  obtain ⟨hπ0a, hx0a, hπ0b, hx0b, hAS0, hcr0⟩ := crit25_existsM c hc S hua hub xm1
+  exact ⟨e, he, hAS0, hcr0, TidyR5aLambdaILimitMeasure.paths_convergeM c hc hlpos hl hrb xm1 im1
+    im2 (fun n => (he n).1) (fun n => (he n).2.1) (fun n => (he n).2.2) hπ0a hx0a hπ0b hx0b hAS0
+    hcr0⟩
+
+end Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Rule III on VAR economies: timeless optimality with conditional expectations
+
+Woodford (2003), *Interest and Prices*, Chapter 8, Rule III (3.24), p. 595, with Proposition 8.2
+(p. 555) and the Definition of optimality from a timeless perspective (pp. 538–539), on every
+filtered probability space with Mathlib's conditional expectation.
+
+`TidyR5aRuleIIIMeasure.AllCases.m_prop82_III_all` proves that commitment to Rule III's target
+criterion determines a bounded plan, unique a.s., that solves (1.1) + (1.9), for every bounded
+adapted disturbance. This module adds the VAR / timeless-optimality packaging, the analogue for
+Rule III of `OptimalRulesMeasureInertiaComplex.in_m_prop82_quasi_var` and
+`OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var`: when the exogenous state is a VAR(1) in
+the conditional-expectation sense (`OptimalRulesMeasureMarkov.IsVAR`, `A` power-bounded), the plan
+that Rule III determines is **optimal from a timeless perspective**
+(`OptimalRulesMeasure.MTimelesslyOptimalPlan`): `z_t = f⁰ + F X̄_t` a.s. with time-invariant
+`f⁰`, `F` and the state `X̄_t = (Z_t, M_{t−1}, s_t)`, and it minimises (1.2) a.s. among all
+bounded feasible plans with the same initial constraint.
+
+* `QuasiCase.m_prop82_IIIQ_var`: for the `Λ'` of every quasi-split with the spectral data
+  `TidyR5aRuleIIIMeasure.QuasiCase.FactsQ`.
+* `AllCases.m_prop82_III_all_var`: **at every admissible calibration `0 < γ ≤ 1`**, there is a
+  `Λ'` with Rule III's lag polynomial `(1 − λ₁L)(1 − ½(λ₂ + λ₃)L)` such that on every VAR economy
+  Rule III's criterion determines exactly one bounded equilibrium a.s., and it is optimal from a
+  timeless perspective.
+* `AllCases.m_prop82_III_all_both`: both packagings at once (every bounded adapted disturbance,
+  and VAR economies with timeless optimality) from one `Λ'`.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6bRuleIIIVar
+
+open MeasureTheory Filter Matrix
+open ExpectationsMeasure OptimalRulesMeasure OptimalRulesMeasureMarkov GeneralSetup GeneralFOC.LQ
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+
+/-! ### Any quasi-split with the spectral data -/
+
+namespace QuasiCase
+
+open IRuleBasic (Calib)
+open GeneralLinksInertia (inProblem)
+open InertiaAssumption81 (in_assumption81_perfectForesight)
+open TidyR5aRuleIIIMeasure.QuasiCase (FactsQ ΛIIIQ MCriterionIIIQ)
+
+variable (c : Calib) (γ : ℝ) (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1) {ιc : Type*} [Fintype ιc]
+  [DecidableEq ιc]
+  (Q : Prop81CaseII.QuasiSplit (inProblem c γ hc hγ0.le).sys (inProblem c γ hc hγ0.le).β ιc)
+  (lb : ℝ)
+
+include hγ1 in
+/-- **Woodford (2003), Rule III (3.24), p. 595, and Proposition 8.2, p. 555, on every VAR
+economy** (`A` power-bounded), with conditional expectations, for the `Λ'` of any quasi-split
+with the spectral data `FactsQ`: for every window `D ≥ 2`, every consistent bounded history and
+every bounded `Z_{t₀}` known at `t₀`, Rule III's target criterion determines a bounded feasible
+plan, every bounded feasible plan satisfying it equals that plan a.s. from `t₀` on, and the plan
+is **optimal from a timeless perspective** (Definition, pp. 538–539) with the state
+`X̄_t = (Z_t, M_{t−1}, s_t)` and time-invariant coefficients. -/
+theorem m_prop82_IIIQ_var (hF : FactsQ c γ hc hγ0 Q lb) {ιs : Type*} [Fintype ιs]
+    [DecidableEq ιs] (A : Matrix ιs ιs ℝ) (C2 : Matrix (Fin 2) ιs ℝ) (hA : PowBdd A)
+    {S : MeasExpectationSystem Ω} {t0 D : ℕ} (hD1 : D + 1 ≤ t0) (hD2 : 2 ≤ D)
+    {Mh qh : ℕ → Ω → Fin 2 → ℝ} {vh : ℕ → Ω → ℝ}
+    (hhist : HistoryOKm S (ΛIIIQ c γ hc hγ0 Q lb) (inProblem c γ hc hγ0.le).sys.B2 t0 D Mh qh vh)
+    (hMhb : MBoundedV S Mh) (hMhk : MAdaptedV S Mh) (hqhb : MBoundedV S qh)
+    (hvhb : ∃ K, ∀ t, ∀ᵐ ω ∂S.μ, |vh t ω| ≤ K) {s : ℕ → Ω → ιs → ℝ} (hs : IsVAR S A s)
+    {Z0 : Ω → Unit → ℝ} (hZk : MKnownV S t0 Z0) (hZb : MBoundedRV S Z0) :
+    ∃ y, MFeasible S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0 y ∧
+      MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y ∧
+      (∀ y', MFeasible S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0 y' →
+        MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y' → ∀ t, t0 ≤ t → y' t =ᵐ[S.μ] y t) ∧
+      ∃ φ, MTimelesslyOptimalPlan S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0
+        (stateX y φ s)
+        (zpart (fY (inProblem c γ hc hγ0.le) A C2
+          (in_assumption81_perfectForesight c γ hc hγ0 hγ1 0) hA))
+        ((FY (inProblem c γ hc hγ0.le) A C2
+          (in_assumption81_perfectForesight c γ hc hγ0 hγ1 0) hA).submatrix
+          (Sum.inl ∘ Sum.inr) id) y := by
+  have hA81 := in_assumption81_perfectForesight c γ hc hγ0 hγ1 0
+  have hMb : MBoundedRV S (Mh (t0 - 1)) := by
+    obtain ⟨K, hK⟩ := hMhb
+    exact ⟨K, hK (t0 - 1)⟩
+  obtain ⟨y, φ, hsol, -, hopt⟩ := m_existsUnique_var (inProblem c γ hc hγ0.le) A C2 hA81 hA
+    (OptimalRulesMeasureStabilityModels.Inertia.in_powDecay_Hn c γ hc hγ0 hγ1 A C2 hA) hs hZk
+    hZb hMb (hMhk (t0 - 1))
+  refine ⟨y, hsol.1, TidyR5aRuleIIIMeasure.QuasiCase.m_criterionIIIQ c γ hc hγ0 hγ1 Q lb hF hD1
+    hD2 hhist hMhb hMhk hsol, fun y' hy' hc' t ht => ?_, φ, hopt⟩
+  obtain ⟨φ', h'⟩ := TidyR5aRuleIIIMeasure.QuasiCase.m_focSystem_of_criterionIIIQ c γ hc hγ0 hγ1
+    Q lb hF hD1 hD2 hhist hMhb hMhk hqhb hvhb hy' hc'
+  exact (OptimalRulesMeasureForecast.m_focUnique_of_pf hA81.unique S t0 _ Z0 (Mh (t0 - 1)) y' y
+    φ' φ h' hsol t ht).1
+
+end QuasiCase
+
+/-! ### Every admissible calibration -/
+
+namespace AllCases
+
+open IRuleBasic (Calib)
+open GeneralLinksInertia (inProblem)
+open InertiaAssumption81 (in_assumption81_perfectForesight)
+open TidyR5aRuleIIIMeasure.QuasiCase (FactsQ ΛIIIQ MCriterionIIIQ)
+
+variable (c : Calib) (γ : ℝ) (hc : c.Adm) (hγ0 : 0 < γ) (hγ1 : γ ≤ 1)
+
+include hγ1 in
+/-- **Woodford (2003), Rule III (3.24), p. 595, Proposition 8.2, p. 555, and the Definition of
+pp. 538–539, at every admissible calibration** (`0 < γ ≤ 1`: three real roots, the double root,
+or a complex pair), on every filtered probability space and every VAR economy (`A`
+power-bounded): there is a `Λ'` with Rule III's lag polynomial
+`det(I − Λ'L) = (1 − λ₁L)(1 − ½(λ₂ + λ₃)L)` such that, for every window `D ≥ 2`, every consistent
+bounded history and every bounded `Z_{t₀}` known at `t₀`, Rule III's target criterion determines
+exactly one bounded equilibrium a.s., and it is optimal from a timeless perspective. -/
+theorem m_prop82_III_all_var :
+    ∃ (ιc : Type) (_ : Fintype ιc) (_ : DecidableEq ιc)
+      (Q : Prop81CaseII.QuasiSplit (inProblem c γ hc hγ0.le).sys (inProblem c γ hc hγ0.le).β ιc)
+      (lb : ℝ), Adjugate.alpha (ΛIIIQ c γ hc hγ0 Q lb) =
+        TidyR5aRuleIIIStochastic.Inertia.ruleIIIpoly c γ ∧
+      ∀ {ιs : Type} [Fintype ιs] [DecidableEq ιs] (A : Matrix ιs ιs ℝ)
+        (C2 : Matrix (Fin 2) ιs ℝ) (hA : PowBdd A) (S : MeasExpectationSystem Ω) (t0 D : ℕ),
+        D + 1 ≤ t0 → 2 ≤ D → ∀ (Mh qh : ℕ → Ω → Fin 2 → ℝ) (vh : ℕ → Ω → ℝ),
+        HistoryOKm S (ΛIIIQ c γ hc hγ0 Q lb) (inProblem c γ hc hγ0.le).sys.B2 t0 D Mh qh vh →
+        MBoundedV S Mh → MAdaptedV S Mh → MBoundedV S qh →
+        (∃ K, ∀ t, ∀ᵐ ω ∂S.μ, |vh t ω| ≤ K) →
+        ∀ (s : ℕ → Ω → ιs → ℝ), IsVAR S A s →
+        ∀ (Z0 : Ω → Unit → ℝ), MKnownV S t0 Z0 → MBoundedRV S Z0 →
+        ∃ y, MFeasible S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0 y ∧
+          MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y ∧
+          (∀ y', MFeasible S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0 y' →
+            MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y' →
+            ∀ t, t0 ≤ t → y' t =ᵐ[S.μ] y t) ∧
+          ∃ φ, MTimelesslyOptimalPlan S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0
+            (stateX y φ s)
+            (zpart (fY (inProblem c γ hc hγ0.le) A C2
+              (in_assumption81_perfectForesight c γ hc hγ0 hγ1 0) hA))
+            ((FY (inProblem c γ hc hγ0.le) A C2
+              (in_assumption81_perfectForesight c γ hc hγ0 hγ1 0) hA).submatrix
+              (Sum.inl ∘ Sum.inr) id) y := by
+  obtain ⟨ιc, i1, i2, Q, lb, hF⟩ := TidyR5aRuleIIIMeasure.AllCases.exists_quasi_facts c γ hc hγ0
+    hγ1
+  exact ⟨ιc, i1, i2, Q, lb, TidyR5aRuleIIIMeasure.QuasiCase.alpha_ΛIIIQ c γ hc hγ0 hγ1 Q lb hF,
+    fun A C2 hA S t0 D hD1 hD2 Mh qh vh hhist hMhb hMhk hqhb hvhb s hs Z0 hZk hZb =>
+      QuasiCase.m_prop82_IIIQ_var c γ hc hγ0 hγ1 Q lb hF A C2 hA (S := S) hD1 hD2 hhist hMhb
+        hMhk hqhb hvhb hs hZk hZb⟩
+
+include hγ1 in
+/-- **Woodford (2003), Rule III (3.24), p. 595, with Proposition 8.2, p. 555, both packagings from
+one `Λ'`, at every admissible calibration** (`0 < γ ≤ 1`): there is a `Λ'` with Rule III's lag
+polynomial such that (i) for every bounded adapted disturbance Rule III's criterion determines a
+bounded plan, unique a.s., solving (1.1) + (1.9), and (ii) on every VAR economy that plan is
+optimal from a timeless perspective. -/
+theorem m_prop82_III_all_both :
+    ∃ (ιc : Type) (_ : Fintype ιc) (_ : DecidableEq ιc)
+      (Q : Prop81CaseII.QuasiSplit (inProblem c γ hc hγ0.le).sys (inProblem c γ hc hγ0.le).β ιc)
+      (lb : ℝ), Adjugate.alpha (ΛIIIQ c γ hc hγ0 Q lb) =
+        TidyR5aRuleIIIStochastic.Inertia.ruleIIIpoly c γ ∧
+      (∀ (S : MeasExpectationSystem Ω) (t0 D : ℕ), D + 1 ≤ t0 → 2 ≤ D →
+        ∀ (Mh qh : ℕ → Ω → Fin 2 → ℝ) (vh : ℕ → Ω → ℝ),
+        HistoryOKm S (ΛIIIQ c γ hc hγ0 Q lb) (inProblem c γ hc hγ0.le).sys.B2 t0 D Mh qh vh →
+        MBoundedV S Mh → MAdaptedV S Mh → MBoundedV S qh →
+        (∃ K, ∀ t, ∀ᵐ ω ∂S.μ, |vh t ω| ≤ K) →
+        ∀ (e : ℕ → Ω → Fin 2 → ℝ), MBoundedV S e → MAdaptedV S e →
+        ∀ (Z0 : Ω → Unit → ℝ), MKnownV S t0 Z0 → MBoundedRV S Z0 →
+        ∃ y, MFeasible S (inProblem c γ hc hγ0.le) e t0 Z0 y ∧
+          MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y ∧
+          (∀ y', MFeasible S (inProblem c γ hc hγ0.le) e t0 Z0 y' →
+            MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y' →
+            ∀ t, t0 ≤ t → y' t =ᵐ[S.μ] y t) ∧
+          ∃ φ, MFOCSystem S (inProblem c γ hc hγ0.le) e t0 Z0 (Mh (t0 - 1)) y φ) ∧
+      ∀ {ιs : Type} [Fintype ιs] [DecidableEq ιs] (A : Matrix ιs ιs ℝ)
+        (C2 : Matrix (Fin 2) ιs ℝ) (hA : PowBdd A) (S : MeasExpectationSystem Ω) (t0 D : ℕ),
+        D + 1 ≤ t0 → 2 ≤ D → ∀ (Mh qh : ℕ → Ω → Fin 2 → ℝ) (vh : ℕ → Ω → ℝ),
+        HistoryOKm S (ΛIIIQ c γ hc hγ0 Q lb) (inProblem c γ hc hγ0.le).sys.B2 t0 D Mh qh vh →
+        MBoundedV S Mh → MAdaptedV S Mh → MBoundedV S qh →
+        (∃ K, ∀ t, ∀ᵐ ω ∂S.μ, |vh t ω| ≤ K) →
+        ∀ (s : ℕ → Ω → ιs → ℝ), IsVAR S A s →
+        ∀ (Z0 : Ω → Unit → ℝ), MKnownV S t0 Z0 → MBoundedRV S Z0 →
+        ∃ y, MFeasible S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0 y ∧
+          MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y ∧
+          (∀ y', MFeasible S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0 y' →
+            MCriterionIIIQ c γ hc hγ0 Q lb S D t0 qh vh y' →
+            ∀ t, t0 ≤ t → y' t =ᵐ[S.μ] y t) ∧
+          ∃ φ, MTimelesslyOptimalPlan S (inProblem c γ hc hγ0.le) (fun t ω => C2 *ᵥ s t ω) t0 Z0
+            (stateX y φ s)
+            (zpart (fY (inProblem c γ hc hγ0.le) A C2
+              (in_assumption81_perfectForesight c γ hc hγ0 hγ1 0) hA))
+            ((FY (inProblem c γ hc hγ0.le) A C2
+              (in_assumption81_perfectForesight c γ hc hγ0 hγ1 0) hA).submatrix
+              (Sum.inl ∘ Sum.inr) id) y := by
+  obtain ⟨ιc, i1, i2, Q, lb, hF⟩ := TidyR5aRuleIIIMeasure.AllCases.exists_quasi_facts c γ hc hγ0
+    hγ1
+  exact ⟨ιc, i1, i2, Q, lb, TidyR5aRuleIIIMeasure.QuasiCase.alpha_ΛIIIQ c γ hc hγ0 hγ1 Q lb hF,
+    fun S t0 D hD1 hD2 Mh qh vh hhist hMhb hMhk hqhb hvhb e heb hea Z0 hZk hZb =>
+      TidyR5aRuleIIIMeasure.QuasiCase.m_prop82_IIIQ c γ hc hγ0 hγ1 Q lb hF t0 hD1 hD2 hhist hMhb
+        hMhk hqhb hvhb heb hea hZk hZb,
+    fun A C2 hA S t0 D hD1 hD2 Mh qh vh hhist hMhb hMhk hqhb hvhb s hs Z0 hZk hZb =>
+      QuasiCase.m_prop82_IIIQ_var c γ hc hγ0 hγ1 Q lb hF A C2 hA (S := S) hD1 hD2 hhist hMhb
+        hMhk hqhb hvhb hs hZk hZb⟩
+
+end AllCases
+
+end Woodford.OptimalPolicyRules.TidyR6bRuleIIIVar
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The (2.20) region for `κ_w ≠ κ_p` on a probability space: general initial values, uniqueness
+
+Woodford (2003), *Interest and Prices*, Chapter 8, §2.2, (2.11)–(2.20), pp. 565–567, on every
+filtered probability space with Mathlib's conditional expectation (`TidyR5bStickyMeasure.PlanSWM`,
+`TidyR5bStickyMeasure.FOCswM`).
+
+`TidyR5bStickyExists.exists_meas_iff_stableRoots` proves existence under the root condition for
+the initial values `w_{t₀−1} = 0` and constant initial multipliers. This module completes the
+result:
+
+* `cubicR_existsG`, `cubic_imp_focMG`, `exists_meas_of_stableRootsG`: **existence for every
+  essentially bounded `𝓕₀`-measurable initial values** `(w_{t₀−1}, φ_{p,t₀−1}, φ_{w,t₀−1})`.
+* `uniqueM`: **a.s. uniqueness** by forecast transfer — at almost every outcome the date-`n`
+  conditional forecasts of the difference of two solutions form a bounded perfect-foresight
+  solution with zero data, hence vanish (`pf_zero`, from `InflTargetStickyWages.foc_existsUnique`
+  at a one-point sample space), so the difference vanishes a.s. at date `n`.
+* `existsUniqueM_of_stableRoots`, `existsUniqueM_iff_stableRoots`: under `StableRoots`, for every
+  bounded adapted disturbance and every essentially bounded initial values known at date 0 there
+  is exactly one (a.s.) bounded adapted plan with bounded adapted multipliers satisfying
+  (2.11)–(2.13) and (2.16)–(2.19) a.s.; and this holds for all data iff `StableRoots`.
+-/
+
+namespace Woodford.OptimalPolicyRules.TidyR6bStickyGeneral
+
+open MeasureTheory Filter Topology ExpectationsMeasure InflTargetStickyWages InflTargetInertia
+open TidyR5bCondExpC TidyR5bStickyMeasure TidyR5bStickyExists
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### Existence for general initial values -/
+
+/-- **Woodford (2003), (2.20) (the real cubic equation on a probability space), general initial
+values**: with Vieta's relations for `p₃Z³ + p₂Z² + p₁Z + p₀` and a stable `μᵢ` for each root, a
+bounded adapted forcing and essentially bounded initial values known at date 0 give a bounded
+adapted solution (the real part of the complex solution of `TidyR5bCondExpC.cubic_exists`). -/
+theorem cubicR_existsG {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {p3 p2 p1 p0 : ℝ} (hp3 : p3 ≠ 0)
+    {Z1 Z2 Z3 μ1 μ2 μ3 : ℂ} (hv1 : Z1 + Z2 + Z3 = ((-(p2 / p3) : ℝ) : ℂ))
+    (hv2 : Z1 * Z2 + Z1 * Z3 + Z2 * Z3 = ((p1 / p3 : ℝ) : ℂ))
+    (hv3 : Z1 * Z2 * Z3 = ((-(p0 / p3) : ℝ) : ℂ))
+    (r1 : (β : ℂ) * μ1 ^ 2 - (1 + β - Z1) * μ1 + 1 = 0) (n1 : ‖μ1‖ < 1)
+    (r2 : (β : ℂ) * μ2 ^ 2 - (1 + β - Z2) * μ2 + 1 = 0) (n2 : ‖μ2‖ < 1)
+    (r3 : (β : ℂ) * μ3 ^ 2 - (1 + β - Z3) * μ3 + 1 = 0) (n3 : ‖μ3‖ < 1)
+    {F : ℕ → Ω → ℝ} (hFa : StronglyAdapted S.𝓕 F) (hFb : S.BddProc F) {w0 s1 s2 : Ω → ℝ}
+    (k0 : StronglyMeasurable[S.𝓕 0] w0) (k1 : StronglyMeasurable[S.𝓕 0] s1)
+    (k2 : StronglyMeasurable[S.𝓕 0] s2) {B : ℝ} (b0 : ∀ᵐ ω ∂S.μ, |w0 ω| ≤ B)
+    (b1 : ∀ᵐ ω ∂S.μ, |s1 ω| ≤ B) (b2 : ∀ᵐ ω ∂S.μ, |s2 ω| ≤ B) :
+    ∃ w, StronglyAdapted S.𝓕 w ∧ S.BddProc w ∧ RCub (S := S) β p3 p2 p1 p0 w0 s1 s2 F w := by
+  obtain ⟨M, hM⟩ := hFb
+  set H : ℕ → Ω → ℂ := fun t ω => ((F t ω / p3 : ℝ) : ℂ) with hH
+  have hHa : AdC S H := fun t => ⟨by
+    change StronglyMeasurable[S.𝓕 t] (fun ω => ((F t ω / p3 : ℝ) : ℂ).re)
+    simp only [Complex.ofReal_re, div_eq_mul_inv]
+    exact (hFa t).mul_const _, by
+    change StronglyMeasurable[S.𝓕 t] (fun ω => ((F t ω / p3 : ℝ) : ℂ).im)
+    simp only [Complex.ofReal_im]
+    exact stronglyMeasurable_const⟩
+  have hHb : BdC S H := ⟨M / |p3|, fun t => (hM t).mono fun ω h => by
+    simp only [hH, Complex.norm_real, Real.norm_eq_abs, abs_div]
+    exact div_le_div_of_nonneg_right h (abs_nonneg _)⟩
+  have kc : ∀ {s : Ω → ℝ}, StronglyMeasurable[S.𝓕 0] s → KnownC S 0 (fun ω => (s ω : ℂ)) :=
+    fun hs => ⟨by simpa only [Complex.ofReal_re] using hs, by
+      simp only [Complex.ofReal_im]
+      exact stronglyMeasurable_const⟩
+  have bc : ∀ {s : Ω → ℝ}, (∀ᵐ ω ∂S.μ, |s ω| ≤ B) →
+      ∀ᵐ ω ∂S.μ, ‖(fun ω => (s ω : ℂ)) ω‖ ≤ B := fun hs =>
+    hs.mono fun ω h => by rw [Complex.norm_real, Real.norm_eq_abs]; exact h
+  obtain ⟨wc, ha, ⟨K, hb⟩, hcub⟩ := cubic_exists hβ0 hβ1 r1 n1 r2 n2 r3 n3 hHa hHb
+    (kc k0) (kc k1) (kc k2) (bc b0) (bc b1) (bc b2)
+  rw [hv1, hv2, hv3] at hcub
+  refine ⟨fun t ω => (wc t ω).re, fun t => (ha t).1, ⟨K, fun t => (hb t).mono fun ω h =>
+    (Complex.abs_re_le_norm _).trans h⟩, fun t => ?_⟩
+  filter_upwards [hcub t] with ω h
+  have hre := congrArg Complex.re h
+  have e1 := congrFun (congrFun (re_ZC (S := S) β (fun ω => (w0 ω : ℂ)) wc) t) ω
+  have e2 := congrFun (congrFun (re_ZC (S := S) β (fun ω => (s1 ω : ℂ))
+    (ZC S β (fun ω => (w0 ω : ℂ)) wc)) t) ω
+  have e3 := congrFun (congrFun (re_ZC (S := S) β (fun ω => (s2 ω : ℂ))
+    (ZC S β (fun ω => (s1 ω : ℂ)) (ZC S β (fun ω => (w0 ω : ℂ)) wc))) t) ω
+  have f1 := re_ZC (S := S) β (fun ω => (w0 ω : ℂ)) wc
+  have f2 := re_ZC (S := S) β (fun ω => (s1 ω : ℂ)) (ZC S β (fun ω => (w0 ω : ℂ)) wc)
+  simp only [Complex.ofReal_re] at e1 e2 e3 f1 f2
+  rw [f1] at e2 f2
+  rw [f2] at e3
+  simp only [Complex.sub_re, Complex.add_re, Complex.mul_re, Complex.ofReal_re,
+    Complex.ofReal_im, zero_mul, sub_zero, hH] at hre
+  rw [e1, e2, e3] at hre
+  field_simp at hre
+  linear_combination hre
+
+/-- **Woodford (2003), (2.11)–(2.19) ⇐ the cubic equation, on a probability space, general initial
+values**: if the real wage `w` is a bounded adapted a.s. solution of the cubic equation with the
+initial values implied by essentially bounded `(w_{t₀−1}, φ_{p,t₀−1}, φ_{w,t₀−1})` known at date 0,
+then `(piOfM, piwOfM, xOfM, w)` is a bounded adapted plan satisfying (2.11)–(2.13) a.s., and with
+the bounded adapted multipliers `(mpOfM, mwOfM, upsOfM)` the first-order conditions hold a.s.
+(the construction of `TidyR5bStickyExists.cubic_imp_focM`). -/
+theorem cubic_imp_focMG {P : SW} (hβ0 : 0 ≤ P.beta) (hβ1 : P.beta < 1) (hlx : P.lx ≠ 0)
+    (hlp : P.lp ≠ 0) (hlw : P.lw ≠ 0) (hc : P.kw - P.kp ≠ 0) (hD : Dst P ≠ 0)
+    {w₀ mp₀ mw₀ : Ω → ℝ} (kw0 : StronglyMeasurable[S.𝓕 0] w₀)
+    (kmp0 : StronglyMeasurable[S.𝓕 0] mp₀) (kmw0 : StronglyMeasurable[S.𝓕 0] mw₀) {B : ℝ}
+    (bw0 : ∀ᵐ ω ∂S.μ, |w₀ ω| ≤ B) (bmp0 : ∀ᵐ ω ∂S.μ, |mp₀ ω| ≤ B)
+    (bmw0 : ∀ᵐ ω ∂S.μ, |mw₀ ω| ≤ B)
+    {u wn w : ℕ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hwna : StronglyAdapted S.𝓕 wn) (hwnb : S.BddProc wn)
+    (hcub : RCub (S := S) P.beta P.lx (cp2 P) (cp1 P) (cp0 P) w₀
+      (initS1 P w₀ mp₀ mw₀)
+      (initS2 P w₀ mp₀ mw₀) (forcingFm S P u wn) w)
+    (hwa : StronglyAdapted S.𝓕 w) (hwb : S.BddProc w) :
+    PlanSWM S P w₀ u wn
+        (piOfM S P w₀ mp₀ mw₀ u wn w)
+        (piwOfM S P w₀ mp₀ mw₀ u wn w)
+        (xOfM S P w₀ u wn w) w ∧
+      FOCswM S P mp₀ mw₀
+        (piOfM S P w₀ mp₀ mw₀ u wn w)
+        (piwOfM S P w₀ mp₀ mw₀ u wn w)
+        (xOfM S P w₀ u wn w)
+        (mpOfM S P w₀ mp₀ mw₀ u wn w)
+        (mwOfM S P w₀ mp₀ mw₀ u wn w)
+        (upsOfM S P w₀ mp₀ mw₀ u wn w) := by
+  set c := P.kw - P.kp with hcdef
+  set ξ := P.xip + P.xiw with hξ
+  set s1 := initS1 P w₀ mp₀ mw₀ with hs1
+  set s2 := initS2 P w₀ mp₀ mw₀ with hs2
+  set i0 : Ω → ℝ := fun _ => 0 with hi0
+  have hβa : |P.beta| < 1 := by rw [abs_of_nonneg hβ0]; exact hβ1
+  have It : ∀ {y : ℕ → Ω → ℝ}, StronglyAdapted S.𝓕 y → S.BddProc y → ∀ t,
+      Integrable (y t) S.μ := fun ha hb t => integrable_of_adapted S ha hb t
+  have cK : ∀ k : ℝ, StronglyMeasurable[S.𝓕 0] (fun _ : Ω => k) := fun k =>
+    stronglyMeasurable_const
+  have cB : ∀ k : ℝ, ∀ᵐ ω ∂S.μ, |(fun _ : Ω => k) ω| ≤ |k| := fun k =>
+    Eventually.of_forall fun ω => le_rfl
+  have es1 : s1 = fun ω => (P.kw - P.kp) / P.lx * P.kp * mp₀ ω +
+      (P.kw - P.kp) / P.lx * P.kw * mw₀ ω + (-(P.xip + P.xiw)) * w₀ ω +
+      (P.kw - P.kp) / P.lx * (P.lx * P.xstar) := by
+    funext ω
+    simp only [hs1, initS1]
+    ring
+  have s1K : StronglyMeasurable[S.𝓕 0] s1 := by
+    rw [es1]
+    exact (((kmp0.const_mul _).add (kmw0.const_mul _)).add (kw0.const_mul _)).add
+      stronglyMeasurable_const
+  have s1B : ∀ᵐ ω ∂S.μ, |s1 ω| ≤ |(P.kw - P.kp) / P.lx * P.kp| * B +
+      |(P.kw - P.kp) / P.lx * P.kw| * B + |(-(P.xip + P.xiw))| * B +
+      |(P.kw - P.kp) / P.lx * (P.lx * P.xstar)| := by
+    filter_upwards [bw0, bmp0, bmw0] with ω h0 h1 h2
+    rw [es1]
+    exact TidyR6bRuleSystemMeasure.abs_lin3_le h1 h2 h0
+  set z0 : ℕ → Ω → ℝ := fun _ _ => 0 with hz0
+  have z0a : StronglyAdapted S.𝓕 z0 := fun t => stronglyMeasurable_const
+  have z0b : S.BddProc z0 := ⟨0, fun t => Eventually.of_forall fun ω => by simp [hz0]⟩
+  -- the processes
+  set W1 := Zm S P.beta w₀ w with hW1
+  set W2 := Zm S P.beta s1 W1 with hW2
+  set W3 := Zm S P.beta s2 W2 with hW3
+  set Zn := Zm S P.beta i0 wn with hZn
+  set Zu := Zm S P.beta i0 u with hZu
+  set ZZn := Zm S P.beta i0 Zn with hZZn
+  set ZZu := Zm S P.beta i0 Zu with hZZu
+  have aW1 : StronglyAdapted S.𝓕 W1 := Zm_adapted P.beta kw0 hwa
+  have bW1 : S.BddProc W1 := Zm_bdd P.beta hβ0 bw0 hwb
+  have aW2 : StronglyAdapted S.𝓕 W2 := Zm_adapted P.beta s1K aW1
+  have bW2 : S.BddProc W2 := Zm_bdd P.beta hβ0 s1B bW1
+  have aZn : StronglyAdapted S.𝓕 Zn := Zm_adapted P.beta (cK 0) hwna
+  have bZn : S.BddProc Zn := Zm_bdd P.beta hβ0 (cB 0) hwnb
+  have aZu : StronglyAdapted S.𝓕 Zu := Zm_adapted P.beta (cK 0) hua
+  have bZu : S.BddProc Zu := Zm_bdd P.beta hβ0 (cB 0) hub
+  set x := xOfM S P w₀ u wn w with hx
+  set g := gOfM S P w₀ mp₀ mw₀ u wn w with hg
+  set mp := mpOfM S P w₀ mp₀ mw₀ u wn w with hmp
+  set mw := mwOfM S P w₀ mp₀ mw₀ u wn w with hmw
+  set ups := upsOfM S P w₀ mp₀ mw₀ u wn w with hups
+  set π := piOfM S P w₀ mp₀ mw₀ u wn w with hπ
+  set πw := piwOfM S P w₀ mp₀ mw₀ u wn w with hπw
+  obtain ⟨xa, xb⟩ := comb6M (S := S) (1 / c) (ξ / c) (-(ξ / c)) (-1) 0 0 0 aW1 hwa hwna hua
+    hua hua bW1 hwb hwnb hub hub hub (z := x) (fun t ω => by
+      simp only [hx, xOfM, ← hcdef, ← hξ]; field_simp; ring)
+  obtain ⟨ga, gb⟩ := comb6M (S := S) (P.lx / c ^ 2) (ca1 P / c ^ 2) (ca0 P / c ^ 2)
+    (-(ca0 P / c ^ 2)) (-(P.lx * ξ / c ^ 2)) (-(c * P.lx / c ^ 2)) 0 aW2 aW1 hwa hwna aZn aZu
+    bW2 bW1 hwb hwnb bZn bZu (z := g) (fun t ω => by
+      simp only [hg, gOfM, ← hcdef, ← hξ, ← hs1]; field_simp; ring)
+  obtain ⟨mpa, mpb⟩ := comb6M (S := S) (P.xiw * P.lx / Dst P) (P.kw / Dst P) 0 0 0 0
+    (-(P.xiw * P.lx * P.xstar / Dst P)) xa ga xa xa xa xa xb gb xb xb xb xb (z := mp)
+    (fun t ω => by simp only [hmp, mpOfM]; field_simp; ring)
+  obtain ⟨mwa, mwb⟩ := comb6M (S := S) (P.xip * P.lx / Dst P) (-(P.kp / Dst P)) 0 0 0 0
+    (-(P.xip * P.lx * P.xstar / Dst P)) xa ga xa xa xa xa xb gb xb xb xb xb (z := mw)
+    (fun t ω => by simp only [hmw, mwOfM]; field_simp; ring)
+  obtain ⟨G, hG⟩ := gb
+  have upsa : StronglyAdapted S.𝓕 ups := S.forwardSol_adapted P.beta g
+  have upsb : S.BddProc ups := S.forwardSol_bdd hβa hG
+  have upss := S.forwardSol_solves hβa ga hG
+  have lmpa : StronglyAdapted S.𝓕 (lagW mp₀ mp) := fun t => by
+    cases t with
+    | zero => exact kmp0.mono (S.𝓕.mono (Nat.zero_le 0))
+    | succ t => exact (mpa t).mono (S.𝓕.mono (Nat.le_succ t))
+  have lmwa : StronglyAdapted S.𝓕 (lagW mw₀ mw) := fun t => by
+    cases t with
+    | zero => exact kmw0.mono (S.𝓕.mono (Nat.zero_le 0))
+    | succ t => exact (mwa t).mono (S.𝓕.mono (Nat.le_succ t))
+  obtain ⟨Mp, hMp⟩ := mpb
+  obtain ⟨Mw, hMw⟩ := mwb
+  have lmpb : S.BddProc (lagW mp₀ mp) := ⟨max B Mp, fun t => by
+    cases t with
+    | zero => exact bmp0.mono fun ω h => h.trans (le_max_left _ _)
+    | succ t => exact (hMp t).mono fun ω h => h.trans (le_max_right _ _)⟩
+  have lmwb : S.BddProc (lagW mw₀ mw) := ⟨max B Mw, fun t => by
+    cases t with
+    | zero => exact bmw0.mono fun ω h => h.trans (le_max_left _ _)
+    | succ t => exact (hMw t).mono fun ω h => h.trans (le_max_right _ _)⟩
+  obtain ⟨πa, πb⟩ := comb6M (S := S) (-1 / P.lp) (1 / P.lp) (-1 / P.lp) 0 0 0 0 mpa lmpa
+    upsa upsa upsa upsa ⟨Mp, hMp⟩ lmpb upsb upsb upsb upsb (z := π)
+    (fun t ω => by simp only [hπ, piOfM]; field_simp; ring)
+  obtain ⟨πwa, πwb⟩ := comb6M (S := S) (-1 / P.lw) (1 / P.lw) (1 / P.lw) 0 0 0 0 mwa lmwa
+    upsa upsa upsa upsa ⟨Mw, hMw⟩ lmwb upsb upsb upsb upsb (z := πw)
+    (fun t ω => by simp only [hπw, piwOfM]; field_simp; ring)
+  have hD' : P.kp * P.xiw + P.kw * P.xip ≠ 0 := hD
+  have hDi : (P.kp * P.xiw + P.kw * P.xip) * (P.kp * P.xiw + P.kw * P.xip)⁻¹ = 1 :=
+    mul_inv_cancel₀ hD'
+  have IW1 := It aW1 bW1
+  have IW2 := It aW2 bW2
+  have Iw := It hwa hwb
+  have Iwn := It hwna hwnb
+  have Iu := It hua hub
+  have IZn := It aZn bZn
+  have IZu := It aZu bZu
+  have Iz0 := It z0a z0b
+  have Ix := It xa xb
+  have Ig := It ga ⟨G, hG⟩
+  have Imp := It mpa ⟨Mp, hMp⟩
+  have Imw := It mwa ⟨Mw, hMw⟩
+  have Iups := It upsa upsb
+  have Iπ := It πa πb
+  have Iπw := It πwa πwb
+  have Ilx : ∀ t, Integrable (fun ω => P.lx * (x t ω - P.xstar)) S.μ := fun t =>
+    ((Ix t).sub (integrable_const _)).const_mul _
+  -- basic identities
+  have hS : ∀ t ω, c * (x t ω + u t ω) = W1 t ω + ξ * (w t ω - wn t ω) := fun t ω => by
+    simp only [hx, xOfM, ← hcdef, ← hξ]; field_simp; ring
+  have hcg : ∀ t ω, c ^ 2 * g t ω = P.lx * W2 t ω + ca1 P * W1 t ω + ca0 P * w t ω -
+      ca0 P * wn t ω - P.lx * ξ * Zn t ω - c * P.lx * Zu t ω := fun t ω => by
+    simp only [hg, gOfM, ← hcdef, ← hξ, ← hs1]; field_simp; rfl
+  have hgmp : ∀ t ω, P.xip * mp t ω - P.xiw * mw t ω = g t ω := fun t ω => by
+    simp only [hmp, mpOfM, hmw, mwOfM, Dst, ← hg]
+    linear_combination (g t ω) * hDi
+  have ZX : ∀ t, ∀ᵐ ω ∂S.μ, c * Zm S P.beta (fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω)
+      (fun t ω => P.lx * (x t ω - P.xstar)) t ω =
+      P.lx * W2 t ω + P.lx * ξ * W1 t ω - P.lx * ξ * Zn t ω - c * P.lx * Zu t ω := by
+    intro t
+    have := Zm_comb6 (S := S) P.beta (P.lx / c) (P.lx * ξ / c) (-(P.lx * ξ / c)) (-P.lx) 0 0
+      (-(P.lx * P.xstar)) (y1 := W1) (y2 := w) (y3 := wn) (y4 := u) (y5 := z0) (y6 := z0)
+      (i1 := s1) (i2 := w₀) (i3 := i0) (i4 := i0) (i5 := i0) (i6 := i0)
+      (z := fun t ω => P.lx * (x t ω - P.xstar))
+      (z₀ := fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω) (fun t ω => ?_) (fun ω => ?_) t
+      (IW1 (t + 1)) (Iw (t + 1)) (Iwn (t + 1)) (Iu (t + 1)) (Iz0 (t + 1)) (Iz0 (t + 1))
+    · filter_upwards [this] with ω h
+      rw [h]; field_simp; ring
+    · have h := hS t ω
+      field_simp
+      linear_combination P.lx * h
+    · simp only [hs1, initS1, hi0, ← hcdef, ← hξ]
+      field_simp
+      ring
+  have ZG : ∀ t, ∀ᵐ ω ∂S.μ, c ^ 2 * Zm S P.beta (fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) g t ω =
+      P.lx * W3 t ω + ca1 P * W2 t ω + ca0 P * W1 t ω - ca0 P * Zn t ω - P.lx * ξ * ZZn t ω -
+        c * P.lx * ZZu t ω := by
+    intro t
+    have := Zm_comb6 (S := S) P.beta (P.lx / c ^ 2) (ca1 P / c ^ 2) (ca0 P / c ^ 2)
+      (-(ca0 P / c ^ 2)) (-(P.lx * ξ / c ^ 2)) (-(c * P.lx / c ^ 2)) 0
+      (y1 := W2) (y2 := W1) (y3 := w) (y4 := wn) (y5 := Zn) (y6 := Zu)
+      (i1 := s2) (i2 := s1) (i3 := w₀) (i4 := i0) (i5 := i0) (i6 := i0)
+      (z := g) (z₀ := fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) (fun t ω => ?_) (fun ω => ?_) t
+      (IW2 (t + 1)) (IW1 (t + 1)) (Iw (t + 1)) (Iwn (t + 1)) (IZn (t + 1)) (IZu (t + 1))
+    · filter_upwards [this] with ω h
+      rw [h]; field_simp; ring
+    · have := hcg t ω
+      field_simp
+      linear_combination this
+    · simp only [hs2, initS2, hi0, ← hcdef, ← hs1]
+      field_simp
+      ring
+  have Zmp : ∀ t, ∀ᵐ ω ∂S.μ, Dst P * Zm S P.beta mp₀ mp t ω = P.xiw * Zm S P.beta
+      (fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω) (fun t ω => P.lx * (x t ω - P.xstar)) t ω +
+      P.kw * Zm S P.beta (fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) g t ω := by
+    intro t
+    have := Zm_comb6 (S := S) P.beta (P.xiw / Dst P) (P.kw / Dst P) 0 0 0 0 0
+      (y1 := fun t ω => P.lx * (x t ω - P.xstar)) (y2 := g) (y3 := z0) (y4 := z0) (y5 := z0)
+      (y6 := z0) (i1 := fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω)
+      (i2 := fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) (i3 := i0) (i4 := i0) (i5 := i0)
+      (i6 := i0) (z := mp) (z₀ := mp₀) (fun t ω => ?_) (fun ω => ?_) t
+      (Ilx (t + 1)) (Ig (t + 1)) (Iz0 (t + 1)) (Iz0 (t + 1)) (Iz0 (t + 1)) (Iz0 (t + 1))
+    · filter_upwards [this] with ω h
+      rw [h]; field_simp; ring
+    · simp only [hmp, mpOfM, ← hx, ← hg]; field_simp; ring
+    · simp only [Dst]; linear_combination (-mp₀ ω) * hDi
+  have Zmw : ∀ t, ∀ᵐ ω ∂S.μ, Dst P * Zm S P.beta mw₀ mw t ω = P.xip * Zm S P.beta
+      (fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω) (fun t ω => P.lx * (x t ω - P.xstar)) t ω -
+      P.kp * Zm S P.beta (fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) g t ω := by
+    intro t
+    have := Zm_comb6 (S := S) P.beta (P.xip / Dst P) (-(P.kp / Dst P)) 0 0 0 0 0
+      (y1 := fun t ω => P.lx * (x t ω - P.xstar)) (y2 := g) (y3 := z0) (y4 := z0) (y5 := z0)
+      (y6 := z0) (i1 := fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω)
+      (i2 := fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) (i3 := i0) (i4 := i0) (i5 := i0)
+      (i6 := i0) (z := mw) (z₀ := mw₀) (fun t ω => ?_) (fun ω => ?_) t
+      (Ilx (t + 1)) (Ig (t + 1)) (Iz0 (t + 1)) (Iz0 (t + 1)) (Iz0 (t + 1)) (Iz0 (t + 1))
+    · filter_upwards [this] with ω h
+      rw [h]; field_simp; ring
+    · simp only [hmw, mwOfM, ← hx, ← hg]; field_simp; ring
+    · simp only [Dst]; linear_combination (-mw₀ ω) * hDi
+  -- (G) and (H)
+  have Gm : ∀ t, ∀ᵐ ω ∂S.μ, Zm S P.beta (fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω)
+      (fun t ω => P.lx * (x t ω - P.xstar)) t ω = c * g t ω -
+      P.lp * P.kp * (P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω)) -
+      P.lw * P.kw * (P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω)) := by
+    intro t
+    filter_upwards [ZX t] with ω h1
+    have h2 := hcg t ω
+    have h3 := hS t ω
+    have : c * (Zm S P.beta (fun ω => P.kp * mp₀ ω + P.kw * mw₀ ω)
+      (fun t ω => P.lx * (x t ω - P.xstar)) t ω - (c * g t ω -
+      P.lp * P.kp * (P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω)) -
+      P.lw * P.kw * (P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω)))) = 0 := by
+      simp only [ca1, ca0, Dst] at h2
+      rw [hcdef, hξ] at *
+      linear_combination h1 - h2 + (P.lp * P.kp ^ 2 + P.lw * P.kw ^ 2) * h3
+    have := (mul_eq_zero.1 this).resolve_left hc
+    linarith
+  have Hm : ∀ t, ∀ᵐ ω ∂S.μ, Zm S P.beta (fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) g t ω =
+      -(P.lp * P.xip * (P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω))) +
+      P.lw * P.xiw * (P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω)) - ξ * g t ω := by
+    intro t
+    filter_upwards [ZG t, hcub t] with ω h1 h4'
+    have h2 := hcg t ω
+    have h3 := hS t ω
+    have h4 : P.lx * W3 t ω + cp2 P * W2 t ω + cp1 P * W1 t ω + cp0 P * w t ω =
+        ca0 P * Zn t ω + P.lx * ξ * ZZn t ω + c * P.lx * ZZu t ω + ξ * ca0 P * wn t ω +
+        P.lx * ξ ^ 2 * Zn t ω + ξ * c * P.lx * Zu t ω - c * cb0 P * wn t ω := h4'
+    have : c ^ 2 * (Zm S P.beta (fun ω => P.xip * mp₀ ω - P.xiw * mw₀ ω) g t ω -
+      (-(P.lp * P.xip * (P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω))) +
+      P.lw * P.xiw * (P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω)) - ξ * g t ω)) =
+        0 := by
+      simp only [cp2, cp1, cp0, ca1, ca0, cb0, Dst] at h1 h2 h4
+      rw [hcdef, hξ] at *
+      linear_combination h1 + (P.xip + P.xiw) * h2 + h4 -
+        (P.kw - P.kp) * (P.lw * P.xiw * P.kw - P.lp * P.xip * P.kp) * h3
+    have := (mul_eq_zero.1 this).resolve_left (pow_ne_zero 2 hc)
+    linarith
+  have E1 : ∀ t, ∀ᵐ ω ∂S.μ, Zm S P.beta mp₀ mp t ω + g t ω =
+      -(P.lp * (P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω))) := by
+    intro t
+    filter_upwards [Zmp t, Gm t, Hm t] with ω h1 h2 h3
+    have : Dst P * (Zm S P.beta mp₀ mp t ω + g t ω +
+        P.lp * (P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω))) = 0 := by
+      simp only [Dst] at *
+      rw [hcdef, hξ] at *
+      linear_combination h1 + P.xiw * h2 + P.kw * h3
+    have := (mul_eq_zero.1 this).resolve_left hD
+    linarith
+  have E2 : ∀ t, ∀ᵐ ω ∂S.μ, Zm S P.beta mw₀ mw t ω - g t ω =
+      -(P.lw * (P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω))) := by
+    intro t
+    filter_upwards [Zmw t, Gm t, Hm t] with ω h1 h2 h3
+    have : Dst P * (Zm S P.beta mw₀ mw t ω - g t ω +
+        P.lw * (P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω))) = 0 := by
+      simp only [Dst] at *
+      rw [hcdef, hξ] at *
+      linear_combination h1 + P.xip * h2 - P.kp * h3
+    have := (mul_eq_zero.1 this).resolve_left hD
+    linarith
+  -- the first-order conditions
+  have f1 : ∀ t ω, P.lp * π t ω + mp t ω - lagW mp₀ mp t ω + ups t ω = 0 := by
+    intro t ω
+    simp only [hπ, piOfM, ← hmp, ← hups]
+    field_simp
+    ring
+  have f2 : ∀ t ω, P.lw * πw t ω + mw t ω - lagW mw₀ mw t ω - ups t ω = 0 := by
+    intro t ω
+    simp only [hπw, piwOfM, ← hmw, ← hups]
+    field_simp
+    ring
+  have f4 : ∀ t, ∀ᵐ ω ∂S.μ, ups t ω = P.xip * mp t ω - P.xiw * mw t ω +
+      P.beta * S.E t (ups (t + 1)) ω := by
+    intro t
+    filter_upwards [upss t] with ω h
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h
+    change ups t ω = P.beta * S.E t (ups (t + 1)) ω + g t ω at h
+    rw [hgmp t ω]
+    linarith
+  have hfoc : FOCswM S P mp₀ mw₀ π πw x mp mw ups := by
+    refine ⟨fun t => Eventually.of_forall fun ω => f1 t ω,
+      fun t => Eventually.of_forall fun ω => f2 t ω, fun t => Eventually.of_forall fun ω => ?_,
+      f4, mpa, mwa, upsa, ⟨Mp, hMp⟩, ⟨Mw, hMw⟩, upsb⟩
+    change P.lx * (x t ω - P.xstar) - P.kp * mp t ω - P.kw * mw t ω = 0
+    simp only [hmp, mpOfM, hmw, mwOfM, Dst, ← hx, ← hg]
+    linear_combination (-(P.lx * (x t ω - P.xstar))) * hDi
+  -- conditional expectations of next-period inflation
+  have hmpE : ∀ t, S.E t (mp t) = mp t := fun t => S.E_of_stronglyMeasurable (mpa t) (Imp t)
+  have hmwE : ∀ t, S.E t (mw t) = mw t := fun t => S.E_of_stronglyMeasurable (mwa t) (Imw t)
+  have hwE : ∀ t, S.E t (w t) = w t := fun t => S.E_of_stronglyMeasurable (hwa t) (Iw t)
+  have hEπ : ∀ t, ∀ᵐ ω ∂S.μ, P.lp * S.E t (π (t + 1)) ω =
+      -(S.E t (mp (t + 1)) ω - mp t ω + S.E t (ups (t + 1)) ω) := by
+    intro t
+    have hf : π (t + 1) = fun ω => (-1 / P.lp) * mp (t + 1) ω + (1 / P.lp) * mp t ω +
+        (-1 / P.lp) * ups (t + 1) ω + 0 * mp t ω + 0 * mp t ω + 0 * mp t ω + 0 := by
+      funext ω
+      simp only [hπ, piOfM, lagW_succ, ← hmp, ← hups]
+      field_simp
+      ring
+    filter_upwards [E_comb6 (S := S) t (-1 / P.lp) (1 / P.lp) (-1 / P.lp) 0 0 0 0
+      (Imp (t + 1)) (Imp t) (Iups (t + 1)) (Imp t) (Imp t) (Imp t)] with ω h
+    rw [hf, h, hmpE t]
+    field_simp
+    ring
+  have hEπw : ∀ t, ∀ᵐ ω ∂S.μ, P.lw * S.E t (πw (t + 1)) ω =
+      -(S.E t (mw (t + 1)) ω - mw t ω - S.E t (ups (t + 1)) ω) := by
+    intro t
+    have hf : πw (t + 1) = fun ω => (-1 / P.lw) * mw (t + 1) ω + (1 / P.lw) * mw t ω +
+        (1 / P.lw) * ups (t + 1) ω + 0 * mw t ω + 0 * mw t ω + 0 * mw t ω + 0 := by
+      funext ω
+      simp only [hπw, piwOfM, lagW_succ, ← hmw, ← hups]
+      field_simp
+      ring
+    filter_upwards [E_comb6 (S := S) t (-1 / P.lw) (1 / P.lw) (1 / P.lw) 0 0 0 0
+      (Imw (t + 1)) (Imw t) (Iups (t + 1)) (Imw t) (Imw t) (Imw t)] with ω h
+    rw [hf, h, hmwE t]
+    field_simp
+    ring
+  have hpe : ∀ t, π t =ᵐ[S.μ] fun ω => P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω) +
+      P.beta * S.E t (π (t + 1)) ω := by
+    intro t
+    filter_upwards [E1 t, hEπ t, f4 t] with ω h1 h2 h4
+    have h3 := f1 t ω
+    have h5 := hgmp t ω
+    have : P.lp * (π t ω - (P.kp * (x t ω + u t ω) + P.xip * (w t ω - wn t ω) +
+        P.beta * S.E t (π (t + 1)) ω)) = 0 := by
+      simp only [Zm] at h1
+      linear_combination h3 - h1 - P.beta * h2 - h4 - h5
+    have := (mul_eq_zero.1 this).resolve_left hlp
+    linarith
+  have hwe : ∀ t, πw t =ᵐ[S.μ] fun ω => P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω) +
+      P.beta * S.E t (πw (t + 1)) ω := by
+    intro t
+    filter_upwards [E2 t, hEπw t, f4 t] with ω h1 h2 h4
+    have h3 := f2 t ω
+    have h5 := hgmp t ω
+    have : P.lw * (πw t ω - (P.kw * (x t ω + u t ω) + P.xiw * (wn t ω - w t ω) +
+        P.beta * S.E t (πw (t + 1)) ω)) = 0 := by
+      simp only [Zm] at h1
+      linear_combination h3 - h1 - P.beta * h2 + h4 + h5
+    have := (mul_eq_zero.1 this).resolve_left hlw
+    linarith
+  -- the real-wage identity, by forward uniqueness
+  have lwa : StronglyAdapted S.𝓕 (lagW w₀ w) := fun t => by
+    cases t with
+    | zero => exact kw0.mono (S.𝓕.mono (Nat.zero_le 0))
+    | succ t => exact (hwa t).mono (S.𝓕.mono (Nat.le_succ t))
+  obtain ⟨Mw', hMw'⟩ := hwb
+  have lwb : S.BddProc (lagW w₀ w) := ⟨max B Mw', fun t => by
+    cases t with
+    | zero => exact bw0.mono fun ω h => h.trans (le_max_left _ _)
+    | succ t => exact (hMw' t).mono fun ω h => h.trans (le_max_right _ _)⟩
+  set d : ℕ → Ω → ℝ := fun t ω => w t ω - lagW w₀ w t ω - πw t ω + π t ω with hd
+  obtain ⟨da, db⟩ := comb6M (S := S) 1 (-1) (-1) 1 0 0 0 hwa lwa πwa πa πa πa ⟨Mw', hMw'⟩ lwb
+    πwb πb πb πb (z := d) (fun t ω => by simp only [hd]; ring)
+  have hdE : S.Solves P.beta (fun _ _ => 0) d := by
+    intro t
+    have hf : d (t + 1) = fun ω => 1 * w (t + 1) ω + (-1) * w t ω + (-1) * πw (t + 1) ω +
+        1 * π (t + 1) ω + 0 * w t ω + 0 * w t ω + 0 := by
+      funext ω; simp only [hd, lagW_succ]; ring
+    filter_upwards [E_comb6 (S := S) t 1 (-1) (-1) 1 0 0 0 (Iw (t + 1)) (Iw t) (Iπw (t + 1))
+      (Iπ (t + 1)) (Iw t) (Iw t), hpe t, hwe t] with ω hE h1 h2
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [hf, hE, hwE t]
+    have h3 := hS t ω
+    have hW : W1 t ω = (1 + P.beta) * w t ω - P.beta * S.E t (w (t + 1)) ω -
+        lagW w₀ w t ω := rfl
+    simp only [hd]
+    rw [hcdef, hξ] at *
+    linear_combination h1 - h2 - hW - h3
+  have hzero : S.Solves P.beta (fun _ _ => 0) (fun _ _ => 0) := by
+    intro t
+    refine Eventually.of_forall fun ω => ?_
+    simp [S.E_const t 0]
+  have hz := S.forward_unique hβa hdE hzero
+    (fun t => ((da t).mono (S.𝓕.le t)).aestronglyMeasurable)
+    (fun t => aestronglyMeasurable_const) ⟨_, db.choose_spec⟩
+    ⟨0, fun t => Eventually.of_forall fun ω => by simp⟩
+  have hwi : ∀ t, w t =ᵐ[S.μ] fun ω => lagW w₀ w t ω + πw t ω - π t ω := by
+    intro t
+    filter_upwards [hz t] with ω h
+    simp only [hd] at h
+    linarith
+  exact ⟨⟨hpe, hwe, hwi, πa, πwa, xa, hwa, πb, πwb, xb, ⟨Mw', hMw'⟩⟩, hfoc⟩
+
+
+/-- Woodford (2003), (2.20) (tool): an affine function of three essentially bounded variables
+known at date 0 is known at date 0 and essentially bounded. -/
+theorem affine3 {w₀ mp₀ mw₀ : Ω → ℝ} (kw0 : StronglyMeasurable[S.𝓕 0] w₀)
+    (kmp0 : StronglyMeasurable[S.𝓕 0] mp₀) (kmw0 : StronglyMeasurable[S.𝓕 0] mw₀) {B : ℝ}
+    (bw0 : ∀ᵐ ω ∂S.μ, |w₀ ω| ≤ B) (bmp0 : ∀ᵐ ω ∂S.μ, |mp₀ ω| ≤ B)
+    (bmw0 : ∀ᵐ ω ∂S.μ, |mw₀ ω| ≤ B) (a b d e : ℝ) :
+    StronglyMeasurable[S.𝓕 0] (fun ω => a * mp₀ ω + b * mw₀ ω + d * w₀ ω + e) ∧
+      ∀ᵐ ω ∂S.μ, |a * mp₀ ω + b * mw₀ ω + d * w₀ ω + e| ≤ |a| * B + |b| * B + |d| * B + |e| :=
+  ⟨(((kmp0.const_mul a).add (kmw0.const_mul b)).add (kw0.const_mul d)).add
+      stronglyMeasurable_const,
+    by
+      filter_upwards [bw0, bmp0, bmw0] with ω h0 h1 h2
+      exact TidyR6bRuleSystemMeasure.abs_lin3_le h1 h2 h0⟩
+
+omit [MeasurableSpace Ω] in
+/-- Woodford (2003), (2.20): the initial value `(𝒵w)_{t₀−1}` (`InflTargetStickyWages.initS1`) is
+affine in `(φ_{p,t₀−1}, φ_{w,t₀−1}, w_{t₀−1})`. -/
+theorem initS1_eq (P : SW) (w₀ mp₀ mw₀ : Ω → ℝ) :
+    initS1 P w₀ mp₀ mw₀ = fun ω => (P.kw - P.kp) / P.lx * P.kp * mp₀ ω +
+      (P.kw - P.kp) / P.lx * P.kw * mw₀ ω + (-(P.xip + P.xiw)) * w₀ ω +
+      (P.kw - P.kp) / P.lx * (P.lx * P.xstar) := by
+  funext ω
+  simp only [initS1]
+  ring
+
+omit [MeasurableSpace Ω] in
+/-- Woodford (2003), (2.20): the initial value `(𝒵²w)_{t₀−1}` (`InflTargetStickyWages.initS2`) is
+affine in `(φ_{p,t₀−1}, φ_{w,t₀−1}, w_{t₀−1})`. -/
+theorem initS2_eq (P : SW) (w₀ mp₀ mw₀ : Ω → ℝ) :
+    initS2 P w₀ mp₀ mw₀ = fun ω =>
+      ((P.kw - P.kp) ^ 2 * P.xip - ca1 P * ((P.kw - P.kp) / P.lx * P.kp)) / P.lx * mp₀ ω +
+      (-((P.kw - P.kp) ^ 2 * P.xiw) - ca1 P * ((P.kw - P.kp) / P.lx * P.kw)) / P.lx * mw₀ ω +
+      (-(ca1 P * (-(P.xip + P.xiw))) - ca0 P) / P.lx * w₀ ω +
+      (-(ca1 P * ((P.kw - P.kp) / P.lx * (P.lx * P.xstar)))) / P.lx := by
+  funext ω
+  simp only [initS2, initS1]
+  ring
+
+variable (S) in
+/-- **Woodford (2003), (2.11)–(2.20), `κ_w ≠ κ_p`, on a probability space (the "if" half), for
+general initial values**: under the root condition `InflTargetStickyWages.StableRoots`, for every
+bounded adapted disturbance `(u, w^n)` and every essentially bounded initial values
+`(w_{t₀−1}, φ_{p,t₀−1}, φ_{w,t₀−1})` known at date 0, there is a bounded adapted plan with bounded
+adapted multipliers satisfying (2.11)–(2.13) and (2.16)–(2.19) almost surely. -/
+theorem exists_meas_of_stableRootsG {P : SW} (hβ0 : 0 < P.beta) (hβ1 : P.beta < 1)
+    (hlx : 0 < P.lx) (hlp : 0 < P.lp) (hlw : 0 < P.lw) (hkp : 0 < P.kp) (hkw : 0 < P.kw)
+    (hxip : 0 < P.xip) (hxiw : 0 < P.xiw) (hne : P.kw ≠ P.kp) (hR : StableRoots P)
+    (u wn : ℕ → Ω → ℝ) (hu : S.BddProc u) (hua : StronglyAdapted S.𝓕 u) (hwn : S.BddProc wn)
+    (hwna : StronglyAdapted S.𝓕 wn) {w₀ mp₀ mw₀ : Ω → ℝ} (kw0 : StronglyMeasurable[S.𝓕 0] w₀)
+    (kmp0 : StronglyMeasurable[S.𝓕 0] mp₀) (kmw0 : StronglyMeasurable[S.𝓕 0] mw₀) {B : ℝ}
+    (bw0 : ∀ᵐ ω ∂S.μ, |w₀ ω| ≤ B) (bmp0 : ∀ᵐ ω ∂S.μ, |mp₀ ω| ≤ B)
+    (bmw0 : ∀ᵐ ω ∂S.μ, |mw₀ ω| ≤ B) :
+    ∃ π πw x w mp mw ups, PlanSWM S P w₀ u wn π πw x w ∧
+      FOCswM S P mp₀ mw₀ π πw x mp mw ups := by
+  have hc : P.kw - P.kp ≠ 0 := sub_ne_zero.2 hne
+  have hD : Dst P ≠ 0 := by unfold Dst; positivity
+  obtain ⟨Z1, Z2, Z3, hv1, hv2, hv3⟩ := cubic_vieta_exists (p2 := cp2 P) (p1 := cp1 P)
+    (p0 := cp0 P) hlx.ne'
+  have hfac := charP_factor hlx.ne' hv1 hv2 hv3
+  obtain ⟨μ1, r1, n1⟩ := hR Z1 (by rw [hfac]; ring)
+  obtain ⟨μ2, r2, n2⟩ := hR Z2 (by rw [hfac]; ring)
+  obtain ⟨μ3, r3, n3⟩ := hR Z3 (by rw [hfac]; ring)
+  have cK : StronglyMeasurable[S.𝓕 0] (fun _ : Ω => (0 : ℝ)) := stronglyMeasurable_const
+  have cB : ∀ᵐ ω ∂S.μ, |(fun _ : Ω => (0 : ℝ)) ω| ≤ 0 :=
+    Eventually.of_forall fun ω => by simp
+  have aZn := Zm_adapted (S := S) P.beta cK hwna
+  have bZn := Zm_bdd (S := S) P.beta hβ0.le cB hwn
+  have aZu := Zm_adapted (S := S) P.beta cK hua
+  have bZu := Zm_bdd (S := S) P.beta hβ0.le cB hu
+  have aZZn := Zm_adapted (S := S) P.beta cK aZn
+  have bZZn := Zm_bdd (S := S) P.beta hβ0.le cB bZn
+  have aZZu := Zm_adapted (S := S) P.beta cK aZu
+  have bZZu := Zm_bdd (S := S) P.beta hβ0.le cB bZu
+  obtain ⟨Fa, Fb⟩ := comb6M (S := S) (ca0 P + P.lx * (P.xip + P.xiw) ^ 2)
+    (P.lx * (P.xip + P.xiw)) ((P.kw - P.kp) * P.lx)
+    ((P.xip + P.xiw) * ca0 P - (P.kw - P.kp) * cb0 P) ((P.xip + P.xiw) * (P.kw - P.kp) * P.lx)
+    0 0 aZn aZZn aZZu hwna aZu aZu bZn bZZn bZZu hwn bZu bZu (z := forcingFm S P u wn)
+    (fun t ω => by simp only [forcingFm]; ring)
+  obtain ⟨k1, b1⟩ := affine3 kw0 kmp0 kmw0 bw0 bmp0 bmw0 ((P.kw - P.kp) / P.lx * P.kp)
+    ((P.kw - P.kp) / P.lx * P.kw) (-(P.xip + P.xiw)) ((P.kw - P.kp) / P.lx * (P.lx * P.xstar))
+  obtain ⟨k2, b2⟩ := affine3 kw0 kmp0 kmw0 bw0 bmp0 bmw0
+    (((P.kw - P.kp) ^ 2 * P.xip - ca1 P * ((P.kw - P.kp) / P.lx * P.kp)) / P.lx)
+    ((-((P.kw - P.kp) ^ 2 * P.xiw) - ca1 P * ((P.kw - P.kp) / P.lx * P.kw)) / P.lx)
+    ((-(ca1 P * (-(P.xip + P.xiw))) - ca0 P) / P.lx)
+    ((-(ca1 P * ((P.kw - P.kp) / P.lx * (P.lx * P.xstar)))) / P.lx)
+  set B1 := |(P.kw - P.kp) / P.lx * P.kp| * B + |(P.kw - P.kp) / P.lx * P.kw| * B +
+    |-(P.xip + P.xiw)| * B + |(P.kw - P.kp) / P.lx * (P.lx * P.xstar)| with hB1
+  set B2 := |((P.kw - P.kp) ^ 2 * P.xip - ca1 P * ((P.kw - P.kp) / P.lx * P.kp)) / P.lx| * B +
+    |(-((P.kw - P.kp) ^ 2 * P.xiw) - ca1 P * ((P.kw - P.kp) / P.lx * P.kw)) / P.lx| * B +
+    |(-(ca1 P * (-(P.xip + P.xiw))) - ca0 P) / P.lx| * B +
+    |(-(ca1 P * ((P.kw - P.kp) / P.lx * (P.lx * P.xstar)))) / P.lx| with hB2
+  obtain ⟨w, hwa, hwb, hcub⟩ := cubicR_existsG (S := S) hβ0.le hβ1 hlx.ne' hv1 hv2 hv3 r1 n1
+    r2 n2 r3 n3 Fa Fb kw0 (s1 := initS1 P w₀ mp₀ mw₀) (s2 := initS2 P w₀ mp₀ mw₀)
+    (by rw [initS1_eq]; exact k1) (by rw [initS2_eq]; exact k2) (B := max (max B B1) B2)
+    (bw0.mono fun ω h => h.trans ((le_max_left _ _).trans (le_max_left _ _)))
+    (by
+      rw [initS1_eq]
+      exact b1.mono fun ω h => h.trans ((le_max_right _ _).trans (le_max_left _ _)))
+    (by
+      rw [initS2_eq]
+      exact b2.mono fun ω h => h.trans (le_max_right _ _))
+  exact ⟨_, _, _, w, _, _, _, cubic_imp_focMG hβ0.le hβ1 hlx.ne' hlp.ne' hlw.ne' hc hD kw0 kmp0
+    kmw0 bw0 bmp0 bmw0 hua hu hwna hwn hcub hwa hwb⟩
+
+/-! ### Uniqueness by forecast transfer -/
+
+/-- Woodford (2003), p. 540 (law of iterated expectations, tool): the date-`n` forecast of an a.s.
+linear relation `y⁰_m = a₁y¹_m + a₂y²_m + a₃y³_m + bE_m z_{m+1}` at a date `m ≥ n` is the same
+relation between the date-`n` forecasts. -/
+theorem fc_lin {n m : ℕ} (hnm : n ≤ m) {y0 y1 y2 y3 z : ℕ → Ω → ℝ} (a1 a2 a3 b : ℝ)
+    (h : y0 m =ᵐ[S.μ] fun ω => a1 * y1 m ω + a2 * y2 m ω + a3 * y3 m ω +
+      b * S.E m (z (m + 1)) ω)
+    (i1 : Integrable (y1 m) S.μ) (i2 : Integrable (y2 m) S.μ) (i3 : Integrable (y3 m) S.μ) :
+    ∀ᵐ ω ∂S.μ, S.E n (y0 m) ω = a1 * S.E n (y1 m) ω + a2 * S.E n (y2 m) ω +
+      a3 * S.E n (y3 m) ω + b * S.E n (z (m + 1)) ω := by
+  filter_upwards [S.E_congr h n, TidyR5aLambdaXZeroMeasure.E_lin4 S n a1 a2 a3 b i1 i2 i3
+    (S.integrable_E m (z (m + 1))), S.E_tower hnm (z (m + 1))] with ω e1 e2 e3
+  rw [e1, e2, e3]
+
+/-- Woodford (2003), (2.15)–(2.19) (tool): the parameters with `x* = 0` (the homogeneous problem
+satisfied by the difference of two plans). -/
+def P0 (P : SW) : SW := { P with xstar := 0 }
+
+/-- **Woodford (2003), (2.20), uniqueness under perfect foresight with zero data**: under the root
+condition, a bounded perfect-foresight solution of (2.11)–(2.13) and (2.16)–(2.19) with zero
+disturbances, zero initial values and `x* = 0` is zero
+(`InflTargetStickyWages.foc_existsUnique` at a one-point sample space). -/
+theorem pf_zero {P : SW} (hβ0 : 0 < P.beta) (hβ1 : P.beta < 1) (hlx : 0 < P.lx)
+    (hlp : 0 < P.lp) (hlw : 0 < P.lw) (hkp : 0 < P.kp) (hkw : 0 < P.kw) (hxip : 0 < P.xip)
+    (hxiw : 0 < P.xiw) (hne : P.kw ≠ P.kp) (hR : StableRoots P)
+    {π πw x w mp mw ups : ℕ → Unit → ℝ}
+    (hp : PlanSW perfectForesight (P0 P) (fun _ => 0) (fun _ _ => 0) (fun _ _ => 0) π πw x w)
+    (hf : FOCsw perfectForesight (P0 P) (fun _ => 0) (fun _ => 0) π πw x mp mw ups)
+    (hupsb : BoundedProc ups) :
+    ∀ t, π t () = 0 ∧ πw t () = 0 ∧ x t () = 0 ∧ w t () = 0 ∧ mp t () = 0 ∧ mw t () = 0 ∧
+      ups t () = 0 := by
+  have hz : BoundedProc (fun (_ : ℕ) (_ : Unit) => (0 : ℝ)) := ⟨0, fun _ _ => by simp⟩
+  have hza : perfectForesight.Adapted (fun (_ : ℕ) (_ : Unit) => (0 : ℝ)) := fun _ => rfl
+  obtain ⟨π0, πw0, x0, w0, mp0, mw0, ups0, -, huniq⟩ := foc_existsUnique (P := P0 P)
+    perfectForesight hβ0 hβ1 hlx hlp hlw hkp hkw hxip hxiw hne hR hz hza hz hza
+    (w₀ := fun _ => 0) (mp₀ := fun _ => 0) (mw₀ := fun _ => 0) ⟨0, fun _ => by simp⟩
+    ⟨0, fun _ => by simp⟩ ⟨0, fun _ => by simp⟩ rfl rfl rfl
+  have hl0 : ∀ t ω, lagW (fun (_ : Unit) => (0 : ℝ)) (fun (_ : ℕ) (_ : Unit) => (0 : ℝ)) t ω =
+      0 := by
+    intro t ω
+    cases t <;> rfl
+  have hzp : PlanSW perfectForesight (P0 P) (fun _ => 0) (fun _ _ => 0) (fun _ _ => 0)
+      (fun _ _ => 0) (fun _ _ => 0) (fun _ _ => 0) (fun _ _ => 0) :=
+    ⟨fun t ω => by
+      change (0 : ℝ) = (P0 P).kp * (0 + 0) + (P0 P).xip * (0 - 0) + (P0 P).beta * 0
+      ring, fun t ω => by
+      change (0 : ℝ) = (P0 P).kw * (0 + 0) + (P0 P).xiw * (0 - 0) + (P0 P).beta * 0
+      ring, fun t ω => by rw [hl0]; simp, hza, hza, hza, hza, hz, hz, hz, hz⟩
+  have hzf : FOCsw perfectForesight (P0 P) (fun _ => 0) (fun _ => 0) (fun _ _ => 0)
+      (fun _ _ => 0) (fun _ _ => 0) (fun _ _ => 0) (fun _ _ => 0) (fun _ _ => 0) := by
+    intro t ω
+    simp only [hl0, P0]
+    refine ⟨by ring, by ring, by ring, ?_⟩
+    change (0 : ℝ) = P.xip * 0 - P.xiw * 0 + P.beta * 0
+    ring
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := huniq _ _ _ _ _ _ _ hp hf (fun t => rfl) (fun t => rfl)
+    hupsb
+  obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := huniq _ _ _ _ _ _ _ hzp hzf hza hza hz
+  intro t
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [a1, ← b1]
+  · rw [a2, ← b2]
+  · rw [a3, ← b3]
+  · rw [a4, ← b4]
+  · rw [a5, ← b5]
+  · rw [a6, ← b6]
+  · rw [a7, ← b7]
+
+/-- Woodford (2003), (2.11)–(2.19) (tool): the difference of two bounded adapted processes is
+bounded and adapted. -/
+theorem sub_spec {y y' : ℕ → Ω → ℝ} (ha : StronglyAdapted S.𝓕 y) (ha' : StronglyAdapted S.𝓕 y')
+    (hb : S.BddProc y) (hb' : S.BddProc y') :
+    StronglyAdapted S.𝓕 (fun t ω => y t ω - y' t ω) ∧ S.BddProc (fun t ω => y t ω - y' t ω) := by
+  obtain ⟨M, hM⟩ := hb
+  obtain ⟨M', hM'⟩ := hb'
+  exact ⟨fun t => (ha t).sub (ha' t), M + M', fun t => by
+    filter_upwards [hM t, hM' t] with ω h1 h2
+    exact (abs_sub _ _).trans (add_le_add h1 h2)⟩
+
+omit [MeasurableSpace Ω] in
+/-- Woodford (2003), (2.11)–(2.19) (tool): the difference of two lags with the same initial value
+is the lag of the difference with initial value 0. -/
+theorem lagW_sub (z₀ : Ω → ℝ) (y y' : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    lagW z₀ y t ω - lagW z₀ y' t ω = lagW (fun _ => 0) (fun t ω => y t ω - y' t ω) t ω := by
+  cases t with
+  | zero => exact sub_self _
+  | succ s => rfl
+
+variable (S) in
+/-- **Woodford (2003), (2.11)–(2.20), `κ_w ≠ κ_p`, on a probability space: a.s. uniqueness.**
+Under the root condition, two bounded adapted plans with bounded adapted multipliers satisfying
+(2.11)–(2.13) and (2.16)–(2.19) a.s. with the same disturbances and the same initial values
+`(w_{t₀−1}, φ_{p,t₀−1}, φ_{w,t₀−1})` agree a.s. at every date. Forecast transfer: at almost every
+outcome the date-`n` conditional forecasts of the differences form a bounded perfect-foresight
+solution with zero data (`pf_zero`), and by induction the lags at `n` vanish a.s. -/
+theorem uniqueM {P : SW} (hβ0 : 0 < P.beta) (hβ1 : P.beta < 1) (hlx : 0 < P.lx)
+    (hlp : 0 < P.lp) (hlw : 0 < P.lw) (hkp : 0 < P.kp) (hkw : 0 < P.kw) (hxip : 0 < P.xip)
+    (hxiw : 0 < P.xiw) (hne : P.kw ≠ P.kp) (hR : StableRoots P) {u wn : ℕ → Ω → ℝ}
+    {w₀ mp₀ mw₀ : Ω → ℝ} {π πw x w mp mw ups π' πw' x' w' mp' mw' ups' : ℕ → Ω → ℝ}
+    (h1 : PlanSWM S P w₀ u wn π πw x w) (f1 : FOCswM S P mp₀ mw₀ π πw x mp mw ups)
+    (h2 : PlanSWM S P w₀ u wn π' πw' x' w') (f2 : FOCswM S P mp₀ mw₀ π' πw' x' mp' mw' ups') :
+    ∀ t, π t =ᵐ[S.μ] π' t ∧ πw t =ᵐ[S.μ] πw' t ∧ x t =ᵐ[S.μ] x' t ∧ w t =ᵐ[S.μ] w' t ∧
+      mp t =ᵐ[S.μ] mp' t ∧ mw t =ᵐ[S.μ] mw' t ∧ ups t =ᵐ[S.μ] ups' t := by
+  obtain ⟨P1, P2, P3, πa, πwa, xa, wa, πb, πwb, xb, wb⟩ := h1
+  obtain ⟨Q1, Q2, Q3, πa', πwa', xa', wa', πb', πwb', xb', wb'⟩ := h2
+  obtain ⟨F1, F2, F3, F4, mpa, mwa, upsa, mpb, mwb, upsb⟩ := f1
+  obtain ⟨G1, G2, G3, G4, mpa', mwa', upsa', mpb', mwb', upsb'⟩ := f2
+  have hlx0 : P.lx ≠ 0 := hlx.ne'
+  -- the differences
+  have Iπ := integrable_of_adapted S πa πb
+  have Iπ' := integrable_of_adapted S πa' πb'
+  have Iπw := integrable_of_adapted S πwa πwb
+  have Iπw' := integrable_of_adapted S πwa' πwb'
+  have Iups := integrable_of_adapted S upsa upsb
+  have Iups' := integrable_of_adapted S upsa' upsb'
+  obtain ⟨dπa, dπb⟩ := sub_spec πa πa' πb πb'
+  obtain ⟨dπwa, dπwb⟩ := sub_spec πwa πwa' πwb πwb'
+  obtain ⟨dxa, dxb⟩ := sub_spec xa xa' xb xb'
+  obtain ⟨dwa, dwb⟩ := sub_spec wa wa' wb wb'
+  obtain ⟨dmpa, dmpb⟩ := sub_spec mpa mpa' mpb mpb'
+  obtain ⟨dmwa, dmwb⟩ := sub_spec mwa mwa' mwb mwb'
+  obtain ⟨dupsa, dupsb⟩ := sub_spec upsa upsa' upsb upsb'
+  set dπw : ℕ → Ω → ℝ := fun t ω => πw t ω - πw' t ω with hdπw
+  set dx : ℕ → Ω → ℝ := fun t ω => x t ω - x' t ω with hdx
+  set dw : ℕ → Ω → ℝ := fun t ω => w t ω - w' t ω with hdw
+  set dmp : ℕ → Ω → ℝ := fun t ω => mp t ω - mp' t ω with hdmp
+  set dmw : ℕ → Ω → ℝ := fun t ω => mw t ω - mw' t ω with hdmw
+  set dups : ℕ → Ω → ℝ := fun t ω => ups t ω - ups' t ω with hdups
+  set dπ' : ℕ → Ω → ℝ := fun t ω => π t ω - π' t ω with hdπ'
+  set Lw : ℕ → Ω → ℝ := lagW (fun _ => 0) dw with hLw
+  set Lmp : ℕ → Ω → ℝ := lagW (fun _ => 0) dmp with hLmp
+  set Lmw : ℕ → Ω → ℝ := lagW (fun _ => 0) dmw with hLmw
+  have Idπ := integrable_of_adapted S dπa dπb
+  have Idπw := integrable_of_adapted S dπwa dπwb
+  have Idx := integrable_of_adapted S dxa dxb
+  have Idw := integrable_of_adapted S dwa dwb
+  have Idmp := integrable_of_adapted S dmpa dmpb
+  have Idmw := integrable_of_adapted S dmwa dmwb
+  have Idups := integrable_of_adapted S dupsa dupsb
+  have lagK : ∀ {d : ℕ → Ω → ℝ}, StronglyAdapted S.𝓕 d → S.BddProc d → ∀ n,
+      StronglyMeasurable[S.𝓕 n] (lagW (fun _ => 0) d n) ∧
+        Integrable (lagW (fun _ => 0) d n) S.μ := by
+    intro d hda hdb n
+    cases n with
+    | zero => exact ⟨stronglyMeasurable_const, integrable_const _⟩
+    | succ s => exact ⟨(hda s).mono (S.𝓕.mono (Nat.le_succ s)), integrable_of_adapted S hda hdb s⟩
+  -- the homogeneous a.s. equations
+  have eP1 : ∀ m, dπ' m =ᵐ[S.μ] fun ω => P.kp * dx m ω + P.xip * dw m ω + 0 * dw m ω +
+      P.beta * S.E m (dπ' (m + 1)) ω := fun m => by
+    filter_upwards [P1 m, Q1 m, S.E_sub (Iπ (m + 1)) (Iπ' (m + 1)) m] with ω e1 e2 e3
+    have e3' : S.E m (dπ' (m + 1)) ω = S.E m (π (m + 1)) ω - S.E m (π' (m + 1)) ω := e3
+    rw [e3']
+    simp only [hdπ', hdx, hdw]
+    linear_combination e1 - e2
+  have eP2 : ∀ m, dπw m =ᵐ[S.μ] fun ω => P.kw * dx m ω + (-P.xiw) * dw m ω + 0 * dw m ω +
+      P.beta * S.E m (dπw (m + 1)) ω := fun m => by
+    filter_upwards [P2 m, Q2 m, S.E_sub (Iπw (m + 1)) (Iπw' (m + 1)) m] with ω e1 e2 e3
+    have e3' : S.E m (dπw (m + 1)) ω = S.E m (πw (m + 1)) ω - S.E m (πw' (m + 1)) ω := e3
+    rw [e3']
+    simp only [hdπw, hdx, hdw]
+    linear_combination e1 - e2
+  have eP3 : ∀ m, dw m =ᵐ[S.μ] fun ω => 1 * Lw m ω + 1 * dπw m ω + (-1) * dπ' m ω +
+      0 * S.E m (dw (m + 1)) ω := fun m => by
+    filter_upwards [P3 m, Q3 m] with ω e1 e2
+    have hl := lagW_sub w₀ w w' m ω
+    simp only [hLw, hdw, hdπw, hdπ']
+    rw [← hl]
+    linear_combination e1 - e2
+  have eF1 : ∀ m, dmp m =ᵐ[S.μ] fun ω => (-P.lp) * dπ' m ω + 1 * Lmp m ω + (-1) * dups m ω +
+      0 * S.E m (dmp (m + 1)) ω := fun m => by
+    filter_upwards [F1 m, G1 m] with ω e1 e2
+    simp only [Pi.zero_apply] at e1 e2
+    have hl := lagW_sub mp₀ mp mp' m ω
+    simp only [hLmp, hdmp, hdπ', hdups]
+    rw [← hl]
+    linear_combination e1 - e2
+  have eF2 : ∀ m, dmw m =ᵐ[S.μ] fun ω => (-P.lw) * dπw m ω + 1 * Lmw m ω + 1 * dups m ω +
+      0 * S.E m (dmw (m + 1)) ω := fun m => by
+    filter_upwards [F2 m, G2 m] with ω e1 e2
+    simp only [Pi.zero_apply] at e1 e2
+    have hl := lagW_sub mw₀ mw mw' m ω
+    simp only [hLmw, hdmw, hdπw, hdups]
+    rw [← hl]
+    linear_combination e1 - e2
+  have eF3 : ∀ m, dx m =ᵐ[S.μ] fun ω => (P.kp / P.lx) * dmp m ω + (P.kw / P.lx) * dmw m ω +
+      0 * dmw m ω + 0 * S.E m (dx (m + 1)) ω := fun m => by
+    filter_upwards [F3 m, G3 m] with ω e1 e2
+    simp only [Pi.zero_apply] at e1 e2
+    simp only [hdx, hdmp, hdmw]
+    field_simp
+    linear_combination e1 - e2
+  have eF4 : ∀ m, dups m =ᵐ[S.μ] fun ω => P.xip * dmp m ω + (-P.xiw) * dmw m ω + 0 * dmw m ω +
+      P.beta * S.E m (dups (m + 1)) ω := fun m => by
+    filter_upwards [F4 m, G4 m, S.E_sub (Iups (m + 1)) (Iups' (m + 1)) m] with ω e1 e2 e3
+    have e3' : S.E m (dups (m + 1)) ω = S.E m (ups (m + 1)) ω - S.E m (ups' (m + 1)) ω := e3
+    rw [e3']
+    simp only [hdups, hdmp, hdmw]
+    linear_combination e1 - e2
+  -- the step: the forecasts at `n` vanish
+  have step : ∀ n, (∀ᵐ ω ∂S.μ, Lw n ω = 0) → (∀ᵐ ω ∂S.μ, Lmp n ω = 0) →
+      (∀ᵐ ω ∂S.μ, Lmw n ω = 0) → ∀ᵐ ω ∂S.μ, dπ' n ω = 0 ∧ dπw n ω = 0 ∧ dx n ω = 0 ∧
+        dw n ω = 0 ∧ dmp n ω = 0 ∧ dmw n ω = 0 ∧ dups n ω = 0 := by
+    intro n hLw hLmp hLmw
+    have hk : ∀ k, n ≤ n + k := fun k => Nat.le_add_right n k
+    have c1 := fun k => fc_lin (hk k) _ _ _ _ (eP1 (n + k)) (Idx _) (Idw _) (Idw _)
+    have c2 := fun k => fc_lin (hk k) _ _ _ _ (eP2 (n + k)) (Idx _) (Idw _) (Idw _)
+    have c3 := fun k => fc_lin (hk k) _ _ _ _ (eP3 (n + k)) (lagK dwa dwb _).2 (Idπw _) (Idπ _)
+    have c4 := fun k => fc_lin (hk k) _ _ _ _ (eF1 (n + k)) (Idπ _) (lagK dmpa dmpb _).2
+      (Idups _)
+    have c5 := fun k => fc_lin (hk k) _ _ _ _ (eF2 (n + k)) (Idπw _) (lagK dmwa dmwb _).2
+      (Idups _)
+    have c6 := fun k => fc_lin (hk k) _ _ _ _ (eF3 (n + k)) (Idmp _) (Idmw _) (Idmw _)
+    have c7 := fun k => fc_lin (hk k) _ _ _ _ (eF4 (n + k)) (Idmp _) (Idmw _) (Idmw _)
+    have eLw : S.E n (Lw n) = Lw n := S.E_of_stronglyMeasurable (lagK dwa dwb n).1
+      (lagK dwa dwb n).2
+    have eLmp : S.E n (Lmp n) = Lmp n := S.E_of_stronglyMeasurable (lagK dmpa dmpb n).1
+      (lagK dmpa dmpb n).2
+    have eLmw : S.E n (Lmw n) = Lmw n := S.E_of_stronglyMeasurable (lagK dmwa dmwb n).1
+      (lagK dmwa dmwb n).2
+    obtain ⟨B1, hB1⟩ := dπb
+    obtain ⟨B2, hB2⟩ := dπwb
+    obtain ⟨B3, hB3⟩ := dxb
+    obtain ⟨B4, hB4⟩ := dwb
+    obtain ⟨B5, hB5⟩ := dmpb
+    obtain ⟨B6, hB6⟩ := dmwb
+    obtain ⟨B7, hB7⟩ := dupsb
+    have hE0 : ∀ {d : ℕ → Ω → ℝ}, StronglyMeasurable[S.𝓕 n] (d n) → Integrable (d n) S.μ →
+        S.E n (d n) = d n := fun hm hi => S.E_of_stronglyMeasurable hm hi
+    filter_upwards [ae_all_iff.2 c1, ae_all_iff.2 c2, ae_all_iff.2 c3, ae_all_iff.2 c4,
+      ae_all_iff.2 c5, ae_all_iff.2 c6, ae_all_iff.2 c7,
+      ae_all_iff.2 fun k => S.abs_E_le (hB1 (n + k)) n,
+      ae_all_iff.2 fun k => S.abs_E_le (hB2 (n + k)) n,
+      ae_all_iff.2 fun k => S.abs_E_le (hB3 (n + k)) n,
+      ae_all_iff.2 fun k => S.abs_E_le (hB4 (n + k)) n,
+      ae_all_iff.2 fun k => S.abs_E_le (hB5 (n + k)) n,
+      ae_all_iff.2 fun k => S.abs_E_le (hB6 (n + k)) n,
+      ae_all_iff.2 fun k => S.abs_E_le (hB7 (n + k)) n, hLw, hLmp, hLmw]
+      with ω h1 h2 h3 h4 h5 h6 h7 b1 b2 b3 b4 b5 b6 b7 l1 l2 l3
+    -- the perfect-foresight forecast paths
+    set fπ : ℕ → Unit → ℝ := fun k _ => S.E n (dπ' (n + k)) ω with hfπ
+    set fπw : ℕ → Unit → ℝ := fun k _ => S.E n (dπw (n + k)) ω with hfπw
+    set fx : ℕ → Unit → ℝ := fun k _ => S.E n (dx (n + k)) ω with hfx
+    set fw : ℕ → Unit → ℝ := fun k _ => S.E n (dw (n + k)) ω with hfw
+    set fmp : ℕ → Unit → ℝ := fun k _ => S.E n (dmp (n + k)) ω with hfmp
+    set fmw : ℕ → Unit → ℝ := fun k _ => S.E n (dmw (n + k)) ω with hfmw
+    set fups : ℕ → Unit → ℝ := fun k _ => S.E n (dups (n + k)) ω with hfups
+    have lw0 : S.E n (Lw (n + 0)) ω = 0 := by rw [add_zero, eLw]; exact l1
+    have lmp0 : S.E n (Lmp (n + 0)) ω = 0 := by rw [add_zero, eLmp]; exact l2
+    have lmw0 : S.E n (Lmw (n + 0)) ω = 0 := by rw [add_zero, eLmw]; exact l3
+    have hlagf : ∀ {d : ℕ → Ω → ℝ} {f : ℕ → Unit → ℝ}, (∀ k, f k () = S.E n (d (n + k)) ω) →
+        S.E n (lagW (fun _ => 0) d (n + 0)) ω = 0 →
+        ∀ t, S.E n (lagW (fun _ => 0) d (n + t)) ω = lagW (fun _ => 0) f t () := by
+      intro d f hf h0 t
+      cases t with
+      | zero => exact h0
+      | succ j => exact (hf j).symm
+    have hw' := hlagf (d := dw) (f := fw) (fun _ => rfl) lw0
+    have hmp' := hlagf (d := dmp) (f := fmp) (fun _ => rfl) lmp0
+    have hmw' := hlagf (d := dmw) (f := fmw) (fun _ => rfl) lmw0
+    have hp : PlanSW perfectForesight (P0 P) (fun _ => 0) (fun _ _ => 0) (fun _ _ => 0) fπ fπw
+        fx fw := by
+      refine ⟨fun t _ => ?_, fun t _ => ?_, fun t _ => ?_, fun _ => rfl, fun _ => rfl,
+        fun _ => rfl, fun _ => rfl, ⟨B1, fun t _ => b1 t⟩, ⟨B2, fun t _ => b2 t⟩,
+        ⟨B3, fun t _ => b3 t⟩, ⟨B4, fun t _ => b4 t⟩⟩
+      · change S.E n (dπ' (n + t)) ω = P.kp * (S.E n (dx (n + t)) ω + 0) +
+          P.xip * (S.E n (dw (n + t)) ω - 0) + P.beta * S.E n (dπ' (n + t + 1)) ω
+        rw [h1 t]
+        ring
+      · change S.E n (dπw (n + t)) ω = P.kw * (S.E n (dx (n + t)) ω + 0) +
+          P.xiw * (0 - S.E n (dw (n + t)) ω) + P.beta * S.E n (dπw (n + t + 1)) ω
+        rw [h2 t]
+        ring
+      · change S.E n (dw (n + t)) ω = lagW (fun _ => 0) fw t () + S.E n (dπw (n + t)) ω -
+          S.E n (dπ' (n + t)) ω
+        rw [h3 t, ← hw' t]
+        ring
+    have hf : FOCsw perfectForesight (P0 P) (fun _ => 0) (fun _ => 0) fπ fπw fx fmp fmw fups := by
+      intro t _
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · change P.lp * S.E n (dπ' (n + t)) ω + S.E n (dmp (n + t)) ω -
+          lagW (fun _ => 0) fmp t () + S.E n (dups (n + t)) ω = 0
+        rw [h4 t, ← hmp' t]
+        ring
+      · change P.lw * S.E n (dπw (n + t)) ω + S.E n (dmw (n + t)) ω -
+          lagW (fun _ => 0) fmw t () - S.E n (dups (n + t)) ω = 0
+        rw [h5 t, ← hmw' t]
+        ring
+      · change P.lx * (S.E n (dx (n + t)) ω - 0) - P.kp * S.E n (dmp (n + t)) ω -
+          P.kw * S.E n (dmw (n + t)) ω = 0
+        rw [h6 t]
+        field_simp
+        ring
+      · change S.E n (dups (n + t)) ω = P.xip * S.E n (dmp (n + t)) ω -
+          P.xiw * S.E n (dmw (n + t)) ω + P.beta * S.E n (dups (n + t + 1)) ω
+        rw [h7 t]
+        ring
+    obtain ⟨z1, z2, z3, z4, z5, z6, z7⟩ := pf_zero hβ0 hβ1 hlx hlp hlw hkp hkw hxip hxiw hne hR
+      hp hf ⟨B7, fun t _ => b7 t⟩ 0
+    change S.E n (dπ' (n + 0)) ω = 0 at z1
+    change S.E n (dπw (n + 0)) ω = 0 at z2
+    change S.E n (dx (n + 0)) ω = 0 at z3
+    change S.E n (dw (n + 0)) ω = 0 at z4
+    change S.E n (dmp (n + 0)) ω = 0 at z5
+    change S.E n (dmw (n + 0)) ω = 0 at z6
+    change S.E n (dups (n + 0)) ω = 0 at z7
+    rw [add_zero] at z1 z2 z3 z4 z5 z6 z7
+    rw [hE0 (dπa n) (Idπ n)] at z1
+    rw [hE0 (dπwa n) (Idπw n)] at z2
+    rw [hE0 (dxa n) (Idx n)] at z3
+    rw [hE0 (dwa n) (Idw n)] at z4
+    rw [hE0 (dmpa n) (Idmp n)] at z5
+    rw [hE0 (dmwa n) (Idmw n)] at z6
+    rw [hE0 (dupsa n) (Idups n)] at z7
+    exact ⟨z1, z2, z3, z4, z5, z6, z7⟩
+  -- induction on the date
+  have hz : ∀ n, ∀ᵐ ω ∂S.μ, dπ' n ω = 0 ∧ dπw n ω = 0 ∧ dx n ω = 0 ∧ dw n ω = 0 ∧
+      dmp n ω = 0 ∧ dmw n ω = 0 ∧ dups n ω = 0 := by
+    intro n
+    induction n with
+    | zero =>
+      exact step 0 (Eventually.of_forall fun _ => rfl) (Eventually.of_forall fun _ => rfl)
+        (Eventually.of_forall fun _ => rfl)
+    | succ m ih =>
+      exact step (m + 1) (ih.mono fun ω h => h.2.2.2.1) (ih.mono fun ω h => h.2.2.2.2.1)
+        (ih.mono fun ω h => h.2.2.2.2.2.1)
+  intro t
+  refine ⟨(hz t).mono fun ω h => sub_eq_zero.mp h.1, (hz t).mono fun ω h => sub_eq_zero.mp h.2.1,
+    (hz t).mono fun ω h => sub_eq_zero.mp h.2.2.1,
+    (hz t).mono fun ω h => sub_eq_zero.mp h.2.2.2.1,
+    (hz t).mono fun ω h => sub_eq_zero.mp h.2.2.2.2.1,
+    (hz t).mono fun ω h => sub_eq_zero.mp h.2.2.2.2.2.1,
+    (hz t).mono fun ω h => sub_eq_zero.mp h.2.2.2.2.2.2⟩
+
+/-! ### Existence and uniqueness -/
+
+variable (S) in
+/-- **Woodford (2003), (2.11)–(2.20), `κ_w ≠ κ_p`, on every filtered probability space: existence
+and a.s. uniqueness for general initial values.** Under the root condition
+`InflTargetStickyWages.StableRoots`, for every bounded adapted disturbance `(u, w^n)` and every
+essentially bounded initial values `(w_{t₀−1}, φ_{p,t₀−1}, φ_{w,t₀−1})` known at date 0, there is a
+bounded adapted plan with bounded adapted multipliers satisfying (2.11)–(2.13) and (2.16)–(2.19)
+a.s., and every other such plan agrees with it a.s. at every date. -/
+theorem existsUniqueM_of_stableRoots {P : SW} (hβ0 : 0 < P.beta) (hβ1 : P.beta < 1)
+    (hlx : 0 < P.lx) (hlp : 0 < P.lp) (hlw : 0 < P.lw) (hkp : 0 < P.kp) (hkw : 0 < P.kw)
+    (hxip : 0 < P.xip) (hxiw : 0 < P.xiw) (hne : P.kw ≠ P.kp) (hR : StableRoots P)
+    (u wn : ℕ → Ω → ℝ) (hu : S.BddProc u) (hua : StronglyAdapted S.𝓕 u) (hwn : S.BddProc wn)
+    (hwna : StronglyAdapted S.𝓕 wn) {w₀ mp₀ mw₀ : Ω → ℝ} (kw0 : StronglyMeasurable[S.𝓕 0] w₀)
+    (kmp0 : StronglyMeasurable[S.𝓕 0] mp₀) (kmw0 : StronglyMeasurable[S.𝓕 0] mw₀) {B : ℝ}
+    (bw0 : ∀ᵐ ω ∂S.μ, |w₀ ω| ≤ B) (bmp0 : ∀ᵐ ω ∂S.μ, |mp₀ ω| ≤ B)
+    (bmw0 : ∀ᵐ ω ∂S.μ, |mw₀ ω| ≤ B) :
+    ∃ π πw x w mp mw ups, (PlanSWM S P w₀ u wn π πw x w ∧
+      FOCswM S P mp₀ mw₀ π πw x mp mw ups) ∧
+      ∀ π' πw' x' w' mp' mw' ups', PlanSWM S P w₀ u wn π' πw' x' w' →
+        FOCswM S P mp₀ mw₀ π' πw' x' mp' mw' ups' →
+        ∀ t, π' t =ᵐ[S.μ] π t ∧ πw' t =ᵐ[S.μ] πw t ∧ x' t =ᵐ[S.μ] x t ∧ w' t =ᵐ[S.μ] w t ∧
+          mp' t =ᵐ[S.μ] mp t ∧ mw' t =ᵐ[S.μ] mw t ∧ ups' t =ᵐ[S.μ] ups t := by
+  obtain ⟨π, πw, x, w, mp, mw, ups, hp, hf⟩ := exists_meas_of_stableRootsG S hβ0 hβ1 hlx hlp hlw
+    hkp hkw hxip hxiw hne hR u wn hu hua hwn hwna kw0 kmp0 kmw0 bw0 bmp0 bmw0
+  exact ⟨π, πw, x, w, mp, mw, ups, ⟨hp, hf⟩, fun π' πw' x' w' mp' mw' ups' hp' hf' =>
+    uniqueM S hβ0 hβ1 hlx hlp hlw hkp hkw hxip hxiw hne hR hp' hf' hp hf⟩
+
+variable (S) in
+/-- **Woodford (2003), (2.20), `κ_w ≠ κ_p` (the exact region on a probability space, full
+form)**: on every filtered probability space with Mathlib's conditional expectation, for every
+bounded adapted disturbance and every essentially bounded initial values known at date 0 there is
+an a.s. unique bounded adapted plan with bounded adapted multipliers satisfying (2.11)–(2.13) and
+(2.16)–(2.19) a.s. **iff** the root condition `InflTargetStickyWages.StableRoots` holds. -/
+theorem existsUniqueM_iff_stableRoots {P : SW} (hβ0 : 0 < P.beta) (hβ1 : P.beta < 1)
+    (hlx : 0 < P.lx) (hlp : 0 < P.lp) (hlw : 0 < P.lw) (hkp : 0 < P.kp) (hkw : 0 < P.kw)
+    (hxip : 0 < P.xip) (hxiw : 0 < P.xiw) (hne : P.kw ≠ P.kp) :
+    (∀ u wn : ℕ → Ω → ℝ, S.BddProc u → StronglyAdapted S.𝓕 u → S.BddProc wn →
+      StronglyAdapted S.𝓕 wn → ∀ w₀ mp₀ mw₀ : Ω → ℝ, StronglyMeasurable[S.𝓕 0] w₀ →
+      StronglyMeasurable[S.𝓕 0] mp₀ → StronglyMeasurable[S.𝓕 0] mw₀ → ∀ B : ℝ,
+      (∀ᵐ ω ∂S.μ, |w₀ ω| ≤ B) → (∀ᵐ ω ∂S.μ, |mp₀ ω| ≤ B) → (∀ᵐ ω ∂S.μ, |mw₀ ω| ≤ B) →
+      ∃ π πw x w mp mw ups, (PlanSWM S P w₀ u wn π πw x w ∧
+        FOCswM S P mp₀ mw₀ π πw x mp mw ups) ∧
+        ∀ π' πw' x' w' mp' mw' ups', PlanSWM S P w₀ u wn π' πw' x' w' →
+          FOCswM S P mp₀ mw₀ π' πw' x' mp' mw' ups' →
+          ∀ t, π' t =ᵐ[S.μ] π t ∧ πw' t =ᵐ[S.μ] πw t ∧ x' t =ᵐ[S.μ] x t ∧ w' t =ᵐ[S.μ] w t ∧
+            mp' t =ᵐ[S.μ] mp t ∧ mw' t =ᵐ[S.μ] mw t ∧ ups' t =ᵐ[S.μ] ups t) ↔
+      StableRoots P := by
+  refine ⟨fun h => stableRoots_of_exists_meas S hβ0 hβ1 hlx hlp hlw hkp hkw hxip hxiw hne
+    fun u wn hu hua hwn hwna a b => ?_, fun hR u wn hu hua hwn hwna w₀ mp₀ mw₀ kw0 kmp0 kmw0 B
+      bw0 bmp0 bmw0 => existsUniqueM_of_stableRoots S hβ0 hβ1 hlx hlp hlw hkp hkw hxip hxiw hne
+        hR u wn hu hua hwn hwna kw0 kmp0 kmw0 bw0 bmp0 bmw0⟩
+  obtain ⟨π, πw, x, w, mp, mw, ups, ⟨hp, hf⟩, -⟩ := h u wn hu hua hwn hwna (fun _ => 0)
+    (fun _ => a) (fun _ => b) stronglyMeasurable_const stronglyMeasurable_const
+    stronglyMeasurable_const (|a| + |b|) (Eventually.of_forall fun _ => by
+      simp only [abs_zero]
+      positivity) (Eventually.of_forall fun _ => by linarith [abs_nonneg b])
+    (Eventually.of_forall fun _ => by linarith [abs_nonneg a])
+  exact ⟨π, πw, x, w, mp, mw, ups, hp, hf⟩
+
+end Woodford.OptimalPolicyRules.TidyR6bStickyGeneral
+
 set_option linter.style.longLine false
 #print axioms Woodford.OptimalPolicyRules.SchurStable
 #print axioms Woodford.OptimalPolicyRules.disc
@@ -84468,3 +94732,401 @@ set_option linter.style.longLine false
 #print axioms Woodford.OptimalPolicyRules.TidyR5bStickyExists.cubic_imp_focM
 #print axioms Woodford.OptimalPolicyRules.TidyR5bStickyExists.exists_meas_of_stableRoots
 #print axioms Woodford.OptimalPolicyRules.TidyR5bStickyExists.exists_meas_iff_stableRoots
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.map_ofReal_mulVec
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.det_ne_zero_of_unstable
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.inv_stable
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.boundedV_add
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.boundedV_sub
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.boundedV_neg
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.adaptedV_add
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.adaptedV_sub
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.adaptedV_neg
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.Solves
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.Equil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.Determinate
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.eval_split
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.mv_inl
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.mv_inr
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.zx_block_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.identity_zhat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.identity_x
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.identity_exist
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.identity_exist_x
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.xrecR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.xrecR_bounded
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.xrecR_known
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.fsolves_iff_cform
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.determinate_of
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.sum_q_mulVec
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.false_of_linear_growth
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.no_bounded_resonance
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.exists_left_eigvec_unit
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.nonexist_of_unit
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.not_determinate_of_unit
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.mult_of_not_genericX
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.not_determinate_of_not_genericX
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.nonexist_of_lt
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.not_determinate_of_lt
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.not_determinate_of_gt
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.determinate_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.determinate_iff_count
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.determinate_iff_unstableCount
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.determinate_iff_perfectForesight
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.mem_boundedOrbits_of_tendsto
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.mem_boundedOrbits_iff_tendsto_of_noUnit
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBK.mem_boundedOrbits_iff_tendsto
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.SolvesPencil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.EquilPencil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.DeterminatePencil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.solvesPencil_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.equilPencil_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.determinatePencil_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.pencilPoly
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.pencilPoly_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.eigs_pencil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.mem_eigs_pencil_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKPencil.determinatePencil_iff_count
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.pow_mulVec_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.exists_fitting
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.Fitting
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.Fitting.basic
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.pow_bound_of_pow_eq_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.ahat_proj
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.split_ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.split_pencil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.adaptedV_Enext
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.boundedV_Enext
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.boundedV_smul
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.adaptedV_smul
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.Enext_mv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.smul_mv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.mv_smul
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.mv_smul_one
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.twoBlock_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.twoBlock_existsUnique
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.rmat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.kmat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.commute_rmat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.kmat_pow
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.zero_mv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.neg_mv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.nil_facts
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.pencilV_step
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.pencilV_existsUnique
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.pencil_reduce
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.pencil_iff_ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.mvQ_idem
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.pencil_Vpart
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.ahat_Vpart
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.determinatePencil_iff_ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.factor_idem
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.det_one_add_smul_nilpotent
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.fpoly
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.gpoly
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.eval_det_mapMatrix
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.eval_fpoly
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.eval_gpoly
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.eval_pencilPoly
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.ahat_comm
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.scalar_eq_smul_one
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.poly_relations
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.det_NPQ_ne_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.gpoly_roots
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.eigs_ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.noUnit_ahat_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.stableCount_ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.PencilBounded
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.mem_boundedOrbits_ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.nonexist_of_not_regular
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.GenericPencil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.exists_regular_point
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.determinatePencil_iff_general
+#print axioms Woodford.OptimalPolicyRules.TidyR6aGeneralBKSingular.unstable_add_infinite
+#print axioms Woodford.OptimalPolicyRules.TidyR6aBKRandom.determinateR_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aBKRandom.EquilPencilR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aBKRandom.DeterminatePencilR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aBKRandom.determinatePencilR_iff_ahat
+#print axioms Woodford.OptimalPolicyRules.TidyR6aBKRandom.determinatePencilR_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aBKRandom.determinatePencilR_iff_general
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepBase.exists_xproc_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepBase.exists_base
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepBase.unique_iff_powBdd_uncond
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepBase.anyRep
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepBase.nonempty_needed
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MEq118
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MEq120
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MEq121
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MMultKnown
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Equiv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.mk
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Λ
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Υ
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Qop
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Rop
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.equiv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Qbounded
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Rbounded
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Qadapted
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.MProp81Conclusion.Radapted
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mboundedV_xproc
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.ae_forall_ge
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.ae_bddS
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mbase
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mbase_QR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.magree_on_bddOrbit
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.munique_of_powBdd
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mknownV_mulVec
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mknownV_sub_mulVec
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mknownV_mono
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.integrable_comp
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.integrable_mulVec
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.EVm_of_known
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.EVm_congr
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.EVm_add
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.RecSolMm
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mnormalize
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.reQMm
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mreRep_equiv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mreRep
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mconj_rep
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mneg_rep
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.mnot_unique_of_not_powBdd
+#print axioms Woodford.OptimalPolicyRules.TidyR6aReRepMeasure.munique_iff_powBdd
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mRop
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mQop
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.madaptedV_xproc
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.integrable_mulVec'
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.J_lhs
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.Mpart_lhs
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mprop81_equiv
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mRop_bdd
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mRop_adapted
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mQop_bdd
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mQop_adapted
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mprop81
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mprop81_matrices
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp81Measure.mprop81_unique_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.quad_ne_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.p83_TWT
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.p83_noEulerRoot
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.m_p83_assumption81MB
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.m_p83_assumption81M
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.m_p83_assumption81
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.mp83Rep
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.mp83Rep_Λ
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.mp83Rep_zeros
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.jordan_noRecSol
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.mp83Rep'
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.m_prop83_fails_on_circle
+#print axioms Woodford.OptimalPolicyRules.TidyR6aProp83Measure.m_prop83_fails_iid
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lagR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lagR_const
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.RuleR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.RuleEqmR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.ruleEqmR_const
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.RuleHomR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.HomR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lagR_add
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lagR_sub
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.eqm_add_hom
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.eqm_sub_eqm
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.E_scale
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lagR_scale
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.hom_scale
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.hom_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.exists_unit_response
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.bounded_scale
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.rule_determinate_random
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.FOC3R
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.FOC4R
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.FOCR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lagrangian_identityR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.plan_optimalR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.mult1hR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.mult2R
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.mult2hR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lag_mult1R
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.lag_mult2R
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.rule_iff_foc3R
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.foc4_multR
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.mult2R_adapted
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.mult_bounded
+#print axioms Woodford.OptimalPolicyRules.TidyR6aRuleRandomHistory.rule_eqm_optimal_random
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.selOf
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.mem_selOf
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.count_selOf
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.selOf_conjClosed
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.mem_selOf_split
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.indep_of_split
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.toRealSel
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.sel_eq_selOf
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.J_mulVec_blocks
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.deflate_blocks
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.Kmat_transpose
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.Kt_mulVec_ker
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.ker_le_colSpan
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.countData_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.countData_of_semisimple
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chainSys
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chainJ
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chainSplit
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chain_ker
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chain_rank
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chain_rootMult
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chain_not_countData
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chain_reg
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.chain_not_zeroSemisimple
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.Υ_unique_iff_split
+#print axioms Woodford.OptimalPolicyRules.TidyR6aSelDeflating.Υ_unique_iff_split_semisimple
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.eSf
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.eSi
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.eS
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.A0
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.A1
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.stk
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.wS
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.x0S
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.elim_add
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.elim_eq_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.pencil_pt_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.reindex_mulVec_eS
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.stk_eS
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.solvesPencil_stk_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.xi_known
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.unY
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.unΦ
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.stk_un
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.struct_pt_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.focSystem_pre
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.equil_of_focSystem
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.focSystem_of_equil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.pencilPoly_map
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.stack_determinate_iff_count
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.noUnit_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.generic_of_assumption81
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.determinate_of_assumption81
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.assumption81MB_of_determinate
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.assumption81_of_determinate
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.stack_determinate_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.stack_determinate_card
+#print axioms Woodford.OptimalPolicyRules.TidyR6aStackedBK.eB_not_determinate
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.e6
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.A0g
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.A1g
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.pencil_rows
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.charC
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.charC_eval
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.pencilPoly_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.charC_one
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.charC_neg_one
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.parity_prod
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.roots_conjClosed
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.eval_one_mul_eval_neg_one
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.odd_inside
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.roots_pencil
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.gtp_necessary
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.quadQ
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.charC_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.quadQ_root_gt
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.roots_pencil_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.generic_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6aTaylorNecessity.gtp_not_necessary
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_add
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_sub
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_mulVec
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_smul
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_congr
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_const
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_EVm
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.intV
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.aemeas_of_adapted
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.abs_meanV_le
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.MFOCSystemI
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.mFOCSystemI_of
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.intMulVec
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.mean_struct
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.foc_expr_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.meanV_lin3
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.mean_foc
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.mul_of_cols'
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.exists_homResp_meas
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.EVm_add_known
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_combo
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_lagrangian_gap_init
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_J_le_init
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_targets_eq_init
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.init_zero_of
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_optimalSubjectTo_of_I
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.init_zero_of_M
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.init_term_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.ae_orth_kernel
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.mFeasible_congr
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_foc_necessary
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_optimalSubjectTo_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.mFOCSystem_of_I
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_foc_necessary_pred
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_foc_necessary_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_foc_necessary_book
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.MT0Optimal
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_t0Optimal_of_foc
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_t0Optimal_foc_necessary
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.m_t0Optimal_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.nk_m_optimalSubjectTo_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6bFOCMeasure.in_m_optimalSubjectTo_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.E_aff22
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.euler_alg
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.eulerM_of_focs
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.in_struct_atM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.in_foc_atM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.nk_struct_atM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.nk_foc_atM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.cNK_bddM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.cNK_adaptedM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.X1of
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.X2of
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.M0of
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.abs_lin3_le
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.M0of_spec
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.existsM_pos
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.existsM_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.rule_system_existsM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.rule_system_existsUniqueM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.rule_system_existsUniqueM_nonneg
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.historyM_of_sol
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleSystemMeasure.rule_system_existsM_iff
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.unshift2
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.unshift2_E
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.rule_eqm_existsM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.place
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.ruleSolM_of_eqm
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.rule_eqm_uniqueM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.E_aff22'
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.mu25
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.z25
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.x25
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.pi25
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.x25_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.mu25_facts
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.crit25_existsM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.crit25_uniqueM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bLambdaILimitExists.paths_convergeM_exists
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleIIIVar.QuasiCase.m_prop82_IIIQ_var
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleIIIVar.AllCases.m_prop82_III_all_var
+#print axioms Woodford.OptimalPolicyRules.TidyR6bRuleIIIVar.AllCases.m_prop82_III_all_both
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.cubicR_existsG
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.cubic_imp_focMG
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.affine3
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.initS1_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.initS2_eq
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.exists_meas_of_stableRootsG
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.fc_lin
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.P0
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.pf_zero
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.sub_spec
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.lagW_sub
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.uniqueM
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.existsUniqueM_of_stableRoots
+#print axioms Woodford.OptimalPolicyRules.TidyR6bStickyGeneral.existsUniqueM_iff_stableRoots
