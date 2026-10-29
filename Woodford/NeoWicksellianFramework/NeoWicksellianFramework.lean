@@ -40,3 +40,7 @@ import NeoWicksellianFramework.TidyR5EStabilityProps
 import NeoWicksellianFramework.TidyR5Lyapunov
 import NeoWicksellianFramework.TidyR5PrestonLAS
 import NeoWicksellianFramework.TidyR5PLMALM
+import NeoWicksellianFramework.TidyR6Chetaev
+import NeoWicksellianFramework.TidyR6ODEExistence
+import NeoWicksellianFramework.TidyR6Instability
+import NeoWicksellianFramework.TidyR6InstabilityCex

@@ -50,6 +50,8 @@ import Mathlib.Algebra.Order.Field.GeomSum
 import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Analysis.Complex.RealDeriv
 import Mathlib.Topology.MetricSpace.ProperSpace
+import Mathlib.FieldTheory.IsAlgClosed.Spectrum
+import Mathlib.Analysis.ODE.ExistUnique
 set_option autoImplicit false
 
 /-
@@ -32194,6 +32196,1778 @@ theorem E_succ_eq_tMapP_without_spectral {𝔼 : ExpectationSystem Ω}
 
 end Woodford.NeoWicksellianFramework.TidyR5PLMALM
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A Chetaev function for the E-stability equation (2.20)
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, pp. 264–266: the local stability of a
+rest point `θ̄` of `θ̇ = T(θ) − θ` (2.20) "depends on the eigenvalues of the Jacobian matrix
+`DT(θ̄) − I`". The module TidyR5Lyapunov proves the stability half. This module supplies the
+quadratic function behind the instability half (an eigenvalue with positive real part).
+
+* `isEig_iff_isRoot`, `finite_eigs`: the eigenvalues of a square matrix are the roots of its
+  characteristic polynomial, a finite set.
+* `sylvester_eq_zero` (the Kronecker-sum spectrum): if no two eigenvalues `λ, ν` of `B` satisfy
+  `λ + ν = 0`, then `BᵀX + XB = 0` forces `X = 0`. Proof by Cayley–Hamilton: `BᵀX = X(−B)`
+  gives `p(Bᵀ)X = X p(−B)` for every polynomial `p`; with `p` the characteristic polynomial of
+  `B`, `p(Bᵀ) = 0`, and `p(−B)` is invertible by the spectral mapping theorem.
+* `exists_sylvester`: under the same condition `BᵀP + PB = I` has a symmetric solution.
+* `exists_pos_of_sylvester`: if moreover `B` has an eigenvalue with positive real part, the
+  quadratic form `x′Px` takes a positive value (along the decaying real solution
+  `Re(e^{−τν} w)` of `ẋ = −Bx`, `x′Px` is non-increasing with derivative `−x′x` and tends to `0`).
+* `exists_chetaev`: if `A = DT − I` has an eigenvalue `μ` with `Re μ > 0`, there are `σ > 0` and a
+  symmetric `P` with `AᵀP + PA = 2σP + I` and `e′Pe > 0` for some `e` (shift `B = A − σI`, with
+  `σ ∈ (0, Re μ)` avoiding the finitely many half-sums of real parts of eigenvalues).
+* **`escape_of_unstable`**: if `T(θ̄) = θ̄`, `T` is differentiable at `θ̄` and `DT(θ̄) − I` has
+  an eigenvalue with positive real part, there is `ρ > 0` such that arbitrarily close to `θ̄` there
+  are initial beliefs from which every forward solution of (2.20) reaches distance `ρ` from `θ̄`.
+  Along a solution that stayed within `ρ`, `V = (θ − θ̄)′P(θ − θ̄)` would satisfy
+  `V̇ ≥ 2σV + ‖θ − θ̄‖²/2`, so `V ≥ (V(0)/2) e^{2στ}` (a lower barrier,
+  `image_le_of_deriv_right_lt_deriv_boundary`), contradicting `V ≤ K ρ²`.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR6Chetaev
+
+open Matrix Filter Topology TidyR5EStabilityODE TidyR5Lyapunov
+open KroneckerSpectrum (IsEig)
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+
+/-! ### Eigenvalues -/
+
+/-- Woodford (2003), p. 266: `k` is an eigenvalue of `M` iff it is a root of the characteristic
+polynomial of `M`. -/
+theorem isEig_iff_isRoot (M : Matrix ι ι ℂ) (k : ℂ) : IsEig M k ↔ M.charpoly.IsRoot k := by
+  rw [KroneckerSpectrum.isEig_iff_det, Polynomial.IsRoot.def, Matrix.eval_charpoly,
+    Matrix.scalar_apply, ← Matrix.smul_one_eq_diagonal]
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), p. 266: a square matrix has finitely many eigenvalues. -/
+theorem finite_eigs (M : Matrix ι ι ℂ) : {k | IsEig M k}.Finite := by
+  classical
+  exact (Polynomial.finite_setOfPred_isRoot (Matrix.charpoly_monic M).ne_zero).subset
+    fun k hk => (isEig_iff_isRoot M k).1 hk
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), p. 266: `k` is an eigenvalue of `−M` iff `−k` is an eigenvalue of `M`. -/
+theorem isEig_neg_iff (M : Matrix ι ι ℂ) (k : ℂ) : IsEig (-M) k ↔ IsEig M (-k) := by
+  unfold IsEig
+  refine exists_congr fun v => and_congr_right fun _ => ?_
+  rw [Matrix.neg_mulVec, neg_smul, neg_eq_iff_eq_neg]
+
+/-- Woodford (2003), p. 266: `k` is an eigenvalue of `A − σI` iff `k + σ` is an eigenvalue of
+`A`. -/
+theorem isEig_shift_iff (A : Matrix ι ι ℝ) (σ : ℝ) (k : ℂ) :
+    IsEig ((A - σ • 1).map Complex.ofReal) k ↔ IsEig (A.map Complex.ofReal) (k + σ) := by
+  have hm : (A - σ • 1).map Complex.ofReal = A.map Complex.ofReal - (σ : ℂ) • 1 := by
+    ext i j
+    by_cases hij : i = j <;> simp [hij]
+  unfold IsEig
+  refine exists_congr fun v => and_congr_right fun _ => ?_
+  rw [hm, sub_mulVec, smul_mulVec, one_mulVec, sub_eq_iff_eq_add, add_smul]
+
+/-! ### The Kronecker-sum (Sylvester) equation -/
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), p. 266 (cf. the Kronecker-sum spectrum, App. C.7): if no two eigenvalues of
+`B` sum to zero, `BᵀX + XB = 0` only for `X = 0`. -/
+theorem sylvester_eq_zero {B X : Matrix ι ι ℝ}
+    (hB : ∀ l ν : ℂ, IsEig (B.map Complex.ofReal) l → IsEig (B.map Complex.ofReal) ν →
+      l + ν ≠ 0)
+    (hX : Bᵀ * X + X * B = 0) : X = 0 := by
+  classical
+  rcases isEmpty_or_nonempty ι with hι | hι
+  · exact Subsingleton.elim _ _
+  set Bc := B.map Complex.ofReal with hBc
+  set Xc := X.map Complex.ofReal with hXc
+  have h1 : Bcᵀ * Xc + Xc * Bc = 0 := by
+    ext i j
+    have := congrFun (congrFun hX i) j
+    simp only [Matrix.add_apply, Matrix.mul_apply, Matrix.transpose_apply,
+      Matrix.zero_apply] at this ⊢
+    simp only [hBc, hXc, Matrix.map_apply]
+    exact_mod_cast this
+  have h2 : Bcᵀ * Xc = Xc * (-Bc) := by
+    rw [Matrix.mul_neg, eq_neg_iff_add_eq_zero, h1]
+  have hpow : ∀ n : ℕ, Bcᵀ ^ n * Xc = Xc * (-Bc) ^ n := by
+    intro n
+    induction n with
+    | zero => simp
+    | succ n ih => rw [pow_succ, mul_assoc, h2, ← mul_assoc, ih, mul_assoc, ← pow_succ]
+  have hpoly : ∀ p : Polynomial ℂ,
+      Polynomial.aeval Bcᵀ p * Xc = Xc * Polynomial.aeval (-Bc) p := by
+    intro p
+    induction p using Polynomial.induction_on' with
+    | add p q hp hq => rw [map_add, map_add, add_mul, mul_add, hp, hq]
+    | monomial n a =>
+      rw [Polynomial.aeval_monomial, Polynomial.aeval_monomial, mul_assoc, hpow, ← mul_assoc,
+        Algebra.commutes, mul_assoc]
+  set p := Bc.charpoly with hp
+  have hz : Polynomial.aeval Bcᵀ p = 0 := by
+    rw [hp, ← Matrix.charpoly_transpose]
+    exact Matrix.aeval_self_charpoly _
+  have hunit : IsUnit (Polynomial.aeval (-Bc) p) := by
+    by_contra hnu
+    have h0 : (0 : ℂ) ∈ spectrum ℂ (Polynomial.aeval (-Bc) p) := (spectrum.zero_mem_iff ℂ).mpr hnu
+    rw [spectrum.map_polynomial_aeval_of_nonempty _ _
+      (spectrum.nonempty_of_isAlgClosed_of_finiteDimensional ℂ _)] at h0
+    obtain ⟨k, hk, hk0⟩ := h0
+    rw [Matrix.mem_spectrum_iff_isRoot_charpoly, ← isEig_iff_isRoot, isEig_neg_iff] at hk
+    have hk' : IsEig Bc k := (isEig_iff_isRoot Bc k).2 hk0
+    exact hB k (-k) hk' hk (add_neg_cancel k)
+  have hXc0 : Xc = 0 := by
+    have := hpoly p
+    rw [hz, zero_mul] at this
+    exact (hunit.mul_left_eq_zero).mp this.symm
+  ext i j
+  have := congrFun (congrFun hXc0 i) j
+  simpa [hXc] using this
+
+/-- Woodford (2003), p. 266: if no two eigenvalues of `B` sum to zero, the equation
+`BᵀP + PB = I` has a symmetric solution `P`. -/
+theorem exists_sylvester {B : Matrix ι ι ℝ}
+    (hB : ∀ l ν : ℂ, IsEig (B.map Complex.ofReal) l → IsEig (B.map Complex.ofReal) ν →
+      l + ν ≠ 0) :
+    ∃ P : Matrix ι ι ℝ, Pᵀ = P ∧ Bᵀ * P + P * B = 1 := by
+  set L : Matrix ι ι ℝ →ₗ[ℝ] Matrix ι ι ℝ :=
+    LinearMap.mulLeft ℝ Bᵀ + LinearMap.mulRight ℝ B with hL
+  have hLapp : ∀ X, L X = Bᵀ * X + X * B := fun X => rfl
+  have hinj : Function.Injective L := by
+    rw [← LinearMap.ker_eq_bot, LinearMap.ker_eq_bot']
+    intro X hX
+    rw [hLapp] at hX
+    exact sylvester_eq_zero hB hX
+  obtain ⟨P, hP⟩ := (LinearMap.injective_iff_surjective.mp hinj) 1
+  rw [hLapp] at hP
+  refine ⟨P, ?_, hP⟩
+  apply hinj
+  rw [hLapp, hLapp, hP]
+  have := congrArg Matrix.transpose hP
+  rw [transpose_add, transpose_mul, transpose_mul, transpose_transpose, transpose_one] at this
+  rw [← this, add_comm]
+
+/-- Woodford (2003), p. 266: if `BᵀP + PB = I` and `B` has an eigenvalue with positive real part,
+the quadratic form `x′Px` takes a positive value. -/
+theorem exists_pos_of_sylvester {B P : Matrix ι ι ℝ} (hP : Bᵀ * P + P * B = 1) {ν : ℂ}
+    (hν : IsEig (B.map Complex.ofReal) ν) (hre : 0 < ν.re) : ∃ e : ι → ℝ, 0 < e ⬝ᵥ (P *ᵥ e) := by
+  obtain ⟨w, hw0, hw⟩ := hν
+  obtain ⟨w', hw'r, hw'⟩ : ∃ w' : ι → ℂ, (fun i => (w' i).re) ≠ 0 ∧
+      B.map Complex.ofReal *ᵥ w' = ν • w' := by
+    by_cases h : (fun i => (w i).re) = 0
+    · refine ⟨Complex.I • w, ?_, by rw [mulVec_smul, hw, smul_comm]⟩
+      obtain ⟨i, hi⟩ := Function.ne_iff.mp hw0
+      have hre0 : (w i).re = 0 := congrFun h i
+      intro h2
+      have him : (Complex.I * w i).re = 0 := congrFun h2 i
+      simp only [Complex.mul_re, Complex.I_re, Complex.I_im, zero_mul, one_mul,
+        zero_sub, neg_eq_zero] at him
+      exact hi (Complex.ext hre0 him)
+    · exact ⟨w, h, hw⟩
+  by_contra hneg
+  push Not at hneg
+  set y : ℝ → ι → ℝ := eigSol (0 : ι → ℝ) (-ν) w' with hy
+  have hyv : ((1 - B) - 1).map Complex.ofReal *ᵥ w' = (-ν) • w' := by
+    have : (1 - B) - 1 = -B := by abel
+    have hneg : (-B).map Complex.ofReal = -(B.map Complex.ofReal) := by
+      ext i j
+      simp
+    rw [this, hneg, Matrix.neg_mulVec, hw', neg_smul]
+  have hysol := isESol_eigSol (θs := (0 : ι → ℝ)) hyv
+  have hyd : ∀ t, HasDerivAt y (-B *ᵥ y t) t := by
+    intro t
+    have h1 := hysol t
+    rw [linT_sub, sub_zero, show (1 - B) - 1 = -B by abel] at h1
+    exact h1
+  set g : ℝ → ℝ := fun t => y t ⬝ᵥ (P *ᵥ y t) with hg
+  have hgd : ∀ t, HasDerivAt g (-(y t ⬝ᵥ y t)) t := by
+    intro t
+    have h := hasDerivWithinAt_bilin P (s := Set.univ) (hyd t).hasDerivWithinAt
+      (hyd t).hasDerivWithinAt
+    rw [hasDerivWithinAt_univ, dot_mulVec_add, transpose_neg, Matrix.neg_mul, Matrix.mul_neg,
+      ← neg_add, hP, neg_mulVec, one_mulVec, dotProduct_neg] at h
+    exact h
+  have hanti : Antitone g := antitone_of_deriv_nonpos (fun t => (hgd t).differentiableAt)
+    fun t => by
+      rw [(hgd t).deriv]
+      exact neg_nonpos.2 (le_trans (sq_nonneg ‖y t‖) (norm_sq_le_dot (y t)))
+  have hlimy : Tendsto y atTop (𝓝 0) := by
+    rw [tendsto_pi_nhds]
+    intro i
+    have he : Tendsto (fun t : ℝ => Real.exp (-(ν.re * t)) * ‖w' i‖) atTop (𝓝 0) := by
+      have := (Real.tendsto_exp_neg_atTop_nhds_zero.comp
+        (tendsto_id.const_mul_atTop hre)).mul_const ‖w' i‖
+      simpa [Function.comp_def] using this
+    refine squeeze_zero_norm (fun t => ?_) he
+    simp only [hy, eigSol, Pi.add_apply, Pi.zero_apply, zero_add]
+    calc ‖(Complex.exp (↑t * -ν) * w' i).re‖ ≤ ‖Complex.exp (↑t * -ν) * w' i‖ := by
+          rw [Real.norm_eq_abs]
+          exact Complex.abs_re_le_norm _
+      _ = Real.exp (-(ν.re * t)) * ‖w' i‖ := by
+          rw [norm_mul, Complex.norm_exp]
+          congr 2
+          simp only [Complex.mul_re, Complex.ofReal_re, Complex.neg_re, Complex.ofReal_im,
+            Complex.neg_im, zero_mul, sub_zero]
+          ring
+  have hlimg : Tendsto g atTop (𝓝 0) := by
+    have := ((continuous_quad P).tendsto 0).comp hlimy
+    simpa [Function.comp_def] using this
+  have hg0 : ∀ t, g t = 0 := fun t => le_antisymm (hneg _) (hanti.le_of_tendsto hlimg t)
+  have hdd : y 0 ⬝ᵥ y 0 = 0 := by
+    have h1 := (hgd 0).deriv
+    have h2 : deriv g 0 = 0 := by
+      rw [show g = fun _ => (0 : ℝ) from funext hg0]
+      simp
+    linarith
+  have hy0 : y 0 = fun i => (w' i).re := by
+    funext i
+    simp [hy, eigSol]
+  apply hw'r
+  rw [← hy0]
+  by_contra hne
+  exact (dot_self_pos hne).ne' hdd
+
+/-- Woodford (2003), pp. 264–266: **the Chetaev matrix**: if `A` (here `DT − I`) has an
+eigenvalue with positive real part, there are `σ > 0` and a symmetric `P` with
+`AᵀP + PA = 2σP + I` such that `x′Px` takes a positive value. -/
+theorem exists_chetaev {A : Matrix ι ι ℝ} {μ : ℂ} (hμ : IsEig (A.map Complex.ofReal) μ)
+    (hre : 0 < μ.re) :
+    ∃ σ : ℝ, 0 < σ ∧ ∃ P : Matrix ι ι ℝ, Pᵀ = P ∧ Aᵀ * P + P * A = (2 * σ) • P + 1 ∧
+      ∃ e : ι → ℝ, 0 < e ⬝ᵥ (P *ᵥ e) := by
+  set Ac := A.map Complex.ofReal with hAc
+  have hfin := finite_eigs Ac
+  set S : Set ℝ := (fun p : ℂ × ℂ => (p.1.re + p.2.re) / 2) ''
+    ({k | IsEig Ac k} ×ˢ {k | IsEig Ac k}) with hS
+  have hSfin : S.Finite := (hfin.prod hfin).image _
+  obtain ⟨σ, hσI, hσS⟩ := ((Set.Ioo_infinite hre).sdiff hSfin).nonempty
+  set B := A - σ • 1 with hBdef
+  have hB : ∀ l ν : ℂ, IsEig (B.map Complex.ofReal) l → IsEig (B.map Complex.ofReal) ν →
+      l + ν ≠ 0 := by
+    intro l ν hl hν hsum
+    apply hσS
+    refine ⟨(l + σ, ν + σ), ⟨(isEig_shift_iff A σ l).1 hl, (isEig_shift_iff A σ ν).1 hν⟩, ?_⟩
+    have := congrArg Complex.re hsum
+    simp only [Complex.add_re, Complex.zero_re] at this
+    simp only [Complex.add_re, Complex.ofReal_re]
+    linarith
+  obtain ⟨P, hPs, hP⟩ := exists_sylvester hB
+  have hμB : IsEig (B.map Complex.ofReal) (μ - σ) := (isEig_shift_iff A σ _).2 (by simpa using hμ)
+  obtain ⟨e, he⟩ := exists_pos_of_sylvester hP hμB (by simp; linarith [hσI.2])
+  refine ⟨σ, hσI.1, P, hPs, ?_, e, he⟩
+  have hA : A = B + σ • 1 := by rw [hBdef, sub_add_cancel]
+  rw [hA, transpose_add, add_mul, mul_add, ← add_add_add_comm, hP, transpose_smul,
+    transpose_one, Matrix.smul_mul, Matrix.mul_smul, Matrix.one_mul, Matrix.mul_one, two_mul,
+    add_smul]
+  abel
+
+/-! ### Escape from a neighbourhood of an unstable rest point -/
+
+/-- Woodford (2003), pp. 264–266: **escape from an unstable rest point**: if `T(θ̄) = θ̄`, `T` is
+differentiable at `θ̄` and `DT(θ̄) − I` has an eigenvalue with positive real part, there is
+`ρ > 0` such that within every distance `δ > 0` of `θ̄` there is an initial belief from which
+every forward solution of (2.20) reaches distance `ρ` from `θ̄`. -/
+theorem escape_of_unstable {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} (hfix : T θs = θs)
+    (hd : DifferentiableAt ℝ T θs) {μ : ℂ}
+    (hμ : IsEig ((LinearMap.toMatrix' (fderiv ℝ T θs : (ι → ℝ) →ₗ[ℝ] (ι → ℝ)) - 1).map
+      Complex.ofReal) μ) (hre : 0 < μ.re) :
+    ∃ ρ > 0, ∀ δ > 0, ∃ x0 : ι → ℝ, ‖x0 - θs‖ < δ ∧
+      ∀ θ, IsFwdSol T θ → θ 0 = x0 → ∃ τ : ℝ, 0 ≤ τ ∧ ρ ≤ ‖θ τ - θs‖ := by
+  set J := LinearMap.toMatrix' (fderiv ℝ T θs : (ι → ℝ) →ₗ[ℝ] (ι → ℝ)) with hJdef
+  obtain ⟨σ, hσ, P, -, hP, e, he⟩ := exists_chetaev hμ hre
+  set K := ∑ i, ∑ j, |P i j| with hK
+  have hK0 : 0 ≤ K := Finset.sum_nonneg fun i _ => Finset.sum_nonneg fun j _ => abs_nonneg _
+  set η := 1 / (4 * (K + 1)) with hη
+  have hηpos : 0 < η := by positivity
+  have hKη : K * η ≤ 1 / 4 := by
+    rw [hη, mul_one_div, div_le_div_iff₀ (by positivity) (by norm_num)]
+    nlinarith
+  have hJapp : ∀ y, J *ᵥ y = fderiv ℝ T θs y := fun y => by
+    rw [hJdef, LinearMap.toMatrix'_mulVec]
+    rfl
+  obtain ⟨ρ0, hρ0, hrem⟩ := Metric.eventually_nhds_iff.mp
+    (hd.hasFDerivAt.isLittleO.def hηpos)
+  -- the derivative of `V` along the vector field
+  have hD : ∀ y, ‖y - θs‖ < ρ0 →
+      2 * σ * ((y - θs) ⬝ᵥ (P *ᵥ (y - θs))) + ‖y - θs‖ ^ 2 / 2 ≤
+        (T y - y) ⬝ᵥ (P *ᵥ (y - θs)) + (y - θs) ⬝ᵥ (P *ᵥ (T y - y)) := by
+    intro y hy
+    set x := y - θs with hx
+    set r := T y - θs - J *ᵥ x with hr
+    have hF : T y - y = (J - 1) *ᵥ x + r := by
+      rw [hr, hx, sub_mulVec, one_mulVec]
+      abel
+    have hrb : ‖r‖ ≤ η * ‖x‖ := by
+      have := hrem (y := y) (by rwa [dist_eq_norm])
+      rw [hfix] at this
+      rw [hr, hJapp]
+      exact this
+    rw [hF, add_dotProduct, mulVec_add, dotProduct_add]
+    have hq : ((J - 1) *ᵥ x) ⬝ᵥ (P *ᵥ x) + x ⬝ᵥ (P *ᵥ ((J - 1) *ᵥ x)) =
+        2 * σ * (x ⬝ᵥ (P *ᵥ x)) + x ⬝ᵥ x := by
+      rw [dot_mulVec_add, hP, add_mulVec, smul_mulVec, one_mulVec, dotProduct_add,
+        dotProduct_smul, smul_eq_mul]
+    have hb1 : |r ⬝ᵥ (P *ᵥ x)| ≤ K * ‖r‖ * ‖x‖ := bilin_bound P r x
+    have hb2 : |x ⬝ᵥ (P *ᵥ r)| ≤ K * ‖x‖ * ‖r‖ := bilin_bound P x r
+    have h1 : K * ‖r‖ * ‖x‖ ≤ ‖x‖ ^ 2 / 4 := by
+      have : K * ‖r‖ * ‖x‖ ≤ K * (η * ‖x‖) * ‖x‖ := by
+        have := mul_le_mul_of_nonneg_left hrb hK0
+        exact mul_le_mul_of_nonneg_right this (norm_nonneg _)
+      have h' : K * (η * ‖x‖) * ‖x‖ = (K * η) * ‖x‖ ^ 2 := by ring
+      nlinarith [sq_nonneg ‖x‖]
+    have h3 := norm_sq_le_dot x
+    have h4 := neg_abs_le (r ⬝ᵥ (P *ᵥ x))
+    have h5 := neg_abs_le (x ⬝ᵥ (P *ᵥ r))
+    have h6 : K * ‖x‖ * ‖r‖ = K * ‖r‖ * ‖x‖ := by ring
+    linarith
+  refine ⟨ρ0, hρ0, fun δ hδ => ?_⟩
+  set c := δ / (2 * (‖e‖ + 1)) with hc
+  have hc0 : 0 < c := by positivity
+  refine ⟨θs + c • e, ?_, fun θ hθ h0 => ?_⟩
+  · rw [add_sub_cancel_left, norm_smul, Real.norm_eq_abs, abs_of_pos hc0, hc]
+    have hn := norm_nonneg e
+    rw [div_mul_eq_mul_div, div_lt_iff₀ (by positivity)]
+    nlinarith
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨hcont, hder⟩ := hθ
+  set V : ℝ → ℝ := fun s => (θ s - θs) ⬝ᵥ (P *ᵥ (θ s - θs)) with hV
+  have hV0 : V 0 = c ^ 2 * (e ⬝ᵥ (P *ᵥ e)) := by
+    simp only [hV, h0, add_sub_cancel_left, mulVec_smul, dotProduct_smul, smul_dotProduct,
+      smul_eq_mul]
+    ring
+  have hV0pos : 0 < V 0 := by rw [hV0]; positivity
+  -- the lower barrier `V(t) ≥ (V(0)/2) e^{2σt}`
+  have hbar : ∀ t, 0 ≤ t → V 0 / 2 * Real.exp (2 * σ * t) ≤ V t := by
+    intro t ht
+    have hVc : ContinuousOn (fun s => -V s) (Set.Icc 0 t) :=
+      ((continuous_quad P).comp_continuousOn
+        ((hcont.mono Set.Icc_subset_Ici_self).sub continuousOn_const)).neg
+    have hVd : ∀ s ∈ Set.Ico (0 : ℝ) t, HasDerivWithinAt (fun s => -V s)
+        (-((T (θ s) - θ s) ⬝ᵥ (P *ᵥ (θ s - θs)) + (θ s - θs) ⬝ᵥ (P *ᵥ (T (θ s) - θ s))))
+        (Set.Ici s) s := by
+      intro s hs
+      have hs' := (hder s hs.1).sub_const θs
+      exact (hasDerivWithinAt_bilin P hs' hs').neg
+    have hB : ∀ s, HasDerivAt (fun s => -(V 0 / 2 * Real.exp (2 * σ * s)))
+        (-(V 0 / 2 * (Real.exp (2 * σ * s) * (2 * σ * 1)))) s := fun s =>
+      ((((hasDerivAt_id s).const_mul (2 * σ)).exp).const_mul (V 0 / 2)).neg
+    have hV0B : -V 0 ≤ -(V 0 / 2 * Real.exp (2 * σ * 0)) := by
+      simp only [mul_zero, Real.exp_zero, mul_one]
+      linarith
+    have := image_le_of_deriv_right_lt_deriv_boundary hVc hVd hV0B hB ?_ ⟨ht, le_rfl⟩
+    · linarith
+    intro s hs hcontact
+    have hVs : V s = V 0 / 2 * Real.exp (2 * σ * s) := by linarith
+    have hpos : 0 < V s := by rw [hVs]; positivity
+    have hx0 : θ s - θs ≠ 0 := by
+      intro h
+      rw [hV] at hpos
+      simp only [h, mulVec_zero, dotProduct_zero, lt_irrefl] at hpos
+    have hn : 0 < ‖θ s - θs‖ := norm_pos_iff.mpr hx0
+    have hDs := hD (θ s) (hcon s hs.1)
+    have : V s = (θ s - θs) ⬝ᵥ (P *ᵥ (θ s - θs)) := rfl
+    nlinarith [sq_pos_of_pos hn]
+  -- but `V` stays bounded by `K ρ0²`
+  set t := (K * ρ0 ^ 2 + 1) / (σ * V 0) with ht
+  have ht0 : 0 ≤ t := by positivity
+  have hup : V t ≤ K * ρ0 ^ 2 := by
+    have h1 := bilin_bound P (θ t - θs) (θ t - θs)
+    have h2 := hcon t ht0
+    have h3 : V t ≤ K * ‖θ t - θs‖ * ‖θ t - θs‖ := (le_abs_self _).trans h1
+    have h4 : ‖θ t - θs‖ * ‖θ t - θs‖ ≤ ρ0 ^ 2 := by
+      rw [sq]
+      exact mul_le_mul h2.le h2.le (norm_nonneg _) hρ0.le
+    calc V t ≤ K * ‖θ t - θs‖ * ‖θ t - θs‖ := h3
+      _ = K * (‖θ t - θs‖ * ‖θ t - θs‖) := by ring
+      _ ≤ K * ρ0 ^ 2 := mul_le_mul_of_nonneg_left h4 hK0
+  have hlow := hbar t ht0
+  have hexp : 2 * σ * t + 1 ≤ Real.exp (2 * σ * t) := Real.add_one_le_exp _
+  have hσt : σ * V 0 * t = K * ρ0 ^ 2 + 1 := by
+    rw [ht]
+    field_simp
+  nlinarith
+
+end Woodford.NeoWicksellianFramework.TidyR6Chetaev
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Existence of forward solutions of the E-stability equation (2.20)
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, pp. 264–266: E-stability of an s.c.e.
+`θ̄` is defined through the local stability of the rest point `θ̄` of `θ̇ = T(θ) − θ` (2.20).
+Instability of a rest point is a statement that some solutions starting close to `θ̄` move away
+from it, so it needs solutions to exist. This module supplies the existence theory.
+
+* `IsSolOn`: a solution of (2.20) on a finite interval `[0, t₁]` (continuous there, with right
+  derivatives `T(θ(τ)) − θ(τ)` on `[0, t₁)`); `isSolOn_of_isFwdSol`.
+* `FwdComplete`: from every initial belief there is a forward solution on `[0, ∞)`.
+* `exists_step`: Picard–Lindelöf (Mathlib's `IsPicardLindelof`) for a globally Lipschitz `T`
+  gives a solution on `[0, h]` from every initial point with one step length `h = 1/(K + 2)`;
+  **`fwdComplete_of_lipschitz`**: concatenating the steps (continuation) gives a forward solution
+  on all of `[0, ∞)`.
+* `glue`, `isFwdSol_glue`: a solution on `[0, s]` followed by a forward solution started at its
+  end point is a forward solution; `isFwdSol_shift`: time shifts of forward solutions.
+* `clampBox`, `tMod`: a map Lipschitz on the closed ball `‖θ − θ̄‖ ≤ r` agrees there with the
+  globally Lipschitz map `T ∘ clampBox` (coordinatewise clamping onto the ball, which is a box in
+  the sup norm); `eventuallyEq_tMod`: the two maps agree near `θ̄`, so they have the same
+  derivative at `θ̄`.
+* `exists_first_exit`: a continuous path that reaches distance `ε` from `θ̄` has a first time
+  of doing so; `isSolOn_of_isFwdSol_tMod`, `isSolOn_tMod_of_isSolOn`: before that time the
+  solutions of `T` and of `T ∘ clampBox` coincide.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR6ODEExistence
+
+open Filter Topology TidyR5Lyapunov
+open scoped NNReal
+
+variable {ι : Type*}
+
+/-! ### Solutions on finite intervals and on `[0, ∞)` -/
+
+/-- Woodford (2003), (2.20) p. 265: `θ` solves `θ̇ = T(θ) − θ` on the finite interval
+`[0, t₁]`: continuous there, with right derivative `T(θ(τ)) − θ(τ)` at every `τ ∈ [0, t₁)`. -/
+def IsSolOn (T : (ι → ℝ) → ι → ℝ) (θ : ℝ → ι → ℝ) (t₁ : ℝ) : Prop :=
+  ContinuousOn θ (Set.Icc 0 t₁) ∧
+    ∀ τ ∈ Set.Ico 0 t₁, HasDerivWithinAt θ (T (θ τ) - θ τ) (Set.Ici τ) τ
+
+/-- Woodford (2003), (2.20) p. 265: equation (2.20) is **forward complete**: from every initial
+belief there is a forward solution on all of `[0, ∞)`. -/
+def FwdComplete (T : (ι → ℝ) → ι → ℝ) : Prop :=
+  ∀ x : ι → ℝ, ∃ θ, IsFwdSol T θ ∧ θ 0 = x
+
+/-- Woodford (2003), (2.20): a forward solution restricted to `[0, t₁]` is a solution there. -/
+theorem isSolOn_of_isFwdSol {T : (ι → ℝ) → ι → ℝ} {θ : ℝ → ι → ℝ} (h : IsFwdSol T θ)
+    (t₁ : ℝ) : IsSolOn T θ t₁ :=
+  ⟨h.1.mono Set.Icc_subset_Ici_self, fun τ hτ => h.2 τ hτ.1⟩
+
+set_option linter.unusedFintypeInType false in
+/-- Woodford (2003), (2.20): a time shift `τ ↦ θ(s + τ)`, `s ≥ 0`, of a forward solution is a
+forward solution (the equation is autonomous). -/
+theorem isFwdSol_shift [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {θ : ℝ → ι → ℝ} (h : IsFwdSol T θ) {s : ℝ}
+    (hs : 0 ≤ s) : IsFwdSol T (fun τ => θ (s + τ)) := by
+  have hmap : ∀ τ : ℝ, Set.MapsTo (fun u => s + u) (Set.Ici τ) (Set.Ici (s + τ)) :=
+    fun τ u hu => by simp only [Set.mem_Ici] at hu ⊢; linarith
+  refine ⟨?_, fun τ hτ => ?_⟩
+  · exact h.1.comp (continuous_const.add continuous_id).continuousOn
+      (fun u hu => by simp only [Set.mem_Ici] at hu ⊢; linarith)
+  · have h1 := (h.2 (s + τ) (by linarith)).scomp τ
+      ((hasDerivWithinAt_id τ (Set.Ici τ)).const_add s) (hmap τ)
+    simpa [Function.comp_def] using h1
+
+/-- Woodford (2003), (2.20): concatenation of a path `θ₁` on `[0, s]` with a path `θ₂` started
+at time `s`. -/
+noncomputable def glue (θ₁ θ₂ : ℝ → ι → ℝ) (s : ℝ) : ℝ → ι → ℝ :=
+  fun t => if t ≤ s then θ₁ t else θ₂ (t - s)
+
+set_option linter.unusedFintypeInType false in
+/-- Woodford (2003), (2.20): **concatenation**: a solution on `[0, s]` followed by a forward
+solution started at its end point is a forward solution. -/
+theorem isFwdSol_glue [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {θ₁ θ₂ : ℝ → ι → ℝ} {s : ℝ}
+    (h₁ : IsSolOn T θ₁ s) (h₂ : IsFwdSol T θ₂) (h0 : θ₂ 0 = θ₁ s) :
+    IsFwdSol T (glue θ₁ θ₂ s) := by
+  have e1 : ∀ t, t ≤ s → glue θ₁ θ₂ s t = θ₁ t := fun t ht => by simp [glue, ht]
+  have e2 : ∀ t, s ≤ t → glue θ₁ θ₂ s t = θ₂ (t - s) := by
+    intro t ht
+    rcases eq_or_lt_of_le ht with h | h
+    · subst h
+      simp [glue, h0]
+    · simp [glue, not_le.mpr h]
+  have hsh : ∀ τ, s ≤ τ → HasDerivWithinAt (fun t => θ₂ (t - s))
+      (T (θ₂ (τ - s)) - θ₂ (τ - s)) (Set.Ici τ) τ := by
+    intro τ hτ
+    have hmap : Set.MapsTo (fun u => u - s) (Set.Ici τ) (Set.Ici (τ - s)) :=
+      fun u hu => by simp only [Set.mem_Ici] at hu ⊢; linarith
+    have h1 := (h₂.2 (τ - s) (by linarith)).scomp τ
+      ((hasDerivWithinAt_id τ (Set.Ici τ)).sub_const s) hmap
+    simpa [Function.comp_def] using h1
+  refine ⟨?_, fun τ hτ => ?_⟩
+  · have hU : Set.Ici (0 : ℝ) ⊆ Set.Icc 0 s ∪ Set.Ici s := by
+      intro t ht
+      rcases le_total t s with h | h
+      · exact Or.inl ⟨ht, h⟩
+      · exact Or.inr h
+    refine ContinuousOn.mono (ContinuousOn.union_of_isClosed ?_ ?_ isClosed_Icc isClosed_Ici) hU
+    · exact h₁.1.congr fun t ht => e1 t ht.2
+    · refine ContinuousOn.congr ?_ fun t ht => e2 t ht
+      exact h₂.1.comp (continuous_id.sub continuous_const).continuousOn
+        (fun u hu => by simp only [Set.mem_Ici] at hu ⊢; linarith)
+  · rcases lt_or_ge τ s with hlt | hge
+    · have hd := h₁.2 τ ⟨hτ, hlt⟩
+      rw [← e1 τ hlt.le] at hd
+      refine hd.congr_of_eventuallyEq ?_ (e1 τ hlt.le)
+      filter_upwards [nhdsWithin_le_nhds (Iio_mem_nhds hlt)] with t ht
+      exact e1 t (le_of_lt ht)
+    · have hd := hsh τ hge
+      rw [← e2 τ hge] at hd
+      exact hd.congr (fun t ht => e2 t (le_trans hge ht)) (e2 τ hge)
+
+/-! ### Global existence for a globally Lipschitz `T` -/
+
+/-- Woodford (2003), (2.20): **one Picard–Lindelöf step**: if `T` is globally `K`-Lipschitz,
+from every initial point there is a solution of (2.20) on `[0, 1/(K + 2)]`. -/
+theorem exists_step [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {K : ℝ≥0} (hT : LipschitzWith K T)
+    (x : ι → ℝ) :
+    ∃ α : ℝ → ι → ℝ, α 0 = x ∧ ∀ t ∈ Set.Icc (0 : ℝ) (1 / ((K : ℝ) + 2)),
+      HasDerivWithinAt α (T (α t) - α t) (Set.Icc 0 (1 / ((K : ℝ) + 2))) t := by
+  set F : (ι → ℝ) → ι → ℝ := fun y => T y - y with hF
+  have hFL : LipschitzWith (K + 1) F := hT.sub LipschitzWith.id
+  set h : ℝ := 1 / ((K : ℝ) + 2) with hh
+  have hh0 : 0 ≤ h := by positivity
+  set R : ℝ≥0 := ‖F x‖₊ + 1 with hR
+  set L : ℝ≥0 := ‖F x‖₊ + (K + 1) * R with hL
+  have hb : ∀ y ∈ Metric.closedBall x (R : ℝ), ‖F y‖ ≤ (L : ℝ) := by
+    intro y hy
+    rw [Metric.mem_closedBall, dist_eq_norm] at hy
+    have h1 : ‖F y - F x‖ ≤ ((K + 1 : ℝ≥0) : ℝ) * ‖y - x‖ := by
+      have := hFL.dist_le_mul y x
+      rwa [dist_eq_norm, dist_eq_norm] at this
+    have h2 : ‖F y‖ ≤ ‖F x‖ + ‖F y - F x‖ := by
+      calc ‖F y‖ = ‖F x + (F y - F x)‖ := by rw [add_sub_cancel]
+        _ ≤ ‖F x‖ + ‖F y - F x‖ := norm_add_le _ _
+    simp only [hL, NNReal.coe_add, NNReal.coe_mul, coe_nnnorm, NNReal.coe_one] at h1 ⊢
+    have hK0 : (0 : ℝ) ≤ (K : ℝ) + 1 := by positivity
+    nlinarith [mul_le_mul_of_nonneg_left hy hK0]
+  have hm : (L : ℝ) * max (h - ((⟨0, ⟨le_rfl, hh0⟩⟩ : Set.Icc (0 : ℝ) h) : ℝ))
+      (((⟨0, ⟨le_rfl, hh0⟩⟩ : Set.Icc (0 : ℝ) h) : ℝ) - 0) ≤ (R : ℝ) - ((0 : ℝ≥0) : ℝ) := by
+    simp only [sub_zero, NNReal.coe_zero]
+    rw [max_eq_left (by linarith [hh0])]
+    have hK2 : (0 : ℝ) < (K : ℝ) + 2 := by positivity
+    rw [hh, mul_one_div, div_le_iff₀ hK2]
+    simp only [hL, hR, NNReal.coe_add, NNReal.coe_mul, coe_nnnorm, NNReal.coe_one]
+    have hn : 0 ≤ ‖F x‖ := norm_nonneg _
+    have hK0 : (0 : ℝ) ≤ (K : ℝ) := K.2
+    nlinarith
+  have hPL : IsPicardLindelof (fun _ => F) (⟨0, ⟨le_rfl, hh0⟩⟩ : Set.Icc (0 : ℝ) h) x R 0 L
+      (K + 1) :=
+    IsPicardLindelof.of_time_independent hb (hFL.lipschitzOnWith) hm
+  obtain ⟨α, hα0, hα⟩ := hPL.exists_eq_forall_mem_Icc_hasDerivWithinAt₀
+  exact ⟨α, hα0, fun t ht => hα t ht⟩
+
+/-- Woodford (2003), (2.20) p. 265: **global existence (continuation)**: if `T` is globally
+Lipschitz, every initial belief has a forward solution of `θ̇ = T(θ) − θ` on `[0, ∞)`. The
+Picard–Lindelöf steps of `exists_step` all have the same length `h`, so they can be concatenated:
+`θ(t) = α_k(t − k h)` for `k h ≤ t ≤ (k + 1) h`, `α_{k+1}(0) = α_k(h)`. -/
+theorem fwdComplete_of_lipschitz [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {K : ℝ≥0}
+    (hT : LipschitzWith K T) :
+    FwdComplete T := by
+  intro x0
+  set h : ℝ := 1 / ((K : ℝ) + 2) with hh
+  have hh0 : 0 < h := by positivity
+  choose sol hsol0 hsold using fun x => exists_step hT x
+  set pts : ℕ → ι → ℝ := fun n => Nat.rec x0 (fun _ p => sol p h) n with hpts
+  have hpts0 : pts 0 = x0 := rfl
+  have hptsS : ∀ n, pts (n + 1) = sol (pts n) h := fun n => rfl
+  set θ : ℝ → ι → ℝ := fun t => sol (pts ⌊t / h⌋₊) (t - ⌊t / h⌋₊ * h) with hθ
+  set g : ℕ → ℝ → ι → ℝ := fun k t => sol (pts k) (t - k * h) with hg
+  -- `θ` agrees with the `k`-th piece on `[k h, (k + 1) h]`
+  have heq : ∀ k : ℕ, ∀ t ∈ Set.Icc ((k : ℝ) * h) ((k + 1) * h), θ t = g k t := by
+    intro k t ht
+    have ht0 : 0 ≤ t / h := div_nonneg (le_trans (by positivity) ht.1) hh0.le
+    rcases eq_or_lt_of_le ht.2 with he | hlt
+    · have hf : ⌊t / h⌋₊ = k + 1 := by
+        rw [Nat.floor_eq_iff ht0, he, mul_div_assoc, div_self hh0.ne', mul_one]
+        push_cast
+        constructor <;> linarith
+      change sol (pts ⌊t / h⌋₊) (t - ⌊t / h⌋₊ * h) = sol (pts k) (t - k * h)
+      rw [hf, hptsS]
+      push_cast
+      rw [he, sub_self, hsol0]
+      congr 1
+      ring
+    · have hf : ⌊t / h⌋₊ = k := by
+        rw [Nat.floor_eq_iff ht0]
+        constructor
+        · rw [le_div_iff₀ hh0]
+          exact ht.1
+        · rw [div_lt_iff₀ hh0]
+          exact hlt
+      simp only [hθ, hg, hf]
+  -- each piece solves the equation on its interval
+  have hgd : ∀ k : ℕ, ∀ t ∈ Set.Icc ((k : ℝ) * h) ((k + 1) * h),
+      HasDerivWithinAt (g k) (T (g k t) - g k t) (Set.Icc ((k : ℝ) * h) ((k + 1) * h)) t := by
+    intro k t ht
+    have hmap : Set.MapsTo (fun u => u - k * h) (Set.Icc ((k : ℝ) * h) ((k + 1) * h))
+        (Set.Icc 0 h) := fun u hu => by
+      simp only [Set.mem_Icc] at hu ⊢
+      constructor <;> nlinarith
+    have h1 := (hsold (pts k) (t - k * h) (hmap ht)).scomp t
+      ((hasDerivWithinAt_id t _).sub_const ((k : ℝ) * h)) hmap
+    simpa [Function.comp_def, hg] using h1
+  have hfl : ∀ t : ℝ, 0 ≤ t → t ∈ Set.Icc ((⌊t / h⌋₊ : ℝ) * h) ((⌊t / h⌋₊ + 1) * h) ∧
+      t < (⌊t / h⌋₊ + 1) * h := by
+    intro t ht
+    have ht0 : 0 ≤ t / h := div_nonneg ht hh0.le
+    have h1 := Nat.floor_le ht0
+    have h2 := Nat.lt_floor_add_one (t / h)
+    rw [le_div_iff₀ hh0] at h1
+    rw [div_lt_iff₀ hh0] at h2
+    exact ⟨⟨h1, h2.le⟩, h2⟩
+  refine ⟨θ, ⟨fun t ht => ?_, fun τ hτ => ?_⟩, ?_⟩
+  · -- continuity
+    have ht : 0 ≤ t := ht
+    obtain ⟨hmem, hlt⟩ := hfl t ht
+    set k := ⌊t / h⌋₊ with hk
+    have hck : ContinuousWithinAt θ (Set.Icc ((k : ℝ) * h) ((k + 1) * h)) t :=
+      ((hgd k t hmem).continuousWithinAt).congr (fun u hu => heq k u hu) (heq k t hmem)
+    rcases eq_or_lt_of_le hmem.1 with he | hgt
+    · -- `t = k h`
+      rcases Nat.eq_zero_or_eq_succ_pred k with hk0 | hk1
+      · have ht0 : t = 0 := by rw [← he, hk0]; simp
+        rw [ht0] at hck ⊢
+        refine hck.mono_of_mem_nhdsWithin ?_
+        rw [hk0]
+        simpa using Icc_mem_nhdsGE hh0
+      · set j := k.pred with hj
+        have hjk : (j : ℝ) + 1 = k := by rw [hk1]; push_cast; ring
+        have hmem' : t ∈ Set.Icc ((j : ℝ) * h) ((j + 1) * h) := by
+          rw [hjk, ← he]
+          constructor <;> nlinarith
+        have hcj : ContinuousWithinAt θ (Set.Icc ((j : ℝ) * h) ((j + 1) * h)) t :=
+          ((hgd j t hmem').continuousWithinAt).congr (fun u hu => heq j u hu) (heq j t hmem')
+        have hU := hcj.union hck
+        refine (hU.continuousAt ?_).continuousWithinAt
+        refine mem_of_superset (Icc_mem_nhds (a := (j : ℝ) * h) (b := ((k : ℝ) + 1) * h)
+          ?_ ?_) ?_
+        · rw [← he, ← hjk]; nlinarith
+        · rw [← he]; nlinarith
+        · intro u hu
+          rcases le_total u t with h1 | h1
+          · left
+            exact ⟨hu.1, by rw [hjk]; linarith⟩
+          · right
+            exact ⟨by linarith, hu.2⟩
+    · exact (hck.continuousAt (Icc_mem_nhds hgt hlt)).continuousWithinAt
+  · -- right derivatives
+    have hτ' : 0 ≤ τ := hτ
+    obtain ⟨hmem, hlt⟩ := hfl τ hτ'
+    set k := ⌊τ / h⌋₊ with hk
+    have hsub : Set.Icc τ ((k + 1) * h) ⊆ Set.Icc ((k : ℝ) * h) ((k + 1) * h) :=
+      Set.Icc_subset_Icc_left hmem.1
+    have hd := ((hgd k τ hmem).mono hsub).congr (fun u hu => heq k u (hsub hu)) (heq k τ hmem)
+    rw [← heq k τ hmem] at hd
+    exact hd.mono_of_mem_nhdsWithin (Icc_mem_nhdsGE hlt)
+  · simp only [hθ, zero_div, Nat.floor_zero, CharP.cast_eq_zero, zero_mul, sub_zero, hpts0]
+    exact hsol0 x0
+
+/-! ### Modification outside a ball -/
+
+/-- Woodford (2003), (2.20): coordinatewise clamping onto the box `|θᵢ − θ̄ᵢ| ≤ r`, which is the
+closed ball of radius `r` around `θ̄` in the sup norm. -/
+def clampBox (θs : ι → ℝ) (r : ℝ) (x : ι → ℝ) : ι → ℝ :=
+  fun i => max (θs i - r) (min (θs i + r) (x i))
+
+/-- Woodford (2003), (2.20): the map `T` modified outside the closed ball `‖θ − θ̄‖ ≤ r`,
+`T ∘ clampBox`. -/
+def tMod (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) (r : ℝ) (x : ι → ℝ) : ι → ℝ :=
+  T (clampBox θs r x)
+
+/-- Woodford (2003), (2.20): clamping lands in the closed ball of radius `r`. -/
+theorem norm_clampBox_sub_le [Fintype ι] (θs : ι → ℝ) {r : ℝ} (hr : 0 ≤ r) (x : ι → ℝ) :
+    ‖clampBox θs r x - θs‖ ≤ r := by
+  refine (pi_norm_le_iff_of_nonneg hr).2 fun i => ?_
+  simp only [clampBox, Pi.sub_apply, Real.norm_eq_abs, abs_le]
+  constructor
+  · linarith [le_max_left (θs i - r) (min (θs i + r) (x i))]
+  · have : max (θs i - r) (min (θs i + r) (x i)) ≤ θs i + r :=
+      max_le (by linarith) (min_le_left _ _)
+    linarith
+
+/-- Woodford (2003), (2.20): clamping does not move points of the closed ball. -/
+theorem clampBox_of_le [Fintype ι] (θs : ι → ℝ) {r : ℝ} {x : ι → ℝ} (hx : ‖x - θs‖ ≤ r) :
+    clampBox θs r x = x := by
+  funext i
+  have hi : |x i - θs i| ≤ r := by
+    have := norm_le_pi_norm (x - θs) i
+    rw [Pi.sub_apply, Real.norm_eq_abs] at this
+    linarith
+  rw [abs_le] at hi
+  simp only [clampBox]
+  rw [min_eq_right (by linarith), max_eq_right (by linarith)]
+
+/-- Woodford (2003), (2.20): clamping is `1`-Lipschitz (sup norm). -/
+theorem lipschitzWith_clampBox [Fintype ι] (θs : ι → ℝ) (r : ℝ) :
+    LipschitzWith 1 (clampBox θs r) := by
+  refine LipschitzWith.of_dist_le_mul fun x y => ?_
+  rw [NNReal.coe_one, one_mul, dist_pi_le_iff dist_nonneg]
+  intro i
+  simp only [clampBox, Real.dist_eq]
+  have h1 := abs_max_sub_max_le_abs (min (θs i + r) (x i)) (min (θs i + r) (y i)) (θs i - r)
+  have h2 := abs_min_sub_min_le_max (θs i + r) (x i) (θs i + r) (y i)
+  rw [sub_self, abs_zero, max_eq_right (abs_nonneg _)] at h2
+  rw [max_comm (θs i - r), max_comm (θs i - r)]
+  exact h1.trans (h2.trans (by rw [← Real.dist_eq]; exact dist_le_pi_dist x y i))
+
+/-- Woodford (2003), (2.20): if `T` is `K`-Lipschitz on the closed ball `‖θ − θ̄‖ ≤ r`, the
+modified map `T ∘ clampBox` is globally `K`-Lipschitz. -/
+theorem lipschitzWith_tMod [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ} {K : ℝ≥0}
+    (hr : 0 ≤ r)
+    (hT : LipschitzOnWith K T (Metric.closedBall θs r)) : LipschitzWith K (tMod T θs r) := by
+  refine LipschitzWith.of_dist_le_mul fun x y => ?_
+  have hmem : ∀ z, clampBox θs r z ∈ Metric.closedBall θs r := fun z => by
+    rw [Metric.mem_closedBall, dist_eq_norm]
+    exact norm_clampBox_sub_le θs hr z
+  calc dist (tMod T θs r x) (tMod T θs r y)
+      ≤ K * dist (clampBox θs r x) (clampBox θs r y) := hT.dist_le_mul _ (hmem x) _ (hmem y)
+    _ ≤ K * dist x y := by
+        gcongr
+        simpa using (lipschitzWith_clampBox θs r).dist_le_mul x y
+
+/-- Woodford (2003), (2.20): the modified map agrees with `T` on the closed ball. -/
+theorem tMod_of_le [Fintype ι] (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) {r : ℝ} {x : ι → ℝ}
+    (hx : ‖x - θs‖ ≤ r) : tMod T θs r x = T x := by
+  simp only [tMod, clampBox_of_le θs hx]
+
+set_option linter.unusedFintypeInType false in
+/-- Woodford (2003), (2.20): for `r > 0` the modified map agrees with `T` near `θ̄`; in
+particular it has the same rest point and the same derivative there. -/
+theorem eventuallyEq_tMod [Fintype ι] (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) {r : ℝ} (hr : 0 < r) :
+    tMod T θs r =ᶠ[𝓝 θs] T := by
+  filter_upwards [Metric.closedBall_mem_nhds θs hr] with x hx
+  rw [Metric.mem_closedBall, dist_eq_norm] at hx
+  exact tMod_of_le T θs hx
+
+/-- Woodford (2003), (2.20): if `T` is Lipschitz on a closed ball around `θ̄`, the modified
+equation is forward complete. -/
+theorem fwdComplete_tMod [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ} {K : ℝ≥0}
+    (hr : 0 ≤ r) (hT : LipschitzOnWith K T (Metric.closedBall θs r)) :
+    FwdComplete (tMod T θs r) :=
+  fwdComplete_of_lipschitz (lipschitzWith_tMod hr hT)
+
+/-! ### First exit times -/
+
+/-- Woodford (2003), (2.20): **first exit**: if a path continuous on `[0, τ]` is at distance at
+least `ε` from `θ̄` at time `τ`, there is a first time `s ≤ τ` at which it is, and before `s` it
+stays at distance less than `ε`. -/
+theorem exists_first_exit [Fintype ι] {θ : ℝ → ι → ℝ} {θs : ι → ℝ} {ε τ : ℝ} (hτ : 0 ≤ τ)
+    (hc : ContinuousOn θ (Set.Icc 0 τ)) (hex : ε ≤ ‖θ τ - θs‖) :
+    ∃ s, 0 ≤ s ∧ s ≤ τ ∧ ε ≤ ‖θ s - θs‖ ∧ ∀ t ∈ Set.Ico 0 s, ‖θ t - θs‖ < ε := by
+  set S := Set.Icc 0 τ ∩ θ ⁻¹' {x | ε ≤ ‖x - θs‖} with hS
+  have hcl : IsClosed S := hc.preimage_isClosed_of_isClosed isClosed_Icc
+    (isClosed_le continuous_const (continuous_id.sub continuous_const).norm)
+  have hne : S.Nonempty := ⟨τ, ⟨hτ, le_rfl⟩, hex⟩
+  have hbdd : BddBelow S := ⟨0, fun t ht => ht.1.1⟩
+  have hmem := hcl.csInf_mem hne hbdd
+  refine ⟨sInf S, hmem.1.1, hmem.1.2, hmem.2, fun t ht => ?_⟩
+  by_contra hcon
+  push Not at hcon
+  have htS : t ∈ S := ⟨⟨ht.1, le_trans ht.2.le hmem.1.2⟩, hcon⟩
+  exact absurd (csInf_le hbdd htS) (not_le.mpr ht.2)
+
+/-- Woodford (2003), (2.20): a forward solution of the modified equation that stays in the
+closed ball before time `s` solves the original equation on `[0, s]`. -/
+theorem isSolOn_of_isFwdSol_tMod [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r s : ℝ}
+    {θ : ℝ → ι → ℝ} (h : IsFwdSol (tMod T θs r) θ) (hin : ∀ t ∈ Set.Ico 0 s, ‖θ t - θs‖ ≤ r) :
+    IsSolOn T θ s := by
+  refine ⟨h.1.mono Set.Icc_subset_Ici_self, fun τ hτ => ?_⟩
+  have hd := h.2 τ hτ.1
+  rwa [tMod_of_le T θs (hin τ hτ)] at hd
+
+/-- Woodford (2003), (2.20): a solution of the original equation on `[0, s]` that stays in the
+closed ball before time `s` solves the modified equation there. -/
+theorem isSolOn_tMod_of_isSolOn [Fintype ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r s : ℝ}
+    {θ : ℝ → ι → ℝ} (h : IsSolOn T θ s) (hin : ∀ t ∈ Set.Ico 0 s, ‖θ t - θs‖ ≤ r) :
+    IsSolOn (tMod T θs r) θ s := by
+  refine ⟨h.1, fun τ hτ => ?_⟩
+  rw [tMod_of_le T θs (hin τ hτ)]
+  exact h.2 τ hτ
+
+end Woodford.NeoWicksellianFramework.TidyR6ODEExistence
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Lyapunov's indirect method for (2.20): the instability half and the exact equivalence
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, pp. 264–266 and n. 37: an s.c.e. `θ̄`
+is E-stable if it is a locally stable rest point of `θ̇ = T(θ) − θ` (2.20); "the local
+stability … depends on the eigenvalues of the Jacobian matrix `DT(θ̄) − I`", ignoring the
+non-generic case of eigenvalues with zero real part. The stability half (negative real parts ⇒
+locally asymptotically stable) is `TidyR5Lyapunov.isLAS_of_eStableAt`. Here the instability half
+is proved for a general nonlinear `T`, and the two halves are combined.
+
+Stability notions. `TidyR5Lyapunov.IsLAS` quantifies over forward solutions defined on all of
+`[0, ∞)`. Here `IsLASLoc` is the textbook notion, in which Lyapunov stability also covers
+solutions on finite intervals `[0, t₁]` (so a solution that leaves a neighbourhood and then blows
+up in finite time counts as leaving). `isLAS_of_isLASLoc`: the textbook notion implies `IsLAS`.
+The two differ: the module TidyR6InstabilityCex gives a hyperbolic, unstable `T` for which `IsLAS`
+holds vacuously, because every non-constant solution blows up in finite time.
+
+* **`unstable_loc`**: if `T` is Lipschitz on a closed ball around a rest point `θ̄`,
+  differentiable at `θ̄`, and `DT(θ̄) − I` has an eigenvalue with positive real part, then for some
+  `ε > 0` every neighbourhood of `θ̄` contains the start of a solution on some `[0, t₁]` that
+  reaches distance `ε` from `θ̄`; `not_isLASLoc_of_unstable`: `θ̄` is not a (textbook) locally
+  stable rest point. The solutions come from the globally Lipschitz modification `T ∘ clampBox`
+  (Picard–Lindelöf plus continuation, TidyR6ODEExistence), the escape from the Chetaev function of
+  TidyR6Chetaev, and a first-exit time.
+* `unstable_of_fwdComplete`, `not_isLAS_of_unstable`: if the equation is forward complete (no
+  Lipschitz condition needed), escaping forward solutions on `[0, ∞)` exist and `IsLAS` fails.
+* `isLASLoc_of_eStableAt`: the stability half in the textbook sense.
+* `isLAS_tMod_iff`: for `T` Lipschitz on a closed ball around `θ̄`, the textbook notion for `T`
+  coincides with `IsLAS` for the globally Lipschitz, forward-complete modification
+  `T ∘ clampBox` (`isLAS_tMod_of_isLASLoc`, `isLASLoc_of_isLAS_tMod`).
+* **`eStableAt_iff_isLASLoc`**: when no eigenvalue of `DT(θ̄) − I` has zero real part
+  (`NoZeroRe`), E-stability ⟺ `θ̄` is a locally asymptotically stable rest point of (2.20), for
+  any `T` Lipschitz near `θ̄` and differentiable at `θ̄`; `eStableAt_iff_isLASLoc_of_contDiffAt`
+  for `C¹` maps. **`eStableAt_iff_isLAS`**: the same for the solutions-on-`[0, ∞)` notion
+  `IsLAS`, under forward completeness; `eStableAt_iff_of_lipschitz` for globally Lipschitz `T`.
+  The zero-real-part case is genuinely undecided by `DT` (TidyR6InstabilityCex).
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR6Instability
+
+open Filter Topology TidyR5Lyapunov TidyR6ODEExistence TidyR6Chetaev
+open Determinacy2Learning (EStable EStableAt)
+open KroneckerSpectrum (IsEig)
+open scoped NNReal
+
+variable {ι : Type*} [Fintype ι]
+
+/-! ### Definitions -/
+
+/-- Woodford (2003), p. 264: `θ̄` is a **locally asymptotically stable rest point** of (2.20) in
+the textbook sense: every solution, on any interval `[0, t₁]`, that starts close stays close
+(Lyapunov stability), and forward solutions starting close enough converge to `θ̄`. -/
+def IsLASLoc (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) : Prop :=
+  (∀ ε > 0, ∃ δ > 0, ∀ (t₁ : ℝ) (θ : ℝ → ι → ℝ), IsSolOn T θ t₁ → ‖θ 0 - θs‖ < δ →
+      ∀ τ ∈ Set.Icc 0 t₁, ‖θ τ - θs‖ < ε) ∧
+    ∃ δ > 0, ∀ θ, IsFwdSol T θ → ‖θ 0 - θs‖ < δ → Tendsto θ atTop (𝓝 θs)
+
+/-- Woodford (2003), n. 37 p. 266: the generic (hyperbolic) case: no eigenvalue of `J − I` has
+zero real part. -/
+def NoZeroRe [DecidableEq ι] (J : Matrix ι ι ℝ) : Prop :=
+  ∀ ν : ℂ, IsEig ((J - 1).map Complex.ofReal) ν → ν.re ≠ 0
+
+/-- Woodford (2003), p. 266: the Jacobian matrix `DT(θ̄)` of `T` at `θ̄`. -/
+noncomputable abbrev jac [DecidableEq ι] (T : (ι → ℝ) → ι → ℝ) (θs : ι → ℝ) : Matrix ι ι ℝ :=
+  LinearMap.toMatrix' (fderiv ℝ T θs : (ι → ℝ) →ₗ[ℝ] (ι → ℝ))
+
+/-! ### Elementary facts -/
+
+/-- Woodford (2003), p. 264: the textbook notion implies `IsLAS` (forward solutions restricted to
+`[0, τ]` are solutions there). -/
+theorem isLAS_of_isLASLoc {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} (h : IsLASLoc T θs) :
+    IsLAS T θs := by
+  refine ⟨fun ε hε => ?_, h.2⟩
+  obtain ⟨δ, hδ, hst⟩ := h.1 ε hε
+  exact ⟨δ, hδ, fun θ hθ h0 τ hτ =>
+    hst τ θ (isSolOn_of_isFwdSol hθ τ) h0 τ ⟨hτ, le_rfl⟩⟩
+
+omit [Fintype ι] in
+/-- Woodford (2003), (2.20): a solution on `[0, t₁]` is a solution on `[0, s]` for `s ≤ t₁`. -/
+theorem isSolOn_mono {T : (ι → ℝ) → ι → ℝ} {θ : ℝ → ι → ℝ} {s t₁ : ℝ} (h : IsSolOn T θ t₁)
+    (hs : s ≤ t₁) : IsSolOn T θ s :=
+  ⟨h.1.mono (Set.Icc_subset_Icc_right hs), fun τ hτ => h.2 τ ⟨hτ.1, lt_of_lt_of_le hτ.2 hs⟩⟩
+
+/-- Woodford (2003), p. 266, n. 37: if `J` is not E-stable and no eigenvalue of `J − I` has
+zero real part, some eigenvalue of `J − I` has positive real part. -/
+theorem exists_pos_eig_of_not_eStable [DecidableEq ι] {J : Matrix ι ι ℝ} (hJ : ¬EStable J)
+    (hnz : NoZeroRe J) : ∃ μ : ℂ, IsEig ((J - 1).map Complex.ofReal) μ ∧ 0 < μ.re := by
+  unfold EStable at hJ
+  push Not at hJ
+  obtain ⟨μ, hμ, hre⟩ := hJ
+  exact ⟨μ, hμ, lt_of_le_of_ne hre (hnz μ hμ).symm⟩
+
+/-- Woodford (2003), p. 266: the modified map `T ∘ clampBox` has the same rest point, is
+differentiable there and has the same Jacobian. -/
+theorem tMod_local [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ} (hr : 0 < r)
+    (hfix : T θs = θs) (hd : DifferentiableAt ℝ T θs) :
+    tMod T θs r θs = θs ∧ DifferentiableAt ℝ (tMod T θs r) θs ∧
+      jac (tMod T θs r) θs = jac T θs := by
+  have hEq := eventuallyEq_tMod T θs hr
+  refine ⟨?_, hEq.differentiableAt_iff.mpr hd, by rw [jac, jac, hEq.fderiv_eq]⟩
+  rw [tMod_of_le T θs (by simp [hr.le]), hfix]
+
+/-! ### The instability half -/
+
+/-- Woodford (2003), pp. 264–266: **instability (textbook sense)**: if `T(θ̄) = θ̄`, `T` is
+Lipschitz on a closed ball around `θ̄` and differentiable at `θ̄`, and `DT(θ̄) − I` has an
+eigenvalue with positive real part, there is `ε > 0` such that within every distance `δ > 0` of
+`θ̄` starts a solution of (2.20) on some `[0, t₁]` that reaches distance `ε` from `θ̄`. -/
+theorem unstable_loc [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ} {K : ℝ≥0}
+    (hr : 0 < r) (hL : LipschitzOnWith K T (Metric.closedBall θs r)) (hfix : T θs = θs)
+    (hd : DifferentiableAt ℝ T θs) {μ : ℂ} (hμ : IsEig ((jac T θs - 1).map Complex.ofReal) μ)
+    (hre : 0 < μ.re) :
+    ∃ ε > 0, ∀ δ > 0, ∃ t₁ : ℝ, 0 ≤ t₁ ∧ ∃ θ : ℝ → ι → ℝ, IsSolOn T θ t₁ ∧
+      ‖θ 0 - θs‖ < δ ∧ ε ≤ ‖θ t₁ - θs‖ := by
+  obtain ⟨hfix', hd', hJ⟩ := tMod_local hr hfix hd
+  rw [← hJ] at hμ
+  obtain ⟨ρ, hρ, hesc⟩ := escape_of_unstable hfix' hd' hμ hre
+  refine ⟨min ρ r, lt_min hρ hr, fun δ hδ => ?_⟩
+  obtain ⟨x0, hx0, hall⟩ := hesc δ hδ
+  obtain ⟨θ, hθ, hθ0⟩ := fwdComplete_tMod hr.le hL x0
+  obtain ⟨τ, hτ, hτρ⟩ := hall θ hθ hθ0
+  obtain ⟨s, hs0, -, hsε, hbefore⟩ := exists_first_exit hτ
+    (hθ.1.mono Set.Icc_subset_Ici_self) (le_trans (min_le_left _ _) hτρ)
+  exact ⟨s, hs0, θ, isSolOn_of_isFwdSol_tMod hθ
+    (fun t ht => (hbefore t ht).le.trans (min_le_right _ _)), by rwa [hθ0], hsε⟩
+
+/-- Woodford (2003), pp. 264–266: **an eigenvalue of `DT − I` with positive real part makes the
+rest point unstable**: under the hypotheses of `unstable_loc`, `θ̄` is not a (textbook) locally
+stable rest point of (2.20). -/
+theorem not_isLASLoc_of_unstable [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ}
+    {K : ℝ≥0} (hr : 0 < r) (hL : LipschitzOnWith K T (Metric.closedBall θs r))
+    (hfix : T θs = θs) (hd : DifferentiableAt ℝ T θs) {μ : ℂ}
+    (hμ : IsEig ((jac T θs - 1).map Complex.ofReal) μ) (hre : 0 < μ.re) : ¬IsLASLoc T θs := by
+  intro h
+  obtain ⟨ε, hε, hun⟩ := unstable_loc hr hL hfix hd hμ hre
+  obtain ⟨δ, hδ, hst⟩ := h.1 ε hε
+  obtain ⟨t₁, ht₁, θ, hθ, h0, hesc⟩ := hun δ hδ
+  exact absurd (hst t₁ θ hθ h0 t₁ ⟨ht₁, le_rfl⟩) (not_lt.mpr hesc)
+
+/-- Woodford (2003), pp. 264–266: **instability for forward-complete equations**: if every initial
+belief has a forward solution on `[0, ∞)`, `T(θ̄) = θ̄`, `T` is differentiable at `θ̄` and
+`DT(θ̄) − I` has an eigenvalue with positive real part, then arbitrarily close to `θ̄` start
+forward solutions that reach a fixed distance `ε` from `θ̄` (no Lipschitz condition needed). -/
+theorem unstable_of_fwdComplete [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ}
+    (hc : FwdComplete T) (hfix : T θs = θs) (hd : DifferentiableAt ℝ T θs) {μ : ℂ}
+    (hμ : IsEig ((jac T θs - 1).map Complex.ofReal) μ) (hre : 0 < μ.re) :
+    ∃ ε > 0, ∀ δ > 0, ∃ θ : ℝ → ι → ℝ, IsFwdSol T θ ∧ ‖θ 0 - θs‖ < δ ∧
+      ∃ τ : ℝ, 0 ≤ τ ∧ ε ≤ ‖θ τ - θs‖ := by
+  obtain ⟨ρ, hρ, hesc⟩ := escape_of_unstable hfix hd hμ hre
+  refine ⟨ρ, hρ, fun δ hδ => ?_⟩
+  obtain ⟨x0, hx0, hall⟩ := hesc δ hδ
+  obtain ⟨θ, hθ, hθ0⟩ := hc x0
+  exact ⟨θ, hθ, by rwa [hθ0], hall θ hθ hθ0⟩
+
+/-- Woodford (2003), pp. 264–266: for a forward-complete equation, an eigenvalue of `DT − I`
+with positive real part means `θ̄` is not a locally asymptotically stable rest point (`IsLAS`). -/
+theorem not_isLAS_of_unstable [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ}
+    (hc : FwdComplete T) (hfix : T θs = θs) (hd : DifferentiableAt ℝ T θs) {μ : ℂ}
+    (hμ : IsEig ((jac T θs - 1).map Complex.ofReal) μ) (hre : 0 < μ.re) : ¬IsLAS T θs := by
+  intro h
+  obtain ⟨ε, hε, hun⟩ := unstable_of_fwdComplete hc hfix hd hμ hre
+  obtain ⟨δ, hδ, hst⟩ := h.1 ε hε
+  obtain ⟨θ, hθ, h0, τ, hτ, hesc⟩ := hun δ hδ
+  exact absurd (hst θ hθ h0 τ hτ) (not_lt.mpr hesc)
+
+/-! ### The stability half in the textbook sense -/
+
+/-- Woodford (2003), pp. 264–266: **E-stability implies local asymptotic stability in the
+textbook sense** (solutions on finite intervals included), for `T` Lipschitz near `θ̄`. A solution
+on `[0, t₁]` that left the `ε`-ball would, up to its first exit, also solve the modified equation
+`T ∘ clampBox`; continued by a forward solution of that equation it would contradict the Lyapunov
+stability given by `TidyR5Lyapunov.isLAS_of_eStableAt`. -/
+theorem isLASLoc_of_eStableAt [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ}
+    {K : ℝ≥0} (hr : 0 < r) (hL : LipschitzOnWith K T (Metric.closedBall θs r))
+    (h : EStableAt T θs) : IsLASLoc T θs := by
+  obtain ⟨hfix', hd', hJ⟩ := tMod_local hr h.1 h.2.1
+  have hE' : EStableAt (tMod T θs r) θs := ⟨hfix', hd', by rw [← jac, hJ]; exact h.2.2⟩
+  have hT' := isLAS_of_eStableAt hE'
+  refine ⟨fun ε hε => ?_, (isLAS_of_eStableAt h).2⟩
+  set ε' := min ε r with hε'
+  have hε'0 : 0 < ε' := lt_min hε hr
+  obtain ⟨δ, hδ, hstab⟩ := hT'.1 ε' hε'0
+  refine ⟨min δ ε', lt_min hδ hε'0, fun t₁ θ hθ h0 τ hτ => ?_⟩
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨s, hs0, hsτ, hsε, hbefore⟩ := exists_first_exit hτ.1
+    (hθ.1.mono (Set.Icc_subset_Icc_right hτ.2)) (le_trans (min_le_left _ _) hcon)
+  have hin : ∀ t ∈ Set.Ico 0 s, ‖θ t - θs‖ ≤ r :=
+    fun t ht => (hbefore t ht).le.trans (min_le_right _ _)
+  have h1 : IsSolOn (tMod T θs r) θ s :=
+    isSolOn_tMod_of_isSolOn (isSolOn_mono hθ (le_trans hsτ hτ.2)) hin
+  obtain ⟨θ₂, hθ₂, hθ₂0⟩ := fwdComplete_tMod hr.le hL (θ s)
+  have hg := isFwdSol_glue h1 hθ₂ hθ₂0
+  have hg0 : glue θ θ₂ s 0 = θ 0 := by simp [glue, hs0]
+  have hgs : glue θ θ₂ s s = θ s := by simp [glue]
+  have := hstab _ hg (by rw [hg0]; exact lt_of_lt_of_le h0 (min_le_left _ _)) s hs0
+  rw [hgs] at this
+  exact absurd this (not_lt.mpr hsε)
+
+/-! ### The textbook notion and the modified equation -/
+
+/-- Woodford (2003), (2.20): a forward solution of the modified equation `T ∘ clampBox` that
+stays in the closed ball of radius `r` is a forward solution of the original equation. -/
+theorem isFwdSol_of_isFwdSol_tMod {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ}
+    {θ : ℝ → ι → ℝ} (h : IsFwdSol (tMod T θs r) θ) (hin : ∀ t, 0 ≤ t → ‖θ t - θs‖ ≤ r) :
+    IsFwdSol T θ := by
+  refine ⟨h.1, fun τ hτ => ?_⟩
+  have hd := h.2 τ hτ
+  rwa [tMod_of_le T θs (hin τ hτ)] at hd
+
+/-- Woodford (2003), (2.20): a forward solution of the original equation that stays in the
+closed ball of radius `r` is a forward solution of the modified equation. -/
+theorem isFwdSol_tMod_of_isFwdSol {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ}
+    {θ : ℝ → ι → ℝ} (h : IsFwdSol T θ) (hin : ∀ t, 0 ≤ t → ‖θ t - θs‖ ≤ r) :
+    IsFwdSol (tMod T θs r) θ := by
+  refine ⟨h.1, fun τ hτ => ?_⟩
+  rw [tMod_of_le T θs (hin τ hτ)]
+  exact h.2 τ hτ
+
+/-- Woodford (2003), p. 264: if `θ̄` is a locally asymptotically stable rest point of (2.20) in
+the textbook sense, it is one in the sense of `IsLAS` for the globally Lipschitz modification
+`T ∘ clampBox` (a forward solution of the modification that left the ball would, up to its first
+exit, solve the original equation). -/
+theorem isLAS_tMod_of_isLASLoc {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ} (hr : 0 < r)
+    (h : IsLASLoc T θs) : IsLAS (tMod T θs r) θs := by
+  have hly : ∀ ε > 0, ∃ δ > 0, ∀ θ, IsFwdSol (tMod T θs r) θ → ‖θ 0 - θs‖ < δ →
+      ∀ τ : ℝ, 0 ≤ τ → ‖θ τ - θs‖ < ε := by
+    intro ε hε
+    set ε' := min ε r with hε'
+    have hε'0 : 0 < ε' := lt_min hε hr
+    obtain ⟨δ, hδ, hst⟩ := h.1 ε' hε'0
+    refine ⟨δ, hδ, fun θ hθ h0 τ hτ => ?_⟩
+    by_contra hcon
+    push Not at hcon
+    obtain ⟨s, hs0, -, hsε, hbefore⟩ := exists_first_exit hτ
+      (hθ.1.mono Set.Icc_subset_Ici_self) (le_trans (min_le_left _ _) hcon)
+    have h1 : IsSolOn T θ s := isSolOn_of_isFwdSol_tMod hθ
+      (fun t ht => (hbefore t ht).le.trans (min_le_right _ _))
+    exact absurd (hst s θ h1 h0 s ⟨hs0, le_rfl⟩) (not_lt.mpr hsε)
+  refine ⟨hly, ?_⟩
+  obtain ⟨δ₁, hδ₁, hst⟩ := hly r hr
+  obtain ⟨δ₂, hδ₂, hat⟩ := h.2
+  refine ⟨min δ₁ δ₂, lt_min hδ₁ hδ₂, fun θ hθ h0 => ?_⟩
+  have hin : ∀ t, 0 ≤ t → ‖θ t - θs‖ ≤ r :=
+    fun t ht => (hst θ hθ (lt_of_lt_of_le h0 (min_le_left _ _)) t ht).le
+  exact hat θ (isFwdSol_of_isFwdSol_tMod hθ hin) (lt_of_lt_of_le h0 (min_le_right _ _))
+
+/-- Woodford (2003), p. 264: conversely, if `T` is Lipschitz on the closed ball and `θ̄` is a
+locally asymptotically stable rest point (`IsLAS`) of the modified equation `T ∘ clampBox`, it is
+one of the original equation in the textbook sense. -/
+theorem isLASLoc_of_isLAS_tMod {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ} {K : ℝ≥0}
+    (hr : 0 < r) (hL : LipschitzOnWith K T (Metric.closedBall θs r))
+    (h : IsLAS (tMod T θs r) θs) : IsLASLoc T θs := by
+  have hly : ∀ ε > 0, ∃ δ > 0, ∀ (t₁ : ℝ) (θ : ℝ → ι → ℝ), IsSolOn T θ t₁ → ‖θ 0 - θs‖ < δ →
+      ∀ τ ∈ Set.Icc 0 t₁, ‖θ τ - θs‖ < ε := by
+    intro ε hε
+    set ε' := min ε r with hε'
+    have hε'0 : 0 < ε' := lt_min hε hr
+    obtain ⟨δ, hδ, hstab⟩ := h.1 ε' hε'0
+    refine ⟨min δ ε', lt_min hδ hε'0, fun t₁ θ hθ h0 τ hτ => ?_⟩
+    by_contra hcon
+    push Not at hcon
+    obtain ⟨s, hs0, hsτ, hsε, hbefore⟩ := exists_first_exit hτ.1
+      (hθ.1.mono (Set.Icc_subset_Icc_right hτ.2)) (le_trans (min_le_left _ _) hcon)
+    have hin : ∀ t ∈ Set.Ico 0 s, ‖θ t - θs‖ ≤ r :=
+      fun t ht => (hbefore t ht).le.trans (min_le_right _ _)
+    have h1 : IsSolOn (tMod T θs r) θ s :=
+      isSolOn_tMod_of_isSolOn (isSolOn_mono hθ (le_trans hsτ hτ.2)) hin
+    obtain ⟨θ₂, hθ₂, hθ₂0⟩ := fwdComplete_tMod hr.le hL (θ s)
+    have hg := isFwdSol_glue h1 hθ₂ hθ₂0
+    have hg0 : glue θ θ₂ s 0 = θ 0 := by simp [glue, hs0]
+    have hgs : glue θ θ₂ s s = θ s := by simp [glue]
+    have := hstab _ hg (by rw [hg0]; exact lt_of_lt_of_le h0 (min_le_left _ _)) s hs0
+    rw [hgs] at this
+    exact absurd this (not_lt.mpr hsε)
+  refine ⟨hly, ?_⟩
+  obtain ⟨δ₁, hδ₁, hst⟩ := hly r hr
+  obtain ⟨δ₂, hδ₂, hat⟩ := h.2
+  refine ⟨min δ₁ δ₂, lt_min hδ₁ hδ₂, fun θ hθ h0 => ?_⟩
+  have hin : ∀ t, 0 ≤ t → ‖θ t - θs‖ ≤ r := fun t ht =>
+    (hst t θ (isSolOn_of_isFwdSol hθ t) (lt_of_lt_of_le h0 (min_le_left _ _)) t
+      ⟨ht, le_rfl⟩).le
+  exact hat θ (isFwdSol_tMod_of_isFwdSol hθ hin) (lt_of_lt_of_le h0 (min_le_right _ _))
+
+/-- Woodford (2003), p. 264: for `T` Lipschitz on a closed ball around `θ̄`, the textbook notion
+of a locally asymptotically stable rest point of (2.20) coincides with `IsLAS` for the globally
+Lipschitz (hence forward-complete) modification `T ∘ clampBox`. -/
+theorem isLAS_tMod_iff {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ} {K : ℝ≥0} (hr : 0 < r)
+    (hL : LipschitzOnWith K T (Metric.closedBall θs r)) :
+    IsLAS (tMod T θs r) θs ↔ IsLASLoc T θs :=
+  ⟨isLASLoc_of_isLAS_tMod hr hL, isLAS_tMod_of_isLASLoc hr⟩
+
+/-! ### The exact equivalences -/
+
+/-- Woodford (2003), p. 266 and n. 37: **Lyapunov's indirect method for (2.20), both halves**:
+for `T` Lipschitz on a closed ball around a rest point `θ̄` and differentiable at `θ̄`, when no
+eigenvalue of `DT(θ̄) − I` has zero real part, `θ̄` is E-stable iff it is a locally asymptotically
+stable rest point of `θ̇ = T(θ) − θ` (textbook sense). -/
+theorem eStableAt_iff_isLASLoc [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ} {r : ℝ}
+    {K : ℝ≥0} (hr : 0 < r) (hL : LipschitzOnWith K T (Metric.closedBall θs r))
+    (hfix : T θs = θs) (hd : DifferentiableAt ℝ T θs) (hnz : NoZeroRe (jac T θs)) :
+    EStableAt T θs ↔ IsLASLoc T θs := by
+  refine ⟨isLASLoc_of_eStableAt hr hL, fun h => ?_⟩
+  by_contra hE
+  have hJ : ¬EStable (jac T θs) := fun hJ => hE ⟨hfix, hd, hJ⟩
+  obtain ⟨μ, hμ, hre⟩ := exists_pos_eig_of_not_eStable hJ hnz
+  exact not_isLASLoc_of_unstable hr hL hfix hd hμ hre h
+
+/-- Woodford (2003), p. 266 and n. 37: **the equivalence for solutions on `[0, ∞)`**: if the
+equation is forward complete, `T(θ̄) = θ̄`, `T` is differentiable at `θ̄` and no eigenvalue of
+`DT(θ̄) − I` has zero real part, then `θ̄` is E-stable iff it is a locally asymptotically stable
+rest point in the sense of `IsLAS`. -/
+theorem eStableAt_iff_isLAS [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ}
+    (hc : FwdComplete T) (hfix : T θs = θs) (hd : DifferentiableAt ℝ T θs)
+    (hnz : NoZeroRe (jac T θs)) : EStableAt T θs ↔ IsLAS T θs := by
+  refine ⟨isLAS_of_eStableAt, fun h => ?_⟩
+  by_contra hE
+  have hJ : ¬EStable (jac T θs) := fun hJ => hE ⟨hfix, hd, hJ⟩
+  obtain ⟨μ, hμ, hre⟩ := exists_pos_eig_of_not_eStable hJ hnz
+  exact not_isLAS_of_unstable hc hfix hd hμ hre h
+
+/-- Woodford (2003), p. 266 and n. 37: for a **globally Lipschitz** `T` (forward complete by
+Picard–Lindelöf and continuation), differentiable at a rest point `θ̄` with no eigenvalue of
+`DT(θ̄) − I` on the imaginary axis, E-stability ⟺ `IsLAS` ⟺ `IsLASLoc`. -/
+theorem eStableAt_iff_of_lipschitz [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ}
+    {K : ℝ≥0} (hL : LipschitzWith K T) (hfix : T θs = θs) (hd : DifferentiableAt ℝ T θs)
+    (hnz : NoZeroRe (jac T θs)) :
+    (EStableAt T θs ↔ IsLAS T θs) ∧ (EStableAt T θs ↔ IsLASLoc T θs) :=
+  ⟨eStableAt_iff_isLAS (fwdComplete_of_lipschitz hL) hfix hd hnz,
+    eStableAt_iff_isLASLoc one_pos hL.lipschitzOnWith hfix hd hnz⟩
+
+/-- Woodford (2003), p. 266: a map that is `C¹` at `θ̄` is Lipschitz on a closed ball around
+`θ̄` and differentiable at `θ̄`. -/
+theorem lipschitz_of_contDiffAt {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ}
+    (hT : ContDiffAt ℝ 1 T θs) :
+    ∃ r > 0, ∃ K : ℝ≥0, LipschitzOnWith K T (Metric.closedBall θs r) := by
+  obtain ⟨K, t, ht, hK⟩ := hT.exists_lipschitzOnWith
+  obtain ⟨ε, hε, hball⟩ := Metric.mem_nhds_iff.mp ht
+  exact ⟨ε / 2, by positivity, K,
+    hK.mono ((Metric.closedBall_subset_ball (by linarith)).trans hball)⟩
+
+/-- Woodford (2003), p. 266 and n. 37: **Lyapunov's indirect method for `C¹` maps**: if `T` is
+`C¹` at a rest point `θ̄` and no eigenvalue of `DT(θ̄) − I` has zero real part, `θ̄` is E-stable
+iff it is a locally asymptotically stable rest point of (2.20) (textbook sense); and an
+eigenvalue with positive real part makes `θ̄` unstable. -/
+theorem eStableAt_iff_isLASLoc_of_contDiffAt [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ}
+    {θs : ι → ℝ} (hT : ContDiffAt ℝ 1 T θs) (hfix : T θs = θs) (hnz : NoZeroRe (jac T θs)) :
+    EStableAt T θs ↔ IsLASLoc T θs := by
+  obtain ⟨r, hr, K, hL⟩ := lipschitz_of_contDiffAt hT
+  exact eStableAt_iff_isLASLoc hr hL hfix (hT.differentiableAt one_ne_zero) hnz
+
+/-- Woodford (2003), pp. 264–266: **instability for `C¹` maps**: if `T` is `C¹` at a rest point
+`θ̄` and `DT(θ̄) − I` has an eigenvalue with positive real part, `θ̄` is not a locally stable rest
+point of (2.20) (no genericity assumption needed for this half). -/
+theorem not_isLASLoc_of_contDiffAt [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {θs : ι → ℝ}
+    (hT : ContDiffAt ℝ 1 T θs) (hfix : T θs = θs) {μ : ℂ}
+    (hμ : IsEig ((jac T θs - 1).map Complex.ofReal) μ) (hre : 0 < μ.re) : ¬IsLASLoc T θs := by
+  obtain ⟨r, hr, K, hL⟩ := lipschitz_of_contDiffAt hT
+  exact not_isLASLoc_of_unstable hr hL hfix (hT.differentiableAt one_ne_zero) hμ hre
+
+end Woodford.NeoWicksellianFramework.TidyR6Instability
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Counterexamples for the E-stability equation (2.20)
+
+Woodford (2003), *Interest and Prices*, Chapter 4, §2.3, p. 266 and n. 37: the local stability
+of the rest point `θ̄` of `θ̇ = T(θ) − θ` (2.20) "depends on the eigenvalues of the Jacobian
+matrix `DT(θ̄) − I`", ignoring the non-generic case of eigenvalues with zero real part. The
+module TidyR6Instability proves the exact equivalence in the generic case. This module shows that
+its hypotheses cannot be dropped. Both examples work in every dimension (`ι` nonempty).
+
+**Zero real part: the Jacobian does not decide** (`zero_re_undecided`,
+`zero_re_undecided_complete`). The polynomial maps `T±(θ)ᵢ = θᵢ ± θᵢ³` (`cubT`), i.e.
+`θ̇ᵢ = ±θᵢ³`, are `C¹` (indeed polynomial), have the rest point `0` and the same Jacobian
+`DT±(0) = I`. So `DT − I = 0` has the single eigenvalue `0`, neither map is E-stable, and both
+lie in the case excluded by n. 37.
+* For `T₋` the rest point is locally asymptotically stable: `isLASLoc_cubT_neg`, by
+  `d(θᵢ²)/dτ = −2θᵢ⁴` and the barrier `θᵢ² ≤ 1/(1 + τ)`.
+* For `T₊` it is unstable: `not_isLASLoc_cubT_pos`, by the barrier `θᵢ ≥ a/2 + a³τ/16`.
+* The same holds for `IsLAS` (solutions on `[0, ∞)`) for the globally Lipschitz,
+  forward-complete modifications `T± ∘ clampBox`, which have the same Jacobian:
+  `isLAS_tMod_cubT_neg`, `not_isLAS_tMod_cubT_pos`.
+
+**Without forward completeness, `IsLAS` cannot detect instability** (`blowup_isLAS_unstable`).
+For `T(θ)ᵢ = 2θᵢ + θᵢ|θᵢ|` (`blowT`), i.e. `θ̇ᵢ = θᵢ + θᵢ|θᵢ|`:
+* `T` is Lipschitz near `0` and differentiable at `0`, with `DT(0) − I = I`. That is hyperbolic,
+  with eigenvalue `1 > 0`, so the rest point is unstable in the textbook sense
+  (`TidyR6Instability.not_isLASLoc_of_unstable`).
+* Yet every forward solution on `[0, ∞)` is identically `0`, because any other solution blows up
+  in finite time (`no_pos_blowup_sol`, `blowT_sol_eq_zero`). So `IsLAS T 0` holds vacuously
+  (`isLAS_blowT`), and the equation is not forward complete.
+* The forward-completeness hypothesis of `TidyR6Instability.eStableAt_iff_isLAS` is therefore
+  necessary.
+-/
+
+namespace Woodford.NeoWicksellianFramework.TidyR6InstabilityCex
+
+open Filter Topology TidyR5Lyapunov TidyR6ODEExistence TidyR6Instability
+open Determinacy2Learning (EStable EStableAt)
+open KroneckerSpectrum (IsEig)
+open scoped NNReal
+
+variable {ι : Type*} [Fintype ι]
+
+/-! ### General lemmas -/
+
+/-- Woodford (2003), p. 266: a map with `N(0) = 0` and `‖N(x)‖ ≤ C‖x‖²` for `‖x‖ ≤ 1` has
+derivative `0` at `0`. -/
+theorem hasFDerivAt_of_quad {N : (ι → ℝ) → ι → ℝ} {C : ℝ} (h0 : N 0 = 0)
+    (hb : ∀ x : ι → ℝ, ‖x‖ ≤ 1 → ‖N x‖ ≤ C * ‖x‖ ^ 2) :
+    HasFDerivAt N (0 : (ι → ℝ) →L[ℝ] (ι → ℝ)) 0 := by
+  rw [hasFDerivAt_iff_isLittleO_nhds_zero]
+  simp only [zero_add, h0, sub_zero, zero_apply]
+  rw [Asymptotics.isLittleO_iff]
+  intro c hc
+  have hC : 0 < |C| + 1 := by positivity
+  filter_upwards [Metric.ball_mem_nhds (0 : ι → ℝ) (lt_min one_pos (div_pos hc hC))] with x hx
+  rw [Metric.mem_ball, dist_zero_right] at hx
+  have h1 : ‖x‖ < 1 := lt_of_lt_of_le hx (min_le_left _ _)
+  have h2 : ‖x‖ < c / (|C| + 1) := lt_of_lt_of_le hx (min_le_right _ _)
+  have h3 := hb x h1.le
+  have h4 : ‖x‖ * (|C| + 1) ≤ c := by
+    rw [lt_div_iff₀ hC] at h2
+    exact h2.le
+  have hn := norm_nonneg x
+  have h5 : C * ‖x‖ ^ 2 ≤ (|C| + 1) * ‖x‖ * ‖x‖ := by
+    nlinarith [le_abs_self C, abs_nonneg C]
+  calc ‖N x‖ ≤ (|C| + 1) * ‖x‖ * ‖x‖ := h3.trans h5
+    _ = (‖x‖ * (|C| + 1)) * ‖x‖ := by ring
+    _ ≤ c * ‖x‖ := mul_le_mul_of_nonneg_right h4 hn
+
+/-- Woodford (2003), p. 266: if `DT(0) = a I`, the Jacobian matrix is `a I`. -/
+theorem jac_of_hasFDerivAt [DecidableEq ι] {T : (ι → ℝ) → ι → ℝ} {a : ℝ}
+    (hT : HasFDerivAt T (a • ContinuousLinearMap.id ℝ (ι → ℝ)) 0) :
+    jac T 0 = a • (1 : Matrix ι ι ℝ) := by
+  rw [jac, hT.fderiv]
+  have : ((a • ContinuousLinearMap.id ℝ (ι → ℝ) : (ι → ℝ) →L[ℝ] (ι → ℝ)) :
+      (ι → ℝ) →ₗ[ℝ] (ι → ℝ)) = a • LinearMap.id := by
+    ext x i
+    simp
+  rw [this, map_smul, LinearMap.toMatrix'_id]
+
+/-- Woodford (2003), p. 266: the eigenvalues of `aI − I` are exactly `a − 1` (`ι` nonempty). -/
+theorem isEig_smul_one_sub_one_iff [DecidableEq ι] [Nonempty ι] (a : ℝ) (ν : ℂ) :
+    IsEig ((a • (1 : Matrix ι ι ℝ) - 1).map Complex.ofReal) ν ↔ ν = a - 1 := by
+  have hm : (a • (1 : Matrix ι ι ℝ) - 1).map Complex.ofReal = ((a : ℂ) - 1) • 1 := by
+    ext i j
+    by_cases hij : i = j <;> simp [hij]
+  rw [hm]
+  constructor
+  · rintro ⟨v, hv0, hv⟩
+    rw [Matrix.smul_mulVec, Matrix.one_mulVec] at hv
+    obtain ⟨i, hi⟩ := Function.ne_iff.mp hv0
+    have := congrFun hv i
+    simp only [Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this hi
+    exact (mul_right_cancel₀ hi this).symm
+  · rintro rfl
+    refine ⟨fun _ => 1, fun h => ?_, by rw [Matrix.smul_mulVec, Matrix.one_mulVec]⟩
+    have := congrFun h (Classical.arbitrary ι)
+    simp at this
+
+/-! ### Without forward completeness: a blow-up example -/
+
+/-- Woodford (2003), (2.20): the nonlinear part `θᵢ|θᵢ|` of the blow-up example. -/
+def blowN (x : ι → ℝ) : ι → ℝ := fun i => x i * |x i|
+
+/-- Woodford (2003), (2.20): the blow-up example `T(θ) = 2θ + θ|θ|` (coordinatewise), so that
+(2.20) reads `θ̇ᵢ = θᵢ + θᵢ|θᵢ|`. -/
+def blowT (x : ι → ℝ) : ι → ℝ := (2 : ℝ) • x + blowN x
+
+omit [Fintype ι] in
+/-- Woodford (2003), (2.20): `0` is a rest point of the blow-up example. -/
+theorem blowT_zero : blowT (0 : ι → ℝ) = 0 := by
+  funext i
+  simp [blowT, blowN]
+
+/-- Woodford (2003), (2.20): `‖θ|θ|‖ ≤ ‖θ‖²` (sup norm). -/
+theorem norm_blowN_le (x : ι → ℝ) : ‖blowN x‖ ≤ ‖x‖ ^ 2 := by
+  refine (pi_norm_le_iff_of_nonneg (sq_nonneg _)).2 fun i => ?_
+  have hi : |x i| ≤ ‖x‖ := by
+    have := norm_le_pi_norm x i
+    rwa [Real.norm_eq_abs] at this
+  simp only [blowN, Real.norm_eq_abs, abs_mul, abs_abs]
+  rw [← sq]
+  exact pow_le_pow_left₀ (abs_nonneg _) hi 2
+
+set_option linter.unusedFintypeInType false in
+/-- Woodford (2003), p. 266: `DT(0) = 2I` for the blow-up example. -/
+theorem hasFDerivAt_blowT :
+    HasFDerivAt (blowT (ι := ι)) ((2 : ℝ) • ContinuousLinearMap.id ℝ (ι → ℝ)) 0 := by
+  have hN : HasFDerivAt (blowN (ι := ι)) (0 : (ι → ℝ) →L[ℝ] (ι → ℝ)) 0 :=
+    hasFDerivAt_of_quad (C := 1) (by funext i; simp [blowN])
+      fun x _ => by rw [one_mul]; exact norm_blowN_le x
+  have h := ((hasFDerivAt_id (0 : ι → ℝ)).const_smul (2 : ℝ)).add hN
+  rw [add_zero] at h
+  exact h
+
+/-- Woodford (2003), (2.20): `|a|a| − b|b|| ≤ 2|a − b|` for `|a|, |b| ≤ 1`. -/
+theorem abs_mul_abs_sub_le {a b : ℝ} (ha : |a| ≤ 1) (hb : |b| ≤ 1) :
+    |a * abs a - b * abs b| ≤ 2 * |a - b| := by
+  rw [abs_le] at ha hb
+  rcases le_total 0 a with h1 | h1 <;> rcases le_total 0 b with h2 | h2
+  · rw [abs_of_nonneg h1, abs_of_nonneg h2]
+    rw [show a * a - b * b = (a - b) * (a + b) by ring, abs_mul]
+    have : |a + b| ≤ 2 := by rw [abs_le]; constructor <;> linarith
+    nlinarith [abs_nonneg (a - b)]
+  · rw [abs_of_nonneg h1, abs_of_nonpos h2, abs_of_nonneg (by linarith : 0 ≤ a - b),
+      abs_of_nonneg (by nlinarith : 0 ≤ a * a - b * -b)]
+    nlinarith
+  · rw [abs_of_nonpos h1, abs_of_nonneg h2, abs_of_nonpos (by linarith : a - b ≤ 0),
+      abs_of_nonpos (by nlinarith : a * -a - b * b ≤ 0)]
+    nlinarith
+  · rw [abs_of_nonpos h1, abs_of_nonpos h2]
+    rw [show a * -a - b * -b = (b - a) * (a + b) by ring, abs_mul, abs_sub_comm b a]
+    have : |a + b| ≤ 2 := by rw [abs_le]; constructor <;> linarith
+    nlinarith [abs_nonneg (a - b)]
+
+/-- Woodford (2003), (2.20): the blow-up example is `4`-Lipschitz on the closed unit ball. -/
+theorem lipschitzOnWith_blowT :
+    LipschitzOnWith 4 (blowT (ι := ι)) (Metric.closedBall 0 1) := by
+  refine LipschitzOnWith.of_dist_le_mul fun x hx y hy => ?_
+  rw [Metric.mem_closedBall, dist_zero_right] at hx hy
+  refine (dist_pi_le_iff (by positivity)).2 fun i => ?_
+  have hxi : |x i| ≤ 1 := by
+    have := norm_le_pi_norm x i
+    rw [Real.norm_eq_abs] at this
+    linarith
+  have hyi : |y i| ≤ 1 := by
+    have := norm_le_pi_norm y i
+    rw [Real.norm_eq_abs] at this
+    linarith
+  have hd : |x i - y i| ≤ dist x y := by
+    rw [← Real.dist_eq]
+    exact dist_le_pi_dist x y i
+  simp only [blowT, blowN, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Real.dist_eq]
+  have h1 := abs_mul_abs_sub_le hxi hyi
+  have h2 : |2 * x i + x i * abs (x i) - (2 * y i + y i * abs (y i))| ≤
+      2 * |x i - y i| + |x i * abs (x i) - y i * abs (y i)| := by
+    have := abs_add_le (2 * (x i - y i)) (x i * abs (x i) - y i * abs (y i))
+    rw [abs_mul, abs_two] at this
+    calc _ = |2 * (x i - y i) + (x i * |x i| - y i * |y i|)| := by ring_nf
+      _ ≤ _ := this
+  push_cast
+  linarith
+
+/-- Woodford (2003), (2.20): **finite-time blow-up**: no continuous `y` on `[0, ∞)` with right
+derivatives `y + y|y|` starts at a positive value (it would satisfy `y(τ) ≥ c/(1 − cτ)`,
+`c = y(0)`, and explode before `τ = 1/c`). -/
+theorem no_pos_blowup_sol {y : ℝ → ℝ} (hc : ContinuousOn y (Set.Ici 0))
+    (hd : ∀ τ, 0 ≤ τ → HasDerivWithinAt y (y τ + y τ * |y τ|) (Set.Ici τ) τ) : y 0 ≤ 0 := by
+  by_contra hpos
+  push Not at hpos
+  set c := y 0 with hcdef
+  obtain ⟨M, hM⟩ := (isCompact_Icc (a := (0 : ℝ)) (b := 1 / c)).exists_bound_of_continuousOn
+    (hc.mono Set.Icc_subset_Ici_self)
+  have hcM : c ≤ M := by
+    have := hM 0 ⟨le_rfl, by positivity⟩
+    rw [Real.norm_eq_abs] at this
+    exact (le_abs_self c).trans this
+  have hM1 : 0 < M + 1 := by linarith
+  set s₁ := 1 / c - 1 / (M + 1) with hs₁
+  have hlt : 1 / (M + 1) < 1 / c := one_div_lt_one_div_of_lt hpos (by linarith)
+  have hs₁0 : 0 ≤ s₁ := by rw [hs₁]; linarith
+  have hs₁c : s₁ < 1 / c := by rw [hs₁]; linarith [one_div_pos.mpr hM1]
+  have hden : ∀ t, t ≤ s₁ → 0 < 1 - c * t := by
+    intro t ht
+    have : c * t < 1 := by
+      calc c * t ≤ c * s₁ := mul_le_mul_of_nonneg_left ht hpos.le
+        _ < c * (1 / c) := mul_lt_mul_of_pos_left hs₁c hpos
+        _ = 1 := mul_one_div_cancel hpos.ne'
+    linarith
+  -- the lower barrier `y(t) ≥ c / (1 − c t)` on `[0, s₁]`
+  have hbar : ∀ t ∈ Set.Icc 0 s₁, -y t ≤ -(c / (1 - c * t)) := by
+    have hf : ContinuousOn (fun t => -y t) (Set.Icc 0 s₁) :=
+      (hc.mono Set.Icc_subset_Ici_self).neg
+    have hf' : ∀ t ∈ Set.Ico 0 s₁, HasDerivWithinAt (fun t => -y t)
+        (-(y t + y t * |y t|)) (Set.Ici t) t := fun t ht => (hd t ht.1).neg
+    have hBd : ∀ t, t ≤ s₁ → HasDerivAt (fun t => -(c * (1 - c * t)⁻¹))
+        (-(c / (1 - c * t)) ^ 2) t := by
+      intro t ht
+      have hne := (hden t ht).ne'
+      have h1 := ((((hasDerivAt_id' t).const_mul c).const_sub 1).inv hne).const_mul c |>.neg
+      refine h1.congr_deriv ?_
+      field_simp
+    have hB : ContinuousOn (fun t => -(c * (1 - c * t)⁻¹)) (Set.Icc 0 s₁) :=
+      fun t ht => (hBd t ht.2).continuousAt.continuousWithinAt
+    have hB' : ∀ t ∈ Set.Ico 0 s₁, HasDerivWithinAt (fun t => -(c * (1 - c * t)⁻¹))
+        (-(c / (1 - c * t)) ^ 2) (Set.Ici t) t :=
+      fun t ht => (hBd t ht.2.le).hasDerivWithinAt
+    intro t ht
+    rw [div_eq_mul_inv]
+    refine image_le_of_deriv_right_lt_deriv_boundary' hf hf' ?_ hB hB' ?_ ht
+    · simp [hcdef]
+    · intro t ht hcon
+      have hyt : y t = c / (1 - c * t) := by rw [div_eq_mul_inv]; linarith
+      have hbpos : 0 < c / (1 - c * t) := div_pos hpos (hden t ht.2.le)
+      rw [hyt, abs_of_pos hbpos]
+      nlinarith
+  have h1 := hbar s₁ ⟨hs₁0, le_rfl⟩
+  have h2 : c / (1 - c * s₁) = M + 1 := by
+    have hc0 : c ≠ 0 := hpos.ne'
+    have hM0 : M + 1 ≠ 0 := hM1.ne'
+    have e : 1 - c * s₁ = c / (M + 1) := by
+      rw [hs₁, mul_sub, mul_one_div_cancel hc0]
+      ring
+    rw [e, div_div_eq_mul_div, mul_div_cancel_left₀ _ hc0]
+  have h3 := hM s₁ ⟨hs₁0, hs₁c.le⟩
+  rw [Real.norm_eq_abs] at h3
+  have := le_abs_self (y s₁)
+  linarith
+
+set_option linter.unusedFintypeInType false in
+/-- Woodford (2003), (2.20): in the blow-up example every forward solution on `[0, ∞)` is
+identically `0` (any non-zero coordinate, shifted in time, would blow up in finite time). -/
+theorem blowT_sol_eq_zero {θ : ℝ → ι → ℝ} (h : IsFwdSol blowT θ) :
+    ∀ t, 0 ≤ t → θ t = 0 := by
+  intro t ht
+  by_contra hne
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp hne
+  have hs := isFwdSol_shift h ht
+  have hci : ContinuousOn (fun s => θ (t + s) i) (Set.Ici 0) :=
+    (continuous_apply i).comp_continuousOn hs.1
+  have hdi : ∀ τ, 0 ≤ τ → HasDerivWithinAt (fun s => θ (t + s) i)
+      (θ (t + τ) i + θ (t + τ) i * |θ (t + τ) i|) (Set.Ici τ) τ := by
+    intro τ hτ
+    have := hasDerivWithinAt_pi.1 (hs.2 τ hτ) i
+    convert this using 1
+    simp only [blowT, blowN, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  rcases lt_or_gt_of_ne hi with hneg | hpos
+  · have hc' : ContinuousOn (fun s => -θ (t + s) i) (Set.Ici 0) := hci.neg
+    have hd' : ∀ τ, 0 ≤ τ → HasDerivWithinAt (fun s => -θ (t + s) i)
+        (-θ (t + τ) i + -θ (t + τ) i * |-θ (t + τ) i|) (Set.Ici τ) τ := by
+      intro τ hτ
+      convert (hdi τ hτ).neg using 1
+      rw [abs_neg]
+      ring
+    have := no_pos_blowup_sol hc' hd'
+    simp only [add_zero, Pi.zero_apply] at this hneg
+    linarith
+  · have := no_pos_blowup_sol hci hdi
+    simp only [add_zero, Pi.zero_apply] at this hpos
+    linarith
+
+/-- Woodford (2003), p. 264: in the blow-up example `0` is (vacuously) a locally asymptotically
+stable rest point in the sense of `IsLAS`: the only forward solution on `[0, ∞)` is `0`. -/
+theorem isLAS_blowT : IsLAS (blowT (ι := ι)) 0 := by
+  refine ⟨fun ε hε => ⟨1, one_pos, fun θ hθ _ τ hτ => ?_⟩, ⟨1, one_pos, fun θ hθ _ => ?_⟩⟩
+  · rw [blowT_sol_eq_zero hθ τ hτ, sub_zero, norm_zero]
+    exact hε
+  · refine tendsto_const_nhds.congr' ?_
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with τ hτ
+    exact (blowT_sol_eq_zero hθ τ hτ).symm
+
+set_option linter.unusedFintypeInType false in
+/-- Woodford (2003), (2.20): the blow-up example is not forward complete. -/
+theorem not_fwdComplete_blowT [Nonempty ι] : ¬FwdComplete (blowT (ι := ι)) := by
+  intro hc
+  obtain ⟨θ, hθ, h0⟩ := hc (fun _ => 1)
+  have := congrFun (h0.symm.trans (blowT_sol_eq_zero hθ 0 le_rfl)) (Classical.arbitrary ι)
+  simp at this
+
+/-- Woodford (2003), p. 266 and n. 37: **without forward completeness `IsLAS` cannot detect
+instability**: the blow-up example has the rest point `0`, is Lipschitz near `0` and differentiable
+at `0`, and `DT(0) − I = I` is hyperbolic with the eigenvalue `1 > 0`. So `0` is not E-stable and
+not a (textbook) locally stable rest point; yet `IsLAS` holds, because no non-constant forward
+solution on `[0, ∞)` exists. -/
+theorem blowup_isLAS_unstable [DecidableEq ι] [Nonempty ι] :
+    blowT (0 : ι → ℝ) = 0 ∧ DifferentiableAt ℝ (blowT (ι := ι)) 0 ∧
+      LipschitzOnWith 4 (blowT (ι := ι)) (Metric.closedBall 0 1) ∧
+      NoZeroRe (jac (blowT (ι := ι)) 0) ∧
+      IsEig ((jac (blowT (ι := ι)) 0 - 1).map Complex.ofReal) 1 ∧
+      ¬EStableAt (blowT (ι := ι)) 0 ∧ IsLAS (blowT (ι := ι)) 0 ∧
+      ¬IsLASLoc (blowT (ι := ι)) 0 ∧ ¬FwdComplete (blowT (ι := ι)) := by
+  have hJ := jac_of_hasFDerivAt (hasFDerivAt_blowT (ι := ι))
+  have heig : ∀ ν, IsEig ((jac (blowT (ι := ι)) 0 - 1).map Complex.ofReal) ν ↔ ν = 1 := by
+    intro ν
+    rw [hJ, isEig_smul_one_sub_one_iff]
+    norm_num
+  have h1 : IsEig ((jac (blowT (ι := ι)) 0 - 1).map Complex.ofReal) 1 := (heig 1).2 rfl
+  refine ⟨blowT_zero, hasFDerivAt_blowT.differentiableAt, lipschitzOnWith_blowT,
+    fun ν hν => by rw [(heig ν).1 hν]; norm_num, h1, fun hE => ?_, isLAS_blowT,
+    not_isLASLoc_of_unstable one_pos lipschitzOnWith_blowT blowT_zero
+      hasFDerivAt_blowT.differentiableAt h1 (by norm_num), not_fwdComplete_blowT⟩
+  have := hE.2.2 1 h1
+  norm_num at this
+
+/-! ### Zero real part: `θ̇ = ±θ³` -/
+
+/-- Woodford (2003), n. 37 p. 266: the maps `T±(θ)ᵢ = θᵢ + s θᵢ³` (`s = ±1`), so that (2.20)
+reads `θ̇ᵢ = s θᵢ³`. -/
+def cubT (s : ℝ) (x : ι → ℝ) : ι → ℝ := fun i => x i + s * x i ^ 3
+
+omit [Fintype ι] in
+/-- Woodford (2003), n. 37: `0` is a rest point of `T±`. -/
+theorem cubT_zero (s : ℝ) : cubT s (0 : ι → ℝ) = 0 := by
+  funext i
+  simp [cubT]
+
+/-- Woodford (2003), n. 37: `T±` is `C¹` (it is polynomial). -/
+theorem contDiff_cubT (s : ℝ) : ContDiff ℝ 1 (cubT (ι := ι) s) :=
+  contDiff_pi.2 fun i =>
+    (contDiff_apply ℝ ℝ i).add (contDiff_const.mul ((contDiff_apply ℝ ℝ i).pow 3))
+
+set_option linter.unusedFintypeInType false in
+/-- Woodford (2003), n. 37: `DT±(0) = I`. -/
+theorem hasFDerivAt_cubT (s : ℝ) :
+    HasFDerivAt (cubT (ι := ι) s) ((1 : ℝ) • ContinuousLinearMap.id ℝ (ι → ℝ)) 0 := by
+  have hN : HasFDerivAt (fun x : ι → ℝ => fun i => s * x i ^ 3)
+      (0 : (ι → ℝ) →L[ℝ] (ι → ℝ)) 0 := by
+    refine hasFDerivAt_of_quad (C := |s|) (by funext i; simp) fun x hx => ?_
+    refine (pi_norm_le_iff_of_nonneg (by positivity)).2 fun i => ?_
+    have hi : |x i| ≤ ‖x‖ := by
+      have := norm_le_pi_norm x i
+      rwa [Real.norm_eq_abs] at this
+    rw [Real.norm_eq_abs, abs_mul, abs_pow]
+    have h3 : |x i| ^ 3 ≤ ‖x‖ ^ 2 := by
+      calc |x i| ^ 3 ≤ ‖x‖ ^ 3 := pow_le_pow_left₀ (abs_nonneg _) hi 3
+        _ = ‖x‖ ^ 2 * ‖x‖ := by ring
+        _ ≤ ‖x‖ ^ 2 * 1 := mul_le_mul_of_nonneg_left hx (sq_nonneg _)
+        _ = ‖x‖ ^ 2 := mul_one _
+    exact mul_le_mul_of_nonneg_left h3 (abs_nonneg s)
+  have h := (hasFDerivAt_id (0 : ι → ℝ)).add hN
+  convert h using 1
+  · funext x
+    funext i
+    simp [cubT]
+  · simp
+
+/-- Woodford (2003), (2.20): `|a³ − b³| ≤ 3|a − b|` for `|a|, |b| ≤ 1`. -/
+theorem abs_cube_sub_le {a b : ℝ} (ha : |a| ≤ 1) (hb : |b| ≤ 1) :
+    |a ^ 3 - b ^ 3| ≤ 3 * |a - b| := by
+  rw [show a ^ 3 - b ^ 3 = (a - b) * (a ^ 2 + a * b + b ^ 2) by ring, abs_mul]
+  have h : |a ^ 2 + a * b + b ^ 2| ≤ 3 := by
+    rw [abs_le] at ha hb ⊢
+    constructor <;> nlinarith
+  nlinarith [abs_nonneg (a - b)]
+
+/-- Woodford (2003), (2.20): for `|s| ≤ 1`, `T±` is `4`-Lipschitz on the closed unit ball. -/
+theorem lipschitzOnWith_cubT {s : ℝ} (hs : |s| ≤ 1) :
+    LipschitzOnWith 4 (cubT (ι := ι) s) (Metric.closedBall 0 1) := by
+  refine LipschitzOnWith.of_dist_le_mul fun x hx y hy => ?_
+  rw [Metric.mem_closedBall, dist_zero_right] at hx hy
+  refine (dist_pi_le_iff (by positivity)).2 fun i => ?_
+  have hxi : |x i| ≤ 1 := by
+    have := norm_le_pi_norm x i
+    rw [Real.norm_eq_abs] at this
+    linarith
+  have hyi : |y i| ≤ 1 := by
+    have := norm_le_pi_norm y i
+    rw [Real.norm_eq_abs] at this
+    linarith
+  have hd : |x i - y i| ≤ dist x y := by
+    rw [← Real.dist_eq]
+    exact dist_le_pi_dist x y i
+  simp only [cubT, Real.dist_eq]
+  have h1 := abs_cube_sub_le hxi hyi
+  have h2 : |x i + s * x i ^ 3 - (y i + s * y i ^ 3)| ≤
+      |x i - y i| + |s| * |x i ^ 3 - y i ^ 3| := by
+    have := abs_add_le (x i - y i) (s * (x i ^ 3 - y i ^ 3))
+    rw [abs_mul] at this
+    calc _ = |x i - y i + s * (x i ^ 3 - y i ^ 3)| := by ring_nf
+      _ ≤ _ := this
+  have h3 : |s| * |x i ^ 3 - y i ^ 3| ≤ 3 * |x i - y i| := by
+    calc |s| * |x i ^ 3 - y i ^ 3| ≤ 1 * |x i ^ 3 - y i ^ 3| :=
+          mul_le_mul_of_nonneg_right hs (abs_nonneg _)
+      _ ≤ 3 * |x i - y i| := by rw [one_mul]; exact h1
+  push_cast
+  linarith
+
+omit [Fintype ι] in
+/-- Woodford (2003), n. 37: along a solution of `θ̇ᵢ = −θᵢ³` on `[0, t₁]`, each `θᵢ²` is
+non-increasing. -/
+theorem sq_le_of_isSolOn_cubT_neg {θ : ℝ → ι → ℝ} {t₁ : ℝ} (h : IsSolOn (cubT (-1)) θ t₁)
+    (i : ι) : ∀ t ∈ Set.Icc 0 t₁, θ t i ^ 2 ≤ θ 0 i ^ 2 := by
+  have hc : ContinuousOn (fun t => θ t i ^ 2) (Set.Icc 0 t₁) :=
+    ((continuous_apply i).comp_continuousOn h.1).pow 2
+  have hd : ∀ t ∈ Set.Ico 0 t₁, HasDerivWithinAt (fun t => θ t i ^ 2)
+      (-(2 * θ t i ^ 4)) (Set.Ici t) t := by
+    intro t ht
+    have h1 := (hasDerivWithinAt_pi.1 (h.2 t ht) i).pow 2
+    convert h1 using 1
+    simp only [cubT, Pi.sub_apply]
+    ring
+  refine image_le_of_deriv_right_le_deriv_boundary hc hd le_rfl continuousOn_const
+    (fun t _ => hasDerivWithinAt_const t _ _) fun t _ => ?_
+  nlinarith [pow_two_nonneg (θ t i ^ 2)]
+
+/-- Woodford (2003), n. 37: along a solution of `θ̇ᵢ = −θᵢ³` on `[0, t₁]`, `‖θ(t)‖ ≤ ‖θ(0)‖`. -/
+theorem norm_le_of_isSolOn_cubT_neg {θ : ℝ → ι → ℝ} {t₁ : ℝ} (h : IsSolOn (cubT (-1)) θ t₁) :
+    ∀ t ∈ Set.Icc 0 t₁, ‖θ t‖ ≤ ‖θ 0‖ := by
+  intro t ht
+  refine (pi_norm_le_iff_of_nonneg (norm_nonneg _)).2 fun i => ?_
+  have h1 := sq_le_of_isSolOn_cubT_neg h i t ht
+  have h2 : |θ t i| ≤ |θ 0 i| := sq_le_sq.mp h1
+  have h3 := norm_le_pi_norm (θ 0) i
+  rw [Real.norm_eq_abs] at h3 ⊢
+  linarith
+
+/-- Woodford (2003), n. 37: **`θ̇ = −θ³` is locally asymptotically stable** at `0` (textbook
+sense), although `DT(0) − I = 0` is not E-stable. -/
+theorem isLASLoc_cubT_neg : IsLASLoc (cubT (ι := ι) (-1)) 0 := by
+  refine ⟨fun ε hε => ⟨ε, hε, fun t₁ θ hθ h0 τ hτ => ?_⟩, ⟨1, one_pos, fun θ hθ h0 => ?_⟩⟩
+  · rw [sub_zero] at h0 ⊢
+    exact lt_of_le_of_lt (norm_le_of_isSolOn_cubT_neg hθ τ hτ) h0
+  · rw [sub_zero] at h0
+    rw [tendsto_pi_nhds]
+    intro i
+    have hbar : ∀ t, 0 ≤ t → θ t i ^ 2 ≤ (1 + t)⁻¹ := by
+      intro t ht
+      have hsol := isSolOn_of_isFwdSol hθ t
+      have hc : ContinuousOn (fun t => θ t i ^ 2) (Set.Icc 0 t) :=
+        ((continuous_apply i).comp_continuousOn hsol.1).pow 2
+      have hd : ∀ u ∈ Set.Ico 0 t, HasDerivWithinAt (fun t => θ t i ^ 2)
+          (-(2 * (θ u i ^ 2) ^ 2)) (Set.Ici u) u := by
+        intro u hu
+        have h1 := (hasDerivWithinAt_pi.1 (hsol.2 u hu) i).pow 2
+        convert h1 using 1
+        simp only [cubT, Pi.sub_apply]
+        ring
+      have hBd : ∀ u, 0 ≤ u → HasDerivAt (fun u : ℝ => (1 + u)⁻¹) (-((1 + u)⁻¹) ^ 2) u := by
+        intro u hu
+        have hne : (1 + u) ≠ 0 := by positivity
+        have h1 := ((hasDerivAt_id' u).const_add 1).inv hne
+        refine h1.congr_deriv ?_
+        field_simp
+      have hB : ContinuousOn (fun u : ℝ => (1 + u)⁻¹) (Set.Icc 0 t) :=
+        fun u hu => (hBd u hu.1).continuousAt.continuousWithinAt
+      refine image_le_of_deriv_right_lt_deriv_boundary' hc hd ?_ hB
+        (fun u hu => (hBd u hu.1).hasDerivWithinAt) ?_ ⟨ht, le_rfl⟩
+      · have h1 : |θ 0 i| < 1 := by
+          have := norm_le_pi_norm (θ 0) i
+          rw [Real.norm_eq_abs] at this
+          linarith
+        have h2 : θ 0 i ^ 2 < 1 := by
+          have := sq_lt_sq' (by linarith [abs_nonneg (θ 0 i), neg_abs_le (θ 0 i)])
+            (lt_of_le_of_lt (le_abs_self _) h1)
+          simpa using this
+        simp only [add_zero, inv_one]
+        exact h2.le
+      · intro u hu hcon
+        have hpos : 0 < (1 + u)⁻¹ := by have := hu.1; positivity
+        rw [hcon]
+        nlinarith [sq_pos_of_pos hpos]
+    have hlim : Tendsto (fun t : ℝ => Real.sqrt (1 + t)⁻¹) atTop (𝓝 0) := by
+      have h1 : Tendsto (fun t : ℝ => (1 + t)⁻¹) atTop (𝓝 0) :=
+        tendsto_inv_atTop_zero.comp (tendsto_atTop_add_const_left _ 1 tendsto_id)
+      simpa using h1.sqrt
+    refine squeeze_zero_norm' ?_ hlim
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with t ht
+    rw [Real.norm_eq_abs]
+    exact Real.abs_le_sqrt (hbar t ht)
+
+/-- Woodford (2003), n. 37: along a solution of `θ̇ᵢ = θᵢ³` starting at the constant `a > 0`,
+the state cannot stay within distance `1/2` of `0` forever (`θᵢ ≥ a/2 + a³τ/16`). -/
+theorem escape_cubT_pos [Nonempty ι] {θ : ℝ → ι → ℝ} (h : IsFwdSol (cubT 1) θ) {a : ℝ}
+    (ha : 0 < a) (h0 : θ 0 = fun _ => a) : ∃ τ, 0 ≤ τ ∧ 1 / 2 ≤ ‖θ τ‖ := by
+  by_contra hcon
+  push Not at hcon
+  set i := Classical.arbitrary ι
+  have hbar : ∀ t, 0 ≤ t → -θ t i ≤ -(a / 2 + a ^ 3 / 16 * t) := by
+    intro t ht
+    have hc : ContinuousOn (fun t => -θ t i) (Set.Icc 0 t) :=
+      ((continuous_apply i).comp_continuousOn (h.1.mono Set.Icc_subset_Ici_self)).neg
+    have hd : ∀ u ∈ Set.Ico 0 t, HasDerivWithinAt (fun t => -θ t i) (-(θ u i ^ 3))
+        (Set.Ici u) u := by
+      intro u hu
+      have h1 := (hasDerivWithinAt_pi.1 (h.2 u hu.1) i).neg
+      convert h1 using 1
+      simp only [cubT, Pi.sub_apply]
+      ring
+    have hB : ∀ u, HasDerivAt (fun u => -(a / 2 + a ^ 3 / 16 * u)) (-(a ^ 3 / 16 * 1)) u :=
+      fun u => (((hasDerivAt_id u).const_mul (a ^ 3 / 16)).const_add (a / 2)).neg
+    refine image_le_of_deriv_right_lt_deriv_boundary hc hd ?_ hB ?_ ⟨ht, le_rfl⟩
+    · rw [h0]
+      simp only [mul_zero, add_zero, neg_le_neg_iff]
+      linarith
+    · intro u hu hcontact
+      have hyu : θ u i = a / 2 + a ^ 3 / 16 * u := by linarith
+      have hge : a / 2 ≤ θ u i := by
+        rw [hyu]
+        have := hu.1
+        nlinarith [pow_pos ha 3]
+      have h3 : (a / 2) ^ 3 ≤ θ u i ^ 3 := pow_le_pow_left₀ (by positivity) hge 3
+      nlinarith [pow_pos ha 3]
+  set t := 16 / a ^ 3 with ht
+  have ht0 : 0 ≤ t := by positivity
+  have h1 := hbar t ht0
+  have h2 : a ^ 3 / 16 * t = 1 := by rw [ht]; field_simp
+  have h3 := hcon t ht0
+  have h4 := norm_le_pi_norm (θ t) i
+  rw [Real.norm_eq_abs] at h4
+  have h5 := le_abs_self (θ t i)
+  linarith
+
+/-- Woodford (2003), n. 37: for the globally Lipschitz modification of `θ̇ = θ³`, `0` is not a
+locally asymptotically stable rest point in the sense of `IsLAS`. -/
+theorem not_isLAS_tMod_cubT_pos [Nonempty ι] : ¬IsLAS (tMod (cubT (ι := ι) 1) 0 1) 0 := by
+  intro hL
+  obtain ⟨δ, hδ, hst⟩ := hL.1 (1 / 2) (by norm_num)
+  set a := min (δ / 2) (1 / 4) with ha
+  have ha0 : 0 < a := lt_min (by positivity) (by norm_num)
+  obtain ⟨θ, hθ, hθ0⟩ := fwdComplete_tMod (r := 1) zero_le_one
+    (lipschitzOnWith_cubT (s := 1) (by norm_num)) (fun _ : ι => a)
+  have hn0 : ‖θ 0 - 0‖ < δ := by
+    rw [hθ0, sub_zero, pi_norm_const, Real.norm_eq_abs, abs_of_pos ha0]
+    exact lt_of_le_of_lt (min_le_left _ _) (by linarith)
+  have hstay : ∀ τ, 0 ≤ τ → ‖θ τ - 0‖ < 1 / 2 := hst θ hθ hn0
+  have hsol : IsFwdSol (cubT 1) θ :=
+    isFwdSol_of_isFwdSol_tMod hθ fun t ht => by linarith [hstay t ht]
+  obtain ⟨τ, hτ, hesc⟩ := escape_cubT_pos hsol ha0 hθ0
+  have := hstay τ hτ
+  rw [sub_zero] at this
+  linarith
+
+/-- Woodford (2003), n. 37: **`θ̇ = θ³` is unstable** at `0` (textbook sense), although it has
+the same Jacobian as the stable `θ̇ = −θ³`. -/
+theorem not_isLASLoc_cubT_pos [Nonempty ι] : ¬IsLASLoc (cubT (ι := ι) 1) 0 := fun h =>
+  not_isLAS_tMod_cubT_pos ((isLAS_tMod_iff one_pos (lipschitzOnWith_cubT (by norm_num))).2 h)
+
+/-- Woodford (2003), n. 37: for the globally Lipschitz modification of `θ̇ = −θ³`, `0` is a
+locally asymptotically stable rest point in the sense of `IsLAS`. -/
+theorem isLAS_tMod_cubT_neg : IsLAS (tMod (cubT (ι := ι) (-1)) 0 1) 0 :=
+  (isLAS_tMod_iff one_pos (lipschitzOnWith_cubT (by norm_num))).2 isLASLoc_cubT_neg
+
+/-- Woodford (2003), p. 266 and n. 37: **the zero-real-part case is not decided by `DT`**: the
+polynomial maps `T±(θ) = θ ± θ³` both have the rest point `0` and the same Jacobian `DT(0) = I`,
+so `DT(0) − I = 0` has the eigenvalue `0` on the imaginary axis and neither map is E-stable; yet
+`0` is a locally asymptotically stable rest point of (2.20) for `T₋` and an unstable one for
+`T₊`. -/
+theorem zero_re_undecided [DecidableEq ι] [Nonempty ι] :
+    ContDiff ℝ 1 (cubT (ι := ι) 1) ∧ ContDiff ℝ 1 (cubT (ι := ι) (-1)) ∧
+      cubT (ι := ι) 1 0 = 0 ∧ cubT (ι := ι) (-1) 0 = 0 ∧
+      fderiv ℝ (cubT (ι := ι) 1) 0 = fderiv ℝ (cubT (ι := ι) (-1)) 0 ∧
+      IsEig ((jac (cubT (ι := ι) 1) 0 - 1).map Complex.ofReal) 0 ∧
+      ¬NoZeroRe (jac (cubT (ι := ι) 1) 0) ∧
+      ¬EStableAt (cubT (ι := ι) 1) 0 ∧ ¬EStableAt (cubT (ι := ι) (-1)) 0 ∧
+      IsLASLoc (cubT (ι := ι) (-1)) 0 ∧ ¬IsLASLoc (cubT (ι := ι) 1) 0 := by
+  have heig : ∀ s : ℝ, IsEig ((jac (cubT (ι := ι) s) 0 - 1).map Complex.ofReal) 0 := by
+    intro s
+    rw [jac_of_hasFDerivAt (hasFDerivAt_cubT s), isEig_smul_one_sub_one_iff]
+    norm_num
+  have hnE : ∀ s : ℝ, ¬EStableAt (cubT (ι := ι) s) 0 := by
+    intro s hE
+    have := hE.2.2 0 (heig s)
+    norm_num at this
+  refine ⟨contDiff_cubT 1, contDiff_cubT (-1), cubT_zero 1, cubT_zero (-1), ?_, heig 1,
+    fun h => h 0 (heig 1) (by norm_num), hnE 1, hnE (-1), isLASLoc_cubT_neg,
+    not_isLASLoc_cubT_pos⟩
+  rw [(hasFDerivAt_cubT 1).fderiv, (hasFDerivAt_cubT (-1)).fderiv]
+
+/-- Woodford (2003), p. 266 and n. 37: **the same for solutions on `[0, ∞)`**: the globally
+Lipschitz (hence forward-complete) modifications of `T±(θ) = θ ± θ³` have the rest point `0` and
+the same Jacobian `DT(0) = I`, and `0` is a locally asymptotically stable rest point (`IsLAS`) for
+one and not for the other. -/
+theorem zero_re_undecided_complete [DecidableEq ι] [Nonempty ι] :
+    LipschitzWith 4 (tMod (cubT (ι := ι) 1) 0 1) ∧
+      LipschitzWith 4 (tMod (cubT (ι := ι) (-1)) 0 1) ∧
+      jac (tMod (cubT (ι := ι) 1) 0 1) 0 = jac (tMod (cubT (ι := ι) (-1)) 0 1) 0 ∧
+      IsEig ((jac (tMod (cubT (ι := ι) 1) 0 1) 0 - 1).map Complex.ofReal) 0 ∧
+      IsLAS (tMod (cubT (ι := ι) (-1)) 0 1) 0 ∧ ¬IsLAS (tMod (cubT (ι := ι) 1) 0 1) 0 := by
+  have hloc : ∀ s : ℝ, jac (tMod (cubT (ι := ι) s) 0 1) 0 = (1 : ℝ) • 1 := by
+    intro s
+    rw [(tMod_local one_pos (cubT_zero s) (hasFDerivAt_cubT s).differentiableAt).2.2,
+      jac_of_hasFDerivAt (hasFDerivAt_cubT s)]
+  refine ⟨lipschitzWith_tMod zero_le_one (lipschitzOnWith_cubT (by norm_num)),
+    lipschitzWith_tMod zero_le_one (lipschitzOnWith_cubT (by norm_num)),
+    by rw [hloc, hloc], ?_, isLAS_tMod_cubT_neg, not_isLAS_tMod_cubT_pos⟩
+  rw [hloc, isEig_smul_one_sub_one_iff]
+  norm_num
+
+end Woodford.NeoWicksellianFramework.TidyR6InstabilityCex
+
 set_option linter.style.longLine false
 #print axioms Woodford.NeoWicksellianFramework.SchurStable
 #print axioms Woodford.NeoWicksellianFramework.disc
@@ -33986,3 +35760,85 @@ set_option linter.style.longLine false
 #print axioms Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_of_hasSum
 #print axioms Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_exact
 #print axioms Woodford.NeoWicksellianFramework.TidyR5PLMALM.E_succ_eq_tMapP_without_spectral
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.isEig_iff_isRoot
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.finite_eigs
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.isEig_neg_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.isEig_shift_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.sylvester_eq_zero
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.exists_sylvester
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.exists_pos_of_sylvester
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.exists_chetaev
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Chetaev.escape_of_unstable
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.IsSolOn
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.FwdComplete
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.isSolOn_of_isFwdSol
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.isFwdSol_shift
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.glue
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.isFwdSol_glue
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.exists_step
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.fwdComplete_of_lipschitz
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.clampBox
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.tMod
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.norm_clampBox_sub_le
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.clampBox_of_le
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.lipschitzWith_clampBox
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.lipschitzWith_tMod
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.tMod_of_le
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.eventuallyEq_tMod
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.fwdComplete_tMod
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.exists_first_exit
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.isSolOn_of_isFwdSol_tMod
+#print axioms Woodford.NeoWicksellianFramework.TidyR6ODEExistence.isSolOn_tMod_of_isSolOn
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.IsLASLoc
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.NoZeroRe
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.jac
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isLAS_of_isLASLoc
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isSolOn_mono
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.exists_pos_eig_of_not_eStable
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.tMod_local
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.unstable_loc
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.not_isLASLoc_of_unstable
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.unstable_of_fwdComplete
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.not_isLAS_of_unstable
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isLASLoc_of_eStableAt
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isFwdSol_of_isFwdSol_tMod
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isFwdSol_tMod_of_isFwdSol
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isLAS_tMod_of_isLASLoc
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isLASLoc_of_isLAS_tMod
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.isLAS_tMod_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.eStableAt_iff_isLASLoc
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.eStableAt_iff_isLAS
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.eStableAt_iff_of_lipschitz
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.lipschitz_of_contDiffAt
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.eStableAt_iff_isLASLoc_of_contDiffAt
+#print axioms Woodford.NeoWicksellianFramework.TidyR6Instability.not_isLASLoc_of_contDiffAt
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.hasFDerivAt_of_quad
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.jac_of_hasFDerivAt
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.isEig_smul_one_sub_one_iff
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.blowN
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.blowT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.blowT_zero
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.norm_blowN_le
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.hasFDerivAt_blowT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.abs_mul_abs_sub_le
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.lipschitzOnWith_blowT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.no_pos_blowup_sol
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.blowT_sol_eq_zero
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.isLAS_blowT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.not_fwdComplete_blowT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.blowup_isLAS_unstable
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.cubT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.cubT_zero
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.contDiff_cubT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.hasFDerivAt_cubT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.abs_cube_sub_le
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.lipschitzOnWith_cubT
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.sq_le_of_isSolOn_cubT_neg
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.norm_le_of_isSolOn_cubT_neg
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.isLASLoc_cubT_neg
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.escape_cubT_pos
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.not_isLAS_tMod_cubT_pos
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.not_isLASLoc_cubT_pos
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.isLAS_tMod_cubT_neg
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.zero_re_undecided
+#print axioms Woodford.NeoWicksellianFramework.TidyR6InstabilityCex.zero_re_undecided_complete
