@@ -27,3 +27,6 @@ import FiscalConstraints.DebtLimitStochasticMeasure
 import FiscalConstraints.TidyR5MoneyExistence
 import FiscalConstraints.TidyR5PiecewiseRvsG
 import FiscalConstraints.TidyR5GaussianAR1
+import FiscalConstraints.TidyR6ManagedSurplus
+import FiscalConstraints.TidyR6ManagedSurplusMeasure
+import FiscalConstraints.TidyR6LinearRuleBounds

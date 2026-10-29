@@ -11810,6 +11810,1380 @@ theorem gaussian_ar1_exp_unbounded {v : NNReal} (hv : v ≠ 0) {γ η : ℝ} (h�
 
 end Cochrane.FiscalConstraints.TidyR5GaussianAR1
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Managed surpluses and the determinacy of the price level: the pathwise theory
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197: "with an
+upper limit on debt-to-GDP ratio, we must already imagine a managed surplus process. As debt
+starts to grow, the government increases surpluses so as to avoid the boundary ... A plan that
+exceeds the bound by a finite amount will lead to an initial price-level rise ... We are back to
+global determinacy of the price level". The book specifies no surplus rule. This module specifies
+the natural class and proves the path-by-path facts; `TidyR6ManagedSurplusMeasure` adds the
+probability.
+
+The debt-to-GDP ratio is `x_{t+1} = γ x_t − σ_t` (`DebtLimitStochastic.debtPath`), with
+`γ = (1 + r)/(1 + g)`, `0 < γ < 1` (permanent `r < g`), and `x₀ = B/(P₀ y₀)` set by the initial
+price level. A *surplus rule* is `σ_t = F_t(x_t, ω)`, such as the linear rule
+`s̄ + u_t + φ (x_t − b̄)` (`linRule`). Its *boundary-avoiding modification* raises the surplus
+just enough to keep debt at or below the limit `x̄`: `x_{t+1} = min x̄ (γ x_t − F_t(x_t))`
+(`avoidPath`, `avoidSurplus`); the two-sided version also cuts surpluses at a floor `x_{low}`
+(`bandPath`, `bandSurplus`); the capped version respects a fiscal capacity `s_{max}`
+(`cappedPath`, `cappedSurplus`).
+
+Two readings of "the government manages surpluses":
+
+* **feedback**: the rule responds to the *actual* debt, including debt revalued by the price
+  level. Then every initial debt `x₀ ≤ x̄` is sustained on every path
+  (`avoidPath_within_iff`, `bandPath_within_iff`, `cappedPath_within_iff`): the price level is
+  NOT determined.
+* **plan**: the surplus process is the one the rule generates along the government's planned
+  debt path `m` from `m₀`, and does not respond to a revaluation of debt by the price level
+  (the book's "absent a rise in future surpluses"). Then actual debt is
+  `x_t = m_t + γᵗ (x₀ − m₀)` (`plan_debtPath`): `x₀ ≤ m₀` is sustained on every path
+  (`plan_within_of_le`), while `x₀ > m₀` breaches the limit at any date the plan touches it
+  (`plan_breach_high`), and `x₀ < m₀` breaches a floor the plan touches (`plan_breach_low`).
+
+Also: `not_within_of_capacity` (no surplus rule with capacity `s_{max} < −(1 − γ) x̄` can keep
+debt within the limit, on any path), `avoid_hits_of_rule_exceeds` (the modified rule touches
+the limit whenever the unmodified rule would have crossed it), the link
+`avoidPath_eq_managedPath` to `DebtLimitStochastic.managedPath`, and the price-level conversions.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR6ManagedSurplus
+
+open DebtLimitStochastic
+
+variable {Ω : Type*}
+
+/-! ### Surplus rules and their boundary-avoiding modifications -/
+
+/-- Cochrane (2023), (6.4) p. 196 and p. 197: debt under an unmodified surplus rule
+`σ_t = F_t(x_t, ω)`: `x_{t+1} = γ x_t − F_t(x_t, ω)`, `x_0 = x₀`. -/
+noncomputable def rulePath (γ : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => x₀
+  | t + 1 => fun ω => γ * rulePath γ F x₀ t ω - F t (rulePath γ F x₀ t ω) ω
+
+/-- Cochrane (2023), p. 197: the linear surplus rule `s_t = s̄ + u_t + φ (x_t − b̄)`: a mean
+`s̄`, a shock `u_{t}` and a response `φ` to the deviation of debt from a target `b̄`. -/
+def linRule (sbar φ bbar : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) (x : ℝ) (ω : Ω) : ℝ :=
+  sbar + u t ω + φ * (x - bbar)
+
+/-- Cochrane (2023), p. 197: under the linear rule, next period's debt before any modification
+is `(γ − φ) x − (s̄ − φ b̄ + u_t)`: the response `φ` lowers the effective root to `γ − φ`. -/
+theorem linRule_response (γ sbar φ bbar : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) (x : ℝ) (ω : Ω) :
+    γ * x - linRule sbar φ bbar u t x ω = (γ - φ) * x - (sbar - φ * bbar + u t ω) := by
+  unfold linRule
+  ring
+
+/-- Cochrane (2023), p. 197 ("as debt starts to grow, the government increases surpluses so as
+to avoid the boundary"): debt under the boundary-avoiding modification of the rule `F`,
+`x_{t+1} = min x̄ (γ x_t − F_t(x_t, ω))`. -/
+noncomputable def avoidPath (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => x₀
+  | t + 1 => fun ω =>
+      min xbar (γ * avoidPath γ xbar F x₀ t ω - F t (avoidPath γ xbar F x₀ t ω) ω)
+
+/-- Cochrane (2023), p. 197: the boundary-avoiding surplus, the rule plus the extra surplus
+`max 0 (γ x_t − F_t(x_t) − x̄)` needed to stay at or below `x̄`. -/
+noncomputable def avoidSurplus (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ) (ω : Ω) : ℝ :=
+  F t (avoidPath γ xbar F x₀ t ω) ω +
+    max 0 (γ * avoidPath γ xbar F x₀ t ω - F t (avoidPath γ xbar F x₀ t ω) ω - xbar)
+
+/-- Cochrane (2023), p. 197: `min a y = y − max 0 (y − a)`, the cap as a subtracted excess. -/
+theorem min_eq_sub_max (a y : ℝ) : min a y = y - max 0 (y - a) := by
+  rcases le_total y a with h | h
+  · rw [min_eq_right h, max_eq_left (by linarith)]
+    ring
+  · rw [min_eq_left h, max_eq_right (by linarith)]
+    ring
+
+/-- Cochrane (2023), (6.4) p. 196: the modified path is the debt generated by the modified
+surplus, `x_{t+1} = γ x_t − σ_t`. -/
+theorem avoidPath_succ_eq (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ) (ω : Ω) :
+    avoidPath γ xbar F x₀ (t + 1) ω =
+      γ * avoidPath γ xbar F x₀ t ω - avoidSurplus γ xbar F x₀ t ω := by
+  change min xbar _ = _
+  rw [min_eq_sub_max, avoidSurplus]
+  ring
+
+/-- Cochrane (2023), p. 197: the modified surplus is the rule's surplus whenever the rule
+alone stays within the limit; it departs from the rule only to avoid the boundary. -/
+theorem avoidSurplus_eq_rule {γ xbar x₀ : ℝ} {F : ℕ → ℝ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (h : γ * avoidPath γ xbar F x₀ t ω - F t (avoidPath γ xbar F x₀ t ω) ω ≤ xbar) :
+    avoidSurplus γ xbar F x₀ t ω = F t (avoidPath γ xbar F x₀ t ω) ω := by
+  rw [avoidSurplus, max_eq_left (by linarith), add_zero]
+
+/-- Cochrane (2023), p. 197: the modified surplus is never below the rule's surplus. -/
+theorem rule_le_avoidSurplus (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ) (ω : Ω) :
+    F t (avoidPath γ xbar F x₀ t ω) ω ≤ avoidSurplus γ xbar F x₀ t ω :=
+  le_add_of_nonneg_right (le_max_left _ _)
+
+/-- Cochrane (2023), p. 197: the earlier managed path `DebtLimitStochastic.managedPath` is the
+boundary-avoiding modification of the exogenous rule `σ_t = ε_t` (no feedback on debt). -/
+theorem avoidPath_eq_managedPath (γ x₀ xbar : ℝ) (ε : ℕ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    avoidPath γ xbar (fun s _ ω' => ε s ω') x₀ t ω = managedPath γ x₀ xbar ε t ω := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+    change min xbar (γ * avoidPath γ xbar (fun s _ ω' => ε s ω') x₀ t ω - ε t ω) =
+      γ * managedPath γ x₀ xbar ε t ω -
+        (ε t ω + max 0 (γ * managedPath γ x₀ xbar ε t ω - ε t ω - xbar))
+    rw [ih, min_eq_sub_max]
+    ring
+
+/-- Cochrane (2023), p. 197: the two-sided modification keeps debt in the band `[x_{low}, x̄]`,
+`x_{t+1} = max x_{low} (min x̄ (γ x_t − F_t(x_t, ω)))`. -/
+noncomputable def bandPath (γ xlow xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => x₀
+  | t + 1 => fun ω => max xlow
+      (min xbar (γ * bandPath γ xlow xbar F x₀ t ω - F t (bandPath γ xlow xbar F x₀ t ω) ω))
+
+/-- Cochrane (2023), p. 197: the two-sided surplus: the rule, plus the extra surplus that keeps
+debt at or below `x̄`, minus the surplus cut that keeps debt at or above `x_{low}`. -/
+noncomputable def bandSurplus (γ xlow xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ)
+    (ω : Ω) : ℝ :=
+  F t (bandPath γ xlow xbar F x₀ t ω) ω +
+    max 0 (γ * bandPath γ xlow xbar F x₀ t ω - F t (bandPath γ xlow xbar F x₀ t ω) ω - xbar) -
+    max 0 (xlow -
+      min xbar (γ * bandPath γ xlow xbar F x₀ t ω - F t (bandPath γ xlow xbar F x₀ t ω) ω))
+
+/-- Cochrane (2023), p. 197: `max l z = z + max 0 (l − z)`, the floor as an added shortfall. -/
+theorem max_eq_add_max (l z : ℝ) : max l z = z + max 0 (l - z) := by
+  rcases le_total l z with h | h
+  · rw [max_eq_right h, max_eq_left (by linarith)]
+    ring
+  · rw [max_eq_left h, max_eq_right (by linarith)]
+    ring
+
+/-- Cochrane (2023), (6.4) p. 196: the band path is the debt generated by the band surplus. -/
+theorem bandPath_succ_eq (γ xlow xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ) (ω : Ω) :
+    bandPath γ xlow xbar F x₀ (t + 1) ω =
+      γ * bandPath γ xlow xbar F x₀ t ω - bandSurplus γ xlow xbar F x₀ t ω := by
+  change max xlow (min xbar _) = _
+  rw [max_eq_add_max, bandSurplus, min_eq_sub_max xbar]
+  ring
+
+/-- Cochrane (2023), p. 197: debt under a boundary-avoiding rule with a fiscal capacity
+`s_{max}`: `x_{t+1} = max (γ x_t − s_{max}) (min x̄ (γ x_t − F_t(x_t, ω)))`. -/
+noncomputable def cappedPath (γ xbar smax : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => x₀
+  | t + 1 => fun ω => max (γ * cappedPath γ xbar smax F x₀ t ω - smax)
+      (min xbar (γ * cappedPath γ xbar smax F x₀ t ω - F t (cappedPath γ xbar smax F x₀ t ω) ω))
+
+/-- Cochrane (2023), p. 197: the capped boundary-avoiding surplus
+`min s_{max} (max F_t(x_t) (γ x_t − x̄))`: the government raises surpluses to avoid the boundary,
+but never above its capacity `s_{max}`. -/
+noncomputable def cappedSurplus (γ xbar smax : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ)
+    (ω : Ω) : ℝ :=
+  min smax (max (F t (cappedPath γ xbar smax F x₀ t ω) ω)
+    (γ * cappedPath γ xbar smax F x₀ t ω - xbar))
+
+/-- Cochrane (2023), (6.4) p. 196: the capped path is the debt generated by the capped
+surplus. -/
+theorem cappedPath_succ_eq (γ xbar smax : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ) (ω : Ω) :
+    cappedPath γ xbar smax F x₀ (t + 1) ω =
+      γ * cappedPath γ xbar smax F x₀ t ω - cappedSurplus γ xbar smax F x₀ t ω := by
+  change max _ (min _ _) = _
+  rw [cappedSurplus]
+  simp only [min_def, max_def]
+  split_ifs <;> linarith
+
+/-- Cochrane (2023), p. 197: the capped surplus respects the capacity, `σ_t ≤ s_{max}`. -/
+theorem cappedSurplus_le (γ xbar smax : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ) (ω : Ω) :
+    cappedSurplus γ xbar smax F x₀ t ω ≤ smax :=
+  min_le_left _ _
+
+/-! ### Feedback: the rule responds to actual debt, and every debt below the limit survives -/
+
+/-- Cochrane (2023), p. 197: the boundary-avoiding modification keeps debt at or below `x̄`
+from date 1 on, for every rule, every initial debt and every path. -/
+theorem avoidPath_le (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ) (ω : Ω) :
+    avoidPath γ xbar F x₀ (t + 1) ω ≤ xbar :=
+  min_le_left _ _
+
+/-- Cochrane (2023), p. 197 (**feedback rules do not determine the price level**): under the
+boundary-avoiding modification of ANY rule, debt stays within the limit forever iff the
+initial debt is within it, `x₀ ≤ x̄`, on every path. -/
+theorem avoidPath_within_iff (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (ω : Ω) :
+    (∀ t, avoidPath γ xbar F x₀ t ω ≤ xbar) ↔ x₀ ≤ xbar := by
+  constructor
+  · intro h
+    exact h 0
+  · intro h t
+    cases t with
+    | zero => exact h
+    | succ t => exact avoidPath_le γ xbar F x₀ t ω
+
+/-- Cochrane (2023), p. 197: the two-sided modification keeps debt in `[x_{low}, x̄]` from date 1
+on, when `x_{low} ≤ x̄`. -/
+theorem bandPath_mem {γ xlow xbar : ℝ} (hl : xlow ≤ xbar) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (t : ℕ)
+    (ω : Ω) :
+    xlow ≤ bandPath γ xlow xbar F x₀ (t + 1) ω ∧ bandPath γ xlow xbar F x₀ (t + 1) ω ≤ xbar :=
+  ⟨le_max_left _ _, max_le hl (min_le_left _ _)⟩
+
+/-- Cochrane (2023), p. 197 (**two-sided feedback rules do not determine the price level**):
+debt stays in the band forever iff the initial debt is in the band, on every path. -/
+theorem bandPath_within_iff {γ xlow xbar : ℝ} (hl : xlow ≤ xbar) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ)
+    (ω : Ω) :
+    (∀ t, xlow ≤ bandPath γ xlow xbar F x₀ t ω ∧ bandPath γ xlow xbar F x₀ t ω ≤ xbar) ↔
+      xlow ≤ x₀ ∧ x₀ ≤ xbar := by
+  constructor
+  · intro h
+    exact h 0
+  · intro h t
+    cases t with
+    | zero => exact h
+    | succ t => exact bandPath_mem hl F x₀ t ω
+
+/-- Cochrane (2023), p. 197 (**capacity, sufficiency**): with `0 ≤ γ` and capacity
+`s_{max} ≥ −(1 − γ) x̄`, the capped boundary-avoiding rule keeps debt within the limit forever iff
+`x₀ ≤ x̄`, on every path and for every rule `F`. -/
+theorem cappedPath_within_iff {γ xbar smax : ℝ} (hγ0 : 0 ≤ γ) (hfeas : 0 ≤ (1 - γ) * xbar + smax)
+    (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) (ω : Ω) :
+    (∀ t, cappedPath γ xbar smax F x₀ t ω ≤ xbar) ↔ x₀ ≤ xbar := by
+  constructor
+  · intro h
+    exact h 0
+  · intro h t
+    induction t with
+    | zero => exact h
+    | succ t ih =>
+      change max _ (min _ _) ≤ xbar
+      refine max_le ?_ (min_le_left _ _)
+      nlinarith [mul_le_mul_of_nonneg_left ih hγ0]
+
+/-- Cochrane (2023), p. 197 (**capacity, necessity**): if every surplus is at most `s_{max}` and
+`s_{max} < −(1 − γ) x̄`, with `γ ≤ 1`, then debt cannot stay within the limit forever, on any
+path and from any initial debt: even the maximal surplus cannot service debt at the limit. -/
+theorem not_within_of_capacity {γ xbar smax x₀ : ℝ} (hγ1 : γ ≤ 1)
+    (hcap : (1 - γ) * xbar + smax < 0) {σ : ℕ → Ω → ℝ} {ω : Ω} (hσ : ∀ t, σ t ω ≤ smax) :
+    ¬ ∀ t, debtPath γ x₀ σ t ω ≤ xbar := by
+  intro h
+  set δ := -((1 - γ) * xbar + smax) with hδ
+  have hδ0 : 0 < δ := by linarith
+  have key : ∀ t : ℕ, xbar - debtPath γ x₀ σ t ω ≤ (xbar - x₀) - t * δ := by
+    intro t
+    induction t with
+    | zero =>
+      change xbar - x₀ ≤ _
+      simp
+    | succ t ih =>
+      rw [debtPath_succ]
+      have hy := sub_nonneg.2 (h t)
+      have h1 : γ * (xbar - debtPath γ x₀ σ t ω) ≤ xbar - debtPath γ x₀ σ t ω := by
+        nlinarith
+      have h2 := hσ t
+      push_cast
+      nlinarith
+  obtain ⟨n, hn⟩ := exists_nat_gt ((xbar - x₀) / δ)
+  have hk := key n
+  have hy := sub_nonneg.2 (h n)
+  rw [div_lt_iff₀ hδ0] at hn
+  linarith
+
+/-! ### Plans: the surplus does not respond to a revaluation of debt -/
+
+/-- Cochrane (2023), p. 197 ("a higher value of debt, induced by deflation"): if the surplus
+process `σ` is the one generated along a planned debt path `m`, `m_{t+1} = γ m_t − σ_t`, then
+actual debt from `x₀` is `x_t = m_t + γᵗ (x₀ − m₀)`: a revaluation of initial debt persists,
+decaying at rate `γ`. -/
+theorem plan_debtPath {γ x₀ : ℝ} {m σ : ℕ → Ω → ℝ} {ω : Ω}
+    (hm : ∀ t, m (t + 1) ω = γ * m t ω - σ t ω) (t : ℕ) :
+    debtPath γ x₀ σ t ω = m t ω + γ ^ t * (x₀ - m 0 ω) := by
+  induction t with
+  | zero =>
+    change x₀ = _
+    ring
+  | succ t ih =>
+    rw [debtPath_succ, ih, hm, pow_succ]
+    ring
+
+/-- Cochrane (2023), p. 197: actual debt under the boundary-avoiding plan from `m₀`. -/
+theorem avoid_plan_debtPath (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (m₀ x₀ : ℝ) (t : ℕ) (ω : Ω) :
+    debtPath γ x₀ (avoidSurplus γ xbar F m₀) t ω =
+      avoidPath γ xbar F m₀ t ω + γ ^ t * (x₀ - m₀) :=
+  plan_debtPath (fun s => avoidPath_succ_eq γ xbar F m₀ s ω) t
+
+/-- Cochrane (2023), p. 197: actual debt under the two-sided plan from `m₀`. -/
+theorem band_plan_debtPath (γ xlow xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (m₀ x₀ : ℝ) (t : ℕ)
+    (ω : Ω) :
+    debtPath γ x₀ (bandSurplus γ xlow xbar F m₀) t ω =
+      bandPath γ xlow xbar F m₀ t ω + γ ^ t * (x₀ - m₀) :=
+  plan_debtPath (fun s => bandPath_succ_eq γ xlow xbar F m₀ s ω) t
+
+/-- Cochrane (2023), p. 197 (inflation is not ruled out): if the planned path stays at or below
+`x̄` and initial debt is at most the planned `m₀` (a higher price level), actual debt stays at or
+below `x̄` forever, for `0 ≤ γ`. -/
+theorem plan_within_of_le {γ xbar x₀ : ℝ} (hγ0 : 0 ≤ γ) {m σ : ℕ → Ω → ℝ} {ω : Ω}
+    (hm : ∀ t, m (t + 1) ω = γ * m t ω - σ t ω) (hle : ∀ t, m t ω ≤ xbar) (hx : x₀ ≤ m 0 ω)
+    (t : ℕ) : debtPath γ x₀ σ t ω ≤ xbar := by
+  rw [plan_debtPath hm]
+  have h1 : γ ^ t * (x₀ - m 0 ω) ≤ 0 :=
+    mul_nonpos_of_nonneg_of_nonpos (pow_nonneg hγ0 t) (by linarith)
+  linarith [hle t]
+
+/-- Cochrane (2023), p. 197 ("a higher value of debt, induced by deflation, will push the
+government over the boundary absent a rise in future surpluses"): for `0 < γ`, if initial debt
+exceeds the planned `m₀`, actual debt exceeds `x̄` at every date at which the plan touches `x̄`. -/
+theorem plan_breach_high {γ xbar x₀ : ℝ} (hγ : 0 < γ) {m σ : ℕ → Ω → ℝ} {ω : Ω}
+    (hm : ∀ t, m (t + 1) ω = γ * m t ω - σ t ω) (hx : m 0 ω < x₀) {t : ℕ} (ht : m t ω = xbar) :
+    xbar < debtPath γ x₀ σ t ω := by
+  rw [plan_debtPath hm, ht]
+  have : 0 < γ ^ t * (x₀ - m 0 ω) := mul_pos (pow_pos hγ t) (by linarith)
+  linarith
+
+/-- Cochrane (2023), p. 197 (the mirror image): for `0 < γ`, if initial debt is below the
+planned `m₀`, actual debt falls below `x_{low}` at every date at which the plan touches
+`x_{low}`. -/
+theorem plan_breach_low {γ xlow x₀ : ℝ} (hγ : 0 < γ) {m σ : ℕ → Ω → ℝ} {ω : Ω}
+    (hm : ∀ t, m (t + 1) ω = γ * m t ω - σ t ω) (hx : x₀ < m 0 ω) {t : ℕ} (ht : m t ω = xlow) :
+    debtPath γ x₀ σ t ω < xlow := by
+  rw [plan_debtPath hm, ht]
+  have : γ ^ t * (x₀ - m 0 ω) < 0 := mul_neg_of_pos_of_neg (pow_pos hγ t) (by linarith)
+  linarith
+
+/-! ### When does the plan touch the limit? -/
+
+/-- Cochrane (2023), p. 197: the boundary-avoiding modification touches the limit `x̄` at some
+date `t ≥ 1` whenever the unmodified rule from the same initial debt would have reached or
+crossed `x̄` at some date `t ≥ 1`: the two paths agree until the first such date. -/
+theorem avoid_hits_of_rule_exceeds {γ xbar m₀ : ℝ} {F : ℕ → ℝ → Ω → ℝ} {ω : Ω}
+    (h : ∃ t, 1 ≤ t ∧ xbar ≤ rulePath γ F m₀ t ω) :
+    ∃ t, 1 ≤ t ∧ avoidPath γ xbar F m₀ t ω = xbar := by
+  classical
+  obtain ⟨T, hT, hmin⟩ : ∃ T, (1 ≤ T ∧ xbar ≤ rulePath γ F m₀ T ω) ∧
+      ∀ s < T, ¬ (1 ≤ s ∧ xbar ≤ rulePath γ F m₀ s ω) :=
+    ⟨Nat.find h, Nat.find_spec h, fun s hs => Nat.find_min h hs⟩
+  have heq : ∀ s < T, avoidPath γ xbar F m₀ s ω = rulePath γ F m₀ s ω := by
+    intro s
+    induction s with
+    | zero => intro _; rfl
+    | succ s ih =>
+      intro hs
+      have ih' := ih (by omega)
+      have hlt : rulePath γ F m₀ (s + 1) ω < xbar :=
+        not_le.mp (not_and.mp (hmin (s + 1) hs) (by omega))
+      change min xbar (γ * avoidPath γ xbar F m₀ s ω - F s (avoidPath γ xbar F m₀ s ω) ω) = _
+      rw [ih']
+      exact min_eq_right hlt.le
+  obtain ⟨s, rfl⟩ : ∃ s, T = s + 1 := ⟨T - 1, by omega⟩
+  refine ⟨s + 1, hT.1, ?_⟩
+  change min xbar (γ * avoidPath γ xbar F m₀ s ω - F s (avoidPath γ xbar F m₀ s ω) ω) = xbar
+  rw [heq s (by omega)]
+  exact min_eq_left hT.2
+
+/-- Cochrane (2023), p. 197: the modified path is exactly at the limit next period whenever the
+rule alone would carry debt to or above it. -/
+theorem avoidPath_succ_eq_xbar {γ xbar m₀ : ℝ} {F : ℕ → ℝ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (h : xbar ≤ γ * avoidPath γ xbar F m₀ t ω - F t (avoidPath γ xbar F m₀ t ω) ω) :
+    avoidPath γ xbar F m₀ (t + 1) ω = xbar :=
+  min_eq_left h
+
+/-- Cochrane (2023), p. 197: the band path is at the upper edge next period whenever the rule
+alone would carry debt to or above `x̄` (for `x_{low} ≤ x̄`). -/
+theorem bandPath_succ_eq_xbar {γ xlow xbar m₀ : ℝ} (hl : xlow ≤ xbar) {F : ℕ → ℝ → Ω → ℝ}
+    {t : ℕ} {ω : Ω}
+    (h : xbar ≤ γ * bandPath γ xlow xbar F m₀ t ω - F t (bandPath γ xlow xbar F m₀ t ω) ω) :
+    bandPath γ xlow xbar F m₀ (t + 1) ω = xbar := by
+  change max xlow (min xbar _) = xbar
+  rw [min_eq_left h, max_eq_right hl]
+
+/-- Cochrane (2023), p. 197: the band path is at the lower edge next period whenever the rule
+alone would carry debt to or below `x_{low}`. -/
+theorem bandPath_succ_eq_xlow {γ xlow xbar m₀ : ℝ} {F : ℕ → ℝ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (h : γ * bandPath γ xlow xbar F m₀ t ω - F t (bandPath γ xlow xbar F m₀ t ω) ω ≤ xlow) :
+    bandPath γ xlow xbar F m₀ (t + 1) ω = xlow := by
+  change max xlow (min xbar _) = xlow
+  exact max_eq_left ((min_le_right _ _).trans h)
+
+/-- Cochrane (2023), p. 197: the band path stays in `[x_{low}, x̄]` at every date when it starts
+there. -/
+theorem bandPath_mem_all {γ xlow xbar m₀ : ℝ} (hl : xlow ≤ xbar) (hm₀ : xlow ≤ m₀ ∧ m₀ ≤ xbar)
+    (F : ℕ → ℝ → Ω → ℝ) (ω : Ω) (t : ℕ) :
+    xlow ≤ bandPath γ xlow xbar F m₀ t ω ∧ bandPath γ xlow xbar F m₀ t ω ≤ xbar :=
+  (bandPath_within_iff hl F m₀ ω).2 hm₀ t
+
+/-- Cochrane (2023), p. 197: for `m ∈ [l, h]`, `a m` lies between `min (a l) (a h)` and
+`max (a l) (a h)`, whatever the sign of `a`. -/
+theorem mul_mem_minmax {a l h m : ℝ} (hlm : l ≤ m) (hmh : m ≤ h) :
+    min (a * l) (a * h) ≤ a * m ∧ a * m ≤ max (a * l) (a * h) := by
+  rcases le_total 0 a with ha | ha
+  · exact ⟨(min_le_left _ _).trans (mul_le_mul_of_nonneg_left hlm ha),
+      (mul_le_mul_of_nonneg_left hmh ha).trans (le_max_right _ _)⟩
+  · exact ⟨(min_le_right _ _).trans (mul_le_mul_of_nonpos_left hmh ha),
+      (mul_le_mul_of_nonpos_left hlm ha).trans (le_max_left _ _)⟩
+
+/-! ### Price levels -/
+
+/-- Cochrane (2023), p. 197: with GDP `y₀ > 0` and nominal debt `B`, initial real debt
+`B/(P₀ y₀)` is at most `m > 0` iff `P₀ ≥ B/(y₀ m)`: a lower bound on debt is an upper bound on
+the price level and vice versa. -/
+theorem debt_le_iff_price_ge {B y₀ P₀ m : ℝ} (hy : 0 < y₀) (hP : 0 < P₀)
+    (hm : 0 < m) : B / (P₀ * y₀) ≤ m ↔ B / (y₀ * m) ≤ P₀ := by
+  rw [div_le_iff₀ (by positivity), div_le_iff₀ (by positivity)]
+  have e : m * (P₀ * y₀) = P₀ * (y₀ * m) := by ring
+  rw [e]
+
+/-- Cochrane (2023), p. 197: initial real debt `B/(P₀ y₀)` equals `m > 0` iff
+`P₀ = B/(y₀ m)`. -/
+theorem debt_eq_iff_price_eq {B y₀ P₀ m : ℝ} (hy : 0 < y₀) (hP : 0 < P₀) (hm : 0 < m) :
+    B / (P₀ * y₀) = m ↔ P₀ = B / (y₀ * m) := by
+  rw [div_eq_iff (by positivity), eq_div_iff (by positivity)]
+  have e : m * (P₀ * y₀) = P₀ * (y₀ * m) := by ring
+  rw [e, eq_comm]
+
+/-- Cochrane (2023), p. 197: initial real debt `B/(P₀ y₀)` is at least `m > 0` iff
+`P₀ ≤ B/(y₀ m)`. -/
+theorem le_debt_iff_price_le {B y₀ P₀ m : ℝ} (hy : 0 < y₀) (hP : 0 < P₀) (hm : 0 < m) :
+    m ≤ B / (P₀ * y₀) ↔ P₀ ≤ B / (y₀ * m) := by
+  rw [le_div_iff₀ (by positivity), le_div_iff₀ (by positivity)]
+  have e : m * (P₀ * y₀) = P₀ * (y₀ * m) := by ring
+  rw [e]
+
+/-- Cochrane (2023), p. 197: the price level `B/(y₀ m)` is positive and carries initial real
+debt exactly to `m`. -/
+theorem price_spec {B y₀ m : ℝ} (hB : 0 < B) (hy : 0 < y₀) (hm : 0 < m) :
+    0 < B / (y₀ * m) ∧ B / (B / (y₀ * m) * y₀) = m := by
+  refine ⟨by positivity, ?_⟩
+  field_simp
+
+end Cochrane.FiscalConstraints.TidyR6ManagedSurplus
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Does a managed surplus restore global determinacy? (the i.i.d. and AR(1) processes)
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197: "As debt
+starts to grow, the government increases surpluses so as to avoid the boundary. A higher value of
+debt, induced by deflation, will push the government over the boundary absent a rise in future
+surpluses. A plan that exceeds the bound by a finite amount will lead to an initial price-level
+rise ... We are back to global determinacy of the price level and fiscal theory."
+
+The book specifies no rule. We take the linear rule `s_t = s̄ + u_t + φ (x_t − b̄)` (the band
+results hold for every `φ`; the one-sided results take `φ ≥ 0`) (`TidyR6ManagedSurplus.linRule`) and
+its boundary-avoiding modification, on a genuine probability space: `(ℕ → ℝ, ν^ℕ)` of
+`ExpectationsMeasureIID` with innovations `ε_t(ω) = ω_t`, `u = ExpectationsMeasureIID.ar1 ρ` an
+AR(1) with `|ρ| < 1` (i.i.d. surpluses are `ρ = 0`, `ar1_zero`; Gaussian AR(1) as in
+`TidyR5GaussianAR1`), permanent `r < g` (`0 < γ < 1`), and initial real debt `x₀ = B/(P₀ y₀)`.
+Equilibrium (the book's criterion): debt stays within the limit forever, almost surely
+(`Sustainable`, `IsEqmPrice`).
+
+## Verdict
+
+* **Sustainability: TRUE.** The modified rule keeps debt at or below `x̄` on every path, and is
+  an adapted policy (`plan_adapted`); the unmodified rule does not (`linear_rule_not_sustainable`
+  for `0 ≤ φ ≤ γ`, extended to every `φ > γ − 1` by
+  `TidyR6LinearRuleBounds.linear_rule_zero_prob`).
+* **Deflation is ruled out: TRUE.** If surpluses follow the plan (they do not respond to a
+  revaluation of debt by the price level), every initial debt above the plan's `m₀` breaches the
+  limit almost surely (`plan_hits`, `plan_sustainable_iff`): `P₀ < P* = B/(y₀ m₀)` is not an
+  equilibrium, and `P*` is (existence).
+* **Global determinacy (uniqueness): FALSE.** Every `P₀ ≥ P*` is an equilibrium: the equilibrium
+  set is exactly `[P*, ∞)` (`plan_eqm_price_iff`, `plan_price_not_unique`). With an upper limit
+  only, an initial debt below the plan just melts away (`r < g`). `P*` is the least equilibrium
+  price (`plan_price_isLeast`): the book's "the price level rises until the government is again
+  able to keep debt below the boundary" is a selection, not a consequence.
+* **Feedback rules are worse.** If the rule responds to actual (revalued) debt, every
+  `P₀ ≥ B/(y₀ x̄)` is an equilibrium (`feedback_price_iff`), and with a band every `P₀` in an
+  interval (`band_feedback_price_iff`, `band_feedback_price_not_unique`).
+* **Corrected statement (global determinacy, TRUE):** a two-sided plan, which also cuts surpluses
+  to keep debt above a floor `x_{low}` (a band `[x_{low}, x̄]` around the target), with shocks that
+  reach both edges (deficits and surpluses of every size, e.g. Gaussian), determines the price
+  level uniquely: the only sustainable initial debt is `m₀` (`band_sustainable_iff`) and the
+  equilibrium price level exists and is unique, `P₀ = B/(y₀ m₀)` (`band_eqm_price_unique`), for
+  every response `φ`. Gaussian AR(1) summaries: `gaussian_plan_verdict`, `gaussian_band_verdict`.
+
+The continuous-time Ornstein–Uhlenbeck surplus of p. 197 needs Itô calculus, which Mathlib lacks;
+it is replaced by its discrete analogue, the Gaussian AR(1) (`ρ = e^{−η}` per period in
+`TidyR5GaussianAR1.gaussian_ar1_exp_unbounded`).
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure
+
+open MeasureTheory ProbabilityTheory Filter
+open ExpectationsMeasure ExpectationsMeasureIID DebtLimitStochastic DebtLimitStochasticMeasure
+  LognormalGrowthMeasure TidyR5GaussianAR1 TidyR6ManagedSurplus
+
+/-! ### Equilibrium notions -/
+
+/-- Cochrane (2023), p. 197: initial debt `x₀` is sustainable under the surplus process `σ` if
+debt stays at or below the limit `x̄` at every date, almost surely. -/
+def Sustainable {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (γ xbar : ℝ) (σ : ℕ → Ω → ℝ)
+    (x₀ : ℝ) : Prop :=
+  ∀ᵐ ω ∂μ, ∀ t, debtPath γ x₀ σ t ω ≤ xbar
+
+/-- Cochrane (2023), p. 197: initial debt `x₀` is sustainable in the band `[x_{low}, x̄]` under
+`σ` if debt stays in the band at every date, almost surely. -/
+def BandSustainable {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (γ xlow xbar : ℝ)
+    (σ : ℕ → Ω → ℝ) (x₀ : ℝ) : Prop :=
+  ∀ᵐ ω ∂μ, ∀ t, xlow ≤ debtPath γ x₀ σ t ω ∧ debtPath γ x₀ σ t ω ≤ xbar
+
+/-- Cochrane (2023), p. 197: `P₀` is an equilibrium price level for the surplus plan `σ`, given
+nominal debt `B` and GDP `y₀`, if `P₀ > 0` and the initial debt `B/(P₀ y₀)` is sustainable. -/
+def IsEqmPrice {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (γ xbar : ℝ) (σ : ℕ → Ω → ℝ)
+    (B y₀ P₀ : ℝ) : Prop :=
+  0 < P₀ ∧ Sustainable μ γ xbar σ (B / (P₀ * y₀))
+
+/-- Cochrane (2023), p. 197: `P₀` is an equilibrium price level for the plan `σ` with the band
+`[x_{low}, x̄]`. -/
+def IsBandEqmPrice {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (γ xlow xbar : ℝ)
+    (σ : ℕ → Ω → ℝ) (B y₀ P₀ : ℝ) : Prop :=
+  0 < P₀ ∧ BandSustainable μ γ xlow xbar σ (B / (P₀ * y₀))
+
+/-- Cochrane (2023), p. 197: `P₀` is an equilibrium price level under the boundary-avoiding
+modification of the feedback rule `F`, which responds to the actual debt `B/(P₀ y₀)`. -/
+def IsFeedbackEqmPrice {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (γ xbar : ℝ)
+    (F : ℕ → ℝ → Ω → ℝ) (B y₀ P₀ : ℝ) : Prop :=
+  0 < P₀ ∧ ∀ᵐ ω ∂μ, ∀ t, avoidPath γ xbar F (B / (P₀ * y₀)) t ω ≤ xbar
+
+/-- Cochrane (2023), p. 197: `P₀` is an equilibrium price level under the two-sided
+modification of the feedback rule `F`. -/
+def IsBandFeedbackEqmPrice {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (γ xlow xbar : ℝ)
+    (F : ℕ → ℝ → Ω → ℝ) (B y₀ P₀ : ℝ) : Prop :=
+  0 < P₀ ∧ ∀ᵐ ω ∂μ, ∀ t, xlow ≤ bandPath γ xlow xbar F (B / (P₀ * y₀)) t ω ∧
+    bandPath γ xlow xbar F (B / (P₀ * y₀)) t ω ≤ xbar
+
+/-! ### The surplus process -/
+
+/-- Cochrane (2023), p. 197: i.i.d. surplus shocks are the AR(1) with `ρ = 0`: `u_t = ε_t`. -/
+theorem ar1_zero (t : ℕ) (ω : ℕ → ℝ) : ar1 0 t ω = ω t := by
+  cases t with
+  | zero => rfl
+  | succ t =>
+    change 0 * ar1 0 t ω + ω (t + 1) = ω (t + 1)
+    ring
+
+/-- Cochrane (2023), p. 197: the linear rule with i.i.d. shocks is the linear rule with the
+`ρ = 0` AR(1). -/
+theorem linRule_shock (sbar φ bbar : ℝ) :
+    linRule sbar φ bbar shock = linRule sbar φ bbar (ar1 0) := by
+  funext t x ω
+  simp only [linRule, ar1_zero]
+  rfl
+
+/-- Cochrane (2023), p. 197: under the unmodified linear rule with AR(1) shocks, debt is the
+debt of `DebtLimitStochastic.debtPath` with root `γ − φ` and AR(1) surplus around `s̄ − φ b̄`. -/
+theorem rulePath_linRule (γ sbar φ bbar ρ x₀ : ℝ) (t : ℕ) (ω : ℕ → ℝ) :
+    rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω =
+      debtPath (γ - φ) x₀ (arSurplus ρ (sbar - φ * bbar)) t ω := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+    change γ * rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω -
+      linRule sbar φ bbar (ar1 ρ) t (rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω) ω = _
+    rw [linRule_response, ih, debtPath_succ, arSurplus]
+
+variable {ν : ProbabilityMeasure ℝ}
+
+variable (ν) in
+/-- Cochrane (2023), p. 197 ("we must already imagine a managed surplus process"): the
+boundary-avoiding linear plan is an adapted policy: next period's debt `m_{t+1}` and the
+surplus `σ_t` are known at date `t`. -/
+theorem plan_adapted (γ xbar sbar φ bbar ρ m₀ : ℝ) (t : ℕ) :
+    Measurable[(iidSystem ν).𝓕 t] (avoidPath γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀ (t + 1)) ∧
+      Measurable[(iidSystem ν).𝓕 t] (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t) := by
+  set F := linRule sbar φ bbar (ar1 ρ) with hF
+  have hx : ∀ t, Measurable[(iidSystem ν).𝓕 t] (avoidPath γ xbar F m₀ t) := by
+    intro t
+    induction t with
+    | zero => exact measurable_const
+    | succ t ih =>
+      have ih' := ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t)) le_rfl
+      have hu := (measurable_ar1_F ν ρ t).mono ((iidSystem ν).𝓕.mono (Nat.le_succ t)) le_rfl
+      have hf : avoidPath γ xbar F m₀ (t + 1) = fun ω => min xbar
+          (γ * avoidPath γ xbar F m₀ t ω -
+            (sbar + ar1 ρ t ω + φ * (avoidPath γ xbar F m₀ t ω - bbar))) := rfl
+      rw [hf]
+      exact measurable_const.min ((ih'.const_mul γ).sub
+        ((hu.const_add sbar).add ((ih'.sub_const bbar).const_mul φ)))
+  have hu := measurable_ar1_F ν ρ t
+  have hFt : Measurable[(iidSystem ν).𝓕 t] (fun ω => F t (avoidPath γ xbar F m₀ t ω) ω) :=
+    (hu.const_add sbar).add (((hx t).sub_const bbar).const_mul φ)
+  refine ⟨?_, ?_⟩
+  · have hf : avoidPath γ xbar F m₀ (t + 1) = fun ω => min xbar
+        (γ * avoidPath γ xbar F m₀ t ω - F t (avoidPath γ xbar F m₀ t ω) ω) := rfl
+    rw [hf]
+    exact measurable_const.min (((hx t).const_mul γ).sub hFt)
+  · exact hFt.add (measurable_const.max ((((hx t).const_mul γ).sub hFt).sub measurable_const))
+
+variable (ν) in
+/-- Cochrane (2023), p. 197: the two-sided linear plan is an adapted policy as well. -/
+theorem band_plan_adapted (γ xlow xbar sbar φ bbar ρ m₀ : ℝ) (t : ℕ) :
+    Measurable[(iidSystem ν).𝓕 t]
+        (bandPath γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀ (t + 1)) ∧
+      Measurable[(iidSystem ν).𝓕 t]
+        (bandSurplus γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t) := by
+  set F := linRule sbar φ bbar (ar1 ρ) with hF
+  have hx : ∀ t, Measurable[(iidSystem ν).𝓕 t] (bandPath γ xlow xbar F m₀ t) := by
+    intro t
+    induction t with
+    | zero => exact measurable_const
+    | succ t ih =>
+      have ih' := ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t)) le_rfl
+      have hu := (measurable_ar1_F ν ρ t).mono ((iidSystem ν).𝓕.mono (Nat.le_succ t)) le_rfl
+      have hf : bandPath γ xlow xbar F m₀ (t + 1) = fun ω => max xlow (min xbar
+          (γ * bandPath γ xlow xbar F m₀ t ω -
+            (sbar + ar1 ρ t ω + φ * (bandPath γ xlow xbar F m₀ t ω - bbar)))) := rfl
+      rw [hf]
+      exact measurable_const.max (measurable_const.min ((ih'.const_mul γ).sub
+        ((hu.const_add sbar).add ((ih'.sub_const bbar).const_mul φ))))
+  have hu := measurable_ar1_F ν ρ t
+  have hFt : Measurable[(iidSystem ν).𝓕 t] (fun ω => F t (bandPath γ xlow xbar F m₀ t ω) ω) :=
+    (hu.const_add sbar).add (((hx t).sub_const bbar).const_mul φ)
+  have hy : Measurable[(iidSystem ν).𝓕 t]
+      (fun ω => γ * bandPath γ xlow xbar F m₀ t ω - F t (bandPath γ xlow xbar F m₀ t ω) ω) :=
+    ((hx t).const_mul γ).sub hFt
+  refine ⟨?_, ?_⟩
+  · have hf : bandPath γ xlow xbar F m₀ (t + 1) = fun ω => max xlow (min xbar
+        (γ * bandPath γ xlow xbar F m₀ t ω - F t (bandPath γ xlow xbar F m₀ t ω) ω)) := rfl
+    rw [hf]
+    exact measurable_const.max (measurable_const.min hy)
+  · exact (hFt.add (measurable_const.max (hy.sub measurable_const))).sub
+      (measurable_const.max (measurable_const.sub (measurable_const.min hy)))
+
+/-! ### Shocks of every size recur -/
+
+/-- Cochrane (2023), p. 197: with integrable i.i.d. innovations putting mass on deficits of every
+size and `|ρ| < 1`, almost surely the AR(1) falls below every level infinitely often (the
+debt theorem `TidyR5GaussianAR1.ar1_unbounded_of_integrable` at `γ = 0`). -/
+theorem ar1_frequently_le (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ : ℝ} (hρ : |ρ| < 1) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, ∀ K : ℝ, ∃ᶠ t in atTop, ar1 ρ t ω ≤ K := by
+  have h := ar1_unbounded_of_integrable hint hdef (γ := 0) le_rfl zero_lt_one hρ 0 0
+  filter_upwards [h] with ω hω K
+  have h1 := (frequently_shift_iff 1).1 (hω (-K))
+  refine h1.mono fun k hk => ?_
+  rw [show 1 + k = k + 1 from Nat.add_comm 1 k, debtPath_succ, arSurplus] at hk
+  linarith
+
+/-- Cochrane (2023), p. 197: the law of `−ε` (the mirror image of the innovation law). -/
+noncomputable def negLaw (ν : ProbabilityMeasure ℝ) : ProbabilityMeasure ℝ :=
+  ν.map fun x => -x
+
+/-- Cochrane (2023), p. 197: flipping the sign of every innovation maps `ν^ℕ` to
+`(negLaw ν)^ℕ`. -/
+theorem map_neg_iid (ν : ProbabilityMeasure ℝ) :
+    (iidSystem ν).μ.map (fun ω i => -ω i) = (iidSystem (negLaw ν)).μ := by
+  change (Measure.infinitePi fun _ => (ν : Measure ℝ)).map (fun ω i => -ω i) =
+    Measure.infinitePi fun _ => ((negLaw ν : ProbabilityMeasure ℝ) : Measure ℝ)
+  rw [Measure.infinitePi_map_pi _ (f := fun _ x => -x) (fun _ => measurable_neg)]
+  rfl
+
+/-- Cochrane (2023), p. 197: the AR(1) driven by `−ε` is `−u`. -/
+theorem ar1_neg (ρ : ℝ) (t : ℕ) (ω : ℕ → ℝ) : ar1 ρ t (fun i => -ω i) = -ar1 ρ t ω := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+    change ρ * ar1 ρ t (fun i => -ω i) + -ω (t + 1) = -(ρ * ar1 ρ t ω + ω (t + 1))
+    rw [ih]
+    ring
+
+/-- Cochrane (2023), p. 197: with integrable i.i.d. innovations putting mass on surpluses of
+every size and `|ρ| < 1`, almost surely the AR(1) rises above every level infinitely often. -/
+theorem ar1_frequently_ge (hint : Integrable id (ν : Measure ℝ))
+    (hup : ∀ c : ℝ, (ν : Measure ℝ) (Set.Ici c) ≠ 0) {ρ : ℝ} (hρ : |ρ| < 1) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, ∀ K : ℝ, ∃ᶠ t in atTop, K ≤ ar1 ρ t ω := by
+  have hint' : Integrable id ((negLaw ν : ProbabilityMeasure ℝ) : Measure ℝ) := by
+    change Integrable id ((ν : Measure ℝ).map fun x => -x)
+    rw [integrable_map_measure measurable_id.aestronglyMeasurable measurable_neg.aemeasurable]
+    exact hint.neg
+  have hdef' : ∀ c : ℝ, ((negLaw ν : ProbabilityMeasure ℝ) : Measure ℝ) (Set.Iic (-c)) ≠ 0 := by
+    intro c
+    change ((ν : Measure ℝ).map fun x => -x) (Set.Iic (-c)) ≠ 0
+    rw [Measure.map_apply measurable_neg measurableSet_Iic]
+    have e : (fun x : ℝ => -x) ⁻¹' Set.Iic (-c) = Set.Ici c := by
+      ext x
+      simp
+    rw [e]
+    exact hup c
+  have h := ar1_frequently_le hint' hdef' hρ
+  rw [← map_neg_iid] at h
+  have hm : Measurable fun (ω : ℕ → ℝ) (i : ℕ) => -ω i :=
+    measurable_pi_iff.mpr fun i => (measurable_pi_apply i).neg
+  filter_upwards [ae_of_ae_map hm.aemeasurable h] with ω hω K
+  refine (hω (-K)).mono fun t ht => ?_
+  rw [ar1_neg] at ht
+  linarith
+
+/-! ### The plan touches the limit -/
+
+/-- Cochrane (2023), p. 197: with integrable i.i.d. innovations with deficits of every size,
+`|ρ| < 1`, `γ < 1` and any response `φ ≥ 0`, the boundary-avoiding linear plan almost surely
+touches the limit `x̄` at some date. For `γ − φ ≥ 0` the unmodified rule would be a.s. unbounded
+(`TidyR5GaussianAR1.ar1_unbounded_of_integrable`), and the plan meets `x̄` where the rule first
+crosses it; for `γ − φ < 0` a large enough deficit shock carries the plan to `x̄` directly. -/
+theorem plan_hits (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hγ1 : γ < 1) (hφ : 0 ≤ φ) (sbar bbar xbar m₀ : ℝ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, ∃ t,
+      avoidPath γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω = xbar := by
+  rcases le_or_gt 0 (γ - φ) with ha | ha
+  · have h := ar1_unbounded_of_integrable hint hdef (γ := γ - φ) ha (by linarith) hρ m₀
+      (sbar - φ * bbar)
+    filter_upwards [h] with ω hω
+    obtain ⟨t, ht, ht1⟩ := ((hω xbar).and_eventually (eventually_ge_atTop 1)).exists
+    have hr : ∃ t, 1 ≤ t ∧ xbar ≤ rulePath γ (linRule sbar φ bbar (ar1 ρ)) m₀ t ω :=
+      ⟨t, ht1, by rw [rulePath_linRule]; exact ht.le⟩
+    obtain ⟨s, -, hs⟩ := avoid_hits_of_rule_exceeds hr
+    exact ⟨s, hs⟩
+  · filter_upwards [ar1_frequently_le hint hdef hρ] with ω hω
+    obtain ⟨t, ht, ht1⟩ := ((hω ((γ - φ - 1) * xbar - (sbar - φ * bbar))).and_eventually
+      (eventually_ge_atTop 1)).exists
+    obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
+    refine ⟨s + 1 + 1, avoidPath_succ_eq_xbar ?_⟩
+    rw [linRule_response]
+    have hm := avoidPath_le γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀ s ω
+    have h1 := mul_le_mul_of_nonpos_left hm ha.le
+    linarith
+
+/-- Cochrane (2023), p. 197: with integrable i.i.d. innovations with deficits AND surpluses of
+every size and `|ρ| < 1`, the two-sided linear plan from `m₀ ∈ [x_{low}, x̄]` almost surely touches
+both edges of the band, for every response `φ` and every `γ`. -/
+theorem band_hits (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0)
+    (hup : ∀ c : ℝ, (ν : Measure ℝ) (Set.Ici c) ≠ 0) {ρ γ φ xlow xbar m₀ : ℝ} (hρ : |ρ| < 1)
+    (hl : xlow ≤ xbar) (hm₀ : xlow ≤ m₀ ∧ m₀ ≤ xbar) (sbar bbar : ℝ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ,
+      (∃ t, bandPath γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω = xbar) ∧
+      ∃ t, bandPath γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω = xlow := by
+  filter_upwards [ar1_frequently_le hint hdef hρ, ar1_frequently_ge hint hup hρ] with ω hle hge
+  set a := γ - φ
+  set c := sbar - φ * bbar
+  constructor
+  · obtain ⟨t, ht⟩ := (hle (min (a * xlow) (a * xbar) - c - xbar)).exists
+    refine ⟨t + 1, bandPath_succ_eq_xbar hl ?_⟩
+    rw [linRule_response]
+    have hb := bandPath_mem_all (γ := γ) hl hm₀ (linRule sbar φ bbar (ar1 ρ)) ω t
+    have hmm := (mul_mem_minmax (a := a) hb.1 hb.2).1
+    linarith
+  · obtain ⟨t, ht⟩ := (hge (max (a * xlow) (a * xbar) - c - xlow)).exists
+    refine ⟨t + 1, bandPath_succ_eq_xlow ?_⟩
+    rw [linRule_response]
+    have hb := bandPath_mem_all (γ := γ) hl hm₀ (linRule sbar φ bbar (ar1 ρ)) ω t
+    have hmm := (mul_mem_minmax (a := a) hb.1 hb.2).2
+    linarith
+
+/-! ### One-sided plans: deflation is ruled out, inflation is not -/
+
+/-- **Managed surplus, one-sided limit** (Cochrane (2023), p. 197). With i.i.d. integrable
+innovations with deficits of every size, `|ρ| < 1`, `0 < γ < 1` (`r < g`), any response `φ ≥ 0`
+and a plan from `m₀ ≤ x̄`: initial debt `x₀` is sustainable under the boundary-avoiding plan iff
+`x₀ ≤ m₀`. A deflation (`x₀ > m₀`) breaches the limit almost surely; any inflation (`x₀ < m₀`)
+is sustained on every path. -/
+theorem plan_sustainable_iff (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hγ : 0 < γ) (hγ1 : γ < 1) (hφ : 0 ≤ φ) {sbar bbar xbar m₀ : ℝ} (hm₀ : m₀ ≤ xbar) (x₀ : ℝ) :
+    Sustainable (iidSystem ν).μ γ xbar (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀) x₀ ↔
+      x₀ ≤ m₀ := by
+  set F := linRule sbar φ bbar (ar1 ρ) with hF
+  constructor
+  · intro h
+    by_contra hx
+    rw [not_le] at hx
+    obtain ⟨ω, hω, t, ht⟩ := (h.and (plan_hits hint hdef hρ hγ1 hφ sbar bbar xbar m₀)).exists
+    exact absurd (hω t) (not_le.2 (plan_breach_high hγ
+      (fun s => avoidPath_succ_eq γ xbar F m₀ s ω) hx ht))
+  · intro hx
+    exact Eventually.of_forall fun ω t => plan_within_of_le hγ.le
+      (fun s => avoidPath_succ_eq γ xbar F m₀ s ω)
+      (fun s => (avoidPath_within_iff γ xbar F m₀ ω).2 hm₀ s) hx t
+
+/-- **The equilibrium price levels under a one-sided managed plan** (Cochrane (2023), p. 197):
+with nominal debt `B > 0`, GDP `y₀ > 0` and a plan from `0 < m₀ ≤ x̄`, `P₀` is an equilibrium
+price level iff `P₀ ≥ P* = B/(y₀ m₀)`. -/
+theorem plan_eqm_price_iff (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hγ : 0 < γ) (hγ1 : γ < 1) (hφ : 0 ≤ φ) {sbar bbar xbar m₀ B y₀ : ℝ} (hB : 0 < B)
+    (hy : 0 < y₀) (hm₀p : 0 < m₀) (hm₀ : m₀ ≤ xbar) (P₀ : ℝ) :
+    IsEqmPrice (iidSystem ν).μ γ xbar (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀)
+        B y₀ P₀ ↔ B / (y₀ * m₀) ≤ P₀ := by
+  constructor
+  · rintro ⟨hP, hS⟩
+    exact (debt_le_iff_price_ge hy hP hm₀p).1
+      ((plan_sustainable_iff hint hdef hρ hγ hγ1 hφ hm₀ _).1 hS)
+  · intro hP
+    have hP0 : 0 < P₀ := (div_pos hB (mul_pos hy hm₀p)).trans_le hP
+    exact ⟨hP0, (plan_sustainable_iff hint hdef hρ hγ hγ1 hφ hm₀ _).2
+      ((debt_le_iff_price_ge hy hP0 hm₀p).2 hP)⟩
+
+/-- Cochrane (2023), p. 197 ("a plan that exceeds the bound by a finite amount will lead to an
+initial price-level rise ... until the government is again able to keep debt below the
+boundary"): `P* = B/(y₀ m₀)` is the LEAST equilibrium price level. -/
+theorem plan_price_isLeast (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hγ : 0 < γ) (hγ1 : γ < 1) (hφ : 0 ≤ φ) {sbar bbar xbar m₀ B y₀ : ℝ} (hB : 0 < B)
+    (hy : 0 < y₀) (hm₀p : 0 < m₀) (hm₀ : m₀ ≤ xbar) :
+    IsLeast {P₀ | IsEqmPrice (iidSystem ν).μ γ xbar
+      (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀) B y₀ P₀} (B / (y₀ * m₀)) :=
+  ⟨(plan_eqm_price_iff hint hdef hρ hγ hγ1 hφ hB hy hm₀p hm₀ _).2 le_rfl,
+    fun _ hP => (plan_eqm_price_iff hint hdef hρ hγ hγ1 hφ hB hy hm₀p hm₀ _).1 hP⟩
+
+/-- **Correction** (Cochrane (2023), p. 197, "we are back to global determinacy of the price
+level"): under a one-sided managed plan the equilibrium price level is NOT unique: `P*` and
+`2 P*` are both equilibria. Only deflation is ruled out. -/
+theorem plan_price_not_unique (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hγ : 0 < γ) (hγ1 : γ < 1) (hφ : 0 ≤ φ) {sbar bbar xbar m₀ B y₀ : ℝ} (hB : 0 < B)
+    (hy : 0 < y₀) (hm₀p : 0 < m₀) (hm₀ : m₀ ≤ xbar) :
+    ¬ ∃! P₀, IsEqmPrice (iidSystem ν).μ γ xbar
+      (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀) B y₀ P₀ := by
+  rintro ⟨P, -, hu⟩
+  have hpos : 0 < B / (y₀ * m₀) := div_pos hB (mul_pos hy hm₀p)
+  have h1 := hu _ ((plan_eqm_price_iff hint hdef hρ hγ hγ1 hφ hB hy hm₀p hm₀ _).2 le_rfl)
+  have h2 := hu (2 * (B / (y₀ * m₀)))
+    ((plan_eqm_price_iff hint hdef hρ hγ hγ1 hφ hB hy hm₀p hm₀ _).2 (by linarith))
+  linarith
+
+/-! ### Two-sided plans: global determinacy -/
+
+/-- **Managed surplus, two-sided band: global determinacy** (Cochrane (2023), p. 197,
+corrected). With i.i.d. integrable innovations with deficits and surpluses of every size,
+`|ρ| < 1`, `0 < γ`, any response `φ`, a band `x_{low} ≤ x̄` and a plan from `m₀` in the band: the
+only initial debt sustainable in the band under the plan is `x₀ = m₀`. -/
+theorem band_sustainable_iff (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0)
+    (hup : ∀ c : ℝ, (ν : Measure ℝ) (Set.Ici c) ≠ 0) {ρ γ φ xlow xbar m₀ : ℝ} (hρ : |ρ| < 1)
+    (hγ : 0 < γ) (hl : xlow ≤ xbar) (hm₀ : xlow ≤ m₀ ∧ m₀ ≤ xbar) (sbar bbar x₀ : ℝ) :
+    BandSustainable (iidSystem ν).μ γ xlow xbar
+      (bandSurplus γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀) x₀ ↔ x₀ = m₀ := by
+  set F := linRule sbar φ bbar (ar1 ρ) with hF
+  constructor
+  · intro h
+    obtain ⟨ω, hω, ⟨t₁, h₁⟩, ⟨t₂, h₂⟩⟩ :=
+      (h.and (band_hits (φ := φ) (γ := γ) hint hdef hup hρ hl hm₀ sbar bbar)).exists
+    have hm := fun s => bandPath_succ_eq γ xlow xbar F m₀ s ω
+    rcases lt_trichotomy x₀ m₀ with hx | hx | hx
+    · exact absurd (hω t₂).1 (not_le.2 (plan_breach_low hγ hm hx h₂))
+    · exact hx
+    · exact absurd (hω t₁).2 (not_le.2 (plan_breach_high hγ hm hx h₁))
+  · rintro rfl
+    refine Eventually.of_forall fun ω t => ?_
+    rw [band_plan_debtPath, sub_self, mul_zero, add_zero]
+    exact bandPath_mem_all hl hm₀ F ω t
+
+/-- **Existence and uniqueness of the equilibrium price level under a two-sided managed plan**
+(Cochrane (2023), p. 197, corrected): with `B > 0`, `y₀ > 0` and a plan from `m₀ > 0` in the
+band, there is exactly one equilibrium price level, `P₀ = B/(y₀ m₀)`. -/
+theorem band_eqm_price_unique (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0)
+    (hup : ∀ c : ℝ, (ν : Measure ℝ) (Set.Ici c) ≠ 0) {ρ γ φ xlow xbar m₀ B y₀ : ℝ}
+    (hρ : |ρ| < 1) (hγ : 0 < γ) (hl : xlow ≤ xbar) (hm₀ : xlow ≤ m₀ ∧ m₀ ≤ xbar) (hB : 0 < B)
+    (hy : 0 < y₀) (hm₀p : 0 < m₀) (sbar bbar : ℝ) :
+    ∃! P₀, IsBandEqmPrice (iidSystem ν).μ γ xlow xbar
+      (bandSurplus γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀) B y₀ P₀ := by
+  obtain ⟨hpos, hspec⟩ := price_spec hB hy hm₀p
+  refine ⟨B / (y₀ * m₀), ⟨hpos, ?_⟩, ?_⟩
+  · rw [hspec]
+    exact (band_sustainable_iff hint hdef hup hρ hγ hl hm₀ sbar bbar _).2 rfl
+  · rintro P ⟨hP, hS⟩
+    exact (debt_eq_iff_price_eq hy hP hm₀p).1
+      ((band_sustainable_iff hint hdef hup hρ hγ hl hm₀ sbar bbar _).1 hS)
+
+/-! ### Feedback rules: no determinacy -/
+
+/-- Cochrane (2023), p. 197: on any probability space, under the boundary-avoiding modification
+of ANY feedback rule, initial debt is sustainable iff `x₀ ≤ x̄`. -/
+theorem feedback_sustainable_iff {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    [IsProbabilityMeasure μ] (γ xbar : ℝ) (F : ℕ → ℝ → Ω → ℝ) (x₀ : ℝ) :
+    (∀ᵐ ω ∂μ, ∀ t, avoidPath γ xbar F x₀ t ω ≤ xbar) ↔ x₀ ≤ xbar := by
+  constructor
+  · intro h
+    obtain ⟨ω, hω⟩ := h.exists
+    exact (avoidPath_within_iff γ xbar F x₀ ω).1 hω
+  · intro hx
+    exact Eventually.of_forall fun ω => (avoidPath_within_iff γ xbar F x₀ ω).2 hx
+
+/-- **Correction** (Cochrane (2023), p. 197): if the managed surplus responds to the actual,
+revalued debt, the equilibrium price levels are exactly `P₀ ≥ B/(y₀ x̄)`, for any rule `F` on
+any probability space (`B > 0`, `y₀ > 0`, `x̄ > 0`). -/
+theorem feedback_price_iff {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    [IsProbabilityMeasure μ] (γ : ℝ) (F : ℕ → ℝ → Ω → ℝ) {xbar B y₀ : ℝ} (hB : 0 < B)
+    (hy : 0 < y₀) (hx : 0 < xbar) (P₀ : ℝ) :
+    IsFeedbackEqmPrice μ γ xbar F B y₀ P₀ ↔ B / (y₀ * xbar) ≤ P₀ := by
+  constructor
+  · rintro ⟨hP, hS⟩
+    exact (debt_le_iff_price_ge hy hP hx).1 ((feedback_sustainable_iff μ γ xbar F _).1 hS)
+  · intro hP
+    have hP0 : 0 < P₀ := (div_pos hB (mul_pos hy hx)).trans_le hP
+    exact ⟨hP0, (feedback_sustainable_iff μ γ xbar F _).2
+      ((debt_le_iff_price_ge hy hP0 hx).2 hP)⟩
+
+/-- **Correction** (Cochrane (2023), p. 197): under a boundary-avoiding feedback rule the
+equilibrium price level is not unique. -/
+theorem feedback_price_not_unique {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    [IsProbabilityMeasure μ] (γ : ℝ) (F : ℕ → ℝ → Ω → ℝ) {xbar B y₀ : ℝ} (hB : 0 < B)
+    (hy : 0 < y₀) (hx : 0 < xbar) :
+    ¬ ∃! P₀, IsFeedbackEqmPrice μ γ xbar F B y₀ P₀ := by
+  rintro ⟨P, -, hu⟩
+  have hpos : 0 < B / (y₀ * xbar) := div_pos hB (mul_pos hy hx)
+  have h1 := hu _ ((feedback_price_iff μ γ F hB hy hx _).2 le_rfl)
+  have h2 := hu (2 * (B / (y₀ * xbar))) ((feedback_price_iff μ γ F hB hy hx _).2 (by linarith))
+  linarith
+
+/-- Cochrane (2023), p. 197: under the two-sided modification of ANY feedback rule, on any
+probability space, the equilibrium price levels are exactly
+`B/(y₀ x̄) ≤ P₀ ≤ B/(y₀ x_{low})` (`0 < x_{low} ≤ x̄`, `B > 0`, `y₀ > 0`). -/
+theorem band_feedback_price_iff {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    [IsProbabilityMeasure μ] (γ : ℝ) (F : ℕ → ℝ → Ω → ℝ) {xlow xbar B y₀ : ℝ} (hB : 0 < B)
+    (hy : 0 < y₀) (hlow : 0 < xlow) (hl : xlow ≤ xbar) (P₀ : ℝ) :
+    IsBandFeedbackEqmPrice μ γ xlow xbar F B y₀ P₀ ↔
+      B / (y₀ * xbar) ≤ P₀ ∧ P₀ ≤ B / (y₀ * xlow) := by
+  have hxbar : 0 < xbar := hlow.trans_le hl
+  constructor
+  · rintro ⟨hP, hS⟩
+    obtain ⟨ω, hω⟩ := hS.exists
+    have h0 := (bandPath_within_iff hl F _ ω).1 hω
+    exact ⟨(debt_le_iff_price_ge hy hP hxbar).1 h0.2, (le_debt_iff_price_le hy hP hlow).1 h0.1⟩
+  · rintro ⟨h1, h2⟩
+    have hP0 : 0 < P₀ := (div_pos hB (mul_pos hy hxbar)).trans_le h1
+    refine ⟨hP0, Eventually.of_forall fun ω => (bandPath_within_iff hl F _ ω).2 ⟨?_, ?_⟩⟩
+    · exact (le_debt_iff_price_le hy hP0 hlow).2 h2
+    · exact (debt_le_iff_price_ge hy hP0 hxbar).2 h1
+
+/-- **Correction** (Cochrane (2023), p. 197): even with a band, a feedback rule leaves the price
+level indeterminate when `0 < x_{low} < x̄`: `B/(y₀ x̄)` and `B/(y₀ x_{low})` are distinct
+equilibrium price levels. -/
+theorem band_feedback_price_not_unique {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    [IsProbabilityMeasure μ] (γ : ℝ) (F : ℕ → ℝ → Ω → ℝ) {xlow xbar B y₀ : ℝ} (hB : 0 < B)
+    (hy : 0 < y₀) (hlow : 0 < xlow) (hl : xlow < xbar) :
+    ¬ ∃! P₀, IsBandFeedbackEqmPrice μ γ xlow xbar F B y₀ P₀ := by
+  rintro ⟨P, -, hu⟩
+  have hxbar : 0 < xbar := hlow.trans hl
+  have hlt : B / (y₀ * xbar) < B / (y₀ * xlow) :=
+    div_lt_div_of_pos_left hB (mul_pos hy hlow) (mul_lt_mul_of_pos_left hl hy)
+  have h1 := hu (B / (y₀ * xbar))
+    ((band_feedback_price_iff μ γ F hB hy hlow hl.le _).2 ⟨le_rfl, hlt.le⟩)
+  have h2 := hu (B / (y₀ * xlow))
+    ((band_feedback_price_iff μ γ F hB hy hlow hl.le _).2 ⟨hlt.le, le_rfl⟩)
+  linarith
+
+/-! ### Without the modification: Theorem S persists -/
+
+/-- Cochrane (2023), p. 197: the UNMODIFIED linear rule with a response `0 ≤ φ ≤ γ < 1` does
+not make any debt sustainable: with i.i.d. integrable innovations with deficits of every size
+and `|ρ| < 1`, for every initial debt `x₀` and every limit `x̄`, debt stays at or below `x̄`
+forever with probability zero. -/
+theorem linear_rule_not_sustainable (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hφ : 0 ≤ φ) (hφγ : φ ≤ γ) (hγ1 : γ < 1) (sbar bbar x₀ xbar : ℝ) :
+    (iidSystem ν).μ {ω | ∀ t, rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω ≤ xbar} = 0 := by
+  rw [measure_eq_zero_iff_ae_notMem]
+  filter_upwards [ar1_unbounded_of_integrable hint hdef (γ := γ - φ) (by linarith)
+    (by linarith) hρ x₀ (sbar - φ * bbar)] with ω hω hall
+  obtain ⟨t, ht⟩ := (hω xbar).exists
+  have := hall t
+  rw [rulePath_linRule] at this
+  exact absurd this (not_le.2 ht)
+
+/-! ### Gaussian surpluses -/
+
+/-- Cochrane (2023), p. 197: a non-degenerate Gaussian law puts positive mass on surpluses of
+every size. -/
+theorem gaussian_Ici_ne_zero (m : ℝ) {v : NNReal} (hv : v ≠ 0) (c : ℝ) :
+    gaussianReal m v (Set.Ici c) ≠ 0 := by
+  intro h
+  have h2 := gaussianReal_absolutelyContinuous' m hv h
+  rw [Real.volume_Ici] at h2
+  exact ENNReal.top_ne_zero h2
+
+/-- Cochrane (2023), p. 197: Gaussian innovations `N(0, v)` are integrable. -/
+theorem gaussian_integrable (v : NNReal) :
+    Integrable id ((gaussianProb 0 v : ProbabilityMeasure ℝ) : Measure ℝ) := by
+  have h := memLp_id_gaussianReal (μ := 0) (v := v) 1
+  rw [ENNReal.coe_one, memLp_one_iff_integrable] at h
+  exact h
+
+/-- **Verdict, one-sided limit, Gaussian AR(1) surpluses** (Cochrane (2023), §6.4.1, p. 197).
+Surpluses `s_t = s̄ + u_t + φ (x_t − b̄)`, `u` a Gaussian AR(1) (`ε_t ~ N(0, v)`, `v ≠ 0`,
+`|ρ| < 1`; `ρ = 0` is i.i.d.), `φ ≥ 0`, `0 < γ < 1`, boundary-avoiding modification, plan from
+`0 < m₀ ≤ x̄`, `B > 0`, `y₀ > 0`:
+(i) the plan keeps debt at or below `x̄` on every path (sustainability);
+(ii) the equilibrium price levels are exactly `[B/(y₀ m₀), ∞)` (existence; deflation ruled out);
+(iii) the equilibrium price level is NOT unique (no global determinacy);
+(iv) if instead the rule responds to actual debt, the equilibrium price levels are exactly
+`[B/(y₀ x̄), ∞)`. -/
+theorem gaussian_plan_verdict {v : NNReal} (hv : v ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1) (hγ : 0 < γ)
+    (hγ1 : γ < 1) (hφ : 0 ≤ φ) {sbar bbar xbar m₀ B y₀ : ℝ} (hB : 0 < B) (hy : 0 < y₀)
+    (hm₀p : 0 < m₀) (hm₀ : m₀ ≤ xbar) :
+    (∀ ω t, avoidPath γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω ≤ xbar) ∧
+    {P₀ | IsEqmPrice (iidSystem (gaussianProb 0 v)).μ γ xbar
+      (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀) B y₀ P₀} =
+        Set.Ici (B / (y₀ * m₀)) ∧
+    (¬ ∃! P₀, IsEqmPrice (iidSystem (gaussianProb 0 v)).μ γ xbar
+      (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀) B y₀ P₀) ∧
+    {P₀ | IsFeedbackEqmPrice (iidSystem (gaussianProb 0 v)).μ γ xbar
+      (linRule sbar φ bbar (ar1 ρ)) B y₀ P₀} = Set.Ici (B / (y₀ * xbar)) := by
+  have hint := gaussian_integrable v
+  have hdef := gaussian_Iic_ne_zero 0 hv
+  refine ⟨fun ω => (avoidPath_within_iff γ xbar _ m₀ ω).2 hm₀, ?_,
+    plan_price_not_unique hint hdef hρ hγ hγ1 hφ hB hy hm₀p hm₀, ?_⟩
+  · ext P₀
+    exact plan_eqm_price_iff hint hdef hρ hγ hγ1 hφ hB hy hm₀p hm₀ P₀
+  · ext P₀
+    exact feedback_price_iff _ γ _ hB hy (hm₀p.trans_le hm₀) P₀
+
+/-- **Verdict, two-sided band, Gaussian AR(1) surpluses: global determinacy** (Cochrane (2023),
+§6.4.1, p. 197, corrected statement). With the same surpluses and any response `φ`, a band
+`x_{low} ≤ x̄` and a two-sided plan from `m₀ ∈ [x_{low}, x̄]`, `m₀ > 0`, `0 < γ`:
+(i) debt stays in the band on every path; (ii) the only sustainable initial debt is `m₀`;
+(iii) the equilibrium price level exists and is unique, `P₀ = B/(y₀ m₀)`. -/
+theorem gaussian_band_verdict {v : NNReal} (hv : v ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hγ : 0 < γ) {xlow xbar m₀ B y₀ : ℝ} (hl : xlow ≤ xbar) (hm₀ : xlow ≤ m₀ ∧ m₀ ≤ xbar)
+    (hB : 0 < B) (hy : 0 < y₀) (hm₀p : 0 < m₀) (sbar bbar : ℝ) :
+    (∀ ω t, xlow ≤ bandPath γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω ∧
+      bandPath γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω ≤ xbar) ∧
+    (∀ x₀, BandSustainable (iidSystem (gaussianProb 0 v)).μ γ xlow xbar
+      (bandSurplus γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀) x₀ ↔ x₀ = m₀) ∧
+    ∃! P₀, IsBandEqmPrice (iidSystem (gaussianProb 0 v)).μ γ xlow xbar
+      (bandSurplus γ xlow xbar (linRule sbar φ bbar (ar1 ρ)) m₀) B y₀ P₀ := by
+  have hint := gaussian_integrable v
+  have hdef := gaussian_Iic_ne_zero 0 hv
+  have hup := gaussian_Ici_ne_zero 0 hv
+  exact ⟨fun ω t => bandPath_mem_all hl hm₀ _ ω t,
+    fun x₀ => band_sustainable_iff hint hdef hup hρ hγ hl hm₀ sbar bbar x₀,
+    band_eqm_price_unique hint hdef hup hρ hγ hl hm₀ hB hy hm₀p sbar bbar⟩
+
+/-- Cochrane (2023), p. 197, **on the i.i.d. process**: with i.i.d. surplus shocks `ε_t ~ ν`
+(integrable, deficits and surpluses of every size) and the two-sided linear plan
+`s_t = s̄ + ε_t + φ (m_t − b̄)` modified to the band, the equilibrium price level exists and is
+unique; with the one-sided plan the equilibrium price levels are exactly `[B/(y₀ m₀), ∞)`. -/
+theorem iid_verdict (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0)
+    (hup : ∀ c : ℝ, (ν : Measure ℝ) (Set.Ici c) ≠ 0) {γ φ xlow xbar m₀ B y₀ : ℝ} (hγ : 0 < γ)
+    (hγ1 : γ < 1) (hφ : 0 ≤ φ) (hl : xlow ≤ xbar) (hm₀ : xlow ≤ m₀ ∧ m₀ ≤ xbar) (hB : 0 < B)
+    (hy : 0 < y₀) (hm₀p : 0 < m₀) (sbar bbar : ℝ) :
+    (∃! P₀, IsBandEqmPrice (iidSystem ν).μ γ xlow xbar
+      (bandSurplus γ xlow xbar (linRule sbar φ bbar shock) m₀) B y₀ P₀) ∧
+    {P₀ | IsEqmPrice (iidSystem ν).μ γ xbar
+      (avoidSurplus γ xbar (linRule sbar φ bbar shock) m₀) B y₀ P₀} =
+        Set.Ici (B / (y₀ * m₀)) := by
+  have hρ : |(0 : ℝ)| < 1 := by norm_num
+  rw [linRule_shock]
+  refine ⟨band_eqm_price_unique hint hdef hup hρ hγ hl hm₀ hB hy hm₀p sbar bbar, ?_⟩
+  ext P₀
+  exact plan_eqm_price_iff hint hdef hρ hγ hγ1 hφ hB hy hm₀p hm₀.2 P₀
+
+end Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The unmodified linear surplus rule for every response, and the managed plan below
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197.
+
+Surpluses `s_t = s̄ + u_t + φ (x_t − b̄)` with `u` an AR(1) (`|ρ| < 1`, i.i.d. integrable
+innovations `ν` with deficits of every size; Gaussian included) and `0 < γ < 1`. Without the
+boundary-avoiding modification debt follows `x_{t+1} = (γ − φ) x_t − (s̄ − φ b̄ + u_t)`
+(`TidyR6ManagedSurplusMeasure.rulePath_linRule`).
+
+## Main results
+
+* `linear_rule_ae_unbounded_above`, `linear_rule_zero_prob`: for every response `φ > γ − 1`
+  (root `γ − φ < 1`; in particular every `φ ≥ 0`, including `φ > γ`, where the root is negative
+  and debt oscillates), debt is almost surely unbounded above, so it stays below any limit with
+  probability zero. For `γ − φ ≤ 0` the argument is pathwise (`unbounded_above_of_nonpos`): if
+  debt stayed below `M`, then `(γ − φ) x_t ≥ (γ − φ) M`, and a large deficit shock lifts debt
+  above `M`.
+* `linear_rule_half_prob` (the other side): for `φ < γ − 1` (root `γ − φ > 1`, surpluses CUT
+  sharply as debt rises) debt from a low enough initial value stays at or below zero forever
+  with probability at least `1/2` (Markov's inequality on the discounted shock sum).
+* `linear_rule_not_ae_sustainable`: for every `φ` and every initial debt, debt exceeds any limit
+  at date 1 with positive probability, so no unmodified linear rule is sustainable almost surely.
+* `plan_unbounded_below_of_frequently`, `plan_ae_unbounded_below`, `plan_debt_ae_unbounded_below`:
+  the one-sided boundary-avoiding plan (any `φ`, any `γ`), and actual debt under it, are almost
+  surely unbounded below when the innovations have surpluses of every size: the government
+  accumulates assets without bound.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR6LinearRuleBounds
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure ExpectationsMeasureIID DebtLimitStochastic DebtLimitStochasticMeasure
+  TidyR5GaussianAR1 TidyR6ManagedSurplus TidyR6ManagedSurplusMeasure
+
+variable {ν : ProbabilityMeasure ℝ}
+
+/-! ### Unmodified rule, root `γ − φ < 1`: unbounded above -/
+
+/-- Cochrane (2023), p. 197: with root `a ≤ 0` (a response `φ ≥ γ`), on any path on which the
+AR(1) falls below every level infinitely often, debt `x_{t+1} = a x_t − (c + u_t)` exceeds every
+level at some date. -/
+theorem unbounded_above_of_nonpos {a c ρ x₀ : ℝ} (ha : a ≤ 0) {ω : ℕ → ℝ}
+    (hfreq : ∀ K : ℝ, ∃ᶠ t in atTop, ar1 ρ t ω ≤ K) (M : ℝ) :
+    ∃ t, M < debtPath a x₀ (arSurplus ρ c) t ω := by
+  by_contra hcon
+  have hall : ∀ t, debtPath a x₀ (arSurplus ρ c) t ω ≤ M := fun t =>
+    not_lt.1 fun h => hcon ⟨t, h⟩
+  obtain ⟨t, ht⟩ := (hfreq ((a - 1) * M - c - 1)).exists
+  have h1 := hall (t + 1)
+  rw [debtPath_succ, arSurplus] at h1
+  have h2 := mul_le_mul_of_nonpos_left (hall t) ha
+  linarith
+
+/-- Cochrane (2023), p. 197 (**unmodified linear rule, every response `φ > γ − 1`**): with
+i.i.d. integrable innovations with deficits of every size and `|ρ| < 1`, debt under the
+unmodified rule is almost surely unbounded above, from every initial debt. -/
+theorem linear_rule_ae_unbounded_above (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hφ : γ - 1 < φ) (sbar bbar x₀ : ℝ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, ∀ M : ℝ, ∃ t,
+      M < rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω := by
+  rcases le_or_gt 0 (γ - φ) with ha | ha
+  · filter_upwards [ar1_unbounded_of_integrable hint hdef (γ := γ - φ) ha (by linarith) hρ x₀
+      (sbar - φ * bbar)] with ω hω M
+    obtain ⟨t, ht⟩ := (hω M).exists
+    exact ⟨t, by rw [rulePath_linRule]; exact ht⟩
+  · filter_upwards [ar1_frequently_le hint hdef hρ] with ω hω M
+    obtain ⟨t, ht⟩ := unbounded_above_of_nonpos (x₀ := x₀) (c := sbar - φ * bbar) ha.le hω M
+    exact ⟨t, by rw [rulePath_linRule]; exact ht⟩
+
+/-- Cochrane (2023), p. 197 (Theorem S for the unmodified linear rule, **every `φ > γ − 1`**,
+extending `TidyR6ManagedSurplusMeasure.linear_rule_not_sustainable` beyond `φ ≤ γ`): debt stays
+at or below any limit `x̄` forever with probability zero. -/
+theorem linear_rule_zero_prob (hint : Integrable id (ν : Measure ℝ))
+    (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0) {ρ γ φ : ℝ} (hρ : |ρ| < 1)
+    (hφ : γ - 1 < φ) (sbar bbar x₀ xbar : ℝ) :
+    (iidSystem ν).μ {ω | ∀ t, rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω ≤ xbar} = 0 := by
+  rw [measure_eq_zero_iff_ae_notMem]
+  filter_upwards [linear_rule_ae_unbounded_above hint hdef hρ hφ sbar bbar x₀] with ω hω hall
+  obtain ⟨t, ht⟩ := hω xbar
+  exact absurd (hall t) (not_le.2 ht)
+
+/-! ### Unmodified rule, root `γ − φ > 1`: positive probability -/
+
+/-- Cochrane (2023), (6.4) p. 196: for a root `a ≠ 0`,
+`x_t = aᵗ (x₀ − ∑_{s<t} a^{−(s+1)} w_s)` solves `x_{t+1} = a x_t − w_t`. -/
+theorem debtPath_eq_discounted {a x₀ : ℝ} (ha : a ≠ 0) (w : ℕ → (ℕ → ℝ) → ℝ) (ω : ℕ → ℝ) :
+    ∀ t, debtPath a x₀ w t ω =
+      a ^ t * (x₀ - ∑ s ∈ Finset.range t, a⁻¹ ^ (s + 1) * w s ω) := by
+  intro t
+  induction t with
+  | zero =>
+    change x₀ = _
+    simp
+  | succ t ih =>
+    rw [debtPath_succ, ih, Finset.sum_range_succ, pow_succ]
+    have e : a ^ t * a * (a⁻¹ ^ (t + 1) * w t ω) = w t ω := by
+      rw [inv_pow, pow_succ]
+      field_simp
+    linear_combination e
+
+/-- Cochrane (2023), p. 197 (**unmodified linear rule with a root above one**, `φ < γ − 1`): with
+`a = γ − φ > 1`, i.i.d. integrable innovations, `|ρ| < 1`, and initial debt
+`x₀ ≤ −(2 (|s̄ − φ b̄| + E|ε|/(1 − |ρ|))/(a − 1) + 1)`, debt stays at or below zero forever with
+probability at least `1/2`. So the linear rule's sustainability depends on `φ`: zero
+probability for `φ > γ − 1` (`linear_rule_zero_prob`), positive probability for `φ < γ − 1`. -/
+theorem linear_rule_half_prob (hint : Integrable id (ν : Measure ℝ)) {ρ γ φ : ℝ}
+    (hρ : |ρ| < 1) (hφ : φ < γ - 1) (sbar bbar x₀ : ℝ)
+    (hx₀ : x₀ ≤ -(2 * ((|sbar - φ * bbar| + (∫ x, |x| ∂(ν : Measure ℝ)) / (1 - |ρ|)) /
+      (γ - φ - 1)) + 1)) :
+    ENNReal.ofReal (1 / 2) ≤
+      (iidSystem ν).μ {ω | ∀ t, rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω ≤ 0} := by
+  set a := γ - φ with haDef
+  set c := sbar - φ * bbar with hcDef
+  set B := (∫ x, |x| ∂(ν : Measure ℝ)) / (1 - |ρ|) with hBdef
+  set C := (|c| + B) / (a - 1) with hCdef
+  set D := 2 * C + 1 with hDdef
+  set μ := (iidSystem ν).μ with hμ
+  have ha1 : 0 < a - 1 := by rw [haDef]; linarith
+  have ha0 : 0 < a := by linarith
+  have hr0 : 0 ≤ a⁻¹ := inv_nonneg.2 ha0.le
+  have hr1 : a⁻¹ < 1 := inv_lt_one_of_one_lt₀ (by linarith)
+  have hB0 : 0 ≤ B := div_nonneg (integral_nonneg fun x => abs_nonneg x) (by linarith)
+  have hC0 : 0 ≤ C := div_nonneg (by positivity) ha1.le
+  have hD0 : 0 < D := by linarith
+  have hu := integral_abs_ar1_le hint hρ
+  -- the discounted absolute shock sum up to `T`
+  set S : ℕ → (ℕ → ℝ) → ℝ := fun T ω =>
+    ∑ s ∈ Finset.range T, a⁻¹ ^ (s + 1) * |c + ar1 ρ s ω| with hS
+  have hterm : ∀ s, Integrable (fun ω => a⁻¹ ^ (s + 1) * |c + ar1 ρ s ω|) μ := fun s =>
+    (((integrable_const c).add (hu s).1).abs).const_mul _
+  have hSint : ∀ T, Integrable (S T) μ := fun T =>
+    integrable_finsetSum _ fun s _ => hterm s
+  have hgeo : ∀ T, ∑ s ∈ Finset.range T, a⁻¹ ^ (s + 1) ≤ 1 / (a - 1) := by
+    intro T
+    have hsum : Summable fun s : ℕ => a⁻¹ ^ (s + 1) :=
+      (summable_geometric_of_lt_one hr0 hr1).mul_left a⁻¹ |>.congr fun s => by ring
+    calc ∑ s ∈ Finset.range T, a⁻¹ ^ (s + 1) ≤ ∑' s, a⁻¹ ^ (s + 1) :=
+          hsum.sum_le_tsum _ fun s _ => pow_nonneg hr0 _
+      _ = a⁻¹ * (1 - a⁻¹)⁻¹ := by
+          rw [← tsum_geometric_of_lt_one hr0 hr1, ← tsum_mul_left]
+          exact tsum_congr fun s => by ring
+      _ = 1 / (a - 1) := by field_simp
+  have hSle : ∀ T, ∫ ω, S T ω ∂μ ≤ C := by
+    intro T
+    rw [show ∫ ω, S T ω ∂μ = ∑ s ∈ Finset.range T, ∫ ω, a⁻¹ ^ (s + 1) * |c + ar1 ρ s ω| ∂μ from
+      integral_finsetSum _ fun s _ => hterm s]
+    calc ∑ s ∈ Finset.range T, ∫ ω, a⁻¹ ^ (s + 1) * |c + ar1 ρ s ω| ∂μ
+        ≤ ∑ s ∈ Finset.range T, a⁻¹ ^ (s + 1) * (|c| + B) := by
+          refine Finset.sum_le_sum fun s _ => ?_
+          rw [integral_const_mul]
+          refine mul_le_mul_of_nonneg_left ?_ (pow_nonneg hr0 _)
+          calc ∫ ω, |c + ar1 ρ s ω| ∂μ ≤ ∫ ω, (|c| + |ar1 ρ s ω|) ∂μ :=
+                integral_mono ((integrable_const c).add (hu s).1).abs
+                  ((integrable_const _).add (hu s).1.abs) fun ω => abs_add_le _ _
+            _ = |c| + ∫ ω, |ar1 ρ s ω| ∂μ := by
+                rw [integral_add (integrable_const _) (hu s).1.abs]
+                simp only [integral_const, probReal_univ, smul_eq_mul, one_mul]
+                rfl
+            _ ≤ |c| + B := by linarith [(hu s).2]
+      _ = (∑ s ∈ Finset.range T, a⁻¹ ^ (s + 1)) * (|c| + B) := by rw [Finset.sum_mul]
+      _ ≤ 1 / (a - 1) * (|c| + B) := mul_le_mul_of_nonneg_right (hgeo T) (by positivity)
+      _ = C := by rw [hCdef]; ring
+  -- the events "debt at or below zero up to `T`"
+  set E : ℕ → Set (ℕ → ℝ) := fun T =>
+    {ω | ∀ t ≤ T, debtPath a x₀ (arSurplus ρ c) t ω ≤ 0} with hE
+  have hsub : ∀ T, {ω | S T ω < D} ⊆ E T := by
+    intro T ω hω t ht
+    simp only [Set.mem_ofPred_eq] at hω
+    rw [debtPath_eq_discounted ha0.ne']
+    refine mul_nonpos_of_nonneg_of_nonpos (pow_nonneg ha0.le t) ?_
+    have hmono : ∑ s ∈ Finset.range t, a⁻¹ ^ (s + 1) * |c + ar1 ρ s ω| ≤ S T ω :=
+      Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono ht) fun s _ _ =>
+        mul_nonneg (pow_nonneg hr0 _) (abs_nonneg _)
+    have habs : -(∑ s ∈ Finset.range t, a⁻¹ ^ (s + 1) * arSurplus ρ c s ω) ≤
+        ∑ s ∈ Finset.range t, a⁻¹ ^ (s + 1) * |c + ar1 ρ s ω| := by
+      rw [← Finset.sum_neg_distrib]
+      refine Finset.sum_le_sum fun s _ => ?_
+      rw [arSurplus]
+      have := neg_abs_le (c + ar1 ρ s ω)
+      nlinarith [pow_nonneg hr0 (s + 1)]
+    linarith
+  have hET : ∀ T, ENNReal.ofReal (1 / 2) ≤ μ (E T) := by
+    intro T
+    have hmk := mul_meas_ge_le_integral_of_nonneg (μ := μ)
+      (Eventually.of_forall fun ω => Finset.sum_nonneg fun s _ =>
+        mul_nonneg (pow_nonneg hr0 (s + 1)) (abs_nonneg (c + ar1 ρ s ω))) (hSint T) D
+    have hreal : μ.real {ω | D ≤ S T ω} ≤ 1 / 2 := by
+      have h1 : D * μ.real {ω | D ≤ S T ω} ≤ C := hmk.trans (hSle T)
+      have hpr := measureReal_nonneg (μ := μ) (s := {ω | D ≤ S T ω})
+      rw [le_div_iff₀ (by norm_num : (0 : ℝ) < 2)]
+      nlinarith
+    have hcompl : {ω | D ≤ S T ω}ᶜ = {ω | S T ω < D} := by
+      ext ω
+      simp
+    have hm : MeasurableSet {ω | D ≤ S T ω} :=
+      measurableSet_le measurable_const (Finset.measurable_sum _ fun s _ =>
+        (continuous_abs.measurable.comp ((measurable_ar1 ρ s).const_add c)).const_mul _)
+    have hlow : 1 / 2 ≤ μ.real {ω | S T ω < D} := by
+      rw [← hcompl, measureReal_compl hm, probReal_univ]
+      linarith
+    calc ENNReal.ofReal (1 / 2) ≤ ENNReal.ofReal (μ.real {ω | S T ω < D}) :=
+          ENNReal.ofReal_le_ofReal hlow
+      _ = μ {ω | S T ω < D} := ofReal_measureReal
+      _ ≤ μ (E T) := measure_mono (hsub T)
+  -- continuity from above
+  have hEm : ∀ T, NullMeasurableSet (E T) μ := fun T => by
+    have : E T = ⋂ t ∈ Finset.range (T + 1),
+        {ω | debtPath a x₀ (arSurplus ρ c) t ω ≤ 0} := by
+      ext ω
+      simp only [hE, Set.mem_ofPred_eq, Set.mem_iInter, Finset.mem_range]
+      exact ⟨fun h t ht => h t (by omega), fun h t ht => h t (by omega)⟩
+    rw [this]
+    exact (Finset.measurableSet_biInter _ fun t _ =>
+      measurableSet_le (measurable_arDebt a x₀ ρ c t) measurable_const).nullMeasurableSet
+  have hanti : Antitone E := fun T T' h ω hω t ht => hω t (ht.trans h)
+  have hlim := tendsto_measure_iInter_atTop hEm hanti ⟨0, measure_ne_top μ _⟩
+  have hinter : (⋂ T, E T) =
+      {ω | ∀ t, rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω ≤ 0} := by
+    ext ω
+    simp only [hE, Set.mem_iInter, Set.mem_ofPred_eq, rulePath_linRule]
+    exact ⟨fun h t => h t t le_rfl, fun h T t _ => h t⟩
+  rw [← hinter]
+  exact ge_of_tendsto' hlim hET
+
+/-- Cochrane (2023), p. 197: for EVERY response `φ` and every initial debt, the unmodified
+linear rule carries debt above any limit `x̄` at date 1 with positive probability (deficit shocks
+of every size), so no unmodified linear rule is sustainable almost surely. -/
+theorem linear_rule_not_ae_sustainable (hdef : ∀ c : ℝ, (ν : Measure ℝ) (Set.Iic (-c)) ≠ 0)
+    (ρ γ φ sbar bbar x₀ xbar : ℝ) :
+    ¬ ∀ᵐ ω ∂(iidSystem ν).μ, ∀ t, rulePath γ (linRule sbar φ bbar (ar1 ρ)) x₀ t ω ≤ xbar := by
+  intro h
+  set K := γ * x₀ - (sbar + φ * (x₀ - bbar)) - xbar - 1 with hK
+  have h1 : ∀ᵐ ω ∂(iidSystem ν).μ, ω ∉ shock 0 ⁻¹' Set.Iic K := by
+    filter_upwards [h] with ω hω hmem
+    have h1 := hω 1
+    change γ * x₀ - (sbar + ω 0 + φ * (x₀ - bbar)) ≤ xbar at h1
+    simp only [Set.mem_preimage, Set.mem_Iic, shock] at hmem
+    linarith
+  have h0 := (measure_eq_zero_iff_ae_notMem.2 h1)
+  rw [measure_shock_preimage 0 measurableSet_Iic] at h0
+  exact hdef (-K) (by rw [neg_neg]; exact h0)
+
+/-! ### The one-sided plan is unbounded below -/
+
+/-- Cochrane (2023), p. 197: on any path on which the AR(1) rises above every level infinitely
+often, the one-sided boundary-avoiding plan is unbounded below, for every `γ` and every `φ`. -/
+theorem plan_unbounded_below_of_frequently {γ φ ρ sbar bbar xbar m₀ : ℝ} {ω : ℕ → ℝ}
+    (hfreq : ∀ K : ℝ, ∃ᶠ t in atTop, K ≤ ar1 ρ t ω) (L : ℝ) :
+    ∃ t, avoidPath γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω < L := by
+  set F := linRule sbar φ bbar (ar1 ρ)
+  set a := γ - φ
+  set U := max xbar m₀
+  by_contra hcon
+  have hall : ∀ t, L ≤ avoidPath γ xbar F m₀ t ω := fun t => not_lt.1 fun h => hcon ⟨t, h⟩
+  have hup : ∀ t, avoidPath γ xbar F m₀ t ω ≤ U := by
+    intro t
+    cases t with
+    | zero => exact le_max_right _ _
+    | succ t => exact (avoidPath_le γ xbar F m₀ t ω).trans (le_max_left _ _)
+  obtain ⟨t, ht⟩ := (hfreq (max (a * L) (a * U) - (sbar - φ * bbar) - L + 1)).exists
+  have hmm := (mul_mem_minmax (a := a) (hall t) (hup t)).2
+  have hstep : avoidPath γ xbar F m₀ (t + 1) ω ≤
+      γ * avoidPath γ xbar F m₀ t ω - F t (avoidPath γ xbar F m₀ t ω) ω := min_le_right _ _
+  rw [linRule_response] at hstep
+  have := hall (t + 1)
+  linarith
+
+/-- Cochrane (2023), p. 197 (**the one-sided managed plan is a.s. unbounded below**): with i.i.d.
+integrable innovations with surpluses of every size and `|ρ| < 1`, for every `γ`, `φ` and `m₀`,
+the plan almost surely falls below every level: the government accumulates assets without
+bound. -/
+theorem plan_ae_unbounded_below (hint : Integrable id (ν : Measure ℝ))
+    (hup : ∀ c : ℝ, (ν : Measure ℝ) (Set.Ici c) ≠ 0) {ρ : ℝ} (hρ : |ρ| < 1)
+    (γ φ sbar bbar xbar m₀ : ℝ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, ∀ L : ℝ, ∃ t,
+      avoidPath γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀ t ω < L := by
+  filter_upwards [ar1_frequently_ge hint hup hρ] with ω hω L
+  exact plan_unbounded_below_of_frequently hω L
+
+/-- Cochrane (2023), p. 197: actual debt `x_t = m_t + γᵗ (x₀ − m₀)` under the one-sided plan,
+from any initial debt `x₀`, is almost surely unbounded below too (`0 ≤ γ ≤ 1`). -/
+theorem plan_debt_ae_unbounded_below (hint : Integrable id (ν : Measure ℝ))
+    (hup : ∀ c : ℝ, (ν : Measure ℝ) (Set.Ici c) ≠ 0) {ρ γ : ℝ} (hρ : |ρ| < 1) (hγ0 : 0 ≤ γ)
+    (hγ1 : γ ≤ 1) (φ sbar bbar xbar m₀ x₀ : ℝ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, ∀ L : ℝ, ∃ t,
+      debtPath γ x₀ (avoidSurplus γ xbar (linRule sbar φ bbar (ar1 ρ)) m₀) t ω < L := by
+  filter_upwards [plan_ae_unbounded_below hint hup hρ γ φ sbar bbar xbar m₀] with ω hω L
+  obtain ⟨t, ht⟩ := hω (L - |x₀ - m₀|)
+  refine ⟨t, ?_⟩
+  rw [avoid_plan_debtPath]
+  have hp : γ ^ t ≤ 1 := pow_le_one₀ hγ0 hγ1
+  have h1 : γ ^ t * (x₀ - m₀) ≤ |x₀ - m₀| := by
+    calc γ ^ t * (x₀ - m₀) ≤ γ ^ t * |x₀ - m₀| :=
+          mul_le_mul_of_nonneg_left (le_abs_self _) (pow_nonneg hγ0 t)
+      _ ≤ 1 * |x₀ - m₀| := mul_le_mul_of_nonneg_right hp (abs_nonneg _)
+      _ = |x₀ - m₀| := one_mul _
+  linarith
+
+end Cochrane.FiscalConstraints.TidyR6LinearRuleBounds
+
 set_option linter.style.longLine false
 #print axioms Cochrane.FiscalConstraints.SchurStable
 #print axioms Cochrane.FiscalConstraints.disc
@@ -12643,3 +14017,87 @@ set_option linter.style.longLine false
 #print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_unbounded
 #print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_not_sustainable
 #print axioms Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_exp_unbounded
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.rulePath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.linRule
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.linRule_response
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidSurplus
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.min_eq_sub_max
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_succ_eq
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidSurplus_eq_rule
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.rule_le_avoidSurplus
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_eq_managedPath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandSurplus
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.max_eq_add_max
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedSurplus
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath_succ_eq
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedSurplus_le
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_le
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_within_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_mem
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_within_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath_within_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.not_within_of_capacity
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_debtPath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoid_plan_debtPath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.band_plan_debtPath
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_within_of_le
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_breach_high
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_breach_low
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoid_hits_of_rule_exceeds
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_succ_eq_xbar
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq_xbar
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq_xlow
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_mem_all
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.mul_mem_minmax
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.debt_le_iff_price_ge
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.debt_eq_iff_price_eq
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.le_debt_iff_price_le
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplus.price_spec
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.Sustainable
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.BandSustainable
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsEqmPrice
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsBandEqmPrice
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsFeedbackEqmPrice
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsBandFeedbackEqmPrice
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_zero
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.linRule_shock
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.rulePath_linRule
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_adapted
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_plan_adapted
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_frequently_le
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.negLaw
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.map_neg_iid
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_neg
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_frequently_ge
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_hits
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_hits
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_sustainable_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_eqm_price_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_price_isLeast
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_price_not_unique
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_sustainable_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_eqm_price_unique
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_sustainable_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_price_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_price_not_unique
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_feedback_price_iff
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_feedback_price_not_unique
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.linear_rule_not_sustainable
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_Ici_ne_zero
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_integrable
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_plan_verdict
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_band_verdict
+#print axioms Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.iid_verdict
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.unbounded_above_of_nonpos
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_ae_unbounded_above
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_zero_prob
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.debtPath_eq_discounted
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_half_prob
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_not_ae_sustainable
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_unbounded_below_of_frequently
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_ae_unbounded_below
+#print axioms Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_debt_ae_unbounded_below

@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-22T08:25:26.991975+00:00",
-  "theorems": 676,
+  "checked_at_utc": "2026-10-29T21:00:09.234741+00:00",
+  "theorems": 745,
   "module_theorems": {
     "FiscalConstraints/Determinacy.lean": 23,
     "FiscalConstraints/Expectations.lean": 20,
@@ -25,9 +25,12 @@
     "FiscalConstraints/DebtLimitStochasticMeasure.lean": 24,
     "FiscalConstraints/TidyR5MoneyExistence.lean": 22,
     "FiscalConstraints/TidyR5PiecewiseRvsG.lean": 39,
-    "FiscalConstraints/TidyR5GaussianAR1.lean": 22
+    "FiscalConstraints/TidyR5GaussianAR1.lean": 22,
+    "FiscalConstraints/TidyR6ManagedSurplus.lean": 32,
+    "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean": 28,
+    "FiscalConstraints/TidyR6LinearRuleBounds.lean": 9
   },
-  "audited_declarations": 832,
+  "audited_declarations": 916,
   "declarations": [
     {
       "name": "Cochrane.FiscalConstraints.SchurStable",
@@ -4188,6 +4191,426 @@
       "name": "Cochrane.FiscalConstraints.TidyR5GaussianAR1.gaussian_ar1_exp_unbounded",
       "kind": "theorem",
       "module": "FiscalConstraints/TidyR5GaussianAR1.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.rulePath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.linRule",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.linRule_response",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidSurplus",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.min_eq_sub_max",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_succ_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidSurplus_eq_rule",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.rule_le_avoidSurplus",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_eq_managedPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandSurplus",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.max_eq_add_max",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedSurplus",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath_succ_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedSurplus_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_within_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_mem",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_within_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath_within_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.not_within_of_capacity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_debtPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoid_plan_debtPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.band_plan_debtPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_within_of_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_breach_high",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_breach_low",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoid_hits_of_rule_exceeds",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_succ_eq_xbar",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq_xbar",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq_xlow",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_mem_all",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.mul_mem_minmax",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.debt_le_iff_price_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.debt_eq_iff_price_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.le_debt_iff_price_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.price_spec",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.Sustainable",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.BandSustainable",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsEqmPrice",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsBandEqmPrice",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsFeedbackEqmPrice",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsBandFeedbackEqmPrice",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.linRule_shock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.rulePath_linRule",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_plan_adapted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_frequently_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.negLaw",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.map_neg_iid",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_neg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_frequently_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_hits",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_hits",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_sustainable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_eqm_price_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_price_isLeast",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_price_not_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_sustainable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_eqm_price_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_sustainable_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_price_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_price_not_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_feedback_price_iff",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_feedback_price_not_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.linear_rule_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_Ici_ne_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_integrable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_plan_verdict",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_band_verdict",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.iid_verdict",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.unbounded_above_of_nonpos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_ae_unbounded_above",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_zero_prob",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.debtPath_eq_discounted",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_half_prob",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_not_ae_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_unbounded_below_of_frequently",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_ae_unbounded_below",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_debt_ae_unbounded_below",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
     }
   ],
   "full_build": "passed",
@@ -8347,6 +8770,426 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.rulePath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.linRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.linRule_response": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.min_eq_sub_max": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidSurplus_eq_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.rule_le_avoidSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_eq_managedPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.max_eq_add_max": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath_succ_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedSurplus_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_within_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_within_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.cappedPath_within_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.not_within_of_capacity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_debtPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoid_plan_debtPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.band_plan_debtPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_within_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_breach_high": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.plan_breach_low": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoid_hits_of_rule_exceeds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.avoidPath_succ_eq_xbar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq_xbar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_succ_eq_xlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.bandPath_mem_all": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.mul_mem_minmax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.debt_le_iff_price_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.debt_eq_iff_price_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.le_debt_iff_price_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplus.price_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.Sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.BandSustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsEqmPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsBandEqmPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsFeedbackEqmPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.IsBandFeedbackEqmPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.linRule_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.rulePath_linRule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_plan_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_frequently_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.negLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.map_neg_iid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.ar1_frequently_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_hits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_hits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_sustainable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_eqm_price_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_price_isLeast": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.plan_price_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_sustainable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_eqm_price_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_sustainable_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_price_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.feedback_price_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_feedback_price_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.band_feedback_price_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.linear_rule_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_Ici_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_plan_verdict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.gaussian_band_verdict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6ManagedSurplusMeasure.iid_verdict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.unbounded_above_of_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_ae_unbounded_above": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_zero_prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.debtPath_eq_discounted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_half_prob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.linear_rule_not_ae_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_unbounded_below_of_frequently": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_ae_unbounded_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_debt_ae_unbounded_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -8374,15 +9217,18 @@
     "FiscalConstraints/TidyR5MoneyExistence.lean": "86c6c0e71abd3991192fe7fd898b21d22869a43371398a68ecfebdafeb017409",
     "FiscalConstraints/TidyR5PiecewiseRvsG.lean": "d23bab6c3cfcb53d45bdefa2152d7e78ec9c2256df6d10bd1bbb8a53d6c8cdd4",
     "FiscalConstraints/TidyR5GaussianAR1.lean": "43f86267990dbdf99a4320488d5b735c8b26265083c26b04f10c918d31500ad9",
-    "FiscalConstraints.lean": "eed63e2f0f04a1b6b19d8d06ae2a4bf55b596f674f5ffbc48ae84a3ffaf795d6",
+    "FiscalConstraints/TidyR6ManagedSurplus.lean": "1143e181cf3356e47586b14205b2444924fcad7755b68e54ddcf107a54fecb31",
+    "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean": "cefc5cceb3a1320705ef251a917d4582c6d5deafacc522cb465a094a874e8b7c",
+    "FiscalConstraints/TidyR6LinearRuleBounds.lean": "0b3383c09276f70ff82c43fecf15b4aac98a6ac60765ba52c36bfb49c5a7639d",
+    "FiscalConstraints.lean": "69d298bb7c4f9beb2e0b13939caac37e474013cea16afc2eb9a87f4b0ffe7c86",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "2316afb07e737873c291196c3982b4bdd8780e7da7c3353143daebcc265883ed",
     "lake-manifest.json": "471395732f51621c043128672558300d914c17f1f7b01d12949738d21f9aac5f",
-    "proof-manifest.json": "4f27c279b3a33d70791645b70f8e457fefc77ac755038e69d831ba55f360d068",
+    "proof-manifest.json": "ddaf2b8bf8b88ba430d857dc8457c66cff7b4e54209abb123e5a068c33b50d29",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "3091c6240b225a25e2313104ef98107bda0d2682f792007ed4229f2c0dce0be9",
+  "fresh_audit_sha256": "75cc5e871aee72604718a776508ee0a8ec347617aa7038ff703b3338e61f4671",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."

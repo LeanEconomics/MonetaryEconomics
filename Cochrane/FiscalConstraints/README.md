@@ -15,8 +15,8 @@ space with independent surpluses and the second Borel–Cantelli lemma. Aggregat
 two-state i.i.d. coin tree as a witness under genuine uncertainty. Both are then re-proved on
 genuine infinite-horizon i.i.d. processes with Mathlib's conditional expectation: i.i.d. surplus
 processes for §6.4.1, and i.i.d. growth processes, including a constructed lognormal process and
-an infinite coin process for Bohn's example, for §6.4.7. The library contains **676 theorems**,
-including the shared core; 460 of them are in the eighteen chapter modules.
+an infinite coin process for Bohn's example, for §6.4.7. The library contains **745 theorems**,
+including the shared core; 529 of them are in the twenty-one chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -58,6 +58,21 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   above, which no non-degenerate Gaussian is
   (`DebtLimitStochasticMeasure.gaussian_iid_unbounded_vacuous`). The book's claim that bounded
   support still breaks any bound is false (`DebtLimitStochastic.bounded_support_counterexample`).
+* **Managed surpluses and global determinacy.** For the linear rule `s̄ + u_t + φ(x_t − b̄)` with
+  AR(1) shocks, the boundary-avoiding modification keeps debt within the limit on every path
+  (`TidyR6ManagedSurplus.avoidPath_within_iff`), while the unmodified rule sustains no debt for
+  every `φ > γ − 1` (`TidyR6LinearRuleBounds.linear_rule_zero_prob`) and is never sustainable
+  almost surely (`TidyR6LinearRuleBounds.linear_rule_not_ae_sustainable`). A capped rule can
+  stay within the limit iff `(1 − γ)x̄ + s_{max} ≥ 0` (`TidyR6ManagedSurplus.cappedPath_within_iff`,
+  `TidyR6ManagedSurplus.not_within_of_capacity`). Global determinacy fails for a one-sided plan:
+  the equilibrium price levels are exactly `[B/(y₀m₀), ∞)`
+  (`TidyR6ManagedSurplusMeasure.plan_eqm_price_iff`,
+  `TidyR6ManagedSurplusMeasure.plan_price_not_unique`), and feedback management is indeterminate
+  even with a band (`TidyR6ManagedSurplusMeasure.feedback_price_iff`,
+  `TidyR6ManagedSurplusMeasure.band_feedback_price_not_unique`). A two-sided plan with shocks
+  reaching both edges pins `P₀ = B/(y₀m₀)` uniquely, for every `φ`
+  (`TidyR6ManagedSurplusMeasure.band_eqm_price_unique`,
+  `TidyR6ManagedSurplusMeasure.gaussian_band_verdict`).
 * **The present-value Laffer curve.** The present value of revenue `τy/(r − g)` and its elasticity
   are exact, for the improper integral itself (`Laffer.pv_tax_eq`,
   `Laffer.pv_integral_elasticity`), and the book's example is exactly at the top of the curve
@@ -126,7 +141,11 @@ the printed text precise. The main corrections are the confirmed errors of the c
 * "the last term converges to zero, via the transversality condition", p. 207, is a parameter
   restriction, `βE[G^{1−γ}] < 1` (E6.8);
 * "even if we limit the support … the integral of the surplus eventually exceeds any bound",
-  p. 197, is false: bounded deficits keep debt below `max x₀ (c/(1 − γ))`.
+  p. 197, is false: bounded deficits keep debt below `max x₀ (c/(1 − γ))`;
+* "we are back to global determinacy of the price level", p. 197 (E6.9), is false as stated: with
+  a one-sided limit every `P₀ ≥ B/(y₀m₀)` is an equilibrium, and feedback management is
+  indeterminate even with a band; a two-sided plan that does not respond to the revaluation of
+  debt, with shocks reaching both edges, pins `P₀` uniquely.
 
 In addition, the typos E6.4 (`B₁` for `B₋₁`, p. 194) and E6.6 (a missing `+`, p. 206) are
 corrected, the rounding in E6.3 (a 20% rise is a log change of 18.2%) and in "e^{−0.2} = 80%"
@@ -140,11 +159,13 @@ its hypotheses) is vacuous, and is replaced by
 
 Not formalised:
 * Miller's learning model (p. 195), a verbal summary of another paper;
-* the claim that a managed surplus restores global determinacy (p. 197; survey E6.9): no surplus
-  rule is specified. Only the boundary-avoiding management itself is formalised
-  (`DebtLimitStochastic.managedPath_le`), as an adapted policy on the i.i.d. process
-  (`DebtLimitStochasticMeasure.managed_adapted`, `DebtLimitStochasticMeasure.managedPath_le_process`),
-  and Theorem S shows that without management no debt is sustainable;
+* the unmodified linear surplus rule at the knife edge `φ = γ − 1` (p. 197), where debt is a
+  random walk driven by AR(1) shocks: whether it stays below the limit with positive probability
+  depends on the sign of the drift and needs a strong law or a recurrence result for sums of
+  AR(1) terms. This case needs a negative response `φ < 0`, outside the book's class; every
+  `φ > γ − 1` gives probability zero and every `φ < γ − 1` probability at least `1/2` from a low
+  enough initial debt (`TidyR6LinearRuleBounds.linear_rule_zero_prob`,
+  `TidyR6LinearRuleBounds.linear_rule_half_prob`);
 * the continuous-time (Ornstein–Uhlenbeck) AR(1) surplus of p. 197, which needs Itô calculus. It
   is replaced by its discrete analogue, a Gaussian AR(1) surplus process on `ν^ℕ`
   (`TidyR5GaussianAR1.ar1_hasLaw_gaussian`, `TidyR5GaussianAR1.gaussian_ar1_unbounded`), with the
@@ -181,6 +202,9 @@ Not formalised:
 | [TidyR5MoneyExistence](FiscalConstraints/TidyR5MoneyExistence.lean) | 22 | §6.4.5, (6.9): existence of the money-and-debt solution with the forward value and the TVC, iff the improper present value converges; uniqueness; the TVC iff the value (6.9); the Bochner form |
 | [TidyR5PiecewiseRvsG](FiscalConstraints/TidyR5PiecewiseRvsG.lean) | 39 | §6.4.1, p. 196: temporary `r < g` with a general eventually-constant `r − g` and with finitely many regimes; existence, uniqueness, explosion, the TVC, the general 20-year formula, `r > g` at the end necessary, the link to `RvsG` |
 | [TidyR5GaussianAR1](FiscalConstraints/TidyR5GaussianAR1.lean) | 22 | §6.4.1, p. 197: a Gaussian AR(1) surplus process on `ν^ℕ`, its law and forecast, not bounded above; debt a.s. unbounded and no debt limit sustainable (Kolmogorov's 0-1 law), also for `ρ = e^{−η}` |
+| [TidyR6ManagedSurplus](FiscalConstraints/TidyR6ManagedSurplus.lean) | 32 | §6.4.1, p. 197, path by path: surplus rules and the linear rule, the boundary-avoiding, two-sided and capped modifications, feedback rules sustain every debt within the limit, the capacity condition iff, plans and the revaluation of debt, price-level conversions |
+| [TidyR6ManagedSurplusMeasure](FiscalConstraints/TidyR6ManagedSurplusMeasure.lean) | 28 | §6.4.1, p. 197, on AR(1) and i.i.d. surplus processes: managed plans are adapted and hit the limit a.s.; one-sided plan prices exactly `[B/(y₀m₀), ∞)` (E6.9 false), feedback rules indeterminate, two-sided plan determinate; Gaussian verdicts |
+| [TidyR6LinearRuleBounds](FiscalConstraints/TidyR6LinearRuleBounds.lean) | 9 | §6.4.1, p. 197: the unmodified linear rule for every `φ` (probability zero for `φ > γ − 1`, at least `1/2` for `φ < γ − 1`, never a.s. sustainable); the one-sided plan a.s. unbounded below |
 
 ## Modelling conventions
 

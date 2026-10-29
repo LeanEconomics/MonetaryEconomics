@@ -13,7 +13,8 @@ non-integrable integrands. Writing `x = b/y`, `σ = s/y` and `a = r − g`, the 
 (Bohn's example) are those of the chapter survey. The stochastic results of §§6.4.6–6.4.7 hold
 for an arbitrary `ExpectationSystem` with `ExpectationSystem.PullOut`. The measure-theoretic
 modules (`DebtLimitStochasticMeasure`, `AggregateUncertaintyMeasure`, `LognormalGrowthMeasure`,
-and `TidyR5GaussianAR1` for the AR(1) surplus) re-prove §6.4.1 and §6.4.7 on genuine infinite-horizon i.i.d. processes on `ℕ → ℝ` under `ν^ℕ`,
+`TidyR5GaussianAR1` for the AR(1) surplus, and `TidyR6ManagedSurplusMeasure` and
+`TidyR6LinearRuleBounds` for managed and linear surplus rules) re-prove §6.4.1 and §6.4.7 on genuine infinite-horizon i.i.d. processes on `ℕ → ℝ` under `ν^ℕ`,
 with Mathlib's conditional expectation `condExp` and statements almost everywhere; their sections
 follow the sections they make genuine. The shared core
 (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is cited where a row
@@ -160,6 +161,51 @@ The discrete analogue of the book's continuous-time AR(1), on the i.i.d. economy
 | Cochrane p. 197 | debt "will eventually exceed any bound": with AR(1) surpluses, integrable i.i.d. innovations with deficits of every size, any `s̄` and `0 ≤ γ < 1`, debt a.s. exceeds every level infinitely often (Kolmogorov's 0-1 law); in particular with Gaussian innovations | `TidyR5GaussianAR1.ar1_unbounded_of_integrable`, `TidyR5GaussianAR1.gaussian_ar1_unbounded` |
 | Cochrane p. 197 | "the initial value of debt … is not sustainable": with a Gaussian AR(1) surplus, `P(∀t, x_t ≤ M) = 0` for every `M` | `TidyR5GaussianAR1.gaussian_ar1_not_sustainable` |
 | Cochrane p. 197 | `ds = −η(s − s̄)dt + σdz` decays by `ρ = e^{−η}` per period; with this `ρ` debt is a.s. unbounded above | `TidyR5GaussianAR1.gaussian_ar1_exp_unbounded` |
+
+## §6.4.1 Managed surpluses: the pathwise theory, p. 197 (TidyR6ManagedSurplus)
+
+The book specifies no surplus rule. A rule is `σ_t = F_t(x_t, ω)`, such as the linear rule `s_t = s̄ + u_t + φ(x_t − b̄)`; debt is `x_{t+1} = γx_t − σ_t` with `x₀ = B/(P₀y₀)`. The boundary-avoiding modification is `x_{t+1} = min x̄ (γx_t − F_t(x_t))`, the two-sided one adds a floor `x_{low}`, and the capped one respects a capacity `s_{max}`. A *feedback* rule responds to actual (revalued) debt; a *plan* is the surplus process the rule generates along a planned path `m` from `m₀`, and does not respond to a revaluation.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (6.4), p. 196, and p. 197 | debt under an unmodified surplus rule; the linear rule `s̄ + u_t + φ(x_t − b̄)` lowers the effective root to `γ − φ` | `TidyR6ManagedSurplus.rulePath`, `TidyR6ManagedSurplus.linRule`, `TidyR6ManagedSurplus.linRule_response` |
+| Cochrane p. 197 | "the government increases surpluses so as to avoid the boundary": the boundary-avoiding path and surplus, which generate each other by (6.4); the surplus is the rule's whenever the rule stays within the limit, and never below it | `TidyR6ManagedSurplus.avoidPath`, `TidyR6ManagedSurplus.avoidSurplus`, `TidyR6ManagedSurplus.min_eq_sub_max`, `TidyR6ManagedSurplus.avoidPath_succ_eq`, `TidyR6ManagedSurplus.avoidSurplus_eq_rule`, `TidyR6ManagedSurplus.rule_le_avoidSurplus` |
+| Cochrane p. 197 | the earlier managed path is the boundary-avoiding modification of the exogenous rule `σ_t = ε_t` | `TidyR6ManagedSurplus.avoidPath_eq_managedPath` |
+| Cochrane p. 197 | the two-sided band `[x_{low}, x̄]` and the capped rule with capacity `s_{max}`: paths, surpluses, (6.4), and the capped surplus never above `s_{max}` | `TidyR6ManagedSurplus.bandPath`, `TidyR6ManagedSurplus.bandSurplus`, `TidyR6ManagedSurplus.max_eq_add_max`, `TidyR6ManagedSurplus.bandPath_succ_eq`, `TidyR6ManagedSurplus.cappedPath`, `TidyR6ManagedSurplus.cappedSurplus`, `TidyR6ManagedSurplus.cappedPath_succ_eq`, `TidyR6ManagedSurplus.cappedSurplus_le` |
+| Cochrane p. 197 | feedback management sustains every initial debt within the limit (or band), on every path, for any rule: it does not determine the price level | `TidyR6ManagedSurplus.avoidPath_le`, `TidyR6ManagedSurplus.avoidPath_within_iff`, `TidyR6ManagedSurplus.bandPath_mem`, `TidyR6ManagedSurplus.bandPath_within_iff`, `TidyR6ManagedSurplus.bandPath_mem_all` |
+| Cochrane p. 197 | fiscal capacity: `s_{max} ≥ −(1 − γ)x̄` is sufficient (capped rule, `x₀ ≤ x̄`) and necessary (below it no rule keeps debt within the limit, on any path) | `TidyR6ManagedSurplus.cappedPath_within_iff`, `TidyR6ManagedSurplus.not_within_of_capacity` |
+| Cochrane p. 197 | "a higher value of debt, induced by deflation": under a plan, actual debt is `x_t = m_t + γᵗ(x₀ − m₀)`; `x₀ ≤ m₀` stays within the limit, `x₀ > m₀` breaches it wherever the plan touches `x̄`, `x₀ < m₀` breaches a floor the plan touches | `TidyR6ManagedSurplus.plan_debtPath`, `TidyR6ManagedSurplus.avoid_plan_debtPath`, `TidyR6ManagedSurplus.band_plan_debtPath`, `TidyR6ManagedSurplus.plan_within_of_le`, `TidyR6ManagedSurplus.plan_breach_high`, `TidyR6ManagedSurplus.plan_breach_low`, `TidyR6ManagedSurplus.mul_mem_minmax` |
+| Cochrane p. 197 | the modified path touches `x̄` whenever the rule alone would reach or cross it; the band path is at an edge whenever the rule alone would reach it | `TidyR6ManagedSurplus.avoid_hits_of_rule_exceeds`, `TidyR6ManagedSurplus.avoidPath_succ_eq_xbar`, `TidyR6ManagedSurplus.bandPath_succ_eq_xbar`, `TidyR6ManagedSurplus.bandPath_succ_eq_xlow` |
+| Cochrane p. 197 | price-level conversions: `B/(P₀y₀) ≤ m` iff `P₀ ≥ B/(y₀m)`, and the other two cases | `TidyR6ManagedSurplus.debt_le_iff_price_ge`, `TidyR6ManagedSurplus.debt_eq_iff_price_eq`, `TidyR6ManagedSurplus.le_debt_iff_price_le`, `TidyR6ManagedSurplus.price_spec` |
+
+## §6.4.1 Does a managed surplus restore global determinacy?, p. 197 (TidyR6ManagedSurplusMeasure)
+
+On the i.i.d. economy of `ExpectationsMeasureIID`: innovations `ε_t(ω) = ω_t` under `ν^ℕ`, `u = ExpectationsMeasureIID.ar1 ρ` with `|ρ| < 1` (i.i.d. surpluses are `ρ = 0`), `0 < γ < 1`. Equilibrium is the book's criterion: debt stays within the limit forever, almost surely.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 197 | sustainability and equilibrium price levels for a plan, a band plan, a feedback rule and a band feedback rule | `TidyR6ManagedSurplusMeasure.Sustainable`, `TidyR6ManagedSurplusMeasure.BandSustainable`, `TidyR6ManagedSurplusMeasure.IsEqmPrice`, `TidyR6ManagedSurplusMeasure.IsBandEqmPrice`, `TidyR6ManagedSurplusMeasure.IsFeedbackEqmPrice`, `TidyR6ManagedSurplusMeasure.IsBandFeedbackEqmPrice` |
+| Cochrane p. 197 | i.i.d. shocks are the AR(1) with `ρ = 0`; the unmodified linear rule is `DebtLimitStochastic.debtPath` with root `γ − φ` | `TidyR6ManagedSurplusMeasure.ar1_zero`, `TidyR6ManagedSurplusMeasure.linRule_shock`, `TidyR6ManagedSurplusMeasure.rulePath_linRule` |
+| Cochrane p. 197 | "we must already imagine a managed surplus process": the one- and two-sided linear plans are adapted policies | `TidyR6ManagedSurplusMeasure.plan_adapted`, `TidyR6ManagedSurplusMeasure.band_plan_adapted` |
+| Cochrane p. 197 | the AR(1) falls below and rises above every level infinitely often a.s. (deficits, resp. surpluses, of every size); the mirror-image law | `TidyR6ManagedSurplusMeasure.ar1_frequently_le`, `TidyR6ManagedSurplusMeasure.negLaw`, `TidyR6ManagedSurplusMeasure.map_neg_iid`, `TidyR6ManagedSurplusMeasure.ar1_neg`, `TidyR6ManagedSurplusMeasure.ar1_frequently_ge` |
+| Cochrane p. 197 | the one-sided plan touches `x̄` a.s. for every `φ ≥ 0`; the two-sided plan touches both edges a.s. for every `φ` | `TidyR6ManagedSurplusMeasure.plan_hits`, `TidyR6ManagedSurplusMeasure.band_hits` |
+| Cochrane p. 197 | "a higher value of debt, induced by deflation, will push the government over the boundary": under the one-sided plan `x₀` is sustainable iff `x₀ ≤ m₀`; the equilibrium price levels are exactly `[B/(y₀m₀), ∞)`, and `P* = B/(y₀m₀)` is the least ("a plan that exceeds the bound … will lead to an initial price-level rise") | `TidyR6ManagedSurplusMeasure.plan_sustainable_iff`, `TidyR6ManagedSurplusMeasure.plan_eqm_price_iff`, `TidyR6ManagedSurplusMeasure.plan_price_isLeast` |
+| Cochrane p. 197 (E6.9, false as printed) | "we are back to global determinacy of the price level": under a one-sided plan `P*` and `2P*` are both equilibria | `TidyR6ManagedSurplusMeasure.plan_price_not_unique` |
+| Cochrane p. 197 (E6.9, corrected) | a two-sided plan with shocks reaching both edges sustains only `x₀ = m₀`, so the equilibrium price level exists and is unique, `P₀ = B/(y₀m₀)`, for every response `φ` | `TidyR6ManagedSurplusMeasure.band_sustainable_iff`, `TidyR6ManagedSurplusMeasure.band_eqm_price_unique` |
+| Cochrane p. 197 (E6.9, false as printed) | feedback management, on any probability space: sustainable iff `x₀ ≤ x̄`; the equilibrium price levels are `P₀ ≥ B/(y₀x̄)`, and with a band the interval `[B/(y₀x̄), B/(y₀x_{low})]`; not unique in either case | `TidyR6ManagedSurplusMeasure.feedback_sustainable_iff`, `TidyR6ManagedSurplusMeasure.feedback_price_iff`, `TidyR6ManagedSurplusMeasure.feedback_price_not_unique`, `TidyR6ManagedSurplusMeasure.band_feedback_price_iff`, `TidyR6ManagedSurplusMeasure.band_feedback_price_not_unique` |
+| Cochrane p. 197 (S) | without the modification Theorem S persists: the unmodified linear rule with `0 ≤ φ ≤ γ` sustains no debt (extended to every `φ > γ − 1` by `TidyR6LinearRuleBounds.linear_rule_zero_prob`) | `TidyR6ManagedSurplusMeasure.linear_rule_not_sustainable` |
+| Cochrane p. 197 | Gaussian AR(1) surpluses: a non-degenerate Gaussian has surpluses of every size and is integrable; the one-sided verdict (sustainable, `[B/(y₀m₀), ∞)`, not unique, feedback `[B/(y₀x̄), ∞)`) and the two-sided verdict (unique `P₀ = B/(y₀m₀)`); the i.i.d. versions | `TidyR6ManagedSurplusMeasure.gaussian_Ici_ne_zero`, `TidyR6ManagedSurplusMeasure.gaussian_integrable`, `TidyR6ManagedSurplusMeasure.gaussian_plan_verdict`, `TidyR6ManagedSurplusMeasure.gaussian_band_verdict`, `TidyR6ManagedSurplusMeasure.iid_verdict` |
+
+## §6.4.1 The unmodified linear rule for every response, and the managed plan below, p. 197 (TidyR6LinearRuleBounds)
+
+Without the modification, `x_{t+1} = (γ − φ)x_t − (s̄ − φb̄ + u_t)`, with the AR(1) `u` of the previous section.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 197 (S) | for every `φ > γ − 1` (root `γ − φ < 1`, including every `φ ≥ 0` and `φ > γ`), debt under the unmodified rule is a.s. unbounded above and stays below any limit with probability zero; for root `≤ 0` the argument is path by path | `TidyR6LinearRuleBounds.unbounded_above_of_nonpos`, `TidyR6LinearRuleBounds.linear_rule_ae_unbounded_above`, `TidyR6LinearRuleBounds.linear_rule_zero_prob` |
+| Cochrane (6.4), p. 196, and p. 197 | for `φ < γ − 1` (root above one): `x_t = aᵗ(x₀ − Σ_{s<t} a^{−(s+1)}w_s)`, and from a low enough `x₀` debt stays at or below zero forever with probability at least `1/2` | `TidyR6LinearRuleBounds.debtPath_eq_discounted`, `TidyR6LinearRuleBounds.linear_rule_half_prob` |
+| Cochrane p. 197 | for every `φ` and every `x₀`, debt exceeds any limit at date 1 with positive probability: no unmodified linear rule is sustainable almost surely | `TidyR6LinearRuleBounds.linear_rule_not_ae_sustainable` |
+| Cochrane p. 197 | the one-sided managed plan, and actual debt under it from any `x₀`, are a.s. unbounded below (the government accumulates assets without bound) | `TidyR6LinearRuleBounds.plan_unbounded_below_of_frequently`, `TidyR6LinearRuleBounds.plan_ae_unbounded_below`, `TidyR6LinearRuleBounds.plan_debt_ae_unbounded_below` |
 
 ## §6.4.2–§6.4.3 The flow surplus and r < g as a free lunch, pp. 198–199 (RvsG)
 
