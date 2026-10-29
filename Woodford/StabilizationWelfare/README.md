@@ -9,7 +9,7 @@ Stabilization and Welfare" (pp. 381–463), together with the proofs in Appendix
 (pp. 692–708). Model equations hold for an arbitrary expectation operator where the book uses
 one, discounted sums are genuine infinite sums with proved summability, and every welfare
 approximation is stated with its terms independent of policy and its remainder written out
-rather than left as "t.i.p." and "O(3)". The library contains **2631 theorems**, including the
+rather than left as "t.i.p." and "O(3)". The library contains **3105 theorems**, including the
 shared core.
 
 Each welfare approximation is stated in two layers. **Layer A** is an exact identity: the Taylor
@@ -72,7 +72,9 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   Proposition 6.7 in both layers around the distorted steady state `(Ȳ, m̄)`, constructed by the
   inverse function theorem, with every coefficient evaluated there and small distortions
   `Φ, Δ̄ = O(ε)` (`TidyR5DistortedBranch67.branch67`, `TidyR5DistortedBranch67.prop67_on_branch`,
-  `TidyR5DistortedLocal67.prop67_distorted_local`);
+  `TidyR5DistortedLocal67.prop67_distorted_local`), and with `Δ̄ = 0` for the actual utility,
+  every admissible `m̄ ≥ mˢ` giving the same expansion
+  (`TidyR6bDistortedDelta0.prop67_actual_Delta0_admissible`);
   Proposition 6.9 from a proved two-constraint Kuhn–Tucker theorem (`ZLB.kkt_exists`,
   `ZLB.envelope`, `ZLB.prop_6_9`).
 * **Asymmetric disturbances and sticky wages.** Propositions 6.10–6.13, with `κ` a harmonic,
@@ -97,7 +99,11 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   `TidyR5CommitLQ.fn71_annualized`, `TidyR5Fn71Measure.mfn71_optimal`,
   `TidyR5Fn71Measure.mfn71_timeless_optimal`); and, for every `Φ ∈ [0, 1)`, the family whose
   first-order component is the footnote-71 plan is optimal up to `O(ε³)`
-  (`TidyR5RamseySOC.lq_sufficiency615`).
+  (`TidyR5RamseySOC.lq_sufficiency615`); both hypotheses of that argument are derived for the
+  actual timeless Ramsey plan, whose first-order component is the footnote-71 plan, while the
+  first-order components of any family of exact Calvo equilibria satisfy the linear AS relation
+  (`TidyR6aBridge.first_order_is_fn71`, `TidyR6aAS.first_order_NKPCu`,
+  `TidyR6aLQLink.ramsey_lq_sufficiency`).
 * **Markov equilibrium of the nonlinear model.** The exact Calvo model with the Euler equation,
   the recursions for `F` and `K` and the exact dispersion law has, under a Taylor rule satisfying
   the Taylor principle, an equilibrium that exists, is locally unique and is `C²` in the amplitude,
@@ -130,10 +136,37 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   steady state and for small `Φ`, the solution of the first-order conditions of the date-0 problem
   exists, is locally unique and converges geometrically to the timeless plan and, without
   disturbances, to zero inflation (`TidyR5RamseyDate0.date0_main`, `TidyR5RamseyDate0.date0_path`).
+  With government purchases (`s_C < 1`) the timeless Ramsey equilibrium exists and is unique on
+  every event tree, almost surely on filtered probability spaces and in AR(1) Markov form under
+  the root condition on `H = A_uG − γ_G` (`TidyR6bGovRamseyIFT.gov_ramsey_existence`,
+  `TidyR6bGovRamseyAE.gov_ramsey_existence_ae`, `TidyR6bGovRamseyAR1.gov_ramsey_ar1_markov`), and
+  also when `H = 0 ≠ A_uG` (`TidyR6bGovRamseyZero.gov_ramsey_existence_zero`). When `A_uG = 0`,
+  which happens only for `Φ ∉ [0, 1]`, the linearised operator is neither injective nor surjective
+  and no exact equilibrium is of the order of the inherited multipliers
+  (`TidyR6bCalvoDegenerate.Gw_zero_outside`, `TidyR6bCalvoDegenerate.LR_not_injective`,
+  `TidyR6bCalvoDegenerate.LR_not_surjective`, `TidyR6bCalvoDegenerate.no_small_solution`).
   Proposition 6.15's Layer B holds over any
   probability space of goods, including the continuum of Calvo reset histories
   (`NonlinearNKMarkovGoodsLayerB.prop615_goods_layerBM`,
   `NonlinearNKMarkovGoodsLayerBFin.prop615_goods_layerB_of_M`).
+* **The nonlinear Ramsey plan and the linear-quadratic plan.** The exact Ramsey solution is
+  `C^{1,1}` in the amplitude of the disturbances, uniformly over event trees
+  (`TidyR6aSmooth.ramsey_C1`); its first-order component solves the linear-quadratic commitment
+  problem and, for every `Φ` with `A_uG ≠ 0`, is the footnote-71 plan with `φ = λ̃/κ = 1/θ`, and the
+  constraint block of the Ramsey model is exactly the Calvo model of §5
+  (`TidyR6aExpand.first_order_family`, `TidyR6aShock.lamTilde_one`,
+  `TidyR6aBridge.first_order_is_fn71`, `TidyR6aBridge.timeless_first_order`,
+  `TidyR6aBridge.calvoAS_of_ramsey`). When `Φ ≠ 0` every solution of the date-0 conditions stays a
+  fixed distance from the steady state, so the footnote-71 plan is the first-order component of the
+  timeless plan, and of the date-0 plan only when `Φ = 0` (`TidyR6aBridge.date0_far`,
+  `TidyR6aBridge.date0_eq_timeless`). The timeless plan exists for any distortion, the date-0 plan
+  whenever its commitment gap `|λ̄₁(Φ)|` is within the radius of the distorted steady state
+  (`TidyR6aLargePhi.timeless_any_Phi`, `TidyR6aLargePhi.date0_any_Phi`). In the efficient frame
+  with small disturbances the nonlinear date-0 plan is a strict local maximum of welfare: the
+  welfare gap of a feasible plan is exactly the discounted sum of the second-order remainder of
+  the Lagrangian, and it is at most `−c` times the discounted `ℓ²` distance for every bounded
+  feasible plan in a sup-norm neighbourhood (`TidyR6aLagr.welfare_diff`, `TidyR6aHess.R2_bound`,
+  `TidyR6aLocalMax.local_max`, `TidyR6aLocalMax.date0_strict_max`).
 * **The exact Rotemberg (1982) model.** The quadratic-adjustment-cost model of Chapter 3,
   footnote 44, stated exactly and treated to the same standard as Calvo. A Markov equilibrium
   exists and is locally unique iff the Taylor principle holds in the Rotemberg slope
@@ -149,7 +182,13 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   provably does not decide: two exact rules with the same linearisation give opposite answers
   (`NonlinearRotembergBoundary.boundary_no_order_eps`, `NonlinearRotembergBoundary.corner_continuum`,
   `NonlinearRotembergBoundaryPair.modelA_continuum`, `NonlinearRotembergBoundaryPair.modelB_unique`).
-  The equilibrium is `C^∞` in the eight parameters and the shock scale
+  For the linear rule with `φ_y > 0` the exact model decides: whenever
+  `S = σ(θm)² + 3(1 − β)θm − (1 − β)²ψ ≠ 0` there is a one-sided continuum of bounded equilibria,
+  deflationary if `S > 0` and inflationary if `S < 0`, so local uniqueness fails; small constant
+  disturbances of one sign admit no nearby equilibrium, of the other sign two steady-state
+  equilibria (`NonlinearRotembergCentre.deflationary`, `NonlinearRotembergCentre.inflationary`,
+  `NonlinearRotembergCentre.not_locally_unique`, `NonlinearRotembergCentreShock.shock_pos`,
+  `NonlinearRotembergCentreShock.shock_neg`). The equilibrium is `C^∞` in the eight parameters and the shock scale
   (`NonlinearRotembergSmooth.markov_equilibrium_smooth`). The timeless Ramsey policy has
   Lagrangian-derived conditions, a zero-inflation steady state for every `Φ` and none with
   positive inflation, the targeting rule
@@ -165,7 +204,15 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   agree state by state under the equivalence map, the discounted second-order costs of inflation
   coincide, and total second-order welfare of trend inflation differs
   (`NonlinearRotembergLinks.first_order_agree`, `NonlinearRotembergWelfare.discounted_cost_equiv`,
-  `NonlinearRotembergTrendWelfare.trend_welfare_differ`).
+  `NonlinearRotembergTrendWelfare.trend_welfare_differ`), for every `σ` including log utility
+  (`NonlinearRotembergLogWelfare.trend_welfare_all`,
+  `NonlinearRotembergLogWelfare.trend_welfare_log_differ`). Under stochastic fluctuations the
+  second-order welfare of the actual perturbation equilibria differs by
+  `(ε²/2)(1 − m)E₀∑βᵗ(ŷ₂ᴿ − ŷ₂ᶜ) + o(ε²)`: the two coincide with an efficient steady state
+  (`m = 1`) but not in general, `W_R − W_C = (40/9)ε² + o(ε²)` in an example
+  (`NonlinearRotembergStochModels.models_welfare_difference`,
+  `NonlinearRotembergStochModels.models_coincide_efficient`,
+  `NonlinearRotembergStochExample.welfare_differs`).
 * **Smooth dependence on the shock scale.** For `E_tf(y_{t+1}, y_t, y_{t−1}, x_t, σε_{t+1}) = 0`
   with an invertible linearisation the equilibrium is `Cᵏ` in `σ` and Markov
   (`SmoothInSigma.Model.exists_smooth_solution`, `SmoothInSigma.Model.exists_smooth_policy`);
@@ -179,7 +226,12 @@ Headline results, in the namespace `Woodford.StabilizationWelfare`:
   (`SmoothInSigmaUnique.exists_unique_equilibrium_iid`), and Propositions 6.1 and 6.7–6.15 hold
   along it (`SmoothInSigmaWelfare.prop61_of_primitives`, `SmoothInSigmaMeasureProps.prop67_measure`,
   `SmoothInSigmaMeasureWelfare.prop610_measure`, `SmoothInSigmaMeasureProps.prop614_measure`,
-  `SmoothInSigmaMeasure615.prop615_measure`).
+  `SmoothInSigmaMeasure615.prop615_measure`). For 6.8, 6.14 and 6.15 the model equations are
+  derived from the equilibrium of a model, for 6.15 with locally `C²` readouts
+  (`TidyR6bAlongModel.prop614_model`, `TidyR6bAlongModel.prop68_model`,
+  `TidyR6bAlong615.prop615_local`, `TidyR6bAlong615.prop615_model`), and Propositions 6.7–6.8 hold
+  two-sided for utility that is `C³` through satiation (`TidyR6bTwoSided67.prop67_measure_smooth`,
+  `TidyR6bTwoSided67.prop68_model_smooth`).
 * **Genuine probability models.** All of the above holds on infinite-horizon probability spaces
   with nondegenerate shocks, where every history is null (`NonlinearNKMarkovMeasure.coin_markov_equilibrium`,
   `SmoothInSigmaMeasurePath.exists_equilibrium_iid`).
@@ -189,27 +241,35 @@ See the [source map](docs/source-map.md) for the correspondence with the book an
 the printed text precise.
 
 Not covered: the numerical Figures 6.1–6.6 and the optimisation outputs behind Figure 6.1 and
-Table 6.2, of which only the exact arithmetic claims are formalised. For the nonlinear date-0
-Ramsey problem only the solution of the exact first-order conditions is constructed, near the
-steady state and for small `Φ` (`TidyR5RamseyDate0.date0_main`). Welfare optimality up to
-`O(ε³)` holds for every `Φ ∈ [0, 1)` (`TidyR5RamseySOC.lq_sufficiency615`), but assumes that the
-first-order component of the nonlinear date-0 solution is the footnote-71 plan and that the
-competitors' first-order components satisfy the linear AS relation. That link to the LQ plan,
-exact local maximality of the nonlinear plan, and existence and convergence for large `Φ` are
-not proved; full optimality is proved in the linear-quadratic model (`TidyR5CommitLQ`). Layer B of
-Proposition 6.7 around the distorted steady state with `Δ̄ = 0` uses the smooth extension `Ũ`,
-since the actual utility does not then determine `m̄` (`TidyR5DistortedBranch67.foc_actual_flat`).
-Government purchases (`s_C < 1`) are covered for the Taylor-rule equilibrium; the Ramsey results
-keep `s_C = 1`, and the Calvo Ramsey policy assumes `A_uG ≠ 0` (true for `A_u > 0`,
-`0 ≤ Φ ≤ 1`). For the Rotemberg model: under the linear Taylor rule on the boundary with
-`φ_y > 0`, whether the exact model has a one-sided continuum of equilibria and whether small-shock
-equilibria exist at all (a centre-manifold coefficient; the linearisation provably does not
-decide, `NonlinearRotembergBoundaryPair`); and the second-order welfare comparison with Calvo
-under stochastic fluctuations with second-order paths, the trend-inflation comparison excluding
-log utility (`σ = 1`).
-Along the perturbation equilibrium, Propositions 6.8, 6.14 and 6.15 take the exact model equations
-(for 6.15 the Calvo conditions `hM`) as hypotheses, Proposition 6.15 needs globally `C²`
-readouts, and Propositions 6.7–6.8 assume real balances approach satiation from below (`hleft`).
+Table 6.2, of which only the exact arithmetic claims are formalised. For the nonlinear Ramsey
+plan, the second-order sufficiency argument still takes the welfare expansions of
+Proposition 6.15 for the two families compared (`hWA`, `hWB`) as hypotheses
+(`TidyR6aLQLink.ramsey_lq_sufficiency`). Exact strict local maximality is proved for the efficient
+frame with small disturbances (`TidyR6aLocalMax.date0_strict_max`); for `Φ > 0` the date-0 plan
+is far from the efficient steady state at which the Hessian is computed, and the small-`Φ` route
+through `TidyR5RamseyDate0.ramseyL_absorb` would need the welfare of the shifted economy
+identified with `TidyR6aLagr.W`, which is not formalised. For large `Φ` the timeless plan exists
+for any distortion, the date-0 plan only when `|λ̄₁(Φ)| ≤ δ(Φ)` (`TidyR6aLargePhi.date0_any_Phi`).
+A global existence result for the date-0 plan is out of reach of these methods: that plan stays a
+distance of order `Φ` from the steady state, and the gap is homogeneous of degree one in `A_u`,
+as the conditions are, so no renormalisation brings it within the radius of a local
+implicit-function or Newton argument (`TidyR6aBridge.date0_far`, `TidyR6aLargePhi.lam1_scale`);
+it would need the existence of a global optimum, a constraint qualification and multipliers in
+the dual of `ℓ∞`. With government purchases (`s_C < 1`) the timeless Ramsey policy is covered
+under the root condition and for `H = 0`; in the excluded region `−2(1 + β) ≤ κθ_X ≤ 0` with
+`H ≠ 0` only the failure of the linear inverse is proved, under perfect foresight
+(`TidyR6bGovRamseyNoRoot.not_invBound_inside`, `TidyR6bGovRamseyNoRoot.not_invBound_unit`,
+`TidyR6bGovRamseyNoRoot.not_invBound_boundary`), not exact non-existence. For the Calvo Ramsey
+policy with `A_uG = 0` (only for `Φ ∉ [0, 1]`) no equilibrium is of order `ε`
+(`TidyR6bCalvoDegenerate.no_small_solution`); existence or uniqueness at a larger scale depends
+on higher-order terms and is not treated. Along the perturbation equilibrium, the one-sided
+hypothesis `hleft` of Propositions 6.7–6.8 holds only when real balances do not respond at first
+order (`TidyR6bAlongModel.hleft_first_order_zero`); the two-sided versions need a utility that is
+`C³` through satiation, and a two-sided expansion for an actual utility with a kink at satiation
+is not done. For the Rotemberg model on the boundary with `φ_y > 0`, the degenerate surface
+`S = σ(θm)² + 3(1 − β)θm − (1 − β)²ψ = 0`, where the transcritical coefficient vanishes and a
+cubic coefficient decides, is not covered, and the disturbance results there are for constant
+(perfect-foresight) shocks only.
 
 ## Library map
 
@@ -320,6 +380,45 @@ readouts, and Propositions 6.7–6.8 assume real balances approach satiation fro
 | [TidyR5RamseyDate0](StabilizationWelfare/TidyR5RamseyDate0.lean) | 27 | pp. 413–415, Ch. 7: the date-0 plan of the exact model (first-order conditions) exists for small `Φ` and converges to the timeless plan and to zero inflation |
 | [TidyR5RamseyLongRun](StabilizationWelfare/TidyR5RamseyLongRun.lean) | 9 | Every Ramsey steady state has zero inflation iff `(1 − Φ)(1 − σ) ≠ 1 + ω`; convergent paths have long-run inflation zero; the exceptional continuum |
 | [TidyR5RamseySOC](StabilizationWelfare/TidyR5RamseySOC.lean) | 3 | Proposition 6.15 with footnote 71: the commitment plan is optimal up to `O(ε³)` for every `Φ ∈ [0, 1)` |
+| [NonlinearRotembergCentreTools](StabilizationWelfare/NonlinearRotembergCentreTools.lean) | 13 | App. A.3: tools for a non-hyperbolic planar map: the invariant-cone lemma, centre monotonicity, a Ważewski lemma by nested intervals |
+| [NonlinearRotembergCentreLocal](StabilizationWelfare/NonlinearRotembergCentreLocal.lean) | 24 | Prop. 4.3: the linear boundary Taylor rule with `φ_y > 0`: exact centre and expanding coordinates `(L, V)`, the exact planar recursion, the coordinates control the state |
+| [NonlinearRotembergCentreChart](StabilizationWelfare/NonlinearRotembergCentreChart.lean) | 20 | A chart of the resource manifold by the inverse function theorem; the forward map in `(L, V)` is continuous and its orbits are exact equilibria |
+| [NonlinearRotembergCentreSecond](StabilizationWelfare/NonlinearRotembergCentreSecond.lean) | 12 | The transcritical coefficient: the centre drift is `qL²` to second order, `sign q = sign S`, `S = σ(θm)² + 3(1 − β)θm − (1 − β)²ψ` |
+| [NonlinearRotembergCentre](StabilizationWelfare/NonlinearRotembergCentre.lean) | 11 | On the boundary with `S ≠ 0`: a one-sided continuum of bounded equilibria, deflationary for `S > 0`, inflationary for `S < 0`; local uniqueness fails |
+| [NonlinearRotembergCentreShock](StabilizationWelfare/NonlinearRotembergCentreShock.lean) | 8 | Small constant disturbances on the boundary: no nearby equilibrium for one sign, two steady-state equilibria for the other |
+| [NonlinearRotembergLogWelfare](StabilizationWelfare/NonlinearRotembergLogWelfare.lean) | 11 | Trend-inflation welfare, Rotemberg against Calvo, for every `σ > 0`; log utility as the `σ → 1` limit; the totals differ at `σ = 1` |
+| [NonlinearRotembergStochWelfare](StabilizationWelfare/NonlinearRotembergStochWelfare.lean) | 25 | Ch. 6 §1–2, App. E.2: second-order welfare under stochastic fluctuations with exact Calvo dispersion, uniformly over shock paths; the two differ by `(1 − m)` times second-order output |
+| [NonlinearRotembergStochModels](StabilizationWelfare/NonlinearRotembergStochModels.lean) | 7 | The hypotheses discharged for the actual Rotemberg and Calvo perturbation equilibria; the welfare difference, expected welfare, coincidence at `m = 1` |
+| [NonlinearRotembergStochExample](StabilizationWelfare/NonlinearRotembergStochExample.lean) | 10 | A one-state chain with a permanent disturbance: the exact second-order difference, `W_R − W_C = (40/9)ε² + o(ε²)` in an example with `m = 1/2` |
+| [TidyR6aAS](StabilizationWelfare/TidyR6aAS.lean) | 5 | (5.4), (5.11): the first-order components of any family of exact Calvo equilibria satisfy the linear AS relation with the cost-push term |
+| [TidyR6aShock](StabilizationWelfare/TidyR6aShock.lean) | 11 | §5: the linearised Ramsey conditions with disturbances: the Benigno–Woodford target, the cost-push term, `λ̃ = κ/θ` for every `Φ`; the LQ commitment problem on event trees |
+| [TidyR6aExpand](StabilizationWelfare/TidyR6aExpand.lean) | 10 | The Newton step with an a posteriori bound; the first-order component of the exact Ramsey solution, `‖z(ε) − εz₁‖ ≤ Cε²` |
+| [TidyR6aBridge](StabilizationWelfare/TidyR6aBridge.lean) | 10 | The Ramsey constraint block is the Calvo model of §5; footnote 71's plan is unique and is the first-order component of the timeless plan; the date-0 plan is far when `Φ ≠ 0` |
+| [TidyR6aTreeSum](StabilizationWelfare/TidyR6aTreeSum.lean) | 20 | Expected discounted sums on an event tree: positivity, regrouping across the lag, forward and backward bounds in the discounted `ℓ²` norm |
+| [TidyR6aLagr](StabilizationWelfare/TidyR6aLagr.lean) | 19 | The Lagrangian of the exact date-0 Ramsey problem: feasible plans, welfare equals the Lagrangian, first-order terms vanish, the welfare gap is the discounted second-order remainder |
+| [TidyR6aHess](StabilizationWelfare/TidyR6aHess.lean) | 19 | The Hessian of the Lagrangian at the efficient steady state and the cubic bound on the remainder |
+| [TidyR6aFeas](StabilizationWelfare/TidyR6aFeas.lean) | 7 | Feasibility between two plans: the price index and the dispersion law linearised with remainders; discounted `ℓ²` bounds |
+| [TidyR6aGap](StabilizationWelfare/TidyR6aGap.lean) | 13 | Near the efficient steady state the reset-price, `F̂` and dispersion gaps are controlled by the inflation and output gaps |
+| [TidyR6aLargePhi](StabilizationWelfare/TidyR6aLargePhi.lean) | 9 | Any distortion: the timeless plan exists around the distorted steady state; the date-0 plan when the commitment gap is within its radius; the gap scales with `A_u` |
+| [TidyR6aLocalMax](StabilizationWelfare/TidyR6aLocalMax.lean) | 18 | The nonlinear date-0 Ramsey plan is a strict local maximum of welfare (efficient frame, small disturbances), with discounted-`ℓ²` coercivity |
+| [TidyR6aLQLink](StabilizationWelfare/TidyR6aLQLink.lean) | 4 | `TidyR5RamseySOC.lq_sufficiency615` for the actual Ramsey plan: both hypotheses discharged |
+| [TidyR6aSmooth](StabilizationWelfare/TidyR6aSmooth.lean) | 18 | `C^{1,1}` dependence of the sequence-space Ramsey solution on the amplitude, uniformly over event trees; the implicit-function derivative at every node |
+| [TidyR6bAlongModel](StabilizationWelfare/TidyR6bAlongModel.lean) | 8 | Static and expectational model equations along the perturbation equilibrium; Propositions 6.8 and 6.14 along the equilibrium of a model; when `hleft` holds |
+| [TidyR6bAlong615](StabilizationWelfare/TidyR6bAlong615.lean) | 3 | Proposition 6.15 along the equilibrium with locally `C²` readouts and the Calvo conditions derived |
+| [TidyR6bCalvoDegenerate](StabilizationWelfare/TidyR6bCalvoDegenerate.lean) | 16 | The Calvo Ramsey problem when `A_uG = 0` (only for `Φ ∉ [0, 1]`): a constant kernel, no linear inverse, no equilibrium of order `ε` |
+| [TidyR6bDistortedDelta0](StabilizationWelfare/TidyR6bDistortedDelta0.lean) | 4 | Proposition 6.7 around a distorted steady state with `Δ̄ = 0` for the actual utility: every admissible `m̄ ≥ mˢ` gives the same expansion |
+| [TidyR6bGovRamsey](StabilizationWelfare/TidyR6bGovRamsey.lean) | 18 | §5: the exact Ramsey conditions with government purchases as Lagrangian derivatives; the smooth version; the linearisation with the extra output weight `γ_G` |
+| [TidyR6bRamseyNewton](StabilizationWelfare/TidyR6bRamseyNewton.lean) | 10 | App. A.3: the Newton contraction with a lag on an event tree for abstract conditions with an inverse family |
+| [TidyR6bGovRamseyTree](StabilizationWelfare/TidyR6bGovRamseyTree.lean) | 26 | The root condition `RootOK` on `H = A_uG − γ_G`; the linearised Ramsey operator with purchases and its inverse on event trees |
+| [TidyR6bGovRamseyIFT](StabilizationWelfare/TidyR6bGovRamseyIFT.lean) | 11 | Existence and uniqueness of the timeless Ramsey equilibrium with purchases on every event tree; when `H > 0`; the oscillating and excluded cases |
+| [TidyR6bRamseyNewtonAE](StabilizationWelfare/TidyR6bRamseyNewtonAE.lean) | 7 | The Newton contraction on a filtered probability space for abstract conditions |
+| [TidyR6bGovRamseyAE](StabilizationWelfare/TidyR6bGovRamseyAE.lean) | 17 | The inverse a.s.; existence, adaptedness and a.s. uniqueness of the Ramsey equilibrium with purchases |
+| [TidyR6bGovRamseyZero](StabilizationWelfare/TidyR6bGovRamseyZero.lean) | 12 | The case `H = 0 ≠ A_uG` on event trees: inflation from the targeting rule, output from the NKPC; existence and uniqueness |
+| [TidyR6bGovRamseyAEZero](StabilizationWelfare/TidyR6bGovRamseyAEZero.lean) | 12 | The case `H = 0` on a filtered probability space |
+| [TidyR6bGovRamseyAR1](StabilizationWelfare/TidyR6bGovRamseyAR1.lean) | 8 | The Markov representation of the Ramsey equilibrium with purchases for an AR(1) of any bounded law |
+| [TidyR6bGovRamseyAR1Zero](StabilizationWelfare/TidyR6bGovRamseyAR1Zero.lean) | 3 | The same when `H = 0` |
+| [TidyR6bGovRamseyNoRoot](StabilizationWelfare/TidyR6bGovRamseyNoRoot.lean) | 10 | The excluded region `−2(1 + β) ≤ κθ_X ≤ 0`: no bounded linear solution under perfect foresight, so no inverse for the Newton argument |
+| [TidyR6bTwoSided67](StabilizationWelfare/TidyR6bTwoSided67.lean) | 5 | Propositions 6.7–6.8 two-sided, for a utility `C³` through satiation, in Layer B and along the equilibrium |
 
 ## Build and verify
 
