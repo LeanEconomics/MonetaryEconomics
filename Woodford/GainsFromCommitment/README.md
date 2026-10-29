@@ -13,11 +13,14 @@ first-order conditions minimises the expected loss over all bounded feasible pla
 sufficiency), with uniqueness from strict convexity. "Unique equilibrium" means unique among
 bounded adapted processes. The variance results of §3 and Appendix F.4 are also proved with
 Mathlib's conditional expectation on a genuine probability space, almost surely. The library
-contains **1353 theorems**, including the shared core.
+contains **1623 theorems**, including the shared core.
 
 Every proposition is stated for the exact linear-quadratic problem. The book's qualifiers "up to an
-error of order `O(‖·‖²)`" belong to the second-order welfare approximation of Chapter 6 (the
-`StabilizationWelfare` project) and are recorded only in docstrings.
+error of order `O(‖·‖²)`" come from the second-order welfare approximation of Chapter 6 (the
+`StabilizationWelfare` project). Propositions 7.1–7.5 and 7.15 are also proved as statements about
+actual welfare to third order, with `λ = κ/θ` derived rather than assumed. These proofs run on a
+restated copy of the Chapter 6 machinery (`TidyR6WelfBase`, `TidyR6WelfBridge`,
+`TidyR6WelfFrictions`).
 
 Headline results, in the namespace `Woodford.GainsFromCommitment`:
 * **The workhorse and Lagrangian sufficiency.** `βE_t y_{t+1} − (1 + β + c)y_t + y_{t−1} = f_t`
@@ -43,6 +46,23 @@ Headline results, in the namespace `Woodford.GainsFromCommitment`:
   state with indexation and frictions is necessary as well as sufficient for timeless optimality
   of a constant plan, with no multiplier assumed (`TidyR5IndexationNecessity.ss_ind_necessary`,
   `TidyR5IndexationNecessity.ss_ind_timeless_iff`).
+* **Actual welfare up to `O(‖·‖²)`.** Along a one-parameter family of Calvo economies the
+  discounted actual utility is `TIP − (ε²/2)Ȳu_c·2Θ·L + O(ε³)` with one constant for all dates and
+  states, where `L` is the loss of the first-order plan and its weight `λ = κ/θ` is derived from
+  the expansion, not assumed; the same holds for `E₀`-expected welfare
+  (`TidyR6WelfCalvo.calvo_bridge_unif`, `TidyR6WelfCalvo.CalvoFamily.bridge`,
+  `TidyR6WelfCalvo.SCalvoFamily.bridge`, `TidyR6WelfCalvo.lamW_eq`), and with transactions
+  frictions, where `λ_x = κ/θ` and `λ_i` are derived too (`TidyR6WelfProp73.frictions_bridge`). A
+  lower first-order loss means at least as good up to `O(ε³)` and strictly better for every small
+  `ε ≠ 0`, and conversely (`TidyR6WelfCalvo.weaklyBetter_of_loss_le`,
+  `TidyR6WelfCalvo.eventually_lt_of_loss_lt`, `TidyR6WelfCalvo.loss_le_of_weaklyBetter`). So
+  Propositions 7.1–7.5 and 7.15 hold as statements about actual welfare, each with a converse
+  (`TidyR6WelfProps.prop_7_1_welfare`, `TidyR6WelfProps.prop_7_1_welfare_converse`,
+  `TidyR6WelfProps.prop_7_2_welfare`, `TidyR6WelfProps.prop_7_2_welfare_unique`,
+  `TidyR6WelfProp73.prop_7_3_welfare`, `TidyR6WelfProp73.prop_7_3_welfare_converse`,
+  `TidyR6WelfProps.prop_7_4_welfare`, `TidyR6WelfProps.prop_7_4_welfare_converse`,
+  `TidyR6WelfPropsS.prop_7_5_welfare`, `TidyR6WelfPropsS.prop_7_5_welfare_converse`,
+  `TidyR6WelfPropsS.prop_7_15_welfare`, `TidyR6WelfPropsS.prop_7_15_welfare_converse`).
 * **Cost-push shocks.** Proposition 7.5 (`Discretion.prop_7_5`); Propositions 7.6–7.8 on
   integer dates, so that the forecasts `E_{t₀−k}u` of (2.9) exist, with (2.9) the only bounded
   self-consistent specification (`CostPushCommitment.prop_7_6`, `CostPushCommitment.prop_7_7`,
@@ -77,7 +97,14 @@ Headline results, in the namespace `Woodford.GainsFromCommitment`:
   rule iff the consistent coefficients lie in the region (`TidyR5TaylorRegion.oni_implementable_iff`),
   so (3.10) is sufficient but not necessary (`TidyR5TaylorRegion.negative_rule_implements`,
   `TidyR5TaylorRegion.no_rule_implements`); for `λ_i > 0` the singular set of `(ρ_r, ρ_u)` is
-  closed and Lebesgue-null (`TidyR5TaylorRegion.detG_zero_null`). Proposition 7.13 exactly for
+  closed and Lebesgue-null (`TidyR5TaylorRegion.detG_zero_null`). At every `(ρ_r, ρ_u)`,
+  singular ones included, the plan is implementable iff some solution of the consistency system
+  lies in the region (`TidyR6TaylorSingular.oni_implementable_iff_exists`); on the singular set
+  this is an explicit rank and one-dimensional Fourier–Motzkin condition
+  (`TidyR6TaylorSingular.oni_implementable_singular_iff`); and with `λ_i = 0`, or whenever
+  `γ_r = ρ_rκσ`, the plan is the equilibrium of no Taylor rule at all
+  (`TidyR6TaylorSingular.not_implementable_li_zero`,
+  `TidyR6TaylorSingular.not_implementable_r_row_zero`). Proposition 7.13 exactly for
   every horizon `k ≥ 1`: determinate iff every root of `χ` has `|λ| > 1`
   (`TidyR5ForecastHorizon.forecast_determinate_iff`, `TidyR5ForecastHorizon.scalarDet_iff`).
 * **Instrument path and targeting rules.** Proposition 7.14 with (4.2) corrected and a continuum
@@ -119,7 +146,13 @@ Headline results, in the namespace `Woodford.GainsFromCommitment`:
   versions admits no uniform null set (`TidyR5UniformNull.versions_no_uniform_null`). The
   "independent" disturbances of p. 512 are genuinely independent processes in the two-coin
   economy, and F.4 follows from independence (`TidyR5Independence.twoCoin_indepDisturbances`,
-  `TidyR5Independence.f4_lstab_indep`, `TidyR5Independence.twoCoin_f4_indep`).
+  `TidyR5Independence.f4_lstab_indep`, `TidyR5Independence.twoCoin_f4_indep`). The orders of
+  integration of p. 501 are genuine properties of stochastic processes (`Δᵈp` covariance
+  stationary, no lower difference stationary; `TidyR6IntegrationOrder.IntegratedOfOrder`): on the
+  i.i.d. coin economy with white-noise cost-push shocks the price level is `I(0)` and `I(1)` under
+  optimal policy with `γ = 0` and `γ = 1`, and `I(1)` and `I(2)` under discretion
+  (`TidyR6IntegrationPolicy.optimal_gamma0_I0`, `TidyR6IntegrationPolicy.optimal_gamma1_I1`,
+  `TidyR6IntegrationPolicy.discretion_gamma0_I1`, `TidyR6IntegrationPolicy.discretion_gamma1_I2`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -129,25 +162,38 @@ the index and the missing factor `κ/λ` in the impulse responses (2.16)–(2.17
 recursion (E4–E6), the missing hypothesis of Propositions 7.9–7.10 (E7), the weights of (2.30)
 (E8), the false claim `φ_π > 1` of p. 515 (E9), the calibration behind footnote 32 (E10), the
 long-run values of App. F.4 (E11), the summation range of (4.2) (E12) and the sign of the
-output-gap forecast of p. 528 (E13); the unqualified zero-bound claim of p. 469; and a misprint
-in App. F.6.
+output-gap forecast of p. 528 (E13); the unqualified zero-bound claim of p. 469; the claim of
+p. 515 that the coefficients are determined for almost all parameters, which fails with `λ_i = 0`,
+where no Taylor rule implements the optimal noninertial plan; and a misprint in App. F.6.
 
 Not formalised:
-* the `O(‖·‖²)` approximation qualifiers of Propositions 7.1–7.5 and 7.15, which belong to the
-  Chapter 6 welfare approximation; `λ = κ/θ` (Chapter 6) is a hypothesis where used;
+* existence of the exact nonlinear equilibrium families behind the `O(‖·‖²)` statements: the
+  welfare versions of Propositions 7.1–7.5 and 7.15 take the one-parameter families (the
+  cross-section, the dispersion law with an `O(ε³)` remainder, the first-order components
+  satisfying (1.1), (2.1) or (1.15)) as hypotheses, as Chapter 6 Layer B does, and the necessity
+  directions are stated against an explicit comparator family; the existence of exact nonlinear
+  equilibrium families implementing each plan (built in the Chapter 6 project's nonlinear
+  modules) is not re-proved here;
+* for Proposition 7.3 under actual welfare, the money-demand residual of order `O(ε²)`, the
+  discounted dispersion identity with its initial term `T₀`, and `π̄ − π = O(ε²)` are hypotheses
+  (as in the Chapter 6 `prop68_layerB`), not derived from a population of goods;
+* the stochastic welfare results (Propositions 7.5 and 7.15) need every order bound uniform in the
+  state, and their converses a faithful `E₀`; the cost-push shock is read as a markup or tax
+  disturbance entering only the first-order aggregate-supply relation (Chapter 6 §4.5), not
+  through the large-distortion loss of Proposition 6.15, whose weight differs from `κ/θ`;
 * least-squares learnability and E-stability (pp. 519, 528, 532–533; Evans and Honkapohja,
   Preston), which concern adaptive learning, not rational-expectations equilibria;
-* Proposition 7.12 for coefficients of any sign at the `(ρ_r, ρ_u)` where the consistency system
-  for `(φ_π, φ_x)` is singular: the exact criterion is proved off that set, which for `λ_i > 0` is
-  closed, Lebesgue-null and has empty interior, and for `λ_i = 0` is all of `ℝ²`;
+* the orders of integration of p. 501 beyond the i.i.d. coin economy: they are proved for
+  white-noise cost-push shocks, with the stationary initial multiplier for exact stationarity
+  under optimal policy (the policy followed forever); AR(1) cost-push shocks and arbitrary
+  initial multipliers, which give only asymptotic stationarity, are not treated;
 * a single null set for arbitrary versions of `L_stab`: one null set uniform over all plans is
   proved for the regular (bilinear) version, and the expected losses need none, but some choice of
   versions admits no uniform null set (`TidyR5UniformNull.versions_no_uniform_null`); Mathlib's
   own `condExp` representative is chosen by `Classical.choice`, so neither statement can be
   proved for that specific function;
 * uniqueness of the `κ = 0` natural-rate optimum (2.29) without faithfulness, which is false
-  (`TidyR5NaturalRateKappa.kappa0_not_unique`; with faithfulness it is proved); "I(1)" and "I(2)"
-  on p. 501 are formalised as root multiplicities at `z = 1`;
+  (`TidyR5NaturalRateKappa.kappa0_not_unique`; with faithfulness it is proved);
 * the `κ > 0` dynamics of Figure 7.6 as numerical curves: existence, uniqueness, optimality and
   the partial-adjustment law are proved structurally, not the plotted paths;
 * the numerical Figures 7.1–7.6, the calibrated rates −0.4% and −0.2% a year (fn 13), and the
@@ -194,6 +240,16 @@ Not formalised:
 | [TidyR5NaturalRateKappa](GainsFromCommitment/TidyR5NaturalRateKappa.lean) | 19 | §2.2 with `κ > 0`: existence and uniqueness for (1.16)–(1.18), `t₀`- and timeless optimality, the partial-adjustment law; uniqueness of (2.29) at `κ = 0` decided |
 | [TidyR5IndexationNecessity](GainsFromCommitment/TidyR5IndexationNecessity.lean) | 16 | §1.2, p. 484: necessity of the steady state with indexation and frictions, by an explicit feasible perturbation |
 | [TidyR5CompositeShocks](GainsFromCommitment/TidyR5CompositeShocks.lean) | 10 | §4, (4.3): composite disturbances with countably many shock types; superposition; robust optimality of (5.1) |
+| [TidyR6IntegrationOrder](GainsFromCommitment/TidyR6IntegrationOrder.lean) | 15 | p. 501: covariance stationarity and integration of order `d` on a probability space, invariant under a.e. equality; the moment calculus of linear coin processes |
+| [TidyR6IntegrationPolicy](GainsFromCommitment/TidyR6IntegrationPolicy.lean) | 19 | p. 501, fn 22: the price level is `I(0)`, `I(1)` under optimal policy and `I(1)`, `I(2)` under discretion, on the i.i.d. coin economy |
+| [TidyR6TaylorSingular](GainsFromCommitment/TidyR6TaylorSingular.lean) | 9 | §3, p. 515, fn 33: Proposition 7.12 for any sign at every `(ρ_r, ρ_u)`, the singular set exactly; no Taylor rule implements the plan when `λ_i = 0` |
+| [TidyR6WelfBase](GainsFromCommitment/TidyR6WelfBase.lean) | 57 | Chapter 6 welfare machinery (restated from `StabilizationWelfare`): Taylor steps, CES and log expansions, moments, bounded sequences, Proposition 6.1, Calvo dispersion |
+| [TidyR6WelfBridge](GainsFromCommitment/TidyR6WelfBridge.lean) | 65 | Chapter 6 Layer-B bridge (restated): orders uniform in the date, the utility and disutility sides, Propositions 6.4–6.5 for actual utility and their rankings |
+| [TidyR6WelfCalvo](GainsFromCommitment/TidyR6WelfCalvo.lean) | 25 | Welfare to `O(ε³)` for Chapter 7: the ranking engine both ways, the Calvo bridge uniform in the state, expected welfare, `λ = κ/θ` derived |
+| [TidyR6WelfFrictions](GainsFromCommitment/TidyR6WelfFrictions.lean) | 42 | Chapter 6 transactions frictions (restated): (4.9)–(4.11), Propositions 6.7–6.8 for actual utility with the one-sided expansion |
+| [TidyR6WelfProp73](GainsFromCommitment/TidyR6WelfProp73.lean) | 9 | §1.2: actual welfare with transactions frictions to `O(ε³)`, Proposition 7.3 and its converse |
+| [TidyR6WelfProps](GainsFromCommitment/TidyR6WelfProps.lean) | 18 | §1: Propositions 7.1, 7.2 and 7.4 as statements about actual welfare, with converses |
+| [TidyR6WelfPropsS](GainsFromCommitment/TidyR6WelfPropsS.lean) | 11 | §2.1, §5.1: Propositions 7.5 and 7.15 as statements about actual expected welfare, with converses |
 
 ## Modelling conventions
 

@@ -36,7 +36,17 @@
     "GainsFromCommitment/TidyR5KappaPosCore.lean",
     "GainsFromCommitment/TidyR5NaturalRateKappa.lean",
     "GainsFromCommitment/TidyR5IndexationNecessity.lean",
-    "GainsFromCommitment/TidyR5CompositeShocks.lean"
+    "GainsFromCommitment/TidyR5CompositeShocks.lean",
+    "GainsFromCommitment/TidyR6IntegrationOrder.lean",
+    "GainsFromCommitment/TidyR6IntegrationPolicy.lean",
+    "GainsFromCommitment/TidyR6TaylorSingular.lean",
+    "GainsFromCommitment/TidyR6WelfBase.lean",
+    "GainsFromCommitment/TidyR6WelfBridge.lean",
+    "GainsFromCommitment/TidyR6WelfCalvo.lean",
+    "GainsFromCommitment/TidyR6WelfFrictions.lean",
+    "GainsFromCommitment/TidyR6WelfProp73.lean",
+    "GainsFromCommitment/TidyR6WelfProps.lean",
+    "GainsFromCommitment/TidyR6WelfPropsS.lean"
   ],
   "theorem_counts": {
     "GainsFromCommitment/Determinacy.lean": 23,
@@ -74,7 +84,17 @@
     "GainsFromCommitment/TidyR5KappaPosCore.lean": 86,
     "GainsFromCommitment/TidyR5NaturalRateKappa.lean": 19,
     "GainsFromCommitment/TidyR5IndexationNecessity.lean": 16,
-    "GainsFromCommitment/TidyR5CompositeShocks.lean": 10
+    "GainsFromCommitment/TidyR5CompositeShocks.lean": 10,
+    "GainsFromCommitment/TidyR6IntegrationOrder.lean": 15,
+    "GainsFromCommitment/TidyR6IntegrationPolicy.lean": 19,
+    "GainsFromCommitment/TidyR6TaylorSingular.lean": 9,
+    "GainsFromCommitment/TidyR6WelfBase.lean": 57,
+    "GainsFromCommitment/TidyR6WelfBridge.lean": 65,
+    "GainsFromCommitment/TidyR6WelfCalvo.lean": 25,
+    "GainsFromCommitment/TidyR6WelfFrictions.lean": 42,
+    "GainsFromCommitment/TidyR6WelfProp73.lean": 9,
+    "GainsFromCommitment/TidyR6WelfProps.lean": 18,
+    "GainsFromCommitment/TidyR6WelfPropsS.lean": 11
   },
   "scope": "Woodford, Interest and Prices, Chapter 7: Gains from Commitment, with Appendix F. The second-order rational-expectations workhorse and Lagrangian sufficiency for LQ problems; the inflation bias of discretion and date-0 commitment (Props 7.1-7.3); timeless optimality; monetary frictions and indexation; discretion and optimal commitment under cost-push shocks (Props 7.4-7.8) with impulse responses, variance frontiers and natural-rate disturbances (Props 7.9-7.10); optimal noninertial plans, the optimal Taylor rule and forecast-based rules (Props 7.11-7.13); the optimal instrument path and sunspot continuum under an exogenous path (Prop 7.14); the targeting rule and its implementation (Props 7.15-7.17). Book misprints and false claims are corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "Michael Woodford, Interest and Prices: Foundations of a Theory of Monetary Policy, Princeton University Press, 2003, Chapter 7, pp. 464-533, and Appendix F, pp. 709-715."
