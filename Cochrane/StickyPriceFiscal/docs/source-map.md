@@ -8,8 +8,10 @@ book pages; "App." marks the Online Appendix, whose equations are numbered (1.21
 (2.1)–(2.3). The book has no labelled propositions, so rows are keyed by equation number, figure,
 table, section or page. Rows follow the book section by section, and each heading names the modules
 that formalise the section: §§5.1–5.7 with the appendix sections next to the sections that use
-them and the §5.5 model in a genuine probability model right after §5.5, then the links between
-sections (including continuous-time transversality with discontinuous forcing and the
+them, the §5.5 model in a genuine probability model right after §5.5, followed by §§5.1–5.4, 5.6,
+the responses, Table 5.1 and joint stationarity in a genuine probability model, the operator
+calculus after §5.7.2 and the matrix method for every matrix after App. §1.13, then the links
+between sections (including continuous-time transversality with discontinuous forcing and the
 discrete-to-continuous limit of the peg path), the copied Blanchard–Kahn theorem, the copied
 measure-theoretic core and the shared tools.
 Survey codes E19–E54 refer to `notes/survey_cochrane_ch4-5.md`; corrections are explained in
@@ -17,9 +19,10 @@ Survey codes E19–E54 refer to `notes/survey_cochrane_ch4-5.md`; corrections ar
 
 Discrete-time statements hold for an arbitrary `ExpectationSystem`, so under perfect foresight and
 under genuine uncertainty. The modules `PolicyRulesMeasure`, `PolicyRulesMeasureNews` and
-`PolicyRulesMeasureStationary` restate §5.5 for a measure-theoretic expectation system
+`PolicyRulesMeasureStationary` restate §5.5, and the modules `TidyR6MeasFiscalNK` to
+`TidyR6PathwiseTransfer` restate §§5.1–5.4 and 5.6, for a measure-theoretic expectation system
 (`ExpectationsMeasure.MeasExpectationSystem`, Mathlib's `condExp`), with equations almost
-everywhere, so that it also holds in full-support infinite-horizon models such as the i.i.d.
+everywhere, so that they also hold in full-support infinite-horizon models such as the i.i.d.
 economy. Continuous-time statements are about deterministic paths after a date-0
 ("MIT") shock, as in the book's responses.
 
@@ -290,6 +293,82 @@ nondegenerate news, including the i.i.d. economy, in which every history is null
 | Cochrane pp. 136–137, 148 (E32) | stationarity does not select `v* = v`: a constant gap `d ≡ 1` is a strictly stationary bounded solution in every probability model | `PolicyRulesMeasureStationary.rhoOne`, `PolicyRulesMeasureStationary.rho_one_stationary_not_select` |
 | Cochrane §5.4.1, p. 137 (E32) | the survey's example in the i.i.d. economy: a bounded solution whose gap is strictly stationary from date 1, with `π*_1 ≠ π_1` with positive probability, so not from date 0 | `PolicyRulesMeasureStationary.exParams`, `PolicyRulesMeasureStationary.exP`, `PolicyRulesMeasureStationary.exPs`, `PolicyRulesMeasureStationary.exVs`, `PolicyRulesMeasureStationary.exV`, `PolicyRulesMeasureStationary.ex_gap`, `PolicyRulesMeasureStationary.iid_stationary_from_one` |
 
+## §§5.1–5.2 in a genuine probability model, (5.1)–(5.21), pp. 117–129 (TidyR6MeasFiscalNK, TidyR6MeasEuler, TidyR6MeasE26)
+
+The models of §§5.1–5.2 restated, like `PolicyRulesMeasure`, for a `MeasExpectationSystem`, with
+equations almost everywhere.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (5.6), p. 119; App. §1.9, p. 574 | the no-rule parameters; the roots `λ_S = λ₁⁻¹ ∈ (0, 1)`, `λ_U = λ₂⁻¹ > 1` for `σ, κ, β > 0` | `TidyR6MeasFiscalNK.nkP`, `TidyR6MeasFiscalNK.lS`, `TidyR6MeasFiscalNK.lU`, `TidyR6MeasFiscalNK.roots_nk` |
+| Cochrane (5.1)–(5.2), p. 118; App. §1.7 | the model a.e.; in every bounded adapted solution `f = x − gπ` solves a forward equation and `E_tπ_{t+1} = λ_Sπ_t − (κ/β)f_t` | `TidyR6MeasFiscalNK.MNK`, `TidyR6MeasFiscalNK.mnk_props` |
+| Cochrane (5.3)–(5.4), pp. 118–119 | the iterated IS curve, its limit form iff `E_tx_{t+k} → 0`, and `π_t = ∑ βᵏκE_tx_{t+k}` as a genuine series | `TidyR6MeasFiscalNK.mis_iterate`, `TidyR6MeasFiscalNK.mis_iterate_limit`, `TidyR6MeasFiscalNK.mpc_forward` |
+| Cochrane (5.5)–(5.7), pp. 119–121 | all bounded equilibria of (5.1)–(5.2): `x = F + gπ` with the forward-solved rate term; the moving-average form | `TidyR6MeasFiscalNK.mnk_characterization`, `TidyR6MeasFiscalNK.mnk_ma` |
+| Cochrane (5.15)–(5.16), p. 121 | the general fiscal model and the transversality condition; tools | `TidyR6MeasFiscalNK.MEqm`, `TidyR6MeasFiscalNK.MTVC`, `TidyR6MeasFiscalNK.E_iter`, `TidyR6MeasFiscalNK.cW_eq`, `TidyR6MeasFiscalNK.mtvc_of_bdd`, `TidyR6MeasFiscalNK.meqm_congr` |
+| Cochrane pp. 121–122 | **determinacy in a probability model**: at most one equilibrium with the transversality condition for `0 < ρ ≤ 1`; for `0 < ρ < 1` uniqueness with bounded debt, existence by construction, determinacy | `TidyR6MeasFiscalNK.meqm_unique_tvc`, `TidyR6MeasFiscalNK.meqm_unique`, `TidyR6MeasFiscalNK.pRec`, `TidyR6MeasFiscalNK.pRec_adapted`, `TidyR6MeasFiscalNK.pRec_bdd`, `TidyR6MeasFiscalNK.alg_exist`, `TidyR6MeasFiscalNK.meqm_exists`, `TidyR6MeasFiscalNK.meqm_determinate` |
+| Cochrane p. 121 (E20, E32) | at `ρ = 1` every equilibrium has a distinct bounded companion with the same data | `TidyR6MeasFiscalNK.dPi`, `TidyR6MeasFiscalNK.dV`, `TidyR6MeasFiscalNK.rho_one_not_unique` |
+| Cochrane (5.11)–(5.13), p. 120 | the valuation equation as a genuine series; unexpected inflation from news about debt and its forcing | `TidyR6MeasFiscalNK.mvaluation`, `TidyR6MeasFiscalNK.mflow_innov` |
+| Cochrane (5.16), §5.1.2, p. 121 | one-period debt as the general model with forcing `s̃_{t+1} − i_t`; determinacy | `TidyR6MeasFiscalNK.MFTPLNK`, `TidyR6MeasFiscalNK.mftplnk_iff`, `TidyR6MeasFiscalNK.eShort_adaptedM`, `TidyR6MeasFiscalNK.eShort_bddM`, `TidyR6MeasFiscalNK.mftplnk_determinate` |
+| Cochrane (5.17)–(5.21), pp. 127–128 | long-term debt: the model, the bond price as the forward solution, determinacy including bond prices and returns | `TidyR6MeasFiscalNK.MLTD`, `TidyR6MeasFiscalNK.mltd_eqm`, `TidyR6MeasFiscalNK.mbond_price`, `TidyR6MeasFiscalNK.mltd_determinate` |
+| Cochrane p. 118 (`NKModel.euler_deriv`) | the derivative of `−log E_t exp(εX)` is `−E_tX` as a uniform a.e. `O(ε²)` bound (an `L^∞` derivative) and a.e. along every sequence `ε_n → 0`; for the Euler equation `γ(E_tc_{t+1} − c_t) + E_tπ_{t+1}` | `TidyR6MeasEuler.mE_exp_quadratic`, `TidyR6MeasEuler.mlog_E_exp_quadratic`, `TidyR6MeasEuler.mlog_E_exp_seq`, `TidyR6MeasEuler.meuler_deriv`, `TidyR6MeasEuler.meuler_deriv_seq` |
+| Cochrane (5.5), p. 119 | the book's shock `δ` is a martingale difference | `TidyR6MeasE26.bookDelta`, `TidyR6MeasE26.forwardSol_lU`, `TidyR6MeasE26.alg_e26`, `TidyR6MeasE26.mbookDelta_mds` |
+| Cochrane (5.7), p. 120 (E26) | `ΔEπ = δ + cλ₂ΔEF²`; `δ = ΔEπ` iff there is no rate news; with i.i.d. rate shocks `δ₁ ≠ ΔE₁π₁` on a set of positive probability, and equilibria exist | `TidyR6MeasE26.minnov_decomp`, `TidyR6MeasE26.mdelta_eq_innov_iff`, `TidyR6MeasE26.iid_e26` |
+
+## The responses of §§5.1.2–5.3 as forecast revisions, Figs. 5.1–5.4, pp. 121–132 (TidyR6MeasResponses, TidyR6MeasLTDResponse, TidyR6MeasPathForecasts)
+
+In a probability model a response is the revision `E_1π_{1+j} − E_0π_{1+j}`. The forecast paths
+of a bounded equilibrium are, state by state, perfect-foresight equilibria, so every closed form
+of `FiscalNK`, `LongTermDebt` and `HigherOrLower` carries over.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane pp. 121–125 | **the forecast paths are perfect-foresight equilibria** (one-period debt), from the predetermined debt `b̂_s` | `TidyR6MeasResponses.bHat`, `TidyR6MeasResponses.pf_forecast`, `TidyR6MeasResponses.bHat_zero`, `TidyR6MeasResponses.bHat_succ` |
+| Cochrane pp. 122–125 | closed-form forecasts when the rate forecasts are constant | `TidyR6MeasResponses.forecast_closed_form` |
+| Cochrane Figs. 5.1, 5.3, pp. 122–124 | the responses to a rate shock and to a fiscal shock as forecast revisions | `TidyR6MeasResponses.fig51_response`, `TidyR6MeasResponses.fig53_response` |
+| Cochrane §5.3, pp. 131–132 | the Fisherian long run; with one-period debt the impact revision `ερ/λ₁` has the sign of the rise | `TidyR6MeasResponses.fig51_fisherian`, `TidyR6MeasResponses.fig51_impact` |
+| Cochrane pp. 127–129 | **the forecast paths are perfect-foresight equilibria** (long-term debt), from `(v̂_{−1}, q̂_{−1})` | `TidyR6MeasLTDResponse.vHat`, `TidyR6MeasLTDResponse.qHat`, `TidyR6MeasLTDResponse.ltd_forecast`, `TidyR6MeasLTDResponse.vqHat_zero`, `TidyR6MeasLTDResponse.vqHat_succ` |
+| Cochrane Fig. 5.4, p. 128; §5.3, p. 131 | the perfect-foresight peg response for any size of rise; Fig. 5.4 as forecast revisions; impact disinflation iff `ω̃ > ρ/λ₁` | `TidyR6MeasLTDResponse.ltd_pf_peg`, `TidyR6MeasLTDResponse.fig54_response`, `TidyR6MeasLTDResponse.fig54_disinflation` |
+| Cochrane (5.15)–(5.21) | the perfect-foresight models are linear: equilibria add and scale with the rate path | `TidyR6MeasPathForecasts.ftplnk_pf_add`, `TidyR6MeasPathForecasts.ftplnk_pf_scale`, `TidyR6MeasPathForecasts.ltd_pf_add`, `TidyR6MeasPathForecasts.ltd_pf_scale` |
+| Cochrane Fig. 5.2, p. 124 | the anticipated rise as a forecast revision, `E_1π_{1+j} = ε·antPi S j` | `TidyR6MeasPathForecasts.fig52_response` |
+| Cochrane §5.3, pp. 131–132 | the joint monetary–fiscal contraction; the AR(1) rise with long-term debt, `E_1π_{1+j} = ε(Aηʲ + Cλ₁^{−j})` | `TidyR6MeasPathForecasts.joint_contraction_response`, `TidyR6MeasPathForecasts.ltd_ar1_response` |
+| Cochrane pp. 122, 129 | comparative statics of the impact revisions: larger with stickier prices (one-period debt); with long-term debt more negative with longer maturity and more flexible prices | `TidyR6PathwiseTransfer.fig51_impact_strictAnti`, `TidyR6PathwiseTransfer.fig54_impact_strictAnti_om`, `TidyR6PathwiseTransfer.fig54_impact_strictAnti_kappa` |
+
+## §§5.4, 5.4.1, 5.4.4 and 5.6 in a genuine probability model, (5.22)–(5.42), (5.82)–(5.84), pp. 134–162 (TidyR6MeasSurplus, TidyR6MeasActive538, TidyR6PathwiseTransfer)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (5.22)–(5.24), pp. 134–135 | the surplus process is adapted and integrable; its forecast paths are a perfect-foresight surplus process | `TidyR6MeasSurplus.msurplus_adapted`, `TidyR6MeasSurplus.surplus_forecast` |
+| Cochrane p. 136; (5.28), p. 135 | `v*` is the present value of surplus forecasts (a genuine series); the present value of surplus news is `β_sε` | `TidyR6MeasSurplus.mvstar_eq_pv`, `TidyR6MeasSurplus.msummable_pv`, `TidyR6MeasSurplus.minnov_pv` |
+| Cochrane (5.27), (5.29)–(5.35), pp. 135–137 | the frictionless model; debt satisfying the transversality condition is the present value of surpluses; selection `v = v*`, `ΔEπ = −β_sε` | `TidyR6MeasSurplus.MFrictionless`, `TidyR6MeasSurplus.mpv_of_tvc`, `TidyR6MeasSurplus.msurprise_eq`, `TidyR6MeasSurplus.mselect` |
+| Cochrane §5.4.4, p. 146 | AR(1) surpluses: `ΔE_{t+1}π_{t+1} = −ε_{t+1}/(1 − ρη)` | `TidyR6MeasSurplus.mar1_surplus_inflation` |
+| Cochrane §5.6, (5.82)–(5.84), pp. 160–162 | backed plus unbacked surpluses: unexpected inflation and `v = v* + η̂ŝ/(1 − ρη̂)` | `TidyR6MeasSurplus.malt_unexpected_inflation`, `TidyR6MeasSurplus.malt_v_closed_form` |
+| Cochrane (5.36)–(5.37), p. 138 (E6 of Chapters 11–19) | every debt path under `s̃ = γv + u` satisfies the transversality condition iff `0 < γ < 2` | `TidyR6MeasSurplus.mgamma_passive_iff` |
+| Cochrane (5.42), pp. 139–140 | model A (active fiscal) and model B (active money, `\|φ\| > 1`) both reproduce the target; observational equivalence | `TidyR6MeasSurplus.MTarget`, `TidyR6MeasSurplus.mmodelA_unique`, `TidyR6MeasSurplus.MActiveMoney`, `TidyR6MeasSurplus.mmodelB_unique`, `TidyR6MeasSurplus.mobservationally_equivalent` |
+| Cochrane (5.38), p. 139 (E33) | the model a.e.; its forecast paths are a perfect-foresight (5.38) model; the transversality condition holds iff `(α − γ)(v − v*) = 0` | `TidyR6MeasActive538.MRule538`, `TidyR6MeasActive538.E_surprise_zero`, `TidyR6MeasActive538.rule538_forecast`, `TidyR6MeasActive538.mtvc_v_iff_538` |
+| Cochrane (5.38), p. 139 (E33) | **active iff `γ ≠ α`** given a nondegenerate shock; in the i.i.d. economy the printed "active iff `γ = 0`" is false | `TidyR6MeasActive538.mactive_538`, `TidyR6MeasActive538.mpassive_538`, `TidyR6MeasActive538.MActive538`, `TidyR6MeasActive538.mactive_iff_538`, `TidyR6MeasActive538.mprinted_538_false` |
+| Cochrane Ch. 2, p. 29 (transfer device) | the identity is an `ExpectationSystem` with pull-out on every type, so core statements that use it only formally apply pathwise | `TidyR6PathwiseTransfer.idSystem`, `TidyR6PathwiseTransfer.idSystem_E`, `TidyR6PathwiseTransfer.idSystem_adapted`, `TidyR6PathwiseTransfer.idSystem_pullOut` |
+| Cochrane (5.25)–(5.26), p. 135 | the moving-average representations for processes on a probability space | `TidyR6PathwiseTransfer.mma_representation`, `TidyR6PathwiseTransfer.mvstar_display`, `TidyR6PathwiseTransfer.ms_ma_525` |
+| Cochrane p. 135, (5.28) | `ΔE_{t+1}ma(c, ε)_{t+1+j} = c_jε_{t+1}`; the surplus news is `a_jε_{t+1}`, s-shaped, with present value `β_sε_{t+1}` | `TidyR6PathwiseTransfer.minnov_ma`, `TidyR6PathwiseTransfer.msurplus_news`, `TidyR6PathwiseTransfer.msurplus_news_s_shape`, `TidyR6PathwiseTransfer.msurplus_news_pv` |
+
+## Table 5.1 and the identities (3.20)–(3.22) in a genuine probability model, pp. 150–155 (TidyR6MeasTable51)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (2.13), p. 30 | the innovation operator a.e.: linearity, known variables, bounds, and dominated series | `TidyR6MeasTable51.minnov_smul`, `TidyR6MeasTable51.minnov_sub`, `TidyR6MeasTable51.minnov_add`, `TidyR6MeasTable51.minnov_known`, `TidyR6MeasTable51.mabs_innov_le`, `TidyR6MeasTable51.minnov_tsum`, `TidyR6MeasTable51.minnov_zero` |
+| Cochrane (3.18)–(3.19), pp. 63–64 | bounded debt is the present value of surpluses less returns; news about next period's debt | `TidyR6MeasTable51.mpv_identity`, `TidyR6MeasTable51.minnov_pv_next`, `TidyR6MeasTable51.rnSeq_adaptedM` |
+| Cochrane (3.20)–(3.22), p. 65; Table 5.1, p. 153 | the three panel identities a.e.; no inflation and bond-price news forces zero discounted surplus news (p. 152) | `TidyR6MeasTable51.midentity_320`, `TidyR6MeasTable51.midentity_321`, `TidyR6MeasTable51.midentity_322`, `TidyR6MeasTable51.mpv_surplus_innov_zero` |
+| Cochrane §§5.5.2–5.5.3, pp. 148–155 | after fiscal shocks only, `x = gπ` and AR(1) decay; unexpected output; no inflation with `β_s = 0`; no bond-price movement without monetary shocks or rules | `TidyR6MeasTable51.mfiscal_ar1`, `TidyR6MeasTable51.munexpected_output`, `TidyR6MeasTable51.mno_inflation_of_betaS_zero`, `TidyR6MeasTable51.mbonds_zero_noRule` |
+| Cochrane (5.75), p. 151; (5.80), p. 154 | the deficit-shock sums: `ω`-weighted inflation news `−β_s/(1 − ωλ_s)ε_s`, disturbance news `ε_s/(1 − ρη_s)`; `β_s` from their ratio | `TidyR6MeasTable51.mfiscal_shock_sums`, `TidyR6MeasTable51.mbetaS_of_ratio` |
+
+## Strict stationarity of the equilibrium as a whole, §5.4.1, pp. 136–137, and §5.5, p. 148 (TidyR6MeasJointStationary)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 148 ("stationary equilibrium") | joint strict stationarity of a family of processes; measurable functions of a jointly stationary vector are strictly stationary; the ten processes of the full model as one vector | `TidyR6MeasJointStationary.JointlyStationary`, `TidyR6MeasJointStationary.stationary_of_joint`, `TidyR6MeasJointStationary.fullVec` |
+| Cochrane p. 148, `0 < ρ < 1` | every bounded adapted solution of the full model has `v* = v` and `π* = π` a.e.: boundedness selects | `TidyR6MeasJointStationary.mfull_elim` |
+| Cochrane pp. 136–137, 148, `ρ = 1` | joint strict stationarity of the whole equilibrium forces `π*_{t+1} = π_{t+1}` a.e. and a constant gap `v* − v` | `TidyR6MeasJointStationary.rho_one_joint_select` |
+| Cochrane pp. 136–137, 148, `ρ = 1` | **joint strict stationarity does not select `v = v*`**: in the i.i.d. economy a jointly stationary bounded solution with a genuinely random fiscal shock and `v* − v = −1` | `TidyR6MeasJointStationary.iid_shift`, `TidyR6MeasJointStationary.joint_of_coord`, `TidyR6MeasJointStationary.jParams`, `TidyR6MeasJointStationary.jG`, `TidyR6MeasJointStationary.iid_joint_not_select` |
+
 ## §5.6 Alternative surplus processes, (5.82)–(5.84), pp. 160–162 (AltSurplus)
 
 | Book | Claim | Lean |
@@ -330,6 +409,23 @@ nondegenerate news, including the i.i.d. economy, in which every history is null
 | Cochrane p. 168 | the s-shaped response has a single sign change and dies off | `CTSurplus.ct_s_shape`, `CTSurplus.surplusIRF_tendsto` |
 | Cochrane (5.99), p. 167 (E45) | the printed `du = ηu dt + dε` contradicts the book's own solution | `CTSurplus.printed_599_wrong` |
 
+## §5.7.2 The operator calculus `L(D)` for general responses and shocks, p. 168 (TidyR6OperatorCalculus, TidyR6LaplaceAtR)
+
+`s_t = L(D)Dε_t` is `∫ ℓ(t − u) dε_u` for a continuous impulse response `ℓ` of exponential order
+`a < r`, and `L` is its Laplace transform. Shocks are a date-0 jump and a bounded continuous
+density, with deterministic paths after the news; diffusion shocks are not covered.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 168 | responses of exponential order; the transfer function `L(z) = ∫_0^∞ e^{−zτ}ℓ(τ)dτ` exists for `z > a`; the forward solution `fwd`, its formula | `TidyR6OperatorCalculus.ExpOrder`, `TidyR6OperatorCalculus.lap`, `TidyR6OperatorCalculus.fwd`, `TidyR6OperatorCalculus.integrableOn_lap`, `TidyR6OperatorCalculus.fwd_eq`, `TidyR6OperatorCalculus.fwdFormula`, `TidyR6OperatorCalculus.fwdFormula_hasDerivAt` |
+| Cochrane p. 168 (`1/(r − D)`) | `fwd` solves `w' = rw − ℓ`, is continuous and bounded by `Ce^{aσ}/(r − a)`, satisfies the transversality condition, and is the unique such solution | `TidyR6OperatorCalculus.fwd_hasDerivAt`, `TidyR6OperatorCalculus.fwd_continuousOn`, `TidyR6OperatorCalculus.fwd_bound`, `TidyR6OperatorCalculus.fwd_tvc`, `TidyR6OperatorCalculus.fwd_unique` |
+| Cochrane p. 168 | the present-value innovation of a unit shock is `L(r)` | `TidyR6OperatorCalculus.innovation` |
+| Cochrane p. 168 | the forecast path has transfer function `(L(z) − L(r))/(r − z)` for `z > a`, `z ≠ r`; at `z = r` the identity is `0 = 0` | `TidyR6OperatorCalculus.lap_fwd`, `TidyR6OperatorCalculus.lap_fwd_div`, `TidyR6OperatorCalculus.lap_fwd_at_r` |
+| Cochrane (5.100)–(5.101), p. 168 | the surplus path after a jump and a shock density; its date-`t` forecast, which is the path of the shock history truncated at `t` | `TidyR6OperatorCalculus.sPath`, `TidyR6OperatorCalculus.forecast`, `TidyR6OperatorCalculus.forecast_self`, `TidyR6OperatorCalculus.forecast_eq_truncated`, `TidyR6OperatorCalculus.pv_integrable`, `TidyR6OperatorCalculus.shift_integrable`, `TidyR6OperatorCalculus.pv_integrand_eq` |
+| Cochrane p. 168 | **Hansen–Sargent for general shock paths**: `E_t ∫ e^{−rτ}s_{t+τ}dτ = e₀fwd(t) + ∫_0^t fwd(t − u)e(u)du`; a jump `j` at date `t` changes it by `L(r)j` | `TidyR6OperatorCalculus.hs_general`, `TidyR6OperatorCalculus.innovation_general` |
+| Cochrane p. 168 | the exponential-sum responses of `CTSurplus` are of exponential order and `CTSurplus.hs_innovation` is recovered | `TidyR6OperatorCalculus.expSum_expOrder`, `TidyR6OperatorCalculus.innovation_expSum` |
+| Cochrane p. 168 (at `D = r`) | the transform of the forecast path at `r` is `∫_0^∞ τe^{−rτ}ℓ(τ)dτ`, the limit of `(L(z) − L(r))/(r − z)` as `z → r` (a removable singularity), and equals `−L'(r)` | `TidyR6LaplaceAtR.mul_exp_le`, `TidyR6LaplaceAtR.integrableOn_mul_lap`, `TidyR6LaplaceAtR.lap_fwd_at_r_value`, `TidyR6LaplaceAtR.lap_continuousAt`, `TidyR6LaplaceAtR.tendsto_hs_quotient`, `TidyR6LaplaceAtR.hasDerivAt_lap`, `TidyR6LaplaceAtR.lap_fwd_eq_neg_deriv` |
+
 ## §§5.7.3–5.7.5 Long-term debt and policy rules in continuous time, (5.105)–(5.117), pp. 169–179, Figs. 5.10–5.13, Table 5.2 (CTSimple, CTRules, CTRulesEquilibrium)
 
 | Book | Claim | Lean |
@@ -362,6 +458,30 @@ nondegenerate news, including the i.i.d. economy, in which every history is null
 | Cochrane App. p. 583, generalised (E25) | Jordan chains: every mode is bounded iff the modes with `Re d > 0` and the non-leading modes of blocks with `Re d = 0` start at zero | `CTMatrixMethod.jforce`, `CTMatrixMethod.NonLead`, `CTMatrixMethod.nonLead_next`, `CTMatrixMethod.jforce_continuousOn`, `CTMatrixMethod.mode_free`, `CTMatrixMethod.jordan_modes_bounded_iff` |
 | Cochrane App. pp. 581–583, (1.52) | **matrix level, given `A = QJQ⁻¹`** with `J` in Jordan form: the modes, the bounded responses; the case diagonalisable over `ℂ`; a real system by complexification | `CTMatrixMethod.jordanMat`, `CTMatrixMethod.jordanMat_mulVec`, `CTMatrixMethod.jmodes_hasDerivAt`, `CTMatrixMethod.matrix_jordan_bounded_iff`, `CTMatrixMethod.matrix_cdiag_bounded_iff`, `CTMatrixMethod.real_system_bounded_iff` |
 | Cochrane App. p. 583 | a complex pair as a real rotation block: bounded iff its real part is non-positive or it starts at zero | `CTMatrixMethod.rotation_block_norm`, `CTMatrixMethod.rotation_block_bounded_iff` |
+
+## App. §1.13 for every matrix, without a Jordan-decomposition hypothesis, pp. 580–585 (TidyR6GenEigen, TidyR6MatrixMethod)
+
+For every operator `A` on a finite-dimensional complex space, so every complex matrix and every
+real matrix by complexification: the matrix exponential, the generalised eigenspaces and their
+spectral projections (built from Mathlib's `Module.End.maxGenEigenspace`), and the matrix method.
+The book's selector "`z̃_+ = 0`" becomes `TidyR6MatrixMethod.Good`: no component on a generalised
+eigenspace with `Re μ > 0`, and only eigenvector components for `Re μ = 0`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. p. 583 | `e^{At}` as the operator exponential: derivative (both orders), `exp(0) = I`, the group law, inverse, continuity, commutation with `A`; `t ↦ exp(tA)v` solves `z' = Az` | `TidyR6GenEigen.expT`, `TidyR6GenEigen.hasDerivAt_expT`, `TidyR6GenEigen.hasDerivAt_expT'`, `TidyR6GenEigen.expT_zero`, `TidyR6GenEigen.expT_add`, `TidyR6GenEigen.expT_mul_neg`, `TidyR6GenEigen.continuous_expT`, `TidyR6GenEigen.commute_expT`, `TidyR6GenEigen.hasDerivAt_apply`, `TidyR6GenEigen.hasDerivAt_expT_apply` |
+| Cochrane App. pp. 581–583 | **uniqueness**: a solution of `z' = Az` on `(0, ∞)`, continuous on `[0, ∞)`, is `z_t = exp(tA)z_0` | `TidyR6GenEigen.ode_unique` |
+| Cochrane App. p. 583 (the eigen-decomposition) | the generalised eigenspaces `E_μ` and the nilpotent parts `A − μ`; membership; invariance | `TidyR6GenEigen.gE`, `TidyR6GenEigen.nil`, `TidyR6GenEigen.nil_pow_apply`, `TidyR6GenEigen.mem_gE_iff`, `TidyR6GenEigen.nil_mem`, `TidyR6GenEigen.nil_pow_mem` |
+| Cochrane App. p. 583 (`z = Qz̃`) | the generalised eigenspaces form an internal direct sum for every operator; the spectral projections; every vector is the finite sum of its components | `TidyR6GenEigen.isInternal`, `TidyR6GenEigen.decomp`, `TidyR6GenEigen.projL`, `TidyR6GenEigen.proj`, `TidyR6GenEigen.proj_apply`, `TidyR6GenEigen.proj_mem`, `TidyR6GenEigen.proj_of_mem`, `TidyR6GenEigen.proj_of_mem_ne`, `TidyR6GenEigen.exists_decomp` |
+| Cochrane App. p. 583 (`e^{Jt}`) | if `(A − μ)^m v = 0`, `exp(tA)v = e^{μt} ∑_{j<m} (t^j/j!)(A − μ)^j v`; `exp(tA)` maps `E_μ` into itself | `TidyR6GenEigen.expT_apply_of_pow`, `TidyR6GenEigen.expT_mem` |
+| Cochrane App. p. 583 | chain length; the growth `‖exp(tA)v‖/(t^k e^{(Re μ)t}) → ‖(A − μ)^k v‖/k! > 0` of a component with chain length `k`; stable components decay | `TidyR6GenEigen.chainLen`, `TidyR6GenEigen.chainLen_spec`, `TidyR6GenEigen.nil_pow_eq_zero_of_lt`, `TidyR6GenEigen.norm_expT_apply`, `TidyR6GenEigen.tendsto_poly_part`, `TidyR6GenEigen.tendsto_norm_expT_div`, `TidyR6GenEigen.tendsto_expT_zero` |
+| Cochrane App. pp. 583–585 (E25) | **the bounded-component criterion**: for `v ∈ E_μ`, `exp(tA)v` is bounded iff (`Re μ > 0 ⇒ v = 0`) and (`Re μ = 0 ⇒ (A − μ)v = 0`); "explosive" means `Re μ > 0`, or `Re μ = 0` with a nontrivial Jordan chain | `TidyR6GenEigen.bounded_expT_iff` |
+| Cochrane App. p. 583 ("`z̃_+ = 0`") | the bounded subspace `Good A`: closed under combinations, invariant under `exp(tA)`; projections and `A − μ` commute with `exp(tA)` | `TidyR6MatrixMethod.Good`, `TidyR6MatrixMethod.good_comb`, `TidyR6MatrixMethod.good_sub`, `TidyR6MatrixMethod.proj_expT`, `TidyR6MatrixMethod.nil_expT`, `TidyR6MatrixMethod.good_expT` |
+| Cochrane App. pp. 581–583 (`z_t = Qe^{Jt}Q⁻¹z_0`) | the solution component by component, and the hypothesis-free closed form `∑_μ e^{μt} ∑_{j<n} (t^j/j!)(A − μ)^j P_μ z_0` | `TidyR6MatrixMethod.solution_decomp`, `TidyR6MatrixMethod.solution_formula` |
+| Cochrane App. p. 583, for every matrix | **a solution of `z' = Az` after the news is bounded iff `Good A z_0`** | `TidyR6MatrixMethod.bounded_iff` |
+| Cochrane App. p. 583, (1.53), for every matrix | the expectational errors: the boundedness condition on `Cδ`, uniqueness when no nonzero `Cη` is in the bounded subspace, existence when the bounded subspace and the range of `C` span | `TidyR6MatrixMethod.errors_iff`, `TidyR6MatrixMethod.errors_unique`, `TidyR6MatrixMethod.errors_exist` |
+| Cochrane App. p. 585 (Table 5.2 terms), for every matrix | `I = ∫_0^∞ e^{−rt}z_t dt` is the unique vector of the bounded subspace with `(r − A)I = z_0` | `TidyR6MatrixMethod.pv` |
+| Cochrane App. pp. 583–585, every real matrix | complexification; a real solution is bounded iff its complexified initial value is `Good`; the real Table 5.2 integrals | `TidyR6MatrixMethod.cplx`, `TidyR6MatrixMethod.cplx_apply`, `TidyR6MatrixMethod.cplx_solution`, `TidyR6MatrixMethod.real_bounded_iff`, `TidyR6MatrixMethod.real_pv` |
 
 ## §5.7.6 Sims' model, (5.118)–(5.125), pp. 179–181 (Sims)
 

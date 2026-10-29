@@ -9,13 +9,14 @@ University Press, 2023), Chapter 5, "Fiscal theory in sticky-price models" (pp. 
 with the parts of the Online Appendix that the chapter relies on: §§A1.7–A1.13 (pp. 569–585),
 §A1.3 on the geometric maturity structure (pp. 561–564) and §A2, (2.1)–(2.3) (p. 595). The
 discrete-time models (§§5.1–5.6) are stated for an arbitrary `ExpectationSystem`, so every result
-holds under perfect foresight and under genuine uncertainty. The §5.5 model is also restated in a
-genuine probability model, with Mathlib's conditional expectation (`PolicyRulesMeasure`,
-`PolicyRulesMeasureNews`, `PolicyRulesMeasureStationary`). The continuous-time models (§5.7)
+holds under perfect foresight and under genuine uncertainty. The discrete-time models are also
+restated in a genuine probability model, with Mathlib's conditional expectation: §5.5 in
+`PolicyRulesMeasure`, `PolicyRulesMeasureNews` and `PolicyRulesMeasureStationary`, and §§5.1–5.4,
+5.6, the responses and Table 5.1 in the TidyR6Meas modules. The continuous-time models (§5.7)
 are about deterministic paths after a date-0 shock, which is how the book computes its responses.
 "Determinate" means that exactly one bounded equilibrium exists for every admissible forcing and
-initial condition. The library contains **1237 theorems**, including the shared core; 1021 of them
-are in the twenty-eight chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
+initial condition. The library contains **1431 theorems**, including the shared core; 1215 of them
+are in the forty-three chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
 Blanchard–Kahn theorem (`BKCopy`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
@@ -186,6 +187,14 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
 * **S-shaped surpluses (§5.7.2).** The impulse response in closed form, with a single sign
   change, and `L(r) = +β_s`, not `−β_s` (E47) (`CTSurplus.ct_surplus_irf`, `CTSurplus.ct_s_shape`,
   `CTSurplus.surplus_L_r`).
+* **The operator calculus `L(D)` in general (p. 168).** For every continuous impulse response of
+  exponential order below `r`, with a date-0 jump and a bounded continuous shock density, the
+  forward solution is the unique solution of `w' = rw − ℓ` satisfying the transversality condition
+  (`TidyR6OperatorCalculus.fwd_unique`); its transform is `(L(z) − L(r))/(r − z)`
+  (`TidyR6OperatorCalculus.lap_fwd_div`), the date-`t` forecast of the present value is the
+  response of that operator, and news moves it by `L(r)Dε` (`TidyR6OperatorCalculus.hs_general`,
+  `TidyR6OperatorCalculus.innovation_general`). At `z = r` the singularity is removable, with value
+  `−L'(r)` (`TidyR6LaplaceAtR.tendsto_hs_quotient`, `TidyR6LaplaceAtR.lap_fwd_eq_neg_deriv`).
 * **Rules (§§5.7.3–5.7.5).** Eliminating `v*` needs `v*₀ = v₀` (E49, `CTRules.ct_elim`). For every
   `α` an equilibrium is determined by `π₀`; for `α > 0` every `π₀` is an equilibrium and (5.111)
   selects one; for `α ≤ 0` the valuation equation pins it (`CTRulesEquilibrium.rules_unique_of_pi0`,
@@ -211,6 +220,18 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   systems (`CTMatrixMethod.matrix_cdiag_bounded_iff`, `CTMatrixMethod.real_system_bounded_iff`).
   The decomposition is a hypothesis, as in the book's `A = QΛQ⁻¹`: Mathlib has no Jordan normal
   form for matrices.
+* **Every matrix, with no decomposition hypothesis.** For every complex operator, and every real
+  matrix by complexification, the generalised eigenspaces decompose the space and give spectral
+  projections (`TidyR6GenEigen.isInternal`, `TidyR6GenEigen.exists_decomp`); a component with chain
+  length `k` grows exactly like `t^k e^{(Re μ)t}` (`TidyR6GenEigen.tendsto_norm_expT_div`), and is
+  bounded iff it vanishes for `Re μ > 0` and is an eigenvector for `Re μ = 0`
+  (`TidyR6GenEigen.bounded_expT_iff`). So "explosive" means `Re μ > 0`, or `Re μ = 0` with a
+  nontrivial Jordan chain. A response is bounded iff its initial value has no such component
+  (`TidyR6MatrixMethod.bounded_iff`, `TidyR6MatrixMethod.real_bounded_iff`), with the closed form,
+  the expectational errors (1.53) and the Table 5.2 integrals
+  (`TidyR6MatrixMethod.solution_formula`, `TidyR6MatrixMethod.errors_iff`,
+  `TidyR6MatrixMethod.errors_unique`, `TidyR6MatrixMethod.errors_exist`, `TidyR6MatrixMethod.pv`,
+  `TidyR6MatrixMethod.real_pv`).
 
 ### Sims' model (§5.7.6)
 
@@ -221,7 +242,7 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   long run" (`Sims.fisherian_inflation`, `Sims.steady_state_peg`); the habit roots
   (`Sims.habit_roots`).
 
-### Genuine probability models (§§5.4.1, 5.5, App. §1.9)
+### Genuine probability models (§§5.1–5.6, App. §1.9)
 
 * **Genuine probability models.** The §5.5 model is restated for any filtered probability space,
   with `E_t` Mathlib's conditional expectation and every equation holding almost everywhere
@@ -252,6 +273,43 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   `PolicyRulesMeasureStationary.rho_one_stationary_const`). Stationarity does **not** select
   `v* = v`: a constant gap is strictly stationary (`PolicyRulesMeasureStationary.rho_one_stationary_not_select`).
   The survey's E32 example is stationary from date 1 only (`PolicyRulesMeasureStationary.iid_stationary_from_one`).
+  Requiring the **whole equilibrium** to be jointly strictly stationary
+  (`TidyR6MeasJointStationary.JointlyStationary`) still gives only `π* = π` and a constant gap
+  (`TidyR6MeasJointStationary.rho_one_joint_select`): in the i.i.d. economy a jointly stationary
+  bounded equilibrium with genuinely random shocks has `v* − v = −1`
+  (`TidyR6MeasJointStationary.iid_joint_not_select`). For `ρ < 1` boundedness alone gives
+  `v = v*` (`TidyR6MeasJointStationary.mfull_elim`).
+* **§§5.1–5.2 in a probability model.** The roots, (5.3)–(5.4) and the characterisation (5.5)–(5.7)
+  of all bounded equilibria (`TidyR6MeasFiscalNK.mpc_forward`,
+  `TidyR6MeasFiscalNK.mnk_characterization`); determinacy for `0 < ρ < 1` with one-period and
+  long-term debt, uniqueness under the transversality condition for `0 < ρ ≤ 1`, and a bounded
+  companion of every equilibrium at `ρ = 1` (`TidyR6MeasFiscalNK.meqm_determinate`,
+  `TidyR6MeasFiscalNK.mftplnk_determinate`, `TidyR6MeasFiscalNK.mltd_determinate`,
+  `TidyR6MeasFiscalNK.meqm_unique_tvc`, `TidyR6MeasFiscalNK.rho_one_not_unique`). The Euler
+  equation's derivative holds as a uniform a.e. second-order bound and a.e. along every sequence
+  (`TidyR6MeasEuler.meuler_deriv`, `TidyR6MeasEuler.meuler_deriv_seq`). E26 holds with i.i.d. rate
+  shocks (`TidyR6MeasE26.iid_e26`).
+* **Responses as forecast revisions.** The forecast paths of a bounded equilibrium are, state by
+  state, perfect-foresight equilibria (`TidyR6MeasResponses.pf_forecast`,
+  `TidyR6MeasLTDResponse.ltd_forecast`), so Figs. 5.1–5.4, the joint contraction and the AR(1)
+  rise hold as revisions `E_1π_{1+j} − E_0π_{1+j}` (`TidyR6MeasResponses.fig51_response`,
+  `TidyR6MeasPathForecasts.fig52_response`, `TidyR6MeasResponses.fig53_response`,
+  `TidyR6MeasLTDResponse.fig54_response`, `TidyR6MeasPathForecasts.joint_contraction_response`,
+  `TidyR6MeasPathForecasts.ltd_ar1_response`), with impact disinflation iff `ω̃ > ρ/λ₁`
+  (`TidyR6MeasLTDResponse.fig54_disinflation`).
+* **§§5.4, 5.6 and Table 5.1 in a probability model.** `v*` is the present value of surpluses,
+  the transversality condition selects `v = v*` with `ΔEπ = −β_sε`, AR(1) and alternative surpluses,
+  `0 < γ < 2`, observational equivalence (`TidyR6MeasSurplus.mvstar_eq_pv`,
+  `TidyR6MeasSurplus.mselect`, `TidyR6MeasSurplus.mar1_surplus_inflation`,
+  `TidyR6MeasSurplus.malt_unexpected_inflation`, `TidyR6MeasSurplus.mgamma_passive_iff`,
+  `TidyR6MeasSurplus.mobservationally_equivalent`); (5.38) is active iff `γ ≠ α`, and the printed
+  "iff `γ = 0`" is false in the i.i.d. economy (`TidyR6MeasActive538.mactive_iff_538`,
+  `TidyR6MeasActive538.mprinted_538_false`); the identities (3.20)–(3.22) and the expectation
+  claims behind Table 5.1 (`TidyR6MeasTable51.midentity_322`, `TidyR6MeasTable51.mfiscal_shock_sums`).
+  Expectation-free core results (moving averages, roots, comparative statics) apply verbatim; the
+  surplus news is s-shaped with present value `β_s` (`TidyR6PathwiseTransfer.msurplus_news_s_shape`,
+  `TidyR6PathwiseTransfer.msurplus_news_pv`), and `TidyR6PathwiseTransfer.idSystem` transfers core
+  statements that use an `ExpectationSystem` only formally.
 
 ### Links between the sections
 
@@ -307,8 +365,10 @@ the printed text precise. The main corrections are:
   during formalisation);
 * p. 121, pp. 136–137, 148 and App. pp. 574–576: `ρ = 1` and unit eigenvalues are not
   forward-looking roots; the exact model-level answers above (E20, E32);
-* p. 148 at `ρ = 1`: strict stationarity selects `π* = π` but not `v = v*`, and the survey's E32
-  example is stationary only from date 1 (`PolicyRulesMeasureStationary`);
+* p. 148 at `ρ = 1`: "the unique stationary equilibrium … includes `v = v*`" is false, even with
+  joint strict stationarity of the whole equilibrium, which selects `π* = π` but not `v = v*`; the
+  survey's E32 example is stationary only from date 1 (`PolicyRulesMeasureStationary`,
+  `TidyR6MeasJointStationary`);
 * the missing upper bounds `α < 2`, `α < 1 + ρ`, `γ < 2`, `γ < 1 + ρ`, and the exact condition in
   `α` (E31, E54, E6 of Chapters 11–19);
 * Table 5.1 (`2.58` should be `0.26`, E41; `η_s = 0.5`, not `0.4`, E40) and Table 5.2
@@ -327,19 +387,17 @@ Not formalised:
 * numbers that need a full numerical solution: most Table 5.1 entries, Figs. 5.6–5.9, Table 5.2
   rows 2–3 (`1.28`, `0.50`), and the hump shape and timing of Figs. 5.14–5.15. Fig. 5.5 itself is
   not formalised, only the facts it plots;
-* the other discrete-time sections in a genuine probability model: only the §5.5 model
-  (existence, uniqueness, the closed form, the boundaries) and the `ρ = 1` stationarity question are
-  restated with measure-theoretic expectations; §§5.1–5.4 and 5.6, the responses and Table 5.1 are
-  proved for the abstract `ExpectationSystem` only. Strict stationarity is stated for the gap
-  `v* − v` of a bounded solution, not for the equilibrium as a whole;
-* the matrix method for every matrix without the Jordan-decomposition hypothesis. A
-  hypothesis-free version needs the generalised-eigenspace projections and the asymptotics of
-  `exp(tA)`, which Mathlib does not provide in that form. The P/M selector notation of App. §1.13 is
-  replaced by row-by-row statements;
-* the operator calculus `L(D)` of §5.7.2 in general: it is covered for exponential-sum responses
-  (`CTSurplus.hs_pv`, `CTSurplus.hs_innovation`);
-* stochastic continuous time: `dε` and `dδ` are date-0 jumps followed by perfect foresight, as in
-  the book's responses, not diffusions;
+* a single pathwise derivative in `ε` of the Euler equation in a probability model: Mathlib's
+  `condExp` gives a separate a.e.-class for each of the uncountably many `ε`, so no common version
+  need exist; the two version-free forms are proved instead (`TidyR6MeasEuler.meuler_deriv`, a
+  uniform a.e. second-order bound, and `TidyR6MeasEuler.meuler_deriv_seq`, a.e. along every
+  sequence);
+* the P/M selector notation of App. §1.13, replaced by component-by-component statements
+  (`TidyR6MatrixMethod.Good`);
+* stochastic continuous time: `dε` and `dδ` are jumps at the news date (and, in
+  `TidyR6OperatorCalculus`, bounded continuous shock densities) followed by perfect foresight, as
+  in the book's responses, not diffusions; diffusions need Itô integrals and Itô's formula, which
+  Mathlib lacks;
 * `CTSimple.tvc_iff_forward` from `NonlinearCT.tvc_iff_integral` itself for interior-discontinuous
   forcing: the theorem as stated assumes a continuous surplus and provably cannot reach such data
   (`TidyR5TVC.witness_not_covered`). The full CTSimple theorem is derived instead from the same
@@ -384,6 +442,21 @@ Not formalised:
 | [TidyR5TVC](StickyPriceFiscal/TidyR5TVC.lean) | 21 | (5.44), p. 140, and (5.95), p. 165: an interior discontinuous-forcing witness, NonlinearCT's transversality theorem with integrable forcing, and the full `CTSimple.tvc_iff_forward` derived from it |
 | [TidyR5PegLimit](StickyPriceFiscal/TidyR5PegLimit.lean) | 17 | Figs. 5.1–5.3 → (5.96): the discrete peg path (inflation, debt) converges to the continuous-time one uniformly on `[0, T]` |
 | [TidyR5PegLimitFull](StickyPriceFiscal/TidyR5PegLimitFull.lean) | 11 | Figs. 5.1–5.3 → (5.96): uniform convergence on all of `[0, ∞)`, and output divided by the period length |
+| [TidyR6GenEigen](StickyPriceFiscal/TidyR6GenEigen.lean) | 29 | App. §1.13: the operator exponential and uniqueness for `z' = Az`; generalised eigenspaces and spectral projections; the closed form, growth rates and the bounded-component criterion |
+| [TidyR6OperatorCalculus](StickyPriceFiscal/TidyR6OperatorCalculus.lean) | 21 | §5.7.2, p. 168: `L(D)` for every response of exponential order: the forward solution, the transfer function `(L(z) − L(r))/(r − z)`, the innovation `L(r)`, general shock paths |
+| [TidyR6LaplaceAtR](StickyPriceFiscal/TidyR6LaplaceAtR.lean) | 7 | §5.7.2, p. 168: the forecast operator at `z = r`: its value, the removable singularity, `−L'(r)` |
+| [TidyR6MatrixMethod](StickyPriceFiscal/TidyR6MatrixMethod.lean) | 16 | App. §1.13, (1.52)–(1.53): the matrix method for every complex and every real matrix: closed form, bounded iff `Good`, expectational errors, the Table 5.2 integrals |
+| [TidyR6MeasFiscalNK](StickyPriceFiscal/TidyR6MeasFiscalNK.lean) | 28 | §§5.1–5.2, (5.1)–(5.21), in a probability model: the roots, (5.3)–(5.7), determinacy with one-period and long-term debt, `ρ = 1`, valuation, the bond price |
+| [TidyR6MeasSurplus](StickyPriceFiscal/TidyR6MeasSurplus.lean) | 15 | §§5.4, 5.4.1, 5.4.4, 5.6, (5.36)–(5.37), (5.42), in a probability model: `v*` as a present value, selection, AR(1) and alternative surpluses, the `γ` rule, observational equivalence |
+| [TidyR6MeasActive538](StickyPriceFiscal/TidyR6MeasActive538.lean) | 7 | (5.38), E33, in a probability model: active iff `γ ≠ α`; the printed criterion false in the i.i.d. economy |
+| [TidyR6MeasE26](StickyPriceFiscal/TidyR6MeasE26.lean) | 6 | (5.5), (5.7), E26, in a probability model: the book's shock is a martingale difference and differs from unexpected inflation under i.i.d. rate news |
+| [TidyR6MeasTable51](StickyPriceFiscal/TidyR6MeasTable51.lean) | 20 | Table 5.1 in a probability model: the innovation calculus, the identities (3.20)–(3.22), the claims of §§5.5.2–5.5.3, (5.75), (5.80) |
+| [TidyR6MeasEuler](StickyPriceFiscal/TidyR6MeasEuler.lean) | 5 | §5.1, p. 118, in a probability model: the Euler equation's derivative as an `L^∞` bound and along every sequence |
+| [TidyR6MeasJointStationary](StickyPriceFiscal/TidyR6MeasJointStationary.lean) | 6 | §§5.4.1, 5.5, p. 148: joint strict stationarity of the whole equilibrium; boundedness selects for `ρ < 1`; at `ρ = 1` it does not select `v = v*` |
+| [TidyR6MeasLTDResponse](StickyPriceFiscal/TidyR6MeasLTDResponse.lean) | 6 | §5.2, Fig. 5.4: long-term-debt forecasts are perfect-foresight equilibria; Fig. 5.4 as forecast revisions |
+| [TidyR6MeasResponses](StickyPriceFiscal/TidyR6MeasResponses.lean) | 8 | §§5.1.2–5.3, Figs. 5.1, 5.3: forecasts are perfect-foresight equilibria; the responses as forecast revisions; the Fisherian long run and the impact sign |
+| [TidyR6MeasPathForecasts](StickyPriceFiscal/TidyR6MeasPathForecasts.lean) | 7 | Fig. 5.2, §5.3: linearity and scaling of the perfect-foresight models; the anticipated rise, the joint contraction and the AR(1) rise as forecast revisions |
+| [TidyR6PathwiseTransfer](StickyPriceFiscal/TidyR6PathwiseTransfer.lean) | 13 | §5.4, (5.25)–(5.28): expectation-free core results on a probability space (`idSystem`), the surplus news and its s-shape, comparative statics of the impact revisions |
 
 ## Modelling conventions
 
