@@ -16,8 +16,8 @@ Continuous-time results are deterministic, with paths `ℝ → ℝ`, present val
 integrals, and a price level free to jump at the initial date. The common thread is one theorem in
 many settings: **the flow condition plus the transversality condition at every date hold iff the
 real value of the debt equals the present value of surpluses at every date**, and then the
-valuation equation determines the price level. The library contains **636 theorems**, including
-the shared core; 528 of them are in the eleven chapter modules.
+valuation equation determines the price level. The library contains **782 theorems**, including
+the shared core; 674 of them are in the seventeen chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -55,6 +55,24 @@ Headline results, in the namespace `Cochrane.Generality`:
   (`LogLinearIdentities.innov_identity_3_20`, `LogLinearIdentities.bondReturn_innov`,
   `LogLinearIdentities.weighted_inflation_identity`), with the special cases (3.23)–(3.28) and
   Figure 3.1.
+* **The innovation identities beyond bounded processes (§3.5).** With summable present values,
+  the printed (3.20) holds iff the terminal limits satisfy `L_t = ρL_{t+1}`
+  (`TidyR6InnovGrowth.identity_3_20_iff`), in particular under the transversality condition
+  (`TidyR6InnovGrowth.identity_3_20_of_tvc`). (3.19)–(3.28) hold for any `ρ > 0` and processes
+  growing at a rate `γ < 1/ρ` (`TidyR6InnovGrowth.g_identity_3_20`,
+  `TidyR6InnovGrowth.g_weighted_inflation`), and fail at the boundary `γ = 1/ρ`
+  (`TidyR6InnovGrowth.Boundary.boundary_3_20`). On a measure space with a filtration they hold
+  almost everywhere for integrable processes with `L¹` (or `L²`) growth `γ < 1/ρ`
+  (`TidyR6InnovMeasure.m_identity_3_20`, `TidyR6InnovMeasure.m_weighted_inflation`,
+  `TidyR6InnovMeasure.L2Growth.toL1`).
+* **Figure 3.1 as an equilibrium (§3.5.3).** The linear model with an interest-rate target,
+  the expectations hypothesis, the Fisher equation and the flow (3.17) has exactly one
+  equilibrium (`TidyR6Fig31Equilibrium.exists_eqm`, `TidyR6Fig31Equilibrium.unique_eqm`). In it
+  a permanent rate rise gives the Figure 3.1 response, a rise announced `k` periods ahead gives
+  the impact `−ω̂ᵏ/(1 − ω̂)`, and an expected rise gives no jump
+  (`TidyR6Fig31Equilibrium.fig31_equilibrium`, `TidyR6Fig31Equilibrium.announcement_equilibrium`,
+  `TidyR6Fig31Equilibrium.expected_rise_equilibrium`), as in a coin-flip economy
+  (`TidyR6Fig31Equilibrium.CoinEconomy.fig31_coin_economy`).
 * **Figure 3.1 reconciled (E15).** At the figure's `r = 2%`, `i = 3%`, `ω = 0.8`, one theorem
   proves the exact proportional drop 3.41%, the exact log drop 3.46–3.48% (the text's "3.5%"), the
   linear drop 4% with the printed weight `ω` (the figure), and 3.48% with the exact weight
@@ -80,13 +98,26 @@ Headline results, in the namespace `Cochrane.Generality`:
   on the integer grid (`Links.weights_322_351`); the discrete annuity and jump ratio converge to
   their continuous counterparts (`Links.annuity_tendsto_bondPrice`,
   `Links.jumpRatio_tendsto_continuous`).
+* **Discrete to continuous with time-varying rates.** The discrete bond-price recursion
+  converges to the transversality solution of `Q' = (i + ϖ)Q − 1` uniformly on compacts, and on
+  `[t₀, ∞)` for a bounded, uniformly continuous rate
+  (`TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc`,
+  `TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici`,
+  `TidyR6DiscreteBondLimit.tendsto_unique_ode_solution`). Uniform convergence on `[0, ∞)` needs
+  uniformly consistent per-period rates (`TidyR6DiscreteBondLimit.not_uniform_Ici`). The discrete
+  valuation recursion converges in the same way to the solution of `V' = rV − s`
+  (`TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc`,
+  `TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Ici`). E13 is one continuous economy
+  and its discretisations, with the same gap and converging flows
+  (`TidyR6E13Limit.e13_one_economy`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise. The main corrections are:
 * E11, p. 63: `ρ = e^{−(r−g)}`, not `e^{r−g}`;
 * E13, p. 57: (3.10) and (3.11) are equivalent only under the money transversality condition, in
-  discrete and in continuous time (`Links.e13_discrete_and_continuous`);
+  discrete and in continuous time (`Links.e13_discrete_and_continuous`), and in one economy and its
+  discretisations (`TidyR6E13Limit.e13_one_economy`);
 * E14, p. 59: (3.16) follows from (3.10), not (3.11);
 * E15, A1 p. 560 and Figure 3.1: the 3.5% of the text and the 4% of the figure reconciled (above);
 * E20, pp. 78–79: short-term debt is `ω → ∞`, not `ω = 0`, which is the perpetuity;
@@ -94,6 +125,10 @@ the printed text precise. The main corrections are:
   transversality condition (`ContinuousLong.A15_counterexample`);
 * E24, A1 pp. 576–577: the sign of the fiscal shock in inflation is minus;
 * E28, p. 53: deriving (3.2) from (3.3) needs (3.1);
+* **p. 64 (new):** "debt/GDP is expected to grow no faster than `ρ^{−t}`" is insufficient. Growth
+  exactly `ρ^{−t}` breaks (3.19) and (3.20) (`TidyR6InnovGrowth.Boundary.boundary_3_20`); the
+  condition is `ρ^T E_t v_{t+T} → 0`, implied by strictly slower growth
+  (`TidyR6InnovGrowth.identity_3_20_of_tvc`, `TidyR6InnovGrowth.g_identity_3_20`);
 * **(3.26), p. 68 (new):** the nonlinear valuation equation is printed with the scaled surplus
   `s̃`; it is (3.3), with `s` (`Links.eq_3_26_printed_iff`);
 * A1 p. 566 (new): at jump points `dW/W = dV/V`, not `dP/P`, which has the wrong sign for short
@@ -101,7 +136,7 @@ the printed text precise. The main corrections are:
 * the typos E12, E16, E18, E19, E21, E22 and E31, each with a counterexample to the printed form
   where one exists, and the 1980s figure of p. 60 (`200/3000 = 6.7%`, not 5%).
 
-Three further results make the text precise rather than correct it:
+Four further results make the text precise rather than correct it:
 * **The p. 56 finite-tree result.** On every finite event tree in which all states have positive
   probability, (3.5) with its flow and transversality condition forces the ex-post present value
   (3.6) to converge absolutely in every state, with a vanishing terminal term
@@ -120,6 +155,10 @@ Three further results make the text precise rather than correct it:
 * **The A1 p. 561 knife edge.** "Nonstochastic and geometric" surpluses means nominal surpluses
   `P_ts_t = ωᵗb_0`, known at date 0 (`LongTermDebt.geom_knife_edge`,
   `LongTermDebt.knife_edge_surplus_known`).
+* **`ρ = 1` on p. 64.** For (3.20) to hold "describing deviations from this mean", `E_t v_{t+T}`
+  and `E_{t+1}v_{t+1+T}` must converge to the same constant
+  (`TidyR6InnovGrowth.identity_3_20_rho_one_mean`). Boundedness alone is not enough
+  (`TidyR6InnovGrowth.Boundary.rho_one_bounded`).
 
 Not formalised:
 * the discursive passages: that price stickiness makes the effect of a rate rise smaller (A1
@@ -133,16 +172,19 @@ Not formalised:
   deterministic, an innovation is the difference between two perfect-foresight paths
   (`ContinuousLinear.Eqm.LinearEqm`), and `E_t[d(ΛW)] = 0` is stated as `(ΛW)' = 0`
   (`ContinuousLong.Lambda_W_const`);
-* a discrete-to-continuous convergence theorem for time-varying rates: the links prove the limit
-  of the constant-rate closed forms (`Links.annuity_tendsto_bondPrice`,
-  `Links.jumpRatio_tendsto_continuous`), not that the recursion converges to `Q' = (i+ϖ)Q − 1`.
-  Likewise E13 is linked by putting the discrete and continuous counterexamples side by side, not
-  by a limit of one economy;
-* unbounded processes in the linear innovation identities: (3.20)–(3.28) are proved for bounded
-  ("stationary", p. 64) processes with `0 < ρ < 1`; the unbounded case is covered only by the
-  present-value identities (`LogLinearIdentities.pv_319_iff`, `LogLinearIdentities.pv_rho_one`).
-  Figure 3.1 and the announcement results are proved on sequences of innovations satisfying (3.28),
-  not as equilibria of a full model.
+* a Gaussian instance of `TidyR6InnovMeasure.MGrowthEconomy`. The almost-everywhere theorems
+  are universally quantified, and `TidyR6InnovMeasure.L2Growth.toL1` covers stationary `L²`
+  processes, but no Gaussian economy is constructed.
+
+Stated limits of the results that are formalised:
+* the convergence theorems on `[t₀, ∞)` assume a bounded, uniformly continuous rate
+  (`TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici`), and the valuation version also a bounded,
+  uniformly continuous surplus (`TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Ici`).
+  Without uniformly consistent per-period rates uniform convergence on `[0, ∞)` can fail
+  (`TidyR6DiscreteBondLimit.not_uniform_Ici`); that uniform continuity of the rate itself is
+  necessary is not proved;
+* the valuation theorem on compacts assumes surpluses bounded on `[t₀, ∞)`
+  (`TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc`).
 
 ## Library map
 
@@ -163,6 +205,12 @@ Not formalised:
 | [ContinuousLinear](Generality/ContinuousLinear.lean) | 68 | §3.6.3, (3.39)–(3.51): a valuation engine for any discount factor; exact derivatives of the flow and bond identities; E18, E19, E21; the bond-price forward solution; news identities between two paths; the short-debt limit (E20) |
 | [ContinuousMoney](Generality/ContinuousMoney.lean) | 20 | §3.6.4, (3.52)–(3.55), A1.6: money creation, interest saving and the mixed return, each iff its TVC; the continuous E13; E21 |
 | [Links](Generality/Links.lean) | 30 | Agreement among the four chains: discrete valuation machinery, short-term debt as `ω = 0` and `ϖ → ∞`, discrete and continuous weights and limits, E15 in one statement, E13 in both settings, the (3.26) misprint |
+| [TidyR6DiscreteBondLimit](Generality/TidyR6DiscreteBondLimit.lean) | 35 | §3.6.2 and A1 (1.14)→(1.17): the discrete bond-price recursion with time-varying rates, its transversality solution, error bounds, convergence to `Q' = (i + ϖ)Q − 1` on compacts and on `[t₀, ∞)`; a counterexample to uniform convergence on `[0, ∞)` |
+| [TidyR6DiscreteValuationLimit](Generality/TidyR6DiscreteValuationLimit.lean) | 16 | (3.5), (3.30)–(3.31), A1.4: the discrete valuation recursion with time-varying `r` and `s` converges to `V' = rV − s`, on compacts and on `[t₀, ∞)` |
+| [TidyR6E13Limit](Generality/TidyR6E13Limit.lean) | 12 | §3.4, §3.6.4, A1.6: E13 as one continuous economy and its discretisations, with the same gap and converging flows |
+| [TidyR6InnovGrowth](Generality/TidyR6InnovGrowth.lean) | 38 | §3.5, A1.3: (3.20) iff `L_t = ρL_{t+1}`; `ρ = 1` with a common mean; (3.19)–(3.28) for growth `γ < 1/ρ`; counterexamples at `γ = 1/ρ` and `γ = 1/\|ω̂\|` |
+| [TidyR6Fig31Equilibrium](Generality/TidyR6Fig31Equilibrium.lean) | 15 | §3.5.3, A1.3: the full linear model, existence and uniqueness of equilibrium; Figure 3.1, announcements and the expected rise as equilibrium responses; a coin-flip instance |
+| [TidyR6InnovMeasure](Generality/TidyR6InnovMeasure.lean) | 30 | §3.5, A1.3 on a measure space with a filtration: (3.18)–(3.28) almost everywhere for integrable processes with `L¹` (or `L²`) growth `γ < 1/ρ` |
 
 ## Modelling conventions
 
@@ -188,9 +236,13 @@ Not formalised:
   `Ratios` and `StochasticDiscount`, `D t` is `B_{t−1}`. In `Money`, `B t` and `M t` are `B_{t−1}`
   and `M_{t−1}`. Maturity structures are either finite (`LongTermDebt.MaxMaturity`) or geometric
   (`LongTermDebt.geomDebt`).
-* **Linear identities.** The linear model is bounded ("stationary", p. 64) with `0 < ρ < 1`
-  (`LogLinearIdentities.LinearEconomy`). The bond-return weight is a free parameter `ω̂`
-  (`LogLinearIdentities.BondRet`): `ω/(1+i)` for the exact derivative, `ω` for the book's (1.24).
+* **Linear identities.** The linear model of `LogLinearIdentities` is bounded ("stationary",
+  p. 64) with `0 < ρ < 1` (`LogLinearIdentities.LinearEconomy`). `TidyR6InnovGrowth` allows any
+  `ρ > 0` and processes growing at a rate `γ < 1/ρ` (`TidyR6InnovGrowth.GrowthEconomy`), and
+  `TidyR6InnovMeasure` integrable processes with `L¹` growth on a finite measure space with a
+  filtration, every identity holding almost everywhere (`TidyR6InnovMeasure.MGrowthEconomy`).
+  The bond-return weight is a free parameter `ω̂` (`LogLinearIdentities.BondRet`): `ω/(1+i)` for
+  the exact derivative, `ω` for the book's (1.24).
   Innovations are `LogLinearIdentities.innov`, `ΔE_{t+1} = E_{t+1} − E_t`.
 * **Continuous time.** Paths are deterministic functions `ℝ → ℝ`. Rates and surpluses are
   continuous on `[t, ∞)`; values are continuous on `[t, ∞)` and differentiable on `(t, ∞)`, so

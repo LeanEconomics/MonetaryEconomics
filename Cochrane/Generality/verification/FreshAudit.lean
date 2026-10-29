@@ -33,6 +33,11 @@ import Mathlib.MeasureTheory.Group.Integral
 import Mathlib.Analysis.Calculus.Deriv.Slope
 import Mathlib.Analysis.Calculus.Deriv.Shift
 import Mathlib.Analysis.Calculus.FDeriv.Mul
+import Mathlib.Topology.UniformSpace.UniformConvergence
+import Mathlib.Topology.UniformSpace.HeineCantor
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+import Mathlib.Probability.Process.Filtration
+import Mathlib.MeasureTheory.Constructions.Polish.Basic
 set_option autoImplicit false
 
 /-
@@ -11269,6 +11274,3626 @@ theorem eq_3_26_printed_iff {β κ : ℝ} {s : ℕ → Ω → ℝ} {x : Ω → �
 
 end Cochrane.Generality.Links
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The discrete bond-price recursion converges to `Q' = (i + ϖ)Q − 1` for time-varying rates
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.1 and §3.6.2–3.6.3,
+pp. 53, 75–78 (the bond price of the geometric portfolio), and Online Appendix A1.2.1,
+pp. 559–560 ((1.14) in discrete time, (1.17) in continuous time).
+
+The `Links` module proved only that the constant-rate closed forms converge
+(`Links.annuity_tendsto_bondPrice`). Here the rate `i(·)` varies over time. With period length
+`h > 0`, a per-period continuously compounded rate `i_h(s)` (so `1 + i_h = e^{h·i_h}`) and the
+per-period decay `ω_h = e^{−ϖh}`, the geometric portfolio paying the coupon `h` at `s, s+h, …`
+has the discrete price
+
+`Q_h(s) = h + e^{−h(i_h(s)+ϖ)} Q_h(s+h)`,
+
+whose bounded (transversality) solution is the forward sum `discPrice`. We prove:
+
+* the discrete recursion, the discrete transversality condition and uniqueness of its
+  transversality solution (`discPrice_rec`, `discPrice_tvc`, `discPrice_unique`); the
+  difference form `(Q_h(s+h) − Q_h(s))/h = ((1 − a_h(s))/h)Q_h(s+h) − 1` with
+  `(1 − a_h(s))/h → i(s) + ϖ` (`discPrice_diff`, `tendsto_rate_of_factor`);
+* an exact error representation and bound (`err_rec`, `err_le`, `delta_le`);
+* **uniform convergence on compacts** `[t₀, X]` to the continuous bond price
+  `ContinuousLong.bondPrice i ϖ`, for any rate continuous on `[t₀, ∞)` with `i + ϖ ≥ c > 0`
+  (`tendstoUniformlyOn_Icc`), and **uniform convergence on all of `[t₀, ∞)`** when the rate is
+  moreover bounded and uniformly continuous (`tendstoUniformlyOn_Ici`);
+* the limit is the unique transversality solution of `Q' = (i + ϖ)Q − 1`
+  (`tendsto_unique_ode_solution`); the exact-compounding special case `i_h = i`
+  (`tendstoUniformlyOn_Icc_exact`, `tendstoUniformlyOn_Ici_exact`); with a constant rate the
+  discrete price is the annuity of `Links.annuity_tendsto_bondPrice` (`discPrice_const`,
+  `const_case`);
+* where the data do not allow it: per-period rates that converge uniformly on compacts but not
+  on `[0, ∞)` give convergence on every `[0, X]` but not uniformly on `[0, ∞)`
+  (`not_uniform_Ici`).
+-/
+
+namespace Cochrane.Generality.TidyR6DiscreteBondLimit
+
+open MeasureTheory Filter Topology Cochrane.Generality.ContinuousShort
+
+/-! ### The discrete recursion -/
+
+/-- Cochrane (2023), A1 (1.14), p. 559, with period `h`: the one-period factor
+`ω_h/(1 + i_h(s)) = e^{−h(i_h(s) + ϖ)}` of the geometric portfolio. -/
+noncomputable def factor (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) : ℝ := Real.exp (-(h * (ih h s + ϖ)))
+
+/-- Cochrane (2023), A1 (1.14), p. 559: the `k`-period discount-and-decay factor
+`∏_{m<k} a_h(s + mh)`. -/
+noncomputable def cumFactor (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) (k : ℕ) : ℝ :=
+  ∏ m ∈ Finset.range k, factor ih ϖ h (s + m * h)
+
+/-- Cochrane (2023), A1 (1.14), p. 559, with period `h` and time-varying rates: the price of the
+geometric portfolio paying the coupon `h` per period, `Q_h(s) = h∑_k ∏_{m<k} a_h(s + mh)`. -/
+noncomputable def discPrice (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) : ℝ := h * ∑' k, cumFactor ih ϖ h s k
+
+/-- Cochrane (2023), A1 (1.14): the one-period factor is positive. -/
+theorem factor_pos (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) : 0 < factor ih ϖ h s := Real.exp_pos _
+
+/-- Cochrane (2023), A1 (1.14): the one-period factor is `ω_h/(1 + i_h)` with
+`ω_h = e^{−ϖh}` and `1 + i_h = e^{h·i_h}`. -/
+theorem factor_eq (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) :
+    factor ih ϖ h s = Real.exp (-(ϖ * h)) / Real.exp (h * ih h s) := by
+  rw [factor, ← Real.exp_sub]
+  ring_nf
+
+/-- Cochrane (2023), A1 (1.14): the cumulative factor is positive. -/
+theorem cumFactor_pos (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) (k : ℕ) : 0 < cumFactor ih ϖ h s k :=
+  Finset.prod_pos fun _ _ => factor_pos ih ϖ h _
+
+/-- Cochrane (2023), A1 (1.14): `∏_{m<0} = 1`. -/
+@[simp] theorem cumFactor_zero (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) : cumFactor ih ϖ h s 0 = 1 := by
+  simp [cumFactor]
+
+/-- Cochrane (2023), A1 (1.14): `∏_{m<k+1} a(s + mh) = a(s)·∏_{m<k} a(s + h + mh)`. -/
+theorem cumFactor_succ (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) (k : ℕ) :
+    cumFactor ih ϖ h s (k + 1) = factor ih ϖ h s * cumFactor ih ϖ h (s + h) k := by
+  rw [cumFactor, Finset.prod_range_succ', cumFactor, mul_comm]
+  congr 1
+  · simp
+  · refine Finset.prod_congr rfl fun m _ => ?_
+    congr 1
+    push_cast
+    ring
+
+/-- Cochrane (2023), A1 (1.14): `∏_{m<k+1} a(s + mh) = ∏_{m<k} a(s + mh)·a(s + kh)`. -/
+theorem cumFactor_succ' (ih : ℝ → ℝ → ℝ) (ϖ h s : ℝ) (k : ℕ) :
+    cumFactor ih ϖ h s (k + 1) = cumFactor ih ϖ h s k * factor ih ϖ h (s + k * h) := by
+  rw [cumFactor, Finset.prod_range_succ, cumFactor]
+
+/-- Cochrane (2023), A1 (1.14): if the discrete rates satisfy `i_h + ϖ ≥ c` on `[t₀, ∞)`, then
+from `s ≥ t₀` the cumulative factor decays at least geometrically, `≤ e^{−chk}`. -/
+theorem cumFactor_le {ih : ℝ → ℝ → ℝ} {ϖ h s c t₀ : ℝ} (hh : 0 ≤ h) (hs : t₀ ≤ s)
+    (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) (k : ℕ) :
+    cumFactor ih ϖ h s k ≤ Real.exp (-(c * h)) ^ k := by
+  induction k with
+  | zero => simp
+  | succ k ih' =>
+    rw [cumFactor_succ', pow_succ]
+    refine mul_le_mul ih' ?_ (factor_pos _ _ _ _).le (pow_nonneg (Real.exp_pos _).le k)
+    rw [factor, Real.exp_le_exp, neg_le_neg_iff]
+    have hu : t₀ ≤ s + k * h := by
+      have : (0 : ℝ) ≤ k * h := mul_nonneg (Nat.cast_nonneg k) hh
+      linarith
+    nlinarith [hlow _ hu]
+
+/-- Cochrane (2023), A1 (1.14): the geometric bound `e^{−x} < 1` for `x > 0`. -/
+theorem exp_neg_lt_one {x : ℝ} (hx : 0 < x) : Real.exp (-x) < 1 :=
+  Real.exp_lt_one_iff.mpr (by linarith)
+
+/-- Cochrane (2023), A1 (1.14): the coupon stream of the discrete portfolio is summable. -/
+theorem summable_cumFactor {ih : ℝ → ℝ → ℝ} {ϖ h s c t₀ : ℝ} (hc : 0 < c) (hh : 0 < h)
+    (hs : t₀ ≤ s) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) :
+    Summable (cumFactor ih ϖ h s) := by
+  refine Summable.of_nonneg_of_le (fun k => (cumFactor_pos _ _ _ _ k).le)
+    (cumFactor_le hh.le hs hlow) (summable_geometric_of_lt_one (Real.exp_pos _).le
+      (exp_neg_lt_one (mul_pos hc hh)))
+
+/-- Cochrane (2023), A1 (1.14) (auxiliary): `h/(1 − e^{−ch}) ≤ h + 1/c` for `c, h > 0`. -/
+theorem geom_bound {c h : ℝ} (hc : 0 < c) (hh : 0 < h) :
+    h / (1 - Real.exp (-(c * h))) ≤ h + 1 / c := by
+  have hx : 0 < c * h := mul_pos hc hh
+  have h1 : 0 < 1 - Real.exp (-(c * h)) := by linarith [exp_neg_lt_one hx]
+  have h2 : Real.exp (-(c * h)) * (1 + c * h) ≤ 1 := by
+    have := Real.add_one_le_exp (c * h)
+    have he : Real.exp (-(c * h)) * Real.exp (c * h) = 1 := by
+      rw [← Real.exp_add, neg_add_cancel, Real.exp_zero]
+    nlinarith [Real.exp_pos (-(c * h))]
+  rw [div_le_iff₀ h1]
+  have : (h + 1 / c) * (1 - Real.exp (-(c * h))) =
+      h + 1 / c - (Real.exp (-(c * h)) * (1 + c * h)) / c := by
+    field_simp
+    ring
+  rw [this]
+  have h3 : Real.exp (-(c * h)) * (1 + c * h) / c ≤ 1 / c := div_le_div_of_nonneg_right h2 hc.le
+  linarith
+
+/-- Cochrane (2023), A1 (1.14): `h∑_{k<N} e^{−chk} ≤ h + 1/c`. -/
+theorem sum_geom_le {c h : ℝ} (hc : 0 < c) (hh : 0 < h) (N : ℕ) :
+    h * ∑ k ∈ Finset.range N, Real.exp (-(c * h)) ^ k ≤ h + 1 / c := by
+  have hx := exp_neg_lt_one (mul_pos hc hh)
+  have h0 := (Real.exp_pos (-(c * h))).le
+  have hs := summable_geometric_of_lt_one h0 hx
+  calc h * ∑ k ∈ Finset.range N, Real.exp (-(c * h)) ^ k
+      ≤ h * ∑' k, Real.exp (-(c * h)) ^ k :=
+        mul_le_mul_of_nonneg_left (hs.sum_le_tsum _ fun k _ => pow_nonneg h0 k) hh.le
+    _ = h / (1 - Real.exp (-(c * h))) := by
+        rw [tsum_geometric_of_lt_one h0 hx, div_eq_mul_inv]
+    _ ≤ h + 1 / c := geom_bound hc hh
+
+/-- Cochrane (2023), A1 (1.14): the discrete price is nonnegative and at most `h + 1/c`. -/
+theorem discPrice_bound {ih : ℝ → ℝ → ℝ} {ϖ h s c t₀ : ℝ} (hc : 0 < c) (hh : 0 < h)
+    (hs : t₀ ≤ s) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) :
+    0 ≤ discPrice ih ϖ h s ∧ discPrice ih ϖ h s ≤ h + 1 / c := by
+  have hx := exp_neg_lt_one (mul_pos hc hh)
+  have h0 := (Real.exp_pos (-(c * h))).le
+  have hsum := summable_cumFactor hc hh hs hlow
+  refine ⟨mul_nonneg hh.le (tsum_nonneg fun k => (cumFactor_pos _ _ _ _ k).le), ?_⟩
+  calc discPrice ih ϖ h s ≤ h * ∑' k, Real.exp (-(c * h)) ^ k :=
+        mul_le_mul_of_nonneg_left (hsum.tsum_le_tsum (cumFactor_le hh.le hs hlow)
+          (summable_geometric_of_lt_one h0 hx)) hh.le
+    _ = h / (1 - Real.exp (-(c * h))) := by
+        rw [tsum_geometric_of_lt_one h0 hx, div_eq_mul_inv]
+    _ ≤ h + 1 / c := geom_bound hc hh
+
+/-- Cochrane (2023), A1 (1.14), p. 559, with period `h`: the discrete bond-price recursion
+`Q_h(s) = h + a_h(s)Q_h(s + h)`. -/
+theorem discPrice_rec {ih : ℝ → ℝ → ℝ} {ϖ h s c t₀ : ℝ} (hc : 0 < c) (hh : 0 < h)
+    (hs : t₀ ≤ s) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) :
+    discPrice ih ϖ h s = h + factor ih ϖ h s * discPrice ih ϖ h (s + h) := by
+  have hsum := summable_cumFactor hc hh hs hlow
+  rw [discPrice, hsum.tsum_eq_zero_add, cumFactor_zero, discPrice]
+  simp_rw [cumFactor_succ]
+  rw [tsum_mul_left]
+  ring
+
+/-- Cochrane (2023), A1 (1.14) and §3.6.2: the recursion in difference form,
+`(Q_h(s+h) − Q_h(s))/h = ((1 − a_h(s))/h)·Q_h(s+h) − 1`, the discrete counterpart of
+`Q' = (i + ϖ)Q − 1`. -/
+theorem discPrice_diff {ih : ℝ → ℝ → ℝ} {ϖ h s c t₀ : ℝ} (hc : 0 < c) (hh : 0 < h)
+    (hs : t₀ ≤ s) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) :
+    (discPrice ih ϖ h (s + h) - discPrice ih ϖ h s) / h =
+      (1 - factor ih ϖ h s) / h * discPrice ih ϖ h (s + h) - 1 := by
+  rw [discPrice_rec hc hh hs hlow]
+  field_simp
+  ring
+
+/-- Cochrane (2023), §3.6.2 and A1 (1.17): with exact compounding the per-period rate implied by
+the one-period factor converges, `(1 − e^{−h(i(s)+ϖ)})/h → i(s) + ϖ` as `h → 0⁺`. -/
+theorem tendsto_rate_of_factor (i : ℝ → ℝ) (ϖ s : ℝ) :
+    Tendsto (fun h => (1 - factor (fun _ u => i u) ϖ h s) / h) (𝓝[>] 0) (𝓝 (i s + ϖ)) := by
+  have hd : HasDerivAt (fun h : ℝ => Real.exp (-(h * (i s + ϖ)))) (-(i s + ϖ)) 0 := by
+    have h1 : HasDerivAt (fun h : ℝ => -(h * (i s + ϖ))) (-(1 * (i s + ϖ))) 0 :=
+      ((hasDerivAt_id' (0 : ℝ)).mul_const (i s + ϖ)).neg
+    have h2 := h1.exp
+    refine h2.congr_deriv ?_
+    simp
+  have hs := hd.tendsto_slope_zero_right
+  have h3 := hs.neg
+  rw [neg_neg] at h3
+  refine h3.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with h hh
+  have hh' : (0 : ℝ) < h := hh
+  simp only [factor, zero_add, zero_mul, neg_zero, Real.exp_zero, smul_eq_mul]
+  field_simp
+  ring
+
+/-- Cochrane (2023), A1 (1.14) and A1.2.1: the discrete transversality condition
+`(∏_{m<N} a_h(s + mh))·Q_h(s + Nh) → 0` holds for the forward sum. -/
+theorem discPrice_tvc {ih : ℝ → ℝ → ℝ} {ϖ h s c t₀ : ℝ} (hc : 0 < c) (hh : 0 < h)
+    (hs : t₀ ≤ s) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) :
+    Tendsto (fun N : ℕ => cumFactor ih ϖ h s N * discPrice ih ϖ h (s + N * h)) atTop (𝓝 0) := by
+  have hx := exp_neg_lt_one (mul_pos hc hh)
+  have h0 := (Real.exp_pos (-(c * h))).le
+  have hg : Tendsto (fun N : ℕ => Real.exp (-(c * h)) ^ N * (h + 1 / c)) atTop (𝓝 0) := by
+    simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one h0 hx).mul_const (h + 1 / c)
+  refine squeeze_zero (fun N => mul_nonneg (cumFactor_pos _ _ _ _ N).le ?_) (fun N => ?_) hg
+  · have : t₀ ≤ s + N * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) N) hh.le]
+    exact (discPrice_bound hc hh this hlow).1
+  · have hN : t₀ ≤ s + N * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) N) hh.le]
+    exact mul_le_mul (cumFactor_le hh.le hs hlow N) (discPrice_bound hc hh hN hlow).2
+      (discPrice_bound hc hh hN hlow).1 (pow_nonneg h0 N)
+
+/-- Cochrane (2023), A1 (1.14) and A1.2.1: **uniqueness of the discrete bond price.** Any
+solution `X` of the recursion `X(s + kh) = h + a_h(s + kh)X(s + (k+1)h)` along the grid that
+satisfies the discrete transversality condition equals the forward sum `Q_h(s)`. -/
+theorem discPrice_unique {ih : ℝ → ℝ → ℝ} {ϖ h s c t₀ : ℝ} (hc : 0 < c) (hh : 0 < h)
+    (hs : t₀ ≤ s) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) {X : ℝ → ℝ}
+    (hX : ∀ k : ℕ, X (s + k * h) = h + factor ih ϖ h (s + k * h) * X (s + (k + 1 : ℕ) * h))
+    (hT : Tendsto (fun N : ℕ => cumFactor ih ϖ h s N * X (s + N * h)) atTop (𝓝 0)) :
+    X s = discPrice ih ϖ h s := by
+  have hsum := summable_cumFactor hc hh hs hlow
+  have hrec : ∀ k : ℕ, (fun n : ℕ => X (s + n * h)) k =
+      (fun _ : ℕ => h) k + (fun n : ℕ => factor ih ϖ h (s + n * h)) k *
+        (fun n : ℕ => X (s + n * h)) (k + 1) := fun k => hX k
+  have hs' : Summable fun j : ℕ => (∏ k ∈ Finset.range j,
+      (fun n : ℕ => factor ih ϖ h (s + n * h)) (0 + k)) * (fun _ : ℕ => h) (0 + j) := by
+    simpa [cumFactor] using hsum.mul_right h
+  have h1 := (Money.pv_discount_iff hrec 0 hs').mp (by simpa [cumFactor] using hT)
+  simp only [Nat.cast_zero, zero_mul, add_zero, zero_add] at h1
+  rw [h1, discPrice, ← tsum_mul_left]
+  exact tsum_congr fun j => by rw [cumFactor, mul_comm]
+
+/-- Cochrane (2023), A1 (1.14) and `Links.annuity_tendsto_bondPrice`: with a constant rate the
+discrete price is the annuity `h∑_j ω_hʲ/(1 + i_h)ʲ` with `ω_h = e^{−ϖh}`, `1 + i_h = e^{ih}`. -/
+theorem discPrice_const (i ϖ h s : ℝ) :
+    discPrice (fun _ _ => i) ϖ h s =
+      h * ∑' j : ℕ, Real.exp (-ϖ * h) ^ j / Real.exp (i * h) ^ j := by
+  rw [discPrice]
+  congr 1
+  refine tsum_congr fun j => ?_
+  have hc : ∀ m : ℕ, factor (fun _ _ => i) ϖ h (s + m * h) = factor (fun _ _ => i) ϖ h 0 :=
+    fun _ => rfl
+  rw [cumFactor, Finset.prod_congr rfl fun m _ => hc m, Finset.prod_const, Finset.card_range,
+    ← div_pow]
+  congr 1
+  rw [factor, ← Real.exp_sub]
+  ring_nf
+
+/-! ### The continuous bond price and the one-step error -/
+
+/-- Cochrane (2023), §3.6.1 (auxiliary): if `r ≥ c` on `[s, u]` then `∫_s^u r ≥ c(u − s)`. -/
+theorem cumRate_ge {r : ℝ → ℝ} {c s u : ℝ} (hr : ContinuousOn r (Set.Ici s)) (hsu : s ≤ u)
+    (hge : ∀ x, s ≤ x → c ≤ r x) : c * (u - s) ≤ cumRate r s u := by
+  have h := intervalIntegral.integral_mono_on hsu intervalIntegrable_const
+    (intervalIntegrable_of_ici hr le_rfl hsu) (fun x hx => hge x hx.1)
+  rw [intervalIntegral.integral_const, smul_eq_mul] at h
+  rw [cumRate]
+  linarith
+
+/-- Cochrane (2023), §3.6.1 (auxiliary): if `|r| ≤ M` on `[s, u]` then `|∫_s^u r| ≤ M(u − s)`. -/
+theorem abs_cumRate_le {r : ℝ → ℝ} {M s u : ℝ} (hsu : s ≤ u)
+    (hM : ∀ x ∈ Set.Icc s u, |r x| ≤ M) : |cumRate r s u| ≤ M * (u - s) := by
+  have h := intervalIntegral.norm_integral_le_of_norm_le_const (a := s) (b := u) (f := r)
+    (C := M) fun x hx => by
+      rw [Set.uIoc_of_le hsu] at hx
+      exact hM x ⟨hx.1.le, hx.2⟩
+  rwa [abs_of_nonneg (by linarith : (0 : ℝ) ≤ u - s)] at h
+
+/-- Cochrane (2023), §3.6 (auxiliary): `e^{−x}` is `1`-Lipschitz on `[0, ∞)`. -/
+theorem abs_exp_neg_sub_le {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
+    |Real.exp (-x) - Real.exp (-y)| ≤ |x - y| := by
+  have key : ∀ a b : ℝ, 0 ≤ a → a ≤ b → Real.exp (-a) - Real.exp (-b) ≤ b - a := by
+    intro a b ha hab
+    have h1 : Real.exp (-b) = Real.exp (-a) * Real.exp (-(b - a)) := by
+      rw [← Real.exp_add]; ring_nf
+    have h2 : 1 - (b - a) ≤ Real.exp (-(b - a)) := by
+      have := Real.add_one_le_exp (-(b - a)); linarith
+    have h3 : Real.exp (-a) ≤ 1 := Real.exp_le_one_iff.mpr (by linarith)
+    rw [h1]
+    nlinarith [Real.exp_pos (-a), Real.exp_pos (-(b - a))]
+  rcases le_total x y with hxy | hxy
+  · have h := key x y hx hxy
+    have h' : Real.exp (-y) ≤ Real.exp (-x) := Real.exp_le_exp.mpr (by linarith)
+    rw [abs_of_nonneg (by linarith), abs_of_nonpos (by linarith)]
+    linarith
+  · have h := key y x hy hxy
+    have h' : Real.exp (-x) ≤ Real.exp (-y) := Real.exp_le_exp.mpr (by linarith)
+    rw [abs_of_nonpos (by linarith), abs_of_nonneg (by linarith)]
+    linarith
+
+/-- Cochrane (2023), §3.6.2 and A1 (1.17): with `i + ϖ ≥ c > 0` on `[s, ∞)`, the continuous
+bond price satisfies `0 < Q(s) ≤ 1/c`. -/
+theorem bondPrice_mem {i : ℝ → ℝ} {ϖ c s : ℝ} (hi : ContinuousOn i (Set.Ici s)) (hc : 0 < c)
+    (hge : ∀ u, s ≤ u → c ≤ i u + ϖ) :
+    0 < ContinuousLong.bondPrice i ϖ s ∧ ContinuousLong.bondPrice i ϖ s ≤ 1 / c := by
+  have hI := ContinuousLong.bondIntegrable_of_ge hi hc hge
+  refine ⟨ContinuousLong.bondPrice_pos hi hI, ?_⟩
+  have hJ := pvIntegrable_const hc 1 s
+  rw [← pv_const_const hc 1 s, ContinuousLong.bondPrice, pv, pv]
+  refine setIntegral_mono_on hI hJ measurableSet_Ioi fun u hu => ?_
+  have hu' : s ≤ u := le_of_lt hu
+  rw [mul_one, mul_one, disc, disc, Real.exp_le_exp, neg_le_neg_iff, cumRate_const]
+  exact cumRate_ge (hi.add continuousOn_const) hu' hge
+
+/-- Cochrane (2023), A1 (1.14) and (3.47): the one-step discretisation error
+`δ_h(s) = (h − ∫_s^{s+h}D(s,u)du) + (a_h(s) − D(s, s+h))Q(s+h)`, with
+`D(s,u) = exp(−∫_s^u (i + ϖ))` and `Q = ContinuousLong.bondPrice i ϖ`. -/
+noncomputable def delta (ih : ℝ → ℝ → ℝ) (i : ℝ → ℝ) (ϖ h s : ℝ) : ℝ :=
+  (h - ∫ τ in s..s + h, disc (fun u => i u + ϖ) s τ * 1) +
+    (factor ih ϖ h s - disc (fun u => i u + ϖ) s (s + h)) * ContinuousLong.bondPrice i ϖ (s + h)
+
+/-- Cochrane (2023), A1 (1.14) and (3.47): the error `e_h = Q_h − Q` obeys
+`e_h(s) = δ_h(s) + a_h(s)e_h(s + h)`. -/
+theorem err_rec {i : ℝ → ℝ} {ih : ℝ → ℝ → ℝ} {ϖ c h s t₀ : ℝ}
+    (hi : ContinuousOn i (Set.Ici t₀)) (hc : 0 < c) (hh : 0 < h) (hs : t₀ ≤ s)
+    (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) :
+    discPrice ih ϖ h s - ContinuousLong.bondPrice i ϖ s = delta ih i ϖ h s +
+      factor ih ϖ h s * (discPrice ih ϖ h (s + h) - ContinuousLong.bondPrice i ϖ (s + h)) := by
+  have his : ContinuousOn i (Set.Ici s) := hi.mono (Set.Ici_subset_Ici.2 hs)
+  have hges : ∀ u, s ≤ u → c ≤ i u + ϖ := fun u hu => hge u (hs.trans hu)
+  have hI := ContinuousLong.bondIntegrable_of_ge his hc hges
+  have hone := pv_finite (his.add continuousOn_const) continuousOn_const
+    (ContinuousLong.bondPrice_flow his hI) (T := s + h) (by linarith)
+  have hrec := discPrice_rec hc hh hs hlow
+  unfold delta
+  change disc (fun u => i u + ϖ) s (s + h) * ContinuousLong.bondPrice i ϖ (s + h) =
+    ContinuousLong.bondPrice i ϖ s - ∫ τ in s..s + h, disc (fun u => i u + ϖ) s τ * 1 at hone
+  linear_combination hrec + hone
+
+/-- Cochrane (2023), A1 (1.14) and (3.47): **the one-step error is `O(h)·(h + modulus)`.** If
+`|i + ϖ| ≤ M` and `|i(u) − i(s)| ≤ η₂` on `[s, s+h]`, and `|i_h(s) − i(s)| ≤ η₁`, then
+`|δ_h(s)| ≤ h(hM + (η₁ + η₂)/c)`. -/
+theorem delta_le {i : ℝ → ℝ} {ih : ℝ → ℝ → ℝ} {ϖ c h s M η₁ η₂ : ℝ}
+    (hi : ContinuousOn i (Set.Ici s)) (hc : 0 < c) (hh : 0 < h)
+    (hge : ∀ u, s ≤ u → c ≤ i u + ϖ) (hlow : c ≤ ih h s + ϖ)
+    (hM : ∀ u ∈ Set.Icc s (s + h), |i u + ϖ| ≤ M) (h1 : |ih h s - i s| ≤ η₁)
+    (h2 : ∀ u ∈ Set.Icc s (s + h), |i u - i s| ≤ η₂) :
+    |delta ih i ϖ h s| ≤ h * (h * M + (η₁ + η₂) / c) := by
+  have hr : ContinuousOn (fun u => i u + ϖ) (Set.Ici s) := hi.add continuousOn_const
+  have hsh : s ≤ s + h := by linarith
+  have hcum0 : ∀ τ, s ≤ τ → 0 ≤ cumRate (fun u => i u + ϖ) s τ := fun τ hτ =>
+    le_trans (mul_nonneg hc.le (by linarith)) (cumRate_ge hr hτ hge)
+  -- the first term
+  have hP1 : |h - ∫ τ in s..s + h, disc (fun u => i u + ϖ) s τ * 1| ≤ M * h * h := by
+    have hDint : IntervalIntegrable (fun τ => disc (fun u => i u + ϖ) s τ * 1) volume s (s + h) :=
+      intervalIntegrable_of_ici ((continuousOn_disc hr).mul continuousOn_const) le_rfl hsh
+    have he : h - ∫ τ in s..s + h, disc (fun u => i u + ϖ) s τ * 1 =
+        ∫ τ in s..s + h, (1 - disc (fun u => i u + ϖ) s τ * 1) := by
+      rw [intervalIntegral.integral_sub intervalIntegrable_const hDint,
+        intervalIntegral.integral_const, smul_eq_mul, mul_one, add_sub_cancel_left]
+    rw [he]
+    have h' := intervalIntegral.norm_integral_le_of_norm_le_const (a := s) (b := s + h)
+      (f := fun τ => 1 - disc (fun u => i u + ϖ) s τ * 1) (C := M * h) fun τ hτ => by
+        rw [Set.uIoc_of_le hsh] at hτ
+        have hτ' : s ≤ τ := hτ.1.le
+        have h0 := hcum0 τ hτ'
+        have hb := abs_cumRate_le hτ' fun x hx => hM x ⟨hx.1, hx.2.trans hτ.2⟩
+        rw [abs_of_nonneg h0] at hb
+        have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM s ⟨le_rfl, hsh⟩)
+        have hx1 := Real.add_one_le_exp (-cumRate (fun u => i u + ϖ) s τ)
+        have hx2 : Real.exp (-cumRate (fun u => i u + ϖ) s τ) ≤ 1 :=
+          Real.exp_le_one_iff.mpr (by linarith)
+        rw [Real.norm_eq_abs, mul_one, disc, abs_of_nonneg (by linarith)]
+        nlinarith [hτ.2]
+    rw [Real.norm_eq_abs, add_sub_cancel_left, abs_of_pos hh] at h'
+    exact h'
+  -- the second term
+  have hP2 : |factor ih ϖ h s - disc (fun u => i u + ϖ) s (s + h)| ≤ h * η₁ + h * η₂ := by
+    have hx : 0 ≤ h * (ih h s + ϖ) := mul_nonneg hh.le (by linarith)
+    have hb := abs_exp_neg_sub_le hx (hcum0 (s + h) hsh)
+    have hsplit : h * (ih h s + ϖ) - cumRate (fun u => i u + ϖ) s (s + h) =
+        h * (ih h s - i s) + ∫ τ in s..s + h, (i s - i τ) := by
+      rw [intervalIntegral.integral_sub intervalIntegrable_const
+        (intervalIntegrable_of_ici hi le_rfl hsh), intervalIntegral.integral_const, smul_eq_mul,
+        add_sub_cancel_left, cumRate, intervalIntegral.integral_add
+        (intervalIntegrable_of_ici hi le_rfl hsh) intervalIntegrable_const,
+        intervalIntegral.integral_const, smul_eq_mul, add_sub_cancel_left]
+      ring
+    have hI2 : |∫ τ in s..s + h, (i s - i τ)| ≤ η₂ * h := by
+      have h' := intervalIntegral.norm_integral_le_of_norm_le_const (a := s) (b := s + h)
+        (f := fun τ => i s - i τ) (C := η₂) fun τ hτ => by
+          rw [Set.uIoc_of_le hsh] at hτ
+          rw [Real.norm_eq_abs, abs_sub_comm]
+          exact h2 τ ⟨hτ.1.le, hτ.2⟩
+      rwa [Real.norm_eq_abs, add_sub_cancel_left, abs_of_pos hh] at h'
+    refine hb.trans ?_
+    rw [hsplit]
+    refine (abs_add_le _ _).trans ?_
+    rw [abs_mul, abs_of_pos hh]
+    nlinarith [mul_le_mul_of_nonneg_left h1 hh.le]
+  -- the bond price
+  have hQ := bondPrice_mem (hi.mono (Set.Ici_subset_Ici.2 hsh)) hc
+    (fun u hu => hge u (hsh.trans hu))
+  unfold delta
+  refine (abs_add_le _ _).trans ?_
+  rw [abs_mul, abs_of_pos hQ.1]
+  have hη : 0 ≤ h * η₁ + h * η₂ := (abs_nonneg _).trans hP2
+  have h3 : |factor ih ϖ h s - disc (fun u => i u + ϖ) s (s + h)| *
+      ContinuousLong.bondPrice i ϖ (s + h) ≤ (h * η₁ + h * η₂) * (1 / c) :=
+    mul_le_mul hP2 hQ.2 hQ.1.le hη
+  have h4 : (h * η₁ + h * η₂) * (1 / c) = h * ((η₁ + η₂) / c) := by ring
+  nlinarith
+
+/-- Cochrane (2023), A1 (1.14) and (3.47): **the global error bound.** If the one-step errors
+along the first `N` grid points are at most `hη`, then
+`|Q_h(t) − Q(t)| ≤ (h + 1/c)η + e^{−chN}(h + 2/c)`. -/
+theorem err_le {i : ℝ → ℝ} {ih : ℝ → ℝ → ℝ} {ϖ c h t t₀ η : ℝ}
+    (hi : ContinuousOn i (Set.Ici t₀)) (hc : 0 < c) (hh : 0 < h) (ht : t₀ ≤ t) (hη : 0 ≤ η)
+    (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ) (hlow : ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ) (N : ℕ)
+    (hδ : ∀ k < N, |delta ih i ϖ h (t + k * h)| ≤ h * η) :
+    |discPrice ih ϖ h t - ContinuousLong.bondPrice i ϖ t| ≤
+      (h + 1 / c) * η + Real.exp (-(c * h)) ^ N * (h + 2 / c) := by
+  have hgrid : ∀ k : ℕ, t₀ ≤ t + k * h := fun k => by
+    nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh.le]
+  set x : ℕ → ℝ := fun k => discPrice ih ϖ h (t + k * h) - ContinuousLong.bondPrice i ϖ (t + k * h)
+    with hxdef
+  have hrec : ∀ k, x k = (fun k : ℕ => delta ih i ϖ h (t + k * h)) k +
+      (fun k : ℕ => factor ih ϖ h (t + k * h)) k * x (k + 1) := by
+    intro k
+    have e : t + ((k + 1 : ℕ) : ℝ) * h = t + k * h + h := by push_cast; ring
+    simp only [hxdef, e]
+    exact err_rec hi hc hh (hgrid k) hge hlow
+  have hit := Money.iterate_discount hrec 0 N
+  simp only [zero_add] at hit
+  have hx0 : x 0 = discPrice ih ϖ h t - ContinuousLong.bondPrice i ϖ t := by
+    simp [hxdef]
+  rw [hx0] at hit
+  rw [hit]
+  have hq0 := (Real.exp_pos (-(c * h))).le
+  -- the sum
+  have hS : |∑ j ∈ Finset.range N, (∏ k ∈ Finset.range j, factor ih ϖ h (t + k * h)) *
+      delta ih i ϖ h (t + j * h)| ≤ (h + 1 / c) * η := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    calc ∑ j ∈ Finset.range N, |(∏ k ∈ Finset.range j, factor ih ϖ h (t + k * h)) *
+          delta ih i ϖ h (t + j * h)|
+        ≤ ∑ j ∈ Finset.range N, Real.exp (-(c * h)) ^ j * (h * η) := by
+          refine Finset.sum_le_sum fun j hj => ?_
+          rw [abs_mul, abs_of_pos (show 0 < ∏ k ∈ Finset.range j, factor ih ϖ h (t + k * h) from
+            cumFactor_pos ih ϖ h t j)]
+          exact mul_le_mul (cumFactor_le hh.le ht hlow j) (hδ j (Finset.mem_range.mp hj))
+            (abs_nonneg _) (pow_nonneg hq0 j)
+      _ = η * (h * ∑ j ∈ Finset.range N, Real.exp (-(c * h)) ^ j) := by
+          rw [Finset.mul_sum, Finset.mul_sum]
+          refine Finset.sum_congr rfl fun j _ => by ring
+      _ ≤ η * (h + 1 / c) := mul_le_mul_of_nonneg_left (sum_geom_le hc hh N) hη
+      _ = (h + 1 / c) * η := by ring
+  -- the terminal term
+  have hQd := discPrice_bound hc hh (hgrid N) hlow
+  have hQ := bondPrice_mem (hi.mono (Set.Ici_subset_Ici.2 (hgrid N))) hc
+    (fun u hu => hge u ((hgrid N).trans hu))
+  have hT : |(∏ k ∈ Finset.range N, factor ih ϖ h (t + k * h)) * x N| ≤
+      Real.exp (-(c * h)) ^ N * (h + 2 / c) := by
+    rw [abs_mul, abs_of_pos (show 0 < ∏ k ∈ Finset.range N, factor ih ϖ h (t + k * h) from
+      cumFactor_pos ih ϖ h t N)]
+    refine mul_le_mul (cumFactor_le hh.le ht hlow N) ?_ (abs_nonneg _) (pow_nonneg hq0 N)
+    simp only [hxdef]
+    have h2c : 2 / c = 1 / c + 1 / c := by ring
+    rw [abs_le]
+    constructor <;> linarith [hQd.1, hQd.2, hQ.1, hQ.2]
+  exact (abs_add_le _ _).trans (add_le_add hS hT)
+
+/-! ### Uniform convergence -/
+
+/-- Cochrane (2023), A1 (1.14) and (3.47) (auxiliary): the bound on the one-step error used in
+both convergence theorems, `hM + (θc/4 + θc/4)/c ≤ θ` once `h(2(M + 1)) < θ`. -/
+theorem eta_le {h M c θ : ℝ} (hh : 0 < h) (hM : 0 ≤ M) (hc : 0 < c) (hθ : 0 < θ)
+    (hhM : h < θ / (2 * (M + 1))) : h * M + (c * θ / 4 + c * θ / 4) / c ≤ θ := by
+  have h1 : h * (2 * (M + 1)) < θ := (lt_div_iff₀ (by positivity)).mp hhM
+  have h2 : (c * θ / 4 + c * θ / 4) / c = θ / 2 := by field_simp; ring
+  rw [h2]
+  nlinarith
+
+/-- Cochrane (2023), A1 (1.14) and (3.47), §3.6.2: **the discrete bond price converges to the
+continuous one uniformly on `[t₀, ∞)`** when the data allow it: if the nominal rate is
+uniformly continuous and bounded on `[t₀, ∞)` with `i + ϖ ≥ c > 0`, the per-period rates
+`i_h → i` uniformly on `[t₀, ∞)` and are eventually bounded below (`i_h + ϖ ≥ c`), then
+`Q_h → ContinuousLong.bondPrice i ϖ` uniformly on `[t₀, ∞)` as `h → 0⁺`. -/
+theorem tendstoUniformlyOn_Ici {i : ℝ → ℝ} {ih : ℝ → ℝ → ℝ} {ϖ c M t₀ : ℝ} (hc : 0 < c)
+    (hi : UniformContinuousOn i (Set.Ici t₀)) (hM : ∀ u, t₀ ≤ u → |i u + ϖ| ≤ M)
+    (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ)
+    (hlow : ∀ᶠ h in 𝓝[>] 0, ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ)
+    (hconv : TendstoUniformlyOn ih i (𝓝[>] 0) (Set.Ici t₀)) :
+    TendstoUniformlyOn (discPrice ih ϖ) (ContinuousLong.bondPrice i ϖ) (𝓝[>] 0)
+      (Set.Ici t₀) := by
+  have hic : ContinuousOn i (Set.Ici t₀) := hi.continuousOn
+  have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM t₀ le_rfl)
+  rw [Metric.tendstoUniformlyOn_iff]
+  intro ε hε
+  have hc1 : 0 < 1 + 1 / c := by positivity
+  set θ := ε / (2 * (1 + 1 / c)) with hθ
+  have hθ0 : 0 < θ := by positivity
+  have hθε : (1 + 1 / c) * θ < ε := by
+    rw [hθ]
+    have : (1 + 1 / c) * (ε / (2 * (1 + 1 / c))) = ε / 2 := by field_simp
+    linarith
+  obtain ⟨δ, hδ0, hδ⟩ := Metric.uniformContinuousOn_iff.mp hi (c * θ / 4) (by positivity)
+  have hconv' := Metric.tendstoUniformlyOn_iff.mp hconv (c * θ / 4) (by positivity)
+  have hsmall : Set.Ioo (0 : ℝ) (min 1 (min δ (θ / (2 * (M + 1))))) ∈ 𝓝[>] (0 : ℝ) :=
+    Ioo_mem_nhdsGT (by positivity)
+  filter_upwards [hlow, hconv', hsmall] with h hlowh hconvh hhs
+  obtain ⟨hh0, hh1⟩ := hhs
+  have hh1' : h < 1 := lt_of_lt_of_le hh1 (min_le_left _ _)
+  have hhδ : h < δ := lt_of_lt_of_le hh1 ((min_le_right _ _).trans (min_le_left _ _))
+  have hhM : h < θ / (2 * (M + 1)) :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans (min_le_right _ _))
+  intro t ht
+  have ht' : t₀ ≤ t := ht
+  set η := h * M + (c * θ / 4 + c * θ / 4) / c with hηdef
+  have hη0 : 0 ≤ η := by positivity
+  have hηθ : η ≤ θ := eta_le hh0 hM0 hc hθ0 hhM
+  have hbound : ∀ N : ℕ, |discPrice ih ϖ h t - ContinuousLong.bondPrice i ϖ t| ≤
+      (h + 1 / c) * η + Real.exp (-(c * h)) ^ N * (h + 2 / c) := by
+    intro N
+    refine err_le hic hc hh0 ht' hη0 hge hlowh N fun k _ => ?_
+    have hs : t₀ ≤ t + k * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh0.le]
+    refine delta_le (hic.mono (Set.Ici_subset_Ici.2 hs)) hc hh0 (fun u hu => hge u (hs.trans hu))
+      (hlowh _ hs) (fun u hu => hM u (hs.trans hu.1)) ?_ ?_
+    · have h1 := hconvh _ hs
+      rw [Real.dist_eq, abs_sub_comm] at h1
+      exact h1.le
+    · intro u hu
+      have h1 := hδ u (hs.trans hu.1) _ hs (by
+        rw [Real.dist_eq, abs_of_nonneg (by linarith [hu.1])]
+        linarith [hu.2])
+      rw [Real.dist_eq] at h1
+      exact h1.le
+  have hlim : Tendsto (fun N : ℕ => (h + 1 / c) * η + Real.exp (-(c * h)) ^ N * (h + 2 / c))
+      atTop (𝓝 ((h + 1 / c) * η)) := by
+    have h1 := (tendsto_pow_atTop_nhds_zero_of_lt_one (Real.exp_pos (-(c * h))).le
+      (exp_neg_lt_one (mul_pos hc hh0))).mul_const (h + 2 / c)
+    simpa using h1.const_add ((h + 1 / c) * η)
+  have hle := ge_of_tendsto' hlim hbound
+  rw [Real.dist_eq, abs_sub_comm]
+  have h2 : (h + 1 / c) * η ≤ (1 + 1 / c) * θ :=
+    mul_le_mul (by linarith) hηθ hη0 hc1.le
+  linarith
+
+/-- Cochrane (2023), A1 (1.14) and (3.47), §3.6.2: **the discrete bond price converges to the
+continuous one uniformly on compacts.** If the nominal rate is continuous on `[t₀, ∞)` with
+`i + ϖ ≥ c > 0`, the per-period rates `i_h → i` uniformly on every `[t₀, X]` and are eventually
+bounded below (`i_h + ϖ ≥ c` on `[t₀, ∞)`), then `Q_h → ContinuousLong.bondPrice i ϖ`
+uniformly on `[t₀, X]` for every `X`, as `h → 0⁺`. No boundedness or uniform continuity of the
+rate on `[t₀, ∞)` is needed. -/
+theorem tendstoUniformlyOn_Icc {i : ℝ → ℝ} {ih : ℝ → ℝ → ℝ} {ϖ c t₀ : ℝ} (hc : 0 < c)
+    (hi : ContinuousOn i (Set.Ici t₀)) (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ)
+    (hlow : ∀ᶠ h in 𝓝[>] 0, ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ)
+    (hconv : ∀ X, TendstoUniformlyOn ih i (𝓝[>] 0) (Set.Icc t₀ X)) (X : ℝ) :
+    TendstoUniformlyOn (discPrice ih ϖ) (ContinuousLong.bondPrice i ϖ) (𝓝[>] 0)
+      (Set.Icc t₀ X) := by
+  rw [Metric.tendstoUniformlyOn_iff]
+  intro ε hε
+  have hc1 : 0 < 1 + 1 / c := by positivity
+  have hc2 : 0 < 1 + 2 / c := by positivity
+  set θ := ε / (4 * (1 + 1 / c)) with hθ
+  have hθ0 : 0 < θ := by positivity
+  have hθε : (1 + 1 / c) * θ = ε / 4 := by rw [hθ]; field_simp
+  -- the horizon `L`
+  have hexp : Tendsto (fun L : ℝ => Real.exp (-(c * L)) * (1 + 2 / c)) atTop (𝓝 0) := by
+    have h1 : Tendsto (fun L : ℝ => -(c * L)) atTop atBot :=
+      tendsto_neg_atTop_atBot.comp (tendsto_id.const_mul_atTop hc)
+    simpa using (Real.tendsto_exp_atBot.comp h1).mul_const (1 + 2 / c)
+  obtain ⟨L, hL, hL0⟩ := ((hexp.eventually (gt_mem_nhds (half_pos hε))).and
+    (eventually_gt_atTop 0)).exists
+  set Y := max t₀ X + L + 1 with hY
+  have hY0 : t₀ ≤ Y := by have := le_max_left t₀ X; linarith
+  have hKi : ContinuousOn i (Set.Icc t₀ Y) := hi.mono Set.Icc_subset_Ici_self
+  obtain ⟨M, hM⟩ := isCompact_Icc.exists_bound_of_continuousOn (hKi.add continuousOn_const)
+  have hM0 : 0 ≤ M := (norm_nonneg _).trans (hM t₀ ⟨le_rfl, hY0⟩)
+  have hUC := isCompact_Icc.uniformContinuousOn_of_continuous hKi
+  obtain ⟨δ, hδ0, hδ⟩ := Metric.uniformContinuousOn_iff.mp hUC (c * θ / 4) (by positivity)
+  have hconv' := Metric.tendstoUniformlyOn_iff.mp (hconv Y) (c * θ / 4) (by positivity)
+  have hsmall : Set.Ioo (0 : ℝ) (min 1 (min δ (θ / (2 * (M + 1))))) ∈ 𝓝[>] (0 : ℝ) :=
+    Ioo_mem_nhdsGT (by positivity)
+  filter_upwards [hlow, hconv', hsmall] with h hlowh hconvh hhs
+  obtain ⟨hh0, hh1⟩ := hhs
+  have hh1' : h < 1 := lt_of_lt_of_le hh1 (min_le_left _ _)
+  have hhδ : h < δ := lt_of_lt_of_le hh1 ((min_le_right _ _).trans (min_le_left _ _))
+  have hhM : h < θ / (2 * (M + 1)) :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans (min_le_right _ _))
+  intro t ht
+  have ht' : t₀ ≤ t := ht.1
+  have htX : t ≤ max t₀ X := ht.2.trans (le_max_right _ _)
+  set N := ⌈L / h⌉₊ with hNdef
+  have hN1 : L ≤ N * h := (div_le_iff₀ hh0).mp (Nat.le_ceil _)
+  have hN2 : (N : ℝ) * h < L + h := by
+    have h1 := Nat.ceil_lt_add_one (div_nonneg hL0.le hh0.le) (R := ℝ)
+    rw [← hNdef] at h1
+    have h2 := mul_lt_mul_of_pos_right h1 hh0
+    rwa [add_mul, div_mul_cancel₀ _ hh0.ne', one_mul] at h2
+  set η := h * M + (c * θ / 4 + c * θ / 4) / c with hηdef
+  have hη0 : 0 ≤ η := by positivity
+  have hηθ : η ≤ θ := eta_le hh0 hM0 hc hθ0 hhM
+  have hbound := err_le hi hc hh0 ht' hη0 hge hlowh N fun k hk => by
+    have hs : t₀ ≤ t + k * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh0.le]
+    have hk' : (k : ℝ) + 1 ≤ N := by exact_mod_cast hk
+    have hsY : t + k * h + h ≤ Y := by nlinarith
+    have hmem : ∀ u ∈ Set.Icc (t + k * h) (t + k * h + h), u ∈ Set.Icc t₀ Y :=
+      fun u hu => ⟨hs.trans hu.1, hu.2.trans hsY⟩
+    refine delta_le (hi.mono (Set.Ici_subset_Ici.2 hs)) hc hh0
+      (fun u hu => hge u (hs.trans hu)) (hlowh _ hs)
+      (fun u hu => by rw [← Real.norm_eq_abs]; exact hM u (hmem u hu)) ?_ ?_
+    · have h1 := hconvh _ ⟨hs, by linarith⟩
+      rw [Real.dist_eq, abs_sub_comm] at h1
+      exact h1.le
+    · intro u hu
+      have h1 := hδ u (hmem u hu) _ (hmem _ ⟨le_rfl, by linarith⟩) (by
+        rw [Real.dist_eq, abs_of_nonneg (by linarith [hu.1])]
+        linarith [hu.2])
+      rw [Real.dist_eq] at h1
+      exact h1.le
+  have hq : Real.exp (-(c * h)) ^ N ≤ Real.exp (-(c * L)) := by
+    rw [← Real.exp_nat_mul, Real.exp_le_exp]
+    nlinarith
+  have h2 : (h + 1 / c) * η ≤ (1 + 1 / c) * θ := mul_le_mul (by linarith) hηθ hη0 hc1.le
+  have h3 : Real.exp (-(c * h)) ^ N * (h + 2 / c) ≤ Real.exp (-(c * L)) * (1 + 2 / c) :=
+    mul_le_mul hq (by linarith) (by positivity) (Real.exp_pos _).le
+  rw [Real.dist_eq, abs_sub_comm]
+  linarith
+
+/-! ### The limit solves `Q' = (i + ϖ)Q − 1`; exact compounding -/
+
+/-- Cochrane (2023), §3.6.2, (3.47), A1 (1.17): **the limit of the discrete recursion is the
+unique transversality solution of `Q' = (i + ϖ)Q − 1`.** Under the hypotheses of
+`tendstoUniformlyOn_Icc`, every function `Q` that solves `Q' = (i + ϖ)Q − 1` on `[t₀, ∞)` with
+the transversality condition is the uniform-on-compacts limit of the discrete prices. -/
+theorem tendsto_unique_ode_solution {i Q : ℝ → ℝ} {ih : ℝ → ℝ → ℝ} {ϖ c t₀ : ℝ} (hc : 0 < c)
+    (hi : ContinuousOn i (Set.Ici t₀)) (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ)
+    (hlow : ∀ᶠ h in 𝓝[>] 0, ∀ u, t₀ ≤ u → c ≤ ih h u + ϖ)
+    (hconv : ∀ X, TendstoUniformlyOn ih i (𝓝[>] 0) (Set.Icc t₀ X))
+    (hF : FlowOn (fun u => i u + ϖ) (fun _ => 1) Q t₀) (hT : TVC (fun u => i u + ϖ) Q t₀)
+    (X : ℝ) : TendstoUniformlyOn (discPrice ih ϖ) Q (𝓝[>] 0) (Set.Icc t₀ X) := by
+  have hU := ContinuousLong.bondPrice_unique hi (ContinuousLong.bondIntegrable_of_ge hi hc hge)
+    hF hT
+  exact (tendstoUniformlyOn_Icc hc hi hge hlow hconv X).congr_right
+    fun u hu => (hU (Set.Icc_subset_Ici_self hu)).symm
+
+/-- Cochrane (2023), A1 (1.14): exact compounding, `1 + i_h(s) = e^{h·i(s)}`, satisfies the
+hypotheses on the per-period rates: it is bounded below and converges uniformly on every set. -/
+theorem exact_hyps {i : ℝ → ℝ} {ϖ c t₀ : ℝ} (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ) (S : Set ℝ) :
+    (∀ᶠ h in 𝓝[>] (0 : ℝ), ∀ u, t₀ ≤ u → c ≤ (fun (_ : ℝ) u => i u) h u + ϖ) ∧
+      TendstoUniformlyOn (fun (_ : ℝ) u => i u) i (𝓝[>] 0) S := by
+  refine ⟨Eventually.of_forall fun _ u hu => hge u hu, ?_⟩
+  rw [Metric.tendstoUniformlyOn_iff]
+  intro ε hε
+  exact Eventually.of_forall fun _ x _ => by rw [dist_self]; exact hε
+
+/-- Cochrane (2023), A1 (1.14), (3.47): with exact compounding `1 + i_h = e^{h·i(s)}` and decay
+`ω_h = e^{−ϖh}`, the discrete price converges to `ContinuousLong.bondPrice i ϖ` uniformly on every
+`[t₀, X]`, for every rate continuous on `[t₀, ∞)` with `i + ϖ ≥ c > 0`. -/
+theorem tendstoUniformlyOn_Icc_exact {i : ℝ → ℝ} {ϖ c t₀ : ℝ} (hc : 0 < c)
+    (hi : ContinuousOn i (Set.Ici t₀)) (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ) (X : ℝ) :
+    TendstoUniformlyOn (discPrice (fun _ u => i u) ϖ) (ContinuousLong.bondPrice i ϖ) (𝓝[>] 0)
+      (Set.Icc t₀ X) :=
+  tendstoUniformlyOn_Icc hc hi hge (exact_hyps hge Set.univ).1
+    (fun Y => (exact_hyps hge (Set.Icc t₀ Y)).2) X
+
+/-- Cochrane (2023), A1 (1.14), (3.47): with exact compounding the convergence is uniform on all
+of `[t₀, ∞)` when the rate is bounded and uniformly continuous there. -/
+theorem tendstoUniformlyOn_Ici_exact {i : ℝ → ℝ} {ϖ c M t₀ : ℝ} (hc : 0 < c)
+    (hi : UniformContinuousOn i (Set.Ici t₀)) (hM : ∀ u, t₀ ≤ u → |i u + ϖ| ≤ M)
+    (hge : ∀ u, t₀ ≤ u → c ≤ i u + ϖ) :
+    TendstoUniformlyOn (discPrice (fun _ u => i u) ϖ) (ContinuousLong.bondPrice i ϖ) (𝓝[>] 0)
+      (Set.Ici t₀) :=
+  tendstoUniformlyOn_Ici hc hi hM hge (exact_hyps hge Set.univ).1
+    (exact_hyps hge (Set.Ici t₀)).2
+
+/-- Cochrane (2023), A1 (1.14), (1.17), and `Links.annuity_tendsto_bondPrice`: the constant-rate
+statement of `Links` is the special case of `tendstoUniformlyOn_Ici_exact` with `i ≡ i₀`: the
+annuity `h∑_j e^{−ϖhj}/e^{i₀hj}` converges to `1/(i₀ + ϖ)` uniformly in the date. -/
+theorem const_case {i₀ ϖ : ℝ} (h : 0 < i₀ + ϖ) :
+    TendstoUniformlyOn
+      (fun h (_ : ℝ) => h * ∑' j : ℕ, Real.exp (-ϖ * h) ^ j / Real.exp (i₀ * h) ^ j)
+      (fun _ => 1 / (i₀ + ϖ)) (𝓝[>] 0) (Set.Ici 0) := by
+  have h1 := tendstoUniformlyOn_Ici_exact (i := fun _ => i₀) (ϖ := ϖ) (c := i₀ + ϖ)
+    (M := |i₀ + ϖ|) (t₀ := 0) h uniformContinuous_const.uniformContinuousOn (fun _ _ => le_rfl)
+    (fun _ _ => le_rfl)
+  have e1 : discPrice (fun _ u => (fun _ => i₀) u) ϖ =
+      fun h s => h * ∑' j : ℕ, Real.exp (-ϖ * h) ^ j / Real.exp (i₀ * h) ^ j := by
+    funext h s
+    exact discPrice_const i₀ ϖ h s
+  rw [e1] at h1
+  exact h1.congr_right fun s _ => ContinuousLong.bondPrice_const h s
+
+/-! ### Where the data do not allow: convergence on compacts without uniform convergence -/
+
+/-- Cochrane (2023), A1 (1.14) (a discretisation that is only locally consistent): the per-period
+rate equals `i₀` before date `1/h` and `i₀ + 1` from then on. -/
+noncomputable def jumpRate (i₀ h s : ℝ) : ℝ := if s < 1 / h then i₀ else i₀ + 1
+
+/-- Cochrane (2023), A1 (1.14): from a date `t ≥ 1/h` on, the discrete price with `jumpRate` is the
+constant-rate price at `i₀ + 1`. -/
+theorem discPrice_jumpRate {i₀ ϖ h t : ℝ} (hh : 0 < h) (ht : 1 / h ≤ t) :
+    discPrice (jumpRate i₀) ϖ h t = discPrice (fun _ _ => i₀ + 1) ϖ h t := by
+  unfold discPrice cumFactor
+  congr 2
+  funext k
+  refine Finset.prod_congr rfl fun m _ => ?_
+  have hm : 1 / h ≤ t + m * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) m) hh.le]
+  simp only [factor, jumpRate, not_lt.mpr hm, ↓reduceIte]
+
+/-- Cochrane (2023), A1 (1.14), (3.47): **uniform convergence on `[t₀, ∞)` needs uniformly
+consistent rates.** With a constant true rate `i₀` (`i₀ + ϖ > 0`) and the per-period rates
+`jumpRate i₀`, which converge to `i₀` uniformly on every compact but not on `[0, ∞)`, the
+discrete prices converge to the continuous bond price uniformly on every `[0, X]`
+(`tendstoUniformlyOn_Icc`) but **not** uniformly on `[0, ∞)`: from date `1/h` on they price
+the rate `i₀ + 1`. -/
+theorem not_uniform_Ici {i₀ ϖ : ℝ} (hc : 0 < i₀ + ϖ) :
+    (∀ X, TendstoUniformlyOn (discPrice (jumpRate i₀) ϖ)
+        (ContinuousLong.bondPrice (fun _ => i₀) ϖ) (𝓝[>] 0) (Set.Icc 0 X)) ∧
+      ¬ TendstoUniformlyOn (discPrice (jumpRate i₀) ϖ)
+        (ContinuousLong.bondPrice (fun _ => i₀) ϖ) (𝓝[>] 0) (Set.Ici 0) := by
+  have hlow : ∀ᶠ h in 𝓝[>] (0 : ℝ), ∀ u, (0 : ℝ) ≤ u → i₀ + ϖ ≤ jumpRate i₀ h u + ϖ :=
+    Eventually.of_forall fun h u _ => by
+      unfold jumpRate
+      split_ifs <;> linarith
+  refine ⟨fun X => tendstoUniformlyOn_Icc hc continuousOn_const (fun _ _ => le_rfl) hlow
+    (fun Y => ?_) X, fun hU => ?_⟩
+  · rw [Metric.tendstoUniformlyOn_iff]
+    intro ε hε
+    have hsmall : Set.Ioo (0 : ℝ) (1 / (|Y| + 1)) ∈ 𝓝[>] (0 : ℝ) :=
+      Ioo_mem_nhdsGT (by positivity)
+    filter_upwards [hsmall] with h hh s hs
+    have h1 : s < 1 / h := by
+      rw [lt_div_iff₀ hh.1]
+      have h2 := (lt_div_iff₀ (by positivity : (0 : ℝ) < |Y| + 1)).mp hh.2
+      have h3 : s ≤ |Y| := hs.2.trans (le_abs_self Y)
+      nlinarith [hs.1, hh.1]
+    simp only [jumpRate, h1, ↓reduceIte, dist_self]
+    exact hε
+  · have hc1 : 0 < i₀ + 1 + ϖ := by linarith
+    set gap := 1 / (i₀ + ϖ) - 1 / (i₀ + 1 + ϖ) with hgap
+    have hgap0 : 0 < gap := by
+      rw [hgap, sub_pos]
+      exact one_div_lt_one_div_of_lt hc (by linarith)
+    have hA := Links.annuity_tendsto_bondPrice (i := i₀ + 1) (ϖ := ϖ) (by linarith) 0
+    rw [ContinuousLong.bondPrice_const (by linarith)] at hA
+    have h1 := Metric.tendstoUniformlyOn_iff.mp hU (gap / 2) (by positivity)
+    have h2 := (Metric.tendsto_nhds.mp hA) (gap / 2) (by positivity)
+    obtain ⟨h, ⟨hu, hv⟩, hh⟩ := ((h1.and h2).and self_mem_nhdsWithin).exists
+    have hh' : (0 : ℝ) < h := hh
+    have ht : (1 / h) ∈ Set.Ici (0 : ℝ) := (by positivity : (0 : ℝ) ≤ 1 / h)
+    have hu' := hu (1 / h) ht
+    rw [ContinuousLong.bondPrice_const hc, discPrice_jumpRate hh' le_rfl, discPrice_const]
+      at hu'
+    rw [Real.dist_eq] at hu' hv
+    rw [abs_lt] at hu' hv
+    obtain ⟨hu1, hu2⟩ := hu'
+    obtain ⟨hv1, hv2⟩ := hv
+    have : gap = 1 / (i₀ + ϖ) - 1 / (i₀ + 1 + ϖ) := hgap
+    linarith
+
+end Cochrane.Generality.TidyR6DiscreteBondLimit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The discrete valuation recursion converges to `V' = rV − s` for time-varying rates
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.3 ((3.5), p. 55) and
+§3.6.1 ((3.30)–(3.31), pp. 73–74), with Online Appendix A1.4, pp. 564–565.
+
+`TidyR6DiscreteBondLimit` proved the convergence of the discrete bond-price recursion. Here the
+same is done for the valuation of a time-varying surplus stream at a time-varying real rate:
+with period length `h`, per-period continuously compounded real rates `r_h(t)` and the surplus
+flow `s` paid as `h·s(t)` per period, the discrete value of debt
+
+`V_h(t) = h·s(t) + e^{−h·r_h(t)} V_h(t + h)`
+
+(the forward sum `discVal`, the unique solution with the discrete transversality condition,
+`discVal_rec`, `discVal_unique`) converges to the present value `ContinuousShort.pv r s`, the
+unique solution of `V' = rV − s` with the transversality condition: uniformly on every `[t₀, X]`
+for continuous `r ≥ c > 0` and continuous bounded `s` (`val_tendstoUniformlyOn_Icc`), and
+uniformly on `[t₀, ∞)` when `r` and `s` are moreover uniformly continuous and `r` bounded
+(`val_tendstoUniformlyOn_Ici`); every transversality solution of the ODE is this limit
+(`val_tendsto_unique_ode_solution`).
+-/
+
+namespace Cochrane.Generality.TidyR6DiscreteValuationLimit
+
+open MeasureTheory Filter Topology Cochrane.Generality.ContinuousShort
+open Cochrane.Generality.TidyR6DiscreteBondLimit
+
+/-! ### The discrete valuation recursion -/
+
+/-- Cochrane (2023), (3.5), p. 55, with period `h`: the discrete value of the surplus flow,
+`V_h(t) = h∑_k (∏_{m<k} e^{−h r_h(t+mh)}) s(t + kh)`. -/
+noncomputable def discVal (rh : ℝ → ℝ → ℝ) (s : ℝ → ℝ) (h t : ℝ) : ℝ :=
+  h * ∑' k, cumFactor rh 0 h t k * s (t + k * h)
+
+/-- Cochrane (2023), (3.5): the discount factor of `discVal` decays geometrically when
+`r_h ≥ c` (`cumFactor_le` with no decay `ϖ = 0`). -/
+theorem cumFactor_le' {rh : ℝ → ℝ → ℝ} {h t c t₀ : ℝ} (hh : 0 ≤ h) (ht : t₀ ≤ t)
+    (hlow : ∀ u, t₀ ≤ u → c ≤ rh h u) (k : ℕ) :
+    cumFactor rh 0 h t k ≤ Real.exp (-(c * h)) ^ k :=
+  cumFactor_le hh ht (fun u hu => by rw [add_zero]; exact hlow u hu) k
+
+/-- Cochrane (2023), (3.5): the discrete surplus stream is absolutely summable when `s` is
+bounded on `[t₀, ∞)` and `r_h ≥ c > 0`. -/
+theorem summable_discVal {rh : ℝ → ℝ → ℝ} {s : ℝ → ℝ} {h t c t₀ S : ℝ} (hc : 0 < c)
+    (hh : 0 < h) (ht : t₀ ≤ t) (hlow : ∀ u, t₀ ≤ u → c ≤ rh h u)
+    (hS : ∀ u, t₀ ≤ u → |s u| ≤ S) :
+    Summable fun k : ℕ => cumFactor rh 0 h t k * s (t + k * h) := by
+  refine Summable.of_norm_bounded ((summable_geometric_of_lt_one (Real.exp_pos _).le
+    (exp_neg_lt_one (mul_pos hc hh))).mul_right S) fun k => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_of_pos (cumFactor_pos _ _ _ _ k)]
+  have hk : t₀ ≤ t + k * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh.le]
+  exact mul_le_mul (cumFactor_le' hh.le ht hlow k) (hS _ hk) (abs_nonneg _)
+    (pow_nonneg (Real.exp_pos _).le k)
+
+/-- Cochrane (2023), (3.5): `|V_h(t)| ≤ S(h + 1/c)`. -/
+theorem discVal_bound {rh : ℝ → ℝ → ℝ} {s : ℝ → ℝ} {h t c t₀ S : ℝ} (hc : 0 < c)
+    (hh : 0 < h) (ht : t₀ ≤ t) (hlow : ∀ u, t₀ ≤ u → c ≤ rh h u)
+    (hS : ∀ u, t₀ ≤ u → |s u| ≤ S) : |discVal rh s h t| ≤ S * (h + 1 / c) := by
+  have hx := exp_neg_lt_one (mul_pos hc hh)
+  have h0 := (Real.exp_pos (-(c * h))).le
+  have hsum := summable_discVal hc hh ht hlow hS
+  have hg := summable_geometric_of_lt_one h0 hx
+  rw [discVal, abs_mul, abs_of_pos hh]
+  calc h * |∑' k, cumFactor rh 0 h t k * s (t + k * h)|
+      ≤ h * ∑' k : ℕ, Real.exp (-(c * h)) ^ k * S := by
+        refine mul_le_mul_of_nonneg_left ?_ hh.le
+        refine (norm_tsum_le_tsum_norm hsum.norm).trans ?_
+        refine hsum.norm.tsum_le_tsum (fun k => ?_) (hg.mul_right S)
+        rw [Real.norm_eq_abs, abs_mul, abs_of_pos (cumFactor_pos _ _ _ _ k)]
+        have hk : t₀ ≤ t + k * h := by
+          nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh.le]
+        exact mul_le_mul (cumFactor_le' hh.le ht hlow k) (hS _ hk) (abs_nonneg _)
+          (pow_nonneg h0 k)
+    _ = S * (h / (1 - Real.exp (-(c * h)))) := by
+        rw [tsum_mul_right, tsum_geometric_of_lt_one h0 hx]
+        ring
+    _ ≤ S * (h + 1 / c) := by
+        have hS0 : 0 ≤ S := (abs_nonneg _).trans (hS t ht)
+        exact mul_le_mul_of_nonneg_left (geom_bound hc hh) hS0
+
+/-- Cochrane (2023), (3.5) and footnote 1, p. 58, with period `h`: the discrete valuation
+recursion `V_h(t) = h·s(t) + e^{−h r_h(t)}V_h(t + h)`. -/
+theorem discVal_rec {rh : ℝ → ℝ → ℝ} {s : ℝ → ℝ} {h t c t₀ S : ℝ} (hc : 0 < c)
+    (hh : 0 < h) (ht : t₀ ≤ t) (hlow : ∀ u, t₀ ≤ u → c ≤ rh h u)
+    (hS : ∀ u, t₀ ≤ u → |s u| ≤ S) :
+    discVal rh s h t = h * s t + factor rh 0 h t * discVal rh s h (t + h) := by
+  have hsum := summable_discVal hc hh ht hlow hS
+  rw [discVal, hsum.tsum_eq_zero_add, cumFactor_zero, discVal]
+  have e : ∀ k : ℕ, cumFactor rh 0 h t (k + 1) * s (t + ((k + 1 : ℕ) : ℝ) * h) =
+      factor rh 0 h t * (cumFactor rh 0 h (t + h) k * s (t + h + k * h)) := fun k => by
+    rw [cumFactor_succ]
+    have : t + ((k + 1 : ℕ) : ℝ) * h = t + h + k * h := by push_cast; ring
+    rw [this]
+    ring
+  rw [tsum_congr e, tsum_mul_left]
+  simp only [Nat.cast_zero, zero_mul, add_zero, one_mul]
+  ring
+
+/-- Cochrane (2023), (3.5) and footnote 1, p. 58, with period `h`: **uniqueness.** Any solution of
+the discrete recursion along the grid with the discrete transversality condition equals
+`discVal`. -/
+theorem discVal_unique {rh : ℝ → ℝ → ℝ} {s : ℝ → ℝ} {h t c t₀ S : ℝ} (hc : 0 < c)
+    (hh : 0 < h) (ht : t₀ ≤ t) (hlow : ∀ u, t₀ ≤ u → c ≤ rh h u)
+    (hS : ∀ u, t₀ ≤ u → |s u| ≤ S) {X : ℝ → ℝ}
+    (hX : ∀ k : ℕ, X (t + k * h) =
+      h * s (t + k * h) + factor rh 0 h (t + k * h) * X (t + (k + 1 : ℕ) * h))
+    (hT : Tendsto (fun N : ℕ => cumFactor rh 0 h t N * X (t + N * h)) atTop (𝓝 0)) :
+    X t = discVal rh s h t := by
+  have hsum := summable_discVal hc hh ht hlow hS
+  have hrec : ∀ k : ℕ, (fun n : ℕ => X (t + n * h)) k =
+      (fun n : ℕ => h * s (t + n * h)) k + (fun n : ℕ => factor rh 0 h (t + n * h)) k *
+        (fun n : ℕ => X (t + n * h)) (k + 1) := fun k => hX k
+  have hs' : Summable fun j => (∏ k ∈ Finset.range j,
+      (fun n : ℕ => factor rh 0 h (t + n * h)) (0 + k)) * (fun n : ℕ => h * s (t + n * h))
+        (0 + j) := by
+    refine (hsum.mul_left h).congr fun j => ?_
+    simp only [zero_add, cumFactor]
+    ring
+  have h1 := (Money.pv_discount_iff hrec 0 hs').mp (by simpa [cumFactor] using hT)
+  simp only [Nat.cast_zero, zero_mul, add_zero, zero_add] at h1
+  rw [h1, discVal, ← tsum_mul_left]
+  exact tsum_congr fun j => by rw [cumFactor]; ring
+
+/-! ### The continuous value and the one-step error -/
+
+/-- Cochrane (2023), (3.31), p. 73: with `r ≥ c > 0` and `|s| ≤ S` on `[t, ∞)`, the discounted
+surplus stream is integrable. -/
+theorem pvIntegrable_of_bound {r s : ℝ → ℝ} {c t S : ℝ} (hr : ContinuousOn r (Set.Ici t))
+    (hs : ContinuousOn s (Set.Ici t)) (hc : 0 < c) (hge : ∀ u, t ≤ u → c ≤ r u)
+    (hS : ∀ u, t ≤ u → |s u| ≤ S) : PVIntegrable r s t := by
+  have hg : IntegrableOn (fun u => S * Real.exp (c * t) * Real.exp (-c * u)) (Set.Ioi t) :=
+    (integrableOn_exp_mul_Ioi (by linarith) t).const_mul _
+  refine Integrable.mono' hg ?_ ?_
+  · exact (((continuousOn_disc hr).mul hs).mono
+      Set.Ioi_subset_Ici_self).aestronglyMeasurable measurableSet_Ioi
+  · refine (ae_restrict_iff' measurableSet_Ioi).2 (Eventually.of_forall fun u hu => ?_)
+    have hu' : t ≤ u := le_of_lt hu
+    rw [Real.norm_eq_abs, abs_mul, abs_of_pos (disc_pos _ _ _)]
+    have h1 : disc r t u ≤ Real.exp (c * t) * Real.exp (-c * u) := by
+      rw [disc, ← Real.exp_add, Real.exp_le_exp]
+      have := cumRate_ge hr hu' hge
+      linarith
+    have hS0 : 0 ≤ S := (abs_nonneg _).trans (hS u hu')
+    calc disc r t u * |s u| ≤ (Real.exp (c * t) * Real.exp (-c * u)) * S :=
+          mul_le_mul h1 (hS u hu') (abs_nonneg _) (by positivity)
+      _ = S * Real.exp (c * t) * Real.exp (-c * u) := by ring
+
+/-- Cochrane (2023), (3.31), p. 73: with `r ≥ c > 0` and `|s| ≤ S` on `[t, ∞)`, the present value
+satisfies `|pv r s t| ≤ S/c`. -/
+theorem pv_abs_le {r s : ℝ → ℝ} {c t S : ℝ} (hr : ContinuousOn r (Set.Ici t))
+    (hc : 0 < c) (hge : ∀ u, t ≤ u → c ≤ r u) (hS : ∀ u, t ≤ u → |s u| ≤ S) :
+    |pv r s t| ≤ S / c := by
+  have hJ := pvIntegrable_const hc S t
+  rw [← pv_const_const hc S t, pv, pv, ← Real.norm_eq_abs]
+  refine norm_integral_le_of_norm_le hJ ((ae_restrict_iff' measurableSet_Ioi).2
+    (Eventually.of_forall fun u hu => ?_))
+  have hu' : t ≤ u := le_of_lt hu
+  rw [Real.norm_eq_abs, abs_mul, abs_of_pos (disc_pos _ _ _)]
+  refine mul_le_mul ?_ (hS u hu') (abs_nonneg _) (disc_pos _ _ _).le
+  rw [disc, disc, Real.exp_le_exp, neg_le_neg_iff, cumRate_const]
+  exact cumRate_ge hr hu' hge
+
+/-- Cochrane (2023), (3.5) and (3.31): the one-step valuation error
+`δ_h(t) = (h·s(t) − ∫_t^{t+h}D(t,τ)s(τ)dτ) + (e^{−h r_h(t)} − D(t, t+h))V(t+h)`, with
+`V = ContinuousShort.pv r s`. -/
+noncomputable def valDelta (rh : ℝ → ℝ → ℝ) (r s : ℝ → ℝ) (h t : ℝ) : ℝ :=
+  (h * s t - ∫ τ in t..t + h, disc r t τ * s τ) +
+    (factor rh 0 h t - disc r t (t + h)) * pv r s (t + h)
+
+/-- Cochrane (2023), (3.5) and (3.31): the valuation error `e_h = V_h − V` obeys
+`e_h(t) = δ_h(t) + e^{−h r_h(t)}e_h(t + h)`. -/
+theorem valErr_rec {r s : ℝ → ℝ} {rh : ℝ → ℝ → ℝ} {c h t t₀ S : ℝ}
+    (hr : ContinuousOn r (Set.Ici t₀)) (hs : ContinuousOn s (Set.Ici t₀)) (hc : 0 < c)
+    (hh : 0 < h) (ht : t₀ ≤ t) (hge : ∀ u, t₀ ≤ u → c ≤ r u)
+    (hlow : ∀ u, t₀ ≤ u → c ≤ rh h u) (hS : ∀ u, t₀ ≤ u → |s u| ≤ S) :
+    discVal rh s h t - pv r s t = valDelta rh r s h t +
+      factor rh 0 h t * (discVal rh s h (t + h) - pv r s (t + h)) := by
+  have hrt : ContinuousOn r (Set.Ici t) := hr.mono (Set.Ici_subset_Ici.2 ht)
+  have hst : ContinuousOn s (Set.Ici t) := hs.mono (Set.Ici_subset_Ici.2 ht)
+  have hI := pvIntegrable_of_bound hrt hst hc (fun u hu => hge u (ht.trans hu))
+    (fun u hu => hS u (ht.trans hu))
+  have hone := pv_finite hrt hst (flowOn_pv hrt hst hI) (T := t + h) (by linarith)
+  have hrec := discVal_rec hc hh ht hlow hS
+  unfold valDelta
+  linear_combination hrec + hone
+
+/-- Cochrane (2023), (3.5) and (3.31): **the one-step valuation error is `O(h)·(h + moduli)`.**
+If `|r| ≤ M`, `|r(u) − r(t)| ≤ η₂` and `|s(u) − s(t)| ≤ η₃` on `[t, t+h]`, `|r_h(t) − r(t)| ≤ η₁`
+and `|s| ≤ S` on `[t, ∞)`, then `|δ_h(t)| ≤ h(η₃ + hMS + (η₁ + η₂)S/c)`. -/
+theorem valDelta_le {r s : ℝ → ℝ} {rh : ℝ → ℝ → ℝ} {c h t M S η₁ η₂ η₃ : ℝ}
+    (hr : ContinuousOn r (Set.Ici t)) (hs : ContinuousOn s (Set.Ici t)) (hc : 0 < c)
+    (hh : 0 < h) (hge : ∀ u, t ≤ u → c ≤ r u) (hlow : c ≤ rh h t)
+    (hS : ∀ u, t ≤ u → |s u| ≤ S) (hM : ∀ u ∈ Set.Icc t (t + h), |r u| ≤ M)
+    (h1 : |rh h t - r t| ≤ η₁) (h2 : ∀ u ∈ Set.Icc t (t + h), |r u - r t| ≤ η₂)
+    (h3 : ∀ u ∈ Set.Icc t (t + h), |s u - s t| ≤ η₃) :
+    |valDelta rh r s h t| ≤ h * (η₃ + h * M * S + (η₁ + η₂) * S / c) := by
+  have hth : t ≤ t + h := by linarith
+  have hcum0 : ∀ τ, t ≤ τ → 0 ≤ cumRate r t τ := fun τ hτ =>
+    le_trans (mul_nonneg hc.le (by linarith)) (cumRate_ge hr hτ hge)
+  have hS0 : 0 ≤ S := (abs_nonneg _).trans (hS t le_rfl)
+  have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM t ⟨le_rfl, hth⟩)
+  -- the first term
+  have hP1 : |h * s t - ∫ τ in t..t + h, disc r t τ * s τ| ≤ (η₃ + M * h * S) * h := by
+    have hDint : IntervalIntegrable (fun τ => disc r t τ * s τ) volume t (t + h) :=
+      intervalIntegrable_of_ici ((continuousOn_disc hr).mul hs) le_rfl hth
+    have he : h * s t - ∫ τ in t..t + h, disc r t τ * s τ =
+        ∫ τ in t..t + h, (s t - disc r t τ * s τ) := by
+      rw [intervalIntegral.integral_sub intervalIntegrable_const hDint,
+        intervalIntegral.integral_const, smul_eq_mul, add_sub_cancel_left]
+    rw [he]
+    have h' := intervalIntegral.norm_integral_le_of_norm_le_const (a := t) (b := t + h)
+      (f := fun τ => s t - disc r t τ * s τ) (C := η₃ + M * h * S) fun τ hτ => by
+        rw [Set.uIoc_of_le hth] at hτ
+        have hτ' : t ≤ τ := hτ.1.le
+        have h0 := hcum0 τ hτ'
+        have hb := abs_cumRate_le hτ' fun x hx => hM x ⟨hx.1, hx.2.trans hτ.2⟩
+        rw [abs_of_nonneg h0] at hb
+        have hx1 := Real.add_one_le_exp (-cumRate r t τ)
+        have hx2 : Real.exp (-cumRate r t τ) ≤ 1 := Real.exp_le_one_iff.mpr (by linarith)
+        have hD : |1 - disc r t τ| ≤ M * h := by
+          rw [disc, abs_of_nonneg (by linarith)]
+          nlinarith [hτ.2]
+        have hsτ := hS τ hτ'
+        have e : s t - disc r t τ * s τ = (s t - s τ) + (1 - disc r t τ) * s τ := by ring
+        rw [Real.norm_eq_abs, e]
+        refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+        · rw [abs_sub_comm]; exact h3 τ ⟨hτ', hτ.2⟩
+        · rw [abs_mul]
+          exact mul_le_mul hD hsτ (abs_nonneg _) (by positivity)
+    rw [Real.norm_eq_abs, add_sub_cancel_left, abs_of_pos hh] at h'
+    exact h'
+  -- the second term
+  have hP2 : |factor rh 0 h t - disc r t (t + h)| ≤ h * η₁ + h * η₂ := by
+    have hx : 0 ≤ h * (rh h t + 0) := mul_nonneg hh.le (by linarith)
+    have hb := abs_exp_neg_sub_le hx (hcum0 (t + h) hth)
+    have hsplit : h * (rh h t + 0) - cumRate r t (t + h) =
+        h * (rh h t - r t) + ∫ τ in t..t + h, (r t - r τ) := by
+      rw [intervalIntegral.integral_sub intervalIntegrable_const
+        (intervalIntegrable_of_ici hr le_rfl hth), intervalIntegral.integral_const, smul_eq_mul,
+        add_sub_cancel_left, cumRate]
+      ring
+    have hI2 : |∫ τ in t..t + h, (r t - r τ)| ≤ η₂ * h := by
+      have h' := intervalIntegral.norm_integral_le_of_norm_le_const (a := t) (b := t + h)
+        (f := fun τ => r t - r τ) (C := η₂) fun τ hτ => by
+          rw [Set.uIoc_of_le hth] at hτ
+          rw [Real.norm_eq_abs, abs_sub_comm]
+          exact h2 τ ⟨hτ.1.le, hτ.2⟩
+      rwa [Real.norm_eq_abs, add_sub_cancel_left, abs_of_pos hh] at h'
+    refine hb.trans ?_
+    rw [hsplit]
+    refine (abs_add_le _ _).trans ?_
+    rw [abs_mul, abs_of_pos hh]
+    nlinarith [mul_le_mul_of_nonneg_left h1 hh.le]
+  -- the value
+  have hV := pv_abs_le (hr.mono (Set.Ici_subset_Ici.2 hth)) hc
+    (fun u hu => hge u (hth.trans hu)) (fun u hu => hS u (hth.trans hu))
+  unfold valDelta
+  refine (abs_add_le _ _).trans ?_
+  rw [abs_mul]
+  have hη : 0 ≤ h * η₁ + h * η₂ := (abs_nonneg _).trans hP2
+  have h4 : |factor rh 0 h t - disc r t (t + h)| * |pv r s (t + h)| ≤
+      (h * η₁ + h * η₂) * (S / c) := mul_le_mul hP2 hV (abs_nonneg _) hη
+  have h5 : (h * η₁ + h * η₂) * (S / c) = h * ((η₁ + η₂) * S / c) := by ring
+  nlinarith
+
+/-- Cochrane (2023), (3.5) and (3.31): **the global valuation error bound.** If the one-step
+errors along the first `N` grid points are at most `hη`, then
+`|V_h(t) − V(t)| ≤ (h + 1/c)η + e^{−chN}(S(h + 1/c) + S/c)`. -/
+theorem valErr_le {r s : ℝ → ℝ} {rh : ℝ → ℝ → ℝ} {c h t t₀ S η : ℝ}
+    (hr : ContinuousOn r (Set.Ici t₀)) (hs : ContinuousOn s (Set.Ici t₀)) (hc : 0 < c)
+    (hh : 0 < h) (ht : t₀ ≤ t) (hη : 0 ≤ η) (hge : ∀ u, t₀ ≤ u → c ≤ r u)
+    (hlow : ∀ u, t₀ ≤ u → c ≤ rh h u) (hS : ∀ u, t₀ ≤ u → |s u| ≤ S) (N : ℕ)
+    (hδ : ∀ k < N, |valDelta rh r s h (t + k * h)| ≤ h * η) :
+    |discVal rh s h t - pv r s t| ≤
+      (h + 1 / c) * η + Real.exp (-(c * h)) ^ N * (S * (h + 1 / c) + S / c) := by
+  have hgrid : ∀ k : ℕ, t₀ ≤ t + k * h := fun k => by
+    nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh.le]
+  set x : ℕ → ℝ := fun k => discVal rh s h (t + k * h) - pv r s (t + k * h) with hxdef
+  have hrec : ∀ k, x k = (fun k : ℕ => valDelta rh r s h (t + k * h)) k +
+      (fun k : ℕ => factor rh 0 h (t + k * h)) k * x (k + 1) := by
+    intro k
+    have e : t + ((k + 1 : ℕ) : ℝ) * h = t + k * h + h := by push_cast; ring
+    simp only [hxdef, e]
+    exact valErr_rec hr hs hc hh (hgrid k) hge hlow hS
+  have hit := Money.iterate_discount hrec 0 N
+  simp only [zero_add] at hit
+  have hx0 : x 0 = discVal rh s h t - pv r s t := by simp [hxdef]
+  rw [hx0] at hit
+  rw [hit]
+  have hq0 := (Real.exp_pos (-(c * h))).le
+  have hlow' : ∀ u, t₀ ≤ u → c ≤ rh h u + 0 := fun u hu => by rw [add_zero]; exact hlow u hu
+  have hS' : |∑ j ∈ Finset.range N, (∏ k ∈ Finset.range j, factor rh 0 h (t + k * h)) *
+      valDelta rh r s h (t + j * h)| ≤ (h + 1 / c) * η := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    calc ∑ j ∈ Finset.range N, |(∏ k ∈ Finset.range j, factor rh 0 h (t + k * h)) *
+          valDelta rh r s h (t + j * h)|
+        ≤ ∑ j ∈ Finset.range N, Real.exp (-(c * h)) ^ j * (h * η) := by
+          refine Finset.sum_le_sum fun j hj => ?_
+          rw [abs_mul, abs_of_pos (show 0 < ∏ k ∈ Finset.range j, factor rh 0 h (t + k * h) from
+            cumFactor_pos rh 0 h t j)]
+          exact mul_le_mul (cumFactor_le hh.le ht hlow' j) (hδ j (Finset.mem_range.mp hj))
+            (abs_nonneg _) (pow_nonneg hq0 j)
+      _ = η * (h * ∑ j ∈ Finset.range N, Real.exp (-(c * h)) ^ j) := by
+          rw [Finset.mul_sum, Finset.mul_sum]
+          refine Finset.sum_congr rfl fun j _ => by ring
+      _ ≤ η * (h + 1 / c) := mul_le_mul_of_nonneg_left (sum_geom_le hc hh N) hη
+      _ = (h + 1 / c) * η := by ring
+  have hVd := discVal_bound hc hh (hgrid N) hlow hS
+  have hV := pv_abs_le (hr.mono (Set.Ici_subset_Ici.2 (hgrid N))) hc
+    (fun u hu => hge u ((hgrid N).trans hu)) (fun u hu => hS u ((hgrid N).trans hu))
+  have hT : |(∏ k ∈ Finset.range N, factor rh 0 h (t + k * h)) * x N| ≤
+      Real.exp (-(c * h)) ^ N * (S * (h + 1 / c) + S / c) := by
+    rw [abs_mul, abs_of_pos (show 0 < ∏ k ∈ Finset.range N, factor rh 0 h (t + k * h) from
+      cumFactor_pos rh 0 h t N)]
+    refine mul_le_mul (cumFactor_le hh.le ht hlow' N) ?_ (abs_nonneg _) (pow_nonneg hq0 N)
+    simp only [hxdef]
+    exact (abs_sub _ _).trans (add_le_add hVd hV)
+  exact (abs_add_le _ _).trans (add_le_add hS' hT)
+
+/-! ### Uniform convergence -/
+
+/-- Cochrane (2023), (3.5) and (3.31) (auxiliary): the bound on the one-step valuation error used
+in both convergence theorems. -/
+theorem val_eta_le {h M S c θ : ℝ} (hh : 0 < h) (hM : 0 ≤ M) (hS : 0 ≤ S) (hc : 0 < c)
+    (hθ : 0 < θ) (hhM : h < θ / (3 * (M * S + 1))) :
+    θ / 3 + h * M * S + (c * θ / (6 * (S + 1)) + c * θ / (6 * (S + 1))) * S / c ≤ θ := by
+  have h1 : h * (3 * (M * S + 1)) < θ := (lt_div_iff₀ (by positivity)).mp hhM
+  have h2 : (c * θ / (6 * (S + 1)) + c * θ / (6 * (S + 1))) * S / c = θ / 3 * (S / (S + 1)) := by
+    field_simp
+    ring
+  have h3 : S / (S + 1) ≤ 1 := by rw [div_le_one (by positivity)]; linarith
+  rw [h2]
+  nlinarith [mul_nonneg hM hS]
+
+/-- Cochrane (2023), (3.5), (3.30)–(3.31): **the discrete value of debt converges to the
+continuous present value uniformly on compacts.** If the real rate is continuous on `[t₀, ∞)`
+with `r ≥ c > 0`, the surplus is continuous and bounded on `[t₀, ∞)`, and the per-period rates
+`r_h → r` uniformly on every `[t₀, X]` and are eventually `≥ c` on `[t₀, ∞)`, then
+`V_h → ContinuousShort.pv r s` uniformly on every `[t₀, X]` as `h → 0⁺`. -/
+theorem val_tendstoUniformlyOn_Icc {r s : ℝ → ℝ} {rh : ℝ → ℝ → ℝ} {c t₀ S : ℝ} (hc : 0 < c)
+    (hr : ContinuousOn r (Set.Ici t₀)) (hs : ContinuousOn s (Set.Ici t₀))
+    (hge : ∀ u, t₀ ≤ u → c ≤ r u) (hS : ∀ u, t₀ ≤ u → |s u| ≤ S)
+    (hlow : ∀ᶠ h in 𝓝[>] 0, ∀ u, t₀ ≤ u → c ≤ rh h u)
+    (hconv : ∀ X, TendstoUniformlyOn rh r (𝓝[>] 0) (Set.Icc t₀ X)) (X : ℝ) :
+    TendstoUniformlyOn (fun h => discVal rh s h) (pv r s) (𝓝[>] 0) (Set.Icc t₀ X) := by
+  rw [Metric.tendstoUniformlyOn_iff]
+  intro ε hε
+  have hS0 : 0 ≤ S := (abs_nonneg _).trans (hS t₀ le_rfl)
+  have hc1 : 0 < 1 + 1 / c := by positivity
+  have hc2 : 0 < S * (1 + 1 / c) + S / c + 1 := by positivity
+  set θ := ε / (4 * (1 + 1 / c)) with hθ
+  have hθ0 : 0 < θ := by positivity
+  have hθε : (1 + 1 / c) * θ = ε / 4 := by rw [hθ]; field_simp
+  have hexp : Tendsto (fun L : ℝ => Real.exp (-(c * L)) * (S * (1 + 1 / c) + S / c + 1)) atTop
+      (𝓝 0) := by
+    have h1 : Tendsto (fun L : ℝ => -(c * L)) atTop atBot :=
+      tendsto_neg_atTop_atBot.comp (tendsto_id.const_mul_atTop hc)
+    simpa using (Real.tendsto_exp_atBot.comp h1).mul_const (S * (1 + 1 / c) + S / c + 1)
+  obtain ⟨L, hL, hL0⟩ := ((hexp.eventually (gt_mem_nhds (half_pos hε))).and
+    (eventually_gt_atTop 0)).exists
+  set Y := max t₀ X + L + 1 with hY
+  have hY0 : t₀ ≤ Y := by have := le_max_left t₀ X; linarith
+  have hKr : ContinuousOn r (Set.Icc t₀ Y) := hr.mono Set.Icc_subset_Ici_self
+  have hKs : ContinuousOn s (Set.Icc t₀ Y) := hs.mono Set.Icc_subset_Ici_self
+  obtain ⟨M, hM⟩ := isCompact_Icc.exists_bound_of_continuousOn hKr
+  have hM0 : 0 ≤ M := (norm_nonneg _).trans (hM t₀ ⟨le_rfl, hY0⟩)
+  obtain ⟨δr, hδr0, hδr⟩ := Metric.uniformContinuousOn_iff.mp
+    (isCompact_Icc.uniformContinuousOn_of_continuous hKr) (c * θ / (6 * (S + 1)))
+      (by positivity)
+  obtain ⟨δs, hδs0, hδs⟩ := Metric.uniformContinuousOn_iff.mp
+    (isCompact_Icc.uniformContinuousOn_of_continuous hKs) (θ / 3) (by positivity)
+  have hconv' := Metric.tendstoUniformlyOn_iff.mp (hconv Y) (c * θ / (6 * (S + 1)))
+    (by positivity)
+  have hsmall : Set.Ioo (0 : ℝ) (min 1 (min (min δr δs) (θ / (3 * (M * S + 1))))) ∈
+      𝓝[>] (0 : ℝ) := Ioo_mem_nhdsGT (by positivity)
+  filter_upwards [hlow, hconv', hsmall] with h hlowh hconvh hhs
+  obtain ⟨hh0, hh1⟩ := hhs
+  have hh1' : h < 1 := lt_of_lt_of_le hh1 (min_le_left _ _)
+  have hhδr : h < δr :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_left _ _)))
+  have hhδs : h < δs :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_right _ _)))
+  have hhM : h < θ / (3 * (M * S + 1)) :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans (min_le_right _ _))
+  intro t ht
+  have ht' : t₀ ≤ t := ht.1
+  have htX : t ≤ max t₀ X := ht.2.trans (le_max_right _ _)
+  set N := ⌈L / h⌉₊ with hNdef
+  have hN1 : L ≤ N * h := (div_le_iff₀ hh0).mp (Nat.le_ceil _)
+  have hN2 : (N : ℝ) * h < L + h := by
+    have h1 := Nat.ceil_lt_add_one (div_nonneg hL0.le hh0.le) (R := ℝ)
+    rw [← hNdef] at h1
+    have h2 := mul_lt_mul_of_pos_right h1 hh0
+    rwa [add_mul, div_mul_cancel₀ _ hh0.ne', one_mul] at h2
+  set η := θ / 3 + h * M * S + (c * θ / (6 * (S + 1)) + c * θ / (6 * (S + 1))) * S / c
+    with hηdef
+  have hη0 : 0 ≤ η := by positivity
+  have hηθ : η ≤ θ := val_eta_le hh0 hM0 hS0 hc hθ0 hhM
+  have hbound := valErr_le hr hs hc hh0 ht' hη0 hge hlowh hS N fun k hk => by
+    have hsk : t₀ ≤ t + k * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh0.le]
+    have hk' : (k : ℝ) + 1 ≤ N := by exact_mod_cast hk
+    have hsY : t + k * h + h ≤ Y := by nlinarith
+    have hmem : ∀ u ∈ Set.Icc (t + k * h) (t + k * h + h), u ∈ Set.Icc t₀ Y :=
+      fun u hu => ⟨hsk.trans hu.1, hu.2.trans hsY⟩
+    have hs0 : t + k * h ∈ Set.Icc t₀ Y := hmem _ ⟨le_rfl, by linarith⟩
+    have hd : ∀ u ∈ Set.Icc (t + k * h) (t + k * h + h), dist u (t + k * h) < min δr δs := by
+      intro u hu
+      rw [Real.dist_eq, abs_of_nonneg (by linarith [hu.1])]
+      exact lt_min (by linarith [hu.2]) (by linarith [hu.2])
+    have e : h * (θ / 3 + h * M * S + (c * θ / (6 * (S + 1)) + c * θ / (6 * (S + 1))) * S / c) =
+        h * η := by rw [hηdef]
+    rw [← e]
+    refine valDelta_le (hr.mono (Set.Ici_subset_Ici.2 hsk)) (hs.mono (Set.Ici_subset_Ici.2 hsk))
+      hc hh0 (fun u hu => hge u (hsk.trans hu)) (hlowh _ hsk) (fun u hu => hS u (hsk.trans hu))
+      (fun u hu => by rw [← Real.norm_eq_abs]; exact hM u (hmem u hu)) ?_ ?_ ?_
+    · have h1 := hconvh _ hs0
+      rw [Real.dist_eq, abs_sub_comm] at h1
+      exact h1.le
+    · intro u hu
+      have h1 := hδr u (hmem u hu) _ hs0 ((hd u hu).trans_le (min_le_left _ _))
+      rw [Real.dist_eq] at h1
+      exact h1.le
+    · intro u hu
+      have h1 := hδs u (hmem u hu) _ hs0 ((hd u hu).trans_le (min_le_right _ _))
+      rw [Real.dist_eq] at h1
+      exact h1.le
+  have hq : Real.exp (-(c * h)) ^ N ≤ Real.exp (-(c * L)) := by
+    rw [← Real.exp_nat_mul, Real.exp_le_exp]
+    nlinarith
+  have h2 : (h + 1 / c) * η ≤ (1 + 1 / c) * θ := mul_le_mul (by linarith) hηθ hη0 hc1.le
+  have h3 : Real.exp (-(c * h)) ^ N * (S * (h + 1 / c) + S / c) ≤
+      Real.exp (-(c * L)) * (S * (1 + 1 / c) + S / c + 1) := by
+    refine mul_le_mul hq ?_ (by positivity) (Real.exp_pos _).le
+    nlinarith
+  rw [Real.dist_eq, abs_sub_comm]
+  linarith
+
+/-- Cochrane (2023), (3.5), (3.30)–(3.31): **the discrete value of debt converges to the
+continuous present value uniformly on `[t₀, ∞)`** when the data allow it: the real rate is
+bounded and uniformly continuous with `r ≥ c > 0`, the surplus is bounded and uniformly
+continuous, and the per-period rates `r_h → r` uniformly on `[t₀, ∞)`, eventually `≥ c`. -/
+theorem val_tendstoUniformlyOn_Ici {r s : ℝ → ℝ} {rh : ℝ → ℝ → ℝ} {c t₀ S M : ℝ} (hc : 0 < c)
+    (hr : UniformContinuousOn r (Set.Ici t₀)) (hs : UniformContinuousOn s (Set.Ici t₀))
+    (hge : ∀ u, t₀ ≤ u → c ≤ r u) (hS : ∀ u, t₀ ≤ u → |s u| ≤ S)
+    (hM : ∀ u, t₀ ≤ u → |r u| ≤ M) (hlow : ∀ᶠ h in 𝓝[>] 0, ∀ u, t₀ ≤ u → c ≤ rh h u)
+    (hconv : TendstoUniformlyOn rh r (𝓝[>] 0) (Set.Ici t₀)) :
+    TendstoUniformlyOn (fun h => discVal rh s h) (pv r s) (𝓝[>] 0) (Set.Ici t₀) := by
+  have hrc : ContinuousOn r (Set.Ici t₀) := hr.continuousOn
+  have hsc : ContinuousOn s (Set.Ici t₀) := hs.continuousOn
+  have hS0 : 0 ≤ S := (abs_nonneg _).trans (hS t₀ le_rfl)
+  have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM t₀ le_rfl)
+  rw [Metric.tendstoUniformlyOn_iff]
+  intro ε hε
+  have hc1 : 0 < 1 + 1 / c := by positivity
+  set θ := ε / (2 * (1 + 1 / c)) with hθ
+  have hθ0 : 0 < θ := by positivity
+  have hθε : (1 + 1 / c) * θ < ε := by
+    rw [hθ]
+    have : (1 + 1 / c) * (ε / (2 * (1 + 1 / c))) = ε / 2 := by field_simp
+    linarith
+  obtain ⟨δr, hδr0, hδr⟩ := Metric.uniformContinuousOn_iff.mp hr (c * θ / (6 * (S + 1)))
+    (by positivity)
+  obtain ⟨δs, hδs0, hδs⟩ := Metric.uniformContinuousOn_iff.mp hs (θ / 3) (by positivity)
+  have hconv' := Metric.tendstoUniformlyOn_iff.mp hconv (c * θ / (6 * (S + 1))) (by positivity)
+  have hsmall : Set.Ioo (0 : ℝ) (min 1 (min (min δr δs) (θ / (3 * (M * S + 1))))) ∈
+      𝓝[>] (0 : ℝ) := Ioo_mem_nhdsGT (by positivity)
+  filter_upwards [hlow, hconv', hsmall] with h hlowh hconvh hhs
+  obtain ⟨hh0, hh1⟩ := hhs
+  have hh1' : h < 1 := lt_of_lt_of_le hh1 (min_le_left _ _)
+  have hhδr : h < δr :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_left _ _)))
+  have hhδs : h < δs :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_right _ _)))
+  have hhM : h < θ / (3 * (M * S + 1)) :=
+    lt_of_lt_of_le hh1 ((min_le_right _ _).trans (min_le_right _ _))
+  intro t ht
+  have ht' : t₀ ≤ t := ht
+  set η := θ / 3 + h * M * S + (c * θ / (6 * (S + 1)) + c * θ / (6 * (S + 1))) * S / c
+    with hηdef
+  have hη0 : 0 ≤ η := by positivity
+  have hηθ : η ≤ θ := val_eta_le hh0 hM0 hS0 hc hθ0 hhM
+  have hbound : ∀ N : ℕ, |discVal rh s h t - pv r s t| ≤
+      (h + 1 / c) * η + Real.exp (-(c * h)) ^ N * (S * (h + 1 / c) + S / c) := by
+    intro N
+    refine valErr_le hrc hsc hc hh0 ht' hη0 hge hlowh hS N fun k _ => ?_
+    have hsk : t₀ ≤ t + k * h := by nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℝ) k) hh0.le]
+    have hmem : ∀ u ∈ Set.Icc (t + k * h) (t + k * h + h), u ∈ Set.Ici t₀ :=
+      fun u hu => hsk.trans hu.1
+    have hd : ∀ u ∈ Set.Icc (t + k * h) (t + k * h + h), dist u (t + k * h) < min δr δs := by
+      intro u hu
+      rw [Real.dist_eq, abs_of_nonneg (by linarith [hu.1])]
+      exact lt_min (by linarith [hu.2]) (by linarith [hu.2])
+    have e : h * (θ / 3 + h * M * S + (c * θ / (6 * (S + 1)) + c * θ / (6 * (S + 1))) * S / c) =
+        h * η := by rw [hηdef]
+    rw [← e]
+    refine valDelta_le (hrc.mono (Set.Ici_subset_Ici.2 hsk)) (hsc.mono (Set.Ici_subset_Ici.2 hsk))
+      hc hh0 (fun u hu => hge u (hsk.trans hu)) (hlowh _ hsk) (fun u hu => hS u (hsk.trans hu))
+      (fun u hu => hM u (hmem u hu)) ?_ ?_ ?_
+    · have h1 := hconvh _ hsk
+      rw [Real.dist_eq, abs_sub_comm] at h1
+      exact h1.le
+    · intro u hu
+      have h1 := hδr u (hmem u hu) _ hsk ((hd u hu).trans_le (min_le_left _ _))
+      rw [Real.dist_eq] at h1
+      exact h1.le
+    · intro u hu
+      have h1 := hδs u (hmem u hu) _ hsk ((hd u hu).trans_le (min_le_right _ _))
+      rw [Real.dist_eq] at h1
+      exact h1.le
+  have hlim : Tendsto (fun N : ℕ => (h + 1 / c) * η +
+      Real.exp (-(c * h)) ^ N * (S * (h + 1 / c) + S / c)) atTop (𝓝 ((h + 1 / c) * η)) := by
+    have h1 := (tendsto_pow_atTop_nhds_zero_of_lt_one (Real.exp_pos (-(c * h))).le
+      (exp_neg_lt_one (mul_pos hc hh0))).mul_const (S * (h + 1 / c) + S / c)
+    simpa using h1.const_add ((h + 1 / c) * η)
+  have hle := ge_of_tendsto' hlim hbound
+  rw [Real.dist_eq, abs_sub_comm]
+  have h2 : (h + 1 / c) * η ≤ (1 + 1 / c) * θ := mul_le_mul (by linarith) hηθ hη0 hc1.le
+  linarith
+
+/-- Cochrane (2023), (3.30)–(3.31) and A1.4: **the limit of the discrete valuation recursion is
+the unique transversality solution of `V' = rV − s`.** Under the hypotheses of
+`val_tendstoUniformlyOn_Icc`, every `V` solving the flow identity (3.30) on `[t₀, ∞)` with the
+transversality condition is the uniform-on-compacts limit of the discrete values. -/
+theorem val_tendsto_unique_ode_solution {r s V : ℝ → ℝ} {rh : ℝ → ℝ → ℝ} {c t₀ S : ℝ}
+    (hc : 0 < c) (hr : ContinuousOn r (Set.Ici t₀)) (hs : ContinuousOn s (Set.Ici t₀))
+    (hge : ∀ u, t₀ ≤ u → c ≤ r u) (hS : ∀ u, t₀ ≤ u → |s u| ≤ S)
+    (hlow : ∀ᶠ h in 𝓝[>] 0, ∀ u, t₀ ≤ u → c ≤ rh h u)
+    (hconv : ∀ X, TendstoUniformlyOn rh r (𝓝[>] 0) (Set.Icc t₀ X))
+    (hF : FlowOn r s V t₀) (hT : TVC r V t₀) (X : ℝ) :
+    TendstoUniformlyOn (fun h => discVal rh s h) V (𝓝[>] 0) (Set.Icc t₀ X) := by
+  have hU := eqOn_pv_of_tvc hr hs hF hT (pvIntegrable_of_bound hr hs hc hge hS)
+  exact (val_tendstoUniformlyOn_Icc hc hr hs hge hS hlow hconv X).congr_right
+    fun u hu => (hU (Set.Icc_subset_Ici_self hu)).symm
+
+/-- Cochrane (2023), (3.5) and (3.31): with exact compounding `r_h = r` the hypotheses on the
+per-period rates hold, so `V_h → pv r s` uniformly on every `[t₀, X]`. -/
+theorem val_tendstoUniformlyOn_Icc_exact {r s : ℝ → ℝ} {c t₀ S : ℝ} (hc : 0 < c)
+    (hr : ContinuousOn r (Set.Ici t₀)) (hs : ContinuousOn s (Set.Ici t₀))
+    (hge : ∀ u, t₀ ≤ u → c ≤ r u) (hS : ∀ u, t₀ ≤ u → |s u| ≤ S) (X : ℝ) :
+    TendstoUniformlyOn (fun h => discVal (fun _ u => r u) s h) (pv r s) (𝓝[>] 0)
+      (Set.Icc t₀ X) := by
+  have hge' : ∀ u, t₀ ≤ u → c ≤ r u + 0 := fun u hu => by rw [add_zero]; exact hge u hu
+  refine val_tendstoUniformlyOn_Icc hc hr hs hge hS ?_ (fun Y => (exact_hyps hge' _).2) X
+  simpa using (exact_hyps hge' Set.univ).1
+
+/-- Cochrane (2023), (3.5) and §3.6.2: the bond price of `TidyR6DiscreteBondLimit` is the
+discrete value of the unit coupon at the rate `i + ϖ`. -/
+theorem discPrice_eq_discVal (ih : ℝ → ℝ → ℝ) (ϖ h t : ℝ) :
+    discPrice ih ϖ h t = discVal (fun h u => ih h u + ϖ) (fun _ => 1) h t := by
+  unfold discPrice discVal cumFactor factor
+  simp only [mul_one, add_zero]
+
+end Cochrane.Generality.TidyR6DiscreteValuationLimit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# E13 as the limit of one economy
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.4, p. 57 ((3.9)–(3.11),
+"these equivalent expressions"), and §3.6.4 with Online Appendix A1.6, p. 79 and pp. 567–568
+((3.52)–(3.54)); survey error E13.
+
+`Links.e13_discrete_and_continuous` put a discrete counterexample (`Money.money_bubble`) next to a
+continuous one (`ContinuousMoney.printing_without_interest_example`). Here the two are one
+economy. The continuous economy `C` has `P ≡ 1`, nominal rate `ι`, nominal discount factor
+`N(τ) = e^{−ιτ}`, no bonds, money `M(τ) = e^{ιτ}` and money-financed deficits
+`s(τ) = −ιe^{ιτ}`; in it (3.53) holds and (3.54) fails at every date. For every period length
+`h > 0` its discretisation `D_h` samples `C` on the grid `nh`:
+
+`Λ_n = N(nh)`, `P_n = 1`, `1 + i_h = e^{ιh}`, `B ≡ 0`, `M_n = M(nh)`, `s_n = M_n − M_{n+1}`.
+
+We prove (`e13_one_economy`): every `D_h` satisfies the standing assumptions of `Money` and the
+flow (3.9); in every `D_h`, (3.11) holds at every date, (3.10) fails at every date and the money
+transversality condition fails (`discrete_e13`); the discrete objects are exact samples of the
+continuous ones and the gap between `(B + M)/P` and the present value in (3.10) equals the
+continuous (3.54) gap `M(nh)` (`sample_eq`, `gap_eq`); and as `h → 0⁺` the per-unit-time
+discrete flows converge to the continuous ones at every date `τ ≥ 0` (grid date `⌊τ/h⌋h`):
+the nominal rate `i_h/h → ι`, the surplus `s_n/h → s(τ)`, seigniorage
+`(M_{n+1} − M_n)/(hP_n) → M'(τ)` and interest saving `i_h/(1 + i_h)·M_{n+1}/(hP_n) → ιM(τ)`
+(`limits`).
+-/
+
+namespace Cochrane.Generality.TidyR6E13Limit
+
+open Filter Topology MeasureTheory
+
+/-! ### The discretised economy -/
+
+/-- Cochrane (2023), p. 55 and A1.6: the real discount factor of `D_h`, `Λ_n = e^{−ι nh}`. -/
+noncomputable def lamD (ι h : ℝ) : ℕ → Unit → ℝ := fun n _ => Real.exp (-(ι * (n * h)))
+
+/-- Cochrane (2023), §3.4: the price level of `D_h`, `P ≡ 1`. -/
+def priceD : ℕ → Unit → ℝ := fun _ _ => 1
+
+/-- Cochrane (2023), §3.4 and A1.6: the per-period nominal rate of `D_h`, `1 + i_h = e^{ιh}`. -/
+noncomputable def rateD (ι h : ℝ) : ℕ → Unit → ℝ := fun _ _ => Real.exp (ι * h) - 1
+
+/-- Cochrane (2023), §3.4 and A1.6: money in `D_h`, `M_n = e^{ι nh}` (held overnight from
+`n − 1`). -/
+noncomputable def moneyD (ι h : ℝ) : ℕ → Unit → ℝ := fun n _ => Real.exp (ι * (n * h))
+
+/-- Cochrane (2023), §3.4: no bonds, `B ≡ 0`. -/
+def bondsD : ℕ → Unit → ℝ := fun _ _ => 0
+
+/-- Cochrane (2023), (3.9), p. 57: money-financed deficits `s_n = M_n − M_{n+1}`. -/
+noncomputable def surplusD (ι h : ℝ) : ℕ → Unit → ℝ :=
+  fun n ω => moneyD ι h n ω - moneyD ι h (n + 1) ω
+
+/-- Cochrane (2023), §3.4: `M_{n+1} = e^{ιh} M_n`. -/
+theorem moneyD_succ (ι h : ℝ) (n : ℕ) (ω : Unit) :
+    moneyD ι h (n + 1) ω = Real.exp (ι * h) * moneyD ι h n ω := by
+  simp only [moneyD, ← Real.exp_add]
+  congr 1
+  push_cast
+  ring
+
+/-- Cochrane (2023), (3.10), p. 58: in `D_h` the (3.10) integrand vanishes. -/
+theorem term10_zero (ι h : ℝ) (n : ℕ) (ω : Unit) :
+    Money.term10 priceD (surplusD ι h) (rateD ι h) (moneyD ι h) n ω = 0 := by
+  simp only [Money.term10, surplusD, priceD, rateD, moneyD_succ, div_one]
+  have he : Real.exp (ι * h) ≠ 0 := (Real.exp_pos _).ne'
+  field_simp
+  ring
+
+/-- Cochrane (2023), (3.11), p. 58: in `D_h` the (3.11) integrand vanishes. -/
+theorem term11_zero (ι h : ℝ) (n : ℕ) (ω : Unit) :
+    Money.term11 priceD (surplusD ι h) (moneyD ι h) n ω = 0 := by
+  simp only [Money.term11, surplusD, priceD, div_one]
+  ring
+
+/-- Cochrane (2023), §3.3–3.4, pp. 55–59: every discretisation `D_h` satisfies the standing
+assumptions of the money chain (`Money.Standing`) under perfect foresight. -/
+theorem standing (ι h : ℝ) :
+    Money.Standing perfectForesight (lamD ι h) priceD (rateD ι h) (moneyD ι h) bondsD where
+  pullOut := perfectForesight_pullOut
+  disc_pos := fun _ _ => Real.exp_pos _
+  price_pos := fun _ _ => one_pos
+  nominal_adapted := fun _ => rfl
+  disc_inv_adapted := fun _ => rfl
+  bonds_adapted := fun _ => rfl
+  money_adapted := fun _ => rfl
+  bonds_pre := fun _ => rfl
+  money_pre := fun _ => rfl
+  rate_gt := fun _ _ => by
+    simp only [rateD]
+    linarith [Real.exp_pos (ι * h)]
+  euler := fun t => by
+    funext ω
+    change 1 / (1 + (Real.exp (ι * h) - 1)) =
+      Real.exp (-(ι * ((t + 1 : ℕ) * h))) / Real.exp (-(ι * (t * h))) * (1 / 1)
+    rw [div_one, mul_one, ← Real.exp_sub, add_sub_cancel, one_div, ← Real.exp_neg]
+    congr 1
+    push_cast
+    ring
+
+/-- Cochrane (2023), (3.9), p. 57: every `D_h` satisfies the flow condition. -/
+theorem flow (ι h : ℝ) : Money.Flow39 priceD (surplusD ι h) (rateD ι h) (moneyD ι h) bondsD := by
+  intro t ω
+  simp only [priceD, surplusD, bondsD]
+  ring
+
+/-- Cochrane (2023), p. 57 (survey E13), in every discretisation `D_h`: (3.11) holds at every
+date, (3.10) fails at every date, and the money transversality condition fails at every date
+(the discount-weighted real money stock is `1` at every horizon). -/
+theorem discrete_e13 (ι h : ℝ) :
+    (∀ t, Money.PVRel perfectForesight (lamD ι h) priceD bondsD
+        (Money.term11 priceD (surplusD ι h) (moneyD ι h)) t ()) ∧
+      (∀ t, ¬ Money.PVRel perfectForesight (lamD ι h) priceD (bondsD + moneyD ι h)
+        (Money.term10 priceD (surplusD ι h) (rateD ι h) (moneyD ι h)) t ()) ∧
+      (∀ t, ¬ Money.TVC perfectForesight (lamD ι h) priceD (moneyD ι h) t ()) := by
+  refine ⟨fun t => ?_, fun t h10 => ?_, fun t hT => ?_⟩
+  · unfold Money.PVRel
+    change bondsD t () / priceD t () = ∑' j, lamD ι h (t + j) () / lamD ι h t () *
+      Money.term11 priceD (surplusD ι h) (moneyD ι h) (t + j) ()
+    simp only [term11_zero, mul_zero, tsum_zero, bondsD, priceD, div_one]
+  · unfold Money.PVRel at h10
+    change (bondsD t () + moneyD ι h t ()) / priceD t () = ∑' j, lamD ι h (t + j) () /
+      lamD ι h t () * Money.term10 priceD (surplusD ι h) (rateD ι h) (moneyD ι h) (t + j) ()
+      at h10
+    simp only [term10_zero, mul_zero, tsum_zero, bondsD, priceD, div_one, zero_add] at h10
+    exact (Real.exp_pos _).ne' h10
+  · unfold Money.TVC at hT
+    have h1 : ∀ T, perfectForesight.E t (fun ω' => lamD ι h (t + T) ω' *
+        (moneyD ι h (t + T) ω' / priceD (t + T) ω')) () = 1 := by
+      intro T
+      change lamD ι h (t + T) () * (moneyD ι h (t + T) () / priceD (t + T) ()) = 1
+      simp only [lamD, moneyD, priceD, div_one, ← Real.exp_add, neg_add_cancel, Real.exp_zero]
+    simp only [h1] at hT
+    exact one_ne_zero (tendsto_nhds_unique tendsto_const_nhds hT)
+
+/-! ### Samples and limits -/
+
+/-- Cochrane (2023), A1.6: the continuous economy's paths (`ContinuousMoney`'s example):
+`N(τ) = e^{−ιτ}`, `M(τ) = e^{ιτ}`, `s(τ) = −ιe^{ιτ}`, `P ≡ 1`. -/
+noncomputable def contN (ι τ : ℝ) : ℝ := Real.exp (-(ι * τ))
+
+/-- Cochrane (2023), A1.6: continuous money `M(τ) = e^{ιτ}`. -/
+noncomputable def contM (ι τ : ℝ) : ℝ := Real.exp (ι * τ)
+
+/-- Cochrane (2023), A1.6: continuous surpluses `s(τ) = −ιe^{ιτ}`. -/
+noncomputable def contS (ι τ : ℝ) : ℝ := -(ι * Real.exp (ι * τ))
+
+/-- Cochrane (2023), A1.6: `D_h` samples `C` exactly on the grid: `Λ_n = N(nh)P(nh)`,
+`M_n = M(nh)`, `P_n = P(nh) = 1`, and `s_n = M(nh) − M((n+1)h)`. -/
+theorem sample_eq (ι h : ℝ) (n : ℕ) :
+    lamD ι h n () = contN ι (n * h) * 1 ∧ moneyD ι h n () = contM ι (n * h) ∧
+      priceD n () = 1 ∧
+      surplusD ι h n () = contM ι (n * h) - contM ι ((n + 1 : ℕ) * h) := by
+  refine ⟨by simp [lamD, contN], rfl, rfl, rfl⟩
+
+/-- Cochrane (2023), p. 57 and A1.6 (E13): the failure of (3.10) in `D_h` at date `n` is exactly
+the failure of (3.54) in `C` at date `nh`: `(B_n + M_n)/P_n − ∑_j (Λ_{n+j}/Λ_n)·term10 =
+M(nh) = (M(nh) + 0)/1 − ∫_{nh}^∞ (N_τ/N_{nh})(s_τ + ιM_τ)dτ`. -/
+theorem gap_eq (ι h : ℝ) (n : ℕ) :
+    (bondsD n () + moneyD ι h n ()) / priceD n () - ∑' j, lamD ι h (n + j) () / lamD ι h n () *
+        Money.term10 priceD (surplusD ι h) (rateD ι h) (moneyD ι h) (n + j) () =
+      (contM ι (n * h) + 0) / 1 - ∫ τ in Set.Ioi ((n : ℝ) * h), contN ι τ * 1 /
+        (contN ι (n * h) * 1) * (contS ι τ + (ι - 0) * contM ι τ / 1) := by
+  have hz : ∀ τ, contS ι τ + (ι - 0) * contM ι τ / 1 = 0 := fun τ => by
+    simp only [contS, contM]
+    ring
+  simp only [hz, mul_zero, integral_zero]
+  simp only [term10_zero, mul_zero, tsum_zero, bondsD, priceD, moneyD, contM, sub_zero, div_one,
+    zero_add, add_zero]
+
+/-- Cochrane (2023), A1.6 (auxiliary): the grid date `⌊τ/h⌋h` tends to `τ ≥ 0` as `h → 0⁺`. -/
+theorem tendsto_grid {τ : ℝ} (hτ : 0 ≤ τ) :
+    Tendsto (fun h : ℝ => (⌊τ / h⌋₊ : ℝ) * h) (𝓝[>] 0) (𝓝 τ) := by
+  have hlo : Tendsto (fun h : ℝ => τ - h) (𝓝[>] 0) (𝓝 τ) := by
+    have h1 : Tendsto (fun h : ℝ => τ - h) (𝓝 0) (𝓝 (τ - 0)) :=
+      tendsto_const_nhds.sub tendsto_id
+    rw [sub_zero] at h1
+    exact h1.mono_left nhdsWithin_le_nhds
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' hlo tendsto_const_nhds ?_ ?_
+  · filter_upwards [self_mem_nhdsWithin] with h hh
+    have hh' : (0 : ℝ) < h := hh
+    have h1 := Nat.lt_floor_add_one (τ / h)
+    have h2 := mul_lt_mul_of_pos_right h1 hh'
+    rw [add_mul, div_mul_cancel₀ _ hh'.ne', one_mul] at h2
+    linarith
+  · filter_upwards [self_mem_nhdsWithin] with h hh
+    have hh' : (0 : ℝ) < h := hh
+    have h1 := Nat.floor_le (div_nonneg hτ hh'.le)
+    exact (le_div_iff₀ hh').mp h1
+
+/-- Cochrane (2023), A1.6 (auxiliary): `(e^{ah} − 1)/h → a` as `h → 0⁺`. -/
+theorem tendsto_expm1_div (a : ℝ) :
+    Tendsto (fun h : ℝ => (Real.exp (a * h) - 1) / h) (𝓝[>] 0) (𝓝 a) := by
+  have h1 := (Links.tendsto_slope_exp_sub a 0).mono_left
+    (nhdsWithin_mono _ fun x hx => (Set.mem_Ioi.mp hx).ne')
+  simpa using h1
+
+/-- Cochrane (2023), (3.9)–(3.11), (3.52)–(3.54), A1.6: **the discrete flows converge to the
+continuous ones.** At every date `τ ≥ 0`, with grid index `n = ⌊τ/h⌋`, as `h → 0⁺`: the nominal
+rate per unit of time `i_h/h → ι`; the surplus per unit of time `s_n/h → s(τ) = −ιe^{ιτ}`;
+seigniorage per unit of time `(M_{n+1} − M_n)/(hP_n) → M'(τ) = ιe^{ιτ}`; and interest saving per
+unit of time `(i_h/(1 + i_h))M_{n+1}/(hP_n) → ιM(τ)`; the discount factor and money stock at the
+grid date tend to `N(τ)` and `M(τ)`. -/
+theorem limits (ι : ℝ) {τ : ℝ} (hτ : 0 ≤ τ) :
+    Tendsto (fun h => rateD ι h 0 () / h) (𝓝[>] 0) (𝓝 ι) ∧
+      Tendsto (fun h => surplusD ι h ⌊τ / h⌋₊ () / h) (𝓝[>] 0) (𝓝 (contS ι τ)) ∧
+      Tendsto (fun h => (moneyD ι h (⌊τ / h⌋₊ + 1) () - moneyD ι h ⌊τ / h⌋₊ ()) /
+        (h * priceD ⌊τ / h⌋₊ ())) (𝓝[>] 0) (𝓝 (ι * contM ι τ)) ∧
+      Tendsto (fun h => rateD ι h ⌊τ / h⌋₊ () / (1 + rateD ι h ⌊τ / h⌋₊ ()) *
+        moneyD ι h (⌊τ / h⌋₊ + 1) () / (h * priceD ⌊τ / h⌋₊ ())) (𝓝[>] 0)
+        (𝓝 (ι * contM ι τ)) ∧
+      Tendsto (fun h => lamD ι h ⌊τ / h⌋₊ ()) (𝓝[>] 0) (𝓝 (contN ι τ)) ∧
+      Tendsto (fun h => moneyD ι h ⌊τ / h⌋₊ ()) (𝓝[>] 0) (𝓝 (contM ι τ)) := by
+  have hg := tendsto_grid hτ
+  have hM : Tendsto (fun h : ℝ => Real.exp (ι * ((⌊τ / h⌋₊ : ℝ) * h))) (𝓝[>] 0)
+      (𝓝 (contM ι τ)) :=
+    (Real.continuous_exp.tendsto _).comp (hg.const_mul ι)
+  have hN : Tendsto (fun h : ℝ => Real.exp (-(ι * ((⌊τ / h⌋₊ : ℝ) * h)))) (𝓝[>] 0)
+      (𝓝 (contN ι τ)) :=
+    (Real.continuous_exp.tendsto _).comp (hg.const_mul ι).neg
+  have hr := tendsto_expm1_div ι
+  have hpos : ∀ᶠ h : ℝ in 𝓝[>] 0, 0 < h := self_mem_nhdsWithin
+  refine ⟨hr, ?_, ?_, ?_, hN, hM⟩
+  · have h1 := hM.mul hr.neg
+    refine (h1.congr' ?_).trans (by rw [contS, contM]; ring_nf; exact le_rfl)
+    filter_upwards [hpos] with h hh
+    simp only [surplusD]
+    rw [moneyD_succ]
+    simp only [moneyD]
+    field_simp
+    ring
+  · have h1 := hr.mul hM
+    refine h1.congr' ?_
+    filter_upwards [hpos] with h hh
+    rw [moneyD_succ]
+    simp only [moneyD, priceD, mul_one]
+    field_simp
+  · have h1 := hr.mul hM
+    refine h1.congr' ?_
+    filter_upwards [hpos] with h hh
+    have he : Real.exp (ι * h) ≠ 0 := (Real.exp_pos _).ne'
+    rw [moneyD_succ]
+    simp only [moneyD, priceD, rateD, mul_one, add_sub_cancel]
+    field_simp
+
+/-- Cochrane (2023), p. 57, §3.6.4 and A1.6 (survey E13), **one economy**: the continuous economy
+`C` violates the equivalence of (3.53) and (3.54) at every date
+(`ContinuousMoney.printing_without_interest_example`), every discretisation `D_h` of `C` is a
+discrete economy satisfying `Money.Standing` and (3.9) in which (3.11) holds and (3.10) fails at
+every date with the money transversality condition failing (`discrete_e13`), `D_h` samples `C`
+exactly with the same (3.10)/(3.54) gap (`sample_eq`, `gap_eq`), and the per-unit-time discrete
+flows converge to the continuous ones as `h → 0⁺` (`limits`). -/
+theorem e13_one_economy (ι : ℝ) :
+    (∀ τ, (0 : ℝ) / 1 = ∫ u in Set.Ioi τ, contN ι u * 1 / (contN ι τ * 1) *
+        (contS ι u + ι * contM ι u / 1) ∧
+      (contM ι τ + 0) / 1 ≠ ∫ u in Set.Ioi τ, contN ι u * 1 / (contN ι τ * 1) *
+        (contS ι u + (ι - 0) * contM ι u / 1)) ∧
+    (∀ h, Money.Standing perfectForesight (lamD ι h) priceD (rateD ι h) (moneyD ι h) bondsD ∧
+      Money.Flow39 priceD (surplusD ι h) (rateD ι h) (moneyD ι h) bondsD ∧
+      (∀ t, Money.PVRel perfectForesight (lamD ι h) priceD bondsD
+        (Money.term11 priceD (surplusD ι h) (moneyD ι h)) t ()) ∧
+      (∀ t, ¬ Money.PVRel perfectForesight (lamD ι h) priceD (bondsD + moneyD ι h)
+        (Money.term10 priceD (surplusD ι h) (rateD ι h) (moneyD ι h)) t ()) ∧
+      (∀ t, ¬ Money.TVC perfectForesight (lamD ι h) priceD (moneyD ι h) t ())) ∧
+    (∀ τ, 0 ≤ τ →
+      Tendsto (fun h => surplusD ι h ⌊τ / h⌋₊ () / h) (𝓝[>] 0) (𝓝 (contS ι τ)) ∧
+      Tendsto (fun h => (moneyD ι h (⌊τ / h⌋₊ + 1) () - moneyD ι h ⌊τ / h⌋₊ ()) /
+        (h * priceD ⌊τ / h⌋₊ ())) (𝓝[>] 0) (𝓝 (ι * contM ι τ)) ∧
+      Tendsto (fun h => rateD ι h ⌊τ / h⌋₊ () / (1 + rateD ι h ⌊τ / h⌋₊ ()) *
+        moneyD ι h (⌊τ / h⌋₊ + 1) () / (h * priceD ⌊τ / h⌋₊ ())) (𝓝[>] 0)
+        (𝓝 (ι * contM ι τ))) := by
+  refine ⟨fun τ => ?_, fun h => ⟨standing ι h, flow ι h, discrete_e13 ι h⟩, fun τ hτ => ?_⟩
+  · have hc := ContinuousMoney.printing_without_interest_example ι τ
+    exact ⟨hc.2.2.2.1, hc.2.2.2.2⟩
+  · obtain ⟨-, h2, h3, h4, -, -⟩ := limits ι hτ
+    exact ⟨h2, h3, h4⟩
+
+end Cochrane.Generality.TidyR6E13Limit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The linear innovation identities beyond bounded processes
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.5, pp. 63–71
+((3.17)–(3.28)), and Online Appendix A1.3, pp. 561–564.
+
+`LogLinearIdentities` proved (3.19)–(3.28) for bounded ("stationary", p. 64) processes with
+`0 < ρ < 1` (`LogLinearIdentities.LinearEconomy`). The book says (p. 64) that the terminal term
+vanishes when debt/GDP "is expected to grow no faster than `ρ^{−t}`", and that with `ρ = 1`
+(3.19) "continues to hold describing deviations from" the mean. This module settles the general
+case on an arbitrary `ExpectationSystem`.
+
+## Exact characterisation (any `ρ`, only summability)
+
+With the present-value series summable at `t` and `t + 1`, the terminal terms
+`L_t = lim ρ^T E_t v_{t+T}` exist (`terminal_tendsto`), and the innovations of the discounted
+flow sum to `L_t − ρL_{t+1}` (`innov_pv_general`). Hence the unexpected-inflation identity (3.20)
+holds with the extra term `L_t − ρL_{t+1}` (`identity_3_20_general`), and the printed (3.20)
+holds **iff** `L_t = ρL_{t+1}` (`identity_3_20_iff`). In particular it holds under the
+transversality conditions (`identity_3_20_of_tvc`) and, for `ρ = 1`, when `E_t v_{t+T}` and
+`E_{t+1}v_{t+1+T}` converge to the same constant mean (`identity_3_20_rho_one_mean`, the book's
+"deviations from this mean").
+
+## Exponential growth below `1/ρ`
+
+`GrowthBound γ x`: `|x_n| ≤ Kγⁿ` in every state. `GrowthEconomy`: (3.17), adapted processes,
+`ρ > 0`, `γ ≥ 0`, `ργ < 1`, all five processes with growth `γ`; every `LinearEconomy` is one with
+`γ = 1` (`LinearEconomy.toGrowth`), and `ρ ≥ 1` is allowed when `γ < 1/ρ`. In it: (3.19)
+(`g_pv_319`), the innovation sum (`g_innov_pv`), (3.20) (`g_identity_3_20`); with a log bond price
+of growth `γ` and `|ω̂|γ < 1`: the bond-price forward sum (`g_bondPrice_forward`), (3.21)
+(`g_bondReturn_innov`), (3.22) (`g_weighted_inflation`), and the special cases (3.23)
+(`g_special_constant_long`), (3.24) (`g_identity_3_24`), (3.25) (`g_identity_3_25`), (3.27)
+(`g_special_constant_short`), (3.28) (`g_monetary_disinflation`) and §3.5.4
+(`g_perpetuity`).
+
+## The boundary `γ = 1/ρ` (counterexamples)
+
+On the coin-flip tree, for every `ρ > 0` an economy with every process of growth `1/ρ` (so
+`ργ = 1`) violates (3.20) at date 0 in every state and (3.19) at date 1
+(`Boundary.boundary_3_20`); at `ρ = 1` all its processes are bounded
+(`Boundary.rho_one_bounded`), so boundedness alone does not give (3.20) with `ρ = 1`. Likewise a
+log bond price of growth `1/|ω̂|` violates (3.21) (`Boundary.boundary_3_21`). So "no faster than
+`ρ^{−t}`" (p. 64) must be read as "strictly slower" (or as the transversality condition
+itself).
+-/
+
+namespace Cochrane.Generality.TidyR6InnovGrowth
+
+open Filter Topology
+open Cochrane.Generality.LogLinearIdentities
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### Exact characterisation under summability -/
+
+variable {ρ : ℝ} {v rn infl g sT : ℕ → Ω → ℝ}
+
+/-- Cochrane (2023), (3.18), p. 63: `s̃ + g − r` is adapted when its components are. -/
+theorem zp_adapted' (hs : 𝔼.Adapted sT) (hg : 𝔼.Adapted g) (hr : 𝔼.Adapted rn)
+    (hi : 𝔼.Adapted infl) : 𝔼.Adapted (zp rn infl g sT) := by
+  intro n
+  simp only [zp, Pi.add_apply, Pi.sub_apply, map_add, map_sub, hs n, hg n, hr n, hi n]
+
+/-- Cochrane (2023), (3.18)–(3.19), pp. 63–64: if the present-value series is summable, the
+terminal term converges, `ρ^T E_t v_{t+T} → v_t − ∑_j ρ^j E_t(s̃ + g − r)_{t+1+j}`. -/
+theorem terminal_tendsto (hf : Flow317 ρ v rn infl g sT) (hv : 𝔼.Adapted v) (t : ℕ) (ω : Ω)
+    (hs : Summable fun j => ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω) :
+    Tendsto (fun T => ρ ^ T * 𝔼.E t (v (t + T)) ω) atTop
+      (𝓝 (v t ω - ∑' j, ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω)) := by
+  have he : ∀ T, ρ ^ T * 𝔼.E t (v (t + T)) ω =
+      v t ω - ∑ j ∈ Finset.range T, ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω := by
+    intro T
+    have h := congrFun (pv_318_E 𝔼 hf hv t T) ω
+    simp only [Pi.add_apply, Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at h
+    linarith
+  simp_rw [he]
+  exact tendsto_const_nhds.sub hs.hasSum.tendsto_sum_nat
+
+/-- Cochrane (2023), p. 64, "Taking time `t + 1` innovations of (3.19)", **in general**: if the
+present-value series are summable at `t` and `t + 1` and the terminal terms converge,
+`ρ^T E_t v_{t+T} → L₀` and `ρ^T E_{t+1} v_{t+1+T} → L₁`, then the innovations of the discounted
+flow sum to `L₀ − ρL₁`: `∑_j ρ^j ΔE_{t+1}(s̃ + g − r)_{t+1+j} = L₀ − ρL₁`. -/
+theorem innov_pv_general (hf : Flow317 ρ v rn infl g sT) (hv : 𝔼.Adapted v)
+    (hz : 𝔼.Adapted (zp rn infl g sT)) (t : ℕ) (ω : Ω) {L₀ L₁ : ℝ}
+    (hs0 : Summable fun j => ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω)
+    (hs1 : Summable fun j => ρ ^ j * 𝔼.E (t + 1) (zp rn infl g sT (t + 1 + j + 1)) ω)
+    (hL0 : Tendsto (fun T => ρ ^ T * 𝔼.E t (v (t + T)) ω) atTop (𝓝 L₀))
+    (hL1 : Tendsto (fun T => ρ ^ T * 𝔼.E (t + 1) (v (t + 1 + T)) ω) atTop (𝓝 L₁)) :
+    HasSum (fun j => ρ ^ j * innov 𝔼 t (zp rn infl g sT (t + j + 1)) ω) (L₀ - ρ * L₁) := by
+  have e0 := tendsto_nhds_unique (terminal_tendsto 𝔼 hf hv t ω hs0) hL0
+  have e1 := tendsto_nhds_unique (terminal_tendsto 𝔼 hf hv (t + 1) ω hs1) hL1
+  have ha : HasSum (fun j => ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω) (v t ω - L₀) := by
+    convert hs0.hasSum using 1
+    linarith
+  have hb : HasSum (fun j => ρ ^ j * 𝔼.E (t + 1) (zp rn infl g sT (t + 1 + j + 1)) ω)
+      (v (t + 1) ω - L₁) := by
+    convert hs1.hasSum using 1
+    linarith
+  have hflow : v t ω - zp rn infl g sT (t + 1) ω = ρ * v (t + 1) ω := by
+    simp only [zp, Pi.add_apply, Pi.sub_apply]
+    linarith [hf t ω]
+  have hb' : HasSum (fun j => ρ ^ j * 𝔼.E (t + 1) (zp rn infl g sT (t + j + 1)) ω)
+      (v t ω - ρ * L₁) := by
+    rw [← hasSum_nat_add_iff' 1]
+    simp only [Finset.range_one, Finset.sum_singleton, pow_zero, one_mul, add_zero]
+    rw [hz (t + 1)]
+    convert hb.mul_left ρ using 1
+    · funext j
+      rw [show t + (j + 1) + 1 = t + 1 + j + 1 by omega, pow_succ]
+      ring
+    · linarith
+  have h := hb'.sub ha
+  convert h using 1
+  · funext j
+    rw [innov_apply]
+    ring
+  · ring
+
+/-- Cochrane (2023), (3.20), p. 65, **in general**: under summability of the present-value
+series at `t`, `t + 1` and of the innovation series, with terminal limits `L₀`, `L₁`,
+`ΔE_{t+1}π_{t+1} − ΔE_{t+1}r^n_{t+1} = −∑ρ^jΔE_{t+1}s̃_{t+1+j} − ∑ρ^jΔE_{t+1}g_{t+1+j}
+  + ∑_{j≥1}ρ^jΔE_{t+1}r_{t+1+j} + (L₀ − ρL₁)`. -/
+theorem identity_3_20_general (hf : Flow317 ρ v rn infl g sT) (hv : 𝔼.Adapted v)
+    (hz : 𝔼.Adapted (zp rn infl g sT)) (t : ℕ) (ω : Ω) {L₀ L₁ : ℝ}
+    (hs0 : Summable fun j => ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω)
+    (hs1 : Summable fun j => ρ ^ j * 𝔼.E (t + 1) (zp rn infl g sT (t + 1 + j + 1)) ω)
+    (hL0 : Tendsto (fun T => ρ ^ T * 𝔼.E t (v (t + T)) ω) atTop (𝓝 L₀))
+    (hL1 : Tendsto (fun T => ρ ^ T * 𝔼.E (t + 1) (v (t + 1 + T)) ω) atTop (𝓝 L₁))
+    (hS : Summable fun j => ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω)
+    (hG : Summable fun j => ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω)
+    (hR : Summable fun j => ρ ^ j * innov 𝔼 t ((rn - infl) (t + j + 1)) ω) :
+    innov 𝔼 t (infl (t + 1)) ω - innov 𝔼 t (rn (t + 1)) ω =
+      -(∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+        (∑' j, ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω) +
+        ∑' j, ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω + (L₀ - ρ * L₁) := by
+  have h := (innov_pv_general 𝔼 hf hv hz t ω hs0 hs1 hL0 hL1).tsum_eq
+  have hsplit : ∀ j, ρ ^ j * innov 𝔼 t (zp rn infl g sT (t + j + 1)) ω =
+      ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω + ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω -
+        ρ ^ j * innov 𝔼 t ((rn - infl) (t + j + 1)) ω := by
+    intro j
+    simp only [zp, Pi.add_apply, Pi.sub_apply, map_add, map_sub]
+    ring
+  rw [tsum_congr hsplit, (hS.add hG).tsum_sub hR, hS.tsum_add hG] at h
+  have hr0 : ∑' j, ρ ^ j * innov 𝔼 t ((rn - infl) (t + j + 1)) ω =
+      (innov 𝔼 t (rn (t + 1)) ω - innov 𝔼 t (infl (t + 1)) ω) +
+        ∑' j, ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω := by
+    rw [hR.tsum_eq_zero_add]
+    congr 1
+    simp only [pow_zero, one_mul, add_zero, Pi.sub_apply, map_sub]
+  rw [hr0] at h
+  linarith
+
+/-- Cochrane (2023), (3.20), p. 65, **necessary and sufficient condition**: under the hypotheses
+of `identity_3_20_general`, the printed unexpected-inflation identity holds iff the terminal
+limits satisfy `L₀ = ρL₁`. -/
+theorem identity_3_20_iff (hf : Flow317 ρ v rn infl g sT) (hv : 𝔼.Adapted v)
+    (hz : 𝔼.Adapted (zp rn infl g sT)) (t : ℕ) (ω : Ω) {L₀ L₁ : ℝ}
+    (hs0 : Summable fun j => ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω)
+    (hs1 : Summable fun j => ρ ^ j * 𝔼.E (t + 1) (zp rn infl g sT (t + 1 + j + 1)) ω)
+    (hL0 : Tendsto (fun T => ρ ^ T * 𝔼.E t (v (t + T)) ω) atTop (𝓝 L₀))
+    (hL1 : Tendsto (fun T => ρ ^ T * 𝔼.E (t + 1) (v (t + 1 + T)) ω) atTop (𝓝 L₁))
+    (hS : Summable fun j => ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω)
+    (hG : Summable fun j => ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω)
+    (hR : Summable fun j => ρ ^ j * innov 𝔼 t ((rn - infl) (t + j + 1)) ω) :
+    innov 𝔼 t (infl (t + 1)) ω - innov 𝔼 t (rn (t + 1)) ω =
+      -(∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+        (∑' j, ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω) +
+        ∑' j, ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω ↔ L₀ = ρ * L₁ := by
+  rw [identity_3_20_general 𝔼 hf hv hz t ω hs0 hs1 hL0 hL1 hS hG hR]
+  constructor
+  · intro h
+    linarith
+  · intro h
+    rw [h, sub_self, add_zero]
+
+/-- Cochrane (2023), (3.20), p. 65: under the transversality conditions at `t` and `t + 1`
+(`ρ^T E_t v_{t+T} → 0`), the printed identity holds, for any `ρ` and any processes with the
+stated summability. -/
+theorem identity_3_20_of_tvc (hf : Flow317 ρ v rn infl g sT) (hv : 𝔼.Adapted v)
+    (hz : 𝔼.Adapted (zp rn infl g sT)) (t : ℕ) (ω : Ω)
+    (hs0 : Summable fun j => ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω)
+    (hs1 : Summable fun j => ρ ^ j * 𝔼.E (t + 1) (zp rn infl g sT (t + 1 + j + 1)) ω)
+    (hL0 : Tendsto (fun T => ρ ^ T * 𝔼.E t (v (t + T)) ω) atTop (𝓝 0))
+    (hL1 : Tendsto (fun T => ρ ^ T * 𝔼.E (t + 1) (v (t + 1 + T)) ω) atTop (𝓝 0))
+    (hS : Summable fun j => ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω)
+    (hG : Summable fun j => ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω)
+    (hR : Summable fun j => ρ ^ j * innov 𝔼 t ((rn - infl) (t + j + 1)) ω) :
+    innov 𝔼 t (infl (t + 1)) ω - innov 𝔼 t (rn (t + 1)) ω =
+      -(∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+        (∑' j, ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω) +
+        ∑' j, ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω :=
+  (identity_3_20_iff 𝔼 hf hv hz t ω hs0 hs1 hL0 hL1 hS hG hR).mpr (by ring)
+
+/-- Cochrane (2023), p. 64 ("If we use `ρ = 1`, then `E_t v_{t+T} → E(v)`, and equation (3.19)
+continues to hold describing deviations from this mean"), for (3.20): with `ρ = 1`, if
+`E_t v_{t+T}` and `E_{t+1} v_{t+1+T}` converge to the **same constant** `v̄` and the series are
+summable, the innovation identity (3.20) holds. -/
+theorem identity_3_20_rho_one_mean {v rn infl g sT : ℕ → Ω → ℝ}
+    (hf : Flow317 1 v rn infl g sT) (hv : 𝔼.Adapted v)
+    (hz : 𝔼.Adapted (zp rn infl g sT)) (t : ℕ) (ω : Ω) {vbar : ℝ}
+    (hs0 : Summable fun j => (1 : ℝ) ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω)
+    (hs1 : Summable fun j => (1 : ℝ) ^ j * 𝔼.E (t + 1) (zp rn infl g sT (t + 1 + j + 1)) ω)
+    (hL0 : Tendsto (fun T => 𝔼.E t (v (t + T)) ω) atTop (𝓝 vbar))
+    (hL1 : Tendsto (fun T => 𝔼.E (t + 1) (v (t + 1 + T)) ω) atTop (𝓝 vbar))
+    (hS : Summable fun j => (1 : ℝ) ^ j * innov 𝔼 t (sT (t + j + 1)) ω)
+    (hG : Summable fun j => (1 : ℝ) ^ j * innov 𝔼 t (g (t + j + 1)) ω)
+    (hR : Summable fun j => (1 : ℝ) ^ j * innov 𝔼 t ((rn - infl) (t + j + 1)) ω) :
+    innov 𝔼 t (infl (t + 1)) ω - innov 𝔼 t (rn (t + 1)) ω =
+      -(∑' j, (1 : ℝ) ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+        (∑' j, (1 : ℝ) ^ j * innov 𝔼 t (g (t + j + 1)) ω) +
+        ∑' j, (1 : ℝ) ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω := by
+  have h0 : Tendsto (fun T => (1 : ℝ) ^ T * 𝔼.E t (v (t + T)) ω) atTop (𝓝 vbar) := by
+    simpa using hL0
+  have h1 : Tendsto (fun T => (1 : ℝ) ^ T * 𝔼.E (t + 1) (v (t + 1 + T)) ω) atTop (𝓝 vbar) := by
+    simpa using hL1
+  exact (identity_3_20_iff 𝔼 hf hv hz t ω hs0 hs1 h0 h1 hS hG hR).mpr (by ring)
+
+/-! ### Exponential growth below `1/ρ` -/
+
+/-- Cochrane (2023), p. 64 ("expected to grow no faster than `ρ^{−t}`"): the process grows at most
+at rate `γ`, `|x_n| ≤ Kγⁿ` in every state, with `K ≥ 0`. -/
+def GrowthBound (γ : ℝ) (x : ℕ → Ω → ℝ) : Prop := ∃ K, 0 ≤ K ∧ ∀ n ω, |x n ω| ≤ K * γ ^ n
+
+/-- Cochrane (2023), (3.17)–(3.18): growth bounds add. -/
+theorem GrowthBound.add {γ : ℝ} {x y : ℕ → Ω → ℝ} (hx : GrowthBound γ x) (hy : GrowthBound γ y) :
+    GrowthBound γ (x + y) := by
+  obtain ⟨K, hK, hxK⟩ := hx
+  obtain ⟨L, hL, hyL⟩ := hy
+  exact ⟨K + L, add_nonneg hK hL, fun n ω => (abs_add_le _ _).trans (by
+    rw [add_mul]; exact add_le_add (hxK n ω) (hyL n ω))⟩
+
+/-- Cochrane (2023), (3.17)–(3.18): growth bounds subtract. -/
+theorem GrowthBound.sub {γ : ℝ} {x y : ℕ → Ω → ℝ} (hx : GrowthBound γ x) (hy : GrowthBound γ y) :
+    GrowthBound γ (x - y) := by
+  obtain ⟨K, hK, hxK⟩ := hx
+  obtain ⟨L, hL, hyL⟩ := hy
+  exact ⟨K + L, add_nonneg hK hL, fun n ω => (abs_sub _ _).trans (by
+    rw [add_mul]; exact add_le_add (hxK n ω) (hyL n ω))⟩
+
+variable (ρ) (γ : ℝ) (v rn infl g sT)
+
+/-- Cochrane (2023), §3.5, pp. 63–65, beyond bounded processes: (3.17) at every date, adapted
+processes, `ρ > 0`, a growth rate `γ ≥ 0` with `ργ < 1`, and debt, returns, inflation, growth and
+surpluses all growing at most at rate `γ` ("no faster than `ρ^{−t}`", p. 64, strictly). -/
+structure GrowthEconomy where
+  flow : Flow317 ρ v rn infl g sT
+  v_adapted : 𝔼.Adapted v
+  rn_adapted : 𝔼.Adapted rn
+  infl_adapted : 𝔼.Adapted infl
+  g_adapted : 𝔼.Adapted g
+  s_adapted : 𝔼.Adapted sT
+  rho_pos : 0 < ρ
+  gamma_nonneg : 0 ≤ γ
+  rho_gamma : ρ * γ < 1
+  v_growth : GrowthBound γ v
+  rn_growth : GrowthBound γ rn
+  infl_growth : GrowthBound γ infl
+  g_growth : GrowthBound γ g
+  s_growth : GrowthBound γ sT
+
+variable {𝔼 ρ γ v rn infl g sT}
+
+/-- Cochrane (2023), §3.5, p. 64: every bounded linear economy (`LogLinearIdentities.LinearEconomy`)
+is a growth economy with `γ = 1`. -/
+theorem LinearEconomy.toGrowth (hL : LinearEconomy 𝔼 ρ v rn infl g sT) :
+    GrowthEconomy 𝔼 ρ v rn infl g sT 1 := by
+  have hb : ∀ {x : ℕ → Ω → ℝ}, BoundedProc x → GrowthBound 1 x := fun {x} hx => by
+    obtain ⟨M, hM⟩ := hx
+    exact ⟨max M 0, le_max_right _ _, fun n ω => by
+      rw [one_pow, mul_one]; exact (hM n ω).trans (le_max_left _ _)⟩
+  exact ⟨hL.flow, hL.v_adapted, hL.rn_adapted, hL.infl_adapted, hL.g_adapted, hL.s_adapted,
+    hL.rho_pos, zero_le_one, by rw [mul_one]; exact hL.rho_lt_one, hb hL.v_bdd, hb hL.rn_bdd,
+    hb hL.infl_bdd, hb hL.g_bdd, hb hL.s_bdd⟩
+
+variable (𝔼) in
+/-- Cochrane (2023), (3.19)–(3.22) (auxiliary): `∑_j aʲE_s x_{t+j+c}` converges absolutely when
+`x` grows at rate `γ` and `|a|γ < 1`. -/
+theorem summable_E_growth {a γ K : ℝ} (hγ : 0 ≤ γ) (ha : |a| * γ < 1)
+    {x : ℕ → Ω → ℝ} (hx : ∀ n ω, |x n ω| ≤ K * γ ^ n) (s t c : ℕ) (ω : Ω) :
+    Summable fun j => a ^ j * 𝔼.E s (x (t + j + c)) ω := by
+  refine Summable.of_norm_bounded ((summable_geometric_of_lt_one
+    (mul_nonneg (abs_nonneg a) hγ) ha).mul_left (K * γ ^ (t + c))) fun j => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+  calc |a| ^ j * |𝔼.E s (x (t + j + c)) ω| ≤ |a| ^ j * (K * γ ^ (t + j + c)) :=
+        mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hx (t + j + c)) s ω) (pow_nonneg (abs_nonneg a) j)
+    _ = K * γ ^ (t + c) * (|a| * γ) ^ j := by
+        rw [mul_pow, show t + j + c = (t + c) + j by omega, pow_add]
+        ring
+
+variable (𝔼) in
+/-- Cochrane (2023), (3.20)–(3.22) (auxiliary): `∑_j aʲΔE_{t+1}x_{t+j+c}` converges absolutely when
+`x` grows at rate `γ` and `|a|γ < 1`. -/
+theorem summable_innov_growth {a γ K : ℝ} (hγ : 0 ≤ γ) (ha : |a| * γ < 1)
+    {x : ℕ → Ω → ℝ} (hx : ∀ n ω, |x n ω| ≤ K * γ ^ n) (t c : ℕ) (ω : Ω) :
+    Summable fun j => a ^ j * innov 𝔼 t (x (t + j + c)) ω := by
+  refine Summable.of_norm_bounded ((summable_geometric_of_lt_one
+    (mul_nonneg (abs_nonneg a) hγ) ha).mul_left (2 * K * γ ^ (t + c))) fun j => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+  calc |a| ^ j * |innov 𝔼 t (x (t + j + c)) ω| ≤ |a| ^ j * (2 * (K * γ ^ (t + j + c))) :=
+        mul_le_mul_of_nonneg_left (abs_innov_le (hx (t + j + c)) t ω) (pow_nonneg (abs_nonneg a) j)
+    _ = 2 * K * γ ^ (t + c) * (|a| * γ) ^ j := by
+        rw [mul_pow, show t + j + c = (t + c) + j by omega, pow_add]
+        ring
+
+variable (𝔼) in
+/-- Cochrane (2023), p. 64: if `v` grows at rate `γ` and `|a|γ < 1`, the terminal term
+`aᵀE_t v_{t+T}` vanishes. -/
+theorem terminal_growth {a γ K : ℝ} (hγ : 0 ≤ γ) (ha : |a| * γ < 1) {x : ℕ → Ω → ℝ}
+    (hx : ∀ n ω, |x n ω| ≤ K * γ ^ n) (t : ℕ) (ω : Ω) :
+    Tendsto (fun T => a ^ T * 𝔼.E t (x (t + T)) ω) atTop (𝓝 0) := by
+  rw [tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero_norm (a := fun T => K * γ ^ t * (|a| * γ) ^ T) (fun T => ?_) ?_
+  · rw [sub_zero, norm_norm, Real.norm_eq_abs, abs_mul, abs_pow]
+    calc |a| ^ T * |𝔼.E t (x (t + T)) ω| ≤ |a| ^ T * (K * γ ^ (t + T)) :=
+          mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hx (t + T)) t ω) (pow_nonneg (abs_nonneg a) T)
+      _ = K * γ ^ t * (|a| * γ) ^ T := by rw [mul_pow, pow_add]; ring
+  · simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one (mul_nonneg (abs_nonneg a) hγ)
+      ha).const_mul (K * γ ^ t)
+
+/-- Cochrane (2023), (3.18), p. 63: `s̃ + g − r` grows at rate `γ` in a growth economy. -/
+theorem GrowthEconomy.zp_growth (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) :
+    GrowthBound γ (zp rn infl g sT) :=
+  (hG.s_growth.add hG.g_growth).sub (hG.rn_growth.sub hG.infl_growth)
+
+/-- Cochrane (2023), §3.5: `|ρ|γ < 1` in a growth economy. -/
+theorem GrowthEconomy.abs_rho_gamma (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) : |ρ| * γ < 1 := by
+  rw [abs_of_pos hG.rho_pos]; exact hG.rho_gamma
+
+/-- Cochrane (2023), (3.19), p. 64, **for processes growing at rate `γ < 1/ρ`**: the infinite
+present-value identity `v_t = ∑_{j≥1} ρ^{j−1}E_t(s̃ + g − r)_{t+j}` holds as a convergent sum. -/
+theorem g_pv_319 (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) (t : ℕ) (ω : Ω) :
+    HasSum (fun j => ρ ^ j * 𝔼.E t (zp rn infl g sT (t + j + 1)) ω) (v t ω) := by
+  obtain ⟨K, hK, hzK⟩ := hG.zp_growth
+  obtain ⟨Kv, -, hvK⟩ := hG.v_growth
+  have hs := summable_E_growth 𝔼 hG.gamma_nonneg hG.abs_rho_gamma hzK t t 1 ω
+  have h := (pv_319_iff 𝔼 hG.flow hG.v_adapted t ω hs).mp
+    (terminal_growth 𝔼 hG.gamma_nonneg hG.abs_rho_gamma hvK t ω)
+  rw [h]
+  exact hs.hasSum
+
+/-- Cochrane (2023), p. 64, for growth economies: `∑_j ρ^jΔE_{t+1}(s̃ + g − r)_{t+1+j} = 0`. -/
+theorem g_innov_pv (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) (t : ℕ) (ω : Ω) :
+    HasSum (fun j => ρ ^ j * innov 𝔼 t (zp rn infl g sT (t + j + 1)) ω) 0 := by
+  obtain ⟨K, hK, hzK⟩ := hG.zp_growth
+  obtain ⟨Kv, -, hvK⟩ := hG.v_growth
+  have hz := zp_adapted' 𝔼 hG.s_adapted hG.g_adapted hG.rn_adapted hG.infl_adapted
+  have h := innov_pv_general 𝔼 hG.flow hG.v_adapted hz t ω
+    (summable_E_growth 𝔼 hG.gamma_nonneg hG.abs_rho_gamma hzK t t 1 ω)
+    (summable_E_growth 𝔼 hG.gamma_nonneg hG.abs_rho_gamma hzK (t + 1) (t + 1) 1 ω)
+    (terminal_growth 𝔼 hG.gamma_nonneg hG.abs_rho_gamma hvK t ω)
+    (terminal_growth 𝔼 hG.gamma_nonneg hG.abs_rho_gamma hvK (t + 1) ω)
+  simpa using h
+
+/-- Cochrane (2023), (3.20), p. 65, **for processes growing at rate `γ < 1/ρ`** (any `ρ > 0`):
+`ΔE_{t+1}π_{t+1} − ΔE_{t+1}r^n_{t+1} = −∑ρ^jΔE_{t+1}s̃_{t+1+j} − ∑ρ^jΔE_{t+1}g_{t+1+j}
+  + ∑_{j≥1}ρ^jΔE_{t+1}r_{t+1+j}`. -/
+theorem g_identity_3_20 (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) (t : ℕ) (ω : Ω) :
+    innov 𝔼 t (infl (t + 1)) ω - innov 𝔼 t (rn (t + 1)) ω =
+      -(∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+        (∑' j, ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω) +
+        ∑' j, ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω := by
+  obtain ⟨K, hK, hzK⟩ := hG.zp_growth
+  obtain ⟨Kv, -, hvK⟩ := hG.v_growth
+  obtain ⟨Ks, hKs, hsK⟩ := hG.s_growth
+  obtain ⟨Kg, hKg, hgK⟩ := hG.g_growth
+  obtain ⟨Kr, hKr, hrK⟩ := hG.rn_growth.sub hG.infl_growth
+  have hγ := hG.gamma_nonneg
+  have hρ := hG.abs_rho_gamma
+  exact identity_3_20_of_tvc 𝔼 hG.flow hG.v_adapted
+    (zp_adapted' 𝔼 hG.s_adapted hG.g_adapted hG.rn_adapted hG.infl_adapted) t ω
+    (summable_E_growth 𝔼 hγ hρ hzK t t 1 ω)
+    (summable_E_growth 𝔼 hγ hρ hzK (t + 1) (t + 1) 1 ω)
+    (terminal_growth 𝔼 hγ hρ hvK t ω) (terminal_growth 𝔼 hγ hρ hvK (t + 1) ω)
+    (summable_innov_growth 𝔼 hγ hρ hsK t 1 ω) (summable_innov_growth 𝔼 hγ hρ hgK t 1 ω)
+    (summable_innov_growth 𝔼 hγ hρ hrK t 1 ω)
+
+/-! ### The bond identities (3.21)–(3.22) with growth -/
+
+/-- Cochrane (2023), A1 (1.24), p. 563: if the log bond price grows at rate `γ`, so does the
+bond return: `|r^n_{n+1}| ≤ K(|ω̂|γ + 1)γⁿ`. -/
+theorem g_rn_bound {ωh γ K : ℝ} {q rn : ℕ → Ω → ℝ} (hret : BondRet ωh q rn)
+    (hK : ∀ n ω, |q n ω| ≤ K * γ ^ n) (n : ℕ) (ω : Ω) :
+    |rn (n + 1) ω| ≤ K * (|ωh| * γ + 1) * γ ^ n := by
+  rw [hret]
+  refine (abs_sub _ _).trans ?_
+  rw [abs_mul]
+  have h1 := mul_le_mul_of_nonneg_left (hK (n + 1) ω) (abs_nonneg ωh)
+  have h2 := hK n ω
+  have e : K * (|ωh| * γ + 1) * γ ^ n = |ωh| * (K * γ ^ (n + 1)) + K * γ ^ n := by ring
+  rw [e]
+  exact add_le_add h1 h2
+
+/-- Cochrane (2023), A1 p. 564 (the corrected box formula, survey E16), **for a log bond price
+growing at rate `γ` with `|ω̂|γ < 1`**: `q_t = −∑_{j≥1} ω̂^{j−1} r^n_{t+j}`. -/
+theorem g_bondPrice_forward {ωh γ : ℝ} {q rn : ℕ → Ω → ℝ} (hret : BondRet ωh q rn)
+    (hγ : 0 ≤ γ) (hq : GrowthBound γ q) (hω : |ωh| * γ < 1) (t : ℕ) (ω : Ω) :
+    HasSum (fun j => ωh ^ j * rn (t + j + 1) ω) (-q t ω) := by
+  obtain ⟨K, hK0, hK⟩ := hq
+  have hrec : ∀ n, q n ω = -rn (n + 1) ω + ωh * q (n + 1) ω := fun n => by
+    rw [hret n ω]; ring
+  have hs : Summable fun j => (∏ k ∈ Finset.range j, ωh) * -rn (t + j + 1) ω := by
+    refine Summable.of_norm_bounded ((summable_geometric_of_lt_one
+      (mul_nonneg (abs_nonneg ωh) hγ) hω).mul_left (K * (|ωh| * γ + 1) * γ ^ t)) fun j => ?_
+    rw [Finset.prod_const, Finset.card_range, Real.norm_eq_abs, abs_mul, abs_neg, abs_pow]
+    calc |ωh| ^ j * |rn (t + j + 1) ω| ≤ |ωh| ^ j * (K * (|ωh| * γ + 1) * γ ^ (t + j)) :=
+          mul_le_mul_of_nonneg_left (g_rn_bound hret hK (t + j) ω)
+            (pow_nonneg (abs_nonneg _) j)
+      _ = K * (|ωh| * γ + 1) * γ ^ t * (|ωh| * γ) ^ j := by rw [mul_pow, pow_add]; ring
+  have hterm : Tendsto (fun T => (∏ k ∈ Finset.range T, ωh) * q (t + T) ω) atTop (𝓝 0) := by
+    simp only [Finset.prod_const, Finset.card_range]
+    simpa [perfectForesight] using terminal_growth perfectForesight (a := ωh) hγ hω
+      (x := fun n _ => q n ω) (fun n _ => hK n ω) t ()
+  have h := (Money.pv_discount_iff (x := fun n => q n ω) (a := fun n => -rn (n + 1) ω)
+    (b := fun _ => ωh) hrec t hs).mp hterm
+  simp only [Finset.prod_const, Finset.card_range] at h hs
+  have h2 : HasSum (fun j => ωh ^ j * rn (t + j + 1) ω) (-(∑' j, ωh ^ j * -rn (t + j + 1) ω)) := by
+    have := hs.hasSum.neg
+    convert this using 1
+    funext j
+    ring
+  rw [← h] at h2
+  exact h2
+
+/-- Cochrane (2023), (3.21) and A1 (1.25), p. 564, **for a log bond price growing at rate `γ`
+with `|ω̂|γ < 1`**: `ΔE_{t+1}r^n_{t+1} = −∑_{j≥1} ω̂^j ΔE_{t+1}r^n_{t+1+j}`. -/
+theorem g_bondReturn_innov {ωh γ : ℝ} {q rn : ℕ → Ω → ℝ} (hret : BondRet ωh q rn)
+    (hqa : 𝔼.Adapted q) (hγ : 0 ≤ γ) (hq : GrowthBound γ q) (hω : |ωh| * γ < 1) (t : ℕ)
+    (ω : Ω) :
+    innov 𝔼 t (rn (t + 1)) ω = -∑' j, ωh ^ (j + 1) * innov 𝔼 t (rn (t + j + 2)) ω := by
+  obtain ⟨K, hK0, hK⟩ := hq
+  have hfwd : q (t + 1) = fun ω' => -∑' j, ωh ^ j * rn (t + j + 2) ω' := by
+    funext ω'
+    have h := (g_bondPrice_forward hret hγ ⟨K, hK0, hK⟩ hω (t + 1) ω').tsum_eq
+    have e : ∑' j, ωh ^ j * rn (t + j + 2) ω' = ∑' j, ωh ^ j * rn (t + 1 + j + 1) ω' :=
+      tsum_congr fun j => by rw [show t + 1 + j + 1 = t + j + 2 by omega]
+    rw [e, h, neg_neg]
+  set C := K * (|ωh| * γ + 1) * γ ^ (t + 1) with hC
+  have hu : Summable fun j : ℕ => C * (|ωh| * γ) ^ j :=
+    (summable_geometric_of_lt_one (mul_nonneg (abs_nonneg ωh) hγ) hω).mul_left _
+  have hb : ∀ j ω', |(ωh ^ j • rn (t + j + 2)) ω'| ≤ C * (|ωh| * γ) ^ j := by
+    intro j ω'
+    rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow]
+    calc |ωh| ^ j * |rn (t + j + 1 + 1) ω'| ≤ |ωh| ^ j * (K * (|ωh| * γ + 1) * γ ^ (t + j + 1)) :=
+          mul_le_mul_of_nonneg_left (g_rn_bound hret hK (t + j + 1) ω')
+            (pow_nonneg (abs_nonneg _) j)
+      _ = C * (|ωh| * γ) ^ j := by
+          rw [hC, mul_pow, show t + j + 1 = (t + 1) + j by omega, pow_add]; ring
+  have hE : ∀ s, 𝔼.E s (q (t + 1)) ω = -∑' j, ωh ^ j * 𝔼.E s (rn (t + j + 2)) ω := by
+    intro s
+    have h := ForwardSolution.E_tsum_dom 𝔼 hu hb s ω
+    simp only [Pi.smul_apply, smul_eq_mul, map_smul] at h
+    rw [hfwd, show (fun ω' => -∑' j, ωh ^ j * rn (t + j + 2) ω') =
+      -(fun ω' => ∑' j, ωh ^ j * rn (t + j + 2) ω') from rfl, map_neg, Pi.neg_apply, h]
+  have hsum : ∀ s, Summable fun j => ωh ^ j * 𝔼.E s (rn (t + j + 2)) ω := fun s =>
+    Summable.of_norm_bounded hu fun j => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      have h1 := 𝔼.abs_E_le (fun ω' => (hb j ω')) s ω
+      simp only [Pi.smul_apply, smul_eq_mul, map_smul] at h1
+      rw [abs_mul, abs_pow] at h1
+      exact h1
+  have hrn : rn (t + 1) = ωh • q (t + 1) - q t := by
+    funext ω'
+    rw [hret t ω']
+    rfl
+  have hq0 : innov 𝔼 t (q t) = 0 := innov_known (hqa t)
+  have key : ∑' j, ωh ^ (j + 1) * innov 𝔼 t (rn (t + j + 2)) ω =
+      ωh * (∑' j, ωh ^ j * 𝔼.E (t + 1) (rn (t + j + 2)) ω -
+        ∑' j, ωh ^ j * 𝔼.E t (rn (t + j + 2)) ω) := by
+    rw [← (hsum (t + 1)).tsum_sub (hsum t), ← tsum_mul_left]
+    refine tsum_congr fun j => ?_
+    rw [innov_apply, pow_succ]
+    ring
+  rw [hrn, map_sub, map_smul, hq0, sub_zero, Pi.smul_apply, smul_eq_mul, innov_apply, hE, hE,
+    key]
+  ring
+
+/-- Cochrane (2023), (3.22), p. 65, **in a growth economy with a log bond price of growth `γ`
+and `|ω̂|γ < 1`**: `∑_{j≥0} ω̂^jΔE_{t+1}π_{t+1+j} = −∑ρ^jΔE_{t+1}s̃_{t+1+j}
+  − ∑ρ^jΔE_{t+1}g_{t+1+j} + ∑_{j≥1}(ρ^j − ω̂^j)ΔE_{t+1}r_{t+1+j}`. -/
+theorem g_weighted_inflation (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) {ωh : ℝ}
+    {q : ℕ → Ω → ℝ} (hret : BondRet ωh q rn) (hqa : 𝔼.Adapted q) (hq : GrowthBound γ q)
+    (hω : |ωh| * γ < 1) (t : ℕ) (ω : Ω) :
+    ∑' j, ωh ^ j * innov 𝔼 t (infl (t + j + 1)) ω =
+      -(∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+        (∑' j, ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω) +
+        ∑' j, (ρ ^ (j + 1) - ωh ^ (j + 1)) *
+          innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω := by
+  have h20 := g_identity_3_20 hG t ω
+  have h21 := g_bondReturn_innov hret hqa hG.gamma_nonneg hq hω t ω
+  have hγ := hG.gamma_nonneg
+  have hρ := hG.abs_rho_gamma
+  obtain ⟨Kr, hKr, hr⟩ := hG.rn_growth.sub hG.infl_growth
+  obtain ⟨K4, hK4, h4⟩ := hG.infl_growth
+  have hRρ := (summable_innov_growth 𝔼 hγ hρ hr t 2 ω).mul_left ρ
+  have hRω := (summable_innov_growth 𝔼 hγ hω hr t 2 ω).mul_left ωh
+  have hPiω := (summable_innov_growth 𝔼 hγ hω h4 t 2 ω).mul_left ωh
+  have hPi0 := summable_innov_growth 𝔼 hγ hω h4 t 1 ω
+  simp only [← mul_assoc, ← pow_succ'] at hRρ hRω hPiω
+  have hsplit : ∀ j, ωh ^ (j + 1) * innov 𝔼 t (rn (t + j + 2)) ω =
+      ωh ^ (j + 1) * innov 𝔼 t ((rn - infl) (t + j + 2)) ω +
+        ωh ^ (j + 1) * innov 𝔼 t (infl (t + j + 2)) ω := by
+    intro j
+    simp only [Pi.sub_apply, map_sub]
+    ring
+  rw [tsum_congr hsplit, hRω.tsum_add hPiω] at h21
+  have hL0 : ∑' j, ωh ^ j * innov 𝔼 t (infl (t + j + 1)) ω =
+      innov 𝔼 t (infl (t + 1)) ω + ∑' j, ωh ^ (j + 1) * innov 𝔼 t (infl (t + j + 2)) ω := by
+    rw [hPi0.tsum_eq_zero_add]
+    simp only [pow_zero, one_mul, add_zero]
+    rfl
+  have hdiff : ∑' j, (ρ ^ (j + 1) - ωh ^ (j + 1)) *
+      innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω =
+      ∑' j, ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω -
+        ∑' j, ωh ^ (j + 1) * innov 𝔼 t ((rn - infl) (t + j + 2)) ω := by
+    rw [← Summable.tsum_sub
+      (f := fun j => ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω) hRρ hRω]
+    refine tsum_congr fun j => ?_
+    simp only [Pi.sub_apply]
+    ring
+  rw [hL0, hdiff]
+  change _ = -(∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+      (∑' j, ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω) +
+      (∑' j, ρ ^ (j + 1) * innov 𝔼 t (rn (t + j + 2) - infl (t + j + 2)) ω -
+        ∑' j, ωh ^ (j + 1) * innov 𝔼 t ((rn - infl) (t + j + 2)) ω)
+  linarith
+
+/-! ### The special cases (3.23)–(3.28) with growth -/
+
+/-- Cochrane (2023), §3.5.2, p. 66, and (3.27), p. 69, in a growth economy: with constant expected
+returns, one-period debt (`ω̂ = 0`) and no growth,
+`ΔE_{t+1}π_{t+1} = −∑_{j≥0} ρ^j ΔE_{t+1}s̃_{t+1+j}`. -/
+theorem g_special_constant_short (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) {q : ℕ → Ω → ℝ}
+    (hret : BondRet 0 q rn) (hq : 𝔼.Adapted q) (hg : ∀ n ω, g n ω = 0)
+    (hc : ∀ n, 𝔼.E n (rn (n + 1) - infl (n + 1)) = 0) (t : ℕ) (ω : Ω) :
+    innov 𝔼 t (infl (t + 1)) ω = -∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω := by
+  have h := g_identity_3_20 hG t ω
+  have hg0 : ∀ n, g n = 0 := fun n => funext (hg n)
+  simp only [hg0, map_zero, Pi.zero_apply, mul_zero, tsum_zero, sub_zero, innov_r_zero hc,
+    add_zero, (short_debt_return_known hret hq t).2] at h
+  exact h
+
+/-- Cochrane (2023), (3.23), p. 67, in a growth economy with a log bond price of growth `γ`,
+`|ω̂|γ < 1`: with constant expected returns and no growth,
+`∑_{j≥0} ω̂^jΔE_{t+1}π_{t+1+j} = −∑_{j≥0} ρ^jΔE_{t+1}s̃_{t+1+j}`. -/
+theorem g_special_constant_long (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) {ωh : ℝ}
+    {q : ℕ → Ω → ℝ} (hret : BondRet ωh q rn) (hqa : 𝔼.Adapted q) (hq : GrowthBound γ q)
+    (hω : |ωh| * γ < 1) (hg : ∀ n ω, g n ω = 0)
+    (hc : ∀ n, 𝔼.E n (rn (n + 1) - infl (n + 1)) = 0) (t : ℕ) (ω : Ω) :
+    ∑' j, ωh ^ j * innov 𝔼 t (infl (t + j + 1)) ω =
+      -∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω := by
+  have h := g_weighted_inflation hG hret hqa hq hω t ω
+  have hg0 : ∀ n, g n = 0 := fun n => funext (hg n)
+  simp only [hg0, map_zero, Pi.zero_apply, mul_zero, tsum_zero, sub_zero, innov_r_zero hc,
+    add_zero] at h
+  exact h
+
+/-- Cochrane (2023), (3.24), p. 68, in a growth economy: with constant expected returns and no
+growth, `ΔE_{t+1}π_{t+1} − ΔE_{t+1}r^n_{t+1} = −∑_{j≥0} ρ^jΔE_{t+1}s̃_{t+1+j}`. -/
+theorem g_identity_3_24 (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) (hg : ∀ n ω, g n ω = 0)
+    (hc : ∀ n, 𝔼.E n (rn (n + 1) - infl (n + 1)) = 0) (t : ℕ) (ω : Ω) :
+    innov 𝔼 t (infl (t + 1)) ω - innov 𝔼 t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω := by
+  have h := g_identity_3_20 hG t ω
+  have hg0 : ∀ n, g n = 0 := fun n => funext (hg n)
+  simp only [hg0, map_zero, Pi.zero_apply, mul_zero, tsum_zero, sub_zero, innov_r_zero hc,
+    add_zero] at h
+  exact h
+
+/-- Cochrane (2023), (3.25), p. 68, for a log bond price of growth `γ` with `|ω̂|γ < 1`: with
+constant expected returns, `ΔE_{t+1}r^n_{t+1} = −∑_{j≥1} ω̂^jΔE_{t+1}π_{t+1+j}`. -/
+theorem g_identity_3_25 {ωh : ℝ} {q : ℕ → Ω → ℝ} (hret : BondRet ωh q rn) (hqa : 𝔼.Adapted q)
+    (hγ : 0 ≤ γ) (hq : GrowthBound γ q) (hω : |ωh| * γ < 1)
+    (hc : ∀ n, 𝔼.E n (rn (n + 1) - infl (n + 1)) = 0) (t : ℕ) (ω : Ω) :
+    innov 𝔼 t (rn (t + 1)) ω = -∑' j, ωh ^ (j + 1) * innov 𝔼 t (infl (t + j + 2)) ω := by
+  rw [g_bondReturn_innov hret hqa hγ hq hω t ω]
+  congr 1
+  refine tsum_congr fun j => ?_
+  have e : rn (t + j + 2) = (rn (t + j + 2) - infl (t + j + 2)) + infl (t + j + 2) := by
+    rw [sub_add_cancel]
+  rw [e, map_add, innov_r_zero hc, zero_add]
+
+/-- Cochrane (2023), (3.28), p. 69, in a growth economy with a log bond price of growth `γ`,
+`|ω̂|γ < 1`: with no surplus news, constant expected returns and no growth,
+`∑_{j≥0} ω̂^jΔE_{t+1}π_{t+1+j} = 0`, hence
+`ΔE_{t+1}π_{t+1} = −∑_{j≥1} ω̂^jΔE_{t+1}π_{t+1+j}`. -/
+theorem g_monetary_disinflation (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) {ωh : ℝ}
+    {q : ℕ → Ω → ℝ} (hret : BondRet ωh q rn) (hqa : 𝔼.Adapted q) (hq : GrowthBound γ q)
+    (hω : |ωh| * γ < 1) (hg : ∀ n ω, g n ω = 0)
+    (hc : ∀ n, 𝔼.E n (rn (n + 1) - infl (n + 1)) = 0) (t : ℕ) (ω : Ω)
+    (hs : ∀ j, innov 𝔼 t (sT (t + j + 1)) ω = 0) :
+    ∑' j, ωh ^ j * innov 𝔼 t (infl (t + j + 1)) ω = 0 ∧
+      innov 𝔼 t (infl (t + 1)) ω = -∑' j, ωh ^ (j + 1) * innov 𝔼 t (infl (t + j + 2)) ω := by
+  have h := g_special_constant_long hG hret hqa hq hω hg hc t ω
+  simp only [hs, mul_zero, tsum_zero, neg_zero] at h
+  refine ⟨h, ?_⟩
+  obtain ⟨K4, -, h4⟩ := hG.infl_growth
+  have hPi0 := summable_innov_growth 𝔼 hG.gamma_nonneg hω h4 t 1 ω
+  rw [hPi0.tsum_eq_zero_add] at h
+  simp only [pow_zero, one_mul, add_zero] at h
+  change innov 𝔼 t (infl (t + 1)) ω + ∑' j, ωh ^ (j + 1) * innov 𝔼 t (infl (t + j + 2)) ω = 0
+    at h
+  linarith
+
+/-- Cochrane (2023), §3.5.4, p. 71, in a growth economy: with perpetuities (`ω̂ = ρ`) and a log
+bond price of growth `γ`, the discount-rate terms drop out of (3.22). -/
+theorem g_perpetuity (hG : GrowthEconomy 𝔼 ρ v rn infl g sT γ) {q : ℕ → Ω → ℝ}
+    (hret : BondRet ρ q rn) (hqa : 𝔼.Adapted q) (hq : GrowthBound γ q) (t : ℕ) (ω : Ω) :
+    ∑' j, ρ ^ j * innov 𝔼 t (infl (t + j + 1)) ω =
+      -(∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω) -
+        ∑' j, ρ ^ j * innov 𝔼 t (g (t + j + 1)) ω := by
+  have h := g_weighted_inflation hG hret hqa hq hG.abs_rho_gamma t ω
+  simp only [sub_self, zero_mul, tsum_zero, add_zero] at h
+  exact h
+
+/-! ### The boundary `γ = 1/ρ`: counterexamples on the coin-flip tree -/
+
+namespace Boundary
+
+open Cochrane.Generality.ExpectationsFiniteTree
+
+/-- Cochrane (2023), p. 64 (counterexample): the first coin flip `±1`, revealed at date 1. -/
+def cs1 : Bool × Bool → ℝ := coinShock 1
+
+/-- Cochrane (2023), p. 64 (counterexample): `cs1 = ±1`, so it is nonzero and bounded by one. -/
+theorem cs1_ne_zero (ω : Bool × Bool) : cs1 ω ≠ 0 ∧ |cs1 ω| ≤ 1 := by
+  rcases ω with ⟨b1, b2⟩
+  cases b1 <;> simp [cs1, coinShock]
+
+/-- Cochrane (2023), p. 64 (counterexample): on the coin-flip tree, `E_t(a·cs1)` is `0` at date 0
+(the flip is mean zero) and `a·cs1` from date 1 on (it is known). -/
+theorem E_cs1 (a : ℝ) (t : ℕ) :
+    coinSystem.E t (a • cs1) = if t = 0 then 0 else a • cs1 := by
+  rw [map_smul]
+  rcases t with _ | t
+  · simp only [↓reduceIte]
+    have h := coinShock_mean_zero 0
+    simp only [zero_add] at h
+    rw [cs1, h, smul_zero]
+  · simp only [Nat.add_one_ne_zero, ↓reduceIte]
+    congr 1
+    funext ω
+    rw [coinSystem, FiniteTree.toExpectationSystem_E]
+    exact coinTree.condE_of_const_on_cell fun ω' h =>
+      coinShock_measurable 1 (coinTree.refines (Nat.le_add_left 1 t) ω' ω h)
+
+/-- Cochrane (2023), p. 64 (counterexample): a process `a_t·cs1` with `a_0 = 0` is adapted. -/
+theorem adapted_smul (a : ℕ → ℝ) (ha : a 0 = 0) :
+    coinSystem.Adapted fun t => a t • cs1 := by
+  intro t
+  rw [E_cs1]
+  rcases t with _ | t
+  · simp [ha]
+  · simp
+
+/-- Cochrane (2023), p. 64 (counterexample): the innovation at date 0 of `a·cs1` is `a·cs1`. -/
+theorem innov_cs1 (a : ℝ) (ω : Bool × Bool) :
+    innov coinSystem 0 (a • cs1) ω = a * cs1 ω := by
+  rw [innov_apply, E_cs1, E_cs1]
+  simp
+
+/-- Cochrane (2023), p. 64 (counterexample): debt growing at exactly `ρ^{−t}`,
+`v_t = ρ^{−t}·cs1` for `t ≥ 1`, `v_0 = 0` (a stochastic bubble). -/
+noncomputable def vB (ρ : ℝ) : ℕ → Bool × Bool → ℝ :=
+  fun t => (if t = 0 then 0 else ρ⁻¹ ^ t) • cs1
+
+/-- Cochrane (2023), p. 64 (counterexample): the surpluses that make `vB` satisfy (3.17):
+`s̃_1 = −cs1`, all others zero. -/
+noncomputable def sB : ℕ → Bool × Bool → ℝ := fun t => (if t = 1 then (-1 : ℝ) else 0) • cs1
+
+/-- Cochrane (2023), p. 64 (counterexample): the zero process (returns, inflation, growth). -/
+def zB : ℕ → Bool × Bool → ℝ := fun _ _ => 0
+
+/-- Cochrane (2023), (3.17), p. 63 (counterexample): the bubble economy satisfies the flow. -/
+theorem flow_B {ρ : ℝ} (hρ : ρ ≠ 0) : Flow317 ρ (vB ρ) zB zB zB sB := by
+  intro t ω
+  simp only [vB, sB, zB, Pi.smul_apply, smul_eq_mul, sub_zero, add_zero]
+  rcases t with _ | t
+  · simp only [↓reduceIte, zero_add, pow_one, zero_mul, one_ne_zero]
+    field_simp
+    ring
+  · simp only [Nat.add_one_ne_zero, ↓reduceIte, show t + 1 + 1 ≠ 1 by omega, zero_mul,
+      sub_zero]
+    rw [pow_succ]
+    field_simp
+
+/-- Cochrane (2023), p. 64 (counterexample): every process of the bubble economy is adapted. -/
+theorem adapted_B (ρ : ℝ) :
+    coinSystem.Adapted (vB ρ) ∧ coinSystem.Adapted sB ∧ coinSystem.Adapted zB := by
+  refine ⟨adapted_smul _ (by simp), adapted_smul _ (by simp), fun t => ?_⟩
+  change coinSystem.E t (fun _ => (0 : ℝ)) = fun _ => 0
+  exact coinSystem.const t 0
+
+/-- Cochrane (2023), p. 64 (counterexample): every process of the bubble economy grows at most at
+rate `γ = ρ⁻¹`, the boundary `ργ = 1`. -/
+theorem growth_B {ρ : ℝ} (hρ : 0 < ρ) :
+    GrowthBound ρ⁻¹ (vB ρ) ∧ GrowthBound ρ⁻¹ sB ∧ GrowthBound ρ⁻¹ zB ∧ ρ * ρ⁻¹ = 1 := by
+  refine ⟨⟨1, zero_le_one, fun n ω => ?_⟩, ⟨ρ, hρ.le, fun n ω => ?_⟩,
+    ⟨0, le_rfl, fun n ω => by simp [zB]⟩, mul_inv_cancel₀ hρ.ne'⟩
+  · simp only [vB, Pi.smul_apply, smul_eq_mul, abs_mul, one_mul]
+    have h1 := (cs1_ne_zero ω).2
+    have h2 : 0 ≤ ρ⁻¹ ^ n := pow_nonneg (inv_nonneg.mpr hρ.le) n
+    split_ifs
+    · rw [abs_zero, zero_mul]
+      exact h2
+    · rw [abs_of_nonneg h2]
+      nlinarith [abs_nonneg (cs1 ω)]
+  · simp only [sB, Pi.smul_apply, smul_eq_mul, abs_mul]
+    have h1 := (cs1_ne_zero ω).2
+    split_ifs with hn
+    · subst hn
+      rw [pow_one, mul_inv_cancel₀ hρ.ne', abs_neg, abs_one, one_mul]
+      exact h1
+    · rw [abs_zero, zero_mul]
+      exact mul_nonneg hρ.le (pow_nonneg (inv_nonneg.mpr hρ.le) n)
+
+/-- Cochrane (2023), (3.20), p. 65, and p. 64 (**the boundary `γ = 1/ρ` fails**): for every
+`ρ > 0` the bubble economy on the coin-flip tree satisfies (3.17), all its processes are adapted
+and grow at most at rate `ρ⁻¹` (so `ργ = 1`), yet at date 0 the unexpected-inflation identity
+(3.20) fails in every state, and the present-value identity (3.19) fails at date 1 in every
+state. -/
+theorem boundary_3_20 {ρ : ℝ} (hρ : 0 < ρ) (ω : Bool × Bool) :
+    ¬ (innov coinSystem 0 (zB (0 + 1)) ω - innov coinSystem 0 (zB (0 + 1)) ω =
+      -(∑' j, ρ ^ j * innov coinSystem 0 (sB (0 + j + 1)) ω) -
+        (∑' j, ρ ^ j * innov coinSystem 0 (zB (0 + j + 1)) ω) +
+        ∑' j, ρ ^ (j + 1) * innov coinSystem 0 (zB (0 + j + 2) - zB (0 + j + 2)) ω) ∧
+      ¬ HasSum (fun j => ρ ^ j * coinSystem.E 1 (zp zB zB zB sB (1 + j + 1)) ω) (vB ρ 1 ω) := by
+  have hz : ∀ (t : ℕ), innov coinSystem 0 (zB t) ω = 0 := fun t => by
+    rw [innov_apply]
+    change coinSystem.E 1 (fun _ => (0 : ℝ)) ω - coinSystem.E 0 (fun _ => (0 : ℝ)) ω = 0
+    rw [coinSystem.const, coinSystem.const, sub_self]
+  have hzz : ∀ t : ℕ, zB t - zB t = zB t := fun t => by funext; simp [zB]
+  have hs : ∑' j, ρ ^ j * innov coinSystem 0 (sB (0 + j + 1)) ω = -cs1 ω := by
+    rw [tsum_eq_single 0 fun j hj => by
+      rw [sB, innov_cs1]
+      simp [hj]]
+    rw [sB, innov_cs1]
+    simp
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · simp only [hz, hzz, mul_zero, tsum_zero, sub_zero, add_zero, sub_self, hs, neg_neg] at h
+    exact (cs1_ne_zero ω).1 h.symm
+  · have h0 : ∀ j : ℕ, ρ ^ j * coinSystem.E 1 (zp zB zB zB sB (1 + j + 1)) ω = 0 := by
+      intro j
+      have e : zp zB zB zB sB (1 + j + 1) = 0 := by
+        funext ω'
+        simp [zp, zB, sB]
+      rw [e, map_zero, Pi.zero_apply, mul_zero]
+    simp only [h0] at h
+    have := h.unique hasSum_zero
+    simp only [vB, Nat.one_ne_zero, ↓reduceIte, pow_one, Pi.smul_apply, smul_eq_mul] at this
+    rcases mul_eq_zero.mp this with h1 | h1
+    · exact (inv_ne_zero hρ.ne') h1
+    · exact (cs1_ne_zero ω).1 h1
+
+/-- Cochrane (2023), p. 64 ("If we use `ρ = 1` …"): at `ρ = 1` the bubble economy is a bounded
+economy (all processes bounded by one) satisfying (3.17) with `ρ = 1`; by `boundary_3_20` (3.20)
+fails in it, so with `ρ = 1` boundedness is not enough: the limit of `E_t v_{t+T}` must be the
+same constant at `t` and `t + 1` (`identity_3_20_rho_one_mean`). -/
+theorem rho_one_bounded :
+    BoundedProc (vB 1) ∧ BoundedProc sB ∧ BoundedProc zB ∧ Flow317 1 (vB 1) zB zB zB sB := by
+  have hb := growth_B (ρ := 1) one_pos
+  have hc : ∀ {x : ℕ → Bool × Bool → ℝ}, GrowthBound (1 : ℝ)⁻¹ x → BoundedProc x := by
+    intro x hx
+    obtain ⟨K, -, hK⟩ := hx
+    exact ⟨K, fun n ω => by simpa using hK n ω⟩
+  exact ⟨hc hb.1, hc hb.2.1, hc hb.2.2.1, flow_B one_ne_zero⟩
+
+/-- Cochrane (2023), A1 (1.24), p. 563 (counterexample): a log bond price growing at exactly
+`|ω̂|^{−t}`, `q_t = ω̂^{−t}·cs1` for `t ≥ 1`, `q_0 = 0`. -/
+noncomputable def qB (ωh : ℝ) : ℕ → Bool × Bool → ℝ :=
+  fun t => (if t = 0 then 0 else ωh⁻¹ ^ t) • cs1
+
+/-- Cochrane (2023), A1 (1.24) (counterexample): the bond returns of `qB`, `r^n_1 = cs1`, all
+others zero. -/
+noncomputable def rnB : ℕ → Bool × Bool → ℝ := fun t => (if t = 1 then (1 : ℝ) else 0) • cs1
+
+/-- Cochrane (2023), (3.21), p. 65, and A1 (1.25) (**the boundary `γ = 1/|ω̂|` fails**): for
+every `ω̂ ≠ 0`, the log bond price `qB ω̂` is adapted, grows at most at rate `|ω̂|⁻¹` (so
+`|ω̂|γ = 1`) and satisfies the bond-return identity (1.24) with `rnB`, yet the bond-return
+innovation identity (3.21) fails at date 0 in every state. -/
+theorem boundary_3_21 {ωh : ℝ} (hω : ωh ≠ 0) :
+    BondRet ωh (qB ωh) rnB ∧ coinSystem.Adapted (qB ωh) ∧ GrowthBound |ωh|⁻¹ (qB ωh) ∧
+      |ωh| * |ωh|⁻¹ = 1 ∧ ∀ ω, innov coinSystem 0 (rnB (0 + 1)) ω ≠
+        -∑' j, ωh ^ (j + 1) * innov coinSystem 0 (rnB (0 + j + 2)) ω := by
+  refine ⟨fun t ω => ?_, adapted_smul _ (by simp), ⟨1, zero_le_one, fun n ω => ?_⟩,
+    mul_inv_cancel₀ (abs_ne_zero.mpr hω), fun ω h => ?_⟩
+  · simp only [qB, rnB, Pi.smul_apply, smul_eq_mul]
+    rcases t with _ | t
+    · simp only [zero_add, ↓reduceIte, pow_one, Nat.one_ne_zero]
+      field_simp
+      ring
+    · simp only [show t + 1 + 1 ≠ 1 by omega, Nat.add_one_ne_zero, ↓reduceIte, zero_mul]
+      rw [pow_succ]
+      field_simp
+      ring
+  · simp only [qB, Pi.smul_apply, smul_eq_mul, abs_mul, one_mul]
+    have h1 := (cs1_ne_zero ω).2
+    have h2 : 0 ≤ |ωh|⁻¹ ^ n := pow_nonneg (inv_nonneg.mpr (abs_nonneg _)) n
+    split_ifs
+    · rw [abs_zero, zero_mul]
+      exact h2
+    · rw [abs_pow, abs_inv]
+      nlinarith [abs_nonneg (cs1 ω)]
+  · have h0 : ∀ j : ℕ, ωh ^ (j + 1) * innov coinSystem 0 (rnB (0 + j + 2)) ω = 0 := by
+      intro j
+      rw [rnB, innov_cs1]
+      simp
+    rw [tsum_congr h0, tsum_zero, neg_zero, rnB, innov_cs1] at h
+    simp only [zero_add, ↓reduceIte, one_mul] at h
+    exact (cs1_ne_zero ω).1 h
+
+end Boundary
+
+end Cochrane.Generality.TidyR6InnovGrowth
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Figure 3.1 and the announcement results as equilibria of a full model
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.5.3, pp. 68–70
+((3.27)–(3.28) and Figure 3.1), with the bond-price identity of Online Appendix A1.3,
+pp. 561–564.
+
+`LogLinearIdentities` proved Figure 3.1 and the announcement results on sequences of inflation
+innovations that satisfy (3.28) (`LogLinearIdentities.fig31_jump`,
+`LogLinearIdentities.announcement_jump`). Here they are properties of the equilibria of a full
+model. The model, on an arbitrary `ExpectationSystem`, with `0 < ρ < 1` and `|ω̂| < 1`:
+
+* exogenous: the nominal interest rate `i` set by the central bank and the scaled surplus `s̃`,
+  adapted and bounded; no growth (`g = 0`);
+* endogenous: the log real value of debt `v`, the log price of the geometric bond portfolio
+  `q`, its return `r^n` and inflation `π`, adapted and bounded;
+* equations: the bond-return identity (1.24) `r^n_{t+1} = ω̂q_{t+1} − q_t`; the expectations
+  hypothesis `E_t r^n_{t+1} = i_t`; the Fisher equation with a constant real rate
+  `E_t π_{t+1} = i_t` (p. 69); and the flow (3.17) with `g = 0`.
+
+We prove existence (`exists_eqm`) and uniqueness (`unique_eqm`) of the equilibrium: `q` is the
+forward sum of expected rates and `v` the present value of surpluses (`eqm_q_solves`,
+`eqm_v_solves`). In every equilibrium expected real returns are constant (`eqm_const_return`),
+expected inflation innovations equal rate innovations (`innov_infl_eq_innov_i`), and the
+weighted inflation identity (3.23) holds (`eqm_weighted`). Hence, as equilibrium statements:
+Figure 3.1 (`fig31_equilibrium`, `fig31_equilibrium_value`, `fig31_equilibrium_path`), the
+announcement result (`announcement_equilibrium`) and the expected rise with no jump
+(`expected_rise_equilibrium`). The hypotheses are met in a genuinely stochastic economy: on the
+coin-flip tree a rate rise announced at date 1 by the first flip produces exactly the Figure 3.1
+response (`CoinEconomy.fig31_coin_economy`).
+-/
+
+namespace Cochrane.Generality.TidyR6Fig31Equilibrium
+
+open Filter Topology
+open Cochrane.Generality.LogLinearIdentities
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+variable (ρ ωh : ℝ) (i sT v q rn infl : ℕ → Ω → ℝ)
+
+/-- Cochrane (2023), §3.5.3, pp. 68–70, and A1.3: an equilibrium of the linear fiscal model with
+long-term debt and an interest-rate target `i`: adapted bounded `v`, `q`, `r^n`, `π` satisfying
+the bond-return identity (1.24), the expectations hypothesis `E_tr^n_{t+1} = i_t`, the Fisher
+equation `E_tπ_{t+1} = i_t` (constant real rate) and the flow (3.17) with no growth. -/
+structure Equilibrium where
+  v_adapted : 𝔼.Adapted v
+  q_adapted : 𝔼.Adapted q
+  rn_adapted : 𝔼.Adapted rn
+  infl_adapted : 𝔼.Adapted infl
+  v_bdd : BoundedProc v
+  q_bdd : BoundedProc q
+  rn_bdd : BoundedProc rn
+  infl_bdd : BoundedProc infl
+  bond : BondRet ωh q rn
+  eh : ∀ t, 𝔼.E t (rn (t + 1)) = i t
+  fisher : ∀ t, 𝔼.E t (infl (t + 1)) = i t
+  flow : Flow317 ρ v rn infl (fun _ _ => 0) sT
+
+variable {𝔼 ρ ωh i sT v q rn infl}
+
+/-- Cochrane (2023), p. 66 and p. 69: in equilibrium expected real returns are constant,
+`E_t(r^n_{t+1} − π_{t+1}) = 0`. -/
+theorem eqm_const_return (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (n : ℕ) :
+    𝔼.E n (rn (n + 1) - infl (n + 1)) = 0 := by
+  rw [map_sub, hE.eh n, hE.fisher n, sub_self]
+
+/-- Cochrane (2023), §3.5, pp. 63–65: every equilibrium is a bounded linear economy
+(`LogLinearIdentities.LinearEconomy`) with `g = 0`. -/
+theorem eqm_linearEconomy (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT) :
+    LinearEconomy 𝔼 ρ v rn infl (fun _ _ => 0) sT where
+  flow := hE.flow
+  v_adapted := hE.v_adapted
+  rn_adapted := hE.rn_adapted
+  infl_adapted := hE.infl_adapted
+  g_adapted := fun t => 𝔼.const t 0
+  s_adapted := hsa
+  rho_pos := hρ0
+  rho_lt_one := hρ1
+  v_bdd := hE.v_bdd
+  rn_bdd := hE.rn_bdd
+  infl_bdd := hE.infl_bdd
+  g_bdd := ⟨0, fun _ _ => by simp⟩
+  s_bdd := hsb
+
+/-- Cochrane (2023), A1 p. 564: in equilibrium the log bond price solves
+`q_t = ω̂E_tq_{t+1} − i_t`. -/
+theorem eqm_q_solves (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) :
+    ForwardSolution.Solves 𝔼 ωh (fun t => -i t) q := by
+  intro t
+  have h := (EH_bond hE.bond hE.q_adapted t).mp (hE.eh t)
+  change q t = ωh • 𝔼.E t (q (t + 1)) + -i t
+  rw [← h]
+  funext ω
+  simp only [Pi.add_apply, Pi.sub_apply, Pi.neg_apply, Pi.smul_apply, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), (3.19), p. 64: in equilibrium the value of debt solves
+`v_t = ρE_tv_{t+1} + E_t s̃_{t+1}` (expected returns are constant). -/
+theorem eqm_v_solves (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) :
+    ForwardSolution.Solves 𝔼 ρ (fun t => 𝔼.E t (sT (t + 1))) v := by
+  intro t
+  have hf : ρ • v (t + 1) = v t + (rn (t + 1) - infl (t + 1)) - sT (t + 1) := by
+    funext ω
+    have := hE.flow t ω
+    simp only [Pi.smul_apply, smul_eq_mul, Pi.sub_apply, Pi.add_apply]
+    linarith
+  have h := congrArg (𝔼.E t) hf
+  rw [map_smul, map_sub, map_add, hE.v_adapted t, eqm_const_return hE t, add_zero] at h
+  rw [h]
+  funext ω
+  simp only [Pi.add_apply, Pi.sub_apply]
+  ring
+
+/-! ### Existence and uniqueness -/
+
+variable (𝔼 ρ ωh i sT)
+
+/-- Cochrane (2023), A1 p. 564: the equilibrium log bond price, the forward sum
+`q_t = −∑_k ω̂ᵏE_t i_{t+k}`. -/
+noncomputable def eqQ : ℕ → Ω → ℝ := 𝔼.forwardSeries ωh (fun t => -i t)
+
+/-- Cochrane (2023), (3.19), p. 64: the equilibrium value of debt, the present value
+`v_t = ∑_k ρᵏE_t s̃_{t+1+k}`. -/
+noncomputable def eqV : ℕ → Ω → ℝ := 𝔼.forwardSeries ρ (fun t => 𝔼.E t (sT (t + 1)))
+
+/-- Cochrane (2023), A1 (1.24): the equilibrium bond return `r^n_{n} = ω̂q_n − q_{n−1}` (`n ≥ 1`;
+the pre-sample value is `0`). -/
+noncomputable def eqRn : ℕ → Ω → ℝ :=
+  fun n => if n = 0 then 0 else ωh • eqQ 𝔼 ωh i n - eqQ 𝔼 ωh i (n - 1)
+
+/-- Cochrane (2023), (3.17), p. 63: the equilibrium inflation
+`π_n = v_{n−1} + r^n_n − s̃_n − ρv_n` (`n ≥ 1`; the pre-sample value is `0`). -/
+noncomputable def eqInfl : ℕ → Ω → ℝ :=
+  fun n => if n = 0 then 0 else
+    eqV 𝔼 ρ sT (n - 1) + eqRn 𝔼 ωh i n - sT n - ρ • eqV 𝔼 ρ sT n
+
+variable {𝔼 ρ ωh i sT}
+
+/-- Cochrane (2023), §3.5.3 and A1.3: **existence.** For bounded adapted `i` and `s̃`,
+`0 < ρ < 1` and `|ω̂| < 1`, the processes `eqV`, `eqQ`, `eqRn`, `eqInfl` form an equilibrium. -/
+theorem exists_eqm (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hω : |ωh| < 1) (hia : 𝔼.Adapted i)
+    (hib : BoundedProc i) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT) :
+    Equilibrium 𝔼 ρ ωh i sT (eqV 𝔼 ρ sT) (eqQ 𝔼 ωh i) (eqRn 𝔼 ωh i) (eqInfl 𝔼 ρ ωh i sT) := by
+  obtain ⟨Mi, hMi⟩ := hib
+  obtain ⟨Ms, hMs⟩ := hsb
+  have hρ : |ρ| < 1 := by rw [abs_of_pos hρ0]; exact hρ1
+  have hni : ∀ t ω, |(fun t => -i t) t ω| ≤ Mi := fun t ω => by
+    simpa using hMi t ω
+  have hnia : 𝔼.Adapted fun t => -i t := fun t => by rw [map_neg, hia t]
+  have hes : ∀ t ω, |(fun t => 𝔼.E t (sT (t + 1))) t ω| ≤ Ms := fun t ω =>
+    𝔼.abs_E_le (hMs (t + 1)) t ω
+  have hesa : 𝔼.Adapted fun t => 𝔼.E t (sT (t + 1)) := fun t => 𝔼.E_E_self t _
+  have hqs := ForwardSolution.forwardSeries_solves_abs 𝔼 hω hni hnia
+  have hqa := ForwardSolution.forwardSeries_adapted_abs 𝔼 hω hni
+  have hqb := ForwardSolution.forwardSeries_bounded_abs 𝔼 hω hni
+  have hvs := ForwardSolution.forwardSeries_solves_abs 𝔼 hρ hes hesa
+  have hva := ForwardSolution.forwardSeries_adapted_abs 𝔼 hρ hes
+  have hvb := ForwardSolution.forwardSeries_bounded_abs 𝔼 hρ hes
+  change ForwardSolution.Solves 𝔼 ωh (fun t => -i t) (eqQ 𝔼 ωh i) at hqs
+  change 𝔼.Adapted (eqQ 𝔼 ωh i) at hqa
+  change BoundedProc (eqQ 𝔼 ωh i) at hqb
+  change ForwardSolution.Solves 𝔼 ρ (fun t => 𝔼.E t (sT (t + 1))) (eqV 𝔼 ρ sT) at hvs
+  change 𝔼.Adapted (eqV 𝔼 ρ sT) at hva
+  change BoundedProc (eqV 𝔼 ρ sT) at hvb
+  have hrn : ∀ t, eqRn 𝔼 ωh i (t + 1) = ωh • eqQ 𝔼 ωh i (t + 1) - eqQ 𝔼 ωh i t := fun t => by
+    simp [eqRn]
+  have hpi : ∀ t, eqInfl 𝔼 ρ ωh i sT (t + 1) = eqV 𝔼 ρ sT t + eqRn 𝔼 ωh i (t + 1) -
+      sT (t + 1) - ρ • eqV 𝔼 ρ sT (t + 1) := fun t => by
+    simp [eqInfl]
+  have hEH : ∀ t, 𝔼.E t (eqRn 𝔼 ωh i (t + 1)) = i t := by
+    intro t
+    have h := hqs t
+    rw [hrn, map_sub, map_smul, hqa t]
+    have : eqQ 𝔼 ωh i t = ωh • 𝔼.E t (eqQ 𝔼 ωh i (t + 1)) - i t := by
+      rw [h]
+      funext ω
+      simp only [Pi.add_apply, Pi.sub_apply, Pi.neg_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    rw [this]
+    funext ω
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hrna : 𝔼.Adapted (eqRn 𝔼 ωh i) := by
+    intro n
+    rcases n with _ | t
+    · simp only [eqRn, ↓reduceIte]
+      exact map_zero _
+    · rw [hrn, map_sub, map_smul, hqa (t + 1), ForwardSolution.E_of_known 𝔼 (Nat.le_succ t)
+        (hqa t)]
+  obtain ⟨Mq, hMq⟩ := hqb
+  obtain ⟨Mv, hMv⟩ := hvb
+  have hrnb : BoundedProc (eqRn 𝔼 ωh i) := by
+    refine ⟨|ωh| * Mq + Mq, fun n ω => ?_⟩
+    rcases n with _ | t
+    · simp only [eqRn, ↓reduceIte, Pi.zero_apply, abs_zero]
+      have h0 : 0 ≤ Mq := (abs_nonneg _).trans (hMq 0 ω)
+      positivity
+    · rw [hrn, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      refine (abs_sub _ _).trans (add_le_add ?_ (hMq t ω))
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hMq (t + 1) ω) (abs_nonneg _)
+  refine
+    { v_adapted := hva
+      q_adapted := hqa
+      rn_adapted := hrna
+      infl_adapted := fun n => ?_
+      v_bdd := ⟨Mv, hMv⟩
+      q_bdd := ⟨Mq, hMq⟩
+      rn_bdd := hrnb
+      infl_bdd := ?_
+      bond := fun t ω => by rw [hrn]; rfl
+      eh := hEH
+      fisher := fun t => ?_
+      flow := fun t ω => ?_ }
+  · rcases n with _ | t
+    · simp only [eqInfl, ↓reduceIte]
+      exact map_zero _
+    · rw [hpi, map_sub, map_sub, map_add, map_smul, hva (t + 1), hrna (t + 1), hsa (t + 1),
+        ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (hva t)]
+  · obtain ⟨Mr, hMr⟩ := hrnb
+    refine ⟨Mv + Mr + Ms + ρ * Mv, fun n ω => ?_⟩
+    have hv0 : 0 ≤ Mv := (abs_nonneg _).trans (hMv 0 ω)
+    have hr0 : 0 ≤ Mr := (abs_nonneg _).trans (hMr 0 ω)
+    have hs0 : 0 ≤ Ms := (abs_nonneg _).trans (hMs 0 ω)
+    rcases n with _ | t
+    · simp only [eqInfl, ↓reduceIte, Pi.zero_apply, abs_zero]
+      positivity
+    · rw [hpi]
+      simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      have h1 := hMv t ω
+      have h2 := hMr (t + 1) ω
+      have h3 := hMs (t + 1) ω
+      have h4 : |ρ * eqV 𝔼 ρ sT (t + 1) ω| ≤ ρ * Mv := by
+        rw [abs_mul, abs_of_pos hρ0]
+        exact mul_le_mul_of_nonneg_left (hMv (t + 1) ω) hρ0.le
+      calc |eqV 𝔼 ρ sT t ω + eqRn 𝔼 ωh i (t + 1) ω - sT (t + 1) ω -
+            ρ * eqV 𝔼 ρ sT (t + 1) ω|
+          ≤ |eqV 𝔼 ρ sT t ω| + |eqRn 𝔼 ωh i (t + 1) ω| + |sT (t + 1) ω| +
+            |ρ * eqV 𝔼 ρ sT (t + 1) ω| := by
+            have e1 := abs_sub (eqV 𝔼 ρ sT t ω + eqRn 𝔼 ωh i (t + 1) ω - sT (t + 1) ω)
+              (ρ * eqV 𝔼 ρ sT (t + 1) ω)
+            have e2 := abs_sub (eqV 𝔼 ρ sT t ω + eqRn 𝔼 ωh i (t + 1) ω) (sT (t + 1) ω)
+            have e3 := abs_add_le (eqV 𝔼 ρ sT t ω) (eqRn 𝔼 ωh i (t + 1) ω)
+            linarith
+        _ ≤ Mv + Mr + Ms + ρ * Mv := by linarith
+  · have h := hvs t
+    rw [hpi, map_sub, map_sub, map_add, map_smul, hva t, hEH t]
+    have hv : eqV 𝔼 ρ sT t = ρ • 𝔼.E t (eqV 𝔼 ρ sT (t + 1)) + 𝔼.E t (sT (t + 1)) := h
+    rw [hv]
+    funext ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  · rw [hpi]
+    simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+
+/-- Cochrane (2023), §3.5.3 and A1.3: **uniqueness.** Any two equilibria (with the same bounded
+adapted `i`, `s̃`, `0 < ρ < 1`, `|ω̂| < 1`) have the same value of debt and bond price at every
+date, and the same bond returns and inflation at every date `t + 1 ≥ 1` (the pre-sample date-0
+return and inflation do not enter any equation). -/
+theorem unique_eqm (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hω : |ωh| < 1) (hia : 𝔼.Adapted i)
+    (hib : BoundedProc i) (hsb : BoundedProc sT)
+    {v' q' rn' infl' : ℕ → Ω → ℝ} (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl)
+    (hE' : Equilibrium 𝔼 ρ ωh i sT v' q' rn' infl') :
+    v = v' ∧ q = q' ∧ (∀ t, rn (t + 1) = rn' (t + 1)) ∧ ∀ t, infl (t + 1) = infl' (t + 1) := by
+  obtain ⟨Mi, hMi⟩ := hib
+  obtain ⟨Ms, hMs⟩ := hsb
+  have hρ : |ρ| < 1 := by rw [abs_of_pos hρ0]; exact hρ1
+  have hni : ∀ t ω, |(fun t => -i t) t ω| ≤ Mi := fun t ω => by simpa using hMi t ω
+  have hnia : 𝔼.Adapted fun t => -i t := fun t => by rw [map_neg, hia t]
+  have hes : ∀ t ω, |(fun t => 𝔼.E t (sT (t + 1))) t ω| ≤ Ms := fun t ω =>
+    𝔼.abs_E_le (hMs (t + 1)) t ω
+  have hesa : 𝔼.Adapted fun t => 𝔼.E t (sT (t + 1)) := fun t => 𝔼.E_E_self t _
+  have hq : q = q' := by
+    rw [ForwardSolution.eq_forwardSeries_abs 𝔼 hω hni hnia (eqm_q_solves hE) hE.q_bdd,
+      ForwardSolution.eq_forwardSeries_abs 𝔼 hω hni hnia (eqm_q_solves hE') hE'.q_bdd]
+  have hv : v = v' := by
+    rw [ForwardSolution.eq_forwardSeries_abs 𝔼 hρ hes hesa (eqm_v_solves hE) hE.v_bdd,
+      ForwardSolution.eq_forwardSeries_abs 𝔼 hρ hes hesa (eqm_v_solves hE') hE'.v_bdd]
+  have hr : ∀ t, rn (t + 1) = rn' (t + 1) := fun t => by
+    funext ω
+    rw [hE.bond t ω, hE'.bond t ω, hq]
+  refine ⟨hv, hq, hr, fun t => ?_⟩
+  funext ω
+  have h1 := hE.flow t ω
+  have h2 := hE'.flow t ω
+  rw [hv, hr t] at h1
+  linarith
+
+/-! ### Responses in equilibrium -/
+
+/-- Cochrane (2023), p. 69 ("`E_tπ_{t+1} = i_t`"): in equilibrium the news about inflation two or
+more periods ahead is the news about the interest rate one period earlier,
+`ΔE_{t+1}π_{t+2+j} = ΔE_{t+1}i_{t+1+j}`. -/
+theorem innov_infl_eq_innov_i (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (t j : ℕ) :
+    innov 𝔼 t (infl (t + j + 2)) = innov 𝔼 t (i (t + j + 1)) := by
+  have h1 : 𝔼.E (t + 1) (infl (t + j + 2)) = 𝔼.E (t + 1) (i (t + j + 1)) := by
+    rw [← 𝔼.tower (show t + 1 ≤ t + j + 1 by omega), hE.fisher (t + j + 1)]
+  have h0 : 𝔼.E t (infl (t + j + 2)) = 𝔼.E t (i (t + j + 1)) := by
+    rw [← 𝔼.tower (show t ≤ t + j + 1 by omega), hE.fisher (t + j + 1)]
+  simp only [innov, LinearMap.sub_apply, h1, h0]
+
+/-- Cochrane (2023), (3.23), p. 67, in equilibrium: `∑_{j≥0} ω̂^jΔE_{t+1}π_{t+1+j}
+= −∑_{j≥0} ρ^jΔE_{t+1}s̃_{t+1+j}`, as a convergent sum. -/
+theorem eqm_weighted (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
+    (hω : |ωh| < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT) (t : ℕ) (ω : Ω) :
+    ∑' j, ωh ^ j * innov 𝔼 t (infl (t + j + 1)) ω =
+      -∑' j, ρ ^ j * innov 𝔼 t (sT (t + j + 1)) ω :=
+  special_constant_long (eqm_linearEconomy hE hρ0 hρ1 hsa hsb) hE.bond
+    ⟨hE.q_adapted, hE.q_bdd, hω⟩ (fun _ _ => rfl) (eqm_const_return hE) t ω
+
+/-- Cochrane (2023), (3.28), p. 69, in equilibrium: the inflation innovations
+`x_j = ΔE_{t+1}π_{t+1+j}` form a summable sequence, and with no surplus news
+`∑_j ω̂^jx_j = 0`. -/
+theorem eqm_disinflation (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hω : |ωh| < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT) (t : ℕ) (ω : Ω)
+    (hs : ∀ j, innov 𝔼 t (sT (t + j + 1)) ω = 0) :
+    Summable (fun j => ωh ^ j * innov 𝔼 t (infl (t + j + 1)) ω) ∧
+      ∑' j, ωh ^ j * innov 𝔼 t (infl (t + j + 1)) ω = 0 := by
+  obtain ⟨M, hM⟩ := hE.infl_bdd
+  refine ⟨summable_innov 𝔼 (summable_geometric_of_abs_lt_one hω) hM (fun j => t + j + 1) t ω,
+    ?_⟩
+  rw [eqm_weighted hE hρ0 hρ1 hω hsa hsb t ω]
+  simp [hs]
+
+/-- Cochrane (2023), §3.5.3, p. 69 and **Figure 3.1**, as an equilibrium statement: if at date
+`t + 1` (in state `ω`) the news is an unexpected permanent rise of the interest rate by one,
+`ΔE_{t+1}i_{t+1+j} = 1` for all `j ≥ 0`, with no surplus news, then in the (unique) equilibrium
+inflation jumps by `ΔE_{t+1}π_{t+1} = −ω̂/(1 − ω̂)` on impact and is then one higher,
+`ΔE_{t+1}π_{t+2+j} = 1`. -/
+theorem fig31_equilibrium (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hω0 : 0 ≤ ωh) (hω1 : ωh < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT)
+    (t : ℕ) (ω : Ω) (hs : ∀ j, innov 𝔼 t (sT (t + j + 1)) ω = 0)
+    (hi : ∀ j, innov 𝔼 t (i (t + j + 1)) ω = 1) :
+    innov 𝔼 t (infl (t + 1)) ω = -(ωh / (1 - ωh)) ∧
+      ∀ j, innov 𝔼 t (infl (t + j + 2)) ω = 1 := by
+  have hω : |ωh| < 1 := by rw [abs_of_nonneg hω0]; exact hω1
+  have hx : ∀ j, (fun j => innov 𝔼 t (infl (t + j + 1)) ω) (j + 1) = 1 := fun j => by
+    simp only [show t + (j + 1) + 1 = t + j + 2 by omega, innov_infl_eq_innov_i hE, hi]
+  obtain ⟨hsum, h0⟩ := eqm_disinflation hE hρ0 hρ1 hω hsa hsb t ω hs
+  refine ⟨?_, fun j => by simpa [show t + (j + 1) + 1 = t + j + 2 by omega] using hx j⟩
+  simpa using fig31_jump hω0 hω1 hx hsum h0
+
+/-- Cochrane (2023), Figure 3.1, p. 70: at the figure's `ω = 0.8` the equilibrium impact response
+is `−4` (percent). -/
+theorem fig31_equilibrium_value (hE : Equilibrium 𝔼 ρ (0.8 : ℝ) i sT v q rn infl) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT) (t : ℕ) (ω : Ω)
+    (hs : ∀ j, innov 𝔼 t (sT (t + j + 1)) ω = 0)
+    (hi : ∀ j, innov 𝔼 t (i (t + j + 1)) ω = 1) :
+    innov 𝔼 t (infl (t + 1)) ω = -4 := by
+  rw [(fig31_equilibrium hE hρ0 hρ1 (by norm_num) (by norm_num) hsa hsb t ω hs hi).1]
+  norm_num
+
+/-- Cochrane (2023), Figure 3.1, p. 70, in equilibrium: the revision of the log price-level path,
+`∑_{k≤n} ΔE_{t+1}π_{t+1+k}`, is `−ω̂/(1 − ω̂)` on impact and then rises by one per period. -/
+theorem fig31_equilibrium_path (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hω0 : 0 ≤ ωh) (hω1 : ωh < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT)
+    (t : ℕ) (ω : Ω) (hs : ∀ j, innov 𝔼 t (sT (t + j + 1)) ω = 0)
+    (hi : ∀ j, innov 𝔼 t (i (t + j + 1)) ω = 1) (n : ℕ) :
+    ∑ k ∈ Finset.range (n + 1), innov 𝔼 t (infl (t + k + 1)) ω = -(ωh / (1 - ωh)) + n := by
+  obtain ⟨h0, h1⟩ := fig31_equilibrium hE hρ0 hρ1 hω0 hω1 hsa hsb t ω hs hi
+  exact fig31_path (x := fun k => innov 𝔼 t (infl (t + k + 1)) ω) (by simpa using h0)
+    (fun j => by simpa [show t + (j + 1) + 1 = t + j + 2 by omega] using h1 j) n
+
+/-- Cochrane (2023), pp. 69–70 ("announced `k` periods ahead"), as an equilibrium statement: if
+at date `t + 1` the interest rate is announced to rise by one from date `t + k` on
+(`ΔE_{t+1}i_{t+j} = 0` for `1 ≤ j < k`, `= 1` for `j ≥ k`), with no surplus news, then on
+announcement inflation jumps by `ΔE_{t+1}π_{t+1} = −ω̂ᵏ/(1 − ω̂)`. -/
+theorem announcement_equilibrium (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hω0 : 0 ≤ ωh) (hω1 : ωh < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT)
+    (t : ℕ) (ω : Ω) (hs : ∀ j, innov 𝔼 t (sT (t + j + 1)) ω = 0) {k : ℕ} (hk : 1 ≤ k)
+    (hi : ∀ j, 1 ≤ j → innov 𝔼 t (i (t + j)) ω = if j < k then 0 else 1) :
+    innov 𝔼 t (infl (t + 1)) ω = -(ωh ^ k / (1 - ωh)) := by
+  have hω : |ωh| < 1 := by rw [abs_of_nonneg hω0]; exact hω1
+  obtain ⟨hsum, h0⟩ := eqm_disinflation hE hρ0 hρ1 hω hsa hsb t ω hs
+  have hx : ∀ j, 1 ≤ j → (fun j => innov 𝔼 t (infl (t + j + 1)) ω) j =
+      if j < k then 0 else 1 := by
+    intro j hj
+    obtain ⟨m, rfl⟩ : ∃ m, j = m + 1 := ⟨j - 1, by omega⟩
+    simp only [show t + (m + 1) + 1 = t + m + 2 by omega, innov_infl_eq_innov_i hE]
+    rw [show t + m + 1 = t + (m + 1) by omega]
+    exact hi (m + 1) hj
+  simpa using announcement_jump hω0 hω1 hk hx hsum h0
+
+/-- Cochrane (2023), p. 70 ("If the interest-rate rise is completely expected"), as an
+equilibrium statement: if the date-`t + 1` news does not change expected future rates
+(`ΔE_{t+1}i_{t+j} = 0`, `j ≥ 1`) and there is no surplus news, there is no inflation jump. -/
+theorem expected_rise_equilibrium (hE : Equilibrium 𝔼 ρ ωh i sT v q rn infl) (hρ0 : 0 < ρ)
+    (hρ1 : ρ < 1) (hω : |ωh| < 1) (hsa : 𝔼.Adapted sT) (hsb : BoundedProc sT) (t : ℕ) (ω : Ω)
+    (hs : ∀ j, innov 𝔼 t (sT (t + j + 1)) ω = 0)
+    (hi : ∀ j, innov 𝔼 t (i (t + j + 1)) ω = 0) :
+    innov 𝔼 t (infl (t + 1)) ω = 0 := by
+  obtain ⟨hsum, h0⟩ := eqm_disinflation hE hρ0 hρ1 hω hsa hsb t ω hs
+  have hx : ∀ j, (fun j => innov 𝔼 t (infl (t + j + 1)) ω) (j + 1) = 0 := fun j => by
+    simp only [show t + (j + 1) + 1 = t + j + 2 by omega, innov_infl_eq_innov_i hE, hi]
+  simpa using expected_rise_no_jump hx hsum h0
+
+/-! ### A stochastic economy that delivers Figure 3.1 -/
+
+namespace CoinEconomy
+
+open TidyR6InnovGrowth.Boundary ExpectationsFiniteTree
+
+/-- Cochrane (2023), §3.5.3 and Figure 3.1 (the hypotheses are met under genuine uncertainty): on
+the coin-flip tree let the interest rate be `i_n = cs1` (the first flip `±1`) from date 1 on and
+`0` at date 0, with zero surpluses. For `0 < ρ < 1` and `0 ≤ ω̂ < 1` the model has an equilibrium,
+unique in the sense of `unique_eqm`, and in every state where the first flip is heads the date-1
+response is exactly Figure 3.1: `ΔE_1π_1 = −ω̂/(1 − ω̂)` and `ΔE_1π_{2+j} = 1`. -/
+theorem fig31_coin_economy {ρ ωh : ℝ} (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hω0 : 0 ≤ ωh) (hω1 : ωh < 1) :
+    let iC : ℕ → Bool × Bool → ℝ := fun n => (if n = 0 then 0 else 1 : ℝ) • cs1
+    let sC : ℕ → Bool × Bool → ℝ := fun _ _ => 0
+    Equilibrium coinSystem ρ ωh iC sC (eqV coinSystem ρ sC) (eqQ coinSystem ωh iC)
+      (eqRn coinSystem ωh iC) (eqInfl coinSystem ρ ωh iC sC) ∧
+    ∀ b : Bool, innov coinSystem 0 (eqInfl coinSystem ρ ωh iC sC 1) (true, b) =
+        -(ωh / (1 - ωh)) ∧
+      ∀ j, innov coinSystem 0 (eqInfl coinSystem ρ ωh iC sC (j + 2)) (true, b) = 1 := by
+  intro iC sC
+  have hω : |ωh| < 1 := by rw [abs_of_nonneg hω0]; exact hω1
+  have hia : coinSystem.Adapted iC := adapted_smul _ (by simp)
+  have hib : BoundedProc iC := ⟨1, fun n ω => by
+    simp only [iC, Pi.smul_apply, smul_eq_mul, abs_mul]
+    have h1 := (cs1_ne_zero ω).2
+    split_ifs <;> simp [h1]⟩
+  have hsa : coinSystem.Adapted sC := fun t => coinSystem.const t 0
+  have hsb : BoundedProc sC := ⟨0, fun _ _ => by simp [sC]⟩
+  have hE := exists_eqm hρ0 hρ1 hω hia hib hsa hsb
+  refine ⟨hE, fun b => ?_⟩
+  have hs : ∀ j, innov coinSystem 0 (sC (0 + j + 1)) (true, b) = 0 := fun j => by
+    rw [innov_apply]
+    change coinSystem.E 1 (fun _ => (0 : ℝ)) (true, b) - coinSystem.E 0 (fun _ => (0 : ℝ))
+      (true, b) = 0
+    rw [coinSystem.const, coinSystem.const, sub_self]
+  have hi : ∀ j, innov coinSystem 0 (iC (0 + j + 1)) (true, b) = 1 := fun j => by
+    simp only [iC, innov_cs1, show 0 + j + 1 ≠ 0 by omega, ↓reduceIte, one_mul]
+    simp [cs1, coinShock]
+  have h := fig31_equilibrium hE hρ0 hρ1 hω0 hω1 hsa hsb 0 (true, b) hs hi
+  exact ⟨by simpa using h.1, fun j => by simpa using h.2 j⟩
+
+end CoinEconomy
+
+end Cochrane.Generality.TidyR6Fig31Equilibrium
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The linear innovation identities for integrable processes on a probability space
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.5, pp. 63–71
+((3.17)–(3.28)), and Online Appendix A1.3, pp. 561–564.
+
+The core `ExpectationSystem` defines `E_t` on all functions with exact equalities; a stationary
+Gaussian process (unbounded across states) does not fit it. Here expectations are Mathlib's
+conditional expectations `μ[· | 𝓕 t]` on a finite measure space with a filtration, and every
+identity holds almost everywhere. The processes need not be bounded in any sense: they are
+integrable with **`L¹` norms growing at most at rate `γ`, `∫|x_n| ≤ Kγⁿ`, with `ργ < 1`**
+(`L1Growth`, `MGrowthEconomy`). Square-integrable processes with `L²` norms growing at rate `γ`
+qualify (`L2Growth.toL1`); stationary `L²` processes are `γ = 1`.
+
+* Summable `L¹` norms give almost-everywhere absolute convergence (`ae_summable_abs`), so the
+  present-value series and the terminal terms behave a.e. (`ae_summable_E`, `ae_terminal`).
+* (3.18) a.e. for every horizon (`m_fin_horizon`); (3.19) a.e. (`m_pv_319`); the innovation sum
+  `∑ρ^jΔE_{t+1}(s̃ + g − r)_{t+1+j} = 0` a.e. and (3.20) a.e. (`m_innov_pv`, `m_identity_3_20`).
+* The bond identities with a log bond price of `L¹` growth `γ`, `|ω̂|γ < 1`: the forward
+  bond-price sum a.e. (`m_bondPrice_forward`), (3.21) a.e. (`m_bondReturn_innov`, through
+  Mathlib's `condExp_tsum`), (3.22) a.e. (`m_weighted_inflation`).
+* The special cases a.e.: (3.23) (`m_special_constant_long`), (3.24) (`m_identity_3_24`), (3.25)
+  (`m_identity_3_25`), (3.27) (`m_special_constant_short`), (3.28) (`m_monetary_disinflation`)
+  and §3.5.4 (`m_perpetuity`).
+
+A pathwise algebraic core (`real_innov_pv`, `real_identity_3_20`) is shared by all a.e.
+statements.
+-/
+
+namespace Cochrane.Generality.TidyR6InnovMeasure
+
+open MeasureTheory Filter Topology
+open scoped ENNReal NNReal
+
+/-! ### Pathwise algebra -/
+
+/-- Cochrane (2023), p. 64 ("Taking time `t + 1` innovations of (3.19)"), pathwise: if
+`∑ρ^jA_j = v₀`, `∑ρ^jB_{j+1} = v₁`, `B_0 = z` and `v₀ − z = ρv₁` (the flow), then
+`∑ρ^j(B_j − A_j) = 0`. -/
+theorem real_innov_pv {ρ v₀ v₁ z : ℝ} {A B : ℕ → ℝ} (ha : HasSum (fun j => ρ ^ j * A j) v₀)
+    (hb : HasSum (fun j => ρ ^ j * B (j + 1)) v₁) (hz : B 0 = z) (hflow : v₀ - z = ρ * v₁) :
+    HasSum (fun j => ρ ^ j * (B j - A j)) 0 := by
+  have hb' : HasSum (fun j => ρ ^ j * B j) v₀ := by
+    rw [← hasSum_nat_add_iff' 1]
+    simp only [Finset.range_one, Finset.sum_singleton, pow_zero, one_mul, hz]
+    convert hb.mul_left ρ using 1
+    funext j
+    rw [pow_succ]
+    ring
+  have h := hb'.sub ha
+  rw [sub_self] at h
+  convert h using 1
+  funext j
+  ring
+
+/-- Cochrane (2023), (3.20), p. 65, pathwise: with `A_j, B_j` the date-`t` and date-`t + 1`
+forecasts of `(s̃ + g − r)_{t+1+j}`, split into forecasts of `s̃`, `g`, `r^n`, `π`, the identity
+`∑ρ^j(B_j − A_j) = 0` and summability give the unexpected-inflation identity. -/
+theorem real_identity_3_20 {ρ : ℝ} {A B Sa Sb Ga Gb Ra Rb Pa Pb : ℕ → ℝ}
+    (h0 : HasSum (fun j => ρ ^ j * (B j - A j)) 0)
+    (hA : ∀ j, A j = Sa j + Ga j - (Ra j - Pa j)) (hB : ∀ j, B j = Sb j + Gb j - (Rb j - Pb j))
+    (hSa : Summable fun j => ρ ^ j * Sa j) (hSb : Summable fun j => ρ ^ j * Sb j)
+    (hGa : Summable fun j => ρ ^ j * Ga j) (hGb : Summable fun j => ρ ^ j * Gb j)
+    (hRa : Summable fun j => ρ ^ j * Ra j) (hRb : Summable fun j => ρ ^ j * Rb j)
+    (hPa : Summable fun j => ρ ^ j * Pa j) (hPb : Summable fun j => ρ ^ j * Pb j) :
+    (Pb 0 - Pa 0) - (Rb 0 - Ra 0) =
+      -(∑' j, ρ ^ j * (Sb j - Sa j)) - (∑' j, ρ ^ j * (Gb j - Ga j)) +
+        ∑' j, ρ ^ (j + 1) * ((Rb (j + 1) - Ra (j + 1)) - (Pb (j + 1) - Pa (j + 1))) := by
+  have hS : Summable fun j => ρ ^ j * (Sb j - Sa j) := by
+    simpa [mul_sub] using hSb.sub hSa
+  have hG : Summable fun j => ρ ^ j * (Gb j - Ga j) := by
+    simpa [mul_sub] using hGb.sub hGa
+  have hR : Summable fun j => ρ ^ j * ((Rb j - Ra j) - (Pb j - Pa j)) := by
+    have := (hRb.sub hRa).sub (hPb.sub hPa)
+    convert this using 1
+    funext j
+    ring
+  have hsplit : ∀ j, ρ ^ j * (B j - A j) = ρ ^ j * (Sb j - Sa j) + ρ ^ j * (Gb j - Ga j) -
+      ρ ^ j * ((Rb j - Ra j) - (Pb j - Pa j)) := fun j => by
+    rw [hA, hB]
+    ring
+  have h := h0.tsum_eq
+  rw [tsum_congr hsplit, (hS.add hG).tsum_sub hR, hS.tsum_add hG] at h
+  have hr0 : ∑' j, ρ ^ j * ((Rb j - Ra j) - (Pb j - Pa j)) = ((Rb 0 - Ra 0) - (Pb 0 - Pa 0)) +
+      ∑' j, ρ ^ (j + 1) * ((Rb (j + 1) - Ra (j + 1)) - (Pb (j + 1) - Pa (j + 1))) := by
+    rw [hR.tsum_eq_zero_add]
+    simp
+  rw [hr0] at h
+  linarith
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+
+/-! ### Summable `L¹` norms -/
+
+/-- Cochrane (2023), (3.19), p. 64 (auxiliary): if `∫|f_k| ≤ c_k` with `∑c_k < ∞`, then
+`∑_k ∫⁻‖f_k‖ < ∞`. -/
+theorem tsum_lintegral_ne_top {f : ℕ → Ω → ℝ} (hf : ∀ k, Integrable (f k) μ) {c : ℕ → ℝ}
+    (hc : Summable c) (hfc : ∀ k, ∫ ω, |f k ω| ∂μ ≤ c k) : ∑' k, ∫⁻ ω, ‖f k ω‖ₑ ∂μ ≠ ∞ := by
+  have h1 : ∀ k, ∫⁻ ω, ‖f k ω‖ₑ ∂μ = ENNReal.ofReal (∫ ω, |f k ω| ∂μ) := fun k => by
+    rw [← ofReal_integral_norm_eq_lintegral_enorm (hf k)]
+    simp only [Real.norm_eq_abs]
+  have hc0 : ∀ k, 0 ≤ c k := fun k => (integral_nonneg fun ω => abs_nonneg _).trans (hfc k)
+  simp_rw [h1]
+  refine ne_top_of_le_ne_top (b := ENNReal.ofReal (∑' k, c k)) ENNReal.ofReal_ne_top ?_
+  rw [ENNReal.ofReal_tsum_of_nonneg hc0 hc]
+  exact ENNReal.tsum_le_tsum fun k => ENNReal.ofReal_le_ofReal (hfc k)
+
+/-- Cochrane (2023), (3.19), p. 64 (auxiliary, a Borel–Cantelli step): if `∫|f_k| ≤ c_k` with
+`∑c_k < ∞`, then `∑_k |f_k(ω)| < ∞` for almost every `ω`. -/
+theorem ae_summable_abs {f : ℕ → Ω → ℝ} (hf : ∀ k, Integrable (f k) μ) {c : ℕ → ℝ}
+    (hc : Summable c) (hfc : ∀ k, ∫ ω, |f k ω| ∂μ ≤ c k) :
+    ∀ᵐ ω ∂μ, Summable fun k => |f k ω| := by
+  have hmeas : ∀ k, AEMeasurable (fun ω => ‖f k ω‖ₑ) μ := fun k =>
+    (hf k).aestronglyMeasurable.enorm
+  have h2 : ∫⁻ ω, ∑' k, ‖f k ω‖ₑ ∂μ ≠ ∞ := by
+    rw [lintegral_tsum hmeas]
+    exact tsum_lintegral_ne_top hf hc hfc
+  filter_upwards [ae_lt_top' (AEMeasurable.tsum hmeas) h2] with ω hω
+  have h3 : ∑' k, (‖f k ω‖₊ : ℝ≥0∞) ≠ ∞ := hω.ne
+  have h5 := NNReal.summable_coe.mpr (ENNReal.tsum_coe_ne_top_iff_summable.mp h3)
+  simpa [Real.norm_eq_abs] using h5
+
+/-- Cochrane (2023), p. 64 ("expected to grow no faster than `ρ^{−t}`"), in `L¹`: `x_n` is
+integrable and `∫|x_n| ≤ Kγⁿ`. -/
+def L1Growth (μ : Measure Ω) (γ : ℝ) (x : ℕ → Ω → ℝ) : Prop :=
+  ∃ K, ∀ n, Integrable (x n) μ ∧ ∫ ω, |x n ω| ∂μ ≤ K * γ ^ n
+
+/-- Cochrane (2023), (3.18): `L¹` growth bounds add. -/
+theorem L1Growth.add {γ : ℝ} {x y : ℕ → Ω → ℝ} (hx : L1Growth μ γ x) (hy : L1Growth μ γ y) :
+    L1Growth μ γ (x + y) := by
+  obtain ⟨K, hK⟩ := hx
+  obtain ⟨L, hL⟩ := hy
+  refine ⟨K + L, fun n => ⟨(hK n).1.add (hL n).1, ?_⟩⟩
+  calc ∫ ω, |(x + y) n ω| ∂μ ≤ ∫ ω, (|x n ω| + |y n ω|) ∂μ :=
+        integral_mono (((hK n).1.add (hL n).1).abs) ((hK n).1.abs.add (hL n).1.abs)
+          fun ω => abs_add_le _ _
+    _ = ∫ ω, |x n ω| ∂μ + ∫ ω, |y n ω| ∂μ := integral_add (hK n).1.abs (hL n).1.abs
+    _ ≤ (K + L) * γ ^ n := by rw [add_mul]; exact add_le_add (hK n).2 (hL n).2
+
+/-- Cochrane (2023), (3.18): `L¹` growth bounds subtract. -/
+theorem L1Growth.sub {γ : ℝ} {x y : ℕ → Ω → ℝ} (hx : L1Growth μ γ x) (hy : L1Growth μ γ y) :
+    L1Growth μ γ (x - y) := by
+  obtain ⟨K, hK⟩ := hx
+  obtain ⟨L, hL⟩ := hy
+  refine ⟨K + L, fun n => ⟨(hK n).1.sub (hL n).1, ?_⟩⟩
+  calc ∫ ω, |(x - y) n ω| ∂μ ≤ ∫ ω, (|x n ω| + |y n ω|) ∂μ :=
+        integral_mono (((hK n).1.sub (hL n).1).abs) ((hK n).1.abs.add (hL n).1.abs)
+          fun ω => abs_sub _ _
+    _ = ∫ ω, |x n ω| ∂μ + ∫ ω, |y n ω| ∂μ := integral_add (hK n).1.abs (hL n).1.abs
+    _ ≤ (K + L) * γ ^ n := by rw [add_mul]; exact add_le_add (hK n).2 (hL n).2
+
+/-- Cochrane (2023), p. 64, in `L²`: `x_n` is square integrable with `∫x_n² ≤ (Kγⁿ)²`, `K > 0`
+(stationary `L²` processes are `γ = 1`). -/
+def L2Growth (μ : Measure Ω) (γ : ℝ) (x : ℕ → Ω → ℝ) : Prop :=
+  ∃ K, 0 < K ∧ ∀ n, Integrable (x n) μ ∧ Integrable (fun ω => x n ω ^ 2) μ ∧
+    ∫ ω, x n ω ^ 2 ∂μ ≤ (K * γ ^ n) ^ 2
+
+/-- Cochrane (2023), p. 64: on a finite measure space `L²` growth at rate `γ > 0` implies `L¹`
+growth at rate `γ` (by `2λ|x| ≤ λ² + x²` with `λ = Kγⁿ`). -/
+theorem L2Growth.toL1 [IsFiniteMeasure μ] {γ : ℝ} (hγ : 0 < γ) {x : ℕ → Ω → ℝ}
+    (hx : L2Growth μ γ x) : L1Growth μ γ x := by
+  obtain ⟨K, hK, h⟩ := hx
+  refine ⟨K * (μ.real Set.univ + 1) / 2, fun n => ⟨(h n).1, ?_⟩⟩
+  set l := K * γ ^ n with hl
+  have hl0 : 0 < l := mul_pos hK (pow_pos hγ n)
+  have hpt : ∀ ω, |x n ω| ≤ (l + x n ω ^ 2 / l) / 2 := fun ω => by
+    rw [le_div_iff₀ (by norm_num : (0 : ℝ) < 2), add_div' _ _ _ hl0.ne', le_div_iff₀ hl0]
+    nlinarith [sq_nonneg (|x n ω| - l), sq_abs (x n ω)]
+  have hint : Integrable (fun ω => (l + x n ω ^ 2 / l) / 2) μ :=
+    ((integrable_const l).add ((h n).2.1.div_const l)).div_const 2
+  calc ∫ ω, |x n ω| ∂μ ≤ ∫ ω, (l + x n ω ^ 2 / l) / 2 ∂μ :=
+        integral_mono (h n).1.abs hint hpt
+    _ = (l * μ.real Set.univ + (∫ ω, x n ω ^ 2 ∂μ) / l) / 2 := by
+        rw [integral_div, integral_add (integrable_const l) ((h n).2.1.div_const l),
+          integral_const, integral_div, smul_eq_mul, mul_comm]
+    _ ≤ (l * μ.real Set.univ + l ^ 2 / l) / 2 := by
+        gcongr
+        exact (h n).2.2
+    _ = K * (μ.real Set.univ + 1) / 2 * γ ^ n := by
+        rw [hl]
+        field_simp
+
+/-- Cochrane (2023), (3.19)–(3.22) (auxiliary): if `x` has `L¹` growth `γ` and `|a|γ < 1`, then
+for any sub-σ-algebra `m`, `∑_j aʲ μ[x_{t+j+c} | m](ω)` converges absolutely for a.e. `ω`. -/
+theorem ae_summable_E {m : MeasurableSpace Ω} {a γ : ℝ} (hγ : 0 ≤ γ) (ha : |a| * γ < 1)
+    {x : ℕ → Ω → ℝ} (hx : L1Growth μ γ x) (t c : ℕ) :
+    ∀ᵐ ω ∂μ, Summable fun j => a ^ j * μ[x (t + j + c) | m] ω := by
+  obtain ⟨K, hK⟩ := hx
+  have hf : ∀ j, Integrable (fun ω => a ^ j * μ[x (t + j + c) | m] ω) μ := fun j =>
+    integrable_condExp.const_mul _
+  have hb : ∀ j, ∫ ω, |a ^ j * μ[x (t + j + c) | m] ω| ∂μ ≤
+      K * γ ^ (t + c) * (|a| * γ) ^ j := fun j => by
+    simp_rw [abs_mul]
+    rw [integral_const_mul]
+    calc |a ^ j| * ∫ ω, |μ[x (t + j + c) | m] ω| ∂μ ≤ |a ^ j| * ∫ ω, |x (t + j + c) ω| ∂μ :=
+          mul_le_mul_of_nonneg_left (integral_abs_condExp_le _) (abs_nonneg _)
+      _ ≤ |a ^ j| * (K * γ ^ (t + j + c)) :=
+          mul_le_mul_of_nonneg_left (hK _).2 (abs_nonneg _)
+      _ = K * γ ^ (t + c) * (|a| * γ) ^ j := by
+          rw [abs_pow, mul_pow, show t + j + c = (t + c) + j by omega, pow_add]
+          ring
+  filter_upwards [ae_summable_abs hf ((summable_geometric_of_lt_one
+    (mul_nonneg (abs_nonneg a) hγ) ha).mul_left _) hb] with ω hω
+  exact hω.of_abs
+
+/-- Cochrane (2023), p. 64 (the terminal term): if `x` has `L¹` growth `γ` and `|a|γ < 1`, then
+`aᵀ μ[x_{t+T} | m](ω) → 0` for almost every `ω`. -/
+theorem ae_terminal {m : MeasurableSpace Ω} {a γ : ℝ} (hγ : 0 ≤ γ) (ha : |a| * γ < 1)
+    {x : ℕ → Ω → ℝ} (hx : L1Growth μ γ x) (t : ℕ) :
+    ∀ᵐ ω ∂μ, Tendsto (fun T => a ^ T * μ[x (t + T) | m] ω) atTop (𝓝 0) := by
+  have h := ae_summable_E (m := m) hγ ha hx t 0
+  filter_upwards [h] with ω hω
+  simpa using hω.tendsto_atTop_zero
+
+/-! ### The economy and (3.18)–(3.20) almost everywhere -/
+
+variable [IsFiniteMeasure μ]
+
+variable (μ) (𝓕 : Filtration ℕ mΩ) (ρ γ : ℝ) (v rn infl g sT : ℕ → Ω → ℝ)
+
+/-- Cochrane (2023), §3.5, pp. 63–65, on a finite measure space: (3.17) at every date and state,
+processes adapted to the filtration, `ρ > 0`, `γ ≥ 0`, `ργ < 1`, and all five processes
+integrable with `L¹` growth `γ`. -/
+structure MGrowthEconomy where
+  flow : LogLinearIdentities.Flow317 ρ v rn infl g sT
+  v_meas : ∀ t, StronglyMeasurable[𝓕 t] (v t)
+  rn_meas : ∀ t, StronglyMeasurable[𝓕 t] (rn t)
+  infl_meas : ∀ t, StronglyMeasurable[𝓕 t] (infl t)
+  g_meas : ∀ t, StronglyMeasurable[𝓕 t] (g t)
+  s_meas : ∀ t, StronglyMeasurable[𝓕 t] (sT t)
+  rho_pos : 0 < ρ
+  gamma_nonneg : 0 ≤ γ
+  rho_gamma : ρ * γ < 1
+  v_growth : L1Growth μ γ v
+  rn_growth : L1Growth μ γ rn
+  infl_growth : L1Growth μ γ infl
+  g_growth : L1Growth μ γ g
+  s_growth : L1Growth μ γ sT
+
+/-- Cochrane (2023), (2.13) and p. 64: the innovation `ΔE_{t+1}x = μ[x | 𝓕(t+1)] − μ[x | 𝓕 t]`. -/
+noncomputable def innovM (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := μ[x | 𝓕 (t + 1)] - μ[x | 𝓕 t]
+
+variable {μ 𝓕 ρ γ v rn infl g sT}
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), (3.18): `s̃ + g − r` has `L¹` growth `γ`. -/
+theorem MGrowthEconomy.zp_growth (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) :
+    L1Growth μ γ (LogLinearIdentities.zp rn infl g sT) :=
+  (hM.s_growth.add hM.g_growth).sub (hM.rn_growth.sub hM.infl_growth)
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), (3.18): `s̃ + g − r` is adapted. -/
+theorem MGrowthEconomy.zp_meas (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) (t : ℕ) :
+    StronglyMeasurable[𝓕 t] (LogLinearIdentities.zp rn infl g sT t) :=
+  ((hM.s_meas t).add (hM.g_meas t)).sub ((hM.rn_meas t).sub (hM.infl_meas t))
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), §3.5: `|ρ|γ < 1`. -/
+theorem MGrowthEconomy.abs_rho_gamma (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) :
+    |ρ| * γ < 1 := by
+  rw [abs_of_pos hM.rho_pos]; exact hM.rho_gamma
+
+/-- Cochrane (2023), (3.18), p. 63, almost everywhere, for every horizon `T`:
+`v_t = ∑_{j<T} ρ^j E_t(s̃ + g − r)_{t+1+j} + ρ^T E_t v_{t+T}`. -/
+theorem m_fin_horizon (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) (t T : ℕ) :
+    ∀ᵐ ω ∂μ, v t ω = ∑ j ∈ Finset.range T,
+      ρ ^ j * μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 t] ω +
+        ρ ^ T * μ[v (t + T) | 𝓕 t] ω := by
+  obtain ⟨Kv, hKv⟩ := hM.v_growth
+  obtain ⟨Kz, hKz⟩ := hM.zp_growth
+  induction T with
+  | zero =>
+    refine Eventually.of_forall fun ω => ?_
+    simp only [Finset.range_zero, Finset.sum_empty, pow_zero, one_mul, zero_add, add_zero]
+    rw [condExp_of_stronglyMeasurable (𝓕.le t) (hM.v_meas t) (hKv t).1]
+  | succ T ih =>
+    have hrec : v (t + T) = LogLinearIdentities.zp rn infl g sT (t + T + 1) +
+        ρ • v (t + T + 1) := by
+      funext ω
+      have := hM.flow (t + T) ω
+      simp only [LogLinearIdentities.zp, Pi.add_apply, Pi.sub_apply, Pi.smul_apply,
+        smul_eq_mul]
+      linarith
+    have hE : μ[v (t + T) | 𝓕 t] =ᵐ[μ] μ[LogLinearIdentities.zp rn infl g sT (t + T + 1) | 𝓕 t]
+        + ρ • μ[v (t + T + 1) | 𝓕 t] := by
+      rw [hrec]
+      exact (condExp_add (hKz _).1 ((hKv _).1.smul ρ) _).trans
+        (EventuallyEq.add (EventuallyEq.refl _ _) (condExp_smul ρ _ _))
+    filter_upwards [ih, hE] with ω h1 h2
+    rw [h1, Finset.sum_range_succ, h2, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+      show t + T + 1 = t + (T + 1) by omega, pow_succ]
+    ring
+
+/-- Cochrane (2023), (3.19), p. 64, **for integrable processes with `L¹` growth `γ < 1/ρ`**:
+almost surely `v_t = ∑_{j≥1} ρ^{j−1} E_t(s̃ + g − r)_{t+j}`, as a convergent sum. -/
+theorem m_pv_319 (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) (t : ℕ) :
+    ∀ᵐ ω ∂μ, HasSum (fun j => ρ ^ j * μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 t] ω)
+      (v t ω) := by
+  filter_upwards [ae_all_iff.2 (m_fin_horizon hM t),
+    ae_summable_E (m := 𝓕 t) hM.gamma_nonneg hM.abs_rho_gamma hM.zp_growth t 1,
+    ae_terminal (m := 𝓕 t) hM.gamma_nonneg hM.abs_rho_gamma hM.v_growth t] with ω h1 h2 h3
+  have hlim : Tendsto (fun T => ∑ j ∈ Finset.range T,
+      ρ ^ j * μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 t] ω) atTop (𝓝 (v t ω)) := by
+    have h4 := (tendsto_const_nhds (x := v t ω)).sub h3
+    rw [sub_zero] at h4
+    refine h4.congr fun T => ?_
+    rw [h1 T]
+    ring
+  rw [← tendsto_nhds_unique h2.hasSum.tendsto_sum_nat hlim]
+  exact h2.hasSum
+
+/-- Cochrane (2023), p. 64, almost everywhere: the innovations of the discounted flow sum to
+zero, `∑_j ρ^jΔE_{t+1}(s̃ + g − r)_{t+1+j} = 0`. -/
+theorem m_innov_pv (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) (t : ℕ) :
+    ∀ᵐ ω ∂μ, HasSum (fun j => ρ ^ j *
+      innovM μ 𝓕 t (LogLinearIdentities.zp rn infl g sT (t + j + 1)) ω) 0 := by
+  obtain ⟨Kz, hKz⟩ := hM.zp_growth
+  have hz : μ[LogLinearIdentities.zp rn infl g sT (t + 1) | 𝓕 (t + 1)] =
+      LogLinearIdentities.zp rn infl g sT (t + 1) :=
+    condExp_of_stronglyMeasurable (𝓕.le _) (hM.zp_meas (t + 1)) (hKz _).1
+  have e : ∀ j, t + 1 + j + 1 = t + (j + 1) + 1 := fun j => by omega
+  filter_upwards [m_pv_319 hM t, m_pv_319 hM (t + 1)] with ω ha hb
+  simp only [e] at hb
+  have h := real_innov_pv (A := fun j => μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 t] ω)
+    (B := fun j => μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 (t + 1)] ω) ha hb
+    (by simp only [add_zero]; rw [hz]) (by
+      have := hM.flow t ω
+      simp only [LogLinearIdentities.zp, Pi.add_apply, Pi.sub_apply]
+      linarith)
+  simpa [innovM] using h
+
+/-- Cochrane (2023), (3.20), p. 65, **almost everywhere, for integrable processes with `L¹`
+growth `γ < 1/ρ`**:
+`ΔE_{t+1}π_{t+1} − ΔE_{t+1}r^n_{t+1} = −∑ρ^jΔE_{t+1}s̃_{t+1+j} − ∑ρ^jΔE_{t+1}g_{t+1+j}
+  + ∑_{j≥1}ρ^j(ΔE_{t+1}r^n_{t+1+j} − ΔE_{t+1}π_{t+1+j})`. -/
+theorem m_identity_3_20 (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) (t : ℕ) :
+    ∀ᵐ ω ∂μ, innovM μ 𝓕 t (infl (t + 1)) ω - innovM μ 𝓕 t (rn (t + 1)) ω =
+      -(∑' j, ρ ^ j * innovM μ 𝓕 t (sT (t + j + 1)) ω) -
+        (∑' j, ρ ^ j * innovM μ 𝓕 t (g (t + j + 1)) ω) +
+        ∑' j, ρ ^ (j + 1) * (innovM μ 𝓕 t (rn (t + j + 2)) ω -
+          innovM μ 𝓕 t (infl (t + j + 2)) ω) := by
+  obtain ⟨Ks, hKs⟩ := hM.s_growth
+  obtain ⟨Kg, hKg⟩ := hM.g_growth
+  obtain ⟨Kr, hKr⟩ := hM.rn_growth
+  obtain ⟨Kp, hKp⟩ := hM.infl_growth
+  have hγ := hM.gamma_nonneg
+  have hρ := hM.abs_rho_gamma
+  have hsplit : ∀ (s j : ℕ), μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 s] =ᵐ[μ]
+      μ[sT (t + j + 1) | 𝓕 s] + μ[g (t + j + 1) | 𝓕 s] -
+        (μ[rn (t + j + 1) | 𝓕 s] - μ[infl (t + j + 1) | 𝓕 s]) := fun s j => by
+    have e : LogLinearIdentities.zp rn infl g sT (t + j + 1) =
+        (sT (t + j + 1) + g (t + j + 1)) - (rn (t + j + 1) - infl (t + j + 1)) := rfl
+    rw [e]
+    refine (condExp_sub ((hKs _).1.add (hKg _).1) ((hKr _).1.sub (hKp _).1) _).trans ?_
+    exact EventuallyEq.sub (condExp_add (hKs _).1 (hKg _).1 _)
+      (condExp_sub (hKr _).1 (hKp _).1 _)
+  filter_upwards [m_innov_pv hM t, ae_all_iff.2 (hsplit t), ae_all_iff.2 (hsplit (t + 1)),
+    ae_summable_E (m := 𝓕 t) hγ hρ hM.s_growth t 1,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hρ hM.s_growth t 1,
+    ae_summable_E (m := 𝓕 t) hγ hρ hM.g_growth t 1,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hρ hM.g_growth t 1,
+    ae_summable_E (m := 𝓕 t) hγ hρ hM.rn_growth t 1,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hρ hM.rn_growth t 1,
+    ae_summable_E (m := 𝓕 t) hγ hρ hM.infl_growth t 1,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hρ hM.infl_growth t 1]
+    with ω h0 hA hB hSa hSb hGa hGb hRa hRb hPa hPb
+  have h0' : HasSum (fun j => ρ ^ j *
+      (μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 (t + 1)] ω -
+        μ[LogLinearIdentities.zp rn infl g sT (t + j + 1) | 𝓕 t] ω)) 0 := by
+    simpa [innovM] using h0
+  have h := real_identity_3_20 h0' (fun j => by simpa using hA j) (fun j => by simpa using hB j)
+    hSa hSb hGa hGb hRa hRb hPa hPb
+  simp only [innovM, Pi.sub_apply]
+  simp only [add_zero] at h
+  convert h using 3
+
+/-! ### The bond identities (3.21)–(3.22) almost everywhere -/
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), (3.19), p. 64 (auxiliary, without conditioning): if `x` has `L¹` growth `γ`
+and `|a|γ < 1`, then `∑_j |aʲx_{t+j+c}(ω)| < ∞` for almost every `ω`. -/
+theorem ae_summable_path {a γ' : ℝ} (hγ : 0 ≤ γ') (ha : |a| * γ' < 1) {x : ℕ → Ω → ℝ}
+    (hx : L1Growth μ γ' x) (t c : ℕ) :
+    ∀ᵐ ω ∂μ, Summable fun j => |a ^ j * x (t + j + c) ω| := by
+  obtain ⟨K, hK⟩ := hx
+  refine ae_summable_abs (fun j => (hK _).1.const_mul _) ((summable_geometric_of_lt_one
+    (mul_nonneg (abs_nonneg a) hγ) ha).mul_left (K * γ' ^ (t + c))) fun j => ?_
+  simp_rw [abs_mul]
+  rw [integral_const_mul, abs_pow]
+  calc |a| ^ j * ∫ ω, |x (t + j + c) ω| ∂μ ≤ |a| ^ j * (K * γ' ^ (t + j + c)) :=
+        mul_le_mul_of_nonneg_left (hK _).2 (pow_nonneg (abs_nonneg _) _)
+    _ = K * γ' ^ (t + c) * (|a| * γ') ^ j := by
+        rw [mul_pow, show t + j + c = (t + c) + j by omega, pow_add]
+        ring
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), A1 (1.24), p. 563: if the log bond price has `L¹` growth `γ`, so does the
+bond return, `∫|r^n_{n+1}| ≤ K(|ω̂|γ + 1)γⁿ`. -/
+theorem m_rn_growth {ωh γ' : ℝ} {q rn' : ℕ → Ω → ℝ} (hret : LogLinearIdentities.BondRet ωh q rn')
+    (hq : L1Growth μ γ' q) : L1Growth μ γ' fun n => rn' (n + 1) := by
+  obtain ⟨K, hK⟩ := hq
+  have he : ∀ n, rn' (n + 1) = ωh • q (n + 1) - q n := fun n => by
+    funext ω
+    rw [hret n ω]
+    rfl
+  refine ⟨K * (|ωh| * γ' + 1), fun n => ⟨by
+    change Integrable (rn' (n + 1)) μ
+    rw [he]; exact ((hK _).1.smul ωh).sub (hK n).1, ?_⟩⟩
+  change ∫ ω, |rn' (n + 1) ω| ∂μ ≤ _
+  rw [he]
+  calc ∫ ω, |(ωh • q (n + 1) - q n) ω| ∂μ ≤ ∫ ω, (|ωh| * |q (n + 1) ω| + |q n ω|) ∂μ := by
+        refine integral_mono ((((hK _).1.smul ωh).sub (hK n).1).abs)
+          (((hK _).1.abs.const_mul _).add (hK n).1.abs) fun ω => ?_
+        simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+        exact (abs_sub _ _).trans (by rw [abs_mul])
+    _ = |ωh| * ∫ ω, |q (n + 1) ω| ∂μ + ∫ ω, |q n ω| ∂μ := by
+        rw [integral_add ((hK _).1.abs.const_mul _) (hK n).1.abs, integral_const_mul]
+    _ ≤ |ωh| * (K * γ' ^ (n + 1)) + K * γ' ^ n :=
+        add_le_add (mul_le_mul_of_nonneg_left (hK _).2 (abs_nonneg _)) (hK n).2
+    _ = K * (|ωh| * γ' + 1) * γ' ^ n := by ring
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), A1 p. 564 (the corrected box formula, survey E16), **almost everywhere for a
+log bond price of `L¹` growth `γ` with `|ω̂|γ < 1`**: `q_t = −∑_{j≥1} ω̂^{j−1} r^n_{t+j}`. -/
+theorem m_bondPrice_forward {ωh γ' : ℝ} {q rn' : ℕ → Ω → ℝ}
+    (hret : LogLinearIdentities.BondRet ωh q rn') (hγ : 0 ≤ γ') (hq : L1Growth μ γ' q)
+    (hω : |ωh| * γ' < 1) (t : ℕ) :
+    ∀ᵐ ω ∂μ, HasSum (fun j => ωh ^ j * rn' (t + j + 1) ω) (-q t ω) := by
+  filter_upwards [ae_summable_path hγ hω (m_rn_growth hret hq) t 0,
+    ae_summable_path hγ hω hq t 0] with ω hs hT
+  have hrec : ∀ n, q n ω = -rn' (n + 1) ω + ωh * q (n + 1) ω := fun n => by
+    rw [hret n ω]; ring
+  have hs' : Summable fun j => (∏ k ∈ Finset.range j, ωh) * -rn' (t + j + 1) ω := by
+    simp only [Finset.prod_const, Finset.card_range]
+    refine (hs.of_abs.neg).congr fun j => ?_
+    simp only [add_zero]
+    ring
+  have hterm : Tendsto (fun T => (∏ k ∈ Finset.range T, ωh) * q (t + T) ω) atTop (𝓝 0) := by
+    simp only [Finset.prod_const, Finset.card_range]
+    simpa using hT.of_abs.tendsto_atTop_zero
+  have h := (Money.pv_discount_iff (x := fun n => q n ω) (a := fun n => -rn' (n + 1) ω)
+    (b := fun _ => ωh) hrec t hs').mp hterm
+  simp only [Finset.prod_const, Finset.card_range] at h hs'
+  have h2 : HasSum (fun j => ωh ^ j * rn' (t + j + 1) ω)
+      (-(∑' j, ωh ^ j * -rn' (t + j + 1) ω)) := by
+    have := hs'.hasSum.neg
+    convert this using 1
+    funext j
+    ring
+  rw [← h] at h2
+  exact h2
+
+/-- Cochrane (2023), (3.21) and A1 (1.25), p. 564, **almost everywhere for an adapted log bond
+price of `L¹` growth `γ` with `|ω̂|γ < 1`**: `ΔE_{t+1}r^n_{t+1} = −∑_{j≥1} ω̂^jΔE_{t+1}r^n_{t+1+j}`
+(the conditional expectation passes through the series by `condExp_tsum`). -/
+theorem m_bondReturn_innov {ωh γ' : ℝ} {q rn' : ℕ → Ω → ℝ}
+    (hret : LogLinearIdentities.BondRet ωh q rn') (hqm : ∀ t, StronglyMeasurable[𝓕 t] (q t))
+    (hγ : 0 ≤ γ') (hq : L1Growth μ γ' q) (hω : |ωh| * γ' < 1) (t : ℕ) :
+    ∀ᵐ ω ∂μ, innovM μ 𝓕 t (rn' (t + 1)) ω =
+      -∑' j, ωh ^ j * ωh * innovM μ 𝓕 t (rn' (t + j + 2)) ω := by
+  have hr := m_rn_growth hret hq
+  obtain ⟨Kr, hKr⟩ := hr
+  obtain ⟨Kq, hKq⟩ := hq
+  set f : ℕ → Ω → ℝ := fun j => ωh ^ j • rn' (t + j + 2) with hf
+  have hfi : ∀ j, Integrable (f j) μ := fun j => (hKr _).1.smul _
+  have hfb : ∀ j, ∫ ω, |f j ω| ∂μ ≤ Kr * γ' ^ (t + 1) * (|ωh| * γ') ^ j := fun j => by
+    simp only [hf, Pi.smul_apply, smul_eq_mul, abs_mul]
+    rw [integral_const_mul, abs_pow]
+    calc |ωh| ^ j * ∫ ω, |rn' (t + j + 2) ω| ∂μ ≤ |ωh| ^ j * (Kr * γ' ^ (t + j + 1)) :=
+          mul_le_mul_of_nonneg_left (hKr (t + j + 1)).2 (pow_nonneg (abs_nonneg _) _)
+      _ = Kr * γ' ^ (t + 1) * (|ωh| * γ') ^ j := by
+          rw [mul_pow, show t + j + 1 = (t + 1) + j by omega, pow_add]
+          ring
+  have hne := tsum_lintegral_ne_top hfi ((summable_geometric_of_lt_one
+    (mul_nonneg (abs_nonneg ωh) hγ) hω).mul_left _) hfb
+  set F : Ω → ℝ := fun ω => ∑' j, f j ω with hF
+  have hqF : q (t + 1) =ᵐ[μ] -F := by
+    filter_upwards [m_bondPrice_forward hret hγ ⟨Kq, hKq⟩ hω (t + 1)] with ω h
+    have e : ∀ j, t + 1 + j + 1 = t + j + 2 := fun j => by omega
+    simp only [e] at h
+    simp only [hF, hf, Pi.neg_apply, Pi.smul_apply, smul_eq_mul, h.tsum_eq, neg_neg]
+  have hEq : ∀ s, μ[q (t + 1) | 𝓕 s] =ᵐ[μ]
+      fun ω => -∑' j, ωh ^ j * μ[rn' (t + j + 2) | 𝓕 s] ω := fun s => by
+    have h1 := condExp_congr_ae (m := 𝓕 s) hqF
+    have h2 := condExp_neg (μ := μ) F (𝓕 s)
+    have h3 := condExp_tsum (m := 𝓕 s) (fun j => (hfi j).aestronglyMeasurable) hne
+    have h4 : ∀ᵐ ω ∂μ, ∀ j, μ[f j | 𝓕 s] ω = ωh ^ j * μ[rn' (t + j + 2) | 𝓕 s] ω :=
+      ae_all_iff.2 fun j => by
+        filter_upwards [condExp_smul (m := 𝓕 s) (μ := μ) (ωh ^ j) (rn' (t + j + 2))] with ω h
+        rw [h, Pi.smul_apply, smul_eq_mul]
+    filter_upwards [h1, h2, h3, h4] with ω e1 e2 e3 e4
+    rw [e1, e2, Pi.neg_apply, e3]
+    simp only [e4]
+  have hrn : rn' (t + 1) = ωh • q (t + 1) - q t := by
+    funext ω
+    rw [hret t ω]
+    rfl
+  have hErn : ∀ s, t ≤ s → μ[rn' (t + 1) | 𝓕 s] =ᵐ[μ] ωh • μ[q (t + 1) | 𝓕 s] - q t := by
+    intro s hs
+    rw [hrn]
+    refine (condExp_sub ((hKq _).1.smul ωh) (hKq t).1 _).trans ?_
+    rw [condExp_of_stronglyMeasurable (𝓕.le s) ((hqm t).mono (𝓕.mono hs)) (hKq t).1]
+    exact EventuallyEq.sub (condExp_smul _ _ _) (EventuallyEq.refl _ _)
+  filter_upwards [hEq t, hEq (t + 1), hErn t le_rfl, hErn (t + 1) (Nat.le_succ t),
+    ae_summable_E (m := 𝓕 t) hγ hω ⟨Kr, hKr⟩ t 1,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hω ⟨Kr, hKr⟩ t 1] with ω e0 e1 r0 r1 s0 s1
+  simp only [innovM, Pi.sub_apply]
+  rw [r0, r1]
+  simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  rw [e0, e1]
+  have e : ∀ j, t + j + 1 + 1 = t + j + 2 := fun j => by omega
+  simp only [e] at s0 s1
+  rw [show (∑' j, ωh ^ j * ωh * (μ[rn' (t + j + 2) | 𝓕 (t + 1)] ω -
+      μ[rn' (t + j + 2) | 𝓕 t] ω)) = ωh * (∑' j, ωh ^ j * μ[rn' (t + j + 2) | 𝓕 (t + 1)] ω -
+      ∑' j, ωh ^ j * μ[rn' (t + j + 2) | 𝓕 t] ω) by
+    rw [← s1.tsum_sub s0, ← tsum_mul_left]
+    exact tsum_congr fun j => by ring]
+  ring
+
+/-- Cochrane (2023), (3.22), p. 65, pathwise: from (3.20) and (3.21) at one state, with the needed
+summability, the weighted inflation identity. Here `R_j`, `P_j` are the innovations of `r^n` and
+`π` at `t + 1 + j`. -/
+theorem real_weighted {ρ ωh S G : ℝ} {R P : ℕ → ℝ}
+    (h20 : P 0 - R 0 = -S - G + ∑' j, ρ ^ (j + 1) * (R (j + 1) - P (j + 1)))
+    (h21 : R 0 = -∑' j, ωh ^ j * ωh * R (j + 1))
+    (hP : Summable fun j => ωh ^ j * P j) (hRω : Summable fun j => ωh ^ j * R (j + 1))
+    (hRρ : Summable fun j => ρ ^ j * R (j + 1)) (hPρ : Summable fun j => ρ ^ j * P (j + 1)) :
+    ∑' j, ωh ^ j * P j =
+      -S - G + ∑' j, (ρ ^ (j + 1) - ωh ^ (j + 1)) * (R (j + 1) - P (j + 1)) := by
+  have hP1 : Summable fun j => ωh ^ j * P (j + 1) := by
+    have := ((summable_nat_add_iff 1).mpr hP).mul_left ωh⁻¹
+    by_cases h0 : ωh = 0
+    · simp only [h0]
+      refine (summable_nat_add_iff 1).mp ?_
+      simp
+    · refine this.congr fun j => ?_
+      rw [pow_succ]
+      field_simp
+  have e1 : ∑' j, ωh ^ j * P j = P 0 + ∑' j, ωh ^ (j + 1) * P (j + 1) := by
+    rw [hP.tsum_eq_zero_add]
+    simp
+  have hA : Summable fun j => ρ ^ (j + 1) * (R (j + 1) - P (j + 1)) := by
+    have := (hRρ.sub hPρ).mul_left ρ
+    convert this using 1
+    funext j
+    ring
+  have hB : Summable fun j => ωh ^ (j + 1) * (R (j + 1) - P (j + 1)) := by
+    have := (hRω.sub hP1).mul_left ωh
+    convert this using 1
+    funext j
+    ring
+  have hC : Summable fun j => ωh ^ (j + 1) * P (j + 1) := by
+    have := hP1.mul_left ωh
+    convert this using 1
+    funext j
+    ring
+  have e2 : ∑' j, (ρ ^ (j + 1) - ωh ^ (j + 1)) * (R (j + 1) - P (j + 1)) =
+      ∑' j, ρ ^ (j + 1) * (R (j + 1) - P (j + 1)) -
+        ∑' j, ωh ^ (j + 1) * (R (j + 1) - P (j + 1)) := by
+    rw [← hA.tsum_sub hB]
+    exact tsum_congr fun j => by ring
+  have e3 : ∑' j, ωh ^ (j + 1) * (R (j + 1) - P (j + 1)) =
+      ∑' j, ωh ^ j * ωh * R (j + 1) - ∑' j, ωh ^ (j + 1) * P (j + 1) := by
+    have hD : Summable fun j => ωh ^ j * ωh * R (j + 1) := by
+      have := hRω.mul_left ωh
+      convert this using 1
+      funext j
+      ring
+    rw [← hD.tsum_sub hC]
+    exact tsum_congr fun j => by ring
+  rw [e1, e2, e3]
+  linarith
+
+/-- Cochrane (2023), (3.22), p. 65, **almost everywhere**, in an economy of `L¹` growth `γ < 1/ρ`
+with an adapted log bond price of `L¹` growth `γ`, `|ω̂|γ < 1`:
+`∑_{j≥0} ω̂^jΔE_{t+1}π_{t+1+j} = −∑ρ^jΔE_{t+1}s̃_{t+1+j} − ∑ρ^jΔE_{t+1}g_{t+1+j}
+  + ∑_{j≥1}(ρ^j − ω̂^j)(ΔE_{t+1}r^n_{t+1+j} − ΔE_{t+1}π_{t+1+j})`. -/
+theorem m_weighted_inflation (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) {ωh : ℝ}
+    {q : ℕ → Ω → ℝ} (hret : LogLinearIdentities.BondRet ωh q rn)
+    (hqm : ∀ t, StronglyMeasurable[𝓕 t] (q t)) (hq : L1Growth μ γ q) (hω : |ωh| * γ < 1)
+    (t : ℕ) :
+    ∀ᵐ ω ∂μ, ∑' j, ωh ^ j * innovM μ 𝓕 t (infl (t + j + 1)) ω =
+      -(∑' j, ρ ^ j * innovM μ 𝓕 t (sT (t + j + 1)) ω) -
+        (∑' j, ρ ^ j * innovM μ 𝓕 t (g (t + j + 1)) ω) +
+        ∑' j, (ρ ^ (j + 1) - ωh ^ (j + 1)) * (innovM μ 𝓕 t (rn (t + j + 2)) ω -
+          innovM μ 𝓕 t (infl (t + j + 2)) ω) := by
+  have hγ := hM.gamma_nonneg
+  have hρ := hM.abs_rho_gamma
+  filter_upwards [m_identity_3_20 hM t, m_bondReturn_innov hret hqm hγ hq hω t,
+    ae_summable_E (m := 𝓕 t) hγ hω hM.infl_growth t 1,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hω hM.infl_growth t 1,
+    ae_summable_E (m := 𝓕 t) hγ hω hM.rn_growth t 2,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hω hM.rn_growth t 2,
+    ae_summable_E (m := 𝓕 t) hγ hρ hM.rn_growth t 2,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hρ hM.rn_growth t 2,
+    ae_summable_E (m := 𝓕 t) hγ hρ hM.infl_growth t 2,
+    ae_summable_E (m := 𝓕 (t + 1)) hγ hρ hM.infl_growth t 2]
+    with ω h20 h21 p0 p1 rw0 rw1 rr0 rr1 pr0 pr1
+  have e : ∀ j, t + (j + 1) + 1 = t + j + 2 := fun j => by omega
+  refine real_weighted (R := fun j => innovM μ 𝓕 t (rn (t + j + 1)) ω)
+    (P := fun j => innovM μ 𝓕 t (infl (t + j + 1)) ω) ?_ ?_ ?_ ?_ ?_ ?_
+  · simpa [e] using h20
+  · simpa [e] using h21
+  · simpa [innovM, mul_sub] using p1.sub p0
+  · simpa [innovM, mul_sub, e] using rw1.sub rw0
+  · simpa [innovM, mul_sub, e] using rr1.sub rr0
+  · simpa [innovM, mul_sub, e] using pr1.sub pr0
+
+/-! ### The special cases (3.23)–(3.28) almost everywhere -/
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), p. 66 (no growth): the innovation of the zero variable is zero. -/
+theorem innovM_zero (t : ℕ) : innovM μ 𝓕 t 0 = 0 := by
+  simp [innovM, condExp_zero]
+
+/-- Cochrane (2023), p. 66, almost everywhere: with constant expected real returns
+(`E_n(r^n_{n+1} − π_{n+1}) = 0` a.e.), real returns beyond `t + 1` have no innovation at `t + 1`:
+`ΔE_{t+1}r^n_{t+j+2} − ΔE_{t+1}π_{t+j+2} = 0` a.e. -/
+theorem m_innov_r_zero (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT)
+    (hc : ∀ n, μ[rn (n + 1) - infl (n + 1) | 𝓕 n] =ᵐ[μ] 0) (t j : ℕ) :
+    ∀ᵐ ω ∂μ, innovM μ 𝓕 t (rn (t + j + 2)) ω - innovM μ 𝓕 t (infl (t + j + 2)) ω = 0 := by
+  obtain ⟨Kr, hKr⟩ := hM.rn_growth
+  obtain ⟨Kp, hKp⟩ := hM.infl_growth
+  have hs : ∀ s, s ≤ t + j + 1 → μ[rn (t + j + 2) | 𝓕 s] - μ[infl (t + j + 2) | 𝓕 s] =ᵐ[μ] 0 := by
+    intro s hs
+    refine (condExp_sub (hKr _).1 (hKp _).1 _).symm.trans ?_
+    refine (condExp_condExp_of_le (𝓕.mono hs) (𝓕.le (t + j + 1))).symm.trans ?_
+    refine (condExp_congr_ae (hc (t + j + 1))).trans ?_
+    rw [condExp_zero]
+  filter_upwards [hs t (by omega), hs (t + 1) (by omega)] with ω h0 h1
+  simp only [innovM, Pi.sub_apply, Pi.zero_apply] at h0 h1 ⊢
+  linarith
+
+/-- Cochrane (2023), (3.24), p. 68, almost everywhere: with constant expected returns and no
+growth, `ΔE_{t+1}π_{t+1} − ΔE_{t+1}r^n_{t+1} = −∑_{j≥0}ρ^jΔE_{t+1}s̃_{t+1+j}`. -/
+theorem m_identity_3_24 (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) (hg : ∀ n, g n = 0)
+    (hc : ∀ n, μ[rn (n + 1) - infl (n + 1) | 𝓕 n] =ᵐ[μ] 0) (t : ℕ) :
+    ∀ᵐ ω ∂μ, innovM μ 𝓕 t (infl (t + 1)) ω - innovM μ 𝓕 t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * innovM μ 𝓕 t (sT (t + j + 1)) ω := by
+  filter_upwards [m_identity_3_20 hM t, ae_all_iff.2 (m_innov_r_zero hM hc t)] with ω h hr
+  simp only [hg, innovM_zero, Pi.zero_apply, mul_zero, tsum_zero, sub_zero, hr,
+    add_zero] at h
+  exact h
+
+/-- Cochrane (2023), (3.27), p. 69, almost everywhere: with one-period debt (`ω̂ = 0`), constant
+expected returns and no growth, `ΔE_{t+1}π_{t+1} = −∑_{j≥0}ρ^jΔE_{t+1}s̃_{t+1+j}`. -/
+theorem m_special_constant_short (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT)
+    {q : ℕ → Ω → ℝ} (hret : LogLinearIdentities.BondRet 0 q rn)
+    (hqm : ∀ t, StronglyMeasurable[𝓕 t] (q t)) (hg : ∀ n, g n = 0)
+    (hc : ∀ n, μ[rn (n + 1) - infl (n + 1) | 𝓕 n] =ᵐ[μ] 0) (t : ℕ) :
+    ∀ᵐ ω ∂μ, innovM μ 𝓕 t (infl (t + 1)) ω = -∑' j, ρ ^ j * innovM μ 𝓕 t (sT (t + j + 1)) ω := by
+  obtain ⟨Kr, hKr⟩ := hM.rn_growth
+  have he : rn (t + 1) = -q t := by
+    funext ω
+    rw [hret t ω, zero_mul, zero_sub]
+    rfl
+  have hm : StronglyMeasurable[𝓕 t] (rn (t + 1)) := by rw [he]; exact (hqm t).neg
+  have h0 : innovM μ 𝓕 t (rn (t + 1)) = 0 := by
+    simp only [innovM]
+    rw [condExp_of_stronglyMeasurable (𝓕.le _) (hm.mono (𝓕.mono (Nat.le_succ t))) (hKr _).1,
+      condExp_of_stronglyMeasurable (𝓕.le _) hm (hKr _).1, sub_self]
+  filter_upwards [m_identity_3_24 hM hg hc t] with ω h
+  rw [h0, Pi.zero_apply, sub_zero] at h
+  exact h
+
+/-- Cochrane (2023), (3.23), p. 67, almost everywhere: with constant expected returns and no
+growth, `∑_{j≥0} ω̂^jΔE_{t+1}π_{t+1+j} = −∑_{j≥0} ρ^jΔE_{t+1}s̃_{t+1+j}`. -/
+theorem m_special_constant_long (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) {ωh : ℝ}
+    {q : ℕ → Ω → ℝ} (hret : LogLinearIdentities.BondRet ωh q rn)
+    (hqm : ∀ t, StronglyMeasurable[𝓕 t] (q t)) (hq : L1Growth μ γ q) (hω : |ωh| * γ < 1)
+    (hg : ∀ n, g n = 0) (hc : ∀ n, μ[rn (n + 1) - infl (n + 1) | 𝓕 n] =ᵐ[μ] 0) (t : ℕ) :
+    ∀ᵐ ω ∂μ, ∑' j, ωh ^ j * innovM μ 𝓕 t (infl (t + j + 1)) ω =
+      -∑' j, ρ ^ j * innovM μ 𝓕 t (sT (t + j + 1)) ω := by
+  filter_upwards [m_weighted_inflation hM hret hqm hq hω t,
+    ae_all_iff.2 (m_innov_r_zero hM hc t)] with ω h hr
+  simp only [hr, mul_zero, tsum_zero, add_zero] at h
+  simp only [hg, innovM, condExp_zero, sub_zero, Pi.zero_apply, mul_zero, tsum_zero] at h
+  simpa [innovM] using h
+
+/-- Cochrane (2023), (3.28), p. 69, almost everywhere: with no surplus news (a.e.), constant
+expected returns and no growth, `∑_{j≥0} ω̂^jΔE_{t+1}π_{t+1+j} = 0`, hence
+`ΔE_{t+1}π_{t+1} = −∑_{j≥1} ω̂^jΔE_{t+1}π_{t+1+j}`. -/
+theorem m_monetary_disinflation (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) {ωh : ℝ}
+    {q : ℕ → Ω → ℝ} (hret : LogLinearIdentities.BondRet ωh q rn)
+    (hqm : ∀ t, StronglyMeasurable[𝓕 t] (q t)) (hq : L1Growth μ γ q) (hω : |ωh| * γ < 1)
+    (hg : ∀ n, g n = 0) (hc : ∀ n, μ[rn (n + 1) - infl (n + 1) | 𝓕 n] =ᵐ[μ] 0) (t : ℕ)
+    (hs : ∀ j, ∀ᵐ ω ∂μ, innovM μ 𝓕 t (sT (t + j + 1)) ω = 0) :
+    ∀ᵐ ω ∂μ, ∑' j, ωh ^ j * innovM μ 𝓕 t (infl (t + j + 1)) ω = 0 ∧
+      innovM μ 𝓕 t (infl (t + 1)) ω =
+        -∑' j, ωh ^ (j + 1) * innovM μ 𝓕 t (infl (t + j + 2)) ω := by
+  filter_upwards [m_special_constant_long hM hret hqm hq hω hg hc t, ae_all_iff.2 hs,
+    ae_summable_E (m := 𝓕 t) hM.gamma_nonneg hω hM.infl_growth t 1,
+    ae_summable_E (m := 𝓕 (t + 1)) hM.gamma_nonneg hω hM.infl_growth t 1]
+    with ω h hs' p0 p1
+  simp only [hs', mul_zero, tsum_zero, neg_zero] at h
+  refine ⟨h, ?_⟩
+  have hP : Summable fun j => ωh ^ j * innovM μ 𝓕 t (infl (t + j + 1)) ω := by
+    simpa [innovM, mul_sub] using p1.sub p0
+  rw [hP.tsum_eq_zero_add] at h
+  simp only [pow_zero, one_mul, add_zero] at h
+  have e : ∀ j, t + (j + 1) + 1 = t + j + 2 := fun j => by omega
+  simp only [e] at h
+  linarith
+
+/-- Cochrane (2023), (3.25), p. 68, almost everywhere: with constant expected returns,
+`ΔE_{t+1}r^n_{t+1} = −∑_{j≥1} ω̂^jΔE_{t+1}π_{t+1+j}`. -/
+theorem m_identity_3_25 (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) {ωh : ℝ}
+    {q : ℕ → Ω → ℝ} (hret : LogLinearIdentities.BondRet ωh q rn)
+    (hqm : ∀ t, StronglyMeasurable[𝓕 t] (q t)) (hq : L1Growth μ γ q) (hω : |ωh| * γ < 1)
+    (hc : ∀ n, μ[rn (n + 1) - infl (n + 1) | 𝓕 n] =ᵐ[μ] 0) (t : ℕ) :
+    ∀ᵐ ω ∂μ, innovM μ 𝓕 t (rn (t + 1)) ω =
+      -∑' j, ωh ^ j * ωh * innovM μ 𝓕 t (infl (t + j + 2)) ω := by
+  filter_upwards [m_bondReturn_innov hret hqm hM.gamma_nonneg hq hω t,
+    ae_all_iff.2 (m_innov_r_zero hM hc t)] with ω h hr
+  rw [h]
+  congr 1
+  exact tsum_congr fun j => by rw [sub_eq_zero.mp (hr j)]
+
+/-- Cochrane (2023), §3.5.4, p. 71, almost everywhere: with perpetuities (`ω̂ = ρ`) and an
+adapted log bond price of `L¹` growth `γ`, the discount-rate terms drop out of (3.22). -/
+theorem m_perpetuity (hM : MGrowthEconomy μ 𝓕 ρ γ v rn infl g sT) {q : ℕ → Ω → ℝ}
+    (hret : LogLinearIdentities.BondRet ρ q rn) (hqm : ∀ t, StronglyMeasurable[𝓕 t] (q t))
+    (hq : L1Growth μ γ q) (t : ℕ) :
+    ∀ᵐ ω ∂μ, ∑' j, ρ ^ j * innovM μ 𝓕 t (infl (t + j + 1)) ω =
+      -(∑' j, ρ ^ j * innovM μ 𝓕 t (sT (t + j + 1)) ω) -
+        ∑' j, ρ ^ j * innovM μ 𝓕 t (g (t + j + 1)) ω := by
+  filter_upwards [m_weighted_inflation hM hret hqm hq hM.abs_rho_gamma t] with ω h
+  simpa using h
+
+end Cochrane.Generality.TidyR6InnovMeasure
+
 set_option linter.style.longLine false
 #print axioms Cochrane.Generality.SchurStable
 #print axioms Cochrane.Generality.discQ
@@ -12073,3 +15698,225 @@ set_option linter.style.longLine false
 #print axioms Cochrane.Generality.Links.expDisc_ratio_eq_disc
 #print axioms Cochrane.Generality.Links.e13_discrete_and_continuous
 #print axioms Cochrane.Generality.Links.eq_3_26_printed_iff
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.factor
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.factor_pos
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.factor_eq
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_pos
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_zero
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_succ
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_succ'
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_le
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.exp_neg_lt_one
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.summable_cumFactor
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.geom_bound
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.sum_geom_le
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_bound
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_rec
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_diff
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.tendsto_rate_of_factor
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_tvc
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_unique
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_const
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.cumRate_ge
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.abs_cumRate_le
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.abs_exp_neg_sub_le
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.bondPrice_mem
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.delta
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.err_rec
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.delta_le
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.err_le
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.eta_le
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.tendsto_unique_ode_solution
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.exact_hyps
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc_exact
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici_exact
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.const_case
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.jumpRate
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_jumpRate
+#print axioms Cochrane.Generality.TidyR6DiscreteBondLimit.not_uniform_Ici
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.cumFactor_le'
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.summable_discVal
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_bound
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_rec
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_unique
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.pvIntegrable_of_bound
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.pv_abs_le
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.valDelta
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.valErr_rec
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.valDelta_le
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.valErr_le
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.val_eta_le
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Ici
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendsto_unique_ode_solution
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc_exact
+#print axioms Cochrane.Generality.TidyR6DiscreteValuationLimit.discPrice_eq_discVal
+#print axioms Cochrane.Generality.TidyR6E13Limit.lamD
+#print axioms Cochrane.Generality.TidyR6E13Limit.priceD
+#print axioms Cochrane.Generality.TidyR6E13Limit.rateD
+#print axioms Cochrane.Generality.TidyR6E13Limit.moneyD
+#print axioms Cochrane.Generality.TidyR6E13Limit.bondsD
+#print axioms Cochrane.Generality.TidyR6E13Limit.surplusD
+#print axioms Cochrane.Generality.TidyR6E13Limit.moneyD_succ
+#print axioms Cochrane.Generality.TidyR6E13Limit.term10_zero
+#print axioms Cochrane.Generality.TidyR6E13Limit.term11_zero
+#print axioms Cochrane.Generality.TidyR6E13Limit.standing
+#print axioms Cochrane.Generality.TidyR6E13Limit.flow
+#print axioms Cochrane.Generality.TidyR6E13Limit.discrete_e13
+#print axioms Cochrane.Generality.TidyR6E13Limit.contN
+#print axioms Cochrane.Generality.TidyR6E13Limit.contM
+#print axioms Cochrane.Generality.TidyR6E13Limit.contS
+#print axioms Cochrane.Generality.TidyR6E13Limit.sample_eq
+#print axioms Cochrane.Generality.TidyR6E13Limit.gap_eq
+#print axioms Cochrane.Generality.TidyR6E13Limit.tendsto_grid
+#print axioms Cochrane.Generality.TidyR6E13Limit.tendsto_expm1_div
+#print axioms Cochrane.Generality.TidyR6E13Limit.limits
+#print axioms Cochrane.Generality.TidyR6E13Limit.e13_one_economy
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.zp_adapted'
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.terminal_tendsto
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.innov_pv_general
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_general
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_iff
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_of_tvc
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_rho_one_mean
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthBound
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthBound.add
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthBound.sub
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.mk
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.flow
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.v_adapted
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rn_adapted
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.infl_adapted
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.g_adapted
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.s_adapted
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rho_pos
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.gamma_nonneg
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rho_gamma
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.v_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rn_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.infl_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.g_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.s_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.LinearEconomy.toGrowth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.summable_E_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.summable_innov_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.terminal_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.zp_growth
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.abs_rho_gamma
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_pv_319
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_innov_pv
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_20
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_rn_bound
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_bondPrice_forward
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_bondReturn_innov
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_weighted_inflation
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_special_constant_short
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_special_constant_long
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_24
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_25
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_monetary_disinflation
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.g_perpetuity
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.cs1
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.cs1_ne_zero
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.E_cs1
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.adapted_smul
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.innov_cs1
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.vB
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.sB
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.zB
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.flow_B
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.adapted_B
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.growth_B
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.boundary_3_20
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.rho_one_bounded
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.qB
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.rnB
+#print axioms Cochrane.Generality.TidyR6InnovGrowth.Boundary.boundary_3_21
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.mk
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.v_adapted
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.q_adapted
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.rn_adapted
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.infl_adapted
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.v_bdd
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.q_bdd
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.rn_bdd
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.infl_bdd
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.bond
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.eh
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.fisher
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.flow
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_const_return
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_linearEconomy
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_q_solves
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_v_solves
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqQ
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqV
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqRn
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqInfl
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.exists_eqm
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.unique_eqm
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.innov_infl_eq_innov_i
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_weighted
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_disinflation
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium_value
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium_path
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.announcement_equilibrium
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.expected_rise_equilibrium
+#print axioms Cochrane.Generality.TidyR6Fig31Equilibrium.CoinEconomy.fig31_coin_economy
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.real_innov_pv
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.real_identity_3_20
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.tsum_lintegral_ne_top
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.ae_summable_abs
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.L1Growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.L1Growth.add
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.L1Growth.sub
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.L2Growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.L2Growth.toL1
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.ae_summable_E
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.ae_terminal
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.mk
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.flow
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.v_meas
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rn_meas
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.infl_meas
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.g_meas
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.s_meas
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rho_pos
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.gamma_nonneg
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rho_gamma
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.v_growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rn_growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.infl_growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.g_growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.s_growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.innovM
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.zp_growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.zp_meas
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.abs_rho_gamma
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_fin_horizon
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_pv_319
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_innov_pv
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_20
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.ae_summable_path
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_rn_growth
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_bondPrice_forward
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_bondReturn_innov
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.real_weighted
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_weighted_inflation
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.innovM_zero
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_innov_r_zero
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_24
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_special_constant_short
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_special_constant_long
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_monetary_disinflation
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_25
+#print axioms Cochrane.Generality.TidyR6InnovMeasure.m_perpetuity

@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-20T10:25:25.332503+00:00",
-  "theorems": 636,
+  "checked_at_utc": "2026-10-29T21:04:14.357349+00:00",
+  "theorems": 782,
   "module_theorems": {
     "Generality/Determinacy.lean": 23,
     "Generality/Expectations.lean": 20,
@@ -16,9 +16,15 @@
     "Generality/ContinuousLong.lean": 70,
     "Generality/ContinuousLinear.lean": 68,
     "Generality/ContinuousMoney.lean": 20,
-    "Generality/Links.lean": 30
+    "Generality/Links.lean": 30,
+    "Generality/TidyR6DiscreteBondLimit.lean": 35,
+    "Generality/TidyR6DiscreteValuationLimit.lean": 16,
+    "Generality/TidyR6E13Limit.lean": 12,
+    "Generality/TidyR6InnovGrowth.lean": 38,
+    "Generality/TidyR6Fig31Equilibrium.lean": 15,
+    "Generality/TidyR6InnovMeasure.lean": 30
   },
-  "audited_declarations": 803,
+  "audited_declarations": 1025,
   "declarations": [
     {
       "name": "Cochrane.Generality.SchurStable",
@@ -4034,6 +4040,1116 @@
       "name": "Cochrane.Generality.Links.eq_3_26_printed_iff",
       "kind": "theorem",
       "module": "Generality/Links.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.factor",
+      "kind": "def",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor",
+      "kind": "def",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice",
+      "kind": "def",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.factor_pos",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.factor_eq",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_pos",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_succ",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_succ'",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.exp_neg_lt_one",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.summable_cumFactor",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.geom_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.sum_geom_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_rec",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_diff",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.tendsto_rate_of_factor",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_tvc",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_unique",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_const",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.cumRate_ge",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.abs_cumRate_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.abs_exp_neg_sub_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.bondPrice_mem",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.delta",
+      "kind": "def",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.err_rec",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.delta_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.err_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.eta_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.tendsto_unique_ode_solution",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.exact_hyps",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc_exact",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici_exact",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.const_case",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.jumpRate",
+      "kind": "def",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_jumpRate",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteBondLimit.not_uniform_Ici",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteBondLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal",
+      "kind": "def",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.cumFactor_le'",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.summable_discVal",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_rec",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_unique",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.pvIntegrable_of_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.pv_abs_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.valDelta",
+      "kind": "def",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.valErr_rec",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.valDelta_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.valErr_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_eta_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Ici",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendsto_unique_ode_solution",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc_exact",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6DiscreteValuationLimit.discPrice_eq_discVal",
+      "kind": "theorem",
+      "module": "Generality/TidyR6DiscreteValuationLimit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.lamD",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.priceD",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.rateD",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.moneyD",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.bondsD",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.surplusD",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.moneyD_succ",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.term10_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.term11_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.standing",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.flow",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.discrete_e13",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.contN",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.contM",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.contS",
+      "kind": "def",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.sample_eq",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.gap_eq",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.tendsto_grid",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.tendsto_expm1_div",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.limits",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6E13Limit.e13_one_economy",
+      "kind": "theorem",
+      "module": "Generality/TidyR6E13Limit.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.zp_adapted'",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.terminal_tendsto",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.innov_pv_general",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_general",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_iff",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_of_tvc",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_rho_one_mean",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthBound",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthBound.add",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthBound.sub",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy",
+      "kind": "structure",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.mk",
+      "kind": "constructor",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.flow",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.v_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rn_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.infl_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.g_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.s_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rho_pos",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.gamma_nonneg",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rho_gamma",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.v_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rn_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.infl_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.g_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.s_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.LinearEconomy.toGrowth",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.summable_E_growth",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.summable_innov_growth",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.terminal_growth",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.zp_growth",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.abs_rho_gamma",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_pv_319",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_innov_pv",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_20",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_rn_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_bondPrice_forward",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_bondReturn_innov",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_weighted_inflation",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_special_constant_short",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_special_constant_long",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_24",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_25",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_monetary_disinflation",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.g_perpetuity",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.cs1",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.cs1_ne_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.E_cs1",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.adapted_smul",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.innov_cs1",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.vB",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.sB",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.zB",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.flow_B",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.adapted_B",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.growth_B",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.boundary_3_20",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.rho_one_bounded",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.qB",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.rnB",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovGrowth.Boundary.boundary_3_21",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovGrowth.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium",
+      "kind": "structure",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.mk",
+      "kind": "constructor",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.v_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.q_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.rn_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.infl_adapted",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.v_bdd",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.q_bdd",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.rn_bdd",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.infl_bdd",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.bond",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.eh",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.fisher",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.flow",
+      "kind": "projection",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_const_return",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_linearEconomy",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_q_solves",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_v_solves",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqQ",
+      "kind": "def",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqV",
+      "kind": "def",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqRn",
+      "kind": "def",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqInfl",
+      "kind": "def",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.exists_eqm",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.unique_eqm",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.innov_infl_eq_innov_i",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_weighted",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_disinflation",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium_value",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium_path",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.announcement_equilibrium",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.expected_rise_equilibrium",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6Fig31Equilibrium.CoinEconomy.fig31_coin_economy",
+      "kind": "theorem",
+      "module": "Generality/TidyR6Fig31Equilibrium.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.real_innov_pv",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.real_identity_3_20",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.tsum_lintegral_ne_top",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.ae_summable_abs",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.L1Growth",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.L1Growth.add",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.L1Growth.sub",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.L2Growth",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.L2Growth.toL1",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.ae_summable_E",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.ae_terminal",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy",
+      "kind": "structure",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.mk",
+      "kind": "constructor",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.flow",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.v_meas",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rn_meas",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.infl_meas",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.g_meas",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.s_meas",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rho_pos",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.gamma_nonneg",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rho_gamma",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.v_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rn_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.infl_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.g_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.s_growth",
+      "kind": "projection",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.innovM",
+      "kind": "def",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.zp_growth",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.zp_meas",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.abs_rho_gamma",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_fin_horizon",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_pv_319",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_innov_pv",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_20",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.ae_summable_path",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_rn_growth",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_bondPrice_forward",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_bondReturn_innov",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.real_weighted",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_weighted_inflation",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.innovM_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_innov_r_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_24",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_special_constant_short",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_special_constant_long",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_monetary_disinflation",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_25",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR6InnovMeasure.m_perpetuity",
+      "kind": "theorem",
+      "module": "Generality/TidyR6InnovMeasure.lean"
     }
   ],
   "full_build": "passed",
@@ -8040,6 +9156,1116 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.factor_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.factor_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_succ'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.cumFactor_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.exp_neg_lt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.summable_cumFactor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.geom_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.sum_geom_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_diff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.tendsto_rate_of_factor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.cumRate_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.abs_cumRate_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.abs_exp_neg_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.bondPrice_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.delta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.err_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.delta_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.err_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.eta_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.tendsto_unique_ode_solution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.exact_hyps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.const_case": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.jumpRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.discPrice_jumpRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteBondLimit.not_uniform_Ici": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.cumFactor_le'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.summable_discVal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.discVal_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.pvIntegrable_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.pv_abs_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.valDelta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.valErr_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.valDelta_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.valErr_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_eta_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Ici": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendsto_unique_ode_solution": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6DiscreteValuationLimit.discPrice_eq_discVal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.lamD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.priceD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.rateD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.moneyD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.bondsD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.surplusD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.moneyD_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.term10_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.term11_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.standing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.discrete_e13": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.contN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.contM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.contS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.sample_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.gap_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.tendsto_grid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.tendsto_expm1_div": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.limits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6E13Limit.e13_one_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.zp_adapted'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.terminal_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.innov_pv_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_of_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.identity_3_20_rho_one_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthBound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthBound.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthBound.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.v_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rn_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.infl_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.g_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.s_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rho_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.gamma_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rho_gamma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.v_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.rn_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.infl_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.g_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.s_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.LinearEconomy.toGrowth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.summable_E_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.summable_innov_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.terminal_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.zp_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.GrowthEconomy.abs_rho_gamma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_pv_319": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_innov_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_20": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_rn_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_bondPrice_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_bondReturn_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_weighted_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_special_constant_short": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_special_constant_long": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_24": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_identity_3_25": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_monetary_disinflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.g_perpetuity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.cs1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.cs1_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.E_cs1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.adapted_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.innov_cs1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.vB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.sB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.zB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.flow_B": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.adapted_B": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.growth_B": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.boundary_3_20": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.rho_one_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.qB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.rnB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovGrowth.Boundary.boundary_3_21": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.v_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.q_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.rn_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.infl_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.v_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.q_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.rn_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.infl_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.bond": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.eh": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.Equilibrium.flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_const_return": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_linearEconomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_q_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_v_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqRn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.exists_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.unique_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.innov_infl_eq_innov_i": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_weighted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.eqm_disinflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.fig31_equilibrium_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.announcement_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.expected_rise_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6Fig31Equilibrium.CoinEconomy.fig31_coin_economy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.real_innov_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.real_identity_3_20": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.tsum_lintegral_ne_top": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.ae_summable_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.L1Growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.L1Growth.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.L1Growth.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.L2Growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.L2Growth.toL1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.ae_summable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.ae_terminal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.v_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rn_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.infl_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.g_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.s_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rho_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.gamma_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rho_gamma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.v_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.rn_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.infl_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.g_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.s_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.innovM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.zp_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.zp_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.MGrowthEconomy.abs_rho_gamma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_fin_horizon": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_pv_319": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_innov_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_20": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.ae_summable_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_rn_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_bondPrice_forward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_bondReturn_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.real_weighted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_weighted_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.innovM_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_innov_r_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_24": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_special_constant_short": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_special_constant_long": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_monetary_disinflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_identity_3_25": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR6InnovMeasure.m_perpetuity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -8058,15 +10284,21 @@
     "Generality/ContinuousLinear.lean": "8c894440926b7d6508cd22690093dc26d71357ae26dffc7cd040bd721b8b6f43",
     "Generality/ContinuousMoney.lean": "d5a5962d55229d9fe96e08d83301f50aef6cc7d5020dc555f60597e9d7cbcb22",
     "Generality/Links.lean": "2d50c60912ce36fc4709cff1197676f2f170e35e39c61fb6a27236a505d90aa7",
-    "Generality.lean": "1b34277c1339ddacfac9022576e2d62867a6d263ccb18d6f64f104c35edd1601",
+    "Generality/TidyR6DiscreteBondLimit.lean": "191bf5230acd324e5e033e0938e5435b9df5b90c7006dcf2db3546eb546b31c5",
+    "Generality/TidyR6DiscreteValuationLimit.lean": "c8e78f5f473ad422c9e4715174387b0115eef5b8572c33e9fdeac8d6ef38e437",
+    "Generality/TidyR6E13Limit.lean": "3acf8dbd1dbea9e9e6d4bb5397282c2dd4aa04a49883ef16076fef7d59ce796f",
+    "Generality/TidyR6InnovGrowth.lean": "3c32a94bb9ffad0009a062145f17fe4fb7cf27f45824d055d774fa9b02849157",
+    "Generality/TidyR6Fig31Equilibrium.lean": "112ecbbe158bc94157edfe157b341481c1e98839353b9c80c0cfce65eb68577a",
+    "Generality/TidyR6InnovMeasure.lean": "90498bb10e5688ad1ef6f556e454e9681dadc2ebbd10431a1f90c63f4b5df0e2",
+    "Generality.lean": "8e393b03844f1fc24eda71d3e5a91515204b0065708ff75c7b7d479e5b1c78b5",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "3dc7ec493361b7b0b8d9f2caf735020fe498c721d7afbc5be6c3b37393920325",
     "lake-manifest.json": "0de844cbb3765f75be5af6b0599f90772090bce532f7b74df153cf6645d4cc5b",
-    "proof-manifest.json": "39895b33db553f552d8e5c21331c6ad3604ec732f85485f379b7814aebc16e50",
-    "scripts/verify.py": "a70b1fa704dd590f937f8b37682afa88a9d85a9150065acb935c7d2c9589da3b",
+    "proof-manifest.json": "89300ffdbecbe1f995633b8ea1ec77665d098932978a548c7b9076862686eadf",
+    "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "cd8373539cfc3f0892359c607808f8ac310d784b0c72e0283ea9422cf1df2c8f",
+  "fresh_audit_sha256": "bd1b016759f349ecc5e726536b91577bc00dff798e3b7901ae7c07d4501323d7",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 3 (with Online Appendix A1.2-A1.6, A1.9.1): A bit of generality. Long-term debt with finite and geometric maturity structures (flow plus transversality equivalent to the present value), price jumps and forward guidance; ratios to GDP; stochastic discount factors, inverse returns and ex-post present values (which converge on every finite event tree); money and the three present-value forms with their transversality conditions; the log-linear identities as exact derivatives (rho = e^{-(r-g)}, bond-return weight omega/(1+i)), the unexpected-inflation and weighted-inflation identities, Figure 3.1 reconciled; the MSV solution; continuous time with short, long and general maturity densities, linear identities and money; links between discrete and continuous weights and valuations. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 3, pp. 52-80, and Online Appendix A1.2-A1.6 and A1.9.1."

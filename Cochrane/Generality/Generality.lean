@@ -18,3 +18,9 @@ import Generality.ContinuousLong
 import Generality.ContinuousLinear
 import Generality.ContinuousMoney
 import Generality.Links
+import Generality.TidyR6DiscreteBondLimit
+import Generality.TidyR6DiscreteValuationLimit
+import Generality.TidyR6E13Limit
+import Generality.TidyR6InnovGrowth
+import Generality.TidyR6Fig31Equilibrium
+import Generality.TidyR6InnovMeasure

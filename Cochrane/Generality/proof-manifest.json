@@ -15,7 +15,13 @@
     "Generality/ContinuousLong.lean",
     "Generality/ContinuousLinear.lean",
     "Generality/ContinuousMoney.lean",
-    "Generality/Links.lean"
+    "Generality/Links.lean",
+    "Generality/TidyR6DiscreteBondLimit.lean",
+    "Generality/TidyR6DiscreteValuationLimit.lean",
+    "Generality/TidyR6E13Limit.lean",
+    "Generality/TidyR6InnovGrowth.lean",
+    "Generality/TidyR6Fig31Equilibrium.lean",
+    "Generality/TidyR6InnovMeasure.lean"
   ],
   "theorem_counts": {
     "Generality/Determinacy.lean": 23,
@@ -32,7 +38,13 @@
     "Generality/ContinuousLong.lean": 70,
     "Generality/ContinuousLinear.lean": 68,
     "Generality/ContinuousMoney.lean": 20,
-    "Generality/Links.lean": 30
+    "Generality/Links.lean": 30,
+    "Generality/TidyR6DiscreteBondLimit.lean": 35,
+    "Generality/TidyR6DiscreteValuationLimit.lean": 16,
+    "Generality/TidyR6E13Limit.lean": 12,
+    "Generality/TidyR6InnovGrowth.lean": 38,
+    "Generality/TidyR6Fig31Equilibrium.lean": 15,
+    "Generality/TidyR6InnovMeasure.lean": 30
   },
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 3 (with Online Appendix A1.2-A1.6, A1.9.1): A bit of generality. Long-term debt with finite and geometric maturity structures (flow plus transversality equivalent to the present value), price jumps and forward guidance; ratios to GDP; stochastic discount factors, inverse returns and ex-post present values (which converge on every finite event tree); money and the three present-value forms with their transversality conditions; the log-linear identities as exact derivatives (rho = e^{-(r-g)}, bond-return weight omega/(1+i)), the unexpected-inflation and weighted-inflation identities, Figure 3.1 reconciled; the MSV solution; continuous time with short, long and general maturity densities, linear identities and money; links between discrete and continuous weights and valuations. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 3, pp. 52-80, and Online Appendix A1.2-A1.6 and A1.9.1."

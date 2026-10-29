@@ -7,7 +7,8 @@ are book pages. The book has no labelled propositions, so rows are keyed by equa
 figure, section or page; Online Appendix equations are written A1 (1.4)–(1.50). Rows follow the
 book section by section, and each heading names the modules that formalise the section: §§3.1–3.5
 in discrete time with the matching appendix sections, §3.6 in continuous time, A1.9.1, then the
-links among the four formalisation chains and the shared tools. Discrete-time statements hold for
+links among the four formalisation chains, the discrete-to-continuous limits with time-varying
+rates and E13 as one economy, and the shared tools. Discrete-time statements hold for
 an arbitrary `ExpectationSystem`, so under perfect foresight and under uncertainty, unless the row
 says otherwise; continuous-time statements are deterministic (perfect foresight). Codes E11–E31
 are the survey items recorded in [corrections](corrections.md). The shared core (`Determinacy`,
@@ -146,6 +147,51 @@ are the survey items recorded in [corrections](corrections.md). The shared core 
 | Cochrane §3.5.4, pp. 70–71 | with perpetuities `ρ = ω̂` the discount-rate terms drop out; the weights differ by `ωʲ ≤ 0.8ʲ` | `LogLinearIdentities.perpetuity_no_discount_terms`, `LogLinearIdentities.weights_close` |
 | Cochrane (3.26), p. 68 (new) | the nonlinear mark-to-market valuation is (3.3), with `s`, not `s̃` | `LongTermDebt.valuationLT_iff_const`, `Links.eq_3_26_printed_iff` |
 
+## §3.5 The innovation identities beyond bounded processes, (3.17)–(3.28), pp. 63–71; A1.3, pp. 561–564 (TidyR6InnovGrowth)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (3.18)–(3.19), pp. 63–64 | `s̃ + g − r` is adapted; with a summable present-value series the terminal term `ρ^T E_t v_{t+T}` converges | `TidyR6InnovGrowth.zp_adapted'`, `TidyR6InnovGrowth.terminal_tendsto` |
+| Cochrane p. 64 ("Taking time `t + 1` innovations of (3.19)"), in general | with summable present values and terminal limits `L_t`, `L_{t+1}`, the innovations of the discounted flow sum to `L_t − ρL_{t+1}` | `TidyR6InnovGrowth.innov_pv_general` |
+| Cochrane (3.20), p. 65 | (3.20) holds with the extra term `L_t − ρL_{t+1}`; the printed (3.20) holds iff `L_t = ρL_{t+1}`; in particular under the transversality conditions, for any `ρ` | `TidyR6InnovGrowth.identity_3_20_general`, `TidyR6InnovGrowth.identity_3_20_iff`, `TidyR6InnovGrowth.identity_3_20_of_tvc` |
+| Cochrane p. 64 ("If we use `ρ = 1` … deviations from this mean") | with `ρ = 1`, (3.20) holds when `E_t v_{t+T}` and `E_{t+1}v_{t+1+T}` converge to the same constant | `TidyR6InnovGrowth.identity_3_20_rho_one_mean` |
+| Cochrane p. 64 ("grow no faster than `ρ^{−t}`") | growth bounds `\|x_n\| ≤ Kγⁿ` and their algebra; the growth economy: (3.17), adapted processes, `ρ > 0`, `ργ < 1`; every bounded `LogLinearIdentities.LinearEconomy` is one with `γ = 1` | `TidyR6InnovGrowth.GrowthBound`, `TidyR6InnovGrowth.GrowthBound.add`, `TidyR6InnovGrowth.GrowthBound.sub`, `TidyR6InnovGrowth.GrowthEconomy`, `TidyR6InnovGrowth.LinearEconomy.toGrowth`, `TidyR6InnovGrowth.GrowthEconomy.zp_growth`, `TidyR6InnovGrowth.GrowthEconomy.abs_rho_gamma` |
+| Cochrane (3.19)–(3.22), pp. 64–65 (auxiliary) | forecast and innovation series converge absolutely and the terminal term vanishes when `\|a\|γ < 1` | `TidyR6InnovGrowth.summable_E_growth`, `TidyR6InnovGrowth.summable_innov_growth`, `TidyR6InnovGrowth.terminal_growth` |
+| Cochrane (3.19)–(3.20), pp. 64–65, for growth `γ < 1/ρ` | (3.19) as a convergent sum; the innovation sum is zero; (3.20) | `TidyR6InnovGrowth.g_pv_319`, `TidyR6InnovGrowth.g_innov_pv`, `TidyR6InnovGrowth.g_identity_3_20` |
+| A1 (1.24)–(1.25), pp. 563–564; (3.21)–(3.22), p. 65, for a log bond price of growth `γ`, `\|ω̂\|γ < 1` | the bond return grows at rate `γ`; the forward bond-price sum (E16 corrected); (3.21); (3.22) | `TidyR6InnovGrowth.g_rn_bound`, `TidyR6InnovGrowth.g_bondPrice_forward`, `TidyR6InnovGrowth.g_bondReturn_innov`, `TidyR6InnovGrowth.g_weighted_inflation` |
+| Cochrane (3.23)–(3.25), (3.27)–(3.28), pp. 66–69; §3.5.4, p. 71, in a growth economy | the special cases with constant expected returns and no growth; perpetuities | `TidyR6InnovGrowth.g_special_constant_short`, `TidyR6InnovGrowth.g_special_constant_long`, `TidyR6InnovGrowth.g_identity_3_24`, `TidyR6InnovGrowth.g_identity_3_25`, `TidyR6InnovGrowth.g_monetary_disinflation`, `TidyR6InnovGrowth.g_perpetuity` |
+| Cochrane p. 64 (counterexample tools) | the first coin flip `cs1 = ±1`, its expectations, innovations and adaptedness; the bubble economy `v_t = ρ^{−t}cs1` with its surpluses and zero processes, satisfying (3.17), adapted, with growth exactly `ρ⁻¹` | `TidyR6InnovGrowth.Boundary.cs1`, `TidyR6InnovGrowth.Boundary.cs1_ne_zero`, `TidyR6InnovGrowth.Boundary.E_cs1`, `TidyR6InnovGrowth.Boundary.adapted_smul`, `TidyR6InnovGrowth.Boundary.innov_cs1`, `TidyR6InnovGrowth.Boundary.vB`, `TidyR6InnovGrowth.Boundary.sB`, `TidyR6InnovGrowth.Boundary.zB`, `TidyR6InnovGrowth.Boundary.flow_B`, `TidyR6InnovGrowth.Boundary.adapted_B`, `TidyR6InnovGrowth.Boundary.growth_B` |
+| Cochrane p. 64 and (3.20), p. 65 (boundary) | at growth exactly `ρ^{−t}` (3.20) fails at date 0 and (3.19) at date 1, in every state; at `ρ = 1` the same economy is bounded, so boundedness does not give (3.20) | `TidyR6InnovGrowth.Boundary.boundary_3_20`, `TidyR6InnovGrowth.Boundary.rho_one_bounded` |
+| Cochrane (3.21), p. 65; A1 (1.24)–(1.25) (boundary) | a log bond price growing at exactly `\|ω̂\|^{−t}`, with its returns, violates (3.21) | `TidyR6InnovGrowth.Boundary.qB`, `TidyR6InnovGrowth.Boundary.rnB`, `TidyR6InnovGrowth.Boundary.boundary_3_21` |
+
+## §3.5 The innovation identities almost everywhere, (3.17)–(3.28), pp. 63–71; A1.3, pp. 561–564 (TidyR6InnovMeasure)
+
+Expectations are Mathlib's conditional expectations `μ[· | 𝓕 t]` on a finite measure space with a
+filtration; every identity holds almost everywhere.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 64; (3.20), p. 65, pathwise | the algebraic core: the flow and summability give the innovation sum zero and (3.20); (3.20) and (3.21) give (3.22) | `TidyR6InnovMeasure.real_innov_pv`, `TidyR6InnovMeasure.real_identity_3_20`, `TidyR6InnovMeasure.real_weighted` |
+| Cochrane (3.19), p. 64 (auxiliary) | summable `L¹` norms give almost-everywhere absolute convergence | `TidyR6InnovMeasure.tsum_lintegral_ne_top`, `TidyR6InnovMeasure.ae_summable_abs` |
+| Cochrane p. 64, in `L¹` and `L²` | `L¹` growth `∫\|x_n\| ≤ Kγⁿ` and its algebra; `L²` growth implies `L¹` growth (stationary `L²` processes are `γ = 1`) | `TidyR6InnovMeasure.L1Growth`, `TidyR6InnovMeasure.L1Growth.add`, `TidyR6InnovMeasure.L1Growth.sub`, `TidyR6InnovMeasure.L2Growth`, `TidyR6InnovMeasure.L2Growth.toL1` |
+| Cochrane (3.19)–(3.22), p. 64 (auxiliary) | conditional forecast series and paths converge absolutely a.e.; the terminal term vanishes a.e. | `TidyR6InnovMeasure.ae_summable_E`, `TidyR6InnovMeasure.ae_summable_path`, `TidyR6InnovMeasure.ae_terminal` |
+| Cochrane §3.5, pp. 63–65; (2.13), p. 64 | the economy: (3.17), adapted integrable processes with `L¹` growth `γ`, `ργ < 1`; the innovation `μ[x \| 𝓕(t+1)] − μ[x \| 𝓕 t]` | `TidyR6InnovMeasure.MGrowthEconomy`, `TidyR6InnovMeasure.MGrowthEconomy.zp_growth`, `TidyR6InnovMeasure.MGrowthEconomy.zp_meas`, `TidyR6InnovMeasure.MGrowthEconomy.abs_rho_gamma`, `TidyR6InnovMeasure.innovM`, `TidyR6InnovMeasure.innovM_zero` |
+| Cochrane (3.18)–(3.20), pp. 63–65, a.e. | (3.18) at every horizon; (3.19); the innovation sum is zero; (3.20) | `TidyR6InnovMeasure.m_fin_horizon`, `TidyR6InnovMeasure.m_pv_319`, `TidyR6InnovMeasure.m_innov_pv`, `TidyR6InnovMeasure.m_identity_3_20` |
+| A1 (1.24)–(1.25), pp. 563–564; (3.21)–(3.22), p. 65, a.e. | the bond return has `L¹` growth `γ`; the forward bond-price sum; (3.21) through `condExp_tsum`; (3.22) | `TidyR6InnovMeasure.m_rn_growth`, `TidyR6InnovMeasure.m_bondPrice_forward`, `TidyR6InnovMeasure.m_bondReturn_innov`, `TidyR6InnovMeasure.m_weighted_inflation` |
+| Cochrane pp. 66–69, (3.23)–(3.25), (3.27)–(3.28); §3.5.4, p. 71, a.e. | constant expected real returns have no innovations; the special cases; perpetuities | `TidyR6InnovMeasure.m_innov_r_zero`, `TidyR6InnovMeasure.m_identity_3_24`, `TidyR6InnovMeasure.m_special_constant_short`, `TidyR6InnovMeasure.m_special_constant_long`, `TidyR6InnovMeasure.m_monetary_disinflation`, `TidyR6InnovMeasure.m_identity_3_25`, `TidyR6InnovMeasure.m_perpetuity` |
+
+## §3.5.3 Figure 3.1 and announcements as equilibria, (3.27)–(3.28), pp. 68–70; A1.3, pp. 561–564 (TidyR6Fig31Equilibrium)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §3.5.3, pp. 68–70; A1.3 | the full linear model: the bond-return identity (1.24), the expectations hypothesis, the Fisher equation `E_tπ_{t+1} = i_t` and the flow (3.17); every equilibrium is a bounded `LogLinearIdentities.LinearEconomy` with constant expected real returns | `TidyR6Fig31Equilibrium.Equilibrium`, `TidyR6Fig31Equilibrium.eqm_linearEconomy`, `TidyR6Fig31Equilibrium.eqm_const_return` |
+| A1 p. 564; (3.19), p. 64; (1.24); (3.17) | in equilibrium `q_t = ω̂E_tq_{t+1} − i_t` and `v_t = ρE_tv_{t+1} + E_ts̃_{t+1}`; the candidate bond price, value, return and inflation | `TidyR6Fig31Equilibrium.eqm_q_solves`, `TidyR6Fig31Equilibrium.eqm_v_solves`, `TidyR6Fig31Equilibrium.eqQ`, `TidyR6Fig31Equilibrium.eqV`, `TidyR6Fig31Equilibrium.eqRn`, `TidyR6Fig31Equilibrium.eqInfl` |
+| Cochrane §3.5.3, A1.3 | for bounded adapted `i`, `s̃`, `0 < ρ < 1`, `\|ω̂\| < 1` an equilibrium exists and is unique | `TidyR6Fig31Equilibrium.exists_eqm`, `TidyR6Fig31Equilibrium.unique_eqm` |
+| Cochrane p. 69; (3.23), p. 67; (3.28), p. 69 | `ΔE_{t+1}π_{t+2+j} = ΔE_{t+1}i_{t+1+j}`; (3.23) and (3.28) hold in equilibrium | `TidyR6Fig31Equilibrium.innov_infl_eq_innov_i`, `TidyR6Fig31Equilibrium.eqm_weighted`, `TidyR6Fig31Equilibrium.eqm_disinflation` |
+| Cochrane p. 69, Figure 3.1, p. 70 | a permanent unit rise gives the impact `−ω̂/(1 − ω̂)` and then `+1`; `−4` at `ω = 0.8`; the price-level path | `TidyR6Fig31Equilibrium.fig31_equilibrium`, `TidyR6Fig31Equilibrium.fig31_equilibrium_value`, `TidyR6Fig31Equilibrium.fig31_equilibrium_path` |
+| Cochrane pp. 69–70 | a rise announced `k` periods ahead gives `−ω̂ᵏ/(1 − ω̂)`; an expected rise gives no jump | `TidyR6Fig31Equilibrium.announcement_equilibrium`, `TidyR6Fig31Equilibrium.expected_rise_equilibrium` |
+| Figure 3.1 (genuine uncertainty) | on the coin-flip tree a rise announced by the first flip has exactly the Figure 3.1 response | `TidyR6Fig31Equilibrium.CoinEconomy.fig31_coin_economy` |
+
 ## §3.6.1 Continuous time with short-term debt, (3.29)–(3.33), pp. 71–74; A1.4, pp. 564–565 (ContinuousShort)
 
 | Book | Claim | Lean |
@@ -248,6 +294,46 @@ are the survey items recorded in [corrections](corrections.md). The shared core 
 | Cochrane (3.31), p. 73; A1.4; p. 74 | the general engine of `ContinuousLinear` at `Λ = ContinuousShort.disc` gives `ContinuousShort`'s valuation iff TVC; the constant-rate factors agree | `Links.hasDerivAt_disc_of_continuous`, `Links.tvc_iff_pv_of_engine`, `Links.expDisc_ratio_eq_disc` |
 | Cochrane p. 57; §3.6.4, A1.6 (E13) | the discrete and continuous counterexamples side by side: the `ΔM/P` valuation holds, the `iM/P` valuation fails | `Links.e13_discrete_and_continuous` |
 | Cochrane (3.26), p. 68 (new) | with `s̃ = κs` the printed (3.26) is compatible with (3.3) only if `κ = 1` or the value of debt is zero | `Links.eq_3_26_printed_iff` |
+
+## Discrete to continuous time with time-varying rates: the bond price, §3.6.2, A1 (1.14)→(1.17), pp. 75–78, 559–560 (TidyR6DiscreteBondLimit)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| A1 (1.14), p. 559, with period `h` | the one-period factor `e^{−h(i_h(s)+ϖ)} = ω_h/(1 + i_h)` and the cumulative factor, their positivity and algebra; geometric decay when `i_h + ϖ ≥ c` | `TidyR6DiscreteBondLimit.factor`, `TidyR6DiscreteBondLimit.factor_pos`, `TidyR6DiscreteBondLimit.factor_eq`, `TidyR6DiscreteBondLimit.cumFactor`, `TidyR6DiscreteBondLimit.cumFactor_pos`, `TidyR6DiscreteBondLimit.cumFactor_zero`, `TidyR6DiscreteBondLimit.cumFactor_succ`, `TidyR6DiscreteBondLimit.cumFactor_succ'`, `TidyR6DiscreteBondLimit.cumFactor_le`, `TidyR6DiscreteBondLimit.exp_neg_lt_one` |
+| A1 (1.14), p. 559 | the discrete price `Q_h(s) = h∑_k ∏_{m<k} a_h(s + mh)`: summable, bounded by `h + 1/c` | `TidyR6DiscreteBondLimit.discPrice`, `TidyR6DiscreteBondLimit.summable_cumFactor`, `TidyR6DiscreteBondLimit.geom_bound`, `TidyR6DiscreteBondLimit.sum_geom_le`, `TidyR6DiscreteBondLimit.discPrice_bound` |
+| A1 (1.14), (3.47), §3.6.2 | the recursion `Q_h(s) = h + e^{−h(i_h(s)+ϖ)}Q_h(s+h)`; its transversality solution is unique | `TidyR6DiscreteBondLimit.discPrice_rec`, `TidyR6DiscreteBondLimit.discPrice_tvc`, `TidyR6DiscreteBondLimit.discPrice_unique` |
+| §3.6.2 | the difference form of the recursion, and `(1 − a_h)/h → i + ϖ` | `TidyR6DiscreteBondLimit.discPrice_diff`, `TidyR6DiscreteBondLimit.tendsto_rate_of_factor` |
+| §3.6 (auxiliary) | bounds on `∫r`, the Lipschitz bound for `e^{−x}`, and `0 < Q ≤ 1/c` for the continuous bond price | `TidyR6DiscreteBondLimit.cumRate_ge`, `TidyR6DiscreteBondLimit.abs_cumRate_le`, `TidyR6DiscreteBondLimit.abs_exp_neg_sub_le`, `TidyR6DiscreteBondLimit.bondPrice_mem` |
+| A1 (1.14)→(1.17) | the exact error representation; the one-step error is `O(h)·(h + modulus)`; the global error bound | `TidyR6DiscreteBondLimit.delta`, `TidyR6DiscreteBondLimit.err_rec`, `TidyR6DiscreteBondLimit.delta_le`, `TidyR6DiscreteBondLimit.err_le`, `TidyR6DiscreteBondLimit.eta_le` |
+| §3.6.2, (3.47) | `Q_h → ContinuousLong.bondPrice i ϖ` uniformly on every `[t₀, X]` (rate continuous, `i + ϖ ≥ c > 0`); also with exact compounding | `TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc`, `TidyR6DiscreteBondLimit.exact_hyps`, `TidyR6DiscreteBondLimit.tendstoUniformlyOn_Icc_exact` |
+| §3.6.2 | uniformly on `[t₀, ∞)` when the rate is bounded and uniformly continuous | `TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici`, `TidyR6DiscreteBondLimit.tendstoUniformlyOn_Ici_exact` |
+| (3.47), A1.2.1 | the limit is the unique transversality solution of `Q' = (i + ϖ)Q − 1` | `TidyR6DiscreteBondLimit.tendsto_unique_ode_solution` |
+| `Links.annuity_tendsto_bondPrice` | the constant-rate case is a special case, and its convergence is uniform in the date | `TidyR6DiscreteBondLimit.discPrice_const`, `TidyR6DiscreteBondLimit.const_case` |
+| A1 (1.14) (where the data do not allow it) | per-period rates jumping at date `1/h` converge on every compact but not uniformly on `[0, ∞)`, and so do the prices | `TidyR6DiscreteBondLimit.jumpRate`, `TidyR6DiscreteBondLimit.discPrice_jumpRate`, `TidyR6DiscreteBondLimit.not_uniform_Ici` |
+
+## Discrete to continuous time with time-varying rates: the valuation equation, (3.5), (3.30)–(3.31), pp. 55, 73–74; A1.4 (TidyR6DiscreteValuationLimit)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (3.5), p. 55, with period `h` | the discrete value `V_h(t) = h∑_k (∏_{m<k} e^{−hr_h(t+mh)})s(t + kh)`: geometric decay, summability, the bound `S(h + 1/c)` | `TidyR6DiscreteValuationLimit.discVal`, `TidyR6DiscreteValuationLimit.cumFactor_le'`, `TidyR6DiscreteValuationLimit.summable_discVal`, `TidyR6DiscreteValuationLimit.discVal_bound` |
+| Cochrane (3.5); footnote 1, p. 58 | the recursion `V_h(t) = h·s(t) + e^{−hr_h(t)}V_h(t + h)`; its transversality solution is unique | `TidyR6DiscreteValuationLimit.discVal_rec`, `TidyR6DiscreteValuationLimit.discVal_unique` |
+| Cochrane (3.31), p. 73 | with `r ≥ c > 0` and `\|s\| ≤ S` the discounted surplus is integrable and `\|pv\| ≤ S/c` | `TidyR6DiscreteValuationLimit.pvIntegrable_of_bound`, `TidyR6DiscreteValuationLimit.pv_abs_le` |
+| Cochrane (3.5), (3.31) | the error representation, the one-step bound and the global bound | `TidyR6DiscreteValuationLimit.valDelta`, `TidyR6DiscreteValuationLimit.valErr_rec`, `TidyR6DiscreteValuationLimit.valDelta_le`, `TidyR6DiscreteValuationLimit.valErr_le`, `TidyR6DiscreteValuationLimit.val_eta_le` |
+| Cochrane (3.5), (3.30)–(3.31) | `V_h → ContinuousShort.pv r s` uniformly on every `[t₀, X]` (bounded surplus); on `[t₀, ∞)` when `r` and `s` are bounded and uniformly continuous; with exact compounding | `TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc`, `TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Ici`, `TidyR6DiscreteValuationLimit.val_tendstoUniformlyOn_Icc_exact` |
+| Cochrane (3.30)–(3.31), A1.4 | the limit is the unique transversality solution of `V' = rV − s` | `TidyR6DiscreteValuationLimit.val_tendsto_unique_ode_solution` |
+| Cochrane (3.5), §3.6.2 | the discrete bond price is the discrete value of the unit coupon at the rate `i + ϖ` | `TidyR6DiscreteValuationLimit.discPrice_eq_discVal` |
+
+## E13 as one economy and its discretisations, p. 57, §3.6.4, A1.6 (TidyR6E13Limit)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §3.4, (3.9), pp. 55–57; A1.6 | the discretisation `D_h`: `Λ_n = e^{−ιnh}`, `P ≡ 1`, `1 + i_h = e^{ιh}`, `M_n = e^{ιnh}`, `B ≡ 0`, `s_n = M_n − M_{n+1}` | `TidyR6E13Limit.lamD`, `TidyR6E13Limit.priceD`, `TidyR6E13Limit.rateD`, `TidyR6E13Limit.moneyD`, `TidyR6E13Limit.moneyD_succ`, `TidyR6E13Limit.bondsD`, `TidyR6E13Limit.surplusD` |
+| Cochrane (3.10)–(3.11), p. 58 | in `D_h` the (3.10) and (3.11) integrands vanish | `TidyR6E13Limit.term10_zero`, `TidyR6E13Limit.term11_zero` |
+| Cochrane pp. 55–59, (3.9) | every `D_h` satisfies `Money.Standing` and the flow | `TidyR6E13Limit.standing`, `TidyR6E13Limit.flow` |
+| Cochrane p. 57 (E13), in every `D_h` | (3.11) holds, (3.10) fails and the money transversality condition fails at every date | `TidyR6E13Limit.discrete_e13` |
+| A1.6 | the continuous economy `C`: `N(τ) = e^{−ιτ}`, `M(τ) = e^{ιτ}`, `s(τ) = −ιe^{ιτ}`; `D_h` samples it exactly, with the same (3.10)/(3.54) gap `M(nh)` | `TidyR6E13Limit.contN`, `TidyR6E13Limit.contM`, `TidyR6E13Limit.contS`, `TidyR6E13Limit.sample_eq`, `TidyR6E13Limit.gap_eq` |
+| (3.9)–(3.11), (3.52)–(3.54), A1.6 | as `h → 0⁺` the per-unit-time rate, surplus, seigniorage and interest saving converge to those of `C` | `TidyR6E13Limit.tendsto_grid`, `TidyR6E13Limit.tendsto_expm1_div`, `TidyR6E13Limit.limits` |
+| Cochrane p. 57, §3.6.4, A1.6 (E13) | **one economy:** `C` violates the equivalence of (3.53) and (3.54), and its discretisations violate that of (3.10) and (3.11), with the same gap and converging flows | `TidyR6E13Limit.e13_one_economy` |
 
 ## Shared tools
 
