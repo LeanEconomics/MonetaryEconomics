@@ -26,3 +26,6 @@ import LongTermDebtDynamics.TidyR5InnovationForm
 import LongTermDebtDynamics.TidyR5QEReverse
 import LongTermDebtDynamics.TidyR5RandomGuidance
 import LongTermDebtDynamics.TidyR5RandomHorizon
+import LongTermDebtDynamics.TidyR6StrictSignRule
+import LongTermDebtDynamics.TidyR6StrictSignMeasure
+import LongTermDebtDynamics.TidyR6GuidanceFlows

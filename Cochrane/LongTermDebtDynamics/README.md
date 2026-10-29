@@ -13,10 +13,10 @@ future bond sales (pp. 588–592). The setting is the book's: flexible prices, a
 of every maturity. The structural results (the flow and present-value relations, the buffer,
 bond sales, the general formula, Theorem P and maturity-structure irrelevance) hold for an
 arbitrary `ExpectationSystem` with the pull-out property, so under perfect foresight and under
-genuine uncertainty. Eleven further modules take the book's deterministic passages (forward
+genuine uncertainty. Fourteen further modules take the book's deterministic passages (forward
 guidance, §7.6.1, §A1.14) to uncertainty and settle existence in §7.4. The library contains
-**438 theorems**, including the shared core; 197 of them are in the eight chapter modules and 133
-in the eleven further modules.
+**485 theorems**, including the shared core; 197 of them are in the eight chapter modules and 180
+in the fourteen further modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. "Theorem W" (the general formula
@@ -52,7 +52,13 @@ Headline results, in the namespace `Cochrane.LongTermDebtDynamics`:
   counterexamples: a higher expected rate path can raise `P_0`
   (`TidyR5RandomGuidance.cg_counterexample`), and the earlier of two announcements can give the
   higher price level, against both monotonicity in the horizon and the immediate-rise comparison
-  (`TidyR5RandomHorizon.cg_horizon_counterexample`).
+  (`TidyR5RandomHorizon.cg_horizon_counterexample`). Both counterexamples survive with the flow
+  conditions (7.1) and present-value relations (7.2) imposed at every date under an explicit
+  rollover policy (buy back the long bond, then one-period debt only), which pins `P_0` uniquely
+  in every full equilibrium (`TidyR6GuidanceFlows.rollover_valuation`): `P_0 = 7/48` with the
+  guidance against `1/8` without it or with the delayed guidance
+  (`TidyR6GuidanceFlows.cg_flows_counterexample`,
+  `TidyR6GuidanceFlows.cg_horizon_flows_counterexample`).
 * **The buffer and runs.** With no sales after date 0, `B_{−1}^{(t)}/P_t = s_t` (7.6), so
   unexpected inflation reflects only news about the current surplus while news about later
   surpluses moves bond prices (`MaturingDebt.price_eq_maturing`, `MaturingDebt.noSales_price_news`,
@@ -69,7 +75,16 @@ Headline results, in the namespace `Cochrane.LongTermDebtDynamics`:
   `FutureSales.x0_strictAnti`, `FutureSales.x0_const`). The derivative and the sign rule also
   hold with random debt, random surpluses and state-contingent future sales
   (`TidyR5FutureSalesRandom.hasDerivAt_x0R`, `TidyR5FutureSalesRandom.x0R_mono`,
-  `TidyR5FutureSalesRandom.x0R_anti`, `TidyR5FutureSalesRandom.x0R_const`). The innovation form
+  `TidyR5FutureSalesRandom.x0R_anti`, `TidyR5FutureSalesRandom.x0R_const`). The strict sign
+  rule needs no uniform bounds: every `ExpectationSystem` is strictly positive exactly on events
+  of positive conditional probability (`TidyR6StrictSignRule.E_pos_iff`), so under the book's sign
+  conditions alone the effect is strict at `ω` iff `E_0 1_{G>0} > 0` there
+  (`TidyR6StrictSignRule.x0R_strict_iff`, `TidyR6StrictSignRule.x0R_strictMono_pos`), and a
+  larger sale only in a state of zero conditional probability leaves `P_0` unchanged
+  (`TidyR6StrictSignRule.null_counterexample`). The same holds almost surely on a probability
+  space, for equilibrium price levels (`TidyR6StrictSignMeasure.x0M_strict_iff_ae`,
+  `TidyR6StrictSignMeasure.x0_ae_eq_x0M66`, `TidyR6StrictSignMeasure.eqm_strict_iff_ae`,
+  `TidyR6StrictSignMeasure.x0M_bot_strict_iff`). The innovation form
   of (7.12) holds at every date, corrected (E7.9): there is no unexpected inflation exactly when
   surplus news is offset by news in the dilution terms (`TidyR5InnovationForm.innovation_at`,
   `TidyR5InnovationForm.no_surprise_iff`, `TidyR5InnovationForm.innovation_rowR`).
@@ -199,14 +214,20 @@ those found during formalisation:
   defeats both (a precision, not an error);
 * the comparative statics of §7.1, pp. 213–214, hold for a rate path known at date 0 but fail for
   a state-contingent one: a higher expected rate path can raise `P_0`, and an earlier
-  announcement can give the higher price level (a precision: the book's §7.1 is deterministic).
+  announcement can give the higher price level (a precision: the book's §7.1 is deterministic),
+  also with the flow conditions imposed at every date under the rollover policy.
 
 In addition, the labels (7.14) and (7.15) are swapped in the text (E7.1), the innovation display
 of p. 224 mixes the dates `0` and `t` and is corrected at a general date (E7.9), the "25%" drop of
 p. 560 is about 24.3% in discrete time (E7.11), and the reference to (1.67) on p. 592 should be to
 (1.66) (E7.10). An earlier version of this README listed existence of an equilibrium under no
 buy-backs alone as open; it is false, and the exact condition replaces it (see the §7.4 section
-above and the last section of the corrections).
+above and the last section of the corrections). It also said that the strict sign rule of
+§A1.14 with random debt needs uniform positive lower bounds because an abstract
+`ExpectationSystem` need not be strictly positive; that premise is false
+(`TidyR6StrictSignRule.E_pos_iff`), and the exact condition is positive conditional probability
+of a larger sale. It also listed the state-contingent guidance counterexamples as resting on the
+date-0 valuation alone; they survive with the flow conditions at every date.
 
 Not formalised:
 * §7.7, the U.S. maturity structure (pp. 234–236), and Figures 7.6–7.7, which are data. The other
@@ -221,13 +242,10 @@ Not formalised:
 * the continuous-time forward-guidance formula of §A1.2.1 (p. 561) under uncertainty: by the
   project's conventions continuous time is deterministic (no stochastic calculus). The discrete
   formula of p. 560 is proved state by state (`TidyR5GuidanceUncertainty.stoch_fg_jump`);
-* for state-contingent guidance, "equilibrium" means, as in the book's §7.1, the Fisher relation
-  at every date plus the date-0 valuation equation (7.3); flow conditions at later dates under a
-  specified debt policy are not imposed in the counterexamples;
-* with random debt in §A1.14, the strict sign rule is proved only under uniform positive lower
-  bounds (`TidyR5FutureSalesRandom.x0R_strictMono`), because an abstract `ExpectationSystem` need
-  not be strictly positive; under the book's sign conditions alone the weak versions are proved
-  (`TidyR5FutureSalesRandom.x0R_mono`, `TidyR5FutureSalesRandom.x0R_anti`).
+* for state-contingent guidance, the counterexamples with the flow conditions at every date are
+  proved under one fully specified debt policy, the rollover policy `TidyR6GuidanceFlows.rollD`;
+  that is enough to refute the book's claims, but the full equilibria under other debt policies
+  are not characterised.
 
 ## Library map
 
@@ -256,6 +274,9 @@ Not formalised:
 | [TidyR5QEReverse](LongTermDebtDynamics/TidyR5QEReverse.lean) | 7 | §7.6.1 under uncertainty, "given `M`, find `B̃`": uniqueness, the exact existence condition, the coin-flip counterexample |
 | [TidyR5RandomGuidance](LongTermDebtDynamics/TidyR5RandomGuidance.lean) | 18 | §7.1 with a state-contingent rate path: the covariance decomposition of bond prices, what survives, and the counterexample to "a rate rise lowers `P_0`" |
 | [TidyR5RandomHorizon](LongTermDebtDynamics/TidyR5RandomHorizon.lean) | 5 | §7.1, p. 213: the counterexample to monotonicity in the horizon and to the immediate-rise comparison for state-contingent guidance |
+| [TidyR6StrictSignRule](LongTermDebtDynamics/TidyR6StrictSignRule.lean) | 18 | §A1.14.2, p. 592, (1.65)–(1.66): every expectation system is strictly positive on events of positive conditional probability; the exact strict sign rule with random debt and no uniform bounds; the zero-probability counterexample |
+| [TidyR6StrictSignMeasure](LongTermDebtDynamics/TidyR6StrictSignMeasure.lean) | 12 | §A1.14.2, p. 592, on a probability space with `condExp`: strict positivity of conditional expectations, (1.66) printed and pulled out, the strict sign rule almost surely, equilibrium prices from the flow conditions |
+| [TidyR6GuidanceFlows](LongTermDebtDynamics/TidyR6GuidanceFlows.lean) | 17 | §7.1, (7.1)–(7.3): full equilibria under the rollover debt policy, `P_0` unique; both state-contingent guidance counterexamples survive with the flow conditions at every date |
 
 ## Modelling conventions
 
@@ -278,7 +299,9 @@ Not formalised:
   deterministic, as in the book; the counterexample and the printed (7.15) are under perfect
   foresight (`perfectForesight`). The further modules redo forward guidance (except the
   continuous-time formula), §7.6.1 and §A1.14 with random surpluses, price levels and debt, and
-  their counterexamples live on a finite coin-flip tree.
+  their counterexamples live on a finite coin-flip tree. `TidyR6StrictSignMeasure` restates the
+  §A1.14 sign rule on a probability space, with `E_0` Mathlib's conditional expectation and
+  statements almost surely.
   `E_t` passes through every absolutely convergent series, for every `ExpectationSystem`
   (`TidyR5SeriesExchange.seriesExchange`), because `E_t` is linear and monotone on unbounded
   random variables too; no countable-additivity hypothesis is needed.
@@ -292,6 +315,8 @@ Not formalised:
   (`GeneralFormula.MaturingSystem`, `GeneralFormula.realFlow_iff_maturingSystem`). "The price
   level is determined" means that two adapted paths satisfying these conditions coincide, among
   positive paths (no buy-backs) or among paths with bounded real maturing debt (row condition).
+  For state-contingent guidance, a full equilibrium (`TidyR6GuidanceFlows.FullEqm`) imposes the
+  Fisher relations, (7.1) and (7.2) at every date under a given debt policy.
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem:
   `0 ≤ β < 1` (`0 < β < 1` for uniqueness without buy-backs), bounded surpluses, nonzero debt
   coming due wherever the book divides by it, `B_0^{(j)} ≠ 0` in (7.12), each sale fraction

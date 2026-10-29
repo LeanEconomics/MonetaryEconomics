@@ -66,11 +66,13 @@ uses it.
 | Cochrane App. p. 561 | the continuous jump is negative, shrinks with `T`, vanishes as `T → ∞`, and shrinks with `ϖ` | `ForwardGuidance.cfgJump_neg`, `ForwardGuidance.cfgJump_abs_anti`, `ForwardGuidance.cfgJump_tendsto`, `ForwardGuidance.cfgJump_abs_anti_varpi` |
 | Cochrane App. p. 561 | the sales that maintain the geometric structure, `ω^j(1−ω)B = ((1−ω)/ω)B_{t−1}^{(t+j+1)}` | `ForwardGuidance.steady_sales` |
 
-## §7.1 and Online Appendix §A1.2.1 under uncertainty, pp. 213–215 and 560 (TidyR5GuidanceUncertainty, TidyR5RandomGuidance, TidyR5RandomHorizon)
+## §7.1 and Online Appendix §A1.2.1 under uncertainty, pp. 213–215 and 560 (TidyR5GuidanceUncertainty, TidyR5RandomGuidance, TidyR5RandomHorizon, TidyR6GuidanceFlows)
 
 The book's §7.1 is deterministic. Here surpluses and price levels are random, under an arbitrary
 `ExpectationSystem` with the pull-out property. As in the book, an equilibrium is the Fisher
-relation at every date plus the date-0 valuation equation (7.3).
+relation at every date plus the date-0 valuation equation (7.3); the last subsection imposes the
+flow conditions (7.1) and present-value relations (7.2) at every date under an explicit debt
+policy.
 
 ### A rate path known at date 0 (TidyR5GuidanceUncertainty)
 
@@ -99,6 +101,20 @@ relation at every date plus the date-0 valuation equation (7.3).
 | Cochrane bullets p. 213 | the same rate shape delayed one period, with its equilibrium | `TidyR5RandomHorizon.cgRate2`, `TidyR5RandomHorizon.cgRate2_delay`, `TidyR5RandomHorizon.cgX2`, `TidyR5RandomHorizon.cgP2`, `TidyR5RandomHorizon.cg2_fisher`, `TidyR5RandomHorizon.cg2_presentValue` |
 | Cochrane bullets p. 213 | fails: the earlier announcement has the higher price level (`7/48 > 1/8`), contradicting both monotonicity in the horizon and "the immediate rise has the largest effect" | `TidyR5RandomHorizon.cg_horizon_counterexample` |
 | Cochrane p. 214 | the date-0 covariance term vanishes in the example, so the failure is the convexity effect `E_0(1+i_1)^{−1} > (1+E_0i_1)^{−1}`, not a correlation | `TidyR5RandomHorizon.cg_cov_zero` |
+
+### The flow conditions at every date (TidyR6GuidanceFlows)
+
+The rollover policy: the inherited debt is one bond due at date 2, `B_{−1}^{(2)} = 1`; from date 0 on the long bond is bought back and all debt is one-period debt, `B_t^{(t+1)} = b_t`, known at `t`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane §7.1, (7.1)–(7.3) | the rollover debt policy, predetermined when each `b_t` is known at `t`; a full equilibrium: predetermined debt, adapted positive prices, the rates implemented, (7.1) and (7.2) at every date | `TidyR6GuidanceFlows.rollD`, `TidyR6GuidanceFlows.FullEqm`, `TidyR6GuidanceFlows.rollD_predetermined` |
+| Cochrane (7.1)–(7.2), p. 213 | the flow condition and the present-value relation under the rollover policy, at date 0 and at date `t + 1` | `TidyR6GuidanceFlows.rollD_flow_zero_iff`, `TidyR6GuidanceFlows.rollD_flow_succ_iff`, `TidyR6GuidanceFlows.rollD_pv_zero_iff`, `TidyR6GuidanceFlows.rollD_pv_succ_iff` |
+| Cochrane §7.1, (7.3) | in every full equilibrium with a nonzero constant present value `V` from date 1: `b_t/P_{t+1} = V`, `1/P_{t+1}` known at `t`, and `(1/P_0)E_0[(1+i_0)^{−1}(1+i_1)^{−1}] = E_0∑β^js_j`, so `P_0` is unique given the rates | `TidyR6GuidanceFlows.rollover_valuation` |
+| Cochrane pp. 213–214 | the counterexample economy (`β = 1/2`, `s_t = 1`): the present value of surpluses is `2` at every date; the issue `b_t = 2P_{t+1}`; in every full equilibrium `P_0 = E_0[(1+i_0)^{−1}(1+i_1)^{−1}]/2` | `TidyR6GuidanceFlows.pv_one`, `TidyR6GuidanceFlows.pvSurplus_one`, `TidyR6GuidanceFlows.rollB`, `TidyR6GuidanceFlows.coin_rollover_price` |
+| Cochrane pp. 213–214 | the guidance, no-announcement and delayed paths are full equilibria under the rollover policy | `TidyR6GuidanceFlows.fullEqm_of_known`, `TidyR6GuidanceFlows.cg_full`, `TidyR6GuidanceFlows.cg'_full`, `TidyR6GuidanceFlows.cg2_adapted`, `TidyR6GuidanceFlows.cgP2_adapted`, `TidyR6GuidanceFlows.cg2_full` |
+| Cochrane pp. 213–214 | fails, with the flow conditions at every date: in every full equilibrium `P_0 = 7/48` with the guidance against `1/8` without it, so a higher expected rate path raises `P_0` | `TidyR6GuidanceFlows.cg_flows_counterexample` |
+| Cochrane bullets p. 213 | fails, with the flow conditions at every date: `P_0 = 7/48` for the earlier announcement against `1/8` for the delayed one | `TidyR6GuidanceFlows.cg_horizon_flows_counterexample` |
 
 ## §7.2.1 Maturing debt and a buffer, (7.4)–(7.6), pp. 216–218 (MaturingDebt)
 
@@ -167,9 +183,35 @@ relation at every date plus the date-0 valuation equation (7.3).
 | Cochrane App. (1.66), p. 591 | with the date-0 fractions `A₁`, `A₂` pulled out of `E_0`, `B_{−1}^{(0)}/P_0 = s_0 + A₁E_0(βs_1 + β²s_2) + E_0(β²s_2B_0^{(2)}(A₂ − A₁)/B_1^{(2)}(ε))` | `TidyR5FutureSalesRandom.fracA`, `TidyR5FutureSalesRandom.kCoef`, `TidyR5FutureSalesRandom.kCoef_eq`, `TidyR5FutureSalesRandom.x0R_pull` |
 | Cochrane App. p. 592 | `d(1/P_0)/dε = β²B_0^{(2)}(A₁ − A₂)E_0(Gs_2/(B_1^{(2)})²)/B_{−1}^{(0)}`, an exact derivative (the `O(ε²)` remainder is uniform in the state) | `TidyR5FutureSalesRandom.hasDerivAt_E_div`, `TidyR5FutureSalesRandom.hasDerivAt_x0R` |
 | Cochrane App. (1.63), p. 589 | with `B_1^{(2)} > 0`, `P_2 > 0` iff `s_2 > 0`, so `s_2 ≥ 0` is no extra restriction | `TidyR5FutureSalesRandom.price_two_pos_iff` |
-| Cochrane App. bullet p. 592 | the sign rule with random debt: for `G ≥ 0`, larger future sales lower `P_0` if `A₁ ≥ A₂`, strictly under uniform positive bounds, raise it if `A₁ ≤ A₂`, and have no effect in any direction if `A₁ = A₂` | `TidyR5FutureSalesRandom.x0R_mono`, `TidyR5FutureSalesRandom.x0R_strictMono`, `TidyR5FutureSalesRandom.x0R_anti`, `TidyR5FutureSalesRandom.x0R_const` |
+| Cochrane App. bullet p. 592 | the sign rule with random debt: for `G ≥ 0`, larger future sales lower `P_0` if `A₁ ≥ A₂`, strictly under uniform positive bounds (superfluous: see the next section), raise it if `A₁ ≤ A₂`, and have no effect in any direction if `A₁ = A₂` | `TidyR5FutureSalesRandom.x0R_mono`, `TidyR5FutureSalesRandom.x0R_strictMono`, `TidyR5FutureSalesRandom.x0R_anti`, `TidyR5FutureSalesRandom.x0R_const` |
 | Cochrane App. (1.64), p. 590 | `E_0(1/P_1)` along the perturbation, in every equilibrium, and its split form | `TidyR5FutureSalesRandom.x1R`, `TidyR5FutureSalesRandom.E_x1_eq_x1R`, `TidyR5FutureSalesRandom.x1R_split` |
 | Cochrane App. bullet p. 591 | with `B_0^{(2)} ≥ 0`, larger state-contingent future sales raise `E_0(1/P_1)`, and so `Q_0^{(1)}` with `P_0` fixed; the exact derivative | `TidyR5FutureSalesRandom.hasDerivAt_x1R`, `TidyR5FutureSalesRandom.x1R_mono` |
+
+## Online Appendix §A1.14: the strict sign rule with random debt, (1.65)–(1.66), p. 592 (TidyR6StrictSignRule, TidyR6StrictSignMeasure)
+
+The sign conditions are the book's: `A₁ > A₂`, `B_0^{(2)} > 0`, `s_2 > 0`, `B_{−1}^{(0)} > 0` and a larger sale `G ≥ 0`. No uniform positive bound is assumed.
+
+### Every expectation system (TidyR6StrictSignRule)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. p. 592 | the event on which `f` is positive; the level indicator and the unbounded level index used in the proof | `TidyR6StrictSignRule.posEvent`, `TidyR6StrictSignRule.levelInd`, `TidyR6StrictSignRule.levelIdx`, `TidyR6StrictSignRule.levelInd_le`, `TidyR6StrictSignRule.levelIdx_ge` |
+| Cochrane App. p. 592 | every `ExpectationSystem`: for `f ≥ 0`, `E_t f > 0` at `ω` iff `E_t 1_{f>0} > 0` at `ω`; `f > 0` everywhere gives `E_t f > 0` everywhere, with no uniform bound | `TidyR6StrictSignRule.E_pos_of_E_posEvent_pos`, `TidyR6StrictSignRule.E_posEvent_pos_of_E_pos`, `TidyR6StrictSignRule.E_pos_iff`, `TidyR6StrictSignRule.E_pos_of_pos` |
+| Cochrane App. (1.66), pp. 591–592 | the dilution difference in closed form, nonnegative and positive exactly where `G > 0`; `x0R ε' − x0R ε = E_0(dilDiff)/B_{−1}^{(0)}` | `TidyR6StrictSignRule.dilDiff`, `TidyR6StrictSignRule.dilDiff_eq`, `TidyR6StrictSignRule.dilDiff_sign`, `TidyR6StrictSignRule.x0R_sub` |
+| Cochrane App. bullet p. 592 | the exact strict rule under the book's sign conditions alone: larger future sales strictly lower `P_0` at `ω` iff `E_0 1_{G>0} > 0` there; no effect where `E_0 1_{G>0} = 0`; strict in every state when `G > 0` everywhere | `TidyR6StrictSignRule.x0R_strict_iff`, `TidyR6StrictSignRule.x0R_eq_of_null`, `TidyR6StrictSignRule.x0R_strictMono_pos` |
+| Cochrane App. §A1.14 (counterexample) | an expectation system on `Bool` with all date-0 weight on `true` and full information from date 1, with pull-out and closed under quotients; debt `nullD` (`A₁ = 1 > 0 = A₂`) and the larger sale `nullG` only in the zero-weight state: every sign condition holds, yet `x0R 1 = x0R 0`, and `1/P_0` is the same in every equilibrium | `TidyR6StrictSignRule.nullE`, `TidyR6StrictSignRule.nullE_zero`, `TidyR6StrictSignRule.nullE_succ`, `TidyR6StrictSignRule.nullSys`, `TidyR6StrictSignRule.nullSys_pullOut`, `TidyR6StrictSignRule.nullSys_divClosed`, `TidyR6StrictSignRule.nullD`, `TidyR6StrictSignRule.nullG`, `TidyR6StrictSignRule.null_counterexample`, `TidyR6StrictSignRule.null_counterexample_eqm` |
+
+### On a probability space (TidyR6StrictSignMeasure)
+
+`(Ω, μ)` with date-0 information `m` and `E_0 = μ[· | m]` (Mathlib's `condExp`); statements hold almost surely.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. p. 592 | a nonnegative integrable function with nonpositive integral over a set vanishes a.e. there; if `f > 0` on `B` and `f = 0` off `B`, a.s. `μ[f \| m] > 0` iff `μ[1_B \| m] > 0`; `f > 0` gives `μ[f \| m] > 0` a.s.; with trivial information, `μ[f \| ⊥] > 0` iff `μ B > 0` | `TidyR6StrictSignMeasure.ae_zero_on_of_setIntegral_nonpos`, `TidyR6StrictSignMeasure.condExp_pos_iff_ae`, `TidyR6StrictSignMeasure.condExp_pos_ae`, `TidyR6StrictSignMeasure.condExp_bot_pos_iff` |
+| Cochrane App. (1.66), p. 591 | (1.66) with `E_0 = μ[· \| m]`, pulled out and as printed; the two agree a.s. | `TidyR6StrictSignMeasure.x0M`, `TidyR6StrictSignMeasure.x0M66`, `TidyR6StrictSignMeasure.x0M66_ae_eq` |
+| Cochrane App. bullet p. 592 | the weak rule a.s.; the exact strict rule a.s., iff `μ[1_{G>0} \| m] > 0`, for both forms of (1.66); strict a.s. when `G > 0` everywhere | `TidyR6StrictSignMeasure.x0M_mono_ae`, `TidyR6StrictSignMeasure.x0M_strict_iff_ae`, `TidyR6StrictSignMeasure.x0M66_strict_iff_ae`, `TidyR6StrictSignMeasure.x0M_strictMono_ae` |
+| Cochrane App. bullet p. 592 | trivial date-0 information, as in the book: in every state, strict iff `μ{G > 0} > 0` | `TidyR6StrictSignMeasure.x0M_bot_strict_iff` |
+| Cochrane App. (1.63)–(1.66), pp. 589–591 | in every equilibrium (flow conditions at dates 2, 1, 0 a.s.), `1/P_0` is the printed (1.66) a.s.; the strict rule for equilibrium price levels | `TidyR6StrictSignMeasure.x0_ae_eq_x0M66`, `TidyR6StrictSignMeasure.eqm_strict_iff_ae` |
 
 ## §7.4 A general formula, (7.14)–(7.17), pp. 224–226 (GeneralFormula, TidyR5Pathwise, TidyR5NoBuybackExistence, TidyR5RandomRow, TidyR5SeriesExchange)
 
