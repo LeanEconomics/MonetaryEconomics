@@ -13,7 +13,9 @@ present-value identities of the Online Appendix, then the links between modules,
 measure-theoretic core and the shared tools. The genuine-probability versions of Theorem RG,
 Granger causality and Markov switching follow the section they make genuine, and so do the
 sections on the money model under uncertainty, Theorem RG and Granger causality with
-square-integrable shocks, and the boundary `|φ| = 1` (after the Leeper regions).
+square-integrable shocks, and the boundary `|φ| = 1` (after the Leeper regions). The household
+problem behind the money model, its derived equilibria, the finite-tree and perfect-foresight
+versions and the derivation of both halves of (22.2) follow the money model under uncertainty.
 
 The linear results hold for an arbitrary `ExpectationSystem`, so under perfect foresight and
 under uncertainty. The measure-theoretic modules (`ExpectationsMeasure` onward) restate Theorem RG,
@@ -113,6 +115,94 @@ Mathlib's `condExp`, adapted (`StronglyAdapted`) processes and essentially bound
 | p. 496 (probability space) | fiscal news and money news both equal the surprise in `1/P_{t+1}`, a.s. | `TidyR5MoneyMeasure.unexpected_price_level` |
 | p. 508 (probability space) | inconsistent `M`, `s`, `W`; halving `M` leaves no equilibrium | `TidyR5MoneyMeasure.inconsistent_iff`, `TidyR5MoneyMeasure.halve_money_no_eqm` |
 | p. 496 (i.i.d. coin economy) | an equilibrium with `P = M = 2 + ε` whose `P_1` is not a.s. its date-0 forecast | `TidyR5MoneyMeasure.coin_random_eqmM` |
+
+## The household problem behind the money model, §22.1, pp. 495–496; (3.9), p. 57; §19.3, pp. 439–440; (19.24)–(19.28), pp. 448–449 (TidyR6MoneyHousehold)
+
+The money modules above impose the Fisher equation, the quantity equation and the valuation
+equation. `TidyR6MoneyHousehold` derives them from a risk-neutral household's problem (the
+chapter's discounting `βʲ` of a random endowment), on any probability space with any filtration,
+every constraint holding almost surely. Money held overnight costs `Q^m_t` (`Q^m = 1` for cash,
+`Q^m = Q` for money paying the bond rate), and `ι_t = Q^m_t − Q_t` is the opportunity cost of
+money.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| §22.1, p. 496; §3.4, pp. 57–58 | what the household takes as given (discount factor, endowment, velocity, taxes, price level, bond price `Q_t`, money price `Q^m_t`, initial wealth); a plan `(c, B, M)`; wealth `W_{t+1} = B_t + M_t`; the least money `P_ty_t/V_t`; `ι_t = Q^m_t − Q_t`; `1/P_t` | `TidyR6MoneyHousehold.Econ`, `TidyR6MoneyHousehold.Plan`, `TidyR6MoneyHousehold.wealth`, `TidyR6MoneyHousehold.mmin`, `TidyR6MoneyHousehold.iota`, `TidyR6MoneyHousehold.invP` |
+| (3.9), p. 57; (19.24)–(19.26), p. 448; §2.1, p. 21 | adapted plans; the flow constraint `W_t + P_ty_t = P_tc_t + P_tτ_t + Q_tB_t + Q^m_tM_t`; no borrowing and the cash constraint `M_tV_t ≥ P_ty_t`; integrable positions; feasibility; `∑βᵗE\|c_t\| < ∞`; expected utility `∑βᵗEc_t`; optimality; the regularity conditions | `TidyR6MoneyHousehold.AdaptedPlan`, `TidyR6MoneyHousehold.Flow`, `TidyR6MoneyHousehold.Constr`, `TidyR6MoneyHousehold.Integ`, `TidyR6MoneyHousehold.Feasible`, `TidyR6MoneyHousehold.Admissible`, `TidyR6MoneyHousehold.expU`, `TidyR6MoneyHousehold.Optimal`, `TidyR6MoneyHousehold.EconReg` |
+| §2.1, p. 21 (p. 439) | expected utility is the genuine integral `E∑βᵗc_t` (Fubini for an absolutely convergent series); it is additive, and a two-date change moves it by `βᵗEa + β^{t+1}Eb` | `TidyR6MoneyHousehold.summable_of_admissible`, `TidyR6MoneyHousehold.expU_eq_integral_tsum`, `TidyR6MoneyHousehold.expU_add`, `TidyR6MoneyHousehold.expU_twoDate` |
+| §22.1, p. 496 (tools) | one-date and two-date changes of plan and their sum; the reallocation `dev` of `b` bonds and `m` money financed at `t` and repaid at `t + 1`; it respects the budget and keeps a feasible plan feasible; wealth is additive | `TidyR6MoneyHousehold.oneDate`, `TidyR6MoneyHousehold.twoDate`, `TidyR6MoneyHousehold.addPlan`, `TidyR6MoneyHousehold.oneDate_self`, `TidyR6MoneyHousehold.oneDate_ne`, `TidyR6MoneyHousehold.twoDate_self`, `TidyR6MoneyHousehold.twoDate_succ`, `TidyR6MoneyHousehold.twoDate_ne`, `TidyR6MoneyHousehold.dev`, `TidyR6MoneyHousehold.wealth_add`, `TidyR6MoneyHousehold.wealth_oneDate`, `TidyR6MoneyHousehold.flow_addPlan_dev`, `TidyR6MoneyHousehold.feasible_dev` |
+| §2.1, p. 22; §19.3, p. 440 | the Euler gap `D_t = βᵗQ_t/P_t − β^{t+1}E_t[1/P_{t+1}]` and the money gap `G_t = βᵗQ^m_t/P_t − β^{t+1}E_t[1/P_{t+1}]`, known at `t` and integrable; the least money is known at `t` | `TidyR6MoneyHousehold.eulerGap`, `TidyR6MoneyHousehold.moneyGap`, `TidyR6MoneyHousehold.eulerGap_sm`, `TidyR6MoneyHousehold.moneyGap_sm`, `TidyR6MoneyHousehold.eulerGap_integrable`, `TidyR6MoneyHousehold.moneyGap_integrable`, `TidyR6MoneyHousehold.mmin_sm` |
+| §22.1, p. 496 (measure-theoretic tools) | quotients of measurable variables are strongly measurable; bounded known variables times integrable ones are integrable; a nonnegative variable with nonpositive mean vanishes a.s.; indicator and weight arguments turning mean inequalities into a.s. ones | `TidyR6MoneyHousehold.sm_div`, `TidyR6MoneyHousehold.integrable_bdd_mul`, `TidyR6MoneyHousehold.ae_zero_of_nonneg_integral_nonpos`, `TidyR6MoneyHousehold.nonneg_of_indicator_ineq`, `TidyR6MoneyHousehold.nonpos_of_weight_ineq` |
+| §22.1, p. 496 | the reallocation inequality: at an optimum `E[bD_t + mG_t] ≥ 0` for every bounded admissible reallocation known at `t` | `TidyR6MoneyHousehold.dev_ineq` |
+| (2.3), p. 22; §16.8, p. 377 | bond first-order condition: `Q_t ≥ βP_tE_t[1/P_{t+1}]`, with equality where `B_t > 0` (the Fisher equation) | `TidyR6MoneyHousehold.eulerGap_nonneg`, `TidyR6MoneyHousehold.eulerGap_eq_zero` |
+| §19.3, p. 440; (19.33), p. 450 | money first-order condition: money is never dominated, `Q^m_t ≥ βP_tE_t[1/P_{t+1}]`, with equality where the cash constraint is slack | `TidyR6MoneyHousehold.moneyGap_nonneg`, `TidyR6MoneyHousehold.moneyGap_eq_zero` |
+| (19.11)–(19.12), p. 439, one period at a time | the period identity `βᵗEc_t = βᵗE[W_t/P_t] − β^{t+1}E[W_{t+1}/P_{t+1}] + βᵗ(Ey_t − Eτ_t) − E[B_tD_t] − E[M_tG_t]`, with its integrability tools; real wealth | `TidyR6MoneyHousehold.gap_split`, `TidyR6MoneyHousehold.realWealth`, `TidyR6MoneyHousehold.realWealth_integrable`, `TidyR6MoneyHousehold.exo_integrable`, `TidyR6MoneyHousehold.period_identity` |
+| p. 22; p. 440; (19.28), p. 449 | sufficiency: the first-order conditions and the transversality condition `βᵀE[W_T/P_T] → 0` make a feasible admissible plan optimal | `TidyR6MoneyHousehold.optimal_of_foc` |
+| (19.28), p. 449 ("their optimal choices include transversality conditions") | necessity of the transversality condition, by liquidating bonds and excess money at `T`: the liquidation consumption, value and plan, their bounds, feasibility and admissibility | `TidyR6MoneyHousehold.cref`, `TidyR6MoneyHousehold.liqValue`, `TidyR6MoneyHousehold.liq`, `TidyR6MoneyHousehold.wealth_liq`, `TidyR6MoneyHousehold.integrable_of_bdd`, `TidyR6MoneyHousehold.integral_abs_le_of_bdd`, `TidyR6MoneyHousehold.liq_parts`, `TidyR6MoneyHousehold.feasible_liq`, `TidyR6MoneyHousehold.admissible_liq`, `TidyR6MoneyHousehold.tvc_of_optimal` |
+| p. 22; p. 440; (19.28), p. 449 | the household problem solved: with bonds held at every date, optimal iff `D_t = 0`, `G_t ≥ 0` with equality where the cash constraint is slack, and the transversality condition | `TidyR6MoneyHousehold.optimal_iff_foc` |
+
+## The money model's equilibrium conditions derived, §22.1, pp. 495–496; (3.10), p. 58 (TidyR6MoneyHouseholdEqm)
+
+A derived equilibrium is a price system at which consuming the endowment and holding the
+government's bonds and money is optimal. The surplus in the valuation equation is the
+seigniorage-inclusive `s̄_t = τ_t + ι_tM_t/P_t`; see [corrections](corrections.md) for the two
+corrections and the precisions.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 495 ("surpluses react one-for-one to seigniorage"); (3.10), p. 58 | the seigniorage-inclusive surplus `s̄_t = τ_t + ι_tM_t/P_t`; it is adapted, and bounded by `2K` under the Fisher equation, `ι ≥ 0` and complementary slackness | `TidyR6MoneyHouseholdEqm.sbar`, `TidyR6MoneyHouseholdEqm.sbar_adapted`, `TidyR6MoneyHouseholdEqm.sbar_bdd` |
+| §22.1, pp. 495–496 | the household plan `(c = y, B, M)`; a derived equilibrium; the Fisher equation `Q_t = βP_tE_t[1/P_{t+1}]` a.s.; the imposed equations (Fisher, `ι_t ≥ 0`, `M_tV_t ≥ P_ty_t` with equality where `ι_t > 0`, valuation) | `TidyR6MoneyHouseholdEqm.hhPlan`, `TidyR6MoneyHouseholdEqm.DerivedEqm`, `TidyR6MoneyHouseholdEqm.Fisher`, `TidyR6MoneyHouseholdEqm.Imposed` |
+| (2.3), p. 22; §3.4, p. 58 | the Euler gap vanishes iff the Fisher equation holds; `G_t − D_t = βᵗι_t/P_t`; the Fisher equation makes `Q_t ≥ 0` | `TidyR6MoneyHouseholdEqm.eulerGap_zero_iff`, `TidyR6MoneyHouseholdEqm.moneyGap_sub_eulerGap`, `TidyR6MoneyHouseholdEqm.Q_nonneg_of_fisher` |
+| (3.9), p. 57; p. 496 | at `c = y` the household budget is the flow condition `W_t = P_ts̄_t + Q_tW_{t+1}` | `TidyR6MoneyHouseholdEqm.flow_of_hhFlow` |
+| p. 495 ("iterating forward and imposing the transversality condition"); (19.30), p. 449 | the budget, the Fisher equation and the transversality condition give `W_t/P_t = E_t∑βʲs̄_{t+j}` | `TidyR6MoneyHouseholdEqm.valuation_of_tvc` |
+| §22.1, pp. 495–496 | with positive government debt, derived equilibria are exactly the imposed-equation equilibria (necessity, sufficiency, iff) | `TidyR6MoneyHouseholdEqm.imposed_of_derived`, `TidyR6MoneyHouseholdEqm.derived_of_imposed`, `TidyR6MoneyHouseholdEqm.derived_iff_imposed` |
+| (19.33), p. 450; p. 496 | in a derived equilibrium `M_tV_t ≥ P_ty_t`, with `MV = Py` wherever `ι_t > 0` | `TidyR6MoneyHouseholdEqm.quantity_of_derived` |
+| §22.1, pp. 495–496 (OE-2 derived) | when money is costly to hold, derived equilibria are exactly the Fisher equation plus `TidyR5MoneyMeasure.EqmM`; in general the Fisher equation, `ι ≥ 0` and `EqmM` give a derived equilibrium | `TidyR6MoneyHouseholdEqm.derived_iff_eqmM`, `TidyR6MoneyHouseholdEqm.derived_of_eqmM` |
+| p. 495 (tools for the corrections) | the constant economy, its regularity, the present value `c/(1 − β)` of a constant surplus | `TidyR6MoneyHouseholdEqm.constEcon`, `TidyR6MoneyHouseholdEqm.constEcon_reg`, `TidyR6MoneyHouseholdEqm.pvM_const` |
+| p. 495 ("money pays interest"); p. 57 (correction) | with `Q^m = Q` every split `B = 3 − m`, `M = m`, `1 ≤ m < 3`, is a derived equilibrium at the same prices; at `m = 2` the imposed `EqmM` fails: only `MV ≥ Py` is derived | `TidyR6MoneyHouseholdEqm.money_pays_interest` |
+| pp. 495–496; p. 57 (correction) | a constant economy with `Q^m = β/2 < Q = β` satisfies the Fisher equation and `EqmM` but is not a derived equilibrium: `ι_t ≥ 0` is derived, not imposed | `TidyR6MoneyHouseholdEqm.negative_spread_not_derived` |
+| p. 496 ("fiscal surprises control unexpected inflation") | a derived equilibrium with a genuinely random price level `P_t = 1/(1 + (1 − β)ε_t/2)` for any bounded martingale-difference shock, also an `EqmM` equilibrium; the i.i.d. coin economy (every history null), where `1/P_1` is not a.s. its date-0 forecast | `TidyR6MoneyHouseholdEqm.randP`, `TidyR6MoneyHouseholdEqm.randX`, `TidyR6MoneyHouseholdEqm.randEcon`, `TidyR6MoneyHouseholdEqm.rand_invP`, `TidyR6MoneyHouseholdEqm.rand_E_invP`, `TidyR6MoneyHouseholdEqm.random_derived_eqm`, `TidyR6MoneyHouseholdEqm.coinClamp`, `TidyR6MoneyHouseholdEqm.coin_random_derived_eqm` |
+
+## The money-model household on finite trees and under perfect foresight, §22.1, pp. 495–496; (22.2), p. 495 (TidyR6MoneyHouseholdTree, TidyR6MoneyHouseholdLinear)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| §22.1, p. 496 (finite trees, tools) | every node has positive probability, so a.s. statements and equalities hold at every node; the measure `E_t` is the tree's cell average; adaptedness is the core one; the measure present value is `TidyR5MoneyUncertainty.pvE` | `TidyR6MoneyHouseholdTree.ae_iff_forall`, `TidyR6MoneyHouseholdTree.aeEq_iff`, `TidyR6MoneyHouseholdTree.E_tree`, `TidyR6MoneyHouseholdTree.adapted_iff`, `TidyR6MoneyHouseholdTree.pvM_tree` |
+| §2.1, p. 21; (3.9), p. 57; p. 448; p. 439 (finite trees) | expected utility is the finite sum `∑ₜβᵗ∑_ωp(ω)c_t(ω)`; the flow and cash constraints hold a.s. iff at every node; positions are integrable; `EqmM` of the tree is `TidyR5MoneyUncertainty.Eqm` of its expectation system | `TidyR6MoneyHouseholdTree.expU_tree`, `TidyR6MoneyHouseholdTree.flow_tree_iff`, `TidyR6MoneyHouseholdTree.constr_tree_iff`, `TidyR6MoneyHouseholdTree.integ_tree`, `TidyR6MoneyHouseholdTree.eqmM_tree_iff` |
+| §22.1, pp. 495–496 (finite trees) | with positive debt, derived equilibria are exactly the node-by-node imposed equations; when money is costly, exactly the Fisher equation plus `TidyR5MoneyUncertainty.Eqm` | `TidyR6MoneyHouseholdTree.tree_derived_iff`, `TidyR6MoneyHouseholdTree.tree_derived_iff_eqm` |
+| p. 496 (perfect foresight; restated) | the one-state tree and its identity `E_t`, restated from the NewKeynesianSelection project; its core money model is the perfect-foresight one | `TidyR6MoneyHouseholdTree.unitTree`, `TidyR6MoneyHouseholdTree.unitTree_E`, `TidyR6MoneyHouseholdTree.eqm_unit_iff` |
+| §22.1, pp. 495–496 (perfect foresight) | derived equilibria are exactly `Q_t = βP_t/P_{t+1}` plus `MoneyRegimes.Eqm` | `TidyR6MoneyHouseholdTree.pf_derived_iff` |
+| (22.2), p. 495 (perfect foresight) | the derived path satisfies the Fisher equation and the flow condition of (22.2) with `ρ = β` (`StarredModel.Consistent` via `Links.moneyOutcome`), and `log(1/Q_t) = −log β + i_t` exactly | `TidyR6MoneyHouseholdTree.pf_derived_linear` |
+| p. 496 (coin-flip tree) | a derived equilibrium that is a `TidyR5MoneyUncertainty.Eqm` of `coinSystem` with `1/P_1` not known at date 0 | `TidyR6MoneyHouseholdTree.coinTree_derived_eqm` |
+| (22.2), p. 495 (tools, restated) | `\|e^z − 1 − z\| ≤ z²` for `\|z\| ≤ 1`; `ε ↦ E_t[exp(−εx)]` has derivative `−E_tx` at `0` and is positive; restated from the NewKeynesianSelection project (its module LowerBound) | `TidyR6MoneyHouseholdLinear.abs_exp_sub_le`, `TidyR6MoneyHouseholdLinear.hasDerivAt_E_exp`, `TidyR6MoneyHouseholdLinear.E_exp_pos` |
+| (16.25), p. 377; (22.2), p. 495 | the derived condition in logs: `log(1/Q_t) = −log β − log E_t[exp(−π_{t+1})]`, on any expectation system with pull-out and at every node of every finite tree | `TidyR6MoneyHouseholdLinear.fisher_log_form`, `TidyR6MoneyHouseholdLinear.tree_fisher_log_form` |
+| (22.2), p. 495 (Fisher half as a derivative) | at a steady state `π*`, `ε ↦ −log β − log E_t[exp(−(π* + εx))]` equals `−log β + π*` at `0` with derivative `E_tx`: `i_t = E_tπ_{t+1}` is the exact linearisation | `TidyR6MoneyHouseholdLinear.gateaux_log_fisher` |
+
+## Both halves of (22.2) from the derived model, with explicit remainders, (22.2), p. 495 (TidyR6MoneyHouseholdFlowLin)
+
+Variables: `i_t = −log Q_t`, `π_{t+1} = log P_{t+1} − log P_t`, `v_t = log(Q_tW_{t+1}/P_t)`, and the
+seigniorage-inclusive surplus `s̄`. The linear (22.2) holds exactly only with the second-order
+remainders folded in: `J_t` into the rate (`|J_t| ≤ 9δ²` when `|π_{t+1} − π̄| ≤ δ ≤ 1/4`) and `R`
+into the surplus (`|R| ≤ 2η² + ρδ_v²`).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| (22.2), p. 495 | the log rate, log inflation and log market value of debt | `TidyR6MoneyHouseholdFlowLin.iL`, `TidyR6MoneyHouseholdFlowLin.piL`, `TidyR6MoneyHouseholdFlowLin.vL` |
+| (22.2), p. 495; App. (1.9), p. 558 | the government flow is exactly `v_t + i_t − π_{t+1} = log(s̄_{t+1} + e^{v_{t+1}})`; hence `= κ + ρv_{t+1} + s̃_{t+1} + R_{t+1}` with `\|R\| ≤ 2η² + ρδ_v²` | `TidyR6MoneyHouseholdFlowLin.flow_log_exact`, `TidyR6MoneyHouseholdFlowLin.flow_lin` |
+| (22.2), p. 495 (Fisher half) | the scalar Jensen step `\|−log a − m\| ≤ 9δ²`; `\|i_t + log β − E_tπ_{t+1}\| ≤ 9δ²` on any `ExpectationSystem` with pull-out, and a.s. on any probability space; the remainder `J_t` | `TidyR6MoneyHouseholdFlowLin.fisher_scalar`, `TidyR6MoneyHouseholdFlowLin.fisher_lin_core`, `TidyR6MoneyHouseholdFlowLin.fisher_lin_meas`, `TidyR6MoneyHouseholdFlowLin.fisherRem` |
+| (22.2), p. 495 (both halves) | the linear surplus `s̃ + R + κ + log β − J` and the path `linOutcome`; on every expectation system it satisfies `StarredModel.Consistent` exactly, with `ρ = e^{v̄}/(e^{v̄} + s̄y)` | `TidyR6MoneyHouseholdFlowLin.sOut`, `TidyR6MoneyHouseholdFlowLin.linOutcome`, `TidyR6MoneyHouseholdFlowLin.consistent_core` |
+| (22.2), p. 495; p. 496 (links) | in any `DerivedEqm` with positive debt and bond prices: both halves a.s. on any probability space; `linOutcome` satisfies `StarredModel.Consistent` at every node of every finite tree, with `\|J_t\| ≤ 9δ²` | `TidyR6MoneyHouseholdFlowLin.derived_lin_meas`, `TidyR6MoneyHouseholdFlowLin.derived_consistent_tree` |
+
+## Restated linearisation block: (3.17), p. 63; Online Appendix (1.9)–(1.13), p. 558 (TidyR6MoneyHouseholdFlowLin)
+
+Restated from the AssetsRulesBalanceSheets project (its module TidyR6Linearise), as the module
+docstring says, where the same thirteen declarations are proved for (3.17)–(3.21) and (8.4).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| App. (1.9)–(1.11), p. 558 (restated) | `\|log(1 + u) − u\| ≤ 2u²` for `\|u\| ≤ 1/2`; `\|eᶻ − 1\| ≤ 2\|z\|` for `\|z\| ≤ 1`; `log(c eᶻ + y) = log A + (c/A)z + (y − ȳ)/A + R` with `\|R\| ≤ 2u² + (c/A)z²` and the explicit bound `2η² + ρδ_z²`; the coefficients are the exact partial derivatives | `TidyR6MoneyHouseholdFlowLin.log_one_add_sub_le`, `TidyR6MoneyHouseholdFlowLin.exp_sub_one_le`, `TidyR6MoneyHouseholdFlowLin.log_lin`, `TidyR6MoneyHouseholdFlowLin.log_lin_bound`, `TidyR6MoneyHouseholdFlowLin.log_lin_hasDerivAt` |
+| App. (1.11)–(1.13), p. 558 (restated) | `A = e^{v̄} + s̄y`, `ρ = e^{v̄}/A ∈ (0, 1)`, `κ`, the scaled surplus `s̃`, the flow remainder `R` | `TidyR6MoneyHouseholdFlowLin.A0`, `TidyR6MoneyHouseholdFlowLin.rho`, `TidyR6MoneyHouseholdFlowLin.rho_mem`, `TidyR6MoneyHouseholdFlowLin.kap`, `TidyR6MoneyHouseholdFlowLin.stil`, `TidyR6MoneyHouseholdFlowLin.remF` |
+| (3.17), p. 63; App. (1.11), p. 558 (restated) | the exact flow gives `v_t + r_{t+1} − g_{t+1} = κ + ρv_{t+1} + s̃_{t+1} + R_{t+1}` exactly, with `\|R\| ≤ 2η² + ρδ_v²` | `TidyR6MoneyHouseholdFlowLin.flow_exact`, `TidyR6MoneyHouseholdFlowLin.remF_bound` |
 
 ## Non-identification, §22.1, p. 496; §22.3, pp. 500–502; §16.5, p. 371 (NonIdentification)
 

@@ -16,11 +16,12 @@ model `i_t = E_tπ_{t+1}`, `ρv_{t+1} = v_t + i_t − π_{t+1} − s̃_{t+1}` (2
 fiscal rules written around a target path, the "starred" form (16.20)–(16.24), (22.1),
 (22.7)–(22.11). Its equilibria are judged by the book's criterion: adapted, bounded inflation and
 the transversality condition for debt. "Unique" means that the target is the only such equilibrium.
-The library contains **1088 theorems**: 376 in the fifteen chapter modules, 108 in the shared core
+The library contains **1189 theorems**: 376 in the fifteen chapter modules, 108 in the shared core
 restated from the earlier projects, 406 in the eleven modules from `ExpectationsMeasure` to
-`MarkovRegimesReach` (the measure-theoretic modules and the `N`-regime Markov tree), and 198 in the
+`MarkovRegimesReach` (the measure-theoretic modules and the `N`-regime Markov tree), 198 in the
 eight `TidyR5…` modules (the boundary `|φ| = 1`, Theorem RG and Granger causality with
-square-integrable shocks, and the money model under uncertainty).
+square-integrable shocks, and the money model under uncertainty), and 101 in the five
+`TidyR6MoneyHousehold…` modules (the household problem behind the money model).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E12–E19 refer to the
@@ -97,6 +98,32 @@ Headline results, in the namespace `Cochrane.ObservationalEquivalence`:
   (`TidyR5MoneyUncertainty.unexpected_price_level`, `TidyR5MoneyMeasure.unexpected_price_level`),
   and on the coin economy the equilibrium is genuinely random
   (`TidyR5MoneyUncertainty.coin_random_eqm`, `TidyR5MoneyMeasure.coin_random_eqmM`).
+* **The money model from the household problem.** A risk-neutral household (the chapter's
+  discounting `βʲ`) with the budget (3.9), money priced at `Q^m`, no borrowing and the cash
+  constraint `M_tV_t ≥ P_ty_t` is solved on any probability space with any filtration. The bond
+  first-order condition `Q_t ≥ βP_tE_t[1/P_{t+1}]` holds with equality where bonds are held (the
+  Fisher equation), money is never dominated, the transversality condition is necessary, and the
+  first-order conditions with it are sufficient (`TidyR6MoneyHousehold.eulerGap_eq_zero`,
+  `TidyR6MoneyHousehold.moneyGap_nonneg`, `TidyR6MoneyHousehold.tvc_of_optimal`,
+  `TidyR6MoneyHousehold.optimal_iff_foc`). At `c = y` the budget is the flow condition and, with
+  the transversality condition, the valuation equation with the seigniorage-inclusive surplus
+  `s̄_t = τ_t + ι_tM_t/P_t` (`TidyR6MoneyHouseholdEqm.flow_of_hhFlow`,
+  `TidyR6MoneyHouseholdEqm.valuation_of_tvc`). With positive debt the derived equilibria are
+  exactly the imposed-equation equilibria, and when money is costly to hold they are the Fisher
+  equation plus `TidyR5MoneyMeasure.EqmM` (`TidyR6MoneyHouseholdEqm.derived_iff_imposed`,
+  `TidyR6MoneyHouseholdEqm.derived_iff_eqmM`); the same holds node by node on every finite tree
+  with `TidyR5MoneyUncertainty.Eqm` and under perfect foresight with `MoneyRegimes.Eqm`
+  (`TidyR6MoneyHouseholdTree.tree_derived_iff_eqm`, `TidyR6MoneyHouseholdTree.pf_derived_iff`).
+  Both halves of the linear (22.2) follow, exactly once second-order remainders are folded into
+  the rate (`|J_t| ≤ 9δ²`) and the surplus (`|R| ≤ 2η² + ρδ_v²`), on every expectation system, on
+  every finite tree and almost surely on any probability space
+  (`TidyR6MoneyHouseholdFlowLin.consistent_core`, `TidyR6MoneyHouseholdFlowLin.derived_lin_meas`,
+  `TidyR6MoneyHouseholdFlowLin.derived_consistent_tree`); under perfect foresight they hold with
+  no remainder (`TidyR6MoneyHouseholdTree.pf_derived_linear`), and the Fisher half is the exact
+  derivative of the bond-pricing condition (`TidyR6MoneyHouseholdLinear.gateaux_log_fisher`).
+  Two corrections follow: when money pays interest optimisation gives only `MV ≥ Py`
+  (`TidyR6MoneyHouseholdEqm.money_pays_interest`), and the imposed equations miss the zero bound
+  `ι_t = Q^m_t − Q_t ≥ 0` (`TidyR6MoneyHouseholdEqm.negative_spread_not_derived`).
 * **Theorem RG: a positive surplus-on-debt coefficient.** With an exogenous moving-average surplus
   and the valuation equation, `2Cov(s_{t+1}, v_t) = ∑_{k≥1}a_k² + ∑_{k,l≥1}ρ^{|k−l|}a_ka_l`, and
   the regression coefficient is positive iff the surplus is not white noise
@@ -200,7 +227,11 @@ the printed text precise. The main corrections are the confirmed errors of the c
 In addition, the formalisation shows that the regime boundary depends on the equilibrium
 criterion, that the boundary `|φ| = 1` is neither determinate nor indeterminate, that region (b)
 needs bounded inherited debt, and that an exact present-value identity in a VAR needs singular
-shocks. It also corrects the Davig–Leeper formula as this project first restated it
+shocks. Deriving the money model of p. 495 from the household problem shows that when money pays
+interest optimisation gives only `MV ≥ Py`, with `MV = Py` derived only where money is costly to
+hold (`TidyR6MoneyHouseholdEqm.money_pays_interest`), and that the imposed equations of
+pp. 495–496 miss the restriction `ι_t = Q^m_t − Q_t ≥ 0`, the zero bound for cash
+(`TidyR6MoneyHouseholdEqm.negative_spread_not_derived`). It also corrects the Davig–Leeper formula as this project first restated it
 (`MarkovRegimes.DLCondition`): it characterises determinacy only for `φ_i > 0`, and with `N`
 regimes the right matrix is `|Φ|⁻¹P`, not `Φ⁻¹P`. Finally, the date-0 claim "past surpluses do
 not forecast" of `GrangerMeasure.forecast_own` does not extend from the i.i.d. economy to a
@@ -232,8 +263,11 @@ Not formalised:
   consistent, refute it. Every genuine probability space is covered
   (`TidyR5UnitRootMeasure.exists_iff_condBddM`, `TidyR5LeeperMeasure.leeperM_unit_iff`); the
   module docstring of `TidyR5LeeperMeasure` gives the argument;
-* the household problems behind the Fisher equation, the flow condition and `MV = Py`: all are
-  imposed as equilibrium conditions.
+* for the household problem behind the money model (`TidyR6MoneyHousehold` onward), a household
+  with concave utility and a random endowment: it would give the `Λ`-weighted model, discounting
+  at `βʲu′(y_{t+j})/u′(y_t)`, not the chapter's `βʲ`, so the household is risk neutral; and the
+  cash-in-advance timing of §19.5 with `V ≠ 1`, which puts a velocity wedge into the Fisher
+  equation and is treated in the `Monetarism` project instead.
 
 ## Library map
 
@@ -277,6 +311,11 @@ Not formalised:
 | [TidyR5GrangerL2](ObservationalEquivalence/TidyR5GrangerL2.lean) | 38 | p. 501 footnote 1, pp. 501–502: Granger causality in any filtration with `ShockMDS2` shocks; the date-0 own-forecast counterexample |
 | [TidyR5MoneyMeasure](ObservationalEquivalence/TidyR5MoneyMeasure.lean) | 14 | §22.1, §22.7: the money model on any probability space, a.s.; OE-2, news, inconsistent policies, the coin economy |
 | [TidyR5LeeperMeasure](ObservationalEquivalence/TidyR5LeeperMeasure.lean) | 13 | (22.3)–(22.6), §22.7, (23.1)–(23.4): the Leeper model on any probability space; existence iff a bounded solution, the `φ² = 1` characterisation and dichotomy, region (d); the foundational limit of the core version |
+| [TidyR6MoneyHousehold](ObservationalEquivalence/TidyR6MoneyHousehold.lean) | 41 | §22.1, (3.9), §19.3, (19.24)–(19.28): the risk-neutral household with money on any probability space; the reallocation inequality, the bond and money first-order conditions, necessity of the transversality condition, sufficiency, `optimal_iff_foc` |
+| [TidyR6MoneyHouseholdEqm](ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean) | 21 | §22.1, (3.10): derived equilibria; the flow and valuation equations from the budget; derived iff imposed, and iff the Fisher equation plus `EqmM` when money is costly; money paying interest and the negative spread (corrections); random derived equilibria |
+| [TidyR6MoneyHouseholdTree](ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean) | 17 | §22.1, (22.2): the derivation on every finite tree (`TidyR5MoneyUncertainty.Eqm`) and under perfect foresight (`MoneyRegimes.Eqm`); the exact linear model under perfect foresight; the coin tree |
+| [TidyR6MoneyHouseholdFlowLin](ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean) | 16 | (22.2), (3.17), Online Appendix (1.9)–(1.13): both halves of (22.2) from the derived model with explicit remainders `9δ²` and `2η² + ρδ_v²`; linearisation steps restated from `AssetsRulesBalanceSheets` |
+| [TidyR6MoneyHouseholdLinear](ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean) | 6 | (22.2), (16.25): the derived bond-pricing condition in logs; the Fisher equation as its exact Gateaux derivative |
 
 ## Modelling conventions
 
@@ -342,7 +381,11 @@ Not formalised:
   (`MoneyRegimes.Eqm`). Under uncertainty the same model is stated state by state in any
   `ExpectationSystem` (`TidyR5MoneyUncertainty.Eqm`, which reduces to `MoneyRegimes.Eqm` under
   perfect foresight by `TidyR5MoneyUncertainty.eqm_perfectForesight_iff`) and almost surely on a
-  probability space (`TidyR5MoneyMeasure.EqmM`).
+  probability space (`TidyR5MoneyMeasure.EqmM`). These conditions are imposed there and derived
+  from a risk-neutral household's optimisation in `TidyR6MoneyHousehold`: a derived equilibrium
+  (`TidyR6MoneyHouseholdEqm.DerivedEqm`) is a price system at which consuming the endowment and
+  holding the government's bonds and money is optimal, and its surplus is the
+  seigniorage-inclusive `TidyR6MoneyHouseholdEqm.sbar`.
 * **Markov switching.** All uncertainty comes from the regimes, so a process is a function of the
   regime history (`MarkovRegimes.Node`) and bounded means bounded over all histories
   (`MarkovRegimes.BoundedFn`). The same uniqueness dichotomy is proved for any `ExpectationSystem`

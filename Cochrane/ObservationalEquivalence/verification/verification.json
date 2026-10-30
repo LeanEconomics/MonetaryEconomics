@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-22T09:29:22.627283+00:00",
-  "theorems": 1088,
+  "checked_at_utc": "2026-10-30T00:12:30.909137+00:00",
+  "theorems": 1189,
   "module_theorems": {
     "ObservationalEquivalence/Determinacy.lean": 23,
     "ObservationalEquivalence/Expectations.lean": 20,
@@ -39,9 +39,14 @@
     "ObservationalEquivalence/TidyR5ShockL2.lean": 36,
     "ObservationalEquivalence/TidyR5GrangerL2.lean": 38,
     "ObservationalEquivalence/TidyR5MoneyMeasure.lean": 14,
-    "ObservationalEquivalence/TidyR5LeeperMeasure.lean": 13
+    "ObservationalEquivalence/TidyR5LeeperMeasure.lean": 13,
+    "ObservationalEquivalence/TidyR6MoneyHousehold.lean": 41,
+    "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean": 21,
+    "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean": 17,
+    "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean": 16,
+    "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean": 6
   },
-  "audited_declarations": 1431,
+  "audited_declarations": 1592,
   "declarations": [
     {
       "name": "Cochrane.ObservationalEquivalence.SchurStable",
@@ -7197,6 +7202,811 @@
       "name": "Cochrane.ObservationalEquivalence.TidyR5LeeperMeasure.leeperM_region_d",
       "kind": "theorem",
       "module": "ObservationalEquivalence/TidyR5LeeperMeasure.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.\u03b2",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.y",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.V",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.\u03c4",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.P",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.Q",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.Qm",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.W0",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.c",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.B",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.M",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.mmin",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.iota",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.invP",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.oneDate",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.addPlan",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.oneDate_self",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.oneDate_ne",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate_self",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate_ne",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.AdaptedPlan",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Flow",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Constr",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Integ",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Feasible",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Admissible",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Optimal",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.EconReg",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.dev",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.realWealth",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.cref",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.liqValue",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.liq",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth_add",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth_oneDate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.summable_of_admissible",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU_eq_integral_tsum",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU_add",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU_twoDate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.sm_div",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.integrable_bdd_mul",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.ae_zero_of_nonneg_integral_nonpos",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.flow_addPlan_dev",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.feasible_dev",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_sm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_sm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_integrable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_integrable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.mmin_sm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.dev_ineq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.nonneg_of_indicator_ineq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_nonneg",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_nonneg",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.nonpos_of_weight_ineq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.gap_split",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.realWealth_integrable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.exo_integrable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.period_identity",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.optimal_of_foc",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth_liq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.integrable_of_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.integral_abs_le_of_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.liq_parts",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.feasible_liq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.admissible_liq",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.tvc_of_optimal",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.optimal_iff_foc",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHousehold.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.sbar",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.hhPlan",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.DerivedEqm",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.Fisher",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.Imposed",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.eulerGap_zero_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.moneyGap_sub_eulerGap",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.sbar_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.Q_nonneg_of_fisher",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.sbar_bdd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.flow_of_hhFlow",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.valuation_of_tvc",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.imposed_of_derived",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_of_imposed",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_iff_imposed",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.quantity_of_derived",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_iff_eqmM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_of_eqmM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.constEcon",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.constEcon_reg",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.pvM_const",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.money_pays_interest",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.negative_spread_not_derived",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.randP",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.randX",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.randEcon",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.rand_invP",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.rand_E_invP",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.random_derived_eqm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.coinClamp",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.coin_random_derived_eqm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.ae_iff_forall",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.aeEq_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.E_tree",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.adapted_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.pvM_tree",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.expU_tree",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.flow_tree_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.constr_tree_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.integ_tree",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.eqmM_tree_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.tree_derived_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.tree_derived_iff_eqm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.unitTree",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.unitTree_E",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.eqm_unit_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.pf_derived_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.pf_derived_linear",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.coinTree_derived_eqm",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_one_add_sub_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.exp_sub_one_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_lin",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_lin_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_lin_hasDerivAt",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.A0",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.rho",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.kap",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.stil",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.remF",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.rho_mem",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.flow_exact",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.remF_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.iL",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.piL",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.vL",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.flow_log_exact",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.flow_lin",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisher_scalar",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisher_lin_core",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisher_lin_meas",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisherRem",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.sOut",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.linOutcome",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.consistent_core",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.derived_lin_meas",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.derived_consistent_tree",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.abs_exp_sub_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.hasDerivAt_E_exp",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.E_exp_pos",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.gateaux_log_fisher",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.fisher_log_form",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.tree_fisher_log_form",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean"
     }
   ],
   "full_build": "passed",
@@ -14348,6 +15158,811 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.\u03b2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.y": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.V": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.\u03c4": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.Q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.Qm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Econ.W0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.c": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.B": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Plan.M": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.mmin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.iota": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.invP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.oneDate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.addPlan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.oneDate_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.oneDate_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.twoDate_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.AdaptedPlan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Constr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Integ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Admissible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.Optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.EconReg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.realWealth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.cref": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.liqValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.liq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth_oneDate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.summable_of_admissible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU_eq_integral_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.expU_twoDate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.sm_div": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.integrable_bdd_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.ae_zero_of_nonneg_integral_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.flow_addPlan_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.feasible_dev": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.mmin_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.dev_ineq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.nonneg_of_indicator_ineq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.nonpos_of_weight_ineq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.eulerGap_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.moneyGap_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.gap_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.realWealth_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.exo_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.period_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.optimal_of_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.wealth_liq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.integrable_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.integral_abs_le_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.liq_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.feasible_liq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.admissible_liq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.tvc_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHousehold.optimal_iff_foc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.sbar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.hhPlan": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.DerivedEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.Fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.Imposed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.eulerGap_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.moneyGap_sub_eulerGap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.sbar_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.Q_nonneg_of_fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.sbar_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.flow_of_hhFlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.valuation_of_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.imposed_of_derived": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_of_imposed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_iff_imposed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.quantity_of_derived": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_iff_eqmM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.derived_of_eqmM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.constEcon": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.constEcon_reg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.pvM_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.money_pays_interest": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.negative_spread_not_derived": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.randP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.randX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.randEcon": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.rand_invP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.rand_E_invP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.random_derived_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.coinClamp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdEqm.coin_random_derived_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.ae_iff_forall": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.aeEq_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.E_tree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.adapted_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.pvM_tree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.expU_tree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.flow_tree_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.constr_tree_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.integ_tree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.eqmM_tree_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.tree_derived_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.tree_derived_iff_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.unitTree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.unitTree_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.eqm_unit_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.pf_derived_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.pf_derived_linear": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdTree.coinTree_derived_eqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_one_add_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.exp_sub_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_lin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_lin_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.log_lin_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.A0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.rho": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.kap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.stil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.remF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.rho_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.flow_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.remF_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.iL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.piL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.vL": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.flow_log_exact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.flow_lin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisher_scalar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisher_lin_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisher_lin_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.fisherRem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.sOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.linOutcome": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.consistent_core": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.derived_lin_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdFlowLin.derived_consistent_tree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.abs_exp_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.hasDerivAt_E_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.E_exp_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.gateaux_log_fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.fisher_log_form": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.tree_fisher_log_form": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -14389,15 +16004,20 @@
     "ObservationalEquivalence/TidyR5GrangerL2.lean": "c350623a41ec9a551b5de2b9e2866e159fbba2ff091f7ee24051134e7aa06d8d",
     "ObservationalEquivalence/TidyR5MoneyMeasure.lean": "3d32c1c85a9c8531df30f901b7f35e2f224d0903fa5f233c9a5094dad07ae38c",
     "ObservationalEquivalence/TidyR5LeeperMeasure.lean": "9513a42148d984fed7db1dd8ea8e13fbac990e92448a57ce7d5dd5abcaa24b32",
-    "ObservationalEquivalence.lean": "52abece3ed191b0ee687702901479761149c4eb40c983eb3dd06701681c15004",
+    "ObservationalEquivalence/TidyR6MoneyHousehold.lean": "fc7a256759a5cb80dcaea30b35d4e634ffeb7db69b261aa0b088ba5782a08b78",
+    "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean": "cb2f9dda7c5ae1d1080fbecd9d39b001aa04ef452a57878459fed94f7d367cdf",
+    "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean": "4ed5f90ba6af589a635b2e94757e9a9c39a2229f16351cfd30d31f4595d95781",
+    "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean": "aba7e6df964295b2ecc5557469f06b0957fef9b2a01a52cf62af7707f8b75797",
+    "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean": "4e19ea290b4f0a4474034c0fc3374a136f8c3b5aa5113058c7cc10f45137f18c",
+    "ObservationalEquivalence.lean": "30f7992a95091e5f1f545150cb0e5f58effc2f75621b8a3eeef744d4bb458582",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "e9a8ce4a923efde2eabf9122c4657e5949c19a57522bca9b3464526d9be97f5f",
     "lake-manifest.json": "3a3e594142289109ad51938546e449e9216f9f32d46221ec741c00aeda0a5d92",
-    "proof-manifest.json": "da7f6841cd52f3d10f5821e7dad234c648e0bfe779cd01d0a691a67557435734",
+    "proof-manifest.json": "0da91748cf4ff4e59d3acf7f6b468f64af87f564a4c9a41334c7688279e93cf6",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "829a86222e965b9f1823d60822ae4c4656a145265af4cf87c384f55c46bb7077",
+  "fresh_audit_sha256": "20d19d5604ce7353102dab898f61650c112a12941ce61579266a6ea3efe261d6",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 22 (with Chapters 23-24 claims and Online Appendix A2): Observational equivalence of fiscal and new Keynesian regimes. Valuation equation in all regimes and the unexpected-inflation formula; the starred model (16.20)-(16.24), (22.7)-(22.11), (23.4); OE-1 (existence, uniqueness in both determinate regions, continuum and sunspots in double-passive; E12 corrected labels under the TVC and bounded-debt criteria); non-identification NI-1 to NI-3 and reverse engineering; Leeper regions (a)-(d) with the |phi| = 1 boundary and the unstarred double-active non-existence (E19); OE-2 money regimes; the surplus-on-debt regression is positive for any non-iid exogenous surplus, finite and infinite MA (E16); Granger-causality definitions coincide only bivariately (E17); VAR present-value identities and singular shocks; ex-post SDF and finite-state FTAP; Davig-Leeper Markov-switching determinacy; links to Woodford Prop 4.11. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 22, pp. 495-510, Chapters 23-24, pp. 512-523, and Online Appendix A2, pp. 593-611."
