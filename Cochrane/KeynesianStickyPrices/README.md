@@ -16,10 +16,11 @@ figures; their expected-path and news forms are also proved for every expectatio
 almost surely, on genuine probability spaces with Mathlib's conditional expectation. Statements
 about an infinite past are ℤ-indexed and pathwise. The central objects
 are the simple sticky-price model (17.1)–(17.14), under adaptive and under rational expectations,
-and the three-equation model (17.15)–(17.33); "determinate" means exactly one bounded equilibrium
-for every bounded adapted disturbance. The library contains **1143 theorems**, including the
-shared core and the infrastructure restated from the Woodford Chapter 4 and Cochrane Chapter 22
-projects; 600 of them are in the twenty-seven chapter modules.
+and the three-equation model (17.15)–(17.33), whose equations are also derived from household and
+price-setting problems; "determinate" means exactly one bounded equilibrium for every bounded
+adapted disturbance. The library contains **1518 theorems**, including the shared core and the
+infrastructure restated from the Woodford Chapter 4 and Cochrane Chapter 2 and 22 projects; 914
+of them are in the forty-four chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E7–E11 and E24 refer to
@@ -164,6 +165,27 @@ Headline results, in the namespace `Cochrane.KeynesianStickyPrices`:
   (`TidyR5StochasticFiscal.surplus_news_rise`,
   `TidyR5StochasticFiscal.surplus_news_ar1_eq_sigmaS`,
   `TidyR5StochasticFiscalMeasure.surplus_news_rise_ae`).
+* **The household and price-setting problems behind (17.15)–(17.17).** On a genuine probability
+  space and on finite trees, the household's Euler equation gives the IS curve exactly, with the
+  explicit second-order precautionary disturbance `u_x = −σE_t[e^z − 1 − z] ≤ 0`
+  (`TidyR6EulerIS.euler_iff_IS`, `TidyR6EulerIS.isRem_bounds`, `TidyR6EulerIS.optimal_iff_IS`).
+  Both price setters named on p. 118 give (17.17) exactly with explicit second-order
+  remainders: costs of changing prices (Rotemberg), with `κ = (ε − 1)Ȳ^{1−γ}(γ + ϕ)/φ`
+  (`TidyR6RotembergPC.nonlinPC_iff_PCM`, `TidyR6RotembergPC.optimal_iff_PC`), and Calvo, with
+  `κ = (1 − α)(1 − αβ)(γ + ϕ)/(α(1 + εϕ))`, an almost-sure version and the single bound
+  `|u_π| ≤ calvoC·L²` (`TidyR6CalvoPC.calvo_iff_PC`, `TidyR6CalvoAE.calvo_iff_PC_ae`,
+  `TidyR6CalvoBound.calvoRem_abs_le`). Equilibria of the derived economies are exactly
+  `FullModel.Model` with the remainders as disturbances (`TidyR6DerivedModel.eqm_iff_model`,
+  `TidyR6DerivedModel.Tree.eqm_iff_model`, `TidyR6CalvoDerived.eqm_iff_model_calvo`), and the
+  steady state is an equilibrium (`TidyR6DerivedModel.steady_state_eqm`). The Rotemberg
+  first-order condition is necessary over all plans but not globally sufficient: a deep deflation
+  satisfies it without being optimal (`TidyR6RotembergGlobal.cex_not_optimal`); it is sufficient
+  among all plans near the steady state (`TidyR6RotembergLocal.optimal_near_ss`,
+  `TidyR6RotembergLocal.optimal_near_ss_yeo`). The joint yeoman-farmer problem agrees with the
+  decentralised household and price-setter problems (`TidyR6JointYeoman.joint_iff_decentral`,
+  `TidyR6JointGlobal.joint_of_decentral_u`, `TidyR6JointGlobal.joint_iff_decentral_near_ss`).
+  Preference and markup shocks give `u_x = −σ(E_tζ_{t+1} − ζ_t) + rem` and
+  `u_π = κ̃(μ − ζ) + rem` (`TidyR6ShockModel.eqm_iff_modelZ`).
 * **(18.2) with inertia, a completion.** The book makes no determinacy claim. For all parameters
   with `σ, κ, β > 0`, under any expectation system: with `1 − σφ_{x,1} ≠ 0`, determinate iff
   exactly one root of `det(λM − N)` is inside the unit circle and two outside, and the rule
@@ -199,19 +221,39 @@ cross-reference to (1.62) for (1.60) (A1 p. 588) and the rounding `η* ≈ 0.51`
 an output response the real-explosion claim of p. 421 is no longer decided by the determinant
 condition, and at the Figure 17.8 calibration with `φ_x = 1/2` the explosions are monotone; under
 genuine uncertainty the claim holds only in its expectational form, not pathwise. For (18.2),
-where the book makes no claim, the long-run Taylor principle with inertia is not sufficient.
-One correction concerns the earlier formalisation, not the book: `FiscalUnderpinnings.deltaS`
+where the book makes no claim, the long-run Taylor principle with inertia is not sufficient. The
+micro-foundations of p. 118 are made precise: "linearize ... suppressing constants" drops a
+nonpositive second-order precautionary term from the IS curve; the price setter's first-order
+condition is not globally sufficient, only near the steady state; a preference shock on the
+utility of consumption enters the Phillips curve as well as the IS curve; and the slope `κ`,
+which the book leaves unspecified, is given for both price setters.
+Corrections to the earlier formalisation, not the book: `FiscalUnderpinnings.deltaS`
 omits the factor `ρ` on real-rate news, so the corrected D is `ρ/(λ₁ − ρ)` and C is at
 `δ = ρ/λ₁` (`TidyR5StochasticFiscal.surplus_news_D`,
-`TidyR5StochasticFiscal.surplus_news_zero_iff`).
+`TidyR5StochasticFiscal.surplus_news_zero_iff`); decentralised ⇒ joint optimality, first stated
+only for prices in the concavity region, holds over all uniformly bounded plans
+(`TidyR6JointGlobal.joint_of_decentral_u`); and `TidyR6CalvoPC.calvo_iff_PC` needs neither its
+separate reset-price bound nor everywhere bounds (`TidyR6CalvoBound.calvo_iff_PC_small`,
+`TidyR6CalvoAE.calvo_iff_PC_ae`).
 
 Not formalised:
 * the verbal and historical parts of Chapter 18 (§§18.1–18.3, beyond footnote 1 and
   (18.1)–(18.3)), Sims' (2016) backward-looking fiscal model (p. 431), the determinacy plots of
   Cochrane (2011b) (p. 420, A1 p. 587), and the remarks on why real explosions are not observed
   (p. 421);
-* the household problems behind (17.15)–(17.17): the IS and Phillips curves are imposed as
-  equilibrium conditions;
+* for the household and price-setting problems behind (17.15)–(17.17): whether joint
+  yeoman-farmer optimality implies the price setter's global optimality far from the steady
+  state (it does near it, `TidyR6JointGlobal.joint_iff_decentral_near_ss`; decentralised ⇒ joint
+  over merely date-wise bounded competitors needs their admissibility, a hypothesis of
+  `TidyR6JointGlobal.joint_of_decentral_class`); an explicit radius: the `ρ` of
+  `TidyR6RotembergLocal.near_ss` is existential (the conditions `TidyR6RotembergLocal.PotCond`
+  themselves are explicit); the existence of `L₀ > 0` with `TidyR6CalvoBound.Small` on
+  `[0, L₀]`, stated in the docstring but not as a Lean theorem; the insufficiency of
+  integrability-only Calvo hypotheses, of which only the uniqueness failure
+  `TidyR6CalvoAE.unbounded_solves` is in Lean (divergence of the discounted weights under
+  integrable inflation is argued in the docstring); and the law of large numbers over a continuum
+  of firms: the Calvo index is assumed (almost surely in `TidyR6CalvoAE`), derived only from
+  deterministic cohort masses (`TidyR6CalvoReset.index_eq_of_cohort`);
 * the Figure 17.6 numbers 0.67, 1.66, −1.53 and 2.99: the book gives no `σ, κ, β, ρ` for the
   figure. Only the `Δs` formula (with the factor `ρ`, `TidyR5StochasticFiscal.surplus_news_rise`),
   B, C and D, and the inconsistency of A and E (`FiscalUnderpinnings.fig17_6_inconsistent`,
@@ -220,7 +262,8 @@ Not formalised:
   Figures 17.5–17.7, the equilibrium set, `Δs`, `Σs` and the reverse-engineered disturbances) are
   stated in news form from a date `s` on, since both expectation systems are ℕ-indexed; the
   infinite-past statements ((17.8), the corrected inverse of (17.14), `zPath`, and the bounded
-  paths and equilibria on ℤ of `FullModelTidy`) remain pathwise under perfect foresight;
+  paths and equilibria on ℤ of `FullModelTidy`) remain pathwise under perfect foresight, and the
+  household and price-setting problems behind (17.15)–(17.17) are posed from date 0 only;
 * for (18.2), the genericity condition is stated at the explicit root `μ = λ₂/β` of (5.6), not
   reduced to a polynomial inequality in the parameters;
 * the likelihood of (18.3) as a statistical object: `History.likelihood_flat` is a statement about
@@ -276,6 +319,25 @@ Not formalised:
 | [TidyR5ReverseMeasure](KeynesianStickyPrices/TidyR5ReverseMeasure.lean) | 6 | pp. 414, 420 on a probability space: uniqueness under a rule a.s., reverse-engineered disturbances |
 | [TidyR5StochasticFiscal](KeynesianStickyPrices/TidyR5StochasticFiscal.lean) | 16 | Figs. 17.6–17.7, (17.19) under any expectation system: surplus news `ρ(1 − δ)/(λ₁ − ρ) − δ` correcting `FiscalUnderpinnings.deltaS`, AR(1) news, `Σs`, `u` news not geometric |
 | [TidyR5StochasticFiscalMeasure](KeynesianStickyPrices/TidyR5StochasticFiscalMeasure.lean) | 15 | Figs. 17.6–17.7, (17.19) on a probability space: (17.19) a.s., surplus news, AR(1) news, `Σs` |
+| [TidyR6HouseholdMeasure](KeynesianStickyPrices/TidyR6HouseholdMeasure.lean) | 35 | Ch. 2, (2.2)–(2.3), pp. 21–22: the household problem on a probability space, the Euler equation and the bond price (restated from the Chapter 2 project) |
+| [TidyR6CalvoReset](KeynesianStickyPrices/TidyR6CalvoReset.lean) | 10 | p. 118, p. 421: the Calvo reset-price problem, its unique optimum, and the cohort price index |
+| [TidyR6HouseholdMeasureTVC](KeynesianStickyPrices/TidyR6HouseholdMeasureTVC.lean) | 26 | Ch. 2, (2.6)–(2.7), p. 22; A1 p. 556: transversality, sufficiency and the valuation equation on a probability space (restated from the Chapter 2 project) |
+| [TidyR6EulerIS](KeynesianStickyPrices/TidyR6EulerIS.lean) | 36 | (17.15)–(17.16), p. 118: the household Euler equation is the IS curve exactly, with the second-order disturbance `u_x = −σE_t[e^z − 1 − z]`; optimality iff IS; finite trees |
+| [TidyR6PriceSetting](KeynesianStickyPrices/TidyR6PriceSetting.lean) | 29 | p. 118: the general price-setting problem; necessity of the first-order condition, sufficiency with concavity and transversality |
+| [TidyR6Rotemberg](KeynesianStickyPrices/TidyR6Rotemberg.lean) | 15 | p. 118: the Rotemberg payoff, its failure of concavity, the concavity region, optimality in the region iff the first-order condition |
+| [TidyR6RotembergPC](KeynesianStickyPrices/TidyR6RotembergPC.lean) | 23 | (17.17): the symmetric Rotemberg first-order condition is the nonlinear Phillips curve, exactly (17.17) with an explicit second-order remainder; finite trees |
+| [TidyR6CalvoPC](KeynesianStickyPrices/TidyR6CalvoPC.lean) | 57 | (17.17) from Calvo price setting: weights, forecasts, log-linearised recursions, the exact identity, optimal resetting iff (17.17) with `κ = (1 − α)(1 − αβ)(γ + ϕ)/(α(1 + εϕ))` |
+| [TidyR6CalvoBound](KeynesianStickyPrices/TidyR6CalvoBound.lean) | 18 | (17.17): the single bound `\|u_π\| ≤ calvoC·L²`; the index bounds the reset price |
+| [TidyR6CalvoAE](KeynesianStickyPrices/TidyR6CalvoAE.lean) | 17 | (17.17): the Calvo Phillips curve under almost-sure bounds and index; an unbounded solution of the reset-gap equation |
+| [TidyR6DerivedModel](KeynesianStickyPrices/TidyR6DerivedModel.lean) | 12 | (17.15)–(17.18) derived: equilibria are exactly the model with the remainders as disturbances; linearisation as the exact derivative; the steady state; finite trees |
+| [TidyR6CalvoDerived](KeynesianStickyPrices/TidyR6CalvoDerived.lean) | 6 | (17.15)–(17.17) derived with Calvo price setting; the steady state |
+| [TidyR6HouseholdPref](KeynesianStickyPrices/TidyR6HouseholdPref.lean) | 8 | p. 119: the household with preference weights; the Euler equation, the budget comparison against different taxes, sufficiency |
+| [TidyR6JointYeoman](KeynesianStickyPrices/TidyR6JointYeoman.lean) | 15 | p. 118: the joint yeoman-farmer problem coincides with the decentralised problems (prices in the concavity region) |
+| [TidyR6RotembergGlobal](KeynesianStickyPrices/TidyR6RotembergGlobal.lean) | 12 | p. 118: the Rotemberg first-order condition is not globally sufficient (a deep deflation) |
+| [TidyR6RotembergLocal](KeynesianStickyPrices/TidyR6RotembergLocal.lean) | 26 | p. 118: near the steady state the Rotemberg first-order condition is sufficient among all plans |
+| [TidyR6JointGlobal](KeynesianStickyPrices/TidyR6JointGlobal.lean) | 3 | p. 118: decentralised ⇒ joint over all uniformly bounded plans; joint ⇔ decentralised near the steady state |
+| [TidyR6ShockPC](KeynesianStickyPrices/TidyR6ShockPC.lean) | 12 | (17.17), p. 119: the Rotemberg Phillips curve with a cost-push shift |
+| [TidyR6ShockModel](KeynesianStickyPrices/TidyR6ShockModel.lean) | 15 | (17.15)–(17.17), pp. 119, 407: preference and markup shocks, `u_x = −σu_r + rem`, `u_π = κ̃(μ − ζ) + rem` |
 
 ## Modelling conventions
 
@@ -290,7 +352,10 @@ Not formalised:
   on a probability space with a filtration and Mathlib's conditional expectation
   (`TidyR5ExpectationsMeasure.MeasExpectationSystem`): equations hold almost everywhere, variables
   are integrable, and boundedness is essential boundedness. The i.i.d. coin economy
-  (`TidyR5ExpectationsMeasureIID`) has no finitely supported description.
+  (`TidyR5ExpectationsMeasureIID`) has no finitely supported description. The household and
+  price-setting problems behind (17.15)–(17.17) (the `TidyR6…` modules) are posed there too, with
+  information that may grow forever, and transferred to finite event trees, where they give
+  `FullModel.Model` in every state.
 * **Timing.** Dates are natural numbers. In the adaptive model `π_{−1}` is an initial value
   (`StaticIS.lagged`); in Figure 17.7 the book's dates `1, 2, …` are `n = 0, 1, …`. The
   perfect-foresight full model works with sequences `ℕ → ℝ` (`FullModel.PFEqm`,
@@ -363,6 +428,11 @@ not linked formally here. Woodford's loss on p. 418 is Cochrane's statement of i
 
 ## Relation to other Cochrane projects
 
+* **Chapter 2 (`IntertemporalModel`).** The household problem on a probability space, with the
+  Euler equation, the transversality condition and sufficiency, is restated from that project's
+  `HouseholdMeasure` and `HouseholdMeasureTVC` (by way of the Chapter 16 project's copies) as
+  `TidyR6HouseholdMeasure` and `TidyR6HouseholdMeasureTVC`, and used for the IS curve
+  (`TidyR6EulerIS`) and the household with preference shocks (`TidyR6HouseholdPref`).
 * **Chapter 5 (`StickyPriceFiscal`).** The roots `λ₁ > 1 > λ₂ > 0` of (5.6) and the bound
   `FullModel.bounded_of_rec` are restated from that project (`NKModel.lam1`, `NKModel.lam2`), with
   docstrings saying "restated from the Chapter 5 project". The two-sided moving average (5.5)
