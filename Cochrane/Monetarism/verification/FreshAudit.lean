@@ -67,6 +67,8 @@ import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Algebra.Order.Archimedean.Real.Basic
 import Mathlib.Topology.UniformSpace.UniformConvergence
 import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
+import Mathlib.Topology.MetricSpace.HausdorffDistance
+import Mathlib.Data.Set.Finite.Basic
 set_option autoImplicit false
 
 /-
@@ -25474,6 +25476,6202 @@ theorem active_fiscal_prunes_all (hβ0 : 0 < β) (hβ1 : β < 1) (hy : 0 < y) (h
 
 end Cochrane.Monetarism.TidyR5ActiveFiscal
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Perpetual rollover deviations under weak price regularity
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, §19.3, pp. 439–441
+(eqs. (19.10)–(19.12) and footnote 1) and §19.5.1, pp. 448–449 (eqs. (19.27)–(19.30)), for the
+household problem of `HouseholdMeasure` on a probability space. This module builds the deviations
+used to derive the first-order conditions and the transversality condition without the regularity
+hypotheses of `HouseholdMeasure.PriceRegular`.
+
+## Weak price regularity
+
+`PriceWeak`: the state prices `Λ` and the price level `P` are adapted and positive, and the
+nominal state-price density `pk_t = Λ_t/P_t` is integrable at every date (the date-0 price of one
+dollar at `t` is finite, so the bond price `Q_t = E_t[pk_{t+1}]/pk_t` is a genuine conditional
+expectation). No bound on `Λ`, `P`, `1/Λ` or `1/P` is assumed. `PriceRegular` implies it
+(`priceWeak_of_priceRegular`).
+
+## Homogeneous deviations
+
+`HomDev`: an increment `(dc, dm, da)` to consumption, real balances and claims that satisfies the
+flow constraint with zero endowment, taxes and initial money, is adapted, has the integrability
+that `HouseholdMeasure.Feasible` requires, and whose date-0 value of wealth is eventually a
+constant `D`. Adding `ε` times such an increment to a feasible plan keeps every requirement of
+`Feasible` except possibly the no-Ponzi condition, which then holds as soon as the wealth value
+shifted by `εD` satisfies it (`feasible_add`); with `D = 0` the no-Ponzi condition is untouched.
+Increments add (`HomDev.add`).
+
+## The perpetual rollover
+
+`rollC`, `rollA`, `rollX`: consume `z` and hold `ζ` more real balances at date `t` (both known
+at `t`), and finance the cost by issuing at `t` the state-contingent claim
+`−P_tζ + X/pk_{t+1}` maturing at `t + 1` and rolling over `X/pk_n` forever after, with
+`X = −Λ_t(z + ι_tζ)`. The date-0 value of the debt stays `E[X]` for ever (`roll_homDev`): the
+household never repays, and the no-Ponzi condition only sees the constant `E[X]`. Two such
+deviations at different dates whose values `E[X]` cancel are budget-neutral.
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdRoll
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### Weak price regularity -/
+
+variable (S) in
+/-- Cochrane (2023), p. 439 ("complete contingent claim markets with state price `Λ_t`") and
+(19.15), p. 441: the weak regularity of the state prices and the price level: both adapted and
+positive, and the nominal state-price density `pk_t = Λ_t/P_t` integrable at every date, so that
+the bond price `Q_t = E_t[pk_{t+1}]/pk_t` is a genuine conditional expectation. -/
+def PriceWeak (Λ P : ℕ → Ω → ℝ) : Prop :=
+  StronglyAdapted S.𝓕 Λ ∧ StronglyAdapted S.𝓕 P ∧ (∀ t ω, 0 < Λ t ω) ∧ (∀ t ω, 0 < P t ω) ∧
+    ∀ t, Integrable (pk Λ P t) S.μ
+
+/-- Cochrane (2023), p. 439: the regularity hypothesis `HouseholdMeasure.PriceRegular` (bounds on
+`Λ`, `P` and their reciprocals) implies the weak regularity `PriceWeak`. -/
+theorem priceWeak_of_priceRegular {Λ P : ℕ → Ω → ℝ} (hp : PriceRegular S Λ P) :
+    PriceWeak S Λ P :=
+  ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1, hp.integrable_pk⟩
+
+namespace PriceWeak
+
+variable {Λ P : ℕ → Ω → ℝ}
+
+/-- Cochrane (2023), p. 439: the nominal state-price density is positive. -/
+theorem pk_pos (hp : PriceWeak S Λ P) (t : ℕ) (ω : Ω) : 0 < pk Λ P t ω :=
+  div_pos (hp.2.2.1 t ω) (hp.2.2.2.1 t ω)
+
+/-- Cochrane (2023), p. 439: `pk_t P_t = Λ_t`. -/
+theorem pk_mul_P (hp : PriceWeak S Λ P) (t : ℕ) (ω : Ω) : pk Λ P t ω * P t ω = Λ t ω := by
+  have := (hp.2.2.2.1 t ω).ne'
+  simp only [pk]
+  field_simp
+
+/-- Cochrane (2023), p. 439: the nominal state-price density is known at `t`. -/
+theorem sm_pk (hp : PriceWeak S Λ P) (t : ℕ) : StronglyMeasurable[S.𝓕 t] (pk Λ P t) :=
+  ((hp.1 t).measurable.div (hp.2.1 t).measurable).stronglyMeasurable
+
+/-- Cochrane (2023), (19.15), p. 441: the bond price is known at `t`. -/
+theorem sm_bondPrice (hp : PriceWeak S Λ P) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 t] (bondPrice S Λ P t) :=
+  ((S.stronglyMeasurable_E t _).measurable.div (hp.sm_pk t).measurable).stronglyMeasurable
+
+/-- Cochrane (2023), (19.12), p. 439: the interest cost `ι_t` is known at `t`. -/
+theorem sm_iota (hp : PriceWeak S Λ P) (t : ℕ) : StronglyMeasurable[S.𝓕 t] (iota S Λ P t) :=
+  stronglyMeasurable_const.sub (hp.sm_bondPrice t)
+
+/-- Cochrane (2023), (19.15), p. 441: `E_t[pk_{t+1}] = Q_t pk_t`. -/
+theorem E_pk_eq (hp : PriceWeak S Λ P) (t : ℕ) (ω : Ω) :
+    S.E t (pk Λ P (t + 1)) ω = bondPrice S Λ P t ω * pk Λ P t ω := by
+  have := (hp.pk_pos t ω).ne'
+  simp only [bondPrice]
+  field_simp
+
+/-- Cochrane (2023), (19.12), p. 439: `Λ_tι_t = Λ_t − P_tE_t[pk_{t+1}]`. -/
+theorem lam_iota (hp : PriceWeak S Λ P) (t : ℕ) (ω : Ω) :
+    Λ t ω * iota S Λ P t ω = Λ t ω - P t ω * S.E t (pk Λ P (t + 1)) ω := by
+  rw [hp.E_pk_eq t ω, ← hp.pk_mul_P t ω]
+  simp only [iota]
+  ring
+
+end PriceWeak
+
+/-! ### Linearity of the flow constraint -/
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), (19.10), p. 439: the money brought into a date is linear in real balances,
+`M'_{t−1} = M_{t−1} + εdM_{t−1}` when `m' = m + εdm` (the increment brings no initial money). -/
+theorem moneyIn_add (N0 : Ω → ℝ) (P m dm : ℕ → Ω → ℝ) (ε : ℝ) (n : ℕ) (ω : Ω) :
+    moneyIn N0 P (fun k ω => m k ω + ε * dm k ω) n ω =
+      moneyIn N0 P m n ω + ε * moneyIn 0 P dm n ω := by
+  cases n with
+  | zero => simp [moneyIn]
+  | succ k =>
+    simp only [moneyIn]
+    ring
+
+/-- Cochrane (2023), p. 439: the cost of claims is linear in the claims (almost surely), when the
+claims are integrable against the state prices. -/
+theorem claimCost_add {Λ P a da : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P) {n : ℕ}
+    (ha : Integrable (fun ω => pk Λ P (n + 1) ω * a (n + 1) ω) S.μ)
+    (hda : Integrable (fun ω => pk Λ P (n + 1) ω * da (n + 1) ω) S.μ) (ε : ℝ) :
+    ∀ᵐ ω ∂S.μ, claimCost S Λ P (fun k ω => a k ω + ε * da k ω) n ω =
+      claimCost S Λ P a n ω + ε * claimCost S Λ P da n ω := by
+  have e : (fun ω => pk Λ P (n + 1) ω * (a (n + 1) ω + ε * da (n + 1) ω)) =
+      (fun ω => pk Λ P (n + 1) ω * a (n + 1) ω) +
+        ε • (fun ω => pk Λ P (n + 1) ω * da (n + 1) ω) := by
+    funext ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  filter_upwards [S.E_add ha (hda.smul ε) n, S.E_smul ε (fun ω => pk Λ P (n + 1) ω *
+    da (n + 1) ω) n] with ω h1 h2
+  have hk := (hp.pk_pos n ω).ne'
+  simp only [claimCost]
+  rw [e, h1, Pi.add_apply, h2, Pi.smul_apply, smul_eq_mul]
+  field_simp
+
+/-- Cochrane (2023), (19.10), p. 439 (the flow constraint is linear): if `(c, m, a)` satisfies the
+flow constraint and `(dc, dm, da)` satisfies it with zero endowment, taxes and initial money, then
+`(c + εdc, m + εdm, a + εda)` satisfies the flow constraint. -/
+theorem flow_add {Λ P y s : ℕ → Ω → ℝ} {N0 : Ω → ℝ} {c m a dc dm da : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hf : Flow S Λ P y s N0 c m a) (hd : Flow S Λ P 0 0 0 dc dm da)
+    (ha : ∀ n, Integrable (fun ω => pk Λ P n ω * a n ω) S.μ)
+    (hda : ∀ n, Integrable (fun ω => pk Λ P n ω * da n ω) S.μ) (ε : ℝ) :
+    Flow S Λ P y s N0 (fun n ω => c n ω + ε * dc n ω) (fun n ω => m n ω + ε * dm n ω)
+      (fun n ω => a n ω + ε * da n ω) := by
+  intro n
+  filter_upwards [hf n, hd n, claimCost_add hp (ha (n + 1)) (hda (n + 1)) ε] with ω h1 h2 h3
+  rw [moneyIn_add, h3]
+  simp only [Pi.zero_apply] at h2
+  linear_combination h1 + ε * h2
+
+/-- Cochrane (2023), (19.11)–(19.12), p. 439: the date-0 value of wealth is linear in the plan:
+for `m' = m + εdm`, `a' = a + εda`, `E[pk_T(a'_T + M'_{T−1})] = E[pk_T(a_T + M_{T−1})] +
+εE[pk_T(da_T + dM_{T−1})]`. -/
+theorem wealthPV_add {Λ P : ℕ → Ω → ℝ} {N0 : Ω → ℝ} {m a dm da : ℕ → Ω → ℝ} {T : ℕ}
+    (ha : Integrable (fun ω => pk Λ P T ω * a T ω) S.μ)
+    (hN : Integrable (fun ω => pk Λ P T ω * moneyIn N0 P m T ω) S.μ)
+    (hda : Integrable (fun ω => pk Λ P T ω * da T ω) S.μ)
+    (hdN : Integrable (fun ω => pk Λ P T ω * moneyIn 0 P dm T ω) S.μ) (ε : ℝ) :
+    wealthPV S Λ P N0 (fun n ω => m n ω + ε * dm n ω) (fun n ω => a n ω + ε * da n ω) T =
+      wealthPV S Λ P N0 m a T + ε * wealthPV S Λ P 0 dm da T := by
+  have h1 : Integrable (fun ω => pk Λ P T ω * (a T ω + moneyIn N0 P m T ω)) S.μ :=
+    (ha.add hN).congr (Eventually.of_forall fun ω => by simp only [Pi.add_apply]; ring)
+  have h2 : Integrable (fun ω => ε * (pk Λ P T ω * (da T ω + moneyIn 0 P dm T ω))) S.μ :=
+    ((hda.add hdN).const_mul ε).congr
+      (Eventually.of_forall fun ω => by simp only [Pi.add_apply]; ring)
+  simp only [wealthPV]
+  rw [← integral_const_mul, ← integral_add h1 h2]
+  refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
+  simp only [moneyIn_add]
+  ring
+
+/-! ### Homogeneous deviations -/
+
+variable (S) in
+/-- Cochrane (2023), footnote 1, p. 440 (perturbing a plan): an increment `(dc, dm, da)` to
+consumption, real balances and claims that changes no initial claim, is adapted, satisfies the
+flow constraint (19.10) with zero endowment, taxes and initial money, has the integrability of
+`HouseholdMeasure.Feasible`, and whose date-0 value of wealth `E[pk_T(da_T + dM_{T−1})]` is
+eventually the constant `D`. -/
+def HomDev (Λ P : ℕ → Ω → ℝ) (dc dm da : ℕ → Ω → ℝ) (D : ℝ) : Prop :=
+  da 0 = 0 ∧ StronglyAdapted S.𝓕 dc ∧ StronglyAdapted S.𝓕 dm ∧ StronglyAdapted S.𝓕 da ∧
+    Flow S Λ P 0 0 0 dc dm da ∧ (∀ t, Integrable (fun ω => pk Λ P t ω * da t ω) S.μ) ∧
+    (∀ t, Integrable (fun ω => pk Λ P t ω * moneyIn 0 P dm t ω) S.μ) ∧
+    (∀ t, Integrable (fun ω => Λ t ω * dm t ω) S.μ) ∧
+    (∀ t, Integrable (fun ω => Λ t ω * dc t ω) S.μ) ∧
+    ∀ᶠ T in atTop, wealthPV S Λ P 0 dm da T = D
+
+/-- Cochrane (2023), footnote 1, p. 440 and (19.10)–(19.12), p. 439: **adding a homogeneous
+deviation to a feasible plan.** If `(c, m, a)` is feasible and `(dc, dm, da)` is a homogeneous
+deviation with eventual wealth value `D`, then `(c + εdc, m + εdm, a + εda)` is feasible as soon
+as the shifted wealth value `E[pk_T(a_T + M_{T−1})] + εD` satisfies the no-Ponzi condition. -/
+theorem feasible_add {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a dc dm da : ℕ → Ω → ℝ}
+    {D ε : ℝ} (hp : PriceWeak S Λ P) (hf : Feasible S Λ P y s N0 a0 c m a)
+    (hd : HomDev S Λ P dc dm da D)
+    (hnp : ∀ δ, 0 < δ → ∀ᶠ T in atTop, -δ ≤ wealthPV S Λ P N0 m a T + ε * D) :
+    Feasible S Λ P y s N0 a0 (fun n ω => c n ω + ε * dc n ω) (fun n ω => m n ω + ε * dm n ω)
+      (fun n ω => a n ω + ε * da n ω) := by
+  obtain ⟨ha0, hca, hma, haa, hflow, hia, hiN, him, hic, -⟩ := hf
+  obtain ⟨hd0, hdc, hdm, hda, hdflow, hdia, hdiN, hdim, hdic, hdD⟩ := hd
+  refine ⟨?_, fun n => (hca n).add ((hdc n).const_mul ε),
+    fun n => (hma n).add ((hdm n).const_mul ε), fun n => (haa n).add ((hda n).const_mul ε),
+    flow_add hp hflow hdflow hia hdia ε, fun n => ?_, fun n => ?_, fun n => ?_, fun n => ?_, ?_⟩
+  · funext ω
+    simp [hd0, ← ha0]
+  · refine ((hia n).add ((hdia n).const_mul ε)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · refine ((hiN n).add ((hdiN n).const_mul ε)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply, moneyIn_add]
+    ring
+  · refine ((him n).add ((hdim n).const_mul ε)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · refine ((hic n).add ((hdic n).const_mul ε)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · intro δ hδ
+    filter_upwards [hnp δ hδ, hdD] with T h1 h2
+    rw [wealthPV_add (hia T) (hiN T) (hdia T) (hdiN T) ε, h2]
+    exact h1
+
+/-- Cochrane (2023), footnote 1, p. 440: **homogeneous deviations add**: the sum of two
+homogeneous deviations is homogeneous, and its eventual wealth value is the sum. -/
+theorem HomDev.add {Λ P : ℕ → Ω → ℝ} {dc dm da dc' dm' da' : ℕ → Ω → ℝ} {D D' : ℝ}
+    (hp : PriceWeak S Λ P) (h : HomDev S Λ P dc dm da D) (h' : HomDev S Λ P dc' dm' da' D') :
+    HomDev S Λ P (fun n ω => dc n ω + dc' n ω) (fun n ω => dm n ω + dm' n ω)
+      (fun n ω => da n ω + da' n ω) (D + D') := by
+  obtain ⟨hd0, hdc, hdm, hda, hdflow, hdia, hdiN, hdim, hdic, hdD⟩ := h
+  obtain ⟨hd0', hdc', hdm', hda', hdflow', hdia', hdiN', hdim', hdic', hdD'⟩ := h'
+  have hfl := flow_add hp hdflow hdflow' hdia hdia' 1
+  simp only [one_mul] at hfl
+  refine ⟨?_, fun n => (hdc n).add (hdc' n), fun n => (hdm n).add (hdm' n),
+    fun n => (hda n).add (hda' n), hfl, fun n => ?_, fun n => ?_, fun n => ?_, fun n => ?_, ?_⟩
+  · funext ω
+    simp [hd0, hd0']
+  · refine ((hdia n).add (hdia' n)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · refine ((hdiN n).add (hdiN' n)).congr (Eventually.of_forall fun ω => ?_)
+    have := moneyIn_add 0 P dm dm' 1 n ω
+    simp only [one_mul] at this
+    simp only [Pi.add_apply, this]
+    ring
+  · refine ((hdim n).add (hdim' n)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · refine ((hdic n).add (hdic' n)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · filter_upwards [hdD, hdD'] with T h1 h2
+    have := wealthPV_add (N0 := 0) (hdia T) (hdiN T) (hdia' T) (hdiN' T) 1
+    simp only [one_mul] at this
+    rw [this, h1, h2]
+
+/-! ### The perpetual rollover -/
+
+variable (S) in
+/-- Cochrane (2023), (19.12), p. 439 and footnote 1, p. 440: the date-0 value of the debt issued
+to finance consuming `z` and holding `ζ` more real balances at `t`,
+`X = −Λ_t(z + ι_tζ)` (the bundle costs `z + ι_tζ` date-`t` goods). -/
+noncomputable def rollX (Λ P : ℕ → Ω → ℝ) (t : ℕ) (z ζ : Ω → ℝ) (ω : Ω) : ℝ :=
+  -(Λ t ω * (z ω + iota S Λ P t ω * ζ ω))
+
+/-- Cochrane (2023), footnote 1, p. 440: a change `z` at date `t` only. -/
+def rollC (t : ℕ) (z : Ω → ℝ) : ℕ → Ω → ℝ := fun n ω => if n = t then z ω else 0
+
+variable (S) in
+/-- Cochrane (2023), footnote 1, p. 440 and (19.10), p. 439: the claims of the perpetual
+rollover: nothing up to `t`, then `−P_tζ + X/pk_{t+1}` at `t + 1` (the money `P_tζ` carried into
+`t + 1` replaces part of the claims) and `X/pk_n` at every later date (the debt is rolled over
+for ever at constant date-0 value `X`). -/
+noncomputable def rollA (Λ P : ℕ → Ω → ℝ) (t : ℕ) (z ζ : Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun n ω => if n ≤ t then 0 else
+    (if n = t + 1 then -(P t ω * ζ ω) else 0) + rollX S Λ P t z ζ ω / pk Λ P n ω
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), footnote 1, p. 440: money brought into a date by the rollover: `P_tζ` into
+`t + 1`, nothing otherwise. -/
+theorem moneyIn_rollC (P : ℕ → Ω → ℝ) (t : ℕ) (ζ : Ω → ℝ) (n : ℕ) (ω : Ω) :
+    moneyIn 0 P (rollC t ζ) n ω = if n = t + 1 then P t ω * ζ ω else 0 := by
+  cases n with
+  | zero => simp [moneyIn]
+  | succ k =>
+    simp only [moneyIn, rollC, add_left_inj]
+    by_cases h : k = t <;> simp [h]
+
+/-- Cochrane (2023), (19.10), p. 439 and footnote 1, p. 440: **the perpetual rollover is a
+homogeneous deviation.** For `z`, `ζ` known at `t` with `Λ_tz`, `Λ_tζ`, `pk_{t+1}P_tζ` and
+`X = −Λ_t(z + ι_tζ)` integrable, consuming `z` and holding `ζ` more at `t`, financed by the claims
+`rollA`, satisfies the flow constraint with zero endowment at every date, and its date-0 wealth
+value is `E[X]` at every date after `t`. -/
+theorem roll_homDev {Λ P : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P) {t : ℕ} {z ζ : Ω → ℝ}
+    (hz : StronglyMeasurable[S.𝓕 t] z) (hζ : StronglyMeasurable[S.𝓕 t] ζ)
+    (hiz : Integrable (fun ω => Λ t ω * z ω) S.μ) (hiζ : Integrable (fun ω => Λ t ω * ζ ω) S.μ)
+    (hiM : Integrable (fun ω => pk Λ P (t + 1) ω * (P t ω * ζ ω)) S.μ)
+    (hiX : Integrable (rollX S Λ P t z ζ) S.μ) :
+    HomDev S Λ P (rollC t z) (rollC t ζ) (rollA S Λ P t z ζ) (∫ ω, rollX S Λ P t z ζ ω ∂S.μ) := by
+  set X := rollX S Λ P t z ζ with hXdef
+  have hXm : StronglyMeasurable[S.𝓕 t] X :=
+    (((hp.1 t).mul (hz.add ((hp.sm_iota t).mul hζ))).neg)
+  have hle : ∀ {n}, t ≤ n → S.𝓕 t ≤ S.𝓕 n := fun h => S.𝓕.mono h
+  have hpkX : ∀ n ω, pk Λ P n ω * (X ω / pk Λ P n ω) = X ω := fun n ω => by
+    have := (hp.pk_pos n ω).ne'
+    field_simp
+  have hEX : ∀ n, t ≤ n → S.E n X =ᵐ[S.μ] X := fun n h =>
+    Eventually.of_forall fun ω => by
+      rw [S.E_of_stronglyMeasurable (hXm.mono (hle h)) hiX]
+  -- the claims times the state price
+  have hpa : ∀ n, (fun ω => pk Λ P n ω * rollA S Λ P t z ζ n ω) = fun ω =>
+      if n ≤ t then 0 else (if n = t + 1 then -(pk Λ P n ω * (P t ω * ζ ω)) else 0) + X ω := by
+    intro n
+    funext ω
+    simp only [rollA]
+    split_ifs <;> simp [mul_add, ← hXdef, hpkX]
+  have hia : ∀ n, Integrable (fun ω => pk Λ P n ω * rollA S Λ P t z ζ n ω) S.μ := by
+    intro n
+    rw [hpa n]
+    by_cases h1 : n ≤ t
+    · simp only [h1, ↓reduceIte]
+      exact integrable_zero _ _ _
+    · simp only [h1, ↓reduceIte]
+      by_cases h2 : n = t + 1
+      · subst h2
+        simp only [↓reduceIte]
+        exact hiM.neg.add hiX
+      · simp only [h2, ↓reduceIte, zero_add]
+        exact hiX
+  refine ⟨by funext ω; simp [rollA], ?_, ?_, ?_, ?_, hia, ?_, ?_, ?_, ?_⟩
+  · intro n
+    by_cases h : n = t
+    · subst h
+      have e : rollC n z n = z := by funext ω; simp [rollC]
+      rw [e]
+      exact hz
+    · have e : rollC t z n = fun _ => 0 := by funext ω; simp [rollC, h]
+      rw [e]
+      exact stronglyMeasurable_const
+  · intro n
+    by_cases h : n = t
+    · subst h
+      have e : rollC n ζ n = ζ := by funext ω; simp [rollC]
+      rw [e]
+      exact hζ
+    · have e : rollC t ζ n = fun _ => 0 := by funext ω; simp [rollC, h]
+      rw [e]
+      exact stronglyMeasurable_const
+  · intro n
+    by_cases h1 : n ≤ t
+    · have e : rollA S Λ P t z ζ n = fun _ => 0 := by funext ω; simp [rollA, h1]
+      rw [e]
+      exact stronglyMeasurable_const
+    · have e : rollA S Λ P t z ζ n = fun ω => (if n = t + 1 then -(P t ω * ζ ω) else 0) +
+          X ω / pk Λ P n ω := by funext ω; simp [rollA, h1, hXdef]
+      rw [e]
+      have hn : t ≤ n := by omega
+      refine StronglyMeasurable.add ?_ ((hXm.mono (hle hn)).measurable.div
+        (hp.sm_pk n).measurable).stronglyMeasurable
+      by_cases h2 : n = t + 1
+      · simp only [h2, ↓reduceIte]
+        exact (((hp.2.1 t).mul hζ).neg).mono (hle hn)
+      · simp only [h2, ↓reduceIte]
+        exact stronglyMeasurable_const
+  · -- the flow constraint
+    intro n
+    rcases lt_trichotomy n t with h | h | h
+    · -- before the deviation nothing changes
+      have e1 : (fun ω => pk Λ P (n + 1) ω * rollA S Λ P t z ζ (n + 1) ω) = 0 := by
+        rw [hpa]
+        funext ω
+        simp [show n + 1 ≤ t by omega]
+      refine Eventually.of_forall fun ω => ?_
+      rw [show claimCost S Λ P (rollA S Λ P t z ζ) n ω = S.E n (fun ω => pk Λ P (n + 1) ω *
+        rollA S Λ P t z ζ (n + 1) ω) ω / pk Λ P n ω from rfl, e1, S.E_zero]
+      simp [rollA, rollC, moneyIn_rollC, show n ≤ t by omega, show n ≠ t by omega,
+        show n ≠ t + 1 by omega]
+    · -- the deviation date
+      subst h
+      have e1 : (fun ω => pk Λ P (n + 1) ω * rollA S Λ P n z ζ (n + 1) ω) =
+          (fun ω => -(P n ω * ζ ω)) * pk Λ P (n + 1) + X := by
+        rw [hpa]
+        funext ω
+        simp only [show ¬ n + 1 ≤ n by omega, ↓reduceIte, ↓reduceIte, Pi.add_apply, Pi.mul_apply]
+        ring
+      have hfi : Integrable ((fun ω => -(P n ω * ζ ω)) * pk Λ P (n + 1)) S.μ :=
+        hiM.neg.congr (Eventually.of_forall fun ω => by
+          simp only [Pi.neg_apply, Pi.mul_apply]; ring)
+      have hpull := condExp_mul_of_stronglyMeasurable_left (μ := S.μ) (m := S.𝓕 n)
+        (f := fun ω => -(P n ω * ζ ω)) (((hp.2.1 n).mul hζ).neg) hfi (hp.2.2.2.2 (n + 1))
+      filter_upwards [S.E_add hfi hiX n, hpull, hEX n le_rfl] with ω h1 h2 h3
+      rw [show claimCost S Λ P (rollA S Λ P n z ζ) n ω = S.E n (fun ω => pk Λ P (n + 1) ω *
+        rollA S Λ P n z ζ (n + 1) ω) ω / pk Λ P n ω from rfl, e1, h1, Pi.add_apply,
+        show S.E n ((fun ω => -(P n ω * ζ ω)) * pk Λ P (n + 1)) ω =
+          -(P n ω * ζ ω) * S.E n (pk Λ P (n + 1)) ω from h2, h3]
+      have ra : rollA S Λ P n z ζ n ω = 0 := by simp [rollA]
+      simp only [ra, moneyIn_rollC, rollC, ↓reduceIte, show n ≠ n + 1 by omega, Pi.zero_apply]
+      have hk := (hp.pk_pos n ω).ne'
+      have hl' : Λ n ω * (z ω + iota S Λ P n ω * ζ ω) = Λ n ω * z ω +
+          (Λ n ω - P n ω * S.E n (pk Λ P (n + 1)) ω) * ζ ω := by
+        rw [← hp.lam_iota n ω]
+        ring
+      rw [hXdef]
+      simp only [rollX]
+      rw [hl', ← hp.pk_mul_P n ω]
+      field_simp
+      ring
+    · -- after the deviation the debt is rolled over
+      have e1 : (fun ω => pk Λ P (n + 1) ω * rollA S Λ P t z ζ (n + 1) ω) = X := by
+        rw [hpa]
+        funext ω
+        simp [show ¬ n + 1 ≤ t by omega, show n ≠ t by omega]
+      filter_upwards [hEX n h.le] with ω h3
+      rw [show claimCost S Λ P (rollA S Λ P t z ζ) n ω = S.E n (fun ω => pk Λ P (n + 1) ω *
+        rollA S Λ P t z ζ (n + 1) ω) ω / pk Λ P n ω from rfl, e1, h3]
+      have hk := (hp.pk_pos n ω).ne'
+      simp only [rollA, moneyIn_rollC, rollC, Pi.zero_apply, show ¬ n ≤ t by omega,
+        show n ≠ t by omega, ↓reduceIte, ← hXdef]
+      by_cases h2 : n = t + 1
+      · simp only [h2, ↓reduceIte]
+        ring
+      · simp only [h2, ↓reduceIte]
+        ring
+  · intro n
+    simp only [moneyIn_rollC]
+    by_cases h : n = t + 1
+    · subst h
+      simpa using hiM
+    · simp only [h, ↓reduceIte, mul_zero]
+      exact integrable_zero _ _ _
+  · intro n
+    by_cases h : n = t
+    · subst h
+      simpa [rollC] using hiζ
+    · simp only [rollC, h, ↓reduceIte, mul_zero]
+      exact integrable_zero _ _ _
+  · intro n
+    by_cases h : n = t
+    · subst h
+      simpa [rollC] using hiz
+    · simp only [rollC, h, ↓reduceIte, mul_zero]
+      exact integrable_zero _ _ _
+  · filter_upwards [eventually_gt_atTop t] with T hT
+    simp only [wealthPV]
+    refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
+    have := congrFun (hpa T) ω
+    simp only [moneyIn_rollC, mul_add]
+    rw [this]
+    simp only [show ¬ T ≤ t by omega, ↓reduceIte]
+    by_cases h2 : T = t + 1
+    · simp only [h2, ↓reduceIte]
+      ring
+    · simp [h2]
+
+end Cochrane.Monetarism.TidyR6HouseholdRoll
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Utility on an open domain and localized differentiation of expected utility
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, §19.3, pp. 439–441
+(eq. (19.9) and the first-order conditions (19.13)–(19.14)) and §19.5.1, p. 448. The household
+problem of `HouseholdMeasure` assumed a period utility `u(c, m)` that is continuously
+differentiable on all of `ℝ²` (`HouseholdMeasure.Smooth₂`), which excludes the standard utilities
+with Inada conditions (`log c`, `c^{1−γ}/(1−γ)`), defined only for positive arguments. This module
+replaces global smoothness by smoothness on an open domain and proves the differentiation of
+expected utility under the integral sign for deviations localized where the plan is in a compact
+part of the domain, with no boundedness assumption on the plan.
+
+## Main definitions and results
+
+* `C1On u uc um U`: `U ⊆ ℝ²` is open and `u` is differentiable at every point of `U` with partial
+  derivatives `uc`, `um` continuous on `U` (`c1On_of_smooth₂`: global smoothness is the case
+  `U = univ`).
+* `Good U K p`: the point `p` has norm at most `K` and is at distance more than `1/(K + 1)` from
+  the complement of `U`; `Kc U K` is a compact subset of `U` containing every point within
+  `1/(2(K + 1))` of a good point (`good_add`, `kc_isCompact`, `kc_subset`); every point of `U` is
+  good for some `K` (`exists_good`).
+* `loc_deriv`: if `g`, `k` vanish wherever `(f, h)` is not good and are bounded where it is, then
+  `ε ↦ E u(f + εg, h + εk)` is integrable for small `ε` and differentiable at `0` with derivative
+  `E[u_c(f, h)g + u_m(f, h)k]`, whatever the size of `f` and `h` elsewhere.
+* `slope_nonpos`: a function with derivative `D` at `0`, vanishing at `0` and nonpositive on the
+  right of `0`, has `D ≤ 0` (one-sided first-order conditions).
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdLocal
+
+open MeasureTheory ProbabilityTheory Filter Topology
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+
+/-! ### Utility that is smooth on an open domain -/
+
+/-- Cochrane (2023), (19.9), p. 439, with Inada-type utilities in mind: the period utility
+`u(c, m)` is differentiable at every point of the open set `U ⊆ ℝ²`, with partial derivatives
+`u_c`, `u_m` continuous on `U`. -/
+def C1On (u uc um : ℝ → ℝ → ℝ) (U : Set (ℝ × ℝ)) : Prop :=
+  IsOpen U ∧ (∀ p ∈ U, HasFDerivAt (fun q : ℝ × ℝ => u q.1 q.2)
+      (uc p.1 p.2 • ContinuousLinearMap.fst ℝ ℝ ℝ + um p.1 p.2 • ContinuousLinearMap.snd ℝ ℝ ℝ)
+      p) ∧
+    ContinuousOn (fun p : ℝ × ℝ => uc p.1 p.2) U ∧ ContinuousOn (fun p : ℝ × ℝ => um p.1 p.2) U
+
+/-- Cochrane (2023), (19.9), p. 439: a utility smooth on all of `ℝ²`
+(`HouseholdMeasure.Smooth₂`) is smooth on the domain `U = ℝ²`. -/
+theorem c1On_of_smooth₂ {u uc um : ℝ → ℝ → ℝ} (h : HouseholdMeasure.Smooth₂ u uc um) :
+    C1On u uc um Set.univ :=
+  ⟨isOpen_univ, fun p _ => h.1 p.1 p.2, h.2.1.continuousOn, h.2.2.continuousOn⟩
+
+/-- Cochrane (2023), (19.9), p. 439: a utility smooth on `U` is continuous on `U`. -/
+theorem C1On.continuousOn {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)} (h : C1On u uc um U) :
+    ContinuousOn (fun p : ℝ × ℝ => u p.1 p.2) U :=
+  fun p hp => (h.2.1 p hp).continuousAt.continuousWithinAt
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440: along the line `e ↦ (x + eg, y + ek)`, at a
+parameter `ε` whose point lies in `U`, a utility smooth on `U` has derivative `u_c g + u_m k`. -/
+theorem C1On.hasDerivAt_line {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)} (h : C1On u uc um U)
+    {x y g k ε : ℝ} (hq : (x + ε * g, y + ε * k) ∈ U) :
+    HasDerivAt (fun e => u (x + e * g) (y + e * k))
+      (uc (x + ε * g) (y + ε * k) * g + um (x + ε * g) (y + ε * k) * k) ε := by
+  have hpath : HasDerivAt (fun e : ℝ => (x + e * g, y + e * k)) (g, k) ε := by
+    have h1 : HasDerivAt (fun e : ℝ => x + e * g) g ε := by
+      simpa using ((hasDerivAt_id ε).mul_const g).const_add x
+    have h2 : HasDerivAt (fun e : ℝ => y + e * k) k ε := by
+      simpa using ((hasDerivAt_id ε).mul_const k).const_add y
+    exact h1.prodMk h2
+  have := (h.2.1 _ hq).comp_hasDerivAt ε hpath
+  have e : (uc (x + ε * g) (y + ε * k) • ContinuousLinearMap.fst ℝ ℝ ℝ +
+      um (x + ε * g) (y + ε * k) • ContinuousLinearMap.snd ℝ ℝ ℝ) (g, k) =
+      uc (x + ε * g) (y + ε * k) * g + um (x + ε * g) (y + ε * k) * k := by
+    simp [smul_eq_mul]
+  rw [e] at this
+  exact this
+
+/-- Cochrane (2023), (19.9), p. 439: a function continuous on an open set, extended by zero, is
+Borel measurable. -/
+theorem measurable_indicator_of_continuousOn {U : Set (ℝ × ℝ)} (hU : IsOpen U)
+    {v : ℝ × ℝ → ℝ} (hv : ContinuousOn v U) : Measurable (U.indicator v) := by
+  classical
+  rw [← Set.piecewise_eq_indicator]
+  exact hv.measurable_piecewise continuousOn_const hU.measurableSet
+
+/-! ### Good points and compact parts of the domain -/
+
+/-- Cochrane (2023), (19.9), p. 439: the point `p` is good at level `K` for the domain `U`: its
+norm is at most `K` and it lies at distance more than `1/(K + 1)` from the complement of `U`. -/
+def Good (U : Set (ℝ × ℝ)) (K : ℕ) (p : ℝ × ℝ) : Prop :=
+  ‖p‖ ≤ K ∧ ENNReal.ofReal (1 / ((K : ℝ) + 1)) < Metric.infEDist p Uᶜ
+
+/-- Cochrane (2023), (19.9), p. 439: the compact part of the domain reached by small deviations
+from good points: norm at most `K + 1`, distance at least `1/(2(K + 1))` from the complement. -/
+def Kc (U : Set (ℝ × ℝ)) (K : ℕ) : Set (ℝ × ℝ) :=
+  {q | ‖q‖ ≤ (K : ℝ) + 1 ∧ ENNReal.ofReal (1 / (2 * ((K : ℝ) + 1))) ≤ Metric.infEDist q Uᶜ}
+
+/-- Cochrane (2023), (19.9), p. 439: a deviation of norm less than `1/(2(K + 1))` from a good
+point stays in the compact part `Kc U K`. -/
+theorem good_add {U : Set (ℝ × ℝ)} {K : ℕ} {p d : ℝ × ℝ} (hp : Good U K p)
+    (hd : ‖d‖ < 1 / (2 * ((K : ℝ) + 1))) : p + d ∈ Kc U K := by
+  have hK : (0 : ℝ) ≤ K := K.cast_nonneg
+  have ha1 : 1 / (2 * ((K : ℝ) + 1)) ≤ 1 := by
+    rw [div_le_one (by positivity)]
+    linarith
+  refine ⟨?_, ?_⟩
+  · calc ‖p + d‖ ≤ ‖p‖ + ‖d‖ := norm_add_le _ _
+      _ ≤ (K : ℝ) + 1 := by linarith [hp.1]
+  · by_contra hlt
+    rw [not_le] at hlt
+    have h1 := Metric.infEDist_le_infEDist_add_edist (x := p) (y := p + d) (s := Uᶜ)
+    have h2 : edist p (p + d) < ENNReal.ofReal (1 / (2 * ((K : ℝ) + 1))) := by
+      rw [edist_dist, dist_eq_norm, show p - (p + d) = -d by abel, norm_neg]
+      exact (ENNReal.ofReal_lt_ofReal_iff (by positivity)).2 hd
+    have h3 := lt_of_le_of_lt h1 (ENNReal.add_lt_add hlt h2)
+    rw [← ENNReal.ofReal_add (by positivity) (by positivity),
+      show 1 / (2 * ((K : ℝ) + 1)) + 1 / (2 * ((K : ℝ) + 1)) = 1 / ((K : ℝ) + 1) by
+        field_simp; ring] at h3
+    exact absurd hp.2 (not_lt.2 h3.le)
+
+/-- Cochrane (2023), (19.9), p. 439: a good point lies in the compact part `Kc U K`. -/
+theorem good_mem_kc {U : Set (ℝ × ℝ)} {K : ℕ} {p : ℝ × ℝ} (hp : Good U K p) : p ∈ Kc U K := by
+  have := good_add (d := 0) hp (by rw [norm_zero]; positivity)
+  rwa [add_zero] at this
+
+/-- Cochrane (2023), (19.9), p. 439: `Kc U K` is compact. -/
+theorem kc_isCompact (U : Set (ℝ × ℝ)) (K : ℕ) : IsCompact (Kc U K) := by
+  refine Metric.isCompact_of_isClosed_isBounded ?_ ?_
+  · exact (isClosed_le continuous_norm continuous_const).inter
+      (isClosed_le continuous_const Metric.continuous_infEDist)
+  · refine (Metric.isBounded_closedBall (x := (0 : ℝ × ℝ)) (r := (K : ℝ) + 1)).subset
+      fun q hq => ?_
+    rw [Metric.mem_closedBall, dist_zero_right]
+    exact hq.1
+
+/-- Cochrane (2023), (19.9), p. 439: `Kc U K` lies inside the domain `U`. -/
+theorem kc_subset (U : Set (ℝ × ℝ)) (K : ℕ) : Kc U K ⊆ U := by
+  intro q hq
+  by_contra h
+  have h0 := Metric.infEDist_zero_of_mem (show q ∈ Uᶜ from h)
+  have hq2 := hq.2
+  rw [h0] at hq2
+  have : (0 : ℝ) < 1 / (2 * ((K : ℝ) + 1)) := by positivity
+  exact absurd hq2 (not_le.2 (ENNReal.ofReal_pos.2 this))
+
+/-- Cochrane (2023), (19.9), p. 439: goodness is monotone in the level `K`. -/
+theorem good_mono {U : Set (ℝ × ℝ)} {K K' : ℕ} (hKK : K ≤ K') {p : ℝ × ℝ} (hp : Good U K p) :
+    Good U K' p := by
+  have hc : (K : ℝ) ≤ K' := Nat.cast_le.2 hKK
+  refine ⟨hp.1.trans hc, lt_of_le_of_lt (ENNReal.ofReal_le_ofReal ?_) hp.2⟩
+  exact one_div_le_one_div_of_le (by positivity) (by linarith)
+
+/-- Cochrane (2023), (19.9), p. 439: every point of an open domain is good at some level. -/
+theorem exists_good {U : Set (ℝ × ℝ)} (hU : IsOpen U) {p : ℝ × ℝ} (hp : p ∈ U) :
+    ∃ K, Good U K p := by
+  have hpos : 0 < Metric.infEDist p Uᶜ := by
+    refine pos_iff_ne_zero.2 fun h0 => ?_
+    have := Metric.mem_closure_iff_infEDist_zero.2 h0
+    rw [hU.isClosed_compl.closure_eq] at this
+    exact this hp
+  obtain ⟨n, hn⟩ : ∃ n : ℕ, ENNReal.ofReal (1 / ((n : ℝ) + 1)) < Metric.infEDist p Uᶜ := by
+    by_cases htop : Metric.infEDist p Uᶜ = ⊤
+    · exact ⟨0, by rw [htop]; exact ENNReal.ofReal_lt_top⟩
+    · have hr : 0 < (Metric.infEDist p Uᶜ).toReal := ENNReal.toReal_pos hpos.ne' htop
+      obtain ⟨n, hn⟩ := exists_nat_one_div_lt hr
+      refine ⟨n, ?_⟩
+      rw [← ENNReal.ofReal_toReal htop]
+      exact (ENNReal.ofReal_lt_ofReal_iff hr).2 hn
+  refine ⟨max n ⌈‖p‖⌉₊, ?_, lt_of_le_of_lt (ENNReal.ofReal_le_ofReal ?_) hn⟩
+  · exact (Nat.le_ceil _).trans (by exact_mod_cast le_max_right _ _)
+  · have hc : (n : ℝ) ≤ (max n ⌈‖p‖⌉₊ : ℕ) := by exact_mod_cast le_max_left _ _
+    exact one_div_le_one_div_of_le (by positivity) (by linarith)
+
+/-- Cochrane (2023), (19.9), p. 439: the set of good points is Borel measurable. -/
+theorem measurableSet_good (U : Set (ℝ × ℝ)) (K : ℕ) : MeasurableSet {p | Good U K p} :=
+  (isClosed_le continuous_norm continuous_const).measurableSet.inter
+    (isOpen_lt continuous_const Metric.continuous_infEDist).measurableSet
+
+/-- Cochrane (2023), (19.9), p. 439: a function continuous on the domain is bounded on its
+compact part `Kc U K`. -/
+theorem kc_bound {U : Set (ℝ × ℝ)} (K : ℕ) {v : ℝ × ℝ → ℝ} (hv : ContinuousOn v U) :
+    ∃ C, 0 ≤ C ∧ ∀ q ∈ Kc U K, |v q| ≤ C := by
+  obtain ⟨C, hC⟩ := (kc_isCompact U K).exists_bound_of_continuousOn (hv.mono (kc_subset U K))
+  exact ⟨max C 0, le_max_right _ _, fun q hq => (hC q hq).trans (le_max_left _ _)⟩
+
+/-! ### Localized differentiation under the integral sign -/
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440 ("The first-order conditions"), **differentiation
+of expected utility for localized deviations.** For `u` smooth on the open domain `U`,
+measurable `f, h, g, k` and an integrable `u(f, h)`, if `(g, k)` vanishes wherever `(f, h)` is not
+good at level `K` and is bounded by `B` where it is, then for small `ε` the utility
+`u(f + εg, h + εk)` is integrable, and `ε ↦ E u(f + εg, h + εk)` has derivative
+`E[u_c(f, h)g + u_m(f, h)k]` at `0`. No bound on `f` or `h` is needed. -/
+theorem loc_deriv {μ : Measure Ω} [IsFiniteMeasure μ] {u uc um : ℝ → ℝ → ℝ}
+    {U : Set (ℝ × ℝ)} (hu : C1On u uc um U) {f h g k : Ω → ℝ} (hf : Measurable f)
+    (hh : Measurable h) (hg : Measurable g) (hk : Measurable k) {K : ℕ} {B : ℝ}
+    (hloc : ∀ ω, (g ω = 0 ∧ k ω = 0) ∨ (Good U K (f ω, h ω) ∧ |g ω| ≤ B ∧ |k ω| ≤ B))
+    (hint : Integrable (fun ω => u (f ω) (h ω)) μ) :
+    ∃ r, 0 < r ∧ (∀ ε, |ε| < r → Integrable (fun ω => u (f ω + ε * g ω) (h ω + ε * k ω)) μ) ∧
+      HasDerivAt (fun ε => ∫ ω, u (f ω + ε * g ω) (h ω + ε * k ω) ∂μ)
+        (∫ ω, (uc (f ω) (h ω) * g ω + um (f ω) (h ω) * k ω) ∂μ) 0 := by
+  set a : ℝ := 1 / (2 * ((K : ℝ) + 1)) with ha
+  have ha0 : 0 < a := by positivity
+  obtain ⟨Cu, hCu0, hCu⟩ := kc_bound (U := U) K hu.continuousOn
+  obtain ⟨Cc, hCc0, hCc⟩ := kc_bound (U := U) K hu.2.2.1
+  obtain ⟨Cm, hCm0, hCm⟩ := kc_bound (U := U) K hu.2.2.2
+  set r : ℝ := a / (|B| + 1) with hr
+  have hB1 : 0 < |B| + 1 := by positivity
+  have hr0 : 0 < r := div_pos ha0 hB1
+  -- the perturbed points stay in the compact part of the domain
+  have hin : ∀ ω (ε : ℝ), |ε| < r → Good U K (f ω, h ω) → |g ω| ≤ B → |k ω| ≤ B →
+      (f ω + ε * g ω, h ω + ε * k ω) ∈ Kc U K := by
+    intro ω ε hε hG hgB hkB
+    have hεB : ∀ x : ℝ, |x| ≤ B → |ε| * |x| < a := by
+      intro x hx
+      calc |ε| * |x| ≤ |ε| * (|B| + 1) :=
+            mul_le_mul_of_nonneg_left (hx.trans ((le_abs_self B).trans (by linarith)))
+              (abs_nonneg ε)
+        _ < r * (|B| + 1) := mul_lt_mul_of_pos_right hε hB1
+        _ = a := by rw [hr]; field_simp
+    have e : (f ω + ε * g ω, h ω + ε * k ω) = (f ω, h ω) + (ε * g ω, ε * k ω) := rfl
+    rw [e]
+    refine good_add hG ?_
+    rw [Prod.norm_mk, Real.norm_eq_abs, Real.norm_eq_abs, abs_mul, abs_mul]
+    exact max_lt (hεB _ hgB) (hεB _ hkB)
+  set A : Set Ω := {ω | g ω = 0 ∧ k ω = 0} with hAdef
+  have hA : MeasurableSet A :=
+    (measurableSet_eq_fun hg measurable_const).inter (measurableSet_eq_fun hk measurable_const)
+  set uU : ℝ × ℝ → ℝ := U.indicator (fun p => u p.1 p.2) with huU
+  have huUm : Measurable uU := measurable_indicator_of_continuousOn hu.1 hu.continuousOn
+  have hrep : ∀ ε : ℝ, |ε| < r → (fun ω => u (f ω + ε * g ω) (h ω + ε * k ω)) =
+      A.indicator (fun ω => u (f ω) (h ω)) +
+        Aᶜ.indicator (fun ω => uU (f ω + ε * g ω, h ω + ε * k ω)) := by
+    intro ε hε
+    funext ω
+    by_cases hω : ω ∈ A
+    · have hω' : ω ∉ Aᶜ := fun h' => h' hω
+      simp only [Pi.add_apply, Set.indicator_of_mem hω, Set.indicator_of_notMem hω']
+      rw [hω.1, hω.2]
+      simp
+    · simp only [Pi.add_apply, Set.indicator_of_notMem hω,
+        Set.indicator_of_mem (show ω ∈ Aᶜ from hω), zero_add]
+      rcases hloc ω with h0 | ⟨hG, hgB, hkB⟩
+      · exact absurd h0 hω
+      · rw [huU, Set.indicator_of_mem (kc_subset U K (hin ω ε hε hG hgB hkB))]
+  have hFm : ∀ ε : ℝ, Measurable (fun ω => uU (f ω + ε * g ω, h ω + ε * k ω)) := fun ε =>
+    huUm.comp ((hf.add (hg.const_mul ε)).prodMk (hh.add (hk.const_mul ε)))
+  have hbd : ∀ ε : ℝ, |ε| < r → ∀ ω,
+      ‖Aᶜ.indicator (fun ω => uU (f ω + ε * g ω, h ω + ε * k ω)) ω‖ ≤ Cu := by
+    intro ε hε ω
+    by_cases hω : ω ∈ A
+    · rw [Set.indicator_of_notMem (show ω ∉ Aᶜ from fun h' => h' hω), norm_zero]
+      exact hCu0
+    · rw [Set.indicator_of_mem (show ω ∈ Aᶜ from hω), Real.norm_eq_abs]
+      rcases hloc ω with h0 | ⟨hG, hgB, hkB⟩
+      · exact absurd h0 hω
+      · have hq := hin ω ε hε hG hgB hkB
+        rw [huU, Set.indicator_of_mem (kc_subset U K hq)]
+        exact hCu _ hq
+  have hFint : ∀ ε : ℝ, |ε| < r →
+      Integrable (fun ω => u (f ω + ε * g ω) (h ω + ε * k ω)) μ := by
+    intro ε hε
+    rw [hrep ε hε]
+    exact (hint.indicator hA).add (Integrable.of_bound
+      ((hFm ε).aestronglyMeasurable.indicator hA.compl) Cu
+      (Eventually.of_forall (hbd ε hε)))
+  refine ⟨r, hr0, hFint, ?_⟩
+  -- the derivative
+  set ucU : ℝ × ℝ → ℝ := U.indicator (fun p => uc p.1 p.2) with hucU
+  set umU : ℝ × ℝ → ℝ := U.indicator (fun p => um p.1 p.2) with humU
+  have hucm : Measurable ucU := measurable_indicator_of_continuousOn hu.1 hu.2.2.1
+  have humm : Measurable umU := measurable_indicator_of_continuousOn hu.1 hu.2.2.2
+  have hF'0 : (fun ω => uc (f ω + 0 * g ω) (h ω + 0 * k ω) * g ω +
+      um (f ω + 0 * g ω) (h ω + 0 * k ω) * k ω) =
+      Aᶜ.indicator (fun ω => ucU (f ω, h ω) * g ω + umU (f ω, h ω) * k ω) := by
+    funext ω
+    simp only [zero_mul, add_zero]
+    by_cases hω : ω ∈ A
+    · rw [Set.indicator_of_notMem (show ω ∉ Aᶜ from fun h' => h' hω), hω.1, hω.2]
+      simp
+    · rw [Set.indicator_of_mem (show ω ∈ Aᶜ from hω)]
+      rcases hloc ω with h0 | ⟨hG, -, -⟩
+      · exact absurd h0 hω
+      · have hq := kc_subset U K (good_mem_kc hG)
+        rw [hucU, humU, Set.indicator_of_mem hq, Set.indicator_of_mem hq]
+  have key := hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μ) (x₀ := (0 : ℝ))
+    (F := fun ε ω => u (f ω + ε * g ω) (h ω + ε * k ω))
+    (F' := fun ε ω => uc (f ω + ε * g ω) (h ω + ε * k ω) * g ω +
+      um (f ω + ε * g ω) (h ω + ε * k ω) * k ω)
+    (bound := fun _ => Cc * |B| + Cm * |B|) (s := Metric.ball 0 r)
+    (Metric.ball_mem_nhds 0 hr0)
+    (Filter.eventually_of_mem (Metric.ball_mem_nhds 0 hr0) fun ε hε => (hFint ε (by
+      rwa [Metric.mem_ball, dist_zero_right, Real.norm_eq_abs] at hε)).aestronglyMeasurable)
+    (by simpa using hFint 0 (by simpa using hr0))
+    (by
+      rw [hF'0]
+      exact (((hucm.comp (hf.prodMk hh)).mul hg).add
+        ((humm.comp (hf.prodMk hh)).mul hk)).aestronglyMeasurable.indicator hA.compl)
+    ?_ (integrable_const _) ?_
+  · simpa using key.2
+  · refine Eventually.of_forall fun ω ε hε => ?_
+    rw [Metric.mem_ball, dist_zero_right, Real.norm_eq_abs] at hε
+    rcases hloc ω with h0 | ⟨hG, hgB, hkB⟩
+    · rw [h0.1, h0.2]
+      simp only [mul_zero, add_zero, norm_zero]
+      exact add_nonneg (mul_nonneg hCc0 (abs_nonneg _)) (mul_nonneg hCm0 (abs_nonneg _))
+    · have hq := hin ω ε hε hG hgB hkB
+      rw [Real.norm_eq_abs]
+      refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+      · rw [abs_mul]
+        exact mul_le_mul (hCc _ hq) (hgB.trans (le_abs_self B)) (abs_nonneg _) hCc0
+      · rw [abs_mul]
+        exact mul_le_mul (hCm _ hq) (hkB.trans (le_abs_self B)) (abs_nonneg _) hCm0
+  · refine Eventually.of_forall fun ω ε hε => ?_
+    rw [Metric.mem_ball, dist_zero_right, Real.norm_eq_abs] at hε
+    rcases hloc ω with h0 | ⟨hG, hgB, hkB⟩
+    · have e : (fun e : ℝ => u (f ω + e * g ω) (h ω + e * k ω)) = fun _ => u (f ω) (h ω) := by
+        funext e
+        rw [h0.1, h0.2]
+        simp
+      rw [e, h0.1, h0.2]
+      simpa using hasDerivAt_const ε (u (f ω) (h ω))
+    · exact hu.hasDerivAt_line (kc_subset U K (hin ω ε hε hG hgB hkB))
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440 (one-sided first-order conditions at a corner): if
+`φ(0) = 0`, `φ` has derivative `D` at `0` and `φ(ε) ≤ 0` for `0 < ε < η`, then `D ≤ 0`. -/
+theorem slope_nonpos {φ : ℝ → ℝ} {D η : ℝ} (hd : HasDerivAt φ D 0) (h0 : φ 0 = 0) (hη : 0 < η)
+    (hle : ∀ ε, 0 < ε → ε < η → φ ε ≤ 0) : D ≤ 0 := by
+  have ht := hd.tendsto_slope_zero_right
+  refine le_of_tendsto ht ?_
+  filter_upwards [Ioo_mem_nhdsGT hη] with ε hε
+  rw [zero_add, h0, sub_zero, smul_eq_mul]
+  exact mul_nonpos_of_nonneg_of_nonpos (inv_nonneg.2 hε.1.le) (hle ε hε.1 hε.2)
+
+end Cochrane.Monetarism.TidyR6HouseholdLocal
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The household first-order conditions without regularity hypotheses
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, §19.3, pp. 439–441,
+eqs. (19.9)–(19.14) and footnote 1, on a probability space (`HouseholdMeasure`). The earlier
+derivation (`HouseholdMeasure.pair_foc`, `HouseholdMeasure.bundle_multiplier_const`,
+`MoneyInUtilityMeasure.foc_1913`, `MoneyInUtilityMeasure.foc_1914`) assumed consumption and real
+balances essentially bounded at each date, prices bounded and bounded away from zero
+(`HouseholdMeasure.PriceRegular`) and a utility smooth on all of `ℝ²`, and it delivered a
+multiplier `λ = u_c(0)/Λ_0` known at date `0`. Here none of these is needed.
+
+## Main results
+
+* `roll_gain`: two perpetual rollovers (`TidyR6HouseholdRoll.roll_homDev`) at different dates,
+  localized where the plan is in a compact part of the utility domain and prices are moderate,
+  change expected utility by `φ(ε)` with `φ(0) = 0` and
+  `φ'(0) = βᵗ¹E[u_c z₁ + u_m ζ₁] + βᵗ²E[u_c z₂ + u_m ζ₂]`, and `φ(ε) ≤ 0` at an optimum whenever
+  the perturbed plan satisfies the extra constraint and the shifted no-Ponzi condition.
+* `lagrange`: an abstract Lagrange-multiplier lemma: if two linear functionals `Lu`, `Lp` on
+  date-indexed test spaces satisfy `Lp_{t₁}(v) + Lp_{t₂}(w) = 0 ⇒ Lu_{t₁}(v) + Lu_{t₂}(w) = 0`
+  for all dates `t₁ ≠ t₂`, then `Lu = λLp` with one constant `λ`.
+* **`miu_multiplier`, (19.13)–(19.14) with one constant multiplier**: at an optimum of the
+  money-in-utility household, for a utility `C¹` on an open domain `U` containing the plan, with
+  merely `PriceWeak` prices, there is a single real `λ` with
+  `βᵗu_c(c_t, m_t) = λΛ_t` and `βᵗu_m(c_t, m_t) = λΛ_tι_t` almost surely at every date. No
+  boundedness of consumption, real balances or prices, and no smoothness outside `U`. The
+  multiplier is a constant, not merely known at date `0`: the no-Ponzi condition of
+  `HouseholdMeasure.Feasible` is unconditional, so wealth can be moved across date-0 states.
+* `miu_liminf_tvc`: at such an optimum, if `u_c > 0` at some date, the date-0 value of wealth has
+  `liminf_T E[pk_T(a_T + M_{T−1})] = 0`: the transversality condition holds along a subsequence
+  with no concavity, no reference plan and no bounds (compare `TidyR6HouseholdTVC`).
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdFOC
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+  TidyR6HouseholdRoll TidyR6HouseholdLocal
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### Localized test deviations -/
+
+variable (S) in
+/-- Cochrane (2023), (19.9), p. 439: the domain constraint: almost surely at every date the plan
+`(c_t, m_t)` lies in the domain `U` of the utility. -/
+def DomainCon (U : Set (ℝ × ℝ)) (c m : ℕ → Ω → ℝ) : Prop := ∀ t, ∀ᵐ ω ∂S.μ, (c t ω, m t ω) ∈ U
+
+variable (S) in
+/-- Cochrane (2023), footnote 1, p. 440: the date-`t` localization at level `K`: `(c_t, m_t)` is
+good for the domain `U` (`TidyR6HouseholdLocal.Good`) and `Λ_t`, `P_t`, `|ι_t|` are at most `K`. -/
+def Loc (U : Set (ℝ × ℝ)) (Λ P c m : ℕ → Ω → ℝ) (t K : ℕ) (ω : Ω) : Prop :=
+  Good U K (c t ω, m t ω) ∧ Λ t ω ≤ K ∧ P t ω ≤ K ∧ |iota S Λ P t ω| ≤ K
+
+variable (S) in
+/-- Cochrane (2023), footnote 1, p. 440: a test deviation at date `t`: `(z, ζ)` known at `t`,
+vanishing off the localization `Loc t K` and bounded by `B` on it. -/
+def RollTest (U : Set (ℝ × ℝ)) (Λ P c m : ℕ → Ω → ℝ) (t K : ℕ) (B : ℝ) (z ζ : Ω → ℝ) : Prop :=
+  StronglyMeasurable[S.𝓕 t] z ∧ StronglyMeasurable[S.𝓕 t] ζ ∧
+    ∀ ω, (z ω = 0 ∧ ζ ω = 0) ∨ (Loc S U Λ P c m t K ω ∧ |z ω| ≤ B ∧ |ζ ω| ≤ B)
+
+/-- Cochrane (2023), footnote 1, p. 440: the localization is monotone in its level. -/
+theorem loc_mono {U : Set (ℝ × ℝ)} {Λ P c m : ℕ → Ω → ℝ} {t K K' : ℕ} (h : K ≤ K') {ω : Ω}
+    (hl : Loc S U Λ P c m t K ω) : Loc S U Λ P c m t K' ω := by
+  have hc : (K : ℝ) ≤ K' := Nat.cast_le.2 h
+  exact ⟨good_mono h hl.1, hl.2.1.trans hc, hl.2.2.1.trans hc, hl.2.2.2.trans hc⟩
+
+/-- Cochrane (2023), footnote 1, p. 440: the localization is an event known at `t`. -/
+theorem measurableSet_loc {U : Set (ℝ × ℝ)} {Λ P c m : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    (hca : StronglyAdapted S.𝓕 c) (hma : StronglyAdapted S.𝓕 m) (t K : ℕ) :
+    MeasurableSet[S.𝓕 t] {ω | Loc S U Λ P c m t K ω} := by
+  have h1 : MeasurableSet[S.𝓕 t] {ω | Good U K (c t ω, m t ω)} :=
+    ((hca t).measurable.prodMk (hma t).measurable) (measurableSet_good U K)
+  have h2 : MeasurableSet[S.𝓕 t] {ω | Λ t ω ≤ K} := measurableSet_le (hp.1 t).measurable
+    measurable_const
+  have h3 : MeasurableSet[S.𝓕 t] {ω | P t ω ≤ K} := measurableSet_le (hp.2.1 t).measurable
+    measurable_const
+  have h4 : MeasurableSet[S.𝓕 t] {ω | |iota S Λ P t ω| ≤ K} :=
+    measurableSet_le (continuous_abs.measurable.comp (hp.sm_iota t).measurable) measurable_const
+  exact h1.inter (h2.inter (h3.inter h4))
+
+/-- Cochrane (2023), footnote 1, p. 440: if the plan lies in the open domain almost surely, then
+almost surely it is localized at some level, at every date. -/
+theorem ae_exists_loc {U : Set (ℝ × ℝ)} (hU : IsOpen U) {Λ P c m : ℕ → Ω → ℝ}
+    (hdom : DomainCon S U c m) (t : ℕ) : ∀ᵐ ω ∂S.μ, ∃ K, Loc S U Λ P c m t K ω := by
+  filter_upwards [hdom t] with ω hω
+  obtain ⟨K₁, hK₁⟩ := exists_good hU hω
+  refine ⟨max K₁ (max ⌈Λ t ω⌉₊ (max ⌈P t ω⌉₊ ⌈|iota S Λ P t ω|⌉₊)),
+    good_mono (le_max_left _ _) hK₁, ?_, ?_, ?_⟩
+  · refine (Nat.le_ceil _).trans ?_
+    exact_mod_cast (le_max_left _ _).trans (le_max_right _ _)
+  · refine (Nat.le_ceil _).trans ?_
+    exact_mod_cast ((le_max_left _ _).trans (le_max_right _ _)).trans (le_max_right _ _)
+  · refine (Nat.le_ceil _).trans ?_
+    exact_mod_cast ((le_max_right _ _).trans (le_max_right _ _)).trans (le_max_right _ _)
+
+/-- Cochrane (2023), footnote 1, p. 440: a test vanishes off its localization and is bounded on
+it, so in particular its utility point is good. -/
+theorem RollTest.good {U : Set (ℝ × ℝ)} {Λ P c m : ℕ → Ω → ℝ} {t K : ℕ} {B : ℝ}
+    {z ζ : Ω → ℝ} (h : RollTest S U Λ P c m t K B z ζ) (ω : Ω) :
+    (z ω = 0 ∧ ζ ω = 0) ∨ (Good U K (c t ω, m t ω) ∧ |z ω| ≤ B ∧ |ζ ω| ≤ B) :=
+  (h.2.2 ω).imp id fun h' => ⟨h'.1.1, h'.2⟩
+
+/-- Cochrane (2023), footnote 1, p. 440: the zero deviation is a test. -/
+theorem rollTest_zero (U : Set (ℝ × ℝ)) (Λ P c m : ℕ → Ω → ℝ) (t K : ℕ) (B : ℝ) :
+    RollTest S U Λ P c m t K B 0 0 :=
+  ⟨stronglyMeasurable_const, stronglyMeasurable_const, fun _ => Or.inl ⟨rfl, rfl⟩⟩
+
+/-- Cochrane (2023), footnote 1, p. 440: tests at the same date form a vector space: `v + aw` is a
+test at the larger level with bound `|B| + |a||B'|`. -/
+theorem RollTest.comb {U : Set (ℝ × ℝ)} {Λ P c m : ℕ → Ω → ℝ} {t K K' : ℕ} {B B' : ℝ}
+    {z ζ z' ζ' : Ω → ℝ} (h : RollTest S U Λ P c m t K B z ζ)
+    (h' : RollTest S U Λ P c m t K' B' z' ζ') (a : ℝ) :
+    RollTest S U Λ P c m t (max K K') (|B| + |a| * |B'|) (fun ω => z ω + a * z' ω)
+      (fun ω => ζ ω + a * ζ' ω) := by
+  refine ⟨h.1.add (h'.1.const_mul a), h.2.1.add (h'.2.1.const_mul a), fun ω => ?_⟩
+  have hb : ∀ x : ℝ, (x = 0 ∨ |x| ≤ B) → |x| ≤ |B| := fun x hx => by
+    rcases hx with hx | hx
+    · rw [hx, abs_zero]
+      exact abs_nonneg _
+    · exact hx.trans (le_abs_self _)
+  have hb' : ∀ x : ℝ, (x = 0 ∨ |x| ≤ B') → |x| ≤ |B'| := fun x hx => by
+    rcases hx with hx | hx
+    · rw [hx, abs_zero]
+      exact abs_nonneg _
+    · exact hx.trans (le_abs_self _)
+  have hsum : ∀ x y : ℝ, |x| ≤ |B| → |y| ≤ |B'| → |x + a * y| ≤ |B| + |a| * |B'| :=
+    fun x y hx hy => (abs_add_le _ _).trans (add_le_add hx (by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left hy (abs_nonneg a)))
+  rcases h.2.2 ω with h0 | ⟨hl, hz, hζ⟩ <;> rcases h'.2.2 ω with h0' | ⟨hl', hz', hζ'⟩
+  · left
+    simp [h0.1, h0.2, h0'.1, h0'.2]
+  · right
+    exact ⟨loc_mono (le_max_right _ _) hl', hsum _ _ (hb _ (Or.inl h0.1)) (hb' _ (Or.inr hz')),
+      hsum _ _ (hb _ (Or.inl h0.2)) (hb' _ (Or.inr hζ'))⟩
+  · right
+    exact ⟨loc_mono (le_max_left _ _) hl, hsum _ _ (hb _ (Or.inr hz)) (hb' _ (Or.inl h0'.1)),
+      hsum _ _ (hb _ (Or.inr hζ)) (hb' _ (Or.inl h0'.2))⟩
+  · right
+    exact ⟨loc_mono (le_max_left _ _) hl, hsum _ _ (hb _ (Or.inr hz)) (hb' _ (Or.inr hz')),
+      hsum _ _ (hb _ (Or.inr hζ)) (hb' _ (Or.inr hζ'))⟩
+
+/-- Cochrane (2023), footnote 1, p. 440: a bound on a test and a factor that is at most `K` on the
+localization bound their product. -/
+theorem RollTest.bound_mul {U : Set (ℝ × ℝ)} {Λ P c m : ℕ → Ω → ℝ} {t K : ℕ} {B : ℝ}
+    {z ζ : Ω → ℝ} (h : RollTest S U Λ P c m t K B z ζ) {w : Ω → ℝ}
+    (hw : ∀ ω, Loc S U Λ P c m t K ω → |w ω| ≤ K) (ω : Ω) :
+    |w ω * z ω| ≤ K * |B| ∧ |w ω * ζ ω| ≤ K * |B| := by
+  rcases h.2.2 ω with h0 | ⟨hl, hz, hζ⟩
+  · rw [h0.1, h0.2]
+    simp only [mul_zero, abs_zero, and_self]
+    positivity
+  · rw [abs_mul, abs_mul]
+    exact ⟨mul_le_mul (hw ω hl) (hz.trans (le_abs_self _)) (abs_nonneg _) (by positivity),
+      mul_le_mul (hw ω hl) (hζ.trans (le_abs_self _)) (abs_nonneg _) (by positivity)⟩
+
+/-- Cochrane (2023), footnote 1, p. 440 and (19.12), p. 439: the integrability that the perpetual
+rollover of a test requires: `Λ_tz`, `Λ_tζ`, `pk_{t+1}P_tζ` and `X = −Λ_t(z + ι_tζ)` are
+integrable. -/
+theorem RollTest.integrable {U : Set (ℝ × ℝ)} {Λ P c m : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    {t K : ℕ} {B : ℝ} {z ζ : Ω → ℝ} (h : RollTest S U Λ P c m t K B z ζ) :
+    Integrable (fun ω => Λ t ω * z ω) S.μ ∧ Integrable (fun ω => Λ t ω * ζ ω) S.μ ∧
+      Integrable (fun ω => pk Λ P (t + 1) ω * (P t ω * ζ ω)) S.μ ∧
+      Integrable (rollX S Λ P t z ζ) S.μ := by
+  have ae : ∀ {f : Ω → ℝ}, StronglyMeasurable[S.𝓕 t] f → AEStronglyMeasurable f S.μ :=
+    fun h => (h.mono (S.𝓕.le t)).aestronglyMeasurable
+  have hΛ : ∀ ω, Loc S U Λ P c m t K ω → |Λ t ω| ≤ K := fun ω hl => by
+    rw [abs_of_pos (hp.2.2.1 t ω)]
+    exact hl.2.1
+  have hP : ∀ ω, Loc S U Λ P c m t K ω → |P t ω| ≤ K := fun ω hl => by
+    rw [abs_of_pos (hp.2.2.2.1 t ω)]
+    exact hl.2.2.1
+  have hι : ∀ ω, Loc S U Λ P c m t K ω → |iota S Λ P t ω| ≤ K := fun ω hl => hl.2.2.2
+  have i1 : Integrable (fun ω => Λ t ω * z ω) S.μ :=
+    Integrable.of_bound (ae ((hp.1 t).mul h.1)) (K * |B|)
+      (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact (h.bound_mul hΛ ω).1)
+  have i2 : Integrable (fun ω => Λ t ω * ζ ω) S.μ :=
+    Integrable.of_bound (ae ((hp.1 t).mul h.2.1)) (K * |B|)
+      (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact (h.bound_mul hΛ ω).2)
+  refine ⟨i1, i2, ?_, ?_⟩
+  · have := (hp.2.2.2.2 (t + 1)).bdd_mul (c := K * |B|) (ae ((hp.2.1 t).mul h.2.1))
+      (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact (h.bound_mul hP ω).2)
+    refine this.congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.mul_apply]
+    ring
+  · have hX : rollX S Λ P t z ζ = fun ω => -(Λ t ω * z ω + Λ t ω * (iota S Λ P t ω * ζ ω)) := by
+      funext ω
+      simp only [rollX]
+      ring
+    rw [hX]
+    refine (i1.add (Integrable.of_bound (ae ((hp.1 t).mul ((hp.sm_iota t).mul h.2.1)))
+      (K * (K * |B|)) (Eventually.of_forall fun ω => ?_))).neg
+    rw [Real.norm_eq_abs]
+    simp only [Pi.mul_apply]
+    rcases h.2.2 ω with h0 | ⟨hl, -, -⟩
+    · rw [h0.2]
+      simp only [mul_zero, abs_zero]
+      positivity
+    · rw [abs_mul]
+      refine mul_le_mul (hΛ ω hl) ?_ (abs_nonneg _) (by positivity)
+      exact (h.bound_mul hι ω).2
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440: for a function continuous on the domain (such as
+`u_c`, `u_m`), its value at the plan times a test is integrable. -/
+theorem RollTest.integrable_util {U : Set (ℝ × ℝ)} (hU : IsOpen U) {Λ P c m : ℕ → Ω → ℝ}
+    (hca : StronglyAdapted S.𝓕 c) (hma : StronglyAdapted S.𝓕 m) {t K : ℕ} {B : ℝ}
+    {z ζ : Ω → ℝ} (h : RollTest S U Λ P c m t K B z ζ) {v : ℝ × ℝ → ℝ} (hv : ContinuousOn v U) :
+    Integrable (fun ω => v (c t ω, m t ω) * z ω) S.μ ∧
+      Integrable (fun ω => v (c t ω, m t ω) * ζ ω) S.μ := by
+  obtain ⟨C, hC0, hC⟩ := kc_bound (U := U) K hv
+  have hm : Measurable (fun ω => U.indicator v (c t ω, m t ω)) :=
+    (measurable_indicator_of_continuousOn hU hv).comp
+      (((hca t).mono (S.𝓕.le t)).measurable.prodMk ((hma t).mono (S.𝓕.le t)).measurable)
+  have hz := (h.1.mono (S.𝓕.le t)).measurable
+  have hζ := (h.2.1.mono (S.𝓕.le t)).measurable
+  have e : ∀ (x : Ω → ℝ), (∀ ω, x ω = 0 ∨ (Good U K (c t ω, m t ω) ∧ |x ω| ≤ B)) →
+      (fun ω => v (c t ω, m t ω) * x ω) = fun ω => U.indicator v (c t ω, m t ω) * x ω := by
+    intro x hx
+    funext ω
+    rcases hx ω with h0 | ⟨hg, -⟩
+    · rw [h0]
+      simp
+    · rw [Set.indicator_of_mem (kc_subset U K (good_mem_kc hg))]
+  have hbd : ∀ (x : Ω → ℝ), (∀ ω, x ω = 0 ∨ (Good U K (c t ω, m t ω) ∧ |x ω| ≤ B)) →
+      ∀ ω, ‖v (c t ω, m t ω) * x ω‖ ≤ C * |B| := by
+    intro x hx ω
+    rw [Real.norm_eq_abs, abs_mul]
+    rcases hx ω with h0 | ⟨hg, hxB⟩
+    · rw [h0, abs_zero, mul_zero]
+      positivity
+    · exact mul_le_mul (hC _ (good_mem_kc hg)) (hxB.trans (le_abs_self _)) (abs_nonneg _) hC0
+  have hz' : ∀ ω, z ω = 0 ∨ (Good U K (c t ω, m t ω) ∧ |z ω| ≤ B) := fun ω =>
+    (h.good ω).imp (fun h0 => h0.1) fun h' => ⟨h'.1, h'.2.1⟩
+  have hζ' : ∀ ω, ζ ω = 0 ∨ (Good U K (c t ω, m t ω) ∧ |ζ ω| ≤ B) := fun ω =>
+    (h.good ω).imp (fun h0 => h0.2) fun h' => ⟨h'.1, h'.2.2⟩
+  refine ⟨Integrable.of_bound ?_ (C * |B|) (Eventually.of_forall (hbd z hz')),
+    Integrable.of_bound ?_ (C * |B|) (Eventually.of_forall (hbd ζ hζ'))⟩
+  · rw [e z hz']
+    exact (hm.mul hz).aestronglyMeasurable
+  · rw [e ζ hζ']
+    exact (hm.mul hζ).aestronglyMeasurable
+
+/-! ### The utility gain of two rollovers -/
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440 and footnote 1 ("consider each item as a function of
+state"), **the gain from two localized rollovers.** At an optimal plan (utility `C¹` on the open
+domain `U`, `PriceWeak` prices), for tests `(z₁, ζ₁)` at `t₁` and `(z₂, ζ₂)` at `t₂ ≠ t₁`, there is
+`r > 0` and a function `φ` with `φ(0) = 0`, derivative
+`βᵗ¹E[u_c z₁ + u_m ζ₁] + βᵗ²E[u_c z₂ + u_m ζ₂]` at `0`, and `φ(ε) ≤ 0` for `|ε| < r` whenever the
+plan perturbed by `ε` times both rollovers satisfies the extra constraint `Con` and the no-Ponzi
+condition shifted by `ε(E[X₁] + E[X₂])`. -/
+theorem roll_gain {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)}
+    (hu : C1On u uc um U) {Con : (ℕ → Ω → ℝ) → (ℕ → Ω → ℝ) → Prop} {Λ P y s : ℕ → Ω → ℝ}
+    {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ} (hopt : Optimal S β u Con Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) {t₁ t₂ : ℕ} (hne : t₁ ≠ t₂) {K₁ K₂ : ℕ} {B₁ B₂ : ℝ}
+    {z₁ ζ₁ z₂ ζ₂ : Ω → ℝ} (h₁ : RollTest S U Λ P c m t₁ K₁ B₁ z₁ ζ₁)
+    (h₂ : RollTest S U Λ P c m t₂ K₂ B₂ z₂ ζ₂) :
+    ∃ r, 0 < r ∧ ∃ φ : ℝ → ℝ, φ 0 = 0 ∧
+      HasDerivAt φ (β ^ t₁ * ∫ ω, (uc (c t₁ ω) (m t₁ ω) * z₁ ω +
+          um (c t₁ ω) (m t₁ ω) * ζ₁ ω) ∂S.μ +
+        β ^ t₂ * ∫ ω, (uc (c t₂ ω) (m t₂ ω) * z₂ ω + um (c t₂ ω) (m t₂ ω) * ζ₂ ω) ∂S.μ) 0 ∧
+      ∀ ε, |ε| < r →
+        Con (fun n ω => c n ω + ε * (rollC t₁ z₁ n ω + rollC t₂ z₂ n ω))
+          (fun n ω => m n ω + ε * (rollC t₁ ζ₁ n ω + rollC t₂ ζ₂ n ω)) →
+        (∀ δ, 0 < δ → ∀ᶠ T in atTop, -δ ≤ wealthPV S Λ P N0 m a T +
+          ε * ((∫ ω, rollX S Λ P t₁ z₁ ζ₁ ω ∂S.μ) + ∫ ω, rollX S Λ P t₂ z₂ ζ₂ ω ∂S.μ)) →
+        φ ε ≤ 0 := by
+  obtain ⟨hfeas, -, hadm, hmax⟩ := hopt
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have mz : ∀ {t : ℕ} {f : Ω → ℝ}, StronglyMeasurable[S.𝓕 t] f → Measurable f :=
+    fun {t} _ h => (h.mono (S.𝓕.le t)).measurable
+  obtain ⟨j1, j2, j3, j4⟩ := h₁.integrable hp
+  obtain ⟨k1, k2, k3, k4⟩ := h₂.integrable hp
+  have hd := (roll_homDev hp h₁.1 h₁.2.1 j1 j2 j3 j4).add hp
+    (roll_homDev hp h₂.1 h₂.2.1 k1 k2 k3 k4)
+  obtain ⟨r₁, hr₁, hI₁, hD₁⟩ := loc_deriv (μ := S.μ) hu (mz (hca t₁)) (mz (hma t₁)) (mz h₁.1)
+    (mz h₁.2.1) h₁.good (hadm.integrable hβ t₁)
+  obtain ⟨r₂, hr₂, hI₂, hD₂⟩ := loc_deriv (μ := S.μ) hu (mz (hca t₂)) (mz (hma t₂)) (mz h₂.1)
+    (mz h₂.2.1) h₂.good (hadm.integrable hβ t₂)
+  set φ : ℝ → ℝ := fun ε =>
+    β ^ t₁ * (∫ ω, u (c t₁ ω + ε * z₁ ω) (m t₁ ω + ε * ζ₁ ω) ∂S.μ -
+      ∫ ω, u (c t₁ ω) (m t₁ ω) ∂S.μ) +
+    β ^ t₂ * (∫ ω, u (c t₂ ω + ε * z₂ ω) (m t₂ ω + ε * ζ₂ ω) ∂S.μ -
+      ∫ ω, u (c t₂ ω) (m t₂ ω) ∂S.μ) with hφ
+  refine ⟨min r₁ r₂, lt_min hr₁ hr₂, φ, by simp [hφ], ?_, fun ε hε hcon hnp => ?_⟩
+  · have := ((hD₁.sub_const (∫ ω, u (c t₁ ω) (m t₁ ω) ∂S.μ)).const_mul (β ^ t₁)).add
+      ((hD₂.sub_const (∫ ω, u (c t₂ ω) (m t₂ ω) ∂S.μ)).const_mul (β ^ t₂))
+    exact this
+  have hε₁ : |ε| < r₁ := lt_of_lt_of_le hε (min_le_left _ _)
+  have hε₂ : |ε| < r₂ := lt_of_lt_of_le hε (min_le_right _ _)
+  have hF := feasible_add hp hfeas hd (ε := ε) hnp
+  -- the perturbed plan at the two dates
+  have ec : ∀ n ω, c n ω + ε * (rollC t₁ z₁ n ω + rollC t₂ z₂ n ω) =
+      if n = t₁ then c t₁ ω + ε * z₁ ω else if n = t₂ then c t₂ ω + ε * z₂ ω else c n ω := by
+    intro n ω
+    by_cases h1 : n = t₁
+    · subst h1
+      simp [rollC, hne]
+    · by_cases h2 : n = t₂
+      · subst h2
+        simp [rollC, h1]
+      · simp [rollC, h1, h2]
+  have em : ∀ n ω, m n ω + ε * (rollC t₁ ζ₁ n ω + rollC t₂ ζ₂ n ω) =
+      if n = t₁ then m t₁ ω + ε * ζ₁ ω else if n = t₂ then m t₂ ω + ε * ζ₂ ω else m n ω := by
+    intro n ω
+    by_cases h1 : n = t₁
+    · subst h1
+      simp [rollC, hne]
+    · by_cases h2 : n = t₂
+      · subst h2
+        simp [rollC, h1]
+      · simp [rollC, h1, h2]
+  have hmod := hadm.modify hβ {t₁, t₂}
+    (f' := fun n ω => u (c n ω + ε * (rollC t₁ z₁ n ω + rollC t₂ z₂ n ω))
+      (m n ω + ε * (rollC t₁ ζ₁ n ω + rollC t₂ ζ₂ n ω)))
+    (fun n hn => by
+      simp only [Finset.mem_insert, Finset.mem_singleton, not_or] at hn
+      funext ω
+      rw [ec, em]
+      simp [hn.1, hn.2])
+    (fun n hn => by
+      simp only [Finset.mem_insert, Finset.mem_singleton] at hn
+      rcases hn with rfl | rfl
+      · refine (hI₁ ε hε₁).congr (Eventually.of_forall fun ω => ?_)
+        simp only
+        rw [ec, em]
+        simp
+      · refine (hI₂ ε hε₂).congr (Eventually.of_forall fun ω => ?_)
+        simp only
+        rw [ec, em]
+        simp [hne.symm])
+  have hle := hmax _ _ _ hF hcon hmod.1
+  rw [hmod.2, Finset.sum_pair hne] at hle
+  have e1 : ∫ ω, u (c t₁ ω + ε * (rollC t₁ z₁ t₁ ω + rollC t₂ z₂ t₁ ω))
+      (m t₁ ω + ε * (rollC t₁ ζ₁ t₁ ω + rollC t₂ ζ₂ t₁ ω)) ∂S.μ =
+      ∫ ω, u (c t₁ ω + ε * z₁ ω) (m t₁ ω + ε * ζ₁ ω) ∂S.μ :=
+    integral_congr_ae (Eventually.of_forall fun ω => by simp [rollC, hne])
+  have e2 : ∫ ω, u (c t₂ ω + ε * (rollC t₁ z₁ t₂ ω + rollC t₂ z₂ t₂ ω))
+      (m t₂ ω + ε * (rollC t₁ ζ₁ t₂ ω + rollC t₂ ζ₂ t₂ ω)) ∂S.μ =
+      ∫ ω, u (c t₂ ω + ε * z₂ ω) (m t₂ ω + ε * ζ₂ ω) ∂S.μ :=
+    integral_congr_ae (Eventually.of_forall fun ω => by simp [rollC, hne.symm])
+  rw [e1, e2] at hle
+  simp only [hφ]
+  linarith
+
+/-! ### An abstract Lagrange-multiplier lemma -/
+
+/-- Cochrane (2023), (19.13), p. 440 ("`βᵗu_c = Λ_t`" with one multiplier): let `Adm t` be a set
+of admissible test vectors at date `t`, containing `0` and closed under `v + aw`, on which `Lu t`
+and `Lp t` are linear. If for all dates `t₁ ≠ t₂`, `Lp_{t₁}(v) + Lp_{t₂}(w) = 0` implies
+`Lu_{t₁}(v) + Lu_{t₂}(w) = 0` (budget-neutral pairs of deviations do not change utility to first
+order), then there is a single constant `λ` with `Lu_t = λLp_t` on every admissible test, at
+every date. -/
+theorem lagrange {V : Type*} [AddCommGroup V] [Module ℝ V] (Adm : ℕ → V → Prop)
+    (Lu Lp : ℕ → V → ℝ) (hzero : ∀ t, Adm t 0)
+    (hcomb : ∀ t v w (a : ℝ), Adm t v → Adm t w → Adm t (v + a • w))
+    (hLu : ∀ t v w (a : ℝ), Adm t v → Adm t w → Lu t (v + a • w) = Lu t v + a * Lu t w)
+    (hLp : ∀ t v w (a : ℝ), Adm t v → Adm t w → Lp t (v + a • w) = Lp t v + a * Lp t w)
+    (hpair : ∀ t₁ t₂, t₁ ≠ t₂ → ∀ v w, Adm t₁ v → Adm t₂ w → Lp t₁ v + Lp t₂ w = 0 →
+      Lu t₁ v + Lu t₂ w = 0) :
+    ∃ lam : ℝ, ∀ t v, Adm t v → Lu t v = lam * Lp t v := by
+  have hLu0 : ∀ t, Lu t 0 = 0 := fun t => by
+    have := hLu t 0 0 1 (hzero t) (hzero t)
+    simp only [one_smul, add_zero, one_mul] at this
+    linarith
+  have hLp0 : ∀ t, Lp t 0 = 0 := fun t => by
+    have := hLp t 0 0 1 (hzero t) (hzero t)
+    simp only [one_smul, add_zero, one_mul] at this
+    linarith
+  by_cases hex : ∃ r w, Adm r w ∧ Lp r w ≠ 0
+  · obtain ⟨r, w, hw, hpw⟩ := hex
+    refine ⟨Lu r w / Lp r w, fun t v hv => ?_⟩
+    set a := -(Lp t v / Lp r w) with ha
+    have hsum : Lp t v + a * Lp r w = 0 := by
+      rw [ha]
+      field_simp
+      ring
+    have key : Lu t v + a * Lu r w = 0 := by
+      by_cases htr : t = r
+      · subst htr
+        have h := hpair t (t + 1) (by omega) _ 0 (hcomb t v w a hv hw) (hzero (t + 1))
+          (by rw [hLp t v w a hv hw, hLp0, add_zero, hsum])
+        rwa [hLu t v w a hv hw, hLu0, add_zero] at h
+      · have h := hpair t r htr v (0 + a • w) hv (hcomb r 0 w a (hzero r) hw)
+          (by rw [hLp r 0 w a (hzero r) hw, hLp0, zero_add, hsum])
+        rwa [hLu r 0 w a (hzero r) hw, hLu0, zero_add] at h
+    rw [ha] at key
+    field_simp at key ⊢
+    linarith
+  · push Not at hex
+    refine ⟨0, fun t v hv => ?_⟩
+    have h := hpair t (t + 1) (by omega) v 0 hv (hzero (t + 1))
+      (by rw [hex t v hv, hex (t + 1) 0 (hzero _), add_zero])
+    rw [hLu0, add_zero] at h
+    rw [h, zero_mul]
+
+/-! ### Stability of the domain constraint and localization of the conditions -/
+
+/-- Cochrane (2023), (19.9), p. 439: a small deviation `ε(x, y)` from a good point, with
+`|x|, |y| ≤ B` and `|ε|(|B| + 1) < 1/(2(K + 1))`, stays in the domain. -/
+theorem good_perturb_mem {U : Set (ℝ × ℝ)} {K : ℕ} {p : ℝ × ℝ} (hp : Good U K p) {x y B ε : ℝ}
+    (hx : |x| ≤ B) (hy : |y| ≤ B) (hε : |ε| * (|B| + 1) < 1 / (2 * ((K : ℝ) + 1))) :
+    (p.1 + ε * x, p.2 + ε * y) ∈ U := by
+  have hb : ∀ z : ℝ, |z| ≤ B → |ε| * |z| < 1 / (2 * ((K : ℝ) + 1)) := fun z hz =>
+    lt_of_le_of_lt (mul_le_mul_of_nonneg_left (hz.trans ((le_abs_self B).trans (by linarith)))
+      (abs_nonneg ε)) hε
+  have := good_add hp (d := (ε * x, ε * y)) (by
+    rw [Prod.norm_mk, Real.norm_eq_abs, Real.norm_eq_abs, abs_mul, abs_mul]
+    exact max_lt (hb x hx) (hb y hy))
+  exact kc_subset U K this
+
+/-- Cochrane (2023), (19.9), p. 439 and footnote 1, p. 440: the domain constraint survives two
+small localized rollovers at different dates. -/
+theorem domainCon_roll {U : Set (ℝ × ℝ)} {Λ P c m : ℕ → Ω → ℝ} (hdom : DomainCon S U c m)
+    {t₁ t₂ K₁ K₂ : ℕ} {B₁ B₂ : ℝ} {z₁ ζ₁ z₂ ζ₂ : Ω → ℝ} (hne : t₁ ≠ t₂)
+    (h₁ : RollTest S U Λ P c m t₁ K₁ B₁ z₁ ζ₁) (h₂ : RollTest S U Λ P c m t₂ K₂ B₂ z₂ ζ₂)
+    {ε : ℝ} (hε₁ : |ε| * (|B₁| + 1) < 1 / (2 * ((K₁ : ℝ) + 1)))
+    (hε₂ : |ε| * (|B₂| + 1) < 1 / (2 * ((K₂ : ℝ) + 1))) :
+    DomainCon S U (fun n ω => c n ω + ε * (rollC t₁ z₁ n ω + rollC t₂ z₂ n ω))
+      (fun n ω => m n ω + ε * (rollC t₁ ζ₁ n ω + rollC t₂ ζ₂ n ω)) := by
+  intro n
+  filter_upwards [hdom n] with ω hω
+  by_cases h1 : n = t₁
+  · subst h1
+    simp only [rollC, ↓reduceIte, hne, add_zero]
+    rcases h₁.good ω with h0 | ⟨hG, hx, hy⟩
+    · rw [h0.1, h0.2]
+      simpa using hω
+    · exact good_perturb_mem hG hx hy hε₁
+  · by_cases h2 : n = t₂
+    · subst h2
+      simp only [rollC, ↓reduceIte, h1, zero_add]
+      rcases h₂.good ω with h0 | ⟨hG, hx, hy⟩
+      · rw [h0.1, h0.2]
+        simpa using hω
+      · exact good_perturb_mem hG hx hy hε₂
+    · simpa [rollC, h1, h2] using hω
+
+/-- Cochrane (2023), footnote 1, p. 440 ("consider each item as a function of state"), **from
+tests to almost-sure equations.** If `v` is continuous on the open domain, `w` is known at `t` and
+bounded on each localization, the plan lies in the domain almost surely, and
+`E[(v(c_t, m_t) − w)z] = 0` for every scalar test `z` at `t`, then `v(c_t, m_t) = w` almost
+surely. -/
+theorem ae_eq_of_tests {U : Set (ℝ × ℝ)} (hU : IsOpen U) {Λ P c m : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hca : StronglyAdapted S.𝓕 c) (hma : StronglyAdapted S.𝓕 m)
+    (hdom : DomainCon S U c m) {t : ℕ} {v : ℝ × ℝ → ℝ} (hv : ContinuousOn v U) {w : Ω → ℝ}
+    (hw : StronglyMeasurable[S.𝓕 t] w)
+    (hwb : ∀ K : ℕ, ∃ C, ∀ ω, Loc S U Λ P c m t K ω → |w ω| ≤ C)
+    (htest : ∀ (K : ℕ) (B : ℝ) (z : Ω → ℝ), StronglyMeasurable[S.𝓕 t] z →
+      (∀ ω, z ω = 0 ∨ (Loc S U Λ P c m t K ω ∧ |z ω| ≤ B)) →
+      ∫ ω, (v (c t ω, m t ω) - w ω) * z ω ∂S.μ = 0) :
+    ∀ᵐ ω ∂S.μ, v (c t ω, m t ω) = w ω := by
+  have hK : ∀ K : ℕ, ∀ᵐ ω ∂S.μ, Loc S U Λ P c m t K ω → v (c t ω, m t ω) = w ω := by
+    intro K
+    obtain ⟨C₁, hC₁0, hC₁⟩ := kc_bound (U := U) K hv
+    obtain ⟨C₂, hC₂⟩ := hwb K
+    set L := {ω | Loc S U Λ P c m t K ω} with hL
+    have hLm := measurableSet_loc (U := U) hp hca hma t K
+    set g : Ω → ℝ := L.indicator (fun ω => U.indicator v (c t ω, m t ω) - w ω) with hg
+    have hgm : StronglyMeasurable[S.𝓕 t] g :=
+      (((measurable_indicator_of_continuousOn hU hv).comp ((hca t).measurable.prodMk
+        (hma t).measurable)).sub hw.measurable).stronglyMeasurable.indicator hLm
+    have hgL : ∀ ω, ω ∈ L → g ω = v (c t ω, m t ω) - w ω := fun ω hω => by
+      rw [hg, Set.indicator_of_mem hω, Set.indicator_of_mem (kc_subset U K (good_mem_kc hω.1))]
+    have hgsupp : ∀ ω, g ω = 0 ∨ (Loc S U Λ P c m t K ω ∧ |g ω| ≤ C₁ + |C₂|) := by
+      intro ω
+      by_cases hω : ω ∈ L
+      · right
+        refine ⟨hω, ?_⟩
+        rw [hgL ω hω]
+        exact (abs_sub _ _).trans (add_le_add (hC₁ _ (good_mem_kc hω.1))
+          ((hC₂ ω hω).trans (le_abs_self _)))
+      · left
+        rw [hg, Set.indicator_of_notMem hω]
+    have h0 := htest K (C₁ + |C₂|) g hgm hgsupp
+    have heq : (fun ω => (v (c t ω, m t ω) - w ω) * g ω) = fun ω => g ω * g ω := by
+      funext ω
+      by_cases hω : ω ∈ L
+      · rw [hgL ω hω]
+      · rw [hg, Set.indicator_of_notMem hω, mul_zero, mul_zero]
+    rw [heq] at h0
+    have hgi : Integrable (fun ω => g ω * g ω) S.μ := by
+      refine Integrable.of_bound ((hgm.mul hgm).mono (S.𝓕.le t)).aestronglyMeasurable
+        ((C₁ + |C₂|) * (C₁ + |C₂|)) (Eventually.of_forall fun ω => ?_)
+      rw [Real.norm_eq_abs, abs_mul]
+      have hb : |g ω| ≤ C₁ + |C₂| := by
+        rcases hgsupp ω with h | h
+        · rw [h, abs_zero]
+          exact add_nonneg hC₁0 (abs_nonneg _)
+        · exact h.2
+      exact mul_le_mul hb hb (abs_nonneg _) ((abs_nonneg _).trans hb)
+    filter_upwards [ae_eq_zero_of_integral_mul_self hgi h0] with ω hω hl
+    have := hgL ω hl
+    rw [hω, Pi.zero_apply] at this
+    linarith
+  filter_upwards [ae_all_iff.2 hK, ae_exists_loc (Λ := Λ) (P := P) hU hdom t] with ω h1 h2
+  obtain ⟨K, hl⟩ := h2
+  exact h1 K hl
+
+/-! ### The money-in-utility first-order conditions -/
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440 and footnote 1 (`βᵗpr(xᵗ)u_c = pr(xᵗ)(Λ_t/Λ_0)λ`),
+**the money-in-utility first-order conditions with one constant multiplier, without regularity
+hypotheses.** Let the utility be `C¹` on an open domain `U` (`TidyR6HouseholdLocal.C1On`, e.g.
+`U = (0, ∞)²` for log or power utility), let prices satisfy only `PriceWeak` (adapted, positive,
+`Λ_t/P_t` integrable), and let `(c, m, a)` be optimal among feasible plans lying in `U`
+(`DomainCon`). Then there is one real `λ` such that at every date, almost surely,
+`βᵗu_c(c_t, m_t) = λΛ_t` and `βᵗu_m(c_t, m_t) = λΛ_tι_t`. Consumption, real balances and prices
+need not be bounded, and `λ` is a constant (not merely known at date `0`). -/
+theorem miu_multiplier {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)}
+    (hu : C1On u uc um U) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β u (DomainCon S U) Λ P y s N0 a0 c m a) (hp : PriceWeak S Λ P) :
+    ∃ lam : ℝ, ∀ t, (∀ᵐ ω ∂S.μ, β ^ t * uc (c t ω) (m t ω) = lam * Λ t ω) ∧
+      ∀ᵐ ω ∂S.μ, β ^ t * um (c t ω) (m t ω) = lam * (Λ t ω * iota S Λ P t ω) := by
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hdom := hopt.2.1
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  set Adm : ℕ → (Ω → ℝ) × (Ω → ℝ) → Prop := fun t v =>
+    ∃ (K : ℕ) (B : ℝ), RollTest S U Λ P c m t K B v.1 v.2 with hAdm
+  set Lu : ℕ → (Ω → ℝ) × (Ω → ℝ) → ℝ := fun t v => β ^ t * ∫ ω, (uc (c t ω) (m t ω) * v.1 ω +
+    um (c t ω) (m t ω) * v.2 ω) ∂S.μ with hLu
+  set Lp : ℕ → (Ω → ℝ) × (Ω → ℝ) → ℝ := fun t v =>
+    ∫ ω, Λ t ω * (v.1 ω + iota S Λ P t ω * v.2 ω) ∂S.μ with hLp
+  have hucU : ContinuousOn (fun p : ℝ × ℝ => uc p.1 p.2) U := hu.2.2.1
+  have humU : ContinuousOn (fun p : ℝ × ℝ => um p.1 p.2) U := hu.2.2.2
+  -- integrability of the pieces of `Lu` and `Lp` on tests
+  have iu : ∀ t v, Adm t v → Integrable (fun ω => uc (c t ω) (m t ω) * v.1 ω +
+      um (c t ω) (m t ω) * v.2 ω) S.μ := by
+    rintro t v ⟨K, B, h⟩
+    exact (h.integrable_util hu.1 hca hma hucU).1.add (h.integrable_util hu.1 hca hma humU).2
+  have ip : ∀ t v, Adm t v → Integrable (fun ω => Λ t ω * (v.1 ω + iota S Λ P t ω * v.2 ω))
+      S.μ := by
+    rintro t v ⟨K, B, h⟩
+    have := (h.integrable hp).2.2.2
+    refine this.neg.congr (Eventually.of_forall fun ω => ?_)
+    simp [rollX]
+  have hXLp : ∀ t v, ∫ ω, rollX S Λ P t v.1 v.2 ω ∂S.μ = -Lp t v := fun t v => by
+    rw [hLp, ← integral_neg]
+    rfl
+  obtain ⟨lam, hlam⟩ := lagrange (V := (Ω → ℝ) × (Ω → ℝ)) Adm Lu Lp
+    (fun t => ⟨0, 0, rollTest_zero U Λ P c m t 0 0⟩)
+    (fun t v w a ⟨K, B, h⟩ ⟨K', B', h'⟩ => ⟨_, _, h.comb h' a⟩)
+    (fun t v w a hv hw => by
+      have e : ∀ ω, (v + a • w).1 ω = v.1 ω + a * w.1 ω := fun ω => rfl
+      have e' : ∀ ω, (v + a • w).2 ω = v.2 ω + a * w.2 ω := fun ω => rfl
+      have h1 := integral_add (iu t v hv) ((iu t w hw).const_mul a)
+      rw [integral_const_mul] at h1
+      simp only [hLu, e, e']
+      rw [mul_left_comm a, ← mul_add, ← h1]
+      congr 1
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring))
+    (fun t v w a hv hw => by
+      have e : ∀ ω, (v + a • w).1 ω = v.1 ω + a * w.1 ω := fun ω => rfl
+      have e' : ∀ ω, (v + a • w).2 ω = v.2 ω + a * w.2 ω := fun ω => rfl
+      have h1 := integral_add (ip t v hv) ((ip t w hw).const_mul a)
+      rw [integral_const_mul] at h1
+      simp only [hLp, e, e']
+      rw [← h1]
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring))
+    (fun t₁ t₂ hne v w ⟨K₁, B₁, h₁⟩ ⟨K₂, B₂, h₂⟩ hsum => by
+      obtain ⟨r, hr, φ, hφ0, hφd, hφle⟩ := roll_gain hβ hu hopt hp hne h₁ h₂
+      set η := min r (min (1 / (2 * ((K₁ : ℝ) + 1)) / (|B₁| + 1))
+        (1 / (2 * ((K₂ : ℝ) + 1)) / (|B₂| + 1))) with hη
+      have hη0 : 0 < η := lt_min hr (lt_min (by positivity) (by positivity))
+      have hmax : IsLocalMax φ 0 := by
+        refine Filter.eventually_of_mem (Metric.ball_mem_nhds 0 hη0) fun ε hε => ?_
+        rw [Metric.mem_ball, dist_zero_right, Real.norm_eq_abs] at hε
+        rw [hφ0]
+        have hε₁ : |ε| * (|B₁| + 1) < 1 / (2 * ((K₁ : ℝ) + 1)) := by
+          rw [← lt_div_iff₀ (by positivity)]
+          exact lt_of_lt_of_le hε ((min_le_right _ _).trans (min_le_left _ _))
+        have hε₂ : |ε| * (|B₂| + 1) < 1 / (2 * ((K₂ : ℝ) + 1)) := by
+          rw [← lt_div_iff₀ (by positivity)]
+          exact lt_of_lt_of_le hε ((min_le_right _ _).trans (min_le_right _ _))
+        refine hφle ε (lt_of_lt_of_le hε (min_le_left _ _))
+          (domainCon_roll hdom hne h₁ h₂ hε₁ hε₂) fun δ hδ => ?_
+        have e := hXLp t₁ v
+        have e' := hXLp t₂ w
+        rw [e, e', ← neg_add, hsum, neg_zero, mul_zero]
+        simpa using hnp δ hδ
+      exact hmax.hasDerivAt_eq_zero hφd)
+  refine ⟨lam, fun t => ⟨?_, ?_⟩⟩
+  · -- consumption
+    refine ae_eq_of_tests (v := fun p => β ^ t * uc p.1 p.2) (w := fun ω => lam * Λ t ω) hu.1 hp
+      hca hma hdom (hucU.const_smul (β ^ t)) ((hp.1 t).const_mul lam)
+      (fun K => ⟨|lam| * K, fun ω hl => by
+        rw [abs_mul, abs_of_pos (hp.2.2.1 t ω)]
+        exact mul_le_mul_of_nonneg_left hl.2.1 (abs_nonneg _)⟩) fun K B z hz hzs => ?_
+    have hT : RollTest S U Λ P c m t K B z 0 :=
+      ⟨hz, stronglyMeasurable_const, fun ω => (hzs ω).imp (fun h => ⟨h, rfl⟩)
+        fun h => ⟨h.1, h.2, by
+          simp only [Pi.zero_apply, abs_zero]
+          exact (abs_nonneg _).trans h.2⟩⟩
+    have h := hlam t (z, 0) ⟨K, B, hT⟩
+    simp only [hLu, hLp, Pi.zero_apply, mul_zero, add_zero] at h
+    have i1 := (hT.integrable_util hu.1 hca hma hucU).1
+    have i2 := (hT.integrable hp).1
+    rw [← integral_const_mul, ← integral_const_mul, ← sub_eq_zero, ← integral_sub
+      (i1.const_mul _) (i2.const_mul _)] at h
+    rw [← h]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+  · -- real balances
+    refine ae_eq_of_tests (v := fun p => β ^ t * um p.1 p.2)
+      (w := fun ω => lam * (Λ t ω * iota S Λ P t ω)) hu.1 hp hca hma hdom
+      (humU.const_smul (β ^ t)) (((hp.1 t).mul (hp.sm_iota t)).const_mul lam)
+      (fun K => ⟨|lam| * (K * K), fun ω hl => by
+        rw [abs_mul, abs_mul, abs_of_pos (hp.2.2.1 t ω)]
+        exact mul_le_mul_of_nonneg_left (mul_le_mul hl.2.1 hl.2.2.2 (abs_nonneg _)
+          (by positivity)) (abs_nonneg _)⟩) fun K B z hz hzs => ?_
+    have hT : RollTest S U Λ P c m t K B 0 z :=
+      ⟨stronglyMeasurable_const, hz, fun ω => (hzs ω).imp (fun h => ⟨rfl, h⟩)
+        fun h => ⟨h.1, by
+          rw [Pi.zero_apply, abs_zero]
+          exact (abs_nonneg _).trans h.2, h.2⟩⟩
+    have h := hlam t (0, z) ⟨K, B, hT⟩
+    simp only [hLu, hLp, Pi.zero_apply, mul_zero, zero_add] at h
+    have i1 := (hT.integrable_util hu.1 hca hma humU).2
+    have i2 : Integrable (fun ω => Λ t ω * (iota S Λ P t ω * z ω)) S.μ := by
+      have := (ip t (0, z) ⟨K, B, hT⟩)
+      simpa using this
+    rw [← integral_const_mul, ← integral_const_mul, ← sub_eq_zero, ← integral_sub
+      (i1.const_mul _) (i2.const_mul _)] at h
+    rw [← h]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440, for the money-in-utility problem of
+`MoneyInUtilityMeasure` (utility smooth on all of `ℝ²`, no constraint beyond the budget):
+**one constant multiplier with only `PriceWeak` prices** and no bounds on the plan. -/
+theorem miu_multiplier_global {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ}
+    (hu : Smooth₂ u uc um) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β u (fun _ _ => True) Λ P y s N0 a0 c m a) (hp : PriceWeak S Λ P) :
+    ∃ lam : ℝ, ∀ t, (∀ᵐ ω ∂S.μ, β ^ t * uc (c t ω) (m t ω) = lam * Λ t ω) ∧
+      ∀ᵐ ω ∂S.μ, β ^ t * um (c t ω) (m t ω) = lam * (Λ t ω * iota S Λ P t ω) := by
+  have hdom : ∀ c m : ℕ → Ω → ℝ, DomainCon S Set.univ c m := fun _ _ _ =>
+    Eventually.of_forall fun _ => Set.mem_univ _
+  exact miu_multiplier hβ (c1On_of_smooth₂ hu)
+    ⟨hopt.1, hdom c m, hopt.2.2.1, fun c' m' a' hf _ hu' => hopt.2.2.2 c' m' a' hf trivial hu'⟩
+    hp
+
+/-! ### The transversality condition along a subsequence -/
+
+/-- Cochrane (2023), p. 439 ("their optimal choices include transversality conditions") and
+(19.28), p. 449: **the liminf form of the transversality condition needs no concavity, no
+reference plan and no bounds.** At a money-in-utility optimum (utility `C¹` on the open domain
+`U`, `PriceWeak` prices) with `u_c > 0` almost surely at some date `t₀`, the date-0 value of
+wealth `W_T = E[pk_T(a_T + M_{T−1})]` satisfies the no-Ponzi bound `W_T ≥ −δ` eventually and
+`W_T < L` infinitely often for every `L > 0`: `liminf W_T = 0`. (Otherwise the household could
+consume more at `t₀` and roll the debt over for ever.) -/
+theorem miu_liminf_tvc {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)}
+    (hu : C1On u uc um U) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β u (DomainCon S U) Λ P y s N0 a0 c m a) (hp : PriceWeak S Λ P)
+    {t₀ : ℕ} (hpos : ∀ᵐ ω ∂S.μ, 0 < uc (c t₀ ω) (m t₀ ω)) :
+    (∀ δ, 0 < δ → ∀ᶠ T in atTop, -δ ≤ wealthPV S Λ P N0 m a T) ∧
+      ∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S Λ P N0 m a T < L := by
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hdom := hopt.2.1
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  refine ⟨hnp, fun L hL => ?_⟩
+  by_contra hcon
+  rw [Filter.not_frequently] at hcon
+  -- a localization of positive probability at `t₀`
+  obtain ⟨K, hKpos⟩ : ∃ K : ℕ, 0 < S.μ {ω | Loc S U Λ P c m t₀ K ω} := by
+    by_contra hno
+    push Not at hno
+    have h0 : ∀ K : ℕ, S.μ {ω | Loc S U Λ P c m t₀ K ω} = 0 := fun K =>
+      nonpos_iff_eq_zero.1 (hno K)
+    have hU0 := measure_iUnion_null h0
+    have hall := ae_exists_loc (Λ := Λ) (P := P) hu.1 hdom t₀
+    rw [ae_iff] at hall
+    have : S.μ Set.univ = 0 := by
+      refine measure_mono_null (fun ω _ => ?_) (measure_union_null hU0 hall)
+      by_cases h : ∃ K, Loc S U Λ P c m t₀ K ω
+      · obtain ⟨K, hK⟩ := h
+        exact Or.inl (Set.mem_iUnion.2 ⟨K, hK⟩)
+      · exact Or.inr h
+    simp at this
+  set L₀ := {ω | Loc S U Λ P c m t₀ K ω} with hL₀
+  have hLm := measurableSet_loc (U := U) hp hca hma t₀ K
+  set z : Ω → ℝ := L₀.indicator (fun _ => 1) with hz
+  have hT : RollTest S U Λ P c m t₀ K 1 z 0 := by
+    refine ⟨stronglyMeasurable_const.indicator hLm, stronglyMeasurable_const, fun ω => ?_⟩
+    by_cases hω : ω ∈ L₀
+    · right
+      refine ⟨hω, ?_, ?_⟩ <;> simp [hz, Set.indicator_of_mem hω]
+    · left
+      simp [hz, Set.indicator_of_notMem hω]
+  have hT0 := rollTest_zero (S := S) U Λ P c m (t₀ + 1) 0 0
+  obtain ⟨r, hr, φ, hφ0, hφd, hφle⟩ := roll_gain hβ hu hopt hp (by omega) hT hT0
+  -- the value of the extra consumption
+  set c₀ := ∫ ω, Λ t₀ ω * z ω ∂S.μ with hc₀
+  have hzi := (hT.integrable hp).1
+  have hc₀pos : 0 < c₀ := by
+    rw [hc₀, integral_pos_iff_support_of_nonneg_ae (Eventually.of_forall fun ω => ?_) hzi]
+    · refine lt_of_lt_of_le hKpos (measure_mono fun ω hω => ?_)
+      simp only [Function.mem_support, hz, Set.indicator_of_mem hω, mul_one]
+      exact (hp.2.2.1 t₀ ω).ne'
+    · simp only [hz, Pi.zero_apply]
+      by_cases hω : ω ∈ L₀
+      · rw [Set.indicator_of_mem hω, mul_one]
+        exact (hp.2.2.1 t₀ ω).le
+      · rw [Set.indicator_of_notMem hω, mul_zero]
+  have hX : ∫ ω, rollX S Λ P t₀ z 0 ω ∂S.μ = -c₀ := by
+    rw [hc₀, ← integral_neg]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by simp [rollX])
+  have hX0 : ∫ ω, rollX S Λ P (t₀ + 1) 0 0 ω ∂S.μ = 0 := by simp [rollX]
+  -- the derivative is positive
+  have hDpos : 0 < β ^ t₀ * ∫ ω, (uc (c t₀ ω) (m t₀ ω) * z ω + um (c t₀ ω) (m t₀ ω) * 0) ∂S.μ +
+      β ^ (t₀ + 1) * ∫ ω, (uc (c (t₀ + 1) ω) (m (t₀ + 1) ω) * 0 +
+        um (c (t₀ + 1) ω) (m (t₀ + 1) ω) * 0) ∂S.μ := by
+    simp only [mul_zero, add_zero, integral_zero]
+    refine mul_pos (pow_pos hβ t₀) ?_
+    have hi := (hT.integrable_util hu.1 hca hma hu.2.2.1).1
+    rw [integral_pos_iff_support_of_nonneg_ae ?_ hi]
+    · refine lt_of_lt_of_le hKpos (measure_mono_ae ?_)
+      filter_upwards [hpos] with ω hω hL
+      simp only [Function.mem_support, hz, Set.indicator_of_mem hL, mul_one]
+      exact hω.ne'
+    · filter_upwards [hpos] with ω hω
+      simp only [hz, Pi.zero_apply]
+      by_cases hL : ω ∈ L₀
+      · rw [Set.indicator_of_mem hL, mul_one]
+        exact hω.le
+      · rw [Set.indicator_of_notMem hL, mul_zero]
+  -- but it is nonpositive
+  set η := min r (min (1 / (2 * ((K : ℝ) + 1)) / (|(1 : ℝ)| + 1)) (L / c₀)) with hη
+  have hη0 : 0 < η := lt_min hr (lt_min (by positivity) (div_pos hL hc₀pos))
+  have hDle := slope_nonpos hφd hφ0 hη0 fun ε hε0 hεη => by
+    have hε : |ε| = ε := abs_of_pos hε0
+    have hε₁ : |ε| * (|(1 : ℝ)| + 1) < 1 / (2 * ((K : ℝ) + 1)) := by
+      rw [← lt_div_iff₀ (by positivity), hε]
+      exact lt_of_lt_of_le hεη ((min_le_right _ _).trans (min_le_left _ _))
+    have hε₂ : |ε| * (|(0 : ℝ)| + 1) < 1 / (2 * ((0 : ℕ) + 1 : ℝ)) := by
+      have : ε < L / c₀ := lt_of_lt_of_le hεη ((min_le_right _ _).trans (min_le_right _ _))
+      have h1 : ε < 1 / (2 * ((K : ℝ) + 1)) / (|(1 : ℝ)| + 1) :=
+        lt_of_lt_of_le hεη ((min_le_right _ _).trans (min_le_left _ _))
+      have h2 : 1 / (2 * ((K : ℝ) + 1)) / (|(1 : ℝ)| + 1) ≤ 1 / 2 := by
+        rw [abs_one, div_le_iff₀ (by norm_num)]
+        have : 1 / (2 * ((K : ℝ) + 1)) ≤ 1 / 2 :=
+          one_div_le_one_div_of_le (by norm_num) (by linarith [K.cast_nonneg (α := ℝ)])
+        linarith
+      rw [hε, abs_zero]
+      push_cast
+      linarith
+    refine hφle ε (by rw [hε]; exact lt_of_lt_of_le hεη (min_le_left _ _))
+      (domainCon_roll hdom (by omega) hT hT0 hε₁ hε₂) fun δ hδ => ?_
+    rw [hX, hX0]
+    filter_upwards [hcon] with T hT'
+    rw [not_lt] at hT'
+    have : ε * c₀ < L := by
+      have := lt_of_lt_of_le hεη ((min_le_right _ _).trans (min_le_right _ _))
+      rwa [lt_div_iff₀ hc₀pos] at this
+    linarith
+  simp only [Pi.zero_apply] at hDle
+  linarith
+
+end Cochrane.Monetarism.TidyR6HouseholdFOC
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Sufficiency with the liminf transversality condition, under weak price regularity
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, §19.3, pp. 439–441 and p. 453
+("first order conditions and transversality conditions are necessary and sufficient"), on a
+probability space (`HouseholdMeasure`), with the prices satisfying only
+`TidyR6HouseholdRoll.PriceWeak`.
+
+## Main results
+
+* `wealth_step_w`, `wealth_telescope_w`: the one-period and iterated forms of the present-value
+  budget (19.12)/(19.30), restated from `HouseholdMeasure.wealth_step` and
+  `HouseholdMeasure.wealth_telescope` with `PriceWeak` in place of `PriceRegular` (their proofs
+  never used the bounds).
+* `optimal_of_supergradient_liminf`: the sufficiency theorem
+  `HouseholdMeasure.optimal_of_supergradient` with `PriceWeak` prices and the transversality
+  condition weakened to its liminf form: `E[pk_T(a_T + M_{T−1})] < L` infinitely often for every
+  `L > 0`.
+* **`miu_optimal_iff`**: for a money-in-utility household whose utility is `C¹` on an open domain,
+  has a supergradient there and `u_c > 0`, a feasible admissible plan in the domain is optimal if
+  and only if there is a constant `λ > 0` with `βᵗu_c = λΛ_t`, `βᵗu_m = λΛ_tι_t` almost surely at
+  every date and the liminf transversality condition holds. This characterises the household
+  optimum without regularity hypotheses; the full limit `E[pk_T(a_T + M_{T−1})] → 0` is not part
+  of it (`TidyR6HouseholdTVCCx.tvc_needs_reference` shows it can fail at an optimum).
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdSuff
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+  TidyR6HouseholdRoll TidyR6HouseholdLocal TidyR6HouseholdFOC
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-- Cochrane (2023), (19.12), p. 439 and (19.30), p. 449 (iterating the flow constraint one
+period), restated from `HouseholdMeasure.wealth_step` under `PriceWeak`: for a feasible plan the
+date-`t` outlay is integrable and
+`E[pk_t(a_t + M_{t−1})] = E[pk_{t+1}(a_{t+1} + M_t)] + E[Λ_t(c_t + ι_tm_t + s_t − y_t)]`. -/
+theorem wealth_step_w {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ)
+    (hf : Feasible S Λ P y s N0 a0 c m a) (t : ℕ) :
+    Integrable (outlay S Λ P y s c m t) S.μ ∧
+      wealthPV S Λ P N0 m a t = wealthPV S Λ P N0 m a (t + 1) +
+        ∫ ω, outlay S Λ P y s c m t ω ∂S.μ := by
+  obtain ⟨-, -, hma, -, hflow, hia, hiN, him, hic, -⟩ := hf
+  -- the money carried into `t + 1`
+  have hNm : StronglyMeasurable[S.𝓕 t] (fun ω => P t ω * m t ω) := (hp.2.1 t).mul (hma t)
+  have hNi : Integrable ((fun ω => P t ω * m t ω) * pk Λ P (t + 1)) S.μ :=
+    (hiN (t + 1)).congr (Eventually.of_forall fun ω => by
+      simp only [moneyIn, Pi.mul_apply]
+      ring)
+  have hpull := condExp_mul_of_stronglyMeasurable_left hNm hNi (hp.2.2.2.2 (t + 1))
+  have hQm : (fun ω => P t ω * m t ω) * S.E t (pk Λ P (t + 1)) =
+      fun ω => bondPrice S Λ P t ω * (Λ t ω * m t ω) := by
+    funext ω
+    simp only [Pi.mul_apply]
+    rw [hp.E_pk_eq t ω, ← hp.pk_mul_P t ω]
+    ring
+  rw [hQm] at hpull
+  have hQi : Integrable (fun ω => bondPrice S Λ P t ω * (Λ t ω * m t ω)) S.μ :=
+    integrable_condExp.congr hpull
+  have hQint : ∫ ω, P t ω * m t ω * pk Λ P (t + 1) ω ∂S.μ =
+      ∫ ω, bondPrice S Λ P t ω * (Λ t ω * m t ω) ∂S.μ := by
+    rw [← integral_congr_ae hpull]
+    exact (integral_condExp (S.𝓕.le t)).symm
+  have hout : outlay S Λ P y s c m t = fun ω => Λ t ω * c t ω + (Λ t ω * m t ω -
+      bondPrice S Λ P t ω * (Λ t ω * m t ω)) + Λ t ω * s t ω - Λ t ω * y t ω := by
+    funext ω
+    simp only [outlay, iota]
+    ring
+  have hoi : Integrable (outlay S Λ P y s c m t) S.μ := by
+    rw [hout]
+    exact (((hic t).add ((him t).sub hQi)).add (hs t)).sub (hy t)
+  refine ⟨hoi, ?_⟩
+  -- integrate the flow constraint multiplied by `pk_t`
+  have hfl : ∀ᵐ ω ∂S.μ, pk Λ P t ω * a t ω + pk Λ P t ω * moneyIn N0 P m t ω +
+      Λ t ω * y t ω - Λ t ω * c t ω = S.E t (fun ω => pk Λ P (t + 1) ω * a (t + 1) ω) ω +
+        Λ t ω * m t ω + Λ t ω * s t ω := by
+    filter_upwards [hflow t] with ω h
+    have hk := (hp.pk_pos t ω).ne'
+    have hΛ := (hp.pk_mul_P t ω).symm
+    simp only [claimCost] at h
+    rw [hΛ]
+    have := congrArg (fun x => pk Λ P t ω * x) h
+    field_simp at this
+    linear_combination this
+  have hI := integral_congr_ae hfl
+  have i1 : Integrable (fun ω => pk Λ P t ω * a t ω + pk Λ P t ω * moneyIn N0 P m t ω) S.μ :=
+    (hia t).add (hiN t)
+  have i2 : Integrable (fun ω => pk Λ P t ω * a t ω + pk Λ P t ω * moneyIn N0 P m t ω +
+      Λ t ω * y t ω) S.μ := i1.add (hy t)
+  have j1 : Integrable (fun ω => S.E t (fun ω => pk Λ P (t + 1) ω * a (t + 1) ω) ω +
+      Λ t ω * m t ω) S.μ := (S.integrable_E t _).add (him t)
+  rw [integral_sub i2 (hic t), integral_add i1 (hy t), integral_add (hia t) (hiN t),
+    integral_add j1 (hs t), integral_add (S.integrable_E t _) (him t), S.integral_E] at hI
+  have hw1 : wealthPV S Λ P N0 m a t = ∫ ω, pk Λ P t ω * a t ω ∂S.μ +
+      ∫ ω, pk Λ P t ω * moneyIn N0 P m t ω ∂S.μ := by
+    rw [← integral_add (hia t) (hiN t)]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+  have hw2 : wealthPV S Λ P N0 m a (t + 1) = ∫ ω, pk Λ P (t + 1) ω * a (t + 1) ω ∂S.μ +
+      ∫ ω, P t ω * m t ω * pk Λ P (t + 1) ω ∂S.μ := by
+    have hNi' : Integrable (fun ω => P t ω * m t ω * pk Λ P (t + 1) ω) S.μ := hNi
+    rw [← integral_add (hia (t + 1)) hNi']
+    exact integral_congr_ae (Eventually.of_forall fun ω => by simp only [moneyIn]; ring)
+  have ho : ∫ ω, outlay S Λ P y s c m t ω ∂S.μ = ∫ ω, Λ t ω * c t ω ∂S.μ +
+      (∫ ω, Λ t ω * m t ω ∂S.μ - ∫ ω, bondPrice S Λ P t ω * (Λ t ω * m t ω) ∂S.μ) +
+      ∫ ω, Λ t ω * s t ω ∂S.μ - ∫ ω, Λ t ω * y t ω ∂S.μ := by
+    have k1 : Integrable (fun ω => Λ t ω * m t ω -
+        bondPrice S Λ P t ω * (Λ t ω * m t ω)) S.μ := (him t).sub hQi
+    have k2 : Integrable (fun ω => Λ t ω * c t ω + (Λ t ω * m t ω -
+        bondPrice S Λ P t ω * (Λ t ω * m t ω))) S.μ := (hic t).add k1
+    have k3 : Integrable (fun ω => Λ t ω * c t ω + (Λ t ω * m t ω -
+        bondPrice S Λ P t ω * (Λ t ω * m t ω)) + Λ t ω * s t ω) S.μ := k2.add (hs t)
+    rw [hout, integral_sub k3 (hy t), integral_add k2 (hs t), integral_add (hic t) k1,
+      integral_sub (him t) hQi]
+  rw [hw1, hw2, ho, hQint]
+  linarith
+
+/-- Cochrane (2023), (19.12), p. 439 and (19.30), p. 449 (iterating the flow constraint
+forward): `E[pk_0(a_0 + M_{−1})] = ∑_{t<T} E[Λ_t(c_t + ι_tm_t + s_t − y_t)] + E[pk_T(a_T +
+M_{T−1})]`. Restated from `HouseholdMeasure.wealth_telescope` under `PriceWeak` in place of
+`PriceRegular`. -/
+theorem wealth_telescope_w {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ)
+    (hf : Feasible S Λ P y s N0 a0 c m a) (T : ℕ) :
+    wealthPV S Λ P N0 m a 0 = ∑ t ∈ Finset.range T, ∫ ω, outlay S Λ P y s c m t ω ∂S.μ +
+      wealthPV S Λ P N0 m a T := by
+  induction T with
+  | zero => simp
+  | succ T ih =>
+    rw [ih, Finset.sum_range_succ, (wealth_step_w hp hy hs hf T).2]
+    ring
+
+/-- Cochrane (2023), (19.28), p. 449: a sequence converging to `d` that is at most `b`
+infinitely often has `d ≤ b`. -/
+theorem le_of_tendsto_frequently {f : ℕ → ℝ} {d b : ℝ} (hf : Tendsto f atTop (𝓝 d))
+    (hb : ∃ᶠ T in atTop, f T ≤ b) : d ≤ b := by
+  by_contra h
+  rw [not_le] at h
+  obtain ⟨T, hT1, hT2⟩ := (hb.and_eventually ((tendsto_order.1 hf).1 b h)).exists
+  linarith
+
+/-- Cochrane (2023), footnote 1, p. 440 and p. 453 ("first order conditions and transversality
+conditions are necessary and sufficient"), **sufficiency under weak regularity with the liminf
+transversality condition**: a feasible, admissible plan satisfying `Con` is optimal if prices
+satisfy `PriceWeak`, the endowment and taxes have integrable values, the supergradient form of
+the first-order conditions holds against every feasible competitor satisfying `Con`
+(`βᵗ(u(c'_t, m'_t) − u(c_t, m_t)) ≤ λΛ_t((c'_t − c_t) + ι_t(m'_t − m_t))`, `λ ≥ 0`), and the
+date-0 value of wealth is below every `L > 0` infinitely often. Generalises
+`HouseholdMeasure.optimal_of_supergradient` (`PriceWeak`, liminf transversality condition). -/
+theorem optimal_of_supergradient_liminf {β : ℝ} (hβ : 0 < β) {u : ℝ → ℝ → ℝ}
+    {Con : (ℕ → Ω → ℝ) → (ℕ → Ω → ℝ) → Prop} {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ) {lam : ℝ} (hlam : 0 ≤ lam)
+    (hf : Feasible S Λ P y s N0 a0 c m a) (hcon : Con c m)
+    (hadm : UAdmissible S β (fun n ω => u (c n ω) (m n ω)))
+    (hlim : ∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S Λ P N0 m a T < L)
+    (hsup : ∀ c' m' a', Feasible S Λ P y s N0 a0 c' m' a' → Con c' m' → ∀ t, ∀ᵐ ω ∂S.μ,
+      β ^ t * (u (c' t ω) (m' t ω) - u (c t ω) (m t ω)) ≤
+        lam * (Λ t ω * ((c' t ω - c t ω) + iota S Λ P t ω * (m' t ω - m t ω)))) :
+    Optimal S β u Con Λ P y s N0 a0 c m a := by
+  refine ⟨hf, hcon, hadm, fun c' m' a' hf' hc' hu' => ?_⟩
+  set U := expU S β (fun n ω => u (c n ω) (m n ω)) with hU
+  set U' := expU S β (fun n ω => u (c' n ω) (m' n ω)) with hU'
+  set D : ℕ → ℝ := fun t => β ^ t * ∫ ω, u (c' t ω) (m' t ω) ∂S.μ -
+    β ^ t * ∫ ω, u (c t ω) (m t ω) ∂S.μ with hD
+  have hDs : HasSum D (U' - U) := (hu'.hasSum hβ).sub (hadm.hasSum hβ)
+  have hle : ∀ t, D t ≤ lam * (∫ ω, outlay S Λ P y s c' m' t ω ∂S.μ -
+      ∫ ω, outlay S Λ P y s c m t ω ∂S.μ) := by
+    intro t
+    have hi' := hu'.integrable hβ t
+    have hi := hadm.integrable hβ t
+    have ho' := (wealth_step_w hp hy hs hf' t).1
+    have ho := (wealth_step_w hp hy hs hf t).1
+    have hL : Integrable (fun ω => β ^ t * (u (c' t ω) (m' t ω) - u (c t ω) (m t ω))) S.μ :=
+      (hi'.sub hi).const_mul _
+    have hR : Integrable (fun ω => lam * (outlay S Λ P y s c' m' t ω -
+        outlay S Λ P y s c m t ω)) S.μ := (ho'.sub ho).const_mul _
+    have hmono := integral_mono_ae hL hR (by
+      filter_upwards [hsup c' m' a' hf' hc' t] with ω h
+      refine h.trans_eq ?_
+      simp only [outlay]
+      ring)
+    rw [integral_const_mul, integral_const_mul, integral_sub hi' hi, integral_sub ho' ho]
+      at hmono
+    simp only [hD]
+    linarith
+  have hpart : ∀ T, ∑ t ∈ Finset.range T, D t ≤
+      lam * (wealthPV S Λ P N0 m a T - wealthPV S Λ P N0 m' a' T) := by
+    intro T
+    have h1 := wealth_telescope_w hp hy hs hf T
+    have h2 := wealth_telescope_w hp hy hs hf' T
+    have hW0 : wealthPV S Λ P N0 m' a' 0 = wealthPV S Λ P N0 m a 0 := by
+      simp only [wealthPV, moneyIn, hf.1, hf'.1]
+    calc ∑ t ∈ Finset.range T, D t
+        ≤ ∑ t ∈ Finset.range T, lam * (∫ ω, outlay S Λ P y s c' m' t ω ∂S.μ -
+          ∫ ω, outlay S Λ P y s c m t ω ∂S.μ) := Finset.sum_le_sum fun t _ => hle t
+      _ = lam * (wealthPV S Λ P N0 m a T - wealthPV S Λ P N0 m' a' T) := by
+          rw [← Finset.mul_sum, Finset.sum_sub_distrib]
+          congr 1
+          linarith
+  by_contra hcon'
+  push Not at hcon'
+  set d := U' - U with hd
+  have hd0 : 0 < d := by rw [hd]; linarith
+  set δ := d / (4 * (lam + 1)) with hδ
+  have hδ0 : 0 < δ := by positivity
+  have hfr : ∃ᶠ T in atTop, ∑ t ∈ Finset.range T, D t ≤ lam * (2 * δ) := by
+    refine ((hlim δ hδ0).and_eventually (hf'.2.2.2.2.2.2.2.2.2 δ hδ0)).mono fun T hT => ?_
+    refine (hpart T).trans (mul_le_mul_of_nonneg_left ?_ hlam)
+    linarith [hT.1, hT.2]
+  have := le_of_tendsto_frequently hDs.tendsto_sum_nat hfr
+  have hlt : lam * (2 * δ) < d := by
+    rw [hδ]
+    have e : lam * (2 * (d / (4 * (lam + 1)))) = d * (lam / (2 * (lam + 1))) := by
+      field_simp
+      ring
+    rw [e]
+    have h1 : lam / (2 * (lam + 1)) < 1 := by
+      rw [div_lt_one (by positivity)]
+      linarith
+    nlinarith
+  linarith
+
+/-- Cochrane (2023), (19.13)–(19.14), p. 440 and p. 453 ("first order conditions and
+transversality conditions are necessary and sufficient"), **the money-in-utility household
+optimum characterised without regularity hypotheses.** Let the utility be `C¹` on the open domain
+`U`, with the supergradient inequality `u(q) ≤ u(p) + u_c(p)(q₁ − p₁) + u_m(p)(q₂ − p₂)` on `U`
+(concavity) and `u_c > 0` on `U`; let prices satisfy `PriceWeak` and the endowment and taxes have
+integrable values. A feasible, admissible plan lying in `U` is optimal among such plans if and only
+if there is a constant `λ > 0` with `βᵗu_c(c_t, m_t) = λΛ_t` and `βᵗu_m(c_t, m_t) = λΛ_tι_t` almost
+surely at every date, and the date-0 value of wealth has liminf zero (it is below every `L > 0`
+infinitely often). -/
+theorem miu_optimal_iff {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)}
+    (hu : C1On u uc um U)
+    (hsg : ∀ p ∈ U, ∀ q ∈ U, u q.1 q.2 ≤ u p.1 p.2 + uc p.1 p.2 * (q.1 - p.1) +
+      um p.1 p.2 * (q.2 - p.2))
+    (hucpos : ∀ p ∈ U, 0 < uc p.1 p.2) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ)
+    (hf : Feasible S Λ P y s N0 a0 c m a) (hdom : DomainCon S U c m)
+    (hadm : UAdmissible S β (fun n ω => u (c n ω) (m n ω))) :
+    Optimal S β u (DomainCon S U) Λ P y s N0 a0 c m a ↔
+      ∃ lam : ℝ, 0 < lam ∧ (∀ t, (∀ᵐ ω ∂S.μ, β ^ t * uc (c t ω) (m t ω) = lam * Λ t ω) ∧
+        ∀ᵐ ω ∂S.μ, β ^ t * um (c t ω) (m t ω) = lam * (Λ t ω * iota S Λ P t ω)) ∧
+        ∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S Λ P N0 m a T < L := by
+  constructor
+  · intro hopt
+    obtain ⟨lam, hlam⟩ := miu_multiplier hβ hu hopt hp
+    have hpos0 : ∀ᵐ ω ∂S.μ, 0 < uc (c 0 ω) (m 0 ω) := by
+      filter_upwards [hdom 0] with ω hω
+      exact hucpos _ hω
+    obtain ⟨ω, h1, h2⟩ := ((hlam 0).1.and hpos0).exists
+    have hlampos : 0 < lam := by
+      rw [pow_zero, one_mul] at h1
+      rw [h1] at h2
+      exact pos_of_mul_pos_left h2 (hp.2.2.1 0 ω).le
+    exact ⟨lam, hlampos, hlam, (miu_liminf_tvc hβ hu hopt hp hpos0).2⟩
+  · rintro ⟨lam, hlam0, hfoc, hlim⟩
+    refine optimal_of_supergradient_liminf hβ hp hy hs hlam0.le hf hdom hadm hlim
+      fun c' m' a' _ hdom' t => ?_
+    filter_upwards [hdom t, hdom' t, (hfoc t).1, (hfoc t).2] with ω h1 h2 h3 h4
+    have := hsg _ h1 _ h2
+    have hb := mul_le_mul_of_nonneg_left (show u (c' t ω) (m' t ω) - u (c t ω) (m t ω) ≤
+      uc (c t ω) (m t ω) * (c' t ω - c t ω) + um (c t ω) (m t ω) * (m' t ω - m t ω) by
+        simp only at this
+        linarith) (pow_nonneg hβ.le t)
+    calc β ^ t * (u (c' t ω) (m' t ω) - u (c t ω) (m t ω))
+        ≤ β ^ t * (uc (c t ω) (m t ω) * (c' t ω - c t ω) +
+          um (c t ω) (m t ω) * (m' t ω - m t ω)) := hb
+      _ = (β ^ t * uc (c t ω) (m t ω)) * (c' t ω - c t ω) +
+          (β ^ t * um (c t ω) (m t ω)) * (m' t ω - m t ω) := by ring
+      _ = lam * (Λ t ω * ((c' t ω - c t ω) + iota S Λ P t ω * (m' t ω - m t ω))) := by
+          rw [h3, h4]
+          ring
+
+end Cochrane.Monetarism.TidyR6HouseholdSuff
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The cash-in-advance household without regularity hypotheses
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, §19.5.1–19.5.2,
+pp. 447–451, eqs. (19.24)–(19.33), on a probability space (`CashInAdvanceMeasure`). The earlier
+derivation of the Euler equation (`CashInAdvanceMeasure.euler_step`,
+`CashInAdvanceMeasure.multiplier_const`) assumed regular prices, nonnegative nominal rates
+`Q_t ≤ 1`, bounded consumption, overnight money bounded and bounded away from zero, and a utility
+smooth on all of `ℝ`; sufficiency (`CashInAdvanceMeasure.optimal_of_foc`) assumed a binding cash
+constraint. Here the utility `u(c)` need only be `C¹` on an open set `I` of consumption levels
+(e.g. `I = (0, ∞)`), with the plan in `I`.
+
+## Main results
+
+* `cia_multiplier`: at an optimum, with only `PriceWeak` prices, there is one constant `λ` with
+  `βᵗu'(c_t) = λΛ_tw_t` almost surely **wherever overnight money is positive**
+  (`w_t = 1 + (1/V − 1)ι_t`); no bound on consumption, money or prices, and no `Q_t ≤ 1`.
+* `cia_iota_nonneg`: if `u' > 0` at the plan, then `ι_t ≥ 0`, i.e. `Q_t ≤ 1`, almost surely at
+  every date: nonnegative nominal rates are a consequence of optimality, not an assumption
+  (otherwise money would be a free lunch); then `w_t ≥ min(1, 1/V) > 0` (`cia_wedge_pos`).
+* `cia_optimal_of_kkt`: sufficiency with the Karush–Kuhn–Tucker conditions in place of a binding
+  cash constraint: multipliers `μ_t, ν_t ≥ 0` with `ι_t = μ_t + ν_t`,
+  `μ_t(m_t − (1/V − 1)c_t − y_t) = 0`, `ν_tm_t = 0`, `βᵗu'(c_t) = λΛ_t(1 + (1/V − 1)μ_t)`, and the
+  liminf transversality condition.
+* `WedgeCx.wedge_euler_needs_money`: the hypothesis "money positive" cannot be dropped from
+  the wedge Euler equation: for `V = 2`, linear utility and a price level whose growth
+  alternates between `2` and `1`, holding no money with a slack cash constraint is optimal (by
+  `cia_optimal_of_kkt`), yet no constant `λ` has `βᵗu'(c_t) = λΛ_tw_t` at dates `0` and `1`. It
+  is also an optimum at which the cash constraint does not bind, which
+  `CashInAdvanceMeasure.optimal_of_foc` could not certify.
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdCIA
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+  TidyR6HouseholdRoll TidyR6HouseholdLocal TidyR6HouseholdFOC TidyR6HouseholdSuff
+  CashInAdvanceMeasure
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### Localization on a family of events -/
+
+/-- Cochrane (2023), footnote 1, p. 440, **from tests to almost-sure equations on an event.**
+As `TidyR6HouseholdFOC.ae_eq_of_tests`, with the tests also restricted to an increasing family of
+events `E K` known at `t`: then `v(c_t, m_t) = w` almost surely on `⋃_K E K`. -/
+theorem ae_eq_of_tests_on {U : Set (ℝ × ℝ)} (hU : IsOpen U) {Λ P c m : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hca : StronglyAdapted S.𝓕 c) (hma : StronglyAdapted S.𝓕 m)
+    (hdom : DomainCon S U c m) {t : ℕ} {E : ℕ → Set Ω} (hEm : ∀ K, MeasurableSet[S.𝓕 t] (E K))
+    (hEmono : Monotone E) {v : ℝ × ℝ → ℝ} (hv : ContinuousOn v U) {w : Ω → ℝ}
+    (hw : StronglyMeasurable[S.𝓕 t] w)
+    (hwb : ∀ K : ℕ, ∃ C, ∀ ω, Loc S U Λ P c m t K ω → |w ω| ≤ C)
+    (htest : ∀ (K : ℕ) (B : ℝ) (z : Ω → ℝ), StronglyMeasurable[S.𝓕 t] z →
+      (∀ ω, z ω = 0 ∨ ((Loc S U Λ P c m t K ω ∧ ω ∈ E K) ∧ |z ω| ≤ B)) →
+      ∫ ω, (v (c t ω, m t ω) - w ω) * z ω ∂S.μ = 0) :
+    ∀ᵐ ω ∂S.μ, (∃ K, ω ∈ E K) → v (c t ω, m t ω) = w ω := by
+  have hK : ∀ K : ℕ, ∀ᵐ ω ∂S.μ, (Loc S U Λ P c m t K ω ∧ ω ∈ E K) →
+      v (c t ω, m t ω) = w ω := by
+    intro K
+    obtain ⟨C₁, hC₁0, hC₁⟩ := kc_bound (U := U) K hv
+    obtain ⟨C₂, hC₂⟩ := hwb K
+    set L := {ω | Loc S U Λ P c m t K ω} ∩ E K with hL
+    have hLm : MeasurableSet[S.𝓕 t] L := (measurableSet_loc (U := U) hp hca hma t K).inter (hEm K)
+    set g : Ω → ℝ := L.indicator (fun ω => U.indicator v (c t ω, m t ω) - w ω) with hg
+    have hgm : StronglyMeasurable[S.𝓕 t] g :=
+      (((measurable_indicator_of_continuousOn hU hv).comp ((hca t).measurable.prodMk
+        (hma t).measurable)).sub hw.measurable).stronglyMeasurable.indicator hLm
+    have hgL : ∀ ω, ω ∈ L → g ω = v (c t ω, m t ω) - w ω := fun ω hω => by
+      rw [hg, Set.indicator_of_mem hω,
+        Set.indicator_of_mem (kc_subset U K (good_mem_kc hω.1.1))]
+    have hgsupp : ∀ ω, g ω = 0 ∨ ((Loc S U Λ P c m t K ω ∧ ω ∈ E K) ∧ |g ω| ≤ C₁ + |C₂|) := by
+      intro ω
+      by_cases hω : ω ∈ L
+      · right
+        refine ⟨hω, ?_⟩
+        rw [hgL ω hω]
+        exact (abs_sub _ _).trans (add_le_add (hC₁ _ (good_mem_kc hω.1.1))
+          ((hC₂ ω hω.1).trans (le_abs_self _)))
+      · left
+        rw [hg, Set.indicator_of_notMem hω]
+    have h0 := htest K (C₁ + |C₂|) g hgm hgsupp
+    have heq : (fun ω => (v (c t ω, m t ω) - w ω) * g ω) = fun ω => g ω * g ω := by
+      funext ω
+      by_cases hω : ω ∈ L
+      · rw [hgL ω hω]
+      · rw [hg, Set.indicator_of_notMem hω, mul_zero, mul_zero]
+    rw [heq] at h0
+    have hgi : Integrable (fun ω => g ω * g ω) S.μ := by
+      refine Integrable.of_bound ((hgm.mul hgm).mono (S.𝓕.le t)).aestronglyMeasurable
+        ((C₁ + |C₂|) * (C₁ + |C₂|)) (Eventually.of_forall fun ω => ?_)
+      rw [Real.norm_eq_abs, abs_mul]
+      have hb : |g ω| ≤ C₁ + |C₂| := by
+        rcases hgsupp ω with h | h
+        · rw [h, abs_zero]
+          exact add_nonneg hC₁0 (abs_nonneg _)
+        · exact h.2
+      exact mul_le_mul hb hb (abs_nonneg _) ((abs_nonneg _).trans hb)
+    filter_upwards [ae_eq_zero_of_integral_mul_self hgi h0] with ω hω hl
+    have := hgL ω hl
+    rw [hω, Pi.zero_apply] at this
+    linarith
+  filter_upwards [ae_all_iff.2 hK, ae_exists_loc (Λ := Λ) (P := P) hU hdom t] with ω h1 h2 h3
+  obtain ⟨K, hl⟩ := h2
+  obtain ⟨K', hE⟩ := h3
+  exact h1 (max K K') ⟨loc_mono (le_max_left _ _) hl, hEmono (le_max_right _ _) hE⟩
+
+/-! ### Utility of consumption on an open interval -/
+
+/-- Cochrane (2023), §19.5.1, p. 448: a utility of consumption differentiable on the open set `I`
+with derivative `u'` continuous on `I` is a utility `C¹` on the domain `I × ℝ` of
+`(c, m)`, with `u_c = u'` and `u_m = 0`. -/
+theorem c1On_cons {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I) (hu : ∀ x ∈ I, HasDerivAt u (u' x) x)
+    (hu' : ContinuousOn u' I) :
+    C1On (fun x _ => u x) (fun x _ => u' x) (fun _ _ => 0) (I ×ˢ Set.univ) := by
+  refine ⟨hI.prod isOpen_univ, fun p hp => ?_, ?_, continuousOn_const⟩
+  · have := (hu p.1 hp.1).hasFDerivAt.comp p (hasFDerivAt_fst (𝕜 := ℝ) (p := p))
+    have e : (ContinuousLinearMap.toSpanSingleton ℝ (u' p.1)).comp
+        (ContinuousLinearMap.fst ℝ ℝ ℝ) = u' p.1 • ContinuousLinearMap.fst ℝ ℝ ℝ +
+          (0 : ℝ) • ContinuousLinearMap.snd ℝ ℝ ℝ := by
+      ext <;> simp [mul_comm]
+    rw [e] at this
+    exact this
+  · exact hu'.comp continuousOn_fst fun p hp => hp.1
+
+variable (S) in
+/-- Cochrane (2023), eqs. (19.24)–(19.26), pp. 448–449, with consumption in the domain `I` of the
+utility: the cash-in-advance and no-printing constraints (`CashInAdvanceMeasure.CIACon`) and
+`c_t ∈ I` almost surely at every date. -/
+def CIAConD (V : ℝ) (I : Set ℝ) (y : ℕ → Ω → ℝ) (c m : ℕ → Ω → ℝ) : Prop :=
+  CIACon S V y c m ∧ DomainCon S (I ×ˢ Set.univ) c m
+
+/-! ### The Euler equation with the velocity wedge -/
+
+/-- Cochrane (2023), (19.31), p. 450 and (19.24)–(19.26), pp. 448–449, **the cash-in-advance
+Euler equation with one constant multiplier, without regularity hypotheses.** Let `u` be `C¹` on
+the open set `I` of consumption levels, let prices satisfy only `PriceWeak`, and let `(c, m, a)`
+be optimal among feasible plans satisfying the cash-in-advance and no-printing constraints with
+consumption in `I`. Then there is one real `λ` such that at every date, almost surely where
+overnight money is positive, `βᵗu'(c_t) = λΛ_tw_t` with `w_t = 1 + (1/V − 1)ι_t`. -/
+theorem cia_multiplier {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I)
+    (hu : ∀ x ∈ I, HasDerivAt u (u' x) x) (hu' : ContinuousOn u' I) {V : ℝ}
+    {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) :
+    ∃ lam : ℝ, ∀ t, ∀ᵐ ω ∂S.μ, 0 < m t ω →
+      β ^ t * u' (c t ω) = lam * (Λ t ω * wedge S (1 / V - 1) Λ P t ω) := by
+  have hC := c1On_cons hI hu hu'
+  set U : Set (ℝ × ℝ) := I ×ˢ Set.univ with hUdef
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hcia := hopt.2.1.1
+  have hdom := hopt.2.1.2
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  set θ : ℝ := 1 / V - 1 with hθ
+  set Adm : ℕ → (Ω → ℝ) × (Ω → ℝ) → Prop := fun t v =>
+    ∃ (K : ℕ) (B : ℝ), RollTest S U Λ P c m t K B v.1 v.2 ∧ v.2 = θ • v.1 ∧
+      ∀ ω, v.1 ω ≠ 0 → 1 / ((K : ℝ) + 1) ≤ m t ω with hAdm
+  set Lu : ℕ → (Ω → ℝ) × (Ω → ℝ) → ℝ := fun t v => β ^ t * ∫ ω, (u' (c t ω) * v.1 ω +
+    0 * v.2 ω) ∂S.μ with hLu
+  set Lp : ℕ → (Ω → ℝ) × (Ω → ℝ) → ℝ := fun t v =>
+    ∫ ω, Λ t ω * (v.1 ω + iota S Λ P t ω * v.2 ω) ∂S.μ with hLp
+  have hucU : ContinuousOn (fun p : ℝ × ℝ => u' p.1) U := hC.2.2.1
+  have iu : ∀ t v, Adm t v → Integrable (fun ω => u' (c t ω) * v.1 ω + 0 * v.2 ω) S.μ := by
+    rintro t v ⟨K, B, h, -, -⟩
+    exact (h.integrable_util hC.1 hca hma hucU).1.add ((integrable_zero _ _ _).congr
+      (Eventually.of_forall fun ω => by simp))
+  have ip : ∀ t v, Adm t v → Integrable (fun ω => Λ t ω * (v.1 ω + iota S Λ P t ω * v.2 ω))
+      S.μ := by
+    rintro t v ⟨K, B, h, -, -⟩
+    have := (h.integrable hp).2.2.2
+    refine this.neg.congr (Eventually.of_forall fun ω => ?_)
+    simp [rollX]
+  have hXLp : ∀ t v, ∫ ω, rollX S Λ P t v.1 v.2 ω ∂S.μ = -Lp t v := fun t v => by
+    rw [hLp, ← integral_neg]
+    rfl
+  obtain ⟨lam, hlam⟩ := lagrange (V := (Ω → ℝ) × (Ω → ℝ)) Adm Lu Lp
+    (fun t => ⟨0, 0, rollTest_zero U Λ P c m t 0 0, by ext ω; simp, fun ω h => by
+      simp at h⟩)
+    (fun t v w a ⟨K, B, h, hv2, hvm⟩ ⟨K', B', h', hw2, hwm⟩ => by
+      refine ⟨_, _, h.comb h' a, ?_, fun ω hne => ?_⟩
+      · funext ω
+        have e1 := congrFun hv2 ω
+        have e2 := congrFun hw2 ω
+        simp only [Pi.smul_apply, smul_eq_mul] at e1 e2
+        change v.2 ω + a * w.2 ω = θ * (v.1 ω + a * w.1 ω)
+        rw [e1, e2]
+        ring
+      · have hK : 1 / ((max K K' : ℕ) + 1 : ℝ) ≤ 1 / ((K : ℝ) + 1) :=
+          one_div_le_one_div_of_le (by positivity) (by
+            have : (K : ℝ) ≤ (max K K' : ℕ) := by exact_mod_cast le_max_left _ _
+            linarith)
+        have hK' : 1 / ((max K K' : ℕ) + 1 : ℝ) ≤ 1 / ((K' : ℝ) + 1) :=
+          one_div_le_one_div_of_le (by positivity) (by
+            have : (K' : ℝ) ≤ (max K K' : ℕ) := by exact_mod_cast le_max_right _ _
+            linarith)
+        by_cases h1 : v.1 ω = 0
+        · have h2 : w.1 ω ≠ 0 := by
+            intro h2
+            apply hne
+            change v.1 ω + a * w.1 ω = 0
+            rw [h1, h2]
+            ring
+          exact hK'.trans (hwm ω h2)
+        · exact hK.trans (hvm ω h1))
+    (fun t v w a hv hw => by
+      have e : ∀ ω, (v + a • w).1 ω = v.1 ω + a * w.1 ω := fun ω => rfl
+      have e' : ∀ ω, (v + a • w).2 ω = v.2 ω + a * w.2 ω := fun ω => rfl
+      have h1 := integral_add (iu t v hv) ((iu t w hw).const_mul a)
+      rw [integral_const_mul] at h1
+      simp only [hLu, e, e']
+      rw [mul_left_comm a, ← mul_add, ← h1]
+      congr 1
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring))
+    (fun t v w a hv hw => by
+      have e : ∀ ω, (v + a • w).1 ω = v.1 ω + a * w.1 ω := fun ω => rfl
+      have e' : ∀ ω, (v + a • w).2 ω = v.2 ω + a * w.2 ω := fun ω => rfl
+      have h1 := integral_add (ip t v hv) ((ip t w hw).const_mul a)
+      rw [integral_const_mul] at h1
+      simp only [hLp, e, e']
+      rw [← h1]
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring))
+    (fun t₁ t₂ hne v w ⟨K₁, B₁, h₁, hv2, hvm⟩ ⟨K₂, B₂, h₂, hw2, hwm⟩ hsum => by
+      obtain ⟨r, hr, φ, hφ0, hφd, hφle⟩ := roll_gain hβ hC hopt hp hne h₁ h₂
+      set a₁ : ℝ := 1 / (2 * ((K₁ : ℝ) + 1)) / (|B₁| + 1) with ha₁
+      set a₂ : ℝ := 1 / (2 * ((K₂ : ℝ) + 1)) / (|B₂| + 1) with ha₂
+      set b₁ : ℝ := 1 / ((K₁ : ℝ) + 1) / ((|θ| + 1) * (|B₁| + 1)) with hb₁
+      set b₂ : ℝ := 1 / ((K₂ : ℝ) + 1) / ((|θ| + 1) * (|B₂| + 1)) with hb₂
+      set η := min r (min (min a₁ a₂) (min b₁ b₂)) with hη
+      have hη0 : 0 < η := lt_min hr (lt_min (lt_min (by positivity) (by positivity))
+        (lt_min (by positivity) (by positivity)))
+      have hmax : IsLocalMax φ 0 := by
+        refine Filter.eventually_of_mem (Metric.ball_mem_nhds 0 hη0) fun ε hε => ?_
+        rw [Metric.mem_ball, dist_zero_right, Real.norm_eq_abs] at hε
+        rw [hφ0]
+        have hεa₁ : |ε| < a₁ := lt_of_lt_of_le hε
+          ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_left _ _)))
+        have hεa₂ : |ε| < a₂ := lt_of_lt_of_le hε
+          ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_right _ _)))
+        have hεb₁ : |ε| < b₁ := lt_of_lt_of_le hε
+          ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_left _ _)))
+        have hεb₂ : |ε| < b₂ := lt_of_lt_of_le hε
+          ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_right _ _)))
+        have hε₁ : |ε| * (|B₁| + 1) < 1 / (2 * ((K₁ : ℝ) + 1)) := by
+          rw [← lt_div_iff₀ (by positivity)]
+          exact hεa₁
+        have hε₂ : |ε| * (|B₂| + 1) < 1 / (2 * ((K₂ : ℝ) + 1)) := by
+          rw [← lt_div_iff₀ (by positivity)]
+          exact hεa₂
+        -- the money change is small where the test is active
+        have hsmall : ∀ (K : ℕ) (B x : ℝ), |x| ≤ |B| →
+            |ε| < 1 / ((K : ℝ) + 1) / ((|θ| + 1) * (|B| + 1)) →
+            |ε * (θ * x)| < 1 / ((K : ℝ) + 1) := by
+          intro K B x hx hεK
+          rw [lt_div_iff₀ (by positivity)] at hεK
+          rw [abs_mul, abs_mul]
+          calc |ε| * (|θ| * |x|) ≤ |ε| * ((|θ| + 1) * (|B| + 1)) := by
+                refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+                exact mul_le_mul (by linarith) (by linarith) (abs_nonneg _) (by positivity)
+            _ < 1 / ((K : ℝ) + 1) := hεK
+        have hbd : ∀ {t : ℕ} {K : ℕ} {B : ℝ} {z ζ : Ω → ℝ},
+            RollTest S U Λ P c m t K B z ζ → ∀ ω, |z ω| ≤ |B| := by
+          intro t K B z ζ h ω
+          rcases h.2.2 ω with h0 | h0
+          · rw [h0.1, abs_zero]
+            exact abs_nonneg _
+          · exact h0.2.1.trans (le_abs_self _)
+        refine hφle ε (lt_of_lt_of_le hε (min_le_left _ _)) ⟨fun n => ?_,
+          domainCon_roll hdom hne h₁ h₂ hε₁ hε₂⟩ fun δ hδ => ?_
+        · filter_upwards [hcia n] with ω ⟨hc1, hc2⟩
+          have ev : v.2 ω = θ * v.1 ω := by
+            have := congrFun hv2 ω
+            simpa using this
+          have ew : w.2 ω = θ * w.1 ω := by
+            have := congrFun hw2 ω
+            simpa using this
+          have hm' : m n ω + ε * (rollC t₁ v.2 n ω + rollC t₂ w.2 n ω) =
+              m n ω + ε * (θ * (rollC t₁ v.1 n ω + rollC t₂ w.1 n ω)) := by
+            simp only [rollC]
+            split_ifs <;> simp [ev, ew, mul_add]
+          refine ⟨?_, ?_⟩
+          · rw [hm']
+            nlinarith
+          · rw [hm']
+            by_cases h1 : n = t₁
+            · subst h1
+              simp only [rollC, ↓reduceIte, hne, add_zero]
+              by_cases hz : v.1 ω = 0
+              · rw [hz]
+                simpa using hc2
+              · have := hvm ω hz
+                have := hsmall K₁ B₁ (v.1 ω) (hbd h₁ ω) hεb₁
+                linarith [neg_abs_le (ε * (θ * v.1 ω))]
+            · by_cases h2 : n = t₂
+              · subst h2
+                simp only [rollC, ↓reduceIte, h1, zero_add]
+                by_cases hz : w.1 ω = 0
+                · rw [hz]
+                  simpa using hc2
+                · have := hwm ω hz
+                  have := hsmall K₂ B₂ (w.1 ω) (hbd h₂ ω) hεb₂
+                  linarith [neg_abs_le (ε * (θ * w.1 ω))]
+              · simpa [rollC, h1, h2] using hc2
+        · have e := hXLp t₁ v
+          have e' := hXLp t₂ w
+          rw [e, e', ← neg_add, hsum, neg_zero, mul_zero]
+          simpa using hnp δ hδ
+      exact hmax.hasDerivAt_eq_zero hφd)
+  refine ⟨lam, fun t => ?_⟩
+  have hE : Monotone (fun K : ℕ => {ω | 1 / ((K : ℝ) + 1) ≤ m t ω}) := by
+    intro K K' hKK ω hω
+    simp only [Set.mem_ofPred_eq] at hω ⊢
+    have hc : (K : ℝ) ≤ K' := Nat.cast_le.2 hKK
+    exact (one_div_le_one_div_of_le (by positivity) (by linarith)).trans hω
+  have key := ae_eq_of_tests_on (E := fun K : ℕ => {ω | 1 / ((K : ℝ) + 1) ≤ m t ω})
+    (v := fun p => β ^ t * u' p.1) (w := fun ω => lam * (Λ t ω * wedge S θ Λ P t ω))
+    hC.1 hp hca hma hdom (fun K => measurableSet_le measurable_const (hma t).measurable) hE
+    (hucU.const_smul (β ^ t))
+    (((hp.1 t).mul (stronglyMeasurable_const.add ((hp.sm_iota t).const_mul θ))).const_mul lam)
+    (fun K => ⟨|lam| * (K * (1 + |θ| * K)), fun ω hl => by
+      rw [abs_mul, abs_mul, abs_of_pos (hp.2.2.1 t ω)]
+      refine mul_le_mul_of_nonneg_left (mul_le_mul hl.2.1 ?_ (abs_nonneg _) (by positivity))
+        (abs_nonneg _)
+      simp only [wedge]
+      refine (abs_add_le _ _).trans ?_
+      rw [abs_one, abs_mul]
+      exact add_le_add le_rfl (mul_le_mul_of_nonneg_left hl.2.2.2 (abs_nonneg _))⟩)
+    fun K B z hz hzs => ?_
+  · filter_upwards [key] with ω hω hm
+    obtain ⟨K, hK⟩ := exists_nat_one_div_lt hm
+    exact hω ⟨K, hK.le⟩
+  · have hT : RollTest S U Λ P c m t K (|B| * (|θ| + 1)) z (θ • z) := by
+      refine ⟨hz, hz.const_smul θ, fun ω => ?_⟩
+      rcases hzs ω with h0 | ⟨⟨hl, -⟩, hzB⟩
+      · left
+        simp [h0]
+      · right
+        refine ⟨hl, ?_, ?_⟩
+        · calc |z ω| ≤ |B| := hzB.trans (le_abs_self _)
+            _ ≤ |B| * (|θ| + 1) := le_mul_of_one_le_right (abs_nonneg _) (by
+              linarith [abs_nonneg θ])
+        · rw [Pi.smul_apply, smul_eq_mul, abs_mul]
+          calc |θ| * |z ω| ≤ |θ| * |B| :=
+                mul_le_mul_of_nonneg_left (hzB.trans (le_abs_self _)) (abs_nonneg _)
+            _ ≤ |B| * (|θ| + 1) := by nlinarith [abs_nonneg θ, abs_nonneg B]
+    have hAd : Adm t (z, θ • z) := ⟨K, _, hT, rfl, fun ω hne => by
+      rcases hzs ω with h0 | ⟨⟨-, hE'⟩, -⟩
+      · exact absurd h0 hne
+      · exact hE'⟩
+    have h := hlam t (z, θ • z) hAd
+    simp only [hLu, hLp, zero_mul, add_zero, Pi.smul_apply, smul_eq_mul] at h
+    have i1 := (hT.integrable_util hC.1 hca hma hucU).1
+    have i2 : Integrable (fun ω => Λ t ω * (z ω + iota S Λ P t ω * (θ * z ω))) S.μ := by
+      have := ip t (z, θ • z) hAd
+      simpa using this
+    rw [← integral_const_mul, ← integral_const_mul, ← sub_eq_zero, ← integral_sub
+      (i1.const_mul _) (i2.const_mul _)] at h
+    rw [← h]
+    refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
+    simp only [wedge]
+    ring
+
+/-! ### Nonnegative nominal rates are a consequence of optimality -/
+
+/-- Cochrane (2023), §19.5.1, p. 449 and (19.33), p. 451 (money is dominated unless `i ≥ 0`):
+**at a cash-in-advance optimum the nominal rate is nonnegative.** If `u' > 0` at the plan at
+date `t`, then `ι_t = 1 − Q_t ≥ 0` almost surely. Otherwise, on an event of positive probability
+where `ι_t < 0`, holding more overnight money is profitable: the household can hold `M` more units
+of money and consume one more unit, for less than nothing, and roll the gain over for ever. No
+bounds on prices or the plan are used. -/
+theorem cia_iota_nonneg {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I)
+    (hu : ∀ x ∈ I, HasDerivAt u (u' x) x) (hu' : ContinuousOn u' I) {V : ℝ}
+    {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) (t : ℕ) (hpos : ∀ᵐ ω ∂S.μ, 0 < u' (c t ω)) :
+    ∀ᵐ ω ∂S.μ, 0 ≤ iota S Λ P t ω := by
+  have hC := c1On_cons hI hu hu'
+  set U : Set (ℝ × ℝ) := I ×ˢ Set.univ with hUdef
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hcia := hopt.2.1.1
+  have hdom := hopt.2.1.2
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  set θ : ℝ := 1 / V - 1 with hθ
+  have hK : ∀ K : ℕ, ∀ᵐ ω ∂S.μ,
+      ¬ (Loc S U Λ P c m t K ω ∧ iota S Λ P t ω ≤ -(1 / ((K : ℝ) + 1))) := by
+    intro K
+    set B := {ω | Loc S U Λ P c m t K ω ∧ iota S Λ P t ω ≤ -(1 / ((K : ℝ) + 1))} with hBdef
+    have hBm : MeasurableSet[S.𝓕 t] B := (measurableSet_loc (U := U) hp hca hma t K).inter
+      (measurableSet_le (hp.sm_iota t).measurable measurable_const)
+    rw [ae_iff]
+    simp only [not_not]
+    by_contra hB0
+    have hBpos : 0 < S.μ B := pos_iff_ne_zero.2 hB0
+    set M : ℝ := 2 * ((K : ℝ) + 1) + |θ| with hM
+    have hM1 : 1 ≤ M := by
+      have : (0 : ℝ) ≤ K := K.cast_nonneg
+      linarith [abs_nonneg θ]
+    set z : Ω → ℝ := B.indicator (fun _ => 1) with hz
+    set ζ : Ω → ℝ := B.indicator (fun _ => M) with hζ
+    have hT : RollTest S U Λ P c m t K M z ζ := by
+      refine ⟨stronglyMeasurable_const.indicator hBm, stronglyMeasurable_const.indicator hBm,
+        fun ω => ?_⟩
+      by_cases hω : ω ∈ B
+      · right
+        refine ⟨hω.1, ?_, ?_⟩
+        · rw [hz, Set.indicator_of_mem hω, abs_one]
+          exact hM1
+        · rw [hζ, Set.indicator_of_mem hω, abs_of_pos (by linarith)]
+      · left
+        simp [hz, hζ, Set.indicator_of_notMem hω]
+    have hT0 := rollTest_zero (S := S) U Λ P c m (t + 1) 0 0
+    obtain ⟨r, hr, φ, hφ0, hφd, hφle⟩ := roll_gain hβ hC hopt hp (by omega) hT hT0
+    -- the deviation earns money: `z + ιζ ≤ −1` on `B`
+    have hcost : ∀ ω, Λ t ω * (z ω + iota S Λ P t ω * ζ ω) ≤ 0 := by
+      intro ω
+      by_cases hω : ω ∈ B
+      · rw [hz, hζ, Set.indicator_of_mem hω, Set.indicator_of_mem hω]
+        refine mul_nonpos_of_nonneg_of_nonpos (hp.2.2.1 t ω).le ?_
+        have h1 := hω.2
+        have hK1 : (0 : ℝ) < (K : ℝ) + 1 := by positivity
+        have h2 : iota S Λ P t ω * M ≤ -(1 / ((K : ℝ) + 1)) * M :=
+          mul_le_mul_of_nonneg_right h1 (by linarith)
+        have h3 : 2 ≤ 1 / ((K : ℝ) + 1) * M := by
+          have e : 1 / ((K : ℝ) + 1) * M = 2 + 1 / ((K : ℝ) + 1) * |θ| := by
+            rw [hM]
+            field_simp
+          rw [e]
+          have : (0 : ℝ) ≤ 1 / ((K : ℝ) + 1) * |θ| := by positivity
+          linarith
+        nlinarith
+      · simp [hz, hζ, Set.indicator_of_notMem hω]
+    have hXnn : 0 ≤ ∫ ω, rollX S Λ P t z ζ ω ∂S.μ := by
+      refine integral_nonneg fun ω => ?_
+      exact neg_nonneg.2 (hcost ω)
+    have hX0 : ∫ ω, rollX S Λ P (t + 1) 0 0 ω ∂S.μ = 0 := by simp [rollX]
+    -- the derivative is positive
+    have hDpos : 0 < β ^ t * ∫ ω, (u' (c t ω) * z ω + 0 * ζ ω) ∂S.μ +
+        β ^ (t + 1) * ∫ ω, (u' (c (t + 1) ω) * 0 + 0 * 0) ∂S.μ := by
+      simp only [mul_zero, add_zero, zero_mul, integral_zero]
+      refine mul_pos (pow_pos hβ t) ?_
+      have hi := (hT.integrable_util hC.1 hca hma hC.2.2.1).1
+      rw [integral_pos_iff_support_of_nonneg_ae ?_ hi]
+      · refine lt_of_lt_of_le hBpos (measure_mono_ae ?_)
+        filter_upwards [hpos] with ω hω hB
+        simp only [Function.mem_support, hz, Set.indicator_of_mem hB, mul_one]
+        exact hω.ne'
+      · filter_upwards [hpos] with ω hω
+        simp only [hz, Pi.zero_apply]
+        by_cases hB : ω ∈ B
+        · rw [Set.indicator_of_mem hB, mul_one]
+          exact hω.le
+        · rw [Set.indicator_of_notMem hB, mul_zero]
+    set η := min r (1 / (2 * ((K : ℝ) + 1)) / (|M| + 1)) with hη
+    have hη0 : 0 < η := lt_min hr (by positivity)
+    have hDle := slope_nonpos hφd hφ0 hη0 fun ε hε0 hεη => by
+      have hε : |ε| = ε := abs_of_pos hε0
+      have hε₁ : |ε| * (|M| + 1) < 1 / (2 * ((K : ℝ) + 1)) := by
+        rw [← lt_div_iff₀ (by positivity), hε]
+        exact lt_of_lt_of_le hεη (min_le_right _ _)
+      have hε₂ : |ε| * (|(0 : ℝ)| + 1) < 1 / (2 * ((0 : ℕ) + 1 : ℝ)) := by
+        have h1 : ε < 1 / (2 * ((K : ℝ) + 1)) / (|M| + 1) := lt_of_lt_of_le hεη (min_le_right _ _)
+        have h2 : 1 / (2 * ((K : ℝ) + 1)) / (|M| + 1) ≤ 1 / 2 := by
+          rw [div_le_iff₀ (by positivity)]
+          have : 1 / (2 * ((K : ℝ) + 1)) ≤ 1 / 2 :=
+            one_div_le_one_div_of_le (by norm_num) (by linarith [K.cast_nonneg (α := ℝ)])
+          nlinarith [abs_nonneg M]
+        rw [hε, abs_zero]
+        push_cast
+        linarith
+      refine hφle ε (by rw [hε]; exact lt_of_lt_of_le hεη (min_le_left _ _))
+        ⟨fun n => ?_, domainCon_roll hdom (by omega) hT hT0 hε₁ hε₂⟩ fun δ hδ => ?_
+      · filter_upwards [hcia n] with ω ⟨hc1, hc2⟩
+        by_cases hn : n = t
+        · subst hn
+          simp only [rollC, ↓reduceIte, show n ≠ n + 1 by omega, add_zero]
+          by_cases hω : ω ∈ B
+          · rw [hz, hζ, Set.indicator_of_mem hω, Set.indicator_of_mem hω]
+            refine ⟨?_, by nlinarith⟩
+            have : θ ≤ M := (le_abs_self θ).trans (by
+              have : (0 : ℝ) ≤ K := K.cast_nonneg
+              linarith)
+            nlinarith
+          · rw [hz, hζ, Set.indicator_of_notMem hω, Set.indicator_of_notMem hω]
+            simp only [mul_zero, add_zero]
+            exact ⟨hc1, hc2⟩
+        · by_cases hn' : n = t + 1
+          · subst hn'
+            simp only [rollC, ↓reduceIte, hn, Pi.zero_apply, add_zero, mul_zero]
+            exact ⟨hc1, hc2⟩
+          · simp only [rollC, hn, hn', ↓reduceIte, add_zero, mul_zero]
+            exact ⟨hc1, hc2⟩
+      · rw [hX0, add_zero]
+        filter_upwards [hnp δ hδ] with T hT'
+        nlinarith
+    simp only [Pi.zero_apply] at hDle
+    linarith
+  filter_upwards [ae_all_iff.2 hK, ae_exists_loc (Λ := Λ) (P := P) hC.1 hdom t] with ω h1 h2
+  obtain ⟨K₁, hl⟩ := h2
+  by_contra hneg
+  rw [not_le] at hneg
+  obtain ⟨n, hn⟩ := exists_nat_one_div_lt (neg_pos.2 hneg)
+  have hm : (n : ℝ) ≤ (max K₁ n : ℕ) := by exact_mod_cast le_max_right _ _
+  refine h1 (max K₁ n) ⟨loc_mono (le_max_left _ _) hl, ?_⟩
+  have : 1 / ((max K₁ n : ℕ) + 1 : ℝ) ≤ 1 / ((n : ℝ) + 1) :=
+    one_div_le_one_div_of_le (by positivity) (by linarith)
+  linarith
+
+/-- Cochrane (2023), p. 450 (`CashInAdvance.MoneyDemand.binding_cost_wedge`): where `0 ≤ ι_t`,
+the bond price is nonnegative and `V > 0`, the velocity wedge `w_t = 1 + (1/V − 1)ι_t` is at
+least `min 1 (1/V) > 0`. Combined with `cia_iota_nonneg`, at an optimum with `u' > 0` the wedge
+is bounded away from zero, with no assumption on `Q_t`. -/
+theorem cia_wedge_pos {Λ P : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P) {V : ℝ} (hV : 0 < V) {t : ℕ}
+    (hι : ∀ᵐ ω ∂S.μ, 0 ≤ iota S Λ P t ω) :
+    ∀ᵐ ω ∂S.μ, min 1 (1 / V) ≤ wedge S (1 / V - 1) Λ P t ω := by
+  have hQ : ∀ᵐ ω ∂S.μ, 0 ≤ bondPrice S Λ P t ω := by
+    have h0 : 0 ≤ᵐ[S.μ] pk Λ P (t + 1) := Eventually.of_forall fun ω => (hp.pk_pos _ ω).le
+    filter_upwards [condExp_nonneg (m := S.𝓕 t) h0] with ω hω
+    exact div_nonneg hω (hp.pk_pos t ω).le
+  filter_upwards [hι, hQ] with ω h1 h2
+  simp only [wedge]
+  have hι1 : iota S Λ P t ω ≤ 1 := by simp only [iota]; linarith
+  rcases le_or_gt V 1 with hV1 | hV1
+  · have hθ : 0 ≤ 1 / V - 1 := by
+      rw [sub_nonneg, le_div_iff₀ hV]
+      linarith
+    exact (min_le_left _ _).trans (by nlinarith)
+  · have hθ : 1 / V - 1 < 0 := by
+      rw [sub_neg, div_lt_one hV]
+      exact hV1
+    refine (min_le_right _ _).trans ?_
+    nlinarith
+
+/-! ### Sufficiency with the Karush–Kuhn–Tucker conditions -/
+
+/-- Cochrane (2023), p. 453 ("first order conditions and transversality conditions are
+necessary and sufficient"), on a probability space, **sufficiency without a binding cash
+constraint**: for `u` with the supergradient property on `I` (concavity), `PriceWeak` prices,
+integrable endowment and tax values, a feasible, admissible plan satisfying the cash-in-advance
+and domain constraints is optimal if there are a constant `λ ≥ 0` and processes `μ_t, ν_t ≥ 0`
+with, almost surely at every date, `ι_t = μ_t + ν_t`, `μ_t(m_t − (1/V − 1)c_t − y_t) = 0`
+(the cash multiplier vanishes when the cash constraint is slack), `ν_tm_t = 0` (the no-printing
+multiplier vanishes when money is held) and `βᵗu'(c_t) = λΛ_t(1 + (1/V − 1)μ_t)`, and if the
+liminf transversality condition holds. With a binding constraint, `μ = ι`, `ν = 0` recovers
+`CashInAdvanceMeasure.optimal_of_foc`. -/
+theorem cia_optimal_of_kkt {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ}
+    (hsg : ∀ x ∈ I, ∀ x' ∈ I, u x' ≤ u x + u' x * (x' - x)) {V : ℝ} {Λ P y s : ℕ → Ω → ℝ}
+    {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ) {lam : ℝ} (hlam : 0 ≤ lam)
+    {μ ν : ℕ → Ω → ℝ} (hf : Feasible S Λ P y s N0 a0 c m a) (hcon : CIAConD S V I y c m)
+    (hadm : UAdmissible S β (fun n ω => u (c n ω)))
+    (hkkt : ∀ t, ∀ᵐ ω ∂S.μ, 0 ≤ μ t ω ∧ 0 ≤ ν t ω ∧ iota S Λ P t ω = μ t ω + ν t ω ∧
+      μ t ω * (m t ω - ((1 / V - 1) * c t ω + y t ω)) = 0 ∧ ν t ω * m t ω = 0 ∧
+      β ^ t * u' (c t ω) = lam * (Λ t ω * (1 + (1 / V - 1) * μ t ω)))
+    (hlim : ∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S Λ P N0 m a T < L) :
+    Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a := by
+  refine optimal_of_supergradient_liminf hβ hp hy hs hlam hf hcon hadm hlim
+    fun c' m' a' _ hcon' t => ?_
+  filter_upwards [hkkt t, hcon.1 t, hcon.2 t, hcon'.1 t, hcon'.2 t] with ω h h1 h2 h3 h4
+  obtain ⟨hμ, hν, hι, hcs1, hcs2, hfoc⟩ := h
+  set θ : ℝ := 1 / V - 1
+  have hk := mul_le_mul_of_nonneg_left (show u (c' t ω) - u (c t ω) ≤ u' (c t ω) *
+    (c' t ω - c t ω) by linarith [hsg _ h2.1 _ h4.1]) (pow_nonneg hβ.le t)
+  have key : iota S Λ P t ω * (m' t ω - m t ω) - θ * μ t ω * (c' t ω - c t ω) =
+      μ t ω * (m' t ω - (θ * c' t ω + y t ω)) + ν t ω * m' t ω := by
+    rw [hι]
+    linear_combination -hcs1 - hcs2
+  have hnn : 0 ≤ iota S Λ P t ω * (m' t ω - m t ω) - θ * μ t ω * (c' t ω - c t ω) := by
+    rw [key]
+    exact add_nonneg (mul_nonneg hμ (by linarith [h3.1])) (mul_nonneg hν h3.2)
+  have hΛ := (hp.2.2.1 t ω).le
+  calc β ^ t * ((fun x _ => u x : ℝ → ℝ → ℝ) (c' t ω) (m' t ω) -
+        (fun x _ => u x : ℝ → ℝ → ℝ) (c t ω) (m t ω))
+      ≤ β ^ t * (u' (c t ω) * (c' t ω - c t ω)) := hk
+    _ = lam * (Λ t ω * (1 + θ * μ t ω)) * (c' t ω - c t ω) := by rw [← hfoc]; ring
+    _ ≤ lam * (Λ t ω * ((c' t ω - c t ω) + iota S Λ P t ω * (m' t ω - m t ω))) := by
+        have := mul_nonneg (mul_nonneg hlam hΛ) hnn
+        nlinarith
+
+/-! ### Money must be positive for the wedge Euler equation -/
+
+namespace WedgeCx
+
+/-- Cochrane (2023), p. 450 (counterexample economy): the state prices `Λ_t = βᵗ`. -/
+noncomputable def cxΛ (β : ℝ) (t : ℕ) (_ : Ω) : ℝ := β ^ t
+
+/-- Cochrane (2023), p. 450 (counterexample economy): a price level whose growth factor
+alternates between `2` and `1`: `P_t = 2^{⌊(t + 1)/2⌋}`. -/
+noncomputable def cxP (t : ℕ) (_ : Ω) : ℝ := (2 : ℝ) ^ ((t + 1) / 2)
+
+/-- Cochrane (2023), p. 450: the counterexample prices are weakly regular. -/
+theorem cx_priceWeak {β : ℝ} (hβ0 : 0 < β) :
+    PriceWeak S (cxΛ (Ω := Ω) β) (cxP (Ω := Ω)) :=
+  ⟨fun _ => stronglyMeasurable_const, fun _ => stronglyMeasurable_const,
+    fun t _ => pow_pos hβ0 t, fun t _ => by simp only [cxP]; positivity,
+    fun t => by
+      change Integrable (fun _ => β ^ t / (2 : ℝ) ^ ((t + 1) / 2)) S.μ
+      exact integrable_const _⟩
+
+/-- Cochrane (2023), (19.15), p. 441: in the counterexample economy the bond price is
+`Q_t = βP_t/P_{t+1}`. -/
+theorem cx_bondPrice {β : ℝ} (hβ0 : 0 < β) (t : ℕ) (ω : Ω) :
+    bondPrice S (cxΛ β) cxP t ω = β * ((2 : ℝ) ^ ((t + 1) / 2) / (2 : ℝ) ^ ((t + 1 + 1) / 2)) := by
+  have hE : S.E t (pk (cxΛ (Ω := Ω) β) cxP (t + 1)) =
+      fun _ => β ^ (t + 1) / (2 : ℝ) ^ ((t + 1 + 1) / 2) := by
+    change S.E t (fun _ => β ^ (t + 1) / (2 : ℝ) ^ ((t + 1 + 1) / 2)) = _
+    exact S.E_const t _
+  simp only [bondPrice, hE, pk, cxΛ, cxP]
+  have h1 : (0 : ℝ) < 2 ^ ((t + 1) / 2) := by positivity
+  have h2 : (0 : ℝ) < 2 ^ ((t + 1 + 1) / 2) := by positivity
+  have h3 : (0 : ℝ) < β ^ t := pow_pos hβ0 t
+  field_simp
+  ring
+
+/-- Cochrane (2023), (19.12), p. 439: in the counterexample economy `0 < ι_t`. -/
+theorem cx_iota_pos {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (t : ℕ) (ω : Ω) :
+    0 < iota S (cxΛ β) cxP t ω := by
+  simp only [iota, cx_bondPrice hβ0]
+  have h : (2 : ℝ) ^ ((t + 1) / 2) / (2 : ℝ) ^ ((t + 1 + 1) / 2) ≤ 1 := by
+    rw [div_le_one (by positivity)]
+    exact pow_le_pow_right₀ (by norm_num) (Nat.div_le_div_right (by omega))
+  have h0 : (0 : ℝ) ≤ (2 : ℝ) ^ ((t + 1) / 2) / (2 : ℝ) ^ ((t + 1 + 1) / 2) := by positivity
+  nlinarith
+
+/-- Cochrane (2023), (19.31), p. 450 and footnote 13, **the wedge Euler equation needs positive
+money.** Let `0 < β < 1`, velocity `V = 2`, linear utility `u(c) = c` on `I = ℝ`, endowment `1`,
+transfers `2` (taxes `−2`), state prices `Λ_t = βᵗ` and the price level `cxP` (growth alternating
+between `2` and `1`, so `ι_t` alternates). Consuming `3` and holding no overnight money is optimal
+(the cash constraint `−c/2 + 1 ≤ m` is slack; by `cia_optimal_of_kkt` with `μ = 0`, `ν = ι`), yet
+there is no constant `λ` with `βᵗu'(c_t) = λΛ_tw_t` almost surely at every date, although nominal
+rates are positive at every date and the cash constraint is slack: the conclusion
+of `cia_multiplier` and of `CashInAdvanceMeasure.multiplier_const` fails once overnight money is
+zero. At this optimum the cash constraint does not bind, so `CashInAdvanceMeasure.optimal_of_foc`
+does not apply. -/
+theorem wedge_euler_needs_money {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) :
+    Optimal S β (fun x _ => x) (CIAConD S 2 Set.univ (fun _ _ => 1)) (cxΛ β) cxP
+        (fun _ _ => 1) (fun _ _ => -2) 0 0 (fun _ _ => 3) (fun _ _ => 0) (fun _ _ => 0) ∧
+      (∀ t ω, 0 < iota S (cxΛ β) cxP t ω) ∧ (1 / 2 - 1 : ℝ) * 3 + 1 < 0 ∧
+      ¬ ∃ lam : ℝ, ∀ t, ∀ᵐ ω ∂S.μ, β ^ t * (1 : ℝ) =
+        lam * (cxΛ β t ω * wedge S (1 / 2 - 1) (cxΛ β) cxP t ω) := by
+  have hp := cx_priceWeak (S := S) hβ0
+  have hzero : ∀ t : ℕ, S.E t (fun ω => pk (cxΛ (Ω := Ω) β) cxP (t + 1) ω * (0 : ℝ)) = 0 := by
+    intro t
+    have e : (fun ω => pk (cxΛ (Ω := Ω) β) cxP (t + 1) ω * (0 : ℝ)) = fun _ => 0 := by
+      funext ω
+      ring
+    rw [e, S.E_const]
+    rfl
+  refine ⟨?_, fun t ω => cx_iota_pos hβ0 hβ1 t ω, by norm_num, ?_⟩
+  · refine cia_optimal_of_kkt (u' := fun _ => 1) (I := Set.univ) (lam := 1) (μ := fun _ _ => 0)
+      (ν := fun t ω => iota S (cxΛ β) cxP t ω) hβ0 (fun x _ x' _ => by ring_nf; rfl) hp
+      (fun t => by
+        change Integrable (fun _ => β ^ t * 1) S.μ
+        exact integrable_const _)
+      (fun t => by
+        change Integrable (fun _ => β ^ t * (-2)) S.μ
+        exact integrable_const _) zero_le_one ?_ ?_ ?_ ?_ ?_
+    · refine ⟨rfl, fun _ => stronglyMeasurable_const, fun _ => stronglyMeasurable_const,
+        fun _ => stronglyMeasurable_const, fun t => Eventually.of_forall fun ω => ?_,
+        fun _ => ?_, fun _ => ?_, fun t => ?_, fun t => ?_, ?_⟩
+      · simp only [claimCost, hzero, Pi.zero_apply]
+        cases t with
+        | zero => simp [moneyIn]; ring
+        | succ k => simp [moneyIn]; ring
+      · simp only [mul_zero]
+        exact integrable_zero _ _ _
+      · refine (integrable_zero Ω ℝ S.μ).congr (Eventually.of_forall fun ω => ?_)
+        cases ‹ℕ› with
+        | zero => simp [moneyIn]
+        | succ k => simp [moneyIn]
+      · change Integrable (fun _ => β ^ t * 0) S.μ
+        exact integrable_const _
+      · change Integrable (fun _ => β ^ t * 3) S.μ
+        exact integrable_const _
+      · intro δ hδ
+        refine Eventually.of_forall fun T => ?_
+        have : wealthPV S (cxΛ β) cxP 0 (fun _ _ => (0 : ℝ)) (fun _ _ => 0) T = 0 := by
+          simp only [wealthPV]
+          refine (integral_congr_ae (Eventually.of_forall fun ω => ?_)).trans (integral_zero Ω ℝ)
+          cases T with
+          | zero => simp [moneyIn]
+          | succ k => simp [moneyIn]
+        rw [this]
+        linarith
+    · refine ⟨fun t => Eventually.of_forall fun ω => ⟨by norm_num, le_rfl⟩,
+        fun t => Eventually.of_forall fun ω => ⟨Set.mem_univ _, Set.mem_univ _⟩⟩
+    · exact UAdmissible.of_bdd hβ0.le hβ1 (fun _ => aestronglyMeasurable_const) (K := 3)
+        fun _ _ => by norm_num
+    · intro t
+      refine Eventually.of_forall fun ω => ⟨le_rfl, (cx_iota_pos hβ0 hβ1 t ω).le, by ring,
+        by ring, by ring, ?_⟩
+      simp [cxΛ]
+    · intro L hL
+      refine Frequently.of_forall fun T => ?_
+      have : wealthPV S (cxΛ β) cxP 0 (fun _ _ => (0 : ℝ)) (fun _ _ => 0) T = 0 := by
+        simp only [wealthPV]
+        refine (integral_congr_ae (Eventually.of_forall fun ω => ?_)).trans (integral_zero Ω ℝ)
+        cases T with
+        | zero => simp [moneyIn]
+        | succ k => simp [moneyIn]
+      rw [this]
+      exact hL
+  · rintro ⟨lam, hlam⟩
+    obtain ⟨ω, h0, h1⟩ := ((hlam 0).and (hlam 1)).exists
+    have q0 := cx_bondPrice (S := S) hβ0 0 ω
+    have q1 := cx_bondPrice (S := S) hβ0 1 ω
+    norm_num at q0 q1
+    simp only [wedge, iota, q0, q1, cxΛ] at h0 h1
+    norm_num at h0 h1
+    have hb : β ≠ 0 := hβ0.ne'
+    have h1' : 1 = lam * (1 + (1 / 2 - 1) * (1 - β)) := by
+      have := h1
+      field_simp at this
+      linarith
+    nlinarith
+
+end WedgeCx
+
+end Cochrane.Monetarism.TidyR6HouseholdCIA
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Two hypotheses of the transversality theorem cannot be dropped
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, p. 439 ("their optimal
+choices include transversality conditions") and (19.28), p. 449, for the necessity theorem
+`HouseholdMeasureTVC.tvc_of_optimal`. Two counterexamples, each on an arbitrary probability space
+(the economies are deterministic), satisfy every hypothesis of that theorem but one, and the
+transversality condition `E[pk_T(a_T + M_{T−1})] → 0` fails at an optimum.
+
+* `tvc_needs_reference`: **the admissible reference plan is needed.** With linear utility
+  `u(c, m) = c`, `Λ_t = βᵗ`, `P_t = 1` and the endowment `y_t = (−1)ᵗ/βᵗ` (whose present value
+  oscillates), consuming nothing is optimal (`TidyR6HouseholdSuff.optimal_of_supergradient_liminf`)
+  while the date-0 value of wealth alternates between `0` and `1`. Every hypothesis of
+  `tvc_of_optimal` holds — including all the per-date bounds, concavity and monotonicity, and the
+  normalised first-order condition — except that the reference plan (consume `y − s`) is not
+  admissible. The liminf form (`TidyR6HouseholdFOC.miu_liminf_tvc`) does hold.
+* `tvc_needs_nonsatiation`: **nonsatiation (`λ > 0`) is needed.** With constant utility every
+  feasible plan is optimal, including one that keeps a unit of wealth for ever. Every hypothesis
+  of `tvc_of_optimal` holds except the normalised first-order condition; the first-order
+  condition holds with multiplier `λ = 0`. `cia_needs_nonsatiation`: a cash-in-advance version
+  satisfies every hypothesis of `CashInAdvanceMeasureTVC.tvc_necessary` except `u' > 0` and the
+  normalisation `Λ_0w_0 = u'(c_0)` (which nonsatiation makes possible), and the transversality
+  condition fails.
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdTVCCx
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+  HouseholdMeasureTVC TidyR6HouseholdRoll TidyR6HouseholdSuff
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### Deterministic helpers -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the conditional expectation of a constant is the constant
+(stated for a function that ignores the state). -/
+theorem E_fun_const (t : ℕ) (f : Ω → ℝ) (k : ℝ) (hf : f = fun _ => k) (ω : Ω) :
+    S.E t f ω = k := by
+  rw [hf, S.E_const]
+
+/-- Cochrane (2023), Ch. 2, p. 29: on a probability space the integral of a function that
+ignores the state is that constant. -/
+theorem integral_fun_const (f : Ω → ℝ) (k : ℝ) (hf : ∀ ω, f ω = k) : ∫ ω, f ω ∂S.μ = k := by
+  rw [integral_congr_ae (Eventually.of_forall hf), integral_const, probReal_univ, one_smul]
+
+/-- Cochrane (2023), Ch. 2, p. 29: a function that ignores the state is integrable on a
+probability space. -/
+theorem integrable_fun_const (f : Ω → ℝ) (k : ℝ) (hf : ∀ ω, f ω = k) : Integrable f S.μ :=
+  (integrable_const k).congr (Eventually.of_forall fun ω => (hf ω).symm)
+
+/-- Cochrane (2023), (19.9), p. 439: a function that ignores the state is essentially
+bounded. -/
+theorem bddAt_fun_const (f : Ω → ℝ) (k : ℝ) (hf : ∀ ω, f ω = k) : BddAt S f :=
+  ⟨|k|, Eventually.of_forall fun ω => by rw [hf]⟩
+
+/-- Cochrane (2023), p. 439: a sequence that is not summable because its terms do not go to
+zero: `∑ 1` diverges. -/
+theorem not_summable_one : ¬ Summable (fun _ : ℕ => (1 : ℝ)) := by
+  intro h
+  have := h.tendsto_atTop_zero
+  have h1 : Tendsto (fun _ : ℕ => (1 : ℝ)) atTop (𝓝 1) := tendsto_const_nhds
+  exact one_ne_zero (tendsto_nhds_unique h1 this)
+
+/-! ### The reference plan is needed -/
+
+namespace RefCx
+
+/-- Cochrane (2023), p. 439 (counterexample): the parity indicator `e_t = 1` for odd `t`. -/
+def par (t : ℕ) : ℝ := if t % 2 = 1 then 1 else 0
+
+/-- Cochrane (2023), p. 439 (counterexample): `e_t + (−1)ᵗ = e_{t+1}`. -/
+theorem par_succ (t : ℕ) : par t + (-1) ^ t = par (t + 1) := by
+  rcases Nat.even_or_odd t with h | h
+  · have h1 : t % 2 = 0 := Nat.even_iff.1 h
+    have h2 : (t + 1) % 2 = 1 := by omega
+    simp [par, h1, h2, h.neg_one_pow]
+  · have h1 : t % 2 = 1 := Nat.odd_iff.1 h
+    have h2 : (t + 1) % 2 = 0 := by omega
+    simp [par, h1, h2, h.neg_one_pow]
+
+/-- Cochrane (2023), p. 439 (counterexample): state prices `Λ_t = βᵗ`. -/
+noncomputable def lam (β : ℝ) (t : ℕ) (_ : Ω) : ℝ := β ^ t
+
+/-- Cochrane (2023), p. 439 (counterexample): a constant price level `P_t = 1`. -/
+def pr (_ : ℕ) (_ : Ω) : ℝ := 1
+
+/-- Cochrane (2023), p. 439 (counterexample): the endowment `y_t = (−1)ᵗ/βᵗ`, whose present value
+`∑ βᵗy_t = 1 − 1 + 1 − ⋯` oscillates. -/
+noncomputable def endow (β : ℝ) (t : ℕ) (_ : Ω) : ℝ := (-1) ^ t / β ^ t
+
+/-- Cochrane (2023), p. 439 (counterexample): the claims `a_t = e_t/βᵗ`. -/
+noncomputable def claims (β : ℝ) (t : ℕ) (_ : Ω) : ℝ := par t / β ^ t
+
+/-- Cochrane (2023), p. 439 (counterexample): the zero process. -/
+def zp (_ : ℕ) (_ : Ω) : ℝ := 0
+
+/-- Cochrane (2023), p. 439 (counterexample): the constraint `m_t ≥ 0` (no money issue). -/
+def NonnegMoney (S : MeasExpectationSystem Ω) (_ m : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, ∀ᵐ ω ∂S.μ, 0 ≤ m t ω
+
+/-- Cochrane (2023), p. 439: the counterexample prices are regular. -/
+theorem priceRegular_cx {β : ℝ} (hβ0 : 0 < β) : PriceRegular S (lam (Ω := Ω) β) pr :=
+  ⟨fun _ => stronglyMeasurable_const, fun _ => stronglyMeasurable_const,
+    fun t _ => pow_pos hβ0 t, fun _ _ => one_pos, fun t => ⟨bddAt_fun_const _ (β ^ t)
+      fun _ => rfl, bddAt_fun_const _ (β ^ t)⁻¹ fun _ => rfl, bddAt_fun_const _ 1 fun _ => rfl,
+      bddAt_fun_const _ 1⁻¹ fun _ => rfl⟩⟩
+
+/-- Cochrane (2023), (19.15), p. 441: in the counterexample economy `Q_t = β`. -/
+theorem bondPrice_cx {β : ℝ} (hβ0 : 0 < β) (t : ℕ) (ω : Ω) :
+    bondPrice S (lam β) pr t ω = β := by
+  simp only [bondPrice]
+  rw [E_fun_const t (pk (lam β) pr (t + 1)) (β ^ (t + 1) / 1) rfl]
+  simp only [pk, lam, pr]
+  have := pow_pos hβ0 t
+  field_simp
+  ring
+
+/-- Cochrane (2023), (19.10), p. 439: consuming nothing, holding no money and the claims
+`a_t = e_t/βᵗ` is feasible from zero initial wealth. -/
+theorem feasible_cx {β : ℝ} (hβ0 : 0 < β) :
+    Feasible S (lam β) pr (endow β) zp 0 0 zp zp (claims β) := by
+  refine ⟨by funext ω; simp [claims, par], fun _ => stronglyMeasurable_const,
+    fun _ => stronglyMeasurable_const, fun _ => stronglyMeasurable_const,
+    fun t => Eventually.of_forall fun ω => ?_, fun t => ?_, fun t => ?_, fun t => ?_,
+    fun t => ?_, fun δ hδ => Eventually.of_forall fun T => ?_⟩
+  · simp only [claimCost]
+    rw [E_fun_const t (fun ω => pk (lam β) pr (t + 1) ω * claims β (t + 1) ω) (par (t + 1)) (by
+      funext ω
+      simp only [pk, lam, pr, claims]
+      have := pow_pos hβ0 (t + 1)
+      field_simp)]
+    have hb := pow_pos hβ0 t
+    have hm : moneyIn 0 pr zp t ω = 0 := by
+      cases t with
+      | zero => rfl
+      | succ k => simp [moneyIn, zp]
+    simp only [hm, claims, endow, pk, lam, pr, zp]
+    rw [← par_succ t]
+    field_simp
+    ring
+  · exact integrable_fun_const _ (par t) fun ω => by
+      have := pow_pos hβ0 t
+      simp only [pk, lam, pr, claims]
+      field_simp
+  · refine (integrable_zero Ω ℝ S.μ).congr (Eventually.of_forall fun ω => ?_)
+    cases t with
+    | zero => simp [moneyIn]
+    | succ k => simp [moneyIn, zp]
+  · simp [zp]
+  · simp [zp]
+  · have hW : wealthPV S (lam β) pr 0 zp (claims β) T = par T := by
+      simp only [wealthPV]
+      refine integral_fun_const _ _ fun ω => ?_
+      have hm : moneyIn 0 pr zp T ω = 0 := by
+        cases T with
+        | zero => rfl
+        | succ k => simp [moneyIn, zp]
+      simp only [hm, add_zero, pk, lam, pr, claims]
+      have := pow_pos hβ0 T
+      field_simp
+    rw [hW]
+    have : 0 ≤ par T := by unfold par; split_ifs <;> norm_num
+    linarith
+
+/-- Cochrane (2023), (19.28), p. 449: in the counterexample the date-0 value of wealth is
+`e_T`, alternating between `0` and `1`. -/
+theorem wealthPV_cx {β : ℝ} (hβ0 : 0 < β) (T : ℕ) :
+    wealthPV S (lam β) pr 0 zp (claims β) T = par T := by
+  simp only [wealthPV]
+  refine integral_fun_const _ _ fun ω => ?_
+  have hm : moneyIn 0 pr zp T ω = 0 := by
+    cases T with
+    | zero => rfl
+    | succ k => simp [moneyIn, zp]
+  simp only [hm, add_zero, pk, lam, pr, claims]
+  have := pow_pos hβ0 T
+  field_simp
+
+end RefCx
+
+open RefCx in
+/-- Cochrane (2023), p. 439 ("their optimal choices include transversality conditions") and
+(19.28), p. 449, **the admissible reference plan cannot be dropped from
+`HouseholdMeasureTVC.tvc_of_optimal`.** For `0 < β < 1`, utility `u(c, m) = c`, state prices
+`Λ_t = βᵗ`, price level `1`, endowment `y_t = (−1)ᵗ/βᵗ`, no taxes, no initial wealth and the
+constraint `m ≥ 0`: consuming nothing with the claims `a_t = e_t/βᵗ` is optimal; the prices are
+regular; consumption, money, claims, endowment and taxes are bounded at each date and adapted;
+utility is concave and increasing along the bundle `ϑ = 0`; the bundle cost is `1`; the
+constraint allows every Kamihigashi deviation; the normalised first-order condition
+`βᵀu_c = Λ_Tw_T` holds; and yet the reference plan is not admissible and the transversality
+condition fails: `E[pk_T(a_T + M_{T−1})] = e_T` does not tend to `0`. -/
+theorem tvc_needs_reference {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) :
+    Optimal S β (fun x _ => x) (NonnegMoney S) (lam β) pr (endow β) zp 0 0 zp zp (claims β) ∧
+      PriceRegular S (lam β) pr ∧
+      (∀ n, BddAt S (zp (Ω := Ω) n)) ∧ (∀ n, BddAt S (claims (Ω := Ω) β n)) ∧
+      (∀ n, BddAt S (endow (Ω := Ω) β n)) ∧ StronglyAdapted S.𝓕 (endow (Ω := Ω) β) ∧
+      StronglyAdapted S.𝓕 (zp (Ω := Ω)) ∧
+      (∀ x z : ℝ, ConcaveOn ℝ Set.univ (fun e => (fun x _ => x : ℝ → ℝ → ℝ) (x + e) (z + 0 * e)))
+      ∧ (∀ x z : ℝ, Monotone (fun e => (fun x _ => x : ℝ → ℝ → ℝ) (x + e) (z + 0 * e))) ∧
+      (∀ n ω, wedge S 0 (lam β) pr n ω = 1) ∧
+      (∀ T, ∃ θ₀, 0 < θ₀ ∧ θ₀ ≤ 1 ∧ ∀ θ, 0 < θ → θ < θ₀ →
+        NonnegMoney S (kamC S 0 (lam β) pr (endow β) zp (claims β) zp zp T θ)
+          (kamM S 0 (lam β) pr (endow β) zp (claims β) zp zp T θ)) ∧
+      (∀ T, ∀ᵐ ω ∂S.μ, β ^ T * ((1 : ℝ) + 0 * 0) = lam β T ω * wedge S 0 (lam β) pr T ω) ∧
+      ¬ UAdmissible S β (fun n ω => (fun x _ => x : ℝ → ℝ → ℝ)
+        (cRef S 0 (lam β) pr (endow β) zp zp zp n ω) (mRef S 0 (lam β) pr (endow β) zp zp zp n ω))
+      ∧ (∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S (lam β) pr 0 zp (claims β) T < L) ∧
+      ¬ Tendsto (wealthPV S (lam β) pr 0 zp (claims β)) atTop (𝓝 0) := by
+  have hp := priceRegular_cx (S := S) hβ0
+  have hw : ∀ n ω, wedge S 0 (lam β) pr n ω = 1 := fun n ω => by simp [wedge]
+  have hlim : ∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S (lam β) pr 0 zp (claims β) T < L := by
+    intro L hL
+    refine frequently_atTop.2 fun N => ⟨2 * N, by omega, ?_⟩
+    rw [wealthPV_cx hβ0]
+    simp [par, hL]
+  refine ⟨?_, hp, fun _ => BddAt.const _, fun _ => BddAt.const _, fun _ => BddAt.const _,
+    fun _ => stronglyMeasurable_const, fun _ => stronglyMeasurable_const,
+    fun x _ => ⟨convex_univ, fun a _ b _ p q _ _ hpq => le_of_eq (by
+      simp only [smul_eq_mul]
+      linear_combination x * hpq)⟩,
+    fun x _ a b hab => by simp only; linarith, hw, fun T => ⟨1, one_pos, le_rfl,
+      fun θ _ _ n => Eventually.of_forall fun ω => ?_⟩, fun T => Eventually.of_forall fun ω => ?_,
+    ?_, hlim, ?_⟩
+  · refine optimal_of_supergradient_liminf (lam := 1) hβ0 (priceWeak_of_priceRegular hp)
+      (fun t => integrable_fun_const _ ((-1) ^ t) fun ω => by
+        have := pow_pos hβ0 t
+        simp only [lam, endow]
+        field_simp)
+      (fun t => integrable_fun_const _ 0 fun ω => by simp [zp]) zero_le_one (feasible_cx hβ0)
+      (fun t => Eventually.of_forall fun ω => le_rfl)
+      (UAdmissible.of_bdd hβ0.le hβ1 (fun _ => aestronglyMeasurable_const) (K := 0)
+        fun _ _ => by simp [zp]) hlim fun c' m' a' _ hm' t => ?_
+    filter_upwards [hm' t] with ω hω
+    have hι : iota S (lam β) pr t ω = 1 - β := by simp [iota, bondPrice_cx hβ0]
+    rw [hι]
+    have hb := pow_pos hβ0 t
+    simp only [lam, zp, one_mul]
+    nlinarith [mul_nonneg (mul_nonneg hb.le (sub_nonneg.2 hβ1.le)) hω]
+  · simp [kamM, mRef, zp]
+  · simp [lam, wedge]
+  · intro hU
+    obtain ⟨ω, hω⟩ := hU.2.1.exists
+    apply not_summable_one
+    refine hω.congr fun n => ?_
+    simp only [cRef, wedge, zp, endow, mul_zero, add_zero, sub_zero, zero_add,
+      zero_mul, div_one]
+    rw [abs_div, abs_pow, abs_neg, abs_one, one_pow, abs_of_pos (pow_pos hβ0 n)]
+    have := pow_pos hβ0 n
+    field_simp
+  · intro h
+    have := (h.eventually (gt_mem_nhds (show (0 : ℝ) < 1 / 2 by norm_num)))
+    obtain ⟨N, hN⟩ := eventually_atTop.1 this
+    have := hN (2 * N + 1) (by omega)
+    rw [wealthPV_cx hβ0] at this
+    have hp1 : (2 * N + 1) % 2 = 1 := by omega
+    simp [par, hp1] at this
+    linarith
+
+/-! ### Nonsatiation is needed -/
+
+namespace SatCx
+
+/-- Cochrane (2023), p. 439 (counterexample): the claims `a_t = 1/βᵗ` (one unit of date-0 wealth
+kept for ever). -/
+noncomputable def claims (β : ℝ) (t : ℕ) (_ : Ω) : ℝ := 1 / β ^ t
+
+/-- Cochrane (2023), p. 439 (counterexample): initial claims `1`. -/
+def one (_ : Ω) : ℝ := 1
+
+/-- Cochrane (2023), (19.10), p. 439: consuming nothing and keeping one unit of wealth for ever is
+feasible. -/
+theorem feasible_sat {β : ℝ} (hβ0 : 0 < β) :
+    Feasible S (RefCx.lam β) RefCx.pr RefCx.zp RefCx.zp 0 one RefCx.zp RefCx.zp (claims β) := by
+  refine ⟨by funext ω; simp [claims, one], fun _ => stronglyMeasurable_const,
+    fun _ => stronglyMeasurable_const, fun _ => stronglyMeasurable_const,
+    fun t => Eventually.of_forall fun ω => ?_, fun t => ?_, fun t => ?_, fun t => ?_,
+    fun t => ?_, fun δ hδ => Eventually.of_forall fun T => ?_⟩
+  · simp only [claimCost]
+    rw [E_fun_const t (fun ω => pk (RefCx.lam β) RefCx.pr (t + 1) ω * claims β (t + 1) ω) 1 (by
+      funext ω
+      simp only [pk, RefCx.lam, RefCx.pr, claims]
+      have := pow_pos hβ0 (t + 1)
+      field_simp)]
+    have hm : moneyIn 0 RefCx.pr RefCx.zp t ω = 0 := by
+      cases t with
+      | zero => rfl
+      | succ k => simp [moneyIn, RefCx.zp]
+    simp only [hm, claims, pk, RefCx.lam, RefCx.pr, RefCx.zp]
+    have := pow_pos hβ0 t
+    field_simp
+    ring
+  · exact integrable_fun_const _ 1 fun ω => by
+      have := pow_pos hβ0 t
+      simp only [pk, RefCx.lam, RefCx.pr, claims]
+      field_simp
+  · refine (integrable_zero Ω ℝ S.μ).congr (Eventually.of_forall fun ω => ?_)
+    cases t with
+    | zero => simp [moneyIn]
+    | succ k => simp [moneyIn, RefCx.zp]
+  · simp [RefCx.zp]
+  · simp [RefCx.zp]
+  · have hW : wealthPV S (RefCx.lam β) RefCx.pr 0 RefCx.zp (claims β) T = 1 := by
+      simp only [wealthPV]
+      refine integral_fun_const _ _ fun ω => ?_
+      have hm : moneyIn 0 RefCx.pr RefCx.zp T ω = 0 := by
+        cases T with
+        | zero => rfl
+        | succ k => simp [moneyIn, RefCx.zp]
+      simp only [hm, add_zero, pk, RefCx.lam, RefCx.pr, claims]
+      have := pow_pos hβ0 T
+      field_simp
+    rw [hW]
+    linarith
+
+/-- Cochrane (2023), (19.28), p. 449: in the satiation counterexample the date-0 value of wealth
+is `1` at every date. -/
+theorem wealthPV_sat {β : ℝ} (hβ0 : 0 < β) (T : ℕ) :
+    wealthPV S (RefCx.lam β) RefCx.pr 0 RefCx.zp (claims β) T = 1 := by
+  simp only [wealthPV]
+  refine integral_fun_const _ _ fun ω => ?_
+  have hm : moneyIn 0 RefCx.pr RefCx.zp T ω = 0 := by
+    cases T with
+    | zero => rfl
+    | succ k => simp [moneyIn, RefCx.zp]
+  simp only [hm, add_zero, pk, RefCx.lam, RefCx.pr, claims]
+  have := pow_pos hβ0 T
+  field_simp
+
+end SatCx
+
+open RefCx in
+/-- Cochrane (2023), p. 439 and (19.28), p. 449, **nonsatiation cannot be dropped from the
+transversality theorem.** With constant utility `u ≡ 0`, `Λ_t = βᵗ`, `P_t = 1`, no endowment or
+taxes and initial claims `1`, keeping the unit of wealth for ever (`a_t = 1/βᵗ`) is optimal; every
+hypothesis of `HouseholdMeasureTVC.tvc_of_optimal` other than the normalised first-order condition
+holds (regular prices, all bounds, concavity and monotonicity along the bundle, an admissible
+reference plan, `Con` trivially allowing every deviation), the first-order condition holds with
+the multiplier `λ = 0`, and the transversality condition fails: `E[pk_T(a_T + M_{T−1})] = 1`. -/
+theorem tvc_needs_nonsatiation {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) :
+    Optimal S β (fun _ _ => 0) (fun _ _ => True) (lam β) pr zp zp 0 SatCx.one zp zp
+        (SatCx.claims β) ∧
+      PriceRegular S (lam β) pr ∧ (∀ n, BddAt S (SatCx.claims (Ω := Ω) β n)) ∧
+      (∀ x z : ℝ, ConcaveOn ℝ Set.univ (fun e => (fun _ _ => 0 : ℝ → ℝ → ℝ) (x + e) (z + 0 * e)))
+      ∧ (∀ x z : ℝ, Monotone (fun e => (fun _ _ => 0 : ℝ → ℝ → ℝ) (x + e) (z + 0 * e))) ∧
+      UAdmissible S β (fun n ω => (fun _ _ => 0 : ℝ → ℝ → ℝ)
+        (cRef S 0 (lam β) pr zp zp zp zp n ω) (mRef S 0 (lam β) pr zp zp zp zp n ω)) ∧
+      (∀ T, ∀ᵐ ω ∂S.μ, β ^ T * ((0 : ℝ) + 0 * 0) = 0 * (lam β T ω * wedge S 0 (lam β) pr T ω)) ∧
+      ¬ Tendsto (wealthPV S (lam β) pr 0 zp (SatCx.claims β)) atTop (𝓝 0) := by
+  have hadm0 : ∀ f : ℕ → Ω → ℝ, (∀ n ω, f n ω = 0) → UAdmissible S β f := fun f hf =>
+    UAdmissible.of_bdd hβ0.le hβ1 (fun n => by
+      rw [show f n = fun _ => 0 from funext (hf n)]
+      exact aestronglyMeasurable_const) (K := 0) fun n ω => by rw [hf]; simp
+  refine ⟨⟨SatCx.feasible_sat hβ0, trivial, hadm0 _ fun _ _ => rfl, fun c' m' a' _ _ _ =>
+      le_of_eq rfl⟩,
+    priceRegular_cx hβ0, fun n => bddAt_fun_const _ (1 / β ^ n) fun _ => rfl,
+    fun _ _ => concaveOn_const _ convex_univ,
+    fun _ _ _ _ _ => le_rfl, hadm0 _ fun _ _ => rfl,
+    fun T => Eventually.of_forall fun ω => by ring, fun h => ?_⟩
+  have h1 : Tendsto (wealthPV S (lam β) pr 0 zp (SatCx.claims β)) atTop (𝓝 1) := by
+    have e : wealthPV S (lam β) pr 0 zp (SatCx.claims β) = fun _ => 1 :=
+      funext (SatCx.wealthPV_sat hβ0)
+    rw [e]
+    exact tendsto_const_nhds
+  have := tendsto_nhds_unique h h1
+  norm_num at this
+
+namespace SatCIA
+
+/-- Cochrane (2023), (19.24)–(19.26), p. 448 (counterexample): the constant process `1`
+(consumption, endowment and overnight money). -/
+def onep (_ : ℕ) (_ : Ω) : ℝ := 1
+
+/-- Cochrane (2023), (19.27), p. 449: in the cash-in-advance satiation economy (`V = 1`,
+endowment, consumption and money `1`, initial money and claims `1`), keeping the unit of claims
+for ever is feasible and the date-0 value of wealth is `1 + βᵀ`. -/
+theorem feasible_cia {β : ℝ} (hβ0 : 0 < β) :
+    Feasible S (RefCx.lam β) RefCx.pr onep RefCx.zp SatCx.one SatCx.one onep onep
+      (SatCx.claims β) ∧ ∀ T, wealthPV S (RefCx.lam β) RefCx.pr SatCx.one onep (SatCx.claims β) T
+        = 1 + β ^ T := by
+  have hW : ∀ T, wealthPV S (RefCx.lam β) RefCx.pr SatCx.one onep (SatCx.claims β) T =
+      1 + β ^ T := by
+    intro T
+    simp only [wealthPV]
+    refine integral_fun_const _ _ fun ω => ?_
+    have hm : moneyIn SatCx.one RefCx.pr onep T ω = 1 := by
+      cases T with
+      | zero => rfl
+      | succ k => simp [moneyIn, onep, RefCx.pr]
+    simp only [hm, pk, RefCx.lam, RefCx.pr, SatCx.claims]
+    have := pow_pos hβ0 T
+    field_simp
+  refine ⟨⟨by funext ω; simp [SatCx.claims, SatCx.one], fun _ => stronglyMeasurable_const,
+    fun _ => stronglyMeasurable_const, fun _ => stronglyMeasurable_const,
+    fun t => Eventually.of_forall fun ω => ?_, fun t => ?_, fun t => ?_,
+    fun t => integrable_fun_const _ (β ^ t) fun ω => by simp [RefCx.lam, onep],
+    fun t => integrable_fun_const _ (β ^ t) fun ω => by simp [RefCx.lam, onep],
+    fun δ hδ => Eventually.of_forall fun T => ?_⟩, hW⟩
+  · simp only [claimCost]
+    rw [E_fun_const t (fun ω => pk (RefCx.lam β) RefCx.pr (t + 1) ω * SatCx.claims β (t + 1) ω)
+      1 (by
+        funext ω
+        simp only [pk, RefCx.lam, RefCx.pr, SatCx.claims]
+        have := pow_pos hβ0 (t + 1)
+        field_simp)]
+    have hm : moneyIn SatCx.one RefCx.pr onep t ω = 1 := by
+      cases t with
+      | zero => rfl
+      | succ k => simp [moneyIn, onep, RefCx.pr]
+    simp only [hm, SatCx.claims, pk, RefCx.lam, RefCx.pr, RefCx.zp, onep]
+    have := pow_pos hβ0 t
+    field_simp
+    ring
+  · exact integrable_fun_const _ 1 fun ω => by
+      have := pow_pos hβ0 t
+      simp only [pk, RefCx.lam, RefCx.pr, SatCx.claims]
+      field_simp
+  · refine integrable_fun_const _ (β ^ t) fun ω => ?_
+    cases t with
+    | zero => simp [moneyIn, pk, RefCx.lam, RefCx.pr, SatCx.one]
+    | succ k => simp [moneyIn, pk, RefCx.lam, RefCx.pr, onep]
+  · rw [hW]
+    have := pow_pos hβ0 T
+    linarith
+
+end SatCIA
+
+open RefCx SatCx SatCIA in
+/-- Cochrane (2023), (19.28), p. 449, **`u' > 0` cannot be dropped from the cash-in-advance
+transversality theorem.** For `0 < β < 1`, velocity `V = 1`, utility `u ≡ 0`, state prices
+`Λ_t = βᵗ`, price level `1`, endowment, consumption and overnight money `1`, no taxes, initial
+money and claims `1` and claims `a_t = 1/βᵗ`: the plan is optimal in the cash-in-advance problem
+(`CashInAdvanceMeasure.CIAOptimal`), and every hypothesis of
+`CashInAdvanceMeasureTVC.tvc_necessary` holds — regular prices, all per-date bounds, overnight
+money at least `1`, `Q_t = β ≤ 1`, an admissible reference plan with nonnegative money, `u`
+concave and increasing with continuous derivative `0` — except `u' > 0` and the normalisation
+`Λ_0w_0 = u'(c_0)`; and the transversality condition fails: `E[pk_T(a_T + M_{T−1})] = 1 + βᵀ`. -/
+theorem cia_needs_nonsatiation {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) :
+    CashInAdvanceMeasure.CIAOptimal S β (fun _ => 0) 1 (lam β) pr onep zp SatCx.one SatCx.one
+        onep onep (SatCx.claims β) ∧
+      (∀ x : ℝ, HasDerivAt (fun _ => (0 : ℝ)) 0 x) ∧ ConcaveOn ℝ Set.univ (fun _ : ℝ => (0 : ℝ))
+      ∧ Monotone (fun _ : ℝ => (0 : ℝ)) ∧ PriceRegular S (lam β) pr ∧
+      (∀ n, BddAt S (onep (Ω := Ω) n)) ∧ (∀ n, BddAt S (SatCx.claims (Ω := Ω) β n)) ∧
+      (∀ n, BddAt S (zp (Ω := Ω) n)) ∧ (∀ t, ∀ᵐ ω ∂S.μ, (1 : ℝ) ≤ onep t ω) ∧
+      (∀ t, ∀ᵐ ω ∂S.μ, bondPrice S (lam β) pr t ω ≤ 1) ∧
+      UAdmissible S β (fun n ω => (fun _ : ℝ => (0 : ℝ)) (cRef S (1 / 1 - 1) (lam β) pr onep zp
+        onep onep n ω)) ∧
+      (∀ n, ∀ᵐ ω ∂S.μ, 0 ≤ mRef S (1 / 1 - 1) (lam β) pr onep zp onep onep n ω) ∧
+      ¬ Tendsto (wealthPV S (lam β) pr SatCx.one onep (SatCx.claims β)) atTop (𝓝 0) := by
+  obtain ⟨hF, hW⟩ := feasible_cia (S := S) hβ0
+  have hadm0 : ∀ f : ℕ → Ω → ℝ, (∀ n ω, f n ω = 0) → UAdmissible S β f := fun f hf =>
+    UAdmissible.of_bdd hβ0.le hβ1 (fun n => by
+      rw [show f n = fun _ => 0 from funext (hf n)]
+      exact aestronglyMeasurable_const) (K := 0) fun n ω => by rw [hf]; simp
+  refine ⟨⟨hF, fun t => Eventually.of_forall fun ω => ⟨by simp [onep], by simp [onep]⟩,
+      hadm0 _ fun _ _ => rfl, fun c' m' a' _ _ _ => le_of_eq rfl⟩,
+    fun x => hasDerivAt_const x 0, concaveOn_const _ convex_univ, fun _ _ _ => le_rfl,
+    priceRegular_cx hβ0, fun _ => BddAt.const _, fun n => bddAt_fun_const _ (1 / β ^ n)
+      fun _ => rfl, fun _ => BddAt.const _, fun t => Eventually.of_forall fun ω => le_rfl,
+    fun t => Eventually.of_forall fun ω => by rw [bondPrice_cx hβ0]; exact hβ1.le,
+    hadm0 _ fun _ _ => rfl, fun n => Eventually.of_forall fun ω => by simp [mRef, onep], ?_⟩
+  intro h
+  have h1 : Tendsto (wealthPV S (lam β) pr SatCx.one onep (SatCx.claims β)) atTop (𝓝 1) := by
+    have e : wealthPV S (lam β) pr SatCx.one onep (SatCx.claims β) = fun T => 1 + β ^ T :=
+      funext hW
+    rw [e]
+    simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hβ0.le hβ1).const_add 1
+  have := tendsto_nhds_unique h h1
+  norm_num at this
+
+end Cochrane.Monetarism.TidyR6HouseholdTVCCx
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Necessity of the transversality condition without boundedness
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, p. 439 ("their optimal
+choices include transversality conditions") and (19.28), p. 449, on a probability space. The
+earlier theorem `HouseholdMeasureTVC.tvc_of_optimal` assumed regular prices, consumption, real
+balances, claims, endowment and taxes bounded at each date, and the normalised first-order
+condition `βᵀ(u_c + ϑu_m) = Λ_Tw_T`. Here none of the bounds is needed.
+
+## The Kamihigashi deviation as an increment
+
+`kdc`, `kda`: from date `T` on, the household consumes the freed wealth `x_T = k_T/w_T` at `T`
+(`kx`; `k_T` is `HouseholdMeasureTVC.kOut`) along the bundle `(1, ϑ)` and moves `(c, m)` to the
+reference plan `(cRef, mRef)` after `T`, financing it by bringing only part of its wealth into each
+later date; scaled by `θ`, the deviated plan keeps the fraction `1 − θ` of wealth
+(`flow_kd`, `kam_feasible_w`, `wealthPV_kd`). Its feasibility uses only integrability.
+
+## Main results
+
+* `concave_chord`, `concave_slope_anti`: chords and slopes of a concave function.
+* `lam_kOut`: `E[Λ_Tk_T] = E[pk_{T+1}(a_{T+1} + M_T)]` under `PriceWeak`, with `Λ_Tk_T`
+  integrable.
+* **`tvc_general`**: at an optimum, if utility is concave and increasing along the bundle,
+  differentiable along it at the plan, the first-order condition `βᵀ(u_c + ϑu_m) = λΛ_Tw_T` holds
+  with a constant `λ > 0`, the reference plan is admissible and has finite cost, and a Kamihigashi
+  step of size `θ₀` has integrable utility at each date, then `E[pk_T(a_T + M_{T−1})] → 0`. No
+  bound on prices, consumption, real balances, claims, endowment or taxes. The proof bounds the
+  utility gain of the date-`T` step by monotone convergence of concave difference quotients, so
+  no differentiation under the integral sign is needed.
+* `integrable_pk_succ_mul`: with `Q_n ≤ 1`, `Λ_ng` integrable implies `pk_{n+1}P_ng` integrable
+  (truncation, pull-out and Fatou).
+* `miu_tvc`: for the money-in-utility household (`ϑ = 0`) with a utility `C¹` on an open domain,
+  concave and increasing in consumption along every whole line `e ↦ u(x + e, z)` in `ℝ²` (so `u`
+  must be concave outside the domain too; `TidyR6HouseholdTVCDom.miu_tvc_dom` removes this), and
+  `u_c > 0` at date `0`, the multiplier and all the integrability conditions are derived; what
+  remains is the admissible reference plan (which
+  `TidyR6HouseholdTVCCx.tvc_needs_reference` shows cannot be dropped), the integrability of a
+  Kamihigashi step and the domain allowing the deviations.
+* `cia_tvc`: for the cash-in-advance household, the multiplier, `λ > 0`, `Q_t ≤ 1`, the bound
+  `w_t ≥ min(1, 1/V)` and all the integrability conditions are derived; no bounds, no `Q ≤ 1`,
+  overnight money only positive (not bounded away from zero), no normalisation.
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdTVC
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+  HouseholdMeasureTVC TidyR6HouseholdRoll TidyR6HouseholdSuff
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### The Kamihigashi increment -/
+
+variable (S) in
+/-- Cochrane (2023), (19.28), p. 449: the freed wealth per unit of bundle cost, `x_T = k_T/w_T`. -/
+noncomputable def kx (ϑ : ℝ) (Λ P a m : ℕ → Ω → ℝ) (T : ℕ) (ω : Ω) : ℝ :=
+  kOut S Λ P a m T ω / wedge S ϑ Λ P T ω
+
+variable (S) in
+/-- Cochrane (2023), p. 439 (the Kamihigashi deviation, per unit of `θ`): the change in
+consumption: nothing before `T`, `x_T` at `T`, `cRef − c` after `T`. Real balances change by `ϑ`
+times it. -/
+noncomputable def kdc (ϑ : ℝ) (Λ P y s a c m : ℕ → Ω → ℝ) (T : ℕ) : ℕ → Ω → ℝ :=
+  fun n ω => if n < T then 0 else if n = T then kx S ϑ Λ P a m T ω
+    else cRef S ϑ Λ P y s c m n ω - c n ω
+
+variable (S) in
+/-- Cochrane (2023), p. 439 (the Kamihigashi deviation, per unit of `θ`): the change in claims:
+nothing up to `T`, then minus the wealth `a_n + M_{n−1}` and minus the extra money carried in. -/
+noncomputable def kda (ϑ : ℝ) (Λ P y s a c m : ℕ → Ω → ℝ) (N0 : Ω → ℝ) (T : ℕ) :
+    ℕ → Ω → ℝ :=
+  fun n ω => if n ≤ T then 0 else -(a n ω + moneyIn N0 P m n ω) -
+    moneyIn 0 P (fun k ω => ϑ * kdc S ϑ Λ P y s a c m T k ω) n ω
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), p. 439: the extra money brought into `n` by the increment. -/
+theorem moneyIn_kd (ϑ : ℝ) (P : ℕ → Ω → ℝ) (d : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    moneyIn 0 P (fun k ω => ϑ * d k ω) n ω =
+      if n = 0 then 0 else P (n - 1) ω * (ϑ * d (n - 1) ω) := by
+  cases n with
+  | zero => simp [moneyIn]
+  | succ k => simp [moneyIn]
+
+/-- Cochrane (2023), p. 439: the freed wealth per unit of bundle cost is known at `T`. -/
+theorem sm_kx {ϑ : ℝ} {Λ P a m : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    (hma : StronglyAdapted S.𝓕 m) (T : ℕ) : StronglyMeasurable[S.𝓕 T] (kx S ϑ Λ P a m T) := by
+  have hcc : StronglyMeasurable[S.𝓕 T] (claimCost S Λ P a T) :=
+    ((S.stronglyMeasurable_E T _).measurable.div (hp.sm_pk T).measurable).stronglyMeasurable
+  have hw : StronglyMeasurable[S.𝓕 T] (wedge S ϑ Λ P T) :=
+    stronglyMeasurable_const.add ((hp.sm_iota T).const_mul ϑ)
+  exact ((((hcc.add ((hp.sm_bondPrice T).mul ((hp.2.1 T).mul (hma T)))).measurable.div
+    (hp.2.1 T).measurable)).div hw.measurable).stronglyMeasurable
+
+/-- Cochrane (2023), p. 439: the reference consumption is known at each date. -/
+theorem sm_cRef {ϑ : ℝ} {Λ P y s c m : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s) (hca : StronglyAdapted S.𝓕 c)
+    (hma : StronglyAdapted S.𝓕 m) (n : ℕ) :
+    StronglyMeasurable[S.𝓕 n] (cRef S ϑ Λ P y s c m n) := by
+  have hw : StronglyMeasurable[S.𝓕 n] (wedge S ϑ Λ P n) :=
+    stronglyMeasurable_const.add ((hp.sm_iota n).const_mul ϑ)
+  exact ((hca n).add (((((hya n).sub (hsa n)).sub (hca n)).sub
+    ((hp.sm_iota n).mul (hma n))).measurable.div hw.measurable).stronglyMeasurable)
+
+/-- Cochrane (2023), p. 439: the consumption increment is adapted. -/
+theorem sm_kdc {ϑ : ℝ} {Λ P y s a c m : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P)
+    (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s) (hca : StronglyAdapted S.𝓕 c)
+    (hma : StronglyAdapted S.𝓕 m) (T n : ℕ) :
+    StronglyMeasurable[S.𝓕 n] (kdc S ϑ Λ P y s a c m T n) := by
+  by_cases h1 : n < T
+  · have e : kdc S ϑ Λ P y s a c m T n = fun _ => 0 := by funext ω; simp [kdc, h1]
+    rw [e]
+    exact stronglyMeasurable_const
+  · by_cases h2 : n = T
+    · subst h2
+      have e : kdc S ϑ Λ P y s a c m n n = kx S ϑ Λ P a m n := by funext ω; simp [kdc]
+      rw [e]
+      exact sm_kx hp hma n
+    · have e : kdc S ϑ Λ P y s a c m T n = fun ω => cRef S ϑ Λ P y s c m n ω - c n ω := by
+        funext ω
+        simp [kdc, h1, h2]
+      rw [e]
+      exact (sm_cRef hp hya hsa hca hma n).sub (hca n)
+
+/-- Cochrane (2023), (19.12), p. 439 and (19.28), p. 449 (`HouseholdMeasureTVC.pv_wealth_next`
+under `PriceWeak`): for a feasible plan `Λ_Tk_T` is integrable and
+`E[Λ_Tk_T] = E[pk_{T+1}(a_{T+1} + M_T)]`. -/
+theorem lam_kOut {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hf : Feasible S Λ P y s N0 a0 c m a) (T : ℕ) :
+    Integrable (fun ω => Λ T ω * kOut S Λ P a m T ω) S.μ ∧
+      ∫ ω, Λ T ω * kOut S Λ P a m T ω ∂S.μ = wealthPV S Λ P N0 m a (T + 1) := by
+  have hia := hf.2.2.2.2.2.1
+  have hiN := hf.2.2.2.2.2.2.1
+  have hzm : StronglyMeasurable[S.𝓕 T] (fun ω => P T ω * m T ω) := (hp.2.1 T).mul (hf.2.2.1 T)
+  have hNi : Integrable ((fun ω => P T ω * m T ω) * pk Λ P (T + 1)) S.μ :=
+    (hiN (T + 1)).congr (Eventually.of_forall fun ω => by simp only [moneyIn, Pi.mul_apply]; ring)
+  have hpull := condExp_mul_of_stronglyMeasurable_left (μ := S.μ) (m := S.𝓕 T) hzm hNi
+    (hp.2.2.2.2 (T + 1))
+  have e : (fun ω => Λ T ω * kOut S Λ P a m T ω) = fun ω =>
+      S.E T (fun ω => pk Λ P (T + 1) ω * a (T + 1) ω) ω +
+        (P T ω * m T ω) * S.E T (pk Λ P (T + 1)) ω := by
+    funext ω
+    have h1 := (hp.pk_pos T ω).ne'
+    have h2 := (hp.2.2.2.1 T ω).ne'
+    rw [hp.E_pk_eq T ω, ← hp.pk_mul_P T ω]
+    simp only [kOut, claimCost]
+    field_simp
+  have i2 : Integrable (fun ω => (P T ω * m T ω) * S.E T (pk Λ P (T + 1)) ω) S.μ :=
+    integrable_condExp.congr hpull
+  refine ⟨by rw [e]; exact (S.integrable_E T _).add i2, ?_⟩
+  rw [e, integral_add (S.integrable_E T _) i2, S.integral_E]
+  have h3 : ∫ ω, (P T ω * m T ω) * S.E T (pk Λ P (T + 1)) ω ∂S.μ =
+      ∫ ω, (P T ω * m T ω) * pk Λ P (T + 1) ω ∂S.μ := by
+    have := integral_congr_ae hpull
+    rw [integral_condExp (S.𝓕.le T)] at this
+    exact this.symm
+  have hNi' : Integrable (fun ω => (P T ω * m T ω) * pk Λ P (T + 1) ω) S.μ := hNi
+  rw [h3, ← integral_add (hia (T + 1)) hNi']
+  exact integral_congr_ae (Eventually.of_forall fun ω => by
+    simp only [moneyIn]
+    ring)
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), (19.10), p. 439: dividing the value of the claims by `pk_t`,
+`(−A − X(Qk))/k = −A/k − XQ` for `k ≠ 0`. -/
+theorem div_split {A X Q k : ℝ} (hk : k ≠ 0) : (-A - X * (Q * k)) / k = -(A / k) - X * Q := by
+  field_simp
+
+/-- Cochrane (2023), (19.10), p. 439: the date-`n` value of the claims of the increment maturing
+at `n + 1`, for `n ≥ T`:
+`E_n[pk_{n+1}da_{n+1}] = −E_n[pk_{n+1}a_{n+1}] − (P_nm_n + P_nϑdc_n)E_n[pk_{n+1}]`
+almost surely (pull-out with integrability only). -/
+theorem E_pk_kda {ϑ : ℝ} {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hf : Feasible S Λ P y s N0 a0 c m a) (hya : StronglyAdapted S.𝓕 y)
+    (hsa : StronglyAdapted S.𝓕 s) {T n : ℕ} (hn : T ≤ n)
+    (hIM : Integrable (fun ω => pk Λ P (n + 1) ω *
+      (P n ω * (ϑ * kdc S ϑ Λ P y s a c m T n ω))) S.μ) :
+    ∀ᵐ ω ∂S.μ, S.E n (fun ω => pk Λ P (n + 1) ω * kda S ϑ Λ P y s a c m N0 T (n + 1) ω) ω =
+      -(S.E n (fun ω => pk Λ P (n + 1) ω * a (n + 1) ω) ω) -
+        (P n ω * m n ω + P n ω * (ϑ * kdc S ϑ Λ P y s a c m T n ω)) *
+          S.E n (pk Λ P (n + 1)) ω := by
+  have hia := hf.2.2.2.2.2.1
+  have hiN := hf.2.2.2.2.2.2.1
+  set f : Ω → ℝ := fun ω => P n ω * m n ω + P n ω * (ϑ * kdc S ϑ Λ P y s a c m T n ω) with hfdef
+  have hfm : StronglyMeasurable[S.𝓕 n] f := ((hp.2.1 n).mul (hf.2.2.1 n)).add
+    ((hp.2.1 n).mul ((sm_kdc hp hya hsa hf.2.1 hf.2.2.1 T n).const_mul ϑ))
+  have hfi : Integrable (f * pk Λ P (n + 1)) S.μ := by
+    have h1 : Integrable (fun ω => pk Λ P (n + 1) ω * moneyIn N0 P m (n + 1) ω) S.μ := hiN (n + 1)
+    refine (h1.add hIM).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply, Pi.mul_apply, moneyIn, hfdef]
+    ring
+  have e : (fun ω => pk Λ P (n + 1) ω * kda S ϑ Λ P y s a c m N0 T (n + 1) ω) =
+      -(fun ω => pk Λ P (n + 1) ω * a (n + 1) ω) - f * pk Λ P (n + 1) := by
+    funext ω
+    simp only [kda, show ¬ n + 1 ≤ T by omega, ↓reduceIte, moneyIn, Pi.sub_apply, Pi.neg_apply,
+      Pi.mul_apply, hfdef]
+    ring
+  have hpull := condExp_mul_of_stronglyMeasurable_left (μ := S.μ) (m := S.𝓕 n) hfm hfi
+    (hp.2.2.2.2 (n + 1))
+  rw [e]
+  filter_upwards [S.E_sub (hia (n + 1)).neg hfi n, hpull,
+    condExp_neg (μ := S.μ) (fun ω => pk Λ P (n + 1) ω * a (n + 1) ω) (S.𝓕 n)] with ω h1 h2 h3
+  rw [h1, Pi.sub_apply]
+  change S.μ[-(fun ω => pk Λ P (n + 1) ω * a (n + 1) ω) | S.𝓕 n] ω -
+    S.μ[f * pk Λ P (n + 1) | S.𝓕 n] ω = _
+  rw [h3, h2, Pi.neg_apply, Pi.mul_apply]
+
+/-- Cochrane (2023), (19.10), p. 439 and p. 439 ("their optimal choices include transversality
+conditions"), **the Kamihigashi increment satisfies the homogeneous flow constraint**, almost
+surely at every date, for a feasible plan, `PriceWeak` prices, adapted endowment and taxes,
+nonzero bundle costs, and integrable money values of the increment. No bounds. -/
+theorem flow_kd {ϑ : ℝ} {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hf : Feasible S Λ P y s N0 a0 c m a) (hya : StronglyAdapted S.𝓕 y)
+    (hsa : StronglyAdapted S.𝓕 s) (hw : ∀ n, ∀ᵐ ω ∂S.μ, wedge S ϑ Λ P n ω ≠ 0) (T : ℕ)
+    (hIM : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+      (P n ω * (ϑ * kdc S ϑ Λ P y s a c m T n ω))) S.μ) :
+    Flow S Λ P 0 0 0 (kdc S ϑ Λ P y s a c m T) (fun n ω => ϑ * kdc S ϑ Λ P y s a c m T n ω)
+      (kda S ϑ Λ P y s a c m N0 T) := by
+  have hflow := hf.2.2.2.2.1
+  intro n
+  rcases lt_trichotomy n T with h | h | h
+  · -- before `T` nothing changes
+    have e1 : (fun ω => pk Λ P (n + 1) ω * kda S ϑ Λ P y s a c m N0 T (n + 1) ω) = 0 := by
+      funext ω
+      simp [kda, show n + 1 ≤ T by omega]
+    refine Eventually.of_forall fun ω => ?_
+    rw [show claimCost S Λ P (kda S ϑ Λ P y s a c m N0 T) n ω = S.E n (fun ω => pk Λ P (n + 1) ω *
+      kda S ϑ Λ P y s a c m N0 T (n + 1) ω) ω / pk Λ P n ω from rfl, e1, S.E_zero, moneyIn_kd]
+    have hk : ∀ k, k < T → kdc S ϑ Λ P y s a c m T k ω = 0 := fun k hk => by simp [kdc, hk]
+    simp only [kda, show n ≤ T by omega, ↓reduceIte, hk n h, Pi.zero_apply]
+    split_ifs with h0
+    · simp
+    · rw [hk (n - 1) (by omega)]
+      simp
+  · -- the date of the deviation
+    subst h
+    filter_upwards [E_pk_kda (N0 := N0) hp hf hya hsa le_rfl (hIM n), hw n] with ω h1 hwn
+    rw [show claimCost S Λ P (kda S ϑ Λ P y s a c m N0 n) n ω = S.E n (fun ω => pk Λ P (n + 1) ω *
+      kda S ϑ Λ P y s a c m N0 n (n + 1) ω) ω / pk Λ P n ω from rfl, h1, moneyIn_kd,
+      hp.E_pk_eq n ω]
+    have hk : ∀ k, k < n → kdc S ϑ Λ P y s a c m n k ω = 0 := fun k hk => by simp [kdc, hk]
+    have hkn : kdc S ϑ Λ P y s a c m n n ω = kx S ϑ Λ P a m n ω := by simp [kdc]
+    have hkx : kx S ϑ Λ P a m n ω * wedge S ϑ Λ P n ω = kOut S Λ P a m n ω :=
+      div_mul_cancel₀ _ hwn
+    have hpk := (hp.pk_pos n ω).ne'
+    have hP := (hp.2.2.2.1 n ω).ne'
+    have hkO : kOut S Λ P a m n ω * P n ω = S.E n (fun ω => pk Λ P (n + 1) ω * a (n + 1) ω) ω /
+        pk Λ P n ω + bondPrice S Λ P n ω * (P n ω * m n ω) := by
+      simp only [kOut, claimCost]
+      field_simp
+    have hw' : wedge S ϑ Λ P n ω = 1 + ϑ * (1 - bondPrice S Λ P n ω) := rfl
+    rw [div_split hpk]
+    rw [← hkx, hw'] at hkO
+    simp only [kda, le_refl, ↓reduceIte, hkn, Pi.zero_apply]
+    split_ifs with h0
+    · linear_combination (-1 : ℝ) * hkO
+    · rw [hk (n - 1) (by omega)]
+      linear_combination (-1 : ℝ) * hkO
+  · -- after the deviation
+    filter_upwards [E_pk_kda (N0 := N0) hp hf hya hsa h.le (hIM n), hw n, hflow n] with
+      ω h1 hwn hfl
+    rw [show claimCost S Λ P (kda S ϑ Λ P y s a c m N0 T) n ω = S.E n (fun ω => pk Λ P (n + 1) ω *
+      kda S ϑ Λ P y s a c m N0 T (n + 1) ω) ω / pk Λ P n ω from rfl, h1, moneyIn_kd,
+      hp.E_pk_eq n ω]
+    have hkn : kdc S ϑ Λ P y s a c m T n ω = cRef S ϑ Λ P y s c m n ω - c n ω := by
+      simp [kdc, show ¬ n < T by omega, show n ≠ T by omega]
+    have hd : (cRef S ϑ Λ P y s c m n ω - c n ω) * wedge S ϑ Λ P n ω =
+        y n ω - s n ω - c n ω - iota S Λ P n ω * m n ω := by
+      simp only [cRef, add_sub_cancel_left]
+      exact div_mul_cancel₀ _ hwn
+    have hpk := (hp.pk_pos n ω).ne'
+    have hw' : wedge S ϑ Λ P n ω = 1 + ϑ * (1 - bondPrice S Λ P n ω) := rfl
+    have hι : iota S Λ P n ω = 1 - bondPrice S Λ P n ω := rfl
+    simp only [claimCost] at hfl
+    rw [div_split hpk]
+    simp only [kda, show ¬ n ≤ T by omega, ↓reduceIte, hkn, Pi.zero_apply,
+      show n ≠ 0 by omega, moneyIn_kd]
+    rw [hw', hι] at hd
+    linear_combination (-1 : ℝ) * hfl + (-P n ω) * hd
+
+/-- Cochrane (2023), (19.28), p. 449: after `T` the increment removes the whole wealth:
+`E[pk_n(da_n + dM_{n−1})] = −E[pk_n(a_n + M_{n−1})]` for `n > T`. -/
+theorem wealthPV_kd {ϑ : ℝ} {Λ P y s : ℕ → Ω → ℝ} {N0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ} {T n : ℕ}
+    (hn : T < n) :
+    wealthPV S Λ P 0 (fun k ω => ϑ * kdc S ϑ Λ P y s a c m T k ω) (kda S ϑ Λ P y s a c m N0 T) n =
+      -wealthPV S Λ P N0 m a n := by
+  simp only [wealthPV]
+  rw [← integral_neg]
+  refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
+  simp only [kda, show ¬ n ≤ T by omega, ↓reduceIte]
+  ring
+
+/-- Cochrane (2023), (19.10), p. 439 and p. 439 ("their optimal choices include transversality
+conditions"), **the Kamihigashi deviation is feasible without bounds**: for a feasible plan,
+`PriceWeak` prices, adapted endowment and taxes, nonzero bundle costs, and integrable values
+`Λ_n dc_n` and `pk_{n+1}P_nϑdc_n` of the increment, the plan `(c + θdc, m + θϑdc, a + θda)` is
+feasible for every `0 ≤ θ ≤ 1`; it keeps the fraction `1 − θ` of the date-0 value of wealth after
+`T`. -/
+theorem kam_feasible_w {ϑ : ℝ} {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hf : Feasible S Λ P y s N0 a0 c m a) (hya : StronglyAdapted S.𝓕 y)
+    (hsa : StronglyAdapted S.𝓕 s) (hw : ∀ n, ∀ᵐ ω ∂S.μ, wedge S ϑ Λ P n ω ≠ 0) (T : ℕ)
+    (hIC : ∀ n, Integrable (fun ω => Λ n ω * kdc S ϑ Λ P y s a c m T n ω) S.μ)
+    (hIM : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+      (P n ω * (ϑ * kdc S ϑ Λ P y s a c m T n ω))) S.μ) {θ : ℝ} (h0 : 0 ≤ θ) (h1 : θ ≤ 1) :
+    Feasible S Λ P y s N0 a0 (fun n ω => c n ω + θ * kdc S ϑ Λ P y s a c m T n ω)
+      (fun n ω => m n ω + θ * (ϑ * kdc S ϑ Λ P y s a c m T n ω))
+      (fun n ω => a n ω + θ * kda S ϑ Λ P y s a c m N0 T n ω) := by
+  obtain ⟨ha0, hca, hma, haa, hflow, hia, hiN, him, hic, hnp⟩ := hf
+  have hf : Feasible S Λ P y s N0 a0 c m a := ⟨ha0, hca, hma, haa, hflow, hia, hiN, him, hic, hnp⟩
+  have hdc := sm_kdc (ϑ := ϑ) (a := a) (T := T) hp hya hsa hca hma
+  -- the claims of the increment
+  have hdaN : ∀ n, Integrable (fun ω => pk Λ P n ω *
+      moneyIn 0 P (fun k ω => ϑ * kdc S ϑ Λ P y s a c m T k ω) n ω) S.μ := by
+    intro n
+    cases n with
+    | zero => simp [moneyIn]
+    | succ k => simpa [moneyIn] using hIM k
+  have hdia : ∀ n, Integrable (fun ω => pk Λ P n ω * kda S ϑ Λ P y s a c m N0 T n ω) S.μ := by
+    intro n
+    by_cases hn : n ≤ T
+    · simp [kda, hn]
+    · refine ((((hia n).add (hiN n)).neg).sub (hdaN n)).congr (Eventually.of_forall fun ω => ?_)
+      simp only [kda, hn, ↓reduceIte, Pi.sub_apply, Pi.neg_apply, Pi.add_apply]
+      ring
+  have hdam : StronglyAdapted S.𝓕 (kda S ϑ Λ P y s a c m N0 T) := by
+    intro n
+    by_cases hn : n ≤ T
+    · have e : kda S ϑ Λ P y s a c m N0 T n = fun _ => 0 := by funext ω; simp [kda, hn]
+      rw [e]
+      exact stronglyMeasurable_const
+    · obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
+      have e : kda S ϑ Λ P y s a c m N0 T (k + 1) = fun ω => -(a (k + 1) ω + P k ω * m k ω) -
+          P k ω * (ϑ * kdc S ϑ Λ P y s a c m T k ω) := by
+        funext ω
+        simp [kda, hn, moneyIn]
+      rw [e]
+      have hle : S.𝓕 k ≤ S.𝓕 (k + 1) := S.𝓕.mono (Nat.le_succ k)
+      exact ((haa (k + 1)).add (((hp.2.1 k).mul (hma k)).mono hle)).neg.sub
+        (((hp.2.1 k).mul ((hdc k).const_mul ϑ)).mono hle)
+  refine ⟨?_, fun n => (hca n).add ((hdc n).const_mul θ),
+    fun n => (hma n).add (((hdc n).const_mul ϑ).const_mul θ),
+    fun n => (haa n).add ((hdam n).const_mul θ),
+    flow_add hp hflow (flow_kd hp hf hya hsa hw T hIM) hia hdia θ, fun n => ?_, fun n => ?_,
+    fun n => ?_, fun n => ?_, fun δ hδ => ?_⟩
+  · funext ω
+    simp [kda, ← ha0]
+  · refine ((hia n).add ((hdia n).const_mul θ)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · refine ((hiN n).add ((hdaN n).const_mul θ)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply, moneyIn_add]
+    ring
+  · refine ((him n).add (((hIC n).const_mul ϑ).const_mul θ)).congr
+      (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · refine ((hic n).add ((hIC n).const_mul θ)).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.add_apply]
+    ring
+  · filter_upwards [hnp δ hδ, eventually_gt_atTop T] with n h1' hn
+    rw [wealthPV_add (hia n) (hiN n) (hdia n) (hdaN n) θ, wealthPV_kd hn]
+    nlinarith
+
+/-- Cochrane (2023), (19.15), p. 441 (`Q_t ≤ 1`: a dollar tomorrow is worth at most a dollar
+today): if `g` is known at `n`, `Λ_ng` is integrable and `Q_n ≤ 1`, then the date-0 value of the
+money `P_ng` carried into `n + 1`, `pk_{n+1}P_ng`, is integrable. Truncation, the pull-out
+property and Fatou's lemma: `E|pk_{n+1}P_ng| = E[Q_nΛ_n|g|] ≤ E|Λ_ng|`. -/
+theorem integrable_pk_succ_mul {Λ P : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P) {n : ℕ} {g : Ω → ℝ}
+    (hg : StronglyMeasurable[S.𝓕 n] g) (hgi : Integrable (fun ω => Λ n ω * g ω) S.μ)
+    (hQ : ∀ᵐ ω ∂S.μ, bondPrice S Λ P n ω ≤ 1) :
+    Integrable (fun ω => pk Λ P (n + 1) ω * (P n ω * g ω)) S.μ := by
+  set h : Ω → ℝ := fun ω => P n ω * g ω with hhdef
+  have hhm : StronglyMeasurable[S.𝓕 n] h := (hp.2.1 n).mul hg
+  set cl : ℕ → Ω → ℝ := fun k ω => max (min (h ω) k) (-k) with hcl
+  have hclm : ∀ k : ℕ, StronglyMeasurable[S.𝓕 n] (cl k) := fun k =>
+    ((hhm.measurable.min measurable_const).max measurable_const).stronglyMeasurable
+  have hclb : ∀ (k : ℕ) ω, |cl k ω| ≤ k := fun k ω => by
+    simp only [hcl]
+    rw [abs_le]
+    constructor
+    · exact le_max_right _ _
+    · exact max_le (min_le_right _ _) (by linarith [k.cast_nonneg (α := ℝ)])
+  have hcl_le : ∀ (k : ℕ) ω, |cl k ω| ≤ |h ω| := fun k ω => by
+    simp only [hcl]
+    rw [abs_le]
+    constructor
+    · have := neg_abs_le (h ω)
+      have h1 : -|h ω| ≤ min (h ω) k := le_min this (by
+        linarith [abs_nonneg (h ω), k.cast_nonneg (α := ℝ)])
+      exact h1.trans (le_max_left _ _)
+    · exact max_le ((min_le_left _ _).trans (le_abs_self _)) (by
+        linarith [abs_nonneg (h ω), k.cast_nonneg (α := ℝ)])
+  have hcl_ev : ∀ ω, ∀ᶠ k : ℕ in atTop, cl k ω = h ω := fun ω => by
+    filter_upwards [eventually_ge_atTop ⌈|h ω|⌉₊] with k hk
+    have hk' : |h ω| ≤ k := (Nat.le_ceil _).trans (by exact_mod_cast hk)
+    rw [abs_le] at hk'
+    simp only [hcl, min_eq_left hk'.2, max_eq_left hk'.1]
+  have hpk1 := hp.2.2.2.2 (n + 1)
+  have hGi : ∀ k : ℕ, Integrable (fun ω => pk Λ P (n + 1) ω * cl k ω) S.μ := fun k =>
+    hpk1.mul_bdd ((hclm k).mono (S.𝓕.le n)).aestronglyMeasurable
+      (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact hclb k ω)
+  -- `Q` lies in `[0, 1]`
+  have hQ0 : ∀ᵐ ω ∂S.μ, 0 ≤ S.E n (pk Λ P (n + 1)) ω :=
+    condExp_nonneg (Eventually.of_forall fun ω => (hp.pk_pos (n + 1) ω).le)
+  have hbound : ∀ k : ℕ, ∫ ω, ‖pk Λ P (n + 1) ω * cl k ω‖ ∂S.μ ≤
+      ∫ ω, ‖Λ n ω * g ω‖ ∂S.μ := by
+    intro k
+    have e1 : ∫ ω, ‖pk Λ P (n + 1) ω * cl k ω‖ ∂S.μ =
+        ∫ ω, |cl k ω| * pk Λ P (n + 1) ω ∂S.μ := by
+      refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
+      simp only
+      rw [Real.norm_eq_abs, abs_mul, abs_of_pos (hp.pk_pos (n + 1) ω), mul_comm]
+    have hz : StronglyMeasurable[S.𝓕 n] (fun ω => |cl k ω|) :=
+      (continuous_abs.measurable.comp (hclm k).measurable).stronglyMeasurable
+    rw [e1, integral_mul_E hz (K := k) (Eventually.of_forall fun ω => by
+      rw [abs_abs]; exact hclb k ω) hpk1]
+    refine integral_mono_ae ?_ hgi.norm ?_
+    · exact (S.integrable_E n (pk Λ P (n + 1))).bdd_mul (c := k)
+        ((hz.mono (S.𝓕.le n)).aestronglyMeasurable)
+        (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs, abs_abs]; exact hclb k ω)
+    · filter_upwards [hQ, hQ0] with ω h1 h2
+      have hk := (hp.pk_pos n ω)
+      have hEq := hp.E_pk_eq n ω
+      have hΛ : Λ n ω * g ω = pk Λ P n ω * h ω := by
+        rw [← hp.pk_mul_P n ω]
+        simp only [hhdef]
+        ring
+      rw [Real.norm_eq_abs, hΛ, abs_mul, abs_of_pos hk, hEq]
+      have hQ0' : 0 ≤ bondPrice S Λ P n ω := by
+        rw [hEq] at h2
+        exact nonneg_of_mul_nonneg_left h2 hk
+      calc |cl k ω| * (bondPrice S Λ P n ω * pk Λ P n ω)
+          ≤ |h ω| * (1 * pk Λ P n ω) := mul_le_mul (hcl_le k ω)
+            (mul_le_mul_of_nonneg_right h1 hk.le) (by positivity) (abs_nonneg _)
+        _ = pk Λ P n ω * |h ω| := by ring
+  refine ⟨(hpk1.aestronglyMeasurable.mul ((hhm.mono (S.𝓕.le n)).aestronglyMeasurable)), ?_⟩
+  rw [hasFiniteIntegral_iff_enorm]
+  have hfatou := lintegral_liminf_le' (μ := S.μ) (u := atTop)
+    (f := fun (k : ℕ) ω => ‖pk Λ P (n + 1) ω * cl k ω‖ₑ)
+    (fun k => (hGi k).aestronglyMeasurable.enorm)
+  have hlim : ∀ ω, liminf (fun k : ℕ => ‖pk Λ P (n + 1) ω * cl k ω‖ₑ) atTop =
+      ‖pk Λ P (n + 1) ω * h ω‖ₑ := fun ω => by
+    rw [Filter.liminf_congr ((hcl_ev ω).mono fun k hk => by rw [hk]), liminf_const]
+  simp only [hlim] at hfatou
+  refine lt_of_le_of_lt hfatou (lt_of_le_of_lt (Filter.liminf_le_of_le (by isBoundedDefault)
+    fun b hb => ?_) (ENNReal.ofReal_lt_top (r := ∫ ω, ‖Λ n ω * g ω‖ ∂S.μ)))
+  obtain ⟨k, hk⟩ := hb.exists
+  refine hk.trans ?_
+  rw [← ofReal_integral_norm_eq_lintegral_enorm (hGi k)]
+  exact ENNReal.ofReal_le_ofReal (hbound k)
+
+/-! ### Concave functions along a ray -/
+
+/-- Cochrane (2023), p. 439 (concavity along the bundle): for `g` concave and `0 ≤ θ ≤ t`,
+`t > 0`, the chord bound `(1 − θ/t)g(0) + (θ/t)g(tX) ≤ g(θX)`. -/
+theorem concave_chord {g : ℝ → ℝ} (hc : ConcaveOn ℝ Set.univ g) {θ t X : ℝ} (h0 : 0 ≤ θ)
+    (hθt : θ ≤ t) (ht : 0 < t) : (1 - θ / t) * g 0 + θ / t * g (t * X) ≤ g (θ * X) := by
+  have ha : 0 ≤ 1 - θ / t := by rw [sub_nonneg, div_le_one ht]; exact hθt
+  have hb : 0 ≤ θ / t := div_nonneg h0 ht.le
+  have := hc.2 (Set.mem_univ 0) (Set.mem_univ (t * X)) ha hb (by ring)
+  simp only [smul_eq_mul, mul_zero, zero_add] at this
+  convert this using 2
+  field_simp
+
+/-- Cochrane (2023), p. 439: for `g` concave the slope `(g(sX) − g(0))/s` decreases in `s > 0`. -/
+theorem concave_slope_anti {g : ℝ → ℝ} (hc : ConcaveOn ℝ Set.univ g) {s t X : ℝ} (hs : 0 < s)
+    (hst : s ≤ t) : (g (t * X) - g 0) / t ≤ (g (s * X) - g 0) / s := by
+  have ht : 0 < t := lt_of_lt_of_le hs hst
+  have h := concave_chord hc hs.le hst ht (X := X)
+  rw [div_le_div_iff₀ ht hs]
+  have e : (1 - s / t) * g 0 + s / t * g (t * X) = g 0 + s / t * (g (t * X) - g 0) := by ring
+  rw [e] at h
+  have h2 : s / t * (g (t * X) - g 0) * t = s * (g (t * X) - g 0) := by field_simp
+  nlinarith
+
+/-- Cochrane (2023), (19.13), p. 440: for `g` differentiable at `0` with derivative `V`, the
+slopes `(g(θ_kX) − g(0))/θ_k` along `θ_k = t/(k + 1) → 0⁺` converge to `VX`. -/
+theorem slope_tendsto {g : ℝ → ℝ} {V : ℝ} (hg : HasDerivAt g V 0) {t : ℝ} (ht : 0 < t) (X : ℝ) :
+    Tendsto (fun k : ℕ => (g (t / ((k : ℝ) + 1) * X) - g 0) / (t / ((k : ℝ) + 1))) atTop
+      (𝓝 (V * X)) := by
+  have hg' : HasDerivAt g V (0 * X) := by simpa using hg
+  have hh : HasDerivAt (fun θ : ℝ => g (θ * X)) (V * (1 * X)) 0 :=
+    hg'.comp 0 ((hasDerivAt_id 0).mul_const X)
+  rw [one_mul] at hh
+  have hsl := hh.tendsto_slope_zero_right
+  have hθ : Tendsto (fun k : ℕ => t / ((k : ℝ) + 1)) atTop (𝓝[>] 0) := by
+    refine tendsto_nhdsWithin_iff.2 ⟨?_, Eventually.of_forall fun k =>
+      Set.mem_Ioi.2 (by positivity)⟩
+    have := (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul t
+    simpa [div_eq_mul_inv] using this
+  refine (hsl.comp hθ).congr fun k => ?_
+  simp only [Function.comp_apply, zero_add, zero_mul, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), (19.9), p. 439: a utility process dominated by `|f| + |r| + |h|·1_{n = T}`
+with `f`, `r` admissible and `h` integrable is admissible. -/
+theorem uadm_of_le {β : ℝ} (hβ : 0 < β) {f r f' : ℕ → Ω → ℝ} {h : Ω → ℝ} {T : ℕ}
+    (hf : UAdmissible S β f) (hr : UAdmissible S β r) (hh : Integrable h S.μ)
+    (hm : ∀ n, AEStronglyMeasurable (f' n) S.μ)
+    (hle : ∀ n, ∀ᵐ ω ∂S.μ, |f' n ω| ≤ |f n ω| + |r n ω| + if n = T then |h ω| else 0) :
+    UAdmissible S β f' := by
+  have hsT : ∀ ω, HasSum (fun n => β ^ n * (if n = T then |h ω| else 0)) (β ^ T * |h ω|) :=
+    fun ω => by
+      convert hasSum_ite_eq T (β ^ T * |h ω|) using 1
+      funext n
+      split_ifs with hn
+      · rw [hn]
+      · ring
+  have hsum : ∀ᵐ ω ∂S.μ, HasSum (fun n => β ^ n * (|f n ω| + |r n ω| +
+      if n = T then |h ω| else 0))
+      (∑' n, β ^ n * |f n ω| + ∑' n, β ^ n * |r n ω| + β ^ T * |h ω|) := by
+    filter_upwards [hf.2.1, hr.2.1] with ω h1 h2
+    have := (h1.hasSum.add h2.hasSum).add (hsT ω)
+    refine this.congr_fun fun n => ?_
+    ring
+  have hle' : ∀ᵐ ω ∂S.μ, ∀ n, β ^ n * |f' n ω| ≤ β ^ n * (|f n ω| + |r n ω| +
+      if n = T then |h ω| else 0) := by
+    filter_upwards [ae_all_iff.2 hle] with ω hω n
+    exact mul_le_mul_of_nonneg_left (hω n) (pow_nonneg hβ.le n)
+  have hs' : ∀ᵐ ω ∂S.μ, Summable fun n => β ^ n * |f' n ω| := by
+    filter_upwards [hsum, hle'] with ω h1 h2
+    exact Summable.of_nonneg_of_le (fun n => mul_nonneg (pow_nonneg hβ.le n) (abs_nonneg _)) h2
+      h1.summable
+  refine ⟨hm, hs', ?_⟩
+  refine Integrable.mono' ((hf.2.2.add hr.2.2).add (hh.abs.const_mul (β ^ T)))
+    (aestronglyMeasurable_tsum (fun n => ((hm n).norm.const_mul _)) (hs'.mono fun _ h => h)) ?_
+  filter_upwards [hsum, hle', hs'] with ω h1 h2 h3
+  rw [Real.norm_eq_abs, abs_of_nonneg (tsum_nonneg fun n => mul_nonneg (pow_nonneg hβ.le n)
+    (abs_nonneg _))]
+  simp only [Pi.add_apply]
+  rw [← h1.tsum_eq]
+  exact h3.tsum_le_tsum h2 h1.summable
+
+/-! ### The transversality condition without bounds -/
+
+/-- Cochrane (2023), p. 439 ("their optimal choices include transversality conditions") and
+(19.28), p. 449, **the transversality condition is necessary, without boundedness.** Let
+`(c, m, a)` be optimal (extra constraint `Con`), with prices satisfying only `PriceWeak`, the
+endowment and taxes adapted and the bundle cost `w = 1 + ϑι` nonzero. Suppose the period utility
+is measurable, concave and increasing along the bundle direction `(1, ϑ)`, differentiable along it
+at the plan with derivative `u_c + ϑu_m`, and that the first-order condition
+`βᵀ(u_c + ϑu_m) = λΛ_Tw_T` holds with a constant `λ > 0`. Suppose the reference plan (consume the
+bundle financed by `y − s`) is admissible and its cost has integrable value, the freed wealth has
+integrable value, a Kamihigashi step of size `θ₀ ∈ (0, 1]` has integrable utility at each date,
+and `Con` allows the Kamihigashi deviations. Then `E[pk_T(a_T + M_{T−1})] → 0`. No bound on
+prices, consumption, real balances, claims, endowment or taxes is used. -/
+theorem tvc_general {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {ϑ : ℝ}
+    (hum : Measurable fun p : ℝ × ℝ => u p.1 p.2)
+    (hconc : ∀ x z, ConcaveOn ℝ Set.univ (fun e => u (x + e) (z + ϑ * e)))
+    (hmono : ∀ x z, Monotone (fun e => u (x + e) (z + ϑ * e)))
+    {Con : (ℕ → Ω → ℝ) → (ℕ → Ω → ℝ) → Prop} {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ} (hopt : Optimal S β u Con Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s)
+    (hw : ∀ n, ∀ᵐ ω ∂S.μ, wedge S ϑ Λ P n ω ≠ 0) {lam : ℝ} (hlam : 0 < lam)
+    (hder : ∀ T, ∀ᵐ ω ∂S.μ, HasDerivAt (fun e => u (c T ω + e) (m T ω + ϑ * e))
+      (uc (c T ω) (m T ω) + ϑ * um (c T ω) (m T ω)) 0)
+    (hfoc : ∀ T, ∀ᵐ ω ∂S.μ, β ^ T * (uc (c T ω) (m T ω) + ϑ * um (c T ω) (m T ω)) =
+      lam * (Λ T ω * wedge S ϑ Λ P T ω))
+    (href : UAdmissible S β
+      (fun n ω => u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω)))
+    (hRc : ∀ n, Integrable (fun ω => Λ n ω * (cRef S ϑ Λ P y s c m n ω - c n ω)) S.μ)
+    (hRm : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+      (P n ω * (ϑ * (cRef S ϑ Λ P y s c m n ω - c n ω)))) S.μ)
+    (hXc : ∀ T, Integrable (fun ω => Λ T ω * kx S ϑ Λ P a m T ω) S.μ)
+    (hXm : ∀ T, Integrable (fun ω => pk Λ P (T + 1) ω * (P T ω * (ϑ * kx S ϑ Λ P a m T ω))) S.μ)
+    {θ₀ : ℝ} (hθ₀ : 0 < θ₀) (hθ₀1 : θ₀ ≤ 1)
+    (hstep : ∀ T, Integrable (fun ω => u (c T ω + θ₀ * kx S ϑ Λ P a m T ω)
+      (m T ω + ϑ * (θ₀ * kx S ϑ Λ P a m T ω))) S.μ)
+    (hcon : ∀ T θ, 0 < θ → θ < θ₀ → Con (fun n ω => c n ω + θ * kdc S ϑ Λ P y s a c m T n ω)
+      (fun n ω => m n ω + θ * (ϑ * kdc S ϑ Λ P y s a c m T n ω))) :
+    Tendsto (wealthPV S Λ P N0 m a) atTop (𝓝 0) := by
+  obtain ⟨hfeas, -, hadm, hmax⟩ := hopt
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  have mz : ∀ {n : ℕ} {h : Ω → ℝ}, StronglyMeasurable[S.𝓕 n] h → Measurable h :=
+    fun {n} _ h => (h.mono (S.𝓕.le n)).measurable
+  set d : ℕ → ℝ := fun n => β ^ n * (∫ ω, u (c n ω) (m n ω) ∂S.μ -
+    ∫ ω, u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω) ∂S.μ) with hd
+  have hds : Summable d :=
+    ((hadm.hasSum hβ).sub (href.hasSum hβ)).summable.congr fun n => by simp only [hd]; ring
+  set R : ℕ → ℝ := fun T => ∑' n, if T < n then d n else 0 with hR
+  have hRT : ∀ T, HasSum (fun n => if T < n then d n else 0) (R T) := fun T =>
+    (hasSum_ite_lt hds T).summable.hasSum
+  have hRlim : Tendsto R atTop (𝓝 0) := by
+    have e : ∀ T, R T = ∑' n, d n - ∑ n ∈ Finset.range (T + 1), d n := fun T =>
+      (hasSum_ite_lt hds T).tsum_eq
+    have := (tendsto_const_nhds (x := ∑' n, d n)).sub
+      (hds.hasSum.tendsto_sum_nat.comp (tendsto_add_atTop_nat 1))
+    rw [sub_self] at this
+    exact this.congr fun T => (e T).symm
+  -- the key bound at each date
+  have key : ∀ T, lam * wealthPV S Λ P N0 m a (T + 1) ≤ R T := by
+    intro T
+    set x := kx S ϑ Λ P a m T with hx
+    have hxm : Measurable x := mz (sm_kx hp hma T)
+    set g : Ω → ℝ → ℝ := fun ω e => u (c T ω + e) (m T ω + ϑ * e) with hg
+    set V : Ω → ℝ := fun ω => uc (c T ω) (m T ω) + ϑ * um (c T ω) (m T ω) with hV
+    have hg0 : ∀ ω, g ω 0 = u (c T ω) (m T ω) := fun ω => by simp [hg]
+    -- the value of the freed wealth
+    obtain ⟨hkI, hkE⟩ := lam_kOut hp hfeas T
+    have hVx : (fun ω => β ^ T * (V ω * x ω)) =ᵐ[S.μ] fun ω => lam * (Λ T ω * kOut S Λ P a m T ω)
+        := by
+      filter_upwards [hfoc T, hw T] with ω h1 h2
+      simp only [hV, hx, kx]
+      rw [← mul_assoc, h1]
+      field_simp
+    have hVxi : Integrable (fun ω => V ω * x ω) S.μ := by
+      have := (hkI.const_mul lam).congr hVx.symm
+      refine (this.const_mul (β ^ T)⁻¹).congr (Eventually.of_forall fun ω => ?_)
+      have := pow_pos hβ T
+      field_simp
+    -- the integrands along the step
+    have hgm : ∀ θ : ℝ, Measurable fun ω => g ω (θ * x ω) := fun θ =>
+      hum.comp (((mz (hca T)).add (hxm.const_mul θ)).prodMk
+        ((mz (hma T)).add ((hxm.const_mul θ).const_mul ϑ)))
+    have hgint : ∀ θ : ℝ, 0 ≤ θ → θ ≤ θ₀ → Integrable (fun ω => g ω (θ * x ω)) S.μ := by
+      intro θ h0 h1
+      have hL : Integrable (fun ω => (1 - θ / θ₀) * g ω 0 + θ / θ₀ * g ω (θ₀ * x ω)) S.μ := by
+        refine (((hadm.integrable hβ T).const_mul (1 - θ / θ₀)).add
+          ((hstep T).const_mul (θ / θ₀))).congr (Eventually.of_forall fun ω => ?_)
+        simp only [Pi.add_apply, hg, add_zero, mul_zero, hx]
+      have hU : Integrable (fun ω => g ω 0 + θ * (V ω * x ω)) S.μ :=
+        ((hadm.integrable hβ T).add (hVxi.const_mul θ)).congr
+          (Eventually.of_forall fun ω => by simp only [Pi.add_apply, hg0])
+      refine Integrable.mono' (hL.abs.add hU.abs) (hgm θ).aestronglyMeasurable ?_
+      filter_upwards [hder T] with ω hdω
+      simp only [Pi.add_apply]
+      have lo := concave_chord (hconc (c T ω) (m T ω)) h0 h1 hθ₀ (X := x ω)
+      have up := MoneyInUtility.concave_le_tangent (hconc (c T ω) (m T ω)) hdω (θ * x ω)
+      rw [Real.norm_eq_abs, abs_le]
+      constructor
+      · linarith [neg_abs_le ((1 - θ / θ₀) * g ω 0 + θ / θ₀ * g ω (θ₀ * x ω)),
+          abs_nonneg (g ω 0 + θ * (V ω * x ω))]
+      · have : g ω (θ * x ω) ≤ g ω 0 + θ * (V ω * x ω) := by
+          simp only [hg] at up ⊢
+          simp only [hV]
+          nlinarith [up]
+        linarith [le_abs_self (g ω 0 + θ * (V ω * x ω)),
+          abs_nonneg ((1 - θ / θ₀) * g ω 0 + θ / θ₀ * g ω (θ₀ * x ω))]
+    -- the optimality inequality for a step `θ`
+    have hstepIneq : ∀ θ : ℝ, 0 < θ → θ < θ₀ →
+        β ^ T * (∫ ω, g ω (θ * x ω) ∂S.μ - ∫ ω, u (c T ω) (m T ω) ∂S.μ) ≤ θ * R T := by
+      intro θ h0 h1
+      have hθ1 : θ ≤ 1 := (h1.le.trans hθ₀1)
+      have hIC : ∀ n, Integrable (fun ω => Λ n ω * kdc S ϑ Λ P y s a c m T n ω) S.μ := by
+        intro n
+        by_cases h1 : n < T
+        · simp [kdc, h1]
+        · by_cases h2 : n = T
+          · subst h2
+            simpa [kdc] using hXc n
+          · simpa [kdc, h1, h2] using hRc n
+      have hIM : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+          (P n ω * (ϑ * kdc S ϑ Λ P y s a c m T n ω))) S.μ := by
+        intro n
+        by_cases h1 : n < T
+        · simp [kdc, h1]
+        · by_cases h2 : n = T
+          · subst h2
+            simpa [kdc] using hXm n
+          · simpa [kdc, h1, h2] using hRm n
+      have hF := kam_feasible_w hp hfeas hya hsa hw T hIC hIM h0.le hθ1
+      set f' : ℕ → Ω → ℝ := fun n ω => u (c n ω + θ * kdc S ϑ Λ P y s a c m T n ω)
+        (m n ω + θ * (ϑ * kdc S ϑ Λ P y s a c m T n ω)) with hf'
+      have hf'lt : ∀ n, n < T → ∀ ω, f' n ω = u (c n ω) (m n ω) := fun n hn ω => by
+        simp [hf', kdc, hn]
+      have hf'T : ∀ ω, f' T ω = g ω (θ * x ω) := fun ω => by
+        simp only [hf', hg, kdc, lt_irrefl, ↓reduceIte, hx]
+        ring_nf
+      have hcR : ∀ n ω, cRef S ϑ Λ P y s c m n ω =
+          c n ω + (cRef S ϑ Λ P y s c m n ω - c n ω) := fun n ω => by ring
+      have hmR : ∀ n ω, mRef S ϑ Λ P y s c m n ω =
+          m n ω + ϑ * (cRef S ϑ Λ P y s c m n ω - c n ω) := fun n ω => rfl
+      have hf'gt : ∀ n, T < n → ∀ ω, f' n ω = u (c n ω + θ * (cRef S ϑ Λ P y s c m n ω - c n ω))
+          (m n ω + ϑ * (θ * (cRef S ϑ Λ P y s c m n ω - c n ω))) := fun n hn ω => by
+        simp only [hf', kdc, show ¬ n < T by omega, show n ≠ T by omega, ↓reduceIte]
+        ring_nf
+      -- admissibility of the deviation
+      have hadm' : UAdmissible S β f' := by
+        refine uadm_of_le hβ hadm href (hgint θ h0.le h1.le) (T := T) (fun n => ?_) (fun n => ?_)
+        · exact (hum.comp (((mz (hca n)).add
+            ((mz (sm_kdc hp hya hsa hca hma T n)).const_mul θ)).prodMk ((mz (hma n)).add
+            (((mz (sm_kdc hp hya hsa hca hma T n)).const_mul ϑ).const_mul θ)))).aestronglyMeasurable
+        · refine Eventually.of_forall fun ω => ?_
+          rcases lt_trichotomy n T with hn | hn | hn
+          · rw [hf'lt n hn ω]
+            simp only [show n ≠ T by omega, ↓reduceIte, add_zero]
+            linarith [abs_nonneg (u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω))]
+          · subst hn
+            rw [hf'T ω]
+            simp only [↓reduceIte]
+            linarith [abs_nonneg (u (c n ω) (m n ω)),
+              abs_nonneg (u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω))]
+          · rw [hf'gt n hn ω]
+            simp only [show n ≠ T by omega, ↓reduceIte, add_zero]
+            have := abs_comb_le (hmono (c n ω) (m n ω)) (a := 0)
+              (e := cRef S ϑ Λ P y s c m n ω - c n ω) h0.le hθ1
+            simp only [mul_zero, zero_add, add_zero] at this
+            rw [show c n ω + (cRef S ϑ Λ P y s c m n ω - c n ω) = cRef S ϑ Λ P y s c m n ω by
+              ring] at this
+            rw [hmR n ω]
+            exact this
+      have hle := hmax _ _ _ hF (hcon T θ h0 h1) hadm'
+      -- compare the two series of expected utilities
+      set D : ℕ → ℝ := fun n => β ^ n * ∫ ω, f' n ω ∂S.μ - β ^ n * ∫ ω, u (c n ω) (m n ω) ∂S.μ
+        with hD
+      have hDs : HasSum D (expU S β f' - expU S β (fun n ω => u (c n ω) (m n ω))) :=
+        (hadm'.hasSum hβ).sub (hadm.hasSum hβ)
+      set E : ℕ → ℝ := fun n => (if n = T then β ^ T * (∫ ω, g ω (θ * x ω) ∂S.μ -
+        ∫ ω, u (c T ω) (m T ω) ∂S.μ) else 0) - θ * (if T < n then d n else 0) with hE
+      have hEs : HasSum E (β ^ T * (∫ ω, g ω (θ * x ω) ∂S.μ - ∫ ω, u (c T ω) (m T ω) ∂S.μ) -
+          θ * R T) := (hasSum_ite_eq T _).sub ((hRT T).mul_left θ)
+      have hED : ∀ n, E n ≤ D n := by
+        intro n
+        rcases lt_trichotomy n T with hn | hn | hn
+        · simp only [hE, hD, show n ≠ T by omega, show ¬ T < n by omega, ↓reduceIte,
+            mul_zero, sub_zero]
+          rw [integral_congr_ae (Eventually.of_forall (hf'lt n hn)), sub_self]
+        · subst hn
+          simp only [hE, hD, ↓reduceIte, lt_irrefl, mul_zero, sub_zero]
+          rw [integral_congr_ae (Eventually.of_forall hf'T), mul_sub]
+        · simp only [hE, hD, show n ≠ T by omega, hn, ↓reduceIte, zero_sub, hd]
+          have hi' := hadm'.integrable hβ n
+          have hi := hadm.integrable hβ n
+          have hir := href.integrable hβ n
+          have hpt : ∀ ω, (1 - θ) * u (c n ω) (m n ω) + θ *
+              u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω) ≤ f' n ω := by
+            intro ω
+            have := (hconc (c n ω) (m n ω)).2 (Set.mem_univ 0)
+              (Set.mem_univ (cRef S ϑ Λ P y s c m n ω - c n ω)) (sub_nonneg.2 hθ1) h0.le
+              (by ring)
+            simp only [smul_eq_mul, mul_zero, zero_add, add_zero] at this
+            rw [show c n ω + (cRef S ϑ Λ P y s c m n ω - c n ω) = cRef S ϑ Λ P y s c m n ω by
+              ring] at this
+            rw [hf'gt n hn ω, hmR n ω]
+            exact this
+          have hint2 : Integrable (fun ω => (1 - θ) * u (c n ω) (m n ω) + θ *
+              u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω)) S.μ :=
+            (hi.const_mul (1 - θ)).add (hir.const_mul θ)
+          have hmono' := integral_mono hint2 hi' hpt
+          rw [integral_add (hi.const_mul _) (hir.const_mul _), integral_const_mul,
+            integral_const_mul] at hmono'
+          have hb := pow_pos hβ n
+          nlinarith
+      have := hasSum_le hED hEs hDs
+      linarith
+    -- the monotone limit of the difference quotients
+    set θk : ℕ → ℝ := fun k => θ₀ / 2 / ((k : ℝ) + 1) with hθk
+    have hθk0 : ∀ k, 0 < θk k := fun k => by positivity
+    have hθk1 : ∀ k, θk k < θ₀ := fun k => by
+      have : θ₀ / 2 / ((k : ℝ) + 1) ≤ θ₀ / 2 :=
+        div_le_self (by positivity) (by linarith [k.cast_nonneg (α := ℝ)])
+      linarith
+    set q : ℕ → Ω → ℝ := fun k ω => (g ω (θk k * x ω) - g ω 0) / θk k with hq
+    have hqi : ∀ k, Integrable (q k) S.μ := fun k =>
+      ((hgint (θk k) (hθk0 k).le (hθk1 k).le).sub ((hadm.integrable hβ T).congr
+        (Eventually.of_forall fun ω => (hg0 ω).symm))).div_const _
+    have hqle : ∀ k, β ^ T * ∫ ω, q k ω ∂S.μ ≤ R T := by
+      intro k
+      have h := hstepIneq (θk k) (hθk0 k) (hθk1 k)
+      have e : ∫ ω, q k ω ∂S.μ = (∫ ω, g ω (θk k * x ω) ∂S.μ - ∫ ω, u (c T ω) (m T ω) ∂S.μ) /
+          θk k := by
+        simp only [hq]
+        rw [integral_div, integral_sub (hgint _ (hθk0 k).le (hθk1 k).le)
+          ((hadm.integrable hβ T).congr (Eventually.of_forall fun ω => (hg0 ω).symm))]
+        simp only [hg0]
+      rw [e, mul_div_assoc', div_le_iff₀ (hθk0 k)]
+      linarith
+    have hmonoq : ∀ᵐ ω ∂S.μ, Monotone fun k => q k ω := by
+      refine Eventually.of_forall fun ω => monotone_nat_of_le_succ fun k => ?_
+      simp only [hq]
+      refine concave_slope_anti (hconc (c T ω) (m T ω)) (hθk0 (k + 1)) ?_
+      simp only [hθk]
+      push_cast
+      exact div_le_div_of_nonneg_left (by positivity) (by positivity) (by linarith)
+    have hlimq : ∀ᵐ ω ∂S.μ, Tendsto (fun k => q k ω) atTop (𝓝 (V ω * x ω)) := by
+      filter_upwards [hder T] with ω hdω
+      exact slope_tendsto hdω (by positivity : (0 : ℝ) < θ₀ / 2) (x ω)
+    have hint := integral_tendsto_of_tendsto_of_monotone hqi hVxi hmonoq hlimq
+    have hle : β ^ T * ∫ ω, V ω * x ω ∂S.μ ≤ R T :=
+      le_of_tendsto' (hint.const_mul (β ^ T)) hqle
+    have e2 : β ^ T * ∫ ω, V ω * x ω ∂S.μ = lam * wealthPV S Λ P N0 m a (T + 1) := by
+      rw [← integral_const_mul, integral_congr_ae hVx, integral_const_mul, hkE]
+    linarith
+  -- conclusion
+  have h1 : Tendsto (fun T => wealthPV S Λ P N0 m a (T + 1)) atTop (𝓝 0) := by
+    refine tendsto_order.2 ⟨fun b hb => ?_, fun b hb => ?_⟩
+    · have := hnp (-b / 2) (by linarith)
+      filter_upwards [(tendsto_add_atTop_nat 1).eventually this] with T hT
+      linarith
+    · filter_upwards [(tendsto_order.1 hRlim).2 (lam * b) (by positivity)] with T hT
+      have := key T
+      by_contra hcon'
+      rw [not_lt] at hcon'
+      nlinarith
+  exact (tendsto_add_atTop_iff_nat 1).1 h1
+
+/-! ### The money-in-utility and cash-in-advance households -/
+
+open TidyR6HouseholdLocal TidyR6HouseholdFOC in
+/-- Cochrane (2023), p. 439 ("their optimal choices include transversality conditions") and
+(19.11)–(19.12), p. 439, **the money-in-utility transversality condition without bounds or
+normalisation.** For an optimum of the money-in-utility household (utility `C¹` on an open
+domain `U`, measurable, concave and increasing along every whole line `e ↦ u(x + e, z)` in `ℝ²`,
+so concave outside `U` too; `TidyR6HouseholdTVCDom.miu_tvc_dom` removes this), with `PriceWeak`
+prices, adapted endowment and taxes with integrable values, and `u_c > 0` at date `0`: the
+multiplier is derived (`TidyR6HouseholdFOC.miu_multiplier`) and positive, and if the reference
+plan (consume `y − s − ιm`) is admissible, a Kamihigashi step of size `θ₀` has integrable utility
+and the domain allows the deviations, then `E[pk_T(a_T + M_{T−1})] → 0`. -/
+theorem miu_tvc {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)}
+    (hu : C1On u uc um U) (hum : Measurable fun p : ℝ × ℝ => u p.1 p.2)
+    (hconc : ∀ x z, ConcaveOn ℝ Set.univ (fun e => u (x + e) (z + 0 * e)))
+    (hmono : ∀ x z, Monotone (fun e => u (x + e) (z + 0 * e)))
+    {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β u (DomainCon S U) Λ P y s N0 a0 c m a) (hp : PriceWeak S Λ P)
+    (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ)
+    (hpos : ∀ᵐ ω ∂S.μ, 0 < uc (c 0 ω) (m 0 ω))
+    (href : UAdmissible S β
+      (fun n ω => u (cRef S 0 Λ P y s c m n ω) (mRef S 0 Λ P y s c m n ω)))
+    {θ₀ : ℝ} (hθ₀ : 0 < θ₀) (hθ₀1 : θ₀ ≤ 1)
+    (hstep : ∀ T, Integrable (fun ω => u (c T ω + θ₀ * kx S 0 Λ P a m T ω)
+      (m T ω + 0 * (θ₀ * kx S 0 Λ P a m T ω))) S.μ)
+    (hcon : ∀ T θ, 0 < θ → θ < θ₀ → DomainCon S U
+      (fun n ω => c n ω + θ * kdc S 0 Λ P y s a c m T n ω)
+      (fun n ω => m n ω + θ * (0 * kdc S 0 Λ P y s a c m T n ω))) :
+    Tendsto (wealthPV S Λ P N0 m a) atTop (𝓝 0) := by
+  have hfeas := hopt.1
+  have hdom := hopt.2.1
+  obtain ⟨lam, hlam⟩ := miu_multiplier hβ hu hopt hp
+  have hlam0 : 0 < lam := by
+    obtain ⟨ω, h1, h2⟩ := ((hlam 0).1.and hpos).exists
+    rw [pow_zero, one_mul] at h1
+    rw [h1] at h2
+    exact pos_of_mul_pos_left h2 (hp.2.2.1 0 ω).le
+  have hw1 : ∀ n ω, wedge S 0 Λ P n ω = 1 := fun n ω => by simp [wedge]
+  refine tvc_general (ϑ := 0) (uc := uc) (um := um) hβ hum hconc hmono hopt hp hya hsa
+    (fun n => Eventually.of_forall fun ω => by rw [hw1]; exact one_ne_zero) hlam0
+    (fun T => ?_) (fun T => ?_) href (fun n => ?_) (fun n => ?_) (fun T => ?_) (fun T => ?_)
+    hθ₀ hθ₀1 hstep hcon
+  · filter_upwards [hdom T] with ω hω
+    have := hu.hasDerivAt_line (x := c T ω) (y := m T ω) (g := 1) (k := 0) (ε := 0)
+      (by simpa using hω)
+    simpa using this
+  · filter_upwards [(hlam T).1] with ω h
+    rw [hw1, zero_mul, add_zero, mul_one]
+    exact h
+  · refine ((wealth_step_w hp hy hs hfeas n).1.neg).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.neg_apply, outlay, cRef, hw1, div_one]
+    ring
+  · simp
+  · refine (lam_kOut hp hfeas T).1.congr (Eventually.of_forall fun ω => ?_)
+    simp [kx, hw1]
+  · simp
+
+open TidyR6HouseholdCIA in
+/-- Cochrane (2023), (19.28), p. 449 ("The household's money and debt demands must also obey the
+transversality condition"), **the cash-in-advance transversality condition without bounds.** At an
+optimum of the cash-in-advance household (utility `u(c)` on `ℝ`, continuously differentiable,
+concave, `u' > 0`; velocity `V > 0`), with only `PriceWeak` prices, adapted endowment and taxes
+with integrable values and overnight money positive almost surely: the multiplier, `λ > 0`,
+`Q_t ≤ 1` and the bound `w_t ≥ min(1, 1/V)` are derived (`cia_multiplier`, `cia_iota_nonneg`,
+`cia_wedge_pos`); if moreover the reference plan has integrable utility and nonnegative money,
+and a Kamihigashi step of size `θ₀` has integrable utility and nonnegative money at each date,
+then `E[Λ_T(a_T + M_{T−1})/P_T] → 0`. Compared with `CashInAdvanceMeasureTVC.tvc_necessary`, no
+bounds, no `Q ≤ 1`, no overnight money bounded away from zero and no normalisation. -/
+theorem cia_tvc {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} (hu : ∀ x, HasDerivAt u (u' x) x)
+    (hu' : Continuous u') (hconc : ConcaveOn ℝ Set.univ u) (hmono : Monotone u)
+    (hpos : ∀ x, 0 < u' x) {V : ℝ} (hV : 0 < V) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β (fun x _ => u x) (CIAConD S V Set.univ y) Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ) (hm : ∀ t, ∀ᵐ ω ∂S.μ, 0 < m t ω)
+    (href : UAdmissible S β (fun n ω => u (cRef S (1 / V - 1) Λ P y s c m n ω)))
+    (hmr : ∀ n, ∀ᵐ ω ∂S.μ, 0 ≤ mRef S (1 / V - 1) Λ P y s c m n ω)
+    {θ₀ : ℝ} (hθ₀ : 0 < θ₀) (hθ₀1 : θ₀ ≤ 1)
+    (hstep : ∀ T, Integrable (fun ω => u (c T ω + θ₀ * kx S (1 / V - 1) Λ P a m T ω)) S.μ)
+    (hstepm : ∀ T, ∀ᵐ ω ∂S.μ, 0 ≤ m T ω + (1 / V - 1) * (θ₀ * kx S (1 / V - 1) Λ P a m T ω)) :
+    Tendsto (wealthPV S Λ P N0 m a) atTop (𝓝 0) := by
+  set θV : ℝ := 1 / V - 1 with hθV
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hcia := hopt.2.1.1
+  have hucont : Continuous u := continuous_iff_continuousAt.2 fun x => (hu x).continuousAt
+  have huI : ∀ x ∈ (Set.univ : Set ℝ), HasDerivAt u (u' x) x := fun x _ => hu x
+  -- derived: `ι ≥ 0`, the wedge, the multiplier
+  have hι : ∀ t, ∀ᵐ ω ∂S.μ, 0 ≤ iota S Λ P t ω := fun t =>
+    cia_iota_nonneg hβ isOpen_univ huI hu'.continuousOn hopt hp t
+      (Eventually.of_forall fun ω => hpos _)
+  have hwl : ∀ t, ∀ᵐ ω ∂S.μ, min 1 (1 / V) ≤ wedge S θV Λ P t ω := fun t =>
+    cia_wedge_pos hp hV (hι t)
+  have hmin : 0 < min 1 (1 / V) := lt_min one_pos (one_div_pos.2 hV)
+  have hw : ∀ t, ∀ᵐ ω ∂S.μ, wedge S θV Λ P t ω ≠ 0 := fun t =>
+    (hwl t).mono fun ω h => (lt_of_lt_of_le hmin h).ne'
+  obtain ⟨lam, hlam⟩ := cia_multiplier hβ isOpen_univ huI hu'.continuousOn hopt hp
+  have hfoc : ∀ t, ∀ᵐ ω ∂S.μ, β ^ t * u' (c t ω) = lam * (Λ t ω * wedge S θV Λ P t ω) :=
+    fun t => (hlam t).and (hm t) |>.mono fun ω h => h.1 h.2
+  have hlam0 : 0 < lam := by
+    obtain ⟨ω, h1, h2⟩ := ((hfoc 0).and (hwl 0)).exists
+    rw [pow_zero, one_mul] at h1
+    have hw0 := lt_of_lt_of_le hmin h2
+    have := hpos (c 0 ω)
+    rw [h1] at this
+    exact pos_of_mul_pos_left this (mul_pos (hp.2.2.1 0 ω) hw0).le
+  -- the inverse wedge is bounded
+  have hwinv : ∀ t, ∀ᵐ ω ∂S.μ, ‖(wedge S θV Λ P t ω)⁻¹‖ ≤ (min 1 (1 / V))⁻¹ := fun t => by
+    filter_upwards [hwl t] with ω h
+    have hpos' := lt_of_lt_of_le hmin h
+    rw [Real.norm_eq_abs, abs_of_pos (inv_pos.2 hpos')]
+    exact inv_anti₀ hmin h
+  have hwm : ∀ t, StronglyMeasurable[S.𝓕 t] (wedge S θV Λ P t) := fun t =>
+    stronglyMeasurable_const.add ((hp.sm_iota t).const_mul θV)
+  have hRc : ∀ n, Integrable (fun ω => Λ n ω * (cRef S θV Λ P y s c m n ω - c n ω)) S.μ := by
+    intro n
+    have := ((wealth_step_w hp hy hs hfeas n).1.neg).mul_bdd
+      ((hwm n).measurable.inv.mono (S.𝓕.le n) le_rfl).aestronglyMeasurable (hwinv n)
+    refine this.congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.neg_apply, Pi.inv_apply, outlay, cRef]
+    ring
+  have hXc : ∀ T, Integrable (fun ω => Λ T ω * kx S θV Λ P a m T ω) S.μ := by
+    intro T
+    have := (lam_kOut hp hfeas T).1.mul_bdd
+      ((hwm T).measurable.inv.mono (S.𝓕.le T) le_rfl).aestronglyMeasurable (hwinv T)
+    refine this.congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.inv_apply, kx]
+    ring
+  have hQ : ∀ t, ∀ᵐ ω ∂S.μ, bondPrice S Λ P t ω ≤ 1 := fun t =>
+    (hι t).mono fun ω h => by simp only [iota] at h; linarith
+  have hRm : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+      (P n ω * (θV * (cRef S θV Λ P y s c m n ω - c n ω)))) S.μ := fun n =>
+    integrable_pk_succ_mul hp (((sm_cRef hp hya hsa hca hma n).sub (hca n)).const_mul θV)
+      (((hRc n).const_mul θV).congr (Eventually.of_forall fun ω => by ring)) (hQ n)
+  have hXm : ∀ T, Integrable (fun ω => pk Λ P (T + 1) ω *
+      (P T ω * (θV * kx S θV Λ P a m T ω))) S.μ := fun T =>
+    integrable_pk_succ_mul hp ((sm_kx hp hma T).const_mul θV)
+      (((hXc T).const_mul θV).congr (Eventually.of_forall fun ω => by ring)) (hQ T)
+  refine tvc_general (ϑ := θV) (uc := fun x _ => u' x) (um := fun _ _ => 0) hβ
+    (hucont.measurable.comp measurable_fst) (fun x _ => ?_)
+    (fun x _ a b hab => hmono (by linarith)) hopt hp hya hsa hw hlam0
+    (fun T => Eventually.of_forall fun ω => ?_)
+    (fun T => (hfoc T).mono fun ω h => by simpa using h) href hRc hRm hXc hXm hθ₀ hθ₀1 hstep
+    (fun T θ h0 h1 => ⟨fun n => ?_, fun n => Eventually.of_forall fun ω =>
+      ⟨Set.mem_univ _, Set.mem_univ _⟩⟩)
+  · refine ⟨convex_univ, fun a _ b _ p q hp' hq' hpq => ?_⟩
+    have := hconc.2 (Set.mem_univ (x + a)) (Set.mem_univ (x + b)) hp' hq' hpq
+    simp only [smul_eq_mul] at this ⊢
+    convert this using 2
+    linear_combination (-x) * hpq
+  · have h1 : HasDerivAt (fun e : ℝ => c T ω + e) 1 0 := by
+      simpa using (hasDerivAt_id (0 : ℝ)).const_add (c T ω)
+    have h2 := (hu (c T ω + 0)).comp (0 : ℝ) h1
+    simpa [Function.comp_def] using h2
+  · filter_upwards [hcia n, hmr n, hstepm T, hm T] with ω ⟨hc1, hc2⟩ hr hst hmT
+    refine ⟨by nlinarith, ?_⟩
+    rcases lt_trichotomy n T with hn | hn | hn
+    · simp only [kdc, hn, ↓reduceIte, mul_zero, add_zero]
+      exact hc2
+    · subst hn
+      simp only [kdc, lt_irrefl, ↓reduceIte]
+      have hθθ : θ / θ₀ ≤ 1 := by rw [div_le_one hθ₀]; exact h1.le
+      have e : m n ω + θ * (θV * kx S θV Λ P a m n ω) = (1 - θ / θ₀) * m n ω +
+          θ / θ₀ * (m n ω + θV * (θ₀ * kx S θV Λ P a m n ω)) := by
+        field_simp
+        ring
+      rw [e]
+      exact add_nonneg (mul_nonneg (by linarith) hc2) (mul_nonneg (by positivity) hst)
+    · simp only [kdc, show ¬ n < T by omega, show n ≠ T by omega, ↓reduceIte]
+      have e : m n ω + θ * (θV * (cRef S θV Λ P y s c m n ω - c n ω)) =
+          (1 - θ) * m n ω + θ * mRef S θV Λ P y s c m n ω := by
+        simp only [mRef]
+        ring
+      rw [e]
+      have hθ1 : θ ≤ 1 := (h1.trans_le hθ₀1).le
+      exact add_nonneg (mul_nonneg (by linarith) hc2) (mul_nonneg h0.le hr)
+
+end Cochrane.Monetarism.TidyR6HouseholdTVC
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Why the first-order conditions are hypotheses for a general expectation system
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, (19.15)–(19.16), p. 441 and
+(19.31)–(19.32), p. 450. For a general `ExpectationSystem` the theorems
+`CashInAdvance.Stochastic.bond_price_19_32` and `MoneyInUtility.value_recursion` take the
+household's first-order conditions (`Λ_t = βᵗu'(y_t)`, respectively (19.15)–(19.16)) as
+hypotheses holding at every state. The project README attributed this to the absence of a
+measure. This module makes the reason precise, and corrects it: the obstruction is not the
+absence of a measure but the possible presence of states the date-0 expectation ignores.
+
+## Main results
+
+* `nullSystem`: an expectation system on two states (`Bool`) in which `E_0` reads only the state
+  `true` (the state `false` has probability zero) and information is complete from date `1` on;
+  it satisfies every axiom of `ExpectationSystem` and the pull-out property (`nullSystem_pullOut`);
+  it describes the probability concentrated on `true`.
+* `E0_blind`: `E_0` does not see the state `false`: two variables that agree at `true` have the
+  same date-0 expectation. Any household objective `E_0[∑ βᵗu(c_t)]` and any date-0 valuation of
+  a budget are therefore unchanged when prices, or the plan, are altered at `false`, so
+  optimality cannot restrict them there.
+* `bond_price_needs_foc`: on `nullSystem`, every hypothesis of
+  `CashInAdvance.Stochastic.bond_price_19_32` holds except
+  `Λ_t = βᵗu'(y_t)`, which holds at the state `true` at every date (the only state the household
+  objective sees), and the conclusion (19.32) fails at date `1`.
+* `value_recursion_needs_foc`: the same for `MoneyInUtility.value_recursion`: every hypothesis but
+  the money first-order condition (19.16) holds, (19.16) holds at `true` at every date, and the
+  value recursion fails at date `1`.
+
+Hence for a general expectation system the first-order conditions must be assumed pointwise.
+Where the date-0 expectation charges every node they are derived from optimality
+(`CashInAdvance.TreeEuler.sdf_eq` and `MoneyInUtility.FootnoteTree.tree_foc_1913_1914` on finite
+trees, linked to the general theorems by `CashInAdvanceMeasure.Link.link_bond_price` and
+`MoneyInUtilityMeasure.Link.link_value_recursion`); on a probability space they are derived almost
+surely (`CashInAdvanceMeasure.lambda_derived`, `TidyR6HouseholdCIA.cia_multiplier`,
+`TidyR6HouseholdFOC.miu_multiplier`), which is all that can be derived.
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdNull
+
+open Filter Topology
+
+/-! ### An expectation system with a null state -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (expectations with a null state): the linear map
+`f ↦ (ω ↦ f true)`, the expectation under the probability concentrated on `true`. -/
+def evalTrue : (Bool → ℝ) →ₗ[ℝ] (Bool → ℝ) where
+  toFun f := fun _ => f true
+  map_add' _ _ := rfl
+  map_smul' _ _ := rfl
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the expectation system on two states in which the date-0
+expectation reads only the state `true` and every later expectation is the identity (the state is
+revealed at date `1`). -/
+def nullSystem : ExpectationSystem Bool where
+  E t := if t = 0 then evalTrue else LinearMap.id
+  const t c := by
+    by_cases h : t = 0 <;> simp [h, evalTrue]
+  mono t x y hxy := by
+    by_cases h : t = 0
+    · simp only [h, ↓reduceIte]
+      exact fun _ => hxy true
+    · simpa [h] using hxy
+  tower := by
+    intro s t hst x
+    by_cases hs : s = 0
+    · by_cases ht : t = 0
+      · simp [hs, ht, evalTrue]
+      · simp [hs, ht, evalTrue]
+    · have ht : t ≠ 0 := by omega
+      simp [hs, ht]
+  known := by
+    intro s t hst x
+    by_cases ht : t = 0
+    · have hs : s = 0 := by omega
+      simp [hs, ht, evalTrue]
+    · simp [ht]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the date-0 expectation of `nullSystem` reads the state
+`true`. -/
+theorem nullSystem_E0 (f : Bool → ℝ) : nullSystem.E 0 f = fun _ => f true := by
+  simp [nullSystem, evalTrue]
+
+/-- Cochrane (2023), Ch. 2, p. 29: from date `1` on, `nullSystem` has complete information. -/
+theorem nullSystem_E_succ (t : ℕ) (f : Bool → ℝ) : nullSystem.E (t + 1) f = f := by
+  simp [nullSystem]
+
+/-- Cochrane (2023), Ch. 2, p. 30 (the pull-out property): `nullSystem` satisfies
+`E_t[ay] = aE_t[y]` for `a` known at `t`. -/
+theorem nullSystem_pullOut : nullSystem.PullOut := by
+  intro t a y ha
+  cases t with
+  | zero =>
+    rw [nullSystem_E0] at ha
+    rw [nullSystem_E0, nullSystem_E0]
+    funext ω
+    have := congrFun ha ω
+    simp only [Pi.mul_apply] at this ⊢
+    rw [this]
+  | succ k => simp [nullSystem_E_succ]
+
+/-- Cochrane (2023), (19.9), p. 439, **the date-0 expectation is blind to the null state**: two
+variables agreeing at `true` have the same date-0 expectation under `nullSystem`. So every
+objective `E_0[∑ βᵗu(c_t)]` and every date-0 valuation `E_0[∑ Λ_t(·)]` is unchanged when the plan
+or the prices are altered at the state `false`. -/
+theorem E0_blind {f g : Bool → ℝ} (h : f true = g true) : nullSystem.E 0 f = nullSystem.E 0 g := by
+  rw [nullSystem_E0, nullSystem_E0, h]
+
+/-! ### (19.32) needs the pointwise first-order condition -/
+
+/-- Cochrane (2023), (19.31), p. 450 (counterexample prices): `Λ_0 = 1`, and from date `1` on
+`Λ_t = βᵗ` at the state `true` but `(2β)ᵗ` at the null state `false`. -/
+noncomputable def cxΛ (β : ℝ) (t : ℕ) (ω : Bool) : ℝ :=
+  if t = 0 then 1 else if ω then β ^ t else (2 * β) ^ t
+
+/-- Cochrane (2023), (19.32), p. 450 (counterexample): the bond price defined by the pricing
+equation `Λ_tQ_t/P_t = E_t[Λ_{t+1}/P_{t+1}]` with `P = 1`. -/
+noncomputable def cxQ (β : ℝ) (t : ℕ) (ω : Bool) : ℝ :=
+  nullSystem.E t (cxΛ β (t + 1) / fun _ => (1 : ℝ)) ω * 1 / cxΛ β t ω
+
+/-- Cochrane (2023), (19.31)–(19.32), p. 450, **the pointwise first-order condition cannot be
+dropped from `CashInAdvance.Stochastic.bond_price_19_32`, and is not implied by optimality**:
+on `nullSystem` (with the pull-out property), with `0 < β`, marginal utility `u'(y_t) = 1`
+(adapted, positive), price level `1` (adapted, positive) and the bond price `cxQ` satisfying the
+pricing equation, the identity `Λ_t = βᵗu'(y_t)` holds at the state `true` at every date — the
+only state the household's date-0 objective sees (`E0_blind`) — and yet the conclusion of
+`CashInAdvance.Stochastic.bond_price_19_32`,
+`Q_t = βE_t[(u'(y_{t+1})/u'(y_t))(P_t/P_{t+1})]`, fails at date `1`. -/
+theorem bond_price_needs_foc {β : ℝ} (hβ : 0 < β) :
+    nullSystem.PullOut ∧ (∀ t ω, 0 < (fun (_ : ℕ) (_ : Bool) => (1 : ℝ)) t ω) ∧
+      nullSystem.Adapted (fun _ _ => 1) ∧ nullSystem.Adapted (fun _ _ => 1) ∧
+      (∀ t ω, 0 < (fun (_ : ℕ) (_ : Bool) => (1 : ℝ)) t ω) ∧
+      (∀ t, cxΛ β t * cxQ β t / (fun _ _ => 1) t =
+        nullSystem.E t (cxΛ β (t + 1) / (fun _ _ => (1 : ℝ)) (t + 1))) ∧
+      (∀ t, cxΛ β t true = β ^ t * 1) ∧
+      ¬ (cxQ β 1 = β • nullSystem.E 1 ((fun _ _ => (1 : ℝ)) 2 / (fun _ _ => (1 : ℝ)) 1 *
+        ((fun _ _ => (1 : ℝ)) 1 / (fun _ _ => (1 : ℝ)) 2))) := by
+  have hpos : ∀ t ω, 0 < cxΛ β t ω := fun t ω => by
+    unfold cxΛ
+    split_ifs <;> positivity
+  refine ⟨nullSystem_pullOut, fun _ _ => one_pos, fun t => nullSystem.const t 1,
+    fun t => nullSystem.const t 1, fun _ _ => one_pos, fun t => ?_, fun t => ?_, ?_⟩
+  · funext ω
+    have := (hpos t ω).ne'
+    simp only [Pi.mul_apply, Pi.div_apply, cxQ]
+    field_simp
+  · cases t with
+    | zero => simp [cxΛ]
+    | succ k => simp [cxΛ]
+  · intro h
+    have h1 := congrFun h false
+    simp only [cxQ, nullSystem_E_succ, cxΛ, Pi.smul_apply, smul_eq_mul, Pi.mul_apply,
+      Pi.div_apply] at h1
+    norm_num at h1
+    have hβ' : β ≠ 0 := hβ.ne'
+    field_simp at h1
+    nlinarith
+
+/-! ### The value recursion needs the pointwise money first-order condition -/
+
+/-- Cochrane (2023), (19.16), p. 441 (counterexample): marginal utility of money `1 − β` at the
+state `true` and at date `0`, but `0` at the null state from date `1` on. -/
+noncomputable def cxUm (β : ℝ) (t : ℕ) (ω : Bool) : ℝ := if t = 0 ∨ ω then 1 - β else 0
+
+/-- Cochrane (2023), (19.15)–(19.16), p. 441, **the pointwise money first-order condition cannot
+be dropped from `MoneyInUtility.value_recursion`**: on `nullSystem`, with `0 < β < 1`, marginal
+utility of consumption `1`, price level `1` and nominal rate `i = 1/β − 1`, the bond-pricing
+condition (19.15) holds at every state, the money condition (19.16) `u_m/u_c = i/(1 + i)` holds at
+the state `true` at every date (the only state the date-0 objective sees), every other hypothesis
+of `MoneyInUtility.value_recursion` holds, and yet the value of money `v_t = u_c(t)/P_t` violates
+the recursion `v_t = u_m(t)/P_t + βE_tv_{t+1}` at date `1`. -/
+theorem value_recursion_needs_foc {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) :
+    nullSystem.PullOut ∧
+      (∀ t, nullSystem.E t ((fun _ _ => (1 : ℝ)) t / (fun _ _ => (1 : ℝ)) t) =
+        (fun _ _ => (1 : ℝ)) t / (fun _ _ => (1 : ℝ)) t) ∧
+      (∀ t, nullSystem.E t (β • ((fun _ _ => (1 : ℝ)) (t + 1) / (fun _ _ => (1 : ℝ)) t *
+        ((fun _ _ => (1 : ℝ)) t / (fun _ _ => (1 : ℝ)) (t + 1)))) =
+          1 / (1 + (fun (_ : ℕ) (_ : Bool) => 1 / β - 1) t)) ∧
+      ((1 : ℝ) + (1 / β - 1) ≠ 0) ∧
+      (∀ t, cxUm β t true / 1 = (1 / β - 1) / (1 + (1 / β - 1))) ∧
+      ¬ ForwardSolution.Solves nullSystem β (fun t => cxUm β t / fun _ => 1)
+        (fun _ => (fun _ => (1 : ℝ)) / fun _ => 1) := by
+  refine ⟨nullSystem_pullOut, fun t => nullSystem.const t _, fun t => ?_, by
+    have : (1 : ℝ) + (1 / β - 1) = 1 / β := by ring
+    rw [this]
+    positivity, fun t => ?_, ?_⟩
+  · have e : (β • ((fun _ _ => (1 : ℝ)) (t + 1) / (fun _ _ => (1 : ℝ)) t *
+        ((fun _ _ => (1 : ℝ)) t / (fun _ _ => (1 : ℝ)) (t + 1))) : Bool → ℝ) = fun _ => β := by
+      funext ω
+      simp
+    rw [e, nullSystem.const]
+    funext ω
+    simp only [Pi.div_apply, Pi.add_apply, Pi.one_apply]
+    field_simp
+    ring
+  · simp only [cxUm, or_true, ↓reduceIte, div_one]
+    field_simp
+    ring
+  · intro h
+    have h1 := congrFun (h 1) false
+    have h0 : cxUm β 1 false = 0 := by simp [cxUm]
+    simp only [nullSystem_E_succ, Pi.div_apply] at h1
+    norm_num [h0] at h1
+    linarith
+
+end Cochrane.Monetarism.TidyR6HouseholdNull
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The cash-in-advance optimum characterised by the Karush–Kuhn–Tucker conditions
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, §19.5.1–19.5.2,
+pp. 447–451, eqs. (19.24)–(19.33) and p. 453 ("first order conditions and transversality
+conditions are necessary and sufficient"), on a probability space. `TidyR6HouseholdCIA` derived
+the wedge Euler equation where overnight money is positive (`cia_multiplier`) and proved
+sufficiency of the KKT conditions (`cia_optimal_of_kkt`). Here the first-order conditions are
+derived everywhere, including where money is zero, and the two directions are joined.
+
+## Main results
+
+* `lagrange_cone`: a one-sided Lagrange-multiplier lemma for convex cones of feasible
+  directions: if budget-neutral pairs of feasible directions never raise utility to first order,
+  one constant `λ` has `Lu ≤ λLp` on every feasible direction.
+* `OneTest`, `ciaConD_roll`: localized deviations that are feasible for small `ε ≥ 0`: where
+  money is not bounded away from zero real balances may only rise, and where the cash constraint
+  is not slack they must rise at least `(1/V − 1)` per unit of consumption.
+* `cia_one_sided`: at an optimum, with `u' > 0` and only `PriceWeak` prices, one constant
+  `λ > 0` has `Lu ≤ λLp` for every such deviation.
+* **`cia_kkt_necessary`**: hence the KKT conditions hold almost surely at every date:
+  `βᵗu'(c_t) = λΛ_t` where the cash constraint is slack, `βᵗu'(c_t) = λΛ_tw_t` where money is
+  positive, `ι_t = 0` where both hold, and at corners (money zero, constraint binding) the
+  one-sided bounds `λΛ_t(1 − ι_t max(0, −θ)) ≤ βᵗu'(c_t) ≤ λΛ_t(1 + ι_t max(0, θ))`; these
+  assemble into multipliers `μ_t, ν_t ≥ 0` satisfying exactly the hypotheses of
+  `cia_optimal_of_kkt`.
+* `cia_liminf_tvc`: the liminf transversality condition at a cash-in-advance optimum.
+* **`cia_optimal_iff`**: a feasible, admissible plan satisfying the constraints is optimal if and
+  only if the KKT conditions hold with some `λ > 0` and the liminf transversality condition
+  holds (the analogue of `TidyR6HouseholdSuff.miu_optimal_iff`).
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdCIAKKT
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+  TidyR6HouseholdRoll TidyR6HouseholdLocal TidyR6HouseholdFOC TidyR6HouseholdSuff
+  TidyR6HouseholdCIA CashInAdvanceMeasure
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### A one-sided Lagrange-multiplier lemma -/
+
+/-- Cochrane (2023), (19.31), p. 450 (one multiplier, with inequality constraints): let `C t` be
+a convex cone of feasible directions at date `t` on which `Lu t`, `Lp t` are additive and
+positively homogeneous. If for all dates `t₁ ≠ t₂`, `Lp_{t₁}(v) + Lp_{t₂}(w) = 0` implies
+`Lu_{t₁}(v) + Lu_{t₂}(w) ≤ 0`, and directions with `Lp > 0` and with `Lp < 0` exist, then one
+constant `λ` has `Lu_t(v) ≤ λLp_t(v)` for every feasible direction at every date. -/
+theorem lagrange_cone {V : Type*} [AddCommGroup V] [Module ℝ V] (C : ℕ → V → Prop)
+    (Lu Lp : ℕ → V → ℝ) (hzero : ∀ t, C t 0)
+    (hcomb : ∀ t v w (a : ℝ), 0 ≤ a → C t v → C t w → C t (v + a • w))
+    (hLu : ∀ t v w (a : ℝ), 0 ≤ a → C t v → C t w → Lu t (v + a • w) = Lu t v + a * Lu t w)
+    (hLp : ∀ t v w (a : ℝ), 0 ≤ a → C t v → C t w → Lp t (v + a • w) = Lp t v + a * Lp t w)
+    (hpair : ∀ t₁ t₂, t₁ ≠ t₂ → ∀ v w, C t₁ v → C t₂ w → Lp t₁ v + Lp t₂ w = 0 →
+      Lu t₁ v + Lu t₂ w ≤ 0)
+    (hA : ∃ t v, C t v ∧ 0 < Lp t v) (hB : ∃ t v, C t v ∧ Lp t v < 0) :
+    ∃ lam : ℝ, ∀ t v, C t v → Lu t v ≤ lam * Lp t v := by
+  have hLu0 : ∀ t, Lu t 0 = 0 := fun t => by
+    have := hLu t 0 0 1 zero_le_one (hzero t) (hzero t)
+    simp only [one_smul, add_zero, one_mul] at this
+    linarith
+  have hLp0 : ∀ t, Lp t 0 = 0 := fun t => by
+    have := hLp t 0 0 1 zero_le_one (hzero t) (hzero t)
+    simp only [one_smul, add_zero, one_mul] at this
+    linarith
+  -- a pair `v, aw` with zero total cost does not raise utility
+  have hcross : ∀ t t' v w (a : ℝ), 0 ≤ a → C t v → C t' w → Lp t v + a * Lp t' w = 0 →
+      Lu t v + a * Lu t' w ≤ 0 := by
+    intro t t' v w a ha hv hw hsum
+    by_cases htt : t = t'
+    · subst htt
+      have h := hpair t (t + 1) (by omega) _ 0 (hcomb t v w a ha hv hw) (hzero (t + 1))
+        (by rw [hLp t v w a ha hv hw, hLp0, add_zero, hsum])
+      rwa [hLu t v w a ha hv hw, hLu0, add_zero] at h
+    · have h := hpair t t' htt v (0 + a • w) hv (hcomb t' 0 w a ha (hzero t') hw)
+        (by rw [hLp t' 0 w a ha (hzero t') hw, hLp0, zero_add, hsum])
+      rwa [hLu t' 0 w a ha (hzero t') hw, hLu0, zero_add] at h
+  -- ratios on the two sides are ordered
+  have hord : ∀ t v t' w, C t v → 0 < Lp t v → C t' w → Lp t' w < 0 →
+      Lu t v / Lp t v ≤ Lu t' w / Lp t' w := by
+    intro t v t' w hv hpv hw hpw
+    have ha : 0 ≤ Lp t v / -Lp t' w := div_nonneg hpv.le (by linarith)
+    have hw0 : Lp t' w ≠ 0 := hpw.ne
+    have h := hcross t t' v w _ ha hv hw (by field_simp; ring)
+    rw [div_le_iff₀ hpv]
+    have e : Lp t v / -Lp t' w * Lu t' w = -(Lu t' w / Lp t' w * Lp t v) := by
+      field_simp
+    linarith
+  obtain ⟨t₀, v₀, hv₀, hp₀⟩ := hA
+  obtain ⟨t₁, w₁, hw₁, hp₁⟩ := hB
+  set A : Set ℝ := {r | ∃ t v, C t v ∧ 0 < Lp t v ∧ r = Lu t v / Lp t v} with hAdef
+  have hne : A.Nonempty := ⟨_, t₀, v₀, hv₀, hp₀, rfl⟩
+  have hbdd : BddAbove A := ⟨Lu t₁ w₁ / Lp t₁ w₁, fun r ⟨t, v, hv, hp, hr⟩ =>
+    hr ▸ hord t v t₁ w₁ hv hp hw₁ hp₁⟩
+  refine ⟨sSup A, fun t v hv => ?_⟩
+  rcases lt_trichotomy (Lp t v) 0 with hneg | h0 | hpos'
+  · have h := csSup_le hne fun r ⟨t', v', hv', hp', hr⟩ => hr ▸ hord t' v' t v hv' hp' hv hneg
+    exact (le_div_iff_of_neg hneg).1 h
+  · have h := hcross t (t + 1) v 0 1 zero_le_one hv (hzero _) (by rw [h0, hLp0]; ring)
+    rw [hLu0] at h
+    rw [h0]
+    linarith
+  · have h : Lu t v / Lp t v ≤ sSup A := le_csSup hbdd ⟨t, v, hv, hpos', rfl⟩
+    exact (div_le_iff₀ hpos').1 h
+
+/-! ### One-sided localized deviations -/
+
+variable (S) in
+/-- Cochrane (2023), (19.24)–(19.26), pp. 448–449 and footnote 1, p. 440: a localized deviation
+`(z, ζ)` at date `t` (a `TidyR6HouseholdFOC.RollTest`) that is feasible for small `ε ≥ 0`: at
+each state either overnight money is at least `1/(K + 1)` or real balances do not fall
+(`ζ ≥ 0`), and either the cash constraint has slack at least `1/(K + 1)` or real balances rise at
+least `(1/V − 1)` per unit of consumption (`ζ ≥ (1/V − 1)z`). -/
+def OneTest (U : Set (ℝ × ℝ)) (V : ℝ) (Λ P y c m : ℕ → Ω → ℝ) (t K : ℕ) (B : ℝ)
+    (z ζ : Ω → ℝ) : Prop :=
+  RollTest S U Λ P c m t K B z ζ ∧ ∀ ω, (1 / ((K : ℝ) + 1) ≤ m t ω ∨ 0 ≤ ζ ω) ∧
+    (1 / ((K : ℝ) + 1) ≤ m t ω - ((1 / V - 1) * c t ω + y t ω) ∨ (1 / V - 1) * z ω ≤ ζ ω)
+
+/-- Cochrane (2023), footnote 1, p. 440: the zero deviation is a one-sided test. -/
+theorem oneTest_zero (U : Set (ℝ × ℝ)) (V : ℝ) (Λ P y c m : ℕ → Ω → ℝ) (t K : ℕ) (B : ℝ) :
+    OneTest S U V Λ P y c m t K B 0 0 :=
+  ⟨rollTest_zero U Λ P c m t K B, fun _ => ⟨Or.inr le_rfl, Or.inr (by simp)⟩⟩
+
+/-- Cochrane (2023), footnote 1, p. 440: one-sided tests at a date form a convex cone: `v + aw`
+with `a ≥ 0` is a one-sided test at the larger level. -/
+theorem OneTest.comb {U : Set (ℝ × ℝ)} {V : ℝ} {Λ P y c m : ℕ → Ω → ℝ} {t K K' : ℕ} {B B' : ℝ}
+    {z ζ z' ζ' : Ω → ℝ} (h : OneTest S U V Λ P y c m t K B z ζ)
+    (h' : OneTest S U V Λ P y c m t K' B' z' ζ') {a : ℝ} (ha : 0 ≤ a) :
+    OneTest S U V Λ P y c m t (max K K') (|B| + |a| * |B'|) (fun ω => z ω + a * z' ω)
+      (fun ω => ζ ω + a * ζ' ω) := by
+  have hK : 1 / ((max K K' : ℕ) + 1 : ℝ) ≤ 1 / ((K : ℝ) + 1) :=
+    one_div_le_one_div_of_le (by positivity) (by
+      have : (K : ℝ) ≤ (max K K' : ℕ) := by exact_mod_cast le_max_left _ _
+      linarith)
+  have hK' : 1 / ((max K K' : ℕ) + 1 : ℝ) ≤ 1 / ((K' : ℝ) + 1) :=
+    one_div_le_one_div_of_le (by positivity) (by
+      have : (K' : ℝ) ≤ (max K K' : ℕ) := by exact_mod_cast le_max_right _ _
+      linarith)
+  refine ⟨h.1.comb h'.1 a, fun ω => ⟨?_, ?_⟩⟩
+  · rcases (h.2 ω).1 with h1 | h1
+    · exact Or.inl (hK.trans h1)
+    · rcases (h'.2 ω).1 with h2 | h2
+      · exact Or.inl (hK'.trans h2)
+      · exact Or.inr (add_nonneg h1 (mul_nonneg ha h2))
+  · rcases (h.2 ω).2 with h1 | h1
+    · exact Or.inl (hK.trans h1)
+    · rcases (h'.2 ω).2 with h2 | h2
+      · exact Or.inl (hK'.trans h2)
+      · right
+        have := mul_le_mul_of_nonneg_left h2 ha
+        nlinarith
+
+/-- Cochrane (2023), (19.24)–(19.26), pp. 448–449: **one-sided tests keep the constraints for
+small `ε ≥ 0`**: the cash-in-advance, no-printing and domain constraints survive two one-sided
+tests at different dates scaled by a small `ε ≥ 0`. -/
+theorem ciaConD_roll {I : Set ℝ} {V : ℝ} {Λ P y c m : ℕ → Ω → ℝ}
+    (hcon : CIAConD S V I y c m) {t₁ t₂ K₁ K₂ : ℕ} {B₁ B₂ : ℝ} {z₁ ζ₁ z₂ ζ₂ : Ω → ℝ}
+    (hne : t₁ ≠ t₂) (h₁ : OneTest S (I ×ˢ Set.univ) V Λ P y c m t₁ K₁ B₁ z₁ ζ₁)
+    (h₂ : OneTest S (I ×ˢ Set.univ) V Λ P y c m t₂ K₂ B₂ z₂ ζ₂) {ε : ℝ} (hε0 : 0 ≤ ε)
+    (hε₁ : ε * ((|1 / V - 1| + 1) * (|B₁| + 1)) < 1 / ((K₁ : ℝ) + 1))
+    (hε₂ : ε * ((|1 / V - 1| + 1) * (|B₂| + 1)) < 1 / ((K₂ : ℝ) + 1))
+    (hd₁ : |ε| * (|B₁| + 1) < 1 / (2 * ((K₁ : ℝ) + 1)))
+    (hd₂ : |ε| * (|B₂| + 1) < 1 / (2 * ((K₂ : ℝ) + 1))) :
+    CIAConD S V I y (fun n ω => c n ω + ε * (rollC t₁ z₁ n ω + rollC t₂ z₂ n ω))
+      (fun n ω => m n ω + ε * (rollC t₁ ζ₁ n ω + rollC t₂ ζ₂ n ω)) := by
+  set θ : ℝ := 1 / V - 1 with hθ
+  -- the change at one date keeps both constraints
+  have hone : ∀ {t K : ℕ} {B : ℝ} {z ζ : Ω → ℝ}, OneTest S (I ×ˢ Set.univ) V Λ P y c m t K B z ζ →
+      ε * ((|θ| + 1) * (|B| + 1)) < 1 / ((K : ℝ) + 1) → ∀ ω,
+      θ * c t ω + y t ω ≤ m t ω → 0 ≤ m t ω →
+      θ * (c t ω + ε * z ω) + y t ω ≤ m t ω + ε * ζ ω ∧ 0 ≤ m t ω + ε * ζ ω := by
+    intro t K B z ζ h hε ω hc1 hc2
+    have hbz : |z ω| ≤ |B| ∧ |ζ ω| ≤ |B| := by
+      rcases h.1.2.2 ω with h0 | h0
+      · rw [h0.1, h0.2, abs_zero]
+        exact ⟨abs_nonneg _, abs_nonneg _⟩
+      · exact ⟨h0.2.1.trans (le_abs_self _), h0.2.2.trans (le_abs_self _)⟩
+    obtain ⟨hbz1, hbz2⟩ := hbz
+    have hθ0 := abs_nonneg θ
+    have hB0 := abs_nonneg B
+    have hz0 := abs_nonneg (z ω)
+    have hmag1 : |ζ ω| ≤ (|θ| + 1) * (|B| + 1) := by nlinarith
+    have hmag2 : |ζ ω| + |θ| * |z ω| ≤ (|θ| + 1) * (|B| + 1) := by nlinarith
+    have hεζ : ε * |ζ ω| < 1 / ((K : ℝ) + 1) :=
+      lt_of_le_of_lt (mul_le_mul_of_nonneg_left hmag1 hε0) hε
+    have hεd : ε * (|ζ ω| + |θ| * |z ω|) < 1 / ((K : ℝ) + 1) :=
+      lt_of_le_of_lt (mul_le_mul_of_nonneg_left hmag2 hε0) hε
+    constructor
+    · rcases (h.2 ω).2 with hs | hs
+      · have h1 : -(ε * (|ζ ω| + |θ| * |z ω|)) ≤ ε * (ζ ω - θ * z ω) := by
+          have : |ζ ω - θ * z ω| ≤ |ζ ω| + |θ| * |z ω| := by
+            rw [← abs_mul]
+            exact abs_sub _ _
+          nlinarith [neg_abs_le (ζ ω - θ * z ω)]
+        nlinarith
+      · nlinarith
+    · rcases (h.2 ω).1 with hm | hm
+      · nlinarith [neg_abs_le (ζ ω)]
+      · nlinarith
+  refine ⟨fun n => ?_, domainCon_roll hcon.2 hne h₁.1 h₂.1 hd₁ hd₂⟩
+  filter_upwards [hcon.1 n] with ω ⟨hc1, hc2⟩
+  by_cases h1 : n = t₁
+  · subst h1
+    simp only [rollC, ↓reduceIte, hne, add_zero]
+    exact hone h₁ hε₁ ω hc1 hc2
+  · by_cases h2 : n = t₂
+    · subst h2
+      simp only [rollC, ↓reduceIte, h1, zero_add]
+      exact hone h₂ hε₂ ω hc1 hc2
+    · simp only [rollC, h1, h2, ↓reduceIte, add_zero, mul_zero]
+      exact ⟨hc1, hc2⟩
+
+/-! ### One multiplier for all one-sided deviations -/
+
+/-- Cochrane (2023), (19.24)–(19.26), p. 449: a localization of positive probability exists at
+every date when the plan lies in the open domain. -/
+theorem exists_loc_pos {U : Set (ℝ × ℝ)} (hU : IsOpen U) {Λ P c m : ℕ → Ω → ℝ}
+    (hdom : DomainCon S U c m) (t : ℕ) : ∃ K : ℕ, 0 < S.μ {ω | Loc S U Λ P c m t K ω} := by
+  by_contra hno
+  push Not at hno
+  have h0 : ∀ K : ℕ, S.μ {ω | Loc S U Λ P c m t K ω} = 0 := fun K =>
+    nonpos_iff_eq_zero.1 (hno K)
+  have hU0 := measure_iUnion_null h0
+  have hall := ae_exists_loc (Λ := Λ) (P := P) hU hdom t
+  rw [ae_iff] at hall
+  have : S.μ Set.univ = 0 := by
+    refine measure_mono_null (fun ω _ => ?_) (measure_union_null hU0 hall)
+    by_cases h : ∃ K, Loc S U Λ P c m t K ω
+    · obtain ⟨K, hK⟩ := h
+      exact Or.inl (Set.mem_iUnion.2 ⟨K, hK⟩)
+    · exact Or.inr h
+  simp at this
+
+/-- Cochrane (2023), (19.15), p. 441: the interest cost is at most one, `ι_t ≤ 1` (the bond price
+is nonnegative), almost surely. -/
+theorem iota_le_one {Λ P : ℕ → Ω → ℝ} (hp : PriceWeak S Λ P) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, iota S Λ P t ω ≤ 1 := by
+  have h0 : 0 ≤ᵐ[S.μ] pk Λ P (t + 1) := Eventually.of_forall fun ω => (hp.pk_pos _ ω).le
+  filter_upwards [condExp_nonneg (m := S.𝓕 t) h0] with ω hω
+  simp only [iota, bondPrice]
+  have := div_nonneg hω (hp.pk_pos t ω).le
+  linarith
+
+/-- Cochrane (2023), (19.31), p. 450 and p. 449 (Karush–Kuhn–Tucker conditions), **one multiplier
+for all one-sided deviations**: at a cash-in-advance optimum (utility `C¹` on the open set `I`
+with `u' > 0`, `V > 0`, only `PriceWeak` prices), there is one constant `λ > 0` such that every
+one-sided localized deviation `(z, ζ)` at every date satisfies
+`βᵗE[u'(c_t)z] ≤ λE[Λ_t(z + ι_tζ)]` (its utility gain is at most `λ` times its cost). -/
+theorem cia_one_sided {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I)
+    (hu : ∀ x ∈ I, HasDerivAt u (u' x) x) (hu' : ContinuousOn u' I)
+    (hupos : ∀ x ∈ I, 0 < u' x) {V : ℝ} (hV : 0 < V) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) :
+    ∃ lam : ℝ, 0 < lam ∧ ∀ (t K : ℕ) (B : ℝ) (z ζ : Ω → ℝ),
+      OneTest S (I ×ˢ Set.univ) V Λ P y c m t K B z ζ →
+      β ^ t * ∫ ω, u' (c t ω) * z ω ∂S.μ ≤
+        lam * ∫ ω, Λ t ω * (z ω + iota S Λ P t ω * ζ ω) ∂S.μ := by
+  have hC := c1On_cons hI hu hu'
+  set U : Set (ℝ × ℝ) := I ×ˢ Set.univ with hUdef
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hcon := hopt.2.1
+  have hdom := hopt.2.1.2
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  set θ : ℝ := 1 / V - 1 with hθ
+  set Ct : ℕ → (Ω → ℝ) × (Ω → ℝ) → Prop := fun t v =>
+    ∃ (K : ℕ) (B : ℝ), OneTest S U V Λ P y c m t K B v.1 v.2 with hCt
+  set Lu : ℕ → (Ω → ℝ) × (Ω → ℝ) → ℝ := fun t v => β ^ t * ∫ ω, (u' (c t ω) * v.1 ω +
+    0 * v.2 ω) ∂S.μ with hLu
+  set Lp : ℕ → (Ω → ℝ) × (Ω → ℝ) → ℝ := fun t v =>
+    ∫ ω, Λ t ω * (v.1 ω + iota S Λ P t ω * v.2 ω) ∂S.μ with hLp
+  have hucU : ContinuousOn (fun p : ℝ × ℝ => u' p.1) U := hC.2.2.1
+  have iu : ∀ t v, Ct t v → Integrable (fun ω => u' (c t ω) * v.1 ω + 0 * v.2 ω) S.μ := by
+    rintro t v ⟨K, B, h⟩
+    exact (h.1.integrable_util hC.1 hca hma hucU).1.add ((integrable_zero _ _ _).congr
+      (Eventually.of_forall fun ω => by simp))
+  have ip : ∀ t v, Ct t v → Integrable (fun ω => Λ t ω * (v.1 ω + iota S Λ P t ω * v.2 ω))
+      S.μ := by
+    rintro t v ⟨K, B, h⟩
+    have := (h.1.integrable hp).2.2.2
+    refine this.neg.congr (Eventually.of_forall fun ω => ?_)
+    simp [rollX]
+  have hXLp : ∀ t v, ∫ ω, rollX S Λ P t v.1 v.2 ω ∂S.μ = -Lp t v := fun t v => by
+    rw [hLp, ← integral_neg]
+    rfl
+  -- test directions at date 0 of either sign
+  have hι0 : ∀ᵐ ω ∂S.μ, 0 ≤ iota S Λ P 0 ω :=
+    cia_iota_nonneg hβ hI hu hu' hopt hp 0 (by
+      filter_upwards [hdom 0] with ω hω
+      exact hupos _ hω.1)
+  have hι1 := iota_le_one hp 0
+  obtain ⟨K, hKpos⟩ := exists_loc_pos (Λ := Λ) (P := P) hC.1 hdom 0
+  set L₀ := {ω | Loc S U Λ P c m 0 K ω} with hL₀
+  have hLm := measurableSet_loc (U := U) hp hca hma 0 K
+  set z₀ : Ω → ℝ := L₀.indicator (fun _ => 1) with hz₀
+  have hz₀0 : ∀ ω, 0 ≤ z₀ ω := fun ω => by
+    simp only [hz₀]
+    by_cases h : ω ∈ L₀
+    · rw [Set.indicator_of_mem h]
+      norm_num
+    · rw [Set.indicator_of_notMem h]
+  have hroll : ∀ (a b : ℝ), RollTest S U Λ P c m 0 K (|a| + |b|) (fun ω => a * z₀ ω)
+      (fun ω => b * z₀ ω) := by
+    intro a b
+    refine ⟨(stronglyMeasurable_const.indicator hLm).const_mul a,
+      (stronglyMeasurable_const.indicator hLm).const_mul b, fun ω => ?_⟩
+    by_cases hω : ω ∈ L₀
+    · right
+      simp only [hz₀, Set.indicator_of_mem hω, mul_one]
+      exact ⟨hω, by linarith [abs_nonneg b], by linarith [abs_nonneg a]⟩
+    · left
+      simp [hz₀, Set.indicator_of_notMem hω]
+  have hplus : OneTest S U V Λ P y c m 0 K (|1| + |max 0 θ|) (fun ω => 1 * z₀ ω)
+      (fun ω => max 0 θ * z₀ ω) :=
+    ⟨hroll 1 (max 0 θ), fun ω => ⟨Or.inr (mul_nonneg (le_max_left _ _) (hz₀0 ω)),
+      Or.inr (by nlinarith [le_max_right 0 θ, hz₀0 ω])⟩⟩
+  have hminus : OneTest S U V Λ P y c m 0 K (|-1| + |max 0 (-θ)|) (fun ω => -1 * z₀ ω)
+      (fun ω => max 0 (-θ) * z₀ ω) :=
+    ⟨hroll (-1) (max 0 (-θ)), fun ω => ⟨Or.inr (mul_nonneg (le_max_left _ _) (hz₀0 ω)),
+      Or.inr (by nlinarith [le_max_right 0 (-θ), hz₀0 ω])⟩⟩
+  have hzi : Integrable (fun ω => Λ 0 ω * z₀ ω) S.μ := ((hroll 1 0).integrable hp).1.congr
+    (Eventually.of_forall fun ω => by simp)
+  have hc₀pos : 0 < ∫ ω, Λ 0 ω * z₀ ω ∂S.μ := by
+    rw [integral_pos_iff_support_of_nonneg_ae (Eventually.of_forall fun ω =>
+      mul_nonneg (hp.2.2.1 0 ω).le (hz₀0 ω)) hzi]
+    refine lt_of_lt_of_le hKpos (measure_mono fun ω hω => ?_)
+    simp only [Function.mem_support, hz₀, Set.indicator_of_mem hω, mul_one]
+    exact (hp.2.2.1 0 ω).ne'
+  have hθ1 : max 0 (-θ) < 1 := max_lt one_pos (by
+    have : 0 < 1 / V := one_div_pos.2 hV
+    linarith)
+  obtain ⟨lam, hlam⟩ := lagrange_cone (V := (Ω → ℝ) × (Ω → ℝ)) Ct Lu Lp
+    (fun t => ⟨0, 0, oneTest_zero U V Λ P y c m t 0 0⟩)
+    (fun t v w a ha ⟨K, B, h⟩ ⟨K', B', h'⟩ => ⟨_, _, h.comb h' ha⟩)
+    (fun t v w a _ hv hw => by
+      have e : ∀ ω, (v + a • w).1 ω = v.1 ω + a * w.1 ω := fun ω => rfl
+      have e' : ∀ ω, (v + a • w).2 ω = v.2 ω + a * w.2 ω := fun ω => rfl
+      have h1 := integral_add (iu t v hv) ((iu t w hw).const_mul a)
+      rw [integral_const_mul] at h1
+      simp only [hLu, e, e']
+      rw [mul_left_comm a, ← mul_add, ← h1]
+      congr 1
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring))
+    (fun t v w a _ hv hw => by
+      have e : ∀ ω, (v + a • w).1 ω = v.1 ω + a * w.1 ω := fun ω => rfl
+      have e' : ∀ ω, (v + a • w).2 ω = v.2 ω + a * w.2 ω := fun ω => rfl
+      have h1 := integral_add (ip t v hv) ((ip t w hw).const_mul a)
+      rw [integral_const_mul] at h1
+      simp only [hLp, e, e']
+      rw [← h1]
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring))
+    (fun t₁ t₂ hne v w ⟨K₁, B₁, h₁⟩ ⟨K₂, B₂, h₂⟩ hsum => by
+      obtain ⟨r, hr, φ, hφ0, hφd, hφle⟩ := roll_gain hβ hC hopt hp hne h₁.1 h₂.1
+      set a₁ : ℝ := 1 / (2 * ((K₁ : ℝ) + 1)) / (|B₁| + 1) with ha₁
+      set a₂ : ℝ := 1 / (2 * ((K₂ : ℝ) + 1)) / (|B₂| + 1) with ha₂
+      set b₁ : ℝ := 1 / ((K₁ : ℝ) + 1) / ((|θ| + 1) * (|B₁| + 1)) with hb₁
+      set b₂ : ℝ := 1 / ((K₂ : ℝ) + 1) / ((|θ| + 1) * (|B₂| + 1)) with hb₂
+      set η := min r (min (min a₁ a₂) (min b₁ b₂)) with hη
+      have hη0 : 0 < η := lt_min hr (lt_min (lt_min (by positivity) (by positivity))
+        (lt_min (by positivity) (by positivity)))
+      have hD := slope_nonpos hφd hφ0 hη0 fun ε hε0 hεη => by
+        have hε : |ε| = ε := abs_of_pos hε0
+        have hεa₁ : ε < a₁ := lt_of_lt_of_le hεη
+          ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_left _ _)))
+        have hεa₂ : ε < a₂ := lt_of_lt_of_le hεη
+          ((min_le_right _ _).trans ((min_le_left _ _).trans (min_le_right _ _)))
+        have hεb₁ : ε < b₁ := lt_of_lt_of_le hεη
+          ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_left _ _)))
+        have hεb₂ : ε < b₂ := lt_of_lt_of_le hεη
+          ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_right _ _)))
+        refine hφle ε (by rw [hε]; exact lt_of_lt_of_le hεη (min_le_left _ _))
+          (ciaConD_roll hcon hne h₁ h₂ hε0.le ((lt_div_iff₀ (by positivity)).1 hεb₁)
+            ((lt_div_iff₀ (by positivity)).1 hεb₂)
+            (by rw [hε]; exact (lt_div_iff₀ (by positivity)).1 hεa₁)
+            (by rw [hε]; exact (lt_div_iff₀ (by positivity)).1 hεa₂)) fun δ hδ => ?_
+        have e := hXLp t₁ v
+        have e' := hXLp t₂ w
+        rw [e, e', ← neg_add, hsum, neg_zero, mul_zero]
+        simpa using hnp δ hδ
+      exact hD)
+    ⟨0, (fun ω => 1 * z₀ ω, fun ω => max 0 θ * z₀ ω), ⟨K, _, hplus⟩, by
+      refine lt_of_lt_of_le hc₀pos (integral_mono_ae hzi (ip 0 _ ⟨K, _, hplus⟩) ?_)
+      filter_upwards [hι0] with ω hω
+      have := mul_nonneg (mul_nonneg hω (le_max_left 0 θ)) (hz₀0 ω)
+      have hΛ := (hp.2.2.1 0 ω).le
+      nlinarith⟩
+    ⟨0, (fun ω => -1 * z₀ ω, fun ω => max 0 (-θ) * z₀ ω), ⟨K, _, hminus⟩, by
+      have hle : ∫ ω, Λ 0 ω * ((fun ω => -1 * z₀ ω, fun ω => max 0 (-θ) * z₀ ω).1 ω +
+          iota S Λ P 0 ω * (fun ω => -1 * z₀ ω, fun ω => max 0 (-θ) * z₀ ω).2 ω) ∂S.μ ≤
+          ∫ ω, -(1 - max 0 (-θ)) * (Λ 0 ω * z₀ ω) ∂S.μ := by
+        refine integral_mono_ae (ip 0 _ ⟨K, _, hminus⟩) (hzi.const_mul _) ?_
+        filter_upwards [hι1] with ω hω
+        have hΛz := mul_nonneg (hp.2.2.1 0 ω).le (hz₀0 ω)
+        have hm0 := le_max_left 0 (-θ)
+        nlinarith [mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hω hm0) hΛz]
+      rw [integral_const_mul] at hle
+      have : 0 < 1 - max 0 (-θ) := by linarith
+      nlinarith⟩
+  -- the multiplier is positive
+  have hLuplus : 0 < Lu 0 (fun ω => 1 * z₀ ω, fun ω => max 0 θ * z₀ ω) := by
+    simp only [hLu, pow_zero, one_mul, zero_mul, add_zero]
+    have hi : Integrable (fun ω => u' (c 0 ω) * z₀ ω) S.μ :=
+      ((hroll 1 0).integrable_util hC.1 hca hma hucU).1.congr
+        (Eventually.of_forall fun ω => by simp)
+    rw [integral_pos_iff_support_of_nonneg_ae ?_ hi]
+    · refine lt_of_lt_of_le hKpos (measure_mono_ae ?_)
+      filter_upwards [hdom 0] with ω hω hL
+      simp only [Function.mem_support, hz₀, Set.indicator_of_mem hL, mul_one]
+      exact (hupos _ hω.1).ne'
+    · filter_upwards [hdom 0] with ω hω
+      simp only [Pi.zero_apply]
+      exact mul_nonneg (hupos _ hω.1).le (by simpa using hz₀0 ω)
+  have hLpplus : 0 < Lp 0 (fun ω => 1 * z₀ ω, fun ω => max 0 θ * z₀ ω) := by
+    refine lt_of_lt_of_le hc₀pos (integral_mono_ae hzi
+      (ip 0 (fun ω => 1 * z₀ ω, fun ω => max 0 θ * z₀ ω) ⟨K, _, hplus⟩) ?_)
+    filter_upwards [hι0] with ω hω
+    have := mul_nonneg (mul_nonneg hω (le_max_left 0 θ)) (hz₀0 ω)
+    have hΛ := (hp.2.2.1 0 ω).le
+    nlinarith
+  have hlam0 : 0 < lam := by
+    have h := hlam 0 (fun ω => 1 * z₀ ω, fun ω => max 0 θ * z₀ ω) ⟨K, _, hplus⟩
+    by_contra hneg
+    rw [not_lt] at hneg
+    nlinarith
+  refine ⟨lam, hlam0, fun t K B z ζ h => ?_⟩
+  have h' := hlam t (z, ζ) ⟨K, B, h⟩
+  simp only [hLu, hLp, zero_mul, add_zero] at h'
+  exact h'
+
+/-! ### From one-sided tests to almost-sure inequalities -/
+
+/-- Cochrane (2023), footnote 1, p. 440 (one-sided version of
+`TidyR6HouseholdFOC.ae_eq_of_tests`): if `v` is continuous on the open domain, `w` is known at `t`
+and bounded on each localization, the plan lies in the domain, and
+`E[(v(c_t, m_t) − w)1_A] ≤ 0` for every event `A` known at `t` inside a localization, then
+`v(c_t, m_t) ≤ w` almost surely. -/
+theorem ae_le_of_tests {U : Set (ℝ × ℝ)} (hU : IsOpen U) {Λ P c m : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hca : StronglyAdapted S.𝓕 c) (hma : StronglyAdapted S.𝓕 m)
+    (hdom : DomainCon S U c m) {t : ℕ} {v : ℝ × ℝ → ℝ} (hv : ContinuousOn v U) {w : Ω → ℝ}
+    (hw : StronglyMeasurable[S.𝓕 t] w)
+    (hwb : ∀ K : ℕ, ∃ C, ∀ ω, Loc S U Λ P c m t K ω → |w ω| ≤ C)
+    (htest : ∀ (K : ℕ) (A : Set Ω), MeasurableSet[S.𝓕 t] A →
+      A ⊆ {ω | Loc S U Λ P c m t K ω} →
+      ∫ ω, (v (c t ω, m t ω) - w ω) * A.indicator (fun _ => 1) ω ∂S.μ ≤ 0) :
+    ∀ᵐ ω ∂S.μ, v (c t ω, m t ω) ≤ w ω := by
+  have hK : ∀ K : ℕ, ∀ᵐ ω ∂S.μ, Loc S U Λ P c m t K ω → v (c t ω, m t ω) ≤ w ω := by
+    intro K
+    obtain ⟨C₁, hC₁0, hC₁⟩ := kc_bound (U := U) K hv
+    obtain ⟨C₂, hC₂⟩ := hwb K
+    set G : Ω → ℝ := fun ω => U.indicator v (c t ω, m t ω) - w ω with hG
+    have hGm : StronglyMeasurable[S.𝓕 t] G :=
+      (((measurable_indicator_of_continuousOn hU hv).comp ((hca t).measurable.prodMk
+        (hma t).measurable)).sub hw.measurable).stronglyMeasurable
+    set A := {ω | Loc S U Λ P c m t K ω} ∩ {ω | 0 < G ω} with hA
+    have hAm : MeasurableSet[S.𝓕 t] A := (measurableSet_loc (U := U) hp hca hma t K).inter
+      (measurableSet_lt measurable_const hGm.measurable)
+    have hGA : ∀ ω, ω ∈ A → G ω = v (c t ω, m t ω) - w ω := fun ω hω => by
+      rw [hG]
+      simp only
+      rw [Set.indicator_of_mem (kc_subset U K (good_mem_kc hω.1.1))]
+    have h0 := htest K A hAm Set.inter_subset_left
+    have heq : (fun ω => (v (c t ω, m t ω) - w ω) * A.indicator (fun _ => 1) ω) =
+        A.indicator G := by
+      funext ω
+      by_cases hω : ω ∈ A
+      · rw [Set.indicator_of_mem hω, Set.indicator_of_mem hω, hGA ω hω, mul_one]
+      · rw [Set.indicator_of_notMem hω, Set.indicator_of_notMem hω, mul_zero]
+    rw [heq] at h0
+    have hnn : 0 ≤ᵐ[S.μ] A.indicator G := Eventually.of_forall fun ω => by
+      by_cases hω : ω ∈ A
+      · rw [Set.indicator_of_mem hω]
+        exact hω.2.le
+      · rw [Set.indicator_of_notMem hω]
+        simp
+    have hint : Integrable (A.indicator G) S.μ := by
+      refine Integrable.of_bound ((hGm.mono (S.𝓕.le t)).aestronglyMeasurable.indicator
+        (S.𝓕.le t _ hAm)) (C₁ + |C₂|) (Eventually.of_forall fun ω => ?_)
+      rw [Real.norm_eq_abs]
+      by_cases hω : ω ∈ A
+      · rw [Set.indicator_of_mem hω, hGA ω hω]
+        exact (abs_sub _ _).trans (add_le_add (hC₁ _ (good_mem_kc hω.1.1))
+          ((hC₂ ω hω.1).trans (le_abs_self _)))
+      · rw [Set.indicator_of_notMem hω, abs_zero]
+        exact add_nonneg hC₁0 (abs_nonneg _)
+    have hzero : ∫ ω, A.indicator G ω ∂S.μ = 0 :=
+      le_antisymm h0 (integral_nonneg_of_ae hnn)
+    filter_upwards [(integral_eq_zero_iff_of_nonneg_ae hnn hint).1 hzero] with ω hω hl
+    by_contra hlt
+    rw [not_le] at hlt
+    have hGpos : 0 < G ω := by
+      rw [hG]
+      simp only
+      rw [Set.indicator_of_mem (kc_subset U K (good_mem_kc hl.1))]
+      linarith
+    have hmem : ω ∈ A := ⟨hl, hGpos⟩
+    have := hω
+    rw [Pi.zero_apply, Set.indicator_of_mem hmem] at this
+    linarith
+  filter_upwards [ae_all_iff.2 hK, ae_exists_loc (Λ := Λ) (P := P) hU hdom t] with ω h1 h2
+  obtain ⟨K, hl⟩ := h2
+  exact h1 K hl
+
+/-! ### The Karush–Kuhn–Tucker conditions -/
+
+/-- Cochrane (2023), (19.24)–(19.26), p. 449 (KKT multipliers): the multiplier on the cash
+constraint per unit of `λΛ_t`: zero where the constraint is slack, `ι_t` where money is positive
+and the constraint binds, and at a corner the value `(G − λΛ)/(λΛθ)` (with `G = βᵗu'(c_t)`)
+that makes the Euler equation exact. -/
+noncomputable def kktMu (θ lam G Λt ι m sl : ℝ) : ℝ :=
+  if 0 < m then (if 0 < sl then 0 else ι) else
+    (if 0 < sl then 0 else if θ = 0 then 0 else (G - lam * Λt) / (lam * Λt * θ))
+
+/-- Cochrane (2023), (19.24)–(19.26) and (19.31), pp. 449–450: **the KKT conditions at a state
+from the first-order conditions on each region.** With `λ, Λ > 0`, money and slack
+nonnegative, `ι ≥ 0`, the wedge Euler equation where money is positive, the plain Euler
+equation where the constraint is slack, `λΛι = 0` where both hold, and the two one-sided bounds,
+the multiplier `μ = kktMu …` and `ν = ι − μ` satisfy `μ, ν ≥ 0`, `ι = μ + ν`, `μ·slack = 0`,
+`ν·m = 0` and `G = λΛ(1 + θμ)`. -/
+theorem kkt_pointwise {θ lam G Λt ι m sl : ℝ} (hlam : 0 < lam) (hΛ : 0 < Λt) (hm : 0 ≤ m)
+    (hsl : 0 ≤ sl) (hι : 0 ≤ ι) (hR1 : 0 < m → G = lam * (Λt * (1 + ι * θ)))
+    (hR2 : 0 < sl → G = lam * (Λt * (1 + ι * 0)))
+    (hR3 : 0 < m → 0 < sl → 0 = lam * (Λt * (0 + ι * 1)))
+    (hR4a : G ≤ lam * (Λt * (1 + ι * max 0 θ)))
+    (hR4b : -G ≤ lam * (Λt * (-1 + ι * max 0 (-θ)))) :
+    0 ≤ kktMu θ lam G Λt ι m sl ∧ 0 ≤ ι - kktMu θ lam G Λt ι m sl ∧
+      ι = kktMu θ lam G Λt ι m sl + (ι - kktMu θ lam G Λt ι m sl) ∧
+      kktMu θ lam G Λt ι m sl * sl = 0 ∧ (ι - kktMu θ lam G Λt ι m sl) * m = 0 ∧
+      G = lam * (Λt * (1 + θ * kktMu θ lam G Λt ι m sl)) := by
+  have hLΛ : 0 < lam * Λt := mul_pos hlam hΛ
+  unfold kktMu
+  by_cases hm0 : 0 < m
+  · by_cases hs0 : 0 < sl
+    · simp only [hm0, hs0, ↓reduceIte]
+      have hι0 : ι = 0 := by
+        have := hR3 hm0 hs0
+        have h2 : lam * Λt * ι = 0 := by linarith
+        rcases mul_eq_zero.1 h2 with h | h
+        · exact absurd h hLΛ.ne'
+        · exact h
+      refine ⟨le_rfl, by linarith, by ring, by ring, by rw [hι0]; ring, ?_⟩
+      rw [hR2 hs0]
+      ring
+    · have hsl0 : sl = 0 := le_antisymm (not_lt.1 hs0) hsl
+      simp only [hm0, hs0, ↓reduceIte]
+      refine ⟨hι, by linarith, by ring, by rw [hsl0]; ring, by ring, ?_⟩
+      rw [hR1 hm0]
+      ring
+  · have hm00 : m = 0 := le_antisymm (not_lt.1 hm0) hm
+    by_cases hs0 : 0 < sl
+    · simp only [hm0, hs0, ↓reduceIte]
+      refine ⟨le_rfl, by linarith, by ring, by ring, by rw [hm00]; ring, ?_⟩
+      rw [hR2 hs0]
+      ring
+    · have hsl0 : sl = 0 := le_antisymm (not_lt.1 hs0) hsl
+      simp only [hm0, hs0, ↓reduceIte]
+      by_cases hθ : θ = 0
+      · simp only [hθ, ↓reduceIte, max_self, mul_zero, add_zero, neg_zero] at hR4a hR4b ⊢
+        refine ⟨le_rfl, by linarith, by ring, by ring, by rw [hm00]; ring, by nlinarith⟩
+      · simp only [hθ, ↓reduceIte]
+        have hfoc : G = lam * (Λt * (1 + θ * ((G - lam * Λt) / (lam * Λt * θ)))) := by
+          field_simp
+          ring
+        rcases lt_or_gt_of_ne hθ with hneg | hpos
+        · have h1 : max 0 θ = 0 := max_eq_left hneg.le
+          have h2 : max 0 (-θ) = -θ := max_eq_right (by linarith)
+          rw [h1] at hR4a
+          rw [h2] at hR4b
+          have hd : lam * Λt * θ < 0 := mul_neg_of_pos_of_neg hLΛ hneg
+          refine ⟨div_nonneg_of_nonpos (by nlinarith) hd.le, ?_, by ring, by rw [hsl0]; ring,
+            by rw [hm00]; ring, hfoc⟩
+          rw [sub_nonneg, div_le_iff_of_neg hd]
+          nlinarith
+        · have h1 : max 0 θ = θ := max_eq_right hpos.le
+          have h2 : max 0 (-θ) = 0 := max_eq_left (by linarith)
+          rw [h1] at hR4a
+          rw [h2] at hR4b
+          have hd : 0 < lam * Λt * θ := mul_pos hLΛ hpos
+          refine ⟨div_nonneg (by nlinarith) hd.le, ?_, by ring, by rw [hsl0]; ring,
+            by rw [hm00]; ring, hfoc⟩
+          rw [sub_nonneg, div_le_iff₀ hd]
+          nlinarith
+
+/-- Cochrane (2023), (19.24)–(19.26), (19.31) and (19.33), pp. 449–451, **the KKT conditions are
+necessary at a cash-in-advance optimum, everywhere.** With `u` `C¹` on the open set `I`,
+`u' > 0` on `I`, `V > 0` and only `PriceWeak` prices, there are a constant `λ > 0` and processes
+`μ, ν` such that almost surely at every date `μ_t, ν_t ≥ 0`, `ι_t = μ_t + ν_t`,
+`μ_t(m_t − (1/V − 1)c_t − y_t) = 0`, `ν_tm_t = 0` and `βᵗu'(c_t) = λΛ_t(1 + (1/V − 1)μ_t)`:
+exactly the hypotheses of `TidyR6HouseholdCIA.cia_optimal_of_kkt`. No restriction on where money
+is zero. -/
+theorem cia_kkt_necessary {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I)
+    (hu : ∀ x ∈ I, HasDerivAt u (u' x) x) (hu' : ContinuousOn u' I)
+    (hupos : ∀ x ∈ I, 0 < u' x) {V : ℝ} (hV : 0 < V) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) (hya : StronglyAdapted S.𝓕 y) :
+    ∃ lam : ℝ, 0 < lam ∧ ∃ μ ν : ℕ → Ω → ℝ, ∀ t, ∀ᵐ ω ∂S.μ,
+      0 ≤ μ t ω ∧ 0 ≤ ν t ω ∧ iota S Λ P t ω = μ t ω + ν t ω ∧
+      μ t ω * (m t ω - ((1 / V - 1) * c t ω + y t ω)) = 0 ∧ ν t ω * m t ω = 0 ∧
+      β ^ t * u' (c t ω) = lam * (Λ t ω * (1 + (1 / V - 1) * μ t ω)) := by
+  have hC := c1On_cons hI hu hu'
+  set U : Set (ℝ × ℝ) := I ×ˢ Set.univ with hUdef
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hcia := hopt.2.1.1
+  have hdom := hopt.2.1.2
+  set θ : ℝ := 1 / V - 1 with hθ
+  obtain ⟨lam, hlam0, hone⟩ := cia_one_sided hβ hI hu hu' hupos hV hopt hp
+  have hucU : ContinuousOn (fun p : ℝ × ℝ => u' p.1) U := hC.2.2.1
+  have hvU : ∀ t : ℕ, ContinuousOn (fun p : ℝ × ℝ => β ^ t * u' p.1) U := fun t =>
+    hucU.const_smul (β ^ t)
+  -- integrability of a test's two integrands
+  have hint : ∀ {t K : ℕ} {B : ℝ} {z ζ : Ω → ℝ}, RollTest S U Λ P c m t K B z ζ →
+      Integrable (fun ω => u' (c t ω) * z ω) S.μ ∧
+        Integrable (fun ω => Λ t ω * (z ω + iota S Λ P t ω * ζ ω)) S.μ := by
+    intro t K B z ζ h
+    refine ⟨(h.integrable_util hC.1 hca hma hucU).1, ?_⟩
+    have := (h.integrable hp).2.2.2
+    refine this.neg.congr (Eventually.of_forall fun ω => ?_)
+    simp [rollX]
+  -- scalar tests, scaled, are roll tests
+  have hroll : ∀ {t K : ℕ} {B : ℝ} {z : Ω → ℝ} (a b : ℝ), StronglyMeasurable[S.𝓕 t] z →
+      (∀ ω, z ω = 0 ∨ (Loc S U Λ P c m t K ω ∧ |z ω| ≤ B)) →
+      RollTest S U Λ P c m t K (|B| * (|a| + |b| + 1)) (fun ω => a * z ω)
+        (fun ω => b * z ω) := by
+    intro t K B z a b hz hzs
+    refine ⟨hz.const_mul a, hz.const_mul b, fun ω => ?_⟩
+    rcases hzs ω with h0 | ⟨hl, hzB⟩
+    · left
+      simp [h0]
+    · right
+      have hzB' : |z ω| ≤ |B| := hzB.trans (le_abs_self _)
+      refine ⟨hl, ?_, ?_⟩
+      · rw [abs_mul]
+        nlinarith [abs_nonneg a, abs_nonneg b, abs_nonneg B, abs_nonneg (z ω)]
+      · rw [abs_mul]
+        nlinarith [abs_nonneg a, abs_nonneg b, abs_nonneg B, abs_nonneg (z ω)]
+  -- building one-sided tests from scalar tests
+  have hmk : ∀ {t K : ℕ} {B : ℝ} {z : Ω → ℝ} {E : Set Ω} (a b : ℝ),
+      StronglyMeasurable[S.𝓕 t] z →
+      (∀ ω, z ω = 0 ∨ ((Loc S U Λ P c m t K ω ∧ ω ∈ E) ∧ |z ω| ≤ B)) →
+      (∀ ω, ω ∈ E → 1 / ((K : ℝ) + 1) ≤ m t ω ∨ b = 0) →
+      (∀ ω, ω ∈ E → 1 / ((K : ℝ) + 1) ≤ m t ω - (θ * c t ω + y t ω) ∨ θ * a = b) →
+      OneTest S U V Λ P y c m t K (|B| * (|a| + |b| + 1)) (fun ω => a * z ω)
+        (fun ω => b * z ω) := by
+    intro t K B z E a b hz hzs hm hs
+    have hzs' : ∀ ω, z ω = 0 ∨ (Loc S U Λ P c m t K ω ∧ |z ω| ≤ B) := fun ω =>
+      (hzs ω).imp id fun h => ⟨h.1.1, h.2⟩
+    refine ⟨hroll a b hz hzs', fun ω => ⟨?_, ?_⟩⟩
+    · rcases hzs ω with h0 | ⟨⟨_, hE⟩, _⟩
+      · exact Or.inr (by simp [h0])
+      · rcases hm ω hE with h | h
+        · exact Or.inl h
+        · exact Or.inr (by simp [h])
+    · rcases hzs ω with h0 | ⟨⟨_, hE⟩, _⟩
+      · exact Or.inr (by simp [h0])
+      · rcases hs ω hE with h | h
+        · exact Or.inl h
+        · exact Or.inr (le_of_eq (by rw [← h]; ring))
+  -- two-sided tests give equalities
+  have heq2 : ∀ {t K : ℕ} {B : ℝ} {z : Ω → ℝ} (a b : ℝ),
+      OneTest S U V Λ P y c m t K B (fun ω => a * z ω) (fun ω => b * z ω) →
+      OneTest S U V Λ P y c m t K B (fun ω => -a * z ω) (fun ω => -b * z ω) →
+      β ^ t * ∫ ω, u' (c t ω) * (a * z ω) ∂S.μ =
+        lam * ∫ ω, Λ t ω * (a * z ω + iota S Λ P t ω * (b * z ω)) ∂S.μ := by
+    intro t K B z a b h h'
+    have h1 := hone t K B _ _ h
+    have h2 := hone t K B _ _ h'
+    have e1 : ∫ ω, u' (c t ω) * (-a * z ω) ∂S.μ = -∫ ω, u' (c t ω) * (a * z ω) ∂S.μ := by
+      rw [← integral_neg]
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+    have e2 : ∫ ω, Λ t ω * (-a * z ω + iota S Λ P t ω * (-b * z ω)) ∂S.μ =
+        -∫ ω, Λ t ω * (a * z ω + iota S Λ P t ω * (b * z ω)) ∂S.μ := by
+      rw [← integral_neg]
+      exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+    rw [e1, e2] at h2
+    linarith
+  -- bounds and measurability of the multiplier terms
+  have hwb : ∀ (t : ℕ) (x b : ℝ) (K : ℕ), ∃ C, ∀ ω, Loc S U Λ P c m t K ω →
+      |lam * (Λ t ω * (x + iota S Λ P t ω * b))| ≤ C := fun t x b K =>
+    ⟨|lam| * (K * (|x| + K * |b|)), fun ω hl => by
+      rw [abs_mul, abs_mul, abs_of_pos (hp.2.2.1 t ω)]
+      refine mul_le_mul_of_nonneg_left (mul_le_mul hl.2.1 ?_ (abs_nonneg _) (by positivity))
+        (abs_nonneg _)
+      refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_right hl.2.2.2 (abs_nonneg _)⟩
+  have hwm : ∀ (t : ℕ) (x b : ℝ), StronglyMeasurable[S.𝓕 t]
+      (fun ω => lam * (Λ t ω * (x + iota S Λ P t ω * b))) := fun t x b =>
+    ((hp.1 t).mul (stronglyMeasurable_const.add ((hp.sm_iota t).mul
+      stronglyMeasurable_const))).const_mul lam
+  -- equalities on regions where two-sided deviations exist
+  have hreg : ∀ (t : ℕ) (a b : ℝ) (E : ℕ → Set Ω), (∀ K, MeasurableSet[S.𝓕 t] (E K)) →
+      Monotone E → (∀ K ω, ω ∈ E K → 1 / ((K : ℝ) + 1) ≤ m t ω ∨ b = 0) →
+      (∀ K ω, ω ∈ E K → 1 / ((K : ℝ) + 1) ≤ m t ω - (θ * c t ω + y t ω) ∨ θ * a = b) →
+      ∀ᵐ ω ∂S.μ, (∃ K, ω ∈ E K) →
+        β ^ t * u' (c t ω) * a = lam * (Λ t ω * (a + iota S Λ P t ω * b)) := by
+    intro t a b E hEm hEmono hm hs
+    refine ae_eq_of_tests_on (v := fun p => β ^ t * u' p.1 * a)
+      (w := fun ω => lam * (Λ t ω * (a + iota S Λ P t ω * b))) hC.1 hp hca hma hdom hEm hEmono
+      ((hvU t).mul continuousOn_const) (hwm t a b) (hwb t a b) fun K B z hz hzs => ?_
+    have h1 := hmk a b hz hzs (hm K) (hs K)
+    have h2 := hmk (-a) (-b) hz hzs (fun ω hω => (hm K ω hω).imp id fun h => by rw [h]; ring)
+      (fun ω hω => (hs K ω hω).imp id fun h => by rw [← h]; ring)
+    rw [abs_neg, abs_neg] at h2
+    have key2 := heq2 a b h1 h2
+    obtain ⟨i1, i2⟩ := hint (hroll a b hz fun ω => (hzs ω).imp id fun h => ⟨h.1.1, h.2⟩)
+    calc ∫ ω, ((fun p : ℝ × ℝ => β ^ t * u' p.1 * a) (c t ω, m t ω) -
+          lam * (Λ t ω * (a + iota S Λ P t ω * b))) * z ω ∂S.μ
+        = β ^ t * ∫ ω, u' (c t ω) * (a * z ω) ∂S.μ -
+          lam * ∫ ω, Λ t ω * (a * z ω + iota S Λ P t ω * (b * z ω)) ∂S.μ := by
+          rw [← integral_const_mul, ← integral_const_mul,
+            ← integral_sub (i1.const_mul _) (i2.const_mul _)]
+          exact integral_congr_ae (Eventually.of_forall fun ω => by simp only; ring)
+      _ = 0 := by rw [key2]; ring
+  -- inequalities from one-sided deviations
+  have hineq : ∀ (t : ℕ) (a b : ℝ), 0 ≤ b → θ * a ≤ b →
+      ∀ᵐ ω ∂S.μ, β ^ t * u' (c t ω) * a ≤ lam * (Λ t ω * (a + iota S Λ P t ω * b)) := by
+    intro t a b hb hab
+    refine ae_le_of_tests (v := fun p => β ^ t * u' p.1 * a)
+      (w := fun ω => lam * (Λ t ω * (a + iota S Λ P t ω * b))) hC.1 hp hca hma hdom
+      ((hvU t).mul continuousOn_const) (hwm t a b) (hwb t a b) fun K A hA hAsub => ?_
+    set z : Ω → ℝ := A.indicator (fun _ => (1 : ℝ)) with hzdef
+    have hz : StronglyMeasurable[S.𝓕 t] z := stronglyMeasurable_const.indicator hA
+    have hz0 : ∀ ω, 0 ≤ z ω := fun ω => by
+      by_cases h : ω ∈ A
+      · rw [hzdef, Set.indicator_of_mem h]
+        norm_num
+      · rw [hzdef, Set.indicator_of_notMem h]
+    have hzs : ∀ ω, z ω = 0 ∨ (Loc S U Λ P c m t K ω ∧ |z ω| ≤ 1) := fun ω => by
+      by_cases h : ω ∈ A
+      · right
+        rw [hzdef, Set.indicator_of_mem h]
+        exact ⟨hAsub h, by norm_num⟩
+      · left
+        rw [hzdef, Set.indicator_of_notMem h]
+    have hTr := hroll a b hz hzs
+    have hO : OneTest S U V Λ P y c m t K (|(1 : ℝ)| * (|a| + |b| + 1)) (fun ω => a * z ω)
+        (fun ω => b * z ω) :=
+      ⟨hTr, fun ω => ⟨Or.inr (mul_nonneg hb (hz0 ω)), Or.inr (by nlinarith [hz0 ω])⟩⟩
+    have h := hone t K _ _ _ hO
+    obtain ⟨i1, i2⟩ := hint hTr
+    calc ∫ ω, ((fun p : ℝ × ℝ => β ^ t * u' p.1 * a) (c t ω, m t ω) -
+          lam * (Λ t ω * (a + iota S Λ P t ω * b))) * z ω ∂S.μ
+        = β ^ t * ∫ ω, u' (c t ω) * (a * z ω) ∂S.μ -
+          lam * ∫ ω, Λ t ω * (a * z ω + iota S Λ P t ω * (b * z ω)) ∂S.μ := by
+          rw [← integral_const_mul, ← integral_const_mul,
+            ← integral_sub (i1.const_mul _) (i2.const_mul _)]
+          exact integral_congr_ae (Eventually.of_forall fun ω => by simp only; ring)
+      _ ≤ 0 := by linarith
+  -- the regions
+  set sl : ℕ → Ω → ℝ := fun t ω => m t ω - (θ * c t ω + y t ω) with hsl
+  have hslm : ∀ t, StronglyMeasurable[S.𝓕 t] (sl t) := fun t =>
+    (hma t).sub (((hca t).const_mul θ).add (hya t))
+  have hmono : ∀ f : Ω → ℝ, Monotone (fun K : ℕ => {ω | 1 / ((K : ℝ) + 1) ≤ f ω}) := by
+    intro f K K' hKK ω hω
+    simp only [Set.mem_ofPred_eq] at hω ⊢
+    have hc : (K : ℝ) ≤ K' := Nat.cast_le.2 hKK
+    exact (one_div_le_one_div_of_le (by positivity) (by linarith)).trans hω
+  have hEm : ∀ t (f : Ω → ℝ), StronglyMeasurable[S.𝓕 t] f → ∀ K : ℕ,
+      MeasurableSet[S.𝓕 t] {ω | 1 / ((K : ℝ) + 1) ≤ f ω} := fun t f hf K =>
+    measurableSet_le measurable_const hf.measurable
+  have hexK : ∀ x : ℝ, 0 < x → ∃ K : ℕ, 1 / ((K : ℝ) + 1) ≤ x := fun x hx => by
+    obtain ⟨K, hK⟩ := exists_nat_one_div_lt hx
+    exact ⟨K, hK.le⟩
+  refine ⟨lam, hlam0, fun t ω => kktMu θ lam (β ^ t * u' (c t ω)) (Λ t ω) (iota S Λ P t ω)
+    (m t ω) (sl t ω), fun t ω => iota S Λ P t ω - kktMu θ lam (β ^ t * u' (c t ω)) (Λ t ω)
+    (iota S Λ P t ω) (m t ω) (sl t ω), fun t => ?_⟩
+  have hR1 := hreg t 1 θ (fun K => {ω | 1 / ((K : ℝ) + 1) ≤ m t ω}) (hEm t _ (hma t))
+    (hmono _) (fun K ω hω => Or.inl hω) (fun K ω hω => Or.inr (by ring))
+  have hR2 := hreg t 1 0 (fun K => {ω | 1 / ((K : ℝ) + 1) ≤ sl t ω}) (hEm t _ (hslm t))
+    (hmono _) (fun K ω hω => Or.inr rfl) (fun K ω hω => Or.inl hω)
+  have hR3 := hreg t 0 1 (fun K => {ω | 1 / ((K : ℝ) + 1) ≤ m t ω} ∩
+    {ω | 1 / ((K : ℝ) + 1) ≤ sl t ω}) (fun K => (hEm t _ (hma t) K).inter (hEm t _ (hslm t) K))
+    (fun K K' h ω hω => ⟨hmono _ h hω.1, hmono _ h hω.2⟩) (fun K ω hω => Or.inl hω.1)
+    (fun K ω hω => Or.inl hω.2)
+  have hR4a := hineq t 1 (max 0 θ) (le_max_left _ _) (by rw [mul_one]; exact le_max_right _ _)
+  have hR4b := hineq t (-1) (max 0 (-θ)) (le_max_left _ _)
+    (by rw [mul_neg_one]; exact le_max_right _ _)
+  have hι : ∀ᵐ ω ∂S.μ, 0 ≤ iota S Λ P t ω :=
+    cia_iota_nonneg hβ hI hu hu' hopt hp t (by
+      filter_upwards [hdom t] with ω hω
+      exact hupos _ hω.1)
+  filter_upwards [hR1, hR2, hR3, hR4a, hR4b, hcia t, hι] with ω h1 h2 h3 h4a h4b hc hιω
+  obtain ⟨hc1, hc2⟩ := hc
+  exact kkt_pointwise hlam0 (hp.2.2.1 t ω) hc2 (by simp only [hsl]; linarith) hιω
+    (fun hm0 => by
+      obtain ⟨K, hK⟩ := hexK _ hm0
+      have := h1 ⟨K, hK⟩
+      linarith)
+    (fun hs0 => by
+      obtain ⟨K, hK⟩ := hexK _ hs0
+      have := h2 ⟨K, hK⟩
+      linarith)
+    (fun hm0 hs0 => by
+      obtain ⟨K₁, hK₁⟩ := hexK _ hm0
+      obtain ⟨K₂, hK₂⟩ := hexK _ hs0
+      have := h3 ⟨max K₁ K₂, hmono _ (le_max_left _ _) hK₁, hmono _ (le_max_right _ _) hK₂⟩
+      linarith)
+    (by linarith) (by linarith)
+
+
+/-! ### The liminf transversality condition and the characterisation -/
+
+/-- Cochrane (2023), (19.28), p. 449, **the liminf transversality condition at a cash-in-advance
+optimum**: with `u` `C¹` on the open set `I`, `u' > 0` there, `V > 0` and `PriceWeak` prices,
+the date-0 value of wealth satisfies the no-Ponzi bound and is below every `L > 0` infinitely
+often (otherwise the household could consume more at date `0`, with the overnight money that
+requires, and roll the debt over for ever). No concavity, reference plan or bounds. -/
+theorem cia_liminf_tvc {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I)
+    (hu : ∀ x ∈ I, HasDerivAt u (u' x) x) (hu' : ContinuousOn u' I)
+    (hupos : ∀ x ∈ I, 0 < u' x) {V : ℝ} {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) :
+    (∀ δ, 0 < δ → ∀ᶠ T in atTop, -δ ≤ wealthPV S Λ P N0 m a T) ∧
+      ∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S Λ P N0 m a T < L := by
+  have hC := c1On_cons hI hu hu'
+  set U : Set (ℝ × ℝ) := I ×ˢ Set.univ with hUdef
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hcon := hopt.2.1
+  have hdom := hopt.2.1.2
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  set θ : ℝ := 1 / V - 1 with hθ
+  refine ⟨hnp, fun L hL => ?_⟩
+  by_contra hcon'
+  rw [Filter.not_frequently] at hcon'
+  have hι0 : ∀ᵐ ω ∂S.μ, 0 ≤ iota S Λ P 0 ω :=
+    cia_iota_nonneg hβ hI hu hu' hopt hp 0 (by
+      filter_upwards [hdom 0] with ω hω
+      exact hupos _ hω.1)
+  obtain ⟨K, hKpos⟩ := exists_loc_pos (Λ := Λ) (P := P) hC.1 hdom 0
+  set L₀ := {ω | Loc S U Λ P c m 0 K ω} with hL₀
+  have hLm := measurableSet_loc (U := U) hp hca hma 0 K
+  set z₀ : Ω → ℝ := L₀.indicator (fun _ => 1) with hz₀
+  have hz₀0 : ∀ ω, 0 ≤ z₀ ω := fun ω => by
+    simp only [hz₀]
+    by_cases h : ω ∈ L₀
+    · rw [Set.indicator_of_mem h]
+      norm_num
+    · rw [Set.indicator_of_notMem h]
+  have hT : OneTest S U V Λ P y c m 0 K (|1| + |max 0 θ|) (fun ω => 1 * z₀ ω)
+      (fun ω => max 0 θ * z₀ ω) := by
+    refine ⟨⟨(stronglyMeasurable_const.indicator hLm).const_mul 1,
+      (stronglyMeasurable_const.indicator hLm).const_mul _, fun ω => ?_⟩,
+      fun ω => ⟨Or.inr (mul_nonneg (le_max_left _ _) (hz₀0 ω)),
+        Or.inr (by nlinarith [le_max_right 0 θ, hz₀0 ω])⟩⟩
+    by_cases hω : ω ∈ L₀
+    · right
+      simp only [hz₀, Set.indicator_of_mem hω, mul_one]
+      exact ⟨hω, by linarith [abs_nonneg (max 0 θ)], by linarith [abs_nonneg (1 : ℝ)]⟩
+    · left
+      simp [hz₀, Set.indicator_of_notMem hω]
+  have hT0 := oneTest_zero (S := S) U V Λ P y c m 1 0 0
+  obtain ⟨r, hr, φ, hφ0, hφd, hφle⟩ := roll_gain hβ hC hopt hp (show (0 : ℕ) ≠ 1 by omega)
+    hT.1 hT0.1
+  -- the cost of the extra consumption
+  have hzi : Integrable (fun ω => Λ 0 ω * z₀ ω) S.μ := (hT.1.integrable hp).1.congr
+    (Eventually.of_forall fun ω => by simp)
+  have hc₀pos : 0 < ∫ ω, Λ 0 ω * z₀ ω ∂S.μ := by
+    rw [integral_pos_iff_support_of_nonneg_ae (Eventually.of_forall fun ω =>
+      mul_nonneg (hp.2.2.1 0 ω).le (hz₀0 ω)) hzi]
+    refine lt_of_lt_of_le hKpos (measure_mono fun ω hω => ?_)
+    simp only [Function.mem_support, hz₀, Set.indicator_of_mem hω, mul_one]
+    exact (hp.2.2.1 0 ω).ne'
+  set c₀ := ∫ ω, Λ 0 ω * (1 * z₀ ω + iota S Λ P 0 ω * (max 0 θ * z₀ ω)) ∂S.μ with hc₀
+  have hXi := (hT.1.integrable hp).2.2.2
+  have hc₀ge : ∫ ω, Λ 0 ω * z₀ ω ∂S.μ ≤ c₀ := by
+    refine integral_mono_ae hzi (hXi.neg.congr (Eventually.of_forall fun ω => by
+      simp [rollX])) ?_
+    filter_upwards [hι0] with ω hω
+    have := mul_nonneg (mul_nonneg hω (le_max_left 0 θ)) (hz₀0 ω)
+    have hΛ := (hp.2.2.1 0 ω).le
+    nlinarith
+  have hc₀pos' : 0 < c₀ := lt_of_lt_of_le hc₀pos hc₀ge
+  have hX : ∫ ω, rollX S Λ P 0 (fun ω => 1 * z₀ ω) (fun ω => max 0 θ * z₀ ω) ω ∂S.μ = -c₀ := by
+    rw [hc₀, ← integral_neg]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by simp [rollX])
+  have hX0 : ∫ ω, rollX S Λ P 1 0 0 ω ∂S.μ = 0 := by simp [rollX]
+  -- the derivative is positive
+  have hDpos : 0 < β ^ 0 * ∫ ω, (u' (c 0 ω) * (1 * z₀ ω) + 0 * (max 0 θ * z₀ ω)) ∂S.μ +
+      β ^ 1 * ∫ ω, (u' (c 1 ω) * (0 : Ω → ℝ) ω + 0 * (0 : Ω → ℝ) ω) ∂S.μ := by
+    simp only [Pi.zero_apply, mul_zero, add_zero, zero_mul, integral_zero, pow_zero, one_mul]
+    have hi : Integrable (fun ω => u' (c 0 ω) * z₀ ω) S.μ :=
+      (hT.1.integrable_util hC.1 hca hma hC.2.2.1).1.congr
+        (Eventually.of_forall fun ω => by simp)
+    rw [integral_pos_iff_support_of_nonneg_ae ?_ hi]
+    · refine lt_of_lt_of_le hKpos (measure_mono_ae ?_)
+      filter_upwards [hdom 0] with ω hω hL'
+      simp only [Function.mem_support, hz₀, Set.indicator_of_mem hL', mul_one]
+      exact (hupos _ hω.1).ne'
+    · filter_upwards [hdom 0] with ω hω
+      simp only [Pi.zero_apply]
+      exact mul_nonneg (hupos _ hω.1).le (hz₀0 ω)
+  set B₁ : ℝ := |1| + |max 0 θ| with hB₁
+  set η := min r (min (min (1 / (2 * ((K : ℝ) + 1)) / (|B₁| + 1))
+    (1 / (2 * ((0 : ℕ) + 1 : ℝ)) / (|(0 : ℝ)| + 1)))
+    (min (1 / ((K : ℝ) + 1) / ((|θ| + 1) * (|B₁| + 1)))
+      (min (1 / ((0 : ℕ) + 1 : ℝ) / ((|θ| + 1) * (|(0 : ℝ)| + 1))) (L / c₀)))) with hη
+  have hη0 : 0 < η := lt_min hr (lt_min (lt_min (by positivity) (by positivity))
+    (lt_min (by positivity) (lt_min (by positivity) (div_pos hL hc₀pos'))))
+  have hDle := slope_nonpos hφd hφ0 hη0 fun ε hε0 hεη => by
+    have hε : |ε| = ε := abs_of_pos hε0
+    have g1 := lt_of_lt_of_le hεη (min_le_right _ _)
+    have ga₁ := lt_of_lt_of_le g1 ((min_le_left _ _).trans (min_le_left _ _))
+    have ga₂ := lt_of_lt_of_le g1 ((min_le_left _ _).trans (min_le_right _ _))
+    have gb₁ := lt_of_lt_of_le g1 ((min_le_right _ _).trans (min_le_left _ _))
+    have gb₂ := lt_of_lt_of_le g1 ((min_le_right _ _).trans
+      ((min_le_right _ _).trans (min_le_left _ _)))
+    have gL := lt_of_lt_of_le g1 ((min_le_right _ _).trans
+      ((min_le_right _ _).trans (min_le_right _ _)))
+    refine hφle ε (by rw [hε]; exact lt_of_lt_of_le hεη (min_le_left _ _))
+      (ciaConD_roll hcon (show (0 : ℕ) ≠ 1 by omega) hT hT0 hε0.le
+        ((lt_div_iff₀ (by positivity)).1 gb₁) ((lt_div_iff₀ (by positivity)).1 gb₂)
+        (by rw [hε]; exact (lt_div_iff₀ (by positivity)).1 ga₁)
+        (by rw [hε]; exact (lt_div_iff₀ (by positivity)).1 ga₂)) fun δ hδ => ?_
+    rw [hX, hX0]
+    filter_upwards [hcon'] with T hT'
+    rw [not_lt] at hT'
+    have : ε * c₀ < L := (lt_div_iff₀ hc₀pos').1 gL
+    linarith
+  linarith
+
+/-- Cochrane (2023), p. 453 ("first order conditions and transversality conditions are
+necessary and sufficient") and (19.24)–(19.33), pp. 448–451, **the cash-in-advance household
+optimum characterised.** Let `u` be `C¹` on the open set `I` of consumption levels, with the
+supergradient inequality on `I` (concavity) and `u' > 0` there; `V > 0`; prices `PriceWeak`; the
+endowment adapted with integrable values and taxes with integrable values. A feasible, admissible
+plan satisfying the cash-in-advance, no-printing and domain constraints is optimal if and only if
+there are a constant `λ > 0` and multipliers `μ, ν` satisfying the KKT conditions of
+`TidyR6HouseholdCIA.cia_optimal_of_kkt` almost surely at every date, and the date-0 value of
+wealth has liminf zero. -/
+theorem cia_optimal_iff {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I)
+    (hu : ∀ x ∈ I, HasDerivAt u (u' x) x) (hu' : ContinuousOn u' I)
+    (hupos : ∀ x ∈ I, 0 < u' x) (hsg : ∀ x ∈ I, ∀ x' ∈ I, u x' ≤ u x + u' x * (x' - x))
+    {V : ℝ} (hV : 0 < V) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hp : PriceWeak S Λ P) (hya : StronglyAdapted S.𝓕 y)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ)
+    (hf : Feasible S Λ P y s N0 a0 c m a) (hcon : CIAConD S V I y c m)
+    (hadm : UAdmissible S β (fun n ω => u (c n ω))) :
+    Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a ↔
+      ∃ lam : ℝ, 0 < lam ∧ (∃ μ ν : ℕ → Ω → ℝ, ∀ t, ∀ᵐ ω ∂S.μ,
+        0 ≤ μ t ω ∧ 0 ≤ ν t ω ∧ iota S Λ P t ω = μ t ω + ν t ω ∧
+        μ t ω * (m t ω - ((1 / V - 1) * c t ω + y t ω)) = 0 ∧ ν t ω * m t ω = 0 ∧
+        β ^ t * u' (c t ω) = lam * (Λ t ω * (1 + (1 / V - 1) * μ t ω))) ∧
+        ∀ L, 0 < L → ∃ᶠ T in atTop, wealthPV S Λ P N0 m a T < L := by
+  constructor
+  · intro hopt
+    obtain ⟨lam, hlam, μ, ν, hkkt⟩ := cia_kkt_necessary hβ hI hu hu' hupos hV hopt hp hya
+    exact ⟨lam, hlam, ⟨μ, ν, hkkt⟩, (cia_liminf_tvc hβ hI hu hu' hupos hopt hp).2⟩
+  · rintro ⟨lam, hlam, ⟨μ, ν, hkkt⟩, hlim⟩
+    exact cia_optimal_of_kkt hβ hsg hp hy hs hlam.le hf hcon hadm hkkt hlim
+
+end Cochrane.Monetarism.TidyR6HouseholdCIAKKT
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The transversality condition for utilities on a convex domain
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 19, p. 439 ("their optimal
+choices include transversality conditions") and (19.28), p. 449. `TidyR6HouseholdTVC.tvc_general`
+assumed the utility concave and increasing along the bundle direction on whole lines of `ℝ²`, which
+excludes `log c` and `c^{1−σ}/(1−σ)` with `σ > 1` (defined only for `c > 0`). This module shows
+that concavity and monotonicity are used only on two kinds of segments — from the plan to the
+reference plan, and from the plan to the Kamihigashi step — and restates the theorem accordingly.
+
+## Main results
+
+* `concave_chord_seg`, `concave_slope_anti_seg`, `tangent_seg`, `abs_comb_seg`: chords, slopes,
+  tangent bound and an absolute bound for a function concave (or monotone) on a segment
+  `[0, X]`; the tangent bound uses only the derivative at the end point `0`.
+* **`tvc_seg`**: the transversality condition with concavity and monotonicity along the bundle
+  required only on the segments from the plan to the reference plan and to the step, and with the
+  integrable Kamihigashi step replaced by "integrable step **or** nonnegative freed wealth
+  `k_T/w_T ≥ 0`" (when the household carries no net debt out of `T`, the step's utility lies
+  between `u(c_T, m_T)` and its tangent bound, so it is automatically integrable).
+* `line_fst`, `mem_line_fst`, `line_cons`, `mem_shift`: concavity and monotonicity of a utility
+  concave on a convex domain (in `ℝ²` for money in utility, in `ℝ` for cash in advance) restricted
+  to a segment of the bundle line whose end points are in the domain.
+* **`miu_tvc_dom`**: the money-in-utility transversality condition for a utility `C¹` and concave
+  on an open **convex** domain `U` and increasing in consumption there: no extension to `ℝ²` is
+  needed; the reference plan and the step must lie in `U`.
+* **`cia_tvc_dom`**: the cash-in-advance version for `u` `C¹`, concave and increasing on an open
+  interval `I`; `log_hypotheses` checks that `u = log` on `(0, ∞)` satisfies all utility
+  hypotheses.
+* `mRef_nonneg`, `step_money_nonneg`: primitive sufficient conditions for the reference money and
+  the step money to be nonnegative (velocity `V ≤ 1`, nonnegative endowment, reference
+  consumption and freed wealth).
+
+## What remains assumed, and why
+
+* Concavity along the bundle on the plan–reference and plan–step segments. Without it the
+  Kamihigashi bound `(u(c + θd) − u(c))/θ ≥ u(c + d) − u(c)` on the tail fails, and only the
+  liminf form of the transversality condition (`TidyR6HouseholdFOC.miu_liminf_tvc`,
+  `TidyR6HouseholdCIAKKT.cia_liminf_tvc`) survives. A counterexample to the limit form would need an
+  optimum at which the first-order condition holds with `λ > 0` while wealth oscillates; with an
+  admissible reference plan this forces consumption to oscillate unboundedly with summable utility,
+  and certifying optimality of such a plan requires a global supergradient at the plan, which
+  makes utility grow linearly and destroys summability. Every candidate constructed so far
+  (utilities flat below a threshold, bounded utilities, convex–concave kinks) admitted a profitable
+  deviation that sacrifices consumption at one late date, so it was not an optimum. Neither a
+  proof nor a counterexample is known.
+* Admissibility of the reference plan: necessary (`TidyR6HouseholdTVCCx.tvc_needs_reference`).
+* The step in the domain, the reference and step money nonnegative (cash-in-advance): these say
+  that the Kamihigashi deviation is in the choice set; `mRef_nonneg` and `step_money_nonneg` give
+  primitive sufficient conditions. Their necessity is not shown.
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdTVCDom
+
+open MeasureTheory ProbabilityTheory Filter Topology ExpectationsMeasure HouseholdMeasure
+  HouseholdMeasureTVC TidyR6HouseholdRoll TidyR6HouseholdSuff TidyR6HouseholdTVC
+
+variable {Ω : Type*} [MeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+
+/-! ### Concave and monotone functions on a segment -/
+
+/-- Cochrane (2023), p. 439 (concavity along the bundle, on a segment): for `g` concave on
+`[0, tX]` (unordered interval) and `0 ≤ θ ≤ t`, `t > 0`,
+`(1 − θ/t)g(0) + (θ/t)g(tX) ≤ g(θX)`. -/
+theorem concave_chord_seg {g : ℝ → ℝ} {θ t X : ℝ} (hc : ConcaveOn ℝ (Set.uIcc 0 (t * X)) g)
+    (h0 : 0 ≤ θ) (hθt : θ ≤ t) (ht : 0 < t) :
+    (1 - θ / t) * g 0 + θ / t * g (t * X) ≤ g (θ * X) := by
+  have ha : 0 ≤ 1 - θ / t := by rw [sub_nonneg, div_le_one ht]; exact hθt
+  have hb : 0 ≤ θ / t := div_nonneg h0 ht.le
+  have := hc.2 Set.left_mem_uIcc Set.right_mem_uIcc ha hb (by ring)
+  simp only [smul_eq_mul, mul_zero, zero_add] at this
+  convert this using 2
+  field_simp
+
+/-- Cochrane (2023), p. 439: `sX` lies between `0` and `tX` when `0 ≤ s ≤ t`. -/
+theorem mem_uIcc_mul {s t X : ℝ} (hs : 0 ≤ s) (hst : s ≤ t) : s * X ∈ Set.uIcc 0 (t * X) := by
+  rw [Set.mem_uIcc]
+  rcases le_total 0 X with hX | hX
+  · left
+    exact ⟨mul_nonneg hs hX, mul_le_mul_of_nonneg_right hst hX⟩
+  · right
+    exact ⟨mul_le_mul_of_nonpos_right hst hX, mul_nonpos_of_nonneg_of_nonpos hs hX⟩
+
+/-- Cochrane (2023), p. 439: for `g` concave on `[0, t₀X]` the slope `(g(sX) − g(0))/s` decreases
+in `s ∈ (0, t₀]`. -/
+theorem concave_slope_anti_seg {g : ℝ → ℝ} {s t t₀ X : ℝ}
+    (hc : ConcaveOn ℝ (Set.uIcc 0 (t₀ * X)) g) (hs : 0 < s) (hst : s ≤ t) (ht : t ≤ t₀) :
+    (g (t * X) - g 0) / t ≤ (g (s * X) - g 0) / s := by
+  have htpos : 0 < t := lt_of_lt_of_le hs hst
+  have hsub : Set.uIcc 0 (t * X) ⊆ Set.uIcc 0 (t₀ * X) :=
+    Set.uIcc_subset_uIcc Set.left_mem_uIcc (mem_uIcc_mul htpos.le ht)
+  have h := concave_chord_seg (hc.subset hsub (Set.ordConnected_uIcc.convex)) hs.le hst htpos
+  rw [div_le_div_iff₀ htpos hs]
+  have e : (1 - s / t) * g 0 + s / t * g (t * X) = g 0 + s / t * (g (t * X) - g 0) := by ring
+  rw [e] at h
+  have h2 : s / t * (g (t * X) - g 0) * t = s * (g (t * X) - g 0) := by field_simp
+  nlinarith
+
+/-- Cochrane (2023), (19.13), p. 440 (tangent bound on a segment): for `g` concave on
+`[0, t₀X]` and differentiable at `0` with derivative `V`, `g(θX) ≤ g(0) + θVX` for
+`0 ≤ θ ≤ t₀`. -/
+theorem tangent_seg {g : ℝ → ℝ} {V θ t₀ X : ℝ} (hc : ConcaveOn ℝ (Set.uIcc 0 (t₀ * X)) g)
+    (hg : HasDerivAt g V 0) (h0 : 0 ≤ θ) (h1 : θ ≤ t₀) :
+    g (θ * X) ≤ g 0 + θ * (V * X) := by
+  rcases h0.lt_or_eq with hθ | hθ
+  · have hlim := slope_tendsto hg hθ X
+    have hge : ∀ k : ℕ, (g (θ * X) - g 0) / θ ≤
+        (g (θ / ((k : ℝ) + 1) * X) - g 0) / (θ / ((k : ℝ) + 1)) := fun k =>
+      concave_slope_anti_seg hc (by positivity)
+        (div_le_self hθ.le (by linarith [k.cast_nonneg (α := ℝ)])) h1
+    have := ge_of_tendsto' hlim hge
+    rw [div_le_iff₀ hθ] at this
+    linarith
+  · subst hθ
+    simp
+
+/-- Cochrane (2023), p. 439: for `g` monotone on `[0, d]` and `0 ≤ θ ≤ 1`,
+`|g(θd)| ≤ |g(0)| + |g(d)|` (the value lies between the end values). -/
+theorem abs_comb_seg {g : ℝ → ℝ} {d θ : ℝ} (hm : MonotoneOn g (Set.uIcc 0 d)) (h0 : 0 ≤ θ)
+    (h1 : θ ≤ 1) : |g (θ * d)| ≤ |g 0| + |g d| := by
+  have hmem : θ * d ∈ Set.uIcc 0 d := by
+    have := mem_uIcc_mul (X := d) h0 h1
+    rwa [one_mul] at this
+  rcases le_total 0 d with hd | hd
+  · have l : g 0 ≤ g (θ * d) := hm Set.left_mem_uIcc hmem (mul_nonneg h0 hd)
+    have r : g (θ * d) ≤ g d := hm hmem Set.right_mem_uIcc (by nlinarith)
+    rw [abs_le]
+    constructor <;> linarith [neg_abs_le (g 0), le_abs_self (g d), abs_nonneg (g 0),
+      abs_nonneg (g d)]
+  · have l : g d ≤ g (θ * d) := hm Set.right_mem_uIcc hmem (by nlinarith)
+    have r : g (θ * d) ≤ g 0 := hm hmem Set.left_mem_uIcc (mul_nonpos_of_nonneg_of_nonpos h0 hd)
+    rw [abs_le]
+    constructor <;> linarith [neg_abs_le (g d), le_abs_self (g 0), abs_nonneg (g 0),
+      abs_nonneg (g d)]
+
+/-! ### The transversality condition with concavity on segments -/
+
+/-- Cochrane (2023), p. 439 ("their optimal choices include transversality conditions") and
+(19.28), p. 449, **the transversality condition with concavity only on segments.** As
+`TidyR6HouseholdTVC.tvc_general`, but the utility `e ↦ u(c_n + e, m_n + ϑe)` need only be concave
+and increasing on the segment from `0` to the reference change `cRef_n − c_n` (every date) and
+on the segment from `0` to the Kamihigashi step `θ₀x_T` (every date), almost surely; and the step
+need only have integrable utility **or** the freed wealth `x_T = k_T/w_T` be nonnegative. -/
+theorem tvc_seg {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {ϑ : ℝ}
+    (hum : Measurable fun p : ℝ × ℝ => u p.1 p.2)
+    {θ₀ : ℝ} (hθ₀ : 0 < θ₀) (hθ₀1 : θ₀ ≤ 1)
+    {Con : (ℕ → Ω → ℝ) → (ℕ → Ω → ℝ) → Prop} {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ} (hopt : Optimal S β u Con Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s)
+    (hw : ∀ n, ∀ᵐ ω ∂S.μ, wedge S ϑ Λ P n ω ≠ 0) {lam : ℝ} (hlam : 0 < lam)
+    (hder : ∀ T, ∀ᵐ ω ∂S.μ, HasDerivAt (fun e => u (c T ω + e) (m T ω + ϑ * e))
+      (uc (c T ω) (m T ω) + ϑ * um (c T ω) (m T ω)) 0)
+    (hfoc : ∀ T, ∀ᵐ ω ∂S.μ, β ^ T * (uc (c T ω) (m T ω) + ϑ * um (c T ω) (m T ω)) =
+      lam * (Λ T ω * wedge S ϑ Λ P T ω))
+    (href : UAdmissible S β
+      (fun n ω => u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω)))
+    (hRc : ∀ n, Integrable (fun ω => Λ n ω * (cRef S ϑ Λ P y s c m n ω - c n ω)) S.μ)
+    (hRm : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+      (P n ω * (ϑ * (cRef S ϑ Λ P y s c m n ω - c n ω)))) S.μ)
+    (hXc : ∀ T, Integrable (fun ω => Λ T ω * kx S ϑ Λ P a m T ω) S.μ)
+    (hXm : ∀ T, Integrable (fun ω => pk Λ P (T + 1) ω * (P T ω * (ϑ * kx S ϑ Λ P a m T ω))) S.μ)
+    (hsegT : ∀ T, ∀ᵐ ω ∂S.μ,
+      ConcaveOn ℝ (Set.uIcc 0 (θ₀ * kx S ϑ Λ P a m T ω)) (fun e => u (c T ω + e) (m T ω + ϑ * e))
+      ∧ MonotoneOn (fun e => u (c T ω + e) (m T ω + ϑ * e))
+        (Set.uIcc 0 (θ₀ * kx S ϑ Λ P a m T ω)))
+    (hsegR : ∀ n, ∀ᵐ ω ∂S.μ, ConcaveOn ℝ (Set.uIcc 0 (cRef S ϑ Λ P y s c m n ω - c n ω))
+      (fun e => u (c n ω + e) (m n ω + ϑ * e)) ∧ MonotoneOn (fun e => u (c n ω + e)
+        (m n ω + ϑ * e)) (Set.uIcc 0 (cRef S ϑ Λ P y s c m n ω - c n ω)))
+    (hstep : ∀ T, Integrable (fun ω => u (c T ω + θ₀ * kx S ϑ Λ P a m T ω)
+      (m T ω + ϑ * (θ₀ * kx S ϑ Λ P a m T ω))) S.μ ∨ ∀ᵐ ω ∂S.μ, 0 ≤ kx S ϑ Λ P a m T ω)
+    (hcon : ∀ T θ, 0 < θ → θ < θ₀ → Con (fun n ω => c n ω + θ * kdc S ϑ Λ P y s a c m T n ω)
+      (fun n ω => m n ω + θ * (ϑ * kdc S ϑ Λ P y s a c m T n ω))) :
+    Tendsto (wealthPV S Λ P N0 m a) atTop (𝓝 0) := by
+  obtain ⟨hfeas, -, hadm, hmax⟩ := hopt
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hnp := hfeas.2.2.2.2.2.2.2.2.2
+  have mz : ∀ {n : ℕ} {h : Ω → ℝ}, StronglyMeasurable[S.𝓕 n] h → Measurable h :=
+    fun {n} _ h => (h.mono (S.𝓕.le n)).measurable
+  set d : ℕ → ℝ := fun n => β ^ n * (∫ ω, u (c n ω) (m n ω) ∂S.μ -
+    ∫ ω, u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω) ∂S.μ) with hd
+  have hds : Summable d :=
+    ((hadm.hasSum hβ).sub (href.hasSum hβ)).summable.congr fun n => by simp only [hd]; ring
+  set R : ℕ → ℝ := fun T => ∑' n, if T < n then d n else 0 with hR
+  have hRT : ∀ T, HasSum (fun n => if T < n then d n else 0) (R T) := fun T =>
+    (hasSum_ite_lt hds T).summable.hasSum
+  have hRlim : Tendsto R atTop (𝓝 0) := by
+    have e : ∀ T, R T = ∑' n, d n - ∑ n ∈ Finset.range (T + 1), d n := fun T =>
+      (hasSum_ite_lt hds T).tsum_eq
+    have := (tendsto_const_nhds (x := ∑' n, d n)).sub
+      (hds.hasSum.tendsto_sum_nat.comp (tendsto_add_atTop_nat 1))
+    rw [sub_self] at this
+    exact this.congr fun T => (e T).symm
+  -- the key bound at each date
+  have key : ∀ T, lam * wealthPV S Λ P N0 m a (T + 1) ≤ R T := by
+    intro T
+    set x := kx S ϑ Λ P a m T with hx
+    have hxm : Measurable x := mz (sm_kx hp hma T)
+    set g : Ω → ℝ → ℝ := fun ω e => u (c T ω + e) (m T ω + ϑ * e) with hg
+    set V : Ω → ℝ := fun ω => uc (c T ω) (m T ω) + ϑ * um (c T ω) (m T ω) with hV
+    have hg0 : ∀ ω, g ω 0 = u (c T ω) (m T ω) := fun ω => by simp [hg]
+    -- the value of the freed wealth
+    obtain ⟨hkI, hkE⟩ := lam_kOut hp hfeas T
+    have hVx : (fun ω => β ^ T * (V ω * x ω)) =ᵐ[S.μ] fun ω => lam * (Λ T ω * kOut S Λ P a m T ω)
+        := by
+      filter_upwards [hfoc T, hw T] with ω h1 h2
+      simp only [hV, hx, kx]
+      rw [← mul_assoc, h1]
+      field_simp
+    have hVxi : Integrable (fun ω => V ω * x ω) S.μ := by
+      have := (hkI.const_mul lam).congr hVx.symm
+      refine (this.const_mul (β ^ T)⁻¹).congr (Eventually.of_forall fun ω => ?_)
+      have := pow_pos hβ T
+      field_simp
+    -- the integrands along the step
+    have hgm : ∀ θ : ℝ, Measurable fun ω => g ω (θ * x ω) := fun θ =>
+      hum.comp (((mz (hca T)).add (hxm.const_mul θ)).prodMk
+        ((mz (hma T)).add ((hxm.const_mul θ).const_mul ϑ)))
+    have hstepI : Integrable (fun ω => g ω (θ₀ * x ω)) S.μ := by
+      rcases hstep T with h | h
+      · exact h
+      · have hU : Integrable (fun ω => g ω 0 + θ₀ * (V ω * x ω)) S.μ :=
+          ((hadm.integrable hβ T).add (hVxi.const_mul θ₀)).congr
+            (Eventually.of_forall fun ω => by simp only [Pi.add_apply, hg0])
+        have hL : Integrable (fun ω => g ω 0) S.μ := (hadm.integrable hβ T).congr
+          (Eventually.of_forall fun ω => (hg0 ω).symm)
+        refine Integrable.mono' (hL.abs.add hU.abs) (hgm θ₀).aestronglyMeasurable ?_
+        filter_upwards [hder T, hsegT T, h] with ω hdω hseg hx0
+        have up := tangent_seg hseg.1 hdω hθ₀.le le_rfl
+        have lo : g ω 0 ≤ g ω (θ₀ * x ω) := hseg.2 Set.left_mem_uIcc Set.right_mem_uIcc
+          (mul_nonneg hθ₀.le hx0)
+        simp only [Pi.add_apply]
+        rw [Real.norm_eq_abs, abs_le]
+        constructor
+        · linarith [neg_abs_le (g ω 0), abs_nonneg (g ω 0 + θ₀ * (V ω * x ω))]
+        · linarith [le_abs_self (g ω 0 + θ₀ * (V ω * x ω)), abs_nonneg (g ω 0)]
+    have hgint : ∀ θ : ℝ, 0 ≤ θ → θ ≤ θ₀ → Integrable (fun ω => g ω (θ * x ω)) S.μ := by
+      intro θ h0 h1
+      have hL : Integrable (fun ω => (1 - θ / θ₀) * g ω 0 + θ / θ₀ * g ω (θ₀ * x ω)) S.μ := by
+        refine (((hadm.integrable hβ T).const_mul (1 - θ / θ₀)).add
+          (hstepI.const_mul (θ / θ₀))).congr (Eventually.of_forall fun ω => ?_)
+        simp only [Pi.add_apply, hg, add_zero, mul_zero]
+      have hU : Integrable (fun ω => g ω 0 + θ * (V ω * x ω)) S.μ :=
+        ((hadm.integrable hβ T).add (hVxi.const_mul θ)).congr
+          (Eventually.of_forall fun ω => by simp only [Pi.add_apply, hg0])
+      refine Integrable.mono' (hL.abs.add hU.abs) (hgm θ).aestronglyMeasurable ?_
+      filter_upwards [hder T, hsegT T] with ω hdω hseg
+      simp only [Pi.add_apply]
+      have lo := concave_chord_seg hseg.1 h0 h1 hθ₀
+      have up := tangent_seg hseg.1 hdω h0 h1
+      rw [Real.norm_eq_abs, abs_le]
+      constructor
+      · linarith [neg_abs_le ((1 - θ / θ₀) * g ω 0 + θ / θ₀ * g ω (θ₀ * x ω)),
+          abs_nonneg (g ω 0 + θ * (V ω * x ω))]
+      · have : g ω (θ * x ω) ≤ g ω 0 + θ * (V ω * x ω) := up
+        linarith [le_abs_self (g ω 0 + θ * (V ω * x ω)),
+          abs_nonneg ((1 - θ / θ₀) * g ω 0 + θ / θ₀ * g ω (θ₀ * x ω))]
+    -- the optimality inequality for a step `θ`
+    have hstepIneq : ∀ θ : ℝ, 0 < θ → θ < θ₀ →
+        β ^ T * (∫ ω, g ω (θ * x ω) ∂S.μ - ∫ ω, u (c T ω) (m T ω) ∂S.μ) ≤ θ * R T := by
+      intro θ h0 h1
+      have hθ1 : θ ≤ 1 := (h1.le.trans hθ₀1)
+      have hIC : ∀ n, Integrable (fun ω => Λ n ω * kdc S ϑ Λ P y s a c m T n ω) S.μ := by
+        intro n
+        by_cases h1 : n < T
+        · simp [kdc, h1]
+        · by_cases h2 : n = T
+          · subst h2
+            simpa [kdc] using hXc n
+          · simpa [kdc, h1, h2] using hRc n
+      have hIM : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+          (P n ω * (ϑ * kdc S ϑ Λ P y s a c m T n ω))) S.μ := by
+        intro n
+        by_cases h1 : n < T
+        · simp [kdc, h1]
+        · by_cases h2 : n = T
+          · subst h2
+            simpa [kdc] using hXm n
+          · simpa [kdc, h1, h2] using hRm n
+      have hF := kam_feasible_w hp hfeas hya hsa hw T hIC hIM h0.le hθ1
+      set f' : ℕ → Ω → ℝ := fun n ω => u (c n ω + θ * kdc S ϑ Λ P y s a c m T n ω)
+        (m n ω + θ * (ϑ * kdc S ϑ Λ P y s a c m T n ω)) with hf'
+      have hf'lt : ∀ n, n < T → ∀ ω, f' n ω = u (c n ω) (m n ω) := fun n hn ω => by
+        simp [hf', kdc, hn]
+      have hf'T : ∀ ω, f' T ω = g ω (θ * x ω) := fun ω => by
+        simp only [hf', hg, kdc, lt_irrefl, ↓reduceIte, hx]
+        ring_nf
+      have hcR : ∀ n ω, cRef S ϑ Λ P y s c m n ω =
+          c n ω + (cRef S ϑ Λ P y s c m n ω - c n ω) := fun n ω => by ring
+      have hmR : ∀ n ω, mRef S ϑ Λ P y s c m n ω =
+          m n ω + ϑ * (cRef S ϑ Λ P y s c m n ω - c n ω) := fun n ω => rfl
+      have hf'gt : ∀ n, T < n → ∀ ω, f' n ω = u (c n ω + θ * (cRef S ϑ Λ P y s c m n ω - c n ω))
+          (m n ω + ϑ * (θ * (cRef S ϑ Λ P y s c m n ω - c n ω))) := fun n hn ω => by
+        simp only [hf', kdc, show ¬ n < T by omega, show n ≠ T by omega, ↓reduceIte]
+        ring_nf
+      -- admissibility of the deviation
+      have hadm' : UAdmissible S β f' := by
+        refine uadm_of_le hβ hadm href (hgint θ h0.le h1.le) (T := T) (fun n => ?_) (fun n => ?_)
+        · exact (hum.comp (((mz (hca n)).add
+            ((mz (sm_kdc hp hya hsa hca hma T n)).const_mul θ)).prodMk ((mz (hma n)).add
+            (((mz (sm_kdc hp hya hsa hca hma T n)).const_mul ϑ).const_mul θ)))).aestronglyMeasurable
+        · filter_upwards [hsegR n] with ω hseg
+          rcases lt_trichotomy n T with hn | hn | hn
+          · rw [hf'lt n hn ω]
+            simp only [show n ≠ T by omega, ↓reduceIte, add_zero]
+            linarith [abs_nonneg (u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω))]
+          · subst hn
+            rw [hf'T ω]
+            simp only [↓reduceIte]
+            linarith [abs_nonneg (u (c n ω) (m n ω)),
+              abs_nonneg (u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω))]
+          · rw [hf'gt n hn ω]
+            simp only [show n ≠ T by omega, ↓reduceIte, add_zero]
+            have := abs_comb_seg hseg.2 h0.le hθ1
+            simp only [mul_zero, add_zero] at this
+            rw [show c n ω + (cRef S ϑ Λ P y s c m n ω - c n ω) = cRef S ϑ Λ P y s c m n ω by
+              ring] at this
+            rw [hmR n ω]
+            exact this
+      have hle := hmax _ _ _ hF (hcon T θ h0 h1) hadm'
+      -- compare the two series of expected utilities
+      set D : ℕ → ℝ := fun n => β ^ n * ∫ ω, f' n ω ∂S.μ - β ^ n * ∫ ω, u (c n ω) (m n ω) ∂S.μ
+        with hD
+      have hDs : HasSum D (expU S β f' - expU S β (fun n ω => u (c n ω) (m n ω))) :=
+        (hadm'.hasSum hβ).sub (hadm.hasSum hβ)
+      set E : ℕ → ℝ := fun n => (if n = T then β ^ T * (∫ ω, g ω (θ * x ω) ∂S.μ -
+        ∫ ω, u (c T ω) (m T ω) ∂S.μ) else 0) - θ * (if T < n then d n else 0) with hE
+      have hEs : HasSum E (β ^ T * (∫ ω, g ω (θ * x ω) ∂S.μ - ∫ ω, u (c T ω) (m T ω) ∂S.μ) -
+          θ * R T) := (hasSum_ite_eq T _).sub ((hRT T).mul_left θ)
+      have hED : ∀ n, E n ≤ D n := by
+        intro n
+        rcases lt_trichotomy n T with hn | hn | hn
+        · simp only [hE, hD, show n ≠ T by omega, show ¬ T < n by omega, ↓reduceIte,
+            mul_zero, sub_zero]
+          rw [integral_congr_ae (Eventually.of_forall (hf'lt n hn)), sub_self]
+        · subst hn
+          simp only [hE, hD, ↓reduceIte, lt_irrefl, mul_zero, sub_zero]
+          rw [integral_congr_ae (Eventually.of_forall hf'T), mul_sub]
+        · simp only [hE, hD, show n ≠ T by omega, hn, ↓reduceIte, zero_sub, hd]
+          have hi' := hadm'.integrable hβ n
+          have hi := hadm.integrable hβ n
+          have hir := href.integrable hβ n
+          have hpt : ∀ᵐ ω ∂S.μ, (1 - θ) * u (c n ω) (m n ω) + θ *
+              u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω) ≤ f' n ω := by
+            filter_upwards [hsegR n] with ω hseg
+            have := hseg.1.2 Set.left_mem_uIcc Set.right_mem_uIcc (sub_nonneg.2 hθ1) h0.le
+              (by ring)
+            simp only [smul_eq_mul, mul_zero, zero_add, add_zero] at this
+            rw [show c n ω + (cRef S ϑ Λ P y s c m n ω - c n ω) = cRef S ϑ Λ P y s c m n ω by
+              ring] at this
+            rw [hf'gt n hn ω, hmR n ω]
+            exact this
+          have hint2 : Integrable (fun ω => (1 - θ) * u (c n ω) (m n ω) + θ *
+              u (cRef S ϑ Λ P y s c m n ω) (mRef S ϑ Λ P y s c m n ω)) S.μ :=
+            (hi.const_mul (1 - θ)).add (hir.const_mul θ)
+          have hmono' := integral_mono_ae hint2 hi' hpt
+          rw [integral_add (hi.const_mul _) (hir.const_mul _), integral_const_mul,
+            integral_const_mul] at hmono'
+          have hb := pow_pos hβ n
+          nlinarith
+      have := hasSum_le hED hEs hDs
+      linarith
+    -- the monotone limit of the difference quotients
+    set θk : ℕ → ℝ := fun k => θ₀ / 2 / ((k : ℝ) + 1) with hθk
+    have hθk0 : ∀ k, 0 < θk k := fun k => by positivity
+    have hθk1 : ∀ k, θk k < θ₀ := fun k => by
+      have : θ₀ / 2 / ((k : ℝ) + 1) ≤ θ₀ / 2 :=
+        div_le_self (by positivity) (by linarith [k.cast_nonneg (α := ℝ)])
+      linarith
+    set q : ℕ → Ω → ℝ := fun k ω => (g ω (θk k * x ω) - g ω 0) / θk k with hq
+    have hqi : ∀ k, Integrable (q k) S.μ := fun k =>
+      ((hgint (θk k) (hθk0 k).le (hθk1 k).le).sub ((hadm.integrable hβ T).congr
+        (Eventually.of_forall fun ω => (hg0 ω).symm))).div_const _
+    have hqle : ∀ k, β ^ T * ∫ ω, q k ω ∂S.μ ≤ R T := by
+      intro k
+      have h := hstepIneq (θk k) (hθk0 k) (hθk1 k)
+      have e : ∫ ω, q k ω ∂S.μ = (∫ ω, g ω (θk k * x ω) ∂S.μ - ∫ ω, u (c T ω) (m T ω) ∂S.μ) /
+          θk k := by
+        simp only [hq]
+        rw [integral_div, integral_sub (hgint _ (hθk0 k).le (hθk1 k).le)
+          ((hadm.integrable hβ T).congr (Eventually.of_forall fun ω => (hg0 ω).symm))]
+        simp only [hg0]
+      rw [e, mul_div_assoc', div_le_iff₀ (hθk0 k)]
+      linarith
+    have hmonoq : ∀ᵐ ω ∂S.μ, Monotone fun k => q k ω := by
+      filter_upwards [hsegT T] with ω hseg
+      refine monotone_nat_of_le_succ fun k => ?_
+      simp only [hq]
+      refine concave_slope_anti_seg hseg.1 (hθk0 (k + 1)) ?_ (hθk1 k).le
+      simp only [hθk]
+      push_cast
+      exact div_le_div_of_nonneg_left (by positivity) (by positivity) (by linarith)
+    have hlimq : ∀ᵐ ω ∂S.μ, Tendsto (fun k => q k ω) atTop (𝓝 (V ω * x ω)) := by
+      filter_upwards [hder T] with ω hdω
+      exact slope_tendsto hdω (by positivity : (0 : ℝ) < θ₀ / 2) (x ω)
+    have hint := integral_tendsto_of_tendsto_of_monotone hqi hVxi hmonoq hlimq
+    have hle : β ^ T * ∫ ω, V ω * x ω ∂S.μ ≤ R T :=
+      le_of_tendsto' (hint.const_mul (β ^ T)) hqle
+    have e2 : β ^ T * ∫ ω, V ω * x ω ∂S.μ = lam * wealthPV S Λ P N0 m a (T + 1) := by
+      rw [← integral_const_mul, integral_congr_ae hVx, integral_const_mul, hkE]
+    linarith
+  -- conclusion
+  have h1 : Tendsto (fun T => wealthPV S Λ P N0 m a (T + 1)) atTop (𝓝 0) := by
+    refine tendsto_order.2 ⟨fun b hb => ?_, fun b hb => ?_⟩
+    · have := hnp (-b / 2) (by linarith)
+      filter_upwards [(tendsto_add_atTop_nat 1).eventually this] with T hT
+      linarith
+    · filter_upwards [(tendsto_order.1 hRlim).2 (lam * b) (by positivity)] with T hT
+      have := key T
+      by_contra hcon'
+      rw [not_lt] at hcon'
+      nlinarith
+  exact (tendsto_add_atTop_iff_nat 1).1 h1
+
+
+/-! ### Utilities on a convex domain -/
+
+/-- Cochrane (2023), (19.9), p. 439: on a convex set `I ⊆ ℝ` containing `c` and `c + X`, the
+whole segment `c + [0, X]` lies in `I`. -/
+theorem mem_shift {I : Set ℝ} (hI : Convex ℝ I) {c X e : ℝ} (h0 : c ∈ I) (h1 : c + X ∈ I)
+    (he : e ∈ Set.uIcc 0 X) : c + e ∈ I := by
+  refine hI.segment_subset h0 h1 ?_
+  rw [segment_eq_uIcc, Set.mem_uIcc]
+  rcases Set.mem_uIcc.1 he with ⟨a, b⟩ | ⟨a, b⟩
+  · left
+    constructor <;> linarith
+  · right
+    constructor <;> linarith
+
+/-- Cochrane (2023), (19.9), p. 439: on a convex set `U ⊆ ℝ²` containing `(x, z)` and
+`(x + X, z)`, the whole segment `(x + [0, X], z)` lies in `U`. -/
+theorem mem_line_fst {U : Set (ℝ × ℝ)} (hU : Convex ℝ U) {x z X e : ℝ} (h0 : (x, z) ∈ U)
+    (h1 : (x + X, z) ∈ U) (he : e ∈ Set.uIcc 0 X) : (x + e, z) ∈ U := by
+  by_cases hX : X = 0
+  · subst hX
+    have : e = 0 := by
+      rcases Set.mem_uIcc.1 he with ⟨a, b⟩ | ⟨a, b⟩ <;> linarith
+    subst this
+    simpa using h0
+  · have hl : 0 ≤ e / X ∧ e / X ≤ 1 := by
+      rcases lt_or_gt_of_ne hX with hneg | hpos
+      · rcases Set.mem_uIcc.1 he with ⟨a, b⟩ | ⟨a, b⟩
+        · exact absurd (lt_of_le_of_lt (a.trans b) hneg) (lt_irrefl 0)
+        · exact ⟨div_nonneg_of_nonpos b hneg.le, (div_le_one_of_neg hneg).2 a⟩
+      · rcases Set.mem_uIcc.1 he with ⟨a, b⟩ | ⟨a, b⟩
+        · exact ⟨div_nonneg a hpos.le, (div_le_one hpos).2 b⟩
+        · exact absurd (lt_of_lt_of_le hpos (a.trans b)) (lt_irrefl 0)
+    have := hU h0 h1 (sub_nonneg.2 hl.2) hl.1 (by ring)
+    have heq : ((1 - e / X) • (x, z) + (e / X) • (x + X, z) : ℝ × ℝ) = (x + e, z) := by
+      refine Prod.ext ?_ ?_
+      · simp only [Prod.smul_mk, Prod.mk_add_mk, smul_eq_mul]
+        field_simp
+        ring
+      · simp only [Prod.smul_mk, Prod.mk_add_mk, smul_eq_mul]
+        ring
+    rwa [heq] at this
+
+/-- Cochrane (2023), (19.9), p. 439 (money in utility, bundle `ϑ = 0`): for `u` concave on the
+convex set `U` and increasing in consumption within `U`, and `(x, z)`, `(x + X, z)` in `U`, the
+function `e ↦ u(x + e, z + 0·e)` is concave and increasing on `[0, X]`. -/
+theorem line_fst {u : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)} (hU : Convex ℝ U)
+    (hconc : ConcaveOn ℝ U (fun p : ℝ × ℝ => u p.1 p.2))
+    (hmono : ∀ x x' z, (x, z) ∈ U → (x', z) ∈ U → x ≤ x' → u x z ≤ u x' z) {x z X : ℝ}
+    (h0 : (x, z) ∈ U) (h1 : (x + X, z) ∈ U) :
+    ConcaveOn ℝ (Set.uIcc 0 X) (fun e => u (x + e) (z + 0 * e)) ∧
+      MonotoneOn (fun e => u (x + e) (z + 0 * e)) (Set.uIcc 0 X) := by
+  refine ⟨⟨convex_uIcc 0 X, fun e₁ he₁ e₂ he₂ a b ha hb hab => ?_⟩, fun e₁ he₁ e₂ he₂ h => ?_⟩
+  · have := hconc.2 (mem_line_fst hU h0 h1 he₁) (mem_line_fst hU h0 h1 he₂) ha hb hab
+    have hpt : a • ((x + e₁, z) : ℝ × ℝ) + b • (x + e₂, z) = (x + (a * e₁ + b * e₂), z) := by
+      refine Prod.ext ?_ ?_
+      · simp only [Prod.smul_mk, Prod.mk_add_mk, smul_eq_mul]
+        linear_combination x * hab
+      · simp only [Prod.smul_mk, Prod.mk_add_mk, smul_eq_mul]
+        linear_combination z * hab
+    rw [hpt] at this
+    simpa [smul_eq_mul] using this
+  · simp only [zero_mul, add_zero]
+    exact hmono _ _ _ (mem_line_fst hU h0 h1 he₁) (mem_line_fst hU h0 h1 he₂) (by linarith)
+
+/-- Cochrane (2023), §19.5.1, p. 448: for `u` concave and increasing on the convex set `I ⊆ ℝ`
+and `c`, `c + X` in `I`, the function `e ↦ u(c + e)` (any bundle money change) is concave and
+increasing on `[0, X]`. -/
+theorem line_cons {u : ℝ → ℝ} {I : Set ℝ} (hI : Convex ℝ I) (hconc : ConcaveOn ℝ I u)
+    (hmono : MonotoneOn u I) {c X : ℝ} (h0 : c ∈ I) (h1 : c + X ∈ I) (z ϑ : ℝ) :
+    ConcaveOn ℝ (Set.uIcc 0 X) (fun e => (fun x _ => u x : ℝ → ℝ → ℝ) (c + e) (z + ϑ * e)) ∧
+      MonotoneOn (fun e => (fun x _ => u x : ℝ → ℝ → ℝ) (c + e) (z + ϑ * e))
+        (Set.uIcc 0 X) := by
+  refine ⟨⟨convex_uIcc 0 X, fun e₁ he₁ e₂ he₂ a b ha hb hab => ?_⟩, fun e₁ he₁ e₂ he₂ h => ?_⟩
+  · have := hconc.2 (mem_shift hI h0 h1 he₁) (mem_shift hI h0 h1 he₂) ha hb hab
+    simp only [smul_eq_mul] at this ⊢
+    convert this using 2
+    linear_combination (-c) * hab
+  · exact hmono (mem_shift hI h0 h1 he₁) (mem_shift hI h0 h1 he₂) (by linarith)
+
+/-- Cochrane (2023), §19.5.1, p. 448: `u = log` on `(0, ∞)` satisfies the utility hypotheses of
+`cia_tvc_dom`: differentiable with continuous positive derivative `1/c`, concave, increasing,
+measurable, on an open convex set. -/
+theorem log_hypotheses :
+    IsOpen (Set.Ioi (0 : ℝ)) ∧ Convex ℝ (Set.Ioi (0 : ℝ)) ∧
+      (∀ x ∈ Set.Ioi (0 : ℝ), HasDerivAt Real.log x⁻¹ x) ∧
+      ContinuousOn (fun x : ℝ => x⁻¹) (Set.Ioi 0) ∧ Measurable Real.log ∧
+      ConcaveOn ℝ (Set.Ioi 0) Real.log ∧ MonotoneOn Real.log (Set.Ioi 0) ∧
+      ∀ x ∈ Set.Ioi (0 : ℝ), 0 < x⁻¹ :=
+  ⟨isOpen_Ioi, convex_Ioi 0, fun _ hx => Real.hasDerivAt_log (ne_of_gt hx),
+    continuousOn_inv₀.mono fun _ hx => ne_of_gt hx, Real.measurable_log,
+    strictConcaveOn_log_Ioi.concaveOn, Real.strictMonoOn_log.monotoneOn,
+    fun _ hx => inv_pos.2 hx⟩
+
+/-- Cochrane (2023), (19.24)–(19.26), p. 449 (a primitive condition for nonnegative reference
+money): if the cash constraint `(1/V − 1)c + y ≤ m` holds, `1/V − 1 ≥ 0` (`V ≤ 1`), `y ≥ 0` and
+the reference consumption is nonnegative, then the reference money `mRef` is nonnegative. -/
+theorem mRef_nonneg {θ cn mn yn cr : ℝ} (hcia : θ * cn + yn ≤ mn) (hθ : 0 ≤ θ) (hy : 0 ≤ yn)
+    (hcr : 0 ≤ cr) : 0 ≤ mn + θ * (cr - cn) := by
+  nlinarith
+
+/-- Cochrane (2023), (19.26), p. 449 (a primitive condition for nonnegative step money): if
+`1/V − 1 ≥ 0`, the freed wealth is nonnegative and overnight money is nonnegative, then the
+money of a Kamihigashi step is nonnegative. -/
+theorem step_money_nonneg {θ θ₀ mn x : ℝ} (hθ : 0 ≤ θ) (hθ₀ : 0 ≤ θ₀) (hx : 0 ≤ x)
+    (hm : 0 ≤ mn) : 0 ≤ mn + θ * (θ₀ * x) := by
+  positivity
+
+open TidyR6HouseholdLocal TidyR6HouseholdFOC in
+/-- Cochrane (2023), p. 439 and (19.11)–(19.12), p. 439, **the money-in-utility transversality
+condition for a utility on a convex domain.** Let `u` be `C¹` on the open **convex** domain `U`
+(e.g. `(0, ∞)²`), concave on `U`, increasing in consumption within `U`, and measurable; prices
+`PriceWeak`, endowment and taxes adapted with integrable values, `u_c > 0` at date `0`. If the
+reference plan (`cRef`, `m`) lies in `U` and is admissible, and the step
+`(c_T + θ₀x_T, m_T)` lies in `U` and has integrable utility or nonnegative freed wealth, then
+`E[pk_T(a_T + M_{T−1})] → 0`. No extension of `u` beyond `U` is used. -/
+theorem miu_tvc_dom {β : ℝ} (hβ : 0 < β) {u uc um : ℝ → ℝ → ℝ} {U : Set (ℝ × ℝ)}
+    (hu : C1On u uc um U) (hUc : Convex ℝ U) (hum : Measurable fun p : ℝ × ℝ => u p.1 p.2)
+    (hconcU : ConcaveOn ℝ U (fun p : ℝ × ℝ => u p.1 p.2))
+    (hmonoU : ∀ x x' z, (x, z) ∈ U → (x', z) ∈ U → x ≤ x' → u x z ≤ u x' z)
+    {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ} {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β u (DomainCon S U) Λ P y s N0 a0 c m a) (hp : PriceWeak S Λ P)
+    (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ)
+    (hpos : ∀ᵐ ω ∂S.μ, 0 < uc (c 0 ω) (m 0 ω))
+    (href : UAdmissible S β
+      (fun n ω => u (cRef S 0 Λ P y s c m n ω) (mRef S 0 Λ P y s c m n ω)))
+    (hrefU : ∀ n, ∀ᵐ ω ∂S.μ, (cRef S 0 Λ P y s c m n ω, m n ω) ∈ U)
+    {θ₀ : ℝ} (hθ₀ : 0 < θ₀) (hθ₀1 : θ₀ ≤ 1)
+    (hstep : ∀ T, Integrable (fun ω => u (c T ω + θ₀ * kx S 0 Λ P a m T ω)
+      (m T ω + 0 * (θ₀ * kx S 0 Λ P a m T ω))) S.μ ∨ ∀ᵐ ω ∂S.μ, 0 ≤ kx S 0 Λ P a m T ω)
+    (hstepU : ∀ T, ∀ᵐ ω ∂S.μ, (c T ω + θ₀ * kx S 0 Λ P a m T ω, m T ω) ∈ U) :
+    Tendsto (wealthPV S Λ P N0 m a) atTop (𝓝 0) := by
+  have hfeas := hopt.1
+  have hdom := hopt.2.1
+  obtain ⟨lam, hlam⟩ := miu_multiplier hβ hu hopt hp
+  have hlam0 : 0 < lam := by
+    obtain ⟨ω, h1, h2⟩ := ((hlam 0).1.and hpos).exists
+    rw [pow_zero, one_mul] at h1
+    rw [h1] at h2
+    exact pos_of_mul_pos_left h2 (hp.2.2.1 0 ω).le
+  have hw1 : ∀ n ω, wedge S 0 Λ P n ω = 1 := fun n ω => by simp [wedge]
+  have hcR : ∀ n ω, c n ω + (cRef S 0 Λ P y s c m n ω - c n ω) = cRef S 0 Λ P y s c m n ω :=
+    fun n ω => by ring
+  refine tvc_seg (ϑ := 0) (uc := uc) (um := um) hβ hum hθ₀ hθ₀1 hopt hp hya hsa
+    (fun n => Eventually.of_forall fun ω => by rw [hw1]; exact one_ne_zero) hlam0
+    (fun T => ?_) (fun T => ?_) href (fun n => ?_) (fun n => ?_) (fun T => ?_) (fun T => ?_)
+    (fun T => ?_) (fun n => ?_) hstep (fun T θ h0 h1 n => ?_)
+  · filter_upwards [hdom T] with ω hω
+    have := hu.hasDerivAt_line (x := c T ω) (y := m T ω) (g := 1) (k := 0) (ε := 0)
+      (by simpa using hω)
+    simpa using this
+  · filter_upwards [(hlam T).1] with ω h
+    rw [hw1, zero_mul, add_zero, mul_one]
+    exact h
+  · refine ((wealth_step_w hp hy hs hfeas n).1.neg).congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.neg_apply, outlay, cRef, hw1, div_one]
+    ring
+  · simp
+  · refine (lam_kOut hp hfeas T).1.congr (Eventually.of_forall fun ω => ?_)
+    simp [kx, hw1]
+  · simp
+  · filter_upwards [hdom T, hstepU T] with ω h0 h1
+    exact line_fst hUc hconcU hmonoU h0 h1
+  · filter_upwards [hdom n, hrefU n] with ω h0 h1
+    exact line_fst hUc hconcU hmonoU h0 (by rw [hcR]; exact h1)
+  · filter_upwards [hdom n, hrefU n, hstepU T] with ω hd0 hr hst
+    simp only [zero_mul, mul_zero, add_zero]
+    rcases lt_trichotomy n T with hn | hn | hn
+    · simpa [kdc, hn] using hd0
+    · subst hn
+      have he : θ * kx S 0 Λ P a m n ω ∈ Set.uIcc 0 (θ₀ * kx S 0 Λ P a m n ω) :=
+        mem_uIcc_mul h0.le h1.le
+      simpa [kdc] using mem_line_fst hUc hd0 hst he
+    · have he : θ * (cRef S 0 Λ P y s c m n ω - c n ω) ∈
+          Set.uIcc 0 (1 * (cRef S 0 Λ P y s c m n ω - c n ω)) :=
+        mem_uIcc_mul h0.le (h1.trans_le hθ₀1).le
+      rw [one_mul] at he
+      have := mem_line_fst hUc hd0 (by rw [hcR]; exact hr) he
+      simpa [kdc, show ¬ n < T by omega, show n ≠ T by omega] using this
+
+open TidyR6HouseholdCIA in
+/-- Cochrane (2023), (19.28), p. 449, **the cash-in-advance transversality condition for a
+utility on an open interval.** As `TidyR6HouseholdTVC.cia_tvc`, but `u` need only be `C¹`,
+concave and increasing on the open convex set `I` (e.g. `log` on `(0, ∞)`, `log_hypotheses`),
+with consumption, the reference consumption and the step in `I`; the step may have integrable
+utility or nonnegative freed wealth. -/
+theorem cia_tvc_dom {β : ℝ} (hβ : 0 < β) {u u' : ℝ → ℝ} {I : Set ℝ} (hI : IsOpen I)
+    (hIc : Convex ℝ I) (hu : ∀ x ∈ I, HasDerivAt u (u' x) x) (hu' : ContinuousOn u' I)
+    (hum : Measurable u) (hconc : ConcaveOn ℝ I u) (hmono : MonotoneOn u I)
+    (hpos : ∀ x ∈ I, 0 < u' x) {V : ℝ} (hV : 0 < V) {Λ P y s : ℕ → Ω → ℝ} {N0 a0 : Ω → ℝ}
+    {c m a : ℕ → Ω → ℝ}
+    (hopt : Optimal S β (fun x _ => u x) (CIAConD S V I y) Λ P y s N0 a0 c m a)
+    (hp : PriceWeak S Λ P) (hya : StronglyAdapted S.𝓕 y) (hsa : StronglyAdapted S.𝓕 s)
+    (hy : ∀ t, Integrable (fun ω => Λ t ω * y t ω) S.μ)
+    (hs : ∀ t, Integrable (fun ω => Λ t ω * s t ω) S.μ) (hm : ∀ t, ∀ᵐ ω ∂S.μ, 0 < m t ω)
+    (href : UAdmissible S β (fun n ω => u (cRef S (1 / V - 1) Λ P y s c m n ω)))
+    (hrefI : ∀ n, ∀ᵐ ω ∂S.μ, cRef S (1 / V - 1) Λ P y s c m n ω ∈ I)
+    (hmr : ∀ n, ∀ᵐ ω ∂S.μ, 0 ≤ mRef S (1 / V - 1) Λ P y s c m n ω)
+    {θ₀ : ℝ} (hθ₀ : 0 < θ₀) (hθ₀1 : θ₀ ≤ 1)
+    (hstep : ∀ T, Integrable (fun ω => u (c T ω + θ₀ * kx S (1 / V - 1) Λ P a m T ω)) S.μ ∨
+      ∀ᵐ ω ∂S.μ, 0 ≤ kx S (1 / V - 1) Λ P a m T ω)
+    (hstepI : ∀ T, ∀ᵐ ω ∂S.μ, c T ω + θ₀ * kx S (1 / V - 1) Λ P a m T ω ∈ I)
+    (hstepm : ∀ T, ∀ᵐ ω ∂S.μ, 0 ≤ m T ω + (1 / V - 1) * (θ₀ * kx S (1 / V - 1) Λ P a m T ω)) :
+    Tendsto (wealthPV S Λ P N0 m a) atTop (𝓝 0) := by
+  set θV : ℝ := 1 / V - 1 with hθV
+  have hfeas := hopt.1
+  have hca := hfeas.2.1
+  have hma := hfeas.2.2.1
+  have hcia := hopt.2.1.1
+  have hdom := hopt.2.1.2
+  have hpos0 : ∀ t, ∀ᵐ ω ∂S.μ, 0 < u' (c t ω) := fun t => by
+    filter_upwards [hdom t] with ω hω
+    exact hpos _ hω.1
+  have hι : ∀ t, ∀ᵐ ω ∂S.μ, 0 ≤ iota S Λ P t ω := fun t =>
+    cia_iota_nonneg hβ hI hu hu' hopt hp t (hpos0 t)
+  have hwl : ∀ t, ∀ᵐ ω ∂S.μ, min 1 (1 / V) ≤ wedge S θV Λ P t ω := fun t =>
+    cia_wedge_pos hp hV (hι t)
+  have hmin : 0 < min 1 (1 / V) := lt_min one_pos (one_div_pos.2 hV)
+  have hw : ∀ t, ∀ᵐ ω ∂S.μ, wedge S θV Λ P t ω ≠ 0 := fun t =>
+    (hwl t).mono fun ω h => (lt_of_lt_of_le hmin h).ne'
+  obtain ⟨lam, hlam⟩ := cia_multiplier hβ hI hu hu' hopt hp
+  have hfoc : ∀ t, ∀ᵐ ω ∂S.μ, β ^ t * u' (c t ω) = lam * (Λ t ω * wedge S θV Λ P t ω) :=
+    fun t => (hlam t).and (hm t) |>.mono fun ω h => h.1 h.2
+  have hlam0 : 0 < lam := by
+    obtain ⟨ω, h1, h2, h3⟩ := ((hfoc 0).and ((hwl 0).and (hpos0 0))).exists
+    rw [pow_zero, one_mul] at h1
+    have hw0 := lt_of_lt_of_le hmin h2
+    rw [h1] at h3
+    exact pos_of_mul_pos_left h3 (mul_pos (hp.2.2.1 0 ω) hw0).le
+  have hwinv : ∀ t, ∀ᵐ ω ∂S.μ, ‖(wedge S θV Λ P t ω)⁻¹‖ ≤ (min 1 (1 / V))⁻¹ := fun t => by
+    filter_upwards [hwl t] with ω h
+    have hpos' := lt_of_lt_of_le hmin h
+    rw [Real.norm_eq_abs, abs_of_pos (inv_pos.2 hpos')]
+    exact inv_anti₀ hmin h
+  have hwm : ∀ t, StronglyMeasurable[S.𝓕 t] (wedge S θV Λ P t) := fun t =>
+    stronglyMeasurable_const.add ((hp.sm_iota t).const_mul θV)
+  have hRc : ∀ n, Integrable (fun ω => Λ n ω * (cRef S θV Λ P y s c m n ω - c n ω)) S.μ := by
+    intro n
+    have := ((wealth_step_w hp hy hs hfeas n).1.neg).mul_bdd
+      ((hwm n).measurable.inv.mono (S.𝓕.le n) le_rfl).aestronglyMeasurable (hwinv n)
+    refine this.congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.neg_apply, Pi.inv_apply, outlay, cRef]
+    ring
+  have hXc : ∀ T, Integrable (fun ω => Λ T ω * kx S θV Λ P a m T ω) S.μ := by
+    intro T
+    have := (lam_kOut hp hfeas T).1.mul_bdd
+      ((hwm T).measurable.inv.mono (S.𝓕.le T) le_rfl).aestronglyMeasurable (hwinv T)
+    refine this.congr (Eventually.of_forall fun ω => ?_)
+    simp only [Pi.inv_apply, kx]
+    ring
+  have hQ : ∀ t, ∀ᵐ ω ∂S.μ, bondPrice S Λ P t ω ≤ 1 := fun t =>
+    (hι t).mono fun ω h => by simp only [iota] at h; linarith
+  have hRm : ∀ n, Integrable (fun ω => pk Λ P (n + 1) ω *
+      (P n ω * (θV * (cRef S θV Λ P y s c m n ω - c n ω)))) S.μ := fun n =>
+    integrable_pk_succ_mul hp (((sm_cRef hp hya hsa hca hma n).sub (hca n)).const_mul θV)
+      (((hRc n).const_mul θV).congr (Eventually.of_forall fun ω => by ring)) (hQ n)
+  have hXm : ∀ T, Integrable (fun ω => pk Λ P (T + 1) ω *
+      (P T ω * (θV * kx S θV Λ P a m T ω))) S.μ := fun T =>
+    integrable_pk_succ_mul hp ((sm_kx hp hma T).const_mul θV)
+      (((hXc T).const_mul θV).congr (Eventually.of_forall fun ω => by ring)) (hQ T)
+  have hcR : ∀ n ω, c n ω + (cRef S θV Λ P y s c m n ω - c n ω) = cRef S θV Λ P y s c m n ω :=
+    fun n ω => by ring
+  refine tvc_seg (ϑ := θV) (uc := fun x _ => u' x) (um := fun _ _ => 0) hβ
+    (hum.comp measurable_fst) hθ₀ hθ₀1 hopt hp hya hsa hw hlam0
+    (fun T => ?_) (fun T => (hfoc T).mono fun ω h => by simpa using h) href hRc hRm hXc hXm
+    (fun T => ?_) (fun n => ?_) hstep
+    (fun T θ h0 h1 => ⟨fun n => ?_, fun n => ?_⟩)
+  · filter_upwards [hdom T] with ω hω
+    have h1 : HasDerivAt (fun e : ℝ => c T ω + e) 1 0 := by
+      simpa using (hasDerivAt_id (0 : ℝ)).const_add (c T ω)
+    have h2 := (hu (c T ω + 0) (by simpa using hω.1)).comp (0 : ℝ) h1
+    simpa [Function.comp_def] using h2
+  · filter_upwards [hdom T, hstepI T] with ω h0 h1
+    exact line_cons hIc hconc hmono h0.1 h1 (m T ω) θV
+  · filter_upwards [hdom n, hrefI n] with ω h0 h1
+    exact line_cons hIc hconc hmono h0.1 (by rw [hcR]; exact h1) (m n ω) θV
+  · filter_upwards [hcia n, hmr n, hstepm T] with ω ⟨hc1, hc2⟩ hr hst
+    refine ⟨by nlinarith, ?_⟩
+    rcases lt_trichotomy n T with hn | hn | hn
+    · simp only [kdc, hn, ↓reduceIte, mul_zero, add_zero]
+      exact hc2
+    · subst hn
+      simp only [kdc, lt_irrefl, ↓reduceIte]
+      have e : m n ω + θ * (θV * kx S θV Λ P a m n ω) = (1 - θ / θ₀) * m n ω +
+          θ / θ₀ * (m n ω + θV * (θ₀ * kx S θV Λ P a m n ω)) := by
+        field_simp
+        ring
+      rw [e]
+      have hθθ : θ / θ₀ ≤ 1 := by rw [div_le_one hθ₀]; exact h1.le
+      exact add_nonneg (mul_nonneg (by linarith) hc2) (mul_nonneg (by positivity) hst)
+    · simp only [kdc, show ¬ n < T by omega, show n ≠ T by omega, ↓reduceIte]
+      have e : m n ω + θ * (θV * (cRef S θV Λ P y s c m n ω - c n ω)) =
+          (1 - θ) * m n ω + θ * mRef S θV Λ P y s c m n ω := by
+        simp only [mRef]
+        ring
+      rw [e]
+      have hθ1 : θ ≤ 1 := (h1.trans_le hθ₀1).le
+      exact add_nonneg (mul_nonneg (by linarith) hc2) (mul_nonneg h0.le hr)
+  · filter_upwards [hdom n, hrefI n, hstepI T] with ω hd0 hr hst
+    refine ⟨?_, Set.mem_univ _⟩
+    rcases lt_trichotomy n T with hn | hn | hn
+    · simpa [kdc, hn] using hd0.1
+    · subst hn
+      have he : θ * kx S θV Λ P a m n ω ∈ Set.uIcc 0 (θ₀ * kx S θV Λ P a m n ω) :=
+        mem_uIcc_mul h0.le h1.le
+      simpa [kdc] using mem_shift hIc hd0.1 hst he
+    · have he : θ * (cRef S θV Λ P y s c m n ω - c n ω) ∈
+          Set.uIcc 0 (1 * (cRef S θV Λ P y s c m n ω - c n ω)) :=
+        mem_uIcc_mul h0.le (h1.trans_le hθ₀1).le
+      rw [one_mul] at he
+      have := mem_shift hIc hd0.1 (by rw [hcR]; exact hr) he
+      simpa [kdc, show ¬ n < T by omega, show n ≠ T by omega] using this
+end Cochrane.Monetarism.TidyR6HouseholdTVCDom
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Expectation systems on a countable state space are finitely supported averages
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Ch. 2, pp. 29–30 (rational expectations
+`E_t`) and Ch. 19, p. 439 (expected utility `E ∑ βᵗu`), for the core `ExpectationSystem`. An
+`ExpectationSystem` is a family of positive, unital linear operators on all functions `Ω → ℝ`; it
+carries no measure. This module shows that on a **countable** state space a measure is
+automatically there: every date-`t` expectation at every state is the average under a finitely
+supported probability.
+
+## Main results
+
+* `support_finite`: a positive linear functional on `Ω → ℝ` gives positive mass to only finitely
+  many states (otherwise it would take an infinite value on a suitable function).
+* `vanish_off_support`: on a countable `Ω`, it vanishes on every nonnegative function that is zero
+  on those states (otherwise it would be infinite on `h · (ι + 1)` for an injection `ι : Ω → ℕ`).
+* `functional_rep`: on a countable `Ω` a positive unital linear functional is
+  `L f = ∑_{ω ∈ F} p_ω f(ω)` with `p ≥ 0` finitely supported and `∑ p = 1`.
+* **`expectation_rep`**: for every `ExpectationSystem` on a countable `Ω`, every date `t` and
+  state `ω₀`, `E_t f(ω₀) = ∑_{ω ∈ F} p_ω f(ω)` for a finitely supported probability `p`
+  (depending on `t`, `ω₀`). Neither the tower property nor the pull-out property is needed: the
+  representation comes from positivity, linearity and `E_t 1 = 1` alone. So on a countable state
+  space an expected-utility household problem can always be posed.
+
+Countability of `Ω` is the extra property, and it is used only in `vanish_off_support`. On an
+uncountable `Ω` a counterexample (a unital positive linear functional on all of `ℝ^Ω` that is not a
+finitely supported average) would, by the argument of `vanish_off_support`, yield a countably
+additive probability on all subsets of `Ω` vanishing on points, i.e. a real-valued measurable
+cardinal. ZFC (and Lean's foundations) cannot prove such a cardinal exists, so no Lean
+counterexample can be given; the uncountable case is neither proved nor refuted here.
+-/
+
+namespace Cochrane.Monetarism.TidyR6HouseholdRep
+
+variable {Ω : Type*}
+
+/-- Cochrane (2023), Ch. 2, p. 29: the indicator of the single state `ω`. -/
+noncomputable def ind (ω : Ω) : Ω → ℝ := ({ω} : Set Ω).indicator fun _ => 1
+
+/-- Cochrane (2023), Ch. 2, p. 29: the indicator of `ω` is `1` at `ω`. -/
+theorem ind_self (ω : Ω) : ind ω ω = 1 := by simp [ind]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the indicator of `ω` is `0` away from `ω`. -/
+theorem ind_ne {ω ω' : Ω} (h : ω' ≠ ω) : ind ω ω' = 0 := by simp [ind, h]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the indicator of a state is nonnegative. -/
+theorem ind_nonneg (ω : Ω) : 0 ≤ ind ω := fun ω' => by
+  by_cases h : ω' = ω
+  · rw [h, ind_self]
+    norm_num
+  · rw [ind_ne h]
+    simp
+
+/-- Cochrane (2023), Ch. 2, p. 29: **only finitely many states carry mass.** For a positive linear
+functional `L` on `Ω → ℝ`, the set of states with `L(1_{ω}) > 0` is finite. -/
+theorem support_finite (L : (Ω → ℝ) →ₗ[ℝ] ℝ) (hpos : ∀ f, 0 ≤ f → 0 ≤ L f) :
+    {ω | 0 < L (ind ω)}.Finite := by
+  by_contra hinf
+  set e := Set.Infinite.natEmbedding _ hinf with he
+  set p : ℕ → ℝ := fun n => L (ind (e n : Ω)) with hp
+  have hp0 : ∀ n, 0 < p n := fun n => (e n).2
+  set f : Ω → ℝ := (Set.range fun n => (e n : Ω)).indicator fun ω => 1 / L (ind ω) with hf
+  have hinj : ∀ {n k : ℕ}, (e n : Ω) = e k → n = k := fun h => e.injective (Subtype.ext h)
+  have hle : ∀ N : ℕ, ∑ n ∈ Finset.range N, (1 / p n) • ind (e n : Ω) ≤ f := by
+    intro N ω
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    by_cases hω : ω ∈ Set.range fun n => (e n : Ω)
+    · obtain ⟨k, rfl⟩ := hω
+      rw [hf, Set.indicator_of_mem (Set.mem_range_self k)]
+      have hz : ∀ n, n ≠ k → 1 / p n * ind (e n : Ω) (e k) = 0 := fun n hn => by
+        rw [ind_ne (fun h : (e k : Ω) = e n => hn (hinj h.symm)), mul_zero]
+      by_cases hk : k ∈ Finset.range N
+      · rw [Finset.sum_eq_single_of_mem k hk fun n _ hn => hz n hn, ind_self, mul_one]
+      · rw [Finset.sum_eq_zero fun n hn => hz n (fun h => hk (h ▸ hn))]
+        exact (one_div_pos.2 (hp0 k)).le
+    · rw [hf, Set.indicator_of_notMem hω]
+      refine le_of_eq (Finset.sum_eq_zero fun n _ => ?_)
+      rw [ind_ne (fun h : ω = e n => hω ⟨n, h.symm⟩), mul_zero]
+  have hL : ∀ N : ℕ, (N : ℝ) ≤ L f := by
+    intro N
+    have h1 := hpos _ (sub_nonneg.2 (hle N))
+    rw [map_sub, map_sum] at h1
+    have h2 : ∑ n ∈ Finset.range N, L ((1 / p n) • ind (e n : Ω)) = N := by
+      rw [Finset.sum_congr rfl fun n _ => by
+        rw [map_smul, smul_eq_mul, show L (ind (e n : Ω)) = p n from rfl,
+          one_div_mul_cancel (hp0 n).ne']]
+      simp
+    linarith
+  obtain ⟨N, hN⟩ := exists_nat_gt (L f)
+  linarith [hL N]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **a positive functional on a countable space vanishes off its
+atoms.** If `Ω` is countable and `h ≥ 0` is zero at every state with `L(1_{ω}) > 0`, then
+`L h = 0`. -/
+theorem vanish_off_support [Countable Ω] (L : (Ω → ℝ) →ₗ[ℝ] ℝ) (hpos : ∀ f, 0 ≤ f → 0 ≤ L f)
+    {h : Ω → ℝ} (h0 : 0 ≤ h) (hS : ∀ ω, 0 < L (ind ω) → h ω = 0) : L h = 0 := by
+  classical
+  obtain ⟨ι, hι⟩ := Countable.exists_injective_nat Ω
+  have hpn : ∀ ω, 0 ≤ L (ind ω) := fun ω => hpos _ (ind_nonneg ω)
+  -- the part of `h` on finitely many states has value zero
+  have hfin : ∀ n : ℕ, L ({ω | ι ω < n}.indicator h) = 0 := by
+    intro n
+    have hF : {ω | ι ω < n}.Finite := (Set.finite_lt_nat n).preimage hι.injOn
+    have e : {ω | ι ω < n}.indicator h = ∑ ω ∈ hF.toFinset, h ω • ind ω := by
+      funext ω'
+      simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      by_cases hω : ι ω' < n
+      · have hm : ω' ∈ hF.toFinset := by simpa using hω
+        rw [Set.indicator_of_mem (show ω' ∈ {ω | ι ω < n} from hω),
+          Finset.sum_eq_single_of_mem ω' hm fun b _ hb => by rw [ind_ne (Ne.symm hb), mul_zero],
+          ind_self, mul_one]
+      · rw [Set.indicator_of_notMem (show ω' ∉ {ω | ι ω < n} from hω)]
+        refine (Finset.sum_eq_zero fun b hb => ?_).symm
+        have hne : b ≠ ω' := fun h => hω (by subst h; simpa using hb)
+        rw [ind_ne (Ne.symm hne), mul_zero]
+    rw [e, map_sum]
+    refine Finset.sum_eq_zero fun ω _ => ?_
+    rw [map_smul, smul_eq_mul]
+    rcases (hpn ω).lt_or_eq with hp | hp
+    · rw [hS ω hp, zero_mul]
+    · rw [← hp, mul_zero]
+  -- the tails all have value `L h`
+  have htail : ∀ n : ℕ, L ({ω | ι ω < n}ᶜ.indicator h) = L h := by
+    intro n
+    have := congrArg L (Set.indicator_self_add_compl {ω | ι ω < n} h)
+    rw [map_add, hfin n, zero_add] at this
+    exact this
+  set H : Ω → ℝ := fun ω => h ω * (ι ω + 1) with hH
+  have hle : ∀ N : ℕ, ∑ n ∈ Finset.range N, {ω | ι ω < n}ᶜ.indicator h ≤ H := by
+    intro N ω
+    simp only [Finset.sum_apply, hH]
+    have hcount : ∑ n ∈ Finset.range N, ({ω | ι ω < n}ᶜ.indicator h) ω =
+        h ω * ((Finset.range N).filter fun n => n ≤ ι ω).card := by
+      rw [Finset.card_filter, Nat.cast_sum, Finset.mul_sum]
+      refine Finset.sum_congr rfl fun n _ => ?_
+      by_cases hn : n ≤ ι ω
+      · rw [Set.indicator_of_mem (show ω ∈ {ω | ι ω < n}ᶜ by simpa using hn)]
+        simp [hn]
+      · rw [Set.indicator_of_notMem (show ω ∉ {ω | ι ω < n}ᶜ by simpa using hn)]
+        simp [hn]
+    rw [hcount]
+    refine mul_le_mul_of_nonneg_left ?_ (h0 ω)
+    have : ((Finset.range N).filter fun n => n ≤ ι ω) ⊆ Finset.range (ι ω + 1) := by
+      intro n hn
+      simp only [Finset.mem_filter, Finset.mem_range] at hn ⊢
+      omega
+    have := Finset.card_le_card this
+    rw [Finset.card_range] at this
+    exact_mod_cast this
+  have hNL : ∀ N : ℕ, (N : ℝ) * L h ≤ L H := by
+    intro N
+    have h1 := hpos _ (sub_nonneg.2 (hle N))
+    rw [map_sub, map_sum] at h1
+    simp only [htail, Finset.sum_const, Finset.card_range, nsmul_eq_mul] at h1
+    linarith
+  have hLh := hpos h h0
+  rcases hLh.lt_or_eq with hlt | heq
+  · obtain ⟨N, hN⟩ := exists_nat_gt (L H / L h)
+    have := hNL N
+    rw [div_lt_iff₀ hlt] at hN
+    linarith
+  · exact heq.symm
+
+/-- Cochrane (2023), Ch. 2, p. 29: **positive unital linear functionals on a countable space are
+finitely supported averages.** On a countable `Ω`, a positive linear functional with `L 1 = 1`
+is `L f = ∑_{ω ∈ F} p_ω f(ω)` for a finite set `F` and weights `p ≥ 0` with `∑_{ω∈F} p_ω = 1`. -/
+theorem functional_rep [Countable Ω] (L : (Ω → ℝ) →ₗ[ℝ] ℝ) (hpos : ∀ f, 0 ≤ f → 0 ≤ L f)
+    (hone : L (fun _ => 1) = 1) :
+    ∃ (F : Finset Ω) (p : Ω → ℝ), (∀ ω, 0 ≤ p ω) ∧ ∑ ω ∈ F, p ω = 1 ∧
+      ∀ f, L f = ∑ ω ∈ F, p ω * f ω := by
+  classical
+  set S := {ω | 0 < L (ind ω)} with hSdef
+  have hS := support_finite L hpos
+  set F := hS.toFinset with hF
+  have hrep : ∀ f, L f = ∑ ω ∈ F, L (ind ω) * f ω := by
+    intro f
+    set g : Ω → ℝ := f - ∑ ω ∈ F, f ω • ind ω with hg
+    have hgS : ∀ ω, 0 < L (ind ω) → g ω = 0 := by
+      intro ω hω
+      have hmem : ω ∈ F := by simpa [hF, hSdef] using hω
+      simp only [hg, Pi.sub_apply, Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+      rw [Finset.sum_eq_single_of_mem ω hmem fun b _ hb => by rw [ind_ne (Ne.symm hb), mul_zero],
+        ind_self, mul_one, sub_self]
+    have hpart : ∀ k : Ω → ℝ, 0 ≤ k → (∀ ω, 0 < L (ind ω) → k ω = 0) → L k = 0 :=
+      fun k hk hk0 => vanish_off_support L hpos hk hk0
+    have h1 := hpart (fun ω => max (g ω) 0) (fun ω => le_max_right _ _) fun ω hω => by
+      simp [hgS ω hω]
+    have h2 := hpart (fun ω => max (-g ω) 0) (fun ω => le_max_right _ _) fun ω hω => by
+      simp [hgS ω hω]
+    have hsplit : g = (fun ω => max (g ω) 0) - fun ω => max (-g ω) 0 := by
+      funext ω
+      simp only [Pi.sub_apply]
+      rcases le_total 0 (g ω) with h | h
+      · rw [max_eq_left h, max_eq_right (by linarith)]
+        ring
+      · rw [max_eq_right h, max_eq_left (by linarith)]
+        ring
+    have hg0 : L g = 0 := by rw [hsplit, map_sub, h1, h2, sub_zero]
+    have : f = g + ∑ ω ∈ F, f ω • ind ω := by
+      funext ω
+      simp [hg]
+    conv_lhs => rw [this]
+    rw [map_add, hg0, zero_add, map_sum]
+    refine Finset.sum_congr rfl fun ω _ => ?_
+    rw [map_smul, smul_eq_mul, mul_comm]
+  refine ⟨F, fun ω => L (ind ω), fun ω => hpos _ (ind_nonneg ω), ?_, hrep⟩
+  have := hrep fun _ => 1
+  rw [hone] at this
+  simpa using this.symm
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30 and Ch. 19, p. 439, **every expectation system on a
+countable state space is given by finitely supported conditional probabilities**: for every date
+`t` and state `ω₀` there are a finite set `F` of states and weights `p ≥ 0` with `∑ p = 1` such
+that `E_t f(ω₀) = ∑_{ω ∈ F} p_ω f(ω)` for every random variable `f`. Only linearity, positivity
+and `E_t 1 = 1` are used. -/
+theorem expectation_rep [Countable Ω] (𝔼 : ExpectationSystem Ω) (t : ℕ) (ω₀ : Ω) :
+    ∃ (F : Finset Ω) (p : Ω → ℝ), (∀ ω, 0 ≤ p ω) ∧ ∑ ω ∈ F, p ω = 1 ∧
+      ∀ f, 𝔼.E t f ω₀ = ∑ ω ∈ F, p ω * f ω := by
+  set L : (Ω → ℝ) →ₗ[ℝ] ℝ := (LinearMap.proj ω₀).comp (𝔼.E t) with hL
+  have hpos : ∀ f, 0 ≤ f → 0 ≤ L f := fun f hf => by
+    have := 𝔼.mono t hf ω₀
+    simpa [hL] using this
+  have hone : L (fun _ => 1) = 1 := by
+    simp [hL, 𝔼.const t 1]
+  obtain ⟨F, p, h1, h2, h3⟩ := functional_rep L hpos hone
+  exact ⟨F, p, h1, h2, fun f => h3 f⟩
+
+end Cochrane.Monetarism.TidyR6HouseholdRep
+
 set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.SchurStable
 #print axioms Cochrane.Monetarism.discQ
@@ -26925,3 +33123,174 @@ set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.TidyR5ActiveFiscal.active_fiscal_two_equilibria
 #print axioms Cochrane.Monetarism.TidyR5ActiveFiscal.active_fiscal_unique_iff
 #print axioms Cochrane.Monetarism.TidyR5ActiveFiscal.active_fiscal_prunes_all
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.priceWeak_of_priceRegular
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak.pk_pos
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak.pk_mul_P
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak.sm_pk
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak.sm_bondPrice
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak.sm_iota
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak.E_pk_eq
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.PriceWeak.lam_iota
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.moneyIn_add
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.claimCost_add
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.flow_add
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.wealthPV_add
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.HomDev
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.feasible_add
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.HomDev.add
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.rollX
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.rollC
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.rollA
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.moneyIn_rollC
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRoll.roll_homDev
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.C1On
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.c1On_of_smooth₂
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.C1On.continuousOn
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.C1On.hasDerivAt_line
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.measurable_indicator_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.Good
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.Kc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.good_add
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.good_mem_kc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.kc_isCompact
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.kc_subset
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.good_mono
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.exists_good
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.measurableSet_good
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.kc_bound
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.loc_deriv
+#print axioms Cochrane.Monetarism.TidyR6HouseholdLocal.slope_nonpos
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.DomainCon
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.Loc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.RollTest
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.loc_mono
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.measurableSet_loc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.ae_exists_loc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.RollTest.good
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.rollTest_zero
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.RollTest.comb
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.RollTest.bound_mul
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.RollTest.integrable
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.RollTest.integrable_util
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.roll_gain
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.lagrange
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.good_perturb_mem
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.domainCon_roll
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.ae_eq_of_tests
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.miu_multiplier
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.miu_multiplier_global
+#print axioms Cochrane.Monetarism.TidyR6HouseholdFOC.miu_liminf_tvc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdSuff.wealth_step_w
+#print axioms Cochrane.Monetarism.TidyR6HouseholdSuff.wealth_telescope_w
+#print axioms Cochrane.Monetarism.TidyR6HouseholdSuff.le_of_tendsto_frequently
+#print axioms Cochrane.Monetarism.TidyR6HouseholdSuff.optimal_of_supergradient_liminf
+#print axioms Cochrane.Monetarism.TidyR6HouseholdSuff.miu_optimal_iff
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.ae_eq_of_tests_on
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.c1On_cons
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.CIAConD
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.cia_multiplier
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.cia_iota_nonneg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.cia_wedge_pos
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.cia_optimal_of_kkt
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.WedgeCx.cxΛ
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.WedgeCx.cxP
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.WedgeCx.cx_priceWeak
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.WedgeCx.cx_bondPrice
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.WedgeCx.cx_iota_pos
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIA.WedgeCx.wedge_euler_needs_money
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.E_fun_const
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.integral_fun_const
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.integrable_fun_const
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.bddAt_fun_const
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.not_summable_one
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.par
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.par_succ
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.lam
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.pr
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.endow
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.claims
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.zp
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.NonnegMoney
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.priceRegular_cx
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.bondPrice_cx
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.feasible_cx
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.RefCx.wealthPV_cx
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.tvc_needs_reference
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.SatCx.claims
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.SatCx.one
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.SatCx.feasible_sat
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.SatCx.wealthPV_sat
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.tvc_needs_nonsatiation
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.SatCIA.onep
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.SatCIA.feasible_cia
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCCx.cia_needs_nonsatiation
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.kx
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.kdc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.kda
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.moneyIn_kd
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.sm_kx
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.sm_cRef
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.sm_kdc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.lam_kOut
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.div_split
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.E_pk_kda
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.flow_kd
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.wealthPV_kd
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.kam_feasible_w
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.integrable_pk_succ_mul
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.concave_chord
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.concave_slope_anti
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.slope_tendsto
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.uadm_of_le
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.tvc_general
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.miu_tvc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVC.cia_tvc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.evalTrue
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.nullSystem
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.nullSystem_E0
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.nullSystem_E_succ
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.nullSystem_pullOut
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.E0_blind
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.cxΛ
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.cxQ
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.bond_price_needs_foc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.cxUm
+#print axioms Cochrane.Monetarism.TidyR6HouseholdNull.value_recursion_needs_foc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.lagrange_cone
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.OneTest
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.oneTest_zero
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.OneTest.comb
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.ciaConD_roll
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.exists_loc_pos
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.iota_le_one
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.cia_one_sided
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.ae_le_of_tests
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.kktMu
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.kkt_pointwise
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.cia_kkt_necessary
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.cia_liminf_tvc
+#print axioms Cochrane.Monetarism.TidyR6HouseholdCIAKKT.cia_optimal_iff
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.concave_chord_seg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.mem_uIcc_mul
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.concave_slope_anti_seg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.tangent_seg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.abs_comb_seg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.tvc_seg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.mem_shift
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.mem_line_fst
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.line_fst
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.line_cons
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.log_hypotheses
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.mRef_nonneg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.step_money_nonneg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.miu_tvc_dom
+#print axioms Cochrane.Monetarism.TidyR6HouseholdTVCDom.cia_tvc_dom
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.ind
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.ind_self
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.ind_ne
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.ind_nonneg
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.support_finite
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.vanish_off_support
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.functional_rep
+#print axioms Cochrane.Monetarism.TidyR6HouseholdRep.expectation_rep

@@ -11,9 +11,10 @@ for the precise claims of the verbal chapters (V1–V5, V11, NI-7) or page. Rows
 section by section. The Chapter 11 and §14.1 claims follow §19.1, whose module proves them, and
 the Online Appendix Chapter 3 material follows §19.4, which defers to it. Then come Online
 Appendix §1.6 and Chapter 4, the links between modules with Galí's money-rule determinacy
-theorem and its `κ → ∞` limit, the household problem on a genuine probability space, the copied
-Blanchard–Kahn theorem, the copied measure-theoretic core and the shared tools. Active fiscal
-policy across all paths follows §19.5.
+theorem and its `κ → ∞` limit, the household problem on a genuine probability space (first with
+the regularity hypotheses, then without them, with the expectation systems on countable state
+spaces and the null-state counterexamples), the copied Blanchard–Kahn theorem, the copied
+measure-theoretic core and the shared tools. Active fiscal policy across all paths follows §19.5.
 
 The linear and present-value results hold for an arbitrary `ExpectationSystem`, so under perfect
 foresight and under uncertainty; date-`t` quantities are known at `t`, and results that take them
@@ -24,10 +25,12 @@ measure-theoretic modules (`HouseholdMeasure` onward) pose the household problem
 space with a filtration, where `E_t` is conditional expectation, information may grow forever and
 equations hold almost surely; there the first-order conditions, (19.15)–(19.16), (19.31)–(19.32)
 for every `V`, Fact 2 and the necessity of the transversality condition are derived from
-optimality. Continuous time is deterministic. Survey error codes E13–E23 are those of the survey
-of Chapters 11–19 (`notes/survey_cochrane_ch11-19.md`); see [corrections](corrections.md). Rows
-marked "restated" reproduce results of the Woodford Chapter 2 project or of other Cochrane
-projects in this namespace.
+optimality. The `TidyR6Household…` modules drop the bounds on prices and plans and the global
+smoothness of utility, and characterise both household optima exactly. Continuous time is
+deterministic. Survey error codes E13–E23 are those of the survey of Chapters 11–19
+(`notes/survey_cochrane_ch11-19.md`); see [corrections](corrections.md). Rows marked "restated"
+reproduce results of the Woodford Chapter 2 project or of other Cochrane projects in this
+namespace.
 
 ## §19.1 Equilibria and regimes, pp. 434–435 (Regimes)
 
@@ -462,6 +465,89 @@ The Kamihigashi deviation is restated and adapted from the Cochrane `Intertempor
 | Cochrane §19.5.2, p. 450 (i.i.d. economy, any `V > 0`) | `q(y) = y/4`, the wedge `w(y) = 1 + (1/V − 1)(1 − y/4)`, `E[1/w]`, the endogenous price level `P_{t+1} = P_tg(y_t)`, state prices `Λ_t = βᵗ/w(y_t)`, binding money `m = y/V`, transfers, and their bounds and regularity | `CashInAdvanceMeasureTVC.IIDWedge.qf`, `CashInAdvanceMeasureTVC.IIDWedge.wf`, `CashInAdvanceMeasureTVC.IIDWedge.cnu`, `CashInAdvanceMeasureTVC.IIDWedge.gf`, `CashInAdvanceMeasureTVC.IIDWedge.priceLvl`, `CashInAdvanceMeasureTVC.IIDWedge.lamW`, `CashInAdvanceMeasureTVC.IIDWedge.moneyW`, `CashInAdvanceMeasureTVC.IIDWedge.taxesW`, `CashInAdvanceMeasureTVC.IIDWedge.wf_bounds`, `CashInAdvanceMeasureTVC.IIDWedge.wf_endow_bounds`, `CashInAdvanceMeasureTVC.IIDWedge.cnu_bounds`, `CashInAdvanceMeasureTVC.IIDWedge.gf_bounds`, `CashInAdvanceMeasureTVC.IIDWedge.priceLvl_pos`, `CashInAdvanceMeasureTVC.IIDWedge.priceLvl_bdd`, `CashInAdvanceMeasureTVC.IIDWedge.priceLvl_meas`, `CashInAdvanceMeasureTVC.IIDWedge.wedge_priceRegular` |
 | Cochrane (19.32), p. 450 (i.i.d. economy) | `Q_t = y_t/4` and `w_t = w(y_t)` almost surely; for any shock law consuming the endowment is optimal | `CashInAdvanceMeasureTVC.IIDWedge.wedge_bondPrice`, `CashInAdvanceMeasureTVC.IIDWedge.wedge_eq`, `CashInAdvanceMeasureTVC.IIDWedge.iid_optimal` |
 | Cochrane (19.31)–(19.32), p. 450 (coin shocks, `V ≠ 1`) | every history null; the plan is optimal; `Q_t` and `w_t` genuinely random; `Λ_tw_t = βᵗu′(y_t)` but `Λ_t ≠ βᵗu′(y_t)`; the corrected (19.32) of `CashInAdvanceMeasure.bond_1932` holds, **the printed (19.32) fails almost surely at every date** | `CashInAdvanceMeasureTVC.IIDWedge.coin_pm`, `CashInAdvanceMeasureTVC.IIDWedge.cnu_coin`, `CashInAdvanceMeasureTVC.IIDWedge.coin_wedge` |
+
+## §§19.3.1 and 19.5.1 The household problem without regularity hypotheses: deviations and differentiation, pp. 439–441 (TidyR6HouseholdRoll, TidyR6HouseholdLocal)
+
+The tools behind the first-order conditions and the transversality condition of the next three
+sections, which drop the regularity hypotheses of `HouseholdMeasure`: prices are only `PriceWeak`
+(no bounds on `Λ`, `P` or their reciprocals), the plan is unbounded, and utility is `C¹` on an
+open domain instead of all of `ℝ²`. Statements hold almost surely unless marked exact.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 439; (19.15), p. 441 | weak price regularity: `Λ` and `P` adapted and positive, and `pk_t = Λ_t/P_t` integrable at every date, so that `Q_t = E_t[pk_{t+1}]/pk_t` is a genuine conditional expectation; implied by `HouseholdMeasure.PriceRegular` | `TidyR6HouseholdRoll.PriceWeak`, `TidyR6HouseholdRoll.priceWeak_of_priceRegular` |
+| Cochrane p. 439; (19.12), p. 439; (19.15), p. 441 | consequences of weak regularity: `pk_t > 0`, `pk_tP_t = Λ_t`; `pk_t`, `Q_t` and `ι_t` are known at `t`; `E_t[pk_{t+1}] = Q_tpk_t`; `Λ_tι_t = Λ_t − P_tE_t[pk_{t+1}]` | `TidyR6HouseholdRoll.PriceWeak.pk_pos`, `TidyR6HouseholdRoll.PriceWeak.pk_mul_P`, `TidyR6HouseholdRoll.PriceWeak.sm_pk`, `TidyR6HouseholdRoll.PriceWeak.sm_bondPrice`, `TidyR6HouseholdRoll.PriceWeak.sm_iota`, `TidyR6HouseholdRoll.PriceWeak.E_pk_eq`, `TidyR6HouseholdRoll.PriceWeak.lam_iota` |
+| Cochrane (19.10)–(19.12), p. 439 | money brought in, the cost of claims, the flow constraint and the date-0 value of wealth are linear in the plan | `TidyR6HouseholdRoll.moneyIn_add`, `TidyR6HouseholdRoll.claimCost_add`, `TidyR6HouseholdRoll.flow_add`, `TidyR6HouseholdRoll.wealthPV_add` |
+| Cochrane footnote 1, p. 440 | homogeneous deviations (the flow constraint with zero endowment, taxes and initial money, and an eventually constant wealth value `D`); **adding `ε` times one to a feasible plan keeps it feasible as soon as the wealth value shifted by `εD` satisfies the no-Ponzi condition**; homogeneous deviations add | `TidyR6HouseholdRoll.HomDev`, `TidyR6HouseholdRoll.feasible_add`, `TidyR6HouseholdRoll.HomDev.add` |
+| Cochrane footnote 1, p. 440; (19.12), p. 439 | the perpetual rollover: consume `z` and hold `ζ` more at `t`, issue `−P_tζ + X/pk_{t+1}` and roll `X/pk_n` over for ever, `X = −Λ_t(z + ι_tζ)`; **it is a homogeneous deviation whose date-0 debt value stays `E[X]`**, so two rollovers at different dates with cancelling values are budget-neutral | `TidyR6HouseholdRoll.rollX`, `TidyR6HouseholdRoll.rollC`, `TidyR6HouseholdRoll.rollA`, `TidyR6HouseholdRoll.moneyIn_rollC`, `TidyR6HouseholdRoll.roll_homDev` |
+| Cochrane (19.9), p. 439; (19.13)–(19.14), p. 440 | utility `C¹` on an open domain `U ⊆ ℝ²` (Inada utilities such as `log c` allowed); global smoothness is the case `U = ℝ²`; continuity on `U`; the derivative along a line; a function continuous on an open set and extended by zero is measurable | `TidyR6HouseholdLocal.C1On`, `TidyR6HouseholdLocal.c1On_of_smooth₂`, `TidyR6HouseholdLocal.C1On.continuousOn`, `TidyR6HouseholdLocal.C1On.hasDerivAt_line`, `TidyR6HouseholdLocal.measurable_indicator_of_continuousOn` |
+| Cochrane (19.9), p. 439 | points good at level `K` (norm at most `K`, distance more than `1/(K + 1)` from the complement of `U`) and the compact part `Kc U K` of the domain that small deviations from them reach; every point of `U` is good at some level; measurability; continuous functions are bounded on `Kc U K` | `TidyR6HouseholdLocal.Good`, `TidyR6HouseholdLocal.Kc`, `TidyR6HouseholdLocal.good_add`, `TidyR6HouseholdLocal.good_mem_kc`, `TidyR6HouseholdLocal.kc_isCompact`, `TidyR6HouseholdLocal.kc_subset`, `TidyR6HouseholdLocal.good_mono`, `TidyR6HouseholdLocal.exists_good`, `TidyR6HouseholdLocal.measurableSet_good`, `TidyR6HouseholdLocal.kc_bound` |
+| Cochrane (19.13)–(19.14), p. 440 | **differentiation of expected utility under the integral sign for deviations localized where the plan is good, with no bound on the plan elsewhere**: `ε ↦ E u(f + εg, h + εk)` has derivative `E[u_cg + u_mk]` at `0`; one-sided first-order conditions at a corner | `TidyR6HouseholdLocal.loc_deriv`, `TidyR6HouseholdLocal.slope_nonpos` |
+
+## (19.13)–(19.14), p. 440, and p. 453: the money-in-utility optimum characterised without regularity hypotheses (TidyR6HouseholdFOC, TidyR6HouseholdSuff)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (19.9), p. 439; footnote 1, p. 440 | the domain constraint (the plan lies in `U`); the date-`t` localization at level `K` (the plan good, `Λ_t`, `P_t`, `\|ι_t\|` at most `K`), monotone in `K`, known at `t`, and reached almost surely; test deviations at `t` | `TidyR6HouseholdFOC.DomainCon`, `TidyR6HouseholdFOC.Loc`, `TidyR6HouseholdFOC.loc_mono`, `TidyR6HouseholdFOC.measurableSet_loc`, `TidyR6HouseholdFOC.ae_exists_loc`, `TidyR6HouseholdFOC.RollTest` |
+| Cochrane footnote 1, p. 440; (19.12), p. 439 | tests are good, include zero and form a vector space; bounds on products; the integrability that the rollover of a test needs, and against `u_c`, `u_m` at the plan | `TidyR6HouseholdFOC.RollTest.good`, `TidyR6HouseholdFOC.rollTest_zero`, `TidyR6HouseholdFOC.RollTest.comb`, `TidyR6HouseholdFOC.RollTest.bound_mul`, `TidyR6HouseholdFOC.RollTest.integrable`, `TidyR6HouseholdFOC.RollTest.integrable_util` |
+| Cochrane (19.13)–(19.14), footnote 1, p. 440 | **the gain from two localized rollovers** at different dates has derivative `βᵗ¹E[u_cz₁ + u_mζ₁] + βᵗ²E[u_cz₂ + u_mζ₂]` at `0` and is nonpositive at an optimum; small localized deviations keep the plan in the domain | `TidyR6HouseholdFOC.roll_gain`, `TidyR6HouseholdFOC.good_perturb_mem`, `TidyR6HouseholdFOC.domainCon_roll` |
+| Cochrane (19.13), p. 440 | an abstract Lagrange lemma: if budget-neutral pairs of deviations at different dates leave utility unchanged to first order, one constant `λ` has `Lu_t = λLp_t` at every date | `TidyR6HouseholdFOC.lagrange` |
+| Cochrane footnote 1, p. 440 | from tests to almost-sure equations: `E[(v(c_t, m_t) − w)z] = 0` for every test gives `v(c_t, m_t) = w` | `TidyR6HouseholdFOC.ae_eq_of_tests` |
+| Cochrane (19.13)–(19.14), p. 440 | **`βᵗu_c = λΛ_t` and `βᵗu_m = λΛ_tι_t` with one constant `λ`**, for utility `C¹` on an open domain and `PriceWeak` prices, with no bound on consumption, real balances or prices; the multiplier is a constant, not merely known at date `0`; the same for the globally smooth problem of `MoneyInUtilityMeasure` | `TidyR6HouseholdFOC.miu_multiplier`, `TidyR6HouseholdFOC.miu_multiplier_global` |
+| Cochrane p. 439; (19.28), p. 449 | **the liminf transversality condition is necessary with no concavity, no reference plan and no bounds** (given `u_c > 0` at one date): `liminf_T E[pk_T(a_T + M_{T−1})] = 0` | `TidyR6HouseholdFOC.miu_liminf_tvc` |
+| Cochrane (19.12), p. 439; (19.30), p. 449 | the one-period and iterated present-value budgets, restated from `HouseholdMeasure.wealth_step` and `HouseholdMeasure.wealth_telescope` with `PriceWeak` in place of `PriceRegular` | `TidyR6HouseholdSuff.wealth_step_w`, `TidyR6HouseholdSuff.wealth_telescope_w` |
+| Cochrane (19.28), p. 449; footnote 1, p. 440; p. 453 | a limit that is at most `b` infinitely often is at most `b`; **sufficiency** (`HouseholdMeasure.optimal_of_supergradient`) with `PriceWeak` prices and the transversality condition weakened to its liminf form | `TidyR6HouseholdSuff.le_of_tendsto_frequently`, `TidyR6HouseholdSuff.optimal_of_supergradient_liminf` |
+| Cochrane (19.13)–(19.14), p. 440; p. 453 | **the money-in-utility optimum characterised**: for utility `C¹`, concave (supergradient form) and with `u_c > 0` on an open domain, and `PriceWeak` prices, a feasible admissible plan in the domain is optimal iff (19.13)–(19.14) hold with a constant `λ > 0` and the liminf transversality condition holds | `TidyR6HouseholdSuff.miu_optimal_iff` |
+
+## §19.5, pp. 447–453: the cash-in-advance optimum characterised by the Karush–Kuhn–Tucker conditions (TidyR6HouseholdCIA, TidyR6HouseholdCIAKKT)
+
+Utility `u(c)` is `C¹` on an open set `I` of consumption levels (e.g. `(0, ∞)`) and prices are
+only `PriceWeak`. No bound on consumption, money or prices, no `Q_t ≤ 1` and no lower bound on
+overnight money is assumed.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane footnote 1, p. 440; §19.5.1, p. 448; (19.24)–(19.26), pp. 448–449 | tests restricted to an increasing family of events; a utility of consumption `C¹` on `I` is a utility `C¹` on `I × ℝ`; the cash-in-advance, no-printing and domain constraints | `TidyR6HouseholdCIA.ae_eq_of_tests_on`, `TidyR6HouseholdCIA.c1On_cons`, `TidyR6HouseholdCIA.CIAConD` |
+| Cochrane (19.31), p. 450 | **the wedge Euler equation `βᵗu′(c_t) = λΛ_tw_t` with one constant `λ` wherever overnight money is positive**, `w_t = 1 + (1/V − 1)ι_t` | `TidyR6HouseholdCIA.cia_multiplier` |
+| Cochrane §19.5.1, p. 449; (19.33), p. 451 | **`Q_t ≤ 1` (`ι_t ≥ 0`) is derived from optimality** when `u′ > 0`; then `w_t ≥ min(1, 1/V) > 0` | `TidyR6HouseholdCIA.cia_iota_nonneg`, `TidyR6HouseholdCIA.cia_wedge_pos` |
+| Cochrane p. 453 | **sufficiency with KKT multipliers** `μ_t, ν_t ≥ 0`, `ι_t = μ_t + ν_t`, complementary slackness and `βᵗu′(c_t) = λΛ_t(1 + (1/V − 1)μ_t)`, with the liminf transversality condition, in place of a binding cash constraint | `TidyR6HouseholdCIA.cia_optimal_of_kkt` |
+| Cochrane (19.31), p. 450 (see [corrections](corrections.md)) | **the wedge Euler equation fails at an optimum with zero money**: `V = 2`, linear utility, `Λ_t = βᵗ`, price-level growth alternating between `2` and `1`; holding no money with a slack cash constraint is optimal, but no constant `λ` has `βᵗu′ = λΛ_tw_t` | `TidyR6HouseholdCIA.WedgeCx.cxΛ`, `TidyR6HouseholdCIA.WedgeCx.cxP`, `TidyR6HouseholdCIA.WedgeCx.cx_priceWeak`, `TidyR6HouseholdCIA.WedgeCx.cx_bondPrice`, `TidyR6HouseholdCIA.WedgeCx.cx_iota_pos`, `TidyR6HouseholdCIA.WedgeCx.wedge_euler_needs_money` |
+| Cochrane (19.31), p. 450 | a one-sided Lagrange lemma on convex cones of feasible directions: one constant `λ` with `Lu ≤ λLp` | `TidyR6HouseholdCIAKKT.lagrange_cone` |
+| Cochrane (19.24)–(19.26), pp. 448–449; footnote 1, p. 440 | one-sided tests, feasible for small `ε ≥ 0` where money or slack can be zero; they form a convex cone and keep the constraints; localizations of positive probability exist; `ι_t ≤ 1` | `TidyR6HouseholdCIAKKT.OneTest`, `TidyR6HouseholdCIAKKT.oneTest_zero`, `TidyR6HouseholdCIAKKT.OneTest.comb`, `TidyR6HouseholdCIAKKT.ciaConD_roll`, `TidyR6HouseholdCIAKKT.exists_loc_pos`, `TidyR6HouseholdCIAKKT.iota_le_one` |
+| Cochrane (19.31), p. 450; footnote 1, p. 440 | one constant `λ > 0` bounds the utility gain of every one-sided deviation by `λ` times its cost; from one-sided tests to almost-sure inequalities | `TidyR6HouseholdCIAKKT.cia_one_sided`, `TidyR6HouseholdCIAKKT.ae_le_of_tests` |
+| Cochrane (19.24)–(19.26), (19.31), (19.33), pp. 449–451 | **the KKT conditions are necessary everywhere**: `βᵗu′ = λΛ_t` where the cash constraint is slack, `βᵗu′ = λΛ_tw_t` where money is positive, `ι_t = 0` where both hold, one-sided bounds at corners; they assemble into the multipliers of `TidyR6HouseholdCIA.cia_optimal_of_kkt` | `TidyR6HouseholdCIAKKT.kktMu`, `TidyR6HouseholdCIAKKT.kkt_pointwise`, `TidyR6HouseholdCIAKKT.cia_kkt_necessary` |
+| Cochrane (19.28), p. 449 | the liminf transversality condition at a cash-in-advance optimum, with no concavity, reference plan or bounds | `TidyR6HouseholdCIAKKT.cia_liminf_tvc` |
+| Cochrane p. 453; (19.24)–(19.33), pp. 448–451 | **the cash-in-advance optimum characterised**: optimal iff the KKT conditions hold with some `λ > 0` and the liminf transversality condition holds | `TidyR6HouseholdCIAKKT.cia_optimal_iff` |
+
+## p. 439 and (19.28), p. 449: the transversality condition without boundedness, and the hypotheses it needs (TidyR6HouseholdTVC, TidyR6HouseholdTVCDom, TidyR6HouseholdTVCCx)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane p. 439; (19.28), p. 449 | the Kamihigashi deviation as an increment: freed wealth per unit of bundle cost `x_T = k_T/w_T`, the consumption and claims increments, the money they bring in; adaptedness | `TidyR6HouseholdTVC.kx`, `TidyR6HouseholdTVC.kdc`, `TidyR6HouseholdTVC.kda`, `TidyR6HouseholdTVC.moneyIn_kd`, `TidyR6HouseholdTVC.sm_kx`, `TidyR6HouseholdTVC.sm_cRef`, `TidyR6HouseholdTVC.sm_kdc` |
+| Cochrane (19.10)–(19.12), p. 439; (19.28), p. 449 | `E[Λ_Tk_T] = E[pk_{T+1}(a_{T+1} + M_T)]` under `PriceWeak` (`HouseholdMeasureTVC.pv_wealth_next` restated); the value of the increment's claims; **the increment satisfies the homogeneous flow constraint and the deviation is feasible without bounds**, keeping the fraction `1 − θ` of wealth | `TidyR6HouseholdTVC.lam_kOut`, `TidyR6HouseholdTVC.div_split`, `TidyR6HouseholdTVC.E_pk_kda`, `TidyR6HouseholdTVC.flow_kd`, `TidyR6HouseholdTVC.wealthPV_kd`, `TidyR6HouseholdTVC.kam_feasible_w` |
+| Cochrane (19.15), p. 441 | with `Q_n ≤ 1`, `Λ_ng` integrable implies `pk_{n+1}P_ng` integrable | `TidyR6HouseholdTVC.integrable_pk_succ_mul` |
+| Cochrane p. 439; (19.9), (19.13), pp. 439–440 | chords and slopes of concave functions; slopes converge to the derivative; a dominated utility process is admissible | `TidyR6HouseholdTVC.concave_chord`, `TidyR6HouseholdTVC.concave_slope_anti`, `TidyR6HouseholdTVC.slope_tendsto`, `TidyR6HouseholdTVC.uadm_of_le` |
+| Cochrane p. 439; (19.28), p. 449 | **the transversality condition is necessary with no bound on prices, consumption, real balances, claims, endowment or taxes**: utility concave and increasing along the bundle, the first-order condition with any constant `λ > 0`, an admissible reference plan and a Kamihigashi step with integrable utility | `TidyR6HouseholdTVC.tvc_general` |
+| Cochrane p. 439, (19.11)–(19.12); (19.28), p. 449 | the money-in-utility and cash-in-advance transversality conditions with the multiplier, `λ > 0` and all integrability conditions derived (in cash in advance also `Q_t ≤ 1` and `w_t ≥ min(1, 1/V)`); no normalisation, and overnight money only positive | `TidyR6HouseholdTVC.miu_tvc`, `TidyR6HouseholdTVC.cia_tvc` |
+| Cochrane p. 439; (19.13), p. 440 | chords, slopes, the tangent bound and an absolute bound for a function concave (or monotone) on a segment | `TidyR6HouseholdTVCDom.concave_chord_seg`, `TidyR6HouseholdTVCDom.mem_uIcc_mul`, `TidyR6HouseholdTVCDom.concave_slope_anti_seg`, `TidyR6HouseholdTVCDom.tangent_seg`, `TidyR6HouseholdTVCDom.abs_comb_seg` |
+| Cochrane p. 439; (19.28), p. 449 | **concavity and monotonicity are needed only on the plan–reference and plan–step segments**; the integrable step may be replaced by nonnegative freed wealth `k_T/w_T ≥ 0` | `TidyR6HouseholdTVCDom.tvc_seg` |
+| Cochrane (19.9), p. 439; §19.5.1, p. 448 | a utility concave on a convex domain and increasing in consumption is concave and increasing on segments of the bundle line whose end points lie in the domain | `TidyR6HouseholdTVCDom.mem_shift`, `TidyR6HouseholdTVCDom.mem_line_fst`, `TidyR6HouseholdTVCDom.line_fst`, `TidyR6HouseholdTVCDom.line_cons` |
+| Cochrane p. 439, (19.11)–(19.12); (19.28), p. 449; §19.5.1, p. 448 | **the transversality condition for utilities on an open convex domain**, with no extension of `u` beyond it: money in utility on `U ⊆ ℝ²`, cash in advance on an open interval `I`; `log` on `(0, ∞)` satisfies every utility hypothesis | `TidyR6HouseholdTVCDom.miu_tvc_dom`, `TidyR6HouseholdTVCDom.cia_tvc_dom`, `TidyR6HouseholdTVCDom.log_hypotheses` |
+| Cochrane (19.24)–(19.26), p. 449 | primitive sufficient conditions (`V ≤ 1`, `y ≥ 0`, nonnegative reference consumption and freed wealth) for nonnegative reference and step money | `TidyR6HouseholdTVCDom.mRef_nonneg`, `TidyR6HouseholdTVCDom.step_money_nonneg` |
+| Cochrane Ch. 2, p. 29; (19.9), p. 439 | functions that ignore the state: expectation, integral, integrability, boundedness; `∑ 1` diverges | `TidyR6HouseholdTVCCx.E_fun_const`, `TidyR6HouseholdTVCCx.integral_fun_const`, `TidyR6HouseholdTVCCx.integrable_fun_const`, `TidyR6HouseholdTVCCx.bddAt_fun_const`, `TidyR6HouseholdTVCCx.not_summable_one` |
+| Cochrane p. 439; (19.28), p. 449 (see [corrections](corrections.md)) | **the admissible reference plan cannot be dropped**: `u(c, m) = c`, `Λ_t = βᵗ`, `P = 1`, `y_t = (−1)ᵗ/βᵗ`; consuming nothing is optimal and every other hypothesis of `HouseholdMeasureTVC.tvc_of_optimal` holds, yet the date-0 value of wealth alternates between `0` and `1` | `TidyR6HouseholdTVCCx.RefCx.par`, `TidyR6HouseholdTVCCx.RefCx.par_succ`, `TidyR6HouseholdTVCCx.RefCx.lam`, `TidyR6HouseholdTVCCx.RefCx.pr`, `TidyR6HouseholdTVCCx.RefCx.endow`, `TidyR6HouseholdTVCCx.RefCx.claims`, `TidyR6HouseholdTVCCx.RefCx.zp`, `TidyR6HouseholdTVCCx.RefCx.NonnegMoney`, `TidyR6HouseholdTVCCx.RefCx.priceRegular_cx`, `TidyR6HouseholdTVCCx.RefCx.bondPrice_cx`, `TidyR6HouseholdTVCCx.RefCx.feasible_cx`, `TidyR6HouseholdTVCCx.RefCx.wealthPV_cx`, `TidyR6HouseholdTVCCx.tvc_needs_reference` |
+| Cochrane p. 439; (19.28), p. 449 | **nonsatiation cannot be dropped**: with constant utility, keeping one unit of wealth for ever is optimal, the first-order condition holds with `λ = 0`, and the transversality condition fails; in cash in advance the same without `u′ > 0` | `TidyR6HouseholdTVCCx.SatCx.claims`, `TidyR6HouseholdTVCCx.SatCx.one`, `TidyR6HouseholdTVCCx.SatCx.feasible_sat`, `TidyR6HouseholdTVCCx.SatCx.wealthPV_sat`, `TidyR6HouseholdTVCCx.tvc_needs_nonsatiation`, `TidyR6HouseholdTVCCx.SatCIA.onep`, `TidyR6HouseholdTVCCx.SatCIA.feasible_cia`, `TidyR6HouseholdTVCCx.cia_needs_nonsatiation` |
+
+## Ch. 2, pp. 29–30, and (19.15)–(19.16), (19.31)–(19.32): expectation systems, null states and the pointwise first-order conditions (TidyR6HouseholdRep, TidyR6HouseholdNull)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane Ch. 2, p. 29 | indicators of single states | `TidyR6HouseholdRep.ind`, `TidyR6HouseholdRep.ind_self`, `TidyR6HouseholdRep.ind_ne`, `TidyR6HouseholdRep.ind_nonneg` |
+| Cochrane Ch. 2, p. 29 | a positive linear functional on `Ω → ℝ` charges only finitely many states; on a countable `Ω` it vanishes off them; **on a countable `Ω` a positive unital linear functional is a finitely supported average** | `TidyR6HouseholdRep.support_finite`, `TidyR6HouseholdRep.vanish_off_support`, `TidyR6HouseholdRep.functional_rep` |
+| Cochrane Ch. 2, pp. 29–30; p. 439 | **every `ExpectationSystem` on a countable `Ω` is given by finitely supported conditional probabilities**, `E_tf(ω₀) = ∑_{ω∈F} p_ωf(ω)`, using only positivity, linearity and `E_t1 = 1` | `TidyR6HouseholdRep.expectation_rep` |
+| Cochrane Ch. 2, pp. 29–30; (19.9), p. 439 | an expectation system on two states whose date-0 expectation ignores the null state `false`; its axioms and the pull-out property; **the date-0 expectation is blind to the null state**, so optimality cannot restrict prices or plans there | `TidyR6HouseholdNull.evalTrue`, `TidyR6HouseholdNull.nullSystem`, `TidyR6HouseholdNull.nullSystem_E0`, `TidyR6HouseholdNull.nullSystem_E_succ`, `TidyR6HouseholdNull.nullSystem_pullOut`, `TidyR6HouseholdNull.E0_blind` |
+| Cochrane (19.31)–(19.32), p. 450 | **the pointwise `Λ_t = βᵗu′(y_t)` cannot be dropped from `CashInAdvance.Stochastic.bond_price_19_32`**: it holds at the only state the objective sees, every other hypothesis holds, and (19.32) fails at date `1` | `TidyR6HouseholdNull.cxΛ`, `TidyR6HouseholdNull.cxQ`, `TidyR6HouseholdNull.bond_price_needs_foc` |
+| Cochrane (19.15)–(19.16), p. 441 | **the pointwise (19.16) cannot be dropped from `MoneyInUtility.value_recursion`**: it holds at the only state the objective sees, and the value recursion fails at date `1` | `TidyR6HouseholdNull.cxUm`, `TidyR6HouseholdNull.value_recursion_needs_foc` |
 
 ## The general Blanchard–Kahn theorem (TidyR5BK)
 

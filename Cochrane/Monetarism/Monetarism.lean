@@ -33,3 +33,14 @@ import Monetarism.TidyR5BK
 import Monetarism.TidyR5MoneyRule
 import Monetarism.TidyR5KappaLimit
 import Monetarism.TidyR5ActiveFiscal
+import Monetarism.TidyR6HouseholdRoll
+import Monetarism.TidyR6HouseholdLocal
+import Monetarism.TidyR6HouseholdFOC
+import Monetarism.TidyR6HouseholdSuff
+import Monetarism.TidyR6HouseholdCIA
+import Monetarism.TidyR6HouseholdTVCCx
+import Monetarism.TidyR6HouseholdTVC
+import Monetarism.TidyR6HouseholdNull
+import Monetarism.TidyR6HouseholdCIAKKT
+import Monetarism.TidyR6HouseholdTVCDom
+import Monetarism.TidyR6HouseholdRep

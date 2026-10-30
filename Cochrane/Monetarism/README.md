@@ -13,10 +13,11 @@ time" (pp. 635–641). The present-value and Cagan results hold for an arbitrary
 operator, so they cover perfect foresight and genuine uncertainty. The nonlinear phase dynamics
 are perfect-foresight, as in the book. The household first-order conditions are derived by
 optimisation, under perfect foresight, on a finite event tree and on a genuine probability space
-whose information grows forever. Continuous time is deterministic. The library contains
-**1164 theorems**, including the shared core; 578 of them are in the fourteen chapter modules,
-175 in the six measure-theoretic household modules and 195 in the four `TidyR5…` modules, 108 of
-these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`).
+whose information grows forever, there without bounds on prices or plans. Continuous time is
+deterministic. The library contains **1300 theorems**, including the shared core; 578 of them are
+in the fourteen chapter modules, 175 in the six measure-theoretic household modules, 195 in the
+four `TidyR5…` modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem
+(`TidyR5BK`), and 136 in the eleven `TidyR6Household…` modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -188,6 +189,30 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   (`MoneyInUtilityMeasure.Link.link_tOptimal_of_optimal`,
   `MoneyInUtilityMeasure.Link.link_optimal_of_tOptimal`, `CashInAdvanceMeasure.Link.link_isOptimal`,
   `CashInAdvanceMeasure.Link.link_optimal_of_isOptimal`).
+* **The household problem without regularity hypotheses.** With prices only adapted, positive and
+  with `Λ_t/P_t` integrable (`TidyR6HouseholdRoll.PriceWeak`), no bound on consumption, real
+  balances, claims, endowment or taxes, and utility `C¹` only on an open domain (so `log` and
+  power utilities are covered), (19.13)–(19.14) hold with one **constant** multiplier, derived from
+  perpetual-rollover deviations (`TidyR6HouseholdFOC.miu_multiplier`). The exact characterisation
+  of the money-in-utility optimum is these first-order conditions with `λ > 0` plus the liminf
+  transversality condition (`TidyR6HouseholdSuff.miu_optimal_iff`); the liminf form needs no
+  concavity or reference plan (`TidyR6HouseholdFOC.miu_liminf_tvc`). In cash in advance `Q_t ≤ 1`
+  is derived from optimality (`TidyR6HouseholdCIA.cia_iota_nonneg`), the Karush–Kuhn–Tucker
+  conditions are necessary everywhere, including where money is zero
+  (`TidyR6HouseholdCIAKKT.cia_kkt_necessary`), and the optimum is exactly KKT plus the liminf
+  transversality condition (`TidyR6HouseholdCIAKKT.cia_optimal_iff`); the wedge Euler equation
+  (19.31) can fail at an optimum with zero money
+  (`TidyR6HouseholdCIA.WedgeCx.wedge_euler_needs_money`). The limit transversality condition is
+  necessary without bounds (`TidyR6HouseholdTVC.tvc_general`), with concavity only on two
+  segments per date (`TidyR6HouseholdTVCDom.tvc_seg`), for utilities on open convex domains such
+  as `log` (`TidyR6HouseholdTVCDom.miu_tvc_dom`, `TidyR6HouseholdTVCDom.cia_tvc_dom`,
+  `TidyR6HouseholdTVCDom.log_hypotheses`); it fails at an optimum without an admissible
+  reference plan or without nonsatiation (`TidyR6HouseholdTVCCx.tvc_needs_reference`,
+  `TidyR6HouseholdTVCCx.tvc_needs_nonsatiation`, `TidyR6HouseholdTVCCx.cia_needs_nonsatiation`). For a general `ExpectationSystem` the pointwise
+  first-order conditions cannot be derived because of states the date-0 expectation ignores
+  (`TidyR6HouseholdNull.bond_price_needs_foc`, `TidyR6HouseholdNull.value_recursion_needs_foc`),
+  and on a countable state space every `ExpectationSystem` is given by finitely supported
+  conditional probabilities (`TidyR6HouseholdRep.expectation_rep`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -204,30 +229,44 @@ the printed text precise. The main corrections are:
   `E_tπ_{t+1}` in (4.15) (E21);
 * 28.6%, not 40%, on p. 462 (E23);
 * active fiscal policy rules out the multiple equilibria of p. 454 only when `B_{−1} + M_{−1} ≥ 0`,
-  the proviso of p. 453 (`TidyR5ActiveFiscal.active_fiscal_unique_iff`).
+  the proviso of p. 453 (`TidyR5ActiveFiscal.active_fiscal_unique_iff`);
+* "first order conditions and transversality conditions are necessary and sufficient", p. 453:
+  the limit transversality condition is not necessary in general; the optimum is exactly the
+  first-order (KKT) conditions plus the liminf transversality condition
+  (`TidyR6HouseholdTVCCx.tvc_needs_reference`, `TidyR6HouseholdSuff.miu_optimal_iff`,
+  `TidyR6HouseholdCIAKKT.cia_optimal_iff`).
 
 In addition, the formalisation shows that (19.29) needs the money transversality condition, that
-(19.32) fails for `V ≠ 1`, that (19.38) must include money, that the partial derivatives on
-p. 631 have sign typos, and that the calibration of p. 444 holds only for `γ = 1`.
+(19.32) fails for `V ≠ 1`, that the wedge Euler equation (19.31) needs positive overnight money,
+that (19.38) must include money, that the partial derivatives on p. 631 have sign typos, and that
+the calibration of p. 444 holds only for `γ = 1`.
 
 Not formalised:
 * the verbal and historical parts of the chapter: §19.4 beyond the Online Appendix claims, §19.8
   beyond Baumol–Tobin, the LM slope, cash-in-advance elasticities and E23, the literature survey
   of Online Appendix §3.1.4 (including the Buiter–Siebert notation clash of E17), the
   interpretation of §3.2.3, and §3.3 on uniqueness in cash-in-advance models;
-* the household problem under uncertainty without regularity hypotheses: on a probability space
-  the first-order conditions assume consumption and real balances essentially bounded at each
-  date, prices bounded and bounded away from zero (`HouseholdMeasure.PriceRegular`) and smooth
-  utility; necessity of the transversality condition (`HouseholdMeasureTVC.tvc_of_optimal`) also
-  assumes claims, endowment and taxes bounded at each date, utility concave and increasing along
-  the bundle direction, an admissible reference plan and the normalised first-order condition
-  (`Λ_0 = u_c(0)`, or `Λ_0w_0 = u′(c_0)`), and in the cash-in-advance model `u′ > 0`, nonnegative
-  reference money, `Q ≤ 1` and overnight money bounded away from zero
-  (`CashInAdvanceMeasureTVC.tvc_necessary`); cash-in-advance sufficiency assumes a binding cash
-  constraint (`CashInAdvanceMeasure.optimal_of_foc`). For a general `ExpectationSystem` the
-  first-order conditions and `Λ_t = βᵗu′(y_t)` remain equilibrium hypotheses
-  (`CashInAdvance.Stochastic.bond_price_19_32`, `MoneyInUtility.value_recursion`), since no
-  household problem can be posed there without a measure;
+* the remaining hypotheses of the household problem on a probability space. The necessity of the
+  limit transversality condition still assumes utility concave and increasing along the bundle on
+  the plan–reference and plan–step segments, the Kamihigashi step in the domain, and in cash in
+  advance nonnegative reference and step money (`TidyR6HouseholdTVCDom.tvc_seg`); whether these
+  are needed is open, and only primitive sufficient conditions for the money ones are given
+  (`TidyR6HouseholdTVCDom.mRef_nonneg`, `TidyR6HouseholdTVCDom.step_money_nonneg`). A
+  counterexample would need an optimum at which wealth oscillates while utility stays summable,
+  and certifying its optimality needs a global supergradient at the plan, which forces utility to
+  grow linearly. CRRA utility with `σ > 1` meets the hypotheses of
+  `TidyR6HouseholdTVCDom.cia_tvc_dom` but is not certified in Lean (only `log` is,
+  `TidyR6HouseholdTVCDom.log_hypotheses`). Utility that is only locally Lipschitz, without
+  continuous partial derivatives, is not covered. The integrability of `Λ_t/P_t` in
+  `TidyR6HouseholdRoll.PriceWeak` is kept as part of the definition: without it `Q_t` is not a
+  conditional expectation;
+* for a general `ExpectationSystem` the first-order conditions and `Λ_t = βᵗu′(y_t)` remain
+  hypotheses (`CashInAdvance.Stochastic.bond_price_19_32`, `MoneyInUtility.value_recursion`): the
+  obstruction is states the date-0 expectation ignores, not the absence of a measure
+  (`TidyR6HouseholdNull.nullSystem`). On a countable state space every `ExpectationSystem` is
+  given by finitely supported probabilities (`TidyR6HouseholdRep.expectation_rep`); on an
+  uncountable one the representation is neither proved nor refuted, since a counterexample would
+  yield a real-valued measurable cardinal, whose existence ZFC (and Lean) cannot prove;
 * Pontryagin necessity for the Hamiltonian conditions (4.16)–(4.17): only their consequences are
   proved; and the stochastic `E_td(·)` forms of Online Appendix §1.6;
 * uniqueness under active fiscal policy outside the book's setting: `TidyR5ActiveFiscal` keeps
@@ -270,6 +309,17 @@ Not formalised:
 | [TidyR5MoneyRule](Monetarism/TidyR5MoneyRule.lean) | 67 | §19.1, p. 435, with Galí (2015), p. 75: Galí's determinacy theorem for the money rule (34), restated from the Galí Chapter 4 project for the equilibrium notion of `LinksTidy.GaliMoneyRule`; the root count, both `η > 0` and `η = 0` |
 | [TidyR5KappaLimit](Monetarism/TidyR5KappaLimit.lean) | 14 | §§19.1–19.2: the `O(1/κ)` bound and the uniform `κ → ∞` limit of the sticky-price equilibria; when it is attained |
 | [TidyR5ActiveFiscal](Monetarism/TidyR5ActiveFiscal.lean) | 6 | §19.5.5, pp. 453–454: active fiscal policy determines the cash-in-advance price level across all paths iff `B_{−1} + M_{−1} ≥ 0`; the counterexample otherwise |
+| [TidyR6HouseholdRoll](Monetarism/TidyR6HouseholdRoll.lean) | 16 | §19.3, footnote 1, p. 440: weak price regularity `PriceWeak`; homogeneous deviations; the perpetual rollover of debt as a budget-neutral deviation |
+| [TidyR6HouseholdLocal](Monetarism/TidyR6HouseholdLocal.lean) | 14 | (19.9), (19.13)–(19.14): utility `C¹` on an open domain; differentiation of expected utility for localized deviations with no bound on the plan |
+| [TidyR6HouseholdFOC](Monetarism/TidyR6HouseholdFOC.lean) | 17 | (19.13)–(19.14): the money-in-utility first-order conditions with one constant multiplier, without regularity hypotheses; the liminf transversality condition |
+| [TidyR6HouseholdSuff](Monetarism/TidyR6HouseholdSuff.lean) | 5 | p. 453: sufficiency with `PriceWeak` prices and the liminf transversality condition; the money-in-utility optimum iff first-order conditions plus liminf transversality |
+| [TidyR6HouseholdCIA](Monetarism/TidyR6HouseholdCIA.lean) | 10 | (19.31), (19.33), p. 453: the wedge Euler equation where money is positive; `Q_t ≤ 1` derived; KKT sufficiency; the wedge Euler equation fails with zero money |
+| [TidyR6HouseholdTVCCx](Monetarism/TidyR6HouseholdTVCCx.lean) | 16 | p. 439, (19.28): the admissible reference plan and nonsatiation cannot be dropped from the transversality theorem |
+| [TidyR6HouseholdTVC](Monetarism/TidyR6HouseholdTVC.lean) | 18 | p. 439, (19.28): the transversality condition necessary without bounds, for money in utility and cash in advance |
+| [TidyR6HouseholdNull](Monetarism/TidyR6HouseholdNull.lean) | 6 | (19.15)–(19.16), (19.31)–(19.32): null states; for a general `ExpectationSystem` the pointwise first-order conditions cannot be derived |
+| [TidyR6HouseholdCIAKKT](Monetarism/TidyR6HouseholdCIAKKT.lean) | 12 | (19.24)–(19.33), p. 453: the KKT conditions necessary everywhere; the cash-in-advance optimum iff KKT plus liminf transversality |
+| [TidyR6HouseholdTVCDom](Monetarism/TidyR6HouseholdTVCDom.lean) | 15 | p. 439, (19.28): the transversality condition with concavity on two segments only, for utilities on open convex domains (`log` certified) |
+| [TidyR6HouseholdRep](Monetarism/TidyR6HouseholdRep.lean) | 7 | Ch. 2, pp. 29–30: every `ExpectationSystem` on a countable state space is given by finitely supported conditional probabilities |
 
 ## Modelling conventions
 
@@ -305,8 +355,9 @@ Not formalised:
   `(t, ∞)` with `IntegrableOn`; transversality conditions are explicit limits.
 * **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
   functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
-  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so it
-  cannot carry an infinite-horizon household problem with nondegenerate shocks.
+  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts
+  (`TidyR6HouseholdRep.expectation_rep`), so it cannot carry an infinite-horizon household
+  problem with nondegenerate shocks.
   `ExpectationsMeasure` adds, alongside it, a probability space with a filtration
   (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is Mathlib's conditional expectation
   `condExp`, variables are bounded measurable functions and processes, and equations hold almost
@@ -322,9 +373,11 @@ Not formalised:
   claims `a_t` in place of `B_{t−1}`, the flow constraint almost surely
   (`HouseholdMeasure.Flow`), a no-Ponzi condition (`HouseholdMeasure.Feasible`), essentially
   bounded variables (`HouseholdMeasure.BddAt`) and regular prices
-  (`HouseholdMeasure.PriceRegular`). Optimality is `HouseholdMeasure.Optimal` with an extra
-  constraint, none for money in utility and the cash-in-advance constraints in real overnight
-  balances for cash in advance (`CashInAdvanceMeasure.CIACon`).
+  (`HouseholdMeasure.PriceRegular`); the `TidyR6Household…` modules replace the last two by weakly
+  regular prices (`TidyR6HouseholdRoll.PriceWeak`) and unbounded plans. Optimality is
+  `HouseholdMeasure.Optimal` with an extra constraint, none for money in utility and the
+  cash-in-advance constraints in real overnight balances for cash in advance
+  (`CashInAdvanceMeasure.CIACon`).
 * **Explicit hypotheses.** Positivity of prices, money, output and velocity, `0 < β < 1`,
   summability of discounted flows, concavity for sufficiency, and the domain `θx^γ < 1` of the
   power map are stated in each theorem.
