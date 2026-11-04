@@ -14,13 +14,14 @@ uncertainty: processes are `ℕ → Ω → ℝ` and every equation holds state b
 paths of §17.4 are perfect-foresight sequences after the announcement or shock, as in the book's
 figures; their expected-path and news forms are also proved for every expectation system and,
 almost surely, on genuine probability spaces with Mathlib's conditional expectation. Statements
-about an infinite past are ℤ-indexed and pathwise. The central objects
+about an infinite past are ℤ-indexed: pathwise under perfect foresight, and almost surely on a
+probability space with a ℤ-indexed filtration. The central objects
 are the simple sticky-price model (17.1)–(17.14), under adaptive and under rational expectations,
 and the three-equation model (17.15)–(17.33), whose equations are also derived from household and
 price-setting problems; "determinate" means exactly one bounded equilibrium for every bounded
-adapted disturbance. The library contains **1518 theorems**, including the shared core and the
-infrastructure restated from the Woodford Chapter 4 and Cochrane Chapter 2 and 22 projects; 914
-of them are in the forty-four chapter modules.
+adapted disturbance. The library contains **1638 theorems**, including the shared core and the
+infrastructure restated from the Woodford Chapter 4 and Cochrane Chapter 2 and 22 projects; 1034
+of them are in the forty-eight chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E7–E11 and E24 refer to
@@ -116,13 +117,13 @@ Headline results, in the namespace `Cochrane.KeynesianStickyPrices`:
   `Links.determinate_beta_zero_iff_reDeterminate`). MSV uniqueness holds on the whole
   determinacy region, including the oscillating branch of (1.58)
   (`Links.msv_unique_of_determinate`).
-* **The full model on ℤ for any rate path.** For every bounded rate path `i : ℤ → ℝ` and `β > 0`,
-  (17.18) has exactly one bounded solution, the two-sided moving average (5.5) with the stable
-  root solved backward over the infinite past and the unstable one forward, also as a genuine
-  two-sided sum over ℤ (`FullModelTidy.secondZ_existsUnique`, `FullModelTidy.eq_piZ`,
-  `FullModelTidy.piZ_eq_tsum_int`). The Figure 17.5 path is the special case of the step
-  (`FullModelTidy.zPath_eq_piZ`), and the bounded `(x, π)` equilibrium on ℤ exists and is unique
-  (`FullModelTidy.eqmZ_existsUnique`).
+* **The full model on ℤ for any rate path.** Under perfect foresight, for every bounded rate path
+  `i : ℤ → ℝ` and `β > 0`, (17.18) has exactly one bounded solution, the two-sided moving
+  average (5.5) with the stable root solved backward over the infinite past and the unstable one
+  forward, also as a genuine two-sided sum over ℤ (`FullModelTidy.secondZ_existsUnique`,
+  `FullModelTidy.eq_piZ`, `FullModelTidy.piZ_eq_tsum_int`). The Figure 17.5 path is the special
+  case of the step (`FullModelTidy.zPath_eq_piZ`), and the bounded `(x, π)` equilibrium on ℤ
+  exists and is unique (`FullModelTidy.eqmZ_existsUnique`).
 * **Real explosions for every `φ` (p. 421).** Under perfect foresight, some deviation has
   `βᵗx̃_t → +∞` iff `φ < 1/β`, or `β + σκ > 1` with real roots, `4β(1 + σκφ) ≤ (1 + β + σκ)²`
   (`FullModelTidy.explodes_atTop_iff`); `βᵗx̃_t` is unbounded for some deviation iff `φ < 1/β` or
@@ -165,6 +166,21 @@ Headline results, in the namespace `Cochrane.KeynesianStickyPrices`:
   (`TidyR5StochasticFiscal.surplus_news_rise`,
   `TidyR5StochasticFiscal.surplus_news_ar1_eq_sigmaS`,
   `TidyR5StochasticFiscalMeasure.surplus_news_rise_ae`).
+* **An infinite past under uncertainty.** On a probability space with a ℤ-indexed filtration
+  (`TidyR6ZExpectations.ZMeasExpectationSystem`), every bounded equilibrium of (17.7) is almost
+  surely the backward moving average (17.8) of the rates and its own expectational errors, and
+  for every bounded martingale-difference sequence of errors there is exactly one
+  (`TidyR6ZStaticIS.eq_17_8_ae`, `TidyR6ZStaticIS.piB_equilibrium`, `TidyR6ZStaticIS.eq_piB`);
+  uniqueness given the errors needs the bound as `t → −∞` (`TidyR6ZStaticIS.remote_family_bdd_iff`,
+  `TidyR6ZStaticIS.remote_one_solves`). The printed inverse of (17.14) holds almost surely at
+  every date iff every expectational error is zero (`TidyR6ZStaticIS.printed_inverse_iff`). In the
+  full model the bounded equilibria on ℤ are indexed by their innovations alone, with existence
+  and almost-sure uniqueness (`TidyR6ZFullModel.piZM_equilibrium`, `TidyR6ZFullModel.eq_piZM`,
+  `TidyR6ZFullModel.eqm_unique_given_innov`). For the rise of Figure 17.5 every bounded
+  equilibrium is `zPath` plus the backward sum of its innovations, and `zPath` is the only one iff
+  the filtration carries no news (`TidyR6ZFullModel.zPath_representation`,
+  `TidyR6ZFullModel.zPath_unique_iff_noNews`); on a coin revealed at date 1 there is a second
+  (`TidyR6ZFullModel.zPath_not_unique_coin`).
 * **The household and price-setting problems behind (17.15)–(17.17).** On a genuine probability
   space and on finite trees, the household's Euler equation gives the IS curve exactly, with the
   explicit second-order precautionary disturbance `u_x = −σE_t[e^z − 1 − z] ≤ 0`
@@ -197,7 +213,15 @@ Headline results, in the namespace `Cochrane.KeynesianStickyPrices`:
   Blanchard–Kahn theorem). With backward-looking responses it is determinate iff
   `κ(φ_π + φ_i − 1) + (1 − β)φ_x > 0` and `φ_π > 0 ∨ φ_x > 0`
   (`TidyR5Inertia.determinate182_noForward_iff`): the long-run Taylor principle with inertia is
-  not sufficient on its own (`TidyR5Inertia.not_determinate182_no_response`).
+  not sufficient on its own (`TidyR5Inertia.not_determinate182_no_response`). The response
+  condition is polynomial: with `A = κφ_π + φ_x + φ_{x,1}`, `B = κφ_{π,1} − βφ_x − φ_{x,1}(β + σκ)`
+  and the resultant `R = βA² + (1 + β + σκ)AB + B²`, genericity holds iff `R ≠ 0` or
+  `B(A + B) < 0`, so determinacy is a set of polynomial (in)equalities in the eight parameters
+  (`TidyR6Genericity182.generic182_iff_poly`, `TidyR6Genericity182.determinate182_poly_iff`,
+  `TidyR6Genericity182.determinate182_singular_poly_iff`). `R ≠ 0` alone is not necessary
+  (`TidyR6Genericity182.res182_zero_but_generic`), and the parameters at which genericity fails
+  form a nonempty Lebesgue-null set (`TidyR6Genericity182.nongeneric_with_response`,
+  `TidyR6Genericity182.volume_nonGeneric`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -232,9 +256,14 @@ omits the factor `ρ` on real-rate news, so the corrected D is `ρ/(λ₁ − ρ
 `δ = ρ/λ₁` (`TidyR5StochasticFiscal.surplus_news_D`,
 `TidyR5StochasticFiscal.surplus_news_zero_iff`); decentralised ⇒ joint optimality, first stated
 only for prices in the concavity region, holds over all uniformly bounded plans
-(`TidyR6JointGlobal.joint_of_decentral_u`); and `TidyR6CalvoPC.calvo_iff_PC` needs neither its
+(`TidyR6JointGlobal.joint_of_decentral_u`); `TidyR6CalvoPC.calvo_iff_PC` needs neither its
 separate reset-price bound nor everywhere bounds (`TidyR6CalvoBound.calvo_iff_PC_small`,
-`TidyR6CalvoAE.calvo_iff_PC_ae`).
+`TidyR6CalvoAE.calvo_iff_PC_ae`); the uniqueness on ℤ of `FullModel.zPath_existsUnique`,
+`FullModelTidy.secondZ_existsUnique` and `FullModelTidy.eqmZ_existsUnique` holds under perfect
+foresight only, and fails read under uncertainty (`TidyR6ZFullModel.zPath_not_unique_coin`); and
+the genericity condition of (18.2) is not the resultant condition `R ≠ 0` but `R ≠ 0` or
+`B(A + B) < 0` (`TidyR6Genericity182.res182_zero_but_generic`,
+`TidyR6Genericity182.generic182_iff_poly`).
 
 Not formalised:
 * the verbal and historical parts of Chapter 18 (§§18.1–18.3, beyond footnote 1 and
@@ -258,14 +287,20 @@ Not formalised:
   figure. Only the `Δs` formula (with the factor `ρ`, `TidyR5StochasticFiscal.surplus_news_rise`),
   B, C and D, and the inconsistency of A and E (`FiscalUnderpinnings.fig17_6_inconsistent`,
   `TidyR5StochasticFiscal.fig17_6_inconsistent_corrected`) are proved;
-* the infinite past under uncertainty: the stochastic versions of §17.4 (expected paths, news,
-  Figures 17.5–17.7, the equilibrium set, `Δs`, `Σs` and the reverse-engineered disturbances) are
-  stated in news form from a date `s` on, since both expectation systems are ℕ-indexed; the
-  infinite-past statements ((17.8), the corrected inverse of (17.14), `zPath`, and the bounded
-  paths and equilibria on ℤ of `FullModelTidy`) remain pathwise under perfect foresight, and the
-  household and price-setting problems behind (17.15)–(17.17) are posed from date 0 only;
-* for (18.2), the genericity condition is stated at the explicit root `μ = λ₂/β` of (5.6), not
-  reduced to a polynomial inequality in the parameters;
+* for the infinite past under uncertainty: the household and price-setting problems behind
+  (17.15)–(17.17) are posed from date 0 only; existence of bounded equilibria on ℤ is proved on
+  the probability space (`TidyR6ZStaticIS.piB_equilibrium`, `TidyR6ZFullModel.piZM_equilibrium`),
+  not for the abstract `TidyR6ZExpectations.ZExpectationSystem`, for which only the restriction
+  to the dates `t ≥ s` and the state-by-state (17.8) are proved
+  (`TidyR6ZStaticIS.eq_17_8_abstract`, `TidyR6ZFullModel.modelZA_restrict`); and downward
+  martingale convergence (`E_t` as `t → −∞`) is not used: the remote past enters only as
+  information known at every date (`TidyR6ZExpectations.ZMeasExpectationSystem.remote`);
+* for (18.2), whether the set of parameters at which genericity fails is Zariski-closed. It is
+  semialgebraic (`TidyR6Genericity182.resp_zero_iff`), inside the proper hypersurface `R = 0`
+  (`TidyR6Genericity182.nongeneric_subset_res`, `TidyR6Genericity182.res182_ne_zero_somewhere`),
+  nonempty (`TidyR6Genericity182.nongeneric_no_response`), a strict subset of that hypersurface
+  (`TidyR6Genericity182.res182_zero_but_generic`) and Lebesgue-null
+  (`TidyR6Genericity182.volume_nonGeneric`);
 * the likelihood of (18.3) as a statistical object: `History.likelihood_flat` is a statement about
   every function of the equilibrium paths;
 * A1 §1.9 (matrix and state-variable methods, pp. 573–578) as an exposition, and the
@@ -338,6 +373,10 @@ Not formalised:
 | [TidyR6JointGlobal](KeynesianStickyPrices/TidyR6JointGlobal.lean) | 3 | p. 118: decentralised ⇒ joint over all uniformly bounded plans; joint ⇔ decentralised near the steady state |
 | [TidyR6ShockPC](KeynesianStickyPrices/TidyR6ShockPC.lean) | 12 | (17.17), p. 119: the Rotemberg Phillips curve with a cost-push shift |
 | [TidyR6ShockModel](KeynesianStickyPrices/TidyR6ShockModel.lean) | 15 | (17.15)–(17.17), pp. 119, 407: preference and markup shocks, `u_x = −σu_r + rem`, `u_π = κ̃(μ − ζ) + rem` |
+| [TidyR6Genericity182](KeynesianStickyPrices/TidyR6Genericity182.lean) | 19 | (18.2), p. 427, with (5.6): genericity iff `R ≠ 0 ∨ B(A + B) < 0`, determinacy as polynomial (in)equalities in the eight parameters; the failure set nonempty, a strict subset of `R = 0`, Lebesgue-null |
+| [TidyR6ZExpectations](KeynesianStickyPrices/TidyR6ZExpectations.lean) | 45 | Ch. 2, pp. 29–30, §17.2, p. 400: ℤ-indexed expectations, abstract and on a probability space with a ℤ-indexed filtration; restriction to the ℕ systems, news, the remote past, forward sums on ℤ |
+| [TidyR6ZStaticIS](KeynesianStickyPrices/TidyR6ZStaticIS.lean) | 25 | (17.7)–(17.8), (17.14), pp. 399–405, on ℤ under uncertainty: equilibria indexed by their expectational errors, the role of `t → −∞`, the corrected and printed inverses of (17.14) |
+| [TidyR6ZFullModel](KeynesianStickyPrices/TidyR6ZFullModel.lean) | 31 | (17.15)–(17.18), Figs. 17.5–17.6, pp. 407–410, on ℤ under uncertainty: equilibria indexed by their innovations; `zPath` unique iff no news, a second equilibrium on the coin space |
 
 ## Modelling conventions
 
@@ -361,7 +400,9 @@ Not formalised:
   perfect-foresight full model works with sequences `ℕ → ℝ` (`FullModel.PFEqm`,
   `FullModel.Second`), linked to the general model by `FullModel.pf_model_iff`; an infinite past
   is a ℤ-indexed sequence (`FullModel.SecondZ`, `StaticIS.eq_17_8`,
-  `PersistenceFreedom.corrected_inverse`).
+  `PersistenceFreedom.corrected_inverse`) or, under uncertainty, a ℤ-indexed filtration
+  (`TidyR6ZExpectations.ZMeasExpectationSystem`), whose restriction to the dates `t ≥ s` is the
+  ℕ-indexed system (`TidyR6ZExpectations.ZMeasExpectationSystem.restrict`).
 * **Expectational errors and innovations.** The simple model's error `δ_{t+1} = π_{t+1} −
   E_tπ_{t+1}` (`StaticIS.reErr`) is a process; the innovation `ΔE_{t+1}` of (17.19)
   (`FiscalUnderpinnings.innov`) is an operator. They agree on adapted processes

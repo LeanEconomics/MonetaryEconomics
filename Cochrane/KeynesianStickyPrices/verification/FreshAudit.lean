@@ -46,6 +46,10 @@ import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
 import Mathlib.Topology.Algebra.Module.FiniteDimension
+import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+import Mathlib.MeasureTheory.Measure.Prod
+import Mathlib.Algebra.Polynomial.Roots
+import Mathlib.MeasureTheory.Constructions.Polish.StronglyMeasurable
 set_option autoImplicit false
 
 /-
@@ -33885,6 +33889,2301 @@ end Tree
 
 end Cochrane.KeynesianStickyPrices.TidyR6ShockModel
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The genericity condition of (18.2) as a polynomial condition in the parameters
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 18, eq. (18.2), p. 427, with the
+three-equation model (17.15)–(17.17), p. 407, and the roots (5.6), p. 119.
+
+`TidyR5Inertia.generic182_iff` and `TidyR5InertiaForward.determinate182_closed_iff` state the
+Blanchard–Kahn genericity condition of the inertial rule (18.2) at the explicit root
+`μ* = 1/λ₁ = λ₂/β` of the peg polynomial `q(μ) = βμ² − (1 + β + σκ)μ + 1`:
+`G(μ*) ≠ 0`, `G(μ) = κ(φ_π + φ_{π,1}μ) + (φ_x + φ_{x,1}μ)(1 − βμ)`. Here `μ*` is eliminated.
+
+* `resp_eq_lin`: on the roots of `q`, `G(μ) = A + Bμ` with the polynomials
+  `A = κφ_π + φ_x + φ_{x,1}` (`gA`) and `B = κφ_{π,1} − βφ_x − φ_{x,1}(β + σκ)` (`gB`).
+* `res182 = βA² + (1 + β + σκ)AB + B²`, the resultant of `q` and `A + Bμ` (`= B² q(−A/B)`).
+* **`resp_zero_iff`**: for `σ, κ, β > 0`, `G(μ*) = 0` iff `res182 = 0` and `B(A + B) ≥ 0`.
+  The sign condition selects the root `μ* < 1` from the other root `1/λ₂ > 1` of `q`
+  (`B(A + B) = B²(1 − r)` at the common root `r = −A/B`). The resultant alone is **not**
+  equivalent: `res182_zero_but_generic` has `res182 = 0`, the response condition satisfied and the
+  system generic (the common root is `1/λ₂ = 4`).
+* **`generic182_iff_poly`**, **`determinate182_poly_iff`**, **`determinate182_singular_poly_iff`**:
+  genericity, and determinacy of (18.2) in both the regular and the singular case, as polynomial
+  (in)equalities in the eight parameters `σ, β, κ, φ_i, φ_π, φ_x, φ_{π,1}, φ_{x,1}`.
+* The failure set: it is contained in the hypersurface `res182 = 0` of a nonzero polynomial
+  (`nongeneric_subset_res`, `res182_ne_zero_somewhere`); it is nonempty (no feedback at all,
+  `nongeneric_no_response`, and with feedback, `nongeneric_with_response`) and a strict subset of
+  that hypersurface within the admissible region (`res182_zero_but_generic`). It is semialgebraic
+  (`resp_zero_iff`), and has Lebesgue measure zero in `ℝ⁸` (`volume_nonGeneric`): for every
+  value of the other seven parameters the failure set in `φ_π` has at most two points
+  (`res182_slice_finite`).
+-/
+
+namespace Cochrane.KeynesianStickyPrices.TidyR6Genericity182
+
+open Polynomial MeasureTheory FullModel TidyR5BlanchardKahn TidyR5Inertia TidyR5InertiaForward
+open TidyR5InertiaSingular
+
+/-! ### The polynomials -/
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the constant term `A = κφ_π + φ_x + φ_{x,1}` of the
+response function reduced modulo the peg polynomial. -/
+def gA (κ φπ φx φx1 : ℝ) : ℝ := κ * φπ + φx + φx1
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the linear coefficient
+`B = κφ_{π,1} − βφ_x − φ_{x,1}(β + σκ)` of the response function reduced modulo the peg
+polynomial. -/
+def gB (σ β κ φx φπ1 φx1 : ℝ) : ℝ := κ * φπ1 - β * φx - φx1 * (β + σ * κ)
+
+/-- Cochrane (2023), eq. (18.2), p. 427 with (5.6): the resultant
+`βA² + (1 + β + σκ)AB + B²` of the peg polynomial `βμ² − (1 + β + σκ)μ + 1` and `A + Bμ`. -/
+def res182 (σ β κ φπ φx φπ1 φx1 : ℝ) : ℝ :=
+  β * gA κ φπ φx φx1 ^ 2 + (1 + β + σ * κ) * gA κ φπ φx φx1 * gB σ β κ φx φπ1 φx1 +
+    gB σ β κ φx φπ1 φx1 ^ 2
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the response of the rule along a direction `μ`,
+`G(μ) = κ(φ_π + φ_{π,1}μ) + (φ_x + φ_{x,1}μ)(1 − βμ)`. -/
+def resp (β κ φπ φx φπ1 φx1 μ : ℝ) : ℝ :=
+  κ * (φπ + φπ1 * μ) + (φx + φx1 * μ) * (1 - β * μ)
+
+/-- Cochrane (2023), eq. (18.2) with (5.6): on a root of the peg polynomial,
+`G(μ) = A + Bμ`. -/
+theorem resp_eq_lin {σ β κ φπ φx φπ1 φx1 μ : ℝ}
+    (hq : β * μ ^ 2 - (1 + β + σ * κ) * μ + 1 = 0) :
+    resp β κ φπ φx φπ1 φx1 μ = gA κ φπ φx φx1 + gB σ β κ φx φπ1 φx1 * μ := by
+  unfold resp gA gB
+  linear_combination (-φx1) * hq
+
+/-- Cochrane (2023), eq. (5.6): the resultant is `B² q(r)` at `r = −A/B`, in the polynomial form
+`βA² + sAB + B² = B²(βr² − sr + 1)` whenever `A = −Br`. -/
+theorem res182_of_root {σ β κ φπ φx φπ1 φx1 r : ℝ}
+    (h : gA κ φπ φx φx1 = -(gB σ β κ φx φπ1 φx1 * r)) :
+    res182 σ β κ φπ φx φπ1 φx1 =
+      gB σ β κ φx φπ1 φx1 ^ 2 * (β * r ^ 2 - (1 + β + σ * κ) * r + 1) := by
+  unfold res182
+  rw [h]
+  ring
+
+/-- Cochrane (2023), eq. (5.6), p. 119: `μ* = 1/λ₁` is a root of the peg polynomial
+`βμ² − (1 + β + σκ)μ + 1`.
+Restates `TidyR5InertiaSingular.peg_root_lam1`. -/
+theorem peg_inv_lam1 {σ β κ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) :
+    β * (lam1 σ β κ)⁻¹ ^ 2 - (1 + β + σ * κ) * (lam1 σ β κ)⁻¹ + 1 = 0 := by
+  have h := peg_root_lam1 ha hβ
+  linear_combination h
+
+/-- Cochrane (2023), eq. (5.6), p. 119: a root `r ≤ 1` of the peg polynomial is `1/λ₁` (the
+other root `1/λ₂` exceeds one).
+Compare `TidyR5Inertia.peg_root` and `PersistenceFreedom.one_lt_inv_lam2`. -/
+theorem peg_root_le_one {σ β κ r : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β)
+    (hq : β * r ^ 2 - (1 + β + σ * κ) * r + 1 = 0) (hr : r ≤ 1) : r = (lam1 σ β κ)⁻¹ := by
+  have hs := lam_sum σ β κ
+  have hp := lam_prod ha hβ
+  have h2 := lam2_pos ha hβ
+  have h21 := lam2_lt_one ha hβ
+  have hl0 : 0 < lam1 σ β κ := one_pos.trans (one_lt_lam1 ha hβ)
+  have hfac : (lam1 σ β κ * r - 1) * (lam2 σ β κ * r - 1) = 0 := by
+    linear_combination hq + r ^ 2 * hp - r * hs
+  rcases mul_eq_zero.mp hfac with h | h
+  · field_simp
+    linarith
+  · exfalso
+    have : lam2 σ β κ * r < 1 := by nlinarith
+    linarith
+
+/-- **The genericity condition without the root** (Cochrane (2023), eq. (18.2), p. 427, with
+(5.6)): for `σ, κ, β > 0`, the response along the peg's stable direction vanishes,
+`G(1/λ₁) = 0`, iff `βA² + (1 + β + σκ)AB + B² = 0` and `B(A + B) ≥ 0`. -/
+theorem resp_zero_iff {σ β κ φπ φx φπ1 φx1 : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β) :
+    resp β κ φπ φx φπ1 φx1 (lam1 σ β κ)⁻¹ = 0 ↔
+      res182 σ β κ φπ φx φπ1 φx1 = 0 ∧
+        0 ≤ gB σ β κ φx φπ1 φx1 * (gA κ φπ φx φx1 + gB σ β κ φx φπ1 φx1) := by
+  have ha := mul_pos hσ hκ
+  have hq := peg_inv_lam1 ha hβ
+  have hl1 := one_lt_lam1 ha hβ
+  have hm1 : (lam1 σ β κ)⁻¹ < 1 := inv_lt_one_of_one_lt₀ hl1
+  rw [resp_eq_lin hq]
+  set A := gA κ φπ φx φx1
+  set B := gB σ β κ φx φπ1 φx1
+  set m := (lam1 σ β κ)⁻¹
+  constructor
+  · intro h
+    have hA : A = -(B * m) := by linarith
+    refine ⟨?_, ?_⟩
+    · rw [res182_of_root hA, hq, mul_zero]
+    · rw [hA]
+      have : B * (-(B * m) + B) = B ^ 2 * (1 - m) := by ring
+      rw [this]
+      exact mul_nonneg (sq_nonneg B) (by linarith)
+  · rintro ⟨hR, hS⟩
+    by_cases hB : B = 0
+    · have hR' : β * A ^ 2 = 0 := by
+        have : res182 σ β κ φπ φx φπ1 φx1 = β * A ^ 2 + (1 + β + σ * κ) * A * B + B ^ 2 := rfl
+        rw [this, hB] at hR
+        linarith
+      have hA : A = 0 := by
+        rcases mul_eq_zero.mp hR' with h | h
+        · exact absurd h hβ.ne'
+        · exact pow_eq_zero_iff (two_ne_zero) |>.mp h
+      rw [hA, hB]
+      ring
+    · set r := -A / B with hr
+      have hAr : A = -(B * r) := by rw [hr]; field_simp
+      have hqr : β * r ^ 2 - (1 + β + σ * κ) * r + 1 = 0 := by
+        have h1 := res182_of_root hAr
+        rw [hR] at h1
+        have hB2 : B ^ 2 ≠ 0 := pow_ne_zero 2 hB
+        rcases mul_eq_zero.mp h1.symm with h | h
+        · exact absurd h hB2
+        · exact h
+      have hr1 : r ≤ 1 := by
+        rw [hAr] at hS
+        have : B * (-(B * r) + B) = B ^ 2 * (1 - r) := by ring
+        rw [this] at hS
+        have hB2 : 0 < B ^ 2 := by positivity
+        by_contra hc
+        push Not at hc
+        have : B ^ 2 * (1 - r) < 0 := mul_neg_of_pos_of_neg hB2 (by linarith)
+        linarith
+      have hrm := peg_root_le_one ha hβ hqr hr1
+      rw [hAr, hrm]
+      ring
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the response condition at `μ* = 1/λ₁` as stated in
+`TidyR5Inertia.generic182_iff` is `G(1/λ₁) ≠ 0`. -/
+theorem resp_def (β κ φπ φx φπ1 φx1 l : ℝ) :
+    κ * (φπ + φπ1 * l⁻¹) + (φx + φx1 * l⁻¹) * (1 - β * l⁻¹) = resp β κ φπ φx φπ1 φx1 l⁻¹ :=
+  rfl
+
+/-- **Genericity of (18.2) as a polynomial condition** (Cochrane (2023), eq. (18.2), p. 427): for
+`σ, κ, β > 0` and `1 − σφ_{x,1} ≠ 0`, the Blanchard–Kahn genericity condition holds iff
+`βA² + (1 + β + σκ)AB + B² ≠ 0` or `B(A + B) < 0`.
+Polynomial form of `TidyR5Inertia.generic182_iff`. -/
+theorem generic182_iff_poly {σ β κ φi φπ φx φπ1 φx1 : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hg : 1 - σ * φx1 ≠ 0) :
+    Generic (A182 σ β κ φi φπ φx φπ1 φx1) ↔
+      res182 σ β κ φπ φx φπ1 φx1 ≠ 0 ∨
+        gB σ β κ φx φπ1 φx1 * (gA κ φπ φx φx1 + gB σ β κ φx φπ1 φx1) < 0 := by
+  rw [generic182_iff hσ hκ hβ hg, resp_def, Ne, resp_zero_iff hσ hκ hβ, not_and_or, not_le]
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the response condition at `λ₂/β` (the form used in
+`TidyR5InertiaForward.determinate182_closed_iff`) is the polynomial condition. -/
+theorem resp_lam2_ne_iff {σ β κ φπ φx φπ1 φx1 : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β) :
+    κ * (φπ + φπ1 * (lam2 σ β κ / β)) + (φx + φx1 * (lam2 σ β κ / β)) *
+        (1 - β * (lam2 σ β κ / β)) ≠ 0 ↔
+      res182 σ β κ φπ φx φπ1 φx1 ≠ 0 ∨
+        gB σ β κ φx φπ1 φx1 * (gA κ φπ φx φx1 + gB σ β κ φx φπ1 φx1) < 0 := by
+  rw [← lam1_inv_eq (mul_pos hσ hκ) hβ, resp_def, Ne, resp_zero_iff hσ hκ hβ, not_and_or,
+    not_le]
+
+/-- **Determinacy of (18.2) in the eight parameters** (Cochrane (2023), eq. (18.2), p. 427; the
+book makes no claim): for `σ, κ, β > 0` and `1 − σφ_{x,1} ≠ 0`, under any expectation system on
+a nonempty state space, determinate iff the closed-form root count of
+`TidyR5InertiaForward.determinate182_closed_iff` holds and
+`βA² + (1 + β + σκ)AB + B² ≠ 0 ∨ B(A + B) < 0` — every condition a polynomial (in)equality. -/
+theorem determinate182_poly_iff {Ω : Type*} (𝔼 : ExpectationSystem Ω) [Nonempty Ω]
+    {σ β κ φi φπ φx φπ1 φx1 : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hg : 1 - σ * φx1 ≠ 0) :
+    Determinate182 𝔼 σ β κ φi φπ φx φπ1 φx1 ↔
+      ((D1 σ β κ φi φπ φx φπ1 φx1 * kk σ β φx1 < 0 ∧
+            0 < Dm1 σ β κ φi φπ φx φπ1 φx1 * kk σ β φx1) ∨
+          (Dm1 σ β κ φi φπ φx φπ1 φx1 * kk σ β φx1 < 0 ∧
+            0 < D1 σ β κ φi φπ φx φπ1 φx1 * kk σ β φx1 ∧
+            (0 < C15num σ β κ φi φπ φx φπ1 φx1 ∨
+              3 * |kk σ β φx1| < |N2 σ β κ φi φx φπ1 φx1|))) ∧
+        (res182 σ β κ φπ φx φπ1 φx1 ≠ 0 ∨
+          gB σ β κ φx φπ1 φx1 * (gA κ φπ φx φx1 + gB σ β κ φx φπ1 φx1) < 0) := by
+  rw [determinate182_closed_iff 𝔼 hσ hκ hβ hg, resp_lam2_ne_iff hσ hκ hβ]
+
+/-- **Determinacy of (18.2) in the singular case, polynomially** (Cochrane (2023), eq. (18.2),
+p. 427): for `σ, κ, β > 0` and `σφ_{x,1} = 1`, determinate iff `D₁D₋₁ < 0` and
+`βA² + (1 + β + σκ)AB + B² ≠ 0 ∨ B(A + B) < 0`.
+Polynomial form of `TidyR5InertiaSingular.determinate182_singular_iff`. -/
+theorem determinate182_singular_poly_iff {Ω : Type*} (𝔼 : ExpectationSystem Ω) [Nonempty Ω]
+    {σ β κ φi φπ φx φπ1 φx1 : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β)
+    (hg0 : 1 - σ * φx1 = 0) :
+    Determinate182 𝔼 σ β κ φi φπ φx φπ1 φx1 ↔
+      D1 σ β κ φi φπ φx φπ1 φx1 * Dm1 σ β κ φi φπ φx φπ1 φx1 < 0 ∧
+        (res182 σ β κ φπ φx φπ1 φx1 ≠ 0 ∨
+          gB σ β κ φx φπ1 φx1 * (gA κ φπ φx φx1 + gB σ β κ φx φπ1 φx1) < 0) := by
+  rw [determinate182_singular_iff 𝔼 hσ hκ hβ hg0, resp_lam2_ne_iff hσ hκ hβ]
+
+/-! ### The set where genericity fails -/
+
+/-- Cochrane (2023), eq. (18.2), p. 427: if genericity fails then the parameters lie on the
+hypersurface `βA² + (1 + β + σκ)AB + B² = 0`. -/
+theorem nongeneric_subset_res {σ β κ φi φπ φx φπ1 φx1 : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hβ : 0 < β) (hg : 1 - σ * φx1 ≠ 0) (h : ¬ Generic (A182 σ β κ φi φπ φx φπ1 φx1)) :
+    res182 σ β κ φπ φx φπ1 φx1 = 0 := by
+  rw [generic182_iff_poly hσ hκ hβ hg] at h
+  push Not at h
+  exact h.1
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the hypersurface is proper — at `φ_π = 1` and all other
+responses zero, `res182 = βκ² ≠ 0` and the system is generic. -/
+theorem res182_ne_zero_somewhere {σ β κ φi : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β) :
+    res182 σ β κ 1 0 0 0 ≠ 0 ∧ Generic (A182 σ β κ φi 1 0 0 0) := by
+  have hR : res182 σ β κ 1 0 0 0 = β * κ ^ 2 := by unfold res182 gA gB; ring
+  have hne : res182 σ β κ 1 0 0 0 ≠ 0 := by rw [hR]; positivity
+  exact ⟨hne, (generic182_iff_poly hσ hκ hβ (by simp)).mpr (Or.inl hne)⟩
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the failure set is nonempty — a rule with no feedback,
+`i_t = φ_i i_{t−1} + u_t`, is never generic (compare
+`TidyR5Inertia.not_determinate182_no_response`). -/
+theorem nongeneric_no_response {σ β κ φi : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hβ : 0 < β) :
+    ¬ Generic (A182 σ β κ φi 0 0 0 0) := by
+  rw [generic182_iff_poly hσ hκ hβ (by simp)]
+  unfold res182 gA gB
+  simp
+
+/-- Cochrane (2023), eq. (18.2), p. 427: genericity also fails for rules that do respond: at
+`β = 1/2`, `σ = 1`, `κ = 3/4` (so `μ* = 1/2`), `φ_π = −4/3`, `φ_{π,1} = 8/3`. -/
+theorem nongeneric_with_response (φi : ℝ) :
+    ¬ Generic (A182 1 (1 / 2) (3 / 4) φi (-4 / 3) 0 (8 / 3) 0) := by
+  rw [generic182_iff_poly one_pos (by norm_num) (by norm_num) (by norm_num)]
+  unfold res182 gA gB
+  norm_num
+
+/-- Cochrane (2023), eq. (18.2), p. 427 (**the resultant alone is not the condition**): at
+`β = 1/2`, `σ = 1`, `κ = 3/4`, `φ_π = −16/3`, `φ_{π,1} = 4/3`, `res182 = 0` (the common
+root of `q` and `A + Bμ` is the unstable `1/λ₂ = 4`), yet the response condition holds and the
+system is generic. -/
+theorem res182_zero_but_generic (φi : ℝ) :
+    res182 1 (1 / 2) (3 / 4) (-16 / 3) 0 (4 / 3) 0 = 0 ∧
+      Generic (A182 1 (1 / 2) (3 / 4) φi (-16 / 3) 0 (4 / 3) 0) := by
+  have hR : res182 1 (1 / 2) (3 / 4) (-16 / 3) 0 (4 / 3) 0 = 0 := by
+    unfold res182 gA gB; norm_num
+  refine ⟨hR, (generic182_iff_poly one_pos (by norm_num) (by norm_num) (by norm_num)).mpr
+    (Or.inr ?_)⟩
+  unfold gA gB
+  norm_num
+
+/-! ### Measure zero -/
+
+/-- Cochrane (2023), eq. (18.2), p. 427: `res182` is a quadratic in `φ_π` with leading coefficient
+`βκ²`. -/
+noncomputable def resPoly (σ β κ φx φπ1 φx1 : ℝ) : ℝ[X] :=
+  C (β * κ ^ 2) * X ^ 2 +
+    C (2 * β * κ * (φx + φx1) + (1 + β + σ * κ) * κ * gB σ β κ φx φπ1 φx1) * X +
+    C (β * (φx + φx1) ^ 2 + (1 + β + σ * κ) * (φx + φx1) * gB σ β κ φx φπ1 φx1 +
+      gB σ β κ φx φπ1 φx1 ^ 2)
+
+/-- Cochrane (2023), eq. (18.2): evaluating the quadratic gives `res182`. -/
+theorem resPoly_eval (σ β κ φπ φx φπ1 φx1 : ℝ) :
+    (resPoly σ β κ φx φπ1 φx1).eval φπ = res182 σ β κ φπ φx φπ1 φx1 := by
+  simp only [resPoly, eval_add, eval_mul, eval_C, eval_pow, eval_X]
+  unfold res182 gA
+  ring
+
+/-- Cochrane (2023), eq. (18.2): for `β, κ > 0` the quadratic in `φ_π` is nonzero. -/
+theorem resPoly_ne_zero {σ β κ φx φπ1 φx1 : ℝ} (hβ : 0 < β) (hκ : 0 < κ) :
+    resPoly σ β κ φx φπ1 φx1 ≠ 0 := by
+  intro h
+  have h2 := congrArg (fun p => Polynomial.coeff p 2) h
+  simp only [resPoly, coeff_add, coeff_C_mul, coeff_X_pow, coeff_C, coeff_X, coeff_zero] at h2
+  norm_num at h2
+  rcases h2 with h | h
+  · exact hβ.ne' h
+  · exact hκ.ne' h
+
+/-- Cochrane (2023), eq. (18.2), p. 427: for `β, κ > 0` and any values of the other parameters,
+`res182 = 0` holds for finitely many `φ_π` (at most two). -/
+theorem res182_slice_finite {σ β κ φx φπ1 φx1 : ℝ} (hβ : 0 < β) (hκ : 0 < κ) :
+    Set.Finite {φπ : ℝ | res182 σ β κ φπ φx φπ1 φx1 = 0} := by
+  have h := Polynomial.finite_setOfPred_isRoot (resPoly_ne_zero (σ := σ) (φx := φx) (φπ1 := φπ1)
+    (φx1 := φx1) hβ hκ)
+  refine h.subset fun φπ hφ => ?_
+  simp only [Set.mem_ofPred_eq, IsRoot.def, resPoly_eval] at hφ ⊢
+  exact hφ
+
+/-- Cochrane (2023), eq. (18.2), p. 427: the set of parameter points
+`((σ, β, κ, φ_i, φ_x, φ_{π,1}, φ_{x,1}), φ_π)` with `σ, κ, β > 0`, `1 − σφ_{x,1} ≠ 0` at which the
+genericity condition fails. -/
+def nonGeneric : Set ((ℝ × ℝ × ℝ × ℝ × ℝ × ℝ × ℝ) × ℝ) :=
+  {q | 0 < q.1.1 ∧ 0 < q.1.2.2.1 ∧ 0 < q.1.2.1 ∧ 1 - q.1.1 * q.1.2.2.2.2.2.2 ≠ 0 ∧
+    ¬ Generic (A182 q.1.1 q.1.2.1 q.1.2.2.1 q.1.2.2.2.1 q.2 q.1.2.2.2.2.1 q.1.2.2.2.2.2.1
+      q.1.2.2.2.2.2.2)}
+
+/-- **The failure set has Lebesgue measure zero** (Cochrane (2023), eq. (18.2), p. 427): in
+`ℝ⁸ = ℝ⁷ × ℝ` with the product Lebesgue measure, the parameters at which the genericity condition
+of (18.2) fails form a null set. -/
+theorem volume_nonGeneric : volume nonGeneric = 0 := by
+  set Z : Set ((ℝ × ℝ × ℝ × ℝ × ℝ × ℝ × ℝ) × ℝ) :=
+    {q | 0 < q.1.2.1 ∧ 0 < q.1.2.2.1 ∧
+      res182 q.1.1 q.1.2.1 q.1.2.2.1 q.2 q.1.2.2.2.2.1 q.1.2.2.2.2.2.1 q.1.2.2.2.2.2.2 = 0}
+    with hZ
+  have hsub : nonGeneric ⊆ Z := by
+    rintro q ⟨hσ, hκ, hβ, hg, hn⟩
+    exact ⟨hβ, hκ, nongeneric_subset_res hσ hκ hβ hg hn⟩
+  have hres : Measurable fun q : (ℝ × ℝ × ℝ × ℝ × ℝ × ℝ × ℝ) × ℝ =>
+      res182 q.1.1 q.1.2.1 q.1.2.2.1 q.2 q.1.2.2.2.2.1 q.1.2.2.2.2.2.1 q.1.2.2.2.2.2.2 := by
+    unfold res182 gA gB
+    fun_prop
+  have hZm : MeasurableSet Z := by
+    have m1 : Measurable fun q : (ℝ × ℝ × ℝ × ℝ × ℝ × ℝ × ℝ) × ℝ => q.1.2.1 := by fun_prop
+    have m2 : Measurable fun q : (ℝ × ℝ × ℝ × ℝ × ℝ × ℝ × ℝ) × ℝ => q.1.2.2.1 := by fun_prop
+    exact (measurableSet_lt measurable_const m1).inter
+      ((measurableSet_lt measurable_const m2).inter
+      (measurableSet_eq_fun hres measurable_const))
+  refine measure_mono_null hsub ?_
+  rw [Measure.volume_eq_prod, Measure.measure_prod_null hZm]
+  refine Filter.Eventually.of_forall fun p => ?_
+  by_cases hp : 0 < p.2.1 ∧ 0 < p.2.2.1
+  · have hfin := res182_slice_finite (σ := p.1) (φx := p.2.2.2.2.1) (φπ1 := p.2.2.2.2.2.1)
+      (φx1 := p.2.2.2.2.2.2) hp.1 hp.2
+    refine measure_mono_null (fun φπ hφ => ?_) (hfin.countable.measure_zero volume)
+    exact hφ.2.2
+  · have he : Prod.mk p ⁻¹' Z = ∅ := by
+      ext φπ
+      simp only [Set.mem_preimage, hZ, Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false]
+      exact fun h => hp ⟨h.1, h.2.1⟩
+    simp [he]
+
+end Cochrane.KeynesianStickyPrices.TidyR6Genericity182
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Expectations indexed by the integers: an infinite past under uncertainty
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 17, §17.2, eq. (17.8), p. 400
+(the infinite past), §17.4.1, pp. 408–409 (the rise anticipated from the infinite past), with
+the expectations and news of Ch. 2, §2.3–2.4, pp. 29–30, eq. (2.13).
+
+The core `ExpectationSystem` and TidyR5ExpectationsMeasure's `MeasExpectationSystem` are indexed
+by `ℕ`, so the infinite-past statements of §17.2 and §17.4 were pathwise (perfect foresight).
+This module indexes information by `ℤ`.
+
+## The abstract system
+
+`ZExpectationSystem Ω`: operators `E_t`, `t ∈ ℤ`, with linearity, constants, monotonicity, the
+law of iterated expectations and `known`, as in the core. `zPerfectForesight` is the identity.
+`ZExpectationSystem.restrict s` is the core `ExpectationSystem` `n ↦ E_{s+n}` of dates `t ≥ s`
+(`restrict_E`; perfect foresight restricts to `perfectForesight`, `restrict_zPerfectForesight`),
+so every core theorem applies from any date `s` on. News `innov` is a martingale difference
+(`E_innov`), revisions telescope (`E_sub_E_eq_sum_innov`), `E_t` passes through dominated
+geometric series (`E_tsum`).
+
+## The probability space
+
+`ZMeasExpectationSystem Ω`: a probability measure and a filtration `𝓕 : Filtration ℤ _`
+(Mathlib), `E_t x = μ[x | 𝓕 t]`. Proved: linearity, constants, monotonicity, tower
+(`E_tower`), `E_known`, `E_of_stronglyMeasurable`, **pull-out** (`E_pullOut`), `abs_E_le`, the
+mean (`integral_E`); news (`innov`, `E_innov`, `E_mul_innov`, `E_sub_E_eq_sum_innov`,
+`eq_E_add_innov`); `E_hasSum`. The **remote past** `remote = ⨅ₜ 𝓕 t`: what is known at every date,
+however early (`remote_le`, `E_of_remote`).
+
+`ZMeasExpectationSystem.restrict s` is the `MeasExpectationSystem` with filtration
+`n ↦ 𝓕 (s + n)` (`restrict_E`, `restrict_adapted`), the link through which the ℕ-indexed results
+of TidyR5ExpectationsMeasure apply to the dates `t ≥ s`.
+
+## Forward sums on ℤ
+
+`FZ q u t = E_t ∑_{k≥0} qᵏ u_{t+k}` (`FZ_eq_restrict`: it is the ℕ forward solution of the
+system restricted at any `s ≤ t`). For `|q| < 1` and bounded adapted `u`: adapted (`FZ_adapted`),
+bounded by `M/(1 − |q|)` (`FZ_bdd`), it is the genuine sum `∑ qᵏ E_t u_{t+k}` (`FZ_hasSum`), solves
+`z_t = q E_t z_{t+1} + u_t` (`FZ_solves`), and is the only bounded solution on ℤ
+(`forwardZ_unique`, `eq_FZ`).
+-/
+
+namespace Cochrane.KeynesianStickyPrices.TidyR6ZExpectations
+
+open MeasureTheory ProbabilityTheory Filter Topology TidyR5ExpectationsMeasure
+
+/-! ### The abstract ℤ-indexed system -/
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30, with an infinite past (§17.2, p. 400): conditional
+expectations `E_t`, `t ∈ ℤ`, linear, preserving constants and order, with the law of iterated
+expectations.
+ℤ-indexed version of `ExpectationSystem`. -/
+structure ZExpectationSystem (Ω : Type*) where
+  /-- The expectation conditional on date-`t` information, `t ∈ ℤ`. -/
+  E : ℤ → (Ω → ℝ) →ₗ[ℝ] (Ω → ℝ)
+  /-- Constants are known at every date. -/
+  const : ∀ t (c : ℝ), E t (fun _ => c) = fun _ => c
+  /-- Expectations preserve the pointwise order. -/
+  mono : ∀ t {x y : Ω → ℝ}, x ≤ y → E t x ≤ E t y
+  /-- The law of iterated expectations: `E_s E_t = E_s` for `s ≤ t`. -/
+  tower : ∀ {s t : ℤ}, s ≤ t → ∀ x, E s (E t x) = E s x
+  /-- Earlier information is known later: `E_t E_s = E_s` for `s ≤ t`. -/
+  known : ∀ {s t : ℤ}, s ≤ t → ∀ x, E t (E s x) = E s x
+
+/-- Cochrane (2023), §17.2, p. 400 and §17.4.1, p. 409 (perfect foresight with an infinite past):
+a single state, `E_t` the identity at every date `t ∈ ℤ`.
+ℤ-indexed version of `perfectForesight`. -/
+def zPerfectForesight : ZExpectationSystem Unit where
+  E := fun _ => LinearMap.id
+  const := fun _ _ => rfl
+  mono := fun _ _ _ h => h
+  tower := fun _ _ => rfl
+  known := fun _ _ => rfl
+
+namespace ZExpectationSystem
+
+variable {Ω : Type*} (𝔼 : ZExpectationSystem Ω)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the dates `t ≥ s` of a ℤ-indexed system form a core
+(ℕ-indexed) `ExpectationSystem`, `n ↦ E_{s+n}`. -/
+def restrict (s : ℤ) : ExpectationSystem Ω where
+  E := fun n => 𝔼.E (s + n)
+  const := fun _ c => 𝔼.const _ c
+  mono := fun _ _ _ h => 𝔼.mono _ h
+  tower := fun h x => 𝔼.tower (add_le_add_right (Nat.cast_le.mpr h) s) x
+  known := fun h x => 𝔼.known (add_le_add_right (Nat.cast_le.mpr h) s) x
+
+/-- Cochrane (2023), Ch. 2: the restricted system at horizon `n` is `E_{s+n}`. -/
+theorem restrict_E (s : ℤ) (n : ℕ) (x : Ω → ℝ) : (𝔼.restrict s).E n x = 𝔼.E (s + n) x := rfl
+
+/-- Cochrane (2023), §17.4.1: perfect foresight on ℤ restricts to perfect foresight on ℕ. -/
+theorem restrict_zPerfectForesight (s : ℤ) : zPerfectForesight.restrict s = perfectForesight :=
+  rfl
+
+/-- Cochrane (2023), Ch. 2, p. 29: a ℤ-indexed process is adapted when `E_t x_t = x_t`.
+ℤ-indexed version of `ExpectationSystem.Adapted`. -/
+def Adapted (x : ℤ → Ω → ℝ) : Prop := ∀ t, 𝔼.E t (x t) = x t
+
+/-- Cochrane (2023), Ch. 2: an adapted process restricts to an adapted process from any date. -/
+theorem restrict_adapted {x : ℤ → Ω → ℝ} (h : 𝔼.Adapted x) (s : ℤ) :
+    (𝔼.restrict s).Adapted (fun n => x (s + n)) := fun n => h (s + n)
+
+/-- Cochrane (2023), Ch. 2, p. 29: `|E_t x| ≤ M` whenever `|x| ≤ M`.
+ℤ-indexed version of `ExpectationSystem.abs_E_le`. -/
+theorem abs_E_le {M : ℝ} {x : Ω → ℝ} (hx : ∀ ω, |x ω| ≤ M) (t : ℤ) (ω : Ω) :
+    |𝔼.E t x ω| ≤ M := by
+  have h := (𝔼.restrict t).abs_E_le hx 0 ω
+  rwa [restrict_E, Nat.cast_zero, add_zero] at h
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the news `ΔE_{t+1} x = E_{t+1} x − E_t x`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.innov`. -/
+def innov (t : ℤ) (x : Ω → ℝ) : Ω → ℝ := 𝔼.E (t + 1) x - 𝔼.E t x
+
+/-- Cochrane (2023), eq. (2.13), p. 30: news is a martingale difference, `E_s ΔE_{t+1} x = 0`
+for `s ≤ t`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_innov`. -/
+theorem E_innov {s t : ℤ} (hst : s ≤ t) (x : Ω → ℝ) : 𝔼.E s (𝔼.innov t x) = 0 := by
+  rw [innov, map_sub, 𝔼.tower (hst.trans (Int.le_add_one le_rfl)), 𝔼.tower hst, sub_self]
+
+/-- Cochrane (2023), eq. (2.13), p. 30: forecast revisions telescope into news,
+`E_{t+n} x − E_t x = ∑_{i<n} ΔE_{t+i+1} x`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov`. -/
+theorem E_sub_E_eq_sum_innov (t : ℤ) (n : ℕ) (x : Ω → ℝ) :
+    𝔼.E (t + n) x - 𝔼.E t x = ∑ i ∈ Finset.range n, 𝔼.innov (t + i) x := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ← ih, innov, Nat.cast_succ, ← add_assoc]
+    abel
+
+/-- Cochrane (2023), eq. (2.17), p. 35: a variable known at `t + 1` is its forecast plus its
+news.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov`. -/
+theorem eq_E_add_innov {t : ℤ} {x : Ω → ℝ} (hx : 𝔼.E (t + 1) x = x) :
+    x = 𝔼.E t x + 𝔼.innov t x := by
+  rw [innov, hx]
+  abel
+
+/-- Cochrane (2023), Ch. 2, p. 29: the pull-out property on ℤ (not implied by the axioms; a
+hypothesis where needed, as in the core `ExpectationSystem.PullOut`). -/
+def PullOut : Prop := ∀ t (a y : Ω → ℝ), 𝔼.E t a = a → 𝔼.E t (a * y) = a * 𝔼.E t y
+
+/-- Cochrane (2023), §17.4.1: perfect foresight on ℤ has the pull-out property.
+ℤ-indexed version of `perfectForesight_pullOut`. -/
+theorem zPerfectForesight_pullOut : zPerfectForesight.PullOut := fun _ _ _ _ => rfl
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values): `E_t` commutes with a series dominated by
+`aᵏ M`, `0 ≤ a < 1`, at every date `t ∈ ℤ`.
+ℤ-indexed version of `ExpectationSystem.E_tsum`. -/
+theorem E_tsum {a M : ℝ} (ha0 : 0 ≤ a) (ha1 : a < 1) {f : ℕ → Ω → ℝ}
+    (hf : ∀ k ω, |f k ω| ≤ a ^ k * M) (t : ℤ) (ω : Ω) :
+    𝔼.E t (fun ω' => ∑' k, f k ω') ω = ∑' k, 𝔼.E t (f k) ω := by
+  have h := (𝔼.restrict t).E_tsum ha0 ha1 hf 0 ω
+  simpa only [restrict_E, Nat.cast_zero, add_zero] using h
+
+end ZExpectationSystem
+
+/-! ### The probability space with a ℤ-indexed filtration -/
+
+variable (Ω : Type*) [mΩ : MeasurableSpace Ω]
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30, with an infinite past (§17.2, p. 400): a probability space
+with a filtration `𝓕 : ℤ → MeasurableSpace Ω` indexed by all dates; `E_t x := P[x | 𝓕 t]`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem`. -/
+structure ZMeasExpectationSystem where
+  /-- The probability measure. -/
+  P : ProbabilityMeasure Ω
+  /-- The information available at each date `t ∈ ℤ`. -/
+  𝓕 : Filtration ℤ mΩ
+
+namespace ZMeasExpectationSystem
+
+variable {Ω} (S : ZMeasExpectationSystem Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the probability measure as a measure.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.μ`. -/
+abbrev μ : Measure Ω := S.P
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x = μ[x | 𝓕 t]`, `t ∈ ℤ`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E`. -/
+noncomputable abbrev E (t : ℤ) (x : Ω → ℝ) : Ω → ℝ := S.μ[x | S.𝓕 t]
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the filtration `n ↦ 𝓕 (s + n)` of the dates `t ≥ s`. -/
+def restrictF (s : ℤ) : Filtration ℕ mΩ where
+  seq := fun n => S.𝓕 (s + n)
+  mono' := fun _ _ h => S.𝓕.mono (add_le_add_right (Nat.cast_le.mpr h) s)
+  le' := fun _ => S.𝓕.le _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the dates `t ≥ s` as an ℕ-indexed
+`TidyR5ExpectationsMeasure.MeasExpectationSystem`. -/
+def restrict (s : ℤ) : MeasExpectationSystem Ω := ⟨S.P, S.restrictF s⟩
+
+/-- Cochrane (2023), Ch. 2: the restricted system has the same measure. -/
+theorem restrict_μ (s : ℤ) : (S.restrict s).μ = S.μ := rfl
+
+/-- Cochrane (2023), Ch. 2: the restricted information at horizon `n` is `𝓕 (s + n)`. -/
+theorem restrict_𝓕 (s : ℤ) (n : ℕ) : (S.restrict s).𝓕 n = S.𝓕 (s + n) := rfl
+
+/-- Cochrane (2023), Ch. 2: the restricted expectation at horizon `n` is `E_{s+n}`. -/
+theorem restrict_E (s : ℤ) (n : ℕ) (x : Ω → ℝ) : (S.restrict s).E n x = S.E (s + n) x := rfl
+
+/-- Cochrane (2023), Ch. 2: an adapted ℤ-indexed process restricts to an adapted process. -/
+theorem restrict_adapted {x : ℤ → Ω → ℝ} (h : StronglyAdapted S.𝓕 x) (s : ℤ) :
+    StronglyAdapted (S.restrict s).𝓕 (fun n => x (s + n)) := fun n => h (s + n)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is additive (a.e.).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_add`. -/
+theorem E_add {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℤ) :
+    S.E t (x + y) =ᵐ[S.μ] S.E t x + S.E t y := condExp_add hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` commutes with differences (a.e.).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_sub`. -/
+theorem E_sub {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℤ) :
+    S.E t (x - y) =ᵐ[S.μ] S.E t x - S.E t y := condExp_sub hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is homogeneous (a.e.).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_smul`. -/
+theorem E_smul (c : ℝ) (x : Ω → ℝ) (t : ℤ) : S.E t (c • x) =ᵐ[S.μ] c • S.E t x :=
+  condExp_smul c x _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: constants are known (exactly).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_const`. -/
+theorem E_const (t : ℤ) (c : ℝ) : S.E t (fun _ => c) = fun _ => c :=
+  condExp_const (S.𝓕.le t) c
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is monotone (a.e.).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_mono`. -/
+theorem E_mono {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ)
+    (hxy : x ≤ᵐ[S.μ] y) (t : ℤ) : S.E t x ≤ᵐ[S.μ] S.E t y := condExp_mono hx hy hxy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the law of iterated expectations, `E_s E_t = E_s` for
+`s ≤ t` in `ℤ` (a.e.).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_tower`. -/
+theorem E_tower {s t : ℤ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.E t x) =ᵐ[S.μ] S.E s x :=
+  condExp_condExp_of_le (S.𝓕.mono hst) (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is `𝓕 t`-strongly measurable.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E`. -/
+theorem stronglyMeasurable_E (t : ℤ) (x : Ω → ℝ) : StronglyMeasurable[S.𝓕 t] (S.E t x) :=
+  stronglyMeasurable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is integrable.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.integrable_E`. -/
+theorem integrable_E (t : ℤ) (x : Ω → ℝ) : Integrable (S.E t x) S.μ := integrable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is known at `t` is its own forecast (exactly).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable`. -/
+theorem E_of_stronglyMeasurable {t : ℤ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    (hi : Integrable x S.μ) : S.E t x = x :=
+  condExp_of_stronglyMeasurable (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: earlier forecasts are known later, `E_t E_s = E_s`,
+`s ≤ t` (exactly).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_known`. -/
+theorem E_known {s t : ℤ} (hst : s ≤ t) (x : Ω → ℝ) : S.E t (S.E s x) = S.E s x :=
+  S.E_of_stronglyMeasurable ((S.stronglyMeasurable_E s x).mono (S.𝓕.mono hst))
+    (S.integrable_E s x)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is idempotent (exactly).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_E_self`. -/
+theorem E_E_self (t : ℤ) (x : Ω → ℝ) : S.E t (S.E t x) = S.E t x := S.E_known le_rfl x
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` respects a.e. equality.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_congr`. -/
+theorem E_congr {x y : Ω → ℝ} (h : x =ᵐ[S.μ] y) (t : ℤ) : S.E t x =ᵐ[S.μ] S.E t y :=
+  condExp_congr_ae h
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the unconditional mean of a forecast is the mean.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.integral_E`. -/
+theorem integral_E (t : ℤ) (x : Ω → ℝ) : ∫ ω, S.E t x ω ∂S.μ = ∫ ω, x ω ∂S.μ :=
+  integral_condExp (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: **pull-out** — a bounded factor known at `t` comes out of
+`E_t` (a.e.).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_pullOut`. -/
+theorem E_pullOut {t : ℤ} {f y : Ω → ℝ} (hf : StronglyMeasurable[S.𝓕 t] f) {C : ℝ}
+    (hfC : ∀ᵐ ω ∂S.μ, |f ω| ≤ C) (hy : Integrable y S.μ) :
+    S.E t (f * y) =ᵐ[S.μ] f * S.E t y := by
+  have hint : Integrable (f * y) S.μ :=
+    hy.bdd_mul (hf.mono (S.𝓕.le t)).aestronglyMeasurable
+      (hfC.mono fun ω h => by rwa [Real.norm_eq_abs])
+  exact condExp_mul_of_stronglyMeasurable_left hf hint hy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `|E_t x| ≤ M` a.e. whenever `|x| ≤ M` a.e.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.abs_E_le`. -/
+theorem abs_E_le {x : Ω → ℝ} {M : ℝ} (hx : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) (t : ℤ) :
+    ∀ᵐ ω ∂S.μ, |S.E t x ω| ≤ M :=
+  ae_bdd_abs_condExp_of_ae_bdd_abs hx
+
+/-- Cochrane (2023), Ch. 2, p. 29: a variable known at `t` with an a.e. bound is integrable. -/
+theorem integrable_of_bdd {t : ℤ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x) {M : ℝ}
+    (hM : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) : Integrable x S.μ :=
+  Integrable.of_bound (hx.mono (S.𝓕.le t)).aestronglyMeasurable M
+    (hM.mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-! ### The remote past -/
+
+/-- Cochrane (2023), §17.2, p. 400 (the infinite past): the **remote past** `⨅ₜ 𝓕 t`, the
+information available at every date, however early. -/
+abbrev remote : MeasurableSpace Ω := ⨅ t, S.𝓕 t
+
+/-- Cochrane (2023), §17.2: the remote past is known at every date. -/
+theorem remote_le (t : ℤ) : S.remote ≤ S.𝓕 t := iInf_le _ t
+
+/-- Cochrane (2023), §17.2: a variable measurable for the remote past is its own forecast at every
+date. -/
+theorem E_of_remote {c : Ω → ℝ} (hc : StronglyMeasurable[S.remote] c) (hi : Integrable c S.μ)
+    (t : ℤ) : S.E t c = c :=
+  S.E_of_stronglyMeasurable (hc.mono (S.remote_le t)) hi
+
+/-! ### News -/
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation `ΔE_{t+1} x = E_{t+1} x − E_t x`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.innov`. -/
+noncomputable def innov (t : ℤ) (x : Ω → ℝ) : Ω → ℝ := S.E (t + 1) x - S.E t x
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation is known at `t + 1`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov`. -/
+theorem stronglyMeasurable_innov (t : ℤ) (x : Ω → ℝ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (S.innov t x) :=
+  (S.stronglyMeasurable_E (t + 1) x).sub
+    ((S.stronglyMeasurable_E t x).mono (S.𝓕.mono (Int.le_add_one le_rfl)))
+
+/-- Cochrane (2023), eq. (2.13), p. 30: **innovations are martingale differences**,
+`E_s ΔE_{t+1} x = 0` a.e. for `s ≤ t` in `ℤ`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_innov`. -/
+theorem E_innov {s t : ℤ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.innov t x) =ᵐ[S.μ] 0 := by
+  filter_upwards [S.E_sub (S.integrable_E (t + 1) x) (S.integrable_E t x) s,
+    S.E_tower (hst.trans (Int.le_add_one le_rfl)) x, S.E_tower hst x] with ω h1 h2 h3
+  rw [innov, h1, Pi.sub_apply, h2, h3, sub_self, Pi.zero_apply]
+
+/-- Cochrane (2023), eq. (2.13), p. 30: news is uncorrelated with anything known before it,
+`E_t (w ΔE_{t+1} x) = 0` for bounded `w` known at `t`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_mul_innov`. -/
+theorem E_mul_innov {t : ℤ} {w : Ω → ℝ} (hw : StronglyMeasurable[S.𝓕 t] w) {C : ℝ}
+    (hwC : ∀ᵐ ω ∂S.μ, |w ω| ≤ C) (x : Ω → ℝ) :
+    S.E t (w * S.innov t x) =ᵐ[S.μ] 0 := by
+  have hi : Integrable (S.innov t x) S.μ := (S.integrable_E _ x).sub (S.integrable_E _ x)
+  filter_upwards [S.E_pullOut hw hwC hi, S.E_innov le_rfl x] with ω h1 h2
+  rw [h1, Pi.mul_apply, h2]
+  simp
+
+/-- Cochrane (2023), eq. (2.13), p. 30: forecast revisions telescope into news,
+`E_{t+n} x − E_t x = ∑_{i<n} ΔE_{t+i+1} x` (exactly).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov`. -/
+theorem E_sub_E_eq_sum_innov (t : ℤ) (n : ℕ) (x : Ω → ℝ) :
+    S.E (t + n) x - S.E t x = ∑ i ∈ Finset.range n, S.innov (t + i) x := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ← ih, innov, Nat.cast_succ, ← add_assoc]
+    abel
+
+/-- Cochrane (2023), eq. (2.17), p. 35: a variable known at `t + 1` is its forecast plus its
+news (exactly).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov`. -/
+theorem eq_E_add_innov {t : ℤ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 (t + 1)] x)
+    (hi : Integrable x S.μ) : x = S.E t x + S.innov t x := by
+  rw [innov, S.E_of_stronglyMeasurable hx hi]
+  abel
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values): `E_t` passes through a dominated series at
+every date `t ∈ ℤ` (a.e., as a genuine `HasSum`).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.E_hasSum`. -/
+theorem E_hasSum {f : ℕ → Ω → ℝ} {c : ℕ → ℝ} (hc : Summable c)
+    (hm : ∀ k, AEStronglyMeasurable (f k) S.μ) (hf : ∀ k, ∀ᵐ ω ∂S.μ, |f k ω| ≤ c k) (t : ℤ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => S.E t (f k) ω) (S.E t (fun ω' => ∑' k, f k ω') ω) := by
+  have h := (S.restrict t).E_hasSum hc hm hf 0
+  simpa only [restrict_E, restrict_μ, Nat.cast_zero, add_zero] using h
+
+/-! ### Forward sums on ℤ -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 and eq. (5.5), p. 119: the forward sum on ℤ,
+`F_t = E_t ∑_{k≥0} qᵏ u_{t+k}`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.forwardSol`. -/
+noncomputable def FZ (q : ℝ) (u : ℤ → Ω → ℝ) (t : ℤ) : Ω → ℝ :=
+  S.E t (fun ω => ∑' k : ℕ, q ^ k * u (t + k) ω)
+
+/-- Cochrane (2023), eq. (5.5): the forward sum on ℤ at `s + n` is the ℕ forward solution of the
+system restricted at `s`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.forwardSol`. -/
+theorem FZ_eq_restrict (q : ℝ) (u : ℤ → Ω → ℝ) (s : ℤ) (n : ℕ) :
+    S.FZ q u (s + n) = (S.restrict s).forwardSol q (fun m => u (s + m)) n := by
+  unfold FZ MeasExpectationSystem.forwardSol MeasExpectationSystem.discSum
+  rw [restrict_E]
+  congr 1
+  funext ω
+  refine tsum_congr fun k => ?_
+  simp only [Nat.cast_add, add_assoc]
+
+/-- Cochrane (2023), eq. (5.5): the forward sum is adapted.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted`. -/
+theorem FZ_adapted (q : ℝ) (u : ℤ → Ω → ℝ) : StronglyAdapted S.𝓕 (S.FZ q u) :=
+  fun t => S.stronglyMeasurable_E t _
+
+/-- Cochrane (2023), eq. (5.5): for `|q| < 1` the forward sum of a process bounded by `M` is
+bounded by `M/(1 − |q|)` a.e.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd`. -/
+theorem FZ_bdd {q M : ℝ} (hq : |q| < 1) {u : ℤ → Ω → ℝ} (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M)
+    (t : ℤ) : ∀ᵐ ω ∂S.μ, |S.FZ q u t ω| ≤ M / (1 - |q|) := by
+  have h := (S.restrict t).forwardSol_bdd hq (u := fun m => u (t + m)) (fun m => hb (t + m))
+  obtain ⟨K, hK⟩ := h
+  have e := S.FZ_eq_restrict q u t 0
+  rw [Nat.cast_zero, add_zero] at e
+  rw [e]
+  unfold MeasExpectationSystem.forwardSol
+  exact (S.restrict t).abs_E_le ((S.restrict t).discSum_bdd hq (fun m => hb (t + m)) 0) 0
+
+/-- Cochrane (2023), eq. (5.5), p. 119: for `|q| < 1` and bounded `u`, the forward sum is the
+genuine sum `∑ qᵏ E_t u_{t+k}` (a.e.).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum`. -/
+theorem FZ_hasSum {q M : ℝ} (hq : |q| < 1) {u : ℤ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℤ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k : ℕ => q ^ k * S.E t (u (t + k)) ω) (S.FZ q u t ω) := by
+  have h := (S.restrict t).forwardSol_hasSum hq (u := fun m => u (t + m)) (fun m => hm (t + m))
+    (fun m => hb (t + m)) 0
+  have e := S.FZ_eq_restrict q u t 0
+  rw [Nat.cast_zero, add_zero] at e
+  rw [e]
+  simpa only [restrict_E, restrict_μ, Nat.cast_zero, add_zero, zero_add] using h
+
+/-- Cochrane (2023), Ch. 2, p. 29: `z` solves `z_t = q E_t z_{t+1} + u_t` on ℤ (a.e. at every
+date).
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.Solves`. -/
+def SolvesZ (q : ℝ) (u z : ℤ → Ω → ℝ) : Prop :=
+  ∀ t, z t =ᵐ[S.μ] q • S.E t (z (t + 1)) + u t
+
+/-- Cochrane (2023), Ch. 2: a solution on ℤ restricts to a solution of the ℕ-indexed system at
+every date `s`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.Solves`. -/
+theorem solvesZ_restrict {q : ℝ} {u z : ℤ → Ω → ℝ} (h : S.SolvesZ q u z) (s : ℤ) :
+    (S.restrict s).Solves q (fun n => u (s + n)) (fun n => z (s + n)) := by
+  intro n
+  have e : s + ((n + 1 : ℕ) : ℤ) = s + n + 1 := by push_cast; ring
+  change z (s + n) =ᵐ[S.μ] q • S.E (s + n) (z (s + ((n + 1 : ℕ) : ℤ))) + u (s + n)
+  rw [e]
+  exact h (s + n)
+
+/-- Cochrane (2023), eq. (5.5), p. 119, on ℤ (**existence**): for `|q| < 1` and bounded adapted
+`u`, the forward sum solves `z_t = q E_t z_{t+1} + u_t` at every date `t ∈ ℤ`.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves`. -/
+theorem FZ_solves {q M : ℝ} (hq : |q| < 1) {u : ℤ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u)
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) : S.SolvesZ q u (S.FZ q u) := by
+  intro t
+  have h := (S.restrict t).forwardSol_solves hq (S.restrict_adapted hua t)
+    (fun m => hb (t + m)) 0
+  have e0 := S.FZ_eq_restrict q u t 0
+  have e1 := S.FZ_eq_restrict q u t 1
+  rw [Nat.cast_zero, add_zero] at e0
+  rw [Nat.cast_one] at e1
+  rw [e0, e1]
+  simpa only [restrict_E, restrict_μ, Nat.cast_zero, add_zero, zero_add] using h
+
+/-- Cochrane (2023), Ch. 2, p. 29, on ℤ (**uniqueness**): for `|q| < 1` the equation
+`z_t = q E_t z_{t+1} + u_t` has at most one bounded a.e.-measurable solution on ℤ.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.forward_unique`. -/
+theorem forwardZ_unique {q : ℝ} (hq : |q| < 1) {u z₁ z₂ : ℤ → Ω → ℝ} (h₁ : S.SolvesZ q u z₁)
+    (h₂ : S.SolvesZ q u z₂) (hm₁ : ∀ t, AEStronglyMeasurable (z₁ t) S.μ)
+    (hm₂ : ∀ t, AEStronglyMeasurable (z₂ t) S.μ) {M₁ M₂ : ℝ}
+    (hb₁ : ∀ t, ∀ᵐ ω ∂S.μ, |z₁ t ω| ≤ M₁) (hb₂ : ∀ t, ∀ᵐ ω ∂S.μ, |z₂ t ω| ≤ M₂) (t : ℤ) :
+    z₁ t =ᵐ[S.μ] z₂ t := by
+  have h := (S.restrict t).forward_unique hq (S.solvesZ_restrict h₁ t) (S.solvesZ_restrict h₂ t)
+    (fun n => hm₁ (t + n)) (fun n => hm₂ (t + n)) ⟨M₁, fun n => hb₁ (t + n)⟩
+    ⟨M₂, fun n => hb₂ (t + n)⟩ 0
+  simpa only [restrict_μ, Nat.cast_zero, add_zero] using h
+
+/-- Cochrane (2023), eq. (5.5), p. 119, on ℤ: every bounded a.e.-measurable solution of
+`z_t = q E_t z_{t+1} + u_t` (`|q| < 1`, bounded adapted `u`) is the forward sum a.e.
+ℤ-indexed version of `TidyR5ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward`. -/
+theorem eq_FZ {q M Mz : ℝ} (hq : |q| < 1) {u z : ℤ → Ω → ℝ} (hua : StronglyAdapted S.𝓕 u)
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (hz : S.SolvesZ q u z)
+    (hzm : ∀ t, AEStronglyMeasurable (z t) S.μ) (hzb : ∀ t, ∀ᵐ ω ∂S.μ, |z t ω| ≤ Mz) (t : ℤ) :
+    z t =ᵐ[S.μ] S.FZ q u t :=
+  S.forwardZ_unique hq hz (S.FZ_solves hq hua hb) hzm
+    (fun s => ((S.FZ_adapted q u s).mono (S.𝓕.le s)).aestronglyMeasurable) hzb
+    (S.FZ_bdd hq hb) t
+
+end ZMeasExpectationSystem
+
+end Cochrane.KeynesianStickyPrices.TidyR6ZExpectations
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# (17.8) and the inverse of (17.14) with an infinite past under uncertainty
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 17, §17.2, eqs. (17.7)–(17.8),
+pp. 399–400, and §17.3, eq. (17.14), p. 405.
+
+`StaticIS.eq_17_8` and `PersistenceFreedom.corrected_inverse` are pathwise statements on `ℤ`.
+Here the rational-expectations model (17.7), `π_t = −σκ i_t + (1 + σκ) E_t π_{t+1}`, holds almost
+surely at every date `t ∈ ℤ` on a probability space with a ℤ-indexed filtration
+(`TidyR6ZExpectations.ZMeasExpectationSystem`, `REModelZ`). Write `a = 1/(1 + σκ)`,
+`b = σκ/(1 + σκ)` and `δ_{t+1} = π_{t+1} − E_t π_{t+1}` (`err π t`), the expectational error.
+
+## (17.8) under uncertainty: the equilibria are indexed by their expectational errors
+
+* `rec_ae`: `π_{t+1} = a π_t + b i_t + δ_{t+1}` a.s.; `err_mds`: `δ` is a martingale difference
+  sequence, `E_t δ_{t+1} = 0`, `δ_{t+1}` known at `t + 1`.
+* **`eq_17_8_ae`**: every essentially bounded equilibrium is almost surely, at every date,
+  `π_{t+1} = b ∑ aʲ i_{t−j} + ∑ aʲ δ_{t+1−j}`.
+* **`piB_equilibrium`** (existence): for every essentially bounded adapted rate process and every
+  essentially bounded martingale difference sequence `d` (`d_t` known at `t + 1`,
+  `E_t d_t = 0`), the backward moving average `piB` is an adapted, essentially bounded
+  equilibrium whose expectational errors are `d`. **`eq_piB`** (uniqueness): every essentially
+  bounded equilibrium with expectational errors `d` equals `piB` a.s. at every date
+  (`unique_of_err`). So the bounded equilibria on ℤ are exactly the bounded martingale
+  difference sequences — the multiplicity of `StaticIS.re_not_unique` survives the infinite past.
+
+## The role of the remote past (`t → −∞`)
+
+* `remote_family`: for every integrable `c` known at every date (the remote past,
+  `TidyR6ZExpectations.ZMeasExpectationSystem.remote`), `π_t + aᵗ c` is again an equilibrium with
+  the same expectational errors; `remote_family_bdd_future`: it is bounded on `t ≥ 0`.
+* `remote_converse`: every equilibrium with the same errors (only integrable) has this form,
+  `π'_t − π_t = aᵗ (π'_0 − π_0)` with `π'_0 − π_0` known at every date, however early.
+* `remote_family_bdd_iff`: `π_t + aᵗ c` is bounded on all of ℤ iff `c = 0` a.s. So uniqueness
+  given the errors **needs the bound as `t → −∞`**: boundedness on `t ≥ 0` alone leaves a
+  remote-past family (`remote_one_solves`: `c = 1` always qualifies).
+* `finite_start_ae`, `tendsto_initial_term`: from any start `t − k`,
+  `π_t = aᵏ π_{t−k} + ∑_{j<k} aʲ (b i_{t−1−j} + δ_{t−j})` (the ℕ-indexed news form started at
+  `s = t − k`), and the initial term vanishes as `s → −∞`: the infinite-past formula is the
+  limit of the finite-start ones.
+
+## The inverse of (17.14) under uncertainty
+
+* **`corrected_inverse_ae`**: almost surely at every date
+  `E_t π_{t+1} = b ∑ aʲ i_{t−j} + ∑ a^{j+1} δ_{t−j}`.
+* **`printed_inverse_iff`**: the printed inverse `E_t π_{t+1} = b ∑ aʲ i_{t−j}` holds a.s. at
+  every date iff every expectational error is zero a.s.; under genuine uncertainty with any
+  nonzero error it fails (`printed_inverse_fails`).
+
+## The abstract ℤ system
+
+`REModelZA` (for `TidyR6ZExpectations.ZExpectationSystem`) restricts at every date `s` to the
+ℕ-indexed `StaticIS.REModel` of the restricted core system (`reModelZA_restrict`), and every
+bounded equilibrium is (17.8) state by state (`eq_17_8_abstract`).
+-/
+
+namespace Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS
+
+open MeasureTheory Filter Topology TidyR6ZExpectations ZMeasExpectationSystem
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : ZMeasExpectationSystem Ω)
+
+/-! ### A shift of backward sums -/
+
+/-- Cochrane (2023), eq. (17.8), p. 400: for `|a| < 1` and bounded `f`, the backward sum satisfies
+`∑ aʲ f_{t−j} = f_t + a ∑ aʲ f_{t−1−j}`.
+Compare `SharedTools.backward_iterate` and `SharedTools.eq_backward_series`. -/
+theorem backward_shift {a M : ℝ} (ha : |a| < 1) {f : ℤ → ℝ} (hf : ∀ s, |f s| ≤ M) (t : ℤ) :
+    ∑' j : ℕ, a ^ j * f (t - j) = f t + a * ∑' j : ℕ, a ^ j * f (t - 1 - j) := by
+  have hs : Summable fun j : ℕ => a ^ j * f (t - j) :=
+    TidyR5ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul ha fun j => hf (t - j)
+  rw [hs.tsum_eq_zero_add, ← tsum_mul_left]
+  simp only [pow_zero, one_mul, Nat.cast_zero, sub_zero]
+  congr 1
+  refine tsum_congr fun j => ?_
+  rw [pow_succ, show t - ((j + 1 : ℕ) : ℤ) = t - 1 - j by push_cast; ring]
+  ring
+
+/-! ### The model on ℤ -/
+
+/-- Cochrane (2023), eq. (17.7), p. 399, on ℤ under uncertainty: inflation is adapted and
+`π_t = −σκ i_t + (1 + σκ) E_t π_{t+1}` almost surely at every date `t ∈ ℤ`.
+ℤ-indexed version of `StaticIS.REModel` under uncertainty. -/
+def REModelZ (σ κ : ℝ) (i π : ℤ → Ω → ℝ) : Prop :=
+  StronglyAdapted S.𝓕 π ∧
+    ∀ t, π t =ᵐ[S.μ] (-(σ * κ)) • i t + (1 + σ * κ) • S.E t (π (t + 1))
+
+/-- Cochrane (2023), eq. (17.8), p. 400: the expectational error
+`δ_{t+1} = π_{t+1} − E_t π_{t+1}`.
+ℤ-indexed version of `StaticIS.reErr`. -/
+noncomputable def err (π : ℤ → Ω → ℝ) (t : ℤ) : Ω → ℝ := π (t + 1) - S.E t (π (t + 1))
+
+/-- Cochrane (2023), eq. (17.7), p. 399: in equilibrium `E_t π_{t+1} = a π_t + b i_t` a.s. -/
+theorem E_next {σ κ : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ} (h : REModelZ S σ κ i π) (t : ℤ) :
+    S.E t (π (t + 1)) =ᵐ[S.μ]
+      (1 / (1 + σ * κ)) • π t + (σ * κ / (1 + σ * κ)) • i t := by
+  have h1 : 1 + σ * κ ≠ 0 := by linarith
+  filter_upwards [h.2 t] with ω e
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+  field_simp
+  linarith
+
+/-- Cochrane (2023), eq. (17.8), p. 400: `π_{t+1} = a π_t + b i_t + δ_{t+1}` a.s. -/
+theorem rec_ae {σ κ : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ} (h : REModelZ S σ κ i π) (t : ℤ) :
+    ∀ᵐ ω ∂S.μ, π (t + 1) ω =
+      1 / (1 + σ * κ) * π t ω + σ * κ / (1 + σ * κ) * i t ω + err S π t ω := by
+  filter_upwards [E_next S hσκ h t] with ω e
+  simp only [err, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+  rw [e]
+  ring
+
+/-- Cochrane (2023), eq. (17.8), p. 400: the expectational errors of an adapted, essentially
+bounded inflation process form a martingale difference sequence: `δ_{t+1}` is known at `t + 1`
+and `E_t δ_{t+1} = 0` a.s.
+ℤ-indexed version of `StaticIS.reErr_mds`. -/
+theorem err_mds {Mπ : ℝ} {π : ℤ → Ω → ℝ} (ha : StronglyAdapted S.𝓕 π)
+    (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (t : ℤ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (err S π t) ∧ S.E t (err S π t) =ᵐ[S.μ] 0 := by
+  have hi : Integrable (π (t + 1)) S.μ := S.integrable_of_bdd (ha (t + 1)) (hπ (t + 1))
+  refine ⟨(ha (t + 1)).sub ((S.stronglyMeasurable_E t _).mono
+    (S.𝓕.mono (Int.le_add_one le_rfl))), ?_⟩
+  filter_upwards [S.E_sub hi (S.integrable_E t (π (t + 1))) t] with ω e
+  rw [err, e, Pi.sub_apply, S.E_E_self, sub_self, Pi.zero_apply]
+
+/-- Cochrane (2023), eq. (17.8): the expectational errors of an essentially bounded process are
+essentially bounded by `2Mπ`.
+As `TidyR5StochasticPaths.abs_innov_le`. -/
+theorem err_bdd {Mπ : ℝ} {π : ℤ → Ω → ℝ} (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (t : ℤ) :
+    ∀ᵐ ω ∂S.μ, |err S π t ω| ≤ 2 * Mπ := by
+  filter_upwards [hπ (t + 1), S.abs_E_le (hπ (t + 1)) t] with ω e1 e2
+  simp only [err, Pi.sub_apply]
+  exact (abs_sub _ _).trans (by linarith)
+
+/-- **(17.8) under uncertainty with an infinite past** (Cochrane (2023), eq. (17.8), p. 400): for
+`σκ > 0`, every equilibrium of (17.7) on ℤ with essentially bounded inflation and rates is almost
+surely, at every date, `π_{t+1} = b ∑_{j≥0} aʲ i_{t−j} + ∑_{j≥0} aʲ δ_{t+1−j}` with its own
+expectational errors `δ`.
+ℤ-indexed, almost-sure version of `StaticIS.eq_17_8`. -/
+theorem eq_17_8_ae {σ κ Mπ Mi : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ Mi) :
+    ∀ᵐ ω ∂S.μ, ∀ t, π (t + 1) ω =
+      σ * κ / (1 + σ * κ) * ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - j) ω +
+        ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * err S π (t - j) ω := by
+  filter_upwards [ae_all_iff.2 (rec_ae S hσκ h), ae_all_iff.2 hπ, ae_all_iff.2 hi,
+    ae_all_iff.2 (err_bdd S hπ)] with ω hr hbπ hbi hbe t
+  have e := StaticIS.eq_17_8 hσκ (π := fun s => π s ω) (i := fun s => i s ω)
+    (δ := fun s => err S π (s - 1) ω) hbπ hbi (fun s => hbe (s - 1))
+    (fun s => by simpa only [add_sub_cancel_right] using hr s) t
+  rw [e]
+  congr 1
+  refine tsum_congr fun j => ?_
+  rw [show t + 1 - (j : ℤ) - 1 = t - j by ring]
+
+/-! ### Existence and uniqueness given the expectational errors -/
+
+/-- Cochrane (2023), eq. (17.8), p. 400: the backward moving average with rates `i` and
+expectational errors `d` (`d_t` the error of date `t + 1`),
+`π_t = b ∑ aʲ i_{t−1−j} + ∑ aʲ d_{t−1−j}`. -/
+noncomputable def piB (σ κ : ℝ) (i d : ℤ → Ω → ℝ) (t : ℤ) : Ω → ℝ := fun ω =>
+  σ * κ / (1 + σ * κ) * ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - 1 - j) ω +
+    ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * d (t - 1 - j) ω
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (17.8): the backward moving average satisfies
+`π_{t+1} = a π_t + b i_t + d_t` wherever the rates and errors are bounded. -/
+theorem piB_rec {σ κ Mi Md : ℝ} (hσκ : 0 < σ * κ) {i d : ℤ → Ω → ℝ} {ω : Ω}
+    (hi : ∀ s, |i s ω| ≤ Mi) (hd : ∀ s, |d s ω| ≤ Md) (t : ℤ) :
+    piB σ κ i d (t + 1) ω =
+      1 / (1 + σ * κ) * piB σ κ i d t ω + σ * κ / (1 + σ * κ) * i t ω + d t ω := by
+  obtain ⟨ha0, ha1, -, -⟩ := StaticIS.coeff_17_7 hσκ
+  have haa : |1 / (1 + σ * κ)| < 1 := by rw [abs_of_pos ha0]; exact ha1
+  have e1 := backward_shift haa (f := fun s => i s ω) hi t
+  have e2 := backward_shift haa (f := fun s => d s ω) hd t
+  simp only [piB, add_sub_cancel_right]
+  rw [e1, e2]
+  ring
+
+/-- Cochrane (2023), eq. (17.8): the backward moving average is adapted when the rates are
+adapted and `d_t` is known at `t + 1`. -/
+theorem piB_adapted (σ κ : ℝ) {i d : ℤ → Ω → ℝ} (hia : StronglyAdapted S.𝓕 i)
+    (hdm : ∀ t, StronglyMeasurable[S.𝓕 (t + 1)] (d t)) :
+    StronglyAdapted S.𝓕 (piB σ κ i d) := by
+  intro t
+  have h1 : ∀ j : ℕ, StronglyMeasurable[S.𝓕 t]
+      (fun ω => (1 / (1 + σ * κ)) ^ j * i (t - 1 - j) ω) := fun j =>
+    ((hia (t - 1 - j)).mono (S.𝓕.mono (by omega))).const_mul _
+  have h2 : ∀ j : ℕ, StronglyMeasurable[S.𝓕 t]
+      (fun ω => (1 / (1 + σ * κ)) ^ j * d (t - 1 - j) ω) := fun j =>
+    ((hdm (t - 1 - j)).mono (S.𝓕.mono (by omega))).const_mul _
+  have s1 : StronglyMeasurable[S.𝓕 t]
+      (fun ω => ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - 1 - j) ω) := by
+    let _ : MeasurableSpace Ω := S.𝓕 t
+    exact StronglyMeasurable.tsum h1
+  have s2 : StronglyMeasurable[S.𝓕 t]
+      (fun ω => ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * d (t - 1 - j) ω) := by
+    let _ : MeasurableSpace Ω := S.𝓕 t
+    exact StronglyMeasurable.tsum h2
+  exact (s1.const_mul _).add s2
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (17.8): the backward moving average is bounded by
+`(b|Mi| + |Md|)/(1 − a)` wherever the rates and errors are bounded. -/
+theorem piB_bound {σ κ Mi Md : ℝ} (hσκ : 0 < σ * κ) {i d : ℤ → Ω → ℝ} {ω : Ω}
+    (hi : ∀ s, |i s ω| ≤ Mi) (hd : ∀ s, |d s ω| ≤ Md) (t : ℤ) :
+    |piB σ κ i d t ω| ≤
+      (σ * κ / (1 + σ * κ) * |Mi| + |Md|) / (1 - |1 / (1 + σ * κ)|) := by
+  obtain ⟨ha0, ha1, hb0, -⟩ := StaticIS.coeff_17_7 hσκ
+  have haa : |1 / (1 + σ * κ)| < 1 := by rw [abs_of_pos ha0]; exact ha1
+  have hpos : 0 < 1 - |1 / (1 + σ * κ)| := by linarith
+  have b1 := TidyR5ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le haa
+    (x := fun j : ℕ => i (t - 1 - j) ω) fun j => hi _
+  have b2 := TidyR5ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le haa
+    (x := fun j : ℕ => d (t - 1 - j) ω) fun j => hd _
+  have hMi : Mi / (1 - |1 / (1 + σ * κ)|) ≤ |Mi| / (1 - |1 / (1 + σ * κ)|) :=
+    div_le_div_of_nonneg_right (le_abs_self Mi) hpos.le
+  have hMd : Md / (1 - |1 / (1 + σ * κ)|) ≤ |Md| / (1 - |1 / (1 + σ * κ)|) :=
+    div_le_div_of_nonneg_right (le_abs_self Md) hpos.le
+  have hX := b1.trans hMi
+  have hY := b2.trans hMd
+  unfold piB
+  calc _ ≤ |σ * κ / (1 + σ * κ) * ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - 1 - j) ω| +
+        |∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * d (t - 1 - j) ω| := abs_add_le _ _
+    _ = σ * κ / (1 + σ * κ) * |∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - 1 - j) ω| +
+        |∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * d (t - 1 - j) ω| := by
+      rw [abs_mul, abs_of_pos hb0]
+    _ ≤ σ * κ / (1 + σ * κ) * (|Mi| / (1 - |1 / (1 + σ * κ)|)) +
+        |Md| / (1 - |1 / (1 + σ * κ)|) := by gcongr
+    _ = _ := by ring
+
+/-- **Existence on ℤ under uncertainty** (Cochrane (2023), eq. (17.8), p. 400): for `σκ > 0`,
+essentially bounded adapted rates and every essentially bounded martingale difference sequence
+`d` (`d_t` known at `t + 1`, `E_t d_t = 0` a.s.), the backward moving average `piB` is an
+adapted, essentially bounded equilibrium of (17.7) on ℤ whose expectational errors are `d`.
+Compare `SharedTools.backward_series_solves`. -/
+theorem piB_equilibrium {σ κ Mi Md : ℝ} (hσκ : 0 < σ * κ) {i d : ℤ → Ω → ℝ}
+    (hia : StronglyAdapted S.𝓕 i) (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ Mi)
+    (hdm : ∀ t, StronglyMeasurable[S.𝓕 (t + 1)] (d t)) (hd : ∀ t, ∀ᵐ ω ∂S.μ, |d t ω| ≤ Md)
+    (hd0 : ∀ t, S.E t (d t) =ᵐ[S.μ] 0) :
+    REModelZ S σ κ i (piB σ κ i d) ∧ (∀ t, err S (piB σ κ i d) t =ᵐ[S.μ] d t) ∧
+      ∀ t, ∀ᵐ ω ∂S.μ, |piB σ κ i d t ω| ≤
+        (σ * κ / (1 + σ * κ) * |Mi| + |Md|) / (1 - |1 / (1 + σ * κ)|) := by
+  have h1 : 1 + σ * κ ≠ 0 := by linarith
+  set a := 1 / (1 + σ * κ) with ha
+  set b := σ * κ / (1 + σ * κ) with hb
+  set P := piB σ κ i d with hP
+  have had := piB_adapted S σ κ hia hdm
+  have hall : ∀ᵐ ω ∂S.μ, (∀ s, |i s ω| ≤ Mi) ∧ ∀ s, |d s ω| ≤ Md :=
+    (ae_all_iff.2 hi).and (ae_all_iff.2 hd)
+  have hbd : ∀ t, ∀ᵐ ω ∂S.μ, |P t ω| ≤ (b * |Mi| + |Md|) / (1 - |a|) := fun t =>
+    hall.mono fun ω h => piB_bound hσκ h.1 h.2 t
+  have hrec : ∀ t, P (t + 1) =ᵐ[S.μ] (a • P t + b • i t) + d t := fun t =>
+    hall.mono fun ω h => by
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      exact piB_rec hσκ h.1 h.2 t
+  have hPi : ∀ t, Integrable (P t) S.μ := fun t => S.integrable_of_bdd (had t) (hbd t)
+  have hii : ∀ t, Integrable (i t) S.μ := fun t => S.integrable_of_bdd (hia t) (hi t)
+  have hdi : ∀ t, Integrable (d t) S.μ := fun t => S.integrable_of_bdd (hdm t) (hd t)
+  have hE : ∀ t, S.E t (P (t + 1)) =ᵐ[S.μ] a • P t + b • i t := by
+    intro t
+    have hX : StronglyMeasurable[S.𝓕 t] (a • P t + b • i t) :=
+      ((had t).const_smul a).add ((hia t).const_smul b)
+    have hXi : Integrable (a • P t + b • i t) S.μ := ((hPi t).smul a).add ((hii t).smul b)
+    filter_upwards [S.E_congr (hrec t) t, S.E_add hXi (hdi t) t, hd0 t] with ω e1 e2 e3
+    rw [e1, e2, Pi.add_apply, S.E_of_stronglyMeasurable hX hXi, e3, Pi.zero_apply, add_zero]
+  refine ⟨⟨had, fun t => ?_⟩, fun t => ?_, hbd⟩
+  · filter_upwards [hE t] with ω e
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+    rw [e, ha, hb]
+    field_simp
+    ring
+  · filter_upwards [hE t, hrec t] with ω e1 e2
+    simp only [err, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 ⊢
+    rw [e1, e2]
+    ring
+
+/-- **Uniqueness given the errors** (Cochrane (2023), eq. (17.8), p. 400): every equilibrium of
+(17.7) on ℤ with essentially bounded inflation and rates, whose expectational errors are `d` a.s.,
+equals the backward moving average `piB` a.s. at every date. -/
+theorem eq_piB {σ κ Mπ Mi : ℝ} (hσκ : 0 < σ * κ) {i π d : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ Mi) (herr : ∀ t, err S π t =ᵐ[S.μ] d t) :
+    ∀ᵐ ω ∂S.μ, ∀ t, π t ω = piB σ κ i d t ω := by
+  filter_upwards [eq_17_8_ae S hσκ h hπ hi, ae_all_iff.2 herr] with ω e he t
+  have e1 := e (t - 1)
+  rw [sub_add_cancel] at e1
+  rw [e1, piB]
+  congr 1
+  refine tsum_congr fun j => ?_
+  rw [show t - 1 - (j : ℤ) = t - 1 - j from rfl, he]
+
+/-- Cochrane (2023), eq. (17.8), p. 400: two essentially bounded equilibria of (17.7) on ℤ with
+the same rates and the same expectational errors are almost surely equal at every date. -/
+theorem unique_of_err {σ κ Mπ Mπ' Mi : ℝ} (hσκ : 0 < σ * κ) {i π π' : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (h' : REModelZ S σ κ i π') (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hπ' : ∀ t, ∀ᵐ ω ∂S.μ, |π' t ω| ≤ Mπ') (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ Mi)
+    (herr : ∀ t, err S π' t =ᵐ[S.μ] err S π t) :
+    ∀ᵐ ω ∂S.μ, ∀ t, π' t ω = π t ω := by
+  filter_upwards [eq_piB S hσκ h hπ hi (fun t => EventuallyEq.rfl),
+    eq_piB S hσκ h' hπ' hi herr] with ω e e' t
+  rw [e, e']
+
+/-! ### The remote past -/
+
+/-- Cochrane (2023), eq. (17.8), p. 400 (the role of `t → −∞`): for every integrable `c` known at
+every date (the remote past), `π_t + aᵗ c` is again an equilibrium of (17.7) on ℤ with the same
+expectational errors. -/
+theorem remote_family {σ κ Mπ : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ} {c : Ω → ℝ}
+    (h : REModelZ S σ κ i π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hc : ∀ t, StronglyMeasurable[S.𝓕 t] c) (hci : Integrable c S.μ) :
+    REModelZ S σ κ i (fun t => π t + (1 / (1 + σ * κ)) ^ t • c) ∧
+      ∀ t, err S (fun t => π t + (1 / (1 + σ * κ)) ^ t • c) t =ᵐ[S.μ] err S π t := by
+  have h1 : 1 + σ * κ ≠ 0 := by linarith
+  have ha0 : 1 / (1 + σ * κ) ≠ 0 := by positivity
+  have hEc : ∀ t s : ℤ, S.E t ((1 / (1 + σ * κ)) ^ s • c) = (1 / (1 + σ * κ)) ^ s • c :=
+    fun t s => S.E_of_stronglyMeasurable ((hc t).const_smul _) (hci.smul _)
+  have hπi : ∀ t, Integrable (π t) S.μ := fun t => S.integrable_of_bdd (h.1 t) (hπ t)
+  refine ⟨⟨fun t => (h.1 t).add ((hc t).const_smul _), fun t => ?_⟩, fun t => ?_⟩
+  · filter_upwards [h.2 t, S.E_add (hπi (t + 1)) (hci.smul ((1 / (1 + σ * κ)) ^ (t + 1))) t]
+      with ω e1 e2
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 ⊢
+    rw [e2, hEc, Pi.smul_apply, smul_eq_mul, e1, zpow_add_one₀ ha0]
+    field_simp
+    ring
+  · filter_upwards [S.E_add (hπi (t + 1)) (hci.smul ((1 / (1 + σ * κ)) ^ (t + 1))) t]
+      with ω e
+    simp only [err, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+    rw [e, hEc, Pi.smul_apply, smul_eq_mul]
+    ring
+
+/-- Cochrane (2023), eq. (17.8): the remote-past family is bounded on the future, `t ≥ 0`, by
+`Mπ + C` when `|c| ≤ C`. -/
+theorem remote_family_bdd_future {σ κ Mπ C : ℝ} (hσκ : 0 < σ * κ) {π : ℤ → Ω → ℝ}
+    {c : Ω → ℝ} (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (hcC : ∀ᵐ ω ∂S.μ, |c ω| ≤ C) {t : ℤ}
+    (ht : 0 ≤ t) : ∀ᵐ ω ∂S.μ, |π t ω + (1 / (1 + σ * κ)) ^ t * c ω| ≤ Mπ + C := by
+  obtain ⟨ha0, ha1, -, -⟩ := StaticIS.coeff_17_7 hσκ
+  have hp : (1 / (1 + σ * κ)) ^ t ≤ 1 := by
+    lift t to ℕ using ht
+    rw [zpow_natCast]
+    exact pow_le_one₀ ha0.le ha1.le
+  filter_upwards [hπ t, hcC] with ω e1 e2
+  refine (abs_add_le _ _).trans (add_le_add e1 ?_)
+  rw [abs_mul, abs_of_pos (zpow_pos ha0 t)]
+  calc (1 / (1 + σ * κ)) ^ t * |c ω| ≤ 1 * |c ω| :=
+        mul_le_mul_of_nonneg_right hp (abs_nonneg _)
+    _ ≤ C := by rw [one_mul]; exact e2
+
+/-- Cochrane (2023), eq. (17.8), p. 400 (**the bound at `−∞` pins the equilibrium down**): for
+essentially bounded `π`, the remote-past family `π_t + aᵗ c` is essentially bounded on all of ℤ
+iff `c = 0` a.s. -/
+theorem remote_family_bdd_iff {σ κ Mπ : ℝ} (hσκ : 0 < σ * κ) {π : ℤ → Ω → ℝ} {c : Ω → ℝ}
+    (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) :
+    (∃ M, ∀ t, ∀ᵐ ω ∂S.μ, |π t ω + (1 / (1 + σ * κ)) ^ t * c ω| ≤ M) ↔ c =ᵐ[S.μ] 0 := by
+  constructor
+  · rintro ⟨M, hM⟩
+    have hk : ∀ n : ℕ, ∀ᵐ ω ∂S.μ, (1 + σ * κ) ^ n * |c ω| ≤ M + Mπ := by
+      intro n
+      filter_upwards [hM (-(n : ℤ)), hπ (-(n : ℤ))] with ω e1 e2
+      have hz : (1 / (1 + σ * κ)) ^ (-(n : ℤ)) = (1 + σ * κ) ^ n := by
+        rw [one_div, inv_zpow, zpow_neg, inv_inv, zpow_natCast]
+      rw [hz] at e1
+      have h3 : |(1 + σ * κ) ^ n * c ω| ≤ M + Mπ := by
+        have := abs_sub (π (-(n : ℤ)) ω + (1 + σ * κ) ^ n * c ω) (π (-(n : ℤ)) ω)
+        rw [add_sub_cancel_left] at this
+        linarith
+      rwa [abs_mul, abs_of_pos (by positivity)] at h3
+    filter_upwards [ae_all_iff.2 hk] with ω e
+    by_contra hne
+    have hc0 : 0 < |c ω| := abs_pos.mpr hne
+    obtain ⟨n, hn⟩ := pow_unbounded_of_one_lt ((M + Mπ) / |c ω| + 1) (by linarith :
+      1 < 1 + σ * κ)
+    have := e n
+    rw [← le_div_iff₀ hc0] at this
+    linarith
+  · intro hc
+    obtain ⟨Mπ', hM⟩ : ∃ M, ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ M := ⟨Mπ, hπ⟩
+    refine ⟨Mπ', fun t => ?_⟩
+    filter_upwards [hM t, hc] with ω e1 e2
+    rw [e2, Pi.zero_apply, mul_zero, add_zero]
+    exact e1
+
+/-- Cochrane (2023), eq. (17.8), p. 400: a constant is known at every date, so `π_t + aᵗ` is
+always a second equilibrium with the same errors, bounded on `t ≥ 0` but not on ℤ: without the
+bound at `−∞`, uniqueness fails under any filtration. -/
+theorem remote_one_solves {σ κ Mπ : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) :
+    REModelZ S σ κ i (fun t => π t + (1 / (1 + σ * κ)) ^ t • fun _ => (1 : ℝ)) ∧
+      (∀ t, 0 ≤ t → ∀ᵐ ω ∂S.μ, |π t ω + (1 / (1 + σ * κ)) ^ t * 1| ≤ Mπ + 1) ∧
+      ¬ ∃ M, ∀ t, ∀ᵐ ω ∂S.μ, |π t ω + (1 / (1 + σ * κ)) ^ t * 1| ≤ M := by
+  refine ⟨(remote_family S hσκ h hπ (fun t => stronglyMeasurable_const)
+    (integrable_const 1)).1, fun t ht => remote_family_bdd_future S hσκ hπ
+    (c := fun _ => 1) (Eventually.of_forall fun _ => by simp) ht, fun hb => ?_⟩
+  have := (remote_family_bdd_iff S hσκ (c := fun _ => (1 : ℝ)) hπ).mp hb
+  have h0 : (S.μ : Measure Ω) Set.univ = 0 := by
+    have : ∀ᵐ ω ∂S.μ, False := this.mono fun ω h => by simp at h
+    rw [ae_iff] at this
+    simp at this
+  simp at h0
+
+/-- Cochrane (2023), eq. (17.8), p. 400 (**the remote past is all that is left**): if `π` and
+`π'` are equilibria of (17.7) on ℤ with the same expectational errors (no bound assumed on `π'`,
+only integrability), then `π'_t − π_t = aᵗ (π'_0 − π_0)` a.s. at every date, and
+`π'_0 − π_0` is known at every date, however early: `E_t (π'_0 − π_0) = π'_0 − π_0` a.s. -/
+theorem remote_converse {σ κ : ℝ} (hσκ : 0 < σ * κ) {i π π' : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (h' : REModelZ S σ κ i π') (hπi : ∀ t, Integrable (π t) S.μ)
+    (hπi' : ∀ t, Integrable (π' t) S.μ) (herr : ∀ t, err S π' t =ᵐ[S.μ] err S π t) :
+    (∀ t, π' t - π t =ᵐ[S.μ] (1 / (1 + σ * κ)) ^ t • (π' 0 - π 0)) ∧
+      ∀ t, S.E t (π' 0 - π 0) =ᵐ[S.μ] π' 0 - π 0 := by
+  have ha0 : 1 / (1 + σ * κ) ≠ 0 := (StaticIS.coeff_17_7 hσκ).1.ne'
+  set a := 1 / (1 + σ * κ) with ha
+  set D : ℤ → Ω → ℝ := fun t => π' t - π t with hD
+  have hstep : ∀ t, D (t + 1) =ᵐ[S.μ] a • D t := by
+    intro t
+    filter_upwards [rec_ae S hσκ h t, rec_ae S hσκ h' t, herr t] with ω e1 e2 e3
+    simp only [hD, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    rw [e1, e2, e3]
+    ring
+  have hall : ∀ t, D t =ᵐ[S.μ] a ^ t • D 0 := by
+    intro t
+    induction t using Int.induction_on with
+    | zero => simp
+    | succ n ih =>
+      filter_upwards [hstep n, ih] with ω e1 e2
+      simp only [Pi.smul_apply, smul_eq_mul] at e1 e2 ⊢
+      rw [e1, e2, zpow_add_one₀ ha0]
+      ring
+    | pred n ih =>
+      filter_upwards [hstep (-(n : ℤ) - 1), ih] with ω e1 e2
+      simp only [Pi.smul_apply, smul_eq_mul, sub_add_cancel] at e1 e2 ⊢
+      rw [e2] at e1
+      rw [zpow_sub_one₀ ha0]
+      field_simp
+      linarith
+  refine ⟨hall, fun t => ?_⟩
+  have hDm : StronglyMeasurable[S.𝓕 t] (D t) := (h'.1 t).sub (h.1 t)
+  have hDi : Integrable (D t) S.μ := (hπi' t).sub (hπi t)
+  have h0 : D 0 =ᵐ[S.μ] a ^ (-t) • D t := by
+    filter_upwards [hall t] with ω e
+    simp only [Pi.smul_apply, smul_eq_mul] at e ⊢
+    rw [e, ← mul_assoc, ← zpow_add₀ ha0, neg_add_cancel, zpow_zero, one_mul]
+  have hX : StronglyMeasurable[S.𝓕 t] (a ^ (-t) • D t) := hDm.const_smul _
+  filter_upwards [S.E_congr h0 t, h0] with ω e1 e2
+  change S.E t (D 0) ω = D 0 ω
+  rw [e1, S.E_of_stronglyMeasurable hX (hDi.smul _), e2]
+
+/-- Cochrane (2023), eq. (17.8), p. 400, and the ℕ-indexed finite-start form (`StaticIS.reFamily`):
+almost surely, from every start `t − k`,
+`π_t = aᵏ π_{t−k} + ∑_{j<k} aʲ (b i_{t−1−j} + δ_{t−j})`. -/
+theorem finite_start_ae {σ κ : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) :
+    ∀ᵐ ω ∂S.μ, ∀ t (k : ℕ), π t ω = (1 / (1 + σ * κ)) ^ k * π (t - k) ω +
+      ∑ j ∈ Finset.range k, (1 / (1 + σ * κ)) ^ j *
+        (σ * κ / (1 + σ * κ) * i (t - 1 - j) ω + err S π (t - 1 - j) ω) := by
+  filter_upwards [ae_all_iff.2 (rec_ae S hσκ h)] with ω hr t k
+  have e := SharedTools.backward_iterate (a := 1 / (1 + σ * κ)) (x := fun s => π s ω)
+    (w := fun s => σ * κ / (1 + σ * κ) * i (s - 1) ω + err S π (s - 1) ω)
+    (fun s => by simp only [add_sub_cancel_right]; rw [hr s]; ring) t k
+  rw [e]
+  congr 1
+  refine Finset.sum_congr rfl fun j _ => ?_
+  rw [show t - (j : ℤ) - 1 = t - 1 - j by ring]
+
+/-- Cochrane (2023), eq. (17.8), p. 400: for essentially bounded inflation, the initial-condition
+term `aᵏ π_{t−k}` of the finite-start form vanishes almost surely as the start recedes,
+`k → ∞`. -/
+theorem tendsto_initial_term {σ κ Mπ : ℝ} (hσκ : 0 < σ * κ) {π : ℤ → Ω → ℝ}
+    (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) :
+    ∀ᵐ ω ∂S.μ, ∀ t, Tendsto (fun k : ℕ => (1 / (1 + σ * κ)) ^ k * π (t - k) ω) atTop (𝓝 0) := by
+  obtain ⟨ha0, ha1, -, -⟩ := StaticIS.coeff_17_7 hσκ
+  filter_upwards [ae_all_iff.2 hπ] with ω hb t
+  refine squeeze_zero_norm (a := fun k : ℕ => (1 / (1 + σ * κ)) ^ k * Mπ) (fun k => ?_) ?_
+  · rw [Real.norm_eq_abs, abs_mul, abs_of_pos (pow_pos ha0 k)]
+    exact mul_le_mul_of_nonneg_left (hb _) (pow_nonneg ha0.le k)
+  · simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one ha0.le ha1).mul_const Mπ
+
+/-! ### The inverse of (17.14) -/
+
+/-- **The corrected inverse of (17.14) under uncertainty** (Cochrane (2023), eq. (17.14), p. 405;
+survey error E8): for an equilibrium of (17.7) on ℤ with essentially bounded inflation and rates,
+almost surely at every date
+`E_t π_{t+1} = b ∑ aʲ i_{t−j} + ∑ a^{j+1} δ_{t−j}`, `δ_{t−j} = π_{t−j} − E_{t−j−1} π_{t−j}`.
+Almost-sure version of `PersistenceFreedom.corrected_inverse`. -/
+theorem corrected_inverse_ae {σ κ Mπ Mi : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ Mi) :
+    ∀ᵐ ω ∂S.μ, ∀ t, S.E t (π (t + 1)) ω =
+      σ * κ / (1 + σ * κ) * ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - j) ω +
+        ∑' j : ℕ, (1 / (1 + σ * κ)) ^ (j + 1) * err S π (t - j - 1) ω := by
+  filter_upwards [ae_all_iff.2 (E_next S hσκ h), ae_all_iff.2 hπ, ae_all_iff.2 hi,
+    ae_all_iff.2 fun t => S.abs_E_le (hπ (t + 1)) t] with ω hE hbπ hbi hbe t
+  have e := PersistenceFreedom.corrected_inverse hσκ (e := fun s => S.E s (π (s + 1)) ω)
+    (π := fun s => π s ω) (i := fun s => i s ω) hbe hbπ hbi
+    (fun s => by
+      have := hE s
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at this
+      exact this) t
+  rw [e]
+  congr 1
+  refine tsum_congr fun j => ?_
+  simp only [err, Pi.sub_apply, sub_add_cancel]
+
+/-- Cochrane (2023), eq. (17.14), p. 405: the expectational-error sums
+`S_t = ∑ a^{j+1} δ_{t−j}` satisfy `S_{t+1} = a δ_{t+1} + a S_t` wherever the errors are bounded. -/
+theorem errSum_shift {a M : ℝ} (ha : |a| < 1) {e : ℤ → ℝ} (he : ∀ s, |e s| ≤ M) (t : ℤ) :
+    ∑' j : ℕ, a ^ (j + 1) * e (t + 1 - j - 1) =
+      a * e t + a * ∑' j : ℕ, a ^ (j + 1) * e (t - j - 1) := by
+  have h := backward_shift ha (f := fun s => a * e s) (M := |a| * M)
+    (fun s => by rw [abs_mul]; exact mul_le_mul_of_nonneg_left (he s) (abs_nonneg a)) t
+  have l : ∀ u : ℤ, ∑' j : ℕ, a ^ (j + 1) * e (u - j) = ∑' j : ℕ, a ^ j * (a * e (u - j)) :=
+    fun u => tsum_congr fun j => by ring
+  have l2 : ∑' j : ℕ, a ^ (j + 1) * e (t + 1 - j - 1) = ∑' j : ℕ, a ^ (j + 1) * e (t - j) :=
+    tsum_congr fun j => by rw [show t + 1 - (j : ℤ) - 1 = t - j by ring]
+  have l3 : ∑' j : ℕ, a ^ (j + 1) * e (t - j - 1) = ∑' j : ℕ, a ^ j * (a * e (t - 1 - j)) :=
+    tsum_congr fun j => by rw [show t - (j : ℤ) - 1 = t - 1 - j by ring]; ring
+  rw [l2, l t, h, l3]
+
+/-- **The printed inverse of (17.14) under uncertainty** (Cochrane (2023), eq. (17.14), p. 405):
+for an equilibrium of (17.7) on ℤ with essentially bounded inflation and rates, the printed
+inverse `E_t π_{t+1} = b ∑ aʲ i_{t−j}` holds almost surely at every date iff every expectational
+error is zero almost surely.
+Strengthens `PersistenceFreedom.printed_inverse_of_no_surprise`. -/
+theorem printed_inverse_iff {σ κ Mπ Mi : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ Mi) :
+    (∀ᵐ ω ∂S.μ, ∀ t, S.E t (π (t + 1)) ω =
+      σ * κ / (1 + σ * κ) * ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - j) ω) ↔
+      ∀ t, err S π t =ᵐ[S.μ] 0 := by
+  obtain ⟨ha0, ha1, -, -⟩ := StaticIS.coeff_17_7 hσκ
+  have haa : |1 / (1 + σ * κ)| < 1 := by rw [abs_of_pos ha0]; exact ha1
+  constructor
+  · intro hp
+    have hz : ∀ᵐ ω ∂S.μ, ∀ t,
+        ∑' j : ℕ, (1 / (1 + σ * κ)) ^ (j + 1) * err S π (t - j - 1) ω = 0 := by
+      filter_upwards [hp, corrected_inverse_ae S hσκ h hπ hi] with ω e1 e2 t
+      have := (e1 t).symm.trans (e2 t)
+      linarith
+    have hall : ∀ᵐ ω ∂S.μ, ∀ t, err S π t ω = 0 := by
+      filter_upwards [hz, ae_all_iff.2 (err_bdd S hπ)] with ω hz hb t
+      have e := errSum_shift haa (e := fun s => err S π s ω) hb t
+      have z1 := hz (t + 1)
+      rw [hz t, mul_zero, add_zero] at e
+      rw [z1] at e
+      have := mul_eq_zero.mp e.symm
+      rcases this with h0 | h0
+      · exact absurd h0 ha0.ne'
+      · exact h0
+    exact fun t => hall.mono fun ω h => h t
+  · intro herr
+    filter_upwards [corrected_inverse_ae S hσκ h hπ hi, ae_all_iff.2 herr] with ω e he t
+    rw [e t]
+    have : ∀ j : ℕ, (1 / (1 + σ * κ)) ^ (j + 1) * err S π (t - j - 1) ω = 0 := fun j => by
+      rw [he, Pi.zero_apply, mul_zero]
+    rw [tsum_congr this, tsum_zero, add_zero]
+
+/-- Cochrane (2023), eq. (17.14), p. 405 (survey error E8, under uncertainty): if some
+expectational error is nonzero with positive probability, the printed inverse fails with positive
+probability at some date.
+Almost-sure version of `PersistenceFreedom.printed_inverse_false`. -/
+theorem printed_inverse_fails {σ κ Mπ Mi : ℝ} (hσκ : 0 < σ * κ) {i π : ℤ → Ω → ℝ}
+    (h : REModelZ S σ κ i π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ Mi) {s : ℤ} (hs : ¬ err S π s =ᵐ[S.μ] 0) :
+    ¬ ∀ᵐ ω ∂S.μ, ∀ t, S.E t (π (t + 1)) ω =
+      σ * κ / (1 + σ * κ) * ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - j) ω :=
+  fun hp => hs ((printed_inverse_iff S hσκ h hπ hi).mp hp s)
+
+/-! ### The abstract ℤ-indexed system -/
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (17.7), p. 399, for an abstract ℤ-indexed expectation system:
+`π` adapted and `π_t = −σκ i_t + (1 + σκ) E_t π_{t+1}` state by state at every `t ∈ ℤ`. -/
+def REModelZA (𝔼 : ZExpectationSystem Ω) (σ κ : ℝ) (i π : ℤ → Ω → ℝ) : Prop :=
+  𝔼.Adapted π ∧ ∀ t ω, π t ω = -(σ * κ) * i t ω + (1 + σ * κ) * 𝔼.E t (π (t + 1)) ω
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (17.7): an equilibrium on ℤ restricts, from every date `s`, to an
+equilibrium `StaticIS.REModel` of the restricted core system — so the ℕ-indexed results of
+StaticIS apply to the dates `t ≥ s`. -/
+theorem reModelZA_restrict {𝔼 : ZExpectationSystem Ω} {σ κ : ℝ} {i π : ℤ → Ω → ℝ}
+    (h : REModelZA 𝔼 σ κ i π) (s : ℤ) :
+    StaticIS.REModel (𝔼.restrict s) σ κ (fun n => i (s + n)) (fun n => π (s + n)) := by
+  refine ⟨𝔼.restrict_adapted h.1 s, fun n ω => ?_⟩
+  have e : s + ((n + 1 : ℕ) : ℤ) = s + n + 1 := by push_cast; ring
+  change π (s + n) ω = -(σ * κ) * i (s + n) ω + (1 + σ * κ) * 𝔼.E (s + n) (π (s + ↑(n + 1))) ω
+  rw [e]
+  exact h.2 (s + n) ω
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eq. (17.8), p. 400, for an abstract ℤ-indexed system: every bounded
+equilibrium is, state by state, `π_{t+1} = b ∑ aʲ i_{t−j} + ∑ aʲ δ_{t+1−j}` with
+`δ_{s+1} = π_{s+1} − E_s π_{s+1}`.
+ℤ-indexed version of `StaticIS.eq_17_8`. -/
+theorem eq_17_8_abstract {𝔼 : ZExpectationSystem Ω} {σ κ Mπ Mi : ℝ} (hσκ : 0 < σ * κ)
+    {i π : ℤ → Ω → ℝ} (h : REModelZA 𝔼 σ κ i π) (hπ : ∀ t ω, |π t ω| ≤ Mπ)
+    (hi : ∀ t ω, |i t ω| ≤ Mi) (t : ℤ) (ω : Ω) :
+    π (t + 1) ω = σ * κ / (1 + σ * κ) * ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j * i (t - j) ω +
+      ∑' j : ℕ, (1 / (1 + σ * κ)) ^ j *
+        (π (t - j + 1) ω - 𝔼.E (t - j) (π (t - j + 1)) ω) := by
+  have h1 : 1 + σ * κ ≠ 0 := by linarith
+  have hE : ∀ s, |𝔼.E s (π (s + 1)) ω| ≤ Mπ := fun s => 𝔼.abs_E_le (hπ (s + 1)) s ω
+  have e := StaticIS.eq_17_8 hσκ (π := fun s => π s ω) (i := fun s => i s ω)
+    (δ := fun s => π s ω - 𝔼.E (s - 1) (π s) ω) (Mδ := Mπ + Mπ) (hπ · ω) (hi · ω)
+    (fun s => by
+      refine (abs_sub _ _).trans (add_le_add (hπ s ω) ?_)
+      have := hE (s - 1)
+      rwa [sub_add_cancel] at this)
+    (fun s => by
+      simp only [add_sub_cancel_right]
+      have := h.2 s ω
+      field_simp
+      linarith) t
+  rw [e]
+  congr 1
+  refine tsum_congr fun j => ?_
+  rw [show t + 1 - (j : ℤ) = t - j + 1 by ring, add_sub_cancel_right]
+
+end Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The full model on ℤ under uncertainty: bounded equilibria and the anticipated rise
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 17, §17.4.1, eqs.
+(17.15)–(17.18), pp. 407–409, Figures 17.5–17.6, with eq. (5.5), p. 119.
+
+FullModel and FullModelTidy proved, under perfect foresight on ℤ, that (17.18) has exactly one
+bounded solution for every bounded rate path (`FullModelTidy.secondZ_existsUnique`), the
+anticipated rise of Figure 17.5 being `FullModel.zPath`. Here the model (17.15)–(17.17) holds
+almost surely at every date `t ∈ ℤ` on a probability space with a ℤ-indexed filtration
+(`ModelZM`; TidyR6ZExpectations).
+
+## The link with the ℕ-indexed news form
+
+`modelZM_restrict`: an equilibrium on ℤ restricted to the dates `t ≥ s` is an equilibrium
+`TidyR5StochasticPathsMeasure.ModelM` of the restricted system; hence (`news_path_Z`) its news
+about the future is a perfect-foresight path, and (`restrict_eq_piM`) from date `s` on it is the
+ℕ-indexed equilibrium `TidyR5InnovEqmMeasure.piM` started at `π_s` with its own innovations.
+For the abstract ℤ-indexed system, `ModelZA` restricts to `FullModel.Model` (`modelZA_restrict`).
+
+## Bounded equilibria on ℤ: existence and a.s. uniqueness given the innovations
+
+With `F_t = E_t ∑ λ₂ᵏ i_{t+k}` (`TidyR6ZExpectations.ZMeasExpectationSystem.FZ`) and
+`δ_{t+1} = π_{t+1} − E_t π_{t+1}` (`errZ`):
+
+* `factoredZ`: `λ₁ E_t π_{t+1} = π_t + σκ F_t` a.s. at every date (obtained from the ℕ result
+  through the restriction); `recZ`: `π_{t+1} = λ₁⁻¹(π_t + σκF_t) + δ_{t+1}`.
+* **`eq_piZM`** (uniqueness): every essentially bounded equilibrium is almost surely, at every date,
+  `π_t = ∑_{j≥0} λ₁^{−j}(λ₁⁻¹σκ F_{t−1−j} + δ_{t−j})` (`piZM`) with its own innovations;
+  the stable root is solved backward over the infinite past, which is where the bound as
+  `t → −∞` is used.
+* **`piZM_equilibrium`** (existence): for every essentially bounded adapted rate process and every
+  essentially bounded martingale difference sequence `d`, `piZM` is an adapted, essentially
+  bounded equilibrium (with output and the real rate) whose innovations are `d`.
+* `eqm_unique_given_innov`: two essentially bounded equilibria with the same rates and the same
+  innovations agree a.s. in inflation, output and the real rate at every date.
+
+So the bounded equilibria on ℤ are exactly the bounded martingale difference sequences, as on ℕ
+(Figure 17.6) — but on ℤ there is no initial inflation to choose.
+
+## Deterministic rate paths and Figure 17.5 (`zPath`)
+
+For a bounded deterministic rate path `ī`:
+
+* `det_representation`: every bounded equilibrium is
+  `π_t = piZ(ī)_t + ∑ λ₁^{−j} δ_{t−j}` a.s. (`FullModelTidy.piZ` the perfect-foresight path);
+  `det_eq_piZ_iff`: it is the perfect-foresight path a.s. iff all its innovations vanish;
+  `pf_is_equilibrium`: the perfect-foresight path is an equilibrium under every filtration;
+  `det_expected`: `E_s π_{s+j} = piZ_{s+j} + λ₁^{−j}(π_s − piZ_s)`.
+* **`det_unique_iff_noNews`**: the perfect-foresight path is the only bounded equilibrium (a.s.)
+  iff the filtration carries no news (`NoNews`: every bounded variable known at `t + 1` is a.s.
+  its date-`t` forecast). The ℤ statement `FullModel.zPath_existsUnique` therefore **fails under
+  genuine uncertainty**: on the coin space (`coinSystem`, a fair coin revealed at date 1)
+  there is a second bounded equilibrium (`zPath_not_unique_coin`). The corrected statements are
+  `zPath_representation` (every bounded equilibrium is `zPath + ∑ λ₁^{−j} δ_{t−j}`),
+  `zPath_iff_no_innov`, `zPath_is_equilibrium` and `zPath_unique_iff_noNews`.
+-/
+
+namespace Cochrane.KeynesianStickyPrices.TidyR6ZFullModel
+
+open MeasureTheory Filter Topology FullModel TidyR6ZExpectations ZMeasExpectationSystem
+open TidyR5ExpectationsMeasure TidyR5StochasticPathsMeasure TidyR5InnovEqmMeasure
+
+variable {Ω : Type*} [MeasurableSpace Ω] (S : ZMeasExpectationSystem Ω)
+
+/-! ### The model on ℤ and its restrictions -/
+
+/-- Cochrane (2023), eqs. (17.15)–(17.17), p. 407, on ℤ under uncertainty, without disturbances:
+`x_t = E_t x_{t+1} − σ r_t`, `i_t = r_t + E_t π_{t+1}`, `π_t = β E_t π_{t+1} + κ x_t` almost
+surely at every date `t ∈ ℤ`, all variables integrable.
+ℤ-indexed version of `TidyR5StochasticPathsMeasure.ModelM`. -/
+def ModelZM (σ β κ : ℝ) (i r x π : ℤ → Ω → ℝ) : Prop :=
+  (∀ t, Integrable (i t) S.μ ∧ Integrable (r t) S.μ ∧ Integrable (x t) S.μ ∧
+    Integrable (π t) S.μ) ∧
+  ∀ t, x t =ᵐ[S.μ] S.E t (x (t + 1)) - σ • r t ∧ i t =ᵐ[S.μ] r t + S.E t (π (t + 1)) ∧
+    π t =ᵐ[S.μ] β • S.E t (π (t + 1)) + κ • x t
+
+/-- Cochrane (2023), §17.4, p. 409: the innovation `δ_{t+1} = π_{t+1} − E_t π_{t+1}`. -/
+noncomputable def errZ (π : ℤ → Ω → ℝ) (t : ℤ) : Ω → ℝ := π (t + 1) - S.E t (π (t + 1))
+
+/-- Cochrane (2023), §17.4, p. 409: the innovations of an essentially bounded process are
+essentially bounded by `2Mπ`.
+As `TidyR5StochasticPaths.abs_innov_le` and `TidyR6ZStaticIS.err_bdd`. -/
+theorem errZ_bdd {Mπ : ℝ} {π : ℤ → Ω → ℝ} (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (t : ℤ) :
+    ∀ᵐ ω ∂S.μ, |errZ S π t ω| ≤ Mπ + Mπ := by
+  filter_upwards [hπ (t + 1), S.abs_E_le (hπ (t + 1)) t] with ω e1 e2
+  simp only [errZ, Pi.sub_apply]
+  exact (abs_sub _ _).trans (add_le_add e1 e2)
+
+/-- Cochrane (2023), §17.4, pp. 407–410: an equilibrium on ℤ restricted to the dates `t ≥ s` is an
+equilibrium of the ℕ-indexed restricted system (`TidyR5StochasticPathsMeasure.ModelM`). -/
+theorem modelZM_restrict {σ β κ : ℝ} {i r x π : ℤ → Ω → ℝ} (h : ModelZM S σ β κ i r x π)
+    (s : ℤ) :
+    ModelM (S.restrict s) σ β κ (fun n => i (s + n)) (fun n => r (s + n))
+      (fun n => x (s + n)) (fun n => π (s + n)) := by
+  refine ⟨fun n => h.1 (s + n), fun n => ?_⟩
+  have e : s + ((n + 1 : ℕ) : ℤ) = s + n + 1 := by push_cast; ring
+  simp only [restrict_E, restrict_μ, e]
+  exact h.2 (s + n)
+
+/-- Cochrane (2023), Figs. 17.5–17.6 as impulse responses, on ℤ: almost surely the date-`(s+1)`
+news about the whole future is the perfect-foresight path for the rate news started at the
+unexpected inflation (TidyR5StochasticPathsMeasure.news_path_ae through the restriction). -/
+theorem news_path_Z {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i r x π : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ i r x π) (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M)
+    (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (s : ℤ) :
+    ∀ᵐ ω ∂S.μ, (fun j : ℕ => S.innov s (π (s + 1 + j)) ω) =
+      path σ β κ (fun j : ℕ => S.innov s (i (s + 1 + j)) ω) (S.innov s (π (s + 1)) ω) := by
+  have hn := news_path_ae (S.restrict s) ha hβ (modelZM_restrict S h s)
+    (fun n => hi (s + n)) (fun n => hπ (s + n)) 0
+  filter_upwards [hn] with ω e
+  have e1 := e.1
+  simp only [MeasExpectationSystem.innov, restrict_E, Pi.sub_apply, Nat.cast_zero, add_zero,
+    zero_add, Nat.cast_add, Nat.cast_one] at e1
+  simp only [ZMeasExpectationSystem.innov, Pi.sub_apply]
+  convert e1 using 3 <;> ring_nf
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), eqs. (17.15)–(17.17), p. 407, for an abstract ℤ-indexed expectation system
+(`TidyR6ZExpectations.ZExpectationSystem`), with disturbances `u_x`, `u_π`, state by state at
+every date `t ∈ ℤ`. -/
+def ModelZA (𝔼 : ZExpectationSystem Ω) (σ β κ : ℝ) (ux uπ i r x π : ℤ → Ω → ℝ) : Prop :=
+  ∀ t, x t = 𝔼.E t (x (t + 1)) - σ • r t + ux t ∧ i t = r t + 𝔼.E t (π (t + 1)) ∧
+    π t = β • 𝔼.E t (π (t + 1)) + κ • x t + uπ t
+
+omit [MeasurableSpace Ω] in
+/-- Cochrane (2023), §17.4, pp. 407–410: an equilibrium of an abstract ℤ-indexed system restricts,
+from every date `s`, to an equilibrium `FullModel.Model` of the restricted core system, so the
+ℕ-indexed expected-path and news results of TidyR5StochasticPaths apply to the dates `t ≥ s`. -/
+theorem modelZA_restrict {𝔼 : ZExpectationSystem Ω} {σ β κ : ℝ} {ux uπ i r x π : ℤ → Ω → ℝ}
+    (h : ModelZA 𝔼 σ β κ ux uπ i r x π) (s : ℤ) :
+    Model (𝔼.restrict s) σ β κ (fun n => ux (s + n)) (fun n => uπ (s + n))
+      (fun n => i (s + n)) (fun n => r (s + n)) (fun n => x (s + n)) (fun n => π (s + n)) := by
+  have e : ∀ n : ℕ, s + ((n + 1 : ℕ) : ℤ) = s + n + 1 := fun n => by push_cast; ring
+  refine ⟨fun n => ?_, fun n => ?_, fun n => ?_⟩ <;>
+    simp only [ZExpectationSystem.restrict_E, e]
+  · exact (h (s + n)).1
+  · exact (h (s + n)).2.1
+  · exact (h (s + n)).2.2
+
+/-! ### The factored form -/
+
+/-- Cochrane (2023), eq. (17.18), p. 408, and A1 §1.7, on ℤ: for essentially bounded adapted rates
+and essentially bounded inflation, every equilibrium satisfies `λ₁ E_t π_{t+1} = π_t + σκ F_t`
+a.s. at every date.
+ℤ-indexed version of `TidyR5InnovEqmMeasure.factoredM_of_eq1718`. -/
+theorem factoredZ {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i r x π : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ i r x π) (hia : StronglyAdapted S.𝓕 i)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (t : ℤ) :
+    lam1 σ β κ • S.E t (π (t + 1)) =ᵐ[S.μ] π t + (σ * κ) • S.FZ (lam2 σ β κ) i t := by
+  have hR := modelZM_restrict S h t
+  have hf := factoredM_of_eq1718 (S.restrict t) ha hβ (S.restrict_adapted hia t)
+    (fun n => hi (t + n)) (fun n => (h.1 (t + n)).2.2.2) (fun n => hπ (t + n))
+    (eq1718_of_modelM (S.restrict t) hR) 0
+  have e := S.FZ_eq_restrict (lam2 σ β κ) i t 0
+  rw [Nat.cast_zero, add_zero] at e
+  rw [e]
+  simpa only [restrict_E, restrict_μ, Nat.cast_zero, add_zero, zero_add, Nat.cast_one] using hf
+
+/-- Cochrane (2023), eq. (17.18), p. 408, on ℤ: the factored form a.s. at every date implies
+(17.18) a.s. at every date (adapted essentially bounded rates, integrable inflation).
+ℤ-indexed version of `TidyR5InnovEqmMeasure.eq1718_of_factoredM`. -/
+theorem eq1718Z_of_factored {σ β κ M : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i π : ℤ → Ω → ℝ}
+    (hia : StronglyAdapted S.𝓕 i) (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M)
+    (hπi : ∀ t, Integrable (π t) S.μ)
+    (h : ∀ t, lam1 σ β κ • S.E t (π (t + 1)) =ᵐ[S.μ] π t + (σ * κ) • S.FZ (lam2 σ β κ) i t)
+    (t : ℤ) :
+    (σ * κ) • i t =ᵐ[S.μ]
+      -β • S.E t (π (t + 2)) + (1 + β + σ * κ) • S.E t (π (t + 1)) - π t := by
+  have hF : FactoredM (S.restrict t) σ β κ (fun n => i (t + n)) (fun n => π (t + n)) := by
+    intro n
+    have e := S.FZ_eq_restrict (lam2 σ β κ) i t n
+    have e1 : t + ((n + 1 : ℕ) : ℤ) = t + n + 1 := by push_cast; ring
+    simp only [restrict_E, restrict_μ, e1, ← e]
+    exact h (t + n)
+  have h18 := eq1718_of_factoredM (S.restrict t) ha hβ (S.restrict_adapted hia t)
+    (fun n => hi (t + n)) (fun n => hπi (t + n)) hF 0
+  simpa only [restrict_E, restrict_μ, Nat.cast_zero, add_zero, zero_add, Nat.cast_ofNat,
+    Nat.cast_one] using h18
+
+/-- Cochrane (2023), §17.4.1, on ℤ: every equilibrium satisfies
+`π_{t+1} = λ₁⁻¹ π_t + λ₁⁻¹σκ F_t + δ_{t+1}` a.s. -/
+theorem recZ {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i r x π : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ i r x π) (hia : StronglyAdapted S.𝓕 i)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (t : ℤ) :
+    ∀ᵐ ω ∂S.μ, π (t + 1) ω = (lam1 σ β κ)⁻¹ * π t ω +
+      (lam1 σ β κ)⁻¹ * (σ * κ) * S.FZ (lam2 σ β κ) i t ω + errZ S π t ω := by
+  have hl0 : lam1 σ β κ ≠ 0 := (one_pos.trans (one_lt_lam1 ha hβ)).ne'
+  filter_upwards [factoredZ S ha hβ h hia hi hπ t] with ω e
+  simp only [errZ, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+  have : S.E t (π (t + 1)) ω = (lam1 σ β κ)⁻¹ * (π t ω + σ * κ * S.FZ (lam2 σ β κ) i t ω) := by
+    rw [← e]; field_simp
+  rw [this]
+  ring
+
+/-! ### Uniqueness given the innovations -/
+
+/-- Cochrane (2023), §17.4.1, eq. (5.5) on ℤ: inflation with rates `i` and innovations `d`
+(`d_t` the innovation of date `t + 1`), the stable root solved backward over the infinite past,
+`π_t = ∑_{j≥0} λ₁^{−j}(λ₁⁻¹σκ F_{t−1−j} + d_{t−1−j})`.
+Stochastic ℤ-indexed version of `FullModelTidy.piZ` and `TidyR5InnovEqmMeasure.piM`. -/
+noncomputable def piZM (σ β κ : ℝ) (i d : ℤ → Ω → ℝ) (t : ℤ) : Ω → ℝ := fun ω =>
+  ∑' j : ℕ, (lam1 σ β κ)⁻¹ ^ j *
+    ((lam1 σ β κ)⁻¹ * (σ * κ) * S.FZ (lam2 σ β κ) i (t - 1 - j) ω + d (t - 1 - j) ω)
+
+/-- Cochrane (2023), §17.4.1: the stable root is in `(0, 1)` as a coefficient, `|λ₁⁻¹| < 1`, and
+`|λ₂| < 1`.
+Restates `FullModel.one_lt_lam1` and `FullModel.lam2_lt_one`. -/
+theorem roots_abs {σ β κ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) :
+    |(lam1 σ β κ)⁻¹| < 1 ∧ |lam2 σ β κ| < 1 := by
+  have hl1 := one_lt_lam1 ha hβ
+  have hl0 : 0 < lam1 σ β κ := one_pos.trans hl1
+  refine ⟨?_, ?_⟩
+  · rw [abs_of_pos (inv_pos.mpr hl0)]; exact inv_lt_one_of_one_lt₀ hl1
+  · rw [abs_of_pos (lam2_pos ha hβ)]; exact lam2_lt_one ha hβ
+
+/-- **Uniqueness on ℤ given the innovations** (Cochrane (2023), §17.4.1, pp. 408–410): every
+equilibrium on ℤ with essentially bounded adapted rates and essentially bounded inflation, whose
+innovations are `d` a.s., is almost surely `piZM` at every date.
+ℤ-indexed version of `FullModelTidy.eq_piZ`. Compare `TidyR5InnovEqmMeasure.eq_piM`. -/
+theorem eq_piZM {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i r x π d : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ i r x π) (hia : StronglyAdapted S.𝓕 i)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hd : ∀ t, errZ S π t =ᵐ[S.μ] d t) :
+    ∀ᵐ ω ∂S.μ, ∀ t, π t ω = piZM S σ β κ i d t ω := by
+  obtain ⟨hl, hq⟩ := roots_abs ha hβ
+  set a := (lam1 σ β κ)⁻¹ with haa
+  set F := S.FZ (lam2 σ β κ) i with hFdef
+  filter_upwards [ae_all_iff.2 (recZ S ha hβ h hia hi hπ), ae_all_iff.2 hπ,
+    ae_all_iff.2 (S.FZ_bdd hq hi), ae_all_iff.2 (fun t => S.abs_E_le (hπ (t + 1)) t),
+    ae_all_iff.2 hπ |>.mono fun ω h' t => h' (t + 1), ae_all_iff.2 hd] with
+    ω hr hb hF hE hb1 hdd t
+  have hw : ∀ s, |a * (σ * κ) * F (s - 1) ω + errZ S π (s - 1) ω| ≤
+      |a * (σ * κ)| * (M / (1 - |lam2 σ β κ|)) + (Mπ + Mπ) := fun s => by
+    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+    · rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hF _) (abs_nonneg _)
+    · simp only [errZ, Pi.sub_apply]
+      refine (abs_sub _ _).trans (add_le_add (hb1 _) (hE _))
+  have e := SharedTools.eq_backward_series hl (x := fun s => π s ω)
+    (w := fun s => a * (σ * κ) * F (s - 1) ω + errZ S π (s - 1) ω) hb hw
+    (fun s => by simp only [add_sub_cancel_right]; rw [hr s]; ring) t
+  rw [e]
+  refine tsum_congr fun j => ?_
+  rw [show t - (j : ℤ) - 1 = t - 1 - j by ring, hdd]
+
+/-! ### Existence -/
+
+/-- Cochrane (2023), §17.4.1: `piZM` satisfies `π_{t+1} = λ₁⁻¹ π_t + λ₁⁻¹σκ F_t + d_t` wherever
+`F` and `d` are bounded. -/
+theorem piZM_rec {σ β κ KF Md : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i d : ℤ → Ω → ℝ} {ω : Ω}
+    (hF : ∀ s, |S.FZ (lam2 σ β κ) i s ω| ≤ KF) (hd : ∀ s, |d s ω| ≤ Md) (t : ℤ) :
+    piZM S σ β κ i d (t + 1) ω = (lam1 σ β κ)⁻¹ * piZM S σ β κ i d t ω +
+      (lam1 σ β κ)⁻¹ * (σ * κ) * S.FZ (lam2 σ β κ) i t ω + d t ω := by
+  obtain ⟨hl, -⟩ := roots_abs ha hβ
+  have hw : ∀ s, |(lam1 σ β κ)⁻¹ * (σ * κ) * S.FZ (lam2 σ β κ) i s ω + d s ω| ≤
+      |(lam1 σ β κ)⁻¹ * (σ * κ)| * KF + Md := fun s => by
+    refine (abs_add_le _ _).trans (add_le_add ?_ (hd s))
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hF _) (abs_nonneg _)
+  have e := TidyR6ZStaticIS.backward_shift hl
+    (f := fun s => (lam1 σ β κ)⁻¹ * (σ * κ) * S.FZ (lam2 σ β κ) i s ω + d s ω) hw t
+  simp only [piZM, add_sub_cancel_right]
+  rw [e]
+  ring
+
+/-- Cochrane (2023), §17.4.1: `piZM` is adapted when `d_t` is known at `t + 1`. -/
+theorem piZM_adapted (σ β κ : ℝ) {i d : ℤ → Ω → ℝ}
+    (hdm : ∀ t, StronglyMeasurable[S.𝓕 (t + 1)] (d t)) :
+    StronglyAdapted S.𝓕 (piZM S σ β κ i d) := by
+  intro t
+  have h1 : ∀ j : ℕ, StronglyMeasurable[S.𝓕 t] (fun ω => (lam1 σ β κ)⁻¹ ^ j *
+      ((lam1 σ β κ)⁻¹ * (σ * κ) * S.FZ (lam2 σ β κ) i (t - 1 - j) ω + d (t - 1 - j) ω)) :=
+    fun j => ((((S.FZ_adapted _ i (t - 1 - j)).mono (S.𝓕.mono (by omega))).const_mul _).add
+      ((hdm (t - 1 - j)).mono (S.𝓕.mono (by omega)))).const_mul _
+  let _ : MeasurableSpace Ω := S.𝓕 t
+  exact StronglyMeasurable.tsum h1
+
+/-- Cochrane (2023), §17.4.1: `piZM` is bounded wherever `F` and `d` are. -/
+theorem piZM_bound {σ β κ KF Md : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i d : ℤ → Ω → ℝ} {ω : Ω}
+    (hF : ∀ s, |S.FZ (lam2 σ β κ) i s ω| ≤ KF) (hd : ∀ s, |d s ω| ≤ Md) (t : ℤ) :
+    |piZM S σ β κ i d t ω| ≤
+      (|(lam1 σ β κ)⁻¹ * (σ * κ)| * KF + Md) / (1 - |(lam1 σ β κ)⁻¹|) := by
+  obtain ⟨hl, -⟩ := roots_abs ha hβ
+  exact TidyR5ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le hl fun j => by
+    refine (abs_add_le _ _).trans (add_le_add ?_ (hd _))
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hF _) (abs_nonneg _)
+
+/-- **Existence on ℤ under uncertainty** (Cochrane (2023), §17.4.1, Fig. 17.6, pp. 408–410): for
+`σκ > 0`, `β > 0`, essentially bounded adapted rates and every essentially bounded martingale
+difference sequence `d` (`d_t` known at `t + 1`, `E_t d_t = 0` a.s.), `piZM` is adapted,
+essentially bounded, has innovations `d`, satisfies the factored form and, with
+`r_t = i_t − E_t π_{t+1}` and `x_t = (π_t − β E_t π_{t+1})/κ`, is an equilibrium on ℤ.
+ℤ-indexed version of `TidyR5InnovEqmMeasure.piM_equilibrium`. -/
+theorem piZM_equilibrium {σ β κ M Md : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {i d : ℤ → Ω → ℝ}
+    (hia : StronglyAdapted S.𝓕 i) (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M)
+    (hdm : ∀ t, StronglyMeasurable[S.𝓕 (t + 1)] (d t)) (hd : ∀ t, ∀ᵐ ω ∂S.μ, |d t ω| ≤ Md)
+    (hd0 : ∀ t, S.E t (d t) =ᵐ[S.μ] 0) :
+    StronglyAdapted S.𝓕 (piZM S σ β κ i d) ∧
+      (∃ K, ∀ t, ∀ᵐ ω ∂S.μ, |piZM S σ β κ i d t ω| ≤ K) ∧
+      (∀ t, errZ S (piZM S σ β κ i d) t =ᵐ[S.μ] d t) ∧
+      (∀ t, lam1 σ β κ • S.E t (piZM S σ β κ i d (t + 1)) =ᵐ[S.μ]
+        piZM S σ β κ i d t + (σ * κ) • S.FZ (lam2 σ β κ) i t) ∧
+      ModelZM S σ β κ i (fun t => i t - S.E t (piZM S σ β κ i d (t + 1)))
+        (fun t => κ⁻¹ • (piZM S σ β κ i d t - β • S.E t (piZM S σ β κ i d (t + 1))))
+        (piZM S σ β κ i d) := by
+  have hκ : κ ≠ 0 := by rintro rfl; simp at ha
+  have hl0 : lam1 σ β κ ≠ 0 := (one_pos.trans (one_lt_lam1 ha hβ)).ne'
+  obtain ⟨hl, hq⟩ := roots_abs ha hβ
+  set P := piZM S σ β κ i d with hP
+  set F := S.FZ (lam2 σ β κ) i with hFdef
+  set a := (lam1 σ β κ)⁻¹ with haa
+  set KF := M / (1 - |lam2 σ β κ|)
+  have had := piZM_adapted S σ β κ (i := i) hdm
+  have hall : ∀ᵐ ω ∂S.μ, (∀ s, |F s ω| ≤ KF) ∧ ∀ s, |d s ω| ≤ Md :=
+    (ae_all_iff.2 (S.FZ_bdd hq hi)).and (ae_all_iff.2 hd)
+  set K := (|a * (σ * κ)| * KF + Md) / (1 - |a|)
+  have hbd : ∀ t, ∀ᵐ ω ∂S.μ, |P t ω| ≤ K := fun t =>
+    hall.mono fun ω h => piZM_bound S ha hβ h.1 h.2 t
+  have hrec : ∀ t, P (t + 1) =ᵐ[S.μ] (a • P t + (a * (σ * κ)) • F t) + d t := fun t =>
+    hall.mono fun ω h => by
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      exact piZM_rec S ha hβ h.1 h.2 t
+  have hPi : ∀ t, Integrable (P t) S.μ := fun t => S.integrable_of_bdd (had t) (hbd t)
+  have hdi : ∀ t, Integrable (d t) S.μ := fun t => S.integrable_of_bdd (hdm t) (hd t)
+  have hFi : ∀ t, Integrable (F t) S.μ := fun t => S.integrable_E t _
+  have hiI : ∀ t, Integrable (i t) S.μ := fun t => S.integrable_of_bdd (hia t) (hi t)
+  have hE : ∀ t, S.E t (P (t + 1)) =ᵐ[S.μ] a • P t + (a * (σ * κ)) • F t := by
+    intro t
+    have hX : StronglyMeasurable[S.𝓕 t] (a • P t + (a * (σ * κ)) • F t) :=
+      ((had t).const_smul a).add ((S.FZ_adapted _ i t).const_smul _)
+    have hXi : Integrable (a • P t + (a * (σ * κ)) • F t) S.μ :=
+      ((hPi t).smul a).add ((hFi t).smul _)
+    filter_upwards [S.E_congr (hrec t) t, S.E_add hXi (hdi t) t, hd0 t] with ω e1 e2 e3
+    rw [e1, e2, Pi.add_apply, S.E_of_stronglyMeasurable hX hXi, e3, Pi.zero_apply, add_zero]
+  have hfac : ∀ t, lam1 σ β κ • S.E t (P (t + 1)) =ᵐ[S.μ] P t + (σ * κ) • F t := by
+    intro t
+    filter_upwards [hE t] with ω e
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+    rw [e, haa]
+    field_simp
+  have hinn : ∀ t, errZ S P t =ᵐ[S.μ] d t := by
+    intro t
+    filter_upwards [hE t, hrec t] with ω e1 e2
+    simp only [errZ, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 ⊢
+    rw [e1, e2]
+    ring
+  have h18 := eq1718Z_of_factored S ha hβ hia hi hPi hfac
+  refine ⟨had, ⟨K, hbd⟩, hinn, hfac, fun t => ⟨hiI t, (hiI t).sub (S.integrable_E _ _),
+    ((hPi t).sub ((S.integrable_E _ _).smul _)).smul _, hPi t⟩, fun t => ⟨?_, ?_, ?_⟩⟩
+  · filter_upwards [h18 t, S.E_smul κ⁻¹ (P (t + 1) - β • S.E (t + 1) (P (t + 1 + 1))) t,
+      S.E_sub (hPi (t + 1)) ((S.integrable_E (t + 1) (P (t + 1 + 1))).smul β) t,
+      S.E_smul β (S.E (t + 1) (P (t + 1 + 1))) t,
+      S.E_tower (Int.le_add_one le_rfl) (P (t + 1 + 1))] with ω e a1 b c d'
+    have hk : κ⁻¹ * κ = 1 := inv_mul_cancel₀ hκ
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at e a1 b c ⊢
+    rw [a1, b, c, d']
+    rw [show t + 2 = t + 1 + 1 by ring] at e
+    linear_combination κ⁻¹ * e - (σ * i t ω - σ * S.E t (P (t + 1)) ω) * hk
+  · exact Eventually.of_forall fun ω => by simp
+  · refine Eventually.of_forall fun ω => ?_
+    have hk : κ * κ⁻¹ = 1 := mul_inv_cancel₀ hκ
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    linear_combination -(P t ω - β * S.E t (P (t + 1)) ω) * hk
+
+/-- Cochrane (2023), §17.4.1, p. 408: in equilibrium, output is determined by inflation,
+`x_t = (π_t − β E_t π_{t+1})/κ`, and the real rate by the rate and inflation, a.s. -/
+theorem x_r_of_model {σ β κ : ℝ} (hκ : κ ≠ 0) {i r x π : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ i r x π) (t : ℤ) :
+    x t =ᵐ[S.μ] κ⁻¹ • (π t - β • S.E t (π (t + 1))) ∧
+      r t =ᵐ[S.μ] i t - S.E t (π (t + 1)) := by
+  obtain ⟨-, h2, h3⟩ := h.2 t
+  refine ⟨?_, ?_⟩
+  · filter_upwards [h3] with ω e
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+    rw [e]
+    field_simp
+    ring
+  · filter_upwards [h2] with ω e
+    simp only [Pi.add_apply, Pi.sub_apply] at e ⊢
+    linarith
+
+/-- **The bounded equilibrium on ℤ given its innovations is a.s. unique** (Cochrane (2023),
+§17.4.1, p. 408, under uncertainty): two equilibria with the same essentially bounded adapted
+rates, essentially bounded inflation and the same innovations agree a.s. in inflation, output and
+the real rate at every date.
+ℤ-indexed version of `TidyR5StochasticPaths.innov_eqm_existsUnique`. -/
+theorem eqm_unique_given_innov {σ β κ M Mπ Mπ' : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β)
+    {i r x π r' x' π' : ℤ → Ω → ℝ} (h : ModelZM S σ β κ i r x π)
+    (h' : ModelZM S σ β κ i r' x' π') (hia : StronglyAdapted S.𝓕 i)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (hπ' : ∀ t, ∀ᵐ ω ∂S.μ, |π' t ω| ≤ Mπ') (hd : ∀ t, errZ S π' t =ᵐ[S.μ] errZ S π t) :
+    ∀ t, π' t =ᵐ[S.μ] π t ∧ x' t =ᵐ[S.μ] x t ∧ r' t =ᵐ[S.μ] r t := by
+  have hκ : κ ≠ 0 := by rintro rfl; simp at ha
+  have hpp : ∀ᵐ ω ∂S.μ, ∀ t, π' t ω = π t ω := by
+    filter_upwards [eq_piZM S ha hβ h hia hi hπ (fun t => EventuallyEq.rfl),
+      eq_piZM S ha hβ h' hia hi hπ' hd] with ω e e' t
+    rw [e, e']
+  have hp : ∀ t, π' t =ᵐ[S.μ] π t := fun t => hpp.mono fun ω h => h t
+  intro t
+  obtain ⟨hx, hr⟩ := x_r_of_model S hκ h t
+  obtain ⟨hx', hr'⟩ := x_r_of_model S hκ h' t
+  have hEE := S.E_congr (hp (t + 1)) t
+  refine ⟨hp t, ?_, ?_⟩
+  · filter_upwards [hx, hx', hp t, hEE] with ω e1 e2 e3 e4
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 ⊢
+    rw [e1, e2, e3, e4]
+  · filter_upwards [hr, hr', hEE] with ω e1 e2 e4
+    simp only [Pi.sub_apply] at e1 e2 ⊢
+    rw [e1, e2, e4]
+
+/-- Cochrane (2023), Fig. 17.6, p. 410, the link with the ℕ-indexed form: from every date `s`, an
+equilibrium on ℤ is a.s. the ℕ-indexed equilibrium `TidyR5InnovEqmMeasure.piM` of the restricted
+system started at `π_s` with its own innovations. -/
+theorem restrict_eq_piM {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β)
+    {i r x π : ℤ → Ω → ℝ} (h : ModelZM S σ β κ i r x π) (hia : StronglyAdapted S.𝓕 i)
+    (hi : ∀ t, ∀ᵐ ω ∂S.μ, |i t ω| ≤ M) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) (s : ℤ) (n : ℕ) :
+    π (s + n) =ᵐ[S.μ] piM (S.restrict s) σ β κ (fun m => i (s + m)) (π s)
+      (fun m => errZ S π (s + m - 1)) n := by
+  have h1 := eq_piM (S.restrict s) ha hβ (S.restrict_adapted hia s) (fun m => hi (s + m))
+    (p := π s) (δ := fun m => errZ S π (s + m - 1)) (modelZM_restrict S h s)
+    (fun m => hπ (s + m)) (by simp only [Nat.cast_zero, add_zero]; exact EventuallyEq.rfl)
+    (fun m => by
+      have e : s + ((m + 1 : ℕ) : ℤ) = s + m + 1 := by push_cast; ring
+      simp only [restrict_E, restrict_μ, e, add_sub_cancel_right]
+      exact EventuallyEq.rfl) n
+  exact h1
+
+/-! ### Deterministic rate paths -/
+
+/-- Cochrane (2023), eq. (5.5), p. 119: for a deterministic rate path the forward sum is the
+perfect-foresight forward sum `FullModelTidy.FZ`, at every state. -/
+theorem FZ_det (q : ℝ) (ib : ℤ → ℝ) (t : ℤ) :
+    S.FZ q (fun s _ => ib s) t = fun _ => FullModelTidy.FZ q ib t :=
+  S.E_const t _
+
+/-- Cochrane (2023), eq. (5.5) on ℤ: the perfect-foresight path is the backward sum
+`piZ_t = ∑ λ₁^{−j} λ₁⁻¹σκ F_{t−1−j}` of its factored form.
+Compare `FullModelTidy.piZ` and `FullModelTidy.piZ_factor`. -/
+theorem piZ_backward {σ β κ M : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {ib : ℤ → ℝ}
+    (hib : ∀ t, |ib t| ≤ M) (t : ℤ) :
+    FullModelTidy.piZ σ β κ ib t = ∑' j : ℕ, (lam1 σ β κ)⁻¹ ^ j *
+      ((lam1 σ β κ)⁻¹ * (σ * κ) * FullModelTidy.FZ (lam2 σ β κ) ib (t - 1 - j)) := by
+  have hl0 : lam1 σ β κ ≠ 0 := (one_pos.trans (one_lt_lam1 ha hβ)).ne'
+  obtain ⟨hl, -⟩ := roots_abs ha hβ
+  obtain ⟨Mp, hMp⟩ := FullModelTidy.piZ_bounded ha hβ hib
+  have hF := FullModelTidy.FZ_bound (lam2_pos ha hβ).le (lam2_lt_one ha hβ) hib
+  have hw : ∀ s, |(lam1 σ β κ)⁻¹ * (σ * κ) * FullModelTidy.FZ (lam2 σ β κ) ib (s - 1)| ≤
+      |(lam1 σ β κ)⁻¹ * (σ * κ)| * (M / (1 - lam2 σ β κ)) := fun s => by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hF _) (abs_nonneg _)
+  have e := SharedTools.eq_backward_series hl (x := FullModelTidy.piZ σ β κ ib) hMp hw
+    (fun s => by
+      have f := FullModelTidy.piZ_factor ha hβ hib s
+      simp only [add_sub_cancel_right]
+      field_simp
+      linear_combination f) t
+  rw [e]
+  refine tsum_congr fun j => ?_
+  rw [show t - (j : ℤ) - 1 = t - 1 - j by ring]
+
+/-- **Every bounded equilibrium for a deterministic rate path** (Cochrane (2023), §17.4.1,
+pp. 408–409, under uncertainty on ℤ): for a bounded deterministic rate path `ī`, every
+essentially bounded equilibrium is a.s., at every date, the perfect-foresight path plus the
+backward sum of its innovations, `π_t = piZ(ī)_t + ∑ λ₁^{−j} δ_{t−j}`. -/
+theorem det_representation {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {ib : ℤ → ℝ}
+    (hib : ∀ t, |ib t| ≤ M) {r x π : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ (fun t _ => ib t) r x π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) :
+    ∀ᵐ ω ∂S.μ, ∀ t, π t ω = FullModelTidy.piZ σ β κ ib t +
+      ∑' j : ℕ, (lam1 σ β κ)⁻¹ ^ j * errZ S π (t - 1 - j) ω := by
+  obtain ⟨hl, -⟩ := roots_abs ha hβ
+  have hia : StronglyAdapted S.𝓕 (fun t (_ : Ω) => ib t) := fun t => stronglyMeasurable_const
+  have hi : ∀ t, ∀ᵐ ω ∂S.μ, |(fun t (_ : Ω) => ib t) t ω| ≤ M :=
+    fun t => Eventually.of_forall fun _ => hib t
+  have hF := FullModelTidy.FZ_bound (lam2_pos ha hβ).le (lam2_lt_one ha hβ) hib
+  filter_upwards [eq_piZM S ha hβ h hia hi hπ (fun t => EventuallyEq.rfl),
+    ae_all_iff.2 (errZ_bdd S hπ)] with ω e hb t
+  rw [e t, piZM, piZ_backward ha hβ hib t]
+  simp only [FZ_det]
+  have s1 : Summable fun j : ℕ => (lam1 σ β κ)⁻¹ ^ j *
+      ((lam1 σ β κ)⁻¹ * (σ * κ) * FullModelTidy.FZ (lam2 σ β κ) ib (t - 1 - j)) :=
+    TidyR5ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul hl fun j => by
+      rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hF _) (abs_nonneg _)
+  have s2 : Summable fun j : ℕ => (lam1 σ β κ)⁻¹ ^ j * errZ S π (t - 1 - j) ω :=
+    TidyR5ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul hl fun j => hb _
+  rw [← s1.tsum_add s2]
+  refine tsum_congr fun j => ?_
+  ring
+
+/-- Cochrane (2023), §17.4.1 under uncertainty: for a bounded deterministic rate path, an
+essentially bounded equilibrium is a.s. the perfect-foresight path at every date iff all its
+innovations vanish a.s. -/
+theorem det_eq_piZ_iff {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {ib : ℤ → ℝ}
+    (hib : ∀ t, |ib t| ≤ M) {r x π : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ (fun t _ => ib t) r x π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) :
+    (∀ t, π t =ᵐ[S.μ] fun _ => FullModelTidy.piZ σ β κ ib t) ↔ ∀ t, errZ S π t =ᵐ[S.μ] 0 := by
+  constructor
+  · intro hp t
+    filter_upwards [hp (t + 1), S.E_congr (hp (t + 1)) t] with ω e1 e2
+    simp only [errZ, Pi.sub_apply, Pi.zero_apply]
+    rw [e1, e2, S.E_const]
+    ring
+  · intro he t
+    filter_upwards [det_representation S ha hβ hib h hπ, ae_all_iff.2 he] with ω e1 e2
+    rw [e1 t]
+    have : ∀ j : ℕ, (lam1 σ β κ)⁻¹ ^ j * errZ S π (t - 1 - j) ω = 0 := fun j => by
+      rw [e2, Pi.zero_apply, mul_zero]
+    rw [tsum_congr this, tsum_zero, add_zero]
+
+/-- Cochrane (2023), §17.4.1, pp. 408–409: for a bounded deterministic rate path, the
+perfect-foresight path, with `r_t = ī_t − piZ_{t+1}` and `x_t = (piZ_t − β piZ_{t+1})/κ`, is an
+equilibrium on ℤ under **every** filtration (existence).
+The existence half of `FullModelTidy.eqmZ_existsUnique`, under every filtration. -/
+theorem pf_is_equilibrium {σ β κ M : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {ib : ℤ → ℝ}
+    (hib : ∀ t, |ib t| ≤ M) :
+    ModelZM S σ β κ (fun t _ => ib t)
+      (fun t _ => ib t - FullModelTidy.piZ σ β κ ib (t + 1))
+      (fun t _ => (FullModelTidy.piZ σ β κ ib t - β * FullModelTidy.piZ σ β κ ib (t + 1)) / κ)
+      (fun t _ => FullModelTidy.piZ σ β κ ib t) := by
+  have hκ : κ ≠ 0 := by rintro rfl; simp at ha
+  have hpf := (FullModelTidy.pfEqmZ_iff_secondZ hκ ib
+    (fun t => (FullModelTidy.piZ σ β κ ib t - β * FullModelTidy.piZ σ β κ ib (t + 1)) / κ)
+    (FullModelTidy.piZ σ β κ ib)).mpr ⟨fun _ => rfl, FullModelTidy.piZ_second ha hβ hib⟩
+  refine ⟨fun t => ⟨integrable_const _, integrable_const _, integrable_const _,
+    integrable_const _⟩, fun t => ⟨?_, ?_, ?_⟩⟩ <;>
+  refine Eventually.of_forall fun ω => ?_ <;>
+  simp only [S.E_const, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  · exact (hpf t).1
+  · ring
+  · exact (hpf t).2
+
+/-- Cochrane (2023), §17.4.1, Fig. 17.5 under uncertainty (expected paths): for a bounded
+deterministic rate path, every essentially bounded equilibrium has, a.s.,
+`E_s π_{s+j} = piZ_{s+j} + λ₁^{−j}(π_s − piZ_s)`: forecasts return to the perfect-foresight path
+at the rate of the stable root.
+Compare `TidyR5StochasticPaths.expected_path`. -/
+theorem det_expected {σ β κ M Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {ib : ℤ → ℝ}
+    (hib : ∀ t, |ib t| ≤ M) {r x π : ℤ → Ω → ℝ}
+    (h : ModelZM S σ β κ (fun t _ => ib t) r x π) (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ)
+    (s : ℤ) (j : ℕ) :
+    ∀ᵐ ω ∂S.μ, S.E s (π (s + j)) ω = FullModelTidy.piZ σ β κ ib (s + j) +
+      (lam1 σ β κ)⁻¹ ^ j * (π s ω - FullModelTidy.piZ σ β κ ib s) := by
+  have hl0 : lam1 σ β κ ≠ 0 := (one_pos.trans (one_lt_lam1 ha hβ)).ne'
+  have hia : StronglyAdapted S.𝓕 (fun t (_ : Ω) => ib t) := fun t => stronglyMeasurable_const
+  have hi : ∀ t, ∀ᵐ ω ∂S.μ, |(fun t (_ : Ω) => ib t) t ω| ≤ M :=
+    fun t => Eventually.of_forall fun _ => hib t
+  have hπi : ∀ t, Integrable (π t) S.μ := fun t => (h.1 t).2.2.2
+  -- `π_s` itself is a.s. its own date-`s` forecast
+  have hself : ∀ t, S.E t (π t) =ᵐ[S.μ] π t := by
+    intro t
+    have hf := factoredZ S ha hβ h hia hi hπ t
+    have hG : StronglyMeasurable[S.𝓕 t]
+        (lam1 σ β κ • S.E t (π (t + 1)) - (σ * κ) • S.FZ (lam2 σ β κ) (fun t _ => ib t) t) :=
+      ((S.stronglyMeasurable_E t _).const_smul _).sub ((S.FZ_adapted _ _ t).const_smul _)
+    have hGi : Integrable (lam1 σ β κ • S.E t (π (t + 1)) -
+        (σ * κ) • S.FZ (lam2 σ β κ) (fun t _ => ib t) t) S.μ :=
+      ((S.integrable_E t _).smul _).sub ((S.integrable_E t _).smul _)
+    have hπG : π t =ᵐ[S.μ] lam1 σ β κ • S.E t (π (t + 1)) -
+        (σ * κ) • S.FZ (lam2 σ β κ) (fun t _ => ib t) t := by
+      filter_upwards [hf] with ω e
+      simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+      rw [e]
+      ring
+    filter_upwards [S.E_congr hπG t, hπG] with ω e1 e2
+    rw [e1, S.E_of_stronglyMeasurable hG hGi, ← e2]
+  induction j with
+  | zero =>
+    filter_upwards [hself s] with ω e
+    simp only [Nat.cast_zero, add_zero, pow_zero, one_mul] at e ⊢
+    rw [e]
+    ring
+  | succ j ih =>
+    have hf := factoredZ S ha hβ h hia hi hπ (s + j)
+    have hfz := FullModelTidy.piZ_factor ha hβ hib (s + j)
+    have hle : s ≤ s + j := by omega
+    have hEsum : S.E s ((lam1 σ β κ)⁻¹ • (π (s + j) +
+        (σ * κ) • S.FZ (lam2 σ β κ) (fun t _ => ib t) (s + j))) =ᵐ[S.μ]
+        (lam1 σ β κ)⁻¹ • (S.E s (π (s + j)) +
+          (σ * κ) • fun _ => FullModelTidy.FZ (lam2 σ β κ) ib (s + j)) := by
+      rw [FZ_det]
+      filter_upwards [S.E_smul (lam1 σ β κ)⁻¹ (π (s + j) +
+          (σ * κ) • fun _ => FullModelTidy.FZ (lam2 σ β κ) ib (s + j)) s,
+        S.E_add (hπi (s + j)) ((integrable_const _).smul (σ * κ)) s] with ω e1 e2
+      rw [e1, Pi.smul_apply, e2, Pi.add_apply, Pi.smul_apply, Pi.add_apply]
+      congr 2
+      rw [show ((σ * κ) • fun _ : Ω => FullModelTidy.FZ (lam2 σ β κ) ib (s + j)) =
+        fun _ => (σ * κ) * FullModelTidy.FZ (lam2 σ β κ) ib (s + j) from rfl, S.E_const]
+    have hnext : S.E (s + j) (π (s + j + 1)) =ᵐ[S.μ] (lam1 σ β κ)⁻¹ • (π (s + j) +
+        (σ * κ) • S.FZ (lam2 σ β κ) (fun t _ => ib t) (s + j)) := by
+      filter_upwards [hf] with ω e
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+      rw [← e]
+      field_simp
+    filter_upwards [S.E_tower hle (π (s + j + 1)), S.E_congr hnext s, hEsum, ih] with
+      ω e1 e2 e3 e4
+    have ec : s + ((j + 1 : ℕ) : ℤ) = s + j + 1 := by push_cast; ring
+    rw [ec, ← e1, e2, e3]
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [e4]
+    have hz : FullModelTidy.piZ σ β κ ib (s + j + 1) = (lam1 σ β κ)⁻¹ *
+        (FullModelTidy.piZ σ β κ ib (s + j) +
+          σ * κ * FullModelTidy.FZ (lam2 σ β κ) ib (s + j)) := by
+      rw [← hfz]; field_simp
+    rw [hz, pow_succ]
+    ring
+
+/-! ### No news: when the perfect-foresight path is the only equilibrium -/
+
+/-- Cochrane (2023), §17.4.1 (what uniqueness on ℤ requires under uncertainty): the filtration
+carries **no news** — every essentially bounded variable known at `t + 1` is a.s. its date-`t`
+forecast. -/
+def NoNews : Prop :=
+  ∀ t (η : Ω → ℝ), StronglyMeasurable[S.𝓕 (t + 1)] η → (∃ C, ∀ᵐ ω ∂S.μ, |η ω| ≤ C) →
+    η =ᵐ[S.μ] S.E t η
+
+/-- **Uniqueness on ℤ under uncertainty holds iff there is no news** (Cochrane (2023), §17.4.1,
+pp. 408–409; the perfect-foresight claim `FullModelTidy.secondZ_existsUnique` /
+`FullModel.zPath_existsUnique` read under uncertainty): for a bounded deterministic rate path,
+every essentially bounded equilibrium is a.s. the perfect-foresight path at every date iff the
+filtration carries no news. -/
+theorem det_unique_iff_noNews {σ β κ M : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) {ib : ℤ → ℝ}
+    (hib : ∀ t, |ib t| ≤ M) :
+    (∀ (r x π : ℤ → Ω → ℝ), ModelZM S σ β κ (fun t _ => ib t) r x π →
+      (∃ Mπ, ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) →
+        ∀ t, π t =ᵐ[S.μ] fun _ => FullModelTidy.piZ σ β κ ib t) ↔ NoNews S := by
+  have hia : StronglyAdapted S.𝓕 (fun t (_ : Ω) => ib t) := fun t => stronglyMeasurable_const
+  have hi : ∀ t, ∀ᵐ ω ∂S.μ, |(fun t (_ : Ω) => ib t) t ω| ≤ M :=
+    fun t => Eventually.of_forall fun _ => hib t
+  constructor
+  · intro hu t η hη ⟨C, hC⟩
+    by_contra hne
+    set d : ℤ → Ω → ℝ := fun s => if s = t then η - S.E t η else 0 with hd
+    have hdm : ∀ s, StronglyMeasurable[S.𝓕 (s + 1)] (d s) := by
+      intro s
+      by_cases hs : s = t
+      · subst hs
+        simp only [hd, ↓reduceIte]
+        exact hη.sub ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono (Int.le_add_one le_rfl)))
+      · simp only [hd, hs, ↓reduceIte]
+        exact stronglyMeasurable_const
+    have hdb : ∀ s, ∀ᵐ ω ∂S.μ, |d s ω| ≤ C + C := by
+      intro s
+      by_cases hs : s = t
+      · filter_upwards [hC, S.abs_E_le hC t] with ω e1 e2
+        simp only [hd, hs, ↓reduceIte, Pi.sub_apply]
+        exact (abs_sub _ _).trans (add_le_add e1 e2)
+      · filter_upwards [hC] with ω e1
+        simp only [hd, hs, ↓reduceIte, Pi.zero_apply, abs_zero]
+        linarith [(abs_nonneg (η ω)).trans e1]
+    have hηi : Integrable η S.μ := S.integrable_of_bdd hη hC
+    have hd0 : ∀ s, S.E s (d s) =ᵐ[S.μ] 0 := by
+      intro s
+      by_cases hs : s = t
+      · subst hs
+        simp only [hd, ↓reduceIte]
+        filter_upwards [S.E_sub hηi (S.integrable_E s η) s] with ω e
+        rw [e, Pi.sub_apply, S.E_E_self, sub_self, Pi.zero_apply]
+      · simp only [hd, hs, ↓reduceIte]
+        exact Eventually.of_forall fun ω => by
+          rw [show (0 : Ω → ℝ) = fun _ => 0 from rfl, S.E_const]
+    obtain ⟨-, ⟨K, hK⟩, hinn, -, hmod⟩ := piZM_equilibrium S ha hβ hia hi hdm hdb hd0
+    have hp := hu _ _ _ hmod ⟨K, hK⟩
+    have h0 := (det_eq_piZ_iff S ha hβ hib hmod hK).mp hp t
+    apply hne
+    filter_upwards [hinn t, h0] with ω e1 e2
+    have : d t ω = 0 := by rw [← e1, e2, Pi.zero_apply]
+    simp only [hd, ↓reduceIte, Pi.sub_apply] at this
+    linarith
+  · intro hn r x π h ⟨Mπ, hπ⟩
+    refine (det_eq_piZ_iff S ha hβ hib h hπ).mpr fun t => ?_
+    -- the innovation is a.s. a bounded variable known at `t + 1` with zero forecast
+    have hf := factoredZ S ha hβ h hia hi hπ (t + 1)
+    set G : Ω → ℝ := lam1 σ β κ • S.E (t + 1) (π (t + 1 + 1)) -
+      (σ * κ) • S.FZ (lam2 σ β κ) (fun t _ => ib t) (t + 1) with hG
+    have hGm : StronglyMeasurable[S.𝓕 (t + 1)] G :=
+      ((S.stronglyMeasurable_E _ _).const_smul _).sub ((S.FZ_adapted _ _ _).const_smul _)
+    have hπG : π (t + 1) =ᵐ[S.μ] G := by
+      filter_upwards [hf] with ω e
+      simp only [hG, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at e ⊢
+      rw [e]
+      ring
+    have hGb : ∀ᵐ ω ∂S.μ, |G ω| ≤ Mπ := by
+      filter_upwards [hπ (t + 1), hπG] with ω e1 e2
+      rw [← e2]; exact e1
+    have hGE := hn t G hGm ⟨Mπ, hGb⟩
+    filter_upwards [hπG, S.E_congr hπG t, hGE] with ω e1 e2 e3
+    simp only [errZ, Pi.sub_apply, Pi.zero_apply]
+    rw [e1, e2, ← e3, sub_self]
+
+/-! ### Figure 17.5: the rise anticipated from the infinite past -/
+
+/-- Cochrane (2023), Fig. 17.5, p. 409, under uncertainty on ℤ: for the permanent rise
+`i_t = 1{t ≥ T}` known forever, every essentially bounded equilibrium is a.s.
+`π_t = zPath_t + ∑ λ₁^{−j} δ_{t−j}`. -/
+theorem zPath_representation {σ β κ Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (T : ℤ)
+    {r x π : ℤ → Ω → ℝ} (h : ModelZM S σ β κ (fun t _ => FullModel.stepZ T t) r x π)
+    (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) :
+    ∀ᵐ ω ∂S.μ, ∀ t, π t ω = FullModel.zPath σ β κ T t +
+      ∑' j : ℕ, (lam1 σ β κ)⁻¹ ^ j * errZ S π (t - 1 - j) ω := by
+  have hs : ∀ t, |FullModel.stepZ T t| ≤ 1 := fun t => by
+    unfold FullModel.stepZ; split_ifs <;> simp
+  rw [FullModelTidy.zPath_eq_piZ ha hβ T]
+  exact det_representation S ha hβ hs h hπ
+
+/-- Cochrane (2023), Fig. 17.5, p. 409, under uncertainty: a bounded equilibrium for the
+anticipated rise is a.s. `zPath` at every date iff all its innovations vanish. -/
+theorem zPath_iff_no_innov {σ β κ Mπ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (T : ℤ)
+    {r x π : ℤ → Ω → ℝ} (h : ModelZM S σ β κ (fun t _ => FullModel.stepZ T t) r x π)
+    (hπ : ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) :
+    (∀ t, π t =ᵐ[S.μ] fun _ => FullModel.zPath σ β κ T t) ↔ ∀ t, errZ S π t =ᵐ[S.μ] 0 := by
+  have hs : ∀ t, |FullModel.stepZ T t| ≤ 1 := fun t => by
+    unfold FullModel.stepZ; split_ifs <;> simp
+  rw [FullModelTidy.zPath_eq_piZ ha hβ T]
+  exact det_eq_piZ_iff S ha hβ hs h hπ
+
+/-- Cochrane (2023), Fig. 17.5, p. 409: `zPath`, with its output and real rate, is an equilibrium
+on ℤ under every filtration.
+The existence half of `FullModel.zPath_existsUnique`, under every filtration. -/
+theorem zPath_is_equilibrium {σ β κ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (T : ℤ) :
+    ModelZM S σ β κ (fun t _ => FullModel.stepZ T t)
+      (fun t _ => FullModel.stepZ T t - FullModel.zPath σ β κ T (t + 1))
+      (fun t _ => (FullModel.zPath σ β κ T t - β * FullModel.zPath σ β κ T (t + 1)) / κ)
+      (fun t _ => FullModel.zPath σ β κ T t) := by
+  have hs : ∀ t, |FullModel.stepZ T t| ≤ 1 := fun t => by
+    unfold FullModel.stepZ; split_ifs <;> simp
+  rw [FullModelTidy.zPath_eq_piZ ha hβ T]
+  exact pf_is_equilibrium S ha hβ hs
+
+/-- **`FullModel.zPath_existsUnique` under uncertainty, corrected** (Cochrane (2023), Fig. 17.5,
+p. 409): `zPath` is the only essentially bounded equilibrium for the rise anticipated from the
+infinite past (a.s., at every date) iff the filtration carries no news. -/
+theorem zPath_unique_iff_noNews {σ β κ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (T : ℤ) :
+    (∀ (r x π : ℤ → Ω → ℝ), ModelZM S σ β κ (fun t _ => FullModel.stepZ T t) r x π →
+      (∃ Mπ, ∀ t, ∀ᵐ ω ∂S.μ, |π t ω| ≤ Mπ) →
+        ∀ t, π t =ᵐ[S.μ] fun _ => FullModel.zPath σ β κ T t) ↔ NoNews S := by
+  have hs : ∀ t, |FullModel.stepZ T t| ≤ 1 := fun t => by
+    unfold FullModel.stepZ; split_ifs <;> simp
+  rw [FullModelTidy.zPath_eq_piZ ha hβ T]
+  exact det_unique_iff_noNews S ha hβ hs
+
+/-! ### The coin: a genuine counterexample -/
+
+/-- Cochrane (2023), Fig. 17.5 (a counterexample space): the fair coin on `Bool`.
+Not `TidyR5ExpectationsMeasureIID.coinMeasure`, which lives on `ℝ`. -/
+noncomputable def coinMeasure : Measure Bool :=
+  (1 / 2 : ENNReal) • Measure.dirac true + (1 / 2 : ENNReal) • Measure.dirac false
+
+/-- Cochrane (2023), Fig. 17.5 (the counterexample space): the coin is a probability measure. -/
+theorem coinMeasure_univ : coinMeasure Set.univ = 1 := by
+  simp [coinMeasure, ENNReal.inv_two_add_inv_two]
+
+/-- Cochrane (2023), Fig. 17.5 (the counterexample space): each face has positive mass. -/
+theorem coinMeasure_singleton (b : Bool) : coinMeasure {b} ≠ 0 := by
+  cases b <;> simp [coinMeasure]
+
+/-- Cochrane (2023), Fig. 17.5 (a counterexample filtration): nothing is known up to date 0, the
+coin is revealed at date 1. -/
+def coinFiltration : Filtration ℤ (inferInstance : MeasurableSpace Bool) where
+  seq := fun t => if t ≤ 0 then ⊥ else inferInstance
+  mono' := fun s t hst => by
+    beta_reduce
+    split_ifs with h1 h2 h2
+    · exact le_rfl
+    · exact bot_le
+    · omega
+    · exact le_rfl
+  le' := fun t => by
+    split_ifs
+    · exact bot_le
+    · exact le_rfl
+
+/-- Cochrane (2023), Fig. 17.5: the ℤ-indexed coin system.
+A different object from `ExpectationsFiniteTree.coinSystem`. -/
+noncomputable def coinSystem : ZMeasExpectationSystem Bool :=
+  ⟨⟨coinMeasure, ⟨coinMeasure_univ⟩⟩, coinFiltration⟩
+
+/-- Cochrane (2023), Fig. 17.5: the coin system carries news — the coin `±1` is known at date 1
+but is not a.s. its date-0 forecast. -/
+theorem coin_news : ¬ NoNews coinSystem := by
+  intro hn
+  set η : Bool → ℝ := fun b => if b then 1 else -1 with hη
+  have hm : StronglyMeasurable[coinSystem.𝓕 (0 + 1)] η := by
+    have e : coinSystem.𝓕 (0 + 1) = (inferInstance : MeasurableSpace Bool) := by
+      change (if (0 + 1 : ℤ) ≤ 0 then ⊥ else (inferInstance : MeasurableSpace Bool)) = _
+      simp
+    rw [e]
+    exact Measurable.stronglyMeasurable (Measurable.of_discrete)
+  have h := hn 0 η hm ⟨1, Eventually.of_forall fun b => by cases b <;> simp [hη]⟩
+  have hbot : coinSystem.𝓕 0 = ⊥ := by
+    change (if (0 : ℤ) ≤ 0 then ⊥ else (inferInstance : MeasurableSpace Bool)) = _
+    simp
+  obtain ⟨c, hc⟩ := (stronglyMeasurable_bot_iff (f := coinSystem.E 0 η)).mp
+    (hbot ▸ coinSystem.stronglyMeasurable_E 0 η)
+  rw [hc] at h
+  have hb : ∀ b : Bool, η b = c := by
+    intro b
+    by_contra hne
+    have hsub : ({b} : Set Bool) ⊆ {ω | η ω ≠ c} := fun ω hω => by
+      rw [Set.mem_singleton_iff] at hω; subst hω; exact hne
+    have h0 := measure_mono_null hsub (ae_iff.mp h)
+    exact coinMeasure_singleton b h0
+  have h1 := hb true
+  have h2 := hb false
+  simp only [hη] at h1 h2
+  norm_num at h1 h2
+  linarith
+
+/-- **`FullModel.zPath_existsUnique` is false under uncertainty** (Cochrane (2023), Fig. 17.5,
+p. 409): on the coin system there is an essentially bounded equilibrium on ℤ for the rise
+anticipated from the infinite past which is not a.s. `zPath` (the unexpected inflation of the
+coin, propagated forward at `λ₁^{−j}`). -/
+theorem zPath_not_unique_coin {σ β κ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (T : ℤ) :
+    ∃ r x π : ℤ → Bool → ℝ, ModelZM coinSystem σ β κ (fun t _ => FullModel.stepZ T t) r x π ∧
+      (∃ Mπ, ∀ t, ∀ᵐ ω ∂coinSystem.μ, |π t ω| ≤ Mπ) ∧
+      ¬ ∀ t, π t =ᵐ[coinSystem.μ] fun _ => FullModel.zPath σ β κ T t := by
+  by_contra hall
+  push Not at hall
+  exact coin_news ((zPath_unique_iff_noNews coinSystem ha hβ T).mp
+    fun r x π h hb => hall r x π h hb)
+
+end Cochrane.KeynesianStickyPrices.TidyR6ZFullModel
+
 set_option linter.style.longLine false
 #print axioms Cochrane.KeynesianStickyPrices.SchurStable
 #print axioms Cochrane.KeynesianStickyPrices.discQ
@@ -35822,3 +38121,165 @@ set_option linter.style.longLine false
 #print axioms Cochrane.KeynesianStickyPrices.TidyR6ShockModel.Tree.coreUxZ
 #print axioms Cochrane.KeynesianStickyPrices.TidyR6ShockModel.Tree.ISMZ_iff_IS
 #print axioms Cochrane.KeynesianStickyPrices.TidyR6ShockModel.Tree.eqm_iff_modelZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.gA
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.gB
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_eq_lin
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_of_root
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.peg_inv_lam1
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.peg_root_le_one
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_zero_iff
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_def
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.generic182_iff_poly
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_lam2_ne_iff
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.determinate182_poly_iff
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.determinate182_singular_poly_iff
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_subset_res
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_ne_zero_somewhere
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_no_response
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_with_response
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_zero_but_generic
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly_eval
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly_ne_zero
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_slice_finite
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nonGeneric
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6Genericity182.volume_nonGeneric
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.mk
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.const
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.mono
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.tower
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.known
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.zPerfectForesight
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_E
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_zPerfectForesight
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.Adapted
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_adapted
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.abs_E_le
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_sub_E_eq_sum_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.eq_E_add_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.PullOut
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.zPerfectForesight_pullOut
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_tsum
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.mk
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.P
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.𝓕
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.μ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrictF
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_μ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_𝓕
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_E
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_adapted
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_add
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_sub
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_smul
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_const
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_mono
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_tower
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.stronglyMeasurable_E
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integrable_E
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_of_stronglyMeasurable
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_known
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_E_self
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_congr
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integral_E
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_pullOut
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.abs_E_le
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integrable_of_bdd
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.remote
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.remote_le
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_of_remote
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.stronglyMeasurable_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_mul_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_sub_E_eq_sum_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.eq_E_add_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_hasSum
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_eq_restrict
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_adapted
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_bdd
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_hasSum
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.SolvesZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.solvesZ_restrict
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_solves
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.forwardZ_unique
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.eq_FZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.backward_shift
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.REModelZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.E_next
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.rec_ae
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err_mds
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err_bdd
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_17_8_ae
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_rec
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_adapted
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_bound
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_equilibrium
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_piB
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.unique_of_err
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family_bdd_future
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family_bdd_iff
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_one_solves
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_converse
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.finite_start_ae
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.tendsto_initial_term
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.corrected_inverse_ae
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.errSum_shift
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.printed_inverse_iff
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.printed_inverse_fails
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.REModelZA
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.reModelZA_restrict
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_17_8_abstract
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.ModelZM
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.errZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.errZ_bdd
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.modelZM_restrict
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.news_path_Z
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.ModelZA
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.modelZA_restrict
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.factoredZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eq1718Z_of_factored
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.recZ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.roots_abs
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eq_piZM
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_rec
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_adapted
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_bound
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_equilibrium
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.x_r_of_model
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eqm_unique_given_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.restrict_eq_piM
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.FZ_det
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZ_backward
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_representation
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_eq_piZ_iff
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.pf_is_equilibrium
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_expected
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.NoNews
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_unique_iff_noNews
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_representation
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_iff_no_innov
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_is_equilibrium
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_unique_iff_noNews
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure_univ
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure_singleton
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinFiltration
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinSystem
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coin_news
+#print axioms Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_not_unique_coin

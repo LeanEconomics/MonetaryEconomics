@@ -63,3 +63,7 @@ import KeynesianStickyPrices.TidyR6RotembergLocal
 import KeynesianStickyPrices.TidyR6JointGlobal
 import KeynesianStickyPrices.TidyR6ShockPC
 import KeynesianStickyPrices.TidyR6ShockModel
+import KeynesianStickyPrices.TidyR6Genericity182
+import KeynesianStickyPrices.TidyR6ZExpectations
+import KeynesianStickyPrices.TidyR6ZStaticIS
+import KeynesianStickyPrices.TidyR6ZFullModel

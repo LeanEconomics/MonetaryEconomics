@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-30T01:26:03.169401+00:00",
-  "theorems": 1518,
+  "checked_at_utc": "2026-11-04T19:43:44.095328+00:00",
+  "theorems": 1638,
   "module_theorems": {
     "KeynesianStickyPrices/Determinacy.lean": 23,
     "KeynesianStickyPrices/Expectations.lean": 20,
@@ -61,9 +61,13 @@
     "KeynesianStickyPrices/TidyR6RotembergLocal.lean": 26,
     "KeynesianStickyPrices/TidyR6JointGlobal.lean": 3,
     "KeynesianStickyPrices/TidyR6ShockPC.lean": 12,
-    "KeynesianStickyPrices/TidyR6ShockModel.lean": 15
+    "KeynesianStickyPrices/TidyR6ShockModel.lean": 15,
+    "KeynesianStickyPrices/TidyR6Genericity182.lean": 19,
+    "KeynesianStickyPrices/TidyR6ZExpectations.lean": 45,
+    "KeynesianStickyPrices/TidyR6ZStaticIS.lean": 25,
+    "KeynesianStickyPrices/TidyR6ZFullModel.lean": 31
   },
-  "audited_declarations": 1936,
+  "audited_declarations": 2098,
   "declarations": [
     {
       "name": "Cochrane.KeynesianStickyPrices.SchurStable",
@@ -9744,6 +9748,816 @@
       "name": "Cochrane.KeynesianStickyPrices.TidyR6ShockModel.Tree.eqm_iff_modelZ",
       "kind": "theorem",
       "module": "KeynesianStickyPrices/TidyR6ShockModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.gA",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.gB",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_eq_lin",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_of_root",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.peg_inv_lam1",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.peg_root_le_one",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_zero_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_def",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.generic182_iff_poly",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_lam2_ne_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.determinate182_poly_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.determinate182_singular_poly_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_subset_res",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_ne_zero_somewhere",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_no_response",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_with_response",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_zero_but_generic",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly_eval",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly_ne_zero",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_slice_finite",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nonGeneric",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.volume_nonGeneric",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6Genericity182.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem",
+      "kind": "structure",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E",
+      "kind": "projection",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.const",
+      "kind": "projection",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.mono",
+      "kind": "projection",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.tower",
+      "kind": "projection",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.known",
+      "kind": "projection",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.zPerfectForesight",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_E",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_zPerfectForesight",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.Adapted",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_adapted",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.innov",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.PullOut",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.zPerfectForesight_pullOut",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_tsum",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem",
+      "kind": "structure",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.mk",
+      "kind": "constructor",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.P",
+      "kind": "projection",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.\ud835\udcd5",
+      "kind": "projection",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.\u03bc",
+      "kind": "abbrev",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E",
+      "kind": "abbrev",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrictF",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_\u03bc",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_\ud835\udcd5",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_E",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_adapted",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_add",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_sub",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_smul",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_const",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_mono",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_tower",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.stronglyMeasurable_E",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integrable_E",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_of_stronglyMeasurable",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_known",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_E_self",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_congr",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integral_E",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_pullOut",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.abs_E_le",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integrable_of_bdd",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.remote",
+      "kind": "abbrev",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.remote_le",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_of_remote",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.innov",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.stronglyMeasurable_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_mul_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_sub_E_eq_sum_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.eq_E_add_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_hasSum",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_eq_restrict",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_adapted",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_bdd",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_hasSum",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.SolvesZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.solvesZ_restrict",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_solves",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.forwardZ_unique",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.eq_FZ",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZExpectations.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.backward_shift",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.REModelZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.E_next",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.rec_ae",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err_mds",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err_bdd",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_17_8_ae",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_rec",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_adapted",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_bound",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_equilibrium",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_piB",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.unique_of_err",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family_bdd_future",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family_bdd_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_one_solves",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_converse",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.finite_start_ae",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.tendsto_initial_term",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.corrected_inverse_ae",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.errSum_shift",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.printed_inverse_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.printed_inverse_fails",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.REModelZA",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.reModelZA_restrict",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_17_8_abstract",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZStaticIS.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.ModelZM",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.errZ",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.errZ_bdd",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.modelZM_restrict",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.news_path_Z",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.ModelZA",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.modelZA_restrict",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.factoredZ",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eq1718Z_of_factored",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.recZ",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.roots_abs",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eq_piZM",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_rec",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_adapted",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_bound",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_equilibrium",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.x_r_of_model",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eqm_unique_given_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.restrict_eq_piM",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.FZ_det",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZ_backward",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_representation",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_eq_piZ_iff",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.pf_is_equilibrium",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_expected",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.NoNews",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_unique_iff_noNews",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_representation",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_iff_no_innov",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_is_equilibrium",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_unique_iff_noNews",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure_univ",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure_singleton",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinFiltration",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinSystem",
+      "kind": "def",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coin_news",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
+    },
+    {
+      "name": "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_not_unique_coin",
+      "kind": "theorem",
+      "module": "KeynesianStickyPrices/TidyR6ZFullModel.lean"
     }
   ],
   "full_build": "passed",
@@ -19422,6 +20236,816 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.gA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.gB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_eq_lin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_of_root": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.peg_inv_lam1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.peg_root_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_def": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.generic182_iff_poly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resp_lam2_ne_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.determinate182_poly_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.determinate182_singular_poly_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_subset_res": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_ne_zero_somewhere": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_no_response": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nongeneric_with_response": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_zero_but_generic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly_eval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.resPoly_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.res182_slice_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.nonGeneric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6Genericity182.volume_nonGeneric": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.zPerfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_zPerfectForesight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.Adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.restrict_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.PullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.zPerfectForesight_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZExpectationSystem.E_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.P": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrictF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_\u03bc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_\ud835\udcd5": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.restrict_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_tower": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.stronglyMeasurable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integrable_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_of_stronglyMeasurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_E_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integral_E": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.abs_E_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.integrable_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.remote": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.remote_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_of_remote": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.stronglyMeasurable_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_mul_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_sub_E_eq_sum_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.eq_E_add_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.E_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_eq_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.SolvesZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.solvesZ_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.FZ_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.forwardZ_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZExpectations.ZMeasExpectationSystem.eq_FZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.backward_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.REModelZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.E_next": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.rec_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err_mds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.err_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_17_8_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.piB_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_piB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.unique_of_err": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family_bdd_future": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_family_bdd_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_one_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.remote_converse": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.finite_start_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.tendsto_initial_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.corrected_inverse_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.errSum_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.printed_inverse_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.printed_inverse_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.REModelZA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.reModelZA_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZStaticIS.eq_17_8_abstract": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.ModelZM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.errZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.errZ_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.modelZM_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.news_path_Z": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.ModelZA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.modelZA_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.factoredZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eq1718Z_of_factored": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.recZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.roots_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eq_piZM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_rec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZM_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.x_r_of_model": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.eqm_unique_given_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.restrict_eq_piM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.FZ_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.piZ_backward": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_representation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_eq_piZ_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.pf_is_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_expected": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.NoNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.det_unique_iff_noNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_representation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_iff_no_innov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_is_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_unique_iff_noNews": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinMeasure_singleton": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coinSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.coin_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.KeynesianStickyPrices.TidyR6ZFullModel.zPath_not_unique_coin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -19485,15 +21109,19 @@
     "KeynesianStickyPrices/TidyR6JointGlobal.lean": "889b21e5b5d673d1e84723b3d979a851ec00a12c9c0857dd1e570cf16e210acc",
     "KeynesianStickyPrices/TidyR6ShockPC.lean": "43ca60b05dab49f538ca5b93a2d6eebf66bd4e9d7d8dcfe0a1b2abd9b7c23215",
     "KeynesianStickyPrices/TidyR6ShockModel.lean": "39422f665c670fea64cbbf590da59fb6e79a2f6bbcf7dcf298f94b74f5d3c23e",
-    "KeynesianStickyPrices.lean": "4187de17628ed75f7179bfb1193ab6ef43b224e687f2cd489d91d6c019d93ba3",
+    "KeynesianStickyPrices/TidyR6Genericity182.lean": "7d5d4305ca94bd1dc00290d646c43d62132a0577955f3e22f631f466f15a2f2c",
+    "KeynesianStickyPrices/TidyR6ZExpectations.lean": "854b660466268cfa69a894efc74dc47a5a93c3ed32b86e4681e1fe6ab22e5b69",
+    "KeynesianStickyPrices/TidyR6ZStaticIS.lean": "be136784834f5fb0ae37be72761589b8067da9321956d87140831045574f947a",
+    "KeynesianStickyPrices/TidyR6ZFullModel.lean": "cc10121dde3c23b27be0cb85eff5ff69f4452948c3be6e0c52c75588dc00071d",
+    "KeynesianStickyPrices.lean": "d6f56c2b9792464168e4d65f71a6d8df37a2ce1e1d17ad8283ef0293fb6c68c6",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "24bb1f005fe115c78a07d8cc5b15c6d15f9e11ad4a479e4dd4e4e959934a880c",
     "lake-manifest.json": "c0baa78083a5dfe2090a39406fa93c4def9f368ef3b593822d7873ebc1009e45",
-    "proof-manifest.json": "d61acf42b2a80a1e7f8cfe6291dc8380fd377844542dfe9e92a4f2f33e89c405",
+    "proof-manifest.json": "6d52aa5fea123949b53afc432fd7aff290f06d4d89c3337b3c6d7d2c495a9bd6",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "5ffb349f6fba61fa54e051f0fd46caa260b78f7ceaf1d382aaf24f7814d4db81",
+  "fresh_audit_sha256": "81fd8a01f6fd3f6e7843e3512b3e3db192aa8836cd8221fc4b8adb4aa48d5f3b",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 17-18 (with Online Appendix A1.7, A1.8 and A1.13.1): Keynesian models with sticky prices. The static IS-Phillips model with adaptive versus rational expectations, the RE solution family and its infinite-past form (17.8); policy rules in both models with the stability and determinacy sets corrected (E7: phi > 1 or phi < -1 - 2/(sigma kappa)); AR(1) responses, super-Fisherian and open-mouth cases and the root eta*; any persistence with any sign and a long-run response of one ((17.14) inverse corrected, E8); the adaptive Taylor rule; the full model with its two-sided solution, the anticipated rate rise from minus infinity (Figure 17.5) and Figure 17.6 surplus changes (labels shown inconsistent); fiscal underpinnings (17.19) with the dating correction and Figure 17.7 numbers certified (E10); optimal policy with the x* = 0 intercept corrected (E9); Taylor determinacy with phi_x ((1.58); phi > 1 neither necessary nor sufficient only once phi_x < 0 is allowed; complex roots, E11; (1.55) entry corrected); Chapter 18 rules; links showing the simple model is exactly the beta = 0 case of the full model. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 17, pp. 397-421, Chapter 18, pp. 422-432, and Online Appendix A1.7, A1.8 and A1.13.1, pp. 569-572 and 586-588."
