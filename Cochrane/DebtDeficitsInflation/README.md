@@ -17,9 +17,14 @@ shock. The invertibility and Wold statements of §4.3 and A2 are proved in a rea
 second moments. Conditioning down, invertibility, Wold and Granger causality are also proved on a
 genuine probability space, with Mathlib conditional expectations and in `L²` of an i.i.d. economy,
 and the Wold decomposition theorem that A2 invokes is proved in full for any weakly stationary
-sequence in a real Hilbert space.
-The library contains **753 theorems**, including the shared core; 385 of them are in the twelve
-chapter modules and 152 in the four measure-theoretic and Hilbert-space chapter modules.
+sequence in a real Hilbert space. Conditioning down is also proved for integrable processes and
+at `|ρ| = 1`, and Wold and Granger causality with conditional expectations given the σ-algebra of
+the past: for Gaussian shocks they hold as for linear forecasts, while for coin shocks a nonlinear
+function of the surplus history recovers the shock.
+The library contains **887 theorems**, including the shared core; 385 of them are in the twelve
+chapter modules, 152 in the four measure-theoretic and Hilbert-space chapter modules, and 134 in
+the five later modules (`TidyR6FeedbackMA`, `TidyR6ConditioningDownL1`, `TidyR6CondExpForecast`,
+`TidyR6GaussianForecast`, `TidyR6GaussianMA`).
 
 **Scope.** The data, the estimates, the tables and the figures of Chapter 4 are out of scope:
 §4.1's U.S. surplus and debt series (Figures 4.1–4.2), the surplus-process estimates of §4.3
@@ -43,6 +48,11 @@ Headline results, in the namespace `Cochrane.DebtDeficitsInflation`:
   `[a(β) − 1]ε_{t+1}`, so a deficit is debt-financed when `a(β) = 0` and inflation-financed when
   `a(β) = 1` (`SurplusMA.exact_innov_flow_ma`, `SurplusMA.revenue_innov`,
   `SurplusMA.financing_by_debt`, `SurplusMA.financing_by_inflation`).
+* **Debt feedback in closed form.** With `s̃_{t+1} = αv_t + u_{s,t+1}` and `u = a_u(L)ε`, the
+  surplus is the moving average `a_s(L) = a_u(L)(1 − ρ⁻¹L)/(1 − λL)`, `λ = (1 − α)/ρ`, so
+  `a_s(ρ) = 0` whatever `a_u` (`TidyR6FeedbackMA.feedback_ma_repaid`,
+  `TidyR6FeedbackMA.hasSum_gen_fbCoeff`); for an AR(1) disturbance the sequences are explicit and
+  `a_s(ρ) = 0 < 1 < a_u(ρ)` (`TidyR6FeedbackMA.feedback_ar1_closed_form`).
 * **(4.11) is an identity, not a repayment condition.** See the next section.
 * **The VAR decompositions.** The Neumann sums behind Table 4.2 (`VARIdentities.inv_one_sub_hasSum`,
   `VARIdentities.disc_rate_hasSum`), and (4.14)–(4.16) in a stable VAR with every convergence
@@ -78,6 +88,34 @@ Headline results, in the namespace `Cochrane.DebtDeficitsInflation`:
   absolutely summable moving average (`InvertibilityMeasure.granger_general`,
   `InvertibilityMeasureL2.iid_granger_general`), with error variances `σ²` versus `θ²σ²` in the
   factorised case (`InvertibilityMeasure.granger_factor`).
+* **Conditioning down with integrable processes and at `|ρ| = 1`.** The present-value,
+  conditioning-down and unexpected-inflation results of `ConditioningDownMeasure` hold for
+  integrable processes with summable discounted `L¹` norms
+  (`TidyR6ConditioningDownL1.DiscL1`), via conditional expectations of `L¹`-summable series
+  (`TidyR6ConditioningDownL1.E_hasSum_L1`), for example
+  `TidyR6ConditioningDownL1.condDown_valuation_L1_iff` and
+  `TidyR6ConditioningDownL1.simple_model_econ_iff_L1`. For every `ρ` each present value converges
+  iff its terminal condition holds (`TidyR6ConditioningDownL1.pv_E_iff_tvc`,
+  `TidyR6ConditioningDownL1.condDown_flow_iff_tvc`), and conditionally convergent present values
+  condition down in `L¹` (`TidyR6ConditioningDownL1.condDown_valuation_tendsto_L1_iff`). At
+  `|ρ| = 1` the bounded statements fail (`TidyR6ConditioningDownL1.pv_unit_root_fails`) and hold
+  under `∑E|x_t| < ∞` (`TidyR6ConditioningDownL1.condDown_flow_unit_root`).
+* **Conditional expectations versus linear forecasts.** The conditional expectation given the past
+  is never a worse forecast than the best linear one, with a Pythagorean decomposition, and the
+  two agree iff the conditional forecast is in the closed span
+  (`TidyR6CondExpForecast.condExp_beats_linear`); the conditional-expectation innovations are a
+  martingale-difference sequence, equal to the Wold innovations iff the forecasts agree, and the
+  Wold decomposition then holds with them (`TidyR6CondExpForecast.ceInnov_mds`,
+  `TidyR6CondExpForecast.ceInnov_eq_wold_iff`, `TidyR6CondExpForecast.wold_decomposition_condExp`).
+  For Gaussian processes the two forecasts coincide
+  (`TidyR6GaussianForecast.condExp_eq_linear_of_gaussian`), so with i.i.d. `N(0, σ²)` shocks and
+  every absolutely summable `a(L)` the Wold innovations are the conditional-expectation
+  innovations and debt Granger-causes surpluses with conditional expectations
+  (`TidyR6GaussianMA.gaussian_wold_ma`, `TidyR6GaussianMA.gaussian_granger_ma`; the MA(1) in
+  `TidyR6GaussianForecast.GaussEconomy.gaussian_noninvertible_condExp`). For fair coin shocks and
+  `s_t = e_t − ρ⁻¹e_{t−1}` the shock is a function of the current surplus, `e_t = g(s_t)`, so the
+  conditional forecast has error variance `1 < ρ⁻²`
+  (`TidyR6CondExpForecast.Coin.coin_condExp_beats_linear`).
 * **The Wold decomposition theorem.** A2 pp. 597 and 600 invoke it without stating it; it is
   proved in full for a weakly stationary sequence in a real Hilbert space (in `L²`: inner products
   are covariances, projections best linear forecasts). The innovations `e_t = x_t − P_{H_{t−1}}x_t`
@@ -132,7 +170,8 @@ including its `j = 0` term, as in (4.12), (4.13) and A2 §2.3:
   (`SurplusProcessFacts.gen_identified`, `SurplusProcessFacts.gen_identified_debt`). No inflation or
   default iff `a(ρ) = 0` (`SurplusProcessFacts.no_inflation_iff_gen_zero`); then government debt is
   risk free (`SurplusMA.innov_return_riskfree`). With debt feedback `a_s(ρ) = 0` even when the
-  disturbance has `a_u(ρ) > 1` (`SurplusProcessFacts.feedback_repaid_despite_persistent_u`).
+  disturbance has `a_u(ρ) > 1` (`SurplusProcessFacts.feedback_repaid_despite_persistent_u`), and
+  in closed form `a_s(L) = a_u(L)(1 − ρ⁻¹L)/(1 − λL)` (`TidyR6FeedbackMA.feedback_ma_repaid`).
 * **`a(ρ) = 0` makes the surplus non-invertible.** `a(ρ) = 0` iff `a(L)` has the factor `1 − ρ⁻¹L`
   (`Invertibility.factor_of_aRho_zero`, `Invertibility.factor_value`), and then no summable filter
   of current and past surpluses recovers the shock (`Invertibility.not_recoverable_of_aRho_eq_zero`,
@@ -178,9 +217,16 @@ unexpected-inflation decomposition conditions down only up to the term `Δ^I_{t+
 p. 597 statements precise: the Wold moving average is fundamental but can have a root on the unit
 circle, so "invertible" is too strong (`Wold.wold_unit_root`,
 `Wold.IIDEconomy.coin_wold_unit_root`), and an autoregression recovers the moving average only
-for a regular process, without a deterministic part (`Wold.IIDEconomy.iid_mixed`). An earlier version of this README
-listed the closed-span non-invertibility statement at `ρ = 1` as unproved; it is false (see
-[corrections](docs/corrections.md)).
+for a regular process, without a deterministic part (`Wold.IIDEconomy.iid_mixed`). "The shock is
+not recoverable from the surplus history" (p. 102, A2 p. 597) holds for linear forecasts, and with
+conditional expectations for Gaussian shocks, but not for coin shocks, where `e_t = g(s_t)`
+(`TidyR6CondExpForecast.Coin.coin_condExp_beats_linear`,
+`TidyR6GaussianForecast.GaussEconomy.gaussian_noninvertible_condExp`). An earlier version of this
+README listed the closed-span non-invertibility statement at `ρ = 1` as unproved; it is false (see
+[corrections](docs/corrections.md)). It also listed conditioning down at `|ρ| = 1` as unproved;
+for bounded processes it is false at `ρ = ±1` (`TidyR6ConditioningDownL1.pv_unit_root_fails`),
+and it holds for integrable processes with `∑E|x_t| < ∞`
+(`TidyR6ConditioningDownL1.condDown_flow_unit_root`).
 
 Not formalised:
 * the data, estimates, tables and figures (see Scope), and with them the survey items that concern
@@ -194,17 +240,10 @@ Not formalised:
   remarks of pp. 108 and 115–116;
 * the claim of p. 96 that the debt-feedback surplus is "compatible with active fiscal policy"
   (E10): it is a Chapter 5 statement. The Chapter 4 half, `a_s(ρ) = 0` with `a_u(ρ) > 1`, is
-  proved, in termwise form `∑ρʲΔs̃_{t+1+j} = 0` rather than as a closed-form coefficient sequence;
+  proved termwise and in closed form (`TidyR6FeedbackMA.feedback_ma_repaid`);
 * the cross-reference "Section 5.5" of A2 p. 594 (E17);
 * statistical claims: "OLS is consistent" for (2.16), and the regressions of (4.17)–(4.18) as
-  estimators (they are proved as population covariance algebra);
-* Wold and Granger causality as statements about conditional expectations given the σ-algebra of
-  past surpluses: they are proved for best linear forecasts (closed linear spans and orthogonal
-  projections in `L²`), which is what Wold and a VAR mean; for non-Gaussian shocks the two differ.
-  This includes the general Wold decomposition theorem (`Wold.wold_decomposition`): its innovation
-  is the linear forecast error, not `x_t − E(x_t|σ(x_{t−1}, x_{t−2}, …))`;
-* conditioning down without bounded processes or with `|ρ| = 1`: the measure-theoretic results
-  assume bounded measurable processes and `|ρ| < 1`, which the ex-post present value needs.
+  estimators (they are proved as population covariance algebra).
 
 ## Library map
 
@@ -232,6 +271,11 @@ Not formalised:
 | [InvertibilityMeasure](DebtDeficitsInflation/InvertibilityMeasure.lean) | 38 | §4.3 p. 102, A2 (2.17)–(2.21) in a Hilbert space: no summable filter at `\|ρ\| ≤ 1`, the closed-span correction at `\|ρ\| = 1`, the factorised Wold statement, debt as ex-post PV and its invertibility (with a counterexample), Granger causality for an arbitrary moving average |
 | [InvertibilityMeasureL2](DebtDeficitsInflation/InvertibilityMeasureL2.lean) | 11 | The invertibility, Wold and Granger statements in `L²` of the i.i.d. economy (`e_t = ε_{φ(t)}`, `φ : ℤ ≃ ℕ`), the unit-root counterexample, the fair-coin instance |
 | [Wold](DebtDeficitsInflation/Wold.lean) | 67 | A2 pp. 597, 600: the Wold decomposition theorem in a real Hilbert space (innovations, decomposition, uniqueness, the regular/deterministic dichotomy, covariance stationarity ⇔ isometry orbit), a mixed example, MAs are regular, the factorised (2.17) as an instance, the unit-root correction, the `L²` i.i.d. and fair-coin instances |
+| [TidyR6FeedbackMA](DebtDeficitsInflation/TidyR6FeedbackMA.lean) | 22 | §4.2.6, p. 96 (E10, the Chapter 4 half): the debt-feedback surplus as a closed-form moving average, `a_s(L) = a_u(L)(1 − ρ⁻¹L)/(1 − λL)`, `a_s(ρ) = 0`, the stationary value of debt, the link to the termwise `SurplusProcessFacts` result, the AR(1) disturbance in closed form |
+| [TidyR6ConditioningDownL1](DebtDeficitsInflation/TidyR6ConditioningDownL1.lean) | 38 | §4.3 pp. 101–102, A2 (2.22)–(2.23), with (3.17)–(3.20) and (4.2): conditional expectations of `L¹`-summable series, integrable processes (`DiscL1`), the `ConditioningDownMeasure` results for integrable processes, present value iff terminal condition for every `ρ`, `L¹` convergence, the `\|ρ\| = 1` counterexample and corrected statement |
+| [TidyR6CondExpForecast](DebtDeficitsInflation/TidyR6CondExpForecast.lean) | 33 | §4.3 p. 102, A2 pp. 597–601: the conditional expectation as the projection on `L²(𝓖)`, never worse than the linear forecast, equal iff in the closed span; conditional-expectation innovations as a martingale-difference sequence, equal to the Wold innovations iff the forecasts agree; the fair-coin counterexample |
+| [TidyR6GaussianForecast](DebtDeficitsInflation/TidyR6GaussianForecast.lean) | 27 | §4.3 p. 102, A2 pp. 597–601: Gaussian laws closed under `L²` limits, conditional expectation = linear forecast for centred Gaussian processes, Granger causality and Wold with conditional expectations, the i.i.d. Gaussian MA(1) with debt |
+| [TidyR6GaussianMA](DebtDeficitsInflation/TidyR6GaussianMA.lean) | 14 | §4.3 p. 102, A2 (2.18)–(2.21): Gaussian moving averages in `L²` for every absolutely summable `a(L)`, jointly Gaussian with debt; debt as ex-post present value; debt Granger-causes surpluses and the Wold statement with conditional expectations; the MA(1) as a special case |
 
 ## Modelling conventions
 
@@ -294,6 +338,11 @@ Not formalised:
   (`ConditioningDownMeasure.condDown_iff_core`). The genuine instance is the i.i.d. economy on
   `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
   (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`).
+  `TidyR6ConditioningDownL1` replaces bounded processes by integrable ones with summable
+  discounted `L¹` norms (`TidyR6ConditioningDownL1.DiscL1`). `TidyR6CondExpForecast` and the two
+  Gaussian modules forecast with Mathlib's `condExp` given the σ-algebra generated by the past
+  (`TidyR6CondExpForecast.pastSigma`); the unbounded Gaussian shocks are realised directly in `L²`
+  (`TidyR6GaussianMA.shockG`).
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem:
   `|ρ| ≤ 1` (or `< 1`), `|β| < 1` in the exact model, bounded shocks, non-degenerate shocks for
   the coefficient forms of (4.11)–(4.13) (`GeneralizedHRS.Nondeg`), a state with a non-zero shock
