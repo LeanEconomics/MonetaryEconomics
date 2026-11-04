@@ -24,7 +24,17 @@
     "IntertemporalModel/TidyR5Meas.lean",
     "IntertemporalModel/TidyR5MeasLinear.lean",
     "IntertemporalModel/TidyR5MeasFamily.lean",
-    "IntertemporalModel/TidyR5MeasFamilyRule.lean"
+    "IntertemporalModel/TidyR5MeasFamilyRule.lean",
+    "IntertemporalModel/TidyR6MeasHyp.lean",
+    "IntertemporalModel/TidyR6MeasFamilyVersion.lean",
+    "IntertemporalModel/TidyR6MeasFiscal.lean",
+    "IntertemporalModel/TidyR6MeasLinearIRF.lean",
+    "IntertemporalModel/TidyR6MeasLinks.lean",
+    "IntertemporalModel/TidyR6MeasL1.lean",
+    "IntertemporalModel/TidyR6MeasSigned.lean",
+    "IntertemporalModel/TidyR6MeasFamilySharp.lean",
+    "IntertemporalModel/TidyR6MeasRestate.lean",
+    "IntertemporalModel/TidyR6MeasZero.lean"
   ],
   "theorem_counts": {
     "IntertemporalModel/Determinacy.lean": 23,
@@ -50,7 +60,17 @@
     "IntertemporalModel/TidyR5Meas.lean": 25,
     "IntertemporalModel/TidyR5MeasLinear.lean": 19,
     "IntertemporalModel/TidyR5MeasFamily.lean": 26,
-    "IntertemporalModel/TidyR5MeasFamilyRule.lean": 19
+    "IntertemporalModel/TidyR5MeasFamilyRule.lean": 19,
+    "IntertemporalModel/TidyR6MeasHyp.lean": 35,
+    "IntertemporalModel/TidyR6MeasFamilyVersion.lean": 48,
+    "IntertemporalModel/TidyR6MeasFiscal.lean": 48,
+    "IntertemporalModel/TidyR6MeasLinearIRF.lean": 34,
+    "IntertemporalModel/TidyR6MeasLinks.lean": 27,
+    "IntertemporalModel/TidyR6MeasL1.lean": 29,
+    "IntertemporalModel/TidyR6MeasSigned.lean": 12,
+    "IntertemporalModel/TidyR6MeasFamilySharp.lean": 7,
+    "IntertemporalModel/TidyR6MeasRestate.lean": 14,
+    "IntertemporalModel/TidyR6MeasZero.lean": 22
   },
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 2 (with Online Appendix A1.1): An intertemporal model. The environment and household problem (Euler equation, money dominated when i > 0, no negative rates); the valuation equation derived from flow plus transversality for signed surpluses, with the transversality condition and the Euler equation derived from optimisation under uncertainty on finite event trees; existence and uniqueness of the price level; equilibrium formation and the money-overhang condition; fiscal and monetary policy: unexpected inflation determined by present-value news, interest-rate pegs, the expected/unexpected decomposition, share splits and equity issues, s-shaped surpluses, the flat supply curve; the linear fiscal theory of monetary policy (exact Fisher equation, peg and Taylor-type rule solutions for every theta, impulse responses); links to Woodford's exogenous-rate indeterminacy and Taylor principle. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 2, pp. 20-51, and Online Appendix A1.1, pp. 554-556."

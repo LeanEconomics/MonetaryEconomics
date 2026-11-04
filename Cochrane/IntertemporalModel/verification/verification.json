@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-22T10:28:50.472304+00:00",
-  "theorems": 764,
+  "checked_at_utc": "2026-11-04T10:43:43.110290+00:00",
+  "theorems": 1040,
   "module_theorems": {
     "IntertemporalModel/Determinacy.lean": 23,
     "IntertemporalModel/Expectations.lean": 20,
@@ -25,9 +25,19 @@
     "IntertemporalModel/TidyR5Meas.lean": 25,
     "IntertemporalModel/TidyR5MeasLinear.lean": 19,
     "IntertemporalModel/TidyR5MeasFamily.lean": 26,
-    "IntertemporalModel/TidyR5MeasFamilyRule.lean": 19
+    "IntertemporalModel/TidyR5MeasFamilyRule.lean": 19,
+    "IntertemporalModel/TidyR6MeasHyp.lean": 35,
+    "IntertemporalModel/TidyR6MeasFamilyVersion.lean": 48,
+    "IntertemporalModel/TidyR6MeasFiscal.lean": 48,
+    "IntertemporalModel/TidyR6MeasLinearIRF.lean": 34,
+    "IntertemporalModel/TidyR6MeasLinks.lean": 27,
+    "IntertemporalModel/TidyR6MeasL1.lean": 29,
+    "IntertemporalModel/TidyR6MeasSigned.lean": 12,
+    "IntertemporalModel/TidyR6MeasFamilySharp.lean": 7,
+    "IntertemporalModel/TidyR6MeasRestate.lean": 14,
+    "IntertemporalModel/TidyR6MeasZero.lean": 22
   },
-  "audited_declarations": 954,
+  "audited_declarations": 1291,
   "declarations": [
     {
       "name": "Cochrane.IntertemporalModel.SchurStable",
@@ -4798,6 +4808,1691 @@
       "name": "Cochrane.IntertemporalModel.TidyR5MeasFamilyRule.Link.tree_mRuleRate",
       "kind": "theorem",
       "module": "IntertemporalModel/TidyR5MeasFamilyRule.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_bondPrice_integrable",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_pv_zero_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_pv_succ_pos_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_realDebt_integrable",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.integrable_ratio",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.pvExM_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPegP_pos_ae",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPegB_pos_ae",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_equilibrium_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_unique_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_existsUnique_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_existsUnique_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.forwardSol_hasSum_dom",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEquilibrium_iff_mIsEqm_reg",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.rateVersion",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.rateVersion_adapted",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.rateVersion_pricing",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.rate_ae_eq_version",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mIsEqm_version",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.CompleteFiltration",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.stronglyMeasurable_of_ae_eq",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.rate_adapted_of_complete",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEquilibrium_iff_mIsEqm_complete",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptProb",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.botFiltration",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptSystem",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptRate",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ae_pt",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptE",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.rate_adapted_needed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.unifProb",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.fullFiltration",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.unifSystem",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.inv_not_integrable",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.mul_inv_not_integrable",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ae_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.unifE",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.posVer",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.posVer_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.measurable_posVer",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.posVer_inv_not_integrable",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.pv_half",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.nonintRate",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.nonintRate_no_equilibrium",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.cB",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.realDebt_integrable_needed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ppP",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ppRate",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ratio_integrable_needed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasHyp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamB",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vShock",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vInfl0",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.Bounds",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_zero_of",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_zero_of",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_ne",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_contDiffOn",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_hasDerivAt",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate_gt",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.log_one_add_vRuleRate",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRule_contDiffOn",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl_hasDerivAt",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_eq_vRuleInfl",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamB_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pv_bound_necessary",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.shat_bound_of_pv_bound",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.rateExp_bondPrice_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.clamp",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.abs_clamp_le",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.clamp_eq",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.measurable_clamp",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pvVer",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pvExVer",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.procVer",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ver_adapted",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.procVer_adapted",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ver_bounds",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ver_ae",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.procVer_ae",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.nonneg_of_bound",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.forwardSol_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pvExM_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mEquilibrium_congr_surplus",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.surpFam_ae",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mFamP_eq_vFamP",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mFamB_eq_vFamB",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mRuleInfl_eq_vRuleInfl",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mRuleRate_eq_vRuleRate",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_sm",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamB_sm",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl_sm",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate_sm",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_ae_mFam",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_equilibrium",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_unique",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vShock_ae",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vShock_isShock",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pegSol_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ruleSol_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.version_family_linearization",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.version_rule_linearization",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilyVersion.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.pvExM_pos_at",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mRevenue",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mRevenue_invariant",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mFuture_sales_irrelevant",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mShareSplit",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mEquityIssue",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mEquityIssue_finances_deficit",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.innov_congr",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_pv",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_pv_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_unexpected_inflation",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_printed_fails",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_value_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_value_falls",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mNews_pv_tsum",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mSShape",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mNews_pv_add_known",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mStimulus_no_jump",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mStimulus_price_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mStimulus_unexpected_inflation",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTreasury_rule",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mDebt_ratio_of_rate",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_eq_pegP",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_debt",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_sm",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_equilibrium",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Link.tree_mRevenue",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Link.tree_mTreasury_rule",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.coin_ne_zero",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.shock_ne_zero",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.coin_ar1_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.hd",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.measurable_hd",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.hd_cases",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.hd_nonneg",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.abs_aff_hd_le",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.E_late",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.E_zero_fun",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.sB",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.sS",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_tail",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.sB_sS_bdd",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_sB",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_sS",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_rec'",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_sS_one",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_zero",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.pv_values",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.pv_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.zeroRate_ok",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.coin_stimulus_not_neutral",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFiscal.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_add'",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_sub'",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_smul'",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_lin3",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_known",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_shock",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_shock_later",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mInnov_of_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_peg_impact",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_peg_later",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig21_rate",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig21_fiscal",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mExpected_inflation_ahead",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mAnnouncement_invariant",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mNo_announcement_effect",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mLong_run_fisher",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPvNews_of_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig21_expected_fiscal",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPTarget_price",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPTarget_rate_lowers_price",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPTarget_fiscal_contraction",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mLoggerhead",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mInnov_pi_eq_innov_p",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_disturbance",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_rule",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_rule_rate",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig22_monetary",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig22_fiscal",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFiscal_sets_impact",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mOne_time_price_jump",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPrice_level_returns",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.Link.tree_irf_peg_impact",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.Link.tree_irf_rule",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.Link.tree_pTarget_price",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinearIRF.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.abs_cc_le",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.measurable_cc",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc_one_neg",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.E_cc",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc_not_ae_zero",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc_mul_ne",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.measurable_cc_shock",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.WFisher",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_ratio",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_adapted",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_mem",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_distinct",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.prop_2_5_meas",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.pv_one",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.peg_contrast_meas",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.Eq26M",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.eq26M_iff_solves",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.DetCrit",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.prop_2_6_meas",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.taylor_contrast_meas",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.WTaylor",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0_adapted",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0_bdd",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0_mem",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.taylor_contrast_coin_meas",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.mDiscount",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.mDiscount_eq_discount",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.mRicardian_tvc",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.passivePath",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.mPassive_any_price",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.mActive_unique_value",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasLinks.Link.tree_eq26M_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasLinks.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.lintegral_enorm_eq",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.tsum_lintegral_ne_top",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.ae_summable_abs",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.E_hasSum_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1.of_integral_bdd",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1.of_bdd",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1.summable_integral",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.E_shift_hasSum",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.forwardSol_hasSum_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.forwardSol_solves_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.pv_eq_add_pvEx_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.tail_tendsto_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mFlowTvc_iff_valuation_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mEquilibrium_iff_mIsEqm_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.Junk.sGrow",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.Junk.l1_needed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mFlow_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mTreasury_rule_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mTwoStep_eq_pegP_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mTwoStep_debt_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mTwoStep_equilibrium_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.ar1_E_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_pv_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_pv_news_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_unexpected_inflation_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_printed_fails_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_value_news_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_value_falls_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mNews_pv_tsum_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasL1.mSShape_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasL1.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.div_pos_of_mul_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mEqm_sign",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mDebt_eq_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mEqm_sign_condition",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPegP_pos_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPeg_equilibrium_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPeg_unique_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPeg_existsUnique_iff_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.zero_pv_not_unique",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.debt_adapted_of_complete",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.mEquilibrium_iff_mIsEqm_complete_L1",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.PointMass.ptDebt",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasSigned.PointMass.debt_adapted_needed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasSigned.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.ihat_integrable_of_exp",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.version_family_linearization_exp",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.wSum",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRuleInfl_split",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRuleInfl_bound",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRule_bondPrice_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRule_equilibrium_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.Unif.uLog",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.Unif.unbounded_u_rule",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasFamilySharp.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPassiveShock",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPassive_valuation_holds",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPassive_any_innovation",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPrice_succ_no_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mStimulus_neutral_no_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPf_stimulus_neutral",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.coin_pm_one",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.heads_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.dShift",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.sReform",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mReform_with_deficits",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mReform_exists",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mKexp",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mGrossInfl",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspotPrice",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.MFisherW",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mKexp_ge",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspotPrice_pos",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspot_fisher",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspot_injective",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasRestate.mFisherW_one_iff",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasRestate.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mDebt_eq_general",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mEqm_zero_conditions",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mFlow_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mTreasury_rule_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mTwoStep_eq_pegP_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mTwoStep_debt_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mTwoStep_equilibrium_signed",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.gFac",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.zP",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.zB",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.gFac_sm",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.zP_sm",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mPeg_equilibrium_zero",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.mPeg_exists_iff_general",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.lam0",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.nonunique_date0",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.pinned_of_known",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.pertR",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.pertY",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.pertP",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.pert_equilibrium",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.nonunique_news",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoMeasure",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoMeasure_univ",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoSystem",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.ae_two",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.measurable_bool",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.integrable_bool",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoE",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.sZ",
+      "kind": "def",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.pvZ",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
+    },
+    {
+      "name": "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.unique_with_zero_pv",
+      "kind": "theorem",
+      "module": "IntertemporalModel/TidyR6MeasZero.lean"
     }
   ],
   "full_build": "passed",
@@ -9572,6 +11267,1691 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_bondPrice_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_pv_zero_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_pv_succ_pos_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEqm_realDebt_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.integrable_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.pvExM_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPegP_pos_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPegB_pos_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_equilibrium_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_unique_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_existsUnique_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mPeg_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.forwardSol_hasSum_dom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEquilibrium_iff_mIsEqm_reg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.rateVersion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.rateVersion_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.rateVersion_pricing": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.rate_ae_eq_version": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mIsEqm_version": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.CompleteFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.stronglyMeasurable_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.rate_adapted_of_complete": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.mEquilibrium_iff_mIsEqm_complete": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.botFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ae_pt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.ptE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.PointMass.rate_adapted_needed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.unifProb": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.fullFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.unifSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.inv_not_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.mul_inv_not_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ae_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.unifE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.posVer": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.posVer_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.measurable_posVer": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.posVer_inv_not_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.pv_half": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.nonintRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.nonintRate_no_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.cB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.realDebt_integrable_needed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ppP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ppRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasHyp.Uniform.ratio_integrable_needed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vInfl0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.Bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_zero_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_zero_of": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_contDiffOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.log_one_add_vRuleRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRule_contDiffOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_eq_vRuleInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamB_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamInfl_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pv_bound_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.shat_bound_of_pv_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.rateExp_bondPrice_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.clamp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.abs_clamp_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.clamp_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.measurable_clamp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pvVer": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pvExVer": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.procVer": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ver_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.procVer_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ver_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ver_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.procVer_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.nonneg_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.forwardSol_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pvExM_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mEquilibrium_congr_surplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.surpFam_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mFamP_eq_vFamP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mFamB_eq_vFamB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mRuleInfl_eq_vRuleInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.mRuleRate_eq_vRuleRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamP_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFamB_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleInfl_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vRuleRate_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_ae_mFam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vFam_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vShock_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.vShock_isShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.pegSol_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.ruleSol_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.version_family_linearization": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilyVersion.version_rule_linearization": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.pvExM_pos_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mRevenue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mRevenue_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mFuture_sales_irrelevant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mShareSplit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mEquityIssue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mEquityIssue_finances_deficit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.innov_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_pv_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_unexpected_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_printed_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_value_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mAr1_value_falls": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mNews_pv_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mSShape": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mNews_pv_add_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mStimulus_no_jump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mStimulus_price_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mStimulus_unexpected_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTreasury_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mDebt_ratio_of_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_eq_pegP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_debt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.mTwoStep_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Link.tree_mRevenue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Link.tree_mTreasury_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.coin_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.shock_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.coin_ar1_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.hd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.measurable_hd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.hd_cases": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.hd_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.abs_aff_hd_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.E_late": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.E_zero_fun": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.sB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.sS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_tail": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.sB_sS_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_sB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_sS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_rec'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_sS_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.discSum_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.pv_values": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.pv_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.zeroRate_ok": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFiscal.Coin.coin_stimulus_not_neutral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_add'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_sub'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_smul'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_lin3": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.innov_shock_later": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mInnov_of_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_peg_impact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_peg_later": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig21_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig21_fiscal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mExpected_inflation_ahead": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mAnnouncement_invariant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mNo_announcement_effect": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mLong_run_fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPvNews_of_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig21_expected_fiscal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPTarget_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPTarget_rate_lowers_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPTarget_fiscal_contraction": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mLoggerhead": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mInnov_pi_eq_innov_p": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_disturbance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mIrf_rule_rate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig22_monetary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFig22_fiscal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mFiscal_sets_impact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mOne_time_price_jump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.mPrice_level_returns": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.Link.tree_irf_peg_impact": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.Link.tree_irf_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinearIRF.Link.tree_pTarget_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.abs_cc_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.measurable_cc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc_one_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.E_cc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc_not_ae_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.cc_mul_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.measurable_cc_shock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.WFisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_ratio": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sunP_distinct": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.prop_2_5_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.pv_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.peg_contrast_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.Eq26M": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.eq26M_iff_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.DetCrit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.prop_2_6_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.taylor_contrast_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.WTaylor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.sun\u03c0_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.taylor_contrast_coin_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.mDiscount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.mDiscount_eq_discount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.mRicardian_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.passivePath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.mPassive_any_price": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.mActive_unique_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasLinks.Link.tree_eq26M_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.lintegral_enorm_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.tsum_lintegral_ne_top": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.ae_summable_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.E_hasSum_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1.of_integral_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1.of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.SurplusL1.summable_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.E_shift_hasSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.forwardSol_hasSum_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.forwardSol_solves_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.pv_eq_add_pvEx_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.tail_tendsto_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mFlowTvc_iff_valuation_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mEquilibrium_iff_mIsEqm_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.Junk.sGrow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.Junk.l1_needed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mFlow_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mTreasury_rule_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mTwoStep_eq_pegP_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mTwoStep_debt_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mTwoStep_equilibrium_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.ar1_E_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_pv_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_pv_news_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_unexpected_inflation_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_printed_fails_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_value_news_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mAr1_value_falls_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mNews_pv_tsum_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasL1.mSShape_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.div_pos_of_mul_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mEqm_sign": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mDebt_eq_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mEqm_sign_condition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPegP_pos_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPeg_equilibrium_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPeg_unique_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mPeg_existsUnique_iff_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.zero_pv_not_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.debt_adapted_of_complete": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.mEquilibrium_iff_mIsEqm_complete_L1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.PointMass.ptDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasSigned.PointMass.debt_adapted_needed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.ihat_integrable_of_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.version_family_linearization_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.wSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRuleInfl_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRuleInfl_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRule_bondPrice_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.vRule_equilibrium_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.Unif.uLog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasFamilySharp.Unif.unbounded_u_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPassiveShock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPassive_valuation_holds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPassive_any_innovation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPrice_succ_no_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mStimulus_neutral_no_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mPf_stimulus_neutral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.coin_pm_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.heads_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.dShift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.sReform": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mReform_with_deficits": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mReform_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mKexp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mGrossInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspotPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.MFisherW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mKexp_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspotPrice_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspot_fisher": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mSunspot_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasRestate.mFisherW_one_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mDebt_eq_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mEqm_zero_conditions": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mFlow_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mTreasury_rule_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mTwoStep_eq_pegP_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mTwoStep_debt_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mTwoStep_equilibrium_signed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.gFac": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.zP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.zB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.gFac_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.zP_sm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mPeg_equilibrium_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.mPeg_exists_iff_general": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.lam0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.nonunique_date0": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.pinned_of_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.pertR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.pertY": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.pertP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.pert_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.nonunique_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoMeasure_univ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.ae_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.measurable_bool": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.integrable_bool": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.twoE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.sZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.pvZ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.IntertemporalModel.TidyR6MeasZero.TwoState.unique_with_zero_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -9599,15 +12979,25 @@
     "IntertemporalModel/TidyR5MeasLinear.lean": "1838c855ba391358ef860160b4f8abb7ccd7dfdd8baff435c8c1a5b3e9f2cb43",
     "IntertemporalModel/TidyR5MeasFamily.lean": "4bec5033d2f8f036e8469d34ee78e1ddbdb919f2142f7090a104ff7206c6506b",
     "IntertemporalModel/TidyR5MeasFamilyRule.lean": "7cdcaf99c2bf76d9c3c071520fa085a1a31185421f65b86c253a86566bc7aa93",
-    "IntertemporalModel.lean": "bb8745c95ad1be522d21928c211ccbf634453a367050b14437e00359b86fa272",
+    "IntertemporalModel/TidyR6MeasHyp.lean": "549204bf802a088ef738c7ae96f09e0eaa51559e116a6a3331a1f8d7ed8b2306",
+    "IntertemporalModel/TidyR6MeasFamilyVersion.lean": "e12d3d99eb3543e06f1305321001c23a499a945218e50e098548017465960cab",
+    "IntertemporalModel/TidyR6MeasFiscal.lean": "658c28845d415edcdf109183855c2a95727db2042a4700703801a70a48977d38",
+    "IntertemporalModel/TidyR6MeasLinearIRF.lean": "c9ce51a955ebc81fad08edcbedbd13977b3184c7c375c2fc5bbf61e79f8c9df1",
+    "IntertemporalModel/TidyR6MeasLinks.lean": "3a21bcb41020f3546aeab29a3a5d421dbe08204158b00accda034bc36ca5d02b",
+    "IntertemporalModel/TidyR6MeasL1.lean": "1b31dc84fef6d40dec2abb6fb2247c714f350934bf3ad460c0a265a05dde45db",
+    "IntertemporalModel/TidyR6MeasSigned.lean": "915056c8fb258ed0c29e374b6892acf90290dbe740b82cceea37caff86aa80e7",
+    "IntertemporalModel/TidyR6MeasFamilySharp.lean": "7390326d3154667bf26efc91b2a9ba1958dc605990bb8fbffeb359cc903ea114",
+    "IntertemporalModel/TidyR6MeasRestate.lean": "2361934dbe162b7a6cb88ce31516914c0a040d8db7d529fd7324120e25928db0",
+    "IntertemporalModel/TidyR6MeasZero.lean": "4eec324139c9eb9d4afce3202d61916b0c47075a74c8b31e39d3a4f05d51c846",
+    "IntertemporalModel.lean": "f09d98cb2ea0bc15d449ffe37c5bd7dbe94d8be9aff8fe848db123c6657b7557",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "c25968bda58ea4e98b11c1fcae24a3d4414009f71678f587bb16b501d7393091",
     "lake-manifest.json": "855e298c29b186e5e8e7aa70353a3a351a2cae0df2c235f1f6d9b9034c21abc6",
-    "proof-manifest.json": "3bab30dce9b04baeebfebadff38ee01b8fc6dfbcee2e0096568aa825a897087e",
+    "proof-manifest.json": "987b511b4c902c6d2fd11b34a0dc2589ede1309f673691dcf872ca797fe3a3af",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "f992ee6237e1561340cbdd9615345c2c0a8ece12b2b1e5f2ff081115bbcf8933",
+  "fresh_audit_sha256": "42a192332c7fb3beb61c96ab6b87321e19b0326adb78e430e70b1aef135cc22a",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 2 (with Online Appendix A1.1): An intertemporal model. The environment and household problem (Euler equation, money dominated when i > 0, no negative rates); the valuation equation derived from flow plus transversality for signed surpluses, with the transversality condition and the Euler equation derived from optimisation under uncertainty on finite event trees; existence and uniqueness of the price level; equilibrium formation and the money-overhang condition; fiscal and monetary policy: unexpected inflation determined by present-value news, interest-rate pegs, the expected/unexpected decomposition, share splits and equity issues, s-shaped surpluses, the flat supply curve; the linear fiscal theory of monetary policy (exact Fisher equation, peg and Taylor-type rule solutions for every theta, impulse responses); links to Woodford's exogenous-rate indeterminacy and Taylor principle. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 2, pp. 20-51, and Online Appendix A1.1, pp. 554-556."

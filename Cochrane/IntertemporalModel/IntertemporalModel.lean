@@ -27,3 +27,13 @@ import IntertemporalModel.TidyR5Meas
 import IntertemporalModel.TidyR5MeasLinear
 import IntertemporalModel.TidyR5MeasFamily
 import IntertemporalModel.TidyR5MeasFamilyRule
+import IntertemporalModel.TidyR6MeasHyp
+import IntertemporalModel.TidyR6MeasFamilyVersion
+import IntertemporalModel.TidyR6MeasFiscal
+import IntertemporalModel.TidyR6MeasLinearIRF
+import IntertemporalModel.TidyR6MeasLinks
+import IntertemporalModel.TidyR6MeasL1
+import IntertemporalModel.TidyR6MeasSigned
+import IntertemporalModel.TidyR6MeasFamilySharp
+import IntertemporalModel.TidyR6MeasRestate
+import IntertemporalModel.TidyR6MeasZero
