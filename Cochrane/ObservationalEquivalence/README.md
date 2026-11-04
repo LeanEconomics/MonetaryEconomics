@@ -16,12 +16,13 @@ model `i_t = E_tπ_{t+1}`, `ρv_{t+1} = v_t + i_t − π_{t+1} − s̃_{t+1}` (2
 fiscal rules written around a target path, the "starred" form (16.20)–(16.24), (22.1),
 (22.7)–(22.11). Its equilibria are judged by the book's criterion: adapted, bounded inflation and
 the transversality condition for debt. "Unique" means that the target is the only such equilibrium.
-The library contains **1189 theorems**: 376 in the fifteen chapter modules, 108 in the shared core
+The library contains **1262 theorems**: 376 in the fifteen chapter modules, 108 in the shared core
 restated from the earlier projects, 406 in the eleven modules from `ExpectationsMeasure` to
 `MarkovRegimesReach` (the measure-theoretic modules and the `N`-regime Markov tree), 198 in the
 eight `TidyR5…` modules (the boundary `|φ| = 1`, Theorem RG and Granger causality with
-square-integrable shocks, and the money model under uncertainty), and 101 in the five
-`TidyR6MoneyHousehold…` modules (the household problem behind the money model).
+square-integrable shocks, and the money model under uncertainty), 101 in the five
+`TidyR6MoneyHousehold…` modules (the household problem behind the money model), and 73 in the
+four `TidyR6Markov…` modules (`N`-regime Markov switching in an abstract expectation system).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E12–E19 refer to the
@@ -171,6 +172,22 @@ Headline results, in the namespace `Cochrane.ObservationalEquivalence`:
   naive condition on `Φ⁻¹P` is necessary but not sufficient
   (`MarkovRegimesGeneral.naive_necessary`, `MarkovRegimesGeneral.naive_not_sufficient`). With
   i.i.d. regimes the condition is `∑_jq_j/|φ_j| < 1` (`MarkovRegimesGeneral.iid_determinate_iff`).
+  In any `ExpectationSystem` carrying an `N`-state Markov regime, the same condition gives at most
+  one bounded equilibrium, for any signs (`TidyR6MarkovAbstractN.absN_homog_eq_zero`,
+  `TidyR6MarkovAbstractN.absN_unique`); failure of the naive condition gives a nonzero bounded
+  solution, so for `φ_i > 0` the dichotomy holds (`TidyR6MarkovAbstractN.absN_homog_nonzero_of_not_naive`,
+  `TidyR6MarkovAbstractN.absN_pos_dichotomy`). With mixed signs the Markov property alone does not
+  give non-uniqueness (`TidyR6MarkovAbstractN.markov_only_nonzero_fails`). Under the regime-tree
+  hypothesis `TidyR6MarkovAbstractN.HistMarkovN` the any-sign dichotomy and determinacy hold
+  (`TidyR6MarkovAbstractN.hist_dichotomy`, `TidyR6MarkovAbstractN.hist_determinate_iff`), and with
+  the pull-out property and a known regime there is exactly one bounded equilibrium for every
+  bounded adapted disturbance iff the condition holds (`TidyR6MarkovPullOut.pullOut_determinate_iff`).
+  With non-degenerate transitions these hypotheses have no countable model: no pointwise-linear
+  forecast carries a known non-degenerate regime, and forecasts are atomless
+  (`TidyR6MarkovNoGo.not_pointwiseLinear`, `TidyR6MarkovNoGo.countable_no_regime`,
+  `TidyR6MarkovInstances.histMarkov_no_atoms`, `TidyR6MarkovInstances.pullOut_no_atoms`); the
+  theorems are instantiated on deterministic chains (`TidyR6MarkovInstances.id_hist_determinate_iff`,
+  `TidyR6MarkovInstances.id_pullOut_determinate_iff`).
 * **Genuine probability models.** Theorem RG holds with Mathlib's `covariance` and `variance` for
   martingale-difference shocks on a probability space with a filtration: the valuation equation with
   Mathlib's `condExp` gives `v_t = b(L)ε_t` a.e., and `2Cov(s_{t+1}, v_t) = σ²(∑a_k² +
@@ -233,7 +250,9 @@ hold (`TidyR6MoneyHouseholdEqm.money_pays_interest`), and that the imposed equat
 pp. 495–496 miss the restriction `ι_t = Q^m_t − Q_t ≥ 0`, the zero bound for cash
 (`TidyR6MoneyHouseholdEqm.negative_spread_not_derived`). It also corrects the Davig–Leeper formula as this project first restated it
 (`MarkovRegimes.DLCondition`): it characterises determinacy only for `φ_i > 0`, and with `N`
-regimes the right matrix is `|Φ|⁻¹P`, not `Φ⁻¹P`. Finally, the date-0 claim "past surpluses do
+regimes the right matrix is `|Φ|⁻¹P`, not `Φ⁻¹P`; and with `N` regimes and mixed signs the
+Markov property alone gives no analogue of `MarkovRegimes.abstract_homog_nonzero`
+(`TidyR6MarkovAbstractN.markov_only_nonzero_fails`). Finally, the date-0 claim "past surpluses do
 not forecast" of `GrangerMeasure.forecast_own` does not extend from the i.i.d. economy to a
 general martingale-difference system (`TidyR5GrangerL2.Presample.forecast_own_zero_fails`; see
 [corrections](docs/corrections.md)).
@@ -248,10 +267,21 @@ Not formalised:
   the label swap in Beck-Friis–Willems (p. 525, E15) and the two-currency results (p. 527);
 * Online Appendix §§2.1.1–2.1.6 and the permanent-transitory model of §2.4 (pp. 607–611), which
   belong to the `DebtDeficitsInflation` project;
-* Markov switching with `N` regimes in an abstract `ExpectationSystem`: the `N`-regime, any-sign
-  theorem is proved on the regime tree and on probability spaces, but there is no `N`-regime
-  analogue of `MarkovRegimes.abstract_homog_eq_zero` and `MarkovRegimes.abstract_homog_nonzero`;
-  in an abstract `ExpectationSystem` no pointwise-linear expectation carries a non-degenerate chain;
+* a non-degenerate model of the abstract `N`-regime theorems: Markov-only uniqueness
+  (`TidyR6MarkovAbstractN.absN_unique`), the dichotomy and determinacy under `HistMarkovN`
+  (`TidyR6MarkovAbstractN.hist_dichotomy`, `TidyR6MarkovAbstractN.hist_determinate_iff`) and
+  pull-out determinacy for every bounded adapted disturbance
+  (`TidyR6MarkovPullOut.pullOut_determinate_iff`) hold, but with non-degenerate `P` and a known
+  regime none has a constructible model (the Markov-only theorems have one only with a regime that
+  is not known, `TidyR6MarkovAbstractN.avgSystem`): forecasts are atomless, never finitely
+  supported, and no countable state space works (`TidyR6MarkovInstances.histMarkov_no_atoms`,
+  `TidyR6MarkovInstances.pullOut_no_atoms`, `TidyR6MarkovNoGo.not_pointwiseLinear`,
+  `TidyR6MarkovNoGo.countable_no_regime`, `TidyR6MarkovNoGo.countable_no_histMarkov`). An
+  uncountable model is believed to need large cardinals; this is not formalised. The theorems are
+  instantiated on deterministic chains (`TidyR6MarkovInstances`), and the substantive
+  non-degenerate results are `MarkovRegimesGeneral.determinate_iff` and
+  `MarkovRegimesGeneralMeasure.meas_determinate_iff`. There is no counterexample showing that
+  existence fails without pull-out;
 * the boundary `|φ| = 1` in a core `ExpectationSystem` on an uncountable state space whose
   forecasts `E_t(·)(ω)` are not finitely supported and in which information keeps arriving. There
   only necessity (`TidyR5UnitRoot.condBdd_of_sol`) and sufficiency from bounded realised sums
@@ -316,6 +346,10 @@ Not formalised:
 | [TidyR6MoneyHouseholdTree](ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean) | 17 | §22.1, (22.2): the derivation on every finite tree (`TidyR5MoneyUncertainty.Eqm`) and under perfect foresight (`MoneyRegimes.Eqm`); the exact linear model under perfect foresight; the coin tree |
 | [TidyR6MoneyHouseholdFlowLin](ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean) | 16 | (22.2), (3.17), Online Appendix (1.9)–(1.13): both halves of (22.2) from the derived model with explicit remainders `9δ²` and `2η² + ρδ_v²`; linearisation steps restated from `AssetsRulesBalanceSheets` |
 | [TidyR6MoneyHouseholdLinear](ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean) | 6 | (22.2), (16.25): the derived bond-pricing condition in logs; the Fisher equation as its exact Gateaux derivative |
+| [TidyR6MarkovAbstractN](ObservationalEquivalence/TidyR6MarkovAbstractN.lean) | 21 | §24.2: `N`-regime Markov switching in any `ExpectationSystem`; uniqueness for any signs from the Markov property, non-uniqueness when the naive condition fails, the `φ_i > 0` dichotomy, the two-regime results recovered; the Markov property does not give any-sign non-uniqueness (correction); the tree hypothesis `HistMarkovN`, its dichotomy and determinacy |
+| [TidyR6MarkovNoGo](ObservationalEquivalence/TidyR6MarkovNoGo.lean) | 17 | §24.2: no pointwise-linear forecast carries a known non-degenerate Markov regime; every forecast on a countable state space is pointwise-linear, so no countable model; the known-regime hypothesis is needed |
+| [TidyR6MarkovPullOut](ObservationalEquivalence/TidyR6MarkovPullOut.lean) | 18 | §24.2: with pull-out and a known Markov regime, the forward solution, the sign-twisted sunspot, and determinacy for every bounded adapted disturbance |
+| [TidyR6MarkovInstances](ObservationalEquivalence/TidyR6MarkovInstances.lean) | 17 | §24.2: deterministic chains under full information as models of the abstract theorems; the absorbing chain and examples; non-degenerate transitions force atomless forecasts |
 
 ## Modelling conventions
 
@@ -393,7 +427,9 @@ Not formalised:
   any `MeasExpectationSystem` carrying one (`MarkovRegimesMeasure.MeasMarkovRegime`), such as the
   chain `MarkovRegimesMeasure.chainRegime`, where bounded means essentially bounded. With `N`
   regimes the transition matrix is `MarkovRegimesGeneral.TransitionN`, the regime tree
-  `MarkovRegimesGeneral.NodeN`, and the measure version `MarkovRegimesGeneralMeasure.MeasMarkovRegimeN`;
+  `MarkovRegimesGeneral.NodeN`, the measure version `MarkovRegimesGeneralMeasure.MeasMarkovRegimeN`,
+  and in an abstract `ExpectationSystem` the regime `TidyR6MarkovAbstractN.MarkovRegimeN` and the
+  tree hypothesis `TidyR6MarkovAbstractN.HistMarkovN`;
   spectral radii are Mathlib's `spectralRadius ℂ` of the matrix viewed over `ℂ`
   (`MarkovRegimesGeneral.specRad`).
 * **Explicit hypotheses.** Bounded adapted disturbances, `0 < ρ < 1` (or `|ρ| < 1`, or `ρ ≠ 0`,

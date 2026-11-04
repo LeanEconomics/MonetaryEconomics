@@ -16,6 +16,8 @@ sections on the money model under uncertainty, Theorem RG and Granger causality 
 square-integrable shocks, and the boundary `|φ| = 1` (after the Leeper regions). The household
 problem behind the money model, its derived equilibria, the finite-tree and perfect-foresight
 versions and the derivation of both halves of (22.2) follow the money model under uncertainty.
+The `N`-regime Markov results in an abstract `ExpectationSystem` and the models they admit
+(`TidyR6MarkovAbstractN` to `TidyR6MarkovInstances`) follow the genuine Markov sections.
 
 The linear results hold for an arbitrary `ExpectationSystem`, so under perfect foresight and
 under uncertainty. The measure-theoretic modules (`ExpectationsMeasure` onward) restate Theorem RG,
@@ -502,6 +504,53 @@ if it has positive probability at some date.
 | p. 522 (the law of the regime) | `E g(S_t) = ∑_iPr(S_t = i)g(i)`; `Pr(S_{t+1} = j) = ∑_iPr(S_t = i)P_ij`; `p_t = p_0Pᵗ`; reachable iff `(p_0Pᵗ)_i ≠ 0` for some `t` | `MarkovRegimesReach.integral_regime`, `MarkovRegimesReach.law_succ`, `MarkovRegimesReach.dist`, `MarkovRegimesReach.dist_eq`, `MarkovRegimesReach.reach_iff` |
 | pp. 522–523 (the uniform chain, any initial distribution) | initial law `q`; reachable regimes `{i \| ∃t, (qPᵗ)_i ≠ 0}`; determinacy in the uniform filtration and in the regime-only filtration | `MarkovRegimesReach.dist_chainN`, `MarkovRegimesReach.reach_chainN`, `MarkovRegimesReach.chainN_determinate_iff_reach`, `MarkovRegimesReach.natural_chainN_determinate_iff_reach` |
 | p. 523 (precision: an unreachable peg) | `P = [[1, 0], [½, ½]]`, `q = (1, 0)`, `φ = (2, 0)`: the genuine economy is determinate in both filtrations, though the regime tree is not | `MarkovRegimesReach.egAbsorb`, `MarkovRegimesReach.chain_unreachable_zero_determinate` |
+
+## `N`-regime Markov switching in an abstract expectation system, §24.2, pp. 522–523; §22.3, p. 500 (TidyR6MarkovAbstractN, TidyR6MarkovPullOut)
+
+The `N`-regime, any-sign analogues of `MarkovRegimes.abstract_homog_eq_zero` and
+`MarkovRegimes.abstract_homog_nonzero` in any `ExpectationSystem`. Uniqueness needs only the Markov
+property; non-uniqueness with mixed signs needs more: the tree hypothesis `HistMarkovN`, or the
+pull-out property with a known regime. With non-degenerate transitions these stronger hypotheses
+have no constructible model (next section), so the substantive non-degenerate versions remain
+`MarkovRegimesGeneral.determinate_iff` and `MarkovRegimesGeneralMeasure.meas_determinate_iff`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| p. 522; (22.3)–(22.4), p. 500 | the past regimes `[S_{t−1}, …, S_0]`, so the tree node at date `t` is `(S_t, pastOf S t)`; the homogeneous model and the model `E_tπ_{t+1} = φ_{S_t}π_t + u_t` at every date | `TidyR6MarkovAbstractN.pastOf`, `TidyR6MarkovAbstractN.Homog`, `TidyR6MarkovAbstractN.Sol` |
+| p. 523 ("exactly two (or even N) states") | an `N`-state Markov regime in an `ExpectationSystem`, `E_tf(S_{t+1}) = ∑_jP_{S_tj}f(j)` | `TidyR6MarkovAbstractN.MarkovRegimeN` |
+| pp. 522–523 (uniqueness, Markov property only, any signs) | a bounded homogeneous solution satisfies `\|π_t\| ≤ B∑_j((\|Φ\|⁻¹P)ᵏ)_{S_tj}`, so it is zero when every `φ_i ≠ 0` and the spectral radius of `\|Φ\|⁻¹P` is below one; differences of solutions solve the homogeneous model; at most one bounded equilibrium | `TidyR6MarkovAbstractN.absN_bound`, `TidyR6MarkovAbstractN.absN_homog_eq_zero`, `TidyR6MarkovAbstractN.sol_sub`, `TidyR6MarkovAbstractN.absN_unique` |
+| p. 523 (non-uniqueness, Markov property only) | `φ_i = 0`: `π_0 = 1{S_0 = i}`, `π_t = 0` after; every `φ_i ≠ 0` and spectral radius of `Φ⁻¹P` not below one: `π_t = x_t(S_t)` with `x_t = Φ⁻¹Px_{t+1}`; so a nonzero bounded solution whenever the naive condition fails | `TidyR6MarkovAbstractN.absN_zero_coeff_homog`, `TidyR6MarkovAbstractN.absN_homog_nonzero_naive`, `TidyR6MarkovAbstractN.absN_homog_nonzero_of_not_naive` |
+| pp. 522–523 (`φ_i > 0`, any `N`) | `\|Φ\|⁻¹P = Φ⁻¹P`; a nonzero bounded homogeneous solution exists iff the spectral radius is not below one | `TidyR6MarkovAbstractN.sgnM_eq_absM`, `TidyR6MarkovAbstractN.absN_pos_dichotomy` |
+| pp. 522–523 (link) | a two-state regime of `MarkovRegimes` as an `N = 2` regime; `MarkovRegimes.abstract_homog_eq_zero` and `MarkovRegimes.abstract_homog_nonzero` recovered | `TidyR6MarkovAbstractN.ofRegime2`, `TidyR6MarkovAbstractN.two_regime_eq_zero`, `TidyR6MarkovAbstractN.two_regime_nonzero` |
+| p. 523 (correction: the Markov property does not give any-sign non-uniqueness) | the two-state system `E_tx = (x(0) + x(1))/2` with the regime `S_t(ω) = ω`, `p_ij = ½`: both regimes possible at date 0, the regime not known; with `φ = (½, −½)` the condition fails but every homogeneous solution is zero | `TidyR6MarkovAbstractN.avgMap`, `TidyR6MarkovAbstractN.avgSystem`, `TidyR6MarkovAbstractN.avgRegime`, `TidyR6MarkovAbstractN.avgRegime_initial`, `TidyR6MarkovAbstractN.avgRegime_not_adapted`, `TidyR6MarkovAbstractN.avg_not_genCondition`, `TidyR6MarkovAbstractN.avg_homog_zero`, `TidyR6MarkovAbstractN.markov_only_nonzero_fails` |
+| pp. 522–523 (the tree hypothesis) | forecasts of every function of the next node are the regime tree's, `E_tG(S_{t+1}, (S_t, …, S_0)) = ∑_jP_{S_tj}G(j, (S_t, …, S_0))`; it implies the Markov property and that the regime is known | `TidyR6MarkovAbstractN.HistMarkovN`, `TidyR6MarkovAbstractN.HistMarkovN.toMarkov`, `TidyR6MarkovAbstractN.HistMarkovN.adapted` |
+| pp. 522–523 (Davig–Leeper under the tree hypothesis) | the sign-twisted sunspot `π_t = s_tx_t(S_t)`; a nonzero bounded homogeneous solution iff the condition fails; tree solutions are system solutions; exactly one bounded equilibrium for every bounded history-driven disturbance iff the condition of `MarkovRegimesGeneral.determinate_iff` | `TidyR6MarkovAbstractN.hist_twisted`, `TidyR6MarkovAbstractN.hist_dichotomy`, `TidyR6MarkovAbstractN.tree_transfer`, `TidyR6MarkovAbstractN.HDeterminate`, `TidyR6MarkovAbstractN.hist_determinate_iff` |
+| p. 523 (forward weights, pull-out) | `w_{t,k} = ∏_{s≤k}1/φ_{S_{t+s}}`, known at `t + k`; `\|w_{t,k+1}\| = \|w_{t+1,k}\|/\|φ_{S_t}\|`; `E_t\|w_{t,k}\| = ∑_j((\|Φ\|⁻¹P)ᵏ)_{S_tj}/\|φ_j\|` | `TidyR6MarkovPullOut.wt`, `TidyR6MarkovPullOut.wt_adapted`, `TidyR6MarkovPullOut.abs_wt_succ`, `TidyR6MarkovPullOut.E_abs_wt` |
+| p. 523 (the forward terms) | `E_t(w_{t,k}u_{t+k})` bounded by `U∑_j((\|Φ\|⁻¹P)ᵏ)_{S_tj}/\|φ_j\| ≤ U·bnd k`, `bnd` summable under the condition; the first term and the recursion; summable at every state | `TidyR6MarkovPullOut.fterm`, `TidyR6MarkovPullOut.bnd`, `TidyR6MarkovPullOut.fterm_bound`, `TidyR6MarkovPullOut.row_le_bnd`, `TidyR6MarkovPullOut.bnd_summable`, `TidyR6MarkovPullOut.fterm_le`, `TidyR6MarkovPullOut.fterm_zero`, `TidyR6MarkovPullOut.fterm_succ`, `TidyR6MarkovPullOut.fterm_summable` |
+| pp. 522–523 (existence for every bounded adapted disturbance) | the forward solution `π_t = −∑_kE_t(w_{t,k}u_{t+k})` solves the model, is bounded and adapted | `TidyR6MarkovPullOut.fwdP`, `TidyR6MarkovPullOut.fwdP_solves`, `TidyR6MarkovPullOut.fwdP_bounded`, `TidyR6MarkovPullOut.fwdP_adapted` |
+| p. 523 (the sign-twisted sunspot with pull-out) | `s_t = ∏_{τ<t}sgn φ_{S_τ}`, `s_{t+1} = sgn φ_{S_t}·s_t`, known at `t` (also `s_{t+1}`); `π_t = s_tx_t(S_t)` is a nonzero bounded homogeneous solution when the spectral radius of `\|Φ\|⁻¹P` is not below one | `TidyR6MarkovPullOut.sgnP`, `TidyR6MarkovPullOut.sgnP_succ`, `TidyR6MarkovPullOut.sgnP_adapted`, `TidyR6MarkovPullOut.sgnP_succ_adapted`, `TidyR6MarkovPullOut.pullOut_twisted` |
+| pp. 522–523 (Davig–Leeper with pull-out) | with pull-out and a known Markov regime, all regimes possible at date 0: exactly one bounded equilibrium for every bounded adapted disturbance iff every `φ_i ≠ 0` and the spectral radius of `\|Φ\|⁻¹P` is below one | `TidyR6MarkovPullOut.PDeterminate`, `TidyR6MarkovPullOut.pullOut_determinate_iff` |
+
+## Which abstract `N`-regime models exist, §24.2, pp. 522–523 (TidyR6MarkovNoGo, TidyR6MarkovInstances)
+
+A forecast `E_0(·)(ω)` is pointwise-linear when it is a finite combination of values. With a known
+regime and non-degenerate transitions (two positive entries in every row of `P`) no forecast is
+pointwise-linear and every date-0 forecast is atomless, so the hypotheses of `HistMarkovN` and of
+`TidyR6MarkovPullOut.pullOut_determinate_iff` have no countable model; they are instantiated on
+deterministic chains.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| pp. 522–523 (definitions) | pointwise-linear forecasts; a known regime, `E_tf(S_t) = f(S_t)`; non-degenerate transitions | `TidyR6MarkovNoGo.PointwiseLinearAt`, `TidyR6MarkovNoGo.RegimeAdapted`, `TidyR6MarkovNoGo.Nondegenerate` |
+| p. 522 (tools) | histories agree iff the regimes do; forecasts of nonnegative variables are nonnegative; a known regime stays known, and so is its history | `TidyR6MarkovNoGo.pastOf_eq_iff`, `TidyR6MarkovNoGo.E_nonneg`, `TidyR6MarkovNoGo.adapted_later`, `TidyR6MarkovNoGo.hist_known` |
+| p. 523 (the no-go) | a pointwise-linear forecast must realise every possible continuation inside its finite support, hence at least `t + 1` distinct histories up to `t`; so no date-0 forecast is pointwise-linear with a known, non-degenerate Markov regime | `TidyR6MarkovNoGo.split_in_support`, `TidyR6MarkovNoGo.card_hist_ge`, `TidyR6MarkovNoGo.not_pointwiseLinear` |
+| p. 523 (countable state spaces) | on a finite and on a countable state space every forecast is pointwise-linear: it charges finitely many states and vanishes off them | `TidyR6MarkovNoGo.pointwiseLinear_of_finite`, `TidyR6MarkovNoGo.finite_support`, `TidyR6MarkovNoGo.vanish_of_support`, `TidyR6MarkovNoGo.pointwiseLinear_of_countable` |
+| pp. 522–523 (no countable model) | no system on a countable state space carries a known non-degenerate Markov regime; the tree hypothesis gives a known regime, so with non-degenerate `P` it has no pointwise-linear and no countable model | `TidyR6MarkovNoGo.countable_no_regime`, `TidyR6MarkovNoGo.histMarkov_adapted`, `TidyR6MarkovNoGo.histMarkov_not_pointwiseLinear`, `TidyR6MarkovNoGo.countable_no_histMarkov` |
+| p. 523 (the known regime is needed) | `p_ij = ½` is non-degenerate; `avgSystem` is pointwise-linear and carries it, unknown at each date | `TidyR6MarkovNoGo.egHalf_nondegenerate`, `TidyR6MarkovNoGo.avgSystem_pointwiseLinear` |
+| pp. 522–523 (deterministic chains) | `P_ij = 1{j = σ(i)}`; under full information `S_t = σᵗ(ω)` satisfies the tree hypothesis, every regime possible at date 0, known, and full information has pull-out | `TidyR6MarkovInstances.detT`, `TidyR6MarkovInstances.detRegime`, `TidyR6MarkovInstances.detRegime_initial`, `TidyR6MarkovInstances.detRegime_adapted`, `TidyR6MarkovInstances.fullInfo_pullOut` |
+| pp. 522–523 (the absorbing chain `P = I`) | `\|Φ\|⁻¹P = diag(1/\|φ_i\|)`, so the condition is `\|φ_i\| > 1` for every `i`; the tree, pull-out and Markov-only theorems instantiated; `φ = (2, −3)` determinate, `φ = (2, −½)` indeterminate | `TidyR6MarkovInstances.absM_detT_id`, `TidyR6MarkovInstances.genCondition_id_iff`, `TidyR6MarkovInstances.id_hist_determinate_iff`, `TidyR6MarkovInstances.id_pullOut_determinate_iff`, `TidyR6MarkovInstances.id_hist_dichotomy`, `TidyR6MarkovInstances.id_markov_dichotomy`, `TidyR6MarkovInstances.eg_id_determinate`, `TidyR6MarkovInstances.eg_id_indeterminate` |
+| p. 523 (Markov only, non-degenerate) | in `avgSystem` with `φ = (½, ½)` the naive condition fails and there is a nonzero bounded solution | `TidyR6MarkovInstances.avg_naive_nonzero` |
+| pp. 522–523 (atomless forecasts) | history indicators, known at `t` with pull-out; transition probabilities at most some `q < 1`; one-step weight at most `q` gives `E_01{z}(ω) = 0`; so under the tree hypothesis, or with pull-out and a known regime, non-degenerate `P` forces atomless date-0 forecasts | `TidyR6MarkovInstances.histInd`, `TidyR6MarkovInstances.histInd_adapted`, `TidyR6MarkovInstances.exists_q`, `TidyR6MarkovInstances.no_atoms_of_step`, `TidyR6MarkovInstances.histMarkov_no_atoms`, `TidyR6MarkovInstances.pullOut_no_atoms` |
 
 ## Online Appendix §2.2, (2.24)–(2.26), pp. 604–605; §2.3, p. 606 (PresentValueIdentity)
 

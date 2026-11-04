@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-30T00:12:30.909137+00:00",
-  "theorems": 1189,
+  "checked_at_utc": "2026-11-04T19:35:12.819481+00:00",
+  "theorems": 1262,
   "module_theorems": {
     "ObservationalEquivalence/Determinacy.lean": 23,
     "ObservationalEquivalence/Expectations.lean": 20,
@@ -44,9 +44,13 @@
     "ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean": 21,
     "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean": 17,
     "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean": 16,
-    "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean": 6
+    "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean": 6,
+    "ObservationalEquivalence/TidyR6MarkovAbstractN.lean": 21,
+    "ObservationalEquivalence/TidyR6MarkovNoGo.lean": 17,
+    "ObservationalEquivalence/TidyR6MarkovPullOut.lean": 18,
+    "ObservationalEquivalence/TidyR6MarkovInstances.lean": 17
   },
-  "audited_declarations": 1592,
+  "audited_declarations": 1694,
   "declarations": [
     {
       "name": "Cochrane.ObservationalEquivalence.SchurStable",
@@ -8007,6 +8011,516 @@
       "name": "Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.tree_fisher_log_form",
       "kind": "theorem",
       "module": "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.pastOf",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.Homog",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.Sol",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.S",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.markov",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN",
+      "kind": "structure",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.mk",
+      "kind": "constructor",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.S",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.hist",
+      "kind": "projection",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.sol_sub",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_unique",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_zero_coeff_homog",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_nonzero_naive",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_nonzero_of_not_naive",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.sgnM_eq_absM",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_pos_dichotomy",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.ofRegime2",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.two_regime_eq_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.two_regime_nonzero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgMap",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgSystem",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime_initial",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime_not_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avg_not_genCondition",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avg_homog_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.markov_only_nonzero_fails",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.toMarkov",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_twisted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_dichotomy",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.tree_transfer",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HDeterminate",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovAbstractN.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.PointwiseLinearAt",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.RegimeAdapted",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.Nondegenerate",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pastOf_eq_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.E_nonneg",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.adapted_later",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.hist_known",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.split_in_support",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.card_hist_ge",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.not_pointwiseLinear",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pointwiseLinear_of_finite",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.finite_support",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.vanish_of_support",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pointwiseLinear_of_countable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.countable_no_regime",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.histMarkov_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.histMarkov_not_pointwiseLinear",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.countable_no_histMarkov",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.egHalf_nondegenerate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.avgSystem_pointwiseLinear",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovNoGo.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.wt",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.bnd",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.wt_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.abs_wt_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.E_abs_wt",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_bound",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.row_le_bnd",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.bnd_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_le",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_zero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_summable",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_solves",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_bounded",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_succ",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_succ_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.pullOut_twisted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.PDeterminate",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.pullOut_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovPullOut.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detT",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime_initial",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.fullInfo_pullOut",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.absM_detT_id",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.genCondition_id_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_hist_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_pullOut_determinate_iff",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_hist_dichotomy",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_markov_dichotomy",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.eg_id_determinate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.eg_id_indeterminate",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.avg_naive_nonzero",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histInd",
+      "kind": "def",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.exists_q",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.no_atoms_of_step",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histMarkov_no_atoms",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histInd_adapted",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
+    },
+    {
+      "name": "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.pullOut_no_atoms",
+      "kind": "theorem",
+      "module": "ObservationalEquivalence/TidyR6MarkovInstances.lean"
     }
   ],
   "full_build": "passed",
@@ -15963,6 +16477,511 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.pastOf": [],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.Homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.Sol": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.S": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.markov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.S": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.hist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.sol_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_zero_coeff_homog": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_nonzero_naive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_nonzero_of_not_naive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.sgnM_eq_absM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_pos_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.ofRegime2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.two_regime_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.two_regime_nonzero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgMap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgSystem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime_not_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avg_not_genCondition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avg_homog_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.markov_only_nonzero_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.toMarkov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_twisted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.tree_transfer": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HDeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.PointwiseLinearAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.RegimeAdapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.Nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pastOf_eq_iff": [
+      "propext",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.E_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.adapted_later": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.hist_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.split_in_support": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.card_hist_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.not_pointwiseLinear": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pointwiseLinear_of_finite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.finite_support": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.vanish_of_support": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pointwiseLinear_of_countable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.countable_no_regime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.histMarkov_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.histMarkov_not_pointwiseLinear": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.countable_no_histMarkov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.egHalf_nondegenerate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.avgSystem_pointwiseLinear": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.wt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.bnd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.wt_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.abs_wt_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.E_abs_wt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.row_le_bnd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.bnd_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_summable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_solves": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_bounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_succ_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.pullOut_twisted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.PDeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.pullOut_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.fullInfo_pullOut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.absM_detT_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.genCondition_id_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_hist_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_pullOut_determinate_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_hist_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_markov_dichotomy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.eg_id_determinate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.eg_id_indeterminate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.avg_naive_nonzero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histInd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.exists_q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.no_atoms_of_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histMarkov_no_atoms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histInd_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.pullOut_no_atoms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -16009,15 +17028,19 @@
     "ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean": "4ed5f90ba6af589a635b2e94757e9a9c39a2229f16351cfd30d31f4595d95781",
     "ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean": "aba7e6df964295b2ecc5557469f06b0957fef9b2a01a52cf62af7707f8b75797",
     "ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean": "4e19ea290b4f0a4474034c0fc3374a136f8c3b5aa5113058c7cc10f45137f18c",
-    "ObservationalEquivalence.lean": "30f7992a95091e5f1f545150cb0e5f58effc2f75621b8a3eeef744d4bb458582",
+    "ObservationalEquivalence/TidyR6MarkovAbstractN.lean": "f7858262f0ab081494fc42356e1b0f8ef96ddcefaf1ac6c8ecb1f3a4cca93755",
+    "ObservationalEquivalence/TidyR6MarkovNoGo.lean": "62afe2b63e8388897255f9b777724f028a7d4a22f430184194ab95457c9dcee0",
+    "ObservationalEquivalence/TidyR6MarkovPullOut.lean": "b581b7bcb64846a8cdf284af7bba0010b10e719276eb7218ac62d8d21062b7d3",
+    "ObservationalEquivalence/TidyR6MarkovInstances.lean": "4cb27c97745f106eb08f439c502b55ef23034312de89f37ce6afe2213279c817",
+    "ObservationalEquivalence.lean": "7ed4e0397607b1793f78d568b4ccb7a1d6fe082a4664af64a917aa2079ff9d2d",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "e9a8ce4a923efde2eabf9122c4657e5949c19a57522bca9b3464526d9be97f5f",
     "lake-manifest.json": "3a3e594142289109ad51938546e449e9216f9f32d46221ec741c00aeda0a5d92",
-    "proof-manifest.json": "0da91748cf4ff4e59d3acf7f6b468f64af87f564a4c9a41334c7688279e93cf6",
+    "proof-manifest.json": "5a846e570003235a58eeb20f43983398f529f7dd56ecbccdf455a01a1f90c4b7",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "20d19d5604ce7353102dab898f61650c112a12941ce61579266a6ea3efe261d6",
+  "fresh_audit_sha256": "f5e239a3676ba1a2ead6eda5698e8762aa8c48f966d505762f47dc07c6852349",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 22 (with Chapters 23-24 claims and Online Appendix A2): Observational equivalence of fiscal and new Keynesian regimes. Valuation equation in all regimes and the unexpected-inflation formula; the starred model (16.20)-(16.24), (22.7)-(22.11), (23.4); OE-1 (existence, uniqueness in both determinate regions, continuum and sunspots in double-passive; E12 corrected labels under the TVC and bounded-debt criteria); non-identification NI-1 to NI-3 and reverse engineering; Leeper regions (a)-(d) with the |phi| = 1 boundary and the unstarred double-active non-existence (E19); OE-2 money regimes; the surplus-on-debt regression is positive for any non-iid exogenous surplus, finite and infinite MA (E16); Granger-causality definitions coincide only bivariately (E17); VAR present-value identities and singular shocks; ex-post SDF and finite-state FTAP; Davig-Leeper Markov-switching determinacy; links to Woodford Prop 4.11. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 22, pp. 495-510, Chapters 23-24, pp. 512-523, and Online Appendix A2, pp. 593-611."

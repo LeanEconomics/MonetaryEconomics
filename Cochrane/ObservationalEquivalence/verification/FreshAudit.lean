@@ -54,6 +54,7 @@ import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.InnerProductSpace.Projection.Minimal
 import Mathlib.Probability.Distributions.Gaussian.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+import Mathlib.Data.Set.Card
 set_option autoImplicit false
 
 /-
@@ -23297,6 +23298,1764 @@ theorem tree_fisher_log_form {Ω : Type*} [Fintype Ω] [MeasurableSpace Ω]
 
 end Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# `N`-regime Markov switching in an abstract expectation system
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.2, pp. 522–523 (Davig and
+Leeper (2006, 2007): rule coefficients switch according to a Markov process; "the Markov
+assumption, with exactly two (or even N) states", p. 523), and Chapter 22, §22.3, p. 500.
+
+`MarkovRegimes.abstract_homog_eq_zero` and `MarkovRegimes.abstract_homog_nonzero` prove the
+two-regime, positive-coefficient dichotomy in any `ExpectationSystem` carrying a Markov regime
+process (`MarkovRegimes.MarkovRegime`: `E_t f(S_{t+1}) = ∑_j P_{S_t j} f(j)`). This module gives
+the `N`-regime, any-sign analogues and finds the right hypothesis for them.
+
+## Main results
+
+* `MarkovRegimeN`: the `N`-regime Markov property, `E_t f(S_{t+1}) = ∑_j P_{S_t j} f(j)`.
+* `absN_homog_eq_zero` (**uniqueness**): if every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P`
+  is `< 1` (`GenCondition`), every bounded solution of `E_t π_{t+1} = φ_{S_t} π_t` is zero; and
+  `absN_unique`, two bounded solutions of the model with a disturbance coincide. Only the Markov
+  property is used, with coefficients of any sign.
+* `absN_homog_nonzero_of_not_naive`: if some `φ_i = 0`, or the spectral radius of `Φ⁻¹P`
+  itself is not `< 1`, there is a nonzero bounded solution (all regimes possible at date `0`).
+* `absN_pos_dichotomy`: for `φ_i > 0` and any `N`, a nonzero bounded solution exists iff the
+  condition fails. The two-regime results are the case `N = 2` (`two_regime_eq_zero`,
+  `two_regime_nonzero`).
+* **The Markov property alone does not suffice for signs** (`markov_only_nonzero_fails`): in the
+  two-state system `avgSystem` (`E_t x = (x(0) + x(1))/2`) with the Markov regime `avgRegime`
+  (`p_ij = ½`) and `φ = (½, −½)`, the condition fails (`avg_not_genCondition`) but every solution
+  of the homogeneous model is zero (`avg_homog_zero`). There the regime is not known at date `t`
+  (`avgRegime_not_adapted`).
+* `HistMarkovN` (**the right hypothesis**): the forecast of any function of the next node of the
+  regime tree is the tree's forecast,
+  `E_t G(S_{t+1}, (S_t, …, S_0)) = ∑_j P_{S_t j} G(j, (S_t, …, S_0))`. It implies the Markov
+  property (`HistMarkovN.toMarkov`) and that the regime is known (`HistMarkovN.adapted`).
+  Under it: `hist_twisted` (the sign-twisted sunspot `π_t = s_t x_t(S_t)`), `hist_dichotomy`
+  (**a nonzero bounded homogeneous solution exists iff the condition fails**), `tree_transfer`
+  (every solution on the regime tree of `MarkovRegimesGeneral` is a solution in the system), and
+  `hist_determinate_iff` (**for every bounded disturbance driven by the regime history there is
+  exactly one bounded equilibrium iff `GenCondition`**, the condition of
+  `MarkovRegimesGeneral.determinate_iff`).
+* **Scope.** With non-degenerate transitions neither `HistMarkovN` nor a known Markov regime has a
+  constructible model (modules TidyR6MarkovNoGo and TidyR6MarkovInstances: forecasts are atomless,
+  never finitely supported, and no countable state space works). The abstract theorems are
+  instantiated on degenerate chains in TidyR6MarkovInstances; the substantive non-degenerate
+  versions are `MarkovRegimesGeneral.determinate_iff` and
+  `MarkovRegimesGeneralMeasure.meas_determinate_iff`. The Markov-property-only theorems are
+  instantiable both with a known degenerate regime and, as with `avgRegime`, with a non-degenerate
+  regime that is not known.
+-/
+
+namespace Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN
+
+open Filter Topology
+open Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+open scoped Matrix ENNReal NNReal
+
+variable {Ω : Type*} {N : ℕ}
+
+/-- Cochrane (2023), p. 522: the past regimes before date `t`, most recent first:
+`pastOf S t ω = [S_{t−1}, …, S_0]`, so the regime-tree node at date `t` is
+`(S_t, pastOf S t)`. -/
+def pastOf (S : ℕ → Ω → Fin N) : ℕ → Ω → List (Fin N)
+  | 0, _ => []
+  | t + 1, ω => S t ω :: pastOf S t ω
+
+/-- Cochrane (2023), eqs. (22.3)–(22.4), p. 500, with Markov switching (p. 522): the homogeneous
+model `E_t π_{t+1} = φ_{S_t} π_t` at every date. -/
+def Homog (𝔼 : ExpectationSystem Ω) (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ) (e : ℕ → Ω → ℝ) :
+    Prop :=
+  ∀ t, 𝔼.E t (e (t + 1)) = fun ω => φ (S t ω) * e t ω
+
+/-- Cochrane (2023), eqs. (22.3)–(22.4), p. 500, with Markov switching (p. 522): the model
+`E_t π_{t+1} = φ_{S_t} π_t + u_t` at every date. -/
+def Sol (𝔼 : ExpectationSystem Ω) (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ) (u π : ℕ → Ω → ℝ) :
+    Prop :=
+  ∀ t, 𝔼.E t (π (t + 1)) = fun ω => φ (S t ω) * π t ω + u t ω
+
+variable (𝔼₀ : ExpectationSystem Ω) (T₀ : TransitionN N)
+
+/-- Cochrane (2023), p. 523 ("exactly two (or even N) states"): an `N`-state Markov regime process
+in an expectation system, `E_t f(S_{t+1}) = ∑_j P_{S_t j} f(j)`. -/
+structure MarkovRegimeN where
+  /-- the regime process -/
+  S : ℕ → Ω → Fin N
+  /-- the Markov property -/
+  markov : ∀ t (f : Fin N → ℝ), 𝔼₀.E t (f ∘ S (t + 1)) = fun ω => ∑ j, T₀.P (S t ω) j * f j
+
+/-- Cochrane (2023), pp. 522–523: an `N`-state regime process whose forecasts are those of the
+regime tree — for every function `G` of the next node,
+`E_t G(S_{t+1}, (S_t, …, S_0)) = ∑_j P_{S_t j} G(j, (S_t, …, S_0))`.
+**Scope:** with non-degenerate transitions (two positive entries in every row of `P`) the tree
+hypothesis has no constructible model: the module TidyR6MarkovInstances proves that every date-`0`
+forecast then gives weight zero to every single state, and TidyR6MarkovNoGo that no forecast is
+a finite combination of values and no countable state space works. The buildable models have
+degenerate (deterministic) transitions, where the theorem is instantiated in
+TidyR6MarkovInstances; the substantive non-degenerate versions are
+`MarkovRegimesGeneral.determinate_iff` (regime tree) and
+`MarkovRegimesGeneralMeasure.meas_determinate_iff` (probability space). -/
+structure HistMarkovN where
+  /-- the regime process -/
+  S : ℕ → Ω → Fin N
+  /-- the forecast of the next node is the regime tree's -/
+  hist : ∀ t (G : NodeN N → ℝ), 𝔼₀.E t (fun ω => G (S (t + 1) ω, pastOf S (t + 1) ω)) =
+    fun ω => ∑ j, T₀.P (S t ω) j * G (j, pastOf S (t + 1) ω)
+
+variable {𝔼₀ T₀}
+
+/-! ### Uniqueness from the Markov property alone -/
+
+/-- Cochrane (2023), p. 523 (iterating the expectational recursion, any signs): a bounded solution
+of the homogeneous model satisfies `|π_t| ≤ B ∑_j ((|Φ|⁻¹P)^k)_{S_t j}` for every `k`.
+Generalises `MarkovRegimes.abstract_bound`; abstract form of
+`MarkovRegimesGeneral.abs_le_pow_bound`. -/
+theorem absN_bound {𝔼 : ExpectationSystem Ω} {T : TransitionN N} (R : MarkovRegimeN 𝔼 T)
+    {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0) {e : ℕ → Ω → ℝ} (he : Homog 𝔼 R.S φ e) {B : ℝ}
+    (hB : ∀ t ω, |e t ω| ≤ B) (k : ℕ) :
+    ∀ t ω, |e t ω| ≤ B * ∑ j, (absM T φ ^ k) (R.S t ω) j := by
+  induction k with
+  | zero =>
+    intro t ω
+    simp only [pow_zero, Matrix.one_apply, Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte,
+      mul_one]
+    exact hB t ω
+  | succ k ih =>
+    intro t ω
+    set f : Fin N → ℝ := fun l => B * ∑ j, (absM T φ ^ k) l j with hf
+    have hpos : 0 < |φ (R.S t ω)| := abs_pos.2 (hφ _)
+    have hup : e (t + 1) ≤ f ∘ R.S (t + 1) :=
+      fun ω' => (le_abs_self _).trans (ih (t + 1) ω')
+    have hlo : -(f ∘ R.S (t + 1)) ≤ e (t + 1) := fun ω' => by
+      have h1 := ih (t + 1) ω'
+      have h2 := neg_abs_le (e (t + 1) ω')
+      simp only [Pi.neg_apply, Function.comp_apply, hf]
+      linarith
+    have h1 := 𝔼.mono t hup ω
+    have h2 := 𝔼.mono t hlo ω
+    rw [map_neg, R.markov t f] at h2
+    rw [R.markov t f] at h1
+    have hE : 𝔼.E t (e (t + 1)) ω = φ (R.S t ω) * e t ω := congrFun (he t) ω
+    have hval : ∑ j, T.P (R.S t ω) j * f j =
+        |φ (R.S t ω)| * (B * ∑ l, (absM T φ ^ (k + 1)) (R.S t ω) l) := by
+      have hs := sum_pow_succ (absM T φ) k (R.S t ω) (fun _ => 1)
+      simp only [mul_one] at hs
+      rw [row_absM T (hφ _), hs]
+      congr 1
+      rw [Finset.mul_sum]
+      exact Finset.sum_congr rfl fun j _ => by ring
+    simp only [Pi.neg_apply] at h2
+    beta_reduce at h1
+    rw [hE, hval] at h1 h2
+    have habs : |φ (R.S t ω)| * |e t ω| ≤
+        |φ (R.S t ω)| * (B * ∑ l, (absM T φ ^ (k + 1)) (R.S t ω) l) := by
+      rw [← abs_mul, abs_le]
+      exact ⟨by linarith, h1⟩
+    exact le_of_mul_le_mul_left habs hpos
+
+/-- Cochrane (2023), pp. 522–523 (**uniqueness, `N` regimes, any signs, abstract system**): if
+every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is `< 1`, in any expectation system with a
+Markov regime process the only bounded solution of the homogeneous model is zero.
+Generalises `MarkovRegimes.abstract_homog_eq_zero`; abstract form of
+`MarkovRegimesGeneral.homog_eq_zero`. -/
+theorem absN_homog_eq_zero {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : MarkovRegimeN 𝔼 T) {φ : Fin N → ℝ} (hc : GenCondition T φ) {e : ℕ → Ω → ℝ}
+    (he : Homog 𝔼 R.S φ e) (hb : BoundedProc e) : e = 0 := by
+  obtain ⟨B, hB⟩ := hb
+  funext t ω
+  have hlim : Tendsto (fun k => B * ∑ j, (absM T φ ^ k) (R.S t ω) j) atTop (𝓝 0) := by
+    have hj : ∀ j ∈ Finset.univ,
+        Tendsto (fun k => (absM T φ ^ k) (R.S t ω) j) atTop (𝓝 0) :=
+      fun j _ => (summable_abs_pow_entry hc.2 _ j).of_abs.tendsto_atTop_zero
+    simpa using (tendsto_finsetSum Finset.univ hj).const_mul B
+  have hle : |e t ω| ≤ 0 :=
+    ge_of_tendsto' hlim fun k => absN_bound R hc.1 he hB k t ω
+  simpa using abs_nonpos_iff.mp hle
+
+/-- Cochrane (2023), pp. 522–523: the difference of two solutions of the model solves the
+homogeneous model.
+Restates `MarkovRegimesGeneral.solves_sub` in an abstract system. -/
+theorem sol_sub {𝔼 : ExpectationSystem Ω} {S : ℕ → Ω → Fin N} {φ : Fin N → ℝ}
+    {u π₁ π₂ : ℕ → Ω → ℝ} (h₁ : Sol 𝔼 S φ u π₁) (h₂ : Sol 𝔼 S φ u π₂) :
+    Homog 𝔼 S φ (π₁ - π₂) := by
+  intro t
+  rw [show (π₁ - π₂) (t + 1) = π₁ (t + 1) - π₂ (t + 1) from rfl, map_sub, h₁ t, h₂ t]
+  funext ω
+  simp only [Pi.sub_apply]
+  ring
+
+/-- Cochrane (2023), pp. 522–523 (**at most one bounded equilibrium**): under the condition, in
+any expectation system with a Markov regime process, two bounded solutions of
+`E_t π_{t+1} = φ_{S_t} π_t + u_t` coincide, whatever the disturbance `u`. -/
+theorem absN_unique {𝔼 : ExpectationSystem Ω} {T : TransitionN N} (R : MarkovRegimeN 𝔼 T)
+    {φ : Fin N → ℝ} (hc : GenCondition T φ) {u π₁ π₂ : ℕ → Ω → ℝ} (h₁ : Sol 𝔼 R.S φ u π₁)
+    (h₂ : Sol 𝔼 R.S φ u π₂) (hb₁ : BoundedProc π₁) (hb₂ : BoundedProc π₂) : π₁ = π₂ := by
+  obtain ⟨B1, hB1⟩ := hb₁
+  obtain ⟨B2, hB2⟩ := hb₂
+  have h0 := absN_homog_eq_zero R hc (sol_sub h₁ h₂) ⟨B1 + B2, fun t ω => by
+    simp only [Pi.sub_apply]
+    exact (abs_sub _ _).trans (add_le_add (hB1 t ω) (hB2 t ω))⟩
+  exact sub_eq_zero.mp h0
+
+/-! ### Non-uniqueness from the Markov property alone -/
+
+/-- Cochrane (2023), p. 523 (**zero coefficients**): if `φ_i = 0` and regime `i` is possible at
+date `0`, then `π_0 = 1{S_0 = i}`, `π_t = 0` for `t ≥ 1`, is a nonzero bounded solution of the
+homogeneous model.
+Abstract form of `MarkovRegimesGeneral.zero_coeff_homog` and
+`MarkovRegimesGeneralMeasure.zero_coeff_homogM`. -/
+theorem absN_zero_coeff_homog {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : MarkovRegimeN 𝔼 T) {φ : Fin N → ℝ} {i : Fin N} (hφ : φ i = 0)
+    (hi : ∃ ω, R.S 0 ω = i) : ∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0 := by
+  classical
+  refine ⟨fun t ω => if t = 0 ∧ R.S 0 ω = i then 1 else 0, fun t => ?_, ⟨1, fun t ω => ?_⟩, ?_⟩
+  · have h0 : (fun ω => if t + 1 = 0 ∧ R.S 0 ω = i then (1 : ℝ) else 0) = 0 := by
+      funext ω
+      simp
+    change 𝔼.E t (fun ω => if t + 1 = 0 ∧ R.S 0 ω = i then (1 : ℝ) else 0) =
+      fun ω => φ (R.S t ω) * (if t = 0 ∧ R.S 0 ω = i then 1 else 0)
+    rw [h0, map_zero]
+    funext ω
+    split_ifs with ht
+    · obtain ⟨rfl, hω⟩ := ht
+      simp [hω, hφ]
+    · simp
+  · change |(if t = 0 ∧ R.S 0 ω = i then (1 : ℝ) else 0)| ≤ 1
+    split_ifs <;> simp
+  · intro h0
+    obtain ⟨ω, hω⟩ := hi
+    have := congrFun (congrFun h0 0) ω
+    simp [hω] at this
+
+/-- Cochrane (2023), p. 523 (**the naive condition fails**): if every `φ_i ≠ 0` and the spectral
+radius of `Φ⁻¹P` is not `< 1`, then `π_t = x_t(S_t)` with `x_t = Φ⁻¹P x_{t+1}` is a nonzero
+bounded solution of the homogeneous model, using the Markov property alone.
+Abstract form of `MarkovRegimesGeneral.homog_nonzero_of_not_naive`. -/
+theorem absN_homog_nonzero_naive {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : MarkovRegimeN 𝔼 T) {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0)
+    (h : ¬ specRad (sgnM T φ) < 1) (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) :
+    ∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0 := by
+  obtain ⟨x, hx, ⟨B, hB⟩, i₀, hi₀⟩ := exists_bdd_backward h
+  refine ⟨fun t ω => x t (R.S t ω), fun t => ?_, ⟨B, fun t ω => hB _ _⟩, ?_⟩
+  · change 𝔼.E t (x (t + 1) ∘ R.S (t + 1)) = _
+    rw [R.markov t (x (t + 1))]
+    funext ω
+    change ∑ j, T.P (R.S t ω) j * x (t + 1) j = φ (R.S t ω) * x t (R.S t ω)
+    rw [row_sgnM T (hφ _), hx t]
+    rfl
+  · intro h0
+    obtain ⟨ω, hω⟩ := hS0 i₀
+    have := congrFun (congrFun h0 0) ω
+    simp only [Pi.zero_apply, hω] at this
+    exact hi₀ this
+
+/-- Cochrane (2023), p. 523: if all regimes are possible at date `0` and the naive condition
+(`NaiveCondition`: every `φ_i ≠ 0` and spectral radius of `Φ⁻¹P` `< 1`) fails, the homogeneous
+model has a nonzero bounded solution, using the Markov property alone. -/
+theorem absN_homog_nonzero_of_not_naive {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : MarkovRegimeN 𝔼 T) {φ : Fin N → ℝ} (h : ¬ NaiveCondition T φ)
+    (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) : ∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0 := by
+  by_cases h0 : ∀ i, φ i ≠ 0
+  · exact absN_homog_nonzero_naive R h0 (fun hs => h ⟨h0, hs⟩) hS0
+  · push Not at h0
+    obtain ⟨i, hi⟩ := h0
+    exact absN_zero_coeff_homog R hi (hS0 i)
+
+/-- Cochrane (2023), p. 523: for positive coefficients `|Φ|⁻¹P = Φ⁻¹P`.
+Generalises `MarkovRegimesGeneral.absM_ofTwo` to `N` regimes. -/
+theorem sgnM_eq_absM (T : TransitionN N) {φ : Fin N → ℝ} (hφ : ∀ i, 0 < φ i) :
+    sgnM T φ = absM T φ := by
+  ext i j
+  simp [sgnM, absM, abs_of_pos (hφ i)]
+
+/-- Cochrane (2023), pp. 522–523 (**the dichotomy for `N` regimes and `φ_i > 0`, abstract
+system**): if all regimes are possible at date `0`, in any expectation system with a Markov
+regime process the homogeneous model has a nonzero bounded solution iff the spectral radius of
+`|Φ|⁻¹P` is not `< 1`.
+Generalises `MarkovRegimes.abstract_homog_nonzero` and `MarkovRegimes.abstract_homog_eq_zero`. -/
+theorem absN_pos_dichotomy {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : MarkovRegimeN 𝔼 T) {φ : Fin N → ℝ} (hφ : ∀ i, 0 < φ i)
+    (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) :
+    (∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0) ↔ ¬ GenCondition T φ := by
+  constructor
+  · rintro ⟨e, he, hb, hne⟩ hc
+    exact hne (absN_homog_eq_zero R hc he hb)
+  · intro hc
+    have hs : ¬ specRad (sgnM T φ) < 1 := by
+      rw [sgnM_eq_absM T hφ]
+      exact fun h => hc ⟨fun i => (hφ i).ne', h⟩
+    exact absN_homog_nonzero_naive R (fun i => (hφ i).ne') hs hS0
+
+/-! ### Two regimes: the special case -/
+
+/-- Cochrane (2023), p. 522: a two-state Markov regime of `MarkovRegimes` as an `N = 2` Markov
+regime. -/
+def ofRegime2 {𝔼 : ExpectationSystem Ω} {T : MarkovRegimes.Transition}
+    (R : MarkovRegimes.MarkovRegime 𝔼 T) : MarkovRegimeN 𝔼 (ofTwo T) where
+  S := R.S
+  markov := R.markov
+
+/-- Cochrane (2023), pp. 522–523 (**`MarkovRegimes.abstract_homog_eq_zero` recovered**): the
+two-regime uniqueness result is the case `N = 2`, `φ > 0` of `absN_homog_eq_zero`. -/
+theorem two_regime_eq_zero {𝔼 : ExpectationSystem Ω} {T : MarkovRegimes.Transition}
+    (R : MarkovRegimes.MarkovRegime 𝔼 T) {φ : Fin 2 → ℝ} (hφ : ∀ i, 0 < φ i)
+    (hdl : MarkovRegimes.DLCondition T φ) {e : ℕ → Ω → ℝ}
+    (he : ∀ t, 𝔼.E t (e (t + 1)) = fun ω => φ (R.S t ω) * e t ω) (hb : BoundedProc e) :
+    e = 0 :=
+  absN_homog_eq_zero (ofRegime2 R) ((dl_iff_genCondition T hφ).1 hdl) he hb
+
+/-- Cochrane (2023), pp. 522–523 (**`MarkovRegimes.abstract_homog_nonzero` recovered**): the
+two-regime non-uniqueness result is the case `N = 2`, `φ > 0` of `absN_pos_dichotomy`. -/
+theorem two_regime_nonzero {𝔼 : ExpectationSystem Ω} {T : MarkovRegimes.Transition}
+    (R : MarkovRegimes.MarkovRegime 𝔼 T) {φ : Fin 2 → ℝ} (hφ : ∀ i, 0 < φ i)
+    (hndl : ¬ MarkovRegimes.DLCondition T φ) (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) :
+    ∃ e : ℕ → Ω → ℝ, (∀ t, 𝔼.E t (e (t + 1)) = fun ω => φ (R.S t ω) * e t ω) ∧
+      BoundedProc e ∧ e ≠ 0 :=
+  (absN_pos_dichotomy (ofRegime2 R) hφ hS0).2 (mt (dl_iff_genCondition T hφ).2 hndl)
+
+/-! ### The Markov property alone does not determine the any-sign case -/
+
+/-- Cochrane (2023), p. 523: the averaging map `x ↦ (x(0) + x(1))/2` on two states. -/
+noncomputable def avgMap : (Fin 2 → ℝ) →ₗ[ℝ] (Fin 2 → ℝ) where
+  toFun x := fun _ => (x 0 + x 1) / 2
+  map_add' x y := by
+    funext ω
+    simp only [Pi.add_apply]
+    ring
+  map_smul' c x := by
+    funext ω
+    simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply]
+    ring
+
+/-- Cochrane (2023), p. 523: the two-state expectation system in which every forecast is the
+average over both states, `E_t x = (x(0) + x(1))/2` at every date. -/
+noncomputable def avgSystem : ExpectationSystem (Fin 2) where
+  E := fun _ => avgMap
+  const := fun _ c => by
+    funext ω
+    change (c + c) / 2 = c
+    ring
+  mono := fun _ x y h ω => by
+    change (x 0 + x 1) / 2 ≤ (y 0 + y 1) / 2
+    linarith [h 0, h 1]
+  tower := fun _ x => by
+    funext ω
+    change ((x 0 + x 1) / 2 + (x 0 + x 1) / 2) / 2 = (x 0 + x 1) / 2
+    ring
+  known := fun _ x => by
+    funext ω
+    change ((x 0 + x 1) / 2 + (x 0 + x 1) / 2) / 2 = (x 0 + x 1) / 2
+    ring
+
+/-- Cochrane (2023), p. 523: in `avgSystem`, the regime `S_t(ω) = ω` is a Markov regime with
+i.i.d. transitions `p_ij = ½` (`MarkovRegimesGeneral.egHalf`). -/
+noncomputable def avgRegime : MarkovRegimeN avgSystem (ofTwo egHalf) where
+  S := fun _ ω => ω
+  markov := fun _ f => by
+    funext ω
+    change (f 0 + f 1) / 2 = ∑ j, (1 / 2 : ℝ) * f j
+    rw [Fin.sum_univ_two]
+    ring
+
+/-- Cochrane (2023), p. 523: in `avgRegime` both regimes are possible at date `0`. -/
+theorem avgRegime_initial (i : Fin 2) : ∃ ω, avgRegime.S 0 ω = i := ⟨i, rfl⟩
+
+/-- Cochrane (2023), p. 523: in `avgSystem` the regime is not known at date `t`:
+`E_t 1{S_t = 0} = ½ ≠ 1{S_t = 0}`. -/
+theorem avgRegime_not_adapted (t : ℕ) :
+    avgSystem.E t ((fun l : Fin 2 => if l = 0 then (1 : ℝ) else 0) ∘ avgRegime.S t) ≠
+      (fun l : Fin 2 => if l = 0 then (1 : ℝ) else 0) ∘ avgRegime.S t := by
+  intro h
+  have h0 := congrFun h 0
+  change ((if (0 : Fin 2) = 0 then (1 : ℝ) else 0) + (if (1 : Fin 2) = 0 then 1 else 0)) / 2 =
+    (if (0 : Fin 2) = 0 then 1 else 0) at h0
+  norm_num at h0
+
+/-- Cochrane (2023), p. 523: with `p_ij = ½` and `φ = (½, −½)` the condition fails (the spectral
+radius of `|Φ|⁻¹P = 2P` is `2`). -/
+theorem avg_not_genCondition : ¬ GenCondition (ofTwo egHalf) ![1 / 2, -1 / 2] := fun h =>
+  naive_not_sufficient.2 ((determinate_iff _ _).2 h)
+
+/-- Cochrane (2023), p. 523: in `avgSystem` with `avgRegime` and `φ = (½, −½)`, every solution of
+the homogeneous model — bounded or not — is zero. -/
+theorem avg_homog_zero {e : ℕ → Fin 2 → ℝ}
+    (he : Homog avgSystem avgRegime.S ![1 / 2, -1 / 2] e) : e = 0 := by
+  have key : ∀ t, (e (t + 1) 0 + e (t + 1) 1) / 2 = 1 / 2 * e t 0 ∧
+      (e (t + 1) 0 + e (t + 1) 1) / 2 = -1 / 2 * e t 1 := fun t =>
+    ⟨congrFun (he t) 0, congrFun (he t) 1⟩
+  have hsum : ∀ t, e t 0 + e t 1 = 0 := fun t => by
+    obtain ⟨h1, h2⟩ := key t
+    linarith
+  funext t ω
+  obtain ⟨h1, h2⟩ := key t
+  have := hsum (t + 1)
+  fin_cases ω
+  · simp only [Fin.zero_eta, Fin.isValue, Pi.zero_apply]
+    linarith
+  · simp only [Fin.mk_one, Fin.isValue, Pi.zero_apply]
+    linarith
+
+/-- Cochrane (2023), pp. 522–523 (**the any-sign non-uniqueness result does not follow from the
+Markov property**): it is false that in every expectation system with a Markov regime process
+in which all regimes are possible at date `0`, failure of the condition gives a nonzero bounded
+solution — `avgSystem` with `p_ij = ½`, `φ = (½, −½)` is a counterexample. -/
+theorem markov_only_nonzero_fails :
+    ¬ (∀ (Ω : Type) (𝔼 : ExpectationSystem Ω) (R : MarkovRegimeN 𝔼 (ofTwo egHalf)),
+      (∀ i, ∃ ω, R.S 0 ω = i) → ¬ GenCondition (ofTwo egHalf) ![1 / 2, -1 / 2] →
+        ∃ e, Homog 𝔼 R.S ![1 / 2, -1 / 2] e ∧ BoundedProc e ∧ e ≠ 0) := by
+  intro h
+  obtain ⟨e, he, -, hne⟩ := h (Fin 2) avgSystem avgRegime avgRegime_initial avg_not_genCondition
+  exact hne (avg_homog_zero he)
+
+/-! ### The tree hypothesis: the full any-sign dichotomy -/
+
+namespace HistMarkovN
+
+variable {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+
+/-- Cochrane (2023), p. 522: the tree hypothesis implies the Markov property. -/
+def toMarkov (R : HistMarkovN 𝔼 T) : MarkovRegimeN 𝔼 T where
+  S := R.S
+  markov := fun t f => R.hist t (fun n => f n.1)
+
+/-- Cochrane (2023), p. 522: under the tree hypothesis the regime is known at each date,
+`E_t f(S_t) = f(S_t)`. -/
+theorem adapted (R : HistMarkovN 𝔼 T) (t : ℕ) (f : Fin N → ℝ) :
+    𝔼.E t (f ∘ R.S t) = f ∘ R.S t := by
+  have h := R.hist t (fun n => n.2.head?.elim 0 f)
+  change 𝔼.E t (f ∘ R.S t) = fun ω => ∑ j, T.P (R.S t ω) j * f (R.S t ω) at h
+  rw [h]
+  funext ω
+  rw [← Finset.sum_mul, T.rowSum, one_mul]
+  rfl
+
+end HistMarkovN
+
+/-- Cochrane (2023), pp. 522–523 (**the sign-twisted sunspot in an abstract system**): under the
+tree hypothesis, if every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is not `< 1`, then
+`π_t = s_t x_t(S_t)`, with `s_t = ∏_{τ<t} sgn φ_{S_τ}` and `x_t = |Φ|⁻¹P x_{t+1}`, is a nonzero
+bounded solution of the homogeneous model.
+**Scope:** with non-degenerate transitions (two positive entries in every row of `P`) the tree
+hypothesis has no constructible model: the module TidyR6MarkovInstances proves that every date-`0`
+forecast then gives weight zero to every single state, and TidyR6MarkovNoGo that no forecast is
+a finite combination of values and no countable state space works. The buildable models have
+degenerate (deterministic) transitions, where the theorem is instantiated in
+TidyR6MarkovInstances; the substantive non-degenerate versions are
+`MarkovRegimesGeneral.determinate_iff` (regime tree) and
+`MarkovRegimesGeneralMeasure.meas_determinate_iff` (probability space).
+Abstract form of `MarkovRegimesGeneral.homog_nonzero_of_not` and
+`MarkovRegimesGeneralMeasure.twisted_solves`. -/
+theorem hist_twisted {𝔼 : ExpectationSystem Ω} {T : TransitionN N} (R : HistMarkovN 𝔼 T)
+    {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0) (h : ¬ specRad (absM T φ) < 1)
+    (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) : ∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0 := by
+  obtain ⟨x, hx, ⟨B, hB⟩, i₀, hi₀⟩ := exists_bdd_backward h
+  refine ⟨fun t ω => histSign φ (pastOf R.S t ω) * x t (R.S t ω), fun t => ?_,
+    ⟨B, fun t ω => ?_⟩, ?_⟩
+  · have hm : 𝔼.E t (fun ω => histSign φ (pastOf R.S (t + 1) ω) * x (t + 1) (R.S (t + 1) ω)) =
+        fun ω => ∑ j, T.P (R.S t ω) j * (histSign φ (pastOf R.S (t + 1) ω) * x (t + 1) j) :=
+      R.hist t (fun n => histSign φ n.2 * x (t + 1) n.1)
+    change 𝔼.E t (fun ω => histSign φ (pastOf R.S (t + 1) ω) * x (t + 1) (R.S (t + 1) ω)) = _
+    rw [hm]
+    funext ω
+    have hrow : ∑ j, T.P (R.S t ω) j * x (t + 1) j = |φ (R.S t ω)| * x t (R.S t ω) := by
+      rw [row_absM T (hφ _), hx t]
+      rfl
+    change ∑ j, T.P (R.S t ω) j * (histSign φ (R.S t ω :: pastOf R.S t ω) * x (t + 1) j) =
+      φ (R.S t ω) * (histSign φ (pastOf R.S t ω) * x t (R.S t ω))
+    calc ∑ j, T.P (R.S t ω) j * (histSign φ (R.S t ω :: pastOf R.S t ω) * x (t + 1) j)
+        = histSign φ (R.S t ω :: pastOf R.S t ω) * ∑ j, T.P (R.S t ω) j * x (t + 1) j := by
+          rw [Finset.mul_sum]
+          exact Finset.sum_congr rfl fun j _ => by ring
+      _ = φ (R.S t ω) * (histSign φ (pastOf R.S t ω) * x t (R.S t ω)) := by
+          rw [hrow, histSign_cons]
+          linear_combination (histSign φ (pastOf R.S t ω) * x t (R.S t ω)) *
+            sgn_mul_abs (φ (R.S t ω))
+  · change |histSign φ (pastOf R.S t ω) * x t (R.S t ω)| ≤ B
+    rw [abs_mul, abs_histSign, one_mul]
+    exact hB _ _
+  · intro h0
+    obtain ⟨ω, hω⟩ := hS0 i₀
+    have := congrFun (congrFun h0 0) ω
+    change histSign φ [] * x 0 (R.S 0 ω) = 0 at this
+    simp only [histSign, List.map_nil, List.prod_nil, one_mul, hω] at this
+    exact hi₀ this
+
+/-- Cochrane (2023), pp. 522–523 (**the `N`-regime, any-sign dichotomy in an abstract system**):
+under the tree hypothesis, with all regimes possible at date `0`, the homogeneous model has a
+nonzero bounded solution iff the condition fails (some `φ_i = 0`, or the spectral radius of
+`|Φ|⁻¹P` is not `< 1`).
+**Scope:** with non-degenerate transitions (two positive entries in every row of `P`) the tree
+hypothesis has no constructible model: the module TidyR6MarkovInstances proves that every date-`0`
+forecast then gives weight zero to every single state, and TidyR6MarkovNoGo that no forecast is
+a finite combination of values and no countable state space works. The buildable models have
+degenerate (deterministic) transitions, where the theorem is instantiated in
+TidyR6MarkovInstances; the substantive non-degenerate versions are
+`MarkovRegimesGeneral.determinate_iff` (regime tree) and
+`MarkovRegimesGeneralMeasure.meas_determinate_iff` (probability space).
+Abstract form of `MarkovRegimesGeneral.homog_eq_zero` with
+`MarkovRegimesGeneral.homog_nonzero_of_not`. -/
+theorem hist_dichotomy {𝔼 : ExpectationSystem Ω} {T : TransitionN N} (R : HistMarkovN 𝔼 T)
+    {φ : Fin N → ℝ} (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) :
+    (∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0) ↔ ¬ GenCondition T φ := by
+  constructor
+  · rintro ⟨e, he, hb, hne⟩ hc
+    exact hne (absN_homog_eq_zero R.toMarkov hc he hb)
+  · intro hc
+    by_cases h0 : ∀ i, φ i ≠ 0
+    · exact hist_twisted R h0 (fun hs => hc ⟨h0, hs⟩) hS0
+    · push Not at h0
+      obtain ⟨i, hi⟩ := h0
+      exact absN_zero_coeff_homog R.toMarkov hi (hS0 i)
+
+/-- Cochrane (2023), pp. 522–523 (**the regime tree inside the system**): under the tree
+hypothesis, every solution `π` on the regime tree of `MarkovRegimesGeneral` with disturbance `u`
+gives the solution `π_t = π(S_t, pastOf S t)` in the system, with disturbance
+`u_t = u(S_t, pastOf S t)`.
+**Scope:** with non-degenerate transitions (two positive entries in every row of `P`) the tree
+hypothesis has no constructible model: the module TidyR6MarkovInstances proves that every date-`0`
+forecast then gives weight zero to every single state, and TidyR6MarkovNoGo that no forecast is
+a finite combination of values and no countable state space works. The buildable models have
+degenerate (deterministic) transitions, where the theorem is instantiated in
+TidyR6MarkovInstances; the substantive non-degenerate versions are
+`MarkovRegimesGeneral.determinate_iff` (regime tree) and
+`MarkovRegimesGeneralMeasure.meas_determinate_iff` (probability space). -/
+theorem tree_transfer {𝔼 : ExpectationSystem Ω} {T : TransitionN N} (R : HistMarkovN 𝔼 T)
+    {φ : Fin N → ℝ} {u π : NodeN N → ℝ} (h : Solves T φ u π) :
+    Sol 𝔼 R.S φ (fun t ω => u (R.S t ω, pastOf R.S t ω))
+      (fun t ω => π (R.S t ω, pastOf R.S t ω)) := by
+  intro t
+  change 𝔼.E t (fun ω => π (R.S (t + 1) ω, pastOf R.S (t + 1) ω)) = _
+  rw [R.hist t π]
+  funext ω
+  exact h (R.S t ω) (pastOf R.S t ω)
+
+/-- Cochrane (2023), pp. 522–523: determinacy in an abstract system under the tree hypothesis —
+for every bounded disturbance driven by the regime history, `u_t = u(S_t, pastOf S t)`, there is
+exactly one bounded solution. -/
+def HDeterminate {𝔼 : ExpectationSystem Ω} {T : TransitionN N} (R : HistMarkovN 𝔼 T)
+    (φ : Fin N → ℝ) : Prop :=
+  ∀ u : NodeN N → ℝ, BoundedFn u →
+    ∃! π : ℕ → Ω → ℝ, Sol 𝔼 R.S φ (fun t ω => u (R.S t ω, pastOf R.S t ω)) π ∧ BoundedProc π
+
+/-- Cochrane (2023), pp. 522–523 (**Davig–Leeper for `N` regimes and any signs, in an abstract
+expectation system**): under the tree hypothesis, with all regimes possible at date `0`, the model
+`E_t π_{t+1} = φ_{S_t} π_t + u_t` has exactly one bounded equilibrium for every bounded
+history-driven disturbance iff every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is `< 1` —
+the condition of `MarkovRegimesGeneral.determinate_iff` on the regime tree.
+**Scope:** with non-degenerate transitions (two positive entries in every row of `P`) the tree
+hypothesis has no constructible model: the module TidyR6MarkovInstances proves that every date-`0`
+forecast then gives weight zero to every single state, and TidyR6MarkovNoGo that no forecast is
+a finite combination of values and no countable state space works. The buildable models have
+degenerate (deterministic) transitions, where the theorem is instantiated in
+TidyR6MarkovInstances; the substantive non-degenerate versions are
+`MarkovRegimesGeneral.determinate_iff` (regime tree) and
+`MarkovRegimesGeneralMeasure.meas_determinate_iff` (probability space). -/
+theorem hist_determinate_iff {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : HistMarkovN 𝔼 T) (φ : Fin N → ℝ) (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) :
+    HDeterminate R φ ↔ GenCondition T φ := by
+  constructor
+  · intro hd
+    by_contra hc
+    obtain ⟨e, he, hb, hne⟩ := (hist_dichotomy R hS0).2 hc
+    obtain ⟨π, _, huniq⟩ := hd 0 ⟨0, fun n => by simp⟩
+    have hz : ∀ x : ℕ → Ω → ℝ, Homog 𝔼 R.S φ x →
+        Sol 𝔼 R.S φ (fun t ω => (0 : NodeN N → ℝ) (R.S t ω, pastOf R.S t ω)) x := by
+      intro x hx t
+      rw [hx t]
+      funext ω
+      simp
+    have h0 : (0 : ℕ → Ω → ℝ) = π := huniq 0 ⟨hz 0 (fun t => by
+      funext ω
+      simp), ⟨0, fun t ω => by simp⟩⟩
+    exact hne ((huniq e ⟨hz e he, hb⟩).trans h0.symm)
+  · intro hc u ⟨U, hU⟩
+    refine ⟨fun t ω => fwdSol T φ u (R.S t ω, pastOf R.S t ω),
+      ⟨tree_transfer R (fwdSol_solves T hc hU), ?_⟩, ?_⟩
+    · obtain ⟨B, hB⟩ := fwdSol_bounded T hc hU
+      exact ⟨B, fun t ω => hB _⟩
+    · rintro π ⟨hπ, hπb⟩
+      obtain ⟨B, hB⟩ := fwdSol_bounded T hc hU
+      exact absN_unique R.toMarkov hc hπ (tree_transfer R (fwdSol_solves T hc hU)) hπb
+        ⟨B, fun t ω => hB _⟩
+
+end Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# No pointwise-linear expectation system carries a non-degenerate Markov regime
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.2, pp. 522–523 (Markov
+switching "with exactly two (or even N) states", p. 523).
+
+An `ExpectationSystem` forecasts every function `Ω → ℝ`. A forecast `E_0(·)(ω)` is
+*pointwise-linear* (`PointwiseLinearAt`) when it is a finite linear combination of values,
+`E_0 x(ω) = ∑_{z ∈ F} c_z x(z)` with `F` finite. This module proves that such a forecast is
+incompatible with a known Markov regime whose transitions are non-degenerate, and that on a
+countable state space every forecast is pointwise-linear.
+
+## Main results
+
+* `not_pointwiseLinear` (**the no-go**): if `S` is a Markov regime that is known at each date
+  (`RegimeAdapted`) and every row of `P` has two positive entries (`Nondegenerate`), then no
+  date-`0` forecast is pointwise-linear. The forecast must give positive weight, inside its
+  finite support, to ever more distinct regime histories (`card_hist_ge`).
+* `pointwiseLinear_of_finite`: on a finite state space every forecast is pointwise-linear;
+  `pointwiseLinear_of_countable`: so is every forecast on a countable state space (a positive
+  linear functional on all functions of a countable set is a finite combination of evaluations:
+  `finite_support`, `vanish_of_support`).
+* `countable_no_regime`: no expectation system on a countable state space carries a known,
+  non-degenerate Markov regime; `countable_no_histMarkov`: in particular none satisfies the tree
+  hypothesis `TidyR6MarkovAbstractN.HistMarkovN` with non-degenerate `P`, and
+  `histMarkov_not_pointwiseLinear`: on any state space, no forecast of such a system is
+  pointwise-linear.
+* `avgSystem_pointwiseLinear`: the counterexample `TidyR6MarkovAbstractN.avgSystem` is
+  pointwise-linear and carries a Markov regime with non-degenerate `P`, which is not known at each
+  date — the known-regime hypothesis of the no-go cannot be dropped.
+-/
+
+namespace Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo
+
+open Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+open Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN
+
+variable {Ω : Type*} {N : ℕ}
+
+/-- Cochrane (2023), p. 523: the date-`0` forecast at `ω` is a finite linear combination of
+values, `E_0 x(ω) = ∑_{z ∈ F} c_z x(z)`. -/
+def PointwiseLinearAt (𝔼 : ExpectationSystem Ω) (ω : Ω) : Prop :=
+  ∃ (F : Finset Ω) (c : Ω → ℝ), ∀ x : Ω → ℝ, 𝔼.E 0 x ω = ∑ z ∈ F, c z * x z
+
+/-- Cochrane (2023), p. 522: the regime is known at each date, `E_t f(S_t) = f(S_t)`. -/
+def RegimeAdapted (𝔼 : ExpectationSystem Ω) (S : ℕ → Ω → Fin N) : Prop :=
+  ∀ t (f : Fin N → ℝ), 𝔼.E t (f ∘ S t) = f ∘ S t
+
+/-- Cochrane (2023), p. 523: every regime can be followed by at least two different regimes. -/
+def Nondegenerate (T : TransitionN N) : Prop :=
+  ∀ i, ∃ j₁ j₂, j₁ ≠ j₂ ∧ 0 < T.P i j₁ ∧ 0 < T.P i j₂
+
+/-- Cochrane (2023), p. 522: two regime histories up to date `t` agree iff the regimes agree at
+every date before `t`. -/
+theorem pastOf_eq_iff (S : ℕ → Ω → Fin N) (t : ℕ) (z ω : Ω) :
+    pastOf S t z = pastOf S t ω ↔ ∀ s < t, S s z = S s ω := by
+  induction t with
+  | zero => simp [pastOf]
+  | succ t ih =>
+    simp only [pastOf, List.cons.injEq, ih]
+    constructor
+    · rintro ⟨h1, h2⟩ s hs
+      rcases Nat.lt_succ_iff_lt_or_eq.1 hs with hs | rfl
+      · exact h2 s hs
+      · exact h1
+    · intro h
+      exact ⟨h t (Nat.lt_succ_self t), fun s hs => h s (Nat.lt_succ_of_lt hs)⟩
+
+/-- Cochrane (2023), p. 522: forecasts of nonnegative variables are nonnegative.
+The monotonicity axiom of `ExpectationSystem` at `0`. -/
+theorem E_nonneg (𝔼 : ExpectationSystem Ω) (t : ℕ) {x : Ω → ℝ} (hx : 0 ≤ x) :
+    0 ≤ 𝔼.E t x := by
+  have h := 𝔼.mono t hx
+  rwa [map_zero] at h
+
+/-- Cochrane (2023), p. 522: a regime that is known at each date stays known later,
+`E_t f(S_s) = f(S_s)` for `s ≤ t`. -/
+theorem adapted_later {𝔼 : ExpectationSystem Ω} {S : ℕ → Ω → Fin N} (hA : RegimeAdapted 𝔼 S)
+    {s t : ℕ} (hst : s ≤ t) (f : Fin N → ℝ) : 𝔼.E t (f ∘ S s) = f ∘ S s := by
+  rw [← hA s f, 𝔼.known hst]
+
+/-- Cochrane (2023), p. 522: when the regime is known, so is the regime history: at `ω`, the
+date-`t` forecast of the indicator that the history up to `t` differs from `ω`'s is `0`. -/
+theorem hist_known {𝔼 : ExpectationSystem Ω} {S : ℕ → Ω → Fin N} (hA : RegimeAdapted 𝔼 S)
+    (t : ℕ) (ω : Ω) :
+    𝔼.E t (fun z => if pastOf S (t + 1) z = pastOf S (t + 1) ω then 0 else 1) ω = 0 := by
+  classical
+  set g : ℕ → Fin N → ℝ := fun s l => if l = S s ω then 0 else 1 with hg
+  set D : Ω → ℝ := ∑ s ∈ Finset.range (t + 1), g s ∘ S s with hD
+  have hED : 𝔼.E t D = D := by
+    rw [hD, map_sum]
+    exact Finset.sum_congr rfl fun s hs =>
+      adapted_later hA (Nat.lt_succ_iff.1 (Finset.mem_range.1 hs)) (g s)
+  have hD0 : D ω = 0 := by
+    rw [hD, Finset.sum_apply]
+    exact Finset.sum_eq_zero fun s _ => by simp [hg]
+  have hle : (fun z => if pastOf S (t + 1) z = pastOf S (t + 1) ω then (0 : ℝ) else 1) ≤ D := by
+    intro z
+    have hDnn : 0 ≤ D z := by
+      rw [hD, Finset.sum_apply]
+      exact Finset.sum_nonneg fun s _ => by
+        simp only [Function.comp_apply, hg]
+        split_ifs <;> norm_num
+    change (if pastOf S (t + 1) z = pastOf S (t + 1) ω then (0 : ℝ) else 1) ≤ D z
+    split_ifs with h
+    · exact hDnn
+    · rw [pastOf_eq_iff] at h
+      push Not at h
+      obtain ⟨s, hs, hne⟩ := h
+      rw [hD, Finset.sum_apply]
+      have hmem : s ∈ Finset.range (t + 1) := Finset.mem_range.2 hs
+      calc (1 : ℝ) = (g s ∘ S s) z := by simp [hg, hne]
+        _ ≤ ∑ s ∈ Finset.range (t + 1), (g s ∘ S s) z :=
+          Finset.single_le_sum (f := fun s => (g s ∘ S s) z) (fun s _ => by
+            simp only [Function.comp_apply, hg]
+            split_ifs <;> norm_num) hmem
+  have h1 := 𝔼.mono t hle ω
+  have h2 := E_nonneg 𝔼 t (x := fun z => if pastOf S (t + 1) z = pastOf S (t + 1) ω then
+    (0 : ℝ) else 1) (fun z => by
+      change (0 : ℝ) ≤ if _ then 0 else 1
+      split_ifs <;> norm_num) ω
+  rw [hED, hD0] at h1
+  exact le_antisymm h1 h2
+
+variable {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+
+/-- Cochrane (2023), p. 523: under a pointwise-linear forecast at `ω` with weights `c` on `F`,
+the forecast of a regime history up to date `t + 1` from a weighted point `ω'` of `F` puts weight
+only on histories realised in `F`: every regime `j` with `P_{S_t(ω'), j} > 0` follows `ω'`'s
+history at some point of `F`. -/
+theorem split_in_support (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) {ω : Ω}
+    {F : Finset Ω} {c : Ω → ℝ} (hL : ∀ x : Ω → ℝ, 𝔼.E 0 x ω = ∑ z ∈ F, c z * x z)
+    (hc0 : ∀ z ∈ F, 0 ≤ c z) {ω' : Ω} (hω' : ω' ∈ F) (hcω' : 0 < c ω') (t : ℕ) {j : Fin N}
+    (hj : 0 < T.P (R.S t ω') j) :
+    ∃ z ∈ F, pastOf R.S (t + 1) z = pastOf R.S (t + 1) ω' ∧ R.S (t + 1) z = j := by
+  classical
+  by_contra hno
+  push Not at hno
+  have hvan : ∀ x : Ω → ℝ, 0 ≤ x → (∀ z ∈ F, x z = 0) → 𝔼.E t x ω' = 0 := by
+    intro x hx hxF
+    have h1 : 𝔼.E 0 (𝔼.E t x) ω = 𝔼.E 0 x ω := congrFun (𝔼.tower (Nat.zero_le t) x) ω
+    have h0 : ∑ z ∈ F, c z * x z = 0 := Finset.sum_eq_zero fun z hz => by rw [hxF z hz, mul_zero]
+    rw [hL, hL, h0] at h1
+    have hnn : ∀ z ∈ F, 0 ≤ c z * 𝔼.E t x z := fun z hz =>
+      mul_nonneg (hc0 z hz) (E_nonneg 𝔼 t hx z)
+    have := (Finset.sum_eq_zero_iff_of_nonneg hnn).1 h1 ω' hω'
+    rcases mul_eq_zero.1 this with h | h
+    · exact absurd h hcω'.ne'
+    · exact h
+  set y : Ω → ℝ := fun z =>
+    if pastOf R.S (t + 1) z = pastOf R.S (t + 1) ω' ∧ R.S (t + 1) z = j then 1 else 0 with hy
+  set ind : Ω → ℝ := fun z =>
+    if pastOf R.S (t + 1) z = pastOf R.S (t + 1) ω' then 0 else 1 with hind
+  set f : Fin N → ℝ := fun l => if l = j then 1 else 0 with hf
+  have hy0 : 𝔼.E t y ω' = 0 := hvan y (fun z => by
+    simp only [hy, Pi.zero_apply]
+    split_ifs <;> norm_num) (fun z hz => by
+      simp only [hy]
+      split_ifs with h
+      · exact absurd h.2 (hno z hz h.1)
+      · rfl)
+  have hi0 : 𝔼.E t ind ω' = 0 := hist_known hA t ω'
+  have hle : f ∘ R.S (t + 1) ≤ y + ind := by
+    intro z
+    simp only [Function.comp_apply, hf, hy, hind, Pi.add_apply]
+    split_ifs <;> simp_all
+  have h1 := 𝔼.mono t hle ω'
+  rw [map_add, R.markov t f] at h1
+  simp only [Pi.add_apply, hy0, hi0, add_zero, hf, mul_ite, mul_one, mul_zero,
+    Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte] at h1
+  linarith
+
+/-- Cochrane (2023), p. 523: under a pointwise-linear forecast at `ω` supported on `F`, a known,
+non-degenerate Markov regime has at least `t + 1` distinct histories up to date `t` among the
+points of `F`. -/
+theorem card_hist_ge (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hT : Nondegenerate T)
+    {ω : Ω} {F : Finset Ω} {c : Ω → ℝ} (hL : ∀ x : Ω → ℝ, 𝔼.E 0 x ω = ∑ z ∈ F, c z * x z)
+    (hc0 : ∀ z ∈ F, 0 ≤ c z) {ω' : Ω} (hω' : ω' ∈ F) (hcω' : 0 < c ω') (t : ℕ) :
+    t + 1 ≤ (F.image (pastOf R.S (t + 1))).card := by
+  classical
+  induction t with
+  | zero =>
+    have : (F.image (pastOf R.S 1)).Nonempty := ⟨_, Finset.mem_image_of_mem _ hω'⟩
+    exact this.card_pos
+  | succ t ih =>
+    have himg : (F.image (pastOf R.S (t + 1 + 1))).image List.tail =
+        F.image (pastOf R.S (t + 1)) := by
+      rw [Finset.image_image]
+      rfl
+    obtain ⟨j₁, j₂, hne, hp1, hp2⟩ := hT (R.S t ω')
+    obtain ⟨z₁, hz₁, hh₁, hs₁⟩ := split_in_support R hA hL hc0 hω' hcω' t hp1
+    obtain ⟨z₂, hz₂, hh₂, hs₂⟩ := split_in_support R hA hL hc0 hω' hcω' t hp2
+    have hninj : ¬ Set.InjOn List.tail (F.image (pastOf R.S (t + 1 + 1)) : Set (List (Fin N))) := by
+      intro hinj
+      have heq := hinj (Finset.mem_coe.2 (Finset.mem_image_of_mem _ hz₁))
+        (Finset.mem_coe.2 (Finset.mem_image_of_mem _ hz₂))
+        (by change pastOf R.S (t + 1) z₁ = pastOf R.S (t + 1) z₂; rw [hh₁, hh₂])
+      change R.S (t + 1) z₁ :: pastOf R.S (t + 1) z₁ =
+        R.S (t + 1) z₂ :: pastOf R.S (t + 1) z₂ at heq
+      rw [List.cons.injEq, hs₁, hs₂] at heq
+      exact hne heq.1
+    have hlt : (F.image (pastOf R.S (t + 1))).card < (F.image (pastOf R.S (t + 1 + 1))).card := by
+      rw [← himg]
+      exact lt_of_le_of_ne Finset.card_image_le (fun h => hninj (Finset.card_image_iff.1 h))
+    omega
+
+/-- Cochrane (2023), pp. 522–523 (**the no-go**): if a Markov regime is known at each date and
+every row of `P` has two positive entries, then no date-`0` forecast of the expectation system
+is a finite linear combination of values. -/
+theorem not_pointwiseLinear (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S)
+    (hT : Nondegenerate T) (ω : Ω) : ¬ PointwiseLinearAt 𝔼 ω := by
+  classical
+  rintro ⟨F, c, hL⟩
+  have hc0 : ∀ z ∈ F, 0 ≤ c z := by
+    intro z hz
+    have h := hL (fun w => if w = z then 1 else 0)
+    simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', hz, ↓reduceIte] at h
+    rw [← h]
+    exact E_nonneg 𝔼 0 (fun w => by
+      change (0 : ℝ) ≤ if w = z then 1 else 0
+      split_ifs <;> norm_num) ω
+  have hsum : ∑ z ∈ F, c z = 1 := by
+    have h := hL (fun _ => 1)
+    rw [𝔼.const] at h
+    simpa using h.symm
+  obtain ⟨ω', hω', hcω'⟩ : ∃ ω' ∈ F, 0 < c ω' := by
+    by_contra hno
+    push Not at hno
+    have := Finset.sum_nonpos hno
+    linarith
+  have h1 := card_hist_ge R hA hT hL hc0 hω' hcω' F.card
+  have h2 : (F.image (pastOf R.S (F.card + 1))).card ≤ F.card := Finset.card_image_le
+  omega
+
+/-- Cochrane (2023), p. 523: on a finite state space every forecast is pointwise-linear,
+`E_0 x(ω) = ∑_z E_0 1{z}(ω) x(z)`. -/
+theorem pointwiseLinear_of_finite [Finite Ω] (𝔼 : ExpectationSystem Ω) (ω : Ω) :
+    PointwiseLinearAt 𝔼 ω := by
+  classical
+  have := Fintype.ofFinite Ω
+  refine ⟨Finset.univ, fun z => 𝔼.E 0 (fun w => if w = z then 1 else 0) ω, fun x => ?_⟩
+  have hx : x = ∑ z, x z • (fun w => if w = z then (1 : ℝ) else 0) := by
+    funext w
+    simp [Finset.sum_apply]
+  conv_lhs => rw [hx]
+  rw [map_sum, Finset.sum_apply]
+  refine Finset.sum_congr rfl fun z _ => ?_
+  rw [map_smul, Pi.smul_apply, smul_eq_mul, mul_comm]
+
+/-! ### Countable state spaces -/
+
+/-- Cochrane (2023), p. 523: a positive forecast charges only finitely many single states — the
+set of `z` with `E_0 1{z}(ω) > 0` is finite. -/
+theorem finite_support (𝔼 : ExpectationSystem Ω) (ω : Ω) [DecidableEq Ω] :
+    {z | 0 < 𝔼.E 0 (fun w => if w = z then 1 else 0) ω}.Finite := by
+  set c : Ω → ℝ := fun z => 𝔼.E 0 (fun w => if w = z then 1 else 0) ω with hc
+  by_contra hinf
+  set x : Ω → ℝ := fun w => if 0 < c w then 1 / c w else 0 with hx
+  obtain ⟨n, hn⟩ := exists_nat_gt (𝔼.E 0 x ω)
+  obtain ⟨G, hGsub, hGcard⟩ := Set.Infinite.exists_subset_card_eq hinf n
+  have hle : (∑ z ∈ G, (1 / c z) • (fun w => if w = z then (1 : ℝ) else 0)) ≤ x := by
+    intro w
+    rw [Finset.sum_apply]
+    simp only [Pi.smul_apply, smul_eq_mul, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq]
+    split_ifs with hw
+    · have hpos : 0 < c w := hGsub hw
+      simp [hx, hpos]
+    · simp only [hx]
+      split_ifs with hp
+      · exact (one_div_pos.2 hp).le
+      · exact le_rfl
+  have h1 := 𝔼.mono 0 hle ω
+  rw [map_sum, Finset.sum_apply] at h1
+  have h2 : ∑ z ∈ G, (𝔼.E 0 ((1 / c z) • fun w => if w = z then (1 : ℝ) else 0)) ω =
+      ∑ z ∈ G, (1 : ℝ) := by
+    refine Finset.sum_congr rfl fun z hz => ?_
+    have hpos : 0 < c z := hGsub hz
+    rw [map_smul, Pi.smul_apply, smul_eq_mul]
+    change 1 / c z * c z = 1
+    field_simp
+  rw [h2, Finset.sum_const, nsmul_eq_mul, mul_one, hGcard] at h1
+  linarith
+
+/-- Cochrane (2023), p. 523: on a countable state space a forecast vanishes on every nonnegative
+variable supported on states that it does not charge (`E_0 1{z}(ω) = 0` wherever `x(z) ≠ 0`). -/
+theorem vanish_of_support [Countable Ω] [DecidableEq Ω] (𝔼 : ExpectationSystem Ω) (ω : Ω)
+    {y : Ω → ℝ} (hy : 0 ≤ y)
+    (hc : ∀ z, y z ≠ 0 → 𝔼.E 0 (fun w => if w = z then 1 else 0) ω = 0) :
+    𝔼.E 0 y ω = 0 := by
+  obtain ⟨k, hk⟩ := Countable.exists_injective_nat Ω
+  set zf : Ω → ℝ := fun w => ((k w : ℝ) + 1) * y w with hzf
+  have hhead : ∀ m : ℕ, 𝔼.E 0 (fun w => if k w < m then y w else 0) ω = 0 := by
+    intro m
+    set G : Finset Ω := (Finset.range m).preimage k hk.injOn with hG
+    have hrep : (fun w => if k w < m then y w else 0) =
+        ∑ z ∈ G, y z • (fun w => if w = z then (1 : ℝ) else 0) := by
+      funext w
+      rw [Finset.sum_apply]
+      simp only [Pi.smul_apply, smul_eq_mul, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq]
+      simp [hG]
+    rw [hrep, map_sum, Finset.sum_apply]
+    refine Finset.sum_eq_zero fun z _ => ?_
+    rw [map_smul, Pi.smul_apply, smul_eq_mul]
+    by_cases hz : y z = 0
+    · rw [hz, zero_mul]
+    · rw [hc z hz, mul_zero]
+  have hbound : ∀ m : ℕ, 0 < m → 𝔼.E 0 y ω * m ≤ 𝔼.E 0 zf ω := by
+    intro m hm
+    have hmpos : (0 : ℝ) < m := by exact_mod_cast hm
+    have hle : y ≤ (1 / (m : ℝ)) • zf + fun w => if k w < m then y w else 0 := by
+      intro w
+      change y w ≤ 1 / (m : ℝ) * (((k w : ℝ) + 1) * y w) + (if k w < m then y w else 0)
+      have hyw := hy w
+      have hk0 : (0 : ℝ) ≤ (k w : ℝ) + 1 := by positivity
+      have hnn : 0 ≤ 1 / (m : ℝ) * (((k w : ℝ) + 1) * y w) :=
+        mul_nonneg (by positivity) (mul_nonneg hk0 hyw)
+      split_ifs with hkw
+      · linarith
+      · have hkm : (m : ℝ) ≤ (k w : ℝ) + 1 := by
+          have : m ≤ k w := not_lt.1 hkw
+          have : (m : ℝ) ≤ k w := by exact_mod_cast this
+          linarith
+        have hdiv : 1 ≤ ((k w : ℝ) + 1) / m := (one_le_div hmpos).2 hkm
+        have : y w ≤ ((k w : ℝ) + 1) / m * y w := by
+          simpa using mul_le_mul_of_nonneg_right hdiv hyw
+        have heq : ((k w : ℝ) + 1) / m * y w = 1 / (m : ℝ) * (((k w : ℝ) + 1) * y w) := by
+          ring
+        linarith
+    have h1 := 𝔼.mono 0 hle ω
+    rw [map_add, map_smul, Pi.add_apply, Pi.smul_apply, smul_eq_mul, hhead m, add_zero] at h1
+    rw [← le_div_iff₀ hmpos]
+    calc 𝔼.E 0 y ω ≤ 1 / (m : ℝ) * 𝔼.E 0 zf ω := h1
+      _ = 𝔼.E 0 zf ω / m := by ring
+  have hnn : 0 ≤ 𝔼.E 0 y ω := E_nonneg 𝔼 0 hy ω
+  by_contra hne
+  have hpos : 0 < 𝔼.E 0 y ω := lt_of_le_of_ne hnn (Ne.symm hne)
+  obtain ⟨m, hm⟩ := exists_nat_gt (𝔼.E 0 zf ω / 𝔼.E 0 y ω)
+  have hm0 : 0 < m := by
+    have : 0 ≤ 𝔼.E 0 zf ω / 𝔼.E 0 y ω := by
+      have := hbound 1 one_pos
+      rw [Nat.cast_one, mul_one] at this
+      exact div_nonneg (by linarith) hnn
+    exact_mod_cast (lt_of_le_of_lt this hm)
+  have := hbound m hm0
+  rw [div_lt_iff₀ hpos] at hm
+  linarith
+
+/-- Cochrane (2023), p. 523: on a countable state space every forecast is pointwise-linear —
+`E_0 x(ω) = ∑_{z ∈ F} E_0 1{z}(ω) x(z)` with `F` the finite set of charged states. -/
+theorem pointwiseLinear_of_countable [Countable Ω] (𝔼 : ExpectationSystem Ω) (ω : Ω) :
+    PointwiseLinearAt 𝔼 ω := by
+  classical
+  set c : Ω → ℝ := fun z => 𝔼.E 0 (fun w => if w = z then 1 else 0) ω with hc
+  have hc0 : ∀ z, 0 ≤ c z := fun z => E_nonneg 𝔼 0 (fun w => by
+    change (0 : ℝ) ≤ if w = z then 1 else 0
+    split_ifs <;> norm_num) ω
+  set F : Finset Ω := (finite_support 𝔼 ω).toFinset with hF
+  have hmemF : ∀ z, z ∈ F ↔ 0 < c z := fun z => by simp [hF, hc]
+  refine ⟨F, c, fun x => ?_⟩
+  set xin : Ω → ℝ := fun w => if w ∈ F then x w else 0 with hxin
+  set p : Ω → ℝ := fun w => if w ∈ F then 0 else max (x w) 0 with hp
+  set q : Ω → ℝ := fun w => if w ∈ F then 0 else max (-x w) 0 with hq
+  have hsplit : x = xin + (p - q) := by
+    funext w
+    simp only [Pi.add_apply, Pi.sub_apply, hxin, hp, hq]
+    split_ifs
+    · ring
+    · rcases le_total (x w) 0 with h | h
+      · rw [max_eq_right h, max_eq_left (by linarith)]
+        ring
+      · rw [max_eq_left h, max_eq_right (by linarith)]
+        ring
+  have hout : ∀ r : Ω → ℝ, 0 ≤ r → (∀ w ∈ F, r w = 0) → 𝔼.E 0 r ω = 0 := by
+    intro r hr hrF
+    refine vanish_of_support 𝔼 ω hr fun z hz => ?_
+    have hzF : z ∉ F := fun h => hz (hrF z h)
+    rw [hmemF] at hzF
+    exact le_antisymm (not_lt.1 hzF) (hc0 z)
+  have hp0 : 𝔼.E 0 p ω = 0 := hout p (fun w => by
+    simp only [hp, Pi.zero_apply]
+    split_ifs
+    · exact le_rfl
+    · exact le_max_right _ _) (fun w hw => by simp [hp, hw])
+  have hq0 : 𝔼.E 0 q ω = 0 := hout q (fun w => by
+    simp only [hq, Pi.zero_apply]
+    split_ifs
+    · exact le_rfl
+    · exact le_max_right _ _) (fun w hw => by simp [hq, hw])
+  have hxin' : xin = ∑ z ∈ F, x z • (fun w => if w = z then (1 : ℝ) else 0) := by
+    funext w
+    rw [Finset.sum_apply]
+    simp only [Pi.smul_apply, smul_eq_mul, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, hxin]
+  have hE : 𝔼.E 0 x ω = 𝔼.E 0 xin ω := by
+    conv_lhs => rw [hsplit]
+    rw [map_add, map_sub, Pi.add_apply, Pi.sub_apply, hp0, hq0, sub_zero, add_zero]
+  rw [hE, hxin', map_sum, Finset.sum_apply]
+  refine Finset.sum_congr rfl fun z _ => ?_
+  rw [map_smul, Pi.smul_apply, smul_eq_mul, mul_comm]
+
+/-- Cochrane (2023), pp. 522–523 (**no countable model**): no expectation system on a countable
+state space carries a Markov regime that is known at each date and has non-degenerate
+transitions. -/
+theorem countable_no_regime [Countable Ω] (R : MarkovRegimeN 𝔼 T) (hT : Nondegenerate T)
+    [Nonempty Ω] : ¬ RegimeAdapted 𝔼 R.S := fun hA =>
+  not_pointwiseLinear R hA hT (Classical.arbitrary Ω) (pointwiseLinear_of_countable 𝔼 _)
+
+/-- Cochrane (2023), pp. 522–523: a regime satisfying the tree hypothesis
+`TidyR6MarkovAbstractN.HistMarkovN` is known at each date.
+Restates `TidyR6MarkovAbstractN.HistMarkovN.adapted`. -/
+theorem histMarkov_adapted (R : HistMarkovN 𝔼 T) : RegimeAdapted 𝔼 R.S :=
+  fun t f => R.adapted t f
+
+/-- Cochrane (2023), pp. 522–523 (**the tree hypothesis has no pointwise-linear model**): with
+non-degenerate transitions, no date-`0` forecast of a system satisfying the tree hypothesis is
+pointwise-linear. -/
+theorem histMarkov_not_pointwiseLinear (R : HistMarkovN 𝔼 T) (hT : Nondegenerate T) (ω : Ω) :
+    ¬ PointwiseLinearAt 𝔼 ω :=
+  not_pointwiseLinear R.toMarkov (histMarkov_adapted R) hT ω
+
+/-- Cochrane (2023), pp. 522–523: with non-degenerate transitions, no expectation system on a
+countable nonempty state space satisfies the tree hypothesis. -/
+theorem countable_no_histMarkov [Countable Ω] [Nonempty Ω] (R : HistMarkovN 𝔼 T)
+    (hT : Nondegenerate T) : False :=
+  histMarkov_not_pointwiseLinear R hT (Classical.arbitrary Ω) (pointwiseLinear_of_countable 𝔼 _)
+
+/-- Cochrane (2023), p. 523: the i.i.d. chain `p_ij = ½` is non-degenerate. -/
+theorem egHalf_nondegenerate : Nondegenerate (ofTwo egHalf) :=
+  fun _ => ⟨0, 1, by decide, by norm_num [ofTwo, egHalf], by norm_num [ofTwo, egHalf]⟩
+
+/-- Cochrane (2023), p. 523 (**the known-regime hypothesis cannot be dropped**): the two-state
+system `avgSystem` is pointwise-linear and carries the non-degenerate Markov regime
+`avgRegime`, which is not known at each date. -/
+theorem avgSystem_pointwiseLinear :
+    (∀ ω, PointwiseLinearAt avgSystem ω) ∧ Nondegenerate (ofTwo egHalf) ∧
+      ¬ RegimeAdapted avgSystem avgRegime.S :=
+  ⟨pointwiseLinear_of_finite avgSystem, egHalf_nondegenerate,
+    fun hA => avgRegime_not_adapted 0 (hA 0 _)⟩
+
+end Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# `N`-regime Markov switching in an abstract expectation system with the pull-out property
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.2, pp. 522–523 (Davig and
+Leeper (2006, 2007); "the Markov assumption, with exactly two (or even N) states", p. 523), and
+Chapter 22, §22.3, p. 500.
+
+In an `ExpectationSystem` with the pull-out property (`ExpectationSystem.PullOut`), a Markov regime
+process (`TidyR6MarkovAbstractN.MarkovRegimeN`) that is known at each date
+(`TidyR6MarkovNoGo.RegimeAdapted`) gives the full Davig–Leeper theorem for **arbitrary** bounded
+adapted disturbances, not only for disturbances driven by the regime history.
+
+## Main results
+
+* `wt`: the weights `w_{t,k} = ∏_{s=0}^{k} 1/φ_{S_{t+s}}`; `E_abs_wt`:
+  `E_t |w_{t,k}| = ∑_j ((|Φ|⁻¹P)^k)_{S_t j}/|φ_j|`.
+* `fwdP`: the forward solution `π_t = −∑_k E_t(w_{t,k} u_{t+k})`; `fwdP_solves`, `fwdP_bounded`,
+  `fwdP_adapted` (under `GenCondition`); the infinite sum is exchanged with `E_t` by
+  `ForwardSolution.E_tsum_dom`, which needs no further hypothesis.
+* `pullOut_twisted`: if the spectral radius of `|Φ|⁻¹P` is not `< 1`, the sign-twisted sunspot
+  `π_t = s_t x_t(S_t)` is a nonzero bounded solution of the homogeneous model.
+* `pullOut_determinate_iff` (**Davig–Leeper for `N` regimes and any signs**): with all regimes
+  possible at date `0`, for every bounded adapted disturbance there is exactly one bounded
+  equilibrium iff `GenCondition`.
+
+These hypotheses include a known regime, so with non-degenerate transitions they have no model on a
+countable state space and no model with a pointwise-linear forecast
+(`TidyR6MarkovNoGo.countable_no_regime`, `TidyR6MarkovNoGo.not_pointwiseLinear`). Their buildable
+models have degenerate transitions (`TidyR6MarkovInstances`); the substantive non-degenerate
+versions are `MarkovRegimesGeneral.determinate_iff` (regime tree) and
+`MarkovRegimesGeneralMeasure.meas_determinate_iff` (probability space).
+-/
+
+namespace Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut
+
+open Filter Topology
+open Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+open Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN
+open Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo
+
+variable {Ω : Type*} {N : ℕ}
+
+/-- Cochrane (2023), p. 523: the forward weights `w_{t,k} = ∏_{s=0}^{k} 1/φ_{S_{t+s}}`, with
+`w_{t,0} = 1/φ_{S_t}` and `w_{t,k+1} = (1/φ_{S_t}) w_{t+1,k}`. -/
+noncomputable def wt (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ) : ℕ → ℕ → Ω → ℝ
+  | t, 0, ω => 1 / φ (S t ω)
+  | t, k + 1, ω => 1 / φ (S t ω) * wt S φ (t + 1) k ω
+
+/-- Cochrane (2023), p. 523: the `k`-th term of the forward solution, `E_t(w_{t,k} u_{t+k})`.
+Abstract form of `MarkovRegimesGeneral.fwdTerm`. -/
+noncomputable def fterm (𝔼 : ExpectationSystem Ω) (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ)
+    (u : ℕ → Ω → ℝ) (t k : ℕ) : Ω → ℝ :=
+  𝔼.E t (wt S φ t k * u (t + k))
+
+/-- Cochrane (2023), pp. 522–523: the forward solution `π_t = −∑_k E_t(w_{t,k} u_{t+k})`.
+Abstract form of `MarkovRegimesGeneral.fwdSol` and `MarkovRegimesGeneralMeasure.fwdSolM`. -/
+noncomputable def fwdP (𝔼 : ExpectationSystem Ω) (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ)
+    (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => -∑' k, fterm 𝔼 S φ u t k ω
+
+/-- Cochrane (2023), p. 523: the summable bound `∑_i ∑_j |((|Φ|⁻¹P)^k)_{ij}|/|φ_j|`.
+As `MarkovRegimesGeneralMeasure.bnd`. -/
+noncomputable def bnd (T : TransitionN N) (φ : Fin N → ℝ) (k : ℕ) : ℝ :=
+  ∑ i, ∑ j, |(absM T φ ^ k) i j| * (1 / |φ j|)
+
+variable {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+
+/-- Cochrane (2023), p. 523: the weight `w_{t,k}` is known at date `t + k`. -/
+theorem wt_adapted (hP : 𝔼.PullOut) {S : ℕ → Ω → Fin N} (hA : RegimeAdapted 𝔼 S)
+    (φ : Fin N → ℝ) : ∀ k t, 𝔼.E (t + k) (wt S φ t k) = wt S φ t k := by
+  intro k
+  induction k with
+  | zero => intro t; exact hA t (fun l => 1 / φ l)
+  | succ k ih =>
+    intro t
+    have hfun : wt S φ t (k + 1) = (fun ω => 1 / φ (S t ω)) * wt S φ (t + 1) k := rfl
+    have ha : 𝔼.E (t + (k + 1)) (fun ω => 1 / φ (S t ω)) = fun ω => 1 / φ (S t ω) :=
+      adapted_later hA (by omega) (fun l => 1 / φ l)
+    rw [hfun, hP _ _ _ ha, show t + (k + 1) = t + 1 + k by omega, ih (t + 1)]
+
+/-- Cochrane (2023), p. 523: `|w_{t,k+1}| = (1/|φ_{S_t}|) |w_{t+1,k}|`. -/
+theorem abs_wt_succ (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ) (t k : ℕ) :
+    (fun ω => |wt S φ t (k + 1) ω|) =
+      (fun ω => 1 / |φ (S t ω)|) * fun ω => |wt S φ (t + 1) k ω| := by
+  funext ω
+  simp only [wt, Pi.mul_apply, abs_mul, abs_div, abs_one]
+
+/-- Cochrane (2023), p. 523: `E_t |w_{t,k}| = ∑_j ((|Φ|⁻¹P)^k)_{S_t j}/|φ_j|`. -/
+theorem E_abs_wt (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0) : ∀ k t, 𝔼.E t (fun ω => |wt R.S φ t k ω|) =
+      fun ω => ∑ j, (absM T φ ^ k) (R.S t ω) j * (1 / |φ j|) := by
+  intro k
+  induction k with
+  | zero =>
+    intro t
+    have h := hA t (fun l => |1 / φ l|)
+    change 𝔼.E t (fun ω => |1 / φ (R.S t ω)|) = fun ω => |1 / φ (R.S t ω)| at h
+    change 𝔼.E t (fun ω => |1 / φ (R.S t ω)|) = _
+    rw [h]
+    funext ω
+    simp [Matrix.one_apply]
+  | succ k ih =>
+    intro t
+    set g : Fin N → ℝ := fun l => ∑ j, (absM T φ ^ k) l j * (1 / |φ j|) with hg
+    have ha : 𝔼.E t (fun ω => 1 / |φ (R.S t ω)|) = fun ω => 1 / |φ (R.S t ω)| :=
+      hA t (fun l => 1 / |φ l|)
+    rw [abs_wt_succ, hP _ _ _ ha, ← 𝔼.tower (Nat.le_succ t), ih (t + 1)]
+    have hm : 𝔼.E t (fun ω => ∑ j, (absM T φ ^ k) (R.S (t + 1) ω) j * (1 / |φ j|)) =
+        fun ω => ∑ l, T.P (R.S t ω) l * g l := R.markov t g
+    rw [hm]
+    funext ω
+    simp only [Pi.mul_apply]
+    have hs := sum_pow_succ (absM T φ) k (R.S t ω) (fun j => 1 / |φ j|)
+    have h0 : |φ (R.S t ω)| ≠ 0 := abs_ne_zero.2 (hφ _)
+    rw [hs, row_absM T (hφ _) g, ← mul_assoc, one_div_mul_cancel h0, one_mul]
+
+/-- Cochrane (2023), p. 523: `|E_t(w_{t,k} u_{t+k})| ≤ U ∑_j ((|Φ|⁻¹P)^k)_{S_t j}/|φ_j|` when
+`|u| ≤ U`.
+Abstract form of `MarkovRegimesGeneral.fwdTerm_bound`. -/
+theorem fterm_bound (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0) {u : ℕ → Ω → ℝ} {U : ℝ} (hU : ∀ t ω, |u t ω| ≤ U)
+    (t k : ℕ) (ω : Ω) :
+    |fterm 𝔼 R.S φ u t k ω| ≤ U * ∑ j, (absM T φ ^ k) (R.S t ω) j * (1 / |φ j|) := by
+  set a : Ω → ℝ := fun ω => |wt R.S φ t k ω| with ha
+  have hup : wt R.S φ t k * u (t + k) ≤ U • a := fun ω' => by
+    simp only [Pi.mul_apply, Pi.smul_apply, smul_eq_mul, ha]
+    calc wt R.S φ t k ω' * u (t + k) ω' ≤ |wt R.S φ t k ω' * u (t + k) ω'| := le_abs_self _
+      _ = |wt R.S φ t k ω'| * |u (t + k) ω'| := abs_mul _ _
+      _ ≤ |wt R.S φ t k ω'| * U := mul_le_mul_of_nonneg_left (hU _ _) (abs_nonneg _)
+      _ = U * |wt R.S φ t k ω'| := mul_comm _ _
+  have hlo : -(U • a) ≤ wt R.S φ t k * u (t + k) := fun ω' => by
+    simp only [Pi.mul_apply, Pi.smul_apply, Pi.neg_apply, smul_eq_mul, ha]
+    have h1 : |wt R.S φ t k ω' * u (t + k) ω'| ≤ U * |wt R.S φ t k ω'| := by
+      rw [abs_mul, mul_comm]
+      exact mul_le_mul_of_nonneg_right (hU _ _) (abs_nonneg _)
+    linarith [neg_abs_le (wt R.S φ t k ω' * u (t + k) ω')]
+  have h1 := 𝔼.mono t hup ω
+  have h2 := 𝔼.mono t hlo ω
+  rw [map_neg, map_smul, ha, E_abs_wt R hA hP hφ k t] at h2
+  rw [map_smul, ha, E_abs_wt R hA hP hφ k t] at h1
+  simp only [Pi.neg_apply, Pi.smul_apply, smul_eq_mul] at h1 h2
+  exact abs_le.2 ⟨h2, h1⟩
+
+/-- Cochrane (2023), p. 523: `∑_j ((|Φ|⁻¹P)^k)_{ij}/|φ_j| ≤ bnd k`. -/
+theorem row_le_bnd (T : TransitionN N) (φ : Fin N → ℝ) (k : ℕ) (i : Fin N) :
+    ∑ j, (absM T φ ^ k) i j * (1 / |φ j|) ≤ bnd T φ k := by
+  have hnn : ∀ j, 0 ≤ 1 / |φ j| := fun j => one_div_nonneg.2 (abs_nonneg _)
+  calc ∑ j, (absM T φ ^ k) i j * (1 / |φ j|) ≤ ∑ j, |(absM T φ ^ k) i j| * (1 / |φ j|) :=
+        Finset.sum_le_sum fun j _ => mul_le_mul_of_nonneg_right (le_abs_self _) (hnn j)
+    _ ≤ bnd T φ k := by
+        unfold bnd
+        exact Finset.single_le_sum (f := fun i => ∑ j, |(absM T φ ^ k) i j| * (1 / |φ j|))
+          (fun i _ => Finset.sum_nonneg fun j _ => mul_nonneg (abs_nonneg _) (hnn j))
+          (Finset.mem_univ i)
+
+/-- Cochrane (2023), p. 523: under the condition the bound is summable.
+As `MarkovRegimesGeneralMeasure.summable_const` and `MarkovRegimesGeneral.summable_bound`. -/
+theorem bnd_summable {φ : Fin N → ℝ} (hc : GenCondition T φ) : Summable (bnd T φ) := by
+  unfold bnd
+  exact summable_sum fun i _ => summable_sum fun j _ =>
+    (summable_abs_pow_entry hc.2 i j).mul_right _
+
+/-- Cochrane (2023), p. 523: the terms of the forward solution are dominated by `U · bnd k`. -/
+theorem fterm_le (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0) {u : ℕ → Ω → ℝ} {U : ℝ} (hU : ∀ t ω, |u t ω| ≤ U)
+    (t k : ℕ) (ω : Ω) : |fterm 𝔼 R.S φ u t k ω| ≤ U * bnd T φ k := by
+  have hU0 : 0 ≤ U := (abs_nonneg _).trans (hU t ω)
+  exact (fterm_bound R hA hP hφ hU t k ω).trans
+    (mul_le_mul_of_nonneg_left (row_le_bnd T φ k _) hU0)
+
+/-- Cochrane (2023), p. 523: the first term, `E_t(u_t/φ_{S_t}) = u_t/φ_{S_t}` for adapted `u`. -/
+theorem fterm_zero (hP : 𝔼.PullOut) {S : ℕ → Ω → Fin N} (hA : RegimeAdapted 𝔼 S)
+    (φ : Fin N → ℝ) {u : ℕ → Ω → ℝ} (hu : 𝔼.Adapted u) (t : ℕ) :
+    fterm 𝔼 S φ u t 0 = fun ω => 1 / φ (S t ω) * u t ω := by
+  have ha : 𝔼.E t (fun ω => 1 / φ (S t ω)) = fun ω => 1 / φ (S t ω) := hA t (fun l => 1 / φ l)
+  unfold fterm
+  change 𝔼.E t ((fun ω => 1 / φ (S t ω)) * u t) = _
+  rw [hP _ _ _ ha, hu t]
+  rfl
+
+/-- Cochrane (2023), p. 523: the recursion of the terms,
+`E_t(w_{t,k+1} u_{t+k+1}) = (1/φ_{S_t}) E_t E_{t+1}(w_{t+1,k} u_{t+1+k})`. -/
+theorem fterm_succ (hP : 𝔼.PullOut) {S : ℕ → Ω → Fin N} (hA : RegimeAdapted 𝔼 S)
+    (φ : Fin N → ℝ) (u : ℕ → Ω → ℝ) (t k : ℕ) :
+    fterm 𝔼 S φ u t (k + 1) = (fun ω => 1 / φ (S t ω)) * 𝔼.E t (fterm 𝔼 S φ u (t + 1) k) := by
+  have ha : 𝔼.E t (fun ω => 1 / φ (S t ω)) = fun ω => 1 / φ (S t ω) := hA t (fun l => 1 / φ l)
+  have hfun : wt S φ t (k + 1) * u (t + (k + 1)) =
+      (fun ω => 1 / φ (S t ω)) * (wt S φ (t + 1) k * u (t + 1 + k)) := by
+    funext ω
+    simp only [wt, Pi.mul_apply, show t + (k + 1) = t + 1 + k by omega]
+    ring
+  unfold fterm
+  rw [hfun, hP _ _ _ ha, 𝔼.tower (Nat.le_succ t)]
+
+/-- Cochrane (2023), p. 523: the forward-solution terms are summable at every state. -/
+theorem fterm_summable (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hc : GenCondition T φ) {u : ℕ → Ω → ℝ} {U : ℝ}
+    (hU : ∀ t ω, |u t ω| ≤ U) (t : ℕ) (ω : Ω) : Summable (fun k => fterm 𝔼 R.S φ u t k ω) :=
+  Summable.of_norm_bounded ((bnd_summable hc).mul_left U) fun k => by
+    rw [Real.norm_eq_abs]
+    exact fterm_le R hA hP hc.1 hU t k ω
+
+/-- Cochrane (2023), pp. 522–523 (**existence for any bounded adapted disturbance**): under the
+condition, `π_t = −∑_k E_t(w_{t,k} u_{t+k})` solves `E_t π_{t+1} = φ_{S_t} π_t + u_t`.
+Abstract form of `MarkovRegimesGeneral.fwdSol_solves`. -/
+theorem fwdP_solves (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hc : GenCondition T φ) {u : ℕ → Ω → ℝ} (hu : 𝔼.Adapted u) {U : ℝ}
+    (hU : ∀ t ω, |u t ω| ≤ U) : Sol 𝔼 R.S φ u (fwdP 𝔼 R.S φ u) := by
+  intro t
+  funext ω
+  have hneg : fwdP 𝔼 R.S φ u (t + 1) = -fun ω' => ∑' k, fterm 𝔼 R.S φ u (t + 1) k ω' := rfl
+  rw [hneg, map_neg, Pi.neg_apply,
+    ForwardSolution.E_tsum_dom 𝔼 ((bnd_summable hc).mul_left U)
+      (fun k ω' => fterm_le R hA hP hc.1 hU (t + 1) k ω') t ω]
+  have hφ := hc.1 (R.S t ω)
+  have hk : ∀ k, 𝔼.E t (fterm 𝔼 R.S φ u (t + 1) k) ω =
+      φ (R.S t ω) * fterm 𝔼 R.S φ u t (k + 1) ω := fun k => by
+    rw [fterm_succ hP hA φ u t k, Pi.mul_apply]
+    field_simp
+  simp only [hk]
+  rw [tsum_mul_left]
+  have hs := fterm_summable R hA hP hc hU t ω
+  change -(φ (R.S t ω) * ∑' k, fterm 𝔼 R.S φ u t (k + 1) ω) =
+    φ (R.S t ω) * -∑' k, fterm 𝔼 R.S φ u t k ω + u t ω
+  rw [hs.tsum_eq_zero_add, fterm_zero hP hA φ hu t]
+  field_simp
+  ring
+
+/-- Cochrane (2023), pp. 522–523: under the condition the forward solution is bounded by
+`U ∑_k bnd k`.
+Abstract form of `MarkovRegimesGeneral.fwdSol_bounded`. -/
+theorem fwdP_bounded (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hc : GenCondition T φ) {u : ℕ → Ω → ℝ} {U : ℝ}
+    (hU : ∀ t ω, |u t ω| ≤ U) : BoundedProc (fwdP 𝔼 R.S φ u) := by
+  refine ⟨∑' k, U * bnd T φ k, fun t ω => ?_⟩
+  change |-∑' k, fterm 𝔼 R.S φ u t k ω| ≤ _
+  rw [abs_neg, ← Real.norm_eq_abs]
+  exact tsum_of_norm_bounded ((bnd_summable hc).mul_left U).hasSum fun k => by
+    rw [Real.norm_eq_abs]
+    exact fterm_le R hA hP hc.1 hU t k ω
+
+/-- Cochrane (2023), pp. 522–523: the forward solution is adapted.
+Abstract form of `MarkovRegimesGeneralMeasure.fwdSolM_adapted`. -/
+theorem fwdP_adapted (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hc : GenCondition T φ) {u : ℕ → Ω → ℝ} {U : ℝ}
+    (hU : ∀ t ω, |u t ω| ≤ U) : 𝔼.Adapted (fwdP 𝔼 R.S φ u) := by
+  intro t
+  funext ω
+  have hneg : fwdP 𝔼 R.S φ u t = -fun ω' => ∑' k, fterm 𝔼 R.S φ u t k ω' := rfl
+  rw [hneg, map_neg, Pi.neg_apply, Pi.neg_apply,
+    ForwardSolution.E_tsum_dom 𝔼 ((bnd_summable hc).mul_left U)
+      (fun k ω' => fterm_le R hA hP hc.1 hU t k ω') t ω]
+  simp only [fterm, 𝔼.E_E_self]
+
+/-! ### Non-uniqueness: the sign-twisted sunspot -/
+
+/-- Cochrane (2023), p. 523: the sign of the regime history, `s_t = ∏_{τ<t} sgn φ_{S_τ}`.
+Abstract form of `MarkovRegimesGeneralMeasure.sgnProc` and `MarkovRegimesGeneral.histSign`. -/
+noncomputable def sgnP (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => histSign φ (pastOf S t ω)
+
+/-- Cochrane (2023), p. 523: `s_{t+1} = sgn φ_{S_t} · s_t`.
+Abstract form of `MarkovRegimesGeneralMeasure.sgnProc_succ_sm`. -/
+theorem sgnP_succ (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ) (t : ℕ) :
+    sgnP S φ (t + 1) = (fun ω => sgn (φ (S t ω))) * sgnP S φ t := by
+  funext ω
+  simp only [sgnP, pastOf, histSign_cons, Pi.mul_apply]
+
+/-- Cochrane (2023), p. 523: with pull-out and a known regime, `s_t` is known at date `t`.
+Abstract form of `MarkovRegimesGeneralMeasure.sgnProc_sm`. -/
+theorem sgnP_adapted (hP : 𝔼.PullOut) {S : ℕ → Ω → Fin N} (hA : RegimeAdapted 𝔼 S)
+    (φ : Fin N → ℝ) : ∀ t, 𝔼.E t (sgnP S φ t) = sgnP S φ t := by
+  intro t
+  induction t with
+  | zero =>
+    have h0 : sgnP S φ 0 = fun _ => 1 := by
+      funext ω
+      simp [sgnP, pastOf, histSign]
+    rw [h0, 𝔼.const]
+  | succ t ih =>
+    have ha : 𝔼.E (t + 1) (fun ω => sgn (φ (S t ω))) = fun ω => sgn (φ (S t ω)) :=
+      adapted_later hA (Nat.le_succ t) (fun l => sgn (φ l))
+    rw [sgnP_succ, hP _ _ _ ha, ← ih, 𝔼.known (Nat.le_succ t)]
+
+/-- Cochrane (2023), p. 523: with pull-out and a known regime, `s_{t+1}` is known at date `t`. -/
+theorem sgnP_succ_adapted (hP : 𝔼.PullOut) {S : ℕ → Ω → Fin N} (hA : RegimeAdapted 𝔼 S)
+    (φ : Fin N → ℝ) (t : ℕ) : 𝔼.E t (sgnP S φ (t + 1)) = sgnP S φ (t + 1) := by
+  have ha : 𝔼.E t (fun ω => sgn (φ (S t ω))) = fun ω => sgn (φ (S t ω)) :=
+    hA t (fun l => sgn (φ l))
+  rw [sgnP_succ, hP _ _ _ ha, sgnP_adapted hP hA φ t]
+
+/-- Cochrane (2023), pp. 522–523 (**the sign-twisted sunspot with pull-out**): if every
+`φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is not `< 1`, then `π_t = s_t x_t(S_t)` with
+`x_t = |Φ|⁻¹P x_{t+1}` is a nonzero bounded solution of the homogeneous model.
+Pull-out form of `MarkovRegimesGeneralMeasure.twisted_solves` and
+`TidyR6MarkovAbstractN.hist_twisted`. -/
+theorem pullOut_twisted (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut)
+    {φ : Fin N → ℝ} (hφ : ∀ i, φ i ≠ 0) (h : ¬ specRad (absM T φ) < 1)
+    (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) : ∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0 := by
+  obtain ⟨x, hx, ⟨B, hB⟩, i₀, hi₀⟩ := exists_bdd_backward h
+  refine ⟨fun t => sgnP R.S φ t * (x t ∘ R.S t), fun t => ?_, ⟨B, fun t ω => ?_⟩, ?_⟩
+  · change 𝔼.E t (sgnP R.S φ (t + 1) * (x (t + 1) ∘ R.S (t + 1))) = _
+    rw [hP _ _ _ (sgnP_succ_adapted hP hA φ t), R.markov t (x (t + 1)), sgnP_succ]
+    funext ω
+    have hrow : ∑ j, T.P (R.S t ω) j * x (t + 1) j = |φ (R.S t ω)| * x t (R.S t ω) := by
+      rw [row_absM T (hφ _), hx t]
+      rfl
+    simp only [Pi.mul_apply, Function.comp_apply]
+    rw [hrow]
+    linear_combination (sgnP R.S φ t ω * x t (R.S t ω)) * sgn_mul_abs (φ (R.S t ω))
+  · change |sgnP R.S φ t ω * x t (R.S t ω)| ≤ B
+    rw [abs_mul, sgnP, abs_histSign, one_mul]
+    exact hB _ _
+  · intro h0
+    obtain ⟨ω, hω⟩ := hS0 i₀
+    have := congrFun (congrFun h0 0) ω
+    change histSign φ [] * x 0 (R.S 0 ω) = 0 at this
+    simp only [histSign, List.map_nil, List.prod_nil, one_mul, hω] at this
+    exact hi₀ this
+
+/-- Cochrane (2023), pp. 522–523: determinacy with pull-out — for every bounded adapted
+disturbance there is exactly one bounded solution of `E_t π_{t+1} = φ_{S_t} π_t + u_t`. -/
+def PDeterminate (𝔼 : ExpectationSystem Ω) (S : ℕ → Ω → Fin N) (φ : Fin N → ℝ) : Prop :=
+  ∀ u : ℕ → Ω → ℝ, 𝔼.Adapted u → BoundedProc u → ∃! π, Sol 𝔼 S φ u π ∧ BoundedProc π
+
+/-- Cochrane (2023), pp. 522–523 (**Davig–Leeper for `N` regimes and any signs, for arbitrary
+bounded adapted disturbances**): in an expectation system with the pull-out property and a known
+Markov regime, all regimes possible at date `0`, the model has exactly one bounded equilibrium for
+every bounded adapted disturbance iff every `φ_i ≠ 0` and the spectral radius of `|Φ|⁻¹P` is
+`< 1`. The equilibrium is the adapted forward solution `fwdP`. With non-degenerate transitions
+these hypotheses have no countable or pointwise-linear model
+(`TidyR6MarkovNoGo.countable_no_regime`): the theorem is substantive only for degenerate chains
+(`TidyR6MarkovInstances`), and the non-degenerate versions are
+`MarkovRegimesGeneral.determinate_iff` and `MarkovRegimesGeneralMeasure.meas_determinate_iff`. -/
+theorem pullOut_determinate_iff (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S)
+    (hP : 𝔼.PullOut) (φ : Fin N → ℝ) (hS0 : ∀ i, ∃ ω, R.S 0 ω = i) :
+    PDeterminate 𝔼 R.S φ ↔ GenCondition T φ := by
+  constructor
+  · intro hd
+    by_contra hc
+    obtain ⟨e, he, hb, hne⟩ : ∃ e, Homog 𝔼 R.S φ e ∧ BoundedProc e ∧ e ≠ 0 := by
+      by_cases h0 : ∀ i, φ i ≠ 0
+      · exact pullOut_twisted R hA hP h0 (fun hs => hc ⟨h0, hs⟩) hS0
+      · push Not at h0
+        obtain ⟨i, hi⟩ := h0
+        exact absN_zero_coeff_homog R hi (hS0 i)
+    have hz : ∀ x : ℕ → Ω → ℝ, Homog 𝔼 R.S φ x → Sol 𝔼 R.S φ 0 x := by
+      intro x hx t
+      rw [hx t]
+      funext ω
+      simp
+    obtain ⟨π, _, huniq⟩ := hd 0 (fun t => by simp) ⟨0, fun t ω => by simp⟩
+    have h0 : (0 : ℕ → Ω → ℝ) = π := huniq 0 ⟨hz 0 (fun t => by
+      funext ω
+      simp), ⟨0, fun t ω => by simp⟩⟩
+    exact hne ((huniq e ⟨hz e he, hb⟩).trans h0.symm)
+  · intro hc u hu ⟨U, hU⟩
+    refine ⟨fwdP 𝔼 R.S φ u, ⟨fwdP_solves R hA hP hc hu hU, fwdP_bounded R hA hP hc hU⟩, ?_⟩
+    rintro π ⟨hπ, hπb⟩
+    exact absN_unique R hc hπ (fwdP_solves R hA hP hc hu hU) hπb (fwdP_bounded R hA hP hc hU)
+
+end Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Models of the abstract `N`-regime theorems, and what the non-degenerate case forces
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 24, §24.2, pp. 522–523 (Davig and
+Leeper (2006, 2007); "the Markov assumption, with exactly two (or even N) states", p. 523).
+
+## Which models exist
+
+* **Degenerate chains, known regime** (`detT`, `detRegime`): with full information
+  (`ExpectationTools.fullInfo`, `E_t = id`) and a deterministic transition `S_{t+1} = σ(S_t)`, the
+  regime satisfies the tree hypothesis `TidyR6MarkovAbstractN.HistMarkovN`, is known at each date
+  and the system has the pull-out property. For `σ = id`, `genCondition_id_iff` computes the
+  condition (`|φ_i| > 1` for every `i`), and the abstract theorems become concrete
+  (`id_hist_determinate_iff`, `id_pullOut_determinate_iff`, `id_hist_dichotomy`,
+  `id_markov_dichotomy`, `eg_id_determinate`, `eg_id_indeterminate`).
+* **Non-degenerate chains, unknown regime**: `TidyR6MarkovAbstractN.avgRegime` (`p_ij = ½`) is a
+  Markov regime of a two-state system; `avg_naive_nonzero` instantiates
+  `TidyR6MarkovAbstractN.absN_homog_nonzero_of_not_naive` there.
+* **Non-degenerate chains, known regime: no constructible model.** Under the tree hypothesis
+  (`histMarkov_no_atoms`), or with pull-out and a known regime (`pullOut_no_atoms`), every
+  date-`0` forecast gives weight zero to every single state, `E_0 1{z}(ω) = 0`; with
+  `TidyR6MarkovNoGo.not_pointwiseLinear` and `TidyR6MarkovNoGo.countable_no_regime` there is no
+  pointwise-linear and no countable model. The substantive non-degenerate versions are therefore
+  `MarkovRegimesGeneral.determinate_iff` (regime tree) and
+  `MarkovRegimesGeneralMeasure.meas_determinate_iff` (probability space).
+-/
+
+namespace Cochrane.ObservationalEquivalence.TidyR6MarkovInstances
+
+open Filter Topology
+open Cochrane.ObservationalEquivalence.MarkovRegimesGeneral
+open Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN
+open Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo
+open Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut
+open Cochrane.ObservationalEquivalence.ExpectationTools
+open scoped Matrix ENNReal NNReal
+
+variable {Ω : Type*} {N : ℕ}
+
+/-! ### Deterministic chains -/
+
+/-- Cochrane (2023), p. 523: the degenerate transition matrix of a deterministic regime map `σ`,
+`P_{ij} = 1{j = σ(i)}`. -/
+def detT (σ : Fin N → Fin N) : TransitionN N where
+  P i j := if j = σ i then 1 else 0
+  nonneg i j := by
+    split_ifs <;> norm_num
+  rowSum i := by simp
+
+/-- Cochrane (2023), pp. 522–523: under full information on `Fin N`, the regime
+`S_t(ω) = σ^t(ω)` satisfies the tree hypothesis for `detT σ`. -/
+def detRegime (σ : Fin N → Fin N) : HistMarkovN (fullInfo (Fin N)) (detT σ) where
+  S t ω := σ^[t] ω
+  hist t G := by
+    funext ω
+    change G (σ^[t + 1] ω, _) = ∑ j, (if j = σ (σ^[t] ω) then (1 : ℝ) else 0) * G (j, _)
+    rw [Function.iterate_succ_apply']
+    simp
+
+/-- Cochrane (2023), p. 522: in `detRegime σ` every regime is possible at date `0`. -/
+theorem detRegime_initial (σ : Fin N → Fin N) (i : Fin N) : ∃ ω, (detRegime σ).S 0 ω = i :=
+  ⟨i, rfl⟩
+
+/-- Cochrane (2023), p. 522: in `detRegime σ` the regime is known at each date. -/
+theorem detRegime_adapted (σ : Fin N → Fin N) :
+    RegimeAdapted (fullInfo (Fin N)) (detRegime σ).S :=
+  fun _ _ => rfl
+
+/-- Cochrane (2023), p. 522: full information has the pull-out property.
+The full-information analogue of `perfectForesight_pullOut`. -/
+theorem fullInfo_pullOut : (fullInfo Ω).PullOut := fun _ _ _ _ => rfl
+
+/-- Cochrane (2023), p. 523: for `σ = id`, `|Φ|⁻¹P` is the diagonal matrix of `1/|φ_i|`. -/
+theorem absM_detT_id (φ : Fin N → ℝ) :
+    absM (detT (N := N) id) φ = Matrix.diagonal fun i => 1 / |φ i| := by
+  ext i j
+  by_cases h : i = j
+  · subst h
+    simp [absM, detT]
+  · simp [absM, detT, h, Ne.symm h]
+
+/-- Cochrane (2023), pp. 522–523: for the absorbing chain `P = I` the condition is that every
+regime is active, `|φ_i| > 1`. -/
+theorem genCondition_id_iff (φ : Fin N → ℝ) :
+    GenCondition (detT (N := N) id) φ ↔ ∀ i, 1 < |φ i| := by
+  have hmap : (Matrix.diagonal fun i => 1 / |φ i|).map Complex.ofReal =
+      Matrix.diagonal fun i => ((1 / |φ i| : ℝ) : ℂ) := Matrix.diagonal_map (by simp)
+  constructor
+  · rintro ⟨h0, hs⟩ i
+    by_contra hle
+    push Not at hle
+    have hpos : 0 < |φ i| := abs_pos.2 (h0 i)
+    have hv : (Pi.single i (1 : ℂ) : Fin N → ℂ) ≠ 0 := by
+      intro h
+      have := congrFun h i
+      simp at this
+    have hAv : ((absM (detT (N := N) id) φ).map Complex.ofReal) *ᵥ Pi.single i (1 : ℂ) =
+        ((1 / |φ i| : ℝ) : ℂ) • Pi.single i (1 : ℂ) := by
+      rw [absM_detT_id, hmap]
+      funext k
+      rw [Matrix.mulVec_diagonal]
+      by_cases hk : k = i
+      · subst hk
+        simp
+      · simp [hk]
+    have h1 := norm_le_spectralRadius hv hAv
+    have hge : (1 : ℝ) ≤ ‖((1 / |φ i| : ℝ) : ℂ)‖ := by
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by positivity)]
+      rw [le_div_iff₀ hpos, one_mul]
+      exact hle
+    have hge' : (1 : ℝ≥0∞) ≤ ‖((1 / |φ i| : ℝ) : ℂ)‖₊ := by
+      rw [ENNReal.one_le_coe_iff, ← NNReal.coe_le_coe, coe_nnnorm]
+      exact hge
+    exact absurd (lt_of_le_of_lt (hge'.trans h1) hs) (lt_irrefl _)
+  · intro h
+    have h0 : ∀ i, φ i ≠ 0 := fun i hi => by
+      have := h i
+      rw [hi, abs_zero] at this
+      linarith
+    refine ⟨h0, ?_⟩
+    set c : ℝ≥0 := Finset.univ.sup fun i => (1 / |φ i|).toNNReal with hc
+    have hc1 : c < 1 := by
+      rw [hc, Finset.sup_lt_iff (by simp)]
+      intro i _
+      rw [Real.toNNReal_lt_one, div_lt_one (by linarith [h i])]
+      exact h i
+    refine lt_of_le_of_lt (specRad_le_of_eigen fun z v hv hAv => ?_) (by exact_mod_cast hc1)
+    obtain ⟨k, hk⟩ : ∃ k, v k ≠ 0 := by
+      by_contra hno
+      push Not at hno
+      exact hv (funext hno)
+    have hrow := congrFun hAv k
+    rw [absM_detT_id, hmap, Matrix.mulVec_diagonal, Pi.smul_apply, smul_eq_mul] at hrow
+    have hz : z = ((1 / |φ k| : ℝ) : ℂ) := (mul_right_cancel₀ hk hrow).symm
+    rw [← NNReal.coe_le_coe, coe_nnnorm, hz, Complex.norm_real, Real.norm_eq_abs,
+      abs_of_pos (by have := h k; positivity)]
+    have hle : (1 / |φ k|).toNNReal ≤ c :=
+      Finset.le_sup (f := fun i => (1 / |φ i|).toNNReal) (Finset.mem_univ k)
+    rw [← NNReal.coe_le_coe, Real.coe_toNNReal _ (by positivity)] at hle
+    exact hle
+
+/-- Cochrane (2023), pp. 522–523 (**`hist_determinate_iff` instantiated**): for the absorbing
+chain under full information, there is exactly one bounded equilibrium for every bounded
+history-driven disturbance iff every regime is active, `|φ_i| > 1`. -/
+theorem id_hist_determinate_iff (φ : Fin N → ℝ) :
+    HDeterminate (detRegime (N := N) id) φ ↔ ∀ i, 1 < |φ i| :=
+  (hist_determinate_iff _ φ (detRegime_initial id)).trans (genCondition_id_iff φ)
+
+/-- Cochrane (2023), pp. 522–523 (**`pullOut_determinate_iff` instantiated**): for the absorbing
+chain under full information, there is exactly one bounded equilibrium for every bounded
+disturbance iff every regime is active, `|φ_i| > 1`. -/
+theorem id_pullOut_determinate_iff (φ : Fin N → ℝ) :
+    PDeterminate (fullInfo (Fin N)) (detRegime (N := N) id).S φ ↔ ∀ i, 1 < |φ i| :=
+  (pullOut_determinate_iff (detRegime id).toMarkov (detRegime_adapted id) fullInfo_pullOut φ
+    (detRegime_initial id)).trans (genCondition_id_iff φ)
+
+/-- Cochrane (2023), pp. 522–523 (**`hist_dichotomy` instantiated**): for the absorbing chain
+under full information, the homogeneous model has a nonzero bounded solution iff some regime is
+passive, `|φ_i| ≤ 1`. -/
+theorem id_hist_dichotomy (φ : Fin N → ℝ) :
+    (∃ e, Homog (fullInfo (Fin N)) (detRegime (N := N) id).S φ e ∧ BoundedProc e ∧ e ≠ 0) ↔
+      ∃ i, |φ i| ≤ 1 := by
+  rw [hist_dichotomy _ (detRegime_initial id), genCondition_id_iff]
+  push Not
+  rfl
+
+/-- Cochrane (2023), pp. 522–523 (**`absN_pos_dichotomy` instantiated with a known regime**): for
+the absorbing chain under full information and `φ_i > 0`, a nonzero bounded homogeneous solution
+exists iff some `φ_i ≤ 1`. -/
+theorem id_markov_dichotomy {φ : Fin N → ℝ} (hφ : ∀ i, 0 < φ i) :
+    (∃ e, Homog (fullInfo (Fin N)) (detRegime (N := N) id).S φ e ∧ BoundedProc e ∧ e ≠ 0) ↔
+      ∃ i, φ i ≤ 1 := by
+  refine (absN_pos_dichotomy (detRegime id).toMarkov hφ (detRegime_initial id)).trans ?_
+  rw [genCondition_id_iff]
+  push Not
+  simp only [abs_of_pos (hφ _)]
+
+/-- Cochrane (2023), pp. 522–523 (example): two absorbing regimes with `φ = (2, −3)`, both active,
+are determinate, for history-driven and for arbitrary bounded disturbances. -/
+theorem eg_id_determinate :
+    HDeterminate (detRegime (N := 2) id) ![2, -3] ∧
+      PDeterminate (fullInfo (Fin 2)) (detRegime (N := 2) id).S ![2, -3] := by
+  have h : ∀ i : Fin 2, 1 < |(![2, -3] : Fin 2 → ℝ) i| := by
+    intro i
+    fin_cases i <;> norm_num
+  exact ⟨(id_hist_determinate_iff _).2 h, (id_pullOut_determinate_iff _).2 h⟩
+
+/-- Cochrane (2023), pp. 522–523 (example): two absorbing regimes with `φ = (2, −½)` have a
+nonzero bounded sunspot. -/
+theorem eg_id_indeterminate :
+    ∃ e, Homog (fullInfo (Fin 2)) (detRegime (N := 2) id).S ![2, -1 / 2] e ∧ BoundedProc e ∧
+      e ≠ 0 :=
+  (id_hist_dichotomy _).2 ⟨1, by norm_num⟩
+
+/-! ### A non-degenerate chain with an unknown regime -/
+
+/-- Cochrane (2023), p. 523 (**`absN_homog_nonzero_of_not_naive` instantiated**): in
+`avgSystem`, with `p_ij = ½` and `φ = (½, ½)`, the naive condition fails and the homogeneous model
+has a nonzero bounded solution. -/
+theorem avg_naive_nonzero :
+    ¬ NaiveCondition (ofTwo egHalf) ![1 / 2, 1 / 2] ∧
+      ∃ e, Homog avgSystem avgRegime.S ![1 / 2, 1 / 2] e ∧ BoundedProc e ∧ e ≠ 0 := by
+  have hpos : ∀ i, 0 < (![1 / 2, 1 / 2] : Fin 2 → ℝ) i := by
+    intro i
+    fin_cases i <;> norm_num
+  have hdl : ¬ MarkovRegimes.DLCondition egHalf ![1 / 2, 1 / 2] := by
+    simp only [MarkovRegimes.DLCondition, egHalf]
+    norm_num
+  have hng : ¬ NaiveCondition (ofTwo egHalf) ![1 / 2, 1 / 2] := by
+    rintro ⟨h0, hs⟩
+    rw [sgnM_eq_absM _ hpos] at hs
+    exact hdl ((dl_iff_genCondition egHalf hpos).2 ⟨h0, hs⟩)
+  exact ⟨hng, absN_homog_nonzero_of_not_naive avgRegime hng avgRegime_initial⟩
+
+/-! ### Non-degenerate chains with a known regime: forecasts have no atoms -/
+
+/-- Cochrane (2023), p. 522: the indicator that the regime history up to date `t` (inclusive)
+is `z`'s. -/
+def histInd (S : ℕ → Ω → Fin N) (t : ℕ) (z : Ω) : Ω → ℝ :=
+  fun w => if pastOf S (t + 1) w = pastOf S (t + 1) z then 1 else 0
+
+/-- Cochrane (2023), p. 523: with non-degenerate transitions every transition probability is at
+most some `q < 1`. -/
+theorem exists_q {T : TransitionN N} (hT : Nondegenerate T) (i₀ : Fin N) :
+    ∃ q : ℝ, 0 ≤ q ∧ q < 1 ∧ ∀ i j, T.P i j ≤ q := by
+  have hlt : ∀ i j, T.P i j < 1 := by
+    intro i j
+    obtain ⟨j₁, j₂, hne, h1, h2⟩ := hT i
+    have hnn : ∀ l ∈ Finset.univ, 0 ≤ T.P i l := fun l _ => T.nonneg i l
+    have hsum := T.rowSum i
+    by_cases hj : j = j₁
+    · subst hj
+      have := Finset.add_le_sum hnn (Finset.mem_univ j) (Finset.mem_univ j₂) hne
+      linarith
+    · have := Finset.add_le_sum hnn (Finset.mem_univ j) (Finset.mem_univ j₁) hj
+      linarith
+  obtain ⟨p, -, hp⟩ := Finset.exists_max_image (Finset.univ : Finset (Fin N × Fin N))
+    (fun p => T.P p.1 p.2) ⟨(i₀, i₀), Finset.mem_univ _⟩
+  exact ⟨T.P p.1 p.2, T.nonneg _ _, hlt _ _, fun i j => hp (i, j) (Finset.mem_univ _)⟩
+
+/-- Cochrane (2023), p. 523: if each step of the regime history has forecast weight at most
+`q < 1`, `E_t 1{history to t+1 = z's} ≤ q · 1{history to t = z's}`, then the date-`0` forecast
+gives no weight to any single state. -/
+theorem no_atoms_of_step [DecidableEq Ω] {𝔼 : ExpectationSystem Ω} {S : ℕ → Ω → Fin N} {q : ℝ}
+    (hq0 : 0 ≤ q) (hq1 : q < 1) (hstep : ∀ t z, 𝔼.E t (histInd S (t + 1) z) ≤ q • histInd S t z)
+    (ω z : Ω) : 𝔼.E 0 (fun w => if w = z then 1 else 0) ω = 0 := by
+  have hbd : ∀ t, 𝔼.E 0 (histInd S t z) ω ≤ q ^ t := by
+    intro t
+    induction t with
+    | zero =>
+      have hle : histInd S 0 z ≤ fun _ => 1 := fun w => by
+        change (if _ then (1 : ℝ) else 0) ≤ 1
+        split_ifs <;> norm_num
+      have := 𝔼.mono 0 hle ω
+      rw [𝔼.const] at this
+      simpa using this
+    | succ t ih =>
+      have h1 := 𝔼.mono 0 (hstep t z) ω
+      rw [𝔼.tower (Nat.zero_le t), map_smul, Pi.smul_apply, smul_eq_mul] at h1
+      calc 𝔼.E 0 (histInd S (t + 1) z) ω ≤ q * 𝔼.E 0 (histInd S t z) ω := h1
+        _ ≤ q * q ^ t := mul_le_mul_of_nonneg_left ih hq0
+        _ = q ^ (t + 1) := (pow_succ' q t).symm
+  have hpt : ∀ t, (fun w => if w = z then (1 : ℝ) else 0) ≤ histInd S t z := fun t w => by
+    simp only [histInd]
+    by_cases hw : w = z
+    · simp [hw]
+    · simp only [hw, ↓reduceIte]
+      split_ifs <;> norm_num
+  have hnn : 0 ≤ 𝔼.E 0 (fun w => if w = z then (1 : ℝ) else 0) ω :=
+    E_nonneg 𝔼 0 (fun w => by
+      change (0 : ℝ) ≤ if w = z then 1 else 0
+      split_ifs <;> norm_num) ω
+  refine le_antisymm (ge_of_tendsto' (tendsto_pow_atTop_nhds_zero_of_lt_one hq0 hq1)
+    fun t => ?_) hnn
+  exact (𝔼.mono 0 (hpt t) ω).trans (hbd t)
+
+/-- Cochrane (2023), pp. 522–523 (**the tree hypothesis forces atomless forecasts**): if a regime
+satisfies the tree hypothesis with non-degenerate transitions, every date-`0` forecast gives
+weight zero to every single state, `E_0 1{z}(ω) = 0`. -/
+theorem histMarkov_no_atoms [DecidableEq Ω] {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : HistMarkovN 𝔼 T) (hT : Nondegenerate T) (ω z : Ω) :
+    𝔼.E 0 (fun w => if w = z then 1 else 0) ω = 0 := by
+  obtain ⟨q, hq0, hq1, hq⟩ := exists_q hT (R.S 0 ω)
+  refine no_atoms_of_step (S := R.S) hq0 hq1 (fun t z' w => ?_) ω z
+  have hm : 𝔼.E t (histInd R.S (t + 1) z') = fun w => ∑ j, T.P (R.S t w) j *
+      (if j :: pastOf R.S (t + 1) w = pastOf R.S (t + 1 + 1) z' then 1 else 0) :=
+    R.hist t (fun n => if n.1 :: n.2 = pastOf R.S (t + 1 + 1) z' then 1 else 0)
+  rw [hm]
+  simp only [Pi.smul_apply, smul_eq_mul, histInd]
+  rw [show pastOf R.S (t + 1 + 1) z' = R.S (t + 1) z' :: pastOf R.S (t + 1) z' from rfl]
+  by_cases h : pastOf R.S (t + 1) w = pastOf R.S (t + 1) z'
+  · simp only [List.cons.injEq, h, and_true, ↓reduceIte, mul_ite, mul_one, mul_zero,
+      Finset.sum_ite_eq', Finset.mem_univ]
+    exact hq _ _
+  · simp [h]
+
+/-- Cochrane (2023), p. 522: with pull-out and a known regime, the regime history up to date `t`
+is known at date `t`. -/
+theorem histInd_adapted {𝔼 : ExpectationSystem Ω} (hP : 𝔼.PullOut) {S : ℕ → Ω → Fin N}
+    (hA : RegimeAdapted 𝔼 S) (z : Ω) : ∀ t, 𝔼.E t (histInd S t z) = histInd S t z := by
+  intro t
+  induction t with
+  | zero =>
+    have h0 : histInd S 0 z = (fun l => if l = S 0 z then (1 : ℝ) else 0) ∘ S 0 := by
+      funext w
+      simp [histInd, pastOf]
+    rw [h0, hA 0]
+  | succ t ih =>
+    have hsplit : histInd S (t + 1) z =
+        (fun l => if l = S (t + 1) z then (1 : ℝ) else 0) ∘ S (t + 1) * histInd S t z := by
+      funext w
+      simp only [histInd, Pi.mul_apply, Function.comp_apply]
+      rw [show pastOf S (t + 1 + 1) w = S (t + 1) w :: pastOf S (t + 1) w from rfl,
+        show pastOf S (t + 1 + 1) z = S (t + 1) z :: pastOf S (t + 1) z from rfl]
+      simp only [List.cons.injEq]
+      by_cases h1 : S (t + 1) w = S (t + 1) z <;>
+        by_cases h2 : pastOf S (t + 1) w = pastOf S (t + 1) z <;> simp [h1, h2]
+    rw [hsplit, hP _ _ _ (hA (t + 1) _), ← ih, 𝔼.known (Nat.le_succ t)]
+
+/-- Cochrane (2023), pp. 522–523 (**pull-out with a known regime forces atomless forecasts**):
+with the pull-out property, a known Markov regime and non-degenerate transitions, every date-`0`
+forecast gives weight zero to every single state. -/
+theorem pullOut_no_atoms [DecidableEq Ω] {𝔼 : ExpectationSystem Ω} {T : TransitionN N}
+    (R : MarkovRegimeN 𝔼 T) (hA : RegimeAdapted 𝔼 R.S) (hP : 𝔼.PullOut) (hT : Nondegenerate T)
+    (ω z : Ω) :
+    𝔼.E 0 (fun w => if w = z then 1 else 0) ω = 0 := by
+  obtain ⟨q, hq0, hq1, hq⟩ := exists_q hT (R.S 0 ω)
+  refine no_atoms_of_step (S := R.S) hq0 hq1 (fun t z' w => ?_) ω z
+  set g : Fin N → ℝ := fun l => if l = R.S (t + 1) z' then 1 else 0 with hg
+  have hsplit : histInd R.S (t + 1) z' = histInd R.S t z' * (g ∘ R.S (t + 1)) := by
+    funext w
+    simp only [histInd, Pi.mul_apply, Function.comp_apply, hg]
+    rw [show pastOf R.S (t + 1 + 1) w = R.S (t + 1) w :: pastOf R.S (t + 1) w from rfl,
+      show pastOf R.S (t + 1 + 1) z' = R.S (t + 1) z' :: pastOf R.S (t + 1) z' from rfl]
+    simp only [List.cons.injEq]
+    by_cases h1 : R.S (t + 1) w = R.S (t + 1) z' <;>
+      by_cases h2 : pastOf R.S (t + 1) w = pastOf R.S (t + 1) z' <;> simp [h1, h2]
+  rw [hsplit, hP _ _ _ (histInd_adapted hP hA z' t), R.markov t g]
+  simp only [Pi.mul_apply, Pi.smul_apply, smul_eq_mul, hg, mul_ite, mul_one, mul_zero,
+    Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte]
+  have hI : 0 ≤ histInd R.S t z' w := by
+    simp only [histInd]
+    split_ifs <;> norm_num
+  calc histInd R.S t z' w * T.P (R.S t w) (R.S (t + 1) z') ≤ histInd R.S t z' w * q :=
+        mul_le_mul_of_nonneg_left (hq _ _) hI
+    _ = q * histInd R.S t z' w := mul_comm _ _
+
+end Cochrane.ObservationalEquivalence.TidyR6MarkovInstances
+
 set_option linter.style.longLine false
 #print axioms Cochrane.ObservationalEquivalence.SchurStable
 #print axioms Cochrane.ObservationalEquivalence.discQ
@@ -24890,3 +26649,105 @@ set_option linter.style.longLine false
 #print axioms Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.gateaux_log_fisher
 #print axioms Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.fisher_log_form
 #print axioms Cochrane.ObservationalEquivalence.TidyR6MoneyHouseholdLinear.tree_fisher_log_form
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.pastOf
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.Homog
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.Sol
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.mk
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.S
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.MarkovRegimeN.markov
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.mk
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.S
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.hist
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_bound
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_eq_zero
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.sol_sub
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_unique
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_zero_coeff_homog
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_nonzero_naive
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_homog_nonzero_of_not_naive
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.sgnM_eq_absM
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.absN_pos_dichotomy
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.ofRegime2
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.two_regime_eq_zero
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.two_regime_nonzero
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgMap
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgSystem
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime_initial
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avgRegime_not_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avg_not_genCondition
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.avg_homog_zero
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.markov_only_nonzero_fails
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.toMarkov
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HistMarkovN.adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_twisted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_dichotomy
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.tree_transfer
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.HDeterminate
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovAbstractN.hist_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.PointwiseLinearAt
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.RegimeAdapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.Nondegenerate
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pastOf_eq_iff
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.E_nonneg
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.adapted_later
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.hist_known
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.split_in_support
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.card_hist_ge
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.not_pointwiseLinear
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pointwiseLinear_of_finite
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.finite_support
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.vanish_of_support
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.pointwiseLinear_of_countable
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.countable_no_regime
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.histMarkov_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.histMarkov_not_pointwiseLinear
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.countable_no_histMarkov
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.egHalf_nondegenerate
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovNoGo.avgSystem_pointwiseLinear
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.wt
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.bnd
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.wt_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.abs_wt_succ
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.E_abs_wt
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_bound
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.row_le_bnd
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.bnd_summable
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_le
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_zero
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_succ
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fterm_summable
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_solves
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_bounded
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.fwdP_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_succ
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.sgnP_succ_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.pullOut_twisted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.PDeterminate
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovPullOut.pullOut_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detT
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime_initial
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.detRegime_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.fullInfo_pullOut
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.absM_detT_id
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.genCondition_id_iff
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_hist_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_pullOut_determinate_iff
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_hist_dichotomy
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.id_markov_dichotomy
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.eg_id_determinate
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.eg_id_indeterminate
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.avg_naive_nonzero
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histInd
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.exists_q
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.no_atoms_of_step
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histMarkov_no_atoms
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.histInd_adapted
+#print axioms Cochrane.ObservationalEquivalence.TidyR6MarkovInstances.pullOut_no_atoms
