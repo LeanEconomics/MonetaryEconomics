@@ -14,10 +14,13 @@ operator, so they cover perfect foresight and genuine uncertainty. The nonlinear
 are perfect-foresight, as in the book. The household first-order conditions are derived by
 optimisation, under perfect foresight, on a finite event tree and on a genuine probability space
 whose information grows forever, there without bounds on prices or plans. Continuous time is
-deterministic. The library contains **1300 theorems**, including the shared core; 578 of them are
-in the fourteen chapter modules, 175 in the six measure-theoretic household modules, 195 in the
-four `TidyR5…` modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem
-(`TidyR5BK`), and 136 in the eleven `TidyR6Household…` modules.
+deterministic, except the `E_td(·)` forms of Online Appendix §1.6 (`TidyR6StochasticDrift`). The
+library contains **1442 theorems**, including the shared core; 578 of them are in the fourteen
+chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
+modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
+in the eleven `TidyR6Household…` modules, and 142 in the twelve further `TidyR6…` modules: 27 on
+Woodford's convexity, Taylor-rule and Obstfeld–Rogoff sections, 54 on active fiscal policy under
+uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -69,7 +72,14 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   the deflationary steady state with `P_{t+1}/P_t → β`
   (`MoneyTargetingDynamics.power_deflation_orbit`,
   `MoneyTargetingDynamics.power_deflation_inflation`). Every path above it leaves the domain in
-  finite time (`MoneyTargetingDynamics.power_inflation_exits`).
+  finite time (`MoneyTargetingDynamics.power_inflation_exits`). Woodford's remaining sections are
+  restated too: his convexity claim fails for (19.18) itself (E7,
+  `TidyR6WoodfordSections.e7_convexity_fails`, `TidyR6WoodfordSections.e7_miuPath_iff`), his
+  Taylor-rule transversality argument holds with the corrected inequality (E4,
+  `TidyR6WoodfordSections.e4_corrected_inequality`,
+  `TidyR6WoodfordSections.fig24_deflations_violate_tvc`), and under Obstfeld and Rogoff's
+  condition (4.10) no path of (19.18) has real balances below the steady state
+  (`TidyR6WoodfordSections.or_miu_no_path_below`).
 * **Unpleasant arithmetic.** With fixed surpluses the present value of seigniorage is fixed, so
   lower money growth now forces higher money growth and inflation later
   (`UnpleasantArithmetic.unpleasant_money_growth`). With nominal debt a fall in the present value
@@ -123,6 +133,24 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   liabilities are nonnegative, `B_{−1} + M_{−1} ≥ 0`; otherwise a zero-rate deflation survives
   (`TidyR5ActiveFiscal.active_fiscal_unique_iff`, `TidyR5ActiveFiscal.active_fiscal_price_unique`,
   `TidyR5ActiveFiscal.active_fiscal_two_equilibria`).
+* **Active fiscal policy under uncertainty.** With random, time-varying money and an arbitrary
+  surplus process, for every `ExpectationSystem` with the pull-out property and full support (every
+  finite event tree) and on a genuine probability space, every equilibrium has the standard price
+  level `P = MV/y` once `B_{−1} + M_{−1} ≥ 0`, the standard valuation holds, and
+  `B_{−1} + M_{−1} > 0` or `q_0 < 1` (`TidyR6ActiveFiscalTree.stoch_price_unique`,
+  `TidyR6ActiveFiscalMeasure.meas_price_unique`). If the standard equilibrium exists it is the
+  only one, prices and bonds (`TidyR6ActiveFiscalTree.unique_of_standard`,
+  `TidyR6ActiveFiscalMeasure.meas_unique_of_standard`,
+  `TidyR6ActiveFiscalMeasureExist.meas_bonds_unique`). It exists iff the surplus is coordinated
+  with money (`TidyR6ActiveFiscalExist.std_exists_iff`), so coordination holds iff the unique
+  equilibrium is the standard one (`TidyR6ActiveFiscalExist.std_existsUnique_iff`); on a
+  probability space this is proved for equilibria with bounded real debt
+  (`TidyR6ActiveFiscalMeasureExist.meas_std_exists_iff`), and an uncoordinated surplus supports a
+  mean-zero debt bubble under the unconditional transversality condition
+  (`TidyR6ActiveFiscalBubble.bubble_not_coordinated`). Each hypothesis is needed: the proviso
+  (`TidyR6ActiveFiscalTree.pf_two_equilibria`), the pinning condition
+  (`TidyR6ActiveFiscalTree.pin_needed`) and coordination, without which a coin-flip surplus shock
+  leaves no standard equilibrium (`TidyR6ActiveFiscalTree.coin_no_standard_equilibrium`).
 * **Continuous time.** The present-value budget of Online Appendix Chapter 4 is the present-value
   form of the flow constraint (`ContinuousTime.pv_budget_iff`), and the first-order conditions
   follow by the chain rule (`ContinuousTime.foc_4_1`, `ContinuousTime.foc_4_2`). The CES limits
@@ -131,7 +159,20 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   The printed `α = 1/V` holds only for `α = 1` (`ContinuousTime.alpha_eq_inv_V_iff`). The IS curve
   with money is stated exactly, restoring the dropped `−δσ` (E21, `ContinuousTime.is_curve_exact`,
   `ContinuousTime.E21_steady_state`). The valuation equations of Online Appendix §1.6 are restated
-  (`ContinuousTime.money_interest_iff`).
+  (`ContinuousTime.money_interest_iff`). The Hamiltonian conditions (4.16)–(4.17) are necessary
+  and sufficient for the book's problem with concave utilities: the costate equation by du
+  Bois-Reymond, without assuming consumption differentiable (`TidyR6Pontryagin.costate_necessary`),
+  the transversality condition under Kamihigashi's scaling condition
+  (`TidyR6Pontryagin.tvc_necessary`), and sufficiency (`TidyR6Pontryagin.optimal_of_costate`,
+  `TidyR6Pontryagin.optimal_iff`); with piecewise-continuous consumption the costate is continuous
+  and equals `u′(c)` off the jumps (`TidyR6PontryaginPC.pontryagin_pc`,
+  `TidyR6PontryaginPCSuff.optimal_iff_pc`). Some condition is needed for the transversality
+  condition: at the optimum of Halkin's (1974) problem it fails for every costate
+  (`TidyR6Halkin.halkin_no_tvc`). The `E_td(·)` forms (1.32)–(1.34) of Online Appendix §1.6 hold
+  exactly on a `Δ`-grid (`TidyR6StochasticDrift.incr_1_32`, `TidyR6StochasticDrift.incr_1_34`); in
+  continuous time, with `E_tdX = a dt` defined as the martingale property of `X − ∫a`, valuation
+  holds iff the transversality condition does (`TidyR6StochasticDrift.valuation_iff_tvc`), and
+  (1.32) holds for finite-variation discount factors (`TidyR6StochasticDrift.drift_1_32_fv`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -229,7 +270,10 @@ the printed text precise. The main corrections are:
   `E_tπ_{t+1}` in (4.15) (E21);
 * 28.6%, not 40%, on p. 462 (E23);
 * active fiscal policy rules out the multiple equilibria of p. 454 only when `B_{−1} + M_{−1} ≥ 0`,
-  the proviso of p. 453 (`TidyR5ActiveFiscal.active_fiscal_unique_iff`);
+  the proviso of p. 453 (`TidyR5ActiveFiscal.active_fiscal_unique_iff`); under uncertainty it also
+  needs `B_{−1} + M_{−1} > 0` or `q_0 < 1` (`TidyR6ActiveFiscalTree.pin_needed`), and the standard
+  equilibrium exists only if surpluses are coordinated with money
+  (`TidyR6ActiveFiscalTree.coin_no_standard_equilibrium`, `TidyR6ActiveFiscalExist.std_exists_iff`);
 * "first order conditions and transversality conditions are necessary and sufficient", p. 453:
   the limit transversality condition is not necessary in general; the optimum is exactly the
   first-order (KKT) conditions plus the liminf transversality condition
@@ -267,13 +311,27 @@ Not formalised:
   given by finitely supported probabilities (`TidyR6HouseholdRep.expectation_rep`); on an
   uncountable one the representation is neither proved nor refuted, since a counterexample would
   yield a real-valued measurable cardinal, whose existence ZFC (and Lean) cannot prove;
-* Pontryagin necessity for the Hamiltonian conditions (4.16)–(4.17): only their consequences are
-  proved; and the stochastic `E_td(·)` forms of Online Appendix §1.6;
-* uniqueness under active fiscal policy outside the book's setting: `TidyR5ActiveFiscal` keeps
-  perfect foresight, constant money growth and the constant active surplus of the standard path;
-* the suspected one-period shift of the time axis of Figure 3.2 (E18);
-* Woodford's Taylor-rule transversality section, its Obstfeld–Rogoff section and its convexity
-  counterexample, which are not restated in `MoneyTargetingDynamics`.
+* the Hamiltonian conditions (4.16)–(4.17) beyond the book's concave problem. Necessity and
+  sufficiency are proved for concave `u, v` with continuous derivatives on `(0, ∞)` and optimal
+  consumption `LocBounded` and continuous off a countable set
+  (`TidyR6PontryaginPCSuff.optimal_iff_pc`). The necessity of the transversality condition needs
+  Kamihigashi's scaling condition (`TidyR6Pontryagin.tvc_necessary`); Halkin's minimal problem
+  shows that some condition is needed (`TidyR6Halkin.halkin_no_tvc`), but no counterexample inside
+  the book's model is formalised and no homogeneity condition replacing it is proved. A general
+  Pontryagin principle without concavity is not formalised;
+* the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) when `Λ/P` has a martingale part:
+  it needs the stochastic integral `∫B d(Λ/P)` and the quadratic covariation, Itô calculus that
+  Mathlib does not have. The `Δ`-grid forms, the integration steps (1.33)–(1.34) and the
+  finite-variation case are proved instead (`TidyR6StochasticDrift.incr_1_32`,
+  `TidyR6StochasticDrift.valuation_iff_tvc`, `TidyR6StochasticDrift.drift_1_32_fv`);
+* under active fiscal policy, the literal "there is exactly one equilibrium iff the surplus is
+  coordinated with money": coordination is proved equivalent to the unique equilibrium being the
+  standard one (`TidyR6ActiveFiscalExist.std_existsUnique_iff`), but a unique non-standard
+  equilibrium is not excluded. On a probability space existence is characterised only for
+  equilibria with bounded real debt (`TidyR6ActiveFiscalMeasureExist.meas_std_exists_iff`): the
+  unconditional transversality condition of `TidyR6ActiveFiscalMeasure.MeasMonetaryEq` admits
+  mean-zero debt bubbles (`TidyR6ActiveFiscalBubble.bubble_not_coordinated`);
+* the suspected one-period shift of the time axis of Figure 3.2 (E18).
 
 ## Library map
 
@@ -320,6 +378,18 @@ Not formalised:
 | [TidyR6HouseholdCIAKKT](Monetarism/TidyR6HouseholdCIAKKT.lean) | 12 | (19.24)–(19.33), p. 453: the KKT conditions necessary everywhere; the cash-in-advance optimum iff KKT plus liminf transversality |
 | [TidyR6HouseholdTVCDom](Monetarism/TidyR6HouseholdTVCDom.lean) | 15 | p. 439, (19.28): the transversality condition with concavity on two segments only, for utilities on open convex domains (`log` certified) |
 | [TidyR6HouseholdRep](Monetarism/TidyR6HouseholdRep.lean) | 7 | Ch. 2, pp. 29–30: every `ExpectationSystem` on a countable state space is given by finitely supported conditional probabilities |
+| [TidyR6WoodfordSections](Monetarism/TidyR6WoodfordSections.lean) | 27 | §19.3.2, pp. 441–445, and A3 §3.2.2: Woodford's convexity counterexample (E7), Taylor-rule transversality section (E4) and Obstfeld–Rogoff section (4.10), restated from the Woodford Chapter 2 project and linked to `MoneyTargetingDynamics` |
+| [TidyR6ActiveFiscalTree](Monetarism/TidyR6ActiveFiscalTree.lean) | 23 | §19.5.5, pp. 448–454, under uncertainty for every `ExpectationSystem` with full support: the stochastic wealth recursion, `Q_t ≥ q_t`, uniqueness of the standard equilibrium; the proviso, the pinning condition and the coin-flip counterexample to existence |
+| [TidyR6ActiveFiscalExist](Monetarism/TidyR6ActiveFiscalExist.lean) | 6 | pp. 448–454: the standard equilibrium exists iff the surplus is coordinated with money; coordination iff the unique equilibrium is the standard one |
+| [TidyR6ActiveFiscalMeasure](Monetarism/TidyR6ActiveFiscalMeasure.lean) | 13 | §19.5.5 on a probability space: the recursion and valuation in expectation, `Q_t ≥ q_t` a.s., uniqueness of the standard price level almost surely |
+| [TidyR6ActiveFiscalMeasureExist](Monetarism/TidyR6ActiveFiscalMeasureExist.lean) | 6 | pp. 448–454 on a probability space: unique bonds, `q_t > 0`, existence iff coordination for bounded real debt |
+| [TidyR6ActiveFiscalBubble](Monetarism/TidyR6ActiveFiscalBubble.lean) | 6 | (19.28), pp. 449–454: a mean-zero debt bubble on the coin tree, a standard-price equilibrium under the unconditional transversality condition without coordination |
+| [TidyR6PontryaginTools](Monetarism/TidyR6PontryaginTools.lean) | 16 | A4 §4.1.3, p. 640: the concave first-order condition under an integral by monotone convergence, the tangent inequality, smooth bumps, the du Bois-Reymond lemma |
+| [TidyR6Pontryagin](Monetarism/TidyR6Pontryagin.lean) | 16 | A4 (4.16)–(4.17), pp. 640–641: the book's problem; necessity of the costate equation and of the transversality condition (Kamihigashi), sufficiency, the characterisation; the `log` steady state |
+| [TidyR6PontryaginPC](Monetarism/TidyR6PontryaginPC.lean) | 11 | A4 (4.16)–(4.17): necessity with piecewise-continuous consumption; a continuous costate equal to `u′(c)` off the jumps |
+| [TidyR6PontryaginPCSuff](Monetarism/TidyR6PontryaginPCSuff.lean) | 2 | A4 (4.16)–(4.17): sufficiency with a continuous costate; the characterisation with piecewise-continuous consumption |
+| [TidyR6Halkin](Monetarism/TidyR6Halkin.lean) | 4 | A4 (4.17): Halkin's (1974) counterexample, an optimum at which the transversality condition fails for every costate |
+| [TidyR6StochasticDrift](Monetarism/TidyR6StochasticDrift.lean) | 12 | A1 §1.6, (1.32)–(1.34), p. 567: `E_td(·)` exactly on a `Δ`-grid; the drift notion, valuation iff transversality under uncertainty, finite-variation discount factors |
 
 ## Modelling conventions
 
@@ -352,7 +422,12 @@ Not formalised:
 * **Demonetisation.** In the Online Appendix the value of money `q_t = 1/P_t ≥ 0` is the state, so
   an infinite price level is `q_t = 0` (`PruningInflation.IsEqm`, `ObstfeldRogoff.IsORPath`).
 * **Continuous time.** Paths are `ℝ → ℝ` with `HasDerivAt`; present values are integrals over
-  `(t, ∞)` with `IntegrableOn`; transversality conditions are explicit limits.
+  `(t, ∞)` with `IntegrableOn`; transversality conditions are explicit limits. In `TidyR6Pontryagin`
+  the budget (4.16) may fail on a countable set, so consumption may jump, and a plan is optimal
+  when no feasible plan has a utility gain with a larger positive than negative part.
+  `TidyR6StochasticDrift` uses processes `ℝ → Ω → ℝ` on a probability space with a filtration
+  indexed by `ℝ`, and `E_tdX = a dt` means that `X − ∫a` has the martingale property
+  (`TidyR6StochasticDrift.HasDrift`).
 * **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
   functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
   stated for it still holds. On a countable `Ω` it forces finitely supported forecasts
@@ -386,7 +461,7 @@ Not formalised:
 
 The shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is
 restated from the Woodford projects, so the project builds on its own. Nothing is imported from
-those projects. Three further blocks come from the Woodford Chapter 2 project
+those projects. Four further blocks come from the Woodford Chapter 2 project
 (`PriceLevelDetermination`), and their docstrings say so:
 * `MoneyTargetingDynamics` restates that project's survey lemma L5 on one-dimensional maps (from
   its `GlobalDynamics` module) and its analysis of monetary targeting (from its module of the same
@@ -397,11 +472,15 @@ those projects. Three further blocks come from the Woodford Chapter 2 project
   with `μ̄ = 1 + µ` (`MoneyTargetingDynamics.miuPath_iff_sepPath`). The module then adds
   Cochrane's power example globally;
 * `CaganRE` is adapted from that project's Cagan equation (A.28)–(A.29) (`MoneyGrowth`);
-* `MoneyInUtility.lm_unique` and `MoneyInUtility.lm_exists` restate its money-demand lemmas.
+* `MoneyInUtility.lm_unique` and `MoneyInUtility.lm_exists` restate its money-demand lemmas;
+* `TidyR6WoodfordSections` restates the three sections `MoneyTargetingDynamics` left out (the
+  convexity counterexample E7, the Taylor-rule transversality section with E4 and the
+  Obstfeld–Rogoff section) and links them to `MoneyTargetingDynamics`.
 
 The two books use different Obstfeld–Rogoff devices. Woodford's is the boundary condition (4.10)
-`lim m v′(m) > 0`, under which no inflationary path is an equilibrium; his `or_*` theorems were
-not copied. Cochrane's Online Appendix uses the redemption of money at a floor value `ε`, and
+`lim m v′(m) > 0`, under which no inflationary path is an equilibrium; his `or_*` theorems are
+restated in `TidyR6WoodfordSections` and applied to (19.18)
+(`TidyR6WoodfordSections.or_miu_no_path_below`). Cochrane's Online Appendix uses the redemption of money at a floor value `ε`, and
 `ObstfeldRogoff` proves that argument directly (`ObstfeldRogoff.or_no_hyperinflation`) together
 with Cochrane's demonetised counter-equilibrium. Under the redemption device the outcome depends on
 whether the offer is a one-time tender or a standing offer

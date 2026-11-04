@@ -14,7 +14,9 @@ Appendix §1.6 and Chapter 4, the links between modules with Galí's money-rule 
 theorem and its `κ → ∞` limit, the household problem on a genuine probability space (first with
 the regularity hypotheses, then without them, with the expectation systems on countable state
 spaces and the null-state counterexamples), the copied Blanchard–Kahn theorem, the copied
-measure-theoretic core and the shared tools. Active fiscal policy across all paths follows §19.5.
+measure-theoretic core and the shared tools. Active fiscal policy across all paths, and under
+uncertainty on event trees and on a probability space, follows §19.5. Woodford's sections on
+convexity, Taylor-rule transversality and Obstfeld–Rogoff follow his monetary-targeting dynamics.
 
 The linear and present-value results hold for an arbitrary `ExpectationSystem`, so under perfect
 foresight and under uncertainty; date-`t` quantities are known at `t`, and results that take them
@@ -27,7 +29,9 @@ equations hold almost surely; there the first-order conditions, (19.15)–(19.16
 for every `V`, Fact 2 and the necessity of the transversality condition are derived from
 optimality. The `TidyR6Household…` modules drop the bounds on prices and plans and the global
 smoothness of utility, and characterise both household optima exactly. Continuous time is
-deterministic. Survey error codes E13–E23 are those of the survey of Chapters 11–19
+deterministic except in `TidyR6StochasticDrift`, which gives the `E_td(·)` forms of Online
+Appendix §1.6 their content under uncertainty; the Hamiltonian conditions of Online Appendix
+Chapter 4 are proved necessary and sufficient (`TidyR6Pontryagin` onward). Survey error codes E13–E23 are those of the survey of Chapters 11–19
 (`notes/survey_cochrane_ch11-19.md`); see [corrections](corrections.md). Rows marked "restated"
 reproduce results of the Woodford Chapter 2 project or of other Cochrane projects in this
 namespace.
@@ -134,6 +138,27 @@ namespace.
 | Woodford (2003) p. 130, Figure 2.5; Cochrane (19.18)–(19.19), p. 442 | the separable map, its shape, the second steady state at zero, the steady state `m*` and single crossing | `MoneyTargetingDynamics.sepF`, `MoneyTargetingDynamics.sepMap`, `MoneyTargetingDynamics.eq48_sep_iff`, `MoneyTargetingDynamics.sepF_pos`, `MoneyTargetingDynamics.sepF_strictMonoOn`, `MoneyTargetingDynamics.sepF_tendsto_zero`, `MoneyTargetingDynamics.sepMap_tendsto_zero`, `MoneyTargetingDynamics.sepMap_fixed_iff`, `MoneyTargetingDynamics.sep_exists_steady_state`, `MoneyTargetingDynamics.sep_single_crossing` |
 | Woodford (2003) pp. 130–131; Cochrane p. 444 | one path per initial value; self-fulfilling inflations and deflations | `MoneyTargetingDynamics.IsSepPath`, `MoneyTargetingDynamics.sep_path_exists_unique`, `MoneyTargetingDynamics.sep_inflation_path`, `MoneyTargetingDynamics.sep_deflation_path` |
 | Woodford (2003) pp. 131–133; Cochrane p. 443 | satiation: the path grows at `μ̄/β`, violates the transversality condition when `μ̄ ≥ 1`, and gives a continuum of equilibria when `β < μ̄ < 1` | `MoneyTargetingDynamics.Satiation`, `MoneyTargetingDynamics.satiated_path`, `MoneyTargetingDynamics.money_tvc_violated`, `MoneyTargetingDynamics.sep_deflation_violates_tvc`, `MoneyTargetingDynamics.money_contraction_continuum` |
+
+## Restated from the Woodford Chapter 2 project: convexity, Taylor-rule transversality and Obstfeld–Rogoff, pp. 441–445, and A3 §3.2.2, pp. 621–625 (TidyR6WoodfordSections)
+
+The three sections of Woodford (2003), Chapter 2, §4, that `MoneyTargetingDynamics` left out,
+restated from that project's `MoneyTargetingDynamics` and `GlobalDynamics` modules with two
+renamings (its `e7_counterexample` is `e7_convexity_fails`, and its `IsORPath` is `IsORMapPath`,
+since this project's `ObstfeldRogoff.IsORPath` is a different notion), then linked to
+`MoneyTargetingDynamics`. Perfect foresight.
+E4 and E7 are errors of Woodford's book, recorded in the Woodford Chapter 2 project.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Woodford (2003) p. 130 (E7); Cochrane §19.3.2, pp. 442–445 | with `v′(m) = e^{−m}`, `c = 1`, `F` is positive, strictly increasing and tends to `0` at `0⁺`, but is not convex (restated) | `TidyR6WoodfordSections.vpE7`, `TidyR6WoodfordSections.e7_convexity_fails` |
+| Cochrane (19.18), p. 442, with Woodford p. 130 (E7) | with the E7 utility and constant money growth, (19.18) is the separable map whose `F` is not convex; convexity is not used by `MoneyTargetingDynamics` | `TidyR6WoodfordSections.e7_miuPath_iff` |
+| Woodford (4.5)–(4.6), pp. 125–127 | the map (4.6) and its downward step; the path notion (4.5), monotonicity of `Π/λ(φ(Π))`, the steady states, the downward step of (4.5) and the self-fulfilling deflations of Figure 2.4 (restated) | `TidyR6WoodfordSections.map46`, `TidyR6WoodfordSections.map46_step_down`, `TidyR6WoodfordSections.IsPath45`, `TidyR6WoodfordSections.ratio_strictMonoOn`, `TidyR6WoodfordSections.steady_state45_iff`, `TidyR6WoodfordSections.step45_down`, `TidyR6WoodfordSections.self_fulfilling_deflation45` |
+| Woodford (1.24), p. 72; p. 133 | the transversality term `β^Tλ(i_T)D_T/P_T` and its one-step identity (restated) | `TidyR6WoodfordSections.tvcValue`, `TidyR6WoodfordSections.tvcValue_succ` |
+| Woodford pp. 132–133 (E4) | eventually `1 + i_T ≤ μ̄` violates the transversality condition; the printed inequality "`1 + φ(Π_T) ≥ μ̄` for all `T ≥ t`" is false and its reverse holds; deflations converging to `Π**` with `μ̄ > β⁻¹Π**` violate the transversality condition (restated) | `TidyR6WoodfordSections.taylor_tvc_violated_of_eventually_le`, `TidyR6WoodfordSections.e4_printed_inequality_false`, `TidyR6WoodfordSections.e4_corrected_inequality`, `TidyR6WoodfordSections.deflation_tvc_violated` |
+| Woodford pp. 132–133 | at the zero bound `Π = β` and the transversality condition fails; with `φ(Π) < (Π − β)/β` every self-fulfilling deflation violates it when `μ̄ > 1`; the target path satisfies it iff `βμ̄ < Π*` (restated) | `TidyR6WoodfordSections.zero_bound_inflation_eq_beta`, `TidyR6WoodfordSections.zero_bound_tvc_violated`, `TidyR6WoodfordSections.fig24_deflations_violate_tvc`, `TidyR6WoodfordSections.target_tvc_iff` |
+| Cochrane p. 445, with Woodford (1.24) and (4.9), p. 132 | with constant marginal utility and `D = M` the Taylor-rule term is the money transversality term of `MoneyTargetingDynamics.money_tvc_violated`; at the money-targeting steady state `Π* = μ̄` the target path satisfies it iff `β < 1` | `TidyR6WoodfordSections.tvcValue_const_lam`, `TidyR6WoodfordSections.target_tvc_money_growth` |
+| Woodford (4.8), (4.10), p. 136; Cochrane A3 §3.2.2, pp. 621–625 | `lim m u_m(m) > 0` makes `F` negative near zero; the path notion; no path has `m_t ≤ m̲`, nor `m_t < m*`; the iteration bounds exist and converge to `m*`, every path stays above them, so every path has `m_t ≥ m*` (restated) | `TidyR6WoodfordSections.sep_F_neg_of_or_condition`, `TidyR6WoodfordSections.IsORMapPath`, `TidyR6WoodfordSections.or_path_above_mlow`, `TidyR6WoodfordSections.or_no_path_below`, `TidyR6WoodfordSections.or_bounds_exist`, `TidyR6WoodfordSections.or_iteration_bound`, `TidyR6WoodfordSections.or_paths_above_mstar` |
+| Cochrane (19.18), p. 442, with Woodford (4.10), p. 136 | the Obstfeld–Rogoff path for `F = sepF` is `MoneyTargetingDynamics.IsSepPath`; under (4.10) no separable path, and no path of (19.18) with constant money growth, has real balances below the steady state | `TidyR6WoodfordSections.isORMapPath_sep_iff`, `TidyR6WoodfordSections.or_sep_no_path_below`, `TidyR6WoodfordSections.or_miu_no_path_below` |
 
 ## §19.4 Pruning equilibria, pp. 445–447, and Online Appendix §3.1, pruning deflationary equilibria, pp. 612–618 (PruningDeflation)
 
@@ -250,6 +275,49 @@ p. 454 proviso.
 | Cochrane pp. 453–454 (counterexample) | with `B_{−1} + M_{−1} < 0` the zero-rate deflation `P_t = βᵗP_0`, `P_0 = (B_{−1} + M_{−1})(1 − β)/s < M_0V/y`, is a second equilibrium | `TidyR5ActiveFiscal.active_fiscal_two_equilibria` |
 | Cochrane p. 454, corrected by p. 453 | **the price level is unique across all paths iff `B_{−1} + M_{−1} ≥ 0`**; the book's case `b ≥ 0`, extending `CashInAdvance.PF.active_fiscal_prunes` to all paths | `TidyR5ActiveFiscal.active_fiscal_unique_iff`, `TidyR5ActiveFiscal.active_fiscal_prunes_all` |
 
+## §19.5.5 Active fiscal policy under uncertainty, pp. 448–454: event trees and every `ExpectationSystem` with full support (TidyR6ActiveFiscalTree, TidyR6ActiveFiscalExist)
+
+Constant endowment `y` and velocity `V`, money an arbitrary positive adapted process, surpluses
+an arbitrary adapted process, for any `ExpectationSystem` with the pull-out property and full
+support (`TidyR6ActiveFiscalTree.FullSupport`), in particular every finite event tree. An
+equilibrium (`TidyR6ActiveFiscalTree.StochMonetaryEq`) imposes the conditional transversality
+conditions at every date and state. See [corrections](corrections.md) for the p. 454 conditions.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (19.32), p. 450; p. 454 | the bond price `Q_t = E_t[βP_t/P_{t+1}]`, the standard price level `P_t = M_tV/y` and bond price `q_t = E_t[βM_t/M_{t+1}]`; their pull-out forms; along the standard path `Q = q`; `q_t ≥ 0` | `TidyR6ActiveFiscalTree.bondPriceS`, `TidyR6ActiveFiscalTree.stdPrice`, `TidyR6ActiveFiscalTree.stdBondPrice`, `TidyR6ActiveFiscalTree.bondPriceS_eq`, `TidyR6ActiveFiscalTree.stdBondPrice_eq`, `TidyR6ActiveFiscalTree.bondPriceS_std`, `TidyR6ActiveFiscalExist.stdBondPrice_nonneg` |
+| Cochrane (19.27)–(19.28), (19.35), pp. 449–450 | real and discounted liabilities, the discounted flow of surplus plus seigniorage, its standard form, the flow budget and the conditional transversality condition at every state | `TidyR6ActiveFiscalTree.wealth`, `TidyR6ActiveFiscalTree.discWealth`, `TidyR6ActiveFiscalTree.flowTerm`, `TidyR6ActiveFiscalTree.stdFlow`, `TidyR6ActiveFiscalTree.FlowHolds`, `TidyR6ActiveFiscalTree.CondTVC` |
+| Cochrane p. 450 | full support; perfect foresight and every finite event tree with positive probabilities have it | `TidyR6ActiveFiscalTree.FullSupport`, `TidyR6ActiveFiscalTree.perfectForesight_fullSupport`, `TidyR6ActiveFiscalTree.finiteTree_fullSupport` |
+| Cochrane §19.5, pp. 448–450 | the stochastic equilibrium: positive known prices, the cash constraint, optimal money, the flow budget, conditional transversality; money is positive and seigniorage is `(1 − Q_t)P_ty/V`; a perfect-foresight `CashInAdvance.PF.MonetaryEq` is one | `TidyR6ActiveFiscalTree.StochMonetaryEq`, `TidyR6ActiveFiscalTree.money_pos`, `TidyR6ActiveFiscalTree.seigniorage_eq`, `TidyR6ActiveFiscalTree.ofPF` |
+| Cochrane (19.27)–(19.35), pp. 449–450 | the stochastic wealth recursion `β^tx_t = E_t[β^{t+1}x_{t+1}] + β^t(s_t + (1 − Q_t)y/V)`; the flow is known; the date-0 valuation as a limit of partial sums | `TidyR6ActiveFiscalTree.wealth_recursion`, `TidyR6ActiveFiscalTree.flowTerm_known`, `TidyR6ActiveFiscalTree.valuation_limit` |
+| Cochrane p. 454 (tool) | the cash constraint caps `P_{t+1}`; every equilibrium bond price is at least the standard one, `Q_t ≥ q_t` (generalising `TidyR5ActiveFiscal.bondPrice_ge`) | `TidyR6ActiveFiscalTree.cash_bound`, `TidyR6ActiveFiscalTree.std_le_bondPrice` |
+| Cochrane pp. 453–454 under uncertainty | with `B_{−1} + M_{−1} ≥ 0`, the date-0 standard valuation and the pinning condition (`B_{−1} + M_{−1} > 0` or `q_0 < 1`), every equilibrium has `P = MV/y` and `Q = q` at every date and state (generalising `TidyR5ActiveFiscal.active_fiscal_price_unique`) | `TidyR6ActiveFiscalTree.stoch_price_unique` |
+| Cochrane pp. 453–454, existence form | the date-0 condition holds whenever the standard equilibrium exists, and then it is the only equilibrium, prices and bonds; on every finite tree | `TidyR6ActiveFiscalTree.coord_of_standard`, `TidyR6ActiveFiscalTree.unique_of_standard`, `TidyR6ActiveFiscalTree.finiteTree_unique_of_standard` |
+| Cochrane pp. 453–454 (counterexample) | the proviso `B_{−1} + M_{−1} ≥ 0` is still needed: `TidyR5ActiveFiscal.active_fiscal_two_equilibria` in this framework | `TidyR6ActiveFiscalTree.pf_two_equilibria` |
+| Cochrane pp. 453–454 (counterexample) | the pinning condition is needed: with zero liabilities, money shrinking at the rate `β` and zero surpluses there is a continuum of equilibria | `TidyR6ActiveFiscalTree.corner_equilibrium`, `TidyR6ActiveFiscalTree.pin_needed` |
+| Cochrane p. 454 (counterexample) | on the coin-flip tree with constant money and a surplus shock revealed at date 1 there is no equilibrium with `P = MV/y` | `TidyR6ActiveFiscalTree.shockSurplus`, `TidyR6ActiveFiscalTree.firstHeads_known`, `TidyR6ActiveFiscalTree.coin_known0_const`, `TidyR6ActiveFiscalTree.coin_no_standard_equilibrium` |
+| Cochrane (19.35), p. 450 | the standard flow `s_t + (1 − q_t)y/V`, bounded and known when the surplus is, and its discounted form; the forward valuation `x_t` along the standard path | `TidyR6ActiveFiscalExist.stdU`, `TidyR6ActiveFiscalExist.stdU_bound`, `TidyR6ActiveFiscalExist.stdU_adapted`, `TidyR6ActiveFiscalExist.flowTerm_std`, `TidyR6ActiveFiscalExist.stdValue` |
+| Cochrane pp. 448–454 | **the standard equilibrium exists iff the surplus is coordinated with money**: `q_t ≤ 1`, `M_{t+1}x_{t+1}` known at `t`, `B_{−1} + M_{−1} = (M_0V/y)x_0` | `TidyR6ActiveFiscalExist.Coordinated`, `TidyR6ActiveFiscalExist.std_exists_iff` |
+| Cochrane pp. 453–454 | with full support, `B_{−1} + M_{−1} ≥ 0` and the pinning condition: coordinated iff there is exactly one equilibrium and every equilibrium has `P = MV/y` (generalising `TidyR5ActiveFiscal.active_fiscal_existsUnique`) | `TidyR6ActiveFiscalExist.std_existsUnique_iff` |
+
+## §19.5.5 Active fiscal policy under uncertainty on a probability space, pp. 448–454 (TidyR6ActiveFiscalMeasure, TidyR6ActiveFiscalMeasureExist, TidyR6ActiveFiscalBubble)
+
+The same model on a probability space with a filtration (`ExpectationsMeasure`), every condition
+and conclusion almost surely. An equilibrium (`TidyR6ActiveFiscalMeasure.MeasMonetaryEq`) imposes
+the transversality condition only in unconditional expectation, `E[β^Tx_T] → 0`; see
+[corrections](corrections.md).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane (19.32), p. 450; p. 454 | `Q_t` and `q_t` as conditional expectations, their pull-out forms almost surely, `Q = q` along the standard path, positive money; `q_t > 0` almost surely | `TidyR6ActiveFiscalMeasure.bondPriceM`, `TidyR6ActiveFiscalMeasure.stdBondPriceM`, `TidyR6ActiveFiscalMeasure.bondPriceM_ae`, `TidyR6ActiveFiscalMeasure.stdBondPriceM_ae`, `TidyR6ActiveFiscalMeasure.bondPriceM_std`, `TidyR6ActiveFiscalMeasure.money_pos_of_std`, `TidyR6ActiveFiscalMeasureExist.stdBondPriceM_pos` |
+| Cochrane (19.27), (19.33), (19.35), pp. 449–450 | the flows `s_t + (1 − Q_t)y/V` and `s_t + (1 − q_t)y/V`, integrable when the surplus is; the flow budget and optimal money almost surely; the equilibrium | `TidyR6ActiveFiscalMeasure.flowM`, `TidyR6ActiveFiscalMeasure.stdFlowM`, `TidyR6ActiveFiscalMeasure.flowM_integrable`, `TidyR6ActiveFiscalMeasure.stdFlowM_integrable`, `TidyR6ActiveFiscalMeasure.FlowAE`, `TidyR6ActiveFiscalMeasure.MoneyAE`, `TidyR6ActiveFiscalMeasure.MeasMonetaryEq` |
+| Cochrane (19.27)–(19.35), pp. 449–450 | the wealth recursion in expectation, `E[x_t] = βE[x_{t+1}] + E[s_t + (1 − Q_t)y/V]`, and conditionally almost surely; the valuation equation in expectation as a limit | `TidyR6ActiveFiscalMeasure.integral_recursion`, `TidyR6ActiveFiscalMeasureExist.wealth_rec_ae`, `TidyR6ActiveFiscalMeasure.integral_valuation` |
+| Cochrane p. 454 (tool) | the cash constraint one period ahead and `Q_t ≥ q_t`, almost surely | `TidyR6ActiveFiscalMeasure.cash_bound_ae`, `TidyR6ActiveFiscalMeasure.std_le_bondPriceM` |
+| Cochrane pp. 453–454 on a probability space | under the standard valuation in expectation and the a.s. pinning condition, every equilibrium has `P = MV/y` and `Q = q` almost surely; the standard valuation holds whenever the standard equilibrium exists, which is then the only one, prices and bonds | `TidyR6ActiveFiscalMeasure.meas_price_unique`, `TidyR6ActiveFiscalMeasure.meas_coord_of_standard`, `TidyR6ActiveFiscalMeasure.meas_unique_of_standard`, `TidyR6ActiveFiscalMeasureExist.meas_bonds_unique` |
+| Cochrane pp. 448–454 on a probability space | the forward valuation and coordination; the standard flow adapted and bounded; a standard equilibrium with bounded real liabilities exists iff the surplus is coordinated with money | `TidyR6ActiveFiscalMeasureExist.stdValueM`, `TidyR6ActiveFiscalMeasureExist.CoordinatedM`, `TidyR6ActiveFiscalMeasureExist.stdFlowM_adapted`, `TidyR6ActiveFiscalMeasureExist.stdFlowM_bdd`, `TidyR6ActiveFiscalMeasureExist.meas_std_exists_iff` |
+| Cochrane (19.27)–(19.28), (19.35), pp. 449–450 (the bubble economy) | the coin-flip tree as a probability space, the state valuation `x*`, its mean, the bubble liabilities and bonds; the first coin is known from date 1 and the liabilities depend on it only | `TidyR6ActiveFiscalBubble.bubbleS`, `TidyR6ActiveFiscalBubble.wStar`, `TidyR6ActiveFiscalBubble.wBar`, `TidyR6ActiveFiscalBubble.bubbleW`, `TidyR6ActiveFiscalBubble.bubbleB`, `TidyR6ActiveFiscalBubble.firstCoin_meas`, `TidyR6ActiveFiscalBubble.bubbleW_dep` |
+| Cochrane (19.28), p. 449; pp. 453–454 (counterexample) | an uncoordinated surplus with a standard-price equilibrium: the unconditional transversality condition holds, the discounted debt does not vanish on any path, real debt is unbounded, and coordination fails | `TidyR6ActiveFiscalBubble.bubble_eq`, `TidyR6ActiveFiscalBubble.bubble_path`, `TidyR6ActiveFiscalBubble.bubble_unbounded`, `TidyR6ActiveFiscalBubble.bubble_not_coordinated` |
+
 ## §19.6 Unpleasant arithmetic and fiscal theory, pp. 456–457 (UnpleasantArithmetic)
 
 | Book | Claim | Lean |
@@ -284,6 +352,23 @@ p. 454 proviso.
 | A1 p. 568 | the printed integrand `(i_t − i^m_t)` is misdated | `ContinuousTime.printed_index_counterexample` |
 | A1 (1.37), p. 569 | valuation with the mixed portfolio return, which lies below `i` | `ContinuousTime.mixed_hasDerivAt`, `ContinuousTime.money_mixed_iff`, `ContinuousTime.mixed_rate_lt` |
 
+## Online Appendix §1.6 under uncertainty: the `E_td(·)` forms (1.32)–(1.34), p. 567 (TidyR6StochasticDrift)
+
+`ContinuousTime` restates the deterministic forms. Here `E_td(·)` is given the content that can
+be made precise without stochastic integrals: exact conditional increments on a `Δ`-grid for any
+`ExpectationSystem` with the pull-out property, and in continuous time a drift notion on a
+probability space with a filtration indexed by `ℝ`. The product step with a martingale part of
+`Λ/P` is not formalised (see the README).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| A1 (1.32), p. 567 | `E_td(Λ/P)/(Λ/P) = −i dt` as the limit of the discrete conditional increment `−i/(1 + iΔ)` | `TidyR6StochasticDrift.rate_increment`, `TidyR6StochasticDrift.rate_increment_tendsto` |
+| A1 (1.32), (1.34), p. 567 | the exact conditional increments of `n_kB_k` and `n_k(B_k + M_k)` on the `Δ`-grid, and the recursion they give | `TidyR6StochasticDrift.incr_1_32`, `TidyR6StochasticDrift.incr_1_34`, `TidyR6StochasticDrift.rec_of_incr_1_32` |
+| A1 (1.33)–(1.34), p. 567 | on the `Δ`-grid, valuation iff the conditional transversality condition (from `CashInAdvance.Stochastic.pv_iff_tvc`) | `TidyR6StochasticDrift.valuation_1_33`, `TidyR6StochasticDrift.valuation_1_34` |
+| A1 (1.32), p. 567 | `E_tdX = a dt` defined as the martingale property of `X − ∫a`; a process with `C¹` paths has its pathwise derivative as drift | `TidyR6StochasticDrift.HasDrift`, `TidyR6StochasticDrift.hasDrift_of_pathwise` |
+| A1 (1.32) ⇒ (1.33), (1.34), p. 567 | integrating the expected increment, `Y_s = E_s[Y_T] + E_s∫_s^Tg`; valuation `Y_s = E_s∫_s^∞g` iff `E_s[Y_T] → 0` in `L¹` | `TidyR6StochasticDrift.valuation_of_drift`, `TidyR6StochasticDrift.valuation_iff_tvc` |
+| A1 (1.32)–(1.33), p. 567 | for a finite-variation (`C¹`) discount factor `Λ/P`, `E_td(ΛB/P) = −(Λs + ΛṀ/P) dt`, and (1.33) under uncertainty iff the transversality condition (the stochastic form of `ContinuousTime.money_printing_iff`) | `TidyR6StochasticDrift.drift_1_32_fv`, `TidyR6StochasticDrift.valuation_1_33_fv` |
+
 ## Online Appendix Chapter 4, money in continuous time, pp. 635–641 (ContinuousTime)
 
 | Book | Claim | Lean |
@@ -303,6 +388,30 @@ p. 454 proviso.
 | A4 (4.13), p. 639 (E21) | the printed (4.13) fails at any steady state with `σδ ≠ 0`, and is right for deviations | `ContinuousTime.E21_steady_state`, `ContinuousTime.E21_deviations` |
 | A4 (4.14)–(4.15), p. 640 (E21) | (4.14) exactly; `A/(1 + A)` versus `A` is second order; (4.15) is inconsistent with the discrete (4.13) unless `E_tπ_{t+1} = π_t` | `ContinuousTime.is_4_14_exact`, `ContinuousTime.A_ratio_gap`, `ContinuousTime.E21_discrete_inconsistent` |
 | A4 (4.16)–(4.17), pp. 640–641 | the constraint `ṁ = (y − c − s) − mṖ/P`; money demand `v′/u′ = i` from the Hamiltonian conditions; constant consumption gives `r = δ`; the transversality condition | `ContinuousTime.constraint_4_16`, `ContinuousTime.hamiltonian_money_demand`, `ContinuousTime.hamiltonian_eq_i`, `ContinuousTime.constant_consumption_rate`, `ContinuousTime.tvc_4_17_iff` |
+
+## Online Appendix Chapter 4, §4.1.3: Pontryagin necessity and sufficiency for (4.16)–(4.17), pp. 640–641 (TidyR6PontryaginTools, TidyR6Pontryagin, TidyR6PontryaginPC, TidyR6PontryaginPCSuff, TidyR6Halkin)
+
+The book's problem stated precisely: maximise `∫_0^∞ e^{−δt}(u(c_t) + v(m_t)) dt` subject to
+(4.16), with `u, v` concave and `C¹` on `(0, ∞)`. `ContinuousTime` proves the consequences of the
+Hamiltonian conditions; here they are proved necessary and sufficient, first for continuous and
+then for piecewise-continuous optimal consumption.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| A4 p. 640 (tools) | the first-order condition of a concave program under an integral by monotone convergence, with no domination hypothesis; the tangent inequality on `(0, ∞)` (the `(0, ∞)` form of `MoneyInUtility.concave_le_tangent`); concavity along a variation; an extended-norm bound | `TidyR6PontryaginTools.integral_dirDeriv_nonpos`, `TidyR6PontryaginTools.concave_tangent`, `TidyR6PontryaginTools.concaveOn_comp_affine`, `TidyR6PontryaginTools.enorm_le_ofReal_add` |
+| A4 p. 640 (test variations) | smooth bumps from `Real.smoothTransition`, their derivatives, supports and integrals | `TidyR6PontryaginTools.bump`, `TidyR6PontryaginTools.rho`, `TidyR6PontryaginTools.smoothTransition_C1`, `TidyR6PontryaginTools.hasDerivAt_bump`, `TidyR6PontryaginTools.continuous_rho`, `TidyR6PontryaginTools.rho_nonneg`, `TidyR6PontryaginTools.deriv_smoothTransition_eq_zero`, `TidyR6PontryaginTools.rho_eq_zero_of_lt`, `TidyR6PontryaginTools.rho_eq_zero_of_gt`, `TidyR6PontryaginTools.bump_eq_zero`, `TidyR6PontryaginTools.bump_eq_one`, `TidyR6PontryaginTools.integral_rho` |
+| A4 (4.17), p. 640 | the du Bois-Reymond lemma for continuous `G`, and for locally integrable `G` at continuity points | `TidyR6PontryaginTools.dubois_reymond_aux`, `TidyR6PontryaginTools.dubois_reymond`, `TidyR6PontryaginPC.dubois_reymond_aux_pc`, `TidyR6PontryaginPC.dubois_reymond_pc` |
+| A4 (4.16), p. 640 | regular utilities (`log` is one), the utility flow, feasible plans (the budget off a countable set, so piecewise-continuous consumption is admissible) and optimal plans | `TidyR6Pontryagin.RegularUtility`, `TidyR6Pontryagin.RegularUtility.continuousOn`, `TidyR6Pontryagin.log_regular`, `TidyR6Pontryagin.felicity`, `TidyR6Pontryagin.felicity_continuousOn`, `TidyR6Pontryagin.Feasible`, `TidyR6Pontryagin.Optimal` |
+| A4 p. 640 | the current-value Hamiltonian and its partial derivatives | `TidyR6Pontryagin.hamiltonian`, `TidyR6Pontryagin.hamiltonian_partials` |
+| A4 (4.16)–(4.17), p. 640 | the one-sided first-order condition along a direction; the first variation vanishes for every compactly supported `C¹` variation of real balances | `TidyR6Pontryagin.dir_deriv_nonpos`, `TidyR6Pontryagin.first_variation` |
+| A4 (4.17), p. 640 | **necessity of the costate equation**: `µ = u′(c)` is differentiable and `µ̇ − δµ = −v′(m) + µṖ/P`, with consumption continuous but not assumed differentiable | `TidyR6Pontryagin.costate_necessary` |
+| A4 (4.17), pp. 640–641 | **necessity of the transversality condition** `e^{−δt}u′(c_t)m_t → 0` under Kamihigashi's scaling condition, by the variation scaling real balances by `1 − ε(1 − e^{−t})` | `TidyR6Pontryagin.scaleA`, `TidyR6Pontryagin.scaleB`, `TidyR6Pontryagin.hasDerivAt_phi`, `TidyR6Pontryagin.hasDerivAt_disc`, `TidyR6Pontryagin.tvc_necessary` |
+| A4 (4.16)–(4.17), p. 640 | **sufficiency (Mangasarian/Arrow)** and the characterisation: optimal iff the costate equation and the transversality condition | `TidyR6Pontryagin.ofReal_add_neg_le`, `TidyR6Pontryagin.lintegral_Ioi_le`, `TidyR6Pontryagin.optimal_of_costate`, `TidyR6Pontryagin.optimal_iff` |
+| A4 p. 640 | money demand `v′/u′ = −µ̇/µ + δ + Ṗ/P` at an optimum (with `ContinuousTime.hamiltonian_money_demand`); the `log` steady state is optimal | `TidyR6Pontryagin.money_demand_of_optimal`, `TidyR6Pontryagin.log_steady_state_optimal` |
+| A4 (4.16), p. 640 (measurability) | compositions, locally integrable consumption and the utility flow are a.e. measurable; the directional condition with measurability; bounded measurable functions are integrable on `(a, b]`; locally bounded consumption | `TidyR6PontryaginPC.aestronglyMeasurable_comp_pos`, `TidyR6PontryaginPC.aemeasurable_of_locInt`, `TidyR6PontryaginPC.felicity_aesm`, `TidyR6PontryaginPC.dir_deriv_nonpos_meas`, `TidyR6PontryaginPC.integrableOn_Ioc_of_bdd`, `TidyR6PontryaginPC.LocBounded` |
+| A4 (4.16)–(4.17), pp. 640–641 | with consumption `LocBounded` and continuous off a countable set: the first variation vanishes; a continuous costate `µ̃` with `µ̃̇ = (δ + π)µ̃ − v′(m)` and `u′(c) = µ̃` off that set exists and meets the transversality condition | `TidyR6PontryaginPC.first_variation_pc`, `TidyR6PontryaginPC.costate_necessary_pc`, `TidyR6PontryaginPC.tvc_necessary_pc`, `TidyR6PontryaginPC.pontryagin_pc` |
+| A4 (4.16)–(4.17), pp. 640–641 | sufficiency with a continuous costate and no continuity of consumption; for the same class, optimal iff such a costate exists | `TidyR6PontryaginPCSuff.optimal_of_costate_pc`, `TidyR6PontryaginPCSuff.optimal_iff_pc` |
+| A4 (4.17), pp. 640–641 (Halkin (1974), counterexample) | in Halkin's minimal problem `ẋ = (1 − x)u`, `x_0 = 0`, `u ≡ 1` is optimal with value `1`, yet every solution of the adjoint equation violates the transversality condition: some condition such as Kamihigashi's is needed | `TidyR6Halkin.HalkinFeasible`, `TidyR6Halkin.halkin_one_sub_pos`, `TidyR6Halkin.halkin_value_le_one`, `TidyR6Halkin.halkin_optimal`, `TidyR6Halkin.halkin_no_tvc` |
 
 ## Links between the modules (Links)
 

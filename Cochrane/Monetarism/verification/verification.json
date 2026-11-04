@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-30T00:51:55.844688+00:00",
-  "theorems": 1300,
+  "checked_at_utc": "2026-11-04T21:03:33.207492+00:00",
+  "theorems": 1442,
   "module_theorems": {
     "Monetarism/Determinacy.lean": 23,
     "Monetarism/Expectations.lean": 20,
@@ -42,9 +42,21 @@
     "Monetarism/TidyR6HouseholdNull.lean": 6,
     "Monetarism/TidyR6HouseholdCIAKKT.lean": 12,
     "Monetarism/TidyR6HouseholdTVCDom.lean": 15,
-    "Monetarism/TidyR6HouseholdRep.lean": 7
+    "Monetarism/TidyR6HouseholdRep.lean": 7,
+    "Monetarism/TidyR6WoodfordSections.lean": 27,
+    "Monetarism/TidyR6ActiveFiscalTree.lean": 23,
+    "Monetarism/TidyR6ActiveFiscalExist.lean": 6,
+    "Monetarism/TidyR6ActiveFiscalMeasure.lean": 13,
+    "Monetarism/TidyR6ActiveFiscalMeasureExist.lean": 6,
+    "Monetarism/TidyR6ActiveFiscalBubble.lean": 6,
+    "Monetarism/TidyR6PontryaginTools.lean": 16,
+    "Monetarism/TidyR6Pontryagin.lean": 16,
+    "Monetarism/TidyR6PontryaginPC.lean": 11,
+    "Monetarism/TidyR6PontryaginPCSuff.lean": 2,
+    "Monetarism/TidyR6Halkin.lean": 4,
+    "Monetarism/TidyR6StochasticDrift.lean": 12
   },
-  "audited_declarations": 1621,
+  "audited_declarations": 1838,
   "declarations": [
     {
       "name": "Cochrane.Monetarism.SchurStable",
@@ -8150,6 +8162,1091 @@
       "name": "Cochrane.Monetarism.TidyR6HouseholdRep.expectation_rep",
       "kind": "theorem",
       "module": "Monetarism/TidyR6HouseholdRep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.vpE7",
+      "kind": "def",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.e7_convexity_fails",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.e7_miuPath_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.map46",
+      "kind": "def",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.map46_step_down",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.IsPath45",
+      "kind": "def",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.ratio_strictMonoOn",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.steady_state45_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.step45_down",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.self_fulfilling_deflation45",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.tvcValue",
+      "kind": "def",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.tvcValue_succ",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.taylor_tvc_violated_of_eventually_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.e4_printed_inequality_false",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.e4_corrected_inequality",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.deflation_tvc_violated",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.zero_bound_inflation_eq_beta",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.zero_bound_tvc_violated",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.fig24_deflations_violate_tvc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.target_tvc_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.tvcValue_const_lam",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.target_tvc_money_growth",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.sep_F_neg_of_or_condition",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.IsORMapPath",
+      "kind": "def",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.or_path_above_mlow",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.or_no_path_below",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.or_bounds_exist",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.or_iteration_bound",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.or_paths_above_mstar",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.isORMapPath_sep_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.or_sep_no_path_below",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6WoodfordSections.or_miu_no_path_below",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6WoodfordSections.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.bondPriceS",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdBondPrice",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdPrice",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.wealth",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.discWealth",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.flowTerm",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdFlow",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.FlowHolds",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.CondTVC",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.FullSupport",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq",
+      "kind": "structure",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.mk",
+      "kind": "constructor",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.pos",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.knownP",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.knownB",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.knownM",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.cia",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.rate_nonneg",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.binds",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.flow",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.tvc",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.bondPriceS_eq",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdBondPrice_eq",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.money_pos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.seigniorage_eq",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.wealth_recursion",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.cash_bound",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.std_le_bondPrice",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.flowTerm_known",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.valuation_limit",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stoch_price_unique",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.bondPriceS_std",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.coord_of_standard",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.unique_of_standard",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.perfectForesight_fullSupport",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.finiteTree_fullSupport",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.finiteTree_unique_of_standard",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.ofPF",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.pf_two_equilibria",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.corner_equilibrium",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.pin_needed",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.shockSurplus",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.firstHeads_known",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.coin_known0_const",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalTree.coin_no_standard_equilibrium",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalTree.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdU",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdValue",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.Coordinated",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdBondPrice_nonneg",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdU_bound",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdU_adapted",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.flowTerm_std",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.std_exists_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalExist.std_existsUnique_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.bondPriceM",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdBondPriceM",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.flowM",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdFlowM",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.FlowAE",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MoneyAE",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq",
+      "kind": "structure",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.mk",
+      "kind": "constructor",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.pos",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.measP",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.measB",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.measM",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.intR",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.intQ",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.intW",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.cia",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.money",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.flow",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.tvc",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.bondPriceM_ae",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdBondPriceM_ae",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.flowM_integrable",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdFlowM_integrable",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.integral_recursion",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.integral_valuation",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.cash_bound_ae",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.std_le_bondPriceM",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.meas_price_unique",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.bondPriceM_std",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.money_pos_of_std",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.meas_coord_of_standard",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.meas_unique_of_standard",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasure.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdBondPriceM_pos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.meas_bonds_unique",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdValueM",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.CoordinatedM",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdFlowM_adapted",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdFlowM_bdd",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.wealth_rec_ae",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.meas_std_exists_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalMeasureExist.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleS",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.wStar",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.wBar",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleW",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleB",
+      "kind": "def",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.firstCoin_meas",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleW_dep",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_eq",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_path",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_unbounded",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_not_coordinated",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6ActiveFiscalBubble.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.enorm_le_ofReal_add",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.integral_dirDeriv_nonpos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.concave_tangent",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.concaveOn_comp_affine",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.bump",
+      "kind": "def",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.rho",
+      "kind": "def",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.smoothTransition_C1",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.hasDerivAt_bump",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.continuous_rho",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.rho_nonneg",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.deriv_smoothTransition_eq_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.rho_eq_zero_of_lt",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.rho_eq_zero_of_gt",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.bump_eq_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.bump_eq_one",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.integral_rho",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.dubois_reymond_aux",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginTools.dubois_reymond",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginTools.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility",
+      "kind": "structure",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.mk",
+      "kind": "constructor",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.concave",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.deriv",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.cont",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.continuousOn",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.felicity",
+      "kind": "def",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.Feasible",
+      "kind": "def",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.Optimal",
+      "kind": "def",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.hamiltonian",
+      "kind": "def",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.hamiltonian_partials",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.felicity_continuousOn",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.dir_deriv_nonpos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.first_variation",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.costate_necessary",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.scaleA",
+      "kind": "def",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.scaleB",
+      "kind": "def",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.hasDerivAt_phi",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.hasDerivAt_disc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.tvc_necessary",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.ofReal_add_neg_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.lintegral_Ioi_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.optimal_of_costate",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.optimal_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.money_demand_of_optimal",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.log_regular",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Pontryagin.log_steady_state_optimal",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Pontryagin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.dubois_reymond_aux_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.dubois_reymond_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.aestronglyMeasurable_comp_pos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.aemeasurable_of_locInt",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.dir_deriv_nonpos_meas",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.felicity_aesm",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.LocBounded",
+      "kind": "def",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.first_variation_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.integrableOn_Ioc_of_bdd",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.costate_necessary_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.tvc_necessary_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPC.pontryagin_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPC.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPCSuff.optimal_of_costate_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPCSuff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6PontryaginPCSuff.optimal_iff_pc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6PontryaginPCSuff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Halkin.HalkinFeasible",
+      "kind": "def",
+      "module": "Monetarism/TidyR6Halkin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Halkin.halkin_one_sub_pos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Halkin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Halkin.halkin_value_le_one",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Halkin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Halkin.halkin_optimal",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Halkin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6Halkin.halkin_no_tvc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6Halkin.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.rate_increment",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.rate_increment_tendsto",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.incr_1_32",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.incr_1_34",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_1_33",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.rec_of_incr_1_32",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_1_34",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift",
+      "kind": "structure",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift.mk",
+      "kind": "constructor",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift.int",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift.mart",
+      "kind": "projection",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_of_drift",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_iff_tvc",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.hasDrift_of_pathwise",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.drift_1_32_fv",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_1_33_fv",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR6StochasticDrift.lean"
     }
   ],
   "full_build": "passed",
@@ -16257,6 +17354,1091 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.vpE7": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.e7_convexity_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.e7_miuPath_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.map46": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.map46_step_down": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.IsPath45": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.ratio_strictMonoOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.steady_state45_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.step45_down": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.self_fulfilling_deflation45": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.tvcValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.tvcValue_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.taylor_tvc_violated_of_eventually_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.e4_printed_inequality_false": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.e4_corrected_inequality": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.deflation_tvc_violated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.zero_bound_inflation_eq_beta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.zero_bound_tvc_violated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.fig24_deflations_violate_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.target_tvc_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.tvcValue_const_lam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.target_tvc_money_growth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.sep_F_neg_of_or_condition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.IsORMapPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.or_path_above_mlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.or_no_path_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.or_bounds_exist": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.or_iteration_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.or_paths_above_mstar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.isORMapPath_sep_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.or_sep_no_path_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6WoodfordSections.or_miu_no_path_below": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.bondPriceS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdBondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.wealth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.discWealth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.flowTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdFlow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.FlowHolds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.CondTVC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.FullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.knownP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.knownB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.knownM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.cia": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.rate_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.binds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.StochMonetaryEq.tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.bondPriceS_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stdBondPrice_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.money_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.seigniorage_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.wealth_recursion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.cash_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.std_le_bondPrice": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.flowTerm_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.valuation_limit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.stoch_price_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.bondPriceS_std": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.coord_of_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.unique_of_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.perfectForesight_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.finiteTree_fullSupport": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.finiteTree_unique_of_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.ofPF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.pf_two_equilibria": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.corner_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.pin_needed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.shockSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.firstHeads_known": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.coin_known0_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalTree.coin_no_standard_equilibrium": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.Coordinated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdBondPrice_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdU_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.stdU_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.flowTerm_std": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.std_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalExist.std_existsUnique_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.bondPriceM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdBondPriceM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.flowM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdFlowM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.FlowAE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MoneyAE": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.measP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.measB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.measM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.intR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.intQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.intW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.cia": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.money": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.MeasMonetaryEq.tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.bondPriceM_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdBondPriceM_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.flowM_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.stdFlowM_integrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.integral_recursion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.integral_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.cash_bound_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.std_le_bondPriceM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.meas_price_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.bondPriceM_std": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.money_pos_of_std": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.meas_coord_of_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasure.meas_unique_of_standard": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdBondPriceM_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.meas_bonds_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdValueM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.CoordinatedM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdFlowM_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.stdFlowM_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.wealth_rec_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalMeasureExist.meas_std_exists_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.wStar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.wBar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.firstCoin_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubbleW_dep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6ActiveFiscalBubble.bubble_not_coordinated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.enorm_le_ofReal_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.integral_dirDeriv_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.concave_tangent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.concaveOn_comp_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.bump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.rho": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.smoothTransition_C1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.hasDerivAt_bump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.continuous_rho": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.rho_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.deriv_smoothTransition_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.rho_eq_zero_of_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.rho_eq_zero_of_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.bump_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.bump_eq_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.integral_rho": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.dubois_reymond_aux": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginTools.dubois_reymond": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.concave": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.deriv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.cont": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.RegularUtility.continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.felicity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.Feasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.Optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.hamiltonian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.hamiltonian_partials": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.felicity_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.dir_deriv_nonpos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.first_variation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.costate_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.scaleA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.scaleB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.hasDerivAt_phi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.hasDerivAt_disc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.tvc_necessary": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.ofReal_add_neg_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.lintegral_Ioi_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.optimal_of_costate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.optimal_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.money_demand_of_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.log_regular": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Pontryagin.log_steady_state_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.dubois_reymond_aux_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.dubois_reymond_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.aestronglyMeasurable_comp_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.aemeasurable_of_locInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.dir_deriv_nonpos_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.felicity_aesm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.LocBounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.first_variation_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.integrableOn_Ioc_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.costate_necessary_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.tvc_necessary_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPC.pontryagin_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPCSuff.optimal_of_costate_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6PontryaginPCSuff.optimal_iff_pc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Halkin.HalkinFeasible": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Halkin.halkin_one_sub_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Halkin.halkin_value_le_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Halkin.halkin_optimal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6Halkin.halkin_no_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.rate_increment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.rate_increment_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.incr_1_32": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.incr_1_34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_1_33": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.rec_of_incr_1_32": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_1_34": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift.int": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.HasDrift.mart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_of_drift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_iff_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.hasDrift_of_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.drift_1_32_fv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR6StochasticDrift.valuation_1_33_fv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -16301,15 +18483,27 @@
     "Monetarism/TidyR6HouseholdCIAKKT.lean": "71db232b130f9b535eb3e0eefafa209099d13d613487ad553d3cc4ca60c0effa",
     "Monetarism/TidyR6HouseholdTVCDom.lean": "6f451da577eff9a490dfa9df0381fbabf7b7df577c1586c028b9f0e47a3a3267",
     "Monetarism/TidyR6HouseholdRep.lean": "c0c8a51dc5a88e85f3ed012823a52966e06f000873db78304f8f81e4b7754c2b",
-    "Monetarism.lean": "3116f04855237a8b07415bac94e2d112d4686dd441c14db1d8a47496e6326da2",
+    "Monetarism/TidyR6WoodfordSections.lean": "67fbf31055525886b2fad98d39d43e33b35671c9533cc328e32e2f368a9ef763",
+    "Monetarism/TidyR6ActiveFiscalTree.lean": "b043b6c8da1ed45caedf0ed01767f125e8ad35a65ce9188ddc19847eac7b0b52",
+    "Monetarism/TidyR6ActiveFiscalExist.lean": "ea43ea245c79c94d16252bbc33051dba40f554d16e1a84326e652780338a5085",
+    "Monetarism/TidyR6ActiveFiscalMeasure.lean": "80af3d5ec2ee3bb1cf4743c23d9d27ca9b3934623ded46460a168a81dc4a7212",
+    "Monetarism/TidyR6ActiveFiscalMeasureExist.lean": "27a0fe6c9bef2dea6617e6945c181553e7a9a3e5362674e52c1fd1ef2a5eb8e3",
+    "Monetarism/TidyR6ActiveFiscalBubble.lean": "2eb75342bb7d3d22b5a73b7a2be63f36d196e6ac7dc6a8d13dac3d8bfe2dcda3",
+    "Monetarism/TidyR6PontryaginTools.lean": "f371e6d947023344049fd93836e96abe1ecfd38d4b7059910493fa8a474611d5",
+    "Monetarism/TidyR6Pontryagin.lean": "c8de7d9645410646bf371d28f3bd08aa47d4b434543b4e53041227f507f0bf5e",
+    "Monetarism/TidyR6PontryaginPC.lean": "fe71ce255cec56fdcd343c0edb5f7bee1aae5912f3714d5215198ed76d360166",
+    "Monetarism/TidyR6PontryaginPCSuff.lean": "eb300065eaacacb39f8fa46d867a1ec40d08864d1b63468009efc2346194cd4f",
+    "Monetarism/TidyR6Halkin.lean": "4aa54d05db75c6f9c833c8d7ffc1d37cc5b6f9ee3835a1fe69eeaa66b249e6a6",
+    "Monetarism/TidyR6StochasticDrift.lean": "47b9f8ba7e9f6fbbe62ce1caff54535776696d3e76d39bf775d18cdc20e8c7fc",
+    "Monetarism.lean": "66bfd5ac0cf1c9ed7128a64664390a8f74a3bfe72b40d868e7c8a25c7ad3a674",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "f9126750f6439e08fceda3b5fd0df208cfdf0d7ef86ced2b8445258e9cfce056",
     "lake-manifest.json": "b124474aabfdc4f64ec7c7e39cb487344df2e915bd40177bde034e3daecf6ff5",
-    "proof-manifest.json": "1dfa13efe43a46093ae5a5f37c5e9c04301c5393ea0a4b58d53430a09138b874",
+    "proof-manifest.json": "f9b13613cff47acb5f458c5aeeaa0a8a024a1a08e7778cbac4c58b6b443c196d",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "9c397427dc45dcdafcd7141a2dc2e01adf89c128398b73c73795f194e12b9c0b",
+  "fresh_audit_sha256": "34ae32135935ad7a5965edbec1276bb550d7cb9e43c8a17b6976f78b2109ec0a",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 19 (with Chapter 11 and 14 claims and Online Appendix A1.6, A3 and A4): Monetarism. Monetary and fiscal regimes, NI-7 observational equivalence and double-passive indeterminacy; open-market-operation claims of Chapter 11 and the helicopter arithmetic; Cagan money demand under rational expectations with the full solution family, sunspots and fiscal selection of the price level; money in the utility function with FOCs derived from optimisation under perfect foresight and on a finite event tree, the value of money, power utility and certified Figure 19.1 numbers (E13: 1 + mu > beta); global money-targeting dynamics; unpleasant arithmetic; seigniorage, the Laffer peak (E16) and Baumol-Tobin elasticities; pruning deflations (E17: TVC fails iff mu >= 0) and inflations (finite-time explosion, countably many equilibria, modified utility); Obstfeld-Rogoff redemption and Cochrane's demonetised equilibrium (E18 caption corrected); nonseparable utility (E19: stable iff b > 1 + i/2); cash in advance with the stochastic Euler equation derived from optimality ((19.29) needs the money TVC, (19.38) corrected, E14, E15); continuous-time money with CES limits (E20) and the IS curve with money (E21). Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 19, pp. 433-464, Chapter 11, pp. 315-318, Section 14.1, p. 342, and Online Appendix A1.6, A3.1-A3.2 and A4, pp. 567-569, 612-632 and 635-641."
