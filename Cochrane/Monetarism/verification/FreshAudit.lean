@@ -88,6 +88,7 @@ import Mathlib.Topology.Order.Cadlag
 import Mathlib.Probability.Martingale.Basic
 import Mathlib.Probability.ProbabilityMassFunction.Integrals
 import Mathlib.Probability.Distributions.Uniform
+import Mathlib.Probability.Distributions.Geometric
 set_option autoImplicit false
 
 /-
@@ -40775,6 +40776,3201 @@ theorem coin_anticipating_sumBM (P : Partition 0 2) :
 
 end Cochrane.Monetarism.TidyR7ProductStepCoin
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Stieltjes integrals against absolutely continuous integrators
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). In (1.31)–(1.32) two integrators are absolutely
+continuous rather than `C¹`: the finite-variation part `A` of `Λ/P`, with
+`A_t − A_s = −∫_s^t i_u (Λ_u/P_u) du` (the bond-pricing condition `E_t d(Λ/P)/(Λ/P) = −i dt`), and
+the nominal debt-plus-money `B + M`, with `d(B + M) = (iB + i^mM − Ps) dt` by the flow (1.31).
+Their densities are only measurable (`i` and `s` measurable, `Λ/P` càdlàg), so
+`TidyR7ProductStepCases.rsInt_eq_integral_mul_deriv` (continuous derivative) does not apply.
+
+## Main results
+
+* `eVariationOn_le_integral`, `bv_of_primitive`: a primitive `g = g(a) + ∫_a^· h` of an interval
+  integrable `h` has variation at most `∫_a^b |h|` on `[a, b]`.
+* `continuousOn_of_primitive`: it is continuous on `[a, b]`.
+* `rsInt_eq_integral_of_primitive`: for `f` càdlàg, `∫_a^b f dg = ∫_a^b f(x)h(x) dx` (Lebesgue).
+  Proof: each left-point sum is `∫_a^b φ_k h` for the step function `φ_k` of the partition; along
+  the dyadic partitions `φ_k → f(x−) = f(x)` off the countable jump set of `f`, a Lebesgue-null set,
+  with `|φ_k h| ≤ C|h|`; and the sums also converge to `∫ f dg`
+  (`TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag`).
+* `continuous_of_incr`, `bv_of_incr`, `rsInt_eq_integral_of_incr`: the same for a path given by
+  its increments, `g(v) − g(u) = ∫_u^v h` for all `u ≤ v`, with `h` locally integrable (the form
+  used for `A` and for `B + M`).
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismAC
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): **the variation of a primitive.** If
+`g(x) = g(a) + ∫_a^x h` on `[a, b]`, `h` interval integrable, then
+`Var_{[a,b]} g ≤ ∫_a^b |h|`. -/
+theorem eVariationOn_le_integral {a b : ℝ} {g h : ℝ → ℝ} (hab : a ≤ b)
+    (hh : IntervalIntegrable h MeasureSpace.volume a b)
+    (hg : ∀ x ∈ Set.Icc a b, g x = g a + ∫ y in a..x, h y) :
+    eVariationOn g (Set.Icc a b) ≤ ENNReal.ofReal (∫ y in a..b, |h y|) := by
+  have hsub : ∀ x ∈ Set.Icc a b, ∀ y ∈ Set.Icc a b,
+      IntervalIntegrable h MeasureSpace.volume x y := fun x hx y hy =>
+    hh.mono_set (Set.uIcc_subset_uIcc (Set.mem_uIcc_of_le hx.1 hx.2)
+      (Set.mem_uIcc_of_le hy.1 hy.2))
+  have hdiff : ∀ x ∈ Set.Icc a b, ∀ y ∈ Set.Icc a b, g y - g x = ∫ r in x..y, h r := by
+    intro x hx y hy
+    rw [hg x hx, hg y hy, add_sub_add_left_eq_sub,
+      intervalIntegral.integral_interval_sub_left (hsub a ⟨le_rfl, hab⟩ y hy)
+        (hsub a ⟨le_rfl, hab⟩ x hx)]
+  refine iSup_le fun p => ?_
+  obtain ⟨n, u, hu, hmem⟩ := p
+  have hab' : ∀ i, ∫ r in u i..u (i + 1), |h r| ≥ 0 := fun i =>
+    intervalIntegral.integral_nonneg (hu (Nat.le_succ i)) fun _ _ => abs_nonneg _
+  calc ∑ i ∈ Finset.range n, edist (g (u (i + 1))) (g (u i))
+      ≤ ∑ i ∈ Finset.range n, ENNReal.ofReal (∫ r in u i..u (i + 1), |h r|) := by
+        refine Finset.sum_le_sum fun i _ => ?_
+        rw [edist_dist, Real.dist_eq, hdiff _ (hmem i) _ (hmem (i + 1))]
+        exact ENNReal.ofReal_le_ofReal
+          (intervalIntegral.abs_integral_le_integral_abs (hu (Nat.le_succ i)))
+    _ = ENNReal.ofReal (∑ i ∈ Finset.range n, ∫ r in u i..u (i + 1), |h r|) :=
+        (ENNReal.ofReal_sum_of_nonneg fun i _ => hab' i).symm
+    _ = ENNReal.ofReal (∫ r in u 0..u n, |h r|) := by
+        rw [intervalIntegral.sum_integral_adjacent_intervals fun i _ =>
+          (hsub _ (hmem i) _ (hmem (i + 1))).abs]
+    _ ≤ ENNReal.ofReal (∫ y in a..b, |h y|) := by
+        refine ENNReal.ofReal_le_ofReal (intervalIntegral.integral_mono_interval (hmem 0).1
+          (hu (Nat.zero_le n)) (hmem n).2 (Eventually.of_forall fun _ => abs_nonneg _) hh.abs)
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): a primitive of an interval integrable
+function has bounded variation on `[a, b]`.
+Generalises `TidyR7ProductStepCases.bv_of_hasDerivAt`. -/
+theorem bv_of_primitive {a b : ℝ} {g h : ℝ → ℝ} (hab : a ≤ b)
+    (hh : IntervalIntegrable h MeasureSpace.volume a b)
+    (hg : ∀ x ∈ Set.Icc a b, g x = g a + ∫ y in a..x, h y) :
+    BoundedVariationOn g (Set.Icc a b) :=
+  ne_top_of_le_ne_top ENNReal.ofReal_ne_top (eVariationOn_le_integral hab hh hg)
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): a primitive of an interval integrable
+function is continuous on `[a, b]`.
+From Mathlib `intervalIntegral.continuousOn_primitive_interval`. -/
+theorem continuousOn_of_primitive {a b : ℝ} {g h : ℝ → ℝ} (hab : a ≤ b)
+    (hh : IntervalIntegrable h MeasureSpace.volume a b)
+    (hg : ∀ x ∈ Set.Icc a b, g x = g a + ∫ y in a..x, h y) :
+    ContinuousOn g (Set.Icc a b) := by
+  have hI : IntegrableOn h (Set.uIcc a b) MeasureSpace.volume := by
+    rw [Set.uIcc_of_le hab]
+    exact (integrableOn_Icc_iff_integrableOn_Ioc (by simp)).2
+      ((intervalIntegrable_iff_integrableOn_Ioc_of_le hab).1 hh)
+  have hc := intervalIntegral.continuousOn_primitive_interval hI
+  rw [Set.uIcc_of_le hab] at hc
+  exact (continuousOn_const.add hc).congr hg
+
+/-- **Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): the Stieltjes integral against an
+absolutely continuous integrator.** For `f` càdlàg, `h` interval integrable on `[a, b]` and
+`g(x) = g(a) + ∫_a^x h` on `[a, b]`: `∫_a^b f dg = ∫_a^b f(x)h(x) dx`.
+Generalises `TidyR7ProductStepCases.rsInt_eq_integral_mul_deriv`. -/
+theorem rsInt_eq_integral_of_primitive {a b : ℝ} {f g h : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hh : IntervalIntegrable h MeasureSpace.volume a b)
+    (hg : ∀ x ∈ Set.Icc a b, g x = g a + ∫ y in a..x, h y) :
+    rsInt a b f g = ∫ x in a..b, f x * h x := by
+  rcases hab.lt_or_eq with hlt | rfl
+  swap
+  · rw [TidyR7StieltjesVariation.rsInt_self, intervalIntegral.integral_same]
+  have hbv := bv_of_primitive hab hh hg
+  have hgc := continuousOn_of_primitive hab hh hg
+  obtain ⟨C, hC0, hC⟩ := exists_bound_of_isCadlag hf a b
+  have hsub : ∀ x ∈ Set.Icc a b, ∀ y ∈ Set.Icc a b,
+      IntervalIntegrable h MeasureSpace.volume x y := fun x hx y hy =>
+    hh.mono_set (Set.uIcc_subset_uIcc (Set.mem_uIcc_of_le hx.1 hx.2)
+      (Set.mem_uIcc_of_le hy.1 hy.2))
+  have hdiff : ∀ x ∈ Set.Icc a b, ∀ y ∈ Set.Icc a b, g y - g x = ∫ r in x..y, h r := by
+    intro x hx y hy
+    rw [hg x hx, hg y hy, add_sub_add_left_eq_sub,
+      intervalIntegral.integral_interval_sub_left (hsub a ⟨le_rfl, hab⟩ y hy)
+        (hsub a ⟨le_rfl, hab⟩ x hx)]
+  -- integrability of `φ h` for a bounded step function `φ`
+  have hint : ∀ (P : Partition a b) (c : ℕ → ℝ), (∀ i < P.n, |c i| ≤ C) →
+      IntervalIntegrable (fun x => stepFn P c x * h x) MeasureSpace.volume a b := by
+    intro P c hc
+    rw [intervalIntegrable_iff] at hh ⊢
+    refine hh.bdd_mul (c := C) (measurable_stepFn P c).aestronglyMeasurable
+      (Eventually.of_forall fun x => ?_)
+    rw [Real.norm_eq_abs]
+    exact abs_stepFn_le P c hC0 hc x
+  -- each left-point sum is the integral of a step function against `h`
+  have hstep : ∀ P : Partition a b, rsSum P f g =
+      ∫ x in a..b, stepFn P (fun i => f (P.t i)) x * h x := by
+    intro P
+    have hc : ∀ i < P.n, |f (P.t i)| ≤ C := fun i hi => hC _ (t_mem P hi.le)
+    have hI := hint P _ hc
+    have hlt : ∀ i, P.t i < P.t (i + 1) := fun i => P.strictMono (Nat.lt_succ_self i)
+    have hpiece : ∀ i < P.n, IntervalIntegrable (fun x => stepFn P (fun i => f (P.t i)) x * h x)
+        MeasureSpace.volume (P.t i) (P.t (i + 1)) := fun i hi =>
+      hI.mono_set (Set.uIcc_subset_uIcc (Set.mem_uIcc_of_le (t_mem P hi.le).1 (t_mem P hi.le).2)
+        (Set.mem_uIcc_of_le (t_mem P hi).1 (t_mem P hi).2))
+    have hs := intervalIntegral.sum_integral_adjacent_intervals hpiece
+    rw [P.first, P.last] at hs
+    rw [← hs]
+    refine Finset.sum_congr rfl fun i hi => ?_
+    have hi' := Finset.mem_range.1 hi
+    rw [hdiff _ (t_mem P hi'.le) _ (t_mem P hi'), ← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun x hx => ?_)
+    rw [Set.uIoc_of_le (hlt i).le] at hx
+    rw [stepFn_eq P _ hi' hx]
+  have hP := tendsto_mesh_dyadic hlt
+  have hlim1 := tendsto_rsSum_of_isCadlag hf hbv hgc (dyadic hlt) hP
+  simp only [hstep] at hlim1
+  have hlim2 : Tendsto (fun k => ∫ x in a..b, stepFn (dyadic hlt k)
+      (fun i => f ((dyadic hlt k).t i)) x * h x) atTop (𝓝 (∫ x in a..b, f x * h x)) := by
+    refine intervalIntegral.tendsto_integral_filter_of_dominated_convergence
+      (fun x => C * |h x|) (Eventually.of_forall fun k => ?_)
+      (Eventually.of_forall fun k => ae_of_all _ fun x _ => ?_) ?_ ?_
+    · exact (hint _ _ fun i hi => hC _ (t_mem _ hi.le)).def'.aestronglyMeasurable
+    · rw [Real.norm_eq_abs, abs_mul]
+      exact mul_le_mul_of_nonneg_right (abs_stepFn_le _ _ hC0
+        (fun i hi => hC _ (t_mem _ hi.le)) x) (abs_nonneg _)
+    · exact hh.abs.const_mul C
+    · have hnull : MeasureSpace.volume {x | f x ≠ Function.leftLim f x} = 0 :=
+        (countable_jumps hf).measure_zero _
+      filter_upwards [measure_eq_zero_iff_ae_notMem.1 hnull] with x hx hxab
+      rw [Set.uIoc_of_le hab] at hxab
+      have hcont : ContinuousAt f x := continuousAt_of_leftLim_eq hf
+        (by simp only [not_not] at hx; exact hx.symm)
+      exact (tendsto_stepFn_left (dyadic hlt) hP hxab
+        (hcont.tendsto.mono_left nhdsWithin_le_nhds)).mul_const _
+  exact tendsto_nhds_unique hlim1 hlim2
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.31)): **a path given by its increments**,
+`g(v) − g(u) = ∫_u^v h` for all `u ≤ v`, is the primitive `g(a) + ∫_a^x h` on every `[a, b]`. -/
+theorem primitive_of_incr {g h : ℝ → ℝ}
+    (hg : ∀ u v, u ≤ v → g v - g u = ∫ r in u..v, h r) (a b : ℝ) :
+    ∀ x ∈ Set.Icc a b, g x = g a + ∫ y in a..x, h y := fun x hx => by
+  linarith [hg a x hx.1]
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.31)): a path given by its increments against a
+locally integrable density is continuous on `ℝ`.
+From Mathlib `intervalIntegral.continuous_primitive`.
+Generalises `TidyR7ProductStepCases.continuous_of_hasDerivAt`. -/
+theorem continuous_of_incr {g h : ℝ → ℝ}
+    (hh : ∀ u v, IntervalIntegrable h MeasureSpace.volume u v)
+    (hg : ∀ u v, u ≤ v → g v - g u = ∫ r in u..v, h r) : Continuous g := by
+  have e : g = fun x => g 0 + ∫ r in (0 : ℝ)..x, h r := by
+    funext x
+    rcases le_total 0 x with hx | hx
+    · linarith [hg 0 x hx]
+    · have := hg x 0 hx
+      rw [intervalIntegral.integral_symm]
+      linarith
+  rw [e]
+  exact continuous_const.add (intervalIntegral.continuous_primitive hh 0)
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.31)): a path given by its increments against a
+locally integrable density has bounded variation on every `[a, b]`.
+Generalises `TidyR7ProductStepCases.bv_of_hasDerivAt`. -/
+theorem bv_of_incr {g h : ℝ → ℝ} (hh : ∀ u v, IntervalIntegrable h MeasureSpace.volume u v)
+    (hg : ∀ u v, u ≤ v → g v - g u = ∫ r in u..v, h r) (a b : ℝ) :
+    BoundedVariationOn g (Set.Icc a b) := by
+  rcases le_total a b with hab | hab
+  · exact bv_of_primitive hab (hh a b) (primitive_of_incr hg a b)
+  · rcases hab.lt_or_eq with hlt | heq
+    · rw [Set.Icc_eq_empty (not_le.2 hlt), BoundedVariationOn, eVariationOn.subsingleton _
+        Set.subsingleton_empty]
+      exact ENNReal.zero_ne_top
+    · rw [heq]
+      exact bv_of_primitive le_rfl (hh a a) (primitive_of_incr hg a a)
+
+/-- **Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): the Stieltjes integral against a path
+given by its increments.** For `f` càdlàg, `h` locally integrable and
+`g(v) − g(u) = ∫_u^v h` for `u ≤ v`: `∫_a^b f dg = ∫_a^b f h` for `a ≤ b`.
+Generalises `TidyR7ProductStepCases.rsInt_eq_integral_mul_deriv`. -/
+theorem rsInt_eq_integral_of_incr {f g h : ℝ → ℝ} (hf : IsCadlag f)
+    (hh : ∀ u v, IntervalIntegrable h MeasureSpace.volume u v)
+    (hg : ∀ u v, u ≤ v → g v - g u = ∫ r in u..v, h r) {a b : ℝ} (hab : a ≤ b) :
+    rsInt a b f g = ∫ x in a..b, f x * h x :=
+  rsInt_eq_integral_of_primitive hab hf (hh a b) (primitive_of_incr hg a b)
+
+end Cochrane.Monetarism.TidyR7MonetarismAC
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The money–bond model of §1.6 under uncertainty and the expected-increment equations (1.32)
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34).
+
+## The model (`MonetaryModel`)
+
+A measure `μ` (finite in the theorems), a filtration `𝓕` indexed by `ℝ`, and processes
+`ℝ → Ω → ℝ`: the SDF `Λ > 0`, the price level `P > 0` (both adapted), nominal bonds `B` and money
+`M` (adapted), the nominal rate `i`, the interest on money `i^m`, the real surplus `s` (`sp`).
+* **The nominal discount factor** `n = Λ/P` (`disc`) splits as `n = A + N`: `N` a càdlàg
+  martingale (the news in `Λ/P`, jumps allowed) and `A` with
+  `A_v − A_u = −∫_u^v i_r n_r dr` (`IncrOf`; `i·n` locally integrable path by path, `LocInt`).
+  This is the bond-pricing condition `E_t d(Λ/P)/(Λ/P) = −i_t dt` in the expected-increment sense of
+  `TidyR7ProductStep.ExpIncrLimit` (`MonetaryModel.expIncr_disc`).
+* **Money** has continuous paths of bounded variation on every `[a, b]`.
+* **The nominal flow (1.31)** `dM = iB dt + i^mM dt − Ps dt − dB`, path by path, as an identity of
+  integrals: `(B + M)_v − (B + M)_u = ∫_u^v (iB + i^mM − Ps) dr` (`flowRate` locally integrable).
+  Then `B = (B + M) − M` has continuous bounded-variation paths (`MonetaryModel.B_cont`,
+  `MonetaryModel.B_bv`) and `dB` is the Lebesgue–Stieltjes measure of that path.
+
+No measurability of `i`, `i^m`, `s` in `ω` is assumed: the integrals that enter the conditional
+expectations are measurable as limits of partition sums (I2).
+
+## Main results
+
+* `MonetaryModel.pathwise_1_32`, `MonetaryModel.pathwise_1_34`: path by path,
+  `∫_s^t n dB + ∫_s^t B dA = −(∫_s^t (Λs − i^m nM) dr + ∫_s^t n dM)` and
+  `∫_s^t n d(B + M) + ∫_s^t (B + M) dA = −∫_s^t (Λs + (i − i^m)nM) dr`.
+* `MonetaryModel.incr_1_32_general` (`i^m` arbitrary) and `MonetaryModel.incr_1_32` (`i^m = 0`,
+  the book's (1.32)): `E_s[n_tB_t − n_sB_s] = −E_s[∫_s^t Λ_rs_r dr + ∫_s^t n dM]`, i.e. integrated
+  `E_t d(ΛB/P) = −Λ(s dt + dM/P)`.
+* `MonetaryModel.expIncr_disc`, `MonetaryModel.middle_1_32`: the middle line of (1.32),
+  `Λ/P·dB + E_t[d(Λ/P)]B = −Λ(s dt + dM/P)`, with `B·E_s d(Λ/P) = −E_s∫_s^t i n B`.
+* `MonetaryModel.incr_1_34`: `E_s[n_t(B + M)_t − n_s(B + M)_s] = −E_s∫_s^t (Λs + (i − i^m)nM) dr`,
+  integrated `E_t d(Λ(M + B)/P) = −Λ(s + (i − i^m)M/P) dt`, the line before (1.34).
+* `MonetaryModel.hasDrift_1_34`, `MonetaryModel.hasDrift_1_32_ac`: the corresponding
+  `TidyR6StochasticDrift.HasDrift` instances (for (1.32) when money has a density, `dM = m dt`).
+* `Dominated`, `Dominated.of_bound`: the integrability conditions of the product step, and their
+  verification for bounded paths of bounded variation.
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismModel
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7CondDominated Cochrane.Monetarism.TidyR7ProductStep
+  Cochrane.Monetarism.TidyR7MonetarismAC
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω}
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: the nominal discount factor `n_u = Λ_u/P_u`. -/
+noncomputable def disc (Λ P : ℝ → Ω → ℝ) (u : ℝ) (ω : Ω) : ℝ := Λ u ω / P u ω
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: the flow density `i B + i^m M − P s` of `B + M`. -/
+def flowRate (B M P i im sp : ℝ → Ω → ℝ) (r : ℝ) (ω : Ω) : ℝ :=
+  i r ω * B r ω + im r ω * M r ω - P r ω * sp r ω
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: **the path `g` has increments `∫ h`**:
+`g_v − g_u = ∫_u^v h_r dr` for all `u ≤ v`, path by path. -/
+def IncrOf (g h : ℝ → Ω → ℝ) : Prop :=
+  ∀ ω u v, u ≤ v → g v ω - g u ω = ∫ r in u..v, h r ω
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: `h` is locally integrable path by path. -/
+def LocInt (h : ℝ → Ω → ℝ) : Prop :=
+  ∀ ω u v, IntervalIntegrable (fun r => h r ω) MeasureSpace.volume u v
+
+variable (μ : Measure Ω) (𝓕 : Filtration ℝ mΩ) (Λ P B M A N i im sp : ℝ → Ω → ℝ)
+
+/-- **Cochrane (2023), A1 §1.6, (1.31)–(1.34), pp. 567–568: the model under uncertainty.**
+`Λ, P > 0` adapted; `Λ/P = A + N` with `N` a càdlàg martingale and `dA = −i(Λ/P) dt` (the
+bond-pricing condition); `B`, `M` adapted, money continuous of bounded variation; the flow (1.31)
+`d(B + M) = (iB + i^mM − Ps) dt` path by path. -/
+structure MonetaryModel where
+  P_pos : ∀ u ω, 0 < P u ω
+  Λ_pos : ∀ u ω, 0 < Λ u ω
+  Λ_adapted : ∀ u, StronglyMeasurable[𝓕 u] (Λ u)
+  P_adapted : ∀ u, StronglyMeasurable[𝓕 u] (P u)
+  dec : ∀ u ω, disc Λ P u ω = A u ω + N u ω
+  A_incr : IncrOf A fun r ω => -(i r ω * disc Λ P r ω)
+  A_int : LocInt fun r ω => -(i r ω * disc Λ P r ω)
+  N_mart : Martingale N 𝓕 μ
+  N_cadlag : ∀ ω, IsCadlag fun u => N u ω
+  B_adapted : ∀ u, StronglyMeasurable[𝓕 u] (B u)
+  M_adapted : ∀ u, StronglyMeasurable[𝓕 u] (M u)
+  M_cont : ∀ ω, Continuous fun u => M u ω
+  M_bv : ∀ ω a b, BoundedVariationOn (fun u => M u ω) (Set.Icc a b)
+  flow : IncrOf (addProc B M) (flowRate B M P i im sp)
+  flow_int : LocInt (flowRate B M P i im sp)
+
+variable (s t : ℝ) (Y X : ℝ → Ω → ℝ)
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: **the domination conditions of the product step**
+for bonds `Y` against `X = Λ/P = A + N` on `[s, t]` (those of
+`TidyR7ProductStep.ProductStepData`): `sup|X|·Var(Y)`, `sup|Y|·Var(A)` and `Y_u(N_v − N_u)`
+integrable. Argument order: `Dominated μ A N s t Y X`. -/
+structure Dominated where
+  sup_var : Integrable (fun ω => pathSup s t X ω * pathVar s t Y ω) μ
+  sup_varA : Integrable (fun ω => pathSup s t Y ω * pathVar s t A ω) μ
+  mart_incr : ∀ u v, s ≤ u → u ≤ v → v ≤ t → Integrable (fun ω => Y u ω * (N v ω - N u ω)) μ
+
+variable {μ 𝓕 Λ P B M A N i im sp s t Y X}
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the domination conditions hold for bounded paths of
+bounded variation**: if on `[s, t]` the paths of `X` are càdlàg with `|X| ≤ K`, the paths of `Y`
+are continuous with `|Y| ≤ K`, `Var(Y), Var(A) ≤ K`, all processes measurable at each time and
+`N` integrable, then `Dominated` holds for a finite measure.
+Extends `TidyR7ProductStep.integrable_mul_incr_of_bound`. -/
+theorem Dominated.of_bound [IsFiniteMeasure μ] {K : ℝ} (hK : 0 ≤ K) (hXm : ∀ u, Measurable (X u))
+    (hYm : ∀ u, Measurable (Y u)) (hAm : ∀ u, Measurable (A u))
+    (hYc : ∀ ω, Continuous fun u => Y u ω) (hAc : ∀ ω, IsCadlag fun u => A u ω)
+    (hN : ∀ u, Integrable (N u) μ)
+    (hX : ∀ ω, ∀ u ∈ Set.Icc s t, |X u ω| ≤ K) (hY : ∀ ω, ∀ u ∈ Set.Icc s t, |Y u ω| ≤ K)
+    (hVY : ∀ ω, pathVar s t Y ω ≤ K) (hVA : ∀ ω, pathVar s t A ω ≤ K) :
+    Dominated μ A N s t Y X := by
+  have hsup : ∀ Z : ℝ → Ω → ℝ, (∀ ω, ∀ u ∈ Set.Icc s t, |Z u ω| ≤ K) →
+      ∀ ω, pathSup s t Z ω ≤ K := fun Z hZ ω => Real.iSup_le (fun q => hZ ω q q.2.1) hK
+  have hvar0 : ∀ (Z : ℝ → Ω → ℝ) ω, 0 ≤ pathVar s t Z ω := fun _ _ => ENNReal.toReal_nonneg
+  have mY : Measurable (pathVar s t Y) :=
+    TidyR7StieltjesVariation.measurable_variation_toReal_of_continuousOn (a := s) (b := t)
+      (g := fun ω u => Y u ω) hYm fun ω => (hYc ω).continuousOn
+  have mA : Measurable (pathVar s t A) :=
+    TidyR7StieltjesVariation.measurable_variation_toReal_of_isCadlag (a := s) (b := t)
+      (g := fun ω u => A u ω) hAm hAc
+  have bound : ∀ (Z W : ℝ → Ω → ℝ), (∀ ω, ∀ u ∈ Set.Icc s t, |Z u ω| ≤ K) →
+      (∀ ω, pathVar s t W ω ≤ K) → Measurable (pathSup s t Z) → Measurable (pathVar s t W) →
+      Integrable (fun ω => pathSup s t Z ω * pathVar s t W ω) μ := by
+    intro Z W hZ hW m1 m2
+    refine Integrable.of_bound (m1.mul m2).aestronglyMeasurable (K * K)
+      (Eventually.of_forall fun ω => ?_)
+    rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (pathSup_nonneg s t Z ω) (hvar0 W ω))]
+    exact mul_le_mul (hsup Z hZ ω) (hW ω) (hvar0 W ω) hK
+  exact ⟨bound X Y hX hVY (measurable_pathSup fun u _ => hXm u) mY,
+    bound Y A hY hVA (measurable_pathSup fun u _ => hYm u) mA,
+    integrable_mul_incr_of_bound (B := Y) (M := N) (K := K) (fun u hu ω => hY ω u hu)
+      (fun u _ => hYm u) hN⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool): the variation of `−f` is that of `f`. -/
+theorem eVariationOn_neg (f : ℝ → ℝ) (S : Set ℝ) :
+    eVariationOn (fun x => -f x) S = eVariationOn f S := by
+  simp only [eVariationOn, edist_neg_neg]
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool): `f + (−1)·g` has bounded variation when `f` and `g`
+have. -/
+theorem bv_add_neg {f g : ℝ → ℝ} {S : Set ℝ} (hf : BoundedVariationOn f S)
+    (hg : BoundedVariationOn g S) : BoundedVariationOn (fun x => f x + -1 * g x) S := by
+  have h1 : BoundedVariationOn (fun x => -1 * g x) S := by
+    have e : (fun x => -1 * g x) = fun x => -g x := funext fun x => by ring
+    rw [BoundedVariationOn, e, eVariationOn_neg]
+    exact hg
+  exact ne_top_of_le_ne_top (ENNReal.add_ne_top.2 ⟨hf, h1⟩) (eVariationOn_add_le _ _ S)
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool): a càdlàg function times an interval integrable one is
+interval integrable on `[a, b]` (the càdlàg factor is bounded and measurable).
+An instance of Mathlib `Integrable.bdd_mul`. -/
+theorem intervalIntegrable_mul_of_isCadlag {f h : ℝ → ℝ} (hf : IsCadlag f) {a b : ℝ}
+    (hab : a ≤ b) (hh : IntervalIntegrable h MeasureSpace.volume a b) :
+    IntervalIntegrable (fun x => f x * h x) MeasureSpace.volume a b := by
+  obtain ⟨C, -, hC⟩ := exists_bound_of_isCadlag hf a b
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hab] at hh ⊢
+  exact hh.bdd_mul (c := C) (measurable_of_isCadlag hf).aestronglyMeasurable
+    ((ae_restrict_iff' measurableSet_Ioc).2 (Eventually.of_forall fun x hx => by
+      rw [Real.norm_eq_abs]
+      exact hC x ⟨hx.1.le, hx.2⟩))
+
+namespace MonetaryModel
+
+variable (hm : MonetaryModel μ 𝓕 Λ P B M A N i im sp)
+include hm
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ/P = A + N` as processes. -/
+theorem disc_eq : disc Λ P = addProc A N :=
+  funext fun u => funext fun ω => hm.dec u ω
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `(Λ/P)·P = Λ`. -/
+theorem disc_mul_P (u : ℝ) (ω : Ω) : disc Λ P u ω * P u ω = Λ u ω :=
+  div_mul_cancel₀ (Λ u ω) (hm.P_pos u ω).ne'
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `A` has continuous paths (it has a locally integrable
+density). -/
+theorem A_cont (ω : Ω) : Continuous fun u => A u ω :=
+  continuous_of_incr (hm.A_int ω) (hm.A_incr ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `A` has bounded variation on every `[a, b]`. -/
+theorem A_bv (ω : Ω) (a b : ℝ) : BoundedVariationOn (fun u => A u ω) (Set.Icc a b) :=
+  bv_of_incr (hm.A_int ω) (hm.A_incr ω) a b
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: `B + M` has continuous paths. -/
+theorem W_cont (ω : Ω) : Continuous fun u => addProc B M u ω :=
+  continuous_of_incr (hm.flow_int ω) (hm.flow ω)
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: `B + M` has bounded variation on every `[a, b]`. -/
+theorem W_bv (ω : Ω) (a b : ℝ) : BoundedVariationOn (fun u => addProc B M u ω) (Set.Icc a b) :=
+  bv_of_incr (hm.flow_int ω) (hm.flow ω) a b
+
+omit hm in
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: bonds `B = (B + M) − M` as paths. -/
+theorem B_eq (ω : Ω) : (fun u => B u ω) = fun u => addProc B M u ω + -1 * M u ω :=
+  funext fun u => by simp only [addProc]; ring
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: bonds have continuous paths. -/
+theorem B_cont (ω : Ω) : Continuous fun u => B u ω := by
+  rw [B_eq (B := B) (M := M) ω]
+  exact (hm.W_cont ω).add (continuous_const.mul (hm.M_cont ω))
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: bonds have bounded variation on every `[a, b]`. -/
+theorem B_bv (ω : Ω) (a b : ℝ) : BoundedVariationOn (fun u => B u ω) (Set.Icc a b) := by
+  rw [B_eq (B := B) (M := M) ω]
+  exact bv_add_neg (hm.W_bv ω a b) (hm.M_bv ω a b)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ/P` has càdlàg paths. -/
+theorem disc_cadlag (ω : Ω) : IsCadlag fun u => disc Λ P u ω := by
+  rw [hm.disc_eq]
+  exact (hm.A_cont ω).isCadlag.fun_add (hm.N_cadlag ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ_u/P_u` is `𝓕_u`-measurable. -/
+theorem disc_adapted (u : ℝ) : StronglyMeasurable[𝓕 u] (disc Λ P u) :=
+  ((hm.Λ_adapted u).measurable.div (hm.P_adapted u).measurable).stronglyMeasurable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ_u/P_u` is measurable. -/
+theorem measurable_disc (u : ℝ) : Measurable (disc Λ P u) :=
+  ((hm.disc_adapted u).mono (𝓕.le u)).measurable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `A_u = Λ_u/P_u − N_u` is measurable. -/
+theorem measurable_A (u : ℝ) : Measurable (A u) := by
+  have e : A u = fun ω => disc Λ P u ω - N u ω := funext fun ω => by rw [hm.dec u ω]; ring
+  rw [e]
+  exact (hm.measurable_disc u).sub (((hm.N_mart.1 u).mono (𝓕.le u)).measurable)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `B + M` is adapted. -/
+theorem W_adapted (u : ℝ) : StronglyMeasurable[𝓕 u] (addProc B M u) :=
+  (hm.B_adapted u).add (hm.M_adapted u)
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: **the data of the product step for bonds**
+`B` against `Λ/P = A + N` on `[s, t]`, under the domination conditions. -/
+theorem productStepData_B (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    ProductStepData μ 𝓕 s t B A N where
+  le := hst
+  B_adapted u _ := hm.B_adapted u
+  B_cont ω := (hm.B_cont ω).continuousOn
+  B_bv ω := hm.B_bv ω s t
+  A_meas u _ := hm.measurable_A u
+  A_cadlag ω := (hm.A_cont ω).isCadlag
+  A_bv ω := hm.A_bv ω s t
+  M_mart := hm.N_mart
+  M_cadlag := hm.N_cadlag
+  int_XB := by rw [← hm.disc_eq]; exact hd.sup_var
+  int_BA := hd.sup_varA
+  int_BM := hd.mart_incr
+
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: **the data of the product step for bonds plus
+money** `B + M` against `Λ/P = A + N` on `[s, t]`. -/
+theorem productStepData_W (hst : s ≤ t) (hd : Dominated μ A N s t (addProc B M) (disc Λ P)) :
+    ProductStepData μ 𝓕 s t (addProc B M) A N where
+  le := hst
+  B_adapted u _ := hm.W_adapted u
+  B_cont ω := (hm.W_cont ω).continuousOn
+  B_bv ω := hm.W_bv ω s t
+  A_meas u _ := hm.measurable_A u
+  A_cadlag ω := (hm.A_cont ω).isCadlag
+  A_bv ω := hm.A_bv ω s t
+  M_mart := hm.N_mart
+  M_cadlag := hm.N_cadlag
+  int_XB := by rw [← hm.disc_eq]; exact hd.sup_var
+  int_BA := hd.sup_varA
+  int_BM := hd.mart_incr
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: `∫_s^t B dA = −∫_s^t i n B` path by path (the
+expected increment of `Λ/P` is `−i(Λ/P) dt`). -/
+theorem rsInt_B_A (ω : Ω) (hst : s ≤ t) :
+    rsInt s t (fun u => B u ω) (fun u => A u ω) =
+      -∫ r in s..t, i r ω * disc Λ P r ω * B r ω := by
+  rw [rsInt_eq_integral_of_incr (hm.B_cont ω).isCadlag (hm.A_int ω) (hm.A_incr ω) hst,
+    ← intervalIntegral.integral_neg]
+  exact intervalIntegral.integral_congr fun r _ => by ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, path by path.** For `s ≤ t`,
+`∫_s^t n dB + ∫_s^t B dA = −(∫_s^t (Λ_rs_r − i^m_rn_rM_r) dr + ∫_s^t n dM)`, `n = Λ/P`. -/
+theorem pathwise_1_32 (ω : Ω) (hst : s ≤ t) :
+    rsInt s t (fun u => disc Λ P u ω) (fun u => B u ω) +
+        rsInt s t (fun u => B u ω) (fun u => A u ω) =
+      -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) := by
+  have hn := hm.disc_cadlag ω
+  have hMbv : BoundedVariationOn (fun u => -1 * M u ω) (Set.Icc s t) := by
+    have e : (fun u => -1 * M u ω) = fun u => -M u ω := funext fun u => by ring
+    rw [BoundedVariationOn, e, eVariationOn_neg]
+    exact hm.M_bv ω s t
+  have e1 : rsInt s t (fun u => disc Λ P u ω) (fun u => B u ω) =
+      rsInt s t (fun u => disc Λ P u ω) (fun u => addProc B M u ω) -
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω) := by
+    rw [B_eq (B := B) (M := M) ω,
+      rsInt_add_right hst (hm.W_bv ω s t) hMbv (rsIntegrable_of_isCadlag hn),
+      rsInt_smul_right (-1) hst (hm.M_bv ω s t)]
+    ring
+  have e2 : rsInt s t (fun u => disc Λ P u ω) (fun u => addProc B M u ω) =
+      ∫ r in s..t, disc Λ P r ω * flowRate B M P i im sp r ω :=
+    rsInt_eq_integral_of_incr hn (hm.flow_int ω) (hm.flow ω) hst
+  have e3 : rsInt s t (fun u => B u ω) (fun u => A u ω) =
+      ∫ r in s..t, B r ω * -(i r ω * disc Λ P r ω) :=
+    rsInt_eq_integral_of_incr (hm.B_cont ω).isCadlag (hm.A_int ω) (hm.A_incr ω) hst
+  have i1 : IntervalIntegrable (fun r => disc Λ P r ω * flowRate B M P i im sp r ω)
+      MeasureSpace.volume s t := intervalIntegrable_mul_of_isCadlag hn hst (hm.flow_int ω s t)
+  have i2 : IntervalIntegrable (fun r => B r ω * -(i r ω * disc Λ P r ω))
+      MeasureSpace.volume s t :=
+    intervalIntegrable_mul_of_isCadlag (hm.B_cont ω).isCadlag hst (hm.A_int ω s t)
+  have e4 : (∫ r in s..t, disc Λ P r ω * flowRate B M P i im sp r ω) +
+      (∫ r in s..t, B r ω * -(i r ω * disc Λ P r ω)) =
+        -∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω) := by
+    rw [← intervalIntegral.integral_add i1 i2, ← intervalIntegral.integral_neg]
+    refine intervalIntegral.integral_congr fun r _ => ?_
+    simp only [flowRate]
+    rw [← hm.disc_mul_P r ω]
+    ring
+  rw [e1, e2, e3]
+  linarith
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, path by path.** For `s ≤ t`,
+`∫_s^t n d(B + M) + ∫_s^t (B + M) dA = −∫_s^t (Λ_rs_r + (i_r − i^m_r)n_rM_r) dr`. -/
+theorem pathwise_1_34 (ω : Ω) (hst : s ≤ t) :
+    rsInt s t (fun u => disc Λ P u ω) (fun u => addProc B M u ω) +
+        rsInt s t (fun u => addProc B M u ω) (fun u => A u ω) =
+      -∫ r in s..t, (Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω) := by
+  have hn := hm.disc_cadlag ω
+  have hW := (hm.W_cont ω).isCadlag
+  rw [rsInt_eq_integral_of_incr hn (hm.flow_int ω) (hm.flow ω) hst,
+    rsInt_eq_integral_of_incr hW (hm.A_int ω) (hm.A_incr ω) hst,
+    ← intervalIntegral.integral_add (intervalIntegrable_mul_of_isCadlag hn hst (hm.flow_int ω s t))
+      (intervalIntegrable_mul_of_isCadlag hW hst (hm.A_int ω s t)),
+    ← intervalIntegral.integral_neg]
+  refine intervalIntegral.integral_congr fun r _ => ?_
+  simp only [flowRate, addProc]
+  rw [← hm.disc_mul_P r ω]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: the integrand `Λs − i^m nM` of (1.32) is interval
+integrable path by path (it is `−(n·(iB + i^mM − Ps) − iBn)`). -/
+theorem intervalIntegrable_1_32 (ω : Ω) (hst : s ≤ t) :
+    IntervalIntegrable (fun r => Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)
+      MeasureSpace.volume s t := by
+  have i1 := intervalIntegrable_mul_of_isCadlag (hm.disc_cadlag ω) hst (hm.flow_int ω s t)
+  have i2 := intervalIntegrable_mul_of_isCadlag (hm.B_cont ω).isCadlag hst (hm.A_int ω s t)
+  have e : (fun r => Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω) = fun r =>
+      -(disc Λ P r ω * flowRate B M P i im sp r ω + B r ω * -(i r ω * disc Λ P r ω)) :=
+    funext fun r => by
+      simp only [flowRate]
+      rw [← hm.disc_mul_P r ω]
+      ring
+  rw [e]
+  exact (i1.add i2).neg
+
+variable [IsFiniteMeasure μ]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, with interest on money.** Under the domination
+conditions on `[s, t]`, almost surely
+`E_s[n_tB_t − n_sB_s] = −E_s[∫_s^t (Λ_rs_r − i^m_rn_rM_r) dr + ∫_s^t n dM]`, `n = Λ/P`. -/
+theorem incr_1_32_general (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    μ[fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) | 𝓕 s] := by
+  have hpd := hm.productStepData_B hst hd
+  have h := hpd.product_step
+  have i1 := hpd.integrable_intXB
+  have i2 := hpd.integrable_intBA
+  rw [← hm.disc_eq] at h i1
+  have eL : (fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω) =
+      fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω := funext fun ω => by ring
+  have eR : (fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω))) =
+      intRS s t (disc Λ P) B + intRS s t B A :=
+    funext fun ω => (hm.pathwise_1_32 ω hst).symm
+  rw [eL] at h
+  rw [eR]
+  filter_upwards [h, condExp_add i1 i2 (𝓕 s)] with ω h1 h2
+  rw [h1, h2]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_t d(ΛB/P) = −Λ(s dt + dM/P)`, integrated.**
+With `i^m = 0` and the domination conditions on `[s, t]`, almost surely
+`E_s[n_tB_t − n_sB_s] = −E_s[∫_s^t Λ_rs_r dr + ∫_s^t n dM]`, `n = Λ/P`.
+Generalises `TidyR6StochasticDrift.drift_1_32_fv` and `TidyR7ProductStepCases.product_step_1_32_C1`;
+continuous-time form of `TidyR6StochasticDrift.incr_1_32`. -/
+theorem incr_1_32 (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P))
+    (him : ∀ r ω, im r ω = 0) :
+    μ[fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -((∫ r in s..t, Λ r ω * sp r ω) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) | 𝓕 s] := by
+  have h := hm.incr_1_32_general hst hd
+  have e : (fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω))) = fun ω =>
+      -((∫ r in s..t, Λ r ω * sp r ω) + rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) :=
+    funext fun ω => by simp only [him, zero_mul, sub_zero]
+  rwa [e] at h
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_t d(Λ/P) = −i(Λ/P) dt` in the
+expected-increment sense.** The expected-increment integral `B·E_s d(Λ/P)`
+(`TidyR7ProductStep.ExpIncrLimit`) exists and equals `−E_s∫_s^t i n B`.
+Generalises part of `TidyR7ProductStepCases.product_step_1_32_C1`. -/
+theorem expIncr_disc (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    ExpIncrLimit μ 𝓕 s t B (disc Λ P)
+      (μ[fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω | 𝓕 s]) := by
+  have h := expIncrLimit_condExp_rsInt (hm.productStepData_B hst hd)
+  have e : intRS s t B A = fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω :=
+    funext fun ω => hm.rsInt_B_A ω hst
+  rw [e, ← hm.disc_eq] at h
+  exact h
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, the middle line**
+`(Λ/P) dB + E_t[d(Λ/P)]B = −Λ(s dt + dM/P)`, integrated: with `i^m = 0`, almost surely
+`E_s[∫_s^t n dB] + B·E_s d(Λ/P) = −E_s[∫_s^t Λs dr + ∫_s^t n dM]`, where
+`B·E_s d(Λ/P) = −E_s∫_s^t i n B` (`MonetaryModel.expIncr_disc`). -/
+theorem middle_1_32 (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P))
+    (him : ∀ r ω, im r ω = 0) :
+    μ[intRS s t (disc Λ P) B | 𝓕 s] +
+        μ[fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -((∫ r in s..t, Λ r ω * sp r ω) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) | 𝓕 s] := by
+  have hpd := hm.productStepData_B hst hd
+  have h := hpd.product_step
+  rw [← hm.disc_eq] at h
+  have e : intRS s t B A = fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω :=
+    funext fun ω => hm.rsInt_B_A ω hst
+  have eL : (fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω) =
+      fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω := funext fun ω => by ring
+  rw [e, eL] at h
+  filter_upwards [h, hm.incr_1_32 hst hd him] with ω h1 h2
+  rw [← h1, h2]
+
+/-- **Cochrane (2023), A1 §1.6, p. 567, the line before (1.34):
+`E_t d(Λ(M + B)/P) = −Λ(s + (i − i^m)M/P) dt`, integrated.** Under the domination conditions for
+`B + M` on `[s, t]`, almost surely
+`E_s[n_t(B + M)_t − n_s(B + M)_s] = −E_s∫_s^t (Λ_rs_r + (i_r − i^m_r)n_rM_r) dr`.
+Continuous-time form of `TidyR6StochasticDrift.incr_1_34`. -/
+theorem incr_1_34 (hst : s ≤ t) (hd : Dominated μ A N s t (addProc B M) (disc Λ P)) :
+    μ[fun ω => disc Λ P t ω * addProc B M t ω - disc Λ P s ω * addProc B M s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -∫ r in s..t, (Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω)
+        | 𝓕 s] := by
+  have hpd := hm.productStepData_W hst hd
+  have h := hpd.product_step
+  have i1 := hpd.integrable_intXB
+  have i2 := hpd.integrable_intBA
+  rw [← hm.disc_eq] at h i1
+  have eL : (fun ω => addProc B M t ω * disc Λ P t ω - addProc B M s ω * disc Λ P s ω) =
+      fun ω => disc Λ P t ω * addProc B M t ω - disc Λ P s ω * addProc B M s ω :=
+    funext fun ω => by ring
+  have eR : (fun ω => -∫ r in s..t,
+        (Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω)) =
+      intRS s t (disc Λ P) (addProc B M) + intRS s t (addProc B M) A :=
+    funext fun ω => (hm.pathwise_1_34 ω hst).symm
+  rw [eL] at h
+  rw [eR]
+  filter_upwards [h, condExp_add i1 i2 (𝓕 s)] with ω h1 h2
+  rw [h1, h2]
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: `E_t d(Λ(M + B)/P) = −Λ(s + (i − i^m)M/P) dt` as a
+`TidyR6StochasticDrift.HasDrift` instance.** If the domination conditions for `B + M` hold on
+every `[s, t]`, then `n(B + M)` has drift `−(Λs + (i − i^m)nM)`. -/
+theorem hasDrift_1_34 (hd : ∀ s t, s ≤ t → Dominated μ A N s t (addProc B M) (disc Λ P)) :
+    TidyR6StochasticDrift.HasDrift μ 𝓕 (fun t ω => disc Λ P t ω * addProc B M t ω)
+      fun r ω => -(Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω) := by
+  have key : ∀ s t, s ≤ t → (fun ω => disc Λ P t ω * addProc B M t ω -
+      disc Λ P s ω * addProc B M s ω - ∫ r in s..t,
+        -(Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω)) =
+      (fun ω => addProc B M t ω * disc Λ P t ω - addProc B M s ω * disc Λ P s ω) -
+        (intRS s t (disc Λ P) (addProc B M) + intRS s t (addProc B M) A) :=
+    fun s t hst => funext fun ω => by
+      simp only [Pi.sub_apply, Pi.add_apply, intRS]
+      rw [intervalIntegral.integral_neg, ← hm.pathwise_1_34 ω hst]
+      ring
+  have facts : ∀ s t, s ≤ t →
+      Integrable (fun ω => addProc B M t ω * disc Λ P t ω - addProc B M s ω * disc Λ P s ω) μ ∧
+      Integrable (intRS s t (disc Λ P) (addProc B M)) μ ∧
+      Integrable (intRS s t (addProc B M) A) μ ∧
+      μ[fun ω => addProc B M t ω * disc Λ P t ω - addProc B M s ω * disc Λ P s ω | 𝓕 s] =ᵐ[μ]
+        μ[intRS s t (disc Λ P) (addProc B M) | 𝓕 s] + μ[intRS s t (addProc B M) A | 𝓕 s] := by
+    intro s t hst
+    have hpd := hm.productStepData_W hst (hd s t hst)
+    have i0 := hpd.integrable_lhs
+    have i1 := hpd.integrable_intXB
+    have h := hpd.product_step
+    rw [← hm.disc_eq] at i0 i1 h
+    exact ⟨i0, i1, hpd.integrable_intBA, h⟩
+  refine ⟨fun s t hst => ?_, fun s t hst => ?_⟩
+  · obtain ⟨i0, i1, i2, -⟩ := facts s t hst
+    rw [key s t hst]
+    exact i0.sub (i1.add i2)
+  · obtain ⟨i0, i1, i2, h⟩ := facts s t hst
+    rw [key s t hst]
+    filter_upwards [condExp_sub i0 (i1.add i2) (𝓕 s), h, condExp_add i1 i2 (𝓕 s)] with
+      ω h1 h2 h3
+    rw [h1]
+    simp only [Pi.sub_apply, Pi.zero_apply]
+    rw [h2, h3, sub_self]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, as a `TidyR6StochasticDrift.HasDrift` instance
+when money has a density.** If `M_v − M_u = ∫_u^v m` (`m` locally integrable) and the domination
+conditions for `B` hold on every `[s, t]`, then `nB` has drift `−(Λs − i^m nM + n m)`:
+`E_t d(ΛB/P) = −Λ(s + Ṁ/P) dt` when `i^m = 0`.
+Generalises `TidyR6StochasticDrift.drift_1_32_fv`. -/
+theorem hasDrift_1_32_ac {m : ℝ → Ω → ℝ} (hM : IncrOf M m) (hMi : LocInt m)
+    (hd : ∀ s t, s ≤ t → Dominated μ A N s t B (disc Λ P)) :
+    TidyR6StochasticDrift.HasDrift μ 𝓕 (fun t ω => disc Λ P t ω * B t ω)
+      fun r ω => -(Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω + disc Λ P r ω * m r ω) := by
+  have key : ∀ s t, s ≤ t → (fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω -
+      ∫ r in s..t, -(Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω + disc Λ P r ω * m r ω)) =
+      (fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω) -
+        (intRS s t (disc Λ P) B + intRS s t B A) :=
+    fun s t hst => funext fun ω => by
+      have hpw := hm.pathwise_1_32 ω hst
+      rw [rsInt_eq_integral_of_incr (hm.disc_cadlag ω) (hMi ω) (hM ω) hst] at hpw
+      simp only [Pi.sub_apply, Pi.add_apply, intRS]
+      rw [intervalIntegral.integral_neg, intervalIntegral.integral_add
+        (hm.intervalIntegrable_1_32 ω hst)
+        (intervalIntegrable_mul_of_isCadlag (hm.disc_cadlag ω) hst (hMi ω s t)), hpw]
+      ring
+  have facts : ∀ s t, s ≤ t →
+      Integrable (fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω) μ ∧
+      Integrable (intRS s t (disc Λ P) B) μ ∧ Integrable (intRS s t B A) μ ∧
+      μ[fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω | 𝓕 s] =ᵐ[μ]
+        μ[intRS s t (disc Λ P) B | 𝓕 s] + μ[intRS s t B A | 𝓕 s] := by
+    intro s t hst
+    have hpd := hm.productStepData_B hst (hd s t hst)
+    have i0 := hpd.integrable_lhs
+    have i1 := hpd.integrable_intXB
+    have h := hpd.product_step
+    rw [← hm.disc_eq] at i0 i1 h
+    exact ⟨i0, i1, hpd.integrable_intBA, h⟩
+  refine ⟨fun s t hst => ?_, fun s t hst => ?_⟩
+  · obtain ⟨i0, i1, i2, -⟩ := facts s t hst
+    rw [key s t hst]
+    exact i0.sub (i1.add i2)
+  · obtain ⟨i0, i1, i2, h⟩ := facts s t hst
+    rw [key s t hst]
+    filter_upwards [condExp_sub i0 (i1.add i2) (𝓕 s), h, condExp_add i1 i2 (𝓕 s)] with
+      ω h1 h2 h3
+    rw [h1]
+    simp only [Pi.sub_apply, Pi.zero_apply]
+    rw [h2, h3, sub_self]
+
+end MonetaryModel
+
+end Cochrane.Monetarism.TidyR7MonetarismModel
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The valuation equations (1.33) and (1.34) under uncertainty: integrating to infinity
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.33)–(1.34), in the model
+`TidyR7MonetarismModel.MonetaryModel`. "Now we can integrate, and impose the transversality
+condition": from the integrated (1.32) `E_s[n_TB_T − n_sB_s] = −E_s[F_T]`
+(`TidyR7MonetarismModel.MonetaryModel.incr_1_32`, `n = Λ/P`,
+`F_T = ∫_s^T Λs dr + ∫_s^T n dM`, `flow133`), the finite-horizon budget
+`n_sB_s = E_s[n_TB_T] + E_s[F_T]` holds for every `T ≥ s` (`MonetaryModel.rec_1_33`).
+
+## Three readings of "integrate to infinity"
+
+* **Limit form, no convergence hypothesis** (`valuation_iff_tvc_seq`,
+  `MonetaryModel.valuation_1_33_seq`): along any times `T_k ≥ s`, almost surely,
+  `E_s[F_{T_k}] → n_sB_s` iff `E_s[n_{T_k}B_{T_k}] → 0`. This is the exact content of (1.33) when
+  `∫_s^∞` is read as `lim_T E_s∫_s^T`; it needs nothing beyond the finite-horizon budgets.
+* **`L¹` form** (`valuation_iff_tvc_flow`, `MonetaryModel.valuation_1_33`): if `F_T → G` in `L¹`
+  (`G = ∫_s^∞`), then `n_sB_s = E_s[G]` a.s. iff `E_s[n_TB_T] → 0` in `L¹`.
+* **Dominated form** (`valuation_iff_tvc_dom`, `MonetaryModel.valuation_1_33_dom`): if
+  `F_{T_k} → G` path by path with `|F_{T_k}| ≤ H` integrable, then `n_sB_s = E_s[G]` a.s. iff
+  `E_s[n_{T_k}B_{T_k}] → 0` a.s. (conditional dominated convergence
+  `TidyR7CondDominated.ae_tendsto_condExp_of_dominated` identifies `lim E_s[F_{T_k}]` with
+  `E_s[G]`). The convergence hypothesis is exactly what makes `E_s ∫_s^∞` equal
+  `lim E_s ∫_s^T`; it is not needed for the limit form, and without it the printed `E_t∫_t^∞`
+  may not exist while the limit form holds (`TidyR7MonetarismCoin`).
+
+## The book's normalisation
+
+`real_form`: `n_sX = E_s[G]` iff `X/P_s = E_s[G/Λ_s]` (`Λ_s > 0` is `𝓕_s`-measurable and pulls out);
+`flow133_div`: `F_T/Λ_s = ∫_s^T (Λ_τ/Λ_s)s_τ dτ + ∫_s^T (Λ_τ/Λ_s) dM_τ/P_τ`, the book's integrand.
+`MonetaryModel.valuation_1_33_book`: (1.33) as printed,
+`B_s/P_s = E_s ∫_s^∞ (Λ_τ/Λ_s)(s_τ dτ + dM_τ/P_τ)`, iff the transversality condition.
+
+## (1.34)
+
+`MonetaryModel.valuation_1_34`: via `TidyR7MonetarismModel.MonetaryModel.hasDrift_1_34` and
+`TidyR6StochasticDrift.valuation_iff_tvc` (`L¹` form);
+`MonetaryModel.valuation_1_34_book`: dominated form and
+`(M_s + B_s)/P_s = E_s∫_s^∞ (Λ_τ/Λ_s)(s_τ + (i_τ − i^m_τ)M_τ/P_τ) dτ`.
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismValuation
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7CondDominated Cochrane.Monetarism.TidyR7ProductStep
+  Cochrane.Monetarism.TidyR7MonetarismAC Cochrane.Monetarism.TidyR7MonetarismModel
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω} {𝓕 : Filtration ℝ mΩ}
+
+/-! ## Generic: from the finite-horizon budgets to the valuation equation -/
+
+/-- Cochrane (2023), A1 §1.6, (1.32) ⇒ (1.33), p. 567: **the finite-horizon budget.** If
+`E_s[Y_T − Y_s] = −E_s[F]`, with `Y_s` `𝓕_s`-measurable and `Y_T`, `Y_s` integrable, then
+`Y_s = E_s[Y_T] + E_s[F]` almost surely.
+Generalises `TidyR6StochasticDrift.valuation_of_drift` to a general flow; continuous-time form of
+`TidyR6StochasticDrift.rec_of_incr_1_32`. -/
+theorem rec_of_incr [IsFiniteMeasure μ] {Y : ℝ → Ω → ℝ} {F : Ω → ℝ} {s T : ℝ}
+    (hinc : μ[fun ω => Y T ω - Y s ω | 𝓕 s] =ᵐ[μ] μ[fun ω => -F ω | 𝓕 s])
+    (hYs : StronglyMeasurable[𝓕 s] (Y s)) (hYsi : Integrable (Y s) μ)
+    (hYTi : Integrable (Y T) μ) :
+    Y s =ᵐ[μ] μ[Y T | 𝓕 s] + μ[F | 𝓕 s] := by
+  have h1 := condExp_sub (m := 𝓕 s) hYTi hYsi
+  have h2 := condExp_neg (μ := μ) F (𝓕 s)
+  have h3 : μ[Y s | 𝓕 s] = Y s := condExp_of_stronglyMeasurable (𝓕.le s) hYs hYsi
+  filter_upwards [hinc, h1, h2] with ω e1 e2 e3
+  have a1 : μ[fun ω => Y T ω - Y s ω | 𝓕 s] ω = μ[Y T | 𝓕 s] ω - Y s ω := by
+    rw [show (fun ω => Y T ω - Y s ω) = Y T - Y s from rfl, e2, Pi.sub_apply, h3]
+  have a2 : μ[fun ω => -F ω | 𝓕 s] ω = -μ[F | 𝓕 s] ω := by
+    rw [show (fun ω => -F ω) = -F from rfl, e3, Pi.neg_apply]
+  rw [a1, a2] at e1
+  simp only [Pi.add_apply]
+  linarith
+
+/-- **Cochrane (2023), A1 §1.6, (1.33)–(1.34), p. 567: valuation iff transversality, `L¹` form,
+for a general discounted flow.** If `Y_s = E_s[Y_T] + E_s[F_T]` for every `T ≥ s`, `Y_T`, `F_T`
+and `G` are integrable and `F_T → G` in `L¹`, then `Y_s = E_s[G]` a.s. iff `E_s[Y_T] → 0` in `L¹`.
+Generalises `TidyR6StochasticDrift.valuation_iff_tvc` (there `F_T = ∫_s^T g dr`) to flows with a
+Stieltjes part `∫ n dM`. -/
+theorem valuation_iff_tvc_flow [IsFiniteMeasure μ] {Y F : ℝ → Ω → ℝ} {s : ℝ} {G : Ω → ℝ}
+    (hrec : ∀ T, s ≤ T → Y s =ᵐ[μ] μ[Y T | 𝓕 s] + μ[F T | 𝓕 s])
+    (hYi : ∀ T, s ≤ T → Integrable (Y T) μ) (hFi : ∀ T, s ≤ T → Integrable (F T) μ)
+    (hG : Integrable G μ) (hconv : Tendsto (fun T => ∫ ω, |F T ω - G ω| ∂μ) atTop (𝓝 0)) :
+    Y s =ᵐ[μ] μ[G | 𝓕 s] ↔ Tendsto (fun T => ∫ ω, |μ[Y T | 𝓕 s] ω| ∂μ) atTop (𝓝 0) := by
+  set b : Ω → ℝ := fun ω => Y s ω - μ[G | 𝓕 s] ω with hb
+  have hbi : Integrable b μ := (hYi s le_rfl).sub integrable_condExp
+  have hclose : ∀ T, s ≤ T → |∫ ω, |μ[Y T | 𝓕 s] ω| ∂μ - ∫ ω, |b ω| ∂μ| ≤
+      ∫ ω, |F T ω - G ω| ∂μ := by
+    intro T hsT
+    have hv := hrec T hsT
+    have hsub := condExp_sub (m := 𝓕 s) (hFi T hsT) hG
+    have hae : ∀ᵐ ω ∂μ, |μ[Y T | 𝓕 s] ω| - |b ω| ≤ |μ[F T - G | 𝓕 s] ω| ∧
+        |b ω| - |μ[Y T | 𝓕 s] ω| ≤ |μ[F T - G | 𝓕 s] ω| := by
+      filter_upwards [hv, hsub] with ω e1 e2
+      simp only [Pi.add_apply] at e1
+      have e2' : μ[F T - G | 𝓕 s] ω = μ[F T | 𝓕 s] ω - μ[G | 𝓕 s] ω := by
+        rw [e2]; rfl
+      have ea : μ[Y T | 𝓕 s] ω = b ω - μ[F T - G | 𝓕 s] ω := by
+        rw [e2']; simp only [hb]; linarith
+      rw [ea]
+      constructor
+      · have := abs_sub (b ω) (μ[F T - G | 𝓕 s] ω)
+        linarith
+      · have := abs_sub_abs_le_abs_sub (b ω) (b ω - μ[F T - G | 𝓕 s] ω)
+        simp only [sub_sub_cancel] at this
+        linarith
+    have hYTc : Integrable (fun ω => |μ[Y T | 𝓕 s] ω|) μ := integrable_condExp.abs
+    have hbc : Integrable (fun ω => |b ω|) μ := hbi.abs
+    have hdc : Integrable (fun ω => |μ[F T - G | 𝓕 s] ω|) μ := integrable_condExp.abs
+    have hle := integral_abs_condExp_le (μ := μ) (m := 𝓕 s) (F T - G)
+    have hle' : ∫ ω, |(F T - G) ω| ∂μ = ∫ ω, |F T ω - G ω| ∂μ := rfl
+    rw [hle'] at hle
+    rw [abs_le]
+    constructor
+    · have := integral_mono_ae (hbc.sub hYTc) hdc (by
+        filter_upwards [hae] with ω h; simp only [Pi.sub_apply]; linarith [h.2])
+      simp only [Pi.sub_apply] at this
+      rw [integral_sub hbc hYTc] at this
+      linarith
+    · have := integral_mono_ae (hYTc.sub hbc) hdc (by
+        filter_upwards [hae] with ω h; simp only [Pi.sub_apply]; linarith [h.1])
+      simp only [Pi.sub_apply] at this
+      rw [integral_sub hYTc hbc] at this
+      linarith
+  have hlim : Tendsto (fun T => ∫ ω, |μ[Y T | 𝓕 s] ω| ∂μ) atTop (𝓝 (∫ ω, |b ω| ∂μ)) := by
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    refine squeeze_zero' (Eventually.of_forall fun T => norm_nonneg _) ?_ hconv
+    filter_upwards [eventually_ge_atTop s] with T hT
+    rw [Real.norm_eq_abs]
+    exact hclose T hT
+  constructor
+  · intro h
+    have hb0 : ∫ ω, |b ω| ∂μ = 0 := by
+      have : (fun ω => |b ω|) =ᵐ[μ] 0 := by
+        filter_upwards [h] with ω hω; simp [hb, hω]
+      rw [integral_congr_ae this]; simp
+    rwa [hb0] at hlim
+  · intro h
+    have hb0 : ∫ ω, |b ω| ∂μ = 0 := tendsto_nhds_unique hlim h
+    have hae := (integral_eq_zero_iff_of_nonneg (fun ω => abs_nonneg (b ω)) hbi.abs).1 hb0
+    filter_upwards [hae] with ω hω
+    simp only [Pi.zero_apply, abs_eq_zero, hb] at hω
+    linarith
+
+/-- **Cochrane (2023), A1 §1.6, (1.33)–(1.34), p. 567: valuation iff transversality, limit form,
+with no convergence hypothesis.** If `Y_s = E_s[Y_T] + E_s[F_T]` for every `T ≥ s`, then along
+any times `T_k ≥ s`: almost surely `E_s[F_{T_k}] → Y_s` iff almost surely `E_s[Y_{T_k}] → 0`. -/
+theorem valuation_iff_tvc_seq {Y F : ℝ → Ω → ℝ} {s : ℝ}
+    (hrec : ∀ T, s ≤ T → Y s =ᵐ[μ] μ[Y T | 𝓕 s] + μ[F T | 𝓕 s]) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) :
+    (∀ᵐ ω ∂μ, Tendsto (fun k => μ[F (T k) | 𝓕 s] ω) atTop (𝓝 (Y s ω))) ↔
+      ∀ᵐ ω ∂μ, Tendsto (fun k => μ[Y (T k) | 𝓕 s] ω) atTop (𝓝 0) := by
+  have hall := ae_all_iff.2 fun k => hrec (T k) (hT k)
+  have key : ∀ᵐ ω ∂μ, ∀ k, μ[Y (T k) | 𝓕 s] ω = Y s ω - μ[F (T k) | 𝓕 s] ω := by
+    filter_upwards [hall] with ω h k
+    have := h k
+    simp only [Pi.add_apply] at this
+    linarith
+  constructor
+  · intro h
+    filter_upwards [h, key] with ω h1 h2
+    simp_rw [h2]
+    have := (tendsto_const_nhds (x := Y s ω)).sub h1
+    rwa [sub_self] at this
+  · intro h
+    filter_upwards [h, key] with ω h1 h2
+    have e : ∀ k, μ[F (T k) | 𝓕 s] ω = Y s ω - μ[Y (T k) | 𝓕 s] ω := fun k => by
+      rw [h2 k]; ring
+    simp_rw [e]
+    have := (tendsto_const_nhds (x := Y s ω)).sub h1
+    rwa [sub_zero] at this
+
+/-- **Cochrane (2023), A1 §1.6, (1.33)–(1.34), p. 567: valuation iff transversality, dominated
+infinite-horizon form.** If `Y_s = E_s[Y_T] + E_s[F_T]` for every `T ≥ s` and along times
+`T_k ≥ s` the flows `F_{T_k}` are measurable, converge path by path to `G = ∫_s^∞` and are
+dominated by an integrable `H`, then `Y_s = E_s[G]` a.s. iff `E_s[Y_{T_k}] → 0` a.s. -/
+theorem valuation_iff_tvc_dom [IsFiniteMeasure μ] {Y F : ℝ → Ω → ℝ} {s : ℝ}
+    (hrec : ∀ T, s ≤ T → Y s =ᵐ[μ] μ[Y T | 𝓕 s] + μ[F T | 𝓕 s]) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {G H : Ω → ℝ} (hFm : ∀ k, Measurable (F (T k))) (hH : Integrable H μ)
+    (hbd : ∀ k ω, |F (T k) ω| ≤ H ω) (hlim : ∀ ω, Tendsto (fun k => F (T k) ω) atTop (𝓝 (G ω))) :
+    Y s =ᵐ[μ] μ[G | 𝓕 s] ↔ ∀ᵐ ω ∂μ, Tendsto (fun k => μ[Y (T k) | 𝓕 s] ω) atTop (𝓝 0) := by
+  have hc := ae_tendsto_condExp_of_dominated (𝓕.le s) hFm hH hbd hlim
+  rw [← valuation_iff_tvc_seq hrec hT]
+  constructor
+  · intro h
+    filter_upwards [h, hc] with ω h1 h2
+    rwa [h1]
+  · intro h
+    filter_upwards [h, hc] with ω h1 h2
+    exact tendsto_nhds_unique h1 h2
+
+/-! ## The flows of (1.33) and (1.34) -/
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: the discounted flow
+`F_T = ∫_s^T Λ_rs_r dr + ∫_s^T (Λ/P) dM` (money creation counted as seigniorage). -/
+noncomputable def flow133 (Λ P M sp : ℝ → Ω → ℝ) (s T : ℝ) (ω : Ω) : ℝ :=
+  (∫ r in s..T, Λ r ω * sp r ω) + rsInt s T (fun u => disc Λ P u ω) (fun u => M u ω)
+
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: the discounted flow
+`F_T = ∫_s^T (Λ_rs_r + (i_r − i^m_r)(Λ_r/P_r)M_r) dr` (seigniorage as interest saving). -/
+noncomputable def flow134 (Λ P M i im sp : ℝ → Ω → ℝ) (s T : ℝ) (ω : Ω) : ℝ :=
+  ∫ r in s..T, (Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω)
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the book's integrand.** For `Λ_s ≠ 0`,
+`F_T/Λ_s = ∫_s^T (Λ_τ/Λ_s)s_τ dτ + ∫_s^T (Λ_τ/Λ_s) dM_τ/P_τ`. -/
+theorem flow133_div (Λ P M sp : ℝ → Ω → ℝ) (s T : ℝ) (ω : Ω) :
+    flow133 Λ P M sp s T ω / Λ s ω = (∫ r in s..T, Λ r ω / Λ s ω * sp r ω) +
+      rsInt s T (fun u => Λ u ω / Λ s ω / P u ω) (fun u => M u ω) := by
+  have e : (fun u => Λ u ω / Λ s ω / P u ω) = fun u => (Λ s ω)⁻¹ * disc Λ P u ω :=
+    funext fun u => by simp only [disc]; ring
+  rw [flow133, add_div, e, rsInt_smul_left, ← intervalIntegral.integral_div]
+  congr 1
+  · exact intervalIntegral.integral_congr fun r _ => by ring
+  · ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567: the book's integrand.**
+`F_T/Λ_s = ∫_s^T (Λ_τ/Λ_s)(s_τ + (i_τ − i^m_τ)M_τ/P_τ) dτ`. -/
+theorem flow134_div (Λ P M i im sp : ℝ → Ω → ℝ) (s T : ℝ) (ω : Ω) :
+    flow134 Λ P M i im sp s T ω / Λ s ω =
+      ∫ r in s..T, Λ r ω / Λ s ω * (sp r ω + (i r ω - im r ω) * M r ω / P r ω) := by
+  rw [flow134, ← intervalIntegral.integral_div]
+  exact intervalIntegral.integral_congr fun r _ => by simp only [disc]; ring
+
+/-! ## The book's normalisation -/
+
+variable {Λ P B M A N i im sp : ℝ → Ω → ℝ}
+
+/-- **Cochrane (2023), A1 §1.6, (1.33)–(1.34), p. 567: dividing by `Λ_s`.** For `X` and `G`
+with `G`, `G/Λ_s` integrable: `(Λ_s/P_s)X = E_s[G]` a.s. iff `X/P_s = E_s[G/Λ_s]` a.s.
+(`Λ_s > 0` is `𝓕_s`-measurable and pulls out of `E_s`, Mathlib
+`condExp_mul_of_stronglyMeasurable_left`). -/
+theorem real_form (hm : MonetaryModel μ 𝓕 Λ P B M A N i im sp) {s : ℝ} {X G : Ω → ℝ}
+    (hG : Integrable G μ) (hGΛ : Integrable (fun ω => G ω / Λ s ω) μ) :
+    (fun ω => disc Λ P s ω * X ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      (fun ω => X ω / P s ω) =ᵐ[μ] μ[fun ω => G ω / Λ s ω | 𝓕 s] := by
+  have hinv : StronglyMeasurable[𝓕 s] fun ω => (Λ s ω)⁻¹ :=
+    (hm.Λ_adapted s).measurable.inv.stronglyMeasurable
+  have e : (fun ω => G ω / Λ s ω) = (fun ω => (Λ s ω)⁻¹) * G :=
+    funext fun ω => by simp only [Pi.mul_apply]; ring
+  have hpull := condExp_mul_of_stronglyMeasurable_left hinv (by rw [← e]; exact hGΛ) hG
+  rw [← e] at hpull
+  have hΛ : ∀ ω, Λ s ω ≠ 0 := fun ω => (hm.Λ_pos s ω).ne'
+  have hP : ∀ ω, P s ω ≠ 0 := fun ω => (hm.P_pos s ω).ne'
+  constructor
+  · intro h
+    filter_upwards [h, hpull] with ω h1 h2
+    rw [h2, Pi.mul_apply, ← h1]
+    simp only [disc]
+    field_simp [hΛ ω, hP ω]
+  · intro h
+    filter_upwards [h, hpull] with ω h1 h2
+    rw [h2, Pi.mul_apply] at h1
+    have h1' : X ω = P s ω * ((Λ s ω)⁻¹ * μ[G | 𝓕 s] ω) := by
+      rw [← h1]; field_simp [hP ω]
+    rw [h1']
+    simp only [disc]
+    field_simp [hΛ ω, hP ω]
+
+namespace MonetaryModel
+
+variable (hm : MonetaryModel μ 𝓕 Λ P B M A N i im sp)
+include hm
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: with `i^m = 0`, path by path
+`F_T = −(∫_s^T n dB + ∫_s^T B dA)` (`TidyR7MonetarismModel.MonetaryModel.pathwise_1_32`). -/
+theorem flow133_eq (him : ∀ r ω, im r ω = 0) {s T : ℝ} (hsT : s ≤ T) :
+    flow133 Λ P M sp s T = -(intRS s T (disc Λ P) B + intRS s T B A) := by
+  funext ω
+  have h := hm.pathwise_1_32 ω hsT
+  simp only [him, zero_mul, sub_zero] at h
+  simp only [flow133, Pi.neg_apply, Pi.add_apply, intRS]
+  rw [h, neg_neg]
+
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: path by path
+`F_T = −(∫_s^T n d(B + M) + ∫_s^T (B + M) dA)`. -/
+theorem flow134_eq {s T : ℝ} (hsT : s ≤ T) :
+    flow134 Λ P M i im sp s T =
+      -(intRS s T (disc Λ P) (addProc B M) + intRS s T (addProc B M) A) := by
+  funext ω
+  simp only [flow134, Pi.neg_apply, Pi.add_apply, intRS]
+  rw [hm.pathwise_1_34 ω hsT, neg_neg]
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: the flow `F_T` is measurable (a combination of
+pathwise Stieltjes integrals, `TidyR7StieltjesCalculus.measurable_rsInt`). -/
+theorem measurable_flow133 (him : ∀ r ω, im r ω = 0) {s T : ℝ} (hsT : s ≤ T) :
+    Measurable (flow133 Λ P M sp s T) := by
+  rw [flow133_eq hm him hsT]
+  rcases hsT.lt_or_eq with hlt | rfl
+  · have hBm : ∀ u, Measurable (B u) := fun u => ((hm.B_adapted u).mono (𝓕.le u)).measurable
+    have m1 : Measurable (intRS s T (disc Λ P) B) :=
+      TidyR7StieltjesCalculus.measurable_rsInt (f := fun ω u => disc Λ P u ω)
+        (g := fun ω u => B u ω) hlt hm.measurable_disc hBm fun ω =>
+          Or.inr ⟨hm.disc_cadlag ω, hm.B_bv ω s T, (hm.B_cont ω).continuousOn⟩
+    have m2 : Measurable (intRS s T B A) :=
+      TidyR7StieltjesCalculus.measurable_rsInt (f := fun ω u => B u ω)
+        (g := fun ω u => A u ω) hlt hBm hm.measurable_A fun ω =>
+          Or.inl ⟨(hm.B_cont ω).continuousOn, hm.A_bv ω s T⟩
+    exact (m1.add m2).neg
+  · have e : intRS s s (disc Λ P) B + intRS s s B A = 0 := funext fun ω => by
+      simp only [Pi.add_apply, intRS, TidyR7StieltjesVariation.rsInt_self, add_zero,
+        Pi.zero_apply]
+    rw [e, neg_zero]
+    exact measurable_const
+
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: the flow `F_T` of (1.34) is measurable. -/
+theorem measurable_flow134 {s T : ℝ} (hsT : s ≤ T) :
+    Measurable (flow134 Λ P M i im sp s T) := by
+  rw [flow134_eq hm hsT]
+  rcases hsT.lt_or_eq with hlt | rfl
+  · have hWm : ∀ u, Measurable (addProc B M u) := fun u =>
+      ((hm.W_adapted u).mono (𝓕.le u)).measurable
+    have m1 : Measurable (intRS s T (disc Λ P) (addProc B M)) :=
+      TidyR7StieltjesCalculus.measurable_rsInt (f := fun ω u => disc Λ P u ω)
+        (g := fun ω u => addProc B M u ω) hlt hm.measurable_disc hWm fun ω =>
+          Or.inr ⟨hm.disc_cadlag ω, hm.W_bv ω s T, (hm.W_cont ω).continuousOn⟩
+    have m2 : Measurable (intRS s T (addProc B M) A) :=
+      TidyR7StieltjesCalculus.measurable_rsInt (f := fun ω u => addProc B M u ω)
+        (g := fun ω u => A u ω) hlt hWm hm.measurable_A fun ω =>
+          Or.inl ⟨(hm.W_cont ω).continuousOn, hm.A_bv ω s T⟩
+    exact (m1.add m2).neg
+  · have e : intRS s s (disc Λ P) (addProc B M) + intRS s s (addProc B M) A = 0 :=
+      funext fun ω => by
+        simp only [Pi.add_apply, intRS, TidyR7StieltjesVariation.rsInt_self, add_zero,
+          Pi.zero_apply]
+    rw [e, neg_zero]
+    exact measurable_const
+
+variable [IsFiniteMeasure μ]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32) ⇒ (1.33), p. 567: the finite-horizon budget.** With
+`i^m = 0`, the domination conditions on `[s, T]` and `n_sB_s`, `n_TB_T` integrable:
+`n_sB_s = E_s[n_TB_T] + E_s[∫_s^T Λs dr + ∫_s^T n dM]` almost surely; `F_T` is integrable. -/
+theorem rec_1_33 (him : ∀ r ω, im r ω = 0) {s T : ℝ} (hsT : s ≤ T)
+    (hd : Dominated μ A N s T B (disc Λ P))
+    (hYs : Integrable (fun ω => disc Λ P s ω * B s ω) μ)
+    (hYT : Integrable (fun ω => disc Λ P T ω * B T ω) μ) :
+    Integrable (flow133 Λ P M sp s T) μ ∧
+      (fun ω => disc Λ P s ω * B s ω) =ᵐ[μ]
+        μ[fun ω => disc Λ P T ω * B T ω | 𝓕 s] + μ[flow133 Λ P M sp s T | 𝓕 s] := by
+  have hpd := hm.productStepData_B hsT hd
+  have i1 := hpd.integrable_intXB
+  rw [← hm.disc_eq] at i1
+  have hF : Integrable (flow133 Λ P M sp s T) μ := by
+    rw [flow133_eq hm him hsT]
+    exact (i1.add hpd.integrable_intBA).neg
+  refine ⟨hF, ?_⟩
+  have hinc := hm.incr_1_32 hsT hd him
+  exact rec_of_incr (Y := fun t ω => disc Λ P t ω * B t ω) (F := flow133 Λ P M sp s T) hinc
+    ((hm.disc_adapted s).mul (hm.B_adapted s)) hYs hYT
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, limit form.** With `i^m = 0`, the domination
+conditions on every `[s, T]` and `n_TB_T` integrable for `T ≥ s`: along any times `T_k ≥ s`,
+almost surely `E_s[∫_s^{T_k} Λs dr + ∫_s^{T_k} n dM] → n_sB_s` iff almost surely
+`E_s[n_{T_k}B_{T_k}] → 0`. No convergence of the flows is assumed. -/
+theorem valuation_1_33_seq (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) :
+    (∀ᵐ ω ∂μ, Tendsto (fun k => μ[flow133 Λ P M sp s (T k) | 𝓕 s] ω) atTop
+        (𝓝 (disc Λ P s ω * B s ω))) ↔
+      ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω) atTop
+        (𝓝 0) :=
+  valuation_iff_tvc_seq (Y := fun t ω => disc Λ P t ω * B t ω)
+    (fun T' hT' => (rec_1_33 hm him hT' (hd T' hT') (hYi s le_rfl) (hYi T' hT')).2) hT
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, `L¹` form: valuation iff transversality.** With
+`i^m = 0`, the domination conditions on every `[s, T]`, `n_TB_T` integrable, and
+`F_T = ∫_s^T Λs dr + ∫_s^T n dM → G` in `L¹` (`G = ∫_s^∞ Λs dr + ∫_s^∞ n dM`):
+`n_sB_s = E_s[G]` a.s. iff `E_s[n_TB_T] → 0` in `L¹`.
+Generalises `TidyR6StochasticDrift.valuation_1_33_fv` and `ContinuousTime.money_printing_iff`. -/
+theorem valuation_1_33 (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {G : Ω → ℝ}
+    (hG : Integrable G μ)
+    (hconv : Tendsto (fun T => ∫ ω, |flow133 Λ P M sp s T ω - G ω| ∂μ) atTop (𝓝 0)) :
+    (fun ω => disc Λ P s ω * B s ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      Tendsto (fun T => ∫ ω, |μ[fun ω => disc Λ P T ω * B T ω | 𝓕 s] ω| ∂μ) atTop (𝓝 0) :=
+  valuation_iff_tvc_flow (Y := fun t ω => disc Λ P t ω * B t ω) (F := flow133 Λ P M sp s)
+    (fun T hT => (rec_1_33 hm him hT (hd T hT) (hYi s le_rfl) (hYi T hT)).2) hYi
+    (fun T hT => (rec_1_33 hm him hT (hd T hT) (hYi s le_rfl) (hYi T hT)).1) hG hconv
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, dominated form.** With `i^m = 0`, the domination
+conditions on every `[s, T]`, `n_TB_T` integrable, and along `T_k ≥ s` the flows `F_{T_k}`
+converging path by path to `G` with `|F_{T_k}| ≤ H` integrable: `n_sB_s = E_s[G]` a.s. iff
+`E_s[n_{T_k}B_{T_k}] → 0` a.s. -/
+theorem valuation_1_33_dom (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {G H : Ω → ℝ} (hH : Integrable H μ)
+    (hbd : ∀ k ω, |flow133 Λ P M sp s (T k) ω| ≤ H ω)
+    (hlim : ∀ ω, Tendsto (fun k => flow133 Λ P M sp s (T k) ω) atTop (𝓝 (G ω))) :
+    (fun ω => disc Λ P s ω * B s ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω) atTop
+        (𝓝 0) :=
+  valuation_iff_tvc_dom (Y := fun t ω => disc Λ P t ω * B t ω) (F := flow133 Λ P M sp s)
+    (fun T' hT' => (rec_1_33 hm him hT' (hd T' hT') (hYi s le_rfl) (hYi T' hT')).2) hT
+    (fun k => measurable_flow133 hm him (hT k)) hH hbd hlim
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, as printed:
+`B_s/P_s = E_s ∫_s^∞ (Λ_τ/Λ_s)(s_τ dτ + dM_τ/P_τ)` iff the transversality condition.** Under the
+hypotheses of `MonetaryModel.valuation_1_33_dom` and `G/Λ_s` integrable: (i) path by path,
+`∫_s^{T_k} (Λ_τ/Λ_s)s_τ dτ + ∫_s^{T_k} (Λ_τ/Λ_s) dM_τ/P_τ → G/Λ_s` (the book's integral to
+infinity); (ii) `B_s/P_s = E_s[G/Λ_s]` a.s. iff `E_s[Λ_{T_k}B_{T_k}/P_{T_k}] → 0` a.s. -/
+theorem valuation_1_33_book (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {G H : Ω → ℝ} (hH : Integrable H μ)
+    (hbd : ∀ k ω, |flow133 Λ P M sp s (T k) ω| ≤ H ω)
+    (hlim : ∀ ω, Tendsto (fun k => flow133 Λ P M sp s (T k) ω) atTop (𝓝 (G ω)))
+    (hGΛ : Integrable (fun ω => G ω / Λ s ω) μ) :
+    (∀ ω, Tendsto (fun k => (∫ r in s..T k, Λ r ω / Λ s ω * sp r ω) +
+        rsInt s (T k) (fun u => Λ u ω / Λ s ω / P u ω) (fun u => M u ω)) atTop
+        (𝓝 (G ω / Λ s ω))) ∧
+      ((fun ω => B s ω / P s ω) =ᵐ[μ] μ[fun ω => G ω / Λ s ω | 𝓕 s] ↔
+        ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω) atTop
+          (𝓝 0)) := by
+  have hGm : Measurable G := measurable_of_tendsto_metrizable
+    (fun k => measurable_flow133 hm him (hT k)) (tendsto_pi_nhds.2 hlim)
+  have hG : Integrable G μ := hH.mono' hGm.aestronglyMeasurable (Eventually.of_forall fun ω =>
+    by rw [Real.norm_eq_abs]; exact le_of_tendsto' (hlim ω).abs fun k => hbd k ω)
+  refine ⟨fun ω => ?_, ?_⟩
+  · simp_rw [← flow133_div]
+    exact (hlim ω).div_const _
+  · rw [← real_form hm hG hGΛ]
+    exact valuation_1_33_dom hm him hd hYi hT hH hbd hlim
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: the flow of (1.34) over `[u, v]` is integrable
+under the domination conditions on every interval (for `u ≤ v` and, by reversal, `v ≤ u`). -/
+theorem integrable_flow134
+    (hd : ∀ s t, s ≤ t → Dominated μ A N s t (addProc B M) (disc Λ P)) (u v : ℝ) :
+    Integrable (flow134 Λ P M i im sp u v) μ := by
+  have key : ∀ u v, u ≤ v → Integrable (flow134 Λ P M i im sp u v) μ := by
+    intro u v huv
+    have hpd := hm.productStepData_W huv (hd u v huv)
+    have i1 := hpd.integrable_intXB
+    rw [← hm.disc_eq] at i1
+    rw [flow134_eq hm huv]
+    exact (i1.add hpd.integrable_intBA).neg
+  rcases le_total u v with h | h
+  · exact key u v h
+  · have e : flow134 Λ P M i im sp u v = -flow134 Λ P M i im sp v u := funext fun ω => by
+      simp only [flow134, Pi.neg_apply]
+      rw [intervalIntegral.integral_symm]
+    rw [e]
+    exact (key v u h).neg
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, `L¹` form: valuation iff transversality.** With
+the domination conditions for `B + M` on every interval, `n_T(B + M)_T` integrable, and
+`F_T = ∫_s^T (Λs + (i − i^m)nM) dr → G` in `L¹`:
+`n_s(B_s + M_s) = E_s[G]` a.s. iff `E_s[n_T(B_T + M_T)] → 0` in `L¹`. Via
+`TidyR7MonetarismModel.MonetaryModel.hasDrift_1_34` and
+`TidyR6StochasticDrift.valuation_iff_tvc`.
+Stochastic generalisation of `ContinuousTime.money_interest_iff`. -/
+theorem valuation_1_34 {s : ℝ}
+    (hd : ∀ s t, s ≤ t → Dominated μ A N s t (addProc B M) (disc Λ P))
+    (hYi : ∀ T, Integrable (fun ω => disc Λ P T ω * addProc B M T ω) μ) {G : Ω → ℝ}
+    (hG : Integrable G μ)
+    (hconv : Tendsto (fun T => ∫ ω, |flow134 Λ P M i im sp s T ω - G ω| ∂μ) atTop (𝓝 0)) :
+    (fun ω => disc Λ P s ω * addProc B M s ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      Tendsto (fun T => ∫ ω, |μ[fun ω => disc Λ P T ω * addProc B M T ω | 𝓕 s] ω| ∂μ)
+        atTop (𝓝 0) :=
+  TidyR6StochasticDrift.valuation_iff_tvc (Y := fun t ω => disc Λ P t ω * addProc B M t ω)
+    (g := fun r ω => Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω)
+    (hm.hasDrift_1_34 hd) ((hm.disc_adapted s).mul (hm.W_adapted s)) hYi
+    (fun T => integrable_flow134 hm hd s T) hG hconv
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, as printed:
+`(M_s + B_s)/P_s = E_s∫_s^∞ (Λ_τ/Λ_s)(s_τ + (i_τ − i^m_τ)M_τ/P_τ) dτ` iff the transversality
+condition**, dominated form. With the domination conditions for `B + M` on every interval,
+`n_T(B_T + M_T)` integrable, `F_{T_k} = ∫_s^{T_k}(Λs + (i − i^m)nM) → G` path by path along
+`T_k ≥ s` with `|F_{T_k}| ≤ H` integrable and `G/Λ_s` integrable: (i) path by path
+`∫_s^{T_k} (Λ_τ/Λ_s)(s_τ + (i_τ − i^m_τ)M_τ/P_τ) dτ → G/Λ_s`; (ii)
+`(M_s + B_s)/P_s = E_s[G/Λ_s]` a.s. iff `E_s[Λ_{T_k}(M + B)_{T_k}/P_{T_k}] → 0` a.s.
+Stochastic generalisation of `ContinuousTime.money_interest_iff`. -/
+theorem valuation_1_34_book {s : ℝ}
+    (hd : ∀ s t, s ≤ t → Dominated μ A N s t (addProc B M) (disc Λ P))
+    (hYi : ∀ T, Integrable (fun ω => disc Λ P T ω * addProc B M T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {G H : Ω → ℝ} (hH : Integrable H μ)
+    (hbd : ∀ k ω, |flow134 Λ P M i im sp s (T k) ω| ≤ H ω)
+    (hlim : ∀ ω, Tendsto (fun k => flow134 Λ P M i im sp s (T k) ω) atTop (𝓝 (G ω)))
+    (hGΛ : Integrable (fun ω => G ω / Λ s ω) μ) :
+    (∀ ω, Tendsto (fun k => ∫ r in s..T k,
+        Λ r ω / Λ s ω * (sp r ω + (i r ω - im r ω) * M r ω / P r ω)) atTop
+        (𝓝 (G ω / Λ s ω))) ∧
+      ((fun ω => addProc B M s ω / P s ω) =ᵐ[μ] μ[fun ω => G ω / Λ s ω | 𝓕 s] ↔
+        ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * addProc B M (T k) ω | 𝓕 s] ω)
+          atTop (𝓝 0)) := by
+  have hGm : Measurable G := measurable_of_tendsto_metrizable
+    (fun k => measurable_flow134 hm (hT k)) (tendsto_pi_nhds.2 hlim)
+  have hG : Integrable G μ := hH.mono' hGm.aestronglyMeasurable (Eventually.of_forall fun ω =>
+    by rw [Real.norm_eq_abs]; exact le_of_tendsto' (hlim ω).abs fun k => hbd k ω)
+  refine ⟨fun ω => ?_, ?_⟩
+  · simp_rw [← flow134_div]
+    exact (hlim ω).div_const _
+  · rw [← real_form hm hG hGΛ]
+    have hrec : ∀ T', s ≤ T' → (fun ω => disc Λ P s ω * addProc B M s ω) =ᵐ[μ]
+        μ[fun ω => disc Λ P T' ω * addProc B M T' ω | 𝓕 s] +
+          μ[flow134 Λ P M i im sp s T' | 𝓕 s] := fun T' hT' =>
+      rec_of_incr (Y := fun t ω => disc Λ P t ω * addProc B M t ω)
+        (F := flow134 Λ P M i im sp s T') (hm.incr_1_34 hT' (hd s T' hT'))
+        ((hm.disc_adapted s).mul (hm.W_adapted s)) (hYi s) (hYi T')
+    exact valuation_iff_tvc_dom (Y := fun t ω => disc Λ P t ω * addProc B M t ω)
+      (F := flow134 Λ P M i im sp s) hrec hT (fun k => measurable_flow134 hm (hT k)) hH hbd hlim
+
+end MonetaryModel
+
+end Cochrane.Monetarism.TidyR7MonetarismValuation
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Non-vacuity of (1.31)–(1.33) under uncertainty, and the meaning of `E_t∫_t^∞`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). Two concrete models on the fair coin of
+`TidyR7ProductStepCoin` (`Ω = Bool`, `ξ = ±1` revealed at time `1`), with `H = 1{u ≥ 1}`
+(`TidyR7StieltjesSums.heaviside`) and `G = 1{u > 1}` (`stepG`).
+
+## A model with news in `Λ/P` (`coinModel`)
+
+`P = 1`, `Λ_u = 1 + (ξ/2)H(u)` (so `Λ/P = A + N` with `A = 1`, `i = 0`, and the nonzero càdlàg
+martingale `N_u = (ξ/2)H(u)`), bonds `B_u = 1 + ξ(u − 1)⁺` (`TidyR7ProductStepCoin.coinB`), money
+`M_u = ξ(u − 1)⁺` (`coinMon`), `i^m = 0`, surplus `s_u = −2ξG(u)` (`coinSur`), so that the flow
+(1.31) `d(B + M) = −Ps dt = 2ξG dt` holds. On `[0, 2]`:
+* `coin_lhs_1_32`: `E_0[n_2B_2 − n_0B_0] = 1/2`; `coin_flow133`:
+  `∫_0^2 Λs dr + ∫_0^2 n dM = −ξ − 1/2` path by path, so `−E_0[…] = 1/2` (`coin_rhs_1_32`);
+  `coin_1_32`: both sides of (1.32) and the theorem
+  `TidyR7MonetarismModel.MonetaryModel.incr_1_32` there.
+* `coin_pathwise_fails`: without the expectation the identity fails (`2 ≠ 3/2` at `ξ = 1`): the
+  martingale part of `Λ/P` matters.
+* `coin_1_33_finite`: the finite-horizon (1.33), `n_0B_0 = 1 = 3/2 + (−1/2) =
+  E_0[n_2B_2] + E_0[∫_0^2 Λs + ∫_0^2 n dM]`.
+
+## `E_t∫_t^∞` need not exist when the valuation equation holds (`impModel`)
+
+`Λ = P = 1`, `i = i^m = 0`, `M = 0`, surplus `s_u = ξG(u)`, bonds `B_u = −ξ(u − 1)⁺` (debt paid
+down or run up after the coin, matching the surplus). At `t = 0`, `B_0 = 0`, and:
+* `imp_tvc`: `E_0[n_TB_T] = 0` for every `T`: the transversality condition holds;
+* `imp_limit`: `E_0∫_0^T Λs = 0 → 0 = n_0B_0`: the valuation equation holds in the limit form of
+  `TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_seq`;
+* `imp_no_L1_limit`, `imp_no_pathwise_limit`: but `∫_0^T Λs = ξ(T − 1)⁺` has no `L¹` limit and no
+  pathwise limit at `ξ = 1`, so the printed `E_0∫_0^∞ Λ_τs_τ dτ` is undefined.
+So (1.33)–(1.34) as printed presuppose that `∫_t^∞` converges (e.g. in `L¹` or dominatedly); the
+limit form `lim_T E_t∫_t^T` is the statement that holds without that presupposition.
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismCoin
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7ProductStep Cochrane.Monetarism.TidyR7ProductStepCoin
+  Cochrane.Monetarism.TidyR7MonetarismAC Cochrane.Monetarism.TidyR7MonetarismModel
+  Cochrane.Monetarism.TidyR7MonetarismValuation
+
+/-! ## Tools -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (non-vacuity): the step `G(u) = 1{u > 1}`. -/
+noncomputable def stepG (r : ℝ) : ℝ := if 1 < r then 1 else 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `G` is monotone. -/
+theorem monotone_stepG : Monotone stepG := by
+  intro x y hxy
+  simp only [stepG]
+  split_ifs with h1 h2 <;> (try simp only [not_lt] at *) <;> linarith
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `G` is interval integrable.
+From Mathlib `Monotone.intervalIntegrable`. -/
+theorem intervalIntegrable_stepG (u v : ℝ) :
+    IntervalIntegrable stepG MeasureSpace.volume u v :=
+  monotone_stepG.intervalIntegrable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫_u^v G = (v − 1)⁺ − (u − 1)⁺` for `u ≤ v`. -/
+theorem integral_stepG {u v : ℝ} (huv : u ≤ v) :
+    ∫ r in u..v, stepG r = max (v - 1) 0 - max (u - 1) 0 := by
+  have h0 : ∀ a b : ℝ, a ≤ b → b ≤ 1 → ∫ r in a..b, stepG r = 0 := by
+    intro a b hab hb
+    have e : ∫ r in a..b, stepG r = ∫ _ in a..b, (0 : ℝ) :=
+      intervalIntegral.integral_congr_ae (Eventually.of_forall fun r hr => by
+        rw [Set.uIoc_of_le hab] at hr
+        simp only [stepG, not_lt.2 (hr.2.trans hb), ↓reduceIte])
+    rw [e, intervalIntegral.integral_zero]
+  have h1 : ∀ a b : ℝ, a ≤ b → 1 ≤ a → ∫ r in a..b, stepG r = b - a := by
+    intro a b hab ha
+    have e : ∫ r in a..b, stepG r = ∫ _ in a..b, (1 : ℝ) :=
+      intervalIntegral.integral_congr_ae (Eventually.of_forall fun r hr => by
+        rw [Set.uIoc_of_le hab] at hr
+        simp only [stepG, show 1 < r from lt_of_le_of_lt ha hr.1, ↓reduceIte])
+    rw [e, intervalIntegral.integral_const, smul_eq_mul, mul_one]
+  rcases le_total v 1 with hv | hv
+  · rw [h0 u v huv hv, max_eq_right (by linarith), max_eq_right (by linarith)]
+    ring
+  · rcases le_total 1 u with hu | hu
+    · rw [h1 u v huv hu, max_eq_left (by linarith), max_eq_left (by linarith)]
+      ring
+    · rw [← intervalIntegral.integral_add_adjacent_intervals (b := 1)
+        (intervalIntegrable_stepG u 1) (intervalIntegrable_stepG 1 v), h0 u 1 hu le_rfl,
+        h1 1 v hv le_rfl, max_eq_left (by linarith), max_eq_right (by linarith)]
+      ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `H·G = G` (`H = 1{u ≥ 1}`, `G = 1{u > 1}`). -/
+theorem heaviside_mul_stepG (r : ℝ) : heaviside r * stepG r = stepG r := by
+  simp only [heaviside, stepG]
+  split_ifs with h1 h2 <;> (try simp only [not_lt, not_le] at *) <;> linarith
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a process that is non-random before time `1` is adapted to
+the coin filtration. -/
+theorem coin_adapted {f : ℝ → Bool → ℝ} (hf : ∀ u < 1, ∀ ω, f u ω = f u true) (u : ℝ) :
+    StronglyMeasurable[coinFiltration u] (f u) := by
+  by_cases hu : u < 1
+  · have e : f u = fun _ => f u true := funext fun ω => hf u hu ω
+    rw [e]
+    exact stronglyMeasurable_const
+  · rw [coinFiltration_ge (not_lt.1 hu)]
+    exact (measurable_of_finite _).stronglyMeasurable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the ramp `u ↦ c(u − 1)⁺` is `|c|`-Lipschitz, hence of
+bounded variation on every `[a, b]`. -/
+theorem bv_ramp (c a b : ℝ) :
+    BoundedVariationOn (fun u => c * max (u - 1) 0) (Set.Icc a b) := by
+  have hL : LipschitzWith ‖c‖₊ fun u : ℝ => c * max (u - 1) 0 := by
+    refine LipschitzWith.of_dist_le_mul fun x y => ?_
+    rw [Real.dist_eq, Real.dist_eq, coe_nnnorm, Real.norm_eq_abs, ← mul_sub, abs_mul]
+    refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg c)
+    calc |max (x - 1) 0 - max (y - 1) 0| ≤ |x - 1 - (y - 1)| := abs_max_sub_max_le_abs _ _ _
+      _ = |x - y| := by ring_nf
+  exact hL.comp_boundedVariationOn (BoundedVariationOn.id_Icc a b)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the ramp is continuous. -/
+theorem continuous_ramp (c : ℝ) : Continuous fun u : ℝ => c * max (u - 1) 0 :=
+  continuous_const.mul ((continuous_id.sub continuous_const).max continuous_const)
+
+/-! ## A model with news in `Λ/P` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the SDF `Λ_u = 1 + (ξ/2)H(u)`. -/
+noncomputable def coinLam (u : ℝ) (ω : Bool) : ℝ := 1 + coinXi ω / 2 * heaviside u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the price level `P = 1`. -/
+def coinP (_ : ℝ) (_ : Bool) : ℝ := 1
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the finite-variation part `A = 1` of `Λ/P` (`i = 0`). -/
+def coinA1 (_ : ℝ) (_ : Bool) : ℝ := 1
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the martingale part `N_u = (ξ/2)H(u)` of `Λ/P`. -/
+noncomputable def coinN (u : ℝ) (ω : Bool) : ℝ := coinXi ω / 2 * heaviside u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: money `M_u = ξ(u − 1)⁺`. -/
+noncomputable def coinMon (u : ℝ) (ω : Bool) : ℝ := coinXi ω * max (u - 1) 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the surplus `s_u = −2ξG(u)`. -/
+noncomputable def coinSur (u : ℝ) (ω : Bool) : ℝ := -(2 * coinXi ω * stepG u)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a zero rate (`i = i^m = 0`). -/
+def zeroRate (_ : ℝ) (_ : Bool) : ℝ := 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: here `Λ/P = Λ`. -/
+theorem disc_coin (u : ℝ) (ω : Bool) : disc coinLam coinP u ω = coinLam u ω := by
+  simp [disc, coinP]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the flow density is `2ξG`. -/
+theorem flowRate_coin (ω : Bool) :
+    (fun r => flowRate coinB coinMon coinP zeroRate zeroRate coinSur r ω) =
+      fun r => 2 * coinXi ω * stepG r :=
+  funext fun r => by simp only [flowRate, zeroRate, coinP, coinSur]; ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.31)–(1.32), p. 567: the coin model satisfies the hypotheses of
+`TidyR7MonetarismModel.MonetaryModel`**, with a nonzero martingale part in `Λ/P`. -/
+theorem coinModel : MonetaryModel coinMeasure coinFiltration coinLam coinP coinB coinMon coinA1
+    coinN zeroRate zeroRate coinSur where
+  P_pos _ _ := one_pos
+  Λ_pos u ω := by
+    have h1 : |coinXi ω / 2 * heaviside u| ≤ 1 / 2 := by
+      rw [abs_mul, abs_div, abs_coinXi]
+      simp only [heaviside]
+      split_ifs <;> norm_num
+    simp only [coinLam]
+    linarith [neg_abs_le (coinXi ω / 2 * heaviside u)]
+  Λ_adapted := coin_adapted fun u hu ω => by simp [coinLam, heaviside, not_le.2 hu]
+  P_adapted _ := stronglyMeasurable_const
+  dec u ω := by simp [disc, coinLam, coinP, coinA1, coinN]
+  A_incr ω u v _ := by simp [coinA1, zeroRate]
+  A_int ω u v := by
+    have e : (fun r => -(zeroRate r ω * disc coinLam coinP r ω)) = fun _ => (0 : ℝ) :=
+      funext fun r => by simp [zeroRate]
+    rw [e]
+    exact intervalIntegrable_const
+  N_mart := by
+    have e : coinN = (1 / 2 : ℝ) • coinM := funext fun u => funext fun ω => by
+      simp only [coinN, coinM, Pi.smul_apply, smul_eq_mul]
+      ring
+    rw [e]
+    exact martingale_coinM.smul _
+  N_cadlag ω := isCadlag_heaviside.continuous_comp (continuous_const.mul continuous_id
+    (f := fun _ : ℝ => coinXi ω / 2))
+  B_adapted := coin_adapted fun u hu ω => by rw [coinB_le hu.le, coinB_le hu.le]
+  M_adapted := coin_adapted fun u hu ω => by
+    simp [coinMon, max_eq_right (by linarith : u - 1 ≤ 0)]
+  M_cont ω := continuous_ramp (coinXi ω)
+  M_bv ω a b := bv_ramp (coinXi ω) a b
+  flow ω u v huv := by
+    rw [flowRate_coin ω, intervalIntegral.integral_const_mul, integral_stepG huv]
+    simp only [addProc, coinB, coinMon]
+    ring
+  flow_int ω u v := by
+    rw [flowRate_coin ω]
+    exact (intervalIntegrable_stepG u v).const_mul _
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the martingale part of `Λ/P` is not zero
+(`N_1 = 1/2` at `ξ = 1`). -/
+theorem coinN_ne_zero : coinN 1 true ≠ 0 := by
+  simp [coinN, coinXi, heaviside]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the domination conditions hold on `[0, 2]` (finite `Ω`). -/
+theorem coinDom : Dominated coinMeasure coinA1 coinN 0 2 coinB (disc coinLam coinP) :=
+  ⟨Integrable.of_finite, Integrable.of_finite, fun _ _ _ _ _ => Integrable.of_finite⟩
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the discounted flow on the coin,
+`∫_0^2 Λs dr + ∫_0^2 (Λ/P) dM = −ξ − 1/2`** path by path. -/
+theorem coin_flow133 (ω : Bool) :
+    flow133 coinLam coinP coinMon coinSur 0 2 ω = -coinXi ω - 1 / 2 := by
+  have hMi : ∀ u v, IntervalIntegrable (fun r => coinXi ω * stepG r) MeasureSpace.volume u v :=
+    fun u v => (intervalIntegrable_stepG u v).const_mul _
+  have hMinc : ∀ u v, u ≤ v → coinMon v ω - coinMon u ω = ∫ r in u..v, coinXi ω * stepG r := by
+    intro u v huv
+    rw [intervalIntegral.integral_const_mul, integral_stepG huv]
+    simp only [coinMon]
+    ring
+  have hrs := rsInt_eq_integral_of_incr (coinModel.disc_cadlag ω) hMi hMinc
+    (by norm_num : (0 : ℝ) ≤ 2)
+  have e1 : ∫ r in (0 : ℝ)..2, coinLam r ω * coinSur r ω =
+      ∫ r in (0 : ℝ)..2, (-2 * coinXi ω - coinXi ω ^ 2) * stepG r :=
+    intervalIntegral.integral_congr fun r _ => by
+      simp only [coinLam, coinSur]
+      linear_combination (-(coinXi ω ^ 2)) * heaviside_mul_stepG r
+  have e2 : ∫ r in (0 : ℝ)..2, disc coinLam coinP r ω * (coinXi ω * stepG r) =
+      ∫ r in (0 : ℝ)..2, (coinXi ω + coinXi ω ^ 2 / 2) * stepG r :=
+    intervalIntegral.integral_congr fun r _ => by
+      simp only [disc_coin, coinLam]
+      linear_combination (coinXi ω ^ 2 / 2) * heaviside_mul_stepG r
+  have hI : ∫ r in (0 : ℝ)..2, stepG r = 1 := by
+    rw [integral_stepG (by norm_num)]
+    norm_num
+  have hsq : coinXi ω ^ 2 = 1 := by rw [sq, coinXi_mul_self]
+  rw [flow133, hrs, e1, e2, intervalIntegral.integral_const_mul,
+    intervalIntegral.integral_const_mul, hI, hsq]
+  ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, left side on the coin:
+`E_0[n_2B_2 − n_0B_0] = 1/2`** (`n_2B_2 = (1 + ξ/2)(1 + ξ)`, `n_0B_0 = 1`). -/
+theorem coin_lhs_1_32 :
+    coinMeasure[fun ω => disc coinLam coinP 2 ω * coinB 2 ω -
+      disc coinLam coinP 0 ω * coinB 0 ω | coinFiltration 0] = fun _ => 1 / 2 := by
+  rw [condExp_coin_lt (by norm_num)]
+  funext _
+  simp [disc_coin, coinLam, coinB, coinXi, heaviside]
+  norm_num
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, right side on the coin:
+`−E_0[∫_0^2 Λs dr + ∫_0^2 n dM] = 1/2`.** -/
+theorem coin_rhs_1_32 :
+    coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, coinLam r ω * coinSur r ω) +
+      rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => coinMon u ω)) | coinFiltration 0] =
+      fun _ => 1 / 2 := by
+  have e : (fun ω => -((∫ r in (0 : ℝ)..2, coinLam r ω * coinSur r ω) +
+      rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => coinMon u ω))) =
+      fun ω => coinXi ω + 1 / 2 := funext fun ω => by
+    have := coin_flow133 ω
+    simp only [flow133] at this
+    rw [this]
+    ring
+  rw [e, condExp_coin_lt (by norm_num)]
+  funext _
+  simp [coinXi]
+  norm_num
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: both sides computed on a model with news in
+`Λ/P`**: `E_0[n_2B_2 − n_0B_0] = 1/2 = −E_0[∫_0^2 Λs dr + ∫_0^2 n dM]`, and the conclusion of
+`TidyR7MonetarismModel.MonetaryModel.incr_1_32` holds there. -/
+theorem coin_1_32 :
+    coinMeasure[fun ω => disc coinLam coinP 2 ω * coinB 2 ω -
+        disc coinLam coinP 0 ω * coinB 0 ω | coinFiltration 0] = (fun _ => 1 / 2) ∧
+      coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, coinLam r ω * coinSur r ω) +
+        rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => coinMon u ω)) |
+          coinFiltration 0] = (fun _ => 1 / 2) ∧
+      coinMeasure[fun ω => disc coinLam coinP 2 ω * coinB 2 ω -
+          disc coinLam coinP 0 ω * coinB 0 ω | coinFiltration 0] =ᵐ[coinMeasure]
+        coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, coinLam r ω * coinSur r ω) +
+          rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => coinMon u ω)) |
+            coinFiltration 0] :=
+  ⟨coin_lhs_1_32, coin_rhs_1_32, coinModel.incr_1_32 (by norm_num) coinDom fun _ _ => rfl⟩
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the expectation cannot be dropped.** Path by path
+`n_2B_2 − n_0B_0 ≠ −(∫_0^2 Λs dr + ∫_0^2 n dM)` at `ξ = 1` (`2` against `3/2`): the difference is
+the martingale term `B_1ΔN_1 = ξ/2`, which vanishes only under `E_0`. -/
+theorem coin_pathwise_fails :
+    disc coinLam coinP 2 true * coinB 2 true - disc coinLam coinP 0 true * coinB 0 true ≠
+      -flow133 coinLam coinP coinMon coinSur 0 2 true := by
+  rw [coin_flow133]
+  simp [disc_coin, coinLam, coinB, coinXi, heaviside]
+  norm_num
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, on a finite horizon on the coin:**
+`n_0B_0 = 1`, `E_0[n_2B_2] = 3/2`, `E_0[∫_0^2 Λs dr + ∫_0^2 n dM] = −1/2`, and the finite-horizon
+budget `TidyR7MonetarismValuation.MonetaryModel.rec_1_33` holds: `1 = 3/2 − 1/2`. -/
+theorem coin_1_33_finite :
+    (∀ ω, disc coinLam coinP 0 ω * coinB 0 ω = 1) ∧
+      coinMeasure[fun ω => disc coinLam coinP 2 ω * coinB 2 ω | coinFiltration 0] =
+        (fun _ => 3 / 2) ∧
+      coinMeasure[flow133 coinLam coinP coinMon coinSur 0 2 | coinFiltration 0] =
+        (fun _ => -1 / 2) ∧
+      (fun ω => disc coinLam coinP 0 ω * coinB 0 ω) =ᵐ[coinMeasure]
+        coinMeasure[fun ω => disc coinLam coinP 2 ω * coinB 2 ω | coinFiltration 0] +
+          coinMeasure[flow133 coinLam coinP coinMon coinSur 0 2 | coinFiltration 0] := by
+  refine ⟨fun ω => ?_, ?_, ?_, (MonetaryModel.rec_1_33 coinModel (fun _ _ => rfl)
+    (by norm_num) coinDom Integrable.of_finite Integrable.of_finite).2⟩
+  · simp [disc_coin, coinLam, coinB, heaviside]
+  · rw [condExp_coin_lt (by norm_num)]
+    funext _
+    simp [disc_coin, coinLam, coinB, coinXi, heaviside]
+    norm_num
+  · rw [condExp_coin_lt (by norm_num), coin_flow133, coin_flow133]
+    funext _
+    simp [coinXi]
+    norm_num
+
+/-! ## `E_t∫_t^∞` need not exist -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the unit process (`Λ = P = 1`, `A = 1`). -/
+def oneProc (_ : ℝ) (_ : Bool) : ℝ := 1
+
+/-- Cochrane (2023), A1 §1.6, p. 567: bonds `B_u = −ξ(u − 1)⁺`. -/
+noncomputable def impB (u : ℝ) (ω : Bool) : ℝ := -coinXi ω * max (u - 1) 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the surplus `s_u = ξG(u)`. -/
+noncomputable def impSur (u : ℝ) (ω : Bool) : ℝ := coinXi ω * stepG u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: here `Λ/P = 1`. -/
+theorem disc_one (u : ℝ) (ω : Bool) : disc oneProc oneProc u ω = 1 := by
+  simp [disc, oneProc]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the flow density is `−ξG`. -/
+theorem flowRate_imp (ω : Bool) :
+    (fun r => flowRate impB zeroRate oneProc zeroRate zeroRate impSur r ω) =
+      fun r => -coinXi ω * stepG r :=
+  funext fun r => by simp only [flowRate, zeroRate, oneProc, impSur]; ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.31), p. 567: a second coin model** (`Λ = P = 1`, `M = 0`,
+`B_u = −ξ(u − 1)⁺`, `s_u = ξG(u)`) satisfying `TidyR7MonetarismModel.MonetaryModel`. -/
+theorem impModel : MonetaryModel coinMeasure coinFiltration oneProc oneProc impB zeroRate oneProc
+    zeroRate zeroRate zeroRate impSur where
+  P_pos _ _ := one_pos
+  Λ_pos _ _ := one_pos
+  Λ_adapted _ := stronglyMeasurable_const
+  P_adapted _ := stronglyMeasurable_const
+  dec u ω := by simp [disc, oneProc, zeroRate]
+  A_incr ω u v _ := by simp [oneProc, zeroRate]
+  A_int ω u v := by
+    have e : (fun r => -(zeroRate r ω * disc oneProc oneProc r ω)) = fun _ => (0 : ℝ) :=
+      funext fun r => by simp [zeroRate]
+    rw [e]
+    exact intervalIntegrable_const
+  N_mart := martingale_const _ _ _
+  N_cadlag _ := IsCadlag.const
+  B_adapted := coin_adapted fun u hu ω => by
+    simp [impB, max_eq_right (by linarith : u - 1 ≤ 0)]
+  M_adapted _ := stronglyMeasurable_const
+  M_cont _ := continuous_const
+  M_bv _ a b := by
+    rw [BoundedVariationOn, eVariationOn.constant_on
+      (Set.subsingleton_of_forall_eq (0 : ℝ) fun _ ⟨_, _, hy⟩ => hy.symm)]
+    exact ENNReal.zero_ne_top
+  flow ω u v huv := by
+    rw [flowRate_imp ω, intervalIntegral.integral_const_mul, integral_stepG huv]
+    simp only [addProc, impB, zeroRate]
+    ring
+  flow_int ω u v := by
+    rw [flowRate_imp ω]
+    exact (intervalIntegrable_stepG u v).const_mul _
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the domination conditions hold on every `[0, T]`. -/
+theorem impDom (T : ℝ) : Dominated coinMeasure oneProc zeroRate 0 T impB (disc oneProc oneProc) :=
+  ⟨Integrable.of_finite, Integrable.of_finite, fun _ _ _ _ _ => Integrable.of_finite⟩
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: `∫_0^T Λs dr + ∫_0^T n dM = ξ(T − 1)⁺` for
+`T ≥ 0`. -/
+theorem imp_flow133 {T : ℝ} (hT : 0 ≤ T) (ω : Bool) :
+    flow133 oneProc oneProc zeroRate impSur 0 T ω = coinXi ω * max (T - 1) 0 := by
+  have hrs := rsInt_eq_integral_of_incr (f := fun u => disc oneProc oneProc u ω)
+    (g := fun u => zeroRate u ω) (h := fun _ => (0 : ℝ))
+    (impModel.disc_cadlag ω) (fun _ _ => intervalIntegrable_const)
+    (fun u v _ => by simp [zeroRate]) hT
+  have e : ∫ r in (0 : ℝ)..T, oneProc r ω * impSur r ω = coinXi ω * ∫ r in (0 : ℝ)..T, stepG r :=
+    by
+      rw [← intervalIntegral.integral_const_mul]
+      exact intervalIntegral.integral_congr fun r _ => by simp only [oneProc, impSur]; ring
+  rw [flow133, hrs, e, integral_stepG hT]
+  simp
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the transversality condition holds at `0`:**
+`E_0[n_TB_T] = 0` for every `T`, so `∫|E_0[n_TB_T]| → 0`. -/
+theorem imp_tvc :
+    Tendsto (fun T => ∫ ω, |coinMeasure[fun ω => disc oneProc oneProc T ω * impB T ω |
+      coinFiltration 0] ω| ∂coinMeasure) atTop (𝓝 0) := by
+  have e : ∀ T : ℝ, coinMeasure[fun ω => disc oneProc oneProc T ω * impB T ω |
+      coinFiltration 0] = fun _ => 0 := fun T => by
+    rw [condExp_coin_lt (by norm_num)]
+    funext _
+    simp [disc_one, impB, coinXi]
+  simp only [e, abs_zero, integral_zero]
+  exact tendsto_const_nhds
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the valuation equation holds at `0` in the limit
+form:** `E_0[∫_0^T Λs dr + ∫_0^T n dM] = 0 = n_0B_0` for every `T ≥ 0`. -/
+theorem imp_limit (ω : Bool) :
+    Tendsto (fun T =>
+      coinMeasure[flow133 oneProc oneProc zeroRate impSur 0 T | coinFiltration 0] ω) atTop
+      (𝓝 (disc oneProc oneProc 0 ω * impB 0 ω)) := by
+  have hB0 : disc oneProc oneProc 0 ω * impB 0 ω = 0 := by simp [impB]
+  rw [hB0]
+  refine tendsto_const_nhds.congr' ?_
+  filter_upwards [eventually_ge_atTop 0] with T hT
+  rw [condExp_coin_lt (by norm_num), imp_flow133 hT, imp_flow133 hT]
+  simp [coinXi]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫|F_T − G| ≥ |F_T(true) − G(true)|/2` under the fair coin. -/
+theorem integral_abs_ge (F G : Bool → ℝ) :
+    |F true - G true| / 2 ≤ ∫ ω, |F ω - G ω| ∂coinMeasure := by
+  rw [integral_coin]
+  have := abs_nonneg (F false - G false)
+  linarith
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: no `L¹` limit.** There is no `G` with
+`∫_0^T Λs dr + ∫_0^T n dM → G` in `L¹`: `E_0∫_0^∞` is undefined in the `L¹` sense. -/
+theorem imp_no_L1_limit : ¬ ∃ G : Bool → ℝ,
+    Tendsto (fun T => ∫ ω, |flow133 oneProc oneProc zeroRate impSur 0 T ω - G ω| ∂coinMeasure)
+      atTop (𝓝 0) := by
+  rintro ⟨G, hG⟩
+  obtain ⟨T0, hT0⟩ := eventually_atTop.1 ((tendsto_order.1 hG).2 (1 / 2) (by norm_num))
+  set T := max T0 (|G true| + 3) with hTdef
+  have hT : |G true| + 3 ≤ T := le_max_right _ _
+  have h1 := hT0 T (le_max_left _ _)
+  have h2 := integral_abs_ge (flow133 oneProc oneProc zeroRate impSur 0 T) G
+  have hT0' : 0 ≤ T := by linarith [abs_nonneg (G true)]
+  rw [imp_flow133 hT0' true] at h2
+  simp only [coinXi, ↓reduceIte, one_mul] at h2
+  rw [max_eq_left (by linarith [abs_nonneg (G true)])] at h2
+  have h3 : 2 ≤ |T - 1 - G true| := by
+    rw [abs_of_nonneg (by linarith [le_abs_self (G true)])]
+    linarith [le_abs_self (G true)]
+  linarith
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: no pathwise limit.** At `ξ = 1`,
+`∫_0^T Λs dr + ∫_0^T n dM = (T − 1)⁺ → ∞`. -/
+theorem imp_no_pathwise_limit : ¬ ∃ g : ℝ,
+    Tendsto (fun T => flow133 oneProc oneProc zeroRate impSur 0 T true) atTop (𝓝 g) := by
+  rintro ⟨g, hg⟩
+  have htop : Tendsto (fun T => flow133 oneProc oneProc zeroRate impSur 0 T true) atTop atTop := by
+    have h : Tendsto (fun T : ℝ => T - 1) atTop atTop :=
+      tendsto_atTop_add_const_right _ _ tendsto_id
+    refine (h.congr' ?_)
+    filter_upwards [eventually_ge_atTop 1] with T hT
+    rw [imp_flow133 (by linarith) true, max_eq_left (by linarith)]
+    simp [coinXi]
+  exact not_tendsto_nhds_of_tendsto_atTop htop g hg
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the printed `E_t∫_t^∞` presupposes convergence.**
+In `impModel` at `t = 0`: the transversality condition holds (`imp_tvc`), the valuation equation
+holds in the limit form `lim_T E_0[∫_0^T Λs + ∫_0^T n dM] = n_0B_0` (`imp_limit`, as
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_seq` asserts), yet the flows have no
+`L¹` limit (`imp_no_L1_limit`) and no pathwise limit at `ξ = 1` (`imp_no_pathwise_limit`). -/
+theorem imp_headline :
+    Tendsto (fun T => ∫ ω, |coinMeasure[fun ω => disc oneProc oneProc T ω * impB T ω |
+        coinFiltration 0] ω| ∂coinMeasure) atTop (𝓝 0) ∧
+      (∀ ω, Tendsto (fun T =>
+        coinMeasure[flow133 oneProc oneProc zeroRate impSur 0 T | coinFiltration 0] ω)
+          atTop (𝓝 (disc oneProc oneProc 0 ω * impB 0 ω))) ∧
+      (¬ ∃ G : Bool → ℝ, Tendsto (fun T =>
+        ∫ ω, |flow133 oneProc oneProc zeroRate impSur 0 T ω - G ω| ∂coinMeasure) atTop (𝓝 0)) ∧
+      ¬ ∃ g : ℝ, Tendsto (fun T => flow133 oneProc oneProc zeroRate impSur 0 T true) atTop (𝓝 g) :=
+  ⟨imp_tvc, imp_limit, imp_no_L1_limit, imp_no_pathwise_limit⟩
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: `impModel` meets the hypotheses of the limit form
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_seq` (with `T_k = k`), whose two sides
+both hold there. -/
+theorem imp_seq :
+    (∀ᵐ ω ∂coinMeasure, Tendsto (fun k : ℕ =>
+        coinMeasure[flow133 oneProc oneProc zeroRate impSur 0 k | coinFiltration 0] ω) atTop
+        (𝓝 (disc oneProc oneProc 0 ω * impB 0 ω))) ∧
+      ∀ᵐ ω ∂coinMeasure, Tendsto (fun k : ℕ => coinMeasure[fun ω =>
+        disc oneProc oneProc k ω * impB k ω | coinFiltration 0] ω) atTop (𝓝 0) := by
+  have h := MonetaryModel.valuation_1_33_seq impModel (fun _ _ => rfl) (s := 0)
+    (fun T _ => impDom T) (fun _ _ => Integrable.of_finite) (T := fun k : ℕ => (k : ℝ))
+    (fun k => Nat.cast_nonneg k)
+  have h1 : ∀ᵐ ω ∂coinMeasure, Tendsto (fun k : ℕ =>
+      coinMeasure[flow133 oneProc oneProc zeroRate impSur 0 k | coinFiltration 0] ω) atTop
+      (𝓝 (disc oneProc oneProc 0 ω * impB 0 ω)) :=
+    Eventually.of_forall fun ω => (imp_limit ω).comp tendsto_natCast_atTop_atTop
+  exact ⟨h1, h.1 h1⟩
+
+end Cochrane.Monetarism.TidyR7MonetarismCoin
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Links: the `C¹` case, the deterministic case and the `Δ`-grid
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The stochastic chain
+`TidyR7MonetarismModel` / `TidyR7MonetarismValuation` specialises to the earlier forms.
+
+## The `C¹` case (`c1Model`)
+
+If `n = Λ/P`, `B` and `M` have `C¹` paths with `ṅ = −in`, `Ḃ = iB + i^mM − Ps − Ṁ` (with `Λ := nP`,
+`A = n`, `N = 0`), the model `TidyR7MonetarismModel.MonetaryModel` holds (`c1Model`), and
+* `incr_1_32_C1`: `TidyR7MonetarismModel.MonetaryModel.incr_1_32` gives exactly
+  `E_s[n_tB_t − n_sB_s] = E_s∫_s^t −n(Ps + Ṁ)`, the conclusion (ii) of
+  `TidyR7ProductStepCases.product_step_1_32_C1` and the martingale condition of
+  `TidyR6StochasticDrift.drift_1_32_fv`;
+* `valuation_1_33_C1`: `TidyR7MonetarismValuation.MonetaryModel.valuation_1_33` gives exactly the
+  equivalence of `TidyR6StochasticDrift.valuation_1_33_fv` (under the domination conditions; the
+  `C¹` proof needs none because the bracket vanishes identically).
+
+## The deterministic case
+
+On the one-point space (`Unit`, Dirac measure, constant filtration `unitFilt`) conditional
+expectations are the identity: `money_printing_recovered` and `money_interest_recovered` derive the
+conclusions of `ContinuousTime.money_printing_iff` ((1.33)) and `ContinuousTime.money_interest_iff`
+((1.34)) from the stochastic `TidyR7MonetarismValuation.MonetaryModel.valuation_1_33` and
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_34` (for globally `C¹` paths with
+continuous derivatives and `N > 0`; the `ContinuousTime` versions need these only on `[t, ∞)`).
+
+## The `Δ`-grid
+
+`TidyR6StochasticDrift.incr_1_32` and `TidyR6StochasticDrift.incr_1_34` are the exact discrete
+forms. They are consistent with the continuous-time drifts in two ways:
+* `grid_1_32_eq`: the discrete increment is `−E_k[n_{k+1}](P_ks_kΔ + ΔM_k)`: each period's flow is
+  discounted by the expected end-of-period `n`, the grid analogue of `−E_s[∫ Λs dr + ∫ n dM]`;
+* `grid_1_32_rate`, `grid_1_34_rate`: per unit time (with `ΔM = mΔ`) the increments tend, as
+  `Δ → 0`, to the drifts `−n(Ps + m)` of `TidyR7MonetarismModel.MonetaryModel.hasDrift_1_32_ac`
+  (`i^m = 0`) and `−n(Ps + (i − i^m)M)` of `TidyR7MonetarismModel.MonetaryModel.hasDrift_1_34`
+  (`Λ = nP`).
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismLinks
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7ProductStep
+  Cochrane.Monetarism.TidyR7MonetarismAC Cochrane.Monetarism.TidyR7MonetarismModel
+  Cochrane.Monetarism.TidyR7MonetarismValuation
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω} {𝓕 : Filtration ℝ mΩ}
+
+/-! ## The `C¹` case -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: with `Λ = nP`, `Λ/P = n`. -/
+theorem disc_mul {n Pr : ℝ → Ω → ℝ} (hP : ∀ u ω, 0 < Pr u ω) :
+    disc (fun u ω => n u ω * Pr u ω) Pr = n :=
+  funext fun u => funext fun ω => mul_div_cancel_right₀ _ (hP u ω).ne'
+
+/-- **Cochrane (2023), A1 §1.6, (1.31)–(1.32), p. 567: the `C¹` model.** If `n > 0`, `P > 0`, `B`,
+`M` are adapted, `n` has `C¹` paths with `ṅ = −in`, `M` has derivative `Ṁ` (continuous), `B` has
+derivative `iB + i^mM − Ps − Ṁ` (the flow (1.31)), `i` and the flow rate `iB + i^mM − Ps` are
+continuous, then `TidyR7MonetarismModel.MonetaryModel` holds with `Λ = nP`, `A = n`, `N = 0`. -/
+theorem c1Model [IsFiniteMeasure μ] {n B M Pr sp i im dM : ℝ → Ω → ℝ}
+    (hn : ∀ ω r, HasDerivAt (fun u => n u ω) (-(i r ω * n r ω)) r) (hnpos : ∀ u ω, 0 < n u ω)
+    (hM : ∀ ω r, HasDerivAt (fun u => M u ω) (dM r ω) r)
+    (hB : ∀ ω r, HasDerivAt (fun u => B u ω)
+      (i r ω * B r ω + im r ω * M r ω - Pr r ω * sp r ω - dM r ω) r)
+    (hP : ∀ u ω, 0 < Pr u ω) (hic : ∀ ω, Continuous fun r => i r ω)
+    (hdMc : ∀ ω, Continuous fun r => dM r ω)
+    (hfc : ∀ ω, Continuous fun r => i r ω * B r ω + im r ω * M r ω - Pr r ω * sp r ω)
+    (hna : ∀ u, StronglyMeasurable[𝓕 u] (n u)) (hPa : ∀ u, StronglyMeasurable[𝓕 u] (Pr u))
+    (hBa : ∀ u, StronglyMeasurable[𝓕 u] (B u)) (hMa : ∀ u, StronglyMeasurable[𝓕 u] (M u)) :
+    MonetaryModel μ 𝓕 (fun u ω => n u ω * Pr u ω) Pr B M n (fun _ _ => 0) i im sp := by
+  have hd := disc_mul (n := n) hP
+  have hnc : ∀ ω, Continuous fun r => n r ω := fun ω =>
+    TidyR7ProductStepCases.continuous_of_hasDerivAt (hn ω)
+  have hrc : ∀ ω, Continuous fun r => -(i r ω * n r ω) := fun ω => ((hic ω).mul (hnc ω)).neg
+  refine
+    { P_pos := hP
+      Λ_pos := fun u ω => mul_pos (hnpos u ω) (hP u ω)
+      Λ_adapted := fun u => (hna u).mul (hPa u)
+      P_adapted := hPa
+      dec := fun u ω => by rw [hd]; ring
+      A_incr := fun ω u v _ => ?_
+      A_int := fun ω u v => ?_
+      N_mart := martingale_const _ _ _
+      N_cadlag := fun _ => IsCadlag.const
+      B_adapted := hBa
+      M_adapted := hMa
+      M_cont := fun ω => TidyR7ProductStepCases.continuous_of_hasDerivAt (hM ω)
+      M_bv := fun ω a b => TidyR7ProductStepCases.bv_of_hasDerivAt (hM ω) (hdMc ω)
+      flow := fun ω u v _ => ?_
+      flow_int := fun ω u v => (hfc ω).intervalIntegrable u v }
+  · rw [hd, intervalIntegral.integral_eq_sub_of_hasDerivAt (fun r _ => hn ω r)
+      ((hrc ω).intervalIntegrable u v)]
+  · rw [hd]
+    exact (hrc ω).intervalIntegrable u v
+  · have hW : ∀ r, HasDerivAt (fun u => addProc B M u ω) (flowRate B M Pr i im sp r ω) r :=
+      fun r => ((hB ω r).add (hM ω r)).congr_deriv (by simp only [flowRate]; ring)
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun r _ => hW r)
+      ((hfc ω).intervalIntegrable u v)]
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: in the `C¹` model, path by path,
+`∫_s^T Λs dr + ∫_s^T n dM = ∫_s^T n(Ps + Ṁ) dr` for `s ≤ T` (`Λ = nP`). -/
+theorem flow133_C1 {n M Pr sp dM : ℝ → Ω → ℝ} (hP : ∀ u ω, 0 < Pr u ω)
+    (hnc : ∀ ω, Continuous fun r => n r ω) (hM : ∀ ω r, HasDerivAt (fun u => M u ω) (dM r ω) r)
+    (hdMc : ∀ ω, Continuous fun r => dM r ω)
+    (hpc : ∀ ω, Continuous fun r => Pr r ω * sp r ω) {s T : ℝ} (hsT : s ≤ T) (ω : Ω) :
+    flow133 (fun u ω => n u ω * Pr u ω) Pr M sp s T ω =
+      ∫ r in s..T, n r ω * (Pr r ω * sp r ω + dM r ω) := by
+  have c1 : Continuous fun r => n r ω * Pr r ω * sp r ω :=
+    ((hnc ω).mul (hpc ω)).congr fun r => by simp only [Pi.mul_apply]; ring
+  have c2 : Continuous fun r => n r ω * dM r ω := (hnc ω).mul (hdMc ω)
+  rw [flow133, disc_mul hP, TidyR7ProductStepCases.rsInt_eq_integral_mul_deriv hsT
+    (hnc ω).continuousOn (hM ω) (hdMc ω), ← intervalIntegral.integral_add
+    (c1.intervalIntegrable s T) (c2.intervalIntegrable s T)]
+  exact intervalIntegral.integral_congr fun r _ => by ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the `C¹` case recovered.** In the `C¹` model with
+`i^m = 0` (`Ḃ = iB − Ps − Ṁ`) and the domination conditions on `[s, t]`,
+`TidyR7MonetarismModel.MonetaryModel.incr_1_32` gives a.s.
+`E_s[n_tB_t − n_sB_s] = E_s∫_s^t −n(Ps + Ṁ)`: the conclusion (ii) of
+`TidyR7ProductStepCases.product_step_1_32_C1`, i.e. the martingale condition of
+`TidyR6StochasticDrift.drift_1_32_fv`. -/
+theorem incr_1_32_C1 [IsFiniteMeasure μ] {n B M Pr sp i dM : ℝ → Ω → ℝ}
+    (hn : ∀ ω r, HasDerivAt (fun u => n u ω) (-(i r ω * n r ω)) r) (hnpos : ∀ u ω, 0 < n u ω)
+    (hM : ∀ ω r, HasDerivAt (fun u => M u ω) (dM r ω) r)
+    (hB : ∀ ω r, HasDerivAt (fun u => B u ω) (i r ω * B r ω - Pr r ω * sp r ω - dM r ω) r)
+    (hP : ∀ u ω, 0 < Pr u ω) (hic : ∀ ω, Continuous fun r => i r ω)
+    (hdMc : ∀ ω, Continuous fun r => dM r ω)
+    (hfc : ∀ ω, Continuous fun r => i r ω * B r ω - Pr r ω * sp r ω)
+    (hna : ∀ u, StronglyMeasurable[𝓕 u] (n u)) (hPa : ∀ u, StronglyMeasurable[𝓕 u] (Pr u))
+    (hBa : ∀ u, StronglyMeasurable[𝓕 u] (B u)) (hMa : ∀ u, StronglyMeasurable[𝓕 u] (M u))
+    {s t : ℝ} (hst : s ≤ t) (hdom : Dominated μ n (fun _ _ => 0) s t B n) :
+    μ[fun ω => n t ω * B t ω - n s ω * B s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => ∫ r in s..t, -(n r ω * (Pr r ω * sp r ω + dM r ω)) | 𝓕 s] := by
+  have hm := c1Model (μ := μ) (𝓕 := 𝓕) (n := n) (B := B) (M := M) (Pr := Pr) (sp := sp)
+    (i := i) (im := fun _ _ => 0) (dM := dM) hn hnpos hM
+    (fun ω r => (hB ω r).congr_deriv (by ring)) hP hic hdMc
+    (fun ω => (hfc ω).congr fun r => by ring) hna hPa hBa hMa
+  have hnc : ∀ ω, Continuous fun r => n r ω := fun ω =>
+    TidyR7ProductStepCases.continuous_of_hasDerivAt (hn ω)
+  have hpc : ∀ ω, Continuous fun r => Pr r ω * sp r ω := fun ω => by
+    have := ((hic ω).mul (TidyR7ProductStepCases.continuous_of_hasDerivAt (hB ω))).sub (hfc ω)
+    exact this.congr fun r => by simp only [Pi.mul_apply, Pi.sub_apply]; ring
+  have h : μ[fun ω => disc (fun u ω => n u ω * Pr u ω) Pr t ω * B t ω -
+      disc (fun u ω => n u ω * Pr u ω) Pr s ω * B s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -flow133 (fun u ω => n u ω * Pr u ω) Pr M sp s t ω | 𝓕 s] :=
+    hm.incr_1_32 hst (by rw [disc_mul hP]; exact hdom) fun _ _ => rfl
+  have e2 : (fun ω => -flow133 (fun u ω => n u ω * Pr u ω) Pr M sp s t ω) =
+      fun ω => ∫ r in s..t, -(n r ω * (Pr r ω * sp r ω + dM r ω)) := funext fun ω => by
+    rw [flow133_C1 hP hnc hM hdMc hpc hst ω, intervalIntegral.integral_neg]
+  rw [disc_mul hP, e2] at h
+  exact h
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the `C¹` case recovered.** In the `C¹` model with
+`i^m = 0`, the domination conditions on every `[t₀, T]`, `n_TB_T` integrable and
+`∫_{t₀}^T n(Ps + Ṁ) → G` in `L¹`: `n_{t₀}B_{t₀} = E_{t₀}[G]` a.s. iff `E_{t₀}[n_TB_T] → 0` in `L¹`,
+the equivalence of `TidyR6StochasticDrift.valuation_1_33_fv`, here derived from
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33`. -/
+theorem valuation_1_33_C1 [IsFiniteMeasure μ] {n B M Pr sp i dM : ℝ → Ω → ℝ}
+    (hn : ∀ ω r, HasDerivAt (fun u => n u ω) (-(i r ω * n r ω)) r) (hnpos : ∀ u ω, 0 < n u ω)
+    (hM : ∀ ω r, HasDerivAt (fun u => M u ω) (dM r ω) r)
+    (hB : ∀ ω r, HasDerivAt (fun u => B u ω) (i r ω * B r ω - Pr r ω * sp r ω - dM r ω) r)
+    (hP : ∀ u ω, 0 < Pr u ω) (hic : ∀ ω, Continuous fun r => i r ω)
+    (hdMc : ∀ ω, Continuous fun r => dM r ω)
+    (hfc : ∀ ω, Continuous fun r => i r ω * B r ω - Pr r ω * sp r ω)
+    (hna : ∀ u, StronglyMeasurable[𝓕 u] (n u)) (hPa : ∀ u, StronglyMeasurable[𝓕 u] (Pr u))
+    (hBa : ∀ u, StronglyMeasurable[𝓕 u] (B u)) (hMa : ∀ u, StronglyMeasurable[𝓕 u] (M u))
+    {t0 : ℝ} (hdom : ∀ T, t0 ≤ T → Dominated μ n (fun _ _ => 0) t0 T B n)
+    (hYi : ∀ T, t0 ≤ T → Integrable (fun ω => n T ω * B T ω) μ) {G : Ω → ℝ}
+    (hG : Integrable G μ)
+    (hconv : Tendsto (fun T => ∫ ω, |(∫ r in t0..T, n r ω * (Pr r ω * sp r ω + dM r ω)) - G ω| ∂μ)
+      atTop (𝓝 0)) :
+    (fun ω => n t0 ω * B t0 ω) =ᵐ[μ] μ[G | 𝓕 t0] ↔
+      Tendsto (fun T => ∫ ω, |μ[fun ω => n T ω * B T ω | 𝓕 t0] ω| ∂μ) atTop (𝓝 0) := by
+  have hm := c1Model (μ := μ) (𝓕 := 𝓕) (n := n) (B := B) (M := M) (Pr := Pr) (sp := sp)
+    (i := i) (im := fun _ _ => 0) (dM := dM) hn hnpos hM
+    (fun ω r => (hB ω r).congr_deriv (by ring)) hP hic hdMc
+    (fun ω => (hfc ω).congr fun r => by ring) hna hPa hBa hMa
+  have hnc : ∀ ω, Continuous fun r => n r ω := fun ω =>
+    TidyR7ProductStepCases.continuous_of_hasDerivAt (hn ω)
+  have hpc : ∀ ω, Continuous fun r => Pr r ω * sp r ω := fun ω => by
+    have := ((hic ω).mul (TidyR7ProductStepCases.continuous_of_hasDerivAt (hB ω))).sub (hfc ω)
+    exact this.congr fun r => by simp only [Pi.mul_apply, Pi.sub_apply]; ring
+  have hconv' : Tendsto (fun T => ∫ ω,
+      |flow133 (fun u ω => n u ω * Pr u ω) Pr M sp t0 T ω - G ω| ∂μ) atTop (𝓝 0) := by
+    refine hconv.congr' ?_
+    filter_upwards [eventually_ge_atTop t0] with T hT
+    simp only [flow133_C1 hP hnc hM hdMc hpc hT]
+  have h := MonetaryModel.valuation_1_33 hm (fun _ _ => rfl) (s := t0)
+    (fun T hT => by rw [disc_mul hP]; exact hdom T hT)
+    (fun T hT => by rw [disc_mul hP]; exact hYi T hT) hG hconv'
+  rw [disc_mul hP] at h
+  exact h
+
+/-! ## The deterministic case -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the constant filtration on the one-point space. -/
+noncomputable def unitFilt : Filtration ℝ (inferInstance : MeasurableSpace Unit) :=
+  Filtration.const ℝ (inferInstance : MeasurableSpace Unit) le_rfl
+
+/-- Cochrane (2023), A1 §1.6, p. 567: on the one-point space `E_s` is the identity. -/
+theorem condExp_unit (s : ℝ) (F : Unit → ℝ) : (Measure.dirac ())[F | unitFilt s] = F :=
+  condExp_of_stronglyMeasurable (unitFilt.le s) StronglyMeasurable.of_subsingleton_dom
+    Integrable.of_finite
+
+/-- Cochrane (2023), A1 §1.6, p. 567: almost sure equality on the one-point space is equality. -/
+theorem ae_unit {f g : Unit → ℝ} : f =ᵐ[Measure.dirac ()] g ↔ f () = g () :=
+  ae_dirac_iff (MeasurableSet.of_discrete)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the integral on the one-point space is evaluation.
+Mathlib `integral_dirac`. -/
+theorem integral_unit (f : Unit → ℝ) : ∫ ω, f ω ∂Measure.dirac () = f () :=
+  integral_dirac f ()
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: `ContinuousTime.money_printing_iff` recovered
+from the stochastic (1.33).** For globally `C¹` deterministic paths with `N' = −iN`, `N > 0`,
+`P > 0`, `dM = iB − Ps − dB`, `i`, `dB`, `dM` continuous and `N P(s + dM/P)` integrable on
+`(t, ∞)`: `N_TB_T → 0` iff `B_t/P_t = ∫_t^∞ (N_τP_τ/(N_tP_t))(s_τ + dM_τ/P_τ) dτ`. Proof: the
+model `c1Model` on the one-point space and
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33`. -/
+theorem money_printing_recovered {N B M P s i dB dM : ℝ → ℝ} {t : ℝ}
+    (hN : ∀ τ, HasDerivAt N (-(i τ) * N τ) τ) (hNpos : ∀ τ, 0 < N τ)
+    (hB : ∀ τ, HasDerivAt B (dB τ) τ) (hM : ∀ τ, HasDerivAt M (dM τ) τ) (hP : ∀ τ, 0 < P τ)
+    (hflow : ∀ τ, dM τ = i τ * B τ - P τ * s τ - dB τ) (hic : Continuous i)
+    (hdBc : Continuous dB) (hdMc : Continuous dM)
+    (hint : IntegrableOn (fun τ => N τ * P τ * (s τ + dM τ / P τ)) (Set.Ioi t)) :
+    Tendsto (fun T => N T * B T) atTop (𝓝 0) ↔
+      B t / P t = ∫ τ in Set.Ioi t, N τ * P τ / (N t * P t) * (s τ + dM τ / P τ) := by
+  have hfc : Continuous fun r => i r * B r - P r * s r :=
+    (hdBc.add hdMc).congr fun r => by simp only [Pi.add_apply]; rw [hflow r]; ring
+  have hm := c1Model (μ := Measure.dirac ()) (𝓕 := unitFilt) (n := fun u _ => N u)
+    (B := fun u _ => B u) (M := fun u _ => M u) (Pr := fun u _ => P u) (sp := fun u _ => s u)
+    (i := fun u _ => i u) (im := fun _ _ => 0) (dM := fun u _ => dM u)
+    (fun _ r => (hN r).congr_deriv (by ring)) (fun u _ => hNpos u) (fun _ r => hM r)
+    (fun _ r => (hB r).congr_deriv (by rw [hflow r]; ring)) (fun u _ => hP u) (fun _ => hic)
+    (fun _ => hdMc) (fun _ => hfc.congr fun r => by ring)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+  have hP' : ∀ (u : ℝ) (_ : Unit), 0 < P u := fun u _ => hP u
+  have hpc : Continuous fun r => P r * s r :=
+    (hic.mul (TidyR7ProductStepCases.continuous_of_hasDerivAt hB)).sub hfc |>.congr
+      fun r => by simp only [Pi.mul_apply, Pi.sub_apply]; ring
+  have hnc : Continuous N := TidyR7ProductStepCases.continuous_of_hasDerivAt hN
+  have hint' : IntegrableOn (fun τ => N τ * (P τ * s τ + dM τ)) (Set.Ioi t) :=
+    hint.congr_fun (fun τ _ => by field_simp [(hP τ).ne']) measurableSet_Ioi
+  set Gv := ∫ τ in Set.Ioi t, N τ * (P τ * s τ + dM τ) with hGv
+  have hconv : Tendsto (fun T => ∫ ω, |flow133 (fun u (_ : Unit) => N u * P u) (fun u _ => P u)
+      (fun u _ => M u) (fun u _ => s u) t T ω - (fun _ => Gv) ω| ∂Measure.dirac ())
+      atTop (𝓝 0) := by
+    have hI := intervalIntegral_tendsto_integral_Ioi t hint' tendsto_id
+    have h2 : Tendsto (fun T => |(∫ τ in t..T, N τ * (P τ * s τ + dM τ)) - Gv|) atTop (𝓝 0) := by
+      have := (hI.sub_const Gv).abs
+      rwa [sub_self, abs_zero] at this
+    refine h2.congr' ?_
+    filter_upwards [eventually_ge_atTop t] with T hT
+    rw [integral_unit, flow133_C1 (n := fun u _ => N u) (dM := fun u _ => dM u) hP'
+      (fun _ => hnc) (fun _ r => hM r) (fun _ => hdMc) (fun _ => hpc) hT ()]
+  have h := MonetaryModel.valuation_1_33 hm (fun _ _ => rfl) (s := t)
+    (fun _ _ => ⟨Integrable.of_finite, Integrable.of_finite, fun _ _ _ _ _ => Integrable.of_finite⟩)
+    (fun _ _ => Integrable.of_finite) (G := fun _ => Gv) Integrable.of_finite hconv
+  simp only [disc_mul hP', condExp_unit, integral_unit, ae_unit] at h
+  have hR : ∫ τ in Set.Ioi t, N τ * P τ / (N t * P t) * (s τ + dM τ / P τ) = Gv / (N t * P t) := by
+    rw [hGv, ← integral_div]
+    refine setIntegral_congr_fun measurableSet_Ioi fun τ _ => ?_
+    field_simp [(hP τ).ne']
+  have e : B t / P t = Gv / (N t * P t) ↔ N t * B t = Gv := by
+    rw [div_eq_div_iff (hP t).ne' (mul_pos (hNpos t) (hP t)).ne']
+    constructor
+    · intro hh
+      refine mul_right_cancel₀ (hP t).ne' ?_
+      rw [← hh]
+      ring
+    · intro hh
+      rw [← hh]
+      ring
+  rw [hR, e, h, tendsto_zero_iff_norm_tendsto_zero]
+  simp only [Real.norm_eq_abs]
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567: `ContinuousTime.money_interest_iff` recovered
+from the stochastic (1.34).** For globally `C¹` deterministic paths with `N' = −iN`, `N > 0`,
+`P > 0`, `dM = iB + i^mM − Ps − dB`, `i`, `dB`, `dM` continuous and
+`N P(s + (i − i^m)M/P)` integrable on `(t, ∞)`: `N_T(M_T + B_T) → 0` iff
+`(M_t + B_t)/P_t = ∫_t^∞ (N_τP_τ/(N_tP_t))(s_τ + (i_τ − i^m_τ)M_τ/P_τ) dτ`. Proof: `c1Model` on
+the one-point space and `TidyR7MonetarismValuation.MonetaryModel.valuation_1_34`. -/
+theorem money_interest_recovered {N B M P s i im dB dM : ℝ → ℝ} {t : ℝ}
+    (hN : ∀ τ, HasDerivAt N (-(i τ) * N τ) τ) (hNpos : ∀ τ, 0 < N τ)
+    (hB : ∀ τ, HasDerivAt B (dB τ) τ) (hM : ∀ τ, HasDerivAt M (dM τ) τ) (hP : ∀ τ, 0 < P τ)
+    (hflow : ∀ τ, dM τ = i τ * B τ + im τ * M τ - P τ * s τ - dB τ) (hic : Continuous i)
+    (hdBc : Continuous dB) (hdMc : Continuous dM)
+    (hint : IntegrableOn (fun τ => N τ * P τ * (s τ + (i τ - im τ) * M τ / P τ)) (Set.Ioi t)) :
+    Tendsto (fun T => N T * (M T + B T)) atTop (𝓝 0) ↔
+      (M t + B t) / P t =
+        ∫ τ in Set.Ioi t, N τ * P τ / (N t * P t) * (s τ + (i τ - im τ) * M τ / P τ) := by
+  have hfc : Continuous fun r => i r * B r + im r * M r - P r * s r :=
+    (hdBc.add hdMc).congr fun r => by simp only [Pi.add_apply]; rw [hflow r]; ring
+  have hm := c1Model (μ := Measure.dirac ()) (𝓕 := unitFilt) (n := fun u _ => N u)
+    (B := fun u _ => B u) (M := fun u _ => M u) (Pr := fun u _ => P u) (sp := fun u _ => s u)
+    (i := fun u _ => i u) (im := fun u _ => im u) (dM := fun u _ => dM u)
+    (fun _ r => (hN r).congr_deriv (by ring)) (fun u _ => hNpos u) (fun _ r => hM r)
+    (fun _ r => (hB r).congr_deriv (by rw [hflow r]; ring)) (fun u _ => hP u) (fun _ => hic)
+    (fun _ => hdMc) (fun _ => hfc)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+    (fun _ => StronglyMeasurable.of_subsingleton_dom)
+  have hP' : ∀ (u : ℝ) (_ : Unit), 0 < P u := fun u _ => hP u
+  have hint' : IntegrableOn (fun τ => N τ * P τ * s τ + (i τ - im τ) * N τ * M τ)
+      (Set.Ioi t) :=
+    hint.congr_fun (fun τ _ => by field_simp [(hP τ).ne']) measurableSet_Ioi
+  set Gv := ∫ τ in Set.Ioi t, (N τ * P τ * s τ + (i τ - im τ) * N τ * M τ) with hGv
+  have hconv : Tendsto (fun T => ∫ ω, |flow134 (fun u (_ : Unit) => N u * P u) (fun u _ => P u)
+      (fun u _ => M u) (fun u _ => i u) (fun u _ => im u) (fun u _ => s u) t T ω -
+        (fun _ => Gv) ω| ∂Measure.dirac ()) atTop (𝓝 0) := by
+    have hI := intervalIntegral_tendsto_integral_Ioi t hint' tendsto_id
+    have h2 : Tendsto (fun T => |(∫ τ in t..T, (N τ * P τ * s τ + (i τ - im τ) * N τ * M τ)) -
+        Gv|) atTop (𝓝 0) := by
+      have := (hI.sub_const Gv).abs
+      rwa [sub_self, abs_zero] at this
+    refine h2.congr' (Eventually.of_forall fun T => ?_)
+    simp only [integral_unit, flow134, disc_mul hP']
+  have h := MonetaryModel.valuation_1_34 hm (s := t)
+    (fun _ _ _ =>
+      ⟨Integrable.of_finite, Integrable.of_finite, fun _ _ _ _ _ => Integrable.of_finite⟩)
+    (fun _ => Integrable.of_finite) (G := fun _ => Gv) Integrable.of_finite hconv
+  simp only [disc_mul hP', condExp_unit, integral_unit, ae_unit, addProc] at h
+  have hR : ∫ τ in Set.Ioi t, N τ * P τ / (N t * P t) * (s τ + (i τ - im τ) * M τ / P τ) =
+      Gv / (N t * P t) := by
+    rw [hGv, ← integral_div]
+    refine setIntegral_congr_fun measurableSet_Ioi fun τ _ => ?_
+    field_simp [(hP τ).ne']
+  have e : (M t + B t) / P t = Gv / (N t * P t) ↔ N t * (B t + M t) = Gv := by
+    rw [div_eq_div_iff (hP t).ne' (mul_pos (hNpos t) (hP t)).ne']
+    constructor
+    · intro hh
+      refine mul_right_cancel₀ (hP t).ne' ?_
+      rw [← hh]
+      ring
+    · intro hh
+      rw [← hh]
+      ring
+  rw [hR, e, h, tendsto_zero_iff_norm_tendsto_zero]
+  simp only [Real.norm_eq_abs, add_comm (M _)]
+
+/-! ## The `Δ`-grid -/
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the `Δ`-grid increment discounts the period flow
+by `E_k[n_{k+1}]`.** With the grid rate `(1 + i_kΔ)E_k[n_{k+1}] = n_k`, the right side of
+`TidyR6StochasticDrift.incr_1_32`, `−n_k(P_ks_kΔ + ΔM_k)/(1 + i_kΔ)`, equals
+`−E_k[n_{k+1}](P_ks_kΔ + ΔM_k)`. -/
+theorem grid_1_32_eq {Δ n Pk sk dMk ik Enk1 : ℝ} (hi : 1 + ik * Δ ≠ 0)
+    (hrate : (1 + ik * Δ) * Enk1 = n) :
+    -(n * (Pk * sk * Δ + dMk) / (1 + ik * Δ)) = -(Enk1 * (Pk * sk * Δ + dMk)) := by
+  have e : Enk1 = n / (1 + ik * Δ) := by rw [eq_div_iff hi]; linarith
+  rw [e]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `−(aΔ/(1 + iΔ))/Δ → −a` as `Δ → 0`, `Δ ≠ 0`.
+Generalises `TidyR6StochasticDrift.rate_increment_tendsto`. -/
+theorem tendsto_per_unit (a ik : ℝ) :
+    Tendsto (fun Δ : ℝ => -(a * Δ / (1 + ik * Δ)) / Δ) (𝓝[≠] 0) (𝓝 (-a)) := by
+  have hden : Tendsto (fun Δ : ℝ => 1 + ik * Δ) (𝓝 0) (𝓝 (1 + ik * 0)) :=
+    (continuous_const.add (continuous_const.mul continuous_id)).tendsto 0
+  simp only [mul_zero, add_zero] at hden
+  have hc : Tendsto (fun Δ : ℝ => -a / (1 + ik * Δ)) (𝓝 0) (𝓝 (-a)) := by
+    have := (tendsto_const_nhds (x := -a)).div hden one_ne_zero
+    rwa [div_one] at this
+  refine (hc.mono_left nhdsWithin_le_nhds).congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with Δ hΔ
+  have hΔ' : Δ ≠ 0 := hΔ
+  by_cases hD : 1 + ik * Δ = 0
+  · simp [hD]
+  · field_simp
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the `Δ`-grid and the continuous-time drift.** With
+`ΔM = mΔ`, the increment of `TidyR6StochasticDrift.incr_1_32` per unit time,
+`−n(PsΔ + mΔ)/((1 + iΔ)Δ)`, tends to `−n(Ps + m)` as `Δ → 0`: the drift of `nB` in
+`TidyR7MonetarismModel.MonetaryModel.hasDrift_1_32_ac` (`i^m = 0`, `Λs = nPs`) and of
+`TidyR6StochasticDrift.drift_1_32_fv`. -/
+theorem grid_1_32_rate (n Pk sk m ik : ℝ) :
+    Tendsto (fun Δ : ℝ => -(n * (Pk * sk * Δ + m * Δ) / (1 + ik * Δ)) / Δ) (𝓝[≠] 0)
+      (𝓝 (-(n * (Pk * sk + m)))) := by
+  have e : (fun Δ : ℝ => -(n * (Pk * sk * Δ + m * Δ) / (1 + ik * Δ)) / Δ) =
+      fun Δ => -(n * (Pk * sk + m) * Δ / (1 + ik * Δ)) / Δ := funext fun Δ => by ring
+  rw [e]
+  exact tendsto_per_unit _ ik
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567: the `Δ`-grid and the continuous-time drift.** The
+increment of `TidyR6StochasticDrift.incr_1_34` per unit time,
+`−n(Ps + (i − i^m)M)Δ/((1 + iΔ)Δ)`, tends to `−n(Ps + (i − i^m)M)` as `Δ → 0`: the drift of
+`n(B + M)` in `TidyR7MonetarismModel.MonetaryModel.hasDrift_1_34` (`Λs = nPs`). -/
+theorem grid_1_34_rate (n Pk sk Mk ik imk : ℝ) :
+    Tendsto (fun Δ : ℝ => -(n * (Pk * sk + (ik - imk) * Mk) * Δ / (1 + ik * Δ)) / Δ) (𝓝[≠] 0)
+      (𝓝 (-(n * (Pk * sk + (ik - imk) * Mk)))) :=
+  tendsto_per_unit _ ik
+
+end Cochrane.Monetarism.TidyR7MonetarismLinks
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Non-vacuity of (1.33)–(1.34) on `[0, ∞)` with news in `Λ/P`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). An infinite-horizon instance of
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33`,
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_book` and
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_34_book` on the fair coin of
+`TidyR7ProductStepCoin` (`ξ = ±1` revealed at time `1`, `H = 1{u ≥ 1}`).
+
+## The model (`infModel`)
+
+`P = 1`, `Λ_u = n_u = 1 + e^{−u} + (ξ/4)H(u)`: the finite-variation part is `A_u = 1 + e^{−u}`,
+the martingale part `N_u = (ξ/4)H(u)` is not zero (`infN_ne_zero`), and the nominal rate
+`i_u = e^{−u}/n_u > 0` (`infI_pos`) makes `dA = −i n dt` hold exactly. Bonds `B_u = e^{−u}` are
+paid down by the bounded surplus `s_u = i_uB_u + e^{−u}` (so `dB = (iB − Ps) dt`, (1.31)), money
+`M = 0`, `i^m = 0`.
+
+## Results
+
+* `inf_flow133`: for `T ≥ 1`, path by path
+  `∫_0^T Λs dr + ∫_0^T n dM = 2 − (1 + e^{−T})e^{−T} + (ξ/4)(e^{−1} − e^{−T})`, which tends to
+  `G = 2 + (ξ/4)e^{−1}` (`inf_tendsto`), with `|F_T| ≤ 5`.
+* `inf_tvc_eq`: `E_0[n_TB_T] = (1 + e^{−T})e^{−T} → 0`: the transversality condition holds.
+* `inf_1_33`: `MonetaryModel.valuation_1_33` (`L¹` form) applies, and both of its sides hold:
+  `n_0B_0 = 2 = E_0[G]`.
+* `inf_1_33_book`: `MonetaryModel.valuation_1_33_book` applies along `T_k = k + 1`; both sides
+computed:
+  `B_0/P_0 = 1 = E_0[G/Λ_0]`, and the transversality condition holds.
+* `inf_1_34_book`: the same for `MonetaryModel.valuation_1_34_book` (here `M = 0`).
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismCoinInf
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7ProductStep Cochrane.Monetarism.TidyR7ProductStepCoin
+  Cochrane.Monetarism.TidyR7MonetarismAC Cochrane.Monetarism.TidyR7MonetarismModel
+  Cochrane.Monetarism.TidyR7MonetarismValuation Cochrane.Monetarism.TidyR7MonetarismCoin
+
+/-! ## Exponential tools -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (non-vacuity): `d/du e^{−u} = −e^{−u}`. -/
+theorem hasDerivAt_expNeg (r : ℝ) :
+    HasDerivAt (fun u : ℝ => Real.exp (-u)) (-Real.exp (-r)) r := by
+  have := (hasDerivAt_neg r).exp
+  simpa using this
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `e^{−u}` is continuous. -/
+theorem continuous_expNeg : Continuous fun u : ℝ => Real.exp (-u) :=
+  Real.continuous_exp.comp continuous_neg
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫_u^v e^{−r} dr = e^{−u} − e^{−v}`. -/
+theorem integral_expNeg (u v : ℝ) : ∫ r in u..v, Real.exp (-r) = Real.exp (-u) - Real.exp (-v) := by
+  have h : ∀ r, HasDerivAt (-(fun x : ℝ => Real.exp (-x))) (Real.exp (-r)) r := fun r => by
+    simpa using (hasDerivAt_expNeg r).neg
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun r _ => h r)
+    (continuous_expNeg.intervalIntegrable u v)]
+  simp only [Pi.neg_apply]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `e^{−u} ≤ 1` for `u ≥ 0`. -/
+theorem expNeg_le_one {u : ℝ} (hu : 0 ≤ u) : Real.exp (-u) ≤ 1 :=
+  Real.exp_le_one_iff.2 (by linarith)
+
+/-! ## The model -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ_u = 1 + e^{−u} + (ξ/4)H(u)` (`= Λ/P`, `P = 1`). -/
+noncomputable def infLam (u : ℝ) (ω : Bool) : ℝ := 1 + Real.exp (-u) + coinXi ω / 4 * heaviside u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the finite-variation part `A_u = 1 + e^{−u}`. -/
+noncomputable def infA (u : ℝ) (_ : Bool) : ℝ := 1 + Real.exp (-u)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the martingale part `N_u = (ξ/4)H(u)`. -/
+noncomputable def infN (u : ℝ) (ω : Bool) : ℝ := coinXi ω / 4 * heaviside u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the nominal rate `i_u = e^{−u}/n_u`. -/
+noncomputable def infI (u : ℝ) (ω : Bool) : ℝ := Real.exp (-u) / infLam u ω
+
+/-- Cochrane (2023), A1 §1.6, p. 567: bonds `B_u = e^{−u}`. -/
+noncomputable def infB (u : ℝ) (_ : Bool) : ℝ := Real.exp (-u)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the surplus `s_u = i_uB_u + e^{−u}`. -/
+noncomputable def infSur (u : ℝ) (ω : Bool) : ℝ := infI u ω * infB u ω + Real.exp (-u)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `|(ξ/4)H| ≤ 1/4`. -/
+theorem abs_infN_le (u : ℝ) (ω : Bool) : |coinXi ω / 4 * heaviside u| ≤ 1 / 4 := by
+  rw [abs_mul, abs_div, abs_coinXi]
+  simp only [heaviside]
+  split_ifs <;> norm_num
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ = n > 0` (indeed `≥ 3/4`). -/
+theorem infLam_pos (u : ℝ) (ω : Bool) : 0 < infLam u ω := by
+  have h1 := abs_infN_le u ω
+  have h2 := Real.exp_pos (-u)
+  simp only [infLam]
+  linarith [neg_abs_le (coinXi ω / 4 * heaviside u)]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the nominal rate is positive. -/
+theorem infI_pos (u : ℝ) (ω : Bool) : 0 < infI u ω :=
+  div_pos (Real.exp_pos _) (infLam_pos u ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ/P = Λ` here. -/
+theorem disc_inf (u : ℝ) (ω : Bool) : disc infLam coinP u ω = infLam u ω := by
+  simp [disc, coinP]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `i n = e^{−u}`. -/
+theorem infI_mul (u : ℝ) (ω : Bool) : infI u ω * infLam u ω = Real.exp (-u) :=
+  div_mul_cancel₀ _ (infLam_pos u ω).ne'
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the bond-pricing density `−i n = −e^{−u}`. -/
+theorem rate_inf (ω : Bool) :
+    (fun r => -(infI r ω * disc infLam coinP r ω)) = fun r => -Real.exp (-r) :=
+  funext fun r => by rw [disc_inf, infI_mul]
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: the flow density is `−e^{−u}`. -/
+theorem flowRate_inf (ω : Bool) :
+    (fun r => flowRate infB zeroRate coinP infI zeroRate infSur r ω) =
+      fun r => -Real.exp (-r) :=
+  funext fun r => by simp only [flowRate, zeroRate, coinP, infSur]; ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.31)–(1.34), pp. 567–568: an infinite-horizon model with news in
+`Λ/P` and a positive nominal rate** satisfying `TidyR7MonetarismModel.MonetaryModel`. -/
+theorem infModel : MonetaryModel coinMeasure coinFiltration infLam coinP infB zeroRate infA infN
+    infI zeroRate infSur where
+  P_pos _ _ := one_pos
+  Λ_pos := infLam_pos
+  Λ_adapted := coin_adapted fun u hu ω => by simp [infLam, heaviside, not_le.2 hu]
+  P_adapted _ := stronglyMeasurable_const
+  dec u ω := by rw [disc_inf]; simp only [infLam, infA, infN]
+  A_incr ω u v _ := by
+    rw [rate_inf ω, intervalIntegral.integral_neg, integral_expNeg]
+    simp only [infA]
+    ring
+  A_int ω u v := by
+    rw [rate_inf ω]
+    exact continuous_expNeg.neg.intervalIntegrable u v
+  N_mart := by
+    have e : infN = (1 / 4 : ℝ) • coinM := funext fun u => funext fun ω => by
+      simp only [infN, coinM, Pi.smul_apply, smul_eq_mul]
+      ring
+    rw [e]
+    exact martingale_coinM.smul _
+  N_cadlag ω := isCadlag_heaviside.continuous_comp (continuous_const.mul continuous_id
+    (f := fun _ : ℝ => coinXi ω / 4))
+  B_adapted _ := stronglyMeasurable_const
+  M_adapted _ := stronglyMeasurable_const
+  M_cont _ := continuous_const
+  M_bv _ a b := by
+    rw [BoundedVariationOn, eVariationOn.constant_on
+      (Set.subsingleton_of_forall_eq (0 : ℝ) fun _ ⟨_, _, hy⟩ => hy.symm)]
+    exact ENNReal.zero_ne_top
+  flow ω u v _ := by
+    rw [flowRate_inf ω, intervalIntegral.integral_neg, integral_expNeg]
+    simp only [addProc, infB, zeroRate]
+    ring
+  flow_int ω u v := by
+    rw [flowRate_inf ω]
+    exact continuous_expNeg.neg.intervalIntegrable u v
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the martingale part of `Λ/P` is not zero. -/
+theorem infN_ne_zero : infN 1 true ≠ 0 := by
+  simp [infN, coinXi, heaviside]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the domination conditions hold on every interval. -/
+theorem infDom (s t : ℝ) : Dominated coinMeasure infA infN s t infB (disc infLam coinP) :=
+  ⟨Integrable.of_finite, Integrable.of_finite, fun _ _ _ _ _ => Integrable.of_finite⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the domination conditions for `B + M` hold on every
+interval. -/
+theorem infDomW (s t : ℝ) :
+    Dominated coinMeasure infA infN s t (addProc infB zeroRate) (disc infLam coinP) :=
+  ⟨Integrable.of_finite, Integrable.of_finite, fun _ _ _ _ _ => Integrable.of_finite⟩
+
+/-! ## The flows -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫_0^T H(r)e^{−r} dr = e^{−1} − e^{−T}` for `T ≥ 1`. -/
+theorem integral_heaviside_expNeg {T : ℝ} (hT : 1 ≤ T) :
+    ∫ r in (0 : ℝ)..T, heaviside r * Real.exp (-r) = Real.exp (-1) - Real.exp (-T) := by
+  have hint : ∀ a b : ℝ, a ≤ b → IntervalIntegrable (fun r => heaviside r * Real.exp (-r))
+      MeasureSpace.volume a b := fun a b hab =>
+    intervalIntegrable_mul_of_isCadlag isCadlag_heaviside hab
+      (continuous_expNeg.intervalIntegrable a b)
+  have hne : ∀ᵐ x : ℝ ∂MeasureSpace.volume, x ∉ ({1} : Set ℝ) :=
+    measure_eq_zero_iff_ae_notMem.1 (measure_singleton 1)
+  have h0 : ∫ r in (0 : ℝ)..1, heaviside r * Real.exp (-r) = ∫ _ in (0 : ℝ)..1, (0 : ℝ) := by
+    refine intervalIntegral.integral_congr_ae ?_
+    filter_upwards [hne] with r hr hr'
+    rw [Set.uIoc_of_le (by norm_num)] at hr'
+    have hr1 : r < 1 := lt_of_le_of_ne hr'.2 (by simpa using hr)
+    simp [heaviside, not_le.2 hr1]
+  have h1 : ∫ r in (1 : ℝ)..T, heaviside r * Real.exp (-r) = ∫ r in (1 : ℝ)..T, Real.exp (-r) := by
+    refine intervalIntegral.integral_congr_ae (Eventually.of_forall fun r hr => ?_)
+    rw [Set.uIoc_of_le hT] at hr
+    simp [heaviside, hr.1.le]
+  rw [← intervalIntegral.integral_add_adjacent_intervals (hint 0 1 (by norm_num)) (hint 1 T hT),
+    h0, h1, intervalIntegral.integral_zero, integral_expNeg]
+  simp
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the flows on `infModel`.** For `T ≥ 1`, path by
+path, `∫_0^T Λs dr + ∫_0^T n dM = 2 − (1 + e^{−T})e^{−T} + (ξ/4)(e^{−1} − e^{−T})`. -/
+theorem inf_flow133 {T : ℝ} (hT : 1 ≤ T) (ω : Bool) :
+    flow133 infLam coinP zeroRate infSur 0 T ω =
+      2 - (1 + Real.exp (-T)) * Real.exp (-T) +
+        coinXi ω / 4 * (Real.exp (-1) - Real.exp (-T)) := by
+  have hT0 : (0 : ℝ) ≤ T := by linarith
+  have hrs := rsInt_eq_integral_of_incr (f := fun u => disc infLam coinP u ω)
+    (g := fun u => zeroRate u ω) (h := fun _ => (0 : ℝ))
+    (infModel.disc_cadlag ω) (fun _ _ => intervalIntegrable_const)
+    (fun u v _ => by simp [zeroRate]) hT0
+  set e : ℝ → ℝ := fun r => Real.exp (-r) with he
+  have hq : ∀ r, HasDerivAt (fun x => -((1 + e x) * e x)) (e r * e r + (1 + e r) * e r) r :=
+    fun r => by
+      have := ((((hasDerivAt_const r (1 : ℝ)).add (hasDerivAt_expNeg r)).mul
+        (hasDerivAt_expNeg r))).neg
+      simp only [he]
+      convert this using 1
+      simp only [Pi.add_apply]
+      ring
+  have hc1 : Continuous fun r => e r * e r + (1 + e r) * e r := by
+    simp only [he]; fun_prop
+  have hI1 : ∫ r in (0 : ℝ)..T, (e r * e r + (1 + e r) * e r) =
+      2 - (1 + Real.exp (-T)) * Real.exp (-T) := by
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun r _ => hq r)
+      (hc1.intervalIntegrable 0 T)]
+    simp only [he, neg_zero, Real.exp_zero]
+    ring
+  have hint2 : IntervalIntegrable (fun r => heaviside r * Real.exp (-r)) MeasureSpace.volume 0 T :=
+    intervalIntegrable_mul_of_isCadlag isCadlag_heaviside hT0
+      (continuous_expNeg.intervalIntegrable 0 T)
+  have hpt : ∀ r, infLam r ω * infSur r ω =
+      (e r * e r + (1 + e r) * e r) + coinXi ω / 4 * (heaviside r * Real.exp (-r)) := by
+    intro r
+    have h := infI_mul r ω
+    simp only [infSur, infB, he]
+    have e1 : infLam r ω * (infI r ω * Real.exp (-r) + Real.exp (-r)) =
+        (infI r ω * infLam r ω) * Real.exp (-r) + infLam r ω * Real.exp (-r) := by ring
+    rw [e1, h]
+    simp only [infLam]
+    ring
+  rw [flow133, hrs, intervalIntegral.integral_congr (fun r _ => hpt r),
+    intervalIntegral.integral_add (hc1.intervalIntegrable 0 T) (hint2.const_mul _),
+    intervalIntegral.integral_const_mul, hI1, integral_heaviside_expNeg hT]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: the limit `G = 2 + (ξ/4)e^{−1}` of the flows. -/
+noncomputable def infG (ω : Bool) : ℝ := 2 + coinXi ω / 4 * Real.exp (-1)
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the flows converge path by path to `G`.** -/
+theorem inf_tendsto (ω : Bool) :
+    Tendsto (fun T => flow133 infLam coinP zeroRate infSur 0 T ω) atTop (𝓝 (infG ω)) := by
+  have he := Real.tendsto_exp_neg_atTop_nhds_zero
+  have h : Tendsto (fun T : ℝ => 2 - (1 + Real.exp (-T)) * Real.exp (-T) +
+      coinXi ω / 4 * (Real.exp (-1) - Real.exp (-T))) atTop
+      (𝓝 (2 - (1 + 0) * 0 + coinXi ω / 4 * (Real.exp (-1) - 0))) :=
+    ((tendsto_const_nhds.sub ((tendsto_const_nhds.add he).mul he)).add
+      (tendsto_const_nhds.mul (tendsto_const_nhds.sub he)))
+  have e : 2 - (1 + 0) * 0 + coinXi ω / 4 * (Real.exp (-1) - 0) = infG ω := by
+    simp only [infG]; ring
+  rw [e] at h
+  refine h.congr' ?_
+  filter_upwards [eventually_ge_atTop 1] with T hT
+  rw [inf_flow133 hT]
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: `|F_T| ≤ 5` for `T ≥ 1`. -/
+theorem abs_inf_flow133_le {T : ℝ} (hT : 1 ≤ T) (ω : Bool) :
+    |flow133 infLam coinP zeroRate infSur 0 T ω| ≤ 5 := by
+  rw [inf_flow133 hT]
+  have h1 := expNeg_le_one (by linarith : (0 : ℝ) ≤ T)
+  have h2 := Real.exp_pos (-T)
+  have h3 := expNeg_le_one (by norm_num : (0 : ℝ) ≤ 1)
+  have h4 := Real.exp_pos (-1)
+  have hx := abs_coinXi ω
+  have habs : |Real.exp (-1) - Real.exp (-T)| ≤ 1 := abs_le.2 ⟨by linarith, by linarith⟩
+  have hb : |coinXi ω / 4 * (Real.exp (-1) - Real.exp (-T))| ≤ 1 := by
+    rw [abs_mul, abs_div, hx, abs_of_pos (by norm_num : (0 : ℝ) < 4)]
+    linarith [abs_nonneg (Real.exp (-1) - Real.exp (-T))]
+  have hq0 : 0 ≤ (1 + Real.exp (-T)) * Real.exp (-T) := by positivity
+  have hq2 : (1 + Real.exp (-T)) * Real.exp (-T) ≤ 2 := by nlinarith
+  rw [abs_le] at hb ⊢
+  constructor <;> linarith [hb.1, hb.2]
+
+/-! ## Both sides of (1.33) and (1.34) -/
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the transversality condition holds:**
+`E_0[n_TB_T] = (1 + e^{−T})e^{−T}` (with `H(T) = 1` for `T ≥ 1`), which tends to `0`. -/
+theorem inf_tvc_eq {T : ℝ} (hT : 1 ≤ T) :
+    coinMeasure[fun ω => disc infLam coinP T ω * infB T ω | coinFiltration 0] =
+      fun _ => (1 + Real.exp (-T)) * Real.exp (-T) := by
+  rw [condExp_coin_lt (by norm_num)]
+  funext _
+  simp only [disc_inf, infLam, infB, coinXi, heaviside, hT, ↓reduceIte, Bool.false_eq_true]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: `(1 + e^{−T})e^{−T} → 0`. -/
+theorem tendsto_tvc_inf :
+    Tendsto (fun T : ℝ => (1 + Real.exp (-T)) * Real.exp (-T)) atTop (𝓝 0) := by
+  have he := Real.tendsto_exp_neg_atTop_nhds_zero
+  have := ((tendsto_const_nhds (x := (1 : ℝ))).add he).mul he
+  simpa using this
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: `E_0[G] = 2 = n_0B_0`. -/
+theorem inf_EG : coinMeasure[infG | coinFiltration 0] = fun _ => 2 := by
+  rw [condExp_coin_lt (by norm_num)]
+  funext _
+  simp only [infG, coinXi]
+  norm_num
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `n_0B_0 = 2` (`Λ_0 = 2`, `B_0 = 1`). -/
+theorem inf_Y0 (ω : Bool) : disc infLam coinP 0 ω * infB 0 ω = 2 := by
+  simp [disc_inf, infLam, infB, heaviside]
+  norm_num
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, `L¹` form on `[0, ∞)` with news in `Λ/P`.**
+On `infModel` the flows converge in `L¹` to `G`, `MonetaryModel.valuation_1_33` applies, and both
+of its sides
+hold: `n_0B_0 = E_0[G]` (both `2`) and `∫|E_0[n_TB_T]| → 0`. -/
+theorem inf_1_33 :
+    Tendsto (fun T => ∫ ω, |flow133 infLam coinP zeroRate infSur 0 T ω - infG ω| ∂coinMeasure)
+        atTop (𝓝 0) ∧
+      ((fun ω => disc infLam coinP 0 ω * infB 0 ω) =ᵐ[coinMeasure]
+          coinMeasure[infG | coinFiltration 0] ↔
+        Tendsto (fun T => ∫ ω, |coinMeasure[fun ω => disc infLam coinP T ω * infB T ω |
+          coinFiltration 0] ω| ∂coinMeasure) atTop (𝓝 0)) ∧
+      (fun ω => disc infLam coinP 0 ω * infB 0 ω) =ᵐ[coinMeasure]
+          coinMeasure[infG | coinFiltration 0] ∧
+      Tendsto (fun T => ∫ ω, |coinMeasure[fun ω => disc infLam coinP T ω * infB T ω |
+          coinFiltration 0] ω| ∂coinMeasure) atTop (𝓝 0) := by
+  have hconv : Tendsto (fun T => ∫ ω, |flow133 infLam coinP zeroRate infSur 0 T ω - infG ω|
+      ∂coinMeasure) atTop (𝓝 0) := by
+    simp only [integral_coin]
+    have h1 := ((inf_tendsto true).sub_const (infG true)).abs
+    have h2 := ((inf_tendsto false).sub_const (infG false)).abs
+    have := (h1.add h2).div_const 2
+    simpa using this
+  have hval := MonetaryModel.valuation_1_33 infModel (fun _ _ => rfl) (s := 0)
+    (fun T _ => infDom 0 T) (fun _ _ => Integrable.of_finite) (G := infG) Integrable.of_finite
+    hconv
+  have hlhs : (fun ω => disc infLam coinP 0 ω * infB 0 ω) =ᵐ[coinMeasure]
+      coinMeasure[infG | coinFiltration 0] := by
+    rw [inf_EG]
+    exact Eventually.of_forall fun ω => inf_Y0 ω
+  refine ⟨hconv, hval, hlhs, hval.1 hlhs⟩
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, as printed, on `[0, ∞)` with news in `Λ/P`.**
+On `infModel`, along `T_k = k + 1`, the conclusion of `MonetaryModel.valuation_1_33_book` holds,
+both sides are
+computed (`B_0/P_0 = 1` and `E_0[G/Λ_0] = 1`), and the transversality condition holds:
+`E_0[n_{T_k}B_{T_k}] → 0`. -/
+theorem inf_1_33_book :
+    ((∀ ω, Tendsto (fun k : ℕ => (∫ r in (0 : ℝ)..((k : ℝ) + 1),
+          infLam r ω / infLam 0 ω * infSur r ω) +
+        rsInt 0 ((k : ℝ) + 1) (fun u => infLam u ω / infLam 0 ω / coinP u ω)
+          (fun u => zeroRate u ω)) atTop (𝓝 (infG ω / infLam 0 ω))) ∧
+      ((fun ω => infB 0 ω / coinP 0 ω) =ᵐ[coinMeasure]
+          coinMeasure[fun ω => infG ω / infLam 0 ω | coinFiltration 0] ↔
+        ∀ᵐ ω ∂coinMeasure, Tendsto (fun k : ℕ => coinMeasure[fun ω =>
+          disc infLam coinP ((k : ℝ) + 1) ω * infB ((k : ℝ) + 1) ω | coinFiltration 0] ω)
+            atTop (𝓝 0))) ∧
+      (fun ω => infB 0 ω / coinP 0 ω) = (fun _ => 1) ∧
+      coinMeasure[fun ω => infG ω / infLam 0 ω | coinFiltration 0] = (fun _ => 1) ∧
+      ∀ ω, Tendsto (fun k : ℕ => coinMeasure[fun ω =>
+          disc infLam coinP ((k : ℝ) + 1) ω * infB ((k : ℝ) + 1) ω | coinFiltration 0] ω)
+            atTop (𝓝 0) := by
+  have hT : ∀ k : ℕ, (1 : ℝ) ≤ (k : ℝ) + 1 := fun k => by
+    have := Nat.cast_nonneg (α := ℝ) k
+    linarith
+  have hseq : Tendsto (fun k : ℕ => (k : ℝ) + 1) atTop atTop :=
+    tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop
+  refine ⟨MonetaryModel.valuation_1_33_book infModel (fun _ _ => rfl) (s := 0)
+    (fun T _ => infDom 0 T) (fun _ _ => Integrable.of_finite) (T := fun k : ℕ => (k : ℝ) + 1)
+    (fun k => by linarith [hT k]) (H := fun _ => 5) (integrable_const _)
+    (fun k ω => abs_inf_flow133_le (hT k) ω) (fun ω => (inf_tendsto ω).comp hseq)
+    Integrable.of_finite, ?_, ?_, fun ω => ?_⟩
+  · funext _
+    simp [infB, coinP]
+  · rw [condExp_coin_lt (by norm_num)]
+    funext _
+    simp only [infG, infLam, coinXi, heaviside, neg_zero, Real.exp_zero]
+    norm_num
+    ring
+  · have h := tendsto_tvc_inf.comp hseq
+    refine h.congr fun k => ?_
+    rw [inf_tvc_eq (hT k)]
+    rfl
+
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: with `M = 0` the flow of (1.34) is that of (1.33). -/
+theorem inf_flow134 (T : ℝ) (ω : Bool) (hT : 0 ≤ T) :
+    flow134 infLam coinP zeroRate infI zeroRate infSur 0 T ω =
+      flow133 infLam coinP zeroRate infSur 0 T ω := by
+  have hrs := rsInt_eq_integral_of_incr (f := fun u => disc infLam coinP u ω)
+    (g := fun u => zeroRate u ω) (h := fun _ => (0 : ℝ))
+    (infModel.disc_cadlag ω) (fun _ _ => intervalIntegrable_const)
+    (fun u v _ => by simp [zeroRate]) hT
+  rw [flow134, flow133, hrs]
+  simp [zeroRate]
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, as printed, on `[0, ∞)` with news in `Λ/P`.** On
+`infModel` (`M = 0`, `i^m = 0`), along `T_k = k + 1`, the conclusion of
+`MonetaryModel.valuation_1_34_book`
+holds; `(M_0 + B_0)/P_0 = 1 = E_0[G/Λ_0]` and the transversality condition holds. -/
+theorem inf_1_34_book :
+    ((∀ ω, Tendsto (fun k : ℕ => ∫ r in (0 : ℝ)..((k : ℝ) + 1),
+        infLam r ω / infLam 0 ω * (infSur r ω + (infI r ω - zeroRate r ω) * zeroRate r ω /
+          coinP r ω)) atTop (𝓝 (infG ω / infLam 0 ω))) ∧
+      ((fun ω => addProc infB zeroRate 0 ω / coinP 0 ω) =ᵐ[coinMeasure]
+          coinMeasure[fun ω => infG ω / infLam 0 ω | coinFiltration 0] ↔
+        ∀ᵐ ω ∂coinMeasure, Tendsto (fun k : ℕ => coinMeasure[fun ω =>
+          disc infLam coinP ((k : ℝ) + 1) ω * addProc infB zeroRate ((k : ℝ) + 1) ω |
+            coinFiltration 0] ω) atTop (𝓝 0))) ∧
+      (fun ω => addProc infB zeroRate 0 ω / coinP 0 ω) = (fun _ => 1) ∧
+      ∀ ω, Tendsto (fun k : ℕ => coinMeasure[fun ω =>
+          disc infLam coinP ((k : ℝ) + 1) ω * addProc infB zeroRate ((k : ℝ) + 1) ω |
+            coinFiltration 0] ω) atTop (𝓝 0) := by
+  have hT : ∀ k : ℕ, (1 : ℝ) ≤ (k : ℝ) + 1 := fun k => by
+    have := Nat.cast_nonneg (α := ℝ) k
+    linarith
+  have hseq : Tendsto (fun k : ℕ => (k : ℝ) + 1) atTop atTop :=
+    tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop
+  have eW : addProc infB zeroRate = infB := funext fun u => funext fun ω => by
+    simp [addProc, zeroRate]
+  refine ⟨MonetaryModel.valuation_1_34_book infModel (s := 0) (fun s t _ => infDomW s t)
+    (fun _ => Integrable.of_finite) (T := fun k : ℕ => (k : ℝ) + 1)
+    (fun k => by linarith [hT k]) (H := fun _ => 5) (integrable_const _)
+    (fun k ω => by rw [inf_flow134 _ ω (by linarith [hT k])]; exact abs_inf_flow133_le (hT k) ω)
+    (fun ω => ((inf_tendsto ω).comp hseq).congr fun k => by
+      simp only [Function.comp]
+      rw [inf_flow134 _ ω (by linarith [hT k])])
+    Integrable.of_finite, ?_, fun ω => ?_⟩
+  · funext _
+    simp [addProc, infB, coinP, zeroRate]
+  · rw [eW]
+    have h := tendsto_tvc_inf.comp hseq
+    refine h.congr fun k => ?_
+    rw [inf_tvc_eq (hT k)]
+    rfl
+
+end Cochrane.Monetarism.TidyR7MonetarismCoinInf
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The domination hypothesis of `E_t∫_t^∞` cannot be dropped
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eq. (1.33).
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_dom` reads `∫_s^∞` as the pathwise
+limit `G` of the flows `F_T = ∫_s^T Λs dr + ∫_s^T n dM` and assumes `|F_{T_k}| ≤ H` integrable;
+`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33` assumes
+`F_T → G` in `L¹`. Without such a hypothesis the limit form
+`lim E_s∫_s^T = n_sB_s` (`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_seq`) still holds,
+but the literal `n_sB_s = E_s[∫_s^∞]` can fail.
+
+## The model (`uiModel`)
+
+`Ω = ℕ` with the geometric law `P(ω) = 2^{−(ω+1)}` (Mathlib `geometricMeasure`), all information
+revealed just after time `0` (`uiFilt`). `Λ = P = 1`, `i = i^m = 0`, `M = 0`. With the hat function
+`φ_ω` centred at `ω + 1` (`hat`, support `(ω, ω + 2)`, `Σ_ω φ_ω(T) = 1` for `T ≥ 1`, `tsum_hat`),
+bonds are `B_u(ω) = 1 − 2^{ω+1}φ_ω(u)` (`uiB`) and the surplus is `s = −Ḃ` (`uiSur`): in state `ω`
+the government runs a deficit and then a surplus of size `2^{ω+1}` around time `ω + 1`.
+
+## Results
+
+* `ui_flow`: `F_T(ω) = 2^{ω+1}φ_ω(T)`; `ui_EF`: `E_0[F_T] = Σ_ω φ_ω(T) = 1` for `T ≥ 1`.
+* `ui_tvc`: `E_0[n_TB_T] = 0` for `T ≥ 1` (transversality holds); `ui_limit`: so
+  `lim E_0[F_T] = 1 = n_0B_0` (the limit form of (1.33) holds).
+* `ui_pathwise`: `F_T(ω) → 0` for every `ω`, so `G = ∫_0^∞ Λs = 0` path by path, and
+  `ui_literal_fails`: `n_0B_0 = 1 ≠ 0 = E_0[G]`.
+* `ui_dom`, `ui_integrable`: all other hypotheses of `MonetaryModel.valuation_1_33_dom` hold (the
+product-step
+  domination on every `[0, T]`, integrability of `n_TB_T`, measurability, pathwise convergence).
+* `ui_not_dominated`: hence no integrable `H` dominates the flows (else
+`MonetaryModel.valuation_1_33_dom` would
+  give `n_0B_0 = E_0[G]`); `ui_not_L1`: the flows do not converge in `L¹`.
+* `ui_headline`: all of the above together.
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismUI
+
+open MeasureTheory Filter Topology ProbabilityTheory
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7ProductStep
+  Cochrane.Monetarism.TidyR7MonetarismAC Cochrane.Monetarism.TidyR7MonetarismModel
+  Cochrane.Monetarism.TidyR7MonetarismValuation
+
+/-! ## The probability space -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (counterexample): the parameter `1/2`. -/
+noncomputable def half : unitInterval := ⟨1 / 2, by norm_num, by norm_num⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `P(ω) = 2^{−(ω+1)}` on `ℕ`. -/
+noncomputable abbrev uiMeasure : Measure ℕ := geometricMeasure half
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `1/2 ≠ 0`. -/
+theorem half_ne_zero : half ≠ 0 := by
+  intro h
+  have := congrArg Subtype.val h
+  norm_num [half] at this
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the state is revealed just after time `0`. -/
+noncomputable def uiFilt : Filtration ℝ (inferInstance : MeasurableSpace ℕ) where
+  seq u := if u ≤ 0 then ⊥ else inferInstance
+  mono' i j hij := by
+    by_cases hj : j ≤ 0
+    · have hi : i ≤ 0 := hij.trans hj
+      simp only [hi, hj, ↓reduceIte, le_refl]
+    · by_cases hi : i ≤ 0
+      · simp only [hi, hj, ↓reduceIte]
+        exact bot_le
+      · simp only [hi, hj, ↓reduceIte, le_refl]
+  le' u := by
+    by_cases hu : u ≤ 0
+    · simp only [hu, ↓reduceIte]
+      exact bot_le
+    · simp only [hu, ↓reduceIte, le_refl]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: at time `0` the filtration is trivial. -/
+theorem uiFilt_zero : uiFilt 0 = ⊥ := by
+  change (if (0 : ℝ) ≤ 0 then ⊥ else (inferInstance : MeasurableSpace ℕ)) = _
+  simp
+
+/-- Cochrane (2023), A1 §1.6, p. 567: after time `0` the filtration is everything. -/
+theorem uiFilt_pos {u : ℝ} (hu : ¬ u ≤ 0) : uiFilt u = (inferInstance : MeasurableSpace ℕ) := by
+  change (if u ≤ 0 then ⊥ else (inferInstance : MeasurableSpace ℕ)) = _
+  simp only [hu, ↓reduceIte]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `E_0` is the expectation.
+From Mathlib `condExp_bot`. -/
+theorem condExp_ui_zero (f : ℕ → ℝ) : uiMeasure[f | uiFilt 0] = fun _ => ∫ ω, f ω ∂uiMeasure := by
+  rw [uiFilt_zero, condExp_bot]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a process that is non-random up to time `0` is adapted. -/
+theorem ui_adapted {f : ℝ → ℕ → ℝ} (hf : ∀ u ≤ 0, ∀ ω, f u ω = f u 0) (u : ℝ) :
+    StronglyMeasurable[uiFilt u] (f u) := by
+  by_cases hu : u ≤ 0
+  · have e : f u = fun _ => f u 0 := funext fun ω => hf u hu ω
+    rw [e]
+    exact stronglyMeasurable_const
+  · rw [uiFilt_pos hu]
+    exact (measurable_of_countable _).stronglyMeasurable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the integral against `P(ω) = 2^{−(ω+1)}` of
+`2^{ω+1}g(ω)` is `Σ g`. From Mathlib `integral_geometricMeasure`. -/
+theorem integral_ui_wt (g : ℕ → ℝ) :
+    ∫ ω, (2 : ℝ) ^ (ω + 1) * g ω ∂uiMeasure = ∑' ω, g ω := by
+  rw [integral_geometricMeasure half_ne_zero]
+  congr 1
+  funext n
+  have h : (1 / 2 : ℝ) ^ n * 2 ^ n = 1 := by rw [← mul_pow]; norm_num
+  simp only [half, smul_eq_mul]
+  rw [pow_succ]
+  calc (1 - 1 / 2 : ℝ) ^ n * (1 / 2) * (2 ^ n * 2 * g n)
+      = ((1 / 2 : ℝ) ^ n * 2 ^ n) * g n := by ring
+    _ = g n := by rw [h, one_mul]
+
+/-! ## Hat functions and steps -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the step `1{r > c}`.
+Generalises `TidyR7MonetarismCoin.stepG`. -/
+noncomputable def stepAt (c r : ℝ) : ℝ := if c < r then 1 else 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the step is monotone.
+Generalises `TidyR7MonetarismCoin.monotone_stepG`. -/
+theorem monotone_stepAt (c : ℝ) : Monotone (stepAt c) := by
+  intro x y hxy
+  simp only [stepAt]
+  split_ifs with h1 h2 <;> (try simp only [not_lt] at *) <;> linarith
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫_u^v 1{r > c} dr = (v − c)⁺ − (u − c)⁺`.
+Generalises `TidyR7MonetarismCoin.integral_stepG`. -/
+theorem integral_stepAt (c : ℝ) {u v : ℝ} (huv : u ≤ v) :
+    ∫ r in u..v, stepAt c r = max (v - c) 0 - max (u - c) 0 := by
+  have hii : ∀ a b, IntervalIntegrable (stepAt c) MeasureSpace.volume a b := fun _ _ =>
+    (monotone_stepAt c).intervalIntegrable
+  have h0 : ∀ a b : ℝ, a ≤ b → b ≤ c → ∫ r in a..b, stepAt c r = 0 := by
+    intro a b hab hb
+    have e : ∫ r in a..b, stepAt c r = ∫ _ in a..b, (0 : ℝ) :=
+      intervalIntegral.integral_congr_ae (Eventually.of_forall fun r hr => by
+        rw [Set.uIoc_of_le hab] at hr
+        simp only [stepAt, not_lt.2 (hr.2.trans hb), ↓reduceIte])
+    rw [e, intervalIntegral.integral_zero]
+  have h1 : ∀ a b : ℝ, a ≤ b → c ≤ a → ∫ r in a..b, stepAt c r = b - a := by
+    intro a b hab ha
+    have e : ∫ r in a..b, stepAt c r = ∫ _ in a..b, (1 : ℝ) :=
+      intervalIntegral.integral_congr_ae (Eventually.of_forall fun r hr => by
+        rw [Set.uIoc_of_le hab] at hr
+        simp only [stepAt, show c < r from lt_of_le_of_lt ha hr.1, ↓reduceIte])
+    rw [e, intervalIntegral.integral_const, smul_eq_mul, mul_one]
+  rcases le_total v c with hv | hv
+  · rw [h0 u v huv hv, max_eq_right (by linarith), max_eq_right (by linarith)]
+    ring
+  · rcases le_total c u with hu | hu
+    · rw [h1 u v huv hu, max_eq_left (by linarith), max_eq_left (by linarith)]
+      ring
+    · rw [← intervalIntegral.integral_add_adjacent_intervals (b := c) (hii u c) (hii c v),
+        h0 u c hu le_rfl, h1 c v hv le_rfl, max_eq_left (by linarith), max_eq_right (by linarith)]
+      ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the hat `φ_c(x) = (x − c)⁺ − 2(x − c − 1)⁺ + (x − c − 2)⁺`,
+centred at `c + 1` with support `(c, c + 2)`. -/
+noncomputable def hat (c x : ℝ) : ℝ :=
+  max (x - c) 0 - 2 * max (x - (c + 1)) 0 + max (x - (c + 2)) 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the density of the hat. -/
+noncomputable def hatD (c r : ℝ) : ℝ := stepAt c r - 2 * stepAt (c + 1) r + stepAt (c + 2) r
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `φ_c(x) = 0` for `x ≤ c`. -/
+theorem hat_of_le {c x : ℝ} (h : x ≤ c) : hat c x = 0 := by
+  simp only [hat]
+  rw [max_eq_right (by linarith), max_eq_right (by linarith), max_eq_right (by linarith)]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `φ_c(x) = x − c` on `[c, c + 1]`. -/
+theorem hat_of_mid1 {c x : ℝ} (h1 : c ≤ x) (h2 : x ≤ c + 1) : hat c x = x - c := by
+  simp only [hat]
+  rw [max_eq_left (by linarith), max_eq_right (by linarith), max_eq_right (by linarith)]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `φ_c(x) = c + 2 − x` on `[c + 1, c + 2]`. -/
+theorem hat_of_mid2 {c x : ℝ} (h1 : c + 1 ≤ x) (h2 : x ≤ c + 2) : hat c x = c + 2 - x := by
+  simp only [hat]
+  rw [max_eq_left (by linarith), max_eq_left (by linarith), max_eq_right (by linarith)]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `φ_c(x) = 0` for `x ≥ c + 2`. -/
+theorem hat_of_ge {c x : ℝ} (h : c + 2 ≤ x) : hat c x = 0 := by
+  simp only [hat]
+  rw [max_eq_left (by linarith), max_eq_left (by linarith), max_eq_left (by linarith)]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `0 ≤ φ_c ≤ 1`. -/
+theorem hat_mem (c x : ℝ) : 0 ≤ hat c x ∧ hat c x ≤ 1 := by
+  rcases le_total x c with h | h
+  · rw [hat_of_le h]; norm_num
+  rcases le_total x (c + 1) with h' | h'
+  · rw [hat_of_mid1 h h']; constructor <;> linarith
+  rcases le_total x (c + 2) with h'' | h''
+  · rw [hat_of_mid2 h' h'']; constructor <;> linarith
+  · rw [hat_of_ge h'']; norm_num
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the hat is continuous. -/
+theorem continuous_hat (c : ℝ) : Continuous (hat c) := by
+  unfold hat
+  fun_prop
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `φ_c(v) − φ_c(u) = ∫_u^v φ_c'`. -/
+theorem hat_incr (c : ℝ) {u v : ℝ} (huv : u ≤ v) :
+    hat c v - hat c u = ∫ r in u..v, hatD c r := by
+  have hi : ∀ d, IntervalIntegrable (stepAt d) MeasureSpace.volume u v := fun d =>
+    (monotone_stepAt d).intervalIntegrable
+  simp only [hatD]
+  rw [intervalIntegral.integral_add ((hi c).sub ((hi (c + 1)).const_mul 2)) (hi (c + 2)),
+    intervalIntegral.integral_sub (hi c) ((hi (c + 1)).const_mul 2),
+    intervalIntegral.integral_const_mul, integral_stepAt c huv, integral_stepAt (c + 1) huv,
+    integral_stepAt (c + 2) huv]
+  simp only [hat]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the density is integrable. -/
+theorem intervalIntegrable_hatD (c u v : ℝ) :
+    IntervalIntegrable (hatD c) MeasureSpace.volume u v :=
+  (((monotone_stepAt c).intervalIntegrable).sub
+    (((monotone_stepAt (c + 1)).intervalIntegrable).const_mul 2)).add
+    (monotone_stepAt (c + 2)).intervalIntegrable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `|φ_c'| ≤ 4`, and `φ_c' = 0` on `(−∞, c]`. -/
+theorem abs_hatD_le (c r : ℝ) : |hatD c r| ≤ 4 ∧ (r ≤ c → hatD c r = 0) := by
+  have hs : ∀ d, |stepAt d r| ≤ 1 := fun d => by
+    simp only [stepAt]; split_ifs <;> norm_num
+  refine ⟨?_, fun h => ?_⟩
+  · simp only [hatD]
+    have := hs c; have := hs (c + 1); have := hs (c + 2)
+    rw [abs_le] at *
+    constructor <;> linarith
+  · simp only [hatD, stepAt, not_lt.2 h, not_lt.2 (h.trans (by linarith : c ≤ c + 1)),
+      not_lt.2 (h.trans (by linarith : c ≤ c + 2)), ↓reduceIte]
+    ring
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: the hats form a partition of unity on `[1, ∞)`:**
+`Σ_ω φ_ω(T) = 1` for `T ≥ 1`. -/
+theorem tsum_hat {T : ℝ} (hT : 1 ≤ T) : ∑' ω : ℕ, hat ω T = 1 := by
+  set m := ⌊T⌋₊ with hm
+  have hT0 : 0 ≤ T := by linarith
+  have hmT : (m : ℝ) ≤ T := Nat.floor_le hT0
+  have hTm : T < m + 1 := Nat.lt_floor_add_one T
+  have hm1 : 1 ≤ m := Nat.le_floor (by simpa using hT)
+  rw [tsum_eq_sum (s := {m - 1, m}) fun n hn => ?_]
+  · rw [Finset.sum_pair (by omega)]
+    have hc : ((m - 1 : ℕ) : ℝ) = (m : ℝ) - 1 := by rw [Nat.cast_sub hm1, Nat.cast_one]
+    rw [hc, hat_of_mid2 (by linarith) (by linarith), hat_of_mid1 hmT hTm.le]
+    ring
+  · simp only [Finset.mem_insert, Finset.mem_singleton, not_or] at hn
+    rcases lt_or_gt_of_ne hn.2 with h | h
+    · have h2 : n + 2 ≤ m := by omega
+      have h2' : (n : ℝ) + 2 ≤ m := by exact_mod_cast h2
+      exact hat_of_ge (by linarith)
+    · have h2 : m + 1 ≤ n := h
+      have h2' : (m : ℝ) + 1 ≤ n := by exact_mod_cast h2
+      exact hat_of_le (by linarith)
+
+/-! ## The model -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the unit process. -/
+def uiOne (_ : ℝ) (_ : ℕ) : ℝ := 1
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the zero process. -/
+def uiZero (_ : ℝ) (_ : ℕ) : ℝ := 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the weight `2^{ω+1}`. -/
+def wt (ω : ℕ) : ℝ := (2 : ℝ) ^ (ω + 1)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: bonds `B_u(ω) = 1 − 2^{ω+1}φ_ω(u)`. -/
+noncomputable def uiB (u : ℝ) (ω : ℕ) : ℝ := 1 - wt ω * hat ω u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the surplus `s = −Ḃ = 2^{ω+1}φ_ω'`. -/
+noncomputable def uiSur (u : ℝ) (ω : ℕ) : ℝ := wt ω * hatD ω u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ/P = 1`. -/
+theorem disc_ui (u : ℝ) (ω : ℕ) : disc uiOne uiOne u ω = 1 := by
+  simp [disc, uiOne]
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: the flow density is `−s`. -/
+theorem flowRate_ui (ω : ℕ) :
+    (fun r => flowRate uiB uiZero uiOne uiZero uiZero uiSur r ω) =
+      fun r => -(wt ω * hatD ω r) :=
+  funext fun r => by simp only [flowRate, uiZero, uiOne, uiSur]; ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: before the state is revealed, `B = 1`. -/
+theorem uiB_of_le {u : ℝ} (hu : u ≤ 0) (ω : ℕ) : uiB u ω = 1 := by
+  simp only [uiB, hat_of_le (hu.trans (Nat.cast_nonneg ω)), mul_zero, sub_zero]
+
+/-- **Cochrane (2023), A1 §1.6, (1.31), p. 567: the counterexample satisfies
+`TidyR7MonetarismModel.MonetaryModel`.** -/
+theorem uiModel : MonetaryModel uiMeasure uiFilt uiOne uiOne uiB uiZero uiOne uiZero uiZero
+    uiZero uiSur where
+  P_pos _ _ := one_pos
+  Λ_pos _ _ := one_pos
+  Λ_adapted _ := stronglyMeasurable_const
+  P_adapted _ := stronglyMeasurable_const
+  dec u ω := by simp [disc, uiOne, uiZero]
+  A_incr ω u v _ := by simp [uiOne, uiZero]
+  A_int ω u v := by
+    have e : (fun r => -(uiZero r ω * disc uiOne uiOne r ω)) = fun _ => (0 : ℝ) :=
+      funext fun r => by simp [uiZero]
+    rw [e]
+    exact intervalIntegrable_const
+  N_mart := martingale_const _ _ _
+  N_cadlag _ := IsCadlag.const
+  B_adapted := ui_adapted fun u hu ω => by rw [uiB_of_le hu, uiB_of_le hu]
+  M_adapted _ := stronglyMeasurable_const
+  M_cont _ := continuous_const
+  M_bv _ a b := by
+    rw [BoundedVariationOn, eVariationOn.constant_on
+      (Set.subsingleton_of_forall_eq (0 : ℝ) fun _ ⟨_, _, hy⟩ => hy.symm)]
+    exact ENNReal.zero_ne_top
+  flow ω u v huv := by
+    rw [flowRate_ui ω, intervalIntegral.integral_neg, intervalIntegral.integral_const_mul,
+      ← hat_incr _ huv]
+    simp only [addProc, uiB, uiZero]
+    ring
+  flow_int ω u v := by
+    rw [flowRate_ui ω]
+    exact ((intervalIntegrable_hatD _ u v).const_mul _).neg
+
+/-! ## Flows, transversality and the two readings of `∫_0^∞` -/
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: `F_T(ω) = 2^{ω+1}φ_ω(T)` for `T ≥ 0`. -/
+theorem ui_flow {T : ℝ} (hT : 0 ≤ T) (ω : ℕ) :
+    flow133 uiOne uiOne uiZero uiSur 0 T ω = wt ω * hat ω T := by
+  have hrs := rsInt_eq_integral_of_incr (f := fun u => disc uiOne uiOne u ω)
+    (g := fun u => uiZero u ω) (h := fun _ => (0 : ℝ))
+    (uiModel.disc_cadlag ω) (fun _ _ => intervalIntegrable_const)
+    (fun u v _ => by simp [uiZero]) hT
+  have h0 : hat ω 0 = 0 := hat_of_le (Nat.cast_nonneg ω)
+  have e : ∫ r in (0 : ℝ)..T, uiOne r ω * uiSur r ω = wt ω * (hat ω T - hat ω 0) := by
+    rw [hat_incr _ hT, ← intervalIntegral.integral_const_mul]
+    exact intervalIntegral.integral_congr fun r _ => by simp only [uiOne, uiSur]; ring
+  rw [flow133, hrs, e, h0]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `|2^{ω+1}φ_ω(u)| ≤ 2^{⌈T⌉₊}` for `u ≤ T` (`φ_ω(u) ≠ 0`
+only if `ω < u`). -/
+theorem abs_wt_hat_le {T u : ℝ} (hu : u ≤ T) (ω : ℕ) :
+    |wt ω * hat ω u| ≤ (2 : ℝ) ^ ⌈T⌉₊ := by
+  obtain ⟨h0, h1⟩ := hat_mem ω u
+  by_cases h : (ω : ℝ) < u
+  · have hω : ω < ⌈T⌉₊ := Nat.lt_ceil.2 (lt_of_lt_of_le h hu)
+    have hw : wt ω ≤ (2 : ℝ) ^ ⌈T⌉₊ := pow_le_pow_right₀ (by norm_num) hω
+    have hw0 : 0 ≤ wt ω := by unfold wt; positivity
+    rw [abs_of_nonneg (mul_nonneg hw0 h0)]
+    nlinarith
+  · rw [hat_of_le (not_lt.1 h), mul_zero, abs_zero]
+    positivity
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `F_T` and `B_T` are integrable (bounded on a probability
+space). -/
+theorem ui_integrable (T : ℝ) :
+    Integrable (fun ω => wt ω * hat ω T) uiMeasure ∧ Integrable (uiB T) uiMeasure := by
+  have h1 : Integrable (fun ω => wt ω * hat ω T) uiMeasure :=
+    Integrable.of_bound (measurable_of_countable _).aestronglyMeasurable ((2 : ℝ) ^ ⌈T⌉₊)
+      (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact abs_wt_hat_le le_rfl ω)
+  refine ⟨h1, ?_⟩
+  have e : uiB T = fun ω => 1 - wt ω * hat ω T := rfl
+  rw [e]
+  exact (integrable_const _).sub h1
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: `E_0[F_T] = Σ_ω φ_ω(T) = 1` for `T ≥ 1`.** -/
+theorem ui_EF {T : ℝ} (hT : 1 ≤ T) :
+    uiMeasure[flow133 uiOne uiOne uiZero uiSur 0 T | uiFilt 0] = fun _ => 1 := by
+  have e : flow133 uiOne uiOne uiZero uiSur 0 T = fun ω => wt ω * hat ω T :=
+    funext fun ω => ui_flow (by linarith) ω
+  rw [condExp_ui_zero, e]
+  funext _
+  exact (integral_ui_wt (fun ω => hat ω T)).trans (tsum_hat hT)
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the transversality condition holds:**
+`E_0[n_TB_T] = 1 − 1 = 0` for `T ≥ 1`. -/
+theorem ui_tvc {T : ℝ} (hT : 1 ≤ T) :
+    uiMeasure[fun ω => disc uiOne uiOne T ω * uiB T ω | uiFilt 0] = fun _ => 0 := by
+  rw [condExp_ui_zero]
+  funext _
+  have e : (fun ω => disc uiOne uiOne T ω * uiB T ω) = fun ω => 1 - wt ω * hat ω T :=
+    funext fun ω => by rw [disc_ui, one_mul]; rfl
+  have h1 : ∫ ω, wt ω * hat ω T ∂uiMeasure = 1 :=
+    (integral_ui_wt (fun ω => hat ω T)).trans (tsum_hat hT)
+  rw [e, integral_sub (integrable_const _) (ui_integrable T).1, h1]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `n_0B_0 = 1`. -/
+theorem ui_Y0 (ω : ℕ) : disc uiOne uiOne 0 ω * uiB 0 ω = 1 := by
+  rw [disc_ui, uiB_of_le le_rfl, one_mul]
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the limit form holds:**
+`E_0[F_T] → 1 = n_0B_0`. -/
+theorem ui_limit (ω : ℕ) :
+    Tendsto (fun T => uiMeasure[flow133 uiOne uiOne uiZero uiSur 0 T | uiFilt 0] ω) atTop
+      (𝓝 (disc uiOne uiOne 0 ω * uiB 0 ω)) := by
+  rw [ui_Y0]
+  refine tendsto_const_nhds.congr' ?_
+  filter_upwards [eventually_ge_atTop 1] with T hT
+  rw [ui_EF hT]
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the flows tend to `G = 0` path by path**
+(`φ_ω(T) = 0` for `T ≥ ω + 2`). -/
+theorem ui_pathwise (ω : ℕ) :
+    Tendsto (fun T => flow133 uiOne uiOne uiZero uiSur 0 T ω) atTop (𝓝 0) := by
+  refine tendsto_const_nhds.congr' ?_
+  filter_upwards [eventually_ge_atTop ((ω : ℝ) + 2)] with T hT
+  rw [ui_flow (by linarith [Nat.cast_nonneg (α := ℝ) ω]) ω, hat_of_ge hT, mul_zero]
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the literal form fails:**
+`n_0B_0 = 1` but `E_0[G] = E_0[∫_0^∞ Λs] = 0`. -/
+theorem ui_literal_fails :
+    ¬ (fun ω => disc uiOne uiOne 0 ω * uiB 0 ω) =ᵐ[uiMeasure]
+      uiMeasure[fun _ => (0 : ℝ) | uiFilt 0] := by
+  intro h
+  rw [condExp_ui_zero] at h
+  obtain ⟨ω, hω⟩ := h.exists
+  have h2 : disc uiOne uiOne 0 ω * uiB 0 ω = ∫ _, (0 : ℝ) ∂uiMeasure := hω
+  rw [ui_Y0, integral_zero] at h2
+  norm_num at h2
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `F_T ≥ 0`. -/
+theorem ui_flow_nonneg {T : ℝ} (hT : 0 ≤ T) (ω : ℕ) :
+    0 ≤ flow133 uiOne uiOne uiZero uiSur 0 T ω := by
+  rw [ui_flow hT]
+  exact mul_nonneg (by unfold wt; positivity) (hat_mem ω T).1
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: no `L¹` convergence:**
+`∫|F_T − 0| = 1` for `T ≥ 1`. -/
+theorem ui_not_L1 :
+    ¬ Tendsto (fun T => ∫ ω, |flow133 uiOne uiOne uiZero uiSur 0 T ω - 0| ∂uiMeasure) atTop
+      (𝓝 0) := by
+  intro h
+  have e : ∀ T : ℝ, 1 ≤ T →
+      ∫ ω, |flow133 uiOne uiOne uiZero uiSur 0 T ω - 0| ∂uiMeasure = 1 := by
+    intro T hT
+    have h1 := congrFun (ui_EF hT) 0
+    rw [condExp_ui_zero] at h1
+    rw [← h1]
+    refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
+    simp only [sub_zero]
+    exact abs_of_nonneg (ui_flow_nonneg (by linarith) ω)
+  have h1 : Tendsto (fun T => ∫ ω, |flow133 uiOne uiOne uiZero uiSur 0 T ω - 0| ∂uiMeasure)
+      atTop (𝓝 1) := tendsto_const_nhds.congr' (by
+        filter_upwards [eventually_ge_atTop 1] with T hT
+        rw [e T hT])
+  exact one_ne_zero (tendsto_nhds_unique h1 h)
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: the product-step domination holds on every `[0, T]`**
+(`|B| ≤ 1 + 2^{⌈T⌉₊}`, `Var(B) ≤ ∫_0^T |s| ≤ 4·2^{⌈T⌉₊}T`, `Λ/P = 1`, `A = 1`). -/
+theorem ui_dom {T : ℝ} (hT : 0 ≤ T) :
+    Dominated uiMeasure uiOne uiZero 0 T uiB (disc uiOne uiOne) := by
+  set K : ℝ := 1 + 4 * (2 : ℝ) ^ ⌈T⌉₊ * (T + 1) with hK
+  have hpow : 0 ≤ (2 : ℝ) ^ ⌈T⌉₊ := by positivity
+  have hK0 : 0 ≤ K := by positivity
+  refine Dominated.of_bound (K := K) hK0 (fun _ => measurable_of_countable _)
+    (fun _ => measurable_of_countable _) (fun _ => measurable_of_countable _)
+    (fun ω => ?_) (fun _ => IsCadlag.const) (fun _ => integrable_zero _ _ _)
+    (fun ω u _ => ?_) (fun ω u hu => ?_) (fun ω => ?_) (fun ω => ?_)
+  · exact continuous_const.sub (continuous_const.mul (continuous_hat _))
+  · rw [disc_ui, abs_one]
+    nlinarith
+  · have := abs_wt_hat_le hu.2 ω
+    have e : uiB u ω = 1 - wt ω * hat ω u := rfl
+    rw [e]
+    calc |1 - wt ω * hat ω u| ≤ |(1 : ℝ)| + |wt ω * hat ω u| := abs_sub _ _
+      _ ≤ K := by rw [abs_one]; nlinarith
+  · -- the variation is at most `∫_0^T |s|`
+    have hprim : ∀ x ∈ Set.Icc (0 : ℝ) T,
+        uiB x ω = uiB 0 ω + ∫ y in (0 : ℝ)..x, -(wt ω * hatD ω y) := by
+      intro x hx
+      have := uiModel.flow ω 0 x hx.1
+      rw [flowRate_ui ω] at this
+      simp only [addProc, uiZero, add_zero] at this
+      linarith
+    have hv := eVariationOn_le_integral hT (((intervalIntegrable_hatD _ 0 T).const_mul _).neg)
+      hprim
+    simp only [Pi.neg_apply] at hv
+    have hbound : ∫ y in (0 : ℝ)..T, |-(wt ω * hatD ω y)| ≤ 4 * (2 : ℝ) ^ ⌈T⌉₊ * T := by
+      have hle : ∀ y ∈ Set.Icc (0 : ℝ) T, |-(wt ω * hatD ω y)| ≤ 4 * (2 : ℝ) ^ ⌈T⌉₊ := by
+        intro y hy
+        rw [abs_neg, abs_mul]
+        obtain ⟨h4, h0⟩ := abs_hatD_le ω y
+        have hw0 : 0 ≤ wt ω := by unfold wt; positivity
+        by_cases h : (ω : ℝ) < y
+        · have hω : ω < ⌈T⌉₊ := Nat.lt_ceil.2 (lt_of_lt_of_le h hy.2)
+          have hw : wt ω ≤ (2 : ℝ) ^ ⌈T⌉₊ := pow_le_pow_right₀ (by norm_num) hω
+          rw [abs_of_nonneg hw0]
+          nlinarith [abs_nonneg (hatD ω y)]
+        · rw [h0 (not_lt.1 h), abs_zero, mul_zero]
+          positivity
+      have hm := intervalIntegral.integral_mono_on hT
+        (((intervalIntegrable_hatD _ 0 T).const_mul _).neg.abs) intervalIntegrable_const hle
+      rw [intervalIntegral.integral_const, smul_eq_mul] at hm
+      simp only [Pi.neg_apply] at hm
+      linarith
+    have hint0 : 0 ≤ ∫ y in (0 : ℝ)..T, |-(wt ω * hatD ω y)| :=
+      intervalIntegral.integral_nonneg hT fun _ _ => abs_nonneg _
+    have := ENNReal.toReal_mono ENNReal.ofReal_ne_top hv
+    rw [ENNReal.toReal_ofReal hint0] at this
+    change (eVariationOn (fun u => uiB u ω) (Set.Icc 0 T)).toReal ≤ K
+    nlinarith
+  · have hc : eVariationOn (fun u => uiOne u ω) (Set.Icc 0 T) = 0 :=
+      eVariationOn.constant_on (Set.subsingleton_of_forall_eq (1 : ℝ) fun _ ⟨_, _, hy⟩ => hy.symm)
+    change (eVariationOn (fun u => uiOne u ω) (Set.Icc 0 T)).toReal ≤ K
+    rw [hc, ENNReal.toReal_zero]
+    exact hK0
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: no integrable `H` dominates the flows.** Every
+hypothesis of `TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_dom` other than the
+domination `|F_{T_k}| ≤ H` holds along `T_k = k + 1` (with `G = 0`), and so does the
+transversality condition; if some integrable `H` dominated the flows,
+`MonetaryModel.valuation_1_33_dom` would
+give `n_0B_0 = E_0[G] = 0`, contradicting `n_0B_0 = 1`. -/
+theorem ui_not_dominated : ¬ ∃ H : ℕ → ℝ, Integrable H uiMeasure ∧
+    ∀ (k : ℕ) ω, |flow133 uiOne uiOne uiZero uiSur 0 ((k : ℝ) + 1) ω| ≤ H ω := by
+  rintro ⟨H, hH, hbd⟩
+  have hk : ∀ k : ℕ, (1 : ℝ) ≤ (k : ℝ) + 1 := fun k => by
+    have := Nat.cast_nonneg (α := ℝ) k
+    linarith
+  have hseq : Tendsto (fun k : ℕ => (k : ℝ) + 1) atTop atTop :=
+    tendsto_atTop_add_const_right _ _ tendsto_natCast_atTop_atTop
+  have h := MonetaryModel.valuation_1_33_dom uiModel (fun _ _ => rfl) (s := 0)
+    (fun T hT => ui_dom hT) (fun T _ => by
+      have e : (fun ω => disc uiOne uiOne T ω * uiB T ω) = uiB T :=
+        funext fun ω => by rw [disc_ui, one_mul]
+      rw [e]; exact (ui_integrable T).2)
+    (T := fun k : ℕ => (k : ℝ) + 1) (fun k => by linarith [hk k]) (G := fun _ => 0) hH hbd
+    (fun ω => (ui_pathwise ω).comp hseq)
+  refine ui_literal_fails (h.2 (Eventually.of_forall fun ω => ?_))
+  refine tendsto_const_nhds.congr fun k => ?_
+  rw [ui_tvc (hk k)]
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the domination (or `L¹`) hypothesis is needed for
+the literal `n_sB_s = E_s[∫_s^∞ Λs dr + ∫_s^∞ n dM]`.** In `uiModel` at `s = 0`: the
+transversality condition holds; the limit form `lim E_0[F_T] = n_0B_0` holds; the flows converge
+path by path to `G = 0`; yet `n_0B_0 ≠ E_0[G]`; the flows are neither dominated nor `L¹`
+convergent; and the product-step domination holds on every `[0, T]`. -/
+theorem ui_headline :
+    (∀ T : ℝ, 1 ≤ T →
+      uiMeasure[fun ω => disc uiOne uiOne T ω * uiB T ω | uiFilt 0] = fun _ => 0) ∧
+      (∀ ω, Tendsto (fun T => uiMeasure[flow133 uiOne uiOne uiZero uiSur 0 T | uiFilt 0] ω)
+        atTop (𝓝 (disc uiOne uiOne 0 ω * uiB 0 ω))) ∧
+      (∀ ω, Tendsto (fun T => flow133 uiOne uiOne uiZero uiSur 0 T ω) atTop (𝓝 0)) ∧
+      ¬ (fun ω => disc uiOne uiOne 0 ω * uiB 0 ω) =ᵐ[uiMeasure]
+        uiMeasure[fun _ => (0 : ℝ) | uiFilt 0] ∧
+      (¬ ∃ H : ℕ → ℝ, Integrable H uiMeasure ∧
+        ∀ (k : ℕ) ω, |flow133 uiOne uiOne uiZero uiSur 0 ((k : ℝ) + 1) ω| ≤ H ω) ∧
+      ¬ Tendsto (fun T => ∫ ω, |flow133 uiOne uiOne uiZero uiSur 0 T ω - 0| ∂uiMeasure) atTop
+        (𝓝 0) ∧
+      ∀ T : ℝ, 0 ≤ T → Dominated uiMeasure uiOne uiZero 0 T uiB (disc uiOne uiOne) :=
+  ⟨fun _ hT => ui_tvc hT, ui_limit, ui_pathwise, ui_literal_fails, ui_not_dominated, ui_not_L1,
+    fun _ hT => ui_dom hT⟩
+
+end Cochrane.Monetarism.TidyR7MonetarismUI
+
 set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.SchurStable
 #print axioms Cochrane.Monetarism.discQ
@@ -42859,3 +46055,226 @@ set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.TidyR7ProductStepCoin.not_adapted_coinBAnt
 #print axioms Cochrane.Monetarism.TidyR7ProductStepCoin.coin_anticipating_fails
 #print axioms Cochrane.Monetarism.TidyR7ProductStepCoin.coin_anticipating_sumBM
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.eVariationOn_le_integral
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.bv_of_primitive
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.continuousOn_of_primitive
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.rsInt_eq_integral_of_primitive
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.primitive_of_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.continuous_of_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.bv_of_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismAC.rsInt_eq_integral_of_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.disc
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.flowRate
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.IncrOf
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.LocInt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.mk
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.P_pos
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.Λ_pos
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.Λ_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.P_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.dec
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.A_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.A_int
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.N_mart
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.N_cadlag
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.B_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.M_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.M_cont
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.M_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.flow
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.flow_int
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.Dominated
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.Dominated.mk
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.Dominated.sup_var
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.Dominated.sup_varA
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.Dominated.mart_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.Dominated.of_bound
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.eVariationOn_neg
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.bv_add_neg
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.intervalIntegrable_mul_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.disc_eq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.disc_mul_P
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.A_cont
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.A_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.W_cont
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.W_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.B_eq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.B_cont
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.B_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.disc_cadlag
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.disc_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.measurable_disc
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.measurable_A
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.W_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.productStepData_B
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.productStepData_W
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.rsInt_B_A
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.pathwise_1_32
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.pathwise_1_34
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.intervalIntegrable_1_32
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.incr_1_32_general
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.incr_1_32
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.expIncr_disc
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.middle_1_32
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.incr_1_34
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.hasDrift_1_34
+#print axioms Cochrane.Monetarism.TidyR7MonetarismModel.MonetaryModel.hasDrift_1_32_ac
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.rec_of_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.valuation_iff_tvc_flow
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.valuation_iff_tvc_seq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.valuation_iff_tvc_dom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.flow133
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.flow134
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.flow133_div
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.flow134_div
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.real_form
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.flow133_eq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.flow134_eq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.measurable_flow133
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.measurable_flow134
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.rec_1_33
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_seq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.valuation_1_33
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_dom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_book
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.integrable_flow134
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.valuation_1_34
+#print axioms Cochrane.Monetarism.TidyR7MonetarismValuation.MonetaryModel.valuation_1_34_book
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.stepG
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.monotone_stepG
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.intervalIntegrable_stepG
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.integral_stepG
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.heaviside_mul_stepG
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coin_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.bv_ramp
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.continuous_ramp
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinLam
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinP
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinA1
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinN
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinMon
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinSur
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.zeroRate
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.disc_coin
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.flowRate_coin
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinN_ne_zero
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coinDom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coin_flow133
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coin_lhs_1_32
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coin_rhs_1_32
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coin_1_32
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coin_pathwise_fails
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.coin_1_33_finite
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.oneProc
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.impB
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.impSur
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.disc_one
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.flowRate_imp
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.impModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.impDom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.imp_flow133
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.imp_tvc
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.imp_limit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.integral_abs_ge
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.imp_no_L1_limit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.imp_no_pathwise_limit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.imp_headline
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoin.imp_seq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.disc_mul
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.c1Model
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.flow133_C1
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.incr_1_32_C1
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.valuation_1_33_C1
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.unitFilt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.condExp_unit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.ae_unit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.integral_unit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.money_printing_recovered
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.money_interest_recovered
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.grid_1_32_eq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.tendsto_per_unit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.grid_1_32_rate
+#print axioms Cochrane.Monetarism.TidyR7MonetarismLinks.grid_1_34_rate
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.hasDerivAt_expNeg
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.continuous_expNeg
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.integral_expNeg
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.expNeg_le_one
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infLam
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infA
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infN
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infI
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infB
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infSur
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.abs_infN_le
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infLam_pos
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infI_pos
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.disc_inf
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infI_mul
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.rate_inf
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.flowRate_inf
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infN_ne_zero
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infDom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infDomW
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.integral_heaviside_expNeg
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_flow133
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.infG
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_tendsto
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.abs_inf_flow133_le
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_tvc_eq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.tendsto_tvc_inf
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_EG
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_Y0
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_1_33
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_1_33_book
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_flow134
+#print axioms Cochrane.Monetarism.TidyR7MonetarismCoinInf.inf_1_34_book
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.half
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiMeasure
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.half_ne_zero
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiFilt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiFilt_zero
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiFilt_pos
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.condExp_ui_zero
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.integral_ui_wt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.stepAt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.monotone_stepAt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.integral_stepAt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hat
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hatD
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hat_of_le
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hat_of_mid1
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hat_of_mid2
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hat_of_ge
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hat_mem
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.continuous_hat
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.hat_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.intervalIntegrable_hatD
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.abs_hatD_le
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.tsum_hat
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiOne
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiZero
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.wt
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiB
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiSur
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.disc_ui
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.flowRate_ui
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiB_of_le
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.uiModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_flow
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.abs_wt_hat_le
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_integrable
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_EF
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_tvc
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_Y0
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_limit
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_pathwise
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_literal_fails
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_flow_nonneg
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_not_L1
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_dom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_not_dominated
+#print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_headline

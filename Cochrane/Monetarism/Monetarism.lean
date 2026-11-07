@@ -64,3 +64,10 @@ import Monetarism.TidyR7CondDominated
 import Monetarism.TidyR7ProductStep
 import Monetarism.TidyR7ProductStepCases
 import Monetarism.TidyR7ProductStepCoin
+import Monetarism.TidyR7MonetarismAC
+import Monetarism.TidyR7MonetarismModel
+import Monetarism.TidyR7MonetarismValuation
+import Monetarism.TidyR7MonetarismCoin
+import Monetarism.TidyR7MonetarismLinks
+import Monetarism.TidyR7MonetarismCoinInf
+import Monetarism.TidyR7MonetarismUI

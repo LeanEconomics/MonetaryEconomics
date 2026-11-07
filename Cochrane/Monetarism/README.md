@@ -14,15 +14,18 @@ operator, so they cover perfect foresight and genuine uncertainty. The nonlinear
 are perfect-foresight, as in the book. The household first-order conditions are derived by
 optimisation, under perfect foresight, on a finite event tree and on a genuine probability space
 whose information grows forever, there without bounds on prices or plans. Continuous time is
-deterministic, except the `E_td(·)` forms and the product step of Online Appendix §1.6
-(`TidyR6StochasticDrift`, `TidyR7ProductStep`). The library contains **1636 theorems**, including the shared core; 578 of them are in the fourteen
+deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
+Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
+`TidyR7MonetarismValuation`). The library contains **1801 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
 Woodford's convexity, Taylor-rule and Obstfeld–Rogoff sections, 54 on active fiscal policy under
 uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, 110 in the four
 `TidyR7Stieltjes…` modules, deterministic Riemann–Stieltjes tools for the product step of (1.32),
-and 84 in the four further `TidyR7…` modules that prove that product step.
+84 in the four `TidyR7CondDominated`/`TidyR7ProductStep…` modules that prove that product step,
+and 165 in the seven `TidyR7Monetarism…` modules that prove the chain (1.31) → (1.32) →
+(1.33)–(1.34) under uncertainty.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -175,6 +178,10 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   continuous time, with `E_tdX = a dt` defined as the martingale property of `X − ∫a`, valuation
   holds iff the transversality condition does (`TidyR6StochasticDrift.valuation_iff_tvc`), and
   (1.32) holds for finite-variation discount factors (`TidyR6StochasticDrift.drift_1_32_fv`).
+  The whole chain (1.31) → (1.32) → (1.33)–(1.34) is also proved under uncertainty with `Λ/P` a
+  finite-variation part plus a càdlàg martingale (news, jumps allowed), adapted bonds and money
+  with continuous bounded-variation paths and a general `i^m` (see the bullet on the §1.6 chain
+  below).
 * **Pathwise Riemann–Stieltjes tools for the §1.6 product step.** The integral `∫_a^b f dg` is
   the integral against Mathlib's Lebesgue–Stieltjes measure of `g` frozen outside `[a, b]`
   (`TidyR7StieltjesIntegral.rsInt`), with total mass `g(b) − g(a)` and the jumps of `g` as atoms
@@ -205,6 +212,29 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   and a nonzero martingale part both sides are computed, `1 = 1 + 0`
   (`TidyR7ProductStepCoin.coin_headline`), and adaptedness of `B` cannot be dropped
   (`TidyR7ProductStepCoin.coin_anticipating_fails`).
+* **The §1.6 chain (1.31) → (1.32) → (1.33)–(1.34) under uncertainty.** In
+  `TidyR7MonetarismModel.MonetaryModel`, `Λ, P > 0` are adapted, `Λ/P = A + N` with `N` a càdlàg
+  martingale and `dA = −i(Λ/P) dt`, bonds and money are adapted, money has continuous
+  bounded-variation paths, and the flow (1.31) holds path by path. Then (1.32) holds integrated,
+  `E_s[n_tB_t − n_sB_s] = −E_s[∫_s^t Λs dr + ∫_s^t n dM]` with `n = Λ/P`
+  (`TidyR7MonetarismModel.MonetaryModel.incr_1_32`), with interest on money
+  (`TidyR7MonetarismModel.MonetaryModel.incr_1_32_general`), and so does the line before (1.34),
+  `E_t d(Λ(M + B)/P) = −Λ(s + (i − i^m)M/P) dt` (`TidyR7MonetarismModel.MonetaryModel.incr_1_34`).
+  Integrating to infinity, valuation holds iff the transversality condition does: in the limit
+  form `lim_k E_s∫_s^{T_k} = n_sB_s`, with no convergence hypothesis
+  (`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_seq`), and in the printed forms
+  `B_s/P_s = E_s∫_s^∞ (Λ_τ/Λ_s)(s_τ dτ + dM_τ/P_τ)` and
+  `(M_s + B_s)/P_s = E_s∫_s^∞ (Λ_τ/Λ_s)(s_τ + (i_τ − i^m_τ)M_τ/P_τ) dτ` when the flows converge
+  dominatedly (`TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_book`,
+  `TidyR7MonetarismValuation.MonetaryModel.valuation_1_34_book`). On a fair coin with news in
+  `Λ/P` and random bonds, money and surplus both sides of (1.32) are `1/2`
+  (`TidyR7MonetarismCoin.coin_1_32`); on `[0, ∞)` with news and a positive rate (1.33) and (1.34)
+  hold as printed (`TidyR7MonetarismCoinInf.inf_1_33_book`). The printed `E_t∫_t^∞` can be
+  undefined while the limit form holds (`TidyR7MonetarismCoin.imp_headline`), and even when the
+  pathwise limit exists the literal equation can fail without domination or `L¹` convergence
+  (`TidyR7MonetarismUI.ui_headline`). The `C¹`, deterministic and `Δ`-grid forms are recovered
+  (`TidyR7MonetarismLinks.incr_1_32_C1`, `TidyR7MonetarismLinks.money_printing_recovered`,
+  `TidyR7MonetarismLinks.grid_1_32_rate`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -360,7 +390,11 @@ Not formalised:
   a counterexample with a shared jump is not yet formalised. The domination and integrability
   conditions of `TidyR7ProductStep.ProductStepData` are sufficient; their necessity is not
   proved (only adaptedness of `B` is shown necessary,
-  `TidyR7ProductStepCoin.coin_anticipating_fails`);
+  `TidyR7ProductStepCoin.coin_anticipating_fails`). The chain (1.31)–(1.34) built on it
+  (`TidyR7MonetarismModel`, `TidyR7MonetarismValuation`) inherits these limits;
+* (1.34) on `[0, ∞)` with nonzero money. The infinite-horizon instance of the printed (1.33) and
+  (1.34) has zero money (`TidyR7MonetarismCoinInf.inf_1_34_book`): in that model with constant
+  nonzero money the money transversality condition fails, because `i → 0`;
 * under active fiscal policy, the literal "there is exactly one equilibrium iff the surplus is
   coordinated with money": coordination is proved equivalent to the unique equilibrium being the
   standard one (`TidyR6ActiveFiscalExist.std_existsUnique_iff`), but a unique non-standard
@@ -435,6 +469,13 @@ Not formalised:
 | [TidyR7ProductStep](Monetarism/TidyR7ProductStep.lean) | 35 | A1 §1.6, (1.32), p. 567: the product step in expectation form for adapted continuous bounded-variation `B` and `Λ/P` = bounded-variation part + martingale; the pathwise and discrete identities, limits along any partitions, the expected-increment integral `B·E_s d(Λ/P)`, the book's notation |
 | [TidyR7ProductStepCases](Monetarism/TidyR7ProductStepCases.lean) | 11 | A1 §1.6, (1.32), pp. 567–568: deterministic bonds; `Λ/P` of bounded variation and integration by parts; `C¹` integrators; the `C¹` case `E_t d(Λ/P) = −i(Λ/P)dt` and the link with `TidyR6StochasticDrift.drift_1_32_fv` |
 | [TidyR7ProductStepCoin](Monetarism/TidyR7ProductStepCoin.lean) | 24 | A1 §1.6, (1.32), p. 567: non-vacuity on a fair coin revealed at time 1 (random bonds, nonzero martingale part, `1 = 1 + 0`); adaptedness of `B` cannot be dropped |
+| [TidyR7MonetarismAC](Monetarism/TidyR7MonetarismAC.lean) | 8 | A1 §1.6, p. 567 (tool for (1.31)–(1.32)): primitives of locally integrable densities are continuous of bounded variation; `∫_a^b f dg = ∫_a^b f h` for càdlàg `f` and `g` with density `h` |
+| [TidyR7MonetarismModel](Monetarism/TidyR7MonetarismModel.lean) | 31 | A1 §1.6, (1.31)–(1.34), pp. 567–568: the model under uncertainty (`Λ/P` = finite-variation part + càdlàg martingale, the flow (1.31) path by path); (1.32) integrated, with general `i^m`, its middle line and the line before (1.34); the `HasDrift` instances; the domination conditions |
+| [TidyR7MonetarismValuation](Monetarism/TidyR7MonetarismValuation.lean) | 19 | A1 §1.6, (1.33)–(1.34), p. 567: the finite-horizon budget; valuation iff transversality in limit form (no convergence hypothesis), `L¹` form and dominated form; (1.33) and (1.34) as printed |
+| [TidyR7MonetarismCoin](Monetarism/TidyR7MonetarismCoin.lean) | 30 | A1 §1.6, (1.31)–(1.33), p. 567: non-vacuity on a fair coin with news in `Λ/P` (both sides of (1.32) are `1/2`; the expectation is needed; the finite-horizon (1.33)); the printed `E_t∫_t^∞` can be undefined while the limit form holds |
+| [TidyR7MonetarismLinks](Monetarism/TidyR7MonetarismLinks.lean) | 14 | A1 §1.6, (1.32)–(1.34), p. 567: the `C¹` case, the deterministic `ContinuousTime` forms and the `Δ`-grid recovered from the stochastic chain |
+| [TidyR7MonetarismCoinInf](Monetarism/TidyR7MonetarismCoinInf.lean) | 27 | A1 §1.6, (1.33)–(1.34), p. 567: non-vacuity on `[0, ∞)` with news in `Λ/P` and a positive nominal rate (zero money): the `L¹` form and the printed (1.33) and (1.34) |
+| [TidyR7MonetarismUI](Monetarism/TidyR7MonetarismUI.lean) | 36 | A1 §1.6, (1.33), p. 567: the domination (or `L¹`) hypothesis of the printed `E_t∫_t^∞` cannot be dropped: transversality and the limit form hold, the pathwise limit exists, the literal equation fails |
 
 ## Modelling conventions
 

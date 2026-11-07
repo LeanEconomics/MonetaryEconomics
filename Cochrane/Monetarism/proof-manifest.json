@@ -61,7 +61,14 @@
     "Monetarism/TidyR7CondDominated.lean",
     "Monetarism/TidyR7ProductStep.lean",
     "Monetarism/TidyR7ProductStepCases.lean",
-    "Monetarism/TidyR7ProductStepCoin.lean"
+    "Monetarism/TidyR7ProductStepCoin.lean",
+    "Monetarism/TidyR7MonetarismAC.lean",
+    "Monetarism/TidyR7MonetarismModel.lean",
+    "Monetarism/TidyR7MonetarismValuation.lean",
+    "Monetarism/TidyR7MonetarismCoin.lean",
+    "Monetarism/TidyR7MonetarismLinks.lean",
+    "Monetarism/TidyR7MonetarismCoinInf.lean",
+    "Monetarism/TidyR7MonetarismUI.lean"
   ],
   "theorem_counts": {
     "Monetarism/Determinacy.lean": 23,
@@ -124,7 +131,14 @@
     "Monetarism/TidyR7CondDominated.lean": 14,
     "Monetarism/TidyR7ProductStep.lean": 35,
     "Monetarism/TidyR7ProductStepCases.lean": 11,
-    "Monetarism/TidyR7ProductStepCoin.lean": 24
+    "Monetarism/TidyR7ProductStepCoin.lean": 24,
+    "Monetarism/TidyR7MonetarismAC.lean": 8,
+    "Monetarism/TidyR7MonetarismModel.lean": 31,
+    "Monetarism/TidyR7MonetarismValuation.lean": 19,
+    "Monetarism/TidyR7MonetarismCoin.lean": 30,
+    "Monetarism/TidyR7MonetarismLinks.lean": 14,
+    "Monetarism/TidyR7MonetarismCoinInf.lean": 27,
+    "Monetarism/TidyR7MonetarismUI.lean": 36
   },
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 19 (with Chapter 11 and 14 claims and Online Appendix A1.6, A3 and A4): Monetarism. Monetary and fiscal regimes, NI-7 observational equivalence and double-passive indeterminacy; open-market-operation claims of Chapter 11 and the helicopter arithmetic; Cagan money demand under rational expectations with the full solution family, sunspots and fiscal selection of the price level; money in the utility function with FOCs derived from optimisation under perfect foresight and on a finite event tree, the value of money, power utility and certified Figure 19.1 numbers (E13: 1 + mu > beta); global money-targeting dynamics; unpleasant arithmetic; seigniorage, the Laffer peak (E16) and Baumol-Tobin elasticities; pruning deflations (E17: TVC fails iff mu >= 0) and inflations (finite-time explosion, countably many equilibria, modified utility); Obstfeld-Rogoff redemption and Cochrane's demonetised equilibrium (E18 caption corrected); nonseparable utility (E19: stable iff b > 1 + i/2); cash in advance with the stochastic Euler equation derived from optimality ((19.29) needs the money TVC, (19.38) corrected, E14, E15); continuous-time money with CES limits (E20) and the IS curve with money (E21). Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 19, pp. 433-464, Chapter 11, pp. 315-318, Section 14.1, p. 342, and Online Appendix A1.6, A3.1-A3.2 and A4, pp. 567-569, 612-632 and 635-641."
