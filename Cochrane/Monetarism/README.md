@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`). The library contains **2127 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`). The library contains **2255 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -26,10 +26,10 @@ uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, 11
 28 in `TidyR7JumpSums`, the same tools for jumping integrators, 154 in the six
 `TidyR7CondDominated`/`TidyR7ProductStep…` modules that prove that product step, for continuous
 and for jumping bonds, 220 in the nine `TidyR7Monetarism…` modules that prove the chain
-(1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous and with jumping money, and
+(1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous and with jumping money,
 173 in the six `TidyR7Brownian…` modules, a Brownian motion on `[0, ∞)`, its martingale tools,
 its quadratic variation and the infinite variation of its paths, 66 of them copied from the
-Meyn–Tweedie project.
+Meyn–Tweedie project, and 128 in the five `TidyR7Ito…` modules, the Itô integral `∫ H dW`.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -287,7 +287,24 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   bounded-variation product step provably cannot take a Brownian bond
   (`TidyR7BrownianVariation.not_productStepData_bm`); against a bond with continuous
   bounded-variation paths the cross sum vanishes, `dW·dB = 0`
-  (`TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv`). The stochastic integral is not yet built.
+  (`TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv`).
+* **The Itô integral `∫ H dW`.** For a pre-Brownian `W`, any admissible filtration and an
+  integrand that is adapted, bounded and almost surely continuous on `[s, t]`
+  (`TidyR7ItoIntegral.ItoIntegrand`), the left-point sums `Σ H_{t_i}ΔW_i` converge in mean square
+  along any partitions with mesh `→ 0` (`TidyR7ItoIntegral.L2Tendsto_itoSum`) to an adapted
+  limit `TidyR7ItoIntegral.itoInt`, built without completing the filtration
+  (`TidyR7ItoL2.exists_L2Tendsto`). It satisfies the Itô isometry
+  `E[(∫_s^t H dW)²] = E[∫_s^t H_u² du]` (`TidyR7ItoIntegral.integral_itoInt_sq`), is linear
+  (`TidyR7ItoIntegral.itoInt_add`, `TidyR7ItoIntegral.itoInt_const_mul`), is a martingale in `t`
+  (`TidyR7ItoIntegral.martingale_itoInt`) with the conditional isometry
+  (`TidyR7ItoIntegral.condExp_itoInt_sq`), and has a modification with almost surely continuous
+  paths on `[s, T]` (`TidyR7ItoContinuity.exists_continuous_modification`, via Kolmogorov's
+  maximal inequality `TidyR7ItoContinuity.kolmogorov_maximal`). For integrands of bounded
+  variation it is Track 1's pathwise integral by parts, `∫ H dW = H_tW_t − H_sW_s − ∫ W dH`
+  (`TidyR7ItoBridge.itoInt_eq_byParts`), and the Itô correction holds:
+  `∫_s^t W dW = (W_t² − W_s² − (t − s))/2` (`TidyR7ItoBridge.itoInt_bm`); on the constructed
+  motion `∫_0^1 W dW = (W_1² − 1)/2` (`TidyR7ItoBridge.itoInt_bmPath`), not the Stratonovich value
+  `W_1²/2` (`TidyR7ItoBridge.not_itoInt_bmPath_eq_stratonovich`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -442,10 +459,20 @@ Not formalised:
   conditionally, `TidyR7BrownianQV`); its paths have infinite variation almost surely, so the
   bounded-variation product step provably excludes diffusive bonds
   (`TidyR7BrownianVariation.not_productStepData_bm`), and its bracket with bonds of continuous
-  bounded-variation paths is `0` (`TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv`). The
-  stochastic integral itself is still missing; the cross variation of two Brownian motions and
-  the continuous-time Doob maximal inequality (needed for a product-step instance with
-  `M = W`) are not proved; no measurable modification of an arbitrary `IsBrownianReal` and no
+  bounded-variation paths is `0` (`TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv`). The Itô
+  integral of bounded adapted almost surely continuous integrands exists
+  (`TidyR7ItoIntegral.L2Tendsto_itoSum`), with the isometry, linearity, the martingale property,
+  the conditional isometry and a continuous modification; it agrees with Track 1 for
+  bounded-variation integrands (`TidyR7ItoBridge.itoInt_eq_byParts`), and
+  `∫ W dW = (W_t² − W_s² − (t − s))/2` (`TidyR7ItoBridge.itoInt_bm`). Not proved for it: the
+  isometry in the Fubini form `∫_s^t E[H_u²] du` for general `H`; `∫ cH dW = c∫ H dW` for a
+  random `𝓕_s`-measurable `c` (only for constants); adaptedness of the continuous
+  modification, which is built for one fixed `T`, with no single version on `[s, ∞)`; unbounded
+  integrands (except `∫ W dW`). What still remains for (1.32) with diffusive bonds is the
+  product rule and covariation of Itô integrals and the general product step. The cross
+  variation of two Brownian motions is not proved, and only Kolmogorov's maximal inequality on
+  finite grids is proved (enough for continuity), with no Doob bound for `sup_{[s,T]} |∫ H dW|`
+  (needed for a product-step instance with `M = W`); no measurable modification of an arbitrary `IsBrownianReal` and no
   usual augmentation of its filtration are proved. Adapted bonds of bounded variation are covered, with
   continuous paths (`TidyR7ProductStep.ProductStepData.product_step`) and with càdlàg paths that
   jump together with `Λ/P` (`TidyR7ProductStepJump.JumpStepData.jump_step`). The domination and
@@ -551,6 +578,11 @@ Not formalised:
 | [TidyR7BrownianTools](Monetarism/TidyR7BrownianTools.lean) | 25 | A1 §1.6, pp. 567–568 (tool): for any pre-Brownian motion, the second and fourth moments of increments, the natural filtration, increments independent of the past, `W` and `W t² − t` martingales; the bridge to the index `ℝ` |
 | [TidyR7BrownianQV](Monetarism/TidyR7BrownianQV.lean) | 48 | A1 §1.6, pp. 567–568 (tool for (1.32) with diffusive bonds): the quadratic variation of a pre-Brownian motion along partitions: `E(ΔW)² = Δt`, `Var((ΔW)²) = 2Δt²`, admissible filtrations, `(ΔW)² − Δt` orthogonal to the past, the exact identity `E[(Σ(ΔW_i)² − (t − s))²] = 2Σ(Δt_i)²` and its weighted and conditional forms, `Σ(ΔW_i)² → t − s` in `L²`, in probability and almost surely along dyadic partitions, the weighted rule `(dW)² = dt` in `L²` |
 | [TidyR7BrownianVariation](Monetarism/TidyR7BrownianVariation.lean) | 17 | A1 §1.6, (1.32), pp. 567–568: almost surely Brownian paths have infinite variation on every interval; no bounded-variation product-step data has a Brownian bond; `dW·dB = 0` for continuous bounded-variation `B` and `dW·dt = 0`; non-vacuity on the constructed motion |
+| [TidyR7ItoL2](Monetarism/TidyR7ItoL2.lean) | 20 | A1 §1.6, pp. 567–568 (tool for the Itô integral): mean-square convergence, completeness of `L²` with an adapted limit, uniqueness and linearity of limits, an `L²` and an a.s. limit agree, Cauchy–Schwarz, `E[GX_k] → E[GY]` and `E[GX_k²] → E[GY²]`, Riemann sums, mean-square uniform continuity of a.s. continuous bounded processes |
+| [TidyR7ItoSums](Monetarism/TidyR7ItoSums.lean) | 44 | A1 §1.6, pp. 567–568 (tool for the Itô integral): increments orthogonal to the past, elementary integrals and their weighted `L²` identity, left-point sums, the discrete Itô isometry and its conditional form, `E[I_p(H) \| 𝓕_s] = 0`, the common refinement and the Cauchy estimate, concatenation |
+| [TidyR7ItoIntegral](Monetarism/TidyR7ItoIntegral.lean) | 32 | A1 §1.6, pp. 567–568 (the stochastic integral for (1.32) with diffusive bonds): admissible integrands, the Itô integral as an adapted mean-square limit along any partitions, the Itô isometry, linearity, additivity over intervals, the martingale property and the conditional isometry |
+| [TidyR7ItoBridge](Monetarism/TidyR7ItoBridge.lean) | 16 | A1 §1.6, (1.32), pp. 567–568: for bounded-variation integrands the Itô integral is Track 1's integral by parts, `dH·dW = 0`, Wiener integrals and their isometry; `∫_s^t W dW = (W_t² − W_s² − (t − s))/2`, not the Stratonovich value, and its isometry on the constructed motion |
+| [TidyR7ItoContinuity](Monetarism/TidyR7ItoContinuity.lean) | 16 | A1 §1.6, pp. 567–568: Kolmogorov's maximal inequality, stopped left-point sums and restricted partitions, a modification of `t ↦ ∫_s^t H dW` with a.s. continuous paths on `[s, T]` |
 
 ## Modelling conventions
 

@@ -82,3 +82,8 @@ import Monetarism.TidyR7BrownianExist
 import Monetarism.TidyR7BrownianTools
 import Monetarism.TidyR7BrownianQV
 import Monetarism.TidyR7BrownianVariation
+import Monetarism.TidyR7ItoL2
+import Monetarism.TidyR7ItoSums
+import Monetarism.TidyR7ItoIntegral
+import Monetarism.TidyR7ItoBridge
+import Monetarism.TidyR7ItoContinuity
