@@ -494,7 +494,7 @@ is needed. In the monetary model money jumps at news dates (an open-market opera
 `B + M` stays continuous, so `ΔB = −ΔM`: line 3 of (1.32) and (1.33) hold verbatim with the
 post-jump Lebesgue–Stieltjes integral `∫ n dM`, the pre-jump reading `∫ n_− dM` misses
 `E_t[ΔMΔ(Λ/P)]`, and (1.34) is unaffected. Bonds with a martingale or diffusive part are not
-covered (see the README); the Brownian infrastructure they need is in the next section.
+covered (see the README); the Brownian infrastructure they need is in the next two sections.
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -535,8 +535,8 @@ covered (see the README); the Brownian infrastructure they need is in the next s
 A bond or discount factor with a diffusive component needs a Brownian integrator. Mathlib defines
 `ProbabilityTheory.IsBrownianReal` (index `ℝ≥0`) but proves no existence theorem. These modules
 supply one, with the filtration, martingale and moment tools that the quadratic variation and the
-Itô integral will need. The stochastic integral itself, and so (1.32) with diffusive bonds, is not
-yet built (see the README). The Lévy–Ciesielski construction on `[0,1]` (`TidyR7BrownianSchauder`,
+Itô integral will need; the quadratic variation is in the next section. The stochastic integral
+itself, and so (1.32) with diffusive bonds, is not yet built (see the README). The Lévy–Ciesielski construction on `[0,1]` (`TidyR7BrownianSchauder`,
 all of it, and the part of `TidyR7BrownianUnit` that the extension uses) is restated, proofs kept,
 from the LeanDynamicProgramming project's Meyn–Tweedie `LimitTheorems` modules `LevyCiesielski`
 and `BrownianMotion` (namespace `MeynTweedie.LimitTheorems` there); each docstring names its
@@ -567,6 +567,41 @@ sequence suffices and every path is continuous.
 | A1 §1.6, pp. 567–568 (`E_t dW = 0`, `E_t (dW)² = dt`) | `E[W t − W s \| 𝓕_s] = 0` and `E[(W t − W s)² \| 𝓕_s] = t − s`; **`W` and `W t² − t` are martingales** for the natural filtration | `TidyR7BrownianTools.condExp_increment`, `TidyR7BrownianTools.condExp_increment_sq`, `TidyR7BrownianTools.martingale_bm`, `TidyR7BrownianTools.martingale_bm_sq_sub` |
 | A1 §1.6, pp. 567–568 (bridge to the index `ℝ` of the product step) | `bmReal W t = W(max t 0)` with the filtration `𝓕_{max t 0}`: equal to `W` on `t ≥ 0`, continuous paths, and the two martingales on `ℝ` | `TidyR7BrownianTools.bmReal`, `TidyR7BrownianTools.bmReal_of_nonneg`, `TidyR7BrownianTools.continuous_bmReal`, `TidyR7BrownianTools.bmFiltrationReal`, `TidyR7BrownianTools.martingale_bmReal`, `TidyR7BrownianTools.martingale_bmReal_sq_sub` |
 | A1 §1.6, pp. 567–568 (non-vacuity) | the constructed motion and `bmPath t² − t` are martingales for its natural filtration | `TidyR7BrownianTools.martingale_bmPath`, `TidyR7BrownianTools.martingale_bmPath_sq_sub` |
+
+## Online Appendix §1.6: quadratic variation and infinite variation of Brownian motion, pp. 567–568 (TidyR7BrownianQV, TidyR7BrownianVariation)
+
+The rule `(dW)² = dt` and its consequences for (1.32) with diffusive bonds. `W` is any
+pre-Brownian motion with measurable values, read on the index `ℝ` of the product step through
+`TidyR7BrownianTools.bmReal`; partitions are Track 1's `TidyR7StieltjesSums.Partition s t` with
+`0 ≤ s`. Conditional and weighted results hold for any admissible filtration
+(`TidyR7BrownianQV.BMFiltration`: `bmReal W` adapted, `𝓕_u` independent of every later increment),
+of which the natural filtration is one. The quadratic variation `Σ(ΔW_i)² → t − s` holds in `L²`,
+in probability, almost surely along partitions with summable meshes (so along the dyadic ones),
+and conditionally on `𝓕_s`; so Brownian paths have infinite variation almost surely, and the
+bounded-variation product step of `TidyR7ProductStep` provably cannot take a Brownian bond. The
+cross sum of `W` with a continuous bounded-variation path tends to `0` path by path. The stochastic
+integral itself is not built (see the README).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| A1 §1.6, pp. 567–568 (`dW`, `(dW)² − dt`) | the increment `W_v − W_u`, the centred squared increment, the quadratic variation sum `Σ(ΔW_i)²` and the weighted centred sum `Σ H_{t_i}((ΔW_i)² − Δt_i)` | `TidyR7BrownianQV.incr`, `TidyR7BrownianQV.qvTerm`, `TidyR7BrownianQV.qvSum`, `TidyR7BrownianQV.wqvSum` |
+| A1 §1.6, p. 567 (tool) | the steps of a partition are positive, add up to `t − s`, and `Σ(Δt_i)² ≤ mesh·(t − s)`; the dyadic meshes `(t − s)/2^k` are summable | `TidyR7BrownianQV.step_pos`, `TidyR7BrownianQV.sum_step_eq`, `TidyR7BrownianQV.sum_step_sq_le`, `TidyR7BrownianQV.summable_mesh_dyadic` |
+| A1 §1.6, pp. 567–568 (tool) | `Σ(ΔW_i)² − (t − s) = Σ((ΔW_i)² − Δt_i)`; the weighted sum is `Σ H(ΔW_i)² − Σ HΔt_i`, and with weight `1` it is `Σ(ΔW_i)² − (t − s)`; `Σ(ΔW_i)²` is Track 1's cross sum of the path with itself | `TidyR7BrownianQV.qvSum_sub_eq`, `TidyR7BrownianQV.wqvSum_eq`, `TidyR7BrownianQV.wqvSum_one`, `TidyR7BrownianQV.qvSum_eq_crossSum` |
+| A1 §1.6, pp. 567–568 (tool) | measurability and integrability: increments, centred squares and the sum are measurable; increments and centred squares are square integrable; squares, fourth powers and squared centred terms are integrable; `\|v₊ − u₊\| = v − u` | `TidyR7BrownianQV.measurable_incr`, `TidyR7BrownianQV.measurable_qvTerm`, `TidyR7BrownianQV.measurable_qvSum`, `TidyR7BrownianQV.abs_toNNReal_sub`, `TidyR7BrownianQV.memLp_incr`, `TidyR7BrownianQV.integrable_incr_sq`, `TidyR7BrownianQV.integrable_incr_pow_four`, `TidyR7BrownianQV.integrable_qvTerm_sq`, `TidyR7BrownianQV.memLp_qvTerm`, `TidyR7BrownianQV.memLp_qvSum_sub` |
+| A1 §1.6, pp. 567–568 (`E(dW)² = dt`, `Var((dW)²) = 2dt²`) | for `0 ≤ u ≤ v`: `E(ΔW)² = Δt`, `E(ΔW)⁴ = 3Δt²`, `E[(ΔW)² − Δt] = 0`, `((ΔW)² − Δt)² = (ΔW)⁴ − 2Δt(ΔW)² + Δt²`, `E[((ΔW)² − Δt)²] = 2Δt²` | `TidyR7BrownianQV.integral_incr_sq`, `TidyR7BrownianQV.integral_incr_pow_four`, `TidyR7BrownianQV.integral_qvTerm`, `TidyR7BrownianQV.qvTerm_sq_eq`, `TidyR7BrownianQV.integral_qvTerm_sq` |
+| A1 §1.6, pp. 567–568 (the information `E_t`) | **an admissible filtration** on `ℝ`; the natural one is admissible; increments and centred squares are `𝓕_v`-measurable; the increment is independent of every `𝓕_u`-measurable `Y` | `TidyR7BrownianQV.BMFiltration`, `TidyR7BrownianQV.bmFiltrationReal_isBM`, `TidyR7BrownianQV.stronglyMeasurable_incr`, `TidyR7BrownianQV.stronglyMeasurable_qvTerm`, `TidyR7BrownianQV.indepFun_incr` |
+| A1 §1.6, pp. 567–568 (`(dW)² − dt` is orthogonal to the past) | for `Y` `𝓕_u`-measurable: `E[Y((ΔW)² − Δt)] = 0` and `E[Y((ΔW)² − Δt)²] = 2Δt²E[Y]` | `TidyR7BrownianQV.integral_mul_qvTerm`, `TidyR7BrownianQV.integral_mul_qvTerm_sq` |
+| A1 §1.6, pp. 567–568 (weighted `(dW)² = dt` in mean square) | for bounded `𝓕_s`-measurable `G` and bounded adapted `H`: the products are integrable and **`E[G(Σ H_{t_i}((ΔW_i)² − Δt_i))²] = 2Σ E[GH_{t_i}²](Δt_i)²`**; with `G = 1`, `E[(Σ H_{t_i}((ΔW_i)² − Δt_i))²] = 2Σ E[H_{t_i}²](Δt_i)²`, at most `2C²·mesh·(t − s)` when `\|H\| ≤ C` | `TidyR7BrownianQV.integrable_mul_term`, `TidyR7BrownianQV.integrable_mul_wqvSum_sq`, `TidyR7BrownianQV.integral_mul_wqvSum_sq`, `TidyR7BrownianQV.integral_wqvSum_sq`, `TidyR7BrownianQV.integral_wqvSum_sq_le` |
+| A1 §1.6, pp. 567–568 (quadratic variation in `L²`) | **`E[(Σ(ΔW_i)² − (t − s))²] = 2Σ(Δt_i)²` exactly**, so `≤ 2·mesh·(t − s)` | `TidyR7BrownianQV.integral_qvSum_sub_sq`, `TidyR7BrownianQV.integral_qvSum_sub_sq_le` |
+| A1 §1.6, pp. 567–568 (conditional on `𝓕_s`) | a.s., `E[(Σ H_{t_i}((ΔW_i)² − Δt_i))² \| 𝓕_s] = 2Σ E[H_{t_i}² \| 𝓕_s](Δt_i)²` and `E[(Σ(ΔW_i)² − (t − s))² \| 𝓕_s] = 2Σ(Δt_i)²`; integrating against `1_A`, `A ∈ 𝓕_s`, is integrating over `A` | `TidyR7BrownianQV.integral_indicator_one_mul`, `TidyR7BrownianQV.condExp_wqvSum_sq`, `TidyR7BrownianQV.condExp_qvSum_sub_sq` |
+| A1 §1.6, pp. 567–568 (`[W]_t = t` in `L²` and in probability) | along any sequence of partitions with mesh `→ 0`, `E[(Σ(ΔW_i)² − (t − s))²] → 0`, so `Σ(ΔW_i)² → t − s` in `L²` and in probability; `E[F_k²] → 0` gives `‖F_k‖_{L²} → 0` | `TidyR7BrownianQV.tendsto_eLpNorm_of_integral_sq`, `TidyR7BrownianQV.tendsto_integral_qvSum_sub_sq`, `TidyR7BrownianQV.tendsto_eLpNorm_qvSum_sub`, `TidyR7BrownianQV.tendstoInMeasure_qvSum` |
+| A1 §1.6, pp. 567–568 (**the rule `(dW)² = dt`**) | for bounded adapted `H` and mesh `→ 0`, `Σ H_{t_i}(ΔW_i)² − Σ H_{t_i}Δt_i → 0` in mean square and in `L²` | `TidyR7BrownianQV.tendsto_integral_wqvSum_sq`, `TidyR7BrownianQV.tendsto_eLpNorm_wqvSum` |
+| A1 §1.6, pp. 567–568 (`[W]_t = t` almost surely) | first Borel–Cantelli lemma in mean-square form, `Σ_k E[F_k²] < ∞ ⇒ F_k → 0` a.s.; **`Σ(ΔW_i)² → t − s` a.s.** along partitions with `Σ_k mesh_k < ∞`, and along the dyadic partitions | `TidyR7BrownianQV.ae_tendsto_zero_of_summable_integral_sq`, `TidyR7BrownianQV.ae_tendsto_qvSum_of_summable_mesh`, `TidyR7BrownianQV.ae_tendsto_qvSum_dyadic` |
+| A1 §1.6, pp. 567–568 (tool) | a continuous `W` path gives a càdlàg path of `bmReal W`; a continuous path of bounded variation on `[s, t]` has quadratic variation sums `→ 0` | `TidyR7BrownianVariation.isCadlag_bmReal`, `TidyR7BrownianVariation.tendsto_qvSum_zero_of_bv` |
+| A1 §1.6, pp. 567–568 (**Brownian paths have infinite variation**) | for `0 ≤ s < t`, almost every path is not of bounded variation on `[s, t]`; almost surely, simultaneously on every `[s, t]` with `0 ≤ s < t` (one null set, via rational intervals), and there the variation is `∞` | `TidyR7BrownianVariation.ae_not_bv`, `TidyR7BrownianVariation.ae_forall_not_bv`, `TidyR7BrownianVariation.ae_forall_eVariationOn_eq_top` |
+| (1.32), p. 567 (**the product step excludes diffusive bonds**) | for `0 ≤ s < t` there is no `TidyR7ProductStep.ProductStepData` with bond position `B = W` (its field `TidyR7ProductStep.ProductStepData.B_bv` fails), so the pathwise integral `∫ (Λ/P) dB` of the bounded-variation step is unavailable and a stochastic integral is needed | `TidyR7BrownianVariation.not_productStepData_bm` |
+| A1 §1.6, (1.32), pp. 567–568 (`dW·dB = 0`, `dW·dt = 0`) | for a continuous `W` path and a path continuous and of bounded variation on `[s, t]`, `Σ ΔW_iΔg_i → 0` along every sequence with mesh `→ 0`; almost surely for a bond process with continuous bounded-variation paths (`TidyR7ProductStep.sumCross`); `u ↦ u` is of bounded variation, so `Σ ΔW_iΔt_i → 0` | `TidyR7BrownianVariation.tendsto_crossSum_bm_bv`, `TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv`, `TidyR7BrownianVariation.bv_id`, `TidyR7BrownianVariation.tendsto_crossSum_bm_id` |
+| A1 §1.6, pp. 567–568 (non-vacuity) | for the constructed motion `TidyR7BrownianExist.bmPath`: the `L²` and conditional identities, convergence in probability and a.s. along the dyadic partitions, infinite variation on every interval, no product-step data with it as bond position, and `Σ ΔW_iΔt_i → 0` for every path | `TidyR7BrownianVariation.integral_qvSum_sub_sq_bmPath`, `TidyR7BrownianVariation.condExp_qvSum_sub_sq_bmPath`, `TidyR7BrownianVariation.tendstoInMeasure_qvSum_bmPath`, `TidyR7BrownianVariation.ae_tendsto_qvSum_dyadic_bmPath`, `TidyR7BrownianVariation.ae_forall_not_bv_bmPath`, `TidyR7BrownianVariation.not_productStepData_bmPath`, `TidyR7BrownianVariation.tendsto_crossSum_bmPath_id` |
 
 ## Online Appendix Chapter 4, money in continuous time, pp. 635–641 (ContinuousTime)
 

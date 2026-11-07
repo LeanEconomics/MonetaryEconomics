@@ -80,3 +80,5 @@ import Monetarism.TidyR7BrownianSchauder
 import Monetarism.TidyR7BrownianUnit
 import Monetarism.TidyR7BrownianExist
 import Monetarism.TidyR7BrownianTools
+import Monetarism.TidyR7BrownianQV
+import Monetarism.TidyR7BrownianVariation

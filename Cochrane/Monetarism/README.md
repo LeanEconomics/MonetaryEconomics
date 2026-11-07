@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`). The library contains **2062 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`). The library contains **2127 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -27,8 +27,9 @@ uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, 11
 `TidyR7CondDominated`/`TidyR7ProductStep…` modules that prove that product step, for continuous
 and for jumping bonds, 220 in the nine `TidyR7Monetarism…` modules that prove the chain
 (1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous and with jumping money, and
-108 in the four `TidyR7Brownian…` modules, a Brownian motion on `[0, ∞)` and its martingale
-tools, 66 of them copied from the Meyn–Tweedie project.
+173 in the six `TidyR7Brownian…` modules, a Brownian motion on `[0, ∞)`, its martingale tools,
+its quadratic variation and the infinite variation of its paths, 66 of them copied from the
+Meyn–Tweedie project.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -273,8 +274,20 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   (`TidyR7BrownianTools.indep_increment_bmFiltration`), `W` and `W t² − t` are martingales
   (`TidyR7BrownianTools.martingale_bm`, `TidyR7BrownianTools.martingale_bm_sq_sub`), and
   `E[(W t − W s)⁴] = 3(t − s)²` (`TidyR7BrownianTools.integral_increment_pow_four`); `W` carries over
-  to the index `ℝ` of the product step (`TidyR7BrownianTools.bmReal`). The stochastic integral is
-  not yet built.
+  to the index `ℝ` of the product step (`TidyR7BrownianTools.bmReal`). Its quadratic variation is
+  `t − s`: exactly `E[(Σ(ΔW_i)² − (t − s))²] = 2Σ(Δt_i)²`
+  (`TidyR7BrownianQV.integral_qvSum_sub_sq`), also conditionally on `𝓕_s`
+  (`TidyR7BrownianQV.condExp_qvSum_sub_sq`) for any admissible filtration
+  (`TidyR7BrownianQV.BMFiltration`), so `Σ(ΔW_i)² → t − s` in `L²` and in probability as the mesh
+  tends to `0` and almost surely along the dyadic partitions
+  (`TidyR7BrownianQV.ae_tendsto_qvSum_dyadic`); weighted by a bounded adapted `H`,
+  `Σ H(ΔW_i)² − Σ HΔt_i → 0` in `L²`, the rule `(dW)² = dt`
+  (`TidyR7BrownianQV.tendsto_eLpNorm_wqvSum`). Hence almost surely every Brownian path has
+  infinite variation on every interval (`TidyR7BrownianVariation.ae_forall_not_bv`), and the
+  bounded-variation product step provably cannot take a Brownian bond
+  (`TidyR7BrownianVariation.not_productStepData_bm`); against a bond with continuous
+  bounded-variation paths the cross sum vanishes, `dW·dB = 0`
+  (`TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv`). The stochastic integral is not yet built.
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -424,8 +437,15 @@ Not formalised:
 * the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) for bonds with a martingale or
   diffusive (non-bounded-variation) part: that needs a stochastic integral and the bracket
   `[X, B]`, which Mathlib does not have. A Brownian motion itself now exists
-  (`TidyR7BrownianExist.exists_isBrownianReal`), with its martingale tools, but no stochastic
-  integral is built on it; no measurable modification of an arbitrary `IsBrownianReal` and no
+  (`TidyR7BrownianExist.exists_isBrownianReal`), with its martingale tools, and its bracket
+  `[W]_t = t` is proved (in `L²`, in probability, almost surely along dyadic partitions and
+  conditionally, `TidyR7BrownianQV`); its paths have infinite variation almost surely, so the
+  bounded-variation product step provably excludes diffusive bonds
+  (`TidyR7BrownianVariation.not_productStepData_bm`), and its bracket with bonds of continuous
+  bounded-variation paths is `0` (`TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv`). The
+  stochastic integral itself is still missing; the cross variation of two Brownian motions and
+  the continuous-time Doob maximal inequality (needed for a product-step instance with
+  `M = W`) are not proved; no measurable modification of an arbitrary `IsBrownianReal` and no
   usual augmentation of its filtration are proved. Adapted bonds of bounded variation are covered, with
   continuous paths (`TidyR7ProductStep.ProductStepData.product_step`) and with càdlàg paths that
   jump together with `Λ/P` (`TidyR7ProductStepJump.JumpStepData.jump_step`). The domination and
@@ -529,6 +549,8 @@ Not formalised:
 | [TidyR7BrownianUnit](Monetarism/TidyR7BrownianUnit.lean) | 13 | A1 §1.6, pp. 567–568 (tool; copied from the Meyn–Tweedie project): Brownian motion on `[0,1]`: continuous paths from `0`, finite-dimensional laws, Mathlib's `IsGaussianProcess`, `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t` |
 | [TidyR7BrownianExist](Monetarism/TidyR7BrownianExist.lean) | 17 | A1 §1.6, pp. 567–568 (tool for (1.32) with diffusive bonds): a Brownian motion on `[0, ∞)` exists (Mathlib's `IsBrownianReal`), the time change `(1+t)B(t/(1+t)) − tB(1)`, every path continuous; `W 2 − W(1/2) ~ N(0, 3/2)` |
 | [TidyR7BrownianTools](Monetarism/TidyR7BrownianTools.lean) | 25 | A1 §1.6, pp. 567–568 (tool): for any pre-Brownian motion, the second and fourth moments of increments, the natural filtration, increments independent of the past, `W` and `W t² − t` martingales; the bridge to the index `ℝ` |
+| [TidyR7BrownianQV](Monetarism/TidyR7BrownianQV.lean) | 48 | A1 §1.6, pp. 567–568 (tool for (1.32) with diffusive bonds): the quadratic variation of a pre-Brownian motion along partitions: `E(ΔW)² = Δt`, `Var((ΔW)²) = 2Δt²`, admissible filtrations, `(ΔW)² − Δt` orthogonal to the past, the exact identity `E[(Σ(ΔW_i)² − (t − s))²] = 2Σ(Δt_i)²` and its weighted and conditional forms, `Σ(ΔW_i)² → t − s` in `L²`, in probability and almost surely along dyadic partitions, the weighted rule `(dW)² = dt` in `L²` |
+| [TidyR7BrownianVariation](Monetarism/TidyR7BrownianVariation.lean) | 17 | A1 §1.6, (1.32), pp. 567–568: almost surely Brownian paths have infinite variation on every interval; no bounded-variation product-step data has a Brownian bond; `dW·dB = 0` for continuous bounded-variation `B` and `dW·dt = 0`; non-vacuity on the constructed motion |
 
 ## Modelling conventions
 
