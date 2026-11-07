@@ -76,3 +76,7 @@ import Monetarism.TidyR7ProductStepJump
 import Monetarism.TidyR7ProductStepJumpCoin
 import Monetarism.TidyR7MonetarismJump
 import Monetarism.TidyR7MonetarismJumpCoin
+import Monetarism.TidyR7BrownianSchauder
+import Monetarism.TidyR7BrownianUnit
+import Monetarism.TidyR7BrownianExist
+import Monetarism.TidyR7BrownianTools

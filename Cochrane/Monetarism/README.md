@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`). The library contains **1954 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`). The library contains **2062 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -25,8 +25,10 @@ uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, 11
 `TidyR7Stieltjes…` modules, deterministic Riemann–Stieltjes tools for the product step of (1.32),
 28 in `TidyR7JumpSums`, the same tools for jumping integrators, 154 in the six
 `TidyR7CondDominated`/`TidyR7ProductStep…` modules that prove that product step, for continuous
-and for jumping bonds, and 220 in the nine `TidyR7Monetarism…` modules that prove the chain
-(1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous and with jumping money.
+and for jumping bonds, 220 in the nine `TidyR7Monetarism…` modules that prove the chain
+(1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous and with jumping money, and
+108 in the four `TidyR7Brownian…` modules, a Brownian motion on `[0, ∞)` and its martingale
+tools, 66 of them copied from the Meyn–Tweedie project.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -260,6 +262,19 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   (1.34) is unchanged (`TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_34_jump`). In an
   open-market operation at the news date the pre-jump line 3 gives `0 ≠ −1/2`
   (`TidyR7MonetarismJumpCoin.jcoin_1_32_left_fails`).
+* **Brownian infrastructure for (1.32) with diffusive bonds.** Mathlib defines Brownian motion
+  (`ProbabilityTheory.IsBrownianReal`) but proves no existence theorem; a Brownian motion on
+  `[0, ∞)` exists (`TidyR7BrownianExist.exists_isBrownianReal`). It is the time change
+  `W(t) = (1+t)B(t/(1+t)) − tB(1)` (`TidyR7BrownianExist.bmPath`) of the Lévy–Ciesielski motion `B`
+  on `[0,1]`, whose construction (`TidyR7BrownianSchauder`, `TidyR7BrownianUnit`) is copied from the
+  Meyn–Tweedie `LimitTheorems` project of LeanDynamicProgramming; every path is continuous
+  (`TidyR7BrownianExist.isBrownianReal_bmPath`). For any pre-Brownian motion with measurable values,
+  the increment `W t − W s` is independent of the natural filtration at `s`
+  (`TidyR7BrownianTools.indep_increment_bmFiltration`), `W` and `W t² − t` are martingales
+  (`TidyR7BrownianTools.martingale_bm`, `TidyR7BrownianTools.martingale_bm_sq_sub`), and
+  `E[(W t − W s)⁴] = 3(t − s)²` (`TidyR7BrownianTools.integral_increment_pow_four`); `W` carries over
+  to the index `ℝ` of the product step (`TidyR7BrownianTools.bmReal`). The stochastic integral is
+  not yet built.
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -408,7 +423,10 @@ Not formalised:
   Pontryagin principle without concavity is not formalised;
 * the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) for bonds with a martingale or
   diffusive (non-bounded-variation) part: that needs a stochastic integral and the bracket
-  `[X, B]`, which Mathlib does not have. Adapted bonds of bounded variation are covered, with
+  `[X, B]`, which Mathlib does not have. A Brownian motion itself now exists
+  (`TidyR7BrownianExist.exists_isBrownianReal`), with its martingale tools, but no stochastic
+  integral is built on it; no measurable modification of an arbitrary `IsBrownianReal` and no
+  usual augmentation of its filtration are proved. Adapted bonds of bounded variation are covered, with
   continuous paths (`TidyR7ProductStep.ProductStepData.product_step`) and with càdlàg paths that
   jump together with `Λ/P` (`TidyR7ProductStepJump.JumpStepData.jump_step`). The domination and
   integrability conditions of `TidyR7ProductStep.ProductStepData` and
@@ -507,6 +525,10 @@ Not formalised:
 | [TidyR7ProductStepJumpCoin](Monetarism/TidyR7ProductStepJumpCoin.lean) | 27 | A1 §1.6, (1.32), p. 567: on the coin, bonds jumping with the news break the left-point step (`1 ≠ 0`), bonds jumping with the drift part break the two-term Lebesgue–Stieltjes step (`1 ≠ 1 + 1`); the corrected step holds in both and with a non-shared jump |
 | [TidyR7MonetarismJump](Monetarism/TidyR7MonetarismJump.lean) | 43 | A1 §1.6, (1.31)–(1.34), pp. 567–568: the model with jumping money (`ΔB = −ΔM`, `B + M` continuous); (1.32) line 3 and (1.33) verbatim with the post-jump `∫ n dM`, the extra term `−E_s[Σ ΔnΔM]` with the pre-jump reading, the printed middle line iff it vanishes; (1.34) verbatim |
 | [TidyR7MonetarismJumpCoin](Monetarism/TidyR7MonetarismJumpCoin.lean) | 12 | A1 §1.6, (1.31)–(1.34), pp. 567–568: an open-market operation at a news date: the pre-jump line 3 of (1.32) and the printed middle line fail (`0 ≠ −1/2`), the finite-horizon (1.33) fails with the pre-jump flow; the post-jump forms and (1.34) hold |
+| [TidyR7BrownianSchauder](Monetarism/TidyR7BrownianSchauder.lean) | 53 | A1 §1.6, pp. 567–568 (tool for (1.32) with diffusive bonds; copied from the Meyn–Tweedie project): the Lévy–Ciesielski construction on `[0,1]`: Schauder functions, the covariance identity `Σ_m S_m(s)S_m(t) = min s t`, Gaussian sums and their limits, uniform convergence almost surely to a path continuous for every `ω` |
+| [TidyR7BrownianUnit](Monetarism/TidyR7BrownianUnit.lean) | 13 | A1 §1.6, pp. 567–568 (tool; copied from the Meyn–Tweedie project): Brownian motion on `[0,1]`: continuous paths from `0`, finite-dimensional laws, Mathlib's `IsGaussianProcess`, `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t` |
+| [TidyR7BrownianExist](Monetarism/TidyR7BrownianExist.lean) | 17 | A1 §1.6, pp. 567–568 (tool for (1.32) with diffusive bonds): a Brownian motion on `[0, ∞)` exists (Mathlib's `IsBrownianReal`), the time change `(1+t)B(t/(1+t)) − tB(1)`, every path continuous; `W 2 − W(1/2) ~ N(0, 3/2)` |
+| [TidyR7BrownianTools](Monetarism/TidyR7BrownianTools.lean) | 25 | A1 §1.6, pp. 567–568 (tool): for any pre-Brownian motion, the second and fourth moments of increments, the natural filtration, increments independent of the past, `W` and `W t² − t` martingales; the bridge to the index `ℝ` |
 
 ## Modelling conventions
 

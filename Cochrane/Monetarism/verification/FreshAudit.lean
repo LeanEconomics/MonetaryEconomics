@@ -89,6 +89,16 @@ import Mathlib.Probability.Martingale.Basic
 import Mathlib.Probability.ProbabilityMassFunction.Integrals
 import Mathlib.Probability.Distributions.Uniform
 import Mathlib.Probability.Distributions.Geometric
+import Mathlib.Probability.Distributions.Gaussian.Real
+import Mathlib.Topology.ContinuousMap.Compact
+import Mathlib.Topology.UnitInterval
+import Mathlib.Data.Nat.Log
+import Mathlib.MeasureTheory.Constructions.Polish.Basic
+import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
+import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
+import Mathlib.Probability.Moments.Covariance
+import Mathlib.Probability.BrownianMotion.Basic
+import Mathlib.Probability.Moments.MGFAnalytic
 set_option autoImplicit false
 
 /-
@@ -46567,6 +46577,1658 @@ theorem jcoin_1_34 :
 
 end Cochrane.Monetarism.TidyR7MonetarismJumpCoin
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Lévy–Ciesielski (Schauder series) construction of Brownian paths on `[0,1]`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). Track 1 (`TidyR7ProductStep` and its
+companions) proved the product step of (1.32) for bonds of bounded variation. A bond (or a
+discount factor) with a DIFFUSIVE component needs a Brownian integrand, and Mathlib v4.34 has the
+predicate `ProbabilityTheory.IsBrownianReal` but no existence theorem. This module is the first
+of the Brownian infrastructure (chunk I5a): it builds continuous paths on `[0,1]` from an i.i.d.
+standard Gaussian sequence by the Schauder series `B(t) = Σ_m ξ_m S_m(t)`.
+
+Every declaration is restated (proofs kept) from the module `LimitTheorems/LevyCiesielski.lean`
+of the LeanDynamicProgramming project (namespace MeynTweedie.LimitTheorems there); only
+the namespace and the qualification of `Finset.range`/`Set.Icc` changed.
+
+**Schauder functions.** `lcTent a h` is the tent on `[a, a+h]`; `schauderLevel n k` is `2^{n/2}`
+times the tent on `[k 2^{-n}, (k+1) 2^{-n}]`; `schauder 0 = id` and
+`schauder (2ⁿ + k) = schauderLevel n k` (`schauder_two_pow_add`).
+
+**Covariance identity.** `schauder_sum_mul`: `Σ_{m<2^N} S_m(s) S_m(t) = min s t − lcBridge N s t`
+on `[0,1]`; `lcBridge_le`, `tendsto_schauder_sum_mul`: hence `Σ_m S_m(s) S_m(t) = min s t`.
+
+**Gaussian sums.** `gaussSeq` (the product of standard Gaussians on `ℕ → ℝ`), `gaussSeq_map_sum`
+(`Σ_{m<M} a_m ξ_m ~ N(0, Σ a_m²)`), `map_eq_gaussianReal_of_tendsto` (an a.s. limit of
+`N(0, vₙ)` variables with `vₙ → w` is `N(0, w)`).
+
+**Uniform convergence.** `norm_lcPartial_succ_sub_le` (block bound by `lcWeight`),
+`ae_mem_lcGood` (fourth moments + first Borel–Cantelli in expectation), `levyPath` (the uniform
+limit, a continuous path for every `ω`), `tendsto_lcPartial_apply`, `levyPath_zero`.
+-/
+
+namespace Cochrane.Monetarism.TidyR7BrownianSchauder
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open scoped ENNReal NNReal
+
+/-- The tent function on `[a, a + h]`: zero outside, slope `±1`, peak `h/2` at the midpoint.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+def lcTent (a h x : ℝ) : ℝ := max 0 (min (x - a) (a + h - x))
+
+/-- The tent function is nonnegative.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_nonneg
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_nonneg (a h x : ℝ) : 0 ≤ lcTent a h x := le_max_left _ _
+
+/-- The tent function on an interval of length `h ≥ 0` is at most `h/2`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_le
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_le (a h x : ℝ) (hh : 0 ≤ h) : lcTent a h x ≤ h / 2 := by
+  unfold lcTent
+  refine max_le (by linarith) ?_
+  rcases le_total (x - a) (a + h - x) with hc | hc
+  · rw [min_eq_left hc]; linarith
+  · rw [min_eq_right hc]; linarith
+
+/-- The tent function vanishes left of its interval.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_of_le
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_of_le {a h x : ℝ} (hx : x ≤ a) : lcTent a h x = 0 := by
+  unfold lcTent
+  exact max_eq_left (min_le_of_left_le (by linarith))
+
+/-- The tent function vanishes right of its interval.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_of_ge
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_of_ge {a h x : ℝ} (hx : a + h ≤ x) : lcTent a h x = 0 := by
+  unfold lcTent
+  exact max_eq_left (min_le_of_right_le (by linarith))
+
+/-- On the left half of its interval the tent function is `x - a`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_of_left
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_of_left {a h x : ℝ} (h1 : a ≤ x) (h2 : x ≤ a + h / 2) : lcTent a h x = x - a := by
+  unfold lcTent
+  rw [min_eq_left (by linarith), max_eq_right (by linarith)]
+
+/-- On the right half of its interval the tent function is `a + h - x`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_of_right
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_of_right {a h x : ℝ} (h1 : a + h / 2 ≤ x) (h2 : x ≤ a + h) :
+    lcTent a h x = a + h - x := by
+  unfold lcTent
+  rw [min_eq_right (by linarith), max_eq_right (by linarith)]
+
+/-- Where the tent function is nonzero, `x` lies in the open interval.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_mem_of_ne_zero
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_mem_of_ne_zero {a h x : ℝ} (hx : lcTent a h x ≠ 0) : a < x ∧ x < a + h := by
+  constructor
+  · by_contra hc; exact hx (lcTent_of_le (not_lt.1 hc))
+  · by_contra hc; exact hx (lcTent_of_ge (not_lt.1 hc))
+
+/-- The tent function is continuous.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.continuous_lcTent
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma continuous_lcTent (a h : ℝ) : Continuous (lcTent a h) := by
+  unfold lcTent; fun_prop
+
+/-- One term of the dyadic Brownian-bridge covariance: for `u ≤ v` it is the covariance of the
+Brownian bridge on `[a, a + h]` at the times `u, v` (and zero unless both lie in the interval).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridgeTerm
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def lcBridgeTerm (a h u v : ℝ) : ℝ := max 0 (u - a) * max 0 (a + h - v) / h
+
+/-- The bridge term is nonnegative.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridgeTerm_nonneg
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcBridgeTerm_nonneg (a h u v : ℝ) (hh : 0 ≤ h) : 0 ≤ lcBridgeTerm a h u v := by
+  unfold lcBridgeTerm
+  exact div_nonneg (mul_nonneg (le_max_left _ _) (le_max_left _ _)) hh
+
+/-- The bridge covariance on `[a, a + h]` splits into the two bridge covariances on the halves
+plus the product of the tent functions: the dyadic refinement step.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridgeTerm_split
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcBridgeTerm_split {a h u v : ℝ} (hh : 0 < h) (huv : u ≤ v) :
+    lcBridgeTerm a h u v - lcBridgeTerm a (h / 2) u v - lcBridgeTerm (a + h / 2) (h / 2) u v
+      = lcTent a h u * lcTent a h v / h := by
+  unfold lcBridgeTerm
+  rcases le_total u a with hu | hu
+  · rw [max_eq_left (by linarith : u - a ≤ 0), max_eq_left (by linarith : u - (a + h / 2) ≤ 0),
+      lcTent_of_le hu]
+    ring
+  rcases le_total (a + h) v with hv | hv
+  · rw [max_eq_left (by linarith : a + h - v ≤ 0), max_eq_left (by linarith : a + h / 2 - v ≤ 0),
+      max_eq_left (by linarith : a + h / 2 + h / 2 - v ≤ 0), lcTent_of_ge hv]
+    ring
+  rcases le_total v (a + h / 2) with hv2 | hv2
+  · rw [max_eq_right (by linarith : 0 ≤ u - a), max_eq_left (by linarith : u - (a + h / 2) ≤ 0),
+      max_eq_right (by linarith : 0 ≤ a + h - v), max_eq_right (by linarith : 0 ≤ a + h / 2 - v),
+      lcTent_of_left hu (by linarith), lcTent_of_left (by linarith) hv2]
+    field_simp
+    ring
+  rcases le_total u (a + h / 2) with hu2 | hu2
+  · rw [max_eq_right (by linarith : 0 ≤ u - a), max_eq_left (by linarith : u - (a + h / 2) ≤ 0),
+      max_eq_right (by linarith : 0 ≤ a + h - v), max_eq_left (by linarith : a + h / 2 - v ≤ 0),
+      lcTent_of_left hu hu2, lcTent_of_right hv2 hv]
+    field_simp
+    ring
+  · rw [max_eq_right (by linarith : 0 ≤ u - a), max_eq_right (by linarith : 0 ≤ u - (a + h / 2)),
+      max_eq_right (by linarith : 0 ≤ a + h - v), max_eq_left (by linarith : a + h / 2 - v ≤ 0),
+      max_eq_right (by linarith : 0 ≤ a + h / 2 + h / 2 - v),
+      lcTent_of_right hu2 (by linarith), lcTent_of_right hv2 hv]
+    field_simp
+    ring
+
+/-- A sum of terms bounded by `B ≥ 0`, at most one of which is nonzero, is at most `B`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lc_sum_le_of_atMostOne
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lc_sum_le_of_atMostOne {ι : Type*} (s : Finset ι) (f : ι → ℝ) {B : ℝ} (hB : 0 ≤ B)
+    (hf : ∀ i ∈ s, f i ≤ B) (huniq : ∀ i ∈ s, ∀ j ∈ s, f i ≠ 0 → f j ≠ 0 → i = j) :
+    ∑ i ∈ s, f i ≤ B := by
+  by_cases h : ∃ i ∈ s, f i ≠ 0
+  · obtain ⟨i, hi, hfi⟩ := h
+    rw [Finset.sum_eq_single_of_mem i hi (fun j hj hji => by
+      by_contra hc; exact hji (huniq j hj i hi hc hfi))]
+    exact hf i hi
+  · push Not at h
+    rw [Finset.sum_eq_zero h]
+    exact hB
+
+/-- Splitting a sum over `Finset.range (2n)` into even and odd terms.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lc_sum_range_two_mul
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lc_sum_range_two_mul (f : ℕ → ℝ) (n : ℕ) :
+    ∑ k ∈ Finset.range (2 * n), f k = ∑ k ∈ Finset.range n, (f (2 * k) + f (2 * k + 1)) := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
+      ih, Finset.sum_range_succ]
+    ring
+
+/-- Two dyadic intervals `(k h, (k+1) h)` containing ordered points `u ≤ v` coincide.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lc_dyadic_unique
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lc_dyadic_unique {h u v : ℝ} (hh : 0 < h) (huv : u ≤ v) {i j : ℕ}
+    (hi1 : (i : ℝ) * h < u) (hi2 : v < (i : ℝ) * h + h)
+    (hj1 : (j : ℝ) * h < u) (hj2 : v < (j : ℝ) * h + h) : i = j := by
+  have h1 : (i : ℝ) < j + 1 := by
+    by_contra hc; push Not at hc; nlinarith
+  have h2 : (j : ℝ) < i + 1 := by
+    by_contra hc; push Not at hc; nlinarith
+  have h1' : i < j + 1 := by exact_mod_cast h1
+  have h2' : j < i + 1 := by exact_mod_cast h2
+  omega
+
+/-- The Schauder function of level `n` and position `k < 2ⁿ`: `2^{n/2}` times the tent on the
+dyadic interval `[k/2ⁿ, (k+1)/2ⁿ]`; its peak is `2^{-n/2}/2`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauderLevel
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def schauderLevel (n k : ℕ) (x : ℝ) : ℝ :=
+  Real.sqrt (2 ^ n) * lcTent (k / 2 ^ n) (1 / 2 ^ n) x
+
+/-- The Schauder functions in one sequence: `schauder 0 x = x`, and for `m = 2ⁿ + k` with
+`k < 2ⁿ`, `schauder m = schauderLevel n k`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauder
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def schauder (m : ℕ) (x : ℝ) : ℝ :=
+  if m = 0 then x else schauderLevel (Nat.log 2 m) (m - 2 ^ Nat.log 2 m) x
+
+/-- The zeroth Schauder function is the identity, `schauder 0 x = x`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauder_zero_apply
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma schauder_zero_apply (x : ℝ) : schauder 0 x = x := by simp [schauder]
+
+/-- Re-indexing: `schauder (2^N + k) = schauderLevel N k` for `k < 2^N`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauder_two_pow_add
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma schauder_two_pow_add {N k : ℕ} (hk : k < 2 ^ N) :
+    schauder (2 ^ N + k) = schauderLevel N k := by
+  have hlog : Nat.log 2 (2 ^ N + k) = N :=
+    Nat.log_eq_of_pow_le_of_lt_pow (by omega) (by rw [pow_succ]; omega)
+  funext x
+  have hne : 2 ^ N + k ≠ 0 := by positivity
+  simp only [schauder, hne, ite_false, hlog, Nat.add_sub_cancel_left]
+
+/-- The Schauder functions of positive level are nonnegative.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauderLevel_nonneg
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma schauderLevel_nonneg (n k : ℕ) (x : ℝ) : 0 ≤ schauderLevel n k x :=
+  mul_nonneg (Real.sqrt_nonneg _) (lcTent_nonneg _ _ _)
+
+/-- Every Schauder function is continuous.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.continuous_schauder
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma continuous_schauder (m : ℕ) : Continuous (schauder m) := by
+  unfold schauder
+  split_ifs
+  · exact continuous_id
+  · unfold schauderLevel
+    exact continuous_const.mul (continuous_lcTent _ _)
+
+/-- The level-`N` dyadic Brownian-bridge covariance.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridge
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def lcBridge (N : ℕ) (s t : ℝ) : ℝ :=
+  ∑ k ∈ Finset.range (2 ^ N), lcBridgeTerm (k / 2 ^ N) (1 / 2 ^ N) (min s t) (max s t)
+
+/-- A product of two tent values only depends on the unordered pair of points.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcTent_mul_comm_minmax
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcTent_mul_comm_minmax (a h s t : ℝ) :
+    lcTent a h s * lcTent a h t = lcTent a h (min s t) * lcTent a h (max s t) := by
+  rcases le_total s t with hst | hst
+  · rw [min_eq_left hst, max_eq_right hst]
+  · rw [min_eq_right hst, max_eq_left hst, mul_comm]
+
+/-- One dyadic level of the Schauder product series is the drop of the bridge covariance.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauderLevel_sum_mul
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma schauderLevel_sum_mul (N : ℕ) (s t : ℝ) :
+    ∑ k ∈ Finset.range (2 ^ N), schauderLevel N k s * schauderLevel N k t
+      = lcBridge N s t - lcBridge (N + 1) s t := by
+  have h2 : (0 : ℝ) < 2 ^ N := by positivity
+  unfold lcBridge
+  rw [show 2 ^ (N + 1) = 2 * 2 ^ N by ring, lc_sum_range_two_mul, ← Finset.sum_sub_distrib]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  have e1 : ((2 * k : ℕ) : ℝ) / 2 ^ (N + 1) = k / 2 ^ N := by
+    push_cast; rw [pow_succ]; field_simp
+  have e2 : ((2 * k + 1 : ℕ) : ℝ) / 2 ^ (N + 1) = k / 2 ^ N + 1 / 2 ^ N / 2 := by
+    push_cast; rw [pow_succ]; field_simp
+  have e3 : (1 : ℝ) / 2 ^ (N + 1) = 1 / 2 ^ N / 2 := by rw [pow_succ]; field_simp
+  rw [e1, e2, e3, sub_add_eq_sub_sub,
+    lcBridgeTerm_split (by positivity) (min_le_max), ← lcTent_mul_comm_minmax]
+  unfold schauderLevel
+  have hs : Real.sqrt (2 ^ N) * Real.sqrt (2 ^ N) = 2 ^ N := Real.mul_self_sqrt h2.le
+  field_simp
+  linear_combination (lcTent (k / 2 ^ N) (1 / 2 ^ N) s * lcTent (k / 2 ^ N) (1 / 2 ^ N) t) * hs
+
+/-- **Schauder product series, partial sums.** For `s, t ∈ [0,1]`, the sum of
+`schauder m s * schauder m t` over `m < 2^N` (levels `< N`) equals `min s t` minus the level-`N`
+bridge covariance.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauder_sum_mul
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem schauder_sum_mul (N : ℕ) {s t : ℝ} (hs : s ∈ Set.Icc (0 : ℝ) 1)
+    (ht : t ∈ Set.Icc (0 : ℝ) 1) :
+    ∑ m ∈ Finset.range (2 ^ N), schauder m s * schauder m t = min s t - lcBridge N s t := by
+  induction N with
+  | zero =>
+    simp only [pow_zero, Finset.sum_range_one, schauder_zero_apply, lcBridge, Nat.cast_zero,
+      div_one, lcBridgeTerm, zero_add, sub_zero]
+    rw [max_eq_right (le_min hs.1 ht.1), max_eq_right (by
+      have := max_le hs.2 ht.2; linarith)]
+    have := min_mul_max s t
+    linarith
+  | succ N ih =>
+    rw [show 2 ^ (N + 1) = 2 ^ N + 2 ^ N by ring, Finset.sum_range_add, ih]
+    rw [Finset.sum_congr rfl (fun k hk => by
+      rw [schauder_two_pow_add (Finset.mem_range.1 hk)]), schauderLevel_sum_mul]
+    ring
+
+/-- The bridge term on an interval of length `h > 0` is at most `h`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridgeTerm_le
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcBridgeTerm_le {a h u v : ℝ} (hh : 0 < h) (huv : u ≤ v) : lcBridgeTerm a h u v ≤ h := by
+  unfold lcBridgeTerm
+  rcases le_total u a with hu | hu
+  · rw [max_eq_left (by linarith : u - a ≤ 0)]; simp [hh.le]
+  rcases le_total (a + h) v with hv | hv
+  · rw [max_eq_left (by linarith : a + h - v ≤ 0)]; simp [hh.le]
+  rw [max_eq_right (by linarith : 0 ≤ u - a), max_eq_right (by linarith : 0 ≤ a + h - v),
+    div_le_iff₀ hh]
+  nlinarith
+
+/-- A nonzero bridge term forces `a < u` and `v < a + h`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridgeTerm_mem_of_ne_zero
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcBridgeTerm_mem_of_ne_zero {a h u v : ℝ} (hne : lcBridgeTerm a h u v ≠ 0) :
+    a < u ∧ v < a + h := by
+  unfold lcBridgeTerm at hne
+  constructor
+  · by_contra hc; push Not at hc
+    exact hne (by rw [max_eq_left (by linarith : u - a ≤ 0)]; simp)
+  · by_contra hc; push Not at hc
+    exact hne (by rw [max_eq_left (by linarith : a + h - v ≤ 0)]; simp)
+
+/-- The bridge covariance is nonnegative.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridge_nonneg
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcBridge_nonneg (N : ℕ) (s t : ℝ) : 0 ≤ lcBridge N s t :=
+  Finset.sum_nonneg fun _ _ => lcBridgeTerm_nonneg _ _ _ _ (by positivity)
+
+/-- The level-`N` bridge covariance is at most `2^{-N}` (only one dyadic interval contributes).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcBridge_le
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcBridge_le (N : ℕ) (s t : ℝ) : lcBridge N s t ≤ 1 / 2 ^ N := by
+  have hh : (0 : ℝ) < 1 / 2 ^ N := by positivity
+  refine lc_sum_le_of_atMostOne _ _ hh.le (fun k _ => lcBridgeTerm_le hh min_le_max) ?_
+  intro i _ j _ hi hj
+  obtain ⟨hi1, hi2⟩ := lcBridgeTerm_mem_of_ne_zero hi
+  obtain ⟨hj1, hj2⟩ := lcBridgeTerm_mem_of_ne_zero hj
+  refine lc_dyadic_unique hh min_le_max (u := min s t) (v := max s t) ?_ ?_ ?_ ?_ <;>
+    · rwa [mul_one_div]
+
+/-- **Schauder product series** (Lévy–Ciesielski covariance identity): for `s, t ∈ [0,1]`,
+`Σ_m schauder m s * schauder m t = min s t`, as the limit of the partial sums over complete
+dyadic levels.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.tendsto_schauder_sum_mul
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem tendsto_schauder_sum_mul {s t : ℝ} (hs : s ∈ Set.Icc (0 : ℝ) 1)
+    (ht : t ∈ Set.Icc (0 : ℝ) 1) :
+    Tendsto (fun N => ∑ m ∈ Finset.range (2 ^ N), schauder m s * schauder m t) atTop
+      (𝓝 (min s t)) := by
+  simp_rw [schauder_sum_mul _ hs ht]
+  have h0 : Tendsto (fun N : ℕ => (1 : ℝ) / 2 ^ N) atTop (𝓝 0) := by
+    simp_rw [one_div, ← inv_pow]
+    exact tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
+  have hb : Tendsto (fun N => lcBridge N s t) atTop (𝓝 0) :=
+    tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds h0
+      (fun N => lcBridge_nonneg N s t) (fun N => lcBridge_le N s t)
+  simpa using (tendsto_const_nhds (x := min s t)).sub hb
+
+/-! ### The i.i.d. Gaussian sequence -/
+
+/-- The law of an i.i.d. sequence of standard Gaussians: the product measure on `ℕ → ℝ`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.gaussSeq
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def gaussSeq : Measure (ℕ → ℝ) := Measure.infinitePi (fun _ => gaussianReal 0 1)
+
+/-- `gaussSeq` is a probability measure.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.isProbabilityMeasure_gaussSeq
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma isProbabilityMeasure_gaussSeq : IsProbabilityMeasure gaussSeq := by
+  unfold gaussSeq; infer_instance
+
+/-- Each coordinate of the Gaussian sequence is standard Gaussian.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.hasLaw_gaussSeq_coord
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma hasLaw_gaussSeq_coord (j : ℕ) :
+    HasLaw (fun ω : ℕ → ℝ => ω j) (gaussianReal 0 1) gaussSeq :=
+  (measurePreserving_eval_infinitePi (fun _ => gaussianReal 0 1) j).hasLaw
+
+/-- The scaled coordinates `a m * ω m` are independent under `gaussSeq`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.iIndepFun_gaussSeq_mul
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma iIndepFun_gaussSeq_mul (a : ℕ → ℝ) :
+    iIndepFun (fun m (ω : ℕ → ℝ) => a m * ω m) gaussSeq :=
+  iIndepFun_infinitePi (P := fun _ => gaussianReal 0 1) (X := fun m (x : ℝ) => a m * x)
+    (fun _ => measurable_const.mul measurable_id)
+
+/-- **Finite Gaussian sums.** `Σ_{m<M} a m ξ_m` for i.i.d. standard Gaussians `ξ` is centred
+Gaussian with variance `Σ_{m<M} (a m)²`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.gaussSeq_map_sum
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem gaussSeq_map_sum (a : ℕ → ℝ) (M : ℕ) :
+    gaussSeq.map (fun ω => ∑ m ∈ Finset.range M, a m * ω m)
+      = gaussianReal 0 (∑ m ∈ Finset.range M, a m ^ 2).toNNReal := by
+  have := isProbabilityMeasure_gaussSeq
+  induction M with
+  | zero =>
+    simp only [Finset.range_zero, Finset.sum_empty, Real.toNNReal_zero, gaussianReal_zero_var]
+    rw [Measure.map_const, measure_univ, one_smul]
+  | succ M ih =>
+    have hfun : (fun ω : ℕ → ℝ => ∑ m ∈ Finset.range (M + 1), a m * ω m)
+        = (fun ω => ∑ m ∈ Finset.range M, a m * ω m) + (fun ω => a M * ω M) := by
+      funext ω; simp [Finset.sum_range_succ]
+    have hind : IndepFun (fun ω : ℕ → ℝ => ∑ m ∈ Finset.range M, a m * ω m) (fun ω => a M * ω M)
+        gaussSeq := by
+      have h := (iIndepFun_gaussSeq_mul a).indepFun_finsetSum_of_notMem
+        (fun m => measurable_const.mul (measurable_pi_apply m)) (s := Finset.range M) (i := M)
+        (by simp)
+      have he : (∑ j ∈ Finset.range M, fun ω : ℕ → ℝ => a j * ω j)
+          = fun ω => ∑ m ∈ Finset.range M, a m * ω m := by
+        funext ω; simp [Finset.sum_apply]
+      rwa [he] at h
+    have hX : HasLaw (fun ω : ℕ → ℝ => ∑ m ∈ Finset.range M, a m * ω m)
+        (gaussianReal 0 (∑ m ∈ Finset.range M, a m ^ 2).toNNReal) gaussSeq :=
+      ⟨(Finset.measurable_sum _ fun m _ =>
+        measurable_const.mul (measurable_pi_apply m)).aemeasurable, ih⟩
+    have hY := gaussianReal_const_mul (hasLaw_gaussSeq_coord M) (a M)
+    rw [hfun, gaussianReal_add_gaussianReal_of_indepFun hind hX hY]
+    congr 1
+    · ring
+    · rw [Finset.sum_range_succ, Real.toNNReal_add
+        (Finset.sum_nonneg fun m _ => sq_nonneg (a m)) (sq_nonneg _)]
+      ext
+      simp [Real.coe_toNNReal _ (sq_nonneg (a M))]
+
+/-- **Limits of centred Gaussians.** If `Xₙ → Y` almost surely, each `Xₙ` is centred Gaussian with
+variance `vₙ`, and `vₙ → w`, then `Y` is centred Gaussian with variance `w` (by characteristic
+functions and dominated convergence).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.map_eq_gaussianReal_of_tendsto
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem map_eq_gaussianReal_of_tendsto {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [IsProbabilityMeasure P] {X : ℕ → Ω → ℝ} {Y : Ω → ℝ} {v : ℕ → ℝ≥0} {w : ℝ≥0}
+    (hX : ∀ n, AEMeasurable (X n) P) (hlaw : ∀ n, P.map (X n) = gaussianReal 0 (v n))
+    (hlim : ∀ᵐ ω ∂P, Tendsto (fun n => X n ω) atTop (𝓝 (Y ω)))
+    (hv : Tendsto v atTop (𝓝 w)) : P.map Y = gaussianReal 0 w := by
+  have hY : AEMeasurable Y P := aemeasurable_of_tendsto_metrizable_ae' hX hlim
+  refine Measure.ext_of_charFun (funext fun u => ?_)
+  have hce : Continuous fun x : ℝ => Complex.exp (u * x * Complex.I) := by fun_prop
+  have h1 : Tendsto (fun n => charFun (P.map (X n)) u) atTop (𝓝 (charFun (P.map Y) u)) := by
+    simp_rw [charFun_apply_real]
+    rw [integral_map hY (by fun_prop)]
+    simp_rw [fun n => integral_map (hX n) (f := fun x : ℝ => Complex.exp (u * x * Complex.I))
+      (by fun_prop)]
+    refine tendsto_integral_of_dominated_convergence (fun _ => (1 : ℝ)) (fun n => ?_)
+      (integrable_const _) (fun n => ?_) ?_
+    · exact hce.comp_aestronglyMeasurable (hX n).aestronglyMeasurable
+    · refine Eventually.of_forall fun ω => le_of_eq ?_
+      rw [show (u : ℂ) * (X n ω : ℂ) * Complex.I = ((u * X n ω : ℝ) : ℂ) * Complex.I by
+        push_cast; ring]
+      exact Complex.norm_exp_ofReal_mul_I _
+    · filter_upwards [hlim] with ω hω
+      exact (hce.tendsto _).comp hω
+  have h2 : Tendsto (fun n => charFun (P.map (X n)) u) atTop
+      (𝓝 (charFun (gaussianReal 0 w) u)) := by
+    simp_rw [hlaw, charFun_gaussianReal]
+    have hc : Continuous fun r : ℝ => Complex.exp (u * 0 * Complex.I - r * u ^ 2 / 2) := by
+      fun_prop
+    exact (hc.tendsto _).comp (NNReal.continuous_coe.tendsto _ |>.comp hv)
+  exact tendsto_nhds_unique h1 h2
+
+/-! ### Uniform convergence of the series -/
+
+/-- The Schauder functions as continuous functions on `[0,1]`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauderC
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def schauderC (m : ℕ) : C(unitInterval, ℝ) :=
+  ⟨fun t => schauder m t, (continuous_schauder m).comp continuous_subtype_val⟩
+
+/-- The Lévy–Ciesielski partial sum over the dyadic levels `< N`:
+`Σ_{m<2^N} ω m • schauderC m`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcPartial
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def lcPartial (N : ℕ) (ω : ℕ → ℝ) : C(unitInterval, ℝ) :=
+  ∑ m ∈ Finset.range (2 ^ N), ω m • schauderC m
+
+/-- Evaluation of a partial sum.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcPartial_apply
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcPartial_apply (N : ℕ) (ω : ℕ → ℝ) (t : unitInterval) :
+    lcPartial N ω t = ∑ m ∈ Finset.range (2 ^ N), ω m * schauder m t := by
+  simp [lcPartial, schauderC]
+
+/-- Each partial sum is continuous in the coefficient sequence (product topology).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.continuous_lcPartial
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma continuous_lcPartial (N : ℕ) : Continuous (lcPartial N) := by
+  unfold lcPartial
+  exact continuous_finsetSum _ fun m _ => (continuous_apply m).smul continuous_const
+
+/-- The weight bounding the sup norm of the level-`n` block: with `c = (6/5)ⁿ`,
+`(5/7)ⁿ/2 · (c + Σ_{k<2ⁿ} ξ_{n,k}⁴ / c³)`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcWeight
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def lcWeight (n : ℕ) (ω : ℕ → ℝ) : ℝ :=
+  (5 / 7 : ℝ) ^ n / 2 *
+    ((6 / 5 : ℝ) ^ n + ∑ k ∈ Finset.range (2 ^ n), ω (2 ^ n + k) ^ 4 / ((6 / 5 : ℝ) ^ n) ^ 3)
+
+/-- The block weights are nonnegative.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcWeight_nonneg
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcWeight_nonneg (n : ℕ) (ω : ℕ → ℝ) : 0 ≤ lcWeight n ω := by
+  unfold lcWeight
+  have : 0 ≤ ∑ k ∈ Finset.range (2 ^ n), ω (2 ^ n + k) ^ 4 / ((6 / 5 : ℝ) ^ n) ^ 3 :=
+    Finset.sum_nonneg fun k _ => by positivity
+  positivity
+
+/-- The block weights are measurable.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.measurable_lcWeight
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma measurable_lcWeight (n : ℕ) : Measurable (lcWeight n) := by
+  unfold lcWeight
+  refine measurable_const.mul (measurable_const.add (Finset.measurable_sum _ fun k _ => ?_))
+  exact ((measurable_pi_apply _).pow_const 4).div_const _
+
+/-- `|x| ≤ c + x⁴/c³` for `c > 0`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lc_abs_le_add_pow_four
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lc_abs_le_add_pow_four (x : ℝ) {c : ℝ} (hc : 0 < c) : |x| ≤ c + x ^ 4 / c ^ 3 := by
+  have hc3 : 0 < c ^ 3 := by positivity
+  rw [← Even.pow_abs (by decide : Even 4) x]
+  set y := |x| with hy
+  have hy0 : 0 ≤ y := abs_nonneg x
+  rw [← sub_le_iff_le_add', le_div_iff₀ hc3]
+  rcases le_total y c with h | h
+  · have : (y - c) * c ^ 3 ≤ 0 := mul_nonpos_of_nonpos_of_nonneg (by linarith) hc3.le
+    linarith [pow_nonneg hy0 4]
+  · have h3 : c ^ 3 ≤ y ^ 3 := pow_le_pow_left₀ hc.le h 3
+    have h4 : y * c ^ 3 ≤ y * y ^ 3 := mul_le_mul_of_nonneg_left h3 hy0
+    have h5 : y ^ 4 = y * y ^ 3 := by ring
+    nlinarith
+
+/-- `2^{N/2} · 2^{-N}/2 ≤ (5/7)^N/2`, from `(7/5)² ≤ 2`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lc_sqrt_div_le
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lc_sqrt_div_le (N : ℕ) : Real.sqrt (2 ^ N) * (1 / 2 ^ N / 2) ≤ (5 / 7 : ℝ) ^ N / 2 := by
+  have h2 : (0 : ℝ) < 2 ^ N := by positivity
+  have hs : 0 < Real.sqrt (2 ^ N) := Real.sqrt_pos.2 h2
+  have hle : (7 / 5 : ℝ) ^ N ≤ Real.sqrt (2 ^ N) := by
+    rw [Real.le_sqrt (by positivity) h2.le, ← pow_mul, mul_comm, pow_mul]
+    exact pow_le_pow_left₀ (by norm_num) (by norm_num) N
+  have hsq : Real.sqrt (2 ^ N) * Real.sqrt (2 ^ N) = 2 ^ N := Real.mul_self_sqrt h2.le
+  have h75 : (5 / 7 : ℝ) ^ N * (7 / 5) ^ N = 1 := by rw [← mul_pow]; norm_num
+  have key : Real.sqrt (2 ^ N) * (1 / 2 ^ N) ≤ (5 / 7 : ℝ) ^ N := by
+    rw [show Real.sqrt (2 ^ N) * (1 / 2 ^ N) = 1 / Real.sqrt (2 ^ N) by
+      field_simp; exact Real.sq_sqrt h2.le, div_le_iff₀ hs]
+    nlinarith [mul_le_mul_of_nonneg_left hle (pow_pos (by norm_num : (0 : ℝ) < 5 / 7) N).le]
+  calc Real.sqrt (2 ^ N) * (1 / 2 ^ N / 2) = Real.sqrt (2 ^ N) * (1 / 2 ^ N) / 2 := by ring
+    _ ≤ (5 / 7 : ℝ) ^ N / 2 := div_le_div_of_nonneg_right key (by norm_num)
+
+/-- The level-`N` block `lcPartial (N+1) - lcPartial N` as a sum over the positions.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcPartial_succ_sub
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma lcPartial_succ_sub (N : ℕ) (ω : ℕ → ℝ) :
+    lcPartial (N + 1) ω - lcPartial N ω
+      = ∑ k ∈ Finset.range (2 ^ N), ω (2 ^ N + k) • schauderC (2 ^ N + k) := by
+  unfold lcPartial
+  rw [show 2 ^ (N + 1) = 2 ^ N + 2 ^ N by ring, Finset.sum_range_add, add_sub_cancel_left]
+
+/-- **Block bound.** The sup norm of the level-`N` block is at most `lcWeight N ω` (disjoint
+supports of the level-`N` Schauder functions).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.norm_lcPartial_succ_sub_le
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem norm_lcPartial_succ_sub_le (N : ℕ) (ω : ℕ → ℝ) :
+    ‖lcPartial (N + 1) ω - lcPartial N ω‖ ≤ lcWeight N ω := by
+  set c : ℝ := (6 / 5 : ℝ) ^ N with hc
+  have hc0 : 0 < c := by positivity
+  set C : ℝ := c + ∑ k ∈ Finset.range (2 ^ N), ω (2 ^ N + k) ^ 4 / c ^ 3 with hC
+  have hCk : ∀ k ∈ Finset.range (2 ^ N), |ω (2 ^ N + k)| ≤ C := fun k hk => by
+    have h1 := lc_abs_le_add_pow_four (ω (2 ^ N + k)) hc0
+    have h2 := Finset.single_le_sum (f := fun k => ω (2 ^ N + k) ^ 4 / c ^ 3)
+      (fun j _ => by positivity) hk
+    rw [hC]
+    linarith
+  have hC0 : 0 ≤ C := (abs_nonneg _).trans (hCk 0 (by simp))
+  have hW : lcWeight N ω = (5 / 7 : ℝ) ^ N / 2 * C := rfl
+  rw [lcPartial_succ_sub, hW]
+  refine (ContinuousMap.norm_le _ (by positivity)).2 fun t => ?_
+  simp only [ContinuousMap.coe_sum, ContinuousMap.coe_smul, Finset.sum_apply, Pi.smul_apply,
+    smul_eq_mul, Real.norm_eq_abs, schauderC, ContinuousMap.coe_mk]
+  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+  have hh : (0 : ℝ) < 1 / 2 ^ N := by positivity
+  calc ∑ k ∈ Finset.range (2 ^ N), |ω (2 ^ N + k) * schauder (2 ^ N + k) t|
+      = ∑ k ∈ Finset.range (2 ^ N), |ω (2 ^ N + k)| * schauderLevel N k t := by
+        refine Finset.sum_congr rfl fun k hk => ?_
+        rw [schauder_two_pow_add (Finset.mem_range.1 hk), abs_mul,
+          abs_of_nonneg (schauderLevel_nonneg _ _ _)]
+    _ ≤ C * (Real.sqrt (2 ^ N) * (1 / 2 ^ N / 2)) := by
+        refine lc_sum_le_of_atMostOne _ _ (by positivity) (fun k hk => ?_) ?_
+        · have h1 := mul_le_mul (hCk k hk) (lcTent_le (k / 2 ^ N) _ (t : ℝ) hh.le)
+            (lcTent_nonneg _ _ _) hC0
+          have h2 := mul_le_mul_of_nonneg_left h1 (Real.sqrt_nonneg (2 ^ N))
+          rw [schauderLevel]
+          linarith
+        · intro i _ j _ hi hj
+          have hi' : lcTent (i / 2 ^ N) (1 / 2 ^ N) t ≠ 0 := fun h0 => hi (by
+            rw [schauderLevel, h0]; ring)
+          have hj' : lcTent (j / 2 ^ N) (1 / 2 ^ N) t ≠ 0 := fun h0 => hj (by
+            rw [schauderLevel, h0]; ring)
+          obtain ⟨hi1, hi2⟩ := lcTent_mem_of_ne_zero hi'
+          obtain ⟨hj1, hj2⟩ := lcTent_mem_of_ne_zero hj'
+          refine lc_dyadic_unique hh le_rfl (u := (t : ℝ)) (v := (t : ℝ)) ?_ ?_ ?_ ?_ <;>
+            · rwa [mul_one_div]
+    _ ≤ C * ((5 / 7 : ℝ) ^ N / 2) := mul_le_mul_of_nonneg_left (lc_sqrt_div_le N) hC0
+    _ = (5 / 7 : ℝ) ^ N / 2 * C := mul_comm _ _
+
+/-! ### Almost sure summability of the block bounds -/
+
+/-- The fourth moment `∫ x⁴ dN(0,1)` of the standard Gaussian (its value, `3`, is not needed).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.gaussFourth
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def gaussFourth : ℝ := ∫ x, x ^ 4 ∂gaussianReal 0 1
+
+/-- `x⁴` is integrable for the standard Gaussian.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.integrable_pow_four_gaussianReal
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma integrable_pow_four_gaussianReal :
+    Integrable (fun x : ℝ => x ^ 4) (gaussianReal 0 1) := by
+  have h := (memLp_id_gaussianReal' (μ := 0) (v := 1) ((4 : ℕ) : ℝ≥0∞)
+    (by simp)).integrable_norm_pow (by norm_num)
+  simpa [Real.norm_eq_abs, Even.pow_abs (by decide : Even 4)] using h
+
+/-- The fourth power of a coordinate is integrable under `gaussSeq`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.integrable_gaussSeq_coord_pow
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma integrable_gaussSeq_coord_pow (j : ℕ) :
+    Integrable (fun ω : ℕ → ℝ => ω j ^ 4) gaussSeq := by
+  have hi := integrable_pow_four_gaussianReal
+  rw [← (hasLaw_gaussSeq_coord j).map_eq] at hi
+  exact (integrable_map_measure (g := fun x : ℝ => x ^ 4)
+    (by fun_prop : Continuous fun x : ℝ => x ^ 4).aestronglyMeasurable
+    (measurable_pi_apply j).aemeasurable).1 hi
+
+/-- The fourth moment of each coordinate under `gaussSeq` is `gaussFourth`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.integral_gaussSeq_coord_pow
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma integral_gaussSeq_coord_pow (j : ℕ) : ∫ ω, ω j ^ 4 ∂gaussSeq = gaussFourth := by
+  unfold gaussFourth
+  rw [← (hasLaw_gaussSeq_coord j).map_eq, integral_map (measurable_pi_apply j).aemeasurable
+    (by fun_prop)]
+
+/-- The block weights are integrable.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.integrable_lcWeight
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma integrable_lcWeight (n : ℕ) : Integrable (lcWeight n) gaussSeq := by
+  have := isProbabilityMeasure_gaussSeq
+  unfold lcWeight
+  exact ((integrable_const _).add (integrable_finsetSum _ fun k _ =>
+    (integrable_gaussSeq_coord_pow _).div_const _)).const_mul _
+
+/-- The expectation of the level-`n` block weight.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.integral_lcWeight
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma integral_lcWeight (n : ℕ) :
+    ∫ ω, lcWeight n ω ∂gaussSeq
+      = (5 / 7 : ℝ) ^ n / 2 * ((6 / 5 : ℝ) ^ n + 2 ^ n * gaussFourth / ((6 / 5 : ℝ) ^ n) ^ 3) := by
+  have := isProbabilityMeasure_gaussSeq
+  unfold lcWeight
+  rw [integral_const_mul, integral_add (integrable_const _) (integrable_finsetSum _ fun k _ =>
+    (integrable_gaussSeq_coord_pow _).div_const _), integral_const, integral_finsetSum _
+    fun k _ => (integrable_gaussSeq_coord_pow _).div_const _]
+  simp_rw [integral_div, integral_gaussSeq_coord_pow]
+  simp [Finset.sum_const, Finset.card_range]
+  ring
+
+/-- The expected block weights are summable (two geometric series, ratios `6/7` and `1250/1512`).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.summable_integral_lcWeight
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma summable_integral_lcWeight : Summable fun n => ∫ ω, lcWeight n ω ∂gaussSeq := by
+  simp_rw [integral_lcWeight]
+  have h1 : Summable fun n : ℕ => (1 / 2 : ℝ) * ((5 / 7 : ℝ) * (6 / 5)) ^ n :=
+    (summable_geometric_of_lt_one (by norm_num) (by norm_num)).mul_left _
+  have h2 : Summable fun n : ℕ => gaussFourth / 2 * ((5 / 7 : ℝ) * 2 / (6 / 5) ^ 3) ^ n :=
+    (summable_geometric_of_lt_one (by norm_num) (by norm_num)).mul_left _
+  refine (h1.add h2).congr fun n => ?_
+  have e : ((6 / 5 : ℝ) ^ 3) ^ n = ((6 / 5 : ℝ) ^ n) ^ 3 := by
+    rw [← pow_mul, ← pow_mul, mul_comm]
+  rw [mul_pow (5 / 7 : ℝ) (6 / 5), div_pow (5 / 7 * 2 : ℝ), mul_pow (5 / 7 : ℝ) 2, e]
+  ring
+
+/-- The set where the block bounds are summable (it has full measure).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.lcGood
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+def lcGood : Set (ℕ → ℝ) := {ω | ∑' n, ENNReal.ofReal (lcWeight n ω) < ∞}
+
+/-- The total block weight `Σ' ofReal (lcWeight n ω)` is measurable.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.measurable_lcWeight_tsum
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma measurable_lcWeight_tsum :
+    Measurable fun ω : ℕ → ℝ => ∑' n, ENNReal.ofReal (lcWeight n ω) :=
+  Measurable.tsum fun n => (measurable_lcWeight n).ennreal_ofReal
+
+/-- The good set is measurable.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.measurableSet_lcGood
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma measurableSet_lcGood : MeasurableSet lcGood :=
+  measurableSet_lt measurable_lcWeight_tsum measurable_const
+
+/-- Almost every Gaussian sequence lies in `lcGood`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.ae_mem_lcGood
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem ae_mem_lcGood : ∀ᵐ ω ∂gaussSeq, ω ∈ lcGood := by
+  refine ae_lt_top measurable_lcWeight_tsum ?_
+  rw [lintegral_tsum fun n => (measurable_lcWeight n).ennreal_ofReal.aemeasurable]
+  have he : ∀ n, ∫⁻ ω, ENNReal.ofReal (lcWeight n ω) ∂gaussSeq
+      = ENNReal.ofReal (∫ ω, lcWeight n ω ∂gaussSeq) := fun n =>
+    (ofReal_integral_eq_lintegral_ofReal (integrable_lcWeight n)
+      (Eventually.of_forall fun ω => lcWeight_nonneg n ω)).symm
+  simp_rw [he]
+  rw [← ENNReal.ofReal_tsum_of_nonneg (fun n => integral_nonneg fun ω => lcWeight_nonneg n ω)
+    summable_integral_lcWeight]
+  exact ENNReal.ofReal_ne_top
+
+/-- On `lcGood` the block weights are summable.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.summable_lcWeight_of_mem
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma summable_lcWeight_of_mem {ω : ℕ → ℝ} (hω : ω ∈ lcGood) :
+    Summable fun n => lcWeight n ω := by
+  refine summable_of_sum_range_le (c := (∑' n, ENNReal.ofReal (lcWeight n ω)).toReal)
+    (fun n => lcWeight_nonneg n ω) fun n => ?_
+  have h : ∑ i ∈ Finset.range n, lcWeight i ω
+      = (∑ i ∈ Finset.range n, ENNReal.ofReal (lcWeight i ω)).toReal := by
+    rw [← ENNReal.ofReal_sum_of_nonneg fun i _ => lcWeight_nonneg i ω,
+      ENNReal.toReal_ofReal (Finset.sum_nonneg fun i _ => lcWeight_nonneg i ω)]
+  rw [h]
+  exact ENNReal.toReal_mono hω.ne (ENNReal.sum_le_tsum _)
+
+/-! ### The Lévy–Ciesielski path -/
+
+/-- On `lcGood` the partial sums are uniformly Cauchy.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.cauchySeq_lcPartial
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma cauchySeq_lcPartial {ω : ℕ → ℝ} (hω : ω ∈ lcGood) :
+    CauchySeq fun N => lcPartial N ω := by
+  refine cauchySeq_of_summable_dist ((summable_lcWeight_of_mem hω).of_nonneg_of_le
+    (fun n => dist_nonneg) fun n => ?_)
+  rw [dist_comm, dist_eq_norm]
+  exact norm_lcPartial_succ_sub_le n ω
+
+open Classical in
+/-- **The Lévy–Ciesielski path.** On `lcGood` it is the uniform limit of the partial sums
+`lcPartial N ω`; off `lcGood` (a null set) it is `0`. Its paths are continuous for every `ω`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.levyPath
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+noncomputable def levyPath (ω : ℕ → ℝ) : C(unitInterval, ℝ) :=
+  if ω ∈ lcGood then limUnder atTop (fun N => lcPartial N ω) else 0
+
+/-- On `lcGood` the partial sums converge uniformly to `levyPath ω`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.tendsto_lcPartial_levyPath
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem tendsto_lcPartial_levyPath {ω : ℕ → ℝ} (hω : ω ∈ lcGood) :
+    Tendsto (fun N => lcPartial N ω) atTop (𝓝 (levyPath ω)) := by
+  simp only [levyPath, hω, ite_true]
+  exact tendsto_nhds_limUnder (cauchySeq_tendsto_of_complete (cauchySeq_lcPartial hω))
+
+/-- Pointwise form: `Σ_{m<2^N} ω m schauder m t → levyPath ω t` on `lcGood`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.tendsto_lcPartial_apply
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem tendsto_lcPartial_apply {ω : ℕ → ℝ} (hω : ω ∈ lcGood) (t : unitInterval) :
+    Tendsto (fun N => ∑ m ∈ Finset.range (2 ^ N), ω m * schauder m t) atTop (𝓝 (levyPath ω t)) := by
+  simp_rw [← lcPartial_apply]
+  exact ((continuous_eval_const t).tendsto _).comp (tendsto_lcPartial_levyPath hω)
+
+/-- Every Schauder function vanishes at `0`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.schauder_apply_zero
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+lemma schauder_apply_zero (m : ℕ) : schauder m 0 = 0 := by
+  unfold schauder
+  split_ifs
+  · rfl
+  · rw [schauderLevel, lcTent_of_le (by positivity), mul_zero]
+
+/-- The path starts at `0`, for every `ω`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.levyPath_zero
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/LevyCiesielski.lean). -/
+theorem levyPath_zero (ω : ℕ → ℝ) : levyPath ω 0 = 0 := by
+  by_cases hω : ω ∈ lcGood
+  · refine tendsto_nhds_unique (tendsto_lcPartial_apply hω 0) ?_
+    simp [schauder_apply_zero]
+  · simp [levyPath, hω]
+
+end Cochrane.Monetarism.TidyR7BrownianSchauder
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Standard Brownian motion on `[0,1]`: Gaussian process with covariance `min s t`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). Infrastructure for (1.32) with diffusive
+bonds (chunk I5a): the Lévy–Ciesielski path of `TidyR7BrownianSchauder` is a Brownian motion on
+`[0,1]`, realised on the Gaussian sequence space `(ℕ → ℝ, gaussSeq)`.
+
+Every declaration is restated (proofs kept) from the module `LimitTheorems/BrownianMotion.lean`
+of the LeanDynamicProgramming project (namespace MeynTweedie.LimitTheorems there). Only what
+the extension to `[0, ∞)` (`TidyR7BrownianExist`) needs is copied: the Wiener-measure and
+path-space parts are not.
+
+* `brownian t ω = levyPath ω t`; `continuous_brownian` (every path), `brownian_zero` (every
+  path), `measurable_levyPath`, `measurable_brownian`.
+* `gaussSeq_map_sum_brownian`: `Σ_i c i B(t i)` has law `N(0, Σ_{i,j} c i c j min(t i, t j))`.
+* `hasGaussianLaw_brownian_vec`, `isGaussianProcess_brownian`: Mathlib's `IsGaussianProcess`.
+* `gaussSeq_map_brownian`, `covariance_brownian`: `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t`.
+-/
+
+namespace Cochrane.Monetarism.TidyR7BrownianUnit
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.Monetarism.TidyR7BrownianSchauder
+open scoped ENNReal NNReal
+
+/-- **Brownian motion on `[0,1]`**, realised on the Gaussian sequence space `(ℕ → ℝ, gaussSeq)`:
+`brownian t ω = levyPath ω t`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+noncomputable def brownian (t : unitInterval) (ω : ℕ → ℝ) : ℝ := levyPath ω t
+
+/-- Every path of `brownian` is continuous.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.continuous_brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem continuous_brownian (ω : ℕ → ℝ) : Continuous fun t => brownian t ω :=
+  (levyPath ω).continuous
+
+/-- Every path of `brownian` starts at `0`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.brownian_zero
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem brownian_zero (ω : ℕ → ℝ) : brownian 0 ω = 0 := levyPath_zero ω
+
+open Classical in
+/-- The truncated partial sums converge, for every `ω`, to `levyPath ω`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.tendsto_lcPartial_ite
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+lemma tendsto_lcPartial_ite (ω : ℕ → ℝ) :
+    Tendsto (fun N => if ω ∈ lcGood then lcPartial N ω else 0) atTop (𝓝 (levyPath ω)) := by
+  by_cases hω : ω ∈ lcGood
+  · simpa [hω] using tendsto_lcPartial_levyPath hω
+  · simp only [hω, ite_false, levyPath]
+    exact tendsto_const_nhds
+
+/-- The path map `ω ↦ levyPath ω` is measurable, for any Borel σ-algebra on the path space.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.measurable_levyPath
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem measurable_levyPath [MeasurableSpace C(unitInterval, ℝ)]
+    [BorelSpace C(unitInterval, ℝ)] : Measurable levyPath := by
+  classical
+  refine measurable_of_tendsto_metrizable
+    (f := fun N ω => if ω ∈ lcGood then lcPartial N ω else 0) (fun N => ?_)
+    (tendsto_pi_nhds.2 tendsto_lcPartial_ite)
+  exact Measurable.ite measurableSet_lcGood (continuous_lcPartial N).measurable measurable_const
+
+/-- Each `brownian t` is measurable.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.measurable_brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem measurable_brownian (t : unitInterval) : Measurable (brownian t) := by
+  let : MeasurableSpace C(unitInterval, ℝ) := borel _
+  have : BorelSpace C(unitInterval, ℝ) := ⟨rfl⟩
+  exact (continuous_eval_const t).measurable.comp measurable_levyPath
+
+/-- The variance `Σ_{i,j} c i c j min (t i) (t j)` of `Σ_i c i B(t i)`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.bmVar
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+noncomputable def bmVar {ι : Type*} [Fintype ι] (t : ι → unitInterval) (c : ι → ℝ) : ℝ :=
+  ∑ i, ∑ j, c i * c j * min (t i : ℝ) (t j)
+
+/-- The coefficient of `ξ_m` in `Σ_i c i B(t i)` of the Schauder series.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.bmCoeff
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+noncomputable def bmCoeff {ι : Type*} [Fintype ι] (t : ι → unitInterval) (c : ι → ℝ) (m : ℕ) :
+    ℝ :=
+  ∑ i, c i * schauder m (t i)
+
+/-- The partial variances converge: `Σ_{m<2^N} (bmCoeff t c m)² → bmVar t c`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.tendsto_sum_bmCoeff_sq
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+lemma tendsto_sum_bmCoeff_sq {ι : Type*} [Fintype ι] (t : ι → unitInterval) (c : ι → ℝ) :
+    Tendsto (fun N => ∑ m ∈ Finset.range (2 ^ N), bmCoeff t c m ^ 2) atTop (𝓝 (bmVar t c)) := by
+  have he : ∀ N, ∑ m ∈ Finset.range (2 ^ N), bmCoeff t c m ^ 2
+      = ∑ i, ∑ j, c i * c j * ∑ m ∈ Finset.range (2 ^ N), schauder m (t i) * schauder m (t j) := by
+    intro N
+    simp_rw [bmCoeff, sq, Finset.sum_mul_sum, Finset.mul_sum]
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun m _ => ?_
+    ring
+  simp_rw [he]
+  exact tendsto_finsetSum _ fun i _ => tendsto_finsetSum _ fun j _ =>
+    (tendsto_schauder_sum_mul (t i).2 (t j).2).const_mul _
+
+/-- **Finite-dimensional laws of Brownian motion.** For a finite family of times `t i` and
+coefficients `c i`, `Σ_i c i B(t i)` is centred Gaussian with variance
+`Σ_{i,j} c i c j min (t i) (t j)`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.gaussSeq_map_sum_brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem gaussSeq_map_sum_brownian {ι : Type*} [Fintype ι] (t : ι → unitInterval) (c : ι → ℝ) :
+    gaussSeq.map (fun ω => ∑ i, c i * brownian (t i) ω) = gaussianReal 0 (bmVar t c).toNNReal := by
+  have := isProbabilityMeasure_gaussSeq
+  refine map_eq_gaussianReal_of_tendsto
+    (X := fun N ω => ∑ m ∈ Finset.range (2 ^ N), bmCoeff t c m * ω m)
+    (v := fun N => (∑ m ∈ Finset.range (2 ^ N), bmCoeff t c m ^ 2).toNNReal)
+    (fun N => (Finset.measurable_sum _ fun m _ =>
+      measurable_const.mul (measurable_pi_apply m)).aemeasurable)
+    (fun N => gaussSeq_map_sum _ _) ?_
+    ((continuous_real_toNNReal.tendsto _).comp (tendsto_sum_bmCoeff_sq t c))
+  filter_upwards [ae_mem_lcGood] with ω hω
+  have he : ∀ N, ∑ m ∈ Finset.range (2 ^ N), bmCoeff t c m * ω m
+      = ∑ i, c i * ∑ m ∈ Finset.range (2 ^ N), ω m * schauder m (t i) := by
+    intro N
+    simp_rw [bmCoeff, Finset.sum_mul, Finset.mul_sum]
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun m _ => ?_
+    ring
+  simp_rw [he]
+  exact tendsto_finsetSum _ fun i _ => (tendsto_lcPartial_apply hω (t i)).const_mul _
+
+/-! ### Gaussian process and covariance -/
+
+/-- Any finite vector `(B(u i))_i` of values of Brownian motion is jointly Gaussian.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.hasGaussianLaw_brownian_vec
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem hasGaussianLaw_brownian_vec {ι : Type*} [Finite ι] (u : ι → unitInterval) :
+    HasGaussianLaw (fun ω i => brownian (u i) ω) gaussSeq := by
+  classical
+  have := Fintype.ofFinite ι
+  have hV : Measurable fun ω (i : ι) => brownian (u i) ω :=
+    Measurable.of_eval fun i => measurable_brownian (u i)
+  refine ⟨hV.aemeasurable, isGaussian_of_map_eq_gaussianReal fun L =>
+    ⟨0, (bmVar u fun i => L fun j => if i = j then 1 else 0).toNNReal, ?_⟩⟩
+  rw [Measure.map_map L.continuous.measurable hV]
+  have hL : (L ∘ fun ω (i : ι) => brownian (u i) ω)
+      = fun ω => ∑ i, L (fun j => if i = j then 1 else 0) * brownian (u i) ω := by
+    funext ω
+    rw [Function.comp_apply, ← ContinuousLinearMap.coe_coe, LinearMap.pi_apply_eq_sum_univ]
+    simp_rw [smul_eq_mul, mul_comm (brownian _ ω)]
+  rw [hL]
+  exact gaussSeq_map_sum_brownian u _
+
+/-- Brownian motion is a Gaussian process (in Mathlib's sense, `IsGaussianProcess`).
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.isGaussianProcess_brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem isGaussianProcess_brownian : IsGaussianProcess brownian gaussSeq :=
+  ⟨fun I => hasGaussianLaw_brownian_vec (fun i : I => (i : unitInterval))⟩
+
+/-- Each `B(t)` is square integrable.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.memLp_brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+lemma memLp_brownian (t : unitInterval) : MemLp (brownian t) 2 gaussSeq :=
+  (isGaussianProcess_brownian.hasGaussianLaw_eval t).memLp_two
+
+/-- The variance of a random variable with law `N(μ, v)` is `v`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.variance_of_map_eq_gaussianReal
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+lemma variance_of_map_eq_gaussianReal {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {X : Ω → ℝ} (hX : AEMeasurable X P) {μ : ℝ} {v : ℝ≥0} (h : P.map X = gaussianReal μ v) :
+    Var[X; P] = v := by
+  have := variance_map (X := id) (μ := P) measurable_id.aemeasurable hX
+  rw [h, variance_id_gaussianReal] at this
+  exact this.symm
+
+/-- `B(t)` has law `N(0, t)`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.gaussSeq_map_brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem gaussSeq_map_brownian (t : unitInterval) :
+    gaussSeq.map (brownian t) = gaussianReal 0 (t : ℝ).toNNReal := by
+  have h := gaussSeq_map_sum_brownian (fun _ : Unit => t) (fun _ => 1)
+  simp only [Finset.univ_unique, Finset.sum_singleton, one_mul, bmVar, mul_one, min_self] at h
+  exact h
+
+/-- **Covariance of Brownian motion**: `Cov(B(s), B(t)) = min s t`.
+Cochrane (2023), Online Appendix A1 §1.6, pp. 567–568: infrastructure for (1.32) with
+diffusive bonds. Restated from MeynTweedie.LimitTheorems.covariance_brownian
+(LeanDynamicProgramming, StochasticStability/LimitTheorems/LimitTheorems/BrownianMotion.lean). -/
+theorem covariance_brownian (s t : unitInterval) :
+    cov[brownian s, brownian t; gaussSeq] = min (s : ℝ) t := by
+  have := isProbabilityMeasure_gaussSeq
+  have hsum := gaussSeq_map_sum_brownian ![s, t] ![1, 1]
+  simp only [Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one, one_mul, bmVar,
+    mul_one, min_self] at hsum
+  have hvs := variance_of_map_eq_gaussianReal (measurable_brownian s).aemeasurable
+    (gaussSeq_map_brownian s)
+  have hvt := variance_of_map_eq_gaussianReal (measurable_brownian t).aemeasurable
+    (gaussSeq_map_brownian t)
+  have hv := variance_of_map_eq_gaussianReal
+    ((measurable_brownian s).add (measurable_brownian t)).aemeasurable hsum
+  have hadd := variance_add (memLp_brownian s) (memLp_brownian t)
+  have hs0 : (0 : ℝ) ≤ s := s.2.1
+  have ht0 : (0 : ℝ) ≤ t := t.2.1
+  have hm0 : (0 : ℝ) ≤ min (s : ℝ) t := le_min hs0 ht0
+  rw [Real.coe_toNNReal _ hs0] at hvs
+  rw [Real.coe_toNNReal _ ht0] at hvt
+  rw [min_comm (t : ℝ) s, Real.coe_toNNReal _ (by linarith)] at hv
+  rw [hvs, hvt] at hadd
+  linarith
+
+end Cochrane.Monetarism.TidyR7BrownianUnit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Brownian motion on `[0, ∞)` exists (Mathlib's `IsBrownianReal`)
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The continuous-time stochastic step (1.32)
+`E_t d(BΛ/P) = Λ dB/P + B E_t d(Λ/P)` needs, for bonds or discount factors with a diffusive
+component, a Brownian integrator. Mathlib v4.34 defines `ProbabilityTheory.IsBrownianReal`
+(index `ℝ≥0`, the Brownian finite-dimensional laws and a.s. continuous paths) but proves no
+existence theorem. This module (chunk I5a, infrastructure for (1.32) with diffusive bonds)
+supplies one.
+
+## Route: time change of the `[0,1]` motion (no gluing of independent copies)
+
+With `B` the Lévy–Ciesielski Brownian motion on `[0,1]` (`TidyR7BrownianUnit.brownian`, on the
+Gaussian sequence space `(ℕ → ℝ, gaussSeq)`), put `u(t) = t/(1+t) ∈ [0,1)` (`bmTime`) and
+`W(t) = (1+t) B(u(t)) − t B(1)` (`bmPath`). Then `W(t) = (1+t) β(u(t))` for the Brownian bridge
+`β(u) = B(u) − u B(1)`, whose covariance is `min(u,v) − uv`; for `s ≤ t`,
+`(1+s)(1+t)(u(s) − u(s)u(t)) = s`. So `W` is a centred Gaussian process with covariance
+`min s t`. This is shorter than gluing independent copies on `ℕ × ℕ → ℝ`: one Gaussian sequence,
+no floor/fractional-part bookkeeping, no independence across blocks, and every path is
+continuous because `u` and `B(·, ω)` are.
+
+## Main results
+
+* `continuous_bmPath`, `bmPath_zero`, `measurable_bmPath`: EVERY path is continuous, starts at
+  `0`, and each `W t` is measurable.
+* `isGaussianProcess_bmPath` (Mathlib `IsGaussianProcess` on `ℝ≥0`), `integral_bmPath`
+  (centred), `covariance_bmPath` (`cov[W s, W t] = min s t`).
+* `isPreBrownianReal_bmPath`, `isBrownianReal_bmPath`: Mathlib's predicates hold.
+* `exists_isBrownianReal`, `exists_isBrownianReal_measurable_continuous` (headline).
+* Non-vacuity: `bmPath_one` (`W 1 = 2 B(1/2) − B(1)` pathwise) and `hasLaw_bmPath_two_sub_half`
+  (`W 2 − W (1/2) ~ N(0, 3/2)`).
+-/
+
+namespace Cochrane.Monetarism.TidyR7BrownianExist
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.Monetarism.TidyR7BrownianSchauder Cochrane.Monetarism.TidyR7BrownianUnit
+open scoped ENNReal NNReal
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (infrastructure for (1.32) with diffusive bonds): the
+time change `u(t) = t/(1+t)`, mapping `[0, ∞)` into `[0, 1)`. -/
+noncomputable def bmTime (t : ℝ≥0) : unitInterval :=
+  ⟨(t : ℝ) / (1 + t), div_nonneg t.coe_nonneg (by positivity),
+    (div_le_one (by positivity)).2 (by linarith)⟩
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the value of the time change `bmTime`. -/
+lemma coe_bmTime (t : ℝ≥0) : ((bmTime t : unitInterval) : ℝ) = (t : ℝ) / (1 + t) := rfl
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the time change `bmTime` is continuous. -/
+lemma continuous_bmTime : Continuous bmTime := by
+  refine Continuous.subtype_mk ?_ _
+  exact NNReal.continuous_coe.div (continuous_const.add NNReal.continuous_coe)
+    fun t => by positivity
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the time change starts at `0`. -/
+lemma bmTime_zero : bmTime 0 = 0 := by
+  ext
+  simp [coe_bmTime]
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the time change is monotone,
+`s ≤ t → s/(1+s) ≤ t/(1+t)`. -/
+lemma coe_bmTime_mono {s t : ℝ≥0} (hst : s ≤ t) :
+    ((bmTime s : unitInterval) : ℝ) ≤ bmTime t := by
+  have h : (s : ℝ) ≤ t := hst
+  have hs : (0 : ℝ) ≤ s := s.coe_nonneg
+  rw [coe_bmTime, coe_bmTime, div_le_div_iff₀ (by positivity) (by positivity)]
+  nlinarith
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (infrastructure for (1.32) with diffusive bonds):
+**the Brownian motion on `[0, ∞)`**, `W(t) = (1+t) B(t/(1+t)) − t B(1)` for the `[0,1]` motion
+`B = brownian` on the Gaussian sequence space `(ℕ → ℝ, gaussSeq)`. -/
+noncomputable def bmPath (t : ℝ≥0) (ω : ℕ → ℝ) : ℝ :=
+  (1 + (t : ℝ)) * brownian (bmTime t) ω - t * brownian 1 ω
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: every path of `bmPath` is continuous. -/
+theorem continuous_bmPath (ω : ℕ → ℝ) : Continuous fun t => bmPath t ω := by
+  have h : Continuous fun t => brownian (bmTime t) ω :=
+    (continuous_brownian ω).comp continuous_bmTime
+  exact ((continuous_const.add NNReal.continuous_coe).mul h).sub
+    (NNReal.continuous_coe.mul continuous_const)
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: every path of `bmPath` starts at `0`. -/
+theorem bmPath_zero (ω : ℕ → ℝ) : bmPath 0 ω = 0 := by
+  simp [bmPath, bmTime_zero, brownian_zero]
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: each `bmPath t` is measurable. -/
+theorem measurable_bmPath (t : ℝ≥0) : Measurable (bmPath t) :=
+  (measurable_const.mul (measurable_brownian _)).sub (measurable_const.mul (measurable_brownian _))
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `bmPath` is a Gaussian process (Mathlib's
+`IsGaussianProcess`): each `W t` is a fixed linear combination of the two values
+`B(t/(1+t))`, `B(1)` of the Gaussian process `TidyR7BrownianUnit.brownian`. -/
+theorem isGaussianProcess_bmPath : IsGaussianProcess bmPath gaussSeq := by
+  classical
+  refine isGaussianProcess_brownian.of_isGaussianProcess fun t => ?_
+  let I : Finset unitInterval := {bmTime t, 1}
+  have h1 : bmTime t ∈ I := by simp [I]
+  have h2 : (1 : unitInterval) ∈ I := by simp [I]
+  refine ⟨I, (1 + (t : ℝ)) • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : I => ℝ) ⟨_, h1⟩
+    - (t : ℝ) • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : I => ℝ) ⟨_, h2⟩, fun ω => ?_⟩
+  simp [bmPath, Finset.restrict]
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: each `B(u)` of the `[0,1]` motion is centred.
+The mean half of `TidyR7BrownianUnit.gaussSeq_map_brownian`. -/
+lemma integral_brownian (u : unitInterval) : ∫ ω, brownian u ω ∂gaussSeq = 0 := by
+  have h : HasLaw (brownian u) (gaussianReal 0 (u : ℝ).toNNReal) gaussSeq :=
+    ⟨(measurable_brownian u).aemeasurable, gaussSeq_map_brownian u⟩
+  rw [h.integral_eq, integral_id_gaussianReal]
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `bmPath` is centred, `E[W t] = 0`. -/
+theorem integral_bmPath (t : ℝ≥0) : ∫ ω, bmPath t ω ∂gaussSeq = 0 := by
+  have := isProbabilityMeasure_gaussSeq
+  unfold bmPath
+  rw [integral_sub ((memLp_brownian _).integrable one_le_two |>.const_mul _)
+    ((memLp_brownian _).integrable one_le_two |>.const_mul _), integral_const_mul,
+    integral_const_mul, integral_brownian, integral_brownian]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: **covariance of `bmPath`**: for `s ≤ t`,
+`cov[W s, W t] = s` (Brownian-bridge covariance `min(u,v) − uv` times `(1+s)(1+t)`). -/
+theorem covariance_bmPath {s t : ℝ≥0} (hst : s ≤ t) :
+    cov[bmPath s, bmPath t; gaussSeq] = s := by
+  have := isProbabilityMeasure_gaussSeq
+  have hs := memLp_brownian (bmTime s)
+  have ht := memLp_brownian (bmTime t)
+  have h1 := memLp_brownian 1
+  have hS : bmPath s = fun ω => (1 + (s : ℝ)) * brownian (bmTime s) ω - s * brownian 1 ω := rfl
+  have hT : bmPath t = fun ω => (1 + (t : ℝ)) * brownian (bmTime t) ω - t * brownian 1 ω := rfl
+  have hZ : MemLp (fun ω => (1 + (t : ℝ)) * brownian (bmTime t) ω - t * brownian 1 ω) 2
+      gaussSeq := (ht.const_mul _).sub (h1.const_mul _)
+  rw [hS, hT, covariance_fun_sub_left (hs.const_mul _) (h1.const_mul _) hZ,
+    covariance_fun_sub_right (hs.const_mul _) (ht.const_mul _) (h1.const_mul _),
+    covariance_fun_sub_right (h1.const_mul _) (ht.const_mul _) (h1.const_mul _)]
+  simp only [covariance_const_mul_left, covariance_const_mul_right, covariance_brownian]
+  have hm := coe_bmTime_mono hst
+  have hs1 : ((bmTime s : unitInterval) : ℝ) ≤ 1 := (bmTime s).2.2
+  have ht1 : ((bmTime t : unitInterval) : ℝ) ≤ 1 := (bmTime t).2.2
+  rw [min_eq_left hm]
+  simp only [Set.Icc.coe_one, min_self]
+  rw [min_eq_left hs1, min_eq_right ht1, coe_bmTime, coe_bmTime]
+  have h0 : (0 : ℝ) ≤ s := s.coe_nonneg
+  have h0' : (0 : ℝ) ≤ t := t.coe_nonneg
+  field_simp
+  ring
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (infrastructure for (1.32) with diffusive bonds):
+`bmPath` is a pre-Brownian motion (Mathlib's `IsPreBrownianReal`), by
+`IsGaussianProcess.isPreBrownianReal_of_covariance`. -/
+theorem isPreBrownianReal_bmPath : IsPreBrownianReal bmPath gaussSeq :=
+  isGaussianProcess_bmPath.isPreBrownianReal_of_covariance integral_bmPath
+    fun _ _ hst => covariance_bmPath hst
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (infrastructure for (1.32) with diffusive bonds):
+**`bmPath` is a Brownian motion** (Mathlib's `IsBrownianReal`); its paths are continuous for
+EVERY `ω`, not only almost surely. -/
+theorem isBrownianReal_bmPath : IsBrownianReal bmPath gaussSeq :=
+  ⟨isPreBrownianReal_bmPath, Eventually.of_forall continuous_bmPath⟩
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (infrastructure for (1.32) with diffusive bonds):
+**a Brownian motion on `[0, ∞)` exists**, in the sense of Mathlib's `IsBrownianReal`. -/
+theorem exists_isBrownianReal :
+    ∃ (Ω : Type) (_ : MeasurableSpace Ω) (P : Measure Ω) (_ : IsProbabilityMeasure P)
+      (W : ℝ≥0 → Ω → ℝ), IsBrownianReal W P :=
+  ⟨ℕ → ℝ, inferInstance, gaussSeq, isProbabilityMeasure_gaussSeq, bmPath, isBrownianReal_bmPath⟩
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the existence theorem in the form the tools of
+`TidyR7BrownianTools` use: a Brownian motion with each `W t` measurable and with EVERY path
+continuous and starting at `0`. -/
+theorem exists_isBrownianReal_measurable_continuous :
+    ∃ (Ω : Type) (_ : MeasurableSpace Ω) (P : Measure Ω) (_ : IsProbabilityMeasure P)
+      (W : ℝ≥0 → Ω → ℝ), IsBrownianReal W P ∧ (∀ t, Measurable (W t)) ∧
+        ∀ ω, Continuous (fun t => W t ω) ∧ W 0 ω = 0 :=
+  ⟨ℕ → ℝ, inferInstance, gaussSeq, isProbabilityMeasure_gaussSeq, bmPath, isBrownianReal_bmPath,
+    measurable_bmPath, fun ω => ⟨continuous_bmPath ω, bmPath_zero ω⟩⟩
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: pathwise, `W 1 = 2 B(1/2) − B(1)`. -/
+theorem bmPath_one (ω : ℕ → ℝ) :
+    bmPath 1 ω = 2 * brownian (bmTime 1) ω - brownian 1 ω ∧
+      ((bmTime 1 : unitInterval) : ℝ) = 1 / 2 := by
+  refine ⟨?_, ?_⟩
+  · simp only [bmPath, NNReal.coe_one, one_mul]
+    norm_num
+  · rw [coe_bmTime]
+    norm_num
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (non-vacuity): on the constructed process,
+`W 2 − W (1/2)` has law `N(0, 3/2)`. -/
+theorem hasLaw_bmPath_two_sub_half :
+    HasLaw (bmPath 2 - bmPath (1 / 2)) (gaussianReal 0 (3 / 2)) gaussSeq := by
+  have h := isPreBrownianReal_bmPath.hasLaw_sub 2 (1 / 2)
+  have e : nndist (2 : ℝ≥0).1 (1 / 2 : ℝ≥0).1 = 3 / 2 := by
+    ext
+    rw [coe_nndist, Real.dist_eq]
+    norm_num
+  rwa [e] at h
+
+end Cochrane.Monetarism.TidyR7BrownianExist
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Brownian tools for the Itô integral: filtration, independent increments, martingales, moments
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). Infrastructure for (1.32) with diffusive
+bonds (chunk I5a, for the quadratic variation I5b and the Itô integral I5c).
+
+Everything is stated for ANY pre-Brownian motion `W` on any probability space (Mathlib's
+`IsPreBrownianReal W P`; a Brownian motion `hB : IsBrownianReal W P` enters through
+`hB.toIsPreBrownianReal`), with each `W t` measurable (`hW`; Mathlib's predicate gives only
+a.e.-measurability, and the natural filtration needs measurability; the constructed motion
+`TidyR7BrownianExist.bmPath` has it, `TidyR7BrownianExist.measurable_bmPath`).
+
+## Gaussian moments
+* `integral_sq_gaussianReal`, `integral_pow_four_gaussianReal`: `∫ x² dN(0,v) = v` and
+  `∫ x⁴ dN(0,v) = 3v²` (derivatives of the moment generating function `exp(v t²/2)` at `0`).
+* `integral_increment_sq`, `integral_increment_pow_four`, `integrable_increment_pow_four`:
+  `E[(W t − W s)²] = |t − s|`, `E[(W t − W s)⁴] = 3(t − s)²`.
+
+## Filtration and independence (index `ℝ≥0`, Mathlib's index for Brownian motion)
+* `bmFiltration W hW` = Mathlib's `Filtration.natural`, `σ(W r, r ≤ t)`;
+  `stronglyAdapted_bmFiltration`; `bmFiltration_eq_comap` (`σ` of the past path on `Iic t`).
+* `indepFun_increment_past`, `indep_increment_bmFiltration`: for `s ≤ t`, `W t − W s` is
+  independent of `𝓕_s` (from Mathlib's weak Markov property `IsPreBrownianReal.indepFun_shift`).
+* `condExp_increment`: `E[W t − W s | 𝓕_s] = 0`; `condExp_increment_sq`:
+  `E[(W t − W s)² | 𝓕_s] = t − s`.
+* `martingale_bm`: `W` is a martingale; `martingale_bm_sq_sub`: `W t² − t` is a martingale.
+
+## The bridge to the index `ℝ` of Track 1 (I1–I4)
+* `bmReal W t = W (max t 0)` (`Real.toNNReal`), `bmFiltrationReal W hW t = 𝓕_{max t 0}`;
+  `bmReal_of_nonneg`, `continuous_bmReal`, `martingale_bmReal`, `martingale_bmReal_sq_sub`.
+
+## Non-vacuity
+* `martingale_bmPath`, `martingale_bmPath_sq_sub`: the tools applied to the constructed motion.
+-/
+
+namespace Cochrane.Monetarism.TidyR7BrownianTools
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.Monetarism.TidyR7BrownianSchauder Cochrane.Monetarism.TidyR7BrownianUnit
+open Cochrane.Monetarism.TidyR7BrownianExist
+open scoped ENNReal NNReal
+
+/-! ## Gaussian moments -/
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (tool for the quadratic variation in (1.32) with
+diffusive bonds): the derivative of `exp(v x²/2)` is `v x exp(v x²/2)`. -/
+lemma hasDerivAt_gaussMgf (v x : ℝ) :
+    HasDerivAt (fun y : ℝ => Real.exp (0 * y + v * y ^ 2 / 2))
+      (v * x * Real.exp (0 * x + v * x ^ 2 / 2)) x := by
+  have p2 : HasDerivAt (fun y : ℝ => y ^ 2) (2 * x) x := by simpa using hasDerivAt_pow 2 x
+  have h1 : HasDerivAt (fun y : ℝ => 0 * y + v * y ^ 2 / 2) (v * x) x :=
+    (((hasDerivAt_id' x).const_mul (0 : ℝ)).add ((p2.const_mul v).div_const 2)).congr_deriv
+      (by ring)
+  exact h1.exp.congr_deriv (by ring)
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: product rule for `p(x) exp(v x²/2)`, the shape of
+every derivative of the Gaussian moment generating function. -/
+lemma deriv_mul_gaussMgf (v : ℝ) (p p' : ℝ → ℝ) (hp : ∀ x, HasDerivAt p (p' x) x) :
+    deriv (fun x => p x * Real.exp (0 * x + v * x ^ 2 / 2))
+      = fun x => (p' x + p x * (v * x)) * Real.exp (0 * x + v * x ^ 2 / 2) := by
+  funext x
+  exact ((hp x).mul (hasDerivAt_gaussMgf v x)).deriv.trans (by ring)
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the second and fourth derivatives at `0` of the
+centred Gaussian moment generating function `exp(v t²/2)` are `v` and `3 v²`. -/
+theorem iteratedDeriv_gaussMgf (v : ℝ) :
+    iteratedDeriv 2 (fun x : ℝ => Real.exp (0 * x + v * x ^ 2 / 2)) 0 = v ∧
+      iteratedDeriv 4 (fun x : ℝ => Real.exp (0 * x + v * x ^ 2 / 2)) 0 = 3 * v ^ 2 := by
+  set E : ℝ → ℝ := fun x => Real.exp (0 * x + v * x ^ 2 / 2) with hE
+  have e0 : E = fun x => 1 * E x := by funext x; ring
+  have p2 : ∀ x : ℝ, HasDerivAt (fun y : ℝ => y ^ 2) (2 * x) x := fun x => by
+    simpa using hasDerivAt_pow 2 x
+  have p3 : ∀ x : ℝ, HasDerivAt (fun y : ℝ => y ^ 3) (3 * x ^ 2) x := fun x => by
+    simpa using hasDerivAt_pow 3 x
+  have d1 : iteratedDeriv 1 E = fun x => (v * x) * E x := by
+    rw [iteratedDeriv_one, e0, hE,
+      deriv_mul_gaussMgf v (fun _ => 1) (fun _ => 0) fun x => hasDerivAt_const x _]
+    funext x; ring
+  have d2 : iteratedDeriv 2 E = fun x => (v + v ^ 2 * x ^ 2) * E x := by
+    rw [iteratedDeriv_succ, d1, hE, deriv_mul_gaussMgf v (fun x => v * x) (fun _ => v)
+      fun x => ((hasDerivAt_id' x).const_mul v).congr_deriv (mul_one v)]
+    funext x; ring
+  have d3 : iteratedDeriv 3 E = fun x => (3 * v ^ 2 * x + v ^ 3 * x ^ 3) * E x := by
+    rw [iteratedDeriv_succ, d2, hE, deriv_mul_gaussMgf v (fun x => v + v ^ 2 * x ^ 2)
+      (fun x => 2 * v ^ 2 * x) fun x =>
+        (((p2 x).const_mul (v ^ 2)).const_add v).congr_deriv (by ring)]
+    funext x; ring
+  have d4 : iteratedDeriv 4 E
+      = fun x => (3 * v ^ 2 + 6 * v ^ 3 * x ^ 2 + v ^ 4 * x ^ 4) * E x := by
+    rw [iteratedDeriv_succ, d3, hE, deriv_mul_gaussMgf v (fun x => 3 * v ^ 2 * x + v ^ 3 * x ^ 3)
+      (fun x => 3 * v ^ 2 + 3 * v ^ 3 * x ^ 2) fun x =>
+        (((hasDerivAt_id' x).const_mul (3 * v ^ 2)).add ((p3 x).const_mul (v ^ 3))).congr_deriv
+          (by ring)]
+    funext x; ring
+  refine ⟨?_, ?_⟩
+  · rw [d2, hE]; simp
+  · rw [d4, hE]; simp
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the second moment of `N(0, v)` is `v`.
+The mean-zero form of Mathlib `variance_id_gaussianReal` with `integral_id_gaussianReal`; compare
+`TidyR7BrownianUnit.variance_of_map_eq_gaussianReal`. -/
+theorem integral_sq_gaussianReal (v : ℝ≥0) : ∫ x, x ^ 2 ∂gaussianReal 0 v = v := by
+  have h := iteratedDeriv_mgf_zero (X := id) (μ := gaussianReal 0 v) (by simp) 2
+  rw [mgf_id_gaussianReal, (iteratedDeriv_gaussMgf v).1] at h
+  simpa using h.symm
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (tool for the quadratic variation in (1.32) with
+diffusive bonds): the fourth moment of `N(0, v)` is `3 v²`. -/
+theorem integral_pow_four_gaussianReal (v : ℝ≥0) :
+    ∫ x, x ^ 4 ∂gaussianReal 0 v = 3 * (v : ℝ) ^ 2 := by
+  have h := iteratedDeriv_mgf_zero (X := id) (μ := gaussianReal 0 v) (by simp) 4
+  rw [mgf_id_gaussianReal, (iteratedDeriv_gaussMgf v).2] at h
+  simpa using h.symm
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `x ↦ x⁴` is integrable for `N(0, v)`.
+Generalises `TidyR7BrownianSchauder.integrable_pow_four_gaussianReal` to `N(0, v)`; an instance of
+Mathlib `memLp_id_gaussianReal'`. -/
+lemma integrable_pow_four_gaussianReal' (v : ℝ≥0) :
+    Integrable (fun x : ℝ => x ^ 4) (gaussianReal 0 v) := by
+  have h := (memLp_id_gaussianReal' (μ := 0) (v := v) ((4 : ℕ) : ℝ≥0∞)
+    (by simp)).integrable_norm_pow (by norm_num)
+  simpa [Real.norm_eq_abs, Even.pow_abs (by decide : Even 4)] using h
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `nndist t s` as a real number is `|t − s|`.
+Restates Mathlib `coe_nndist` with `NNReal.dist_eq`. -/
+lemma coe_nndist_val (s t : ℝ≥0) : ((nndist t.1 s.1 : ℝ≥0) : ℝ) = |(t : ℝ) - s| := by
+  rw [coe_nndist, Real.dist_eq]
+  rfl
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (tool for (1.32) with diffusive bonds): for a
+pre-Brownian motion, `E[(W t − W s)²] = |t − s|`. -/
+theorem integral_increment_sq (hB : IsPreBrownianReal W P) (s t : ℝ≥0) :
+    ∫ ω, (W t ω - W s ω) ^ 2 ∂P = |(t : ℝ) - s| := by
+  have h := (hB.hasLaw_sub t s).integral_comp (f := fun x : ℝ => x ^ 2)
+    (by fun_prop : Continuous fun x : ℝ => x ^ 2).aestronglyMeasurable
+  rw [integral_sq_gaussianReal, coe_nndist_val] at h
+  simpa [Function.comp_def] using h
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (tool for the quadratic variation in (1.32) with
+diffusive bonds): for a pre-Brownian motion, `E[(W t − W s)⁴] = 3 (t − s)²`. -/
+theorem integral_increment_pow_four (hB : IsPreBrownianReal W P) (s t : ℝ≥0) :
+    ∫ ω, (W t ω - W s ω) ^ 4 ∂P = 3 * ((t : ℝ) - s) ^ 2 := by
+  have h := (hB.hasLaw_sub t s).integral_comp (f := fun x : ℝ => x ^ 4)
+    (by fun_prop : Continuous fun x : ℝ => x ^ 4).aestronglyMeasurable
+  rw [integral_pow_four_gaussianReal, coe_nndist_val, sq_abs] at h
+  simpa [Function.comp_def] using h
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: the fourth power of an increment is integrable. -/
+theorem integrable_increment_pow_four (hB : IsPreBrownianReal W P) (s t : ℝ≥0) :
+    Integrable (fun ω => (W t ω - W s ω) ^ 4) P := by
+  have h := (hB.hasLaw_sub t s).integrable_comp (f := fun x : ℝ => x ^ 4)
+    (integrable_pow_four_gaussianReal' _)
+  simpa [Function.comp_def] using h
+
+/-! ## The natural filtration and independent increments -/
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (information for `E_t` in (1.32) with diffusive
+bonds): the natural filtration `𝓕_t = σ(W r, r ≤ t)` of a process with measurable values
+(Mathlib's `Filtration.natural`). -/
+noncomputable def bmFiltration (W : ℝ≥0 → Ω → ℝ) (hW : ∀ t, Measurable (W t)) :
+    Filtration ℝ≥0 mΩ :=
+  Filtration.natural (fun t => W t) fun t => (hW t).stronglyMeasurable
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `W` is adapted to its natural filtration.
+Restates Mathlib `Filtration.stronglyAdapted_natural`. -/
+theorem stronglyAdapted_bmFiltration (hW : ∀ t, Measurable (W t)) :
+    StronglyAdapted (bmFiltration W hW) W :=
+  Filtration.stronglyAdapted_natural _
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `𝓕_s` is the σ-algebra generated by the past path
+`(W r)_{r ≤ s}`.
+Restates Mathlib `Filtration.natural_eq_comap`. -/
+theorem bmFiltration_eq_comap (hW : ∀ t, Measurable (W t)) (s : ℝ≥0) :
+    bmFiltration W hW s
+      = MeasurableSpace.comap (fun ω (r : Set.Iic s) => W r ω) inferInstance :=
+  Filtration.natural_eq_comap _ _ s
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (the Brownian increment is news): for `s ≤ t`,
+`W t − W s` is independent of the past path `(W r)_{r ≤ s}`. -/
+theorem indepFun_increment_past (hB : IsPreBrownianReal W P) {s t : ℝ≥0} (hst : s ≤ t) :
+    IndepFun (fun ω => W t ω - W s ω) (fun ω (r : Set.Iic s) => W r ω) P := by
+  have h := (hB.indepFun_shift s).comp (φ := fun f : ℝ≥0 → ℝ => f (t - s)) (ψ := id)
+    (measurable_pi_apply (X := fun _ : ℝ≥0 => ℝ) (t - s)) measurable_id
+  have e : s + (t - s) = t := add_tsub_cancel_of_le hst
+  simpa [Function.comp_def, e] using h
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: for `s ≤ t`, the σ-algebra of `W t − W s` is
+independent of `𝓕_s`. -/
+theorem indep_increment_bmFiltration (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    {s t : ℝ≥0} (hst : s ≤ t) :
+    Indep (MeasurableSpace.comap (fun ω => W t ω - W s ω) inferInstance)
+      (bmFiltration W hW s) P := by
+  rw [bmFiltration_eq_comap, ← IndepFun_iff_Indep]
+  exact indepFun_increment_past hB hst
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: conditional expectations given `𝓕_s` of functions of
+the increment `W t − W s` are their unconditional means.
+A special case of Mathlib `condExp_indep_eq`. -/
+lemma condExp_fun_increment (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    {s t : ℝ≥0} (hst : s ≤ t) (g : ℝ → ℝ) (hg : Measurable g) :
+    P[fun ω => g (W t ω - W s ω) | bmFiltration W hW s]
+      =ᵐ[P] fun _ => ∫ ω, g (W t ω - W s ω) ∂P := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have hle : MeasurableSpace.comap (fun ω => W t ω - W s ω) inferInstance ≤ mΩ :=
+    measurable_iff_comap_le.1 ((hW t).sub (hW s))
+  refine condExp_indep_eq hle ((bmFiltration W hW).le s) ?_
+    (indep_increment_bmFiltration hB hW hst)
+  exact (hg.comp (comap_measurable _)).stronglyMeasurable
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `E[W t − W s | 𝓕_s] = 0` for `s ≤ t`. -/
+theorem condExp_increment (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    {s t : ℝ≥0} (hst : s ≤ t) :
+    P[fun ω => W t ω - W s ω | bmFiltration W hW s] =ᵐ[P] 0 := by
+  have h := condExp_fun_increment hB hW hst id measurable_id
+  have hm : ∫ ω, (W t ω - W s ω) ∂P = 0 := by
+    rw [integral_sub (hB.integrable_eval t) (hB.integrable_eval s), hB.integral_eval,
+      hB.integral_eval, sub_zero]
+  simp only [id] at h
+  rw [hm] at h
+  exact h
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (the quadratic variation increment): for `s ≤ t`,
+`E[(W t − W s)² | 𝓕_s] = t − s`. -/
+theorem condExp_increment_sq (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    {s t : ℝ≥0} (hst : s ≤ t) :
+    P[fun ω => (W t ω - W s ω) ^ 2 | bmFiltration W hW s] =ᵐ[P] fun _ => (t : ℝ) - s := by
+  have h := condExp_fun_increment hB hW hst (fun x => x ^ 2) (measurable_id.pow_const 2)
+  rw [integral_increment_sq hB, abs_of_nonneg (sub_nonneg.2 (NNReal.coe_le_coe.2 hst))] at h
+  exact h
+
+/-! ## Martingales -/
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (`E_t dW = 0`, the driftless integrator of (1.32)
+with diffusive bonds): a pre-Brownian motion is a martingale for its natural filtration. -/
+theorem martingale_bm (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t)) :
+    Martingale W (bmFiltration W hW) P := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  refine ⟨stronglyAdapted_bmFiltration hW, fun s t hst => ?_⟩
+  have hint := hB.integrable_eval
+  have hWs : P[W s | bmFiltration W hW s] = W s :=
+    condExp_of_stronglyMeasurable ((bmFiltration W hW).le s) (stronglyAdapted_bmFiltration hW s)
+      (hint s)
+  have hsplit : W t - W s + W s = W t := sub_add_cancel _ _
+  have hadd := condExp_add ((hint t).sub (hint s)) (hint s) (bmFiltration W hW s) (μ := P)
+  rw [hsplit, hWs] at hadd
+  have hinc : P[W t - W s | bmFiltration W hW s] =ᵐ[P] 0 := condExp_increment hB hW hst
+  filter_upwards [hadd, hinc] with ω h1 h2
+  rw [h1, Pi.add_apply, h2]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (`E_t (dW)² = dt`): for a pre-Brownian motion,
+`W t² − t` is a martingale for the natural filtration. -/
+theorem martingale_bm_sq_sub (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t)) :
+    Martingale (fun t ω => W t ω ^ 2 - (t : ℝ)) (bmFiltration W hW) P := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have hAd := stronglyAdapted_bmFiltration hW
+  refine ⟨fun t => (((hAd t).measurable.pow_const 2).sub_const _).stronglyMeasurable,
+    fun s t hst => ?_⟩
+  set F := bmFiltration W hW s
+  have hL2 : ∀ r, MemLp (W r) 2 P := fun r => (hB.isGaussianProcess.hasGaussianLaw_eval r).memLp_two
+  have hD2 : MemLp (fun ω => W t ω - W s ω) 2 P := (hL2 t).sub (hL2 s)
+  set A : Ω → ℝ := fun ω => (W t ω - W s ω) ^ 2 - ((t : ℝ) - s) with hA
+  set B : Ω → ℝ := W s * fun ω => 2 * (W t ω - W s ω) with hBdef
+  set C : Ω → ℝ := fun ω => W s ω ^ 2 - (s : ℝ) with hC
+  have hsplit : (fun ω => W t ω ^ 2 - (t : ℝ)) = A + B + C := by
+    funext ω; simp only [hA, hBdef, hC, Pi.add_apply, Pi.mul_apply]; ring
+  have iA : Integrable A P := hD2.integrable_sq.sub (integrable_const _)
+  have iG : Integrable (fun ω => 2 * (W t ω - W s ω)) P :=
+    (hD2.integrable one_le_two).const_mul 2
+  have iB : Integrable B P := (hL2 s).integrable_mul (hD2.const_mul 2)
+  have iC : Integrable C P := (hL2 s).integrable_sq.sub (integrable_const _)
+  have hA0 : P[A | F] =ᵐ[P] 0 := by
+    have h := condExp_fun_increment hB hW hst (fun x => x ^ 2 - ((t : ℝ) - s))
+      ((measurable_id.pow_const 2).sub_const _)
+    have hm : ∫ ω, ((W t ω - W s ω) ^ 2 - ((t : ℝ) - s)) ∂P = 0 := by
+      rw [integral_sub hD2.integrable_sq (integrable_const _), integral_increment_sq hB,
+        abs_of_nonneg (sub_nonneg.2 (NNReal.coe_le_coe.2 hst)), integral_const]
+      simp
+    rw [hm] at h
+    exact h
+  have hG0 : P[fun ω => 2 * (W t ω - W s ω) | F] =ᵐ[P] 0 := by
+    have h := condExp_fun_increment hB hW hst (fun x => 2 * x) (measurable_id.const_mul 2)
+    have hm : ∫ ω, 2 * (W t ω - W s ω) ∂P = 0 := by
+      rw [integral_const_mul, integral_sub (hB.integrable_eval t) (hB.integrable_eval s),
+        hB.integral_eval, hB.integral_eval]
+      simp
+    rw [hm] at h
+    exact h
+  have hB0 : P[B | F] =ᵐ[P] 0 := by
+    have h := condExp_mul_of_stronglyMeasurable_left (m := F) (hAd s) iB iG
+    filter_upwards [h, hG0] with ω h1 h2
+    rw [h1, Pi.mul_apply, h2]
+    simp
+  have hCC : P[C | F] = C :=
+    condExp_of_stronglyMeasurable ((bmFiltration W hW).le s) (μ := P)
+      ((((hAd s).measurable.pow_const 2).sub_const _).stronglyMeasurable) iC
+  have h1 := condExp_add (iA.add iB) iC F (μ := P)
+  have h2 := condExp_add iA iB F (μ := P)
+  change P[fun ω => W t ω ^ 2 - (t : ℝ) | F] =ᵐ[P] fun ω => W s ω ^ 2 - (s : ℝ)
+  rw [hsplit]
+  filter_upwards [h1, h2, hA0, hB0] with ω e1 e2 e3 e4
+  rw [e1, Pi.add_apply, e2, Pi.add_apply, e3, e4, hCC]
+  simp [hC]
+
+/-! ## The bridge to the time index `ℝ` -/
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (bridge to the `ℝ`-indexed paths of Track 1): the
+process on `ℝ`, `t ↦ W (max t 0)`. -/
+def bmReal (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ := W t.toNNReal ω
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: on `t ≥ 0`, `bmReal` is `W`. -/
+lemma bmReal_of_nonneg (W : ℝ≥0 → Ω → ℝ) {t : ℝ} (ht : 0 ≤ t) (ω : Ω) :
+    bmReal W t ω = W ⟨t, ht⟩ ω := by
+  rw [bmReal, Real.toNNReal_of_nonneg ht]
+  rfl
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: continuous paths of `W` give continuous paths of
+`bmReal W` on `ℝ`. -/
+lemma continuous_bmReal {ω : Ω} (h : Continuous fun t => W t ω) :
+    Continuous fun t => bmReal W t ω :=
+  h.comp continuous_real_toNNReal
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (bridge to the index `ℝ`): the filtration
+`t ↦ 𝓕_{max t 0}` on `ℝ`. -/
+noncomputable def bmFiltrationReal (W : ℝ≥0 → Ω → ℝ) (hW : ∀ t, Measurable (W t)) :
+    Filtration ℝ mΩ where
+  seq t := bmFiltration W hW t.toNNReal
+  mono' _ _ h := (bmFiltration W hW).mono (Real.toNNReal_le_toNNReal h)
+  le' t := (bmFiltration W hW).le t.toNNReal
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `bmReal W` is a martingale on the index `ℝ`. -/
+theorem martingale_bmReal (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t)) :
+    Martingale (bmReal W) (bmFiltrationReal W hW) P :=
+  ⟨fun t => stronglyAdapted_bmFiltration hW t.toNNReal,
+    fun _ _ hst => (martingale_bm hB hW).2 _ _ (Real.toNNReal_le_toNNReal hst)⟩
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568: `bmReal W t ² − max t 0` is a martingale on the
+index `ℝ`. -/
+theorem martingale_bmReal_sq_sub (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t)) :
+    Martingale (fun t ω => bmReal W t ω ^ 2 - (t.toNNReal : ℝ)) (bmFiltrationReal W hW) P :=
+  ⟨fun t => (martingale_bm_sq_sub hB hW).1 t.toNNReal,
+    fun _ _ hst => (martingale_bm_sq_sub hB hW).2 _ _ (Real.toNNReal_le_toNNReal hst)⟩
+
+/-! ## Non-vacuity: the constructed motion -/
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (non-vacuity): the constructed Brownian motion
+`TidyR7BrownianExist.bmPath` is a martingale for its natural filtration. -/
+theorem martingale_bmPath : Martingale bmPath (bmFiltration bmPath measurable_bmPath) gaussSeq :=
+  martingale_bm isPreBrownianReal_bmPath measurable_bmPath
+
+/-- Cochrane (2023), A1 §1.6, pp. 567–568 (non-vacuity): `bmPath t ² − t` is a martingale. -/
+theorem martingale_bmPath_sq_sub :
+    Martingale (fun t ω => bmPath t ω ^ 2 - (t : ℝ)) (bmFiltration bmPath measurable_bmPath)
+      gaussSeq :=
+  martingale_bm_sq_sub isPreBrownianReal_bmPath measurable_bmPath
+
+end Cochrane.Monetarism.TidyR7BrownianTools
+
 set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.SchurStable
 #print axioms Cochrane.Monetarism.discQ
@@ -49070,3 +50732,131 @@ set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_middle_fails
 #print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_1_33_finite
 #print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_1_34
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_nonneg
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_le
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_of_le
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_of_ge
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_of_left
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_of_right
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_mem_of_ne_zero
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.continuous_lcTent
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridgeTerm
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridgeTerm_nonneg
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridgeTerm_split
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lc_sum_le_of_atMostOne
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lc_sum_range_two_mul
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lc_dyadic_unique
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauderLevel
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauder
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauder_zero_apply
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauder_two_pow_add
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauderLevel_nonneg
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.continuous_schauder
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridge
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcTent_mul_comm_minmax
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauderLevel_sum_mul
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauder_sum_mul
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridgeTerm_le
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridgeTerm_mem_of_ne_zero
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridge_nonneg
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcBridge_le
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.tendsto_schauder_sum_mul
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.gaussSeq
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.isProbabilityMeasure_gaussSeq
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.hasLaw_gaussSeq_coord
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.iIndepFun_gaussSeq_mul
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.gaussSeq_map_sum
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.map_eq_gaussianReal_of_tendsto
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauderC
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcPartial
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcPartial_apply
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.continuous_lcPartial
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcWeight
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcWeight_nonneg
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.measurable_lcWeight
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lc_abs_le_add_pow_four
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lc_sqrt_div_le
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcPartial_succ_sub
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.norm_lcPartial_succ_sub_le
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.gaussFourth
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.integrable_pow_four_gaussianReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.integrable_gaussSeq_coord_pow
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.integral_gaussSeq_coord_pow
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.integrable_lcWeight
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.integral_lcWeight
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.summable_integral_lcWeight
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.lcGood
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.measurable_lcWeight_tsum
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.measurableSet_lcGood
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.ae_mem_lcGood
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.summable_lcWeight_of_mem
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.cauchySeq_lcPartial
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.levyPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.tendsto_lcPartial_levyPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.tendsto_lcPartial_apply
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.schauder_apply_zero
+#print axioms Cochrane.Monetarism.TidyR7BrownianSchauder.levyPath_zero
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.continuous_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.brownian_zero
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.tendsto_lcPartial_ite
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.measurable_levyPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.measurable_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.bmVar
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.bmCoeff
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.tendsto_sum_bmCoeff_sq
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.gaussSeq_map_sum_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.hasGaussianLaw_brownian_vec
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.isGaussianProcess_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.memLp_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.variance_of_map_eq_gaussianReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.gaussSeq_map_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianUnit.covariance_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.bmTime
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.coe_bmTime
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.continuous_bmTime
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.bmTime_zero
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.coe_bmTime_mono
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.continuous_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.bmPath_zero
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.measurable_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.isGaussianProcess_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.integral_brownian
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.integral_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.covariance_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.isPreBrownianReal_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.isBrownianReal_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.exists_isBrownianReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.exists_isBrownianReal_measurable_continuous
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.bmPath_one
+#print axioms Cochrane.Monetarism.TidyR7BrownianExist.hasLaw_bmPath_two_sub_half
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.hasDerivAt_gaussMgf
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.deriv_mul_gaussMgf
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.iteratedDeriv_gaussMgf
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.integral_sq_gaussianReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.integral_pow_four_gaussianReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.integrable_pow_four_gaussianReal'
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.coe_nndist_val
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.integral_increment_sq
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.integral_increment_pow_four
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.integrable_increment_pow_four
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.bmFiltration
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.stronglyAdapted_bmFiltration
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.bmFiltration_eq_comap
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.indepFun_increment_past
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.indep_increment_bmFiltration
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.condExp_fun_increment
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.condExp_increment
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.condExp_increment_sq
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.martingale_bm
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.martingale_bm_sq_sub
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.bmReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.bmReal_of_nonneg
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.continuous_bmReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.bmFiltrationReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.martingale_bmReal
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.martingale_bmReal_sq_sub
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.martingale_bmPath
+#print axioms Cochrane.Monetarism.TidyR7BrownianTools.martingale_bmPath_sq_sub
