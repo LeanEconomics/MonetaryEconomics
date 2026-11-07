@@ -60,3 +60,7 @@ import Monetarism.TidyR7StieltjesIntegral
 import Monetarism.TidyR7StieltjesSums
 import Monetarism.TidyR7StieltjesCalculus
 import Monetarism.TidyR7StieltjesVariation
+import Monetarism.TidyR7CondDominated
+import Monetarism.TidyR7ProductStep
+import Monetarism.TidyR7ProductStepCases
+import Monetarism.TidyR7ProductStepCoin

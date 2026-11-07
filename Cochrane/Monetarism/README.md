@@ -14,14 +14,15 @@ operator, so they cover perfect foresight and genuine uncertainty. The nonlinear
 are perfect-foresight, as in the book. The household first-order conditions are derived by
 optimisation, under perfect foresight, on a finite event tree and on a genuine probability space
 whose information grows forever, there without bounds on prices or plans. Continuous time is
-deterministic, except the `E_td(·)` forms of Online Appendix §1.6 (`TidyR6StochasticDrift`). The
-library contains **1552 theorems**, including the shared core; 578 of them are in the fourteen
+deterministic, except the `E_td(·)` forms and the product step of Online Appendix §1.6
+(`TidyR6StochasticDrift`, `TidyR7ProductStep`). The library contains **1636 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
 Woodford's convexity, Taylor-rule and Obstfeld–Rogoff sections, 54 on active fiscal policy under
-uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, and 110 in the four
-`TidyR7Stieltjes…` modules, deterministic Riemann–Stieltjes tools for the product step of (1.32).
+uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, 110 in the four
+`TidyR7Stieltjes…` modules, deterministic Riemann–Stieltjes tools for the product step of (1.32),
+and 84 in the four further `TidyR7…` modules that prove that product step.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -187,6 +188,23 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   this gives integration by parts (`TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag`).
   For random paths the integral and the variation are measurable in `ω`
   (`TidyR7StieltjesCalculus.measurable_rsInt`, `TidyR7StieltjesVariation.measurable_eVariationOn`).
+* **The §1.6 product step (1.32), in expectation form, without a stochastic integral.** For `B`
+  adapted with continuous bounded-variation paths and `Λ/P = A + M` (`A` càdlàg of bounded
+  variation, `M` a càdlàg martingale, under domination conditions),
+  `E_s[B_tX_t − B_sX_s] = E_s[∫_s^t X dB] + E_s[∫_s^t B dA]` almost surely
+  (`TidyR7ProductStep.ProductStepData.product_step`). The proof takes conditional expectations of
+  the exact partition identity (`TidyR7ProductStep.pathwise_identity`), in which the martingale sum
+  has `E_s[Σ B_iΔM_i] = 0` at every partition (`TidyR7ProductStep.ProductStepData.condExp_sumBM_zero`),
+  and passes the pathwise limits under `E_s` by an almost-sure conditional dominated convergence
+  (`TidyR7CondDominated.ae_tendsto_condExp_of_dominated`). The expected-increment integral
+  `B·E_s d(Λ/P) := lim E_s[Σ B_iΔ(Λ/P)_i]` exists, is unique and equals `E_s[∫B dA]`
+  (`TidyR7ProductStep.product_step_expIncr`), giving (1.32) in the book's notation
+  (`TidyR7ProductStep.product_step_1_32`); with `C¹` paths it is `E_t d(Λ/P) = −i(Λ/P)dt` and agrees
+  with `TidyR6StochasticDrift.drift_1_32_fv` (`TidyR7ProductStepCases.product_step_1_32_C1`,
+  `TidyR7ProductStepCases.drift_1_32_link`). On a fair coin revealed at time 1 with random bonds
+  and a nonzero martingale part both sides are computed, `1 = 1 + 0`
+  (`TidyR7ProductStepCoin.coin_headline`), and adaptedness of `B` cannot be dropped
+  (`TidyR7ProductStepCoin.coin_anticipating_fails`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -333,18 +351,16 @@ Not formalised:
   shows that some condition is needed (`TidyR6Halkin.halkin_no_tvc`), but no counterexample inside
   the book's model is formalised and no homogeneity condition replacing it is proved. A general
   Pontryagin principle without concavity is not formalised;
-* the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) when `Λ/P` has a martingale part:
-  it needs the stochastic integral `∫B d(Λ/P)` and the quadratic covariation, Itô calculus that
-  Mathlib does not have. The `Δ`-grid forms, the integration steps (1.33)–(1.34) and the
-  finite-variation case are proved instead (`TidyR6StochasticDrift.incr_1_32`,
-  `TidyR6StochasticDrift.valuation_iff_tvc`, `TidyR6StochasticDrift.drift_1_32_fv`). Mathlib does
-  have the Lebesgue–Stieltjes measure of a signed finite-variation path
-  (`BoundedVariationOn.vectorMeasure`), and the pathwise Riemann–Stieltjes calculus built on it
-  is proved (`TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag`,
-  `TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag`,
-  `TidyR7StieltjesCalculus.measurable_rsInt`); the passage of these limits under the conditional
-  expectation, which needs a measurable bound on the paths, and so the product step itself, is
-  not yet proved;
+* the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) beyond adapted continuous
+  bounded-variation bonds. It is proved, in expectation form, for `B` adapted with continuous
+  bounded-variation paths and `Λ/P` a càdlàg bounded-variation part plus a càdlàg martingale
+  (`TidyR7ProductStep.ProductStepData.product_step`, `TidyR7ProductStep.product_step_1_32`). For
+  `B` with a martingale or diffusive part, or with jumps shared with `Λ/P`, the quadratic
+  covariation `[Λ/P, B]` enters and a stochastic integral is needed, which Mathlib does not have;
+  a counterexample with a shared jump is not yet formalised. The domination and integrability
+  conditions of `TidyR7ProductStep.ProductStepData` are sufficient; their necessity is not
+  proved (only adaptedness of `B` is shown necessary,
+  `TidyR7ProductStepCoin.coin_anticipating_fails`);
 * under active fiscal policy, the literal "there is exactly one equilibrium iff the surplus is
   coordinated with money": coordination is proved equivalent to the unique equilibrium being the
   standard one (`TidyR6ActiveFiscalExist.std_existsUnique_iff`), but a unique non-standard
@@ -415,6 +431,10 @@ Not formalised:
 | [TidyR7StieltjesSums](Monetarism/TidyR7StieltjesSums.lean) | 34 | A1 §1.6, p. 567 (tool for (1.32)): partitions; convergence of left-point Riemann–Stieltjes sums for continuous `f` or for càdlàg `f` with continuous `g`; the cross sum vanishes, and needs continuous `g`; dyadic partitions |
 | [TidyR7StieltjesCalculus](Monetarism/TidyR7StieltjesCalculus.lean) | 11 | A1 §1.6, (1.32), p. 567 (tool): the exact partition identity for products; integration by parts; domination of the sums; measurability of `ω ↦ ∫_a^b f(ω) dg(ω)` |
 | [TidyR7StieltjesVariation](Monetarism/TidyR7StieltjesVariation.lean) | 21 | A1 §1.6, p. 567 (tool for (1.32)): the variation of a right-continuous path over a countable set; `ω ↦ Var_{[a,b]}(g(ω, ·))` measurable; the degenerate interval `[a, a]` |
+| [TidyR7CondDominated](Monetarism/TidyR7CondDominated.lean) | 14 | A1 §1.6, p. 567 (tool for (1.32)): conditional dominated convergence almost surely; the measurable path supremum `sup_{[s,t]}\|X\|`; partition sequences with mesh → 0 |
+| [TidyR7ProductStep](Monetarism/TidyR7ProductStep.lean) | 35 | A1 §1.6, (1.32), p. 567: the product step in expectation form for adapted continuous bounded-variation `B` and `Λ/P` = bounded-variation part + martingale; the pathwise and discrete identities, limits along any partitions, the expected-increment integral `B·E_s d(Λ/P)`, the book's notation |
+| [TidyR7ProductStepCases](Monetarism/TidyR7ProductStepCases.lean) | 11 | A1 §1.6, (1.32), pp. 567–568: deterministic bonds; `Λ/P` of bounded variation and integration by parts; `C¹` integrators; the `C¹` case `E_t d(Λ/P) = −i(Λ/P)dt` and the link with `TidyR6StochasticDrift.drift_1_32_fv` |
+| [TidyR7ProductStepCoin](Monetarism/TidyR7ProductStepCoin.lean) | 24 | A1 §1.6, (1.32), p. 567: non-vacuity on a fair coin revealed at time 1 (random bonds, nonzero martingale part, `1 = 1 + 0`); adaptedness of `B` cannot be dropped |
 
 ## Modelling conventions
 

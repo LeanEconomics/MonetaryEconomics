@@ -358,7 +358,8 @@ the transversality condition only in unconditional expectation, `E[β^Tx_T] → 
 be made precise without stochastic integrals: exact conditional increments on a `Δ`-grid for any
 `ExpectationSystem` with the pull-out property, and in continuous time a drift notion on a
 probability space with a filtration indexed by `ℝ`. The product step with a martingale part of
-`Λ/P` is not formalised (see the README).
+`Λ/P` is proved in the `TidyR7ProductStep…` modules below, for adapted continuous
+bounded-variation bonds.
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -375,8 +376,8 @@ The product step of (1.32), `Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, is to 
 from the exact partition identity for products and limits of Riemann–Stieltjes sums, without a
 stochastic integral. These modules are the deterministic tools: the integral against Mathlib's
 Lebesgue–Stieltjes vector measure `BoundedVariationOn.vectorMeasure`, the convergence of the sums,
-integration by parts, and measurability in a parameter. The product step itself is not yet proved
-(see the README).
+integration by parts, and measurability in a parameter. The product step itself is proved in the
+next section.
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -400,6 +401,38 @@ integration by parts, and measurability in a parameter. The product step itself 
 | A1 §1.6, p. 567 (tool) | the variation of a path right-continuous on `[a, b]` is its variation over a countable set (rationals of `[a, b]` with `b`), by pushing points to the next dyadic point on the right | `TidyR7StieltjesVariation.denseSet`, `TidyR7StieltjesVariation.countable_denseSet`, `TidyR7StieltjesVariation.dyadicUp`, `TidyR7StieltjesVariation.dyadicUp_bounds`, `TidyR7StieltjesVariation.dyadicUp_mono`, `TidyR7StieltjesVariation.dyadicUp_rat`, `TidyR7StieltjesVariation.pushRight`, `TidyR7StieltjesVariation.pushRight_mem`, `TidyR7StieltjesVariation.pushRight_mono`, `TidyR7StieltjesVariation.tendsto_pushRight`, `TidyR7StieltjesVariation.eVariationOn_Icc_eq_denseSet` |
 | A1 §1.6, p. 567 (tool) | `ω ↦ Var_{[a,b]}(g(ω, ·))` and its real form are measurable for right-continuous, càdlàg or continuous paths with measurable `g(·, t)`; over a countable set as a countable supremum of finite sums | `TidyR7StieltjesVariation.extFin`, `TidyR7StieltjesVariation.eVariationOn_eq_iSup_fin`, `TidyR7StieltjesVariation.measurable_eVariationOn_countable`, `TidyR7StieltjesVariation.measurable_eVariationOn`, `TidyR7StieltjesVariation.measurable_variation_toReal`, `TidyR7StieltjesVariation.measurable_eVariationOn_of_isCadlag`, `TidyR7StieltjesVariation.measurable_eVariationOn_of_continuousOn`, `TidyR7StieltjesVariation.measurable_variation_toReal_of_isCadlag`, `TidyR7StieltjesVariation.measurable_variation_toReal_of_continuousOn` |
 | A1 §1.6, p. 567 (tool) | the degenerate interval `[a, a]`: zero variation, integral, sums and cross sums; a partition has no steps | `TidyR7StieltjesVariation.eVariationOn_Icc_self`, `TidyR7StieltjesVariation.rsInt_self`, `TidyR7StieltjesVariation.partition_self_n`, `TidyR7StieltjesVariation.rsSum_self`, `TidyR7StieltjesVariation.crossSum_self` |
+
+## Online Appendix §1.6: the product step of (1.32) in expectation form, p. 567 (TidyR7CondDominated, TidyR7ProductStep, TidyR7ProductStepCases, TidyR7ProductStepCoin)
+
+The middle step of (1.32), `Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, proved in integrated,
+expectation form without a stochastic integral, for `B` adapted with continuous bounded-variation
+paths and `Λ/P = A + M` (`A` càdlàg of bounded variation, `M` a càdlàg martingale), under
+domination conditions. `B` with a martingale or diffusive part, or with jumps shared with `Λ/P`,
+is not covered (see the README).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| A1 §1.6, p. 567 (tool) | the tail suprema `sup_{j ≥ k}\|F_j − f\|`: bounded by `2D`, decreasing, tending to `0`, measurable | `TidyR7CondDominated.tailSup`, `TidyR7CondDominated.tailSup_bddAbove`, `TidyR7CondDominated.tailSup_mem`, `TidyR7CondDominated.le_tailSup`, `TidyR7CondDominated.tailSup_succ_le`, `TidyR7CondDominated.tendsto_tailSup`, `TidyR7CondDominated.measurable_tailSup` |
+| A1 (1.32), p. 567 (tool) | conditional dominated convergence almost surely: `F_k → f` pointwise, `\|F_k\| ≤ D` integrable ⇒ `E[F_k \| 𝓖] → E[f \| 𝓖]` a.s. (Mathlib has the `L¹` form, `MeasureTheory.tendsto_condExpL1_of_dominated_convergence`) | `TidyR7CondDominated.ae_tendsto_condExp_of_dominated` |
+| A1 §1.6, p. 567 (tool) | the measurable path supremum `sup_{q ∈ D}\|X_q\|` over a countable dense set; it bounds right-continuous, càdlàg and continuous paths on `[s, t]` | `TidyR7CondDominated.pathSup`, `TidyR7CondDominated.pathSup_nonneg`, `TidyR7CondDominated.measurable_pathSup`, `TidyR7CondDominated.abs_le_pathSup_of_right`, `TidyR7CondDominated.abs_le_pathSup_of_isCadlag`, `TidyR7CondDominated.abs_le_pathSup_of_continuousOn` |
+| A1 §1.6, p. 567 (tool) | for `s ≤ t` a sequence of partitions of `[s, t]` with mesh → 0 (the point partition when `s = t`) | `TidyR7CondDominated.pointPartition`, `TidyR7CondDominated.mesh_pointPartition`, `TidyR7CondDominated.exists_partition_seq` |
+| A1 (1.32), p. 567 | the path variation, the left-point and cross sums and the integral as random variables; `X = A + M`; the setting `ProductStepData` | `TidyR7ProductStep.pathVar`, `TidyR7ProductStep.sumRS`, `TidyR7ProductStep.sumCross`, `TidyR7ProductStep.intRS`, `TidyR7ProductStep.addProc`, `TidyR7ProductStep.ProductStepData` |
+| A1 (1.32), p. 567 | the exact pathwise partition identity `B_tX_t − B_sX_s = Σ X_iΔB_i + Σ B_iΔA_i + Σ B_iΔM_i + Σ ΔX_iΔB_i`; the sums are measurable | `TidyR7ProductStep.sumRS_add_right`, `TidyR7ProductStep.pathwise_identity`, `TidyR7ProductStep.measurable_sumRS`, `TidyR7ProductStep.measurable_sumCross` |
+| A1 §1.6, p. 567 | measurability, càdlàg `X`, domination of the sums by `sup\|X\|·Var(B)` and `sup\|B\|·Var(A)`, and integrability of the sums, the left side and the integrals | `TidyR7ProductStep.ProductStepData.measurable_B`, `TidyR7ProductStep.ProductStepData.measurable_M`, `TidyR7ProductStep.ProductStepData.measurable_X`, `TidyR7ProductStep.ProductStepData.X_cadlag`, `TidyR7ProductStep.ProductStepData.abs_sumXB_le`, `TidyR7ProductStep.ProductStepData.abs_sumBA_le`, `TidyR7ProductStep.ProductStepData.abs_sumCross_le`, `TidyR7ProductStep.ProductStepData.integrable_sumXB`, `TidyR7ProductStep.ProductStepData.integrable_sumBA`, `TidyR7ProductStep.ProductStepData.integrable_sumCross`, `TidyR7ProductStep.ProductStepData.integrable_term`, `TidyR7ProductStep.ProductStepData.integrable_sumBM`, `TidyR7ProductStep.ProductStepData.integrable_lhs`, `TidyR7ProductStep.ProductStepData.integrable_intXB`, `TidyR7ProductStep.ProductStepData.integrable_intBA` |
+| A1 (1.32), p. 567 | `E_s[B_u(M_v − M_u)] = 0` for `s ≤ u ≤ v ≤ t`, so `Σ E_s[B_iΔM_i] = E_s[Σ B_iΔM_i] = 0` exactly at every partition | `TidyR7ProductStep.ProductStepData.condExp_mart_incr_zero`, `TidyR7ProductStep.ProductStepData.sum_condExp_mart_zero`, `TidyR7ProductStep.ProductStepData.condExp_sumBM_zero` |
+| A1 (1.32), p. 567 | the exact discrete identity `E_s[Δ(BX)] = E_s[Σ X_iΔB_i] + E_s[Σ B_iΔA_i] + E_s[Σ ΔX_iΔB_i]`; `E_s[Σ B_iΔX_i] = E_s[Σ B_iΔA_i]` at every partition | `TidyR7ProductStep.ProductStepData.discrete_identity`, `TidyR7ProductStep.ProductStepData.condExp_sumBX_eq` |
+| A1 (1.32), p. 567 | along any partitions with mesh → 0, a.s., `E_s[Σ X_iΔB_i] → E_s∫X dB`, `E_s[Σ B_iΔA_i] → E_s∫B dA`, `E_s[Σ ΔX_iΔB_i] → 0`, `E_s[Σ B_iΔX_i] → E_s∫B dA`; the dyadic corollary | `TidyR7ProductStep.ProductStepData.tendsto_condExp_sumXB`, `TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBA`, `TidyR7ProductStep.ProductStepData.tendsto_condExp_cross`, `TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBX`, `TidyR7ProductStep.ProductStepData.tendsto_condExp_dyadic` |
+| A1 (1.32), p. 567 | **the product step in expectation form**: `E_s[B_tX_t − B_sX_s] = E_s[∫_s^t X dB] + E_s[∫_s^t B dA]` a.s., no stochastic integral | `TidyR7ProductStep.ProductStepData.product_step` |
+| A1 (1.32), p. 567 | the expected-increment integral `B·E_s dX := lim E_s[Σ B_iΔX_i]`: unique, exists and equals `E_s[∫B dA]`; the product step with it | `TidyR7ProductStep.ExpIncrLimit`, `TidyR7ProductStep.ExpIncrLimit.ae_eq`, `TidyR7ProductStep.expIncrLimit_condExp_rsInt`, `TidyR7ProductStep.product_step_expIncr` |
+| A1 (1.32), p. 567 | the book's notation: `E_s[Λ_tB_t/P_t − Λ_sB_s/P_s] = E_s[∫_s^t (Λ/P) dB] + B·E_s d(Λ/P)`, integrated `Λ/P·dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`; the integrability hypothesis holds for bounded `B` | `TidyR7ProductStep.product_step_1_32`, `TidyR7ProductStep.integrable_mul_incr_of_bound` |
+| A1 (1.32), p. 567 | deterministic bonds `B_u = b(u)` | `TidyR7ProductStepCases.product_step_deterministic` |
+| A1 (1.32), p. 567 | `Λ/P` of bounded variation (`M = 0`): the conditional expectation of pathwise integration by parts (`TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag`), which is conversely recovered from the product step on a one-point space | `TidyR7ProductStepCases.addProc_zero`, `TidyR7ProductStepCases.product_step_fv`, `TidyR7ProductStepCases.integration_by_parts_of_product_step` |
+| A1 §1.6, p. 568 | a `C¹` function is continuous and of bounded variation; `∫_a^b f dg = ∫_a^b f g′` for a `C¹` integrator | `TidyR7ProductStepCases.bv_of_hasDerivAt`, `TidyR7ProductStepCases.continuous_of_hasDerivAt`, `TidyR7ProductStepCases.rsInt_eq_integral_mul_deriv` |
+| A1 (1.32), pp. 567–568 | the `C¹` case `E_s[B_tn_t − B_sn_s] = E_s∫nḂ + E_s∫Bṅ`; with `ṅ = −in` and (1.31), `B·E_s d(Λ/P) = −E_s∫i(Λ/P)B` (`E_t d(Λ/P) = −i(Λ/P)dt`); the martingale condition that `TidyR6StochasticDrift.drift_1_32_fv` proves pathwise | `TidyR7ProductStepCases.productStepData_C1`, `TidyR7ProductStepCases.product_step_C1`, `TidyR7ProductStepCases.product_step_1_32_C1`, `TidyR7ProductStepCases.drift_1_32_link` |
+| A1 §1.6, p. 567 | the fair coin `ξ = ±1` revealed at time `1` on `[0, 2]`: `M_u = ξ·1{u ≥ 1}` a martingale, `A = 0`, `B_u = 1 + ξ·(u − 1)⁺`; the filtration and its conditional expectations | `TidyR7ProductStepCoin.coinMeasure`, `TidyR7ProductStepCoin.coinXi`, `TidyR7ProductStepCoin.coinFiltration`, `TidyR7ProductStepCoin.coinM`, `TidyR7ProductStepCoin.coinB`, `TidyR7ProductStepCoin.coinA`, `TidyR7ProductStepCoin.coinFiltration_lt`, `TidyR7ProductStepCoin.coinFiltration_ge`, `TidyR7ProductStepCoin.integral_coin`, `TidyR7ProductStepCoin.integral_coinXi`, `TidyR7ProductStepCoin.condExp_coin_lt`, `TidyR7ProductStepCoin.condExp_coin_ge`, `TidyR7ProductStepCoin.coinM_lt`, `TidyR7ProductStepCoin.coinM_ge`, `TidyR7ProductStepCoin.martingale_coinM`, `TidyR7ProductStepCoin.abs_coinXi`, `TidyR7ProductStepCoin.coinXi_mul_self`, `TidyR7ProductStepCoin.coinB_le`, `TidyR7ProductStepCoin.lipschitz_coinB` |
+| A1 (1.32), p. 567 | non-vacuity: the coin satisfies `ProductStepData`, with random bonds and a nonzero martingale part; both sides computed, `1 = 1 + 0` | `TidyR7ProductStepCoin.coinData`, `TidyR7ProductStepCoin.coin_lhs`, `TidyR7ProductStepCoin.coin_intXB`, `TidyR7ProductStepCoin.coin_intBA`, `TidyR7ProductStepCoin.coin_headline` |
+| A1 (1.32), p. 567 | `Σ B_iΔM_i = ξ ≠ 0` path by path at every partition, yet `E_0[Σ B_iΔM_i] = 0`; likewise `B·E_0 dX = 0` | `TidyR7ProductStepCoin.coin_sumBM`, `TidyR7ProductStepCoin.coin_condExp_sumBM`, `TidyR7ProductStepCoin.coin_expIncr` |
+| A1 (1.32), p. 567 | adaptedness of `B` cannot be dropped: for the anticipating `B = ξ`, `E_0[Σ B_iΔM_i] = 1` and the conclusion fails, `1 ≠ 0` | `TidyR7ProductStepCoin.coinBAnt`, `TidyR7ProductStepCoin.not_adapted_coinBAnt`, `TidyR7ProductStepCoin.coin_anticipating_fails`, `TidyR7ProductStepCoin.coin_anticipating_sumBM` |
 
 ## Online Appendix Chapter 4, money in continuous time, pp. 635–641 (ContinuousTime)
 
