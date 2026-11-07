@@ -56,3 +56,7 @@ import Monetarism.TidyR6PontryaginPC
 import Monetarism.TidyR6PontryaginPCSuff
 import Monetarism.TidyR6Halkin
 import Monetarism.TidyR6StochasticDrift
+import Monetarism.TidyR7StieltjesIntegral
+import Monetarism.TidyR7StieltjesSums
+import Monetarism.TidyR7StieltjesCalculus
+import Monetarism.TidyR7StieltjesVariation

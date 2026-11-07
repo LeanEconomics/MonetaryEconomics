@@ -83,6 +83,8 @@ import Mathlib.Topology.Order.Compact
 import Mathlib.MeasureTheory.Integral.ExpDecay
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.MeasureTheory.VectorMeasure.IntegrationByParts
+import Mathlib.Topology.Order.Cadlag
 set_option autoImplicit false
 
 /-
@@ -37170,11 +37172,13 @@ When `Λ/P` has a martingale part (Brownian or jump surprises), the step in (1.3
 `Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)` is the product rule for a semimartingale: it needs the
 stochastic integral `∫ B d(Λ/P)` (and, for jumps or diffusive `B`, the quadratic covariation
 `d⟨B, Λ/P⟩`). Mathlib v4.34 has neither stochastic integrals with respect to continuous-time
-martingales nor Itô's formula; it has no Lebesgue–Stieltjes calculus for signed finite-variation
-paths either (only measures of monotone right-continuous functions). The alternative route for
-`C¹` debt, `E_s ∫_s^t (n_t − n_r)Ḃ_r dr = 0`, needs Fubini for conditional expectations of
-progressively measurable processes, which is also absent. So the product step is proved only
-for `C¹` (finite-variation, continuous) `Λ/P` (`drift_1_32_fv`), exactly on the `Δ`-grid
+martingales nor Itô's formula. (It does have the Lebesgue–Stieltjes vector measure of a
+bounded-variation path, `BoundedVariationOn.vectorMeasure`; the pathwise Riemann–Stieltjes layer
+built on it is `TidyR7StieltjesIntegral`, `TidyR7StieltjesSums`, `TidyR7StieltjesCalculus`,
+`TidyR7StieltjesVariation`.)
+The alternative route for `C¹` debt, `E_s ∫_s^t (n_t − n_r)Ḃ_r dr = 0`, needs Fubini for conditional
+expectations of progressively measurable processes, which is also absent. So the product step is
+proved only for `C¹` (finite-variation, continuous) `Λ/P` (`drift_1_32_fv`), exactly on the `Δ`-grid
 (`incr_1_32`, `incr_1_34`), and the integration steps (1.33)–(1.34) in full generality
 (`valuation_of_drift`, `valuation_iff_tvc`).
 -/
@@ -37450,6 +37454,1707 @@ theorem valuation_1_33_fv {μ : Measure Ω} [IsFiniteMeasure μ] {𝓕 : Filtrat
     hconv
 
 end Cochrane.Monetarism.TidyR6StochasticDrift
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Riemann–Stieltjes integral `∫_a^b f dg` on a compact interval
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The step in (1.32)
+`Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)` is a product rule. It is proved later without a stochastic
+integral, path by path, from the finite partition identity for products and limits of
+Riemann–Stieltjes sums. This module and `TidyR7StieltjesSums`, `TidyR7StieltjesCalculus`,
+`TidyR7StieltjesVariation` are the deterministic (pathwise) Riemann–Stieltjes tools for that (1.32)
+product step.
+
+## The integral
+
+For `g` of bounded variation on `[a, b]` let `ĝ = clampFn a b g`, `ĝ(x) = g(max a (min b x))`
+(`g` frozen outside `[a, b]`); `ĝ` has bounded variation on `ℝ` (`bv_clampFn`). Mathlib builds from
+it the Lebesgue–Stieltjes vector measure `BoundedVariationOn.vectorMeasure`, which gives `[s, t]`
+the mass `ĝ(t+) − ĝ(s−)`; it is `stMeasure a b g`. The integral is
+`rsInt a b f g = ∫_{[a, b]} f d(stMeasure a b g)` (`∫ᵛ x in Icc a b, f x ∂• stMeasure a b g`).
+
+**Atoms.** The total mass is `g(b) − g(a)` (`stMeasure_Icc`). An interior point `a < t < b`
+carries the full jump `g(t+) − g(t−)` (`stMeasure_singleton_interior`), whatever the value
+`g(t)`; the endpoints carry the one-sided jumps inside `[a, b]`: `a` the mass `g(a+) − g(a)`
+(`stMeasure_singleton_left`), `b` the mass `g(b) − g(b−)` (`stMeasure_singleton_right`). So
+`∫ 1 dg = g(b) − g(a)` (`rsInt_one`), and for continuous `f` this is the classical
+Riemann–Stieltjes integral (proved in `TidyR7StieltjesSums`). A continuous `g` has no atoms
+(`stMeasure_singleton_of_continuousOn`).
+
+## Calculus
+
+* `rsInt_add_left`, `rsInt_smul_left`: linearity in `f` (for `f` integrable against every
+  finite-variation measure on `[a, b]`, `RSIntegrable`: continuous, càdlàg, or bounded measurable
+  integrands, `rsIntegrable_of_continuousOn`, `rsIntegrable_of_isCadlag`,
+  `rsIntegrable_of_measurable`).
+* `rsInt_add_right`, `rsInt_smul_right`: linearity in `g`.
+* `abs_rsInt_le`: `|∫ f dg| ≤ sup_{[a,b]}|f| · Var_{[a,b]}(g)`.
+* `rsInt_add_interval`: `∫_a^b = ∫_a^c + ∫_c^b` (the atom of `g` at `c` splits correctly).
+* Càdlàg functions: `countable_jumps` (a càdlàg function has countably many jumps), measurable,
+  bounded on compacts.
+-/
+
+namespace Cochrane.Monetarism.TidyR7StieltjesIntegral
+
+open MeasureTheory Filter Topology
+
+/-! ## Freezing a function outside `[a, b]` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): `g` frozen outside `[a, b]`,
+`x ↦ g(max a (min b x))`. -/
+def clampFn (a b : ℝ) (g : ℝ → ℝ) (x : ℝ) : ℝ := g (max a (min b x))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `clampFn a b g = g` on `[a, b]`. -/
+theorem clampFn_of_mem {a b x : ℝ} {g : ℝ → ℝ} (hx : x ∈ Set.Icc a b) :
+    clampFn a b g x = g x := by
+  simp only [clampFn, min_eq_right hx.2, max_eq_right hx.1]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `clampFn a b g = g(a)` left of `a`. -/
+theorem clampFn_of_le {a b x : ℝ} {g : ℝ → ℝ} (hx : x ≤ a) : clampFn a b g x = g a := by
+  simp only [clampFn]
+  rw [max_eq_left ((min_le_right b x).trans hx)]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `clampFn a b g = g(b)` right of `b`. -/
+theorem clampFn_of_ge {a b x : ℝ} {g : ℝ → ℝ} (hab : a ≤ b) (hx : b ≤ x) :
+    clampFn a b g x = g b := by
+  simp only [clampFn]
+  rw [min_eq_left hx, max_eq_right hab]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: freezing does not increase the variation,
+`Var_ℝ(clampFn a b g) ≤ Var_{[a,b]}(g)`.
+A special case of Mathlib `eVariationOn.comp_le_of_monotoneOn`. -/
+theorem eVariationOn_clampFn_le {a b : ℝ} (hab : a ≤ b) (g : ℝ → ℝ) :
+    eVariationOn (clampFn a b g) Set.univ ≤ eVariationOn g (Set.Icc a b) :=
+  eVariationOn.comp_le_of_monotoneOn g (fun x => max a (min b x))
+    (fun _ _ _ _ hxy => max_le_max le_rfl (min_le_min le_rfl hxy))
+    (fun _ _ => ⟨le_max_left _ _, max_le hab (min_le_left _ _)⟩)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: if `g` has bounded variation on `[a, b]`, the frozen
+function has bounded variation on `ℝ`. -/
+theorem bv_clampFn {a b : ℝ} {g : ℝ → ℝ} (hab : a ≤ b) (hg : BoundedVariationOn g (Set.Icc a b)) :
+    BoundedVariationOn (clampFn a b g) Set.univ :=
+  ne_top_of_le_ne_top hg (eVariationOn_clampFn_le hab g)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: if `g` is continuous on `[a, b]`, the frozen function is
+continuous. -/
+theorem continuous_clampFn {a b : ℝ} {g : ℝ → ℝ} (hab : a ≤ b) (hg : ContinuousOn g (Set.Icc a b)) :
+    Continuous (clampFn a b g) :=
+  hg.comp_continuous (continuous_const.max (continuous_const.min continuous_id))
+    (fun _ => ⟨le_max_left _ _, max_le hab (min_le_left _ _)⟩)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the frozen function has left limit `g(a)` at `a`. -/
+theorem leftLim_clampFn_left (a b : ℝ) (g : ℝ → ℝ) :
+    Function.leftLim (clampFn a b g) a = g a := by
+  have h : Set.EqOn (clampFn a b g) (fun _ => g a) (Set.Iic a) := fun _ hx => clampFn_of_le hx
+  have hc : ContinuousWithinAt (clampFn a b g) (Set.Iic a) a :=
+    continuousWithinAt_const.congr h (h (le_refl a))
+  rw [hc.leftLim_eq, clampFn_of_le le_rfl]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the frozen function has right limit `g(b)` at `b`. -/
+theorem rightLim_clampFn_right {a b : ℝ} (hab : a ≤ b) (g : ℝ → ℝ) :
+    Function.rightLim (clampFn a b g) b = g b := by
+  have h : Set.EqOn (clampFn a b g) (fun _ => g b) (Set.Ici b) :=
+    fun _ hx => clampFn_of_ge hab hx
+  have hc : ContinuousWithinAt (clampFn a b g) (Set.Ici b) b :=
+    continuousWithinAt_const.congr h (h (le_refl b))
+  rw [hc.rightLim_eq, clampFn_of_ge hab le_rfl]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: on `[a, b)` the right limit of the frozen function is the
+right limit `g(x+)` of `g`. -/
+theorem rightLim_clampFn {a b x : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hx : x ∈ Set.Ico a b) :
+    Function.rightLim (clampFn a b g) x = Function.rightLim g x := by
+  have ht := (bv_clampFn hab hg).tendsto_rightLim x
+  have hev : clampFn a b g =ᶠ[𝓝[>] x] g := by
+    filter_upwards [Ioo_mem_nhdsGT hx.2] with y hy
+    exact clampFn_of_mem ⟨hx.1.trans hy.1.le, hy.2.le⟩
+  exact (rightLim_eq_of_tendsto (ht.congr' hev)).symm
+
+/-- Cochrane (2023), A1 §1.6, p. 567: on `(a, b]` the left limit of the frozen function is the
+left limit `g(x−)` of `g`. -/
+theorem leftLim_clampFn {a b x : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hx : x ∈ Set.Ioc a b) :
+    Function.leftLim (clampFn a b g) x = Function.leftLim g x := by
+  have ht := (bv_clampFn hab hg).tendsto_leftLim x
+  have hev : clampFn a b g =ᶠ[𝓝[<] x] g := by
+    filter_upwards [Ioo_mem_nhdsLT hx.1] with y hy
+    exact clampFn_of_mem ⟨hy.1.le, hy.2.le.trans hx.2⟩
+  exact (leftLim_eq_of_tendsto (ht.congr' hev)).symm
+
+/-! ## The Stieltjes measure and the integral -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): **the Lebesgue–Stieltjes measure of `g`
+on `[a, b]`**, Mathlib's `BoundedVariationOn.vectorMeasure` of `clampFn a b g` when this has
+bounded variation (and `0` otherwise). It gives `[s, t]` the mass `ĝ(t+) − ĝ(s−)`. -/
+noncomputable def stMeasure (a b : ℝ) (g : ℝ → ℝ) : VectorMeasure ℝ ℝ :=
+  @dite _ (BoundedVariationOn (clampFn a b g) Set.univ) (Classical.dec _)
+    (fun h => h.vectorMeasure) (fun _ => 0)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `stMeasure` is the vector measure of the frozen function. -/
+theorem stMeasure_eq {a b : ℝ} {g : ℝ → ℝ} (h : BoundedVariationOn (clampFn a b g) Set.univ) :
+    stMeasure a b g = h.vectorMeasure := by
+  rw [stMeasure, dite_eq_left h]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the Stieltjes measure has finite total variation.
+From Mathlib `BoundedVariationOn.variation_vectorMeasure_univ_le`. -/
+theorem isFiniteMeasure_stMeasure (a b : ℝ) (g : ℝ → ℝ) :
+    IsFiniteMeasure (stMeasure a b g).variation := by
+  by_cases h : BoundedVariationOn (clampFn a b g) Set.univ
+  · rw [stMeasure_eq h]
+    exact ⟨lt_of_le_of_lt h.variation_vectorMeasure_univ_le (lt_top_iff_ne_top.2 h)⟩
+  · rw [stMeasure, dite_eq_right h, VectorMeasure.variation_zero]
+    infer_instance
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the total variation of the Stieltjes measure of any set is
+at most `Var_{[a,b]}(g)`.
+From Mathlib `BoundedVariationOn.variation_vectorMeasure_univ_le`. -/
+theorem variation_real_le {a b : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (s : Set ℝ) :
+    (stMeasure a b g).variation.real s ≤ (eVariationOn g (Set.Icc a b)).toReal := by
+  have h := bv_clampFn hab hg
+  rw [stMeasure_eq h, Measure.real]
+  exact ENNReal.toReal_mono hg ((measure_mono (Set.subset_univ s)).trans
+    (h.variation_vectorMeasure_univ_le.trans (eVariationOn_clampFn_le hab g)))
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): **the Riemann–Stieltjes integral**
+`∫_a^b f dg = ∫_{[a, b]} f d(stMeasure a b g)`. -/
+noncomputable def rsInt (a b : ℝ) (f g : ℝ → ℝ) : ℝ :=
+  ∫ᵛ x in Set.Icc a b, f x ∂• stMeasure a b g
+
+/-! ## How the integral treats the atoms of `g` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the total mass of `[a, b]` is `g(b) − g(a)`.
+Mathlib `BoundedVariationOn.vectorMeasure_Icc` for the frozen function. -/
+theorem stMeasure_Icc {a b : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) : stMeasure a b g (Set.Icc a b) = g b - g a := by
+  rw [stMeasure_eq (bv_clampFn hab hg), (bv_clampFn hab hg).vectorMeasure_Icc hab,
+    rightLim_clampFn_right hab, leftLim_clampFn_left]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the left endpoint carries the mass `g(a+) − g(a)`.
+Mathlib `BoundedVariationOn.vectorMeasure_singleton` for the frozen function. -/
+theorem stMeasure_singleton_left {a b : ℝ} {g : ℝ → ℝ} (hab : a < b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) :
+    stMeasure a b g {a} = Function.rightLim g a - g a := by
+  rw [stMeasure_eq (bv_clampFn hab.le hg), (bv_clampFn hab.le hg).vectorMeasure_singleton,
+    rightLim_clampFn hab.le hg ⟨le_rfl, hab⟩, leftLim_clampFn_left]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: an interior point carries the full jump
+`g(t+) − g(t−)`, independently of the value `g(t)`.
+Mathlib `BoundedVariationOn.vectorMeasure_singleton` for the frozen function. -/
+theorem stMeasure_singleton_interior {a b t : ℝ} {g : ℝ → ℝ}
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hat : a < t) (htb : t < b) :
+    stMeasure a b g {t} = Function.rightLim g t - Function.leftLim g t := by
+  have hab : a ≤ b := hat.le.trans htb.le
+  rw [stMeasure_eq (bv_clampFn hab hg), (bv_clampFn hab hg).vectorMeasure_singleton,
+    rightLim_clampFn hab hg ⟨hat.le, htb⟩, leftLim_clampFn hab hg ⟨hat, htb.le⟩]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the right endpoint carries the mass `g(b) − g(b−)`.
+Mathlib `BoundedVariationOn.vectorMeasure_singleton` for the frozen function. -/
+theorem stMeasure_singleton_right {a b : ℝ} {g : ℝ → ℝ} (hab : a < b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) :
+    stMeasure a b g {b} = g b - Function.leftLim g b := by
+  rw [stMeasure_eq (bv_clampFn hab.le hg), (bv_clampFn hab.le hg).vectorMeasure_singleton,
+    rightLim_clampFn_right hab.le, leftLim_clampFn hab.le hg ⟨hab, le_rfl⟩]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the measure of `(s, t]` is `ĝ(t+) − ĝ(s+)`.
+Restates Mathlib `BoundedVariationOn.vectorMeasure_Ioc`. -/
+theorem stMeasure_Ioc {a b s t : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hst : s ≤ t) :
+    stMeasure a b g (Set.Ioc s t) =
+      Function.rightLim (clampFn a b g) t - Function.rightLim (clampFn a b g) s := by
+  rw [stMeasure_eq (bv_clampFn hab hg), (bv_clampFn hab hg).vectorMeasure_Ioc hst]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for `g` continuous on `[a, b]` the right and left limits
+of the frozen function are its values. -/
+theorem rightLim_clampFn_of_continuousOn {a b : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hgc : ContinuousOn g (Set.Icc a b)) (x : ℝ) :
+    Function.rightLim (clampFn a b g) x = clampFn a b g x ∧
+      Function.leftLim (clampFn a b g) x = clampFn a b g x :=
+  ⟨((continuous_clampFn hab hgc).continuousAt.continuousWithinAt).rightLim_eq,
+    ((continuous_clampFn hab hgc).continuousAt.continuousWithinAt).leftLim_eq⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **a continuous `g` has no atoms**. -/
+theorem stMeasure_singleton_of_continuousOn {a b : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b)) (x : ℝ) :
+    (stMeasure a b g).variation {x} = 0 := by
+  rw [stMeasure_eq (bv_clampFn hab hg), (bv_clampFn hab hg).variation_vectorMeasure_singleton,
+    (rightLim_clampFn_of_continuousOn hab hgc x).1, (rightLim_clampFn_of_continuousOn hab hgc x).2]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for continuous `g`, `(s, t] ⊆ [a, b]` has mass
+`g(t) − g(s)`. -/
+theorem stMeasure_Ioc_of_continuousOn {a b s t : ℝ} {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b))
+    (hs : s ∈ Set.Icc a b) (ht : t ∈ Set.Icc a b) (hst : s ≤ t) :
+    stMeasure a b g (Set.Ioc s t) = g t - g s := by
+  rw [stMeasure_Ioc hab hg hst, (rightLim_clampFn_of_continuousOn hab hgc t).1,
+    (rightLim_clampFn_of_continuousOn hab hgc s).1, clampFn_of_mem hs, clampFn_of_mem ht]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫_a^b 1 dg = g(b) − g(a)`. -/
+theorem rsInt_one {a b : ℝ} {g : ℝ → ℝ} (hab : a ≤ b) (hg : BoundedVariationOn g (Set.Icc a b)) :
+    rsInt a b (fun _ => 1) g = g b - g a := by
+  have := isFiniteMeasure_stMeasure a b g
+  rw [rsInt, VectorMeasure.setIntegral_const, stMeasure_Icc hab hg]
+  simp
+
+/-! ## Integrable integrands -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `f` is integrable on `[a, b]` against every
+finite-variation vector measure (continuous, càdlàg and bounded measurable integrands are). -/
+def RSIntegrable (a b : ℝ) (f : ℝ → ℝ) : Prop :=
+  ∀ ν : VectorMeasure ℝ ℝ, IsFiniteMeasure ν.variation → ν.IntegrableOn f (Set.Icc a b)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: continuous integrands are integrable. -/
+theorem rsIntegrable_of_continuousOn {a b : ℝ} {f : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc a b)) :
+    RSIntegrable a b f := by
+  intro ν _
+  change Integrable f (ν.restrict (Set.Icc a b)).variation
+  rw [VectorMeasure.variation_restrict measurableSet_Icc]
+  exact hf.integrableOn_compact isCompact_Icc
+
+/-- Cochrane (2023), A1 §1.6, p. 567: bounded measurable integrands are integrable. -/
+theorem rsIntegrable_of_measurable {a b C : ℝ} {f : ℝ → ℝ} (hf : Measurable f)
+    (hC : ∀ x ∈ Set.Icc a b, |f x| ≤ C) : RSIntegrable a b f := by
+  intro ν _
+  change Integrable f (ν.restrict (Set.Icc a b)).variation
+  rw [VectorMeasure.variation_restrict measurableSet_Icc]
+  exact Integrable.of_bound hf.aestronglyMeasurable C
+    (ae_restrict_of_forall_mem measurableSet_Icc fun x hx => by
+      rw [Real.norm_eq_abs]; exact hC x hx)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: integrability passes to subintervals. -/
+theorem RSIntegrable.mono {a b c d : ℝ} {f : ℝ → ℝ} (hf : RSIntegrable a b f) (hca : a ≤ c)
+    (hdb : d ≤ b) : RSIntegrable c d f :=
+  fun ν hν => (hf ν hν).mono measurableSet_Icc (Set.Icc_subset_Icc hca hdb)
+
+/-! ## Càdlàg functions -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: near the right of any point, a càdlàg function has jumps
+smaller than `ε`. -/
+theorem exists_small_jumps_right {f : ℝ → ℝ} (hf : IsCadlag f) (x : ℝ) {ε : ℝ} (hε : 0 < ε) :
+    ∃ δ > 0, ∀ y ∈ Set.Ioo x (x + δ), |f y - Function.leftLim f y| < ε := by
+  obtain ⟨δ, hδ, hδf⟩ := Metric.continuousWithinAt_iff.1 (hf.isRightContinuous x) (ε / 2)
+    (half_pos hε)
+  refine ⟨δ, hδ, fun y hy => ?_⟩
+  have hnear : ∀ z ∈ Set.Ioo x (x + δ), |f z - f x| < ε / 2 := by
+    intro z hz
+    have := hδf hz.1 (by rw [Real.dist_eq, abs_of_pos (sub_pos.2 hz.1)]; linarith [hz.2])
+    rwa [Real.dist_eq] at this
+  have hlim : Tendsto (fun z => |f z - f x|) (𝓝[<] y) (𝓝 |Function.leftLim f y - f x|) :=
+    ((hf.tendsto_nhdsLT_leftLim y).sub tendsto_const_nhds).abs
+  have hle : |Function.leftLim f y - f x| ≤ ε / 2 := by
+    refine le_of_tendsto hlim ?_
+    filter_upwards [Ioo_mem_nhdsLT hy.1] with z hz
+    exact (hnear z ⟨hz.1, hz.2.trans hy.2⟩).le
+  have h1 := hnear y hy
+  calc |f y - Function.leftLim f y| = |(f y - f x) - (Function.leftLim f y - f x)| := by ring_nf
+    _ ≤ |f y - f x| + |Function.leftLim f y - f x| := abs_sub _ _
+    _ < ε := by linarith
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **a càdlàg function has countably many jumps**:
+`{x | f x ≠ f(x−)}` is countable. (For each `ε`, the jumps larger than `ε` are isolated from the
+right, `exists_small_jumps_right`.) -/
+theorem countable_jumps {f : ℝ → ℝ} (hf : IsCadlag f) :
+    {x | f x ≠ Function.leftLim f x}.Countable := by
+  have hU : {x | f x ≠ Function.leftLim f x} ⊆
+      ⋃ m : ℕ, {x | 1 / ((m : ℝ) + 1) < |f x - Function.leftLim f x|} := by
+    intro x hx
+    have hpos : 0 < |f x - Function.leftLim f x| := abs_pos.2 (sub_ne_zero.2 hx)
+    obtain ⟨m, hm⟩ := exists_nat_one_div_lt hpos
+    exact Set.mem_iUnion.2 ⟨m, hm⟩
+  refine Set.Countable.mono hU (Set.countable_iUnion fun m => ?_)
+  set J := {x | 1 / ((m : ℝ) + 1) < |f x - Function.leftLim f x|}
+  refine Set.Countable.mono ?_ (countable_setOfPred_isolated_right_within (s := J))
+  intro x hx
+  refine ⟨hx, ?_⟩
+  obtain ⟨δ, hδ, hsmall⟩ := exists_small_jumps_right hf x (ε := 1 / ((m : ℝ) + 1))
+    (by positivity)
+  rw [← empty_mem_iff_bot, mem_nhdsWithin]
+  refine ⟨Set.Iio (x + δ), isOpen_Iio, show x < x + δ by linarith, fun y hy => ?_⟩
+  exact absurd (hsmall y ⟨hy.2.2, hy.1⟩) (not_lt.2 hy.2.1.le)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a càdlàg function is continuous where it does not jump. -/
+theorem continuousAt_of_leftLim_eq {f : ℝ → ℝ} (hf : IsCadlag f) {x : ℝ}
+    (h : Function.leftLim f x = f x) : ContinuousAt f x := by
+  rw [continuousAt_iff_continuous_left'_right']
+  refine ⟨?_, hf.isRightContinuous x⟩
+  have := hf.tendsto_nhdsLT_leftLim x
+  rw [h] at this
+  exact this
+
+/-- Cochrane (2023), A1 §1.6, p. 567: càdlàg functions are measurable. -/
+theorem measurable_of_isCadlag {f : ℝ → ℝ} (hf : IsCadlag f) : Measurable f := by
+  refine measurable_of_countable_not_continuousAt ((countable_jumps hf).mono fun x hx => ?_)
+  exact fun h => hx (continuousAt_of_leftLim_eq hf h.symm)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a càdlàg function is bounded on `[a, b]`.
+Mathlib `isBounded_image_of_isCadlag_of_isCompact` in `|f| ≤ C` form. -/
+theorem exists_bound_of_isCadlag {f : ℝ → ℝ} (hf : IsCadlag f) (a b : ℝ) :
+    ∃ C, 0 ≤ C ∧ ∀ x ∈ Set.Icc a b, |f x| ≤ C := by
+  obtain ⟨r, hr⟩ := (Metric.isBounded_iff_subset_closedBall 0).1
+    (isBounded_image_of_isCadlag_of_isCompact hf (isCompact_Icc (a := a) (b := b)))
+  refine ⟨max r 0, le_max_right _ _, fun x hx => ?_⟩
+  have := hr ⟨x, hx, rfl⟩
+  rw [Metric.mem_closedBall, dist_zero_right, Real.norm_eq_abs] at this
+  exact this.trans (le_max_left _ _)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: càdlàg integrands are integrable. -/
+theorem rsIntegrable_of_isCadlag {a b : ℝ} {f : ℝ → ℝ} (hf : IsCadlag f) : RSIntegrable a b f := by
+  obtain ⟨C, -, hC⟩ := exists_bound_of_isCadlag hf a b
+  exact rsIntegrable_of_measurable (measurable_of_isCadlag hf) hC
+
+/-! ## Linearity in `f` and in `g` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **linearity in the integrand**,
+`∫(f₁ + f₂)dg = ∫f₁dg + ∫f₂dg`.
+Restates Mathlib `VectorMeasure.integral_fun_add`. -/
+theorem rsInt_add_left {a b : ℝ} {f₁ f₂ g : ℝ → ℝ} (hf₁ : RSIntegrable a b f₁)
+    (hf₂ : RSIntegrable a b f₂) :
+    rsInt a b (fun x => f₁ x + f₂ x) g = rsInt a b f₁ g + rsInt a b f₂ g :=
+  VectorMeasure.integral_fun_add (hf₁ _ (isFiniteMeasure_stMeasure a b g))
+    (hf₂ _ (isFiniteMeasure_stMeasure a b g))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **homogeneity in the integrand**, `∫(cf)dg = c∫f dg`.
+Restates Mathlib `VectorMeasure.integral_fun_smul`. -/
+theorem rsInt_smul_left {a b : ℝ} (c : ℝ) (f g : ℝ → ℝ) :
+    rsInt a b (fun x => c * f x) g = c * rsInt a b f g :=
+  VectorMeasure.integral_fun_smul _ _ c f
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the variation of a sum is at most the sum of the
+variations. -/
+theorem eVariationOn_add_le (f g : ℝ → ℝ) (s : Set ℝ) :
+    eVariationOn (fun x => f x + g x) s ≤ eVariationOn f s + eVariationOn g s := by
+  refine iSup_le fun p => ?_
+  calc ∑ i ∈ Finset.range p.1,
+        edist (f (p.2.1 (i + 1)) + g (p.2.1 (i + 1))) (f (p.2.1 i) + g (p.2.1 i))
+      ≤ ∑ i ∈ Finset.range p.1, (edist (f (p.2.1 (i + 1))) (f (p.2.1 i)) +
+          edist (g (p.2.1 (i + 1))) (g (p.2.1 i))) :=
+        Finset.sum_le_sum fun _ _ => edist_add_add_le _ _ _ _
+    _ = ∑ i ∈ Finset.range p.1, edist (f (p.2.1 (i + 1))) (f (p.2.1 i)) +
+          ∑ i ∈ Finset.range p.1, edist (g (p.2.1 (i + 1))) (g (p.2.1 i)) :=
+        Finset.sum_add_distrib
+    _ ≤ eVariationOn f s + eVariationOn g s :=
+        add_le_add (eVariationOn.sum_le p.2.2.1 p.2.2.2) (eVariationOn.sum_le p.2.2.1 p.2.2.2)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: right limits of bounded-variation functions add (up to a
+constant). -/
+theorem rightLim_add_sub {G₁ G₂ : ℝ → ℝ} (h₁ : BoundedVariationOn G₁ Set.univ)
+    (h₂ : BoundedVariationOn G₂ Set.univ) (k x : ℝ) :
+    Function.rightLim (fun y => G₁ y + G₂ y - k) x =
+      Function.rightLim G₁ x + Function.rightLim G₂ x - k :=
+  rightLim_eq_of_tendsto (((h₁.tendsto_rightLim x).add (h₂.tendsto_rightLim x)).sub
+    tendsto_const_nhds)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: left limits of bounded-variation functions add (up to a
+constant). -/
+theorem leftLim_add_sub {G₁ G₂ : ℝ → ℝ} (h₁ : BoundedVariationOn G₁ Set.univ)
+    (h₂ : BoundedVariationOn G₂ Set.univ) (k x : ℝ) :
+    Function.leftLim (fun y => G₁ y + G₂ y - k) x =
+      Function.leftLim G₁ x + Function.leftLim G₂ x - k :=
+  leftLim_eq_of_tendsto (((h₁.tendsto_leftLim x).add (h₂.tendsto_leftLim x)).sub
+    tendsto_const_nhds)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the Stieltjes measure is additive in `g`. -/
+theorem stMeasure_add {a b : ℝ} {g₁ g₂ : ℝ → ℝ} (hab : a ≤ b)
+    (hg₁ : BoundedVariationOn g₁ (Set.Icc a b)) (hg₂ : BoundedVariationOn g₂ (Set.Icc a b)) :
+    stMeasure a b (fun x => g₁ x + g₂ x) = stMeasure a b g₁ + stMeasure a b g₂ := by
+  have h₁ := bv_clampFn hab hg₁
+  have h₂ := bv_clampFn hab hg₂
+  have e : clampFn a b (fun x => g₁ x + g₂ x) =
+      fun y => clampFn a b g₁ y + clampFn a b g₂ y - 0 := by
+    funext y; simp [clampFn]
+  have h₁₂ : BoundedVariationOn (clampFn a b (fun x => g₁ x + g₂ x)) Set.univ := by
+    have := eVariationOn_add_le (clampFn a b g₁) (clampFn a b g₂) Set.univ
+    exact ne_top_of_le_ne_top (ENNReal.add_ne_top.2 ⟨h₁, h₂⟩) this
+  rw [stMeasure_eq h₁, stMeasure_eq h₂, stMeasure_eq h₁₂]
+  refine VectorMeasure.ext_of_Icc _ _ fun s t hst => ?_
+  rw [add_apply, h₁₂.vectorMeasure_Icc hst, h₁.vectorMeasure_Icc hst,
+    h₂.vectorMeasure_Icc hst, e, rightLim_add_sub h₁ h₂, leftLim_add_sub h₁ h₂]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **linearity in the integrator**,
+`∫f d(g₁ + g₂) = ∫f dg₁ + ∫f dg₂`.
+Restates Mathlib `VectorMeasure.integral_add_vectorMeasure`. -/
+theorem rsInt_add_right {a b : ℝ} {f g₁ g₂ : ℝ → ℝ} (hab : a ≤ b)
+    (hg₁ : BoundedVariationOn g₁ (Set.Icc a b)) (hg₂ : BoundedVariationOn g₂ (Set.Icc a b))
+    (hf : RSIntegrable a b f) :
+    rsInt a b f (fun x => g₁ x + g₂ x) = rsInt a b f g₁ + rsInt a b f g₂ := by
+  rw [rsInt, stMeasure_add hab hg₁ hg₂, VectorMeasure.restrict_add,
+    VectorMeasure.integral_add_vectorMeasure (hf _ (isFiniteMeasure_stMeasure a b g₁))
+      (hf _ (isFiniteMeasure_stMeasure a b g₂))]
+  rfl
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the Stieltjes measure is homogeneous in `g`. -/
+theorem stMeasure_smul {a b : ℝ} {g : ℝ → ℝ} (c : ℝ) (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) :
+    stMeasure a b (fun x => c * g x) = c • stMeasure a b g := by
+  have h₁ := bv_clampFn hab hg
+  have hk : BoundedVariationOn (fun _ : ℝ => c) Set.univ := by
+    rw [BoundedVariationOn, eVariationOn.constant_on
+      (Set.subsingleton_of_forall_eq c fun _ ⟨_, _, hy⟩ => hy.symm)]
+    exact ENNReal.zero_ne_top
+  have hc : BoundedVariationOn (clampFn a b (fun x => c * g x)) Set.univ := hk.mul h₁
+  rw [stMeasure_eq h₁, stMeasure_eq hc]
+  refine VectorMeasure.ext_of_Icc _ _ fun s t hst => ?_
+  rw [smul_apply, hc.vectorMeasure_Icc hst, h₁.vectorMeasure_Icc hst]
+  have e : clampFn a b (fun x => c * g x) = fun y => c * clampFn a b g y := rfl
+  rw [e, rightLim_eq_of_tendsto (tendsto_const_nhds.mul (h₁.tendsto_rightLim t)),
+    leftLim_eq_of_tendsto (tendsto_const_nhds.mul (h₁.tendsto_leftLim s)), smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **homogeneity in the integrator**, `∫f d(cg) = c∫f dg`.
+Restates Mathlib `VectorMeasure.integral_smul_vectorMeasure`. -/
+theorem rsInt_smul_right {a b : ℝ} {f g : ℝ → ℝ} (c : ℝ) (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) :
+    rsInt a b f (fun x => c * g x) = c * rsInt a b f g := by
+  rw [rsInt, stMeasure_smul c hab hg, VectorMeasure.restrict_smul,
+    VectorMeasure.integral_smul_vectorMeasure]
+  rfl
+
+/-! ## The bound and additivity over intervals -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **`|∫_a^b f dg| ≤ sup_{[a,b]}|f| · Var_{[a,b]}(g)`**.
+From Mathlib `VectorMeasure.norm_setIntegral_le_of_norm_le_const`. -/
+theorem abs_rsInt_le {a b C : ℝ} {f g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hC : ∀ x ∈ Set.Icc a b, |f x| ≤ C) :
+    |rsInt a b f g| ≤ C * (eVariationOn g (Set.Icc a b)).toReal := by
+  have := isFiniteMeasure_stMeasure a b g
+  have hC0 : 0 ≤ C := (abs_nonneg _).trans (hC a ⟨le_rfl, hab⟩)
+  have h := VectorMeasure.norm_setIntegral_le_of_norm_le_const (μ := stMeasure a b g)
+    (s := Set.Icc a b) (B := ContinuousLinearMap.lsmul ℝ ℝ) (f := f) (C := C)
+    (fun x hx => by rw [Real.norm_eq_abs]; exact hC x hx)
+  rw [Real.norm_eq_abs] at h
+  have hL : ‖ContinuousLinearMap.lsmul ℝ ℝ (E := ℝ)‖ ≤ 1 := ContinuousLinearMap.opNorm_lsmul_le
+  have hv := variation_real_le hab hg (Set.Icc a b)
+  have hv0 : 0 ≤ (stMeasure a b g).variation.real (Set.Icc a b) := measureReal_nonneg
+  calc |rsInt a b f g|
+      ≤ C * ‖ContinuousLinearMap.lsmul ℝ ℝ (E := ℝ)‖ *
+          (stMeasure a b g).variation.real (Set.Icc a b) := h
+    _ ≤ C * 1 * (eVariationOn g (Set.Icc a b)).toReal :=
+        mul_le_mul (mul_le_mul_of_nonneg_left hL hC0) hv hv0 (by linarith)
+    _ = C * (eVariationOn g (Set.Icc a b)).toReal := by ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `g` frozen on `[a, b]` is the sum of `g` frozen on
+`[a, c]` and on `[c, b]`, minus `g(c)`. -/
+theorem clampFn_split {a b c : ℝ} {g : ℝ → ℝ} (hac : a ≤ c) (hcb : c ≤ b) :
+    clampFn a b g = fun x => clampFn a c g x + clampFn c b g x - g c := by
+  funext x
+  rcases le_total x c with hx | hx
+  · rw [clampFn_of_le (a := c) (b := b) hx]
+    simp only [clampFn, min_eq_right hx, min_eq_right (hx.trans hcb)]
+    ring
+  · rw [clampFn_of_ge hac hx]
+    have h1 : c ≤ min b x := le_min hcb hx
+    simp only [clampFn, max_eq_right h1, max_eq_right (hac.trans h1)]
+    ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the Stieltjes measure on `[a, b]` is the sum of those on
+`[a, c]` and `[c, b]`. -/
+theorem stMeasure_split {a b c : ℝ} {g : ℝ → ℝ} (hac : a ≤ c) (hcb : c ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) :
+    stMeasure a b g = stMeasure a c g + stMeasure c b g := by
+  have h := bv_clampFn (hac.trans hcb) hg
+  have h₁ := bv_clampFn hac (hg.mono (Set.Icc_subset_Icc le_rfl hcb))
+  have h₂ := bv_clampFn hcb (hg.mono (Set.Icc_subset_Icc hac le_rfl))
+  rw [stMeasure_eq h, stMeasure_eq h₁, stMeasure_eq h₂]
+  refine VectorMeasure.ext_of_Icc _ _ fun s t hst => ?_
+  rw [add_apply, h.vectorMeasure_Icc hst, h₁.vectorMeasure_Icc hst,
+    h₂.vectorMeasure_Icc hst, clampFn_split hac hcb, rightLim_add_sub h₁ h₂,
+    leftLim_add_sub h₁ h₂]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **additivity over intervals**,
+`∫_a^b f dg = ∫_a^c f dg + ∫_c^b f dg` for `a ≤ c ≤ b` (the jump `g(c+) − g(c−)` of an interior
+point `c` splits as `g(c) − g(c−)` in `[a, c]` plus `g(c+) − g(c)` in `[c, b]`). -/
+theorem rsInt_add_interval {a b c : ℝ} {f g : ℝ → ℝ} (hac : a ≤ c) (hcb : c ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hf : RSIntegrable a b f) :
+    rsInt a b f g = rsInt a c f g + rsInt c b f g := by
+  have h₁ := bv_clampFn hac (hg.mono (Set.Icc_subset_Icc le_rfl hcb))
+  have h₂ := bv_clampFn hcb (hg.mono (Set.Icc_subset_Icc hac le_rfl))
+  rw [rsInt, stMeasure_split hac hcb hg, VectorMeasure.restrict_add,
+    VectorMeasure.integral_add_vectorMeasure (hf _ (isFiniteMeasure_stMeasure a c g))
+      (hf _ (isFiniteMeasure_stMeasure c b g))]
+  congr 1
+  · rw [rsInt]
+    refine VectorMeasure.setIntegral_congr_set measurableSet_Icc measurableSet_Icc ?_
+    have h0 : (stMeasure a c g).variation (Set.Ioi c) = 0 := by
+      rw [stMeasure_eq h₁]
+      refine le_antisymm ((h₁.variation_vectorMeasure_Ioi_le).trans
+        (le_of_eq (eVariationOn.constant_on ?_))) bot_le
+      exact Set.subsingleton_of_forall_eq (g c) fun _ ⟨_, hx, hxy⟩ =>
+        hxy ▸ clampFn_of_ge hac (le_of_lt hx)
+    rw [ae_eq_set]
+    constructor
+    · exact measure_mono_null (fun x hx => lt_of_not_ge fun h => hx.2 ⟨hx.1.1, h⟩) h0
+    · exact measure_mono_null (fun x hx => absurd ⟨hx.1.1, hx.1.2.trans hcb⟩ hx.2) h0
+  · rw [rsInt]
+    refine VectorMeasure.setIntegral_congr_set measurableSet_Icc measurableSet_Icc ?_
+    have h0 : (stMeasure c b g).variation (Set.Iio c) = 0 := by
+      rw [stMeasure_eq h₂]
+      refine le_antisymm ((h₂.variation_vectorMeasure_Iio_le).trans
+        (le_of_eq (eVariationOn.constant_on ?_))) bot_le
+      exact Set.subsingleton_of_forall_eq (g c) fun _ ⟨_, hx, hxy⟩ =>
+        hxy ▸ clampFn_of_le (le_of_lt hx)
+    rw [ae_eq_set]
+    constructor
+    · exact measure_mono_null (fun x hx => lt_of_not_ge fun h => hx.2 ⟨h, hx.1.2⟩) h0
+    · exact measure_mono_null (fun x hx => absurd ⟨hac.trans hx.1.1, hx.1.2⟩ hx.2) h0
+
+end Cochrane.Monetarism.TidyR7StieltjesIntegral
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Convergence of Riemann–Stieltjes sums
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The product step in (1.32),
+`Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, is proved path by path from the exact partition identity
+`B_tX_t − B_sX_s = Σ B_iΔX_i + Σ X_iΔB_i + Σ ΔB_iΔX_i` by letting the mesh go to zero. These are
+the deterministic Riemann–Stieltjes tools for that (1.32) product step: the left-point sums
+converge to the integral `TidyR7StieltjesIntegral.rsInt`, and the cross sum vanishes.
+
+A partition (`Partition a b`) is a strictly increasing `t : ℕ → ℝ` with `t 0 = a`, `t n = b`;
+`mesh P = max_{i<n}(t_{i+1} − t_i)`; `rsSum P f g = Σ_{i<n} f(t_i)(g(t_{i+1}) − g(t_i))` and
+`crossSum P f g = Σ_{i<n} (f(t_{i+1}) − f(t_i))(g(t_{i+1}) − g(t_i))`.
+
+## Main results (along ANY sequence of partitions with mesh → 0)
+
+* `tendsto_rsSum_of_continuousOn` (case (a)): `f` continuous on `[a, b]`, `g` of bounded
+  variation (jumps allowed): `rsSum → ∫_a^b f dg`. Quantitative form
+  `abs_rsSum_sub_rsInt_le`: `|rsSum P f g − ∫f dg| ≤ 2ε·Var(g)` when `f` oscillates by `≤ ε` over
+  distances `≤ mesh P`.
+* `tendsto_rsSum_of_isCadlag` (case (b)): `f` càdlàg (hence bounded on `[a, b]`), `g` continuous
+  of bounded variation: `rsSum → ∫_a^b f dg = ∫_a^b f(t−) dg` (`rsInt_eq_rsInt_leftLim`; `g` has
+  no atoms and `f` has countably many jumps).
+* `tendsto_crossSum_zero`: `f` càdlàg, `g` continuous of bounded variation:
+  `crossSum → 0` (`f` need not have bounded variation). Proof: the cross sum is
+  `∫ f(right point) dg − ∫ f(left point) dg`, whose integrands converge to `f` and `f(·−)`, equal
+  off a countable set, which `dg` does not charge.
+* `crossSum_heaviside`, `not_tendsto_crossSum_heaviside`: **continuity of `g` is needed**: with
+  `f = g = 1_{[1,∞)}` on `[0, 2]` (càdlàg, bounded variation) the cross sum is `1` for EVERY
+  partition.
+* `dyadic`, `tendsto_mesh_dyadic`: the dyadic partitions; `tendsto_rsSum_dyadic_of_continuousOn`,
+  `tendsto_rsSum_dyadic_of_isCadlag`,
+  `tendsto_crossSum_dyadic` are the dyadic corollaries.
+-/
+
+namespace Cochrane.Monetarism.TidyR7StieltjesSums
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral
+
+variable (a b : ℝ)
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): a partition `a = t_0 < t_1 < … < t_n = b`
+of `[a, b]` (the points `t_i`, `i > n`, are only required to keep increasing). -/
+structure Partition where
+  n : ℕ
+  t : ℕ → ℝ
+  strictMono : StrictMono t
+  first : t 0 = a
+  last : t n = b
+
+variable {a b}
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the mesh `max_{i<n}(t_{i+1} − t_i)` of a partition. -/
+noncomputable def mesh (P : Partition a b) : ℝ := ⨆ i : Fin P.n, (P.t ((i : ℕ) + 1) - P.t i)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: each step of a partition is at most its mesh. -/
+theorem le_mesh (P : Partition a b) {i : ℕ} (hi : i < P.n) : P.t (i + 1) - P.t i ≤ mesh P :=
+  le_ciSup (f := fun i : Fin P.n => P.t ((i : ℕ) + 1) - P.t i) (Set.finite_range _).bddAbove
+    ⟨i, hi⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the left-point Riemann–Stieltjes sum**
+`Σ_{i<n} f(t_i)(g(t_{i+1}) − g(t_i))`. -/
+def rsSum (P : Partition a b) (f g : ℝ → ℝ) : ℝ :=
+  ∑ i ∈ Finset.range P.n, f (P.t i) * (g (P.t (i + 1)) - g (P.t i))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the cross sum**
+`Σ_{i<n} (f(t_{i+1}) − f(t_i))(g(t_{i+1}) − g(t_i))`. -/
+def crossSum (P : Partition a b) (f g : ℝ → ℝ) : ℝ :=
+  ∑ i ∈ Finset.range P.n, (f (P.t (i + 1)) - f (P.t i)) * (g (P.t (i + 1)) - g (P.t i))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the step function equal to `c_i` on `(t_i, t_{i+1}]`. -/
+noncomputable def stepFn (P : Partition a b) (c : ℕ → ℝ) (x : ℝ) : ℝ :=
+  ∑ i ∈ Finset.range P.n, (Set.Ioc (P.t i) (P.t (i + 1))).indicator (fun _ => c i) x
+
+/-! ## Partitions and step functions -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the points `t_0, …, t_n` lie in `[a, b]`. -/
+theorem t_mem (P : Partition a b) {i : ℕ} (hi : i ≤ P.n) : P.t i ∈ Set.Icc a b := by
+  have h1 := P.strictMono.monotone (Nat.zero_le i)
+  have h2 := P.strictMono.monotone hi
+  rw [P.first] at h1
+  rw [P.last] at h2
+  exact ⟨h1, h2⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a partition of `[a, b]` exists only if `a ≤ b`. -/
+theorem a_le_b (P : Partition a b) : a ≤ b := (t_mem P (le_refl P.n)).1.trans (t_mem P le_rfl).2
+
+/-- Cochrane (2023), A1 §1.6, p. 567: each piece `(t_i, t_{i+1}]`, `i < n`, lies in `(a, b]`. -/
+theorem Ioc_subset (P : Partition a b) {i : ℕ} (hi : i < P.n) :
+    Set.Ioc (P.t i) (P.t (i + 1)) ⊆ Set.Ioc a b :=
+  Set.Ioc_subset_Ioc (t_mem P hi.le).1 (t_mem P hi).2
+
+/-- Cochrane (2023), A1 §1.6, p. 567: every `x ∈ (a, b]` lies in a piece `(t_j, t_{j+1}]`. -/
+theorem exists_piece (P : Partition a b) {x : ℝ} (hx : x ∈ Set.Ioc a b) :
+    ∃ j < P.n, x ∈ Set.Ioc (P.t j) (P.t (j + 1)) := by
+  classical
+  have hn : x ≤ P.t P.n := by rw [P.last]; exact hx.2
+  have hex : ∃ m, x ≤ P.t m := ⟨P.n, hn⟩
+  have hm1 : x ≤ P.t (Nat.find hex) := Nat.find_spec hex
+  have hm0 : Nat.find hex ≠ 0 := by
+    intro h0
+    rw [h0, P.first] at hm1
+    exact absurd hm1 (not_le.2 hx.1)
+  obtain ⟨j, hj⟩ := Nat.exists_eq_succ_of_ne_zero hm0
+  have hle : Nat.find hex ≤ P.n := Nat.find_min' hex hn
+  refine ⟨j, by omega, lt_of_not_ge (Nat.find_min hex (by omega)), ?_⟩
+  rw [hj] at hm1
+  exact hm1
+
+/-- Cochrane (2023), A1 §1.6, p. 567: on the piece `(t_j, t_{j+1}]` the step function is `c_j`. -/
+theorem stepFn_eq (P : Partition a b) (c : ℕ → ℝ) {j : ℕ} (hj : j < P.n) {x : ℝ}
+    (hx : x ∈ Set.Ioc (P.t j) (P.t (j + 1))) : stepFn P c x = c j := by
+  rw [stepFn, Finset.sum_eq_single j]
+  · exact Set.indicator_of_mem hx _
+  · intro i _ hij
+    refine Set.indicator_of_notMem (fun hxi => hij ?_) _
+    rcases lt_trichotomy i j with h | h | h
+    · exact absurd (hxi.2.trans (P.strictMono.monotone (by omega : i + 1 ≤ j))) (not_le.2 hx.1)
+    · exact h
+    · exact absurd (hx.2.trans (P.strictMono.monotone (by omega : j + 1 ≤ i))) (not_le.2 hxi.1)
+  · intro h
+    exact absurd (Finset.mem_range.2 hj) h
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the step function vanishes off `(a, b]`. -/
+theorem stepFn_of_notMem (P : Partition a b) (c : ℕ → ℝ) {x : ℝ} (hx : x ∉ Set.Ioc a b) :
+    stepFn P c x = 0 :=
+  Finset.sum_eq_zero fun _ hi =>
+    Set.indicator_of_notMem (fun h => hx (Ioc_subset P (Finset.mem_range.1 hi) h)) _
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a step function with values bounded by `C` is bounded by
+`C`. -/
+theorem abs_stepFn_le (P : Partition a b) (c : ℕ → ℝ) {C : ℝ} (hC : 0 ≤ C)
+    (hc : ∀ i < P.n, |c i| ≤ C) (x : ℝ) : |stepFn P c x| ≤ C := by
+  by_cases hx : x ∈ Set.Ioc a b
+  · obtain ⟨j, hj, hjx⟩ := exists_piece P hx
+    rw [stepFn_eq P c hj hjx]
+    exact hc j hj
+  · rw [stepFn_of_notMem P c hx, abs_zero]
+    exact hC
+
+/-- Cochrane (2023), A1 §1.6, p. 567: step functions are measurable. -/
+theorem measurable_stepFn (P : Partition a b) (c : ℕ → ℝ) : Measurable (stepFn P c) :=
+  Finset.measurable_sum _ fun _ _ => measurable_const.indicator measurableSet_Ioc
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **integral of a step function**: for `G` of bounded
+variation on `ℝ`, `∫_{(a,b]} Σ c_i 1_{(t_i, t_{i+1}]} dG = Σ c_i (G(t_{i+1}+) − G(t_i+))`. -/
+theorem integral_stepFn {G : ℝ → ℝ} (hG : BoundedVariationOn G Set.univ)
+    (hfin : IsFiniteMeasure hG.vectorMeasure.variation) (P : Partition a b) (c : ℕ → ℝ) :
+    ∫ᵛ x in Set.Ioc a b, stepFn P c x ∂• hG.vectorMeasure =
+      ∑ i ∈ Finset.range P.n,
+        c i * (Function.rightLim G (P.t (i + 1)) - Function.rightLim G (P.t i)) := by
+  simp only [stepFn]
+  rw [VectorMeasure.integral_finsetSum]
+  · refine Finset.sum_congr rfl fun i hi => ?_
+    rw [VectorMeasure.setIntegral_indicator measurableSet_Ioc measurableSet_Ioc,
+      Set.inter_eq_right.2 (Ioc_subset P (Finset.mem_range.1 hi)),
+      VectorMeasure.setIntegral_const,
+      hG.vectorMeasure_Ioc (P.strictMono.monotone (Nat.le_succ i))]
+    simp
+  · intro i _
+    exact (integrable_const _).indicator measurableSet_Ioc
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫_{[a,b]} f dν = f(a)ν{a} + ∫_{(a,b]} f dν`.
+Mathlib `VectorMeasure.setIntegral_union` on `{a} ∪ (a, b]`. -/
+theorem setIntegral_Icc_eq {ν : VectorMeasure ℝ ℝ} {f : ℝ → ℝ} (hab : a ≤ b)
+    (hf : ν.IntegrableOn f (Set.Icc a b)) :
+    ∫ᵛ x in Set.Icc a b, f x ∂•ν = f a * ν {a} + ∫ᵛ x in Set.Ioc a b, f x ∂•ν := by
+  have e : Set.Icc a b = {a} ∪ Set.Ioc a b := by
+    rw [← Set.Icc_union_Ioc_eq_Icc le_rfl hab, Set.Icc_self]
+  rw [e, VectorMeasure.setIntegral_union
+    (Set.disjoint_singleton_left.2 fun h => lt_irrefl a h.1) (measurableSet_singleton a)
+    measurableSet_Ioc (hf.mono measurableSet_Icc (by rw [e]; exact Set.subset_union_left))
+    (hf.mono measurableSet_Icc Set.Ioc_subset_Icc_self), VectorMeasure.integral_singleton]
+  simp
+
+/-! ## Variation bounds for the jumps -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: summation by parts,
+`Σ_{i<n} u_i(v_{i+1} − v_i) = u_nv_n − u_0v_0 − Σ_{i<n}(u_{i+1} − u_i)v_{i+1}`.
+A difference form of Mathlib `Finset.sum_range_by_parts`. -/
+theorem sum_mul_sub_eq (u v : ℕ → ℝ) (n : ℕ) :
+    ∑ i ∈ Finset.range n, u i * (v (i + 1) - v i) =
+      u n * v n - u 0 * v 0 - ∑ i ∈ Finset.range n, (u (i + 1) - u i) * v (i + 1) := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, Finset.sum_range_succ, ih]
+    ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the right jump `|G(x) − G(x+)|` is at most the
+variation of `G` on `[x, y]`, `x < y`. -/
+theorem abs_sub_rightLim_le {G : ℝ → ℝ} (hG : BoundedVariationOn G Set.univ) {x y : ℝ}
+    (hxy : x < y) : |G x - Function.rightLim G x| ≤ (eVariationOn G (Set.Icc x y)).toReal := by
+  have hb : BoundedVariationOn G (Set.Icc x y) := hG.mono (Set.subset_univ _)
+  have hlim : Tendsto (fun z => |G z - G x|) (𝓝[>] x) (𝓝 |Function.rightLim G x - G x|) :=
+    ((hG.tendsto_rightLim x).sub tendsto_const_nhds).abs
+  rw [abs_sub_comm]
+  refine le_of_tendsto hlim ?_
+  filter_upwards [Ioo_mem_nhdsGT hxy] with z hz
+  have := hb.dist_le ⟨hz.1.le, hz.2.le⟩ ⟨le_rfl, hxy.le⟩
+  rwa [Real.dist_eq] at this
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the variation is additive along a monotone sequence of
+points.
+Mathlib `eVariationOn.sum'` on `ℝ`. -/
+theorem sum_eVariationOn_Icc (G : ℝ → ℝ) {u : ℕ → ℝ} (hu : Monotone u) (k : ℕ) :
+    ∑ i ∈ Finset.range k, eVariationOn G (Set.Icc (u i) (u (i + 1))) =
+      eVariationOn G (Set.Icc (u 0) (u k)) := by
+  induction k with
+  | zero =>
+    simp only [Finset.range_zero, Finset.sum_empty, Set.Icc_self]
+    exact (eVariationOn.subsingleton G Set.subsingleton_singleton).symm
+  | succ k ih =>
+    rw [Finset.sum_range_succ, ih]
+    have := eVariationOn.Icc_add_Icc G (s := Set.univ) (hu (Nat.zero_le k)) (hu (Nat.le_succ k))
+      (Set.mem_univ _)
+    simpa only [Set.univ_inter] using this
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the right jumps of `G` at the points of a partition sum to
+at most the variation of `G`. -/
+theorem sum_abs_jump_le {G : ℝ → ℝ} (hG : BoundedVariationOn G Set.univ) (P : Partition a b) :
+    ∑ i ∈ Finset.range P.n, |G (P.t (i + 1)) - Function.rightLim G (P.t (i + 1))| ≤
+      (eVariationOn G Set.univ).toReal := by
+  have hu : Monotone fun i => P.t (i + 1) := fun i j h => P.strictMono.monotone (by omega)
+  have hs := sum_eVariationOn_Icc G hu P.n
+  calc ∑ i ∈ Finset.range P.n, |G (P.t (i + 1)) - Function.rightLim G (P.t (i + 1))|
+      ≤ ∑ i ∈ Finset.range P.n, (eVariationOn G (Set.Icc (P.t (i + 1)) (P.t (i + 1 + 1)))).toReal :=
+        Finset.sum_le_sum fun i _ => abs_sub_rightLim_le hG (P.strictMono (Nat.lt_succ_self _))
+    _ = (∑ i ∈ Finset.range P.n,
+          eVariationOn G (Set.Icc (P.t (i + 1)) (P.t (i + 1 + 1)))).toReal :=
+        (ENNReal.toReal_sum fun _ _ => hG.mono (Set.subset_univ _)).symm
+    _ = (eVariationOn G (Set.Icc (P.t (0 + 1)) (P.t (P.n + 1)))).toReal := by rw [hs]
+    _ ≤ (eVariationOn G Set.univ).toReal :=
+        ENNReal.toReal_mono hG (eVariationOn.mono G (Set.subset_univ _))
+
+/-! ## Case (a): continuous integrand, bounded-variation integrator -/
+
+/-- **Cochrane (2023), A1 §1.6, p. 567, quantitative case (a).** Let `g` have bounded variation
+on `[a, b]` and `f` be continuous on `[a, b]` with oscillation `≤ ε` over distances `≤ mesh P`.
+Then `|Σ f(t_i)Δg_i − ∫_a^b f dg| ≤ 2ε·Var_{[a,b]}(g)`. The jumps of `g` at the partition points
+contribute `−Σ (f(t_{i+1}) − f(t_i))(g − g(·+))(t_{i+1})` (`sum_mul_sub_eq`), bounded by
+`ε·Var` (`sum_abs_jump_le`). -/
+theorem abs_rsSum_sub_rsInt_le {f g : ℝ → ℝ} (hg : BoundedVariationOn g (Set.Icc a b))
+    (hf : ContinuousOn f (Set.Icc a b)) (P : Partition a b) {ε : ℝ} (hε : 0 ≤ ε)
+    (hfε : ∀ x ∈ Set.Icc a b, ∀ y ∈ Set.Icc a b, |x - y| ≤ mesh P → |f x - f y| ≤ ε) :
+    |rsSum P f g - rsInt a b f g| ≤ ε * (2 * (eVariationOn g (Set.Icc a b)).toReal) := by
+  have hab := a_le_b P
+  have hG : BoundedVariationOn (clampFn a b g) Set.univ := bv_clampFn hab hg
+  have hfin := isFiniteMeasure_stMeasure a b g
+  rw [stMeasure_eq hG] at hfin
+  set G := clampFn a b g with hGdef
+  set ν := hG.vectorMeasure with hν
+  set R := Function.rightLim G with hR
+  set V := (eVariationOn g (Set.Icc a b)).toReal with hV
+  set c : ℕ → ℝ := fun i => f (P.t i) with hc
+  have hint : ν.IntegrableOn f (Set.Icc a b) := rsIntegrable_of_continuousOn hf ν hfin
+  have hintIoc : ν.IntegrableOn f (Set.Ioc a b) :=
+    hint.mono measurableSet_Icc Set.Ioc_subset_Icc_self
+  obtain ⟨C, hC⟩ := IsCompact.exists_bound_of_continuousOn isCompact_Icc hf
+  have hC0 : 0 ≤ C := (norm_nonneg _).trans (hC a ⟨le_rfl, hab⟩)
+  have hstep : ν.IntegrableOn (stepFn P c) (Set.Ioc a b) :=
+    Integrable.of_bound (measurable_stepFn P c).aestronglyMeasurable C
+      (Eventually.of_forall fun x => by
+        rw [Real.norm_eq_abs]
+        exact abs_stepFn_le P c hC0 (fun i hi => by
+          have := hC _ (t_mem P hi.le); rwa [Real.norm_eq_abs] at this) x)
+  have h1 : rsInt a b f g = f a * ν {a} + ∫ᵛ x in Set.Ioc a b, f x ∂•ν := by
+    rw [rsInt, stMeasure_eq hG]
+    exact setIntegral_Icc_eq hab hint
+  have h2 := integral_stepFn hG hfin P c
+  have h3 : ∫ᵛ x in Set.Ioc a b, (stepFn P c x - f x) ∂•ν =
+      ∫ᵛ x in Set.Ioc a b, stepFn P c x ∂•ν - ∫ᵛ x in Set.Ioc a b, f x ∂•ν :=
+    VectorMeasure.integral_fun_sub hstep hintIoc
+  have h4 : ν {a} = R a - g a := by
+    rw [hν, hG.vectorMeasure_singleton, hGdef, leftLim_clampFn_left]
+  have hgt : ∀ i ≤ P.n, g (P.t i) = G (P.t i) := fun i hi => (clampFn_of_mem (t_mem P hi)).symm
+  have hRb : G (P.t P.n) - R (P.t P.n) = 0 := by
+    rw [P.last, hR, hGdef, rightLim_clampFn_right hab, clampFn_of_mem ⟨hab, le_rfl⟩, sub_self]
+  have hGa : G a - g a = 0 := by rw [hGdef, clampFn_of_mem ⟨le_rfl, hab⟩, sub_self]
+  have habel := sum_mul_sub_eq c (fun i => G (P.t i) - R (P.t i)) P.n
+  simp only [hc, P.first] at habel
+  have hsplit : rsSum P f g = ∑ i ∈ Finset.range P.n, c i * (R (P.t (i + 1)) - R (P.t i)) +
+      ∑ i ∈ Finset.range P.n,
+        f (P.t i) * (G (P.t (i + 1)) - R (P.t (i + 1)) - (G (P.t i) - R (P.t i))) := by
+    rw [rsSum, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun i hi => ?_
+    rw [hgt i (Finset.mem_range.1 hi).le, hgt (i + 1) (Finset.mem_range.1 hi)]
+    simp only [hc]
+    ring
+  set B := ∑ i ∈ Finset.range P.n,
+    (f (P.t (i + 1)) - f (P.t i)) * (G (P.t (i + 1)) - R (P.t (i + 1))) with hB
+  have key : rsSum P f g - rsInt a b f g =
+      ∫ᵛ x in Set.Ioc a b, (stepFn P c x - f x) ∂•ν - B := by
+    rw [h3, h2, hsplit, habel, h1, h4]
+    linear_combination f (P.t P.n) * hRb - f a * hGa
+  -- the two bounds
+  have hvar : ν.variation.real (Set.Ioc a b) ≤ V := by
+    have := variation_real_le hab hg (Set.Ioc a b)
+    rwa [stMeasure_eq hG] at this
+  have hI : |∫ᵛ x in Set.Ioc a b, (stepFn P c x - f x) ∂•ν| ≤ ε * V := by
+    have hb : ∀ x ∈ Set.Ioc a b, ‖stepFn P c x - f x‖ ≤ ε := by
+      intro x hx
+      obtain ⟨j, hj, hjx⟩ := exists_piece P hx
+      rw [stepFn_eq P c hj hjx, Real.norm_eq_abs]
+      refine hfε _ (t_mem P hj.le) _ (Set.Ioc_subset_Icc_self hx) ?_
+      rw [abs_sub_comm, abs_of_nonneg (by linarith [hjx.1])]
+      linarith [le_mesh P hj, hjx.2]
+    have h := VectorMeasure.norm_setIntegral_le_of_norm_le_const (μ := ν) (s := Set.Ioc a b)
+      (B := ContinuousLinearMap.lsmul ℝ ℝ) (C := ε) hb
+    rw [Real.norm_eq_abs] at h
+    have hL : ‖ContinuousLinearMap.lsmul ℝ ℝ (E := ℝ)‖ ≤ 1 :=
+      ContinuousLinearMap.opNorm_lsmul_le
+    have hv0 : 0 ≤ ν.variation.real (Set.Ioc a b) := measureReal_nonneg
+    calc _ ≤ ε * ‖ContinuousLinearMap.lsmul ℝ ℝ (E := ℝ)‖ * ν.variation.real (Set.Ioc a b) := h
+      _ ≤ ε * 1 * V := mul_le_mul (mul_le_mul_of_nonneg_left hL hε) hvar hv0 (by linarith)
+      _ = ε * V := by ring
+  have hBb : |B| ≤ ε * V := by
+    have hj := sum_abs_jump_le hG P
+    have hGV : (eVariationOn G Set.univ).toReal ≤ V :=
+      ENNReal.toReal_mono hg (eVariationOn_clampFn_le hab g)
+    calc |B| ≤ ∑ i ∈ Finset.range P.n,
+          |(f (P.t (i + 1)) - f (P.t i)) * (G (P.t (i + 1)) - R (P.t (i + 1)))| :=
+          Finset.abs_sum_le_sum_abs _ _
+      _ ≤ ∑ i ∈ Finset.range P.n, ε * |G (P.t (i + 1)) - R (P.t (i + 1))| := by
+          refine Finset.sum_le_sum fun i hi => ?_
+          rw [abs_mul]
+          refine mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
+          refine hfε _ (t_mem P (Finset.mem_range.1 hi)) _ (t_mem P (Finset.mem_range.1 hi).le) ?_
+          rw [abs_of_nonneg (by linarith [P.strictMono (Nat.lt_succ_self i)])]
+          exact le_mesh P (Finset.mem_range.1 hi)
+      _ = ε * ∑ i ∈ Finset.range P.n, |G (P.t (i + 1)) - R (P.t (i + 1))| :=
+          (Finset.mul_sum _ _ _).symm
+      _ ≤ ε * V := mul_le_mul_of_nonneg_left (hj.trans hGV) hε
+  rw [key]
+  calc _ ≤ |∫ᵛ x in Set.Ioc a b, (stepFn P c x - f x) ∂•ν| + |B| := abs_sub _ _
+    _ ≤ ε * V + ε * V := add_le_add hI hBb
+    _ = ε * (2 * V) := by ring
+
+/-- **Cochrane (2023), A1 §1.6, p. 567, case (a): convergence of Riemann–Stieltjes sums.** For
+`f` continuous on `[a, b]` and `g` of bounded variation on `[a, b]` (jumps allowed), along ANY
+sequence of partitions with mesh → 0, `Σ f(t_i)(g(t_{i+1}) − g(t_i)) → ∫_a^b f dg`. -/
+theorem tendsto_rsSum_of_continuousOn {f g : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc a b))
+    (hg : BoundedVariationOn g (Set.Icc a b)) (P : ℕ → Partition a b)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    Tendsto (fun k => rsSum (P k) f g) atTop (𝓝 (rsInt a b f g)) := by
+  rw [Metric.tendsto_atTop]
+  intro η hη
+  set V := (eVariationOn g (Set.Icc a b)).toReal with hV
+  have hV0 : 0 ≤ V := ENNReal.toReal_nonneg
+  set ε := η / (2 * (2 * V + 1)) with hεdef
+  have hε : 0 < ε := by positivity
+  obtain ⟨δ, hδ, hδf⟩ := Metric.uniformContinuousOn_iff.1
+    (isCompact_Icc.uniformContinuousOn_of_continuous hf) ε hε
+  obtain ⟨N, hN⟩ := Metric.tendsto_atTop.1 hP δ hδ
+  refine ⟨N, fun k hk => ?_⟩
+  have hmk : mesh (P k) < δ := by
+    have := hN k hk
+    rw [Real.dist_eq, sub_zero] at this
+    exact lt_of_le_of_lt (le_abs_self _) this
+  have hb := abs_rsSum_sub_rsInt_le hg hf (P k) hε.le fun x hx y hy hxy => by
+    have := hδf x hx y hy (by rw [Real.dist_eq]; exact lt_of_le_of_lt hxy hmk)
+    rw [Real.dist_eq] at this
+    exact this.le
+  rw [Real.dist_eq]
+  refine lt_of_le_of_lt hb ?_
+  rw [hεdef, div_mul_eq_mul_div, div_lt_iff₀ (by positivity)]
+  nlinarith
+
+/-! ## Case (b): càdlàg integrand, continuous integrator -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for continuous `g` of bounded variation the left-point sum
+is the integral of the left-point step function over `(a, b]`. -/
+theorem rsSum_eq_integral_stepFn {g : ℝ → ℝ} (hg : BoundedVariationOn g (Set.Icc a b))
+    (hgc : ContinuousOn g (Set.Icc a b)) (P : Partition a b) (c : ℕ → ℝ) :
+    ∑ i ∈ Finset.range P.n, c i * (g (P.t (i + 1)) - g (P.t i)) =
+      ∫ᵛ x in Set.Ioc a b, stepFn P c x ∂• stMeasure a b g := by
+  have hab := a_le_b P
+  have hG := bv_clampFn hab hg
+  have hfin := isFiniteMeasure_stMeasure a b g
+  rw [stMeasure_eq hG] at hfin ⊢
+  rw [integral_stepFn hG hfin P c]
+  refine Finset.sum_congr rfl fun i hi => ?_
+  rw [(rightLim_clampFn_of_continuousOn hab hgc _).1,
+    (rightLim_clampFn_of_continuousOn hab hgc _).1,
+    clampFn_of_mem (t_mem P (Finset.mem_range.1 hi)),
+    clampFn_of_mem (t_mem P (Finset.mem_range.1 hi).le)]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **dominated convergence for step functions**: if the step
+functions are bounded by `C` and converge on `(a, b]` to `φ`, their integrals against a
+finite-variation measure converge to `∫_{(a,b]} φ`.
+By Mathlib `VectorMeasure.tendsto_integral_of_dominated_convergence`. -/
+theorem tendsto_integral_stepFn {ν : VectorMeasure ℝ ℝ} (hν : IsFiniteMeasure ν.variation)
+    (P : ℕ → Partition a b) (c : ℕ → ℕ → ℝ) {C : ℝ} (hC : 0 ≤ C)
+    (hc : ∀ k, ∀ i < (P k).n, |c k i| ≤ C) {φ : ℝ → ℝ}
+    (hlim : ∀ x ∈ Set.Ioc a b, Tendsto (fun k => stepFn (P k) (c k) x) atTop (𝓝 (φ x))) :
+    Tendsto (fun k => ∫ᵛ x in Set.Ioc a b, stepFn (P k) (c k) x ∂•ν) atTop
+      (𝓝 (∫ᵛ x in Set.Ioc a b, φ x ∂•ν)) := by
+  refine VectorMeasure.tendsto_integral_of_dominated_convergence (fun _ => C)
+    (fun k => (measurable_stepFn (P k) (c k)).aestronglyMeasurable) (integrable_const C)
+    (fun k => Eventually.of_forall fun x => by
+      rw [Real.norm_eq_abs]; exact abs_stepFn_le (P k) (c k) hC (hc k) x) ?_
+  rw [VectorMeasure.variation_restrict measurableSet_Ioc]
+  exact ae_restrict_of_forall_mem measurableSet_Ioc hlim
+
+/-- Cochrane (2023), A1 §1.6, p. 567: as the mesh → 0 the left-point step function of `f`
+converges at `x ∈ (a, b]` to the left limit of `f` at `x`. -/
+theorem tendsto_stepFn_left (P : ℕ → Partition a b)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) {f : ℝ → ℝ} {x L : ℝ}
+    (hx : x ∈ Set.Ioc a b) (hf : Tendsto f (𝓝[<] x) (𝓝 L)) :
+    Tendsto (fun k => stepFn (P k) (fun i => f ((P k).t i)) x) atTop (𝓝 L) := by
+  choose j hj hjx using fun k => exists_piece (P k) hx
+  have heq : ∀ k, f ((P k).t (j k)) = stepFn (P k) (fun i => f ((P k).t i)) x :=
+    fun k => (stepFn_eq (P k) (fun i => f ((P k).t i)) (hj k) (hjx k)).symm
+  refine (tendsto_congr heq).1 (hf.comp (tendsto_nhdsWithin_iff.2
+    ⟨?_, Eventually.of_forall fun k => (hjx k).1⟩))
+  have hlow : ∀ k, x - mesh (P k) ≤ (P k).t (j k) := fun k => by
+    linarith [le_mesh (P k) (hj k), (hjx k).2]
+  have h1 : Tendsto (fun k => x - mesh (P k)) atTop (𝓝 x) := by
+    simpa using tendsto_const_nhds.sub hP
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le h1 tendsto_const_nhds hlow
+    fun k => (hjx k).1.le
+
+/-- Cochrane (2023), A1 §1.6, p. 567: as the mesh → 0 the right-point step function of `f`
+converges at `x ∈ (a, b]` to the limit of `f` from the right (including `x`). -/
+theorem tendsto_stepFn_right (P : ℕ → Partition a b)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) {f : ℝ → ℝ} {x L : ℝ}
+    (hx : x ∈ Set.Ioc a b) (hf : Tendsto f (𝓝[≥] x) (𝓝 L)) :
+    Tendsto (fun k => stepFn (P k) (fun i => f ((P k).t (i + 1))) x) atTop (𝓝 L) := by
+  choose j hj hjx using fun k => exists_piece (P k) hx
+  have heq : ∀ k, f ((P k).t (j k + 1)) = stepFn (P k) (fun i => f ((P k).t (i + 1))) x :=
+    fun k => (stepFn_eq (P k) (fun i => f ((P k).t (i + 1))) (hj k) (hjx k)).symm
+  refine (tendsto_congr heq).1 (hf.comp (tendsto_nhdsWithin_iff.2
+    ⟨?_, Eventually.of_forall fun k => (hjx k).2⟩))
+  have hup : ∀ k, (P k).t (j k + 1) ≤ x + mesh (P k) := fun k => by
+    linarith [le_mesh (P k) (hj k), (hjx k).1]
+  have h1 : Tendsto (fun k => x + mesh (P k)) atTop (𝓝 x) := by
+    simpa using tendsto_const_nhds.add hP
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds h1 (fun k => (hjx k).2) hup
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for `g` continuous of bounded variation and `f` càdlàg,
+`∫_a^b f dg = ∫_{(a,b]} f(t−) dg`: `g` has no atoms and `f = f(·−)` off the countable set of
+jumps of `f`. -/
+theorem rsInt_eq_Ioc_leftLim {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b)) :
+    rsInt a b f g = ∫ᵛ x in Set.Ioc a b, Function.leftLim f x ∂• stMeasure a b g := by
+  have hns : NullSingletonClass (stMeasure a b g).variation :=
+    ⟨stMeasure_singleton_of_continuousOn hab hg hgc⟩
+  have hnull := (countable_jumps hf).measure_zero (stMeasure a b g).variation
+  rw [rsInt, VectorMeasure.setIntegral_congr_set measurableSet_Icc measurableSet_Ioc ?_]
+  · refine VectorMeasure.setIntegral_congr_ae ?_
+    filter_upwards [measure_eq_zero_iff_ae_notMem.1 hnull] with x hx _
+    exact not_not.1 hx
+  · rw [ae_eq_set]
+    constructor
+    · refine measure_mono_null (fun x hx => ?_) (stMeasure_singleton_of_continuousOn hab hg hgc a)
+      exact le_antisymm (not_lt.1 fun h => hx.2 ⟨h, hx.1.2⟩) hx.1.1
+    · exact measure_mono_null (fun x hx => absurd (Set.Ioc_subset_Icc_self hx.1) hx.2)
+        (measure_empty (μ := (stMeasure a b g).variation))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **in case (b) the integral of `f` equals the integral of
+its left limits**, `∫_a^b f dg = ∫_a^b f(t−) dg`. -/
+theorem rsInt_eq_rsInt_leftLim {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b)) :
+    rsInt a b f g = rsInt a b (Function.leftLim f) g := by
+  have hns : NullSingletonClass (stMeasure a b g).variation :=
+    ⟨stMeasure_singleton_of_continuousOn hab hg hgc⟩
+  have hnull := (countable_jumps hf).measure_zero (stMeasure a b g).variation
+  refine VectorMeasure.setIntegral_congr_ae ?_
+  filter_upwards [measure_eq_zero_iff_ae_notMem.1 hnull] with x hx _
+  exact not_not.1 hx
+
+/-- **Cochrane (2023), A1 §1.6, p. 567, case (b): convergence of Riemann–Stieltjes sums.** For
+`f` càdlàg (right-continuous with left limits, hence bounded on `[a, b]`) and `g` continuous of
+bounded variation on `[a, b]`, along ANY sequence of partitions with mesh → 0,
+`Σ f(t_i)(g(t_{i+1}) − g(t_i)) → ∫_a^b f dg` (`= ∫_a^b f(t−) dg`, `rsInt_eq_rsInt_leftLim`). -/
+theorem tendsto_rsSum_of_isCadlag {f g : ℝ → ℝ} (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b))
+    (P : ℕ → Partition a b) (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    Tendsto (fun k => rsSum (P k) f g) atTop (𝓝 (rsInt a b f g)) := by
+  have hab := a_le_b (P 0)
+  obtain ⟨C, hC0, hC⟩ := exists_bound_of_isCadlag hf a b
+  have e : ∀ k, ∫ᵛ x in Set.Ioc a b, stepFn (P k) (fun i => f ((P k).t i)) x ∂• stMeasure a b g =
+      rsSum (P k) f g := fun k =>
+    (rsSum_eq_integral_stepFn hg hgc (P k) fun i => f ((P k).t i)).symm
+  rw [rsInt_eq_Ioc_leftLim hab hf hg hgc]
+  refine (tendsto_congr e).1 (tendsto_integral_stepFn (isFiniteMeasure_stMeasure a b g) P
+    (fun k i => f ((P k).t i)) hC0 (fun k i hi => hC _ (t_mem (P k) hi.le)) fun x hx => ?_)
+  exact tendsto_stepFn_left P hP hx (hf.tendsto_nhdsLT_leftLim x)
+
+/-! ## The cross sum -/
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: the cross sum vanishes.** For `f` càdlàg (not
+necessarily of bounded variation) and `g` continuous of bounded variation on `[a, b]`, along ANY
+sequence of partitions with mesh → 0, `Σ (f(t_{i+1}) − f(t_i))(g(t_{i+1}) − g(t_i)) → 0`. -/
+theorem tendsto_crossSum_zero {f g : ℝ → ℝ} (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b))
+    (P : ℕ → Partition a b) (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    Tendsto (fun k => crossSum (P k) f g) atTop (𝓝 0) := by
+  have hab := a_le_b (P 0)
+  obtain ⟨C, hC0, hC⟩ := exists_bound_of_isCadlag hf a b
+  have hfin := isFiniteMeasure_stMeasure a b g
+  have e : ∀ k,
+      ∫ᵛ x in Set.Ioc a b, stepFn (P k) (fun i => f ((P k).t (i + 1))) x ∂• stMeasure a b g -
+        ∫ᵛ x in Set.Ioc a b, stepFn (P k) (fun i => f ((P k).t i)) x ∂• stMeasure a b g =
+      crossSum (P k) f g := by
+    intro k
+    rw [← rsSum_eq_integral_stepFn hg hgc, ← rsSum_eq_integral_stepFn hg hgc, crossSum,
+      ← Finset.sum_sub_distrib]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    ring
+  have hR := tendsto_integral_stepFn hfin P (fun k i => f ((P k).t (i + 1))) hC0
+    (fun k i hi => hC _ (t_mem (P k) hi)) (φ := f) fun x hx =>
+      tendsto_stepFn_right P hP hx
+        (continuousWithinAt_Ioi_iff_Ici.1 (hf.isRightContinuous x)).tendsto
+  have hL := tendsto_integral_stepFn hfin P (fun k i => f ((P k).t i)) hC0
+    (fun k i hi => hC _ (t_mem (P k) hi.le)) (φ := Function.leftLim f) fun x hx =>
+      tendsto_stepFn_left P hP hx (hf.tendsto_nhdsLT_leftLim x)
+  have h := hR.sub hL
+  have heq : ∫ᵛ x in Set.Ioc a b, f x ∂• stMeasure a b g =
+      ∫ᵛ x in Set.Ioc a b, Function.leftLim f x ∂• stMeasure a b g := by
+    have hns : NullSingletonClass (stMeasure a b g).variation :=
+      ⟨stMeasure_singleton_of_continuousOn hab hg hgc⟩
+    have hnull := (countable_jumps hf).measure_zero (stMeasure a b g).variation
+    refine VectorMeasure.setIntegral_congr_ae ?_
+    filter_upwards [measure_eq_zero_iff_ae_notMem.1 hnull] with x hx _
+    exact not_not.1 hx
+  rw [heq, sub_self] at h
+  exact (tendsto_congr e).1 h
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the Heaviside step `1_{[1, ∞)}` (right-continuous). -/
+noncomputable def heaviside (x : ℝ) : ℝ := if 1 ≤ x then 1 else 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the Heaviside step is càdlàg. -/
+theorem isCadlag_heaviside : IsCadlag heaviside := by
+  refine ⟨fun x => ?_, fun x => ?_⟩
+  · rcases le_or_gt 1 x with hx | hx
+    · refine (continuousWithinAt_const (b := (1 : ℝ))).congr (fun y hy => ?_) ?_
+      · simp only [heaviside, hx.trans (le_of_lt hy), ↓reduceIte]
+      · simp only [heaviside, hx, ↓reduceIte]
+    · refine (continuousWithinAt_const (b := (0 : ℝ))).congr_of_eventuallyEq ?_ ?_
+      · filter_upwards [Ioo_mem_nhdsGT hx] with y hy
+        simp only [heaviside, not_le.2 hy.2, ↓reduceIte]
+      · simp only [heaviside, not_le.2 hx, ↓reduceIte]
+  · rcases le_or_gt x 1 with hx | hx
+    · refine ⟨0, tendsto_const_nhds.congr' ?_⟩
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      simp only [heaviside, not_le.2 (lt_of_lt_of_le hy hx), ↓reduceIte]
+    · refine ⟨1, tendsto_const_nhds.congr' ?_⟩
+      filter_upwards [Ioo_mem_nhdsLT hx] with y hy
+      simp only [heaviside, hy.1.le, ↓reduceIte]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the Heaviside step is monotone, hence of bounded variation
+on `[0, 2]`. -/
+theorem bv_heaviside : BoundedVariationOn heaviside (Set.Icc 0 2) := by
+  have hm : Monotone heaviside := by
+    intro x y hxy
+    simp only [heaviside]
+    split_ifs <;> first | (exfalso; linarith) | norm_num
+  refine (hm.monotoneOn _).boundedVariationOn (C := 1) fun x _ => ?_
+  simp only [heaviside]
+  split_ifs <;> norm_num
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: continuity of `g` is needed in `tendsto_crossSum_zero`.**
+With `f = g = 1_{[1,∞)}` on `[0, 2]` (both càdlàg and of bounded variation, `g` jumping where `f`
+jumps), the cross sum `Σ (Δf_i)(Δg_i) = Σ (Δf_i)² = Σ Δf_i = 1` for EVERY partition. -/
+theorem crossSum_heaviside (P : Partition 0 2) : crossSum P heaviside heaviside = 1 := by
+  have hsq : ∀ i, (heaviside (P.t (i + 1)) - heaviside (P.t i)) *
+      (heaviside (P.t (i + 1)) - heaviside (P.t i)) =
+      heaviside (P.t (i + 1)) - heaviside (P.t i) := by
+    intro i
+    have hlt := P.strictMono (show i < i + 1 by omega)
+    simp only [heaviside]
+    split_ifs <;> first | (exfalso; linarith) | ring
+  have ht := Finset.sum_range_sub (fun i => heaviside (P.t i)) P.n
+  rw [crossSum, Finset.sum_congr rfl fun i _ => hsq i, ht, P.last, P.first]
+  norm_num [heaviside]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: hence along any partitions of `[0, 2]` the cross sum of
+`1_{[1,∞)}` with itself does NOT tend to `0`. -/
+theorem not_tendsto_crossSum_heaviside (P : ℕ → Partition 0 2) :
+    ¬ Tendsto (fun k => crossSum (P k) heaviside heaviside) atTop (𝓝 0) := by
+  intro h
+  simp only [crossSum_heaviside] at h
+  exact one_ne_zero (tendsto_nhds_unique tendsto_const_nhds h)
+
+/-! ## Dyadic partitions -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the `k`-th dyadic partition `t_i = a + (b − a)i/2^k`,
+`i ≤ 2^k`, of `[a, b]`, `a < b`. -/
+noncomputable def dyadic (hab : a < b) (k : ℕ) : Partition a b where
+  n := 2 ^ k
+  t := fun i => a + (b - a) * i / 2 ^ k
+  strictMono := by
+    intro i j hij
+    have h2 : (0 : ℝ) < 2 ^ k := by positivity
+    simp only
+    have : (b - a) * (i : ℝ) < (b - a) * j :=
+      mul_lt_mul_of_pos_left (Nat.cast_lt.2 hij) (sub_pos.2 hab)
+    linarith [div_lt_div_of_pos_right this h2]
+  first := by simp
+  last := by
+    push_cast
+    field_simp
+    ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the mesh of the `k`-th dyadic partition is
+`(b − a)/2^k`. -/
+theorem mesh_dyadic (hab : a < b) (k : ℕ) : mesh (dyadic hab k) = (b - a) / 2 ^ k := by
+  have hne : Nonempty (Fin (dyadic hab k).n) := ⟨⟨0, by simp [dyadic]⟩⟩
+  have e : ∀ i : Fin (dyadic hab k).n,
+      (dyadic hab k).t ((i : ℕ) + 1) - (dyadic hab k).t i = (b - a) / 2 ^ k := by
+    intro i
+    simp only [dyadic]
+    push_cast
+    ring
+  simp only [mesh, e, ciSup_const]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the mesh of the dyadic partitions tends to `0`. -/
+theorem tendsto_mesh_dyadic (hab : a < b) :
+    Tendsto (fun k => mesh (dyadic hab k)) atTop (𝓝 0) := by
+  simp only [mesh_dyadic]
+  exact tendsto_const_nhds.div_atTop (tendsto_pow_atTop_atTop_of_one_lt one_lt_two)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: case (a) along the dyadic partitions. -/
+theorem tendsto_rsSum_dyadic_of_continuousOn {f g : ℝ → ℝ} (hab : a < b)
+    (hf : ContinuousOn f (Set.Icc a b)) (hg : BoundedVariationOn g (Set.Icc a b)) :
+    Tendsto (fun k => rsSum (dyadic hab k) f g) atTop (𝓝 (rsInt a b f g)) :=
+  tendsto_rsSum_of_continuousOn hf hg _ (tendsto_mesh_dyadic hab)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: case (b) along the dyadic partitions. -/
+theorem tendsto_rsSum_dyadic_of_isCadlag {f g : ℝ → ℝ} (hab : a < b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b)) :
+    Tendsto (fun k => rsSum (dyadic hab k) f g) atTop (𝓝 (rsInt a b f g)) :=
+  tendsto_rsSum_of_isCadlag hf hg hgc _ (tendsto_mesh_dyadic hab)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the cross sum vanishes along the dyadic partitions. -/
+theorem tendsto_crossSum_dyadic {f g : ℝ → ℝ} (hab : a < b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b)) :
+    Tendsto (fun k => crossSum (dyadic hab k) f g) atTop (𝓝 0) :=
+  tendsto_crossSum_zero hf hg hgc _ (tendsto_mesh_dyadic hab)
+
+end Cochrane.Monetarism.TidyR7StieltjesSums
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Riemann–Stieltjes calculus: products, integration by parts, measurability in a parameter
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The product step in (1.32),
+`Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, is proved path by path from the exact partition identity
+for products. These are the deterministic Riemann–Stieltjes tools for that (1.32) product step.
+
+## Main results
+
+* `prod_partition_identity`: for every partition,
+  `f(b)g(b) − f(a)g(a) = Σ f_iΔg_i + Σ g_iΔf_i + Σ Δf_iΔg_i` exactly.
+* `integration_by_parts`: `f(b)g(b) − f(a)g(a) = ∫_a^b f dg + ∫_a^b g df` for `f`, `g`
+  continuous of bounded variation; `integration_by_parts_of_isCadlag`: the same for `f` càdlàg of
+  bounded variation and `g` continuous of bounded variation (both from the partition identity,
+  `TidyR7StieltjesSums.tendsto_crossSum_zero` and the convergence of the sums).
+* `abs_rsSum_le`, `abs_crossSum_le`: the sums are dominated, `|Σ f_iΔg_i| ≤ sup|f|·Var(g)`,
+  `|Σ Δf_iΔg_i| ≤ 2 sup|f|·Var(g)`, uniformly in the partition (for conditional dominated
+  convergence).
+* `measurable_rsSum`, `tendsto_rsSum_dyadic_pi`, `measurable_rsInt`: for paths `f(ω, ·)`,
+  `g(ω, ·)` as in case (a) or (b) for each `ω`, with `f(·, t)`, `g(·, t)` measurable, the dyadic
+  sums are measurable in `ω` and converge pointwise in `ω`, so `ω ↦ ∫_a^b f(ω) dg(ω)` is
+  measurable.
+-/
+
+namespace Cochrane.Monetarism.TidyR7StieltjesCalculus
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+
+variable {a b : ℝ}
+
+/-! ## The exact partition identity for products -/
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the exact partition identity for products.**
+For every partition of `[a, b]`,
+`f(b)g(b) − f(a)g(a) = Σ f(t_i)Δg_i + Σ g(t_i)Δf_i + Σ Δf_iΔg_i`. -/
+theorem prod_partition_identity (P : Partition a b) (f g : ℝ → ℝ) :
+    f b * g b - f a * g a = rsSum P f g + rsSum P g f + crossSum P f g := by
+  have ht := Finset.sum_range_sub (fun i => f (P.t i) * g (P.t i)) P.n
+  rw [P.last, P.first] at ht
+  rw [← ht, rsSum, rsSum, crossSum, ← Finset.sum_add_distrib, ← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  ring
+
+/-! ## Domination of the sums -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Σ |g(t_{i+1}) − g(t_i)| ≤ Var_{[a,b]}(g)` for every
+partition.
+Mathlib `eVariationOn.sum_le_of_monotoneOn_Icc` in real form. -/
+theorem sum_abs_sub_le {g : ℝ → ℝ} (hg : BoundedVariationOn g (Set.Icc a b))
+    (P : Partition a b) :
+    ∑ i ∈ Finset.range P.n, |g (P.t (i + 1)) - g (P.t i)| ≤
+      (eVariationOn g (Set.Icc a b)).toReal := by
+  have h := eVariationOn.sum_le_of_monotoneOn_Icc (f := g) (s := Set.Icc a b) (m := 0)
+    (n := P.n) (u := P.t) (P.strictMono.monotone.monotoneOn _) fun i hi => t_mem P hi.2
+  rw [← Finset.range_eq_Ico] at h
+  have e : ∑ i ∈ Finset.range P.n, |g (P.t (i + 1)) - g (P.t i)| =
+      (∑ i ∈ Finset.range P.n, edist (g (P.t (i + 1))) (g (P.t i))).toReal := by
+    rw [ENNReal.toReal_sum fun _ _ => edist_ne_top _ _]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [edist_dist, ENNReal.toReal_ofReal dist_nonneg, Real.dist_eq]
+  rw [e]
+  exact ENNReal.toReal_mono hg h
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **domination of the Riemann–Stieltjes sums**,
+`|Σ f(t_i)Δg_i| ≤ sup_{[a,b]}|f| · Var_{[a,b]}(g)` for every partition. -/
+theorem abs_rsSum_le {f g : ℝ → ℝ} {C : ℝ} (hg : BoundedVariationOn g (Set.Icc a b))
+    (hC : ∀ x ∈ Set.Icc a b, |f x| ≤ C) (P : Partition a b) :
+    |rsSum P f g| ≤ C * (eVariationOn g (Set.Icc a b)).toReal := by
+  have hC0 : 0 ≤ C := (abs_nonneg _).trans (hC a ⟨le_rfl, a_le_b P⟩)
+  calc |rsSum P f g| ≤ ∑ i ∈ Finset.range P.n, |f (P.t i) * (g (P.t (i + 1)) - g (P.t i))| :=
+        Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ i ∈ Finset.range P.n, C * |g (P.t (i + 1)) - g (P.t i)| := by
+        refine Finset.sum_le_sum fun i hi => ?_
+        rw [abs_mul]
+        exact mul_le_mul_of_nonneg_right (hC _ (t_mem P (Finset.mem_range.1 hi).le))
+          (abs_nonneg _)
+    _ = C * ∑ i ∈ Finset.range P.n, |g (P.t (i + 1)) - g (P.t i)| := (Finset.mul_sum _ _ _).symm
+    _ ≤ C * (eVariationOn g (Set.Icc a b)).toReal :=
+        mul_le_mul_of_nonneg_left (sum_abs_sub_le hg P) hC0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **domination of the cross sums**,
+`|Σ Δf_iΔg_i| ≤ 2 sup_{[a,b]}|f| · Var_{[a,b]}(g)` for every partition. -/
+theorem abs_crossSum_le {f g : ℝ → ℝ} {C : ℝ} (hg : BoundedVariationOn g (Set.Icc a b))
+    (hC : ∀ x ∈ Set.Icc a b, |f x| ≤ C) (P : Partition a b) :
+    |crossSum P f g| ≤ 2 * C * (eVariationOn g (Set.Icc a b)).toReal := by
+  have hC0 : 0 ≤ C := (abs_nonneg _).trans (hC a ⟨le_rfl, a_le_b P⟩)
+  calc |crossSum P f g| ≤ ∑ i ∈ Finset.range P.n,
+        |(f (P.t (i + 1)) - f (P.t i)) * (g (P.t (i + 1)) - g (P.t i))| :=
+        Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ i ∈ Finset.range P.n, 2 * C * |g (P.t (i + 1)) - g (P.t i)| := by
+        refine Finset.sum_le_sum fun i hi => ?_
+        rw [abs_mul]
+        refine mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
+        have h1 := hC _ (t_mem P (Finset.mem_range.1 hi))
+        have h2 := hC _ (t_mem P (Finset.mem_range.1 hi).le)
+        calc |f (P.t (i + 1)) - f (P.t i)| ≤ |f (P.t (i + 1))| + |f (P.t i)| := abs_sub _ _
+          _ ≤ 2 * C := by linarith
+    _ = 2 * C * ∑ i ∈ Finset.range P.n, |g (P.t (i + 1)) - g (P.t i)| :=
+        (Finset.mul_sum _ _ _).symm
+    _ ≤ 2 * C * (eVariationOn g (Set.Icc a b)).toReal :=
+        mul_le_mul_of_nonneg_left (sum_abs_sub_le hg P) (by linarith)
+
+/-! ## Integration by parts -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for `f` continuous and `g` of bounded variation on
+`[a, b]`, the cross sum tends to `0` as the mesh → 0. -/
+theorem tendsto_crossSum_zero_of_continuousOn {f g : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc a b))
+    (hg : BoundedVariationOn g (Set.Icc a b)) (P : ℕ → Partition a b)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    Tendsto (fun k => crossSum (P k) f g) atTop (𝓝 0) := by
+  rw [Metric.tendsto_atTop]
+  intro η hη
+  set V := (eVariationOn g (Set.Icc a b)).toReal with hV
+  have hV0 : 0 ≤ V := ENNReal.toReal_nonneg
+  set ε := η / (V + 1) with hεdef
+  have hε : 0 < ε := by positivity
+  obtain ⟨δ, hδ, hδf⟩ := Metric.uniformContinuousOn_iff.1
+    (isCompact_Icc.uniformContinuousOn_of_continuous hf) ε hε
+  obtain ⟨N, hN⟩ := Metric.tendsto_atTop.1 hP δ hδ
+  refine ⟨N, fun k hk => ?_⟩
+  have hmk : mesh (P k) < δ := by
+    have := hN k hk
+    rw [Real.dist_eq, sub_zero] at this
+    exact lt_of_le_of_lt (le_abs_self _) this
+  rw [Real.dist_eq, sub_zero]
+  have hb : |crossSum (P k) f g| ≤ ε * V := by
+    calc |crossSum (P k) f g| ≤ ∑ i ∈ Finset.range (P k).n,
+          |(f ((P k).t (i + 1)) - f ((P k).t i)) * (g ((P k).t (i + 1)) - g ((P k).t i))| :=
+          Finset.abs_sum_le_sum_abs _ _
+      _ ≤ ∑ i ∈ Finset.range (P k).n, ε * |g ((P k).t (i + 1)) - g ((P k).t i)| := by
+          refine Finset.sum_le_sum fun i hi => ?_
+          rw [abs_mul]
+          refine mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
+          have hi' := Finset.mem_range.1 hi
+          have := hδf _ (t_mem (P k) hi') _ (t_mem (P k) hi'.le) (by
+            rw [Real.dist_eq, abs_of_nonneg (by linarith [(P k).strictMono (Nat.lt_succ_self i)])]
+            exact lt_of_le_of_lt (le_mesh (P k) hi') hmk)
+          rw [Real.dist_eq] at this
+          exact this.le
+      _ = ε * ∑ i ∈ Finset.range (P k).n, |g ((P k).t (i + 1)) - g ((P k).t i)| :=
+          (Finset.mul_sum _ _ _).symm
+      _ ≤ ε * V := mul_le_mul_of_nonneg_left (sum_abs_sub_le hg (P k)) hε.le
+  refine lt_of_le_of_lt hb ?_
+  rw [hεdef, div_mul_eq_mul_div, div_lt_iff₀ (by positivity)]
+  nlinarith
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: integration by parts.** For `f`, `g` continuous of
+bounded variation on `[a, b]`, `a < b`: `f(b)g(b) − f(a)g(a) = ∫_a^b f dg + ∫_a^b g df`.
+As a statement, a special case of Mathlib
+`BoundedVariationOn.setIntegral_Icc_leftLim_smul_vectorMeasure_eq_sub`; proved here from the
+partition identity. -/
+theorem integration_by_parts {f g : ℝ → ℝ} (hab : a < b) (hfc : ContinuousOn f (Set.Icc a b))
+    (hf : BoundedVariationOn f (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b))
+    (hg : BoundedVariationOn g (Set.Icc a b)) :
+    f b * g b - f a * g a = rsInt a b f g + rsInt a b g f := by
+  have h := ((tendsto_rsSum_dyadic_of_continuousOn hab hfc hg).add
+    (tendsto_rsSum_dyadic_of_continuousOn hab hgc hf)).add
+    (tendsto_crossSum_zero_of_continuousOn hfc hg _ (tendsto_mesh_dyadic hab))
+  rw [add_zero] at h
+  have e : ∀ k, rsSum (dyadic hab k) f g + rsSum (dyadic hab k) g f +
+      crossSum (dyadic hab k) f g = f b * g b - f a * g a :=
+    fun k => (prod_partition_identity _ f g).symm
+  exact tendsto_nhds_unique tendsto_const_nhds ((tendsto_congr e).1 h)
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: integration by parts with one càdlàg factor.** For `f`
+càdlàg of bounded variation on `[a, b]` and `g` continuous of bounded variation on `[a, b]`,
+`a < b`: `f(b)g(b) − f(a)g(a) = ∫_a^b f dg + ∫_a^b g df` (`∫ g df` charges the jumps of `f`
+with the value of the continuous `g`; `∫ f dg = ∫ f(t−) dg` since `g` has no atoms).
+As a statement, a special case of Mathlib
+`BoundedVariationOn.setIntegral_Icc_leftLim_smul_vectorMeasure_eq_sub`; proved here from the
+partition identity. -/
+theorem integration_by_parts_of_isCadlag {f g : ℝ → ℝ} (hab : a < b) (hfc : IsCadlag f)
+    (hf : BoundedVariationOn f (Set.Icc a b)) (hgc : ContinuousOn g (Set.Icc a b))
+    (hg : BoundedVariationOn g (Set.Icc a b)) :
+    f b * g b - f a * g a = rsInt a b f g + rsInt a b g f := by
+  have h := ((tendsto_rsSum_dyadic_of_isCadlag hab hfc hg hgc).add
+    (tendsto_rsSum_dyadic_of_continuousOn hab hgc hf)).add
+    (tendsto_crossSum_dyadic hab hfc hg hgc)
+  rw [add_zero] at h
+  have e : ∀ k, rsSum (dyadic hab k) f g + rsSum (dyadic hab k) g f +
+      crossSum (dyadic hab k) f g = f b * g b - f a * g a :=
+    fun k => (prod_partition_identity _ f g).symm
+  exact tendsto_nhds_unique tendsto_const_nhds ((tendsto_congr e).1 h)
+
+/-! ## Measurability in a parameter -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: if every `f(·, t)`, `g(·, t)` is measurable, every
+Riemann–Stieltjes sum `ω ↦ Σ f(ω, t_i)(g(ω, t_{i+1}) − g(ω, t_i))` is measurable. -/
+theorem measurable_rsSum {Ω : Type*} [MeasurableSpace Ω] {f g : Ω → ℝ → ℝ}
+    (hf : ∀ t, Measurable fun ω => f ω t) (hg : ∀ t, Measurable fun ω => g ω t)
+    (P : Partition a b) : Measurable fun ω => rsSum P (f ω) (g ω) := by
+  simp only [rsSum]
+  exact Finset.measurable_sum _ fun i _ => (hf _).mul ((hg _).sub (hg _))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: if every `f(·, t)`, `g(·, t)` is measurable, every cross sum
+is measurable in `ω`. -/
+theorem measurable_crossSum {Ω : Type*} [MeasurableSpace Ω] {f g : Ω → ℝ → ℝ}
+    (hf : ∀ t, Measurable fun ω => f ω t) (hg : ∀ t, Measurable fun ω => g ω t)
+    (P : Partition a b) : Measurable fun ω => crossSum P (f ω) (g ω) := by
+  simp only [crossSum]
+  exact Finset.measurable_sum _ fun i _ => ((hf _).sub (hf _)).mul ((hg _).sub (hg _))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: if for each `ω` the paths `f(ω, ·)`, `g(ω, ·)` are as in
+case (a) (`f` continuous, `g` of bounded variation) or case (b) (`f` càdlàg, `g` continuous of
+bounded variation), the dyadic sums converge to `ω ↦ ∫_a^b f(ω) dg(ω)` pointwise in `ω`. -/
+theorem tendsto_rsSum_dyadic_pi {Ω : Type*} {f g : Ω → ℝ → ℝ} (hab : a < b)
+    (hcase : ∀ ω, (ContinuousOn (f ω) (Set.Icc a b) ∧
+        BoundedVariationOn (g ω) (Set.Icc a b)) ∨
+      (IsCadlag (f ω) ∧ BoundedVariationOn (g ω) (Set.Icc a b) ∧
+        ContinuousOn (g ω) (Set.Icc a b))) :
+    Tendsto (fun k ω => rsSum (dyadic hab k) (f ω) (g ω)) atTop
+      (𝓝 fun ω => rsInt a b (f ω) (g ω)) := by
+  rw [tendsto_pi_nhds]
+  intro ω
+  rcases hcase ω with ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
+  · exact tendsto_rsSum_dyadic_of_continuousOn hab h1 h2
+  · exact tendsto_rsSum_dyadic_of_isCadlag hab h1 h2 h3
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: measurability in a parameter.** If for each `ω` the paths
+`f(ω, ·)`, `g(ω, ·)` are as in case (a) or case (b), and every `f(·, t)`, `g(·, t)` is
+measurable, then `ω ↦ ∫_a^b f(ω) dg(ω)` is measurable (the pointwise limit of the measurable
+dyadic sums, `tendsto_rsSum_dyadic_pi`; the sums are dominated by `abs_rsSum_le`). -/
+theorem measurable_rsInt {Ω : Type*} [MeasurableSpace Ω] {f g : Ω → ℝ → ℝ} (hab : a < b)
+    (hf : ∀ t, Measurable fun ω => f ω t) (hg : ∀ t, Measurable fun ω => g ω t)
+    (hcase : ∀ ω, (ContinuousOn (f ω) (Set.Icc a b) ∧
+        BoundedVariationOn (g ω) (Set.Icc a b)) ∨
+      (IsCadlag (f ω) ∧ BoundedVariationOn (g ω) (Set.Icc a b) ∧
+        ContinuousOn (g ω) (Set.Icc a b))) :
+    Measurable fun ω => rsInt a b (f ω) (g ω) :=
+  measurable_of_tendsto_metrizable (fun k => measurable_rsSum hf hg (dyadic hab k))
+    (tendsto_rsSum_dyadic_pi hab hcase)
+
+end Cochrane.Monetarism.TidyR7StieltjesCalculus
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Measurability of the variation of a random path, and the degenerate interval
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The product step in (1.32),
+`Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, passes to the limit in the Riemann–Stieltjes sums under a
+conditional expectation; the sums are dominated by `C(ω)·Var_{[a,b]}(g(ω, ·))`
+(`TidyR7StieltjesCalculus.abs_rsSum_le`). These are deterministic Riemann–Stieltjes tools for that
+(1.32) product step: the dominating variation is measurable in `ω`.
+
+## Main results
+
+* `eVariationOn_Icc_eq_denseSet`: for `g` right-continuous on `[a, b]` (within `[x, b]` at each
+  `x`), the variation over `[a, b]` equals the variation over the countable set `denseSet a b`
+  (rationals of `[a, b]` together with `b`). Each point is pushed to the next dyadic point to its
+  right (`dyadicUp`), monotonically, and right-continuity passes to the limit.
+* `measurable_eVariationOn_countable`: over a countable set the variation is a countable supremum
+  of measurable finite sums.
+* `measurable_eVariationOn`, `measurable_variation_toReal`: `ω ↦ Var_{[a,b]}(g(ω, ·))` (and its
+  `toReal`) is measurable if each `g(·, t)` is measurable and each path is right-continuous on
+  `[a, b]`; corollaries for càdlàg paths (`measurable_eVariationOn_of_isCadlag`) and paths
+  continuous on `[a, b]` (`measurable_eVariationOn_of_continuousOn`).
+* The degenerate interval: `eVariationOn_Icc_self`, `rsInt_self`, `partition_self_n`,
+  `rsSum_self`, `crossSum_self`.
+-/
+
+namespace Cochrane.Monetarism.TidyR7StieltjesVariation
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+
+/-! ## Pushing points to the right onto a countable set -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the countable set of rationals of `[a, b]`, with `b`. -/
+def denseSet (a b : ℝ) : Set ℝ := {y | y ∈ Set.Icc a b ∧ (y = b ∨ ∃ q : ℚ, (q : ℝ) = y)}
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `denseSet a b` is countable. -/
+theorem countable_denseSet (a b : ℝ) : (denseSet a b).Countable := by
+  refine ((Set.countable_range (fun q : ℚ => (q : ℝ))).insert b).mono fun y hy => ?_
+  rcases hy.2 with h | ⟨q, hq⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨q, hq⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the first dyadic point of level `k` strictly right of `x`,
+`(⌊2^k x⌋ + 1)/2^k`. -/
+noncomputable def dyadicUp (k : ℕ) (x : ℝ) : ℝ := ((⌊x * 2 ^ k⌋ : ℝ) + 1) / 2 ^ k
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `x < dyadicUp k x ≤ x + 1/2^k`. -/
+theorem dyadicUp_bounds (k : ℕ) (x : ℝ) : x < dyadicUp k x ∧ dyadicUp k x ≤ x + 1 / 2 ^ k := by
+  have h2 : (0 : ℝ) < 2 ^ k := by positivity
+  have h1 := Int.lt_floor_add_one (x * 2 ^ k)
+  have h3 := Int.floor_le (x * 2 ^ k)
+  constructor
+  · rw [dyadicUp, lt_div_iff₀ h2]
+    linarith
+  · rw [dyadicUp, div_le_iff₀ h2, add_mul, div_mul_cancel₀ _ h2.ne']
+    linarith
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `dyadicUp k` is monotone. -/
+theorem dyadicUp_mono (k : ℕ) : Monotone (dyadicUp k) := by
+  intro x y hxy
+  have h2 : (0 : ℝ) < 2 ^ k := by positivity
+  have := Int.floor_mono (mul_le_mul_of_nonneg_right hxy h2.le)
+  have h' : (⌊x * 2 ^ k⌋ : ℝ) ≤ ⌊y * 2 ^ k⌋ := Int.cast_le.2 this
+  exact div_le_div_of_nonneg_right (by linarith) h2.le
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `dyadicUp k x` is rational. -/
+theorem dyadicUp_rat (k : ℕ) (x : ℝ) : ∃ q : ℚ, (q : ℝ) = dyadicUp k x :=
+  ⟨((⌊x * 2 ^ k⌋ : ℚ) + 1) / 2 ^ k, by rw [dyadicUp]; push_cast; ring⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the push of `x ∈ [a, b]` to the right, capped at `b`. -/
+noncomputable def pushRight (b : ℝ) (k : ℕ) (x : ℝ) : ℝ := min (dyadicUp k x) b
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the push lies in `[x, b]` and in `denseSet a b`. -/
+theorem pushRight_mem {a b x : ℝ} (hx : x ∈ Set.Icc a b) (k : ℕ) :
+    pushRight b k x ∈ Set.Icc x b ∧ pushRight b k x ∈ denseSet a b := by
+  have h1 : pushRight b k x ∈ Set.Icc x b :=
+    ⟨le_min (dyadicUp_bounds k x).1.le hx.2, min_le_right _ _⟩
+  refine ⟨h1, ⟨hx.1.trans h1.1, h1.2⟩, ?_⟩
+  rcases le_total (dyadicUp k x) b with h | h
+  · rw [pushRight, min_eq_left h]
+    exact Or.inr (dyadicUp_rat k x)
+  · rw [pushRight, min_eq_right h]
+    exact Or.inl rfl
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the push is monotone. -/
+theorem pushRight_mono (b : ℝ) (k : ℕ) : Monotone (pushRight b k) :=
+  fun _ _ h => min_le_min (dyadicUp_mono k h) le_rfl
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the push of `x ∈ [a, b]` tends to `x` within `[x, b]`. -/
+theorem tendsto_pushRight {a b x : ℝ} (hx : x ∈ Set.Icc a b) :
+    Tendsto (fun k => pushRight b k x) atTop (𝓝[Set.Icc x b] x) := by
+  refine tendsto_nhdsWithin_iff.2 ⟨?_, Eventually.of_forall fun k => (pushRight_mem hx k).1⟩
+  have hup : Tendsto (fun k : ℕ => x + 1 / (2 : ℝ) ^ k) atTop (𝓝 x) := by
+    have h0 : Tendsto (fun k : ℕ => (1 : ℝ) / 2 ^ k) atTop (𝓝 0) :=
+      tendsto_const_nhds.div_atTop (tendsto_pow_atTop_atTop_of_one_lt one_lt_two)
+    simpa using (tendsto_const_nhds (x := x)).add h0
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hup
+    (fun k => (pushRight_mem hx k).1.1)
+    (fun k => (min_le_left _ _).trans (dyadicUp_bounds k x).2)
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: the variation of a right-continuous path is a supremum
+over a countable set.** If `g` is right-continuous on `[a, b]` (within `[x, b]` at each
+`x ∈ [a, b]`), then `Var_{[a,b]}(g) = Var_{denseSet a b}(g)`. -/
+theorem eVariationOn_Icc_eq_denseSet {a b : ℝ} {g : ℝ → ℝ}
+    (hr : ∀ x ∈ Set.Icc a b, ContinuousWithinAt g (Set.Icc x b) x) :
+    eVariationOn g (Set.Icc a b) = eVariationOn g (denseSet a b) := by
+  refine le_antisymm (iSup_le fun p => ?_) (eVariationOn.mono g fun y hy => hy.1)
+  have hbound : ∀ k, ∑ i ∈ Finset.range p.1,
+      edist (g (pushRight b k (p.2.1 (i + 1)))) (g (pushRight b k (p.2.1 i))) ≤
+        eVariationOn g (denseSet a b) := fun k =>
+    eVariationOn.sum_le (u := fun i => pushRight b k (p.2.1 i))
+      ((pushRight_mono b k).comp p.2.2.1) fun i => (pushRight_mem (p.2.2.2 i) k).2
+  have hpt : ∀ j, Tendsto (fun k => g (pushRight b k (p.2.1 j))) atTop (𝓝 (g (p.2.1 j))) :=
+    fun j => (hr _ (p.2.2.2 j)).tendsto.comp (tendsto_pushRight (p.2.2.2 j))
+  exact le_of_tendsto' (tendsto_finsetSum _ fun i _ => (hpt (i + 1)).edist (hpt i)) hbound
+
+/-! ## Countable suprema -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the points `v_0, …, v_n` of a finite family, extended by
+`v_n` to all of `ℕ`. -/
+def extFin {S : Set ℝ} (n : ℕ) (v : Fin (n + 1) → S) (i : ℕ) : ℝ :=
+  v ⟨min i n, Nat.lt_succ_of_le (min_le_right i n)⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the variation over `S` as a supremum over finite families of
+points of `S` (a countable index set when `S` is countable).
+A reindexing of the definition of Mathlib `eVariationOn`. -/
+theorem eVariationOn_eq_iSup_fin (g : ℝ → ℝ) (S : Set ℝ) :
+    eVariationOn g S = ⨆ p : Σ n : ℕ, (Fin (n + 1) → S),
+      @ite _ (Monotone (extFin p.1 p.2)) (Classical.dec _)
+        (∑ i ∈ Finset.range p.1, edist (g (extFin p.1 p.2 (i + 1))) (g (extFin p.1 p.2 i))) 0 := by
+  refine le_antisymm (iSup_le fun p => ?_) (iSup_le fun q => ?_)
+  · let v : Fin (p.1 + 1) → S := fun j => ⟨p.2.1 j, p.2.2.2 j⟩
+    have hv : ∀ i, extFin p.1 v i = p.2.1 (min i p.1) := fun _ => rfl
+    have hm : Monotone (extFin p.1 v) := by
+      intro i j hij
+      rw [hv, hv]
+      exact p.2.2.1 (min_le_min_right _ hij)
+    refine le_iSup_of_le ⟨p.1, v⟩ ?_
+    simp only [hm, ↓reduceIte]
+    refine le_of_eq (Finset.sum_congr rfl fun i hi => ?_)
+    have hi' := Finset.mem_range.1 hi
+    rw [hv, hv, min_eq_left hi'.le, min_eq_left hi']
+  · by_cases hm : Monotone (extFin q.1 q.2)
+    · simp only [hm, ↓reduceIte]
+      exact eVariationOn.sum_le hm fun i => (q.2 _).2
+    · simp only [hm, ↓reduceIte]
+      exact bot_le
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **over a countable set the variation of a random path is
+measurable** when each `g(·, t)` is measurable. -/
+theorem measurable_eVariationOn_countable {Ω : Type*} [MeasurableSpace Ω] {g : Ω → ℝ → ℝ}
+    {S : Set ℝ} (hS : S.Countable) (hg : ∀ t, Measurable fun ω => g ω t) :
+    Measurable fun ω => eVariationOn (g ω) S := by
+  have := hS.to_subtype
+  simp only [eVariationOn_eq_iSup_fin]
+  refine Measurable.iSup fun q => ?_
+  by_cases hm : Monotone (extFin q.1 q.2)
+  · simp only [hm, ↓reduceIte]
+    exact Finset.measurable_sum _ fun i _ => (hg _).edist (hg _)
+  · simp only [hm, ↓reduceIte]
+    exact measurable_const
+
+/-! ## The variation of a random right-continuous path -/
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: `ω ↦ Var_{[a,b]}(g(ω, ·))` is measurable** if each
+`g(·, t)` is measurable and each path `g(ω, ·)` is right-continuous on `[a, b]`. -/
+theorem measurable_eVariationOn {a b : ℝ} {Ω : Type*} [MeasurableSpace Ω] {g : Ω → ℝ → ℝ}
+    (hg : ∀ t, Measurable fun ω => g ω t)
+    (hr : ∀ ω, ∀ x ∈ Set.Icc a b, ContinuousWithinAt (g ω) (Set.Icc x b) x) :
+    Measurable fun ω => eVariationOn (g ω) (Set.Icc a b) := by
+  have e : (fun ω => eVariationOn (g ω) (Set.Icc a b)) =
+      fun ω => eVariationOn (g ω) (denseSet a b) :=
+    funext fun ω => eVariationOn_Icc_eq_denseSet (hr ω)
+  rw [e]
+  exact measurable_eVariationOn_countable (countable_denseSet a b) hg
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the real variation `ω ↦ Var_{[a,b]}(g(ω, ·)).toReal` is
+measurable under the hypotheses of `measurable_eVariationOn` (it is the variation itself when
+the paths have bounded variation). -/
+theorem measurable_variation_toReal {a b : ℝ} {Ω : Type*} [MeasurableSpace Ω]
+    {g : Ω → ℝ → ℝ} (hg : ∀ t, Measurable fun ω => g ω t)
+    (hr : ∀ ω, ∀ x ∈ Set.Icc a b, ContinuousWithinAt (g ω) (Set.Icc x b) x) :
+    Measurable fun ω => (eVariationOn (g ω) (Set.Icc a b)).toReal :=
+  (measurable_eVariationOn hg hr).ennreal_toReal
+
+/-- Cochrane (2023), A1 §1.6, p. 567: measurability of the variation for càdlàg paths. -/
+theorem measurable_eVariationOn_of_isCadlag {a b : ℝ} {Ω : Type*} [MeasurableSpace Ω]
+    {g : Ω → ℝ → ℝ} (hg : ∀ t, Measurable fun ω => g ω t) (hc : ∀ ω, IsCadlag (g ω)) :
+    Measurable fun ω => eVariationOn (g ω) (Set.Icc a b) :=
+  measurable_eVariationOn hg fun ω x _ =>
+    (continuousWithinAt_Ioi_iff_Ici.1 ((hc ω).isRightContinuous x)).mono Set.Icc_subset_Ici_self
+
+/-- Cochrane (2023), A1 §1.6, p. 567: measurability of the variation for paths continuous on
+`[a, b]`. -/
+theorem measurable_eVariationOn_of_continuousOn {a b : ℝ} {Ω : Type*} [MeasurableSpace Ω]
+    {g : Ω → ℝ → ℝ} (hg : ∀ t, Measurable fun ω => g ω t)
+    (hc : ∀ ω, ContinuousOn (g ω) (Set.Icc a b)) :
+    Measurable fun ω => eVariationOn (g ω) (Set.Icc a b) :=
+  measurable_eVariationOn hg fun ω x hx =>
+    ((hc ω) x hx).mono (Set.Icc_subset_Icc_left hx.1)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: real-valued form for càdlàg paths. -/
+theorem measurable_variation_toReal_of_isCadlag {a b : ℝ} {Ω : Type*} [MeasurableSpace Ω]
+    {g : Ω → ℝ → ℝ} (hg : ∀ t, Measurable fun ω => g ω t) (hc : ∀ ω, IsCadlag (g ω)) :
+    Measurable fun ω => (eVariationOn (g ω) (Set.Icc a b)).toReal :=
+  (measurable_eVariationOn_of_isCadlag hg hc).ennreal_toReal
+
+/-- Cochrane (2023), A1 §1.6, p. 567: real-valued form for paths continuous on `[a, b]`. -/
+theorem measurable_variation_toReal_of_continuousOn {a b : ℝ} {Ω : Type*} [MeasurableSpace Ω]
+    {g : Ω → ℝ → ℝ} (hg : ∀ t, Measurable fun ω => g ω t)
+    (hc : ∀ ω, ContinuousOn (g ω) (Set.Icc a b)) :
+    Measurable fun ω => (eVariationOn (g ω) (Set.Icc a b)).toReal :=
+  (measurable_eVariationOn_of_continuousOn hg hc).ennreal_toReal
+
+/-! ## The degenerate interval `a = b` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Var_{[a,a]}(g) = 0`.
+A special case of Mathlib `eVariationOn.subsingleton`. -/
+theorem eVariationOn_Icc_self (g : ℝ → ℝ) (a : ℝ) : eVariationOn g (Set.Icc a a) = 0 := by
+  rw [Set.Icc_self]
+  exact eVariationOn.subsingleton g Set.subsingleton_singleton
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `∫_a^a f dg = 0`. -/
+theorem rsInt_self (f g : ℝ → ℝ) (a : ℝ) : rsInt a a f g = 0 := by
+  have hbv : BoundedVariationOn g (Set.Icc a a) := by
+    rw [BoundedVariationOn, eVariationOn_Icc_self]
+    exact ENNReal.zero_ne_top
+  have h := abs_rsInt_le (C := |f a|) le_rfl hbv fun x hx => by rw [le_antisymm hx.2 hx.1]
+  rw [eVariationOn_Icc_self] at h
+  simpa using h
+
+/-- Cochrane (2023), A1 §1.6, p. 567: a partition of `[a, a]` has no steps. -/
+theorem partition_self_n {a : ℝ} (P : Partition a a) : P.n = 0 := by
+  by_contra h
+  have := P.strictMono (Nat.pos_of_ne_zero h)
+  rw [P.first, P.last] at this
+  exact lt_irrefl _ this
+
+/-- Cochrane (2023), A1 §1.6, p. 567: on `[a, a]` every Riemann–Stieltjes sum is `0`. -/
+theorem rsSum_self {a : ℝ} (P : Partition a a) (f g : ℝ → ℝ) : rsSum P f g = 0 := by
+  simp [rsSum, partition_self_n P]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: on `[a, a]` every cross sum is `0`. -/
+theorem crossSum_self {a : ℝ} (P : Partition a a) (f g : ℝ → ℝ) : crossSum P f g = 0 := by
+  simp [crossSum, partition_self_n P]
+
+end Cochrane.Monetarism.TidyR7StieltjesVariation
 
 set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.SchurStable
@@ -39290,3 +40995,134 @@ set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.TidyR6StochasticDrift.hasDrift_of_pathwise
 #print axioms Cochrane.Monetarism.TidyR6StochasticDrift.drift_1_32_fv
 #print axioms Cochrane.Monetarism.TidyR6StochasticDrift.valuation_1_33_fv
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.clampFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.clampFn_of_mem
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.clampFn_of_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.clampFn_of_ge
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.eVariationOn_clampFn_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.bv_clampFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.continuous_clampFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.leftLim_clampFn_left
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rightLim_clampFn_right
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rightLim_clampFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.leftLim_clampFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_eq
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.isFiniteMeasure_stMeasure
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.variation_real_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsInt
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_Icc
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_singleton_left
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_singleton_interior
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_singleton_right
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_Ioc
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rightLim_clampFn_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_singleton_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_Ioc_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsInt_one
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.RSIntegrable
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsIntegrable_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsIntegrable_of_measurable
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.RSIntegrable.mono
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.exists_small_jumps_right
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.countable_jumps
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.continuousAt_of_leftLim_eq
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.measurable_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.exists_bound_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsIntegrable_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsInt_add_left
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsInt_smul_left
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.eVariationOn_add_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rightLim_add_sub
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.leftLim_add_sub
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_add
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsInt_add_right
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_smul
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsInt_smul_right
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.abs_rsInt_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.clampFn_split
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.stMeasure_split
+#print axioms Cochrane.Monetarism.TidyR7StieltjesIntegral.rsInt_add_interval
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Partition
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Partition.mk
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Partition.n
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Partition.t
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Partition.strictMono
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Partition.first
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Partition.last
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.mesh
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.le_mesh
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.rsSum
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.crossSum
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.stepFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.t_mem
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.a_le_b
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.Ioc_subset
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.exists_piece
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.stepFn_eq
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.stepFn_of_notMem
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.abs_stepFn_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.measurable_stepFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.integral_stepFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.setIntegral_Icc_eq
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.sum_mul_sub_eq
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.abs_sub_rightLim_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.sum_eVariationOn_Icc
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.sum_abs_jump_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.abs_rsSum_sub_rsInt_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_rsSum_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.rsSum_eq_integral_stepFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_integral_stepFn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_stepFn_left
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_stepFn_right
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.rsInt_eq_Ioc_leftLim
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.rsInt_eq_rsInt_leftLim
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_crossSum_zero
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.heaviside
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.isCadlag_heaviside
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.bv_heaviside
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.crossSum_heaviside
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.not_tendsto_crossSum_heaviside
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.dyadic
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.mesh_dyadic
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_mesh_dyadic
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_rsSum_dyadic_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_rsSum_dyadic_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesSums.tendsto_crossSum_dyadic
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.prod_partition_identity
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.sum_abs_sub_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.abs_rsSum_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.abs_crossSum_le
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.tendsto_crossSum_zero_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.integration_by_parts
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.measurable_rsSum
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.measurable_crossSum
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.tendsto_rsSum_dyadic_pi
+#print axioms Cochrane.Monetarism.TidyR7StieltjesCalculus.measurable_rsInt
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.denseSet
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.countable_denseSet
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.dyadicUp
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.dyadicUp_bounds
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.dyadicUp_mono
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.dyadicUp_rat
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.pushRight
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.pushRight_mem
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.pushRight_mono
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.tendsto_pushRight
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.eVariationOn_Icc_eq_denseSet
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.extFin
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.eVariationOn_eq_iSup_fin
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.measurable_eVariationOn_countable
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.measurable_eVariationOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.measurable_variation_toReal
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.measurable_eVariationOn_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.measurable_eVariationOn_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.measurable_variation_toReal_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.measurable_variation_toReal_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.eVariationOn_Icc_self
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.rsInt_self
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.partition_self_n
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.rsSum_self
+#print axioms Cochrane.Monetarism.TidyR7StieltjesVariation.crossSum_self

@@ -15,12 +15,13 @@ are perfect-foresight, as in the book. The household first-order conditions are 
 optimisation, under perfect foresight, on a finite event tree and on a genuine probability space
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms of Online Appendix §1.6 (`TidyR6StochasticDrift`). The
-library contains **1442 theorems**, including the shared core; 578 of them are in the fourteen
+library contains **1552 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
-in the eleven `TidyR6Household…` modules, and 142 in the twelve further `TidyR6…` modules: 27 on
+in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
 Woodford's convexity, Taylor-rule and Obstfeld–Rogoff sections, 54 on active fiscal policy under
-uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms.
+uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, and 110 in the four
+`TidyR7Stieltjes…` modules, deterministic Riemann–Stieltjes tools for the product step of (1.32).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -173,6 +174,19 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   continuous time, with `E_tdX = a dt` defined as the martingale property of `X − ∫a`, valuation
   holds iff the transversality condition does (`TidyR6StochasticDrift.valuation_iff_tvc`), and
   (1.32) holds for finite-variation discount factors (`TidyR6StochasticDrift.drift_1_32_fv`).
+* **Pathwise Riemann–Stieltjes tools for the §1.6 product step.** The integral `∫_a^b f dg` is
+  the integral against Mathlib's Lebesgue–Stieltjes measure of `g` frozen outside `[a, b]`
+  (`TidyR7StieltjesIntegral.rsInt`), with total mass `g(b) − g(a)` and the jumps of `g` as atoms
+  (`TidyR7StieltjesIntegral.stMeasure_Icc`, `TidyR7StieltjesIntegral.stMeasure_singleton_interior`).
+  Left-point sums converge to it along any partitions with mesh → 0, for continuous `f` and `g`
+  of bounded variation (`TidyR7StieltjesSums.tendsto_rsSum_of_continuousOn`) and for càdlàg `f`
+  and continuous `g` of bounded variation (`TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag`); in
+  the second case the cross sum `Σ ΔfΔg` tends to zero (`TidyR7StieltjesSums.tendsto_crossSum_zero`),
+  which fails without continuity of `g` (`TidyR7StieltjesSums.not_tendsto_crossSum_heaviside`).
+  With the exact partition identity for products (`TidyR7StieltjesCalculus.prod_partition_identity`)
+  this gives integration by parts (`TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag`).
+  For random paths the integral and the variation are measurable in `ω`
+  (`TidyR7StieltjesCalculus.measurable_rsInt`, `TidyR7StieltjesVariation.measurable_eVariationOn`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -323,7 +337,14 @@ Not formalised:
   it needs the stochastic integral `∫B d(Λ/P)` and the quadratic covariation, Itô calculus that
   Mathlib does not have. The `Δ`-grid forms, the integration steps (1.33)–(1.34) and the
   finite-variation case are proved instead (`TidyR6StochasticDrift.incr_1_32`,
-  `TidyR6StochasticDrift.valuation_iff_tvc`, `TidyR6StochasticDrift.drift_1_32_fv`);
+  `TidyR6StochasticDrift.valuation_iff_tvc`, `TidyR6StochasticDrift.drift_1_32_fv`). Mathlib does
+  have the Lebesgue–Stieltjes measure of a signed finite-variation path
+  (`BoundedVariationOn.vectorMeasure`), and the pathwise Riemann–Stieltjes calculus built on it
+  is proved (`TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag`,
+  `TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag`,
+  `TidyR7StieltjesCalculus.measurable_rsInt`); the passage of these limits under the conditional
+  expectation, which needs a measurable bound on the paths, and so the product step itself, is
+  not yet proved;
 * under active fiscal policy, the literal "there is exactly one equilibrium iff the surplus is
   coordinated with money": coordination is proved equivalent to the unique equilibrium being the
   standard one (`TidyR6ActiveFiscalExist.std_existsUnique_iff`), but a unique non-standard
@@ -390,6 +411,10 @@ Not formalised:
 | [TidyR6PontryaginPCSuff](Monetarism/TidyR6PontryaginPCSuff.lean) | 2 | A4 (4.16)–(4.17): sufficiency with a continuous costate; the characterisation with piecewise-continuous consumption |
 | [TidyR6Halkin](Monetarism/TidyR6Halkin.lean) | 4 | A4 (4.17): Halkin's (1974) counterexample, an optimum at which the transversality condition fails for every costate |
 | [TidyR6StochasticDrift](Monetarism/TidyR6StochasticDrift.lean) | 12 | A1 §1.6, (1.32)–(1.34), p. 567: `E_td(·)` exactly on a `Δ`-grid; the drift notion, valuation iff transversality under uncertainty, finite-variation discount factors |
+| [TidyR7StieltjesIntegral](Monetarism/TidyR7StieltjesIntegral.lean) | 44 | A1 §1.6, p. 567 (tool for (1.32)): the Riemann–Stieltjes integral `∫_a^b f dg` from Mathlib's Lebesgue–Stieltjes vector measure; its atoms, linearity in `f` and `g`, the bound `sup\|f\|·Var(g)`, additivity over intervals; càdlàg functions have countably many jumps |
+| [TidyR7StieltjesSums](Monetarism/TidyR7StieltjesSums.lean) | 34 | A1 §1.6, p. 567 (tool for (1.32)): partitions; convergence of left-point Riemann–Stieltjes sums for continuous `f` or for càdlàg `f` with continuous `g`; the cross sum vanishes, and needs continuous `g`; dyadic partitions |
+| [TidyR7StieltjesCalculus](Monetarism/TidyR7StieltjesCalculus.lean) | 11 | A1 §1.6, (1.32), p. 567 (tool): the exact partition identity for products; integration by parts; domination of the sums; measurability of `ω ↦ ∫_a^b f(ω) dg(ω)` |
+| [TidyR7StieltjesVariation](Monetarism/TidyR7StieltjesVariation.lean) | 21 | A1 §1.6, p. 567 (tool for (1.32)): the variation of a right-continuous path over a countable set; `ω ↦ Var_{[a,b]}(g(ω, ·))` measurable; the degenerate interval `[a, a]` |
 
 ## Modelling conventions
 
@@ -427,7 +452,10 @@ Not formalised:
   when no feasible plan has a utility gain with a larger positive than negative part.
   `TidyR6StochasticDrift` uses processes `ℝ → Ω → ℝ` on a probability space with a filtration
   indexed by `ℝ`, and `E_tdX = a dt` means that `X − ∫a` has the martingale property
-  (`TidyR6StochasticDrift.HasDrift`).
+  (`TidyR6StochasticDrift.HasDrift`). In the `TidyR7Stieltjes…` modules partitions are strictly
+  increasing (`TidyR7StieltjesSums.Partition`), càdlàg is Mathlib's `IsCadlag` on `ℝ`, and
+  linearity and additivity of the integral assume `TidyR7StieltjesIntegral.RSIntegrable`, which
+  continuous, càdlàg and bounded measurable integrands satisfy.
 * **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
   functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
   stated for it still holds. On a countable `Ω` it forces finitely supported forecasts

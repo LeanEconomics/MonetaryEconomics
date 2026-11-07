@@ -57,11 +57,13 @@ When `Λ/P` has a martingale part (Brownian or jump surprises), the step in (1.3
 `Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)` is the product rule for a semimartingale: it needs the
 stochastic integral `∫ B d(Λ/P)` (and, for jumps or diffusive `B`, the quadratic covariation
 `d⟨B, Λ/P⟩`). Mathlib v4.34 has neither stochastic integrals with respect to continuous-time
-martingales nor Itô's formula; it has no Lebesgue–Stieltjes calculus for signed finite-variation
-paths either (only measures of monotone right-continuous functions). The alternative route for
-`C¹` debt, `E_s ∫_s^t (n_t − n_r)Ḃ_r dr = 0`, needs Fubini for conditional expectations of
-progressively measurable processes, which is also absent. So the product step is proved only
-for `C¹` (finite-variation, continuous) `Λ/P` (`drift_1_32_fv`), exactly on the `Δ`-grid
+martingales nor Itô's formula. (It does have the Lebesgue–Stieltjes vector measure of a
+bounded-variation path, `BoundedVariationOn.vectorMeasure`; the pathwise Riemann–Stieltjes layer
+built on it is `TidyR7StieltjesIntegral`, `TidyR7StieltjesSums`, `TidyR7StieltjesCalculus`,
+`TidyR7StieltjesVariation`.)
+The alternative route for `C¹` debt, `E_s ∫_s^t (n_t − n_r)Ḃ_r dr = 0`, needs Fubini for conditional
+expectations of progressively measurable processes, which is also absent. So the product step is
+proved only for `C¹` (finite-variation, continuous) `Λ/P` (`drift_1_32_fv`), exactly on the `Δ`-grid
 (`incr_1_32`, `incr_1_34`), and the integration steps (1.33)–(1.34) in full generality
 (`valuation_of_drift`, `valuation_iff_tvc`).
 -/
