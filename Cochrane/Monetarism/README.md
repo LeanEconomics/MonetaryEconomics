@@ -16,16 +16,17 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`). The library contains **1801 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`). The library contains **1954 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
 Woodford's convexity, Taylor-rule and Obstfeld–Rogoff sections, 54 on active fiscal policy under
 uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, 110 in the four
 `TidyR7Stieltjes…` modules, deterministic Riemann–Stieltjes tools for the product step of (1.32),
-84 in the four `TidyR7CondDominated`/`TidyR7ProductStep…` modules that prove that product step,
-and 165 in the seven `TidyR7Monetarism…` modules that prove the chain (1.31) → (1.32) →
-(1.33)–(1.34) under uncertainty.
+28 in `TidyR7JumpSums`, the same tools for jumping integrators, 154 in the six
+`TidyR7CondDominated`/`TidyR7ProductStep…` modules that prove that product step, for continuous
+and for jumping bonds, and 220 in the nine `TidyR7Monetarism…` modules that prove the chain
+(1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous and with jumping money.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -180,8 +181,8 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   (1.32) holds for finite-variation discount factors (`TidyR6StochasticDrift.drift_1_32_fv`).
   The whole chain (1.31) → (1.32) → (1.33)–(1.34) is also proved under uncertainty with `Λ/P` a
   finite-variation part plus a càdlàg martingale (news, jumps allowed), adapted bonds and money
-  with continuous bounded-variation paths and a general `i^m` (see the bullet on the §1.6 chain
-  below).
+  with continuous bounded-variation paths and a general `i^m`, and with money and bonds that jump
+  together with `Λ/P` (see the bullets on the §1.6 product step and chain below).
 * **Pathwise Riemann–Stieltjes tools for the §1.6 product step.** The integral `∫_a^b f dg` is
   the integral against Mathlib's Lebesgue–Stieltjes measure of `g` frozen outside `[a, b]`
   (`TidyR7StieltjesIntegral.rsInt`), with total mass `g(b) − g(a)` and the jumps of `g` as atoms
@@ -211,7 +212,21 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `TidyR7ProductStepCases.drift_1_32_link`). On a fair coin revealed at time 1 with random bonds
   and a nonzero martingale part both sides are computed, `1 = 1 + 0`
   (`TidyR7ProductStepCoin.coin_headline`), and adaptedness of `B` cannot be dropped
-  (`TidyR7ProductStepCoin.coin_anticipating_fails`).
+  (`TidyR7ProductStepCoin.coin_anticipating_fails`). Bonds that jump together with `Λ/P` need a
+  third term, the jump covariation, still without a stochastic integral: for `B` adapted, càdlàg
+  and of bounded variation, `E_s[B_tX_t − B_sX_s] = E_s[∫ X_− dB] + E_s[∫ B_− dA] +
+  E_s[Σ_{s<u≤t} ΔX_uΔB_u]` (`TidyR7ProductStepJump.JumpStepData.jump_step`), or in two terms with
+  the Lebesgue–Stieltjes integral of the current `X`, `E_s[∫ X dB] + E_s[∫ B_− dA]`
+  (`TidyR7ProductStepJump.JumpStepData.jump_step_ls`). The book's two-term step, read as limits of
+  left-point sums, holds iff the expected jump covariation vanishes
+  (`TidyR7ProductStepJump.JumpStepData.book_step_iff`), and for continuous `B` the corrected step
+  is the one above (`TidyR7ProductStepJump.JumpStepData.jump_step_recovers_product_step`). The
+  tools are the limits `Σ f(t_i)Δg_i → ∫ f_− dg` and `Σ ΔfΔg → Σ_u Δf_uΔg_u` for càdlàg
+  bounded-variation `g` (`TidyR7JumpSums.tendsto_rsSum_leftLim`,
+  `TidyR7JumpSums.tendsto_crossSum_jumpSum`). On the coin, bonds jumping with the news break the
+  left-point reading, `1 ≠ 0` (`TidyR7ProductStepJumpCoin.jump_book_fails`), and bonds jumping with
+  the drift part break the Lebesgue–Stieltjes reading, `1 ≠ 1 + 1`
+  (`TidyR7ProductStepJumpCoin.jumpA_ls_fails`).
 * **The §1.6 chain (1.31) → (1.32) → (1.33)–(1.34) under uncertainty.** In
   `TidyR7MonetarismModel.MonetaryModel`, `Λ, P > 0` are adapted, `Λ/P = A + N` with `N` a càdlàg
   martingale and `dA = −i(Λ/P) dt`, bonds and money are adapted, money has continuous
@@ -234,7 +249,17 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   pathwise limit exists the literal equation can fail without domination or `L¹` convergence
   (`TidyR7MonetarismUI.ui_headline`). The `C¹`, deterministic and `Δ`-grid forms are recovered
   (`TidyR7MonetarismLinks.incr_1_32_C1`, `TidyR7MonetarismLinks.money_printing_recovered`,
-  `TidyR7MonetarismLinks.grid_1_32_rate`).
+  `TidyR7MonetarismLinks.grid_1_32_rate`). When money jumps at news dates and bonds jump
+  opposite to it, `ΔB = −ΔM`, with `B + M` continuous (`TidyR7MonetarismJump.JumpMonetaryModel`),
+  line 3 of (1.32) and (1.33) hold verbatim with `∫ n dM` the Lebesgue–Stieltjes integral of the
+  post-jump `n` (`TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump`,
+  `TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_33_jump`); with the pre-jump reading
+  `∫ n_− dM` the extra term `−E_s[Σ ΔnΔM]` appears
+  (`TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump_left`), the printed middle line holds iff
+  `E_s[Σ Δ(Λ/P)ΔM] = 0` (`TidyR7MonetarismJump.JumpMonetaryModel.middle_1_32_book_iff`), and
+  (1.34) is unchanged (`TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_34_jump`). In an
+  open-market operation at the news date the pre-jump line 3 gives `0 ≠ −1/2`
+  (`TidyR7MonetarismJumpCoin.jcoin_1_32_left_fails`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -381,17 +406,18 @@ Not formalised:
   shows that some condition is needed (`TidyR6Halkin.halkin_no_tvc`), but no counterexample inside
   the book's model is formalised and no homogeneity condition replacing it is proved. A general
   Pontryagin principle without concavity is not formalised;
-* the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) beyond adapted continuous
-  bounded-variation bonds. It is proved, in expectation form, for `B` adapted with continuous
-  bounded-variation paths and `Λ/P` a càdlàg bounded-variation part plus a càdlàg martingale
-  (`TidyR7ProductStep.ProductStepData.product_step`, `TidyR7ProductStep.product_step_1_32`). For
-  `B` with a martingale or diffusive part, or with jumps shared with `Λ/P`, the quadratic
-  covariation `[Λ/P, B]` enters and a stochastic integral is needed, which Mathlib does not have;
-  a counterexample with a shared jump is not yet formalised. The domination and integrability
-  conditions of `TidyR7ProductStep.ProductStepData` are sufficient; their necessity is not
-  proved (only adaptedness of `B` is shown necessary,
+* the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) for bonds with a martingale or
+  diffusive (non-bounded-variation) part: that needs a stochastic integral and the bracket
+  `[X, B]`, which Mathlib does not have. Adapted bonds of bounded variation are covered, with
+  continuous paths (`TidyR7ProductStep.ProductStepData.product_step`) and with càdlàg paths that
+  jump together with `Λ/P` (`TidyR7ProductStepJump.JumpStepData.jump_step`). The domination and
+  integrability conditions of `TidyR7ProductStep.ProductStepData` and
+  `TidyR7ProductStepJump.JumpStepData` are sufficient; their necessity is not proved (only adaptedness of `B` is shown necessary,
   `TidyR7ProductStepCoin.coin_anticipating_fails`). The chain (1.31)–(1.34) built on it
-  (`TidyR7MonetarismModel`, `TidyR7MonetarismValuation`) inherits these limits;
+  (`TidyR7MonetarismModel`, `TidyR7MonetarismValuation`, `TidyR7MonetarismJump`) inherits these
+  limits; with jumping money it assumes `B + M` continuous (no atom in the surplus), and the
+  failure of the pre-jump reading of (1.33) has no infinite-horizon instance (only the
+  finite-horizon `TidyR7MonetarismJumpCoin.jcoin_1_33_finite`);
 * (1.34) on `[0, ∞)` with nonzero money. The infinite-horizon instance of the printed (1.33) and
   (1.34) has zero money (`TidyR7MonetarismCoinInf.inf_1_34_book`): in that model with constant
   nonzero money the money transversality condition fails, because `i → 0`;
@@ -476,6 +502,11 @@ Not formalised:
 | [TidyR7MonetarismLinks](Monetarism/TidyR7MonetarismLinks.lean) | 14 | A1 §1.6, (1.32)–(1.34), p. 567: the `C¹` case, the deterministic `ContinuousTime` forms and the `Δ`-grid recovered from the stochastic chain |
 | [TidyR7MonetarismCoinInf](Monetarism/TidyR7MonetarismCoinInf.lean) | 27 | A1 §1.6, (1.33)–(1.34), p. 567: non-vacuity on `[0, ∞)` with news in `Λ/P` and a positive nominal rate (zero money): the `L¹` form and the printed (1.33) and (1.34) |
 | [TidyR7MonetarismUI](Monetarism/TidyR7MonetarismUI.lean) | 36 | A1 §1.6, (1.33), p. 567: the domination (or `L¹`) hypothesis of the printed `E_t∫_t^∞` cannot be dropped: transversality and the limit form hold, the pathwise limit exists, the literal equation fails |
+| [TidyR7JumpSums](Monetarism/TidyR7JumpSums.lean) | 28 | A1 §1.6, p. 567 (tool for (1.32)): Riemann–Stieltjes sums against a càdlàg bounded-variation integrator: left-point sums tend to `∫ f_− dg`, right-point sums to `∫ f dg`, cross sums to the absolutely convergent jump covariation `Σ_u Δf_uΔg_u = ∫ f dg − ∫ f_− dg` |
+| [TidyR7ProductStepJump](Monetarism/TidyR7ProductStepJump.lean) | 43 | A1 §1.6, (1.32), p. 567: the corrected product step for adapted càdlàg bounded-variation bonds, with the jump covariation as a third term; its two-term Lebesgue–Stieltjes form; the book's left-point step holds iff the expected jump covariation vanishes; continuous bonds recover `TidyR7ProductStep` |
+| [TidyR7ProductStepJumpCoin](Monetarism/TidyR7ProductStepJumpCoin.lean) | 27 | A1 §1.6, (1.32), p. 567: on the coin, bonds jumping with the news break the left-point step (`1 ≠ 0`), bonds jumping with the drift part break the two-term Lebesgue–Stieltjes step (`1 ≠ 1 + 1`); the corrected step holds in both and with a non-shared jump |
+| [TidyR7MonetarismJump](Monetarism/TidyR7MonetarismJump.lean) | 43 | A1 §1.6, (1.31)–(1.34), pp. 567–568: the model with jumping money (`ΔB = −ΔM`, `B + M` continuous); (1.32) line 3 and (1.33) verbatim with the post-jump `∫ n dM`, the extra term `−E_s[Σ ΔnΔM]` with the pre-jump reading, the printed middle line iff it vanishes; (1.34) verbatim |
+| [TidyR7MonetarismJumpCoin](Monetarism/TidyR7MonetarismJumpCoin.lean) | 12 | A1 §1.6, (1.31)–(1.34), pp. 567–568: an open-market operation at a news date: the pre-jump line 3 of (1.32) and the printed middle line fail (`0 ≠ −1/2`), the finite-horizon (1.33) fails with the pre-jump flow; the post-jump forms and (1.34) hold |
 
 ## Modelling conventions
 

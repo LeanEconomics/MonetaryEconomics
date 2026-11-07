@@ -43971,6 +43971,2602 @@ theorem ui_headline :
 
 end Cochrane.Monetarism.TidyR7MonetarismUI
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Riemann–Stieltjes sums against a JUMPING integrator, and the jump covariation
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The product step of (1.32),
+`Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, was proved in `TidyR7ProductStep` for bonds `B` with
+CONTINUOUS paths. Continuity entered only through the pathwise limits of `TidyR7StieltjesSums`:
+the left-point sums `Σ f(t_i)Δg_i → ∫ f dg` and the cross sum `Σ Δf_iΔg_i → 0`, both for `g`
+continuous. This module removes that hypothesis: `g` is càdlàg (right-continuous with left
+limits) of bounded variation on `[a, b]`, `f` is càdlàg.
+
+## Main results (along ANY sequence of partitions with mesh → 0)
+
+* `tendsto_rsSum_leftLim` (extension (a)): `Σ f(t_i)Δg_i → ∫_a^b f(·−) dg`
+  (`rsInt a b (Function.leftLim f) g`): the left-point sum sees the value of `f` BEFORE a common
+  jump. `tendsto_rsSumRight`: the right-point sums `Σ f(t_{i+1})Δg_i → ∫_a^b f dg`.
+* `jumpSum a b f g = Σ_{a<u≤b} Δf_u Δg_u` (`Δf_u = f(u) − f(u−)`, `jump`): a sum over `ℝ` of a
+  family supported on the countable set of jumps of `f` in `(a, b]` (`countable_support_jumpSum`),
+  ABSOLUTELY convergent (`summable_abs_jumpSum`). `hasSum_jumpSum`, `jumpSum_eq`: it equals
+  `∫_a^b f dg − ∫_a^b f(·−) dg`.
+* `tendsto_crossSum_jumpSum` (extension (b)): `Σ Δf_iΔg_i → Σ_{a<u≤b} Δf_uΔg_u`.
+* `jumpSum_eq_zero_of_continuousOn`: for `g` continuous on `[a, b]` the jump sum is `0`, so (b)
+  recovers `TidyR7StieltjesSums.tendsto_crossSum_zero`; `rsInt_leftLim_of_continuousOn` and
+  `rsInt_congr_Ioc` recover `TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag`.
+* Tools: `rsInt_eq_Ioc` (a càdlàg integrator does not charge the left endpoint),
+  `measurable_leftLim`, `rsIntegrable_leftLim`, `rsInt_const_right`, `rsInt_single_jump`
+  (the integral against a one-jump step function is `f(c)·(jump at c)`), `jumpSum_add_right`,
+  `jumpSum_smul_right`, `jumpSum_heaviside` (consistency with
+  `TidyR7StieltjesSums.crossSum_heaviside`).
+-/
+
+namespace Cochrane.Monetarism.TidyR7JumpSums
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+
+variable {a b : ℝ}
+
+/-! ## Càdlàg integrators -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): a càdlàg function equals its right
+limit.
+A special case of Mathlib `ContinuousWithinAt.rightLim_eq`. -/
+theorem rightLim_eq_of_isCadlag {g : ℝ → ℝ} (hg : IsCadlag g) (x : ℝ) :
+    Function.rightLim g x = g x :=
+  (continuousWithinAt_Ioi_iff_Ici.1 (hg.isRightContinuous x)).rightLim_eq
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for `g` càdlàg the frozen function has right limit `g(x)`
+at every `x ∈ [a, b]`. -/
+theorem rightLim_clampFn_eq {g : ℝ → ℝ} (hab : a ≤ b) (hg : BoundedVariationOn g (Set.Icc a b))
+    (hgc : IsCadlag g) {x : ℝ} (hx : x ∈ Set.Icc a b) :
+    Function.rightLim (clampFn a b g) x = g x := by
+  rcases hx.2.lt_or_eq with h | rfl
+  · rw [rightLim_clampFn hab hg ⟨hx.1, h⟩, rightLim_eq_of_isCadlag hgc]
+  · exact rightLim_clampFn_right hab g
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **a càdlàg integrator does not charge the left
+endpoint**: the variation of `stMeasure a b g` at `{a}` is `|g(a+) − g(a)| = 0`.
+The càdlàg case of `TidyR7StieltjesIntegral.stMeasure_singleton_left`. -/
+theorem variation_stMeasure_left {g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g) :
+    (stMeasure a b g).variation {a} = 0 := by
+  rw [stMeasure_eq (bv_clampFn hab hg), (bv_clampFn hab hg).variation_vectorMeasure_singleton,
+    leftLim_clampFn_left, rightLim_clampFn_eq hab hg hgc ⟨le_rfl, hab⟩]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for a càdlàg integrator, `∫_a^b f dg = ∫_{(a,b]} f dg`.
+From `TidyR7StieltjesSums.setIntegral_Icc_eq`. -/
+theorem rsInt_eq_Ioc {f g : ℝ → ℝ} (hab : a ≤ b) (hg : BoundedVariationOn g (Set.Icc a b))
+    (hgc : IsCadlag g) :
+    rsInt a b f g = ∫ᵛ x in Set.Ioc a b, f x ∂• stMeasure a b g := by
+  rw [rsInt, VectorMeasure.setIntegral_congr_set measurableSet_Icc measurableSet_Ioc ?_]
+  rw [ae_eq_set]
+  constructor
+  · refine measure_mono_null (fun x hx => ?_) (variation_stMeasure_left hab hg hgc)
+    exact le_antisymm (not_lt.1 fun h => hx.2 ⟨h, hx.1.2⟩) hx.1.1
+  · exact measure_mono_null (fun x hx => absurd (Set.Ioc_subset_Icc_self hx.1) hx.2)
+      (measure_empty (μ := (stMeasure a b g).variation))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for a càdlàg integrator, the integral depends on `f`
+only through its values on `(a, b]`. -/
+theorem rsInt_congr_Ioc {f₁ f₂ g : ℝ → ℝ} (hab : a ≤ b) (hg : BoundedVariationOn g (Set.Icc a b))
+    (hgc : IsCadlag g) (h : Set.EqOn f₁ f₂ (Set.Ioc a b)) : rsInt a b f₁ g = rsInt a b f₂ g := by
+  rw [rsInt_eq_Ioc hab hg hgc, rsInt_eq_Ioc hab hg hgc]
+  exact VectorMeasure.setIntegral_congr_fun h
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **left limits of a function continuous on `[a, b]`**:
+`f(x−) = f(x)` for `x ∈ (a, b]`.
+A special case of Mathlib `ContinuousWithinAt.leftLim_eq`. -/
+theorem leftLim_eq_of_continuousOn {f : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc a b)) {x : ℝ}
+    (hx : x ∈ Set.Ioc a b) : Function.leftLim f x = f x := by
+  refine leftLim_eq_of_tendsto ((hf x (Set.Ioc_subset_Icc_self hx)).tendsto.mono_left ?_)
+  exact nhdsWithin_le_of_mem (Filter.mem_of_superset (Ioo_mem_nhdsLT hx.1)
+    fun y hy => ⟨hy.1.le, hy.2.le.trans hx.2⟩)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for `f` continuous on `[a, b]` and a càdlàg integrator,
+`∫_a^b f(·−) dg = ∫_a^b f dg`. -/
+theorem rsInt_leftLim_of_continuousOn {f g : ℝ → ℝ} (hab : a ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g)
+    (hf : ContinuousOn f (Set.Icc a b)) : rsInt a b (Function.leftLim f) g = rsInt a b f g :=
+  rsInt_congr_Ioc hab hg hgc fun _ hx => leftLim_eq_of_continuousOn hf hx
+
+/-! ## Left limits of a càdlàg integrand -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the left limits of a càdlàg function form a measurable
+function (`f(x−) = lim f(x − 1/(n+1))`). -/
+theorem measurable_leftLim {f : ℝ → ℝ} (hf : IsCadlag f) : Measurable (Function.leftLim f) := by
+  refine measurable_of_tendsto_metrizable (f := fun (n : ℕ) x => f (x - 1 / ((n : ℝ) + 1)))
+    (fun n => (measurable_of_isCadlag hf).comp (measurable_id.sub_const _)) ?_
+  refine tendsto_pi_nhds.2 fun x => (hf.tendsto_nhdsLT_leftLim x).comp ?_
+  refine tendsto_nhdsWithin_iff.2 ⟨?_, Eventually.of_forall fun n => ?_⟩
+  · simpa using tendsto_const_nhds.sub (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ))
+  · have : 0 < 1 / ((n : ℝ) + 1) := by positivity
+    change x - 1 / ((n : ℝ) + 1) < x
+    linarith
+
+/-- Cochrane (2023), A1 §1.6, p. 567: if `|f| ≤ C` on `(c, x)`, `c < x`, then `|f(x−)| ≤ C`. -/
+theorem abs_leftLim_le {f : ℝ → ℝ} (hf : IsCadlag f) {c x C : ℝ} (hcx : c < x)
+    (hC : ∀ y ∈ Set.Ioo c x, |f y| ≤ C) : |Function.leftLim f x| ≤ C := by
+  refine le_of_tendsto (hf.tendsto_nhdsLT_leftLim x).abs ?_
+  filter_upwards [Ioo_mem_nhdsLT hcx] with y hy
+  exact hC y hy
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the left limits of a càdlàg function are integrable
+against every finite-variation measure on `[a, b]`. -/
+theorem rsIntegrable_leftLim {f : ℝ → ℝ} (hf : IsCadlag f) :
+    RSIntegrable a b (Function.leftLim f) := by
+  obtain ⟨C, -, hC⟩ := exists_bound_of_isCadlag hf (a - 1) b
+  refine rsIntegrable_of_measurable (measurable_leftLim hf) (C := C) fun x hx => ?_
+  exact abs_leftLim_le hf (by linarith : x - 1 < x) fun y hy =>
+    hC y ⟨by linarith [hy.1, hx.1], hy.2.le.trans hx.2⟩
+
+/-! ## Extension (a): left-point sums against a càdlàg integrator -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: for a càdlàg integrator `g` of bounded variation the
+left-point sum with coefficients `c_i` is the integral of the step function over `(a, b]`.
+Generalises `TidyR7StieltjesSums.rsSum_eq_integral_stepFn` (continuous `g`). -/
+theorem rsSum_eq_integral_stepFn_of_isCadlag {g : ℝ → ℝ}
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g) (P : Partition a b)
+    (c : ℕ → ℝ) :
+    ∑ i ∈ Finset.range P.n, c i * (g (P.t (i + 1)) - g (P.t i)) =
+      ∫ᵛ x in Set.Ioc a b, stepFn P c x ∂• stMeasure a b g := by
+  have hab := a_le_b P
+  have hG := bv_clampFn hab hg
+  have hfin := isFiniteMeasure_stMeasure a b g
+  rw [stMeasure_eq hG] at hfin ⊢
+  rw [integral_stepFn hG hfin P c]
+  refine Finset.sum_congr rfl fun i hi => ?_
+  rw [rightLim_clampFn_eq hab hg hgc (t_mem P (Finset.mem_range.1 hi)),
+    rightLim_clampFn_eq hab hg hgc (t_mem P (Finset.mem_range.1 hi).le)]
+
+/-- **Cochrane (2023), A1 §1.6, p. 567, extension (a): left-point sums against a jumping
+integrator.** For `f` càdlàg and `g` càdlàg of bounded variation on `[a, b]`, along ANY sequence
+of partitions with mesh → 0, `Σ f(t_i)(g(t_{i+1}) − g(t_i)) → ∫_a^b f(·−) dg`.
+Generalises `TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag` (continuous `g`). -/
+theorem tendsto_rsSum_leftLim {f g : ℝ → ℝ} (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g)
+    (P : ℕ → Partition a b) (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    Tendsto (fun k => rsSum (P k) f g) atTop (𝓝 (rsInt a b (Function.leftLim f) g)) := by
+  have hab := a_le_b (P 0)
+  obtain ⟨C, hC0, hC⟩ := exists_bound_of_isCadlag hf a b
+  have e : ∀ k, ∫ᵛ x in Set.Ioc a b, stepFn (P k) (fun i => f ((P k).t i)) x ∂• stMeasure a b g =
+      rsSum (P k) f g := fun k =>
+    (rsSum_eq_integral_stepFn_of_isCadlag hg hgc (P k) fun i => f ((P k).t i)).symm
+  rw [rsInt_eq_Ioc hab hg hgc]
+  refine (tendsto_congr e).1 (tendsto_integral_stepFn (isFiniteMeasure_stMeasure a b g) P
+    (fun k i => f ((P k).t i)) hC0 (fun k i hi => hC _ (t_mem (P k) hi.le)) fun x hx => ?_)
+  exact tendsto_stepFn_left P hP hx (hf.tendsto_nhdsLT_leftLim x)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the right-point sum**
+`Σ_{i<n} f(t_{i+1})(g(t_{i+1}) − g(t_i))`. -/
+def rsSumRight (P : Partition a b) (f g : ℝ → ℝ) : ℝ :=
+  ∑ i ∈ Finset.range P.n, f (P.t (i + 1)) * (g (P.t (i + 1)) - g (P.t i))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the cross sum is the right-point sum minus the left-point
+sum. -/
+theorem crossSum_eq_sub (P : Partition a b) (f g : ℝ → ℝ) :
+    crossSum P f g = rsSumRight P f g - rsSum P f g := by
+  rw [crossSum, rsSumRight, rsSum, ← Finset.sum_sub_distrib]
+  exact Finset.sum_congr rfl fun _ _ => by ring
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: right-point sums.** For `f` càdlàg and `g` càdlàg of
+bounded variation on `[a, b]`, along ANY sequence of partitions with mesh → 0,
+`Σ f(t_{i+1})(g(t_{i+1}) − g(t_i)) → ∫_a^b f dg` (the Lebesgue–Stieltjes integral of `f`
+itself, charging `f(u)Δg_u` at a jump `u` of `g`). -/
+theorem tendsto_rsSumRight {f g : ℝ → ℝ} (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g)
+    (P : ℕ → Partition a b) (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    Tendsto (fun k => rsSumRight (P k) f g) atTop (𝓝 (rsInt a b f g)) := by
+  have hab := a_le_b (P 0)
+  obtain ⟨C, hC0, hC⟩ := exists_bound_of_isCadlag hf a b
+  have e : ∀ k,
+      ∫ᵛ x in Set.Ioc a b, stepFn (P k) (fun i => f ((P k).t (i + 1))) x ∂• stMeasure a b g =
+        rsSumRight (P k) f g := fun k =>
+    (rsSum_eq_integral_stepFn_of_isCadlag hg hgc (P k) fun i => f ((P k).t (i + 1))).symm
+  rw [rsInt_eq_Ioc hab hg hgc]
+  refine (tendsto_congr e).1 (tendsto_integral_stepFn (isFiniteMeasure_stMeasure a b g) P
+    (fun k i => f ((P k).t (i + 1))) hC0 (fun k i hi => hC _ (t_mem (P k) hi)) fun x hx => ?_)
+  exact tendsto_stepFn_right P hP hx
+    (continuousWithinAt_Ioi_iff_Ici.1 (hf.isRightContinuous x)).tendsto
+
+/-! ## The jump covariation `Σ_{a<u≤b} Δf_u Δg_u` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the jump `Δf_u = f(u) − f(u−)` of `f` at `u`. -/
+noncomputable def jump (f : ℝ → ℝ) (u : ℝ) : ℝ := f u - Function.leftLim f u
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: **the jump covariation**
+`Σ_{a<u≤b} Δf_u Δg_u`, as a sum over `ℝ` of the family `1_{(a,b]}(u)·Δf_uΔg_u` (supported on the
+countable set of jumps of `f` in `(a, b]` when `f` is càdlàg: `countable_support_jumpSum`). -/
+noncomputable def jumpSum (a b : ℝ) (f g : ℝ → ℝ) : ℝ :=
+  ∑' u : ℝ, (Set.Ioc a b).indicator (fun u => jump f u * jump g u) u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the summands of `jumpSum` vanish outside the countable set
+of jumps of `f` in `(a, b]`. -/
+theorem countable_support_jumpSum {f : ℝ → ℝ} (hf : IsCadlag f) (g : ℝ → ℝ) :
+    (Function.support fun u => (Set.Ioc a b).indicator (fun u => jump f u * jump g u) u).Countable
+    := by
+  refine (countable_jumps hf).mono fun u hu => ?_
+  intro h
+  apply hu
+  have : jump f u = 0 := by rw [jump, ← h, sub_self]
+  simp [this]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: an atom of `stMeasure a b g` at `u ∈ (a, b]` is the jump
+`Δg_u` when `g` is càdlàg.
+Extends `TidyR7StieltjesIntegral.stMeasure_singleton_interior` to `u ∈ (a, b]`. -/
+theorem stMeasure_singleton_jump {g : ℝ → ℝ} (hg : BoundedVariationOn g (Set.Icc a b))
+    (hgc : IsCadlag g) {u : ℝ} (hu : u ∈ Set.Ioc a b) : stMeasure a b g {u} = jump g u := by
+  rcases hu.2.lt_or_eq with h | rfl
+  · rw [stMeasure_singleton_interior hg hu.1 h, rightLim_eq_of_isCadlag hgc, jump]
+  · rw [stMeasure_singleton_right hu.1 hg, jump]
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: the jump covariation as an integral.** For `f` càdlàg and
+`g` càdlàg of bounded variation on `[a, b]`, the family `1_{(a,b]}Δf Δg` is summable with sum
+`∫_a^b f dg − ∫_a^b f(·−) dg`. -/
+theorem hasSum_jumpSum {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g) :
+    HasSum (fun u => (Set.Ioc a b).indicator (fun u => jump f u * jump g u) u)
+      (rsInt a b f g - rsInt a b (Function.leftLim f) g) := by
+  set ν := stMeasure a b g with hν
+  have hfin := isFiniteMeasure_stMeasure a b g
+  set S : Set ℝ := {x | f x ≠ Function.leftLim f x} ∩ Set.Ioc a b with hS
+  have hSc : S.Countable := (countable_jumps hf).mono Set.inter_subset_left
+  have hSm : MeasurableSet S := hSc.measurableSet
+  have hSI : S ⊆ Set.Ioc a b := Set.inter_subset_right
+  have i1 : ν.IntegrableOn f (Set.Ioc a b) :=
+    (rsIntegrable_of_isCadlag hf (a := a) (b := b) ν hfin).mono measurableSet_Icc
+      Set.Ioc_subset_Icc_self
+  have i2 : ν.IntegrableOn (Function.leftLim f) (Set.Ioc a b) :=
+    (rsIntegrable_leftLim hf (a := a) (b := b) ν hfin).mono measurableSet_Icc
+      Set.Ioc_subset_Icc_self
+  have e1 : rsInt a b f g - rsInt a b (Function.leftLim f) g =
+      ∫ᵛ x in Set.Ioc a b, jump f x ∂• ν := by
+    rw [rsInt_eq_Ioc hab hg hgc, rsInt_eq_Ioc hab hg hgc]
+    exact (VectorMeasure.integral_fun_sub i1 i2).symm
+  have e2 : ∫ᵛ x in Set.Ioc a b, jump f x ∂• ν = ∫ᵛ x in S, jump f x ∂• ν :=
+    VectorMeasure.setIntegral_eq_of_subset_of_forall_sdiff_eq_zero hSm measurableSet_Ioc hSI
+      fun x hx => by
+        have : ¬ (f x ≠ Function.leftLim f x) := fun h => hx.2 ⟨h, hx.1⟩
+        rw [jump, not_not.1 this, sub_self]
+  have hU : (⋃ i : S, ({(i : ℝ)} : Set ℝ)) = S := Set.iUnion_of_singleton_coe S
+  have iS : ν.IntegrableOn (jump f) (⋃ i : S, ({(i : ℝ)} : Set ℝ)) := by
+    rw [hU]
+    exact VectorMeasure.IntegrableOn.mono measurableSet_Ioc hSI
+      (show ν.IntegrableOn (jump f) (Set.Ioc a b) from i1.sub i2)
+  have := hSc.to_subtype
+  have h3 := VectorMeasure.hasSum_setIntegral_iUnion (B := ContinuousLinearMap.lsmul ℝ ℝ)
+    (μ := ν) (f := jump f) (s := fun i : S => ({(i : ℝ)} : Set ℝ))
+    (fun _ => measurableSet_singleton _)
+    (fun i j hij => Set.disjoint_singleton.2 fun h => hij (Subtype.ext h)) iS
+  rw [hU, ← e2, ← e1] at h3
+  have hsupp : Function.support
+      (fun u => (Set.Ioc a b).indicator (fun u => jump f u * jump g u) u) ⊆ S := by
+    intro u hu
+    by_cases hI : u ∈ Set.Ioc a b
+    · refine ⟨fun h => hu ?_, hI⟩
+      have : jump f u = 0 := by rw [jump, ← h, sub_self]
+      simp [this]
+    · exact absurd (Set.indicator_of_notMem hI _) hu
+  refine (hasSum_subtype_iff_of_support_subset hsupp).1 ?_
+  refine h3.congr_fun fun i => ?_
+  have hi : (i : ℝ) ∈ Set.Ioc a b := hSI i.2
+  simp only [Function.comp_apply, Set.indicator_of_mem hi]
+  rw [VectorMeasure.integral_singleton, stMeasure_singleton_jump hg hgc hi]
+  simp
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: `Σ_{a<u≤b} Δf_uΔg_u = ∫_a^b f dg − ∫_a^b f(·−) dg`** for
+`f` càdlàg and `g` càdlàg of bounded variation on `[a, b]`. -/
+theorem jumpSum_eq {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g) :
+    jumpSum a b f g = rsInt a b f g - rsInt a b (Function.leftLim f) g :=
+  (hasSum_jumpSum hab hf hg hgc).tsum_eq
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: the jump covariation converges absolutely**:
+`Σ_{a<u≤b} |Δf_uΔg_u| < ∞` (Mathlib `summable_abs_iff`; `ℝ` is finite-dimensional). -/
+theorem summable_abs_jumpSum {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g) :
+    Summable fun u => |(Set.Ioc a b).indicator (fun u => jump f u * jump g u) u| :=
+  summable_abs_iff.2 (hasSum_jumpSum hab hf hg hgc).summable
+
+/-- **Cochrane (2023), A1 §1.6, p. 567, extension (b): the cross sum converges to the jump
+covariation.** For `f` càdlàg (not necessarily of bounded variation) and `g` càdlàg of bounded
+variation on `[a, b]`, along ANY sequence of partitions with mesh → 0,
+`Σ (f(t_{i+1}) − f(t_i))(g(t_{i+1}) − g(t_i)) → Σ_{a<u≤b} Δf_uΔg_u`.
+Generalises `TidyR7StieltjesSums.tendsto_crossSum_zero` (continuous `g`, limit `0`). -/
+theorem tendsto_crossSum_jumpSum {f g : ℝ → ℝ} (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g)
+    (P : ℕ → Partition a b) (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    Tendsto (fun k => crossSum (P k) f g) atTop (𝓝 (jumpSum a b f g)) := by
+  rw [jumpSum_eq (a_le_b (P 0)) hf hg hgc]
+  refine ((tendsto_rsSumRight hf hg hgc P hP).sub (tendsto_rsSum_leftLim hf hg hgc P hP)).congr
+    fun k => ?_
+  rw [crossSum_eq_sub]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the jump covariation vanishes when `g` is continuous on
+`[a, b]`** (no common jumps), consistent with `TidyR7StieltjesSums.tendsto_crossSum_zero`. -/
+theorem jumpSum_eq_zero_of_continuousOn {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g)
+    (hgo : ContinuousOn g (Set.Icc a b)) : jumpSum a b f g = 0 := by
+  rw [jumpSum_eq hab hf hg hgc, ← rsInt_eq_rsInt_leftLim hab hf hg hgo, sub_self]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the jump covariation vanishes when `f` is continuous on
+`[a, b]`**. -/
+theorem jumpSum_eq_zero_of_continuousOn_left {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g)
+    (hfo : ContinuousOn f (Set.Icc a b)) : jumpSum a b f g = 0 := by
+  rw [jumpSum_eq hab hf hg hgc, rsInt_leftLim_of_continuousOn hab hg hgc hfo, sub_self]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **`∫ f dg = ∫ f(·−) dg + Σ Δf Δg`** (the Lebesgue–Stieltjes
+integral of `f` itself charges `f(u)Δg_u = f(u−)Δg_u + Δf_uΔg_u` at a jump `u` of `g`). -/
+theorem rsInt_eq_leftLim_add_jumpSum {f g : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g) :
+    rsInt a b f g = rsInt a b (Function.leftLim f) g + jumpSum a b f g := by
+  rw [jumpSum_eq hab hf hg hgc]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the jump covariation is additive in the integrator. -/
+theorem jumpSum_add_right {f g₁ g₂ : ℝ → ℝ} (hab : a ≤ b) (hf : IsCadlag f)
+    (hg₁ : BoundedVariationOn g₁ (Set.Icc a b)) (hg₁c : IsCadlag g₁)
+    (hg₂ : BoundedVariationOn g₂ (Set.Icc a b)) (hg₂c : IsCadlag g₂) :
+    jumpSum a b f (fun x => g₁ x + g₂ x) = jumpSum a b f g₁ + jumpSum a b f g₂ := by
+  have hb : BoundedVariationOn (fun x => g₁ x + g₂ x) (Set.Icc a b) :=
+    ne_top_of_le_ne_top (ENNReal.add_ne_top.2 ⟨hg₁, hg₂⟩) (eVariationOn_add_le _ _ _)
+  rw [jumpSum_eq hab hf hb (hg₁c.fun_add hg₂c), jumpSum_eq hab hf hg₁ hg₁c,
+    jumpSum_eq hab hf hg₂ hg₂c, rsInt_add_right hab hg₁ hg₂ (rsIntegrable_of_isCadlag hf),
+    rsInt_add_right hab hg₁ hg₂ (rsIntegrable_leftLim hf)]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the jump covariation is homogeneous in the integrator. -/
+theorem jumpSum_smul_right {f g : ℝ → ℝ} (c : ℝ) (hab : a ≤ b) (hf : IsCadlag f)
+    (hg : BoundedVariationOn g (Set.Icc a b)) (hgc : IsCadlag g) :
+    jumpSum a b f (fun x => c * g x) = c * jumpSum a b f g := by
+  have hk : BoundedVariationOn (fun _ : ℝ => c) (Set.Icc a b) := by
+    rw [BoundedVariationOn, eVariationOn.constant_on
+      (Set.subsingleton_of_forall_eq c fun _ ⟨_, _, hy⟩ => hy.symm)]
+    exact ENNReal.zero_ne_top
+  have hb : BoundedVariationOn (fun x => c * g x) (Set.Icc a b) := hk.fun_mul hg
+  have hcc : IsCadlag fun x => c * g x := hgc.const_smul c
+  rw [jumpSum_eq hab hf hb hcc, jumpSum_eq hab hf hg hgc, rsInt_smul_right c hab hg,
+    rsInt_smul_right c hab hg]
+  ring
+
+/-! ## Computing integrals against step functions -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the integral against a constant integrator is `0`**. -/
+theorem rsInt_const_right (hab : a ≤ b) (f : ℝ → ℝ) (k : ℝ) : rsInt a b f (fun _ => k) = 0 := by
+  have hv : eVariationOn (fun _ : ℝ => k) (Set.Icc a b) = 0 :=
+    eVariationOn.constant_on (Set.subsingleton_of_forall_eq k fun _ ⟨_, _, hy⟩ => hy.symm)
+  have hbv : BoundedVariationOn (fun _ : ℝ => k) (Set.Icc a b) := by
+    rw [BoundedVariationOn, hv]
+    exact ENNReal.zero_ne_top
+  have h := bv_clampFn hab hbv
+  have h0 : (stMeasure a b fun _ => k).variation (Set.Icc a b) = 0 := by
+    rw [stMeasure_eq h]
+    exact le_antisymm ((measure_mono (Set.subset_univ _)).trans
+      (h.variation_vectorMeasure_univ_le.trans ((eVariationOn_clampFn_le hab _).trans hv.le)))
+      bot_le
+  exact VectorMeasure.setIntegral_of_variation_apply_eq_zero _ h0
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: the integral against a one-jump step function.** If
+`g = k₀` on `(−∞, c)` and `g = k₁` on `[c, ∞)` with `a < c ≤ b`, then for EVERY `f`,
+`∫_a^b f dg = f(c)(k₁ − k₀)`. -/
+theorem rsInt_single_jump {f g : ℝ → ℝ} {c k₀ k₁ : ℝ} (hac : a < c) (hcb : c ≤ b)
+    (hg : BoundedVariationOn g (Set.Icc a b))
+    (h0 : ∀ x, x < c → g x = k₀) (h1 : ∀ x, c ≤ x → g x = k₁) :
+    rsInt a b f g = f c * (k₁ - k₀) := by
+  have hab : a ≤ b := hac.le.trans hcb
+  have hG0 : ∀ y, y < c → clampFn a b g y = k₀ := fun y hy =>
+    h0 _ (max_lt hac ((min_le_right b y).trans_lt hy))
+  have hG1 : ∀ y, c ≤ y → clampFn a b g y = k₁ := fun y hy =>
+    h1 _ ((le_min hcb hy).trans (le_max_right _ _))
+  have hG := bv_clampFn hab hg
+  have hL : ∀ y, y ≤ c → Function.leftLim (clampFn a b g) y = k₀ := by
+    intro y hy
+    refine leftLim_eq_of_tendsto (tendsto_const_nhds.congr' ?_)
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    exact (hG0 z (lt_of_lt_of_le hz hy)).symm
+  have hR : ∀ y, c ≤ y → Function.rightLim (clampFn a b g) y = k₁ := by
+    intro y hy
+    refine rightLim_eq_of_tendsto (tendsto_const_nhds.congr' ?_)
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    exact (hG1 z (hy.trans (le_of_lt hz))).symm
+  have vL : hG.vectorMeasure.variation (Set.Iio c) = 0 := by
+    rw [hG.variation_vectorMeasure_Iio]
+    exact eVariationOn.constant_on (Set.subsingleton_of_forall_eq k₀ fun _ ⟨y, hy, e⟩ =>
+      e ▸ hL y (le_of_lt hy))
+  have vR : hG.vectorMeasure.variation (Set.Ioi c) = 0 := by
+    rw [hG.variation_vectorMeasure_Ioi]
+    exact eVariationOn.constant_on (Set.subsingleton_of_forall_eq k₁ fun _ ⟨y, hy, e⟩ =>
+      e ▸ hR y (le_of_lt hy))
+  rw [rsInt, stMeasure_eq hG, VectorMeasure.setIntegral_congr_set measurableSet_Icc
+    (measurableSet_singleton c) ?_, VectorMeasure.integral_singleton,
+    hG.vectorMeasure_singleton, hL c le_rfl, hR c le_rfl]
+  · simp
+  rw [ae_eq_set]
+  constructor
+  · refine measure_mono_null (fun x hx => ?_) (measure_union_null vL vR)
+    rcases lt_or_gt_of_ne (hx.2 : x ≠ c) with h | h
+    · exact Or.inl h
+    · exact Or.inr h
+  · exact measure_mono_null (fun x hx => absurd ⟨hac.le.trans (le_of_eq (hx.1 : x = c).symm),
+      (le_of_eq (hx.1 : x = c)).trans hcb⟩ hx.2) (measure_empty (μ := hG.vectorMeasure.variation))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **consistency with
+`TidyR7StieltjesSums.crossSum_heaviside`**: for `f = g = 1_{[1,∞)}` on `[0, 2]` the cross sum is `1`
+at every partition, and the jump covariation `Σ_{0<u≤2} Δf_uΔg_u = 1·1` is its limit. -/
+theorem jumpSum_heaviside : jumpSum 0 2 heaviside heaviside = 1 := by
+  have h := tendsto_crossSum_jumpSum isCadlag_heaviside bv_heaviside isCadlag_heaviside _
+    (tendsto_mesh_dyadic (by norm_num : (0 : ℝ) < 2))
+  simp only [crossSum_heaviside] at h
+  exact (tendsto_nhds_unique tendsto_const_nhds h).symm
+
+end Cochrane.Monetarism.TidyR7JumpSums
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The corrected product step of (1.32) for bonds with jumps
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34). The middle step of (1.32),
+`Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, was proved in `TidyR7ProductStep` for bonds `B` with
+continuous paths (`TidyR7ProductStep.ProductStepData.product_step`). For bonds that may jump
+TOGETHER with `X = Λ/P` the step needs a third term, the jump covariation.
+
+## Setting (`JumpStepData`)
+
+As `TidyR7ProductStep.ProductStepData`, except that the paths of `B` are only càdlàg (on `ℝ`;
+a path given on `[s, t]` can be frozen outside it) of bounded variation on `[s, t]`:
+`B` adapted on `[s, t]`; `A` measurable on `[s, t]`, càdlàg, of bounded variation on `[s, t]`;
+`M` a càdlàg martingale; `X = A + M`; the same domination conditions.
+
+## Main results
+
+* `JumpStepData.jump_step` (the corrected theorem): almost surely
+  `E_s[B_tX_t − B_sX_s] = E_s[∫_{(s,t]} X_− dB] + E_s[∫_{(s,t]} B_− dA] + E_s[Σ_{s<u≤t} ΔB_uΔX_u]`,
+  with `∫ X_− dB = rsInt s t (leftLim X) B` (`intLeft`) and the absolutely convergent countable
+  jump sum `TidyR7JumpSums.jumpSum` (`jumpCov`). As in I2, the martingale terms vanish exactly at
+  every partition (`JumpStepData.condExp_sumBM_zero`); the new ingredients are the pathwise limits
+  `TidyR7JumpSums.tendsto_rsSum_leftLim` and `TidyR7JumpSums.tendsto_crossSum_jumpSum`.
+* `JumpStepData.jump_step_ls`: the same in two terms with the Lebesgue–Stieltjes integral of the
+  CURRENT `X`: `E_s[B_tX_t − B_sX_s] = E_s[∫ X dB] + E_s[∫ B_− dA]` (`∫ X dB = ∫ X_− dB + Σ ΔXΔB`).
+* `JumpStepData.expIncrLimit_intLeft`, `JumpStepData.jump_step_expIncr`, `jump_step_1_32`: the
+  expected-increment reading `B·E_s dX = E_s[∫ B_− dA]` and the book's notation.
+* `JumpStepData.ofProductStepData`, `JumpStepData.toProductStepData`,
+  `JumpStepData.rhs_eq_of_continuousOn`, `JumpStepData.jump_step_recovers_product_step`: for `B`
+  continuous the jump term is `0`, `X_−` and `B_−` may be replaced by `X` and `B`, and the
+  corrected result is exactly I2's `TidyR7ProductStep.ProductStepData.product_step`.
+-/
+
+namespace Cochrane.Monetarism.TidyR7ProductStepJump
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7StieltjesCalculus Cochrane.Monetarism.TidyR7CondDominated
+  Cochrane.Monetarism.TidyR7ProductStep Cochrane.Monetarism.TidyR7JumpSums
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω}
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: the pathwise integral of the LEFT LIMITS,
+`∫_{(s,t]} Y_− dZ` (`rsInt s t (leftLim Y) Z`), as a random variable. -/
+noncomputable def intLeft (s t : ℝ) (Y Z : ℝ → Ω → ℝ) (ω : Ω) : ℝ :=
+  rsInt s t (Function.leftLim fun u => Y u ω) (fun u => Z u ω)
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: the jump covariation `Σ_{s<u≤t} ΔY_uΔZ_u`
+(`TidyR7JumpSums.jumpSum`), as a random variable. -/
+noncomputable def jumpCov (s t : ℝ) (Y Z : ℝ → Ω → ℝ) (ω : Ω) : ℝ :=
+  jumpSum s t (fun u => Y u ω) (fun u => Z u ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool): a pointwise limit of measurable functions dominated
+by an integrable function is integrable. -/
+theorem integrable_of_tendsto {μ : Measure Ω} {F : ℕ → Ω → ℝ} {f D : Ω → ℝ}
+    (hF : ∀ k, Measurable (F k)) (hD : Integrable D μ) (hbd : ∀ k ω, |F k ω| ≤ D ω)
+    (hlim : ∀ ω, Tendsto (fun k => F k ω) atTop (𝓝 (f ω))) : Integrable f μ := by
+  have hfm : Measurable f := measurable_of_tendsto_metrizable hF (tendsto_pi_nhds.2 hlim)
+  refine hD.mono' hfm.aestronglyMeasurable (Eventually.of_forall fun ω => ?_)
+  rw [Real.norm_eq_abs]
+  exact le_of_tendsto' (hlim ω).abs fun k => hbd k ω
+
+variable (μ : Measure Ω) (𝓕 : Filtration ℝ mΩ) (s t : ℝ) (B A M : ℝ → Ω → ℝ)
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the setting of the product step with jumping
+bonds.** As `TidyR7ProductStep.ProductStepData`, but the paths of `B` are càdlàg (not
+necessarily continuous) of bounded variation on `[s, t]`. -/
+structure JumpStepData where
+  le : s ≤ t
+  B_adapted : ∀ u ∈ Set.Icc s t, StronglyMeasurable[𝓕 u] (B u)
+  B_cadlag : ∀ ω, IsCadlag fun u => B u ω
+  B_bv : ∀ ω, BoundedVariationOn (fun u => B u ω) (Set.Icc s t)
+  A_meas : ∀ u ∈ Set.Icc s t, Measurable (A u)
+  A_cadlag : ∀ ω, IsCadlag fun u => A u ω
+  A_bv : ∀ ω, BoundedVariationOn (fun u => A u ω) (Set.Icc s t)
+  M_mart : Martingale M 𝓕 μ
+  M_cadlag : ∀ ω, IsCadlag fun u => M u ω
+  int_XB : Integrable (fun ω => pathSup s t (addProc A M) ω * pathVar s t B ω) μ
+  int_BA : Integrable (fun ω => pathSup s t B ω * pathVar s t A ω) μ
+  int_BM : ∀ u v, s ≤ u → u ≤ v → v ≤ t → Integrable (fun ω => B u ω * (M v ω - M u ω)) μ
+
+variable {μ 𝓕 s t B A M}
+
+namespace JumpStepData
+
+variable (hd : JumpStepData μ 𝓕 s t B A M)
+include hd
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `B_u` is measurable for `u ∈ [s, t]`.
+Restates `TidyR7ProductStep.ProductStepData.measurable_B` for càdlàg bonds. -/
+theorem measurable_B : ∀ u ∈ Set.Icc s t, Measurable (B u) := fun u hu =>
+  ((hd.B_adapted u hu).mono (𝓕.le u)).measurable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `M_u` is measurable.
+Restates `TidyR7ProductStep.ProductStepData.measurable_M` for càdlàg bonds. -/
+theorem measurable_M : ∀ u, Measurable (M u) := fun u =>
+  ((hd.M_mart.1 u).mono (𝓕.le u)).measurable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `X_u = A_u + M_u` is measurable for `u ∈ [s, t]`.
+Restates `TidyR7ProductStep.ProductStepData.measurable_X` for càdlàg bonds. -/
+theorem measurable_X : ∀ u ∈ Set.Icc s t, Measurable (addProc A M u) := fun u hu =>
+  (hd.A_meas u hu).add (hd.measurable_M u)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the paths of `X = A + M` are càdlàg.
+Restates `TidyR7ProductStep.ProductStepData.X_cadlag` for càdlàg bonds. -/
+theorem X_cadlag (ω : Ω) : IsCadlag fun u => addProc A M u ω :=
+  (hd.A_cadlag ω).fun_add (hd.M_cadlag ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `|Σ X_iΔB_i| ≤ sup|X|·Var(B)` for every partition.
+Restates `TidyR7ProductStep.ProductStepData.abs_sumXB_le` for càdlàg bonds. -/
+theorem abs_sumXB_le (P : Partition s t) (ω : Ω) :
+    |sumRS P (addProc A M) B ω| ≤ pathSup s t (addProc A M) ω * pathVar s t B ω :=
+  abs_rsSum_le (hd.B_bv ω) (fun _ hx => abs_le_pathSup_of_isCadlag (hd.X_cadlag ω) hx) P
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `|Σ B_iΔA_i| ≤ sup|B|·Var(A)` for every partition (`B`
+càdlàg).
+Restates `TidyR7ProductStep.ProductStepData.abs_sumBA_le` for càdlàg bonds. -/
+theorem abs_sumBA_le (P : Partition s t) (ω : Ω) :
+    |sumRS P B A ω| ≤ pathSup s t B ω * pathVar s t A ω :=
+  abs_rsSum_le (hd.A_bv ω) (fun _ hx => abs_le_pathSup_of_isCadlag (hd.B_cadlag ω) hx) P
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `|Σ ΔX_iΔB_i| ≤ 2 sup|X|·Var(B)` for every partition.
+Restates `TidyR7ProductStep.ProductStepData.abs_sumCross_le` for càdlàg bonds. -/
+theorem abs_sumCross_le (P : Partition s t) (ω : Ω) :
+    |sumCross P (addProc A M) B ω| ≤ 2 * (pathSup s t (addProc A M) ω * pathVar s t B ω) := by
+  rw [← mul_assoc]
+  exact abs_crossSum_le (hd.B_bv ω) (fun _ hx => abs_le_pathSup_of_isCadlag (hd.X_cadlag ω) hx) P
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Σ X_iΔB_i` is integrable.
+Restates `TidyR7ProductStep.ProductStepData.integrable_sumXB` for càdlàg bonds. -/
+theorem integrable_sumXB (P : Partition s t) : Integrable (sumRS P (addProc A M) B) μ :=
+  hd.int_XB.mono' (measurable_sumRS hd.measurable_X hd.measurable_B P).aestronglyMeasurable
+    (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact hd.abs_sumXB_le P ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Σ B_iΔA_i` is integrable.
+Restates `TidyR7ProductStep.ProductStepData.integrable_sumBA` for càdlàg bonds. -/
+theorem integrable_sumBA (P : Partition s t) : Integrable (sumRS P B A) μ :=
+  hd.int_BA.mono' (measurable_sumRS hd.measurable_B hd.A_meas P).aestronglyMeasurable
+    (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact hd.abs_sumBA_le P ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Σ ΔX_iΔB_i` is integrable.
+Restates `TidyR7ProductStep.ProductStepData.integrable_sumCross` for càdlàg bonds. -/
+theorem integrable_sumCross (P : Partition s t) : Integrable (sumCross P (addProc A M) B) μ :=
+  (hd.int_XB.const_mul 2).mono'
+    (measurable_sumCross hd.measurable_X hd.measurable_B P).aestronglyMeasurable
+    (Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact hd.abs_sumCross_le P ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: each term `B_{t_i}ΔM_i` of a partition is integrable.
+Restates `TidyR7ProductStep.ProductStepData.integrable_term` for càdlàg bonds. -/
+theorem integrable_term (P : Partition s t) {i : ℕ} (hi : i < P.n) :
+    Integrable (fun ω => B (P.t i) ω * (M (P.t (i + 1)) ω - M (P.t i) ω)) μ :=
+  hd.int_BM _ _ (t_mem P hi.le).1 (P.strictMono (Nat.lt_succ_self i)).le (t_mem P hi).2
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Σ B_iΔM_i` is integrable.
+Restates `TidyR7ProductStep.ProductStepData.integrable_sumBM` for càdlàg bonds. -/
+theorem integrable_sumBM (P : Partition s t) : Integrable (sumRS P B M) μ := by
+  have e : sumRS P B M = fun ω => ∑ i ∈ Finset.range P.n,
+      B (P.t i) ω * (M (P.t (i + 1)) ω - M (P.t i) ω) := rfl
+  rw [e]
+  exact integrable_finsetSum _ fun i hi => hd.integrable_term P (Finset.mem_range.1 hi)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `B_tX_t − B_sX_s` is integrable (it is the sum of the four
+integrable partition sums of `TidyR7ProductStep.pathwise_identity`).
+Restates `TidyR7ProductStep.ProductStepData.integrable_lhs` for càdlàg bonds. -/
+theorem integrable_lhs :
+    Integrable (fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω) μ := by
+  obtain ⟨P, -⟩ := exists_partition_seq hd.le
+  have e : (fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω) =
+      sumRS (P 0) (addProc A M) B + sumRS (P 0) B A + sumRS (P 0) B M +
+        sumCross (P 0) (addProc A M) B :=
+    funext fun ω => pathwise_identity (P 0) B A M ω
+  rw [e]
+  exact ((hd.integrable_sumXB _).add (hd.integrable_sumBA _)).add (hd.integrable_sumBM _) |>.add
+    (hd.integrable_sumCross _)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: path by path, `Σ X_iΔB_i → ∫ X_− dB` (extension (a)). -/
+theorem tendsto_sumXB (P : ℕ → Partition s t) (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0))
+    (ω : Ω) :
+    Tendsto (fun k => sumRS (P k) (addProc A M) B ω) atTop (𝓝 (intLeft s t (addProc A M) B ω)) :=
+  tendsto_rsSum_leftLim (hd.X_cadlag ω) (hd.B_bv ω) (hd.B_cadlag ω) P hP
+
+/-- Cochrane (2023), A1 §1.6, p. 567: path by path, `Σ B_iΔA_i → ∫ B_− dA` (extension (a)). -/
+theorem tendsto_sumBA (P : ℕ → Partition s t) (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0))
+    (ω : Ω) : Tendsto (fun k => sumRS (P k) B A ω) atTop (𝓝 (intLeft s t B A ω)) :=
+  tendsto_rsSum_leftLim (hd.B_cadlag ω) (hd.A_bv ω) (hd.A_cadlag ω) P hP
+
+/-- Cochrane (2023), A1 §1.6, p. 567: path by path, `Σ ΔX_iΔB_i → Σ_{s<u≤t} ΔX_uΔB_u`
+(extension (b)). -/
+theorem tendsto_sumCross (P : ℕ → Partition s t)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) (ω : Ω) :
+    Tendsto (fun k => sumCross (P k) (addProc A M) B ω) atTop
+      (𝓝 (jumpCov s t (addProc A M) B ω)) :=
+  tendsto_crossSum_jumpSum (hd.X_cadlag ω) (hd.B_bv ω) (hd.B_cadlag ω) P hP
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `ω ↦ ∫_{(s,t]} X_− dB` is measurable (pointwise limit of
+measurable partition sums). -/
+theorem measurable_intLeftXB : Measurable (intLeft s t (addProc A M) B) := by
+  obtain ⟨P, hP⟩ := exists_partition_seq hd.le
+  exact measurable_of_tendsto_metrizable
+    (fun k => measurable_sumRS hd.measurable_X hd.measurable_B (P k))
+    (tendsto_pi_nhds.2 (hd.tendsto_sumXB P hP))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `ω ↦ ∫_{(s,t]} B_− dA` is measurable. -/
+theorem measurable_intLeftBA : Measurable (intLeft s t B A) := by
+  obtain ⟨P, hP⟩ := exists_partition_seq hd.le
+  exact measurable_of_tendsto_metrizable (fun k => measurable_sumRS hd.measurable_B hd.A_meas (P k))
+    (tendsto_pi_nhds.2 (hd.tendsto_sumBA P hP))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `ω ↦ Σ_{s<u≤t} ΔX_uΔB_u` is measurable. -/
+theorem measurable_jumpCov : Measurable (jumpCov s t (addProc A M) B) := by
+  obtain ⟨P, hP⟩ := exists_partition_seq hd.le
+  exact measurable_of_tendsto_metrizable
+    (fun k => measurable_sumCross hd.measurable_X hd.measurable_B (P k))
+    (tendsto_pi_nhds.2 (hd.tendsto_sumCross P hP))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `ω ↦ ∫_{(s,t]} X_− dB` is integrable (limit of measurable
+sums dominated by `sup|X|·Var(B)`). -/
+theorem integrable_intLeftXB : Integrable (intLeft s t (addProc A M) B) μ := by
+  obtain ⟨P, hP⟩ := exists_partition_seq hd.le
+  exact integrable_of_tendsto (fun k => measurable_sumRS hd.measurable_X hd.measurable_B (P k))
+    hd.int_XB (fun k ω => hd.abs_sumXB_le (P k) ω) (hd.tendsto_sumXB P hP)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `ω ↦ ∫_{(s,t]} B_− dA` is integrable. -/
+theorem integrable_intLeftBA : Integrable (intLeft s t B A) μ := by
+  obtain ⟨P, hP⟩ := exists_partition_seq hd.le
+  exact integrable_of_tendsto (fun k => measurable_sumRS hd.measurable_B hd.A_meas (P k))
+    hd.int_BA (fun k ω => hd.abs_sumBA_le (P k) ω) (hd.tendsto_sumBA P hP)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `ω ↦ Σ_{s<u≤t} ΔX_uΔB_u` is integrable. -/
+theorem integrable_jumpCov : Integrable (jumpCov s t (addProc A M) B) μ := by
+  obtain ⟨P, hP⟩ := exists_partition_seq hd.le
+  exact integrable_of_tendsto (fun k => measurable_sumCross hd.measurable_X hd.measurable_B (P k))
+    (hd.int_XB.const_mul 2) (fun k ω => hd.abs_sumCross_le (P k) ω) (hd.tendsto_sumCross P hP)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: path by path,
+`∫_s^t X dB = ∫_{(s,t]} X_− dB + Σ_{s<u≤t} ΔX_uΔB_u`
+(`TidyR7JumpSums.rsInt_eq_leftLim_add_jumpSum`). -/
+theorem intRS_eq (ω : Ω) :
+    intRS s t (addProc A M) B ω = intLeft s t (addProc A M) B ω + jumpCov s t (addProc A M) B ω :=
+  rsInt_eq_leftLim_add_jumpSum hd.le (hd.X_cadlag ω) (hd.B_bv ω) (hd.B_cadlag ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `ω ↦ ∫_s^t X dB` is integrable.
+Restates `TidyR7ProductStep.ProductStepData.integrable_intXB` for càdlàg bonds. -/
+theorem integrable_intXB : Integrable (intRS s t (addProc A M) B) μ := by
+  have e : intRS s t (addProc A M) B = intLeft s t (addProc A M) B + jumpCov s t (addProc A M) B :=
+    funext hd.intRS_eq
+  rw [e]
+  exact hd.integrable_intLeftXB.add hd.integrable_jumpCov
+
+/-! ## The martingale terms vanish in conditional expectation (as in I2) -/
+
+variable [IsFiniteMeasure μ]
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: for `s ≤ u ≤ v ≤ t`, `E_s[B_u(M_v − M_u)] = 0`
+a.s. (restated from `TidyR7ProductStep.ProductStepData.condExp_mart_incr_zero`; only adaptedness
+of `B` and integrability are used). -/
+theorem condExp_mart_incr_zero {u v : ℝ} (hsu : s ≤ u) (huv : u ≤ v) (hvt : v ≤ t) :
+    μ[fun ω => B u ω * (M v ω - M u ω) | 𝓕 s] =ᵐ[μ] 0 := by
+  have hu : u ∈ Set.Icc s t := ⟨hsu, huv.trans hvt⟩
+  have hMi := hd.M_mart.integrable
+  have h1 : μ[fun ω => B u ω * (M v ω - M u ω) | 𝓕 u] =ᵐ[μ] 0 := by
+    have e := condExp_mul_of_stronglyMeasurable_left (m := 𝓕 u) (f := B u) (g := M v - M u)
+      (hd.B_adapted u hu) (hd.int_BM u v hsu huv hvt) ((hMi v).sub (hMi u))
+    have e2 := condExp_sub (m := 𝓕 u) (hMi v) (hMi u)
+    have e3 := hd.M_mart.2 u v huv
+    have e4 : μ[M u | 𝓕 u] = M u :=
+      condExp_of_stronglyMeasurable (𝓕.le u) (hd.M_mart.1 u) (hMi u)
+    filter_upwards [e, e2, e3] with ω h1 h2 h3
+    have h1' : μ[fun ω => B u ω * (M v ω - M u ω) | 𝓕 u] ω =
+        B u ω * μ[M v - M u | 𝓕 u] ω := h1
+    rw [h1', h2, Pi.sub_apply, h3, e4]
+    simp
+  calc μ[fun ω => B u ω * (M v ω - M u ω) | 𝓕 s]
+      =ᵐ[μ] μ[μ[fun ω => B u ω * (M v ω - M u ω) | 𝓕 u] | 𝓕 s] :=
+        (condExp_condExp_of_le (𝓕.mono hsu) (𝓕.le u)).symm
+    _ =ᵐ[μ] μ[(0 : Ω → ℝ) | 𝓕 s] := condExp_congr_ae h1
+    _ = 0 := condExp_zero
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_s[Σ B_iΔM_i] = 0`** a.s., at every
+partition, for jumping `B` as well.
+Restates `TidyR7ProductStep.ProductStepData.condExp_sumBM_zero` for càdlàg bonds. -/
+theorem condExp_sumBM_zero (P : Partition s t) : μ[sumRS P B M | 𝓕 s] =ᵐ[μ] 0 := by
+  have e : sumRS P B M = ∑ i ∈ Finset.range P.n,
+      fun ω => B (P.t i) ω * (M (P.t (i + 1)) ω - M (P.t i) ω) := by
+    funext ω
+    simp only [sumRS, rsSum, Finset.sum_apply]
+  have h : ∀ᵐ ω ∂μ, ∀ i ∈ Finset.range P.n,
+      μ[fun ω => B (P.t i) ω * (M (P.t (i + 1)) ω - M (P.t i) ω) | 𝓕 s] ω = 0 :=
+    (eventually_all_finset _).2 fun i hi => by
+      have hi' := Finset.mem_range.1 hi
+      filter_upwards [hd.condExp_mart_incr_zero (t_mem P hi'.le).1
+        (P.strictMono (Nat.lt_succ_self i)).le (t_mem P hi').2] with ω hω
+      exact hω
+  rw [e]
+  filter_upwards [condExp_finsetSum (fun i hi => hd.integrable_term P (Finset.mem_range.1 hi))
+    (𝓕 s), h] with ω h1 h2
+  rw [h1, Finset.sum_apply, Finset.sum_eq_zero h2]
+  rfl
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the exact discrete identity in conditional
+expectation**, for jumping `B`: at every partition, a.s.,
+`E_s[B_tX_t − B_sX_s] = E_s[Σ X_iΔB_i] + E_s[Σ B_iΔA_i] + E_s[Σ ΔX_iΔB_i]`.
+Restates `TidyR7ProductStep.ProductStepData.discrete_identity` for càdlàg bonds. -/
+theorem discrete_identity (P : Partition s t) :
+    μ[fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω | 𝓕 s] =ᵐ[μ]
+      μ[sumRS P (addProc A M) B | 𝓕 s] + μ[sumRS P B A | 𝓕 s] +
+        μ[sumCross P (addProc A M) B | 𝓕 s] := by
+  have e : (fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω) =
+      sumRS P (addProc A M) B + sumRS P B A + sumRS P B M + sumCross P (addProc A M) B := by
+    funext ω
+    exact pathwise_identity P B A M ω
+  rw [e]
+  have i1 := hd.integrable_sumXB P
+  have i2 := hd.integrable_sumBA P
+  have i3 := hd.integrable_sumBM P
+  have i4 := hd.integrable_sumCross P
+  filter_upwards [condExp_add ((i1.add i2).add i3) i4 (𝓕 s), condExp_add (i1.add i2) i3 (𝓕 s),
+    condExp_add i1 i2 (𝓕 s), hd.condExp_sumBM_zero P] with ω h1 h2 h3 h4
+  simp only [Pi.add_apply] at h1 h2 h3 h4 ⊢
+  rw [h1, h2, h3, h4]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_s[Σ B_iΔX_i] = E_s[Σ B_iΔA_i]` a.s. at every
+partition (the martingale part of `X` drops out).
+Restates `TidyR7ProductStep.ProductStepData.condExp_sumBX_eq` for càdlàg bonds. -/
+theorem condExp_sumBX_eq (P : Partition s t) :
+    μ[sumRS P B (addProc A M) | 𝓕 s] =ᵐ[μ] μ[sumRS P B A | 𝓕 s] := by
+  have e : sumRS P B (addProc A M) = sumRS P B A + sumRS P B M :=
+    funext fun ω => sumRS_add_right P B A M ω
+  rw [e]
+  filter_upwards [condExp_add (hd.integrable_sumBA P) (hd.integrable_sumBM P) (𝓕 s),
+    hd.condExp_sumBM_zero P] with ω h1 h2
+  rw [h1, Pi.add_apply, h2]
+  simp
+
+/-! ## The conditional limits -/
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_s[Σ X_iΔB_i] → E_s[∫ X_− dB]`** a.s., along
+any sequence of partitions with mesh `→ 0`.
+Restates `TidyR7ProductStep.ProductStepData.tendsto_condExp_sumXB` for càdlàg bonds. -/
+theorem tendsto_condExp_sumXB (P : ℕ → Partition s t)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    ∀ᵐ ω ∂μ, Tendsto (fun k => μ[sumRS (P k) (addProc A M) B | 𝓕 s] ω) atTop
+      (𝓝 (μ[intLeft s t (addProc A M) B | 𝓕 s] ω)) :=
+  ae_tendsto_condExp_of_dominated (𝓕.le s)
+    (fun k => measurable_sumRS hd.measurable_X hd.measurable_B (P k)) hd.int_XB
+    (fun k ω => hd.abs_sumXB_le (P k) ω) (hd.tendsto_sumXB P hP)
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_s[Σ B_iΔA_i] → E_s[∫ B_− dA]`** a.s., along
+any sequence of partitions with mesh `→ 0`.
+Restates `TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBA` for càdlàg bonds. -/
+theorem tendsto_condExp_sumBA (P : ℕ → Partition s t)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    ∀ᵐ ω ∂μ, Tendsto (fun k => μ[sumRS (P k) B A | 𝓕 s] ω) atTop
+      (𝓝 (μ[intLeft s t B A | 𝓕 s] ω)) :=
+  ae_tendsto_condExp_of_dominated (𝓕.le s)
+    (fun k => measurable_sumRS hd.measurable_B hd.A_meas (P k)) hd.int_BA
+    (fun k ω => hd.abs_sumBA_le (P k) ω) (hd.tendsto_sumBA P hP)
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_s[Σ ΔX_iΔB_i] → E_s[Σ_{s<u≤t} ΔX_uΔB_u]`**
+a.s., along any sequence of partitions with mesh `→ 0`: the cross sum no longer vanishes
+when `B` and `X` jump together.
+Restates `TidyR7ProductStep.ProductStepData.tendsto_condExp_cross` for càdlàg bonds. -/
+theorem tendsto_condExp_cross (P : ℕ → Partition s t)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    ∀ᵐ ω ∂μ, Tendsto (fun k => μ[sumCross (P k) (addProc A M) B | 𝓕 s] ω) atTop
+      (𝓝 (μ[jumpCov s t (addProc A M) B | 𝓕 s] ω)) :=
+  ae_tendsto_condExp_of_dominated (𝓕.le s)
+    (fun k => measurable_sumCross hd.measurable_X hd.measurable_B (P k)) (hd.int_XB.const_mul 2)
+    (fun k ω => hd.abs_sumCross_le (P k) ω) (hd.tendsto_sumCross P hP)
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_s[Σ B_iΔX_i] → E_s[∫ B_− dA]` a.s., along any
+sequence of partitions with mesh `→ 0`.
+Restates `TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBX` for càdlàg bonds. -/
+theorem tendsto_condExp_sumBX (P : ℕ → Partition s t)
+    (hP : Tendsto (fun k => mesh (P k)) atTop (𝓝 0)) :
+    ∀ᵐ ω ∂μ, Tendsto (fun k => μ[sumRS (P k) B (addProc A M) | 𝓕 s] ω) atTop
+      (𝓝 (μ[intLeft s t B A | 𝓕 s] ω)) := by
+  have he : ∀ᵐ ω ∂μ, ∀ k, μ[sumRS (P k) B (addProc A M) | 𝓕 s] ω = μ[sumRS (P k) B A | 𝓕 s] ω :=
+    ae_all_iff.2 fun k => hd.condExp_sumBX_eq (P k)
+  filter_upwards [he, hd.tendsto_condExp_sumBA P hP] with ω h1 h2
+  exact (tendsto_congr h1).2 h2
+
+/-! ## The corrected product step -/
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the product step for bonds with jumps (the
+corrected (1.32) step).** Almost surely,
+`E_s[B_tX_t − B_sX_s] = E_s[∫_{(s,t]} X_− dB] + E_s[∫_{(s,t]} B_− dA] + E_s[Σ_{s<u≤t} ΔX_uΔB_u]`,
+`X = A + M`. The third term is the jump covariation of bonds and `X = Λ/P`; it vanishes when `B`
+is continuous (`JumpStepData.rhs_eq_of_continuousOn`).
+Generalises `TidyR7ProductStep.ProductStepData.product_step`. -/
+theorem jump_step :
+    μ[fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω | 𝓕 s] =ᵐ[μ]
+      μ[intLeft s t (addProc A M) B | 𝓕 s] + μ[intLeft s t B A | 𝓕 s] +
+        μ[jumpCov s t (addProc A M) B | 𝓕 s] := by
+  obtain ⟨P, hP⟩ := exists_partition_seq hd.le
+  have hid := ae_all_iff.2 fun k => hd.discrete_identity (P k)
+  filter_upwards [hid, hd.tendsto_condExp_sumXB P hP, hd.tendsto_condExp_sumBA P hP,
+    hd.tendsto_condExp_cross P hP] with ω h0 h1 h2 h3
+  have hs := (h1.add h2).add h3
+  have hc : Tendsto (fun k => (μ[sumRS (P k) (addProc A M) B | 𝓕 s] +
+      μ[sumRS (P k) B A | 𝓕 s] + μ[sumCross (P k) (addProc A M) B | 𝓕 s]) ω) atTop
+      (𝓝 (μ[fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω | 𝓕 s] ω)) := by
+    refine (tendsto_congr fun k => ?_).1 tendsto_const_nhds
+    exact h0 k
+  simp only [Pi.add_apply] at hc ⊢
+  exact tendsto_nhds_unique hc hs
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the corrected step in two terms.** With the
+Lebesgue–Stieltjes integral of the CURRENT `X` against `dB` (which charges `X(u)ΔB_u` at a jump),
+a.s. `E_s[B_tX_t − B_sX_s] = E_s[∫_s^t X dB] + E_s[∫_{(s,t]} B_− dA]`. -/
+theorem jump_step_ls :
+    μ[fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω | 𝓕 s] =ᵐ[μ]
+      μ[intRS s t (addProc A M) B | 𝓕 s] + μ[intLeft s t B A | 𝓕 s] := by
+  have e : intRS s t (addProc A M) B = intLeft s t (addProc A M) B + jumpCov s t (addProc A M) B :=
+    funext hd.intRS_eq
+  filter_upwards [hd.jump_step, condExp_add hd.integrable_intLeftXB hd.integrable_jumpCov (𝓕 s)]
+    with ω h1 h2
+  rw [h1, e]
+  simp only [Pi.add_apply] at h2 ⊢
+  rw [h2]
+  ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `B·E_s dX` for jumping bonds.** The
+expected-increment integral (`TidyR7ProductStep.ExpIncrLimit`) exists and equals
+`E_s[∫_{(s,t]} B_− dA]`.
+Generalises `TidyR7ProductStep.product_step_expIncr`. -/
+theorem expIncrLimit_intLeft :
+    ExpIncrLimit μ 𝓕 s t B (addProc A M) (μ[intLeft s t B A | 𝓕 s]) :=
+  fun P hP => hd.tendsto_condExp_sumBX P hP
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the corrected step with the expected-increment
+integral.** If `B·E_s dX = L` then a.s.
+`E_s[B_tX_t − B_sX_s] = E_s[∫ X_− dB] + L + E_s[Σ ΔX_uΔB_u]`: the book's two terms (read as limits
+of left-point sums) miss the expected jump covariation.
+Generalises `TidyR7ProductStep.product_step_expIncr`. -/
+theorem jump_step_expIncr {L : Ω → ℝ} (hL : ExpIncrLimit μ 𝓕 s t B (addProc A M) L) :
+    μ[fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω | 𝓕 s] =ᵐ[μ]
+      μ[intLeft s t (addProc A M) B | 𝓕 s] + L + μ[jumpCov s t (addProc A M) B | 𝓕 s] := by
+  filter_upwards [hd.jump_step, hd.expIncrLimit_intLeft.ae_eq hd.le hL] with ω h1 h2
+  rw [h1]
+  simp only [Pi.add_apply]
+  rw [h2]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the left-point reading of the book's step
+holds iff the expected jump covariation vanishes.** With `B·E_s dX = L`, a.s.
+`E_s[B_tX_t − B_sX_s] = lim E_s[Σ X_iΔB_i] + L` holds exactly where
+`E_s[Σ_{s<u≤t} ΔX_uΔB_u] = 0`. -/
+theorem book_step_iff {L : Ω → ℝ} (hL : ExpIncrLimit μ 𝓕 s t B (addProc A M) L) :
+    ∀ᵐ ω ∂μ, (μ[fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω | 𝓕 s] ω =
+        μ[intLeft s t (addProc A M) B | 𝓕 s] ω + L ω ↔
+      μ[jumpCov s t (addProc A M) B | 𝓕 s] ω = 0) := by
+  filter_upwards [hd.jump_step_expIncr hL] with ω h
+  rw [h]
+  simp only [Pi.add_apply]
+  constructor <;> intro h' <;> linarith
+
+end JumpStepData
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, in the book's notation, for jumping bonds.**
+With `Λ_u/P_u = A_u + M_u` and the hypotheses of `JumpStepData`, a.s.
+`E_s[Λ_tB_t/P_t − Λ_sB_s/P_s] = E_s[∫ (Λ/P)_− dB] + B·E_s d(Λ/P) + E_s[Σ_{s<u≤t} Δ(Λ/P)_uΔB_u]`,
+with `B·E_s d(Λ/P) = E_s[∫ B_− dA]` (`TidyR7ProductStep.ExpIncrLimit`).
+Generalises `TidyR7ProductStep.product_step_1_32`. -/
+theorem jump_step_1_32 [IsFiniteMeasure μ] (hd : JumpStepData μ 𝓕 s t B A M)
+    {Λ Pr : ℝ → Ω → ℝ} (hdec : ∀ u ω, Λ u ω / Pr u ω = A u ω + M u ω) :
+    μ[fun ω => Λ t ω * B t ω / Pr t ω - Λ s ω * B s ω / Pr s ω | 𝓕 s] =ᵐ[μ]
+        μ[intLeft s t (fun u ω => Λ u ω / Pr u ω) B | 𝓕 s] + μ[intLeft s t B A | 𝓕 s] +
+          μ[jumpCov s t (fun u ω => Λ u ω / Pr u ω) B | 𝓕 s] ∧
+      ExpIncrLimit μ 𝓕 s t B (fun u ω => Λ u ω / Pr u ω) (μ[intLeft s t B A | 𝓕 s]) := by
+  have eX : (fun u ω => Λ u ω / Pr u ω) = addProc A M := funext fun u => funext fun ω => hdec u ω
+  have eL : (fun ω => Λ t ω * B t ω / Pr t ω - Λ s ω * B s ω / Pr s ω) =
+      fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω := by
+    funext ω
+    simp only [addProc]
+    rw [← hdec t ω, ← hdec s ω]
+    ring
+  rw [eX, eL]
+  exact ⟨hd.jump_step, hd.expIncrLimit_intLeft⟩
+
+/-! ## Reduction to I2 when the bonds are continuous -/
+
+namespace JumpStepData
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: I2's data with bonds càdlàg on `ℝ` (e.g. frozen
+outside `[s, t]`) are data of the jump step. -/
+theorem ofProductStepData (hd : ProductStepData μ 𝓕 s t B A M)
+    (hc : ∀ ω, IsCadlag fun u => B u ω) : JumpStepData μ 𝓕 s t B A M where
+  le := hd.le
+  B_adapted := hd.B_adapted
+  B_cadlag := hc
+  B_bv := hd.B_bv
+  A_meas := hd.A_meas
+  A_cadlag := hd.A_cadlag
+  A_bv := hd.A_bv
+  M_mart := hd.M_mart
+  M_cadlag := hd.M_cadlag
+  int_XB := hd.int_XB
+  int_BA := hd.int_BA
+  int_BM := hd.int_BM
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: data of the jump step with bonds continuous on
+`[s, t]` are I2's data (`TidyR7ProductStep.ProductStepData`). -/
+theorem toProductStepData (hd : JumpStepData μ 𝓕 s t B A M)
+    (hc : ∀ ω, ContinuousOn (fun u => B u ω) (Set.Icc s t)) : ProductStepData μ 𝓕 s t B A M where
+  le := hd.le
+  B_adapted := hd.B_adapted
+  B_cont := hc
+  B_bv := hd.B_bv
+  A_meas := hd.A_meas
+  A_cadlag := hd.A_cadlag
+  A_bv := hd.A_bv
+  M_mart := hd.M_mart
+  M_cadlag := hd.M_cadlag
+  int_XB := hd.int_XB
+  int_BA := hd.int_BA
+  int_BM := hd.int_BM
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: for continuous bonds the corrected right-hand
+side is I2's**: path by path `∫ X_− dB = ∫ X dB`, `∫ B_− dA = ∫ B dA` and the jump covariation is
+`0`, so `E_s[∫X_− dB] + E_s[∫B_− dA] + E_s[ΣΔXΔB] = E_s[∫X dB] + E_s[∫B dA]` exactly. -/
+theorem rhs_eq_of_continuousOn (hd : JumpStepData μ 𝓕 s t B A M)
+    (hc : ∀ ω, ContinuousOn (fun u => B u ω) (Set.Icc s t)) :
+    μ[intLeft s t (addProc A M) B | 𝓕 s] + μ[intLeft s t B A | 𝓕 s] +
+        μ[jumpCov s t (addProc A M) B | 𝓕 s] =
+      μ[intRS s t (addProc A M) B | 𝓕 s] + μ[intRS s t B A | 𝓕 s] := by
+  have e1 : intLeft s t (addProc A M) B = intRS s t (addProc A M) B := funext fun ω =>
+    (rsInt_eq_rsInt_leftLim hd.le (hd.X_cadlag ω) (hd.B_bv ω) (hc ω)).symm
+  have e2 : intLeft s t B A = intRS s t B A := funext fun ω =>
+    rsInt_leftLim_of_continuousOn hd.le (hd.A_bv ω) (hd.A_cadlag ω) (hc ω)
+  have e3 : jumpCov s t (addProc A M) B = 0 := funext fun ω =>
+    jumpSum_eq_zero_of_continuousOn hd.le (hd.X_cadlag ω) (hd.B_bv ω) (hd.B_cadlag ω) (hc ω)
+  rw [e1, e2, e3, condExp_zero, add_zero]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the corrected theorem recovers I2.** For bonds
+continuous on `[s, t]`, `JumpStepData.jump_step` is exactly
+`TidyR7ProductStep.ProductStepData.product_step`:
+`E_s[B_tX_t − B_sX_s] = E_s[∫ X dB] + E_s[∫ B dA]`. -/
+theorem jump_step_recovers_product_step [IsFiniteMeasure μ] (hd : JumpStepData μ 𝓕 s t B A M)
+    (hc : ∀ ω, ContinuousOn (fun u => B u ω) (Set.Icc s t)) :
+    μ[fun ω => B t ω * addProc A M t ω - B s ω * addProc A M s ω | 𝓕 s] =ᵐ[μ]
+      μ[intRS s t (addProc A M) B | 𝓕 s] + μ[intRS s t B A | 𝓕 s] := by
+  rw [← hd.rhs_eq_of_continuousOn hc]
+  exact hd.jump_step
+
+end JumpStepData
+
+end Cochrane.Monetarism.TidyR7ProductStepJump
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Bonds that jump with the news: the book's (1.32) step fails; the corrected step holds
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eq. (1.32). The fair coin `ξ = ±1` of `TidyR7ProductStepCoin`
+(`coinMeasure`, `coinFiltration`) is revealed at time `1`; `M_u = ξ·1{u ≥ 1}` (`coinM`) is a
+càdlàg martingale. On `[0, 2]`:
+
+## Scenario 1: bonds jump together with `X` (`jumpB`, `jumpData`)
+
+`B_u = b + ξ·1{u ≥ 1}` (adapted, càdlàg, of bounded variation, NOT continuous), `A = 0`, `X = M`.
+`E_0[B_2X_2 − B_0X_0] = E[(b + ξ)ξ] = 1` (`jump_lhs`). Path by path `∫ X_− dB = X(1−)ξ = 0`,
+`∫ B_− dA = 0`, `Σ ΔXΔB = ξ² = 1` (`jump_intLeftXB`, `jump_intBA`, `jump_jumpCov`).
+* `jump_corrected`: the corrected step `TidyR7ProductStepJump.JumpStepData.jump_step`,
+  `1 = 0 + 0 + 1`, both sides computed.
+* `jump_book_fails`: **the book's step fails**: for EVERY partition `Σ X_iΔB_i = 0` and
+  `Σ ΔX_iΔB_i = 1` path by path; `B·E_0 dX = 0` (`TidyR7ProductStep.ExpIncrLimit`); so
+  `E_0[B_2X_2 − B_0X_0] = 1 ≠ 0 = lim E_0[Σ X_iΔB_i] + B·E_0 dX`.
+* `jump_ls_holds`: with the Lebesgue–Stieltjes integral of the CURRENT `X`, `∫ X dB = X(1)ξ = 1`,
+  so I2's two-term form `E_0∫X dB + E_0∫B dA = 1` happens to hold here (`A` has no jump).
+
+## Scenario 2: bonds jump together with the drift part `A` (`jumpDataA`)
+
+Same `B`, `A_u = ξ·1{u ≥ 1}`, `M = 0`. `jumpA_ls_fails`: **I2's statement
+`E_s[Δ(BX)] = E_s∫X dB + E_s∫B dA` (`TidyR7ProductStep.ProductStepData.product_step`) fails for
+càdlàg `B`**: `1 ≠ 1 + 1`. `jumpA_corrected`: the corrected step `1 = 0 + 0 + 1` and its
+two-term form `TidyR7ProductStepJump.JumpStepData.jump_step_ls`, `1 = 1 + 0`.
+So no reading of the book's two-term step is right for jumping bonds: the left-point reading fails
+in scenario 1 and the Lebesgue–Stieltjes reading in scenario 2.
+
+## Scenario 3: bonds jump, but not when `X` jumps (`lateB`, `lateData`)
+
+`B_u = 1 + ξ·1{u ≥ 3/2}`. `late_corrected`: `1 = 1 + 0 + 0`: `∫ X_− dB = X(3/2−)ξ = 1` and the
+jump covariation is `0` path by path although `B` jumps (`late_jump_B`).
+-/
+
+namespace Cochrane.Monetarism.TidyR7ProductStepJumpCoin
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7ProductStep Cochrane.Monetarism.TidyR7ProductStepCoin
+  Cochrane.Monetarism.TidyR7ProductStepJump Cochrane.Monetarism.TidyR7JumpSums
+
+/-! ## Step functions -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool for (1.32)): the step `1{x ≥ c}`.
+Not the same function as `TidyR7MonetarismUI.stepAt` (which is `1{r > c}`). -/
+noncomputable def stepAt (c x : ℝ) : ℝ := if c ≤ x then 1 else 0
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `1{x ≥ 1}` is `TidyR7StieltjesSums.heaviside`. -/
+theorem stepAt_one : stepAt 1 = heaviside := rfl
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the step `1{x ≥ c}` is càdlàg. -/
+theorem isCadlag_stepAt (c : ℝ) : IsCadlag (stepAt c) := by
+  refine ⟨fun x => ?_, fun x => ?_⟩
+  · rcases le_or_gt c x with hx | hx
+    · refine (continuousWithinAt_const (b := (1 : ℝ))).congr (fun y hy => ?_) ?_
+      · simp only [stepAt, hx.trans (le_of_lt hy), ↓reduceIte]
+      · simp only [stepAt, hx, ↓reduceIte]
+    · refine (continuousWithinAt_const (b := (0 : ℝ))).congr_of_eventuallyEq ?_ ?_
+      · filter_upwards [Ioo_mem_nhdsGT hx] with y hy
+        simp only [stepAt, not_le.2 hy.2, ↓reduceIte]
+      · simp only [stepAt, not_le.2 hx, ↓reduceIte]
+  · rcases le_or_gt x c with hx | hx
+    · refine ⟨0, tendsto_const_nhds.congr' ?_⟩
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      simp only [stepAt, not_le.2 (lt_of_lt_of_le hy hx), ↓reduceIte]
+    · refine ⟨1, tendsto_const_nhds.congr' ?_⟩
+      filter_upwards [Ioo_mem_nhdsLT hx] with y hy
+      simp only [stepAt, hy.1.le, ↓reduceIte]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the step `1{x ≥ c}` has bounded variation on `[a, b]`. -/
+theorem bv_stepAt (c a b : ℝ) : BoundedVariationOn (stepAt c) (Set.Icc a b) := by
+  have hm : Monotone (stepAt c) := by
+    intro x y hxy
+    simp only [stepAt]
+    split_ifs <;> first | (exfalso; linarith) | norm_num
+  refine (hm.monotoneOn _).boundedVariationOn (C := 1) fun x _ => ?_
+  simp only [stepAt]
+  split_ifs <;> norm_num
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the path `k + m·1{u ≥ c}` is càdlàg. -/
+theorem isCadlag_affine (k m c : ℝ) : IsCadlag fun u => k + m * stepAt c u :=
+  (isCadlag_stepAt c).continuous_comp (g := fun y => k + m * y)
+    (continuous_const.add (continuous_const.mul continuous_id))
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the path `k + m·1{u ≥ c}` has bounded variation on
+`[a, b]`. -/
+theorem bv_affine (k m c a b : ℝ) :
+    BoundedVariationOn (fun u => k + m * stepAt c u) (Set.Icc a b) := by
+  have hk : ∀ r : ℝ, BoundedVariationOn (fun _ : ℝ => r) (Set.Icc a b) := fun r => by
+    rw [BoundedVariationOn, eVariationOn.constant_on
+      (Set.subsingleton_of_forall_eq r fun _ ⟨_, _, hy⟩ => hy.symm)]
+    exact ENNReal.zero_ne_top
+  have hm : BoundedVariationOn (fun u => m * stepAt c u) (Set.Icc a b) :=
+    (hk m).fun_mul (bv_stepAt c a b)
+  exact ne_top_of_le_ne_top (ENNReal.add_ne_top.2 ⟨hk k, hm⟩) (eVariationOn_add_le _ _ _)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the integral against `k + m·1{u ≥ c}`**, `a < c ≤ b`:
+`∫_a^b f d(k + m·1{· ≥ c}) = f(c)·m` for every `f` (`TidyR7JumpSums.rsInt_single_jump`). -/
+theorem rsInt_affine {a b c : ℝ} (f : ℝ → ℝ) (k m : ℝ) (hac : a < c) (hcb : c ≤ b) :
+    rsInt a b f (fun u => k + m * stepAt c u) = f c * m := by
+  rw [rsInt_single_jump (k₀ := k) (k₁ := k + m) hac hcb (bv_affine k m c a b)
+    (fun x hx => by simp [stepAt, not_le.2 hx]) (fun x hx => by simp [stepAt, hx])]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the left limit of `k + m·1{u ≥ c}`** at `y`: `k` for
+`y ≤ c`, `k + m` for `y > c`. -/
+theorem leftLim_affine (k m c y : ℝ) :
+    Function.leftLim (fun u => k + m * stepAt c u) y = if c < y then k + m else k := by
+  split_ifs with h
+  · refine leftLim_eq_of_tendsto (tendsto_const_nhds.congr' ?_)
+    filter_upwards [Ioo_mem_nhdsLT h] with z hz
+    simp [stepAt, hz.1.le]
+  · refine leftLim_eq_of_tendsto (tendsto_const_nhds.congr' ?_)
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    simp [stepAt, not_le.2 (lt_of_lt_of_le hz (not_lt.1 h))]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the paths of `M = ξ·1{u ≥ 1}` in the form
+`0 + ξ·1{u ≥ 1}`.
+Restates `TidyR7ProductStepCoin.coinM` path by path. -/
+theorem coinM_path (ω : Bool) : (fun u => coinM u ω) = fun u => 0 + coinXi ω * stepAt 1 u :=
+  funext fun u => by simp [coinM, stepAt_one]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `X = A + M = 0 + ξ·1{u ≥ 1}` path by path. -/
+theorem coinX_path (ω : Bool) :
+    (fun u => addProc coinA coinM u ω) = fun u => 0 + coinXi ω * stepAt 1 u :=
+  funext fun u => by simp [addProc, coinA, coinM, stepAt_one]
+
+/-! ## Scenario 1: bonds jumping with `X` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **bonds jumping at the news date**, `B_u = b + ξ·1{u ≥ 1}`.
+-/
+noncomputable def jumpB (b : ℝ) (u : ℝ) (ω : Bool) : ℝ := b + coinXi ω * stepAt 1 u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the bond path jumps by `ξ ≠ 0` at time `1`. -/
+theorem jump_jumpB (b : ℝ) (ω : Bool) : jump (fun u => jumpB b u ω) 1 = coinXi ω := by
+  simp only [jump, jumpB]
+  rw [leftLim_affine]
+  simp [stepAt]
+
+/-- Cochrane (2023), A1 §1.6, p. 567: before time `1`, `B = b` is deterministic, so `B` is
+adapted to the coin filtration. -/
+theorem jumpB_adapted (b u : ℝ) : StronglyMeasurable[coinFiltration u] (jumpB b u) := by
+  by_cases hu : u < 1
+  · have e : jumpB b u = fun _ => b := funext fun ω => by simp [jumpB, stepAt, not_le.2 hu]
+    rw [e]
+    exact stronglyMeasurable_const
+  · rw [coinFiltration_ge (not_lt.1 hu)]
+    exact (measurable_of_finite _).stronglyMeasurable
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: scenario 1 satisfies the hypotheses of the
+corrected product step** (`TidyR7ProductStepJump.JumpStepData`) on `[0, 2]`. -/
+theorem jumpData (b : ℝ) : JumpStepData coinMeasure coinFiltration 0 2 (jumpB b) coinA coinM where
+  le := by norm_num
+  B_adapted u _ := jumpB_adapted b u
+  B_cadlag ω := isCadlag_affine b (coinXi ω) 1
+  B_bv ω := bv_affine b (coinXi ω) 1 0 2
+  A_meas := coinData.A_meas
+  A_cadlag := coinData.A_cadlag
+  A_bv := coinData.A_bv
+  M_mart := martingale_coinM
+  M_cadlag := coinData.M_cadlag
+  int_XB := Integrable.of_finite
+  int_BA := Integrable.of_finite
+  int_BM _ _ _ _ _ := Integrable.of_finite
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: **the left side, `E_0[B_2X_2 − B_0X_0] = 1`**
+(`B_2X_2 = (b + ξ)ξ = bξ + 1`, `B_0X_0 = 0`). -/
+theorem jump_lhs (b : ℝ) :
+    coinMeasure[fun ω => jumpB b 2 ω * addProc coinA coinM 2 ω -
+      jumpB b 0 ω * addProc coinA coinM 0 ω | coinFiltration 0] = fun _ => 1 := by
+  rw [condExp_coin_lt (by norm_num)]
+  funext _
+  norm_num [jumpB, stepAt, coinA, coinM, addProc, coinXi, heaviside]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: path by path `∫_{(0,2]} X_− dB = X(1−)·ξ = 0`. -/
+theorem jump_intLeftXB (b : ℝ) (ω : Bool) : intLeft 0 2 (addProc coinA coinM) (jumpB b) ω = 0 := by
+  simp only [intLeft, jumpB]
+  rw [rsInt_affine _ b (coinXi ω) (by norm_num) (by norm_num), coinX_path, leftLim_affine]
+  simp
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: path by path `∫_0^2 X dB = X(1)·ξ = ξ² = 1`. -/
+theorem jump_intXB (b : ℝ) (ω : Bool) : intRS 0 2 (addProc coinA coinM) (jumpB b) ω = 1 := by
+  simp only [intRS, jumpB]
+  rw [rsInt_affine _ b (coinXi ω) (by norm_num) (by norm_num)]
+  simp only [addProc, coinA, coinM, heaviside, le_refl, ↓reduceIte, mul_one, zero_add]
+  exact coinXi_mul_self ω
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: path by path the jump covariation is
+`ΔX_1ΔB_1 = ξ² = 1`. -/
+theorem jump_jumpCov (b : ℝ) (ω : Bool) : jumpCov 0 2 (addProc coinA coinM) (jumpB b) ω = 1 := by
+  have h := (jumpData b).intRS_eq ω
+  rw [jump_intXB, jump_intLeftXB] at h
+  linarith
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: path by path `∫ B_− dA = ∫ B dA = 0` (`A = 0`). -/
+theorem jump_intBA (b : ℝ) (ω : Bool) :
+    intLeft 0 2 (jumpB b) coinA ω = 0 ∧ intRS 0 2 (jumpB b) coinA ω = 0 :=
+  ⟨rsInt_const_right (by norm_num) _ 0, rsInt_const_right (by norm_num) _ 0⟩
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: non-vacuity of the corrected step on the
+coin.** Both sides of `TidyR7ProductStepJump.JumpStepData.jump_step` computed:
+`E_0[B_2X_2 − B_0X_0] = 1`, `E_0[∫X_− dB] = 0`, `E_0[∫B_− dA] = 0`, `E_0[ΣΔXΔB] = 1`, and the
+corrected identity holds, `1 = 0 + 0 + 1`. -/
+theorem jump_corrected (b : ℝ) :
+    coinMeasure[fun ω => jumpB b 2 ω * addProc coinA coinM 2 ω -
+        jumpB b 0 ω * addProc coinA coinM 0 ω | coinFiltration 0] = (fun _ => 1) ∧
+      coinMeasure[intLeft 0 2 (addProc coinA coinM) (jumpB b) | coinFiltration 0] = 0 ∧
+      coinMeasure[intLeft 0 2 (jumpB b) coinA | coinFiltration 0] = 0 ∧
+      coinMeasure[jumpCov 0 2 (addProc coinA coinM) (jumpB b) | coinFiltration 0] =
+        (fun _ => 1) ∧
+      coinMeasure[fun ω => jumpB b 2 ω * addProc coinA coinM 2 ω -
+          jumpB b 0 ω * addProc coinA coinM 0 ω | coinFiltration 0] =ᵐ[coinMeasure]
+        coinMeasure[intLeft 0 2 (addProc coinA coinM) (jumpB b) | coinFiltration 0] +
+          coinMeasure[intLeft 0 2 (jumpB b) coinA | coinFiltration 0] +
+          coinMeasure[jumpCov 0 2 (addProc coinA coinM) (jumpB b) | coinFiltration 0] := by
+  have e1 : intLeft 0 2 (addProc coinA coinM) (jumpB b) = fun _ => 0 :=
+    funext (jump_intLeftXB b)
+  have e2 : intLeft 0 2 (jumpB b) coinA = fun _ => 0 := funext fun ω => (jump_intBA b ω).1
+  have e3 : jumpCov 0 2 (addProc coinA coinM) (jumpB b) = fun _ => 1 := funext (jump_jumpCov b)
+  refine ⟨jump_lhs b, ?_, ?_, ?_, (jumpData b).jump_step⟩
+  · rw [e1, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+  · rw [e2, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+  · rw [e3, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: for EVERY partition of `[0, 2]`, path by path,
+`Σ X_iΔB_i = 0` (the only nonzero `ΔB_i` multiplies `X_{t_i}` with `t_i < 1`) and
+`Σ ΔX_iΔB_i = ξ² = 1` (`TidyR7StieltjesSums.crossSum_heaviside`). -/
+theorem jump_sums (b : ℝ) (P : Partition 0 2) (ω : Bool) :
+    sumRS P (addProc coinA coinM) (jumpB b) ω = 0 ∧
+      sumCross P (addProc coinA coinM) (jumpB b) ω = 1 := by
+  constructor
+  · simp only [sumRS, rsSum]
+    refine Finset.sum_eq_zero fun i _ => ?_
+    have hlt := P.strictMono (show i < i + 1 by omega)
+    simp only [addProc, coinA, coinM, jumpB, stepAt, heaviside]
+    split_ifs <;> first | (exfalso; linarith) | ring
+  · have e : sumCross P (addProc coinA coinM) (jumpB b) ω =
+        coinXi ω * coinXi ω * crossSum P heaviside heaviside := by
+      simp only [sumCross, crossSum, Finset.mul_sum]
+      refine Finset.sum_congr rfl fun i _ => ?_
+      simp only [addProc, coinA, coinM, jumpB, stepAt_one]
+      ring
+    rw [e, crossSum_heaviside, coinXi_mul_self, one_mul]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the book's step FAILS for bonds that jump with
+the news.** Read as the limit of the discrete step (left-point sums), the book's
+`Λ/P·dB + E_t d(Λ/P)·B` is `lim E_0[Σ X_iΔB_i] + B·E_0 dX`. Here `Σ X_iΔB_i = 0` and
+`Σ ΔX_iΔB_i = 1` at EVERY partition, the expected-increment integral is `B·E_0 dX = 0`, and
+`E_0[B_2X_2 − B_0X_0] = 1 ≠ 0`: the missing term is the expected jump covariation `E_0[ΔXΔB] = 1`.
+-/
+theorem jump_book_fails (b : ℝ) :
+    (∀ (P : Partition 0 2) (ω : Bool), sumRS P (addProc coinA coinM) (jumpB b) ω = 0 ∧
+        sumCross P (addProc coinA coinM) (jumpB b) ω = 1) ∧
+      ExpIncrLimit coinMeasure coinFiltration 0 2 (jumpB b) (addProc coinA coinM) 0 ∧
+      coinMeasure[fun ω => jumpB b 2 ω * addProc coinA coinM 2 ω -
+          jumpB b 0 ω * addProc coinA coinM 0 ω | coinFiltration 0] ≠
+        coinMeasure[intLeft 0 2 (addProc coinA coinM) (jumpB b) | coinFiltration 0] + 0 := by
+  obtain ⟨hL, hX, hA, -, -⟩ := jump_corrected b
+  refine ⟨jump_sums b, ?_, ?_⟩
+  · have h := (jumpData b).expIncrLimit_intLeft
+    rwa [hA] at h
+  · rw [hL, hX, add_zero]
+    intro h
+    have := congrFun h true
+    norm_num at this
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: **in scenario 1 the Lebesgue–Stieltjes reading
+happens to hold**: `∫_0^2 X dB = X(1)ξ = 1` (the current `X`, not `X(1−)`), so I2's two-term form
+`E_0[∫X dB] + E_0[∫B dA] = 1 + 0 = E_0[B_2X_2 − B_0X_0]`. -/
+theorem jump_ls_holds (b : ℝ) :
+    coinMeasure[intRS 0 2 (addProc coinA coinM) (jumpB b) | coinFiltration 0] = (fun _ => 1) ∧
+      coinMeasure[intRS 0 2 (jumpB b) coinA | coinFiltration 0] = 0 := by
+  have e1 : intRS 0 2 (addProc coinA coinM) (jumpB b) = fun _ => 1 := funext (jump_intXB b)
+  have e2 : intRS 0 2 (jumpB b) coinA = fun _ => 0 := funext fun ω => (jump_intBA b ω).2
+  constructor
+  · rw [e1, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+  · rw [e2, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+
+/-! ## Scenario 2: bonds jumping with the drift part `A` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the zero martingale. -/
+def zeroM (_ : ℝ) (_ : Bool) : ℝ := 0
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: scenario 2 satisfies the hypotheses of the
+corrected product step**: `B = b + ξ·1{u ≥ 1}`, `A = ξ·1{u ≥ 1}`, `M = 0`. -/
+theorem jumpDataA (b : ℝ) :
+    JumpStepData coinMeasure coinFiltration 0 2 (jumpB b) coinM zeroM where
+  le := by norm_num
+  B_adapted u _ := jumpB_adapted b u
+  B_cadlag ω := isCadlag_affine b (coinXi ω) 1
+  B_bv ω := bv_affine b (coinXi ω) 1 0 2
+  A_meas _ _ := measurable_of_finite _
+  A_cadlag := coinData.M_cadlag
+  A_bv ω := by rw [coinM_path]; exact bv_affine 0 (coinXi ω) 1 0 2
+  M_mart := martingale_zero ℝ coinFiltration coinMeasure
+  M_cadlag _ := IsCadlag.const
+  int_XB := Integrable.of_finite
+  int_BA := Integrable.of_finite
+  int_BM _ _ _ _ _ := Integrable.of_finite
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: I2's two-term form FAILS for càdlàg bonds.**
+In scenario 2, `E_0[B_2X_2 − B_0X_0] = 1`, but `E_0[∫_0^2 X dB] = 1` and
+`E_0[∫_0^2 B dA] = E[(b + ξ)ξ] = 1`: `1 ≠ 1 + 1`. The conclusion of
+`TidyR7ProductStep.ProductStepData.product_step` does not extend to bonds that jump. -/
+theorem jumpA_ls_fails (b : ℝ) :
+    coinMeasure[fun ω => jumpB b 2 ω * addProc coinM zeroM 2 ω -
+        jumpB b 0 ω * addProc coinM zeroM 0 ω | coinFiltration 0] = (fun _ => 1) ∧
+      coinMeasure[intRS 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] = (fun _ => 1) ∧
+      coinMeasure[intRS 0 2 (jumpB b) coinM | coinFiltration 0] = (fun _ => 1) ∧
+      coinMeasure[fun ω => jumpB b 2 ω * addProc coinM zeroM 2 ω -
+          jumpB b 0 ω * addProc coinM zeroM 0 ω | coinFiltration 0] ≠
+        coinMeasure[intRS 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] +
+          coinMeasure[intRS 0 2 (jumpB b) coinM | coinFiltration 0] := by
+  have hX : ∀ ω, (fun u => addProc coinM zeroM u ω) = fun u => 0 + coinXi ω * stepAt 1 u :=
+    fun ω => funext fun u => by simp [addProc, zeroM, coinM, stepAt_one]
+  have e1 : intRS 0 2 (addProc coinM zeroM) (jumpB b) = fun _ => 1 := funext fun ω => by
+    simp only [intRS, jumpB]
+    rw [rsInt_affine _ b (coinXi ω) (by norm_num) (by norm_num)]
+    simp [addProc, zeroM, coinM, heaviside, coinXi_mul_self]
+  have e2 : intRS 0 2 (jumpB b) coinM = fun ω => (b + coinXi ω) * coinXi ω := funext fun ω => by
+    simp only [intRS]
+    rw [coinM_path, rsInt_affine _ 0 (coinXi ω) (by norm_num) (by norm_num)]
+    simp [jumpB, stepAt]
+  have hl : coinMeasure[fun ω => jumpB b 2 ω * addProc coinM zeroM 2 ω -
+      jumpB b 0 ω * addProc coinM zeroM 0 ω | coinFiltration 0] = fun _ => 1 := by
+    rw [condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num [jumpB, stepAt, zeroM, coinM, addProc, coinXi, heaviside]
+    ring
+  have h2 : coinMeasure[intRS 0 2 (jumpB b) coinM | coinFiltration 0] = fun _ => 1 := by
+    rw [e2, condExp_coin_lt (by norm_num)]
+    funext _
+    simp [coinXi]
+    ring
+  have h1 : coinMeasure[intRS 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] =
+      fun _ => 1 := by
+    rw [e1, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+  refine ⟨hl, h1, h2, ?_⟩
+  rw [hl, h1, h2]
+  intro h
+  have := congrFun h true
+  norm_num at this
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the corrected step holds in scenario 2**:
+`E_0[∫X_− dB] = 0`, `E_0[∫B_− dA] = E[bξ] = 0`, `E_0[ΣΔXΔB] = 1`: `1 = 0 + 0 + 1`
+(`TidyR7ProductStepJump.JumpStepData.jump_step`); and the two-term form
+`TidyR7ProductStepJump.JumpStepData.jump_step_ls`, `1 = E_0∫X dB + E_0∫B_− dA = 1 + 0`. -/
+theorem jumpA_corrected (b : ℝ) :
+    coinMeasure[intLeft 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] = 0 ∧
+      coinMeasure[intLeft 0 2 (jumpB b) coinM | coinFiltration 0] = 0 ∧
+      coinMeasure[jumpCov 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] =
+        (fun _ => 1) ∧
+      coinMeasure[fun ω => jumpB b 2 ω * addProc coinM zeroM 2 ω -
+          jumpB b 0 ω * addProc coinM zeroM 0 ω | coinFiltration 0] =ᵐ[coinMeasure]
+        coinMeasure[intLeft 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] +
+          coinMeasure[intLeft 0 2 (jumpB b) coinM | coinFiltration 0] +
+          coinMeasure[jumpCov 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] ∧
+      coinMeasure[fun ω => jumpB b 2 ω * addProc coinM zeroM 2 ω -
+          jumpB b 0 ω * addProc coinM zeroM 0 ω | coinFiltration 0] =ᵐ[coinMeasure]
+        coinMeasure[intRS 0 2 (addProc coinM zeroM) (jumpB b) | coinFiltration 0] +
+          coinMeasure[intLeft 0 2 (jumpB b) coinM | coinFiltration 0] := by
+  have hX : ∀ ω, (fun u => addProc coinM zeroM u ω) = fun u => 0 + coinXi ω * stepAt 1 u :=
+    fun ω => funext fun u => by simp [addProc, zeroM, coinM, stepAt_one]
+  have e1 : intLeft 0 2 (addProc coinM zeroM) (jumpB b) = fun _ => 0 := funext fun ω => by
+    simp only [intLeft, jumpB]
+    rw [rsInt_affine _ b (coinXi ω) (by norm_num) (by norm_num), hX, leftLim_affine]
+    simp
+  have e2 : intLeft 0 2 (jumpB b) coinM = fun ω => b * coinXi ω := funext fun ω => by
+    simp only [intLeft]
+    rw [coinM_path, rsInt_affine _ 0 (coinXi ω) (by norm_num) (by norm_num)]
+    simp only [jumpB]
+    rw [leftLim_affine]
+    simp
+  have e3 : intRS 0 2 (addProc coinM zeroM) (jumpB b) = fun _ => 1 := funext fun ω => by
+    simp only [intRS, jumpB]
+    rw [rsInt_affine _ b (coinXi ω) (by norm_num) (by norm_num)]
+    simp [addProc, zeroM, coinM, heaviside, coinXi_mul_self]
+  have e4 : jumpCov 0 2 (addProc coinM zeroM) (jumpB b) = fun _ => 1 := funext fun ω => by
+    have h := (jumpDataA b).intRS_eq ω
+    rw [congrFun e3 ω, congrFun e1 ω] at h
+    linarith
+  refine ⟨?_, ?_, ?_, (jumpDataA b).jump_step, (jumpDataA b).jump_step_ls⟩
+  · rw [e1, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+  · rw [e2, condExp_coin_lt (by norm_num)]
+    funext _
+    simp [coinXi]
+  · rw [e4, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+
+/-! ## Scenario 3: bonds jumping when `X` does not -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567: bonds jumping at `3/2`, after the news,
+`B_u = 1 + ξ·1{u ≥ 3/2}`. -/
+noncomputable def lateB (u : ℝ) (ω : Bool) : ℝ := 1 + coinXi ω * stepAt (3 / 2) u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the bond path jumps by `ξ ≠ 0` at `3/2`. -/
+theorem late_jump_B (ω : Bool) : jump (fun u => lateB u ω) (3 / 2) = coinXi ω := by
+  simp only [jump, lateB]
+  rw [leftLim_affine]
+  simp [stepAt]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: scenario 3 satisfies the hypotheses of the
+corrected product step.** -/
+theorem lateData : JumpStepData coinMeasure coinFiltration 0 2 lateB coinA coinM where
+  le := by norm_num
+  B_adapted u _ := by
+    by_cases hu : u < 1
+    · have e : lateB u = fun _ => 1 := funext fun ω => by
+        simp [lateB, stepAt, not_le.2 (hu.trans (by norm_num : (1 : ℝ) < 3 / 2))]
+      rw [e]
+      exact stronglyMeasurable_const
+    · rw [coinFiltration_ge (not_lt.1 hu)]
+      exact (measurable_of_finite _).stronglyMeasurable
+  B_cadlag ω := isCadlag_affine 1 (coinXi ω) (3 / 2)
+  B_bv ω := bv_affine 1 (coinXi ω) (3 / 2) 0 2
+  A_meas := coinData.A_meas
+  A_cadlag := coinData.A_cadlag
+  A_bv := coinData.A_bv
+  M_mart := martingale_coinM
+  M_cadlag := coinData.M_cadlag
+  int_XB := Integrable.of_finite
+  int_BA := Integrable.of_finite
+  int_BM _ _ _ _ _ := Integrable.of_finite
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: non-vacuity with a jump of `B` but no common
+jump.** `E_0[B_2X_2 − B_0X_0] = 1`; path by path `∫X_− dB = X(3/2−)ξ = ξ² = 1`, `∫B_− dA = 0`, and
+the jump covariation is `0` although `B` jumps (`late_jump_B`): `1 = 1 + 0 + 0`. -/
+theorem late_corrected :
+    coinMeasure[fun ω => lateB 2 ω * addProc coinA coinM 2 ω -
+        lateB 0 ω * addProc coinA coinM 0 ω | coinFiltration 0] = (fun _ => 1) ∧
+      intLeft 0 2 (addProc coinA coinM) lateB = (fun _ => 1) ∧
+      intLeft 0 2 lateB coinA = (fun _ => 0) ∧
+      jumpCov 0 2 (addProc coinA coinM) lateB = (fun _ => 0) ∧
+      coinMeasure[fun ω => lateB 2 ω * addProc coinA coinM 2 ω -
+          lateB 0 ω * addProc coinA coinM 0 ω | coinFiltration 0] =ᵐ[coinMeasure]
+        coinMeasure[intLeft 0 2 (addProc coinA coinM) lateB | coinFiltration 0] +
+          coinMeasure[intLeft 0 2 lateB coinA | coinFiltration 0] +
+          coinMeasure[jumpCov 0 2 (addProc coinA coinM) lateB | coinFiltration 0] := by
+  have e1 : intLeft 0 2 (addProc coinA coinM) lateB = fun _ => 1 := funext fun ω => by
+    simp only [intLeft, lateB]
+    rw [rsInt_affine _ 1 (coinXi ω) (by norm_num) (by norm_num), coinX_path, leftLim_affine]
+    simp only [show (1 : ℝ) < 3 / 2 by norm_num, ↓reduceIte, zero_add]
+    exact coinXi_mul_self ω
+  have e3 : intRS 0 2 (addProc coinA coinM) lateB = fun _ => 1 := funext fun ω => by
+    simp only [intRS, lateB]
+    rw [rsInt_affine _ 1 (coinXi ω) (by norm_num) (by norm_num)]
+    simp [addProc, coinA, coinM, heaviside, coinXi_mul_self, show (1 : ℝ) ≤ 3 / 2 by norm_num]
+  have e4 : jumpCov 0 2 (addProc coinA coinM) lateB = fun _ => 0 := funext fun ω => by
+    have h := lateData.intRS_eq ω
+    rw [congrFun e3 ω, congrFun e1 ω] at h
+    linarith
+  refine ⟨?_, e1, funext fun _ => rsInt_const_right (by norm_num) _ 0, e4, lateData.jump_step⟩
+  rw [condExp_coin_lt (by norm_num)]
+  funext _
+  simp [lateB, stepAt, coinA, coinM, addProc, coinXi, heaviside]
+  norm_num
+
+end Cochrane.Monetarism.TidyR7ProductStepJumpCoin
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# (1.31)–(1.34) when money and bonds jump at news dates
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34), in a model with JUMPING money.
+
+## The model (`JumpMonetaryModel`)
+
+As `TidyR7MonetarismModel.MonetaryModel`, except that money `M` has càdlàg paths of bounded
+variation (`JumpMonetaryModel.M_cadlag`) instead of continuous ones: the government may swap
+money for bonds in a lump at a news date (an open-market operation `ΔM = −ΔB`). The nominal
+flow (1.31) `d(B + M) = (iB + i^mM − Ps) dt` still holds path by path, so `B + M` is continuous and
+`ΔB_u = −ΔM_u` (`JumpMonetaryModel.jump_B`); `Λ/P = A + N` with `dA = −i(Λ/P) dt` (so
+`Δ(Λ/P) = ΔN`, `JumpMonetaryModel.jump_disc`). Every `TidyR7MonetarismModel.MonetaryModel` is one
+(`JumpMonetaryModel.ofMonetaryModel`).
+
+## Results: what changes in (1.32)–(1.34)
+
+* `JumpMonetaryModel.pathwise_1_32_jump`, `JumpMonetaryModel.incr_1_32_jump`: the corrected
+  product step (`TidyR7ProductStepJump.JumpStepData.jump_step`) gives
+  `E_s[n_tB_t − n_sB_s] = −E_s[∫_s^t (Λs − i^m nM) dr + ∫_s^t n dM]` with `∫ n dM` the
+  Lebesgue–Stieltjes integral of the CURRENT `n = Λ/P` (I3's `flow133` reading).
+* `JumpMonetaryModel.incr_1_32_jump_left`: with the left-point (pre-jump) reading `∫ n_− dM`,
+  `E_s[n_tB_t − n_sB_s] = −E_s[∫ (Λs − i^m nM) dr + ∫ n_− dM] − E_s[Σ_{s<u≤t} Δn_uΔM_u]`:
+  the extra term `−E_s[ΔM Δ(Λ/P)]` (`= +E_s[ΔB Δ(Λ/P)]`, `JumpMonetaryModel.jumpCov_B`).
+* `JumpMonetaryModel.middle_1_32_jump`, `JumpMonetaryModel.middle_1_32_book_iff`: the middle
+  line `Λ/P·dB + E_t[d(Λ/P)]B = −Λ(s dt + dM/P)`: the corrected version has the third term
+  `E_s[Σ Δn ΔB]`; the printed two-term version, read as limits of left-point sums, holds at `ω`
+  iff `E_s[Σ_{s<u≤t} Δn_uΔM_u](ω) = 0`.
+* `JumpMonetaryModel.rec_1_33_jump`, `JumpMonetaryModel.rec_1_33_jump_left`,
+  `JumpMonetaryModel.valuation_1_33_jump_seq`, `JumpMonetaryModel.valuation_1_33_jump`,
+  `JumpMonetaryModel.valuation_1_33_jump_dom`: (1.33) holds unchanged with `∫ n dM` the
+  Lebesgue–Stieltjes integral of the current `n` (limit, `L¹` and dominated forms, iff the
+  transversality condition); with the pre-jump reading the flow needs `+ Σ Δn ΔM`:
+  `JumpMonetaryModel.tendsto_flow133Left`, `JumpMonetaryModel.valuation_1_33_jump_left_iff` (under
+  transversality the pre-jump valuation is off by exactly `lim E_s[Σ Δn ΔM]`, and holds iff that
+  limit is `0`).
+* `JumpMonetaryModel.incr_1_34_jump`, `JumpMonetaryModel.rec_1_34_jump`,
+  `JumpMonetaryModel.valuation_1_34_jump_seq`, `JumpMonetaryModel.valuation_1_34_jump`,
+  `JumpMonetaryModel.valuation_1_34_jump_dom`: (1.34) holds VERBATIM: `B + M` is continuous, so
+  `Δ(B + M) = 0` and no jump term appears.
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismJump
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7CondDominated Cochrane.Monetarism.TidyR7ProductStep
+  Cochrane.Monetarism.TidyR7MonetarismAC Cochrane.Monetarism.TidyR7MonetarismModel
+  Cochrane.Monetarism.TidyR7MonetarismValuation Cochrane.Monetarism.TidyR7JumpSums
+  Cochrane.Monetarism.TidyR7ProductStepJump
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω}
+
+variable (μ : Measure Ω) (𝓕 : Filtration ℝ mΩ) (Λ P B M A N i im sp : ℝ → Ω → ℝ)
+
+/-- **Cochrane (2023), A1 §1.6, (1.31)–(1.34), pp. 567–568: the model with jumping money.**
+As `TidyR7MonetarismModel.MonetaryModel`, but money has càdlàg (not necessarily continuous)
+paths of bounded variation; the flow (1.31) `d(B + M) = (iB + i^mM − Ps) dt` holds path by path. -/
+structure JumpMonetaryModel where
+  P_pos : ∀ u ω, 0 < P u ω
+  Λ_pos : ∀ u ω, 0 < Λ u ω
+  Λ_adapted : ∀ u, StronglyMeasurable[𝓕 u] (Λ u)
+  P_adapted : ∀ u, StronglyMeasurable[𝓕 u] (P u)
+  dec : ∀ u ω, disc Λ P u ω = A u ω + N u ω
+  A_incr : IncrOf A fun r ω => -(i r ω * disc Λ P r ω)
+  A_int : LocInt fun r ω => -(i r ω * disc Λ P r ω)
+  N_mart : Martingale N 𝓕 μ
+  N_cadlag : ∀ ω, IsCadlag fun u => N u ω
+  B_adapted : ∀ u, StronglyMeasurable[𝓕 u] (B u)
+  M_adapted : ∀ u, StronglyMeasurable[𝓕 u] (M u)
+  M_cadlag : ∀ ω, IsCadlag fun u => M u ω
+  M_bv : ∀ ω a b, BoundedVariationOn (fun u => M u ω) (Set.Icc a b)
+  flow : IncrOf (addProc B M) (flowRate B M P i im sp)
+  flow_int : LocInt (flowRate B M P i im sp)
+
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: the flow of (1.33) with the PRE-jump (left-point)
+reading of `dM`: `F⁻_T = ∫_s^T Λs dr + ∫_{(s,T]} n_− dM`, `n = Λ/P`. -/
+noncomputable def flow133Left (s T : ℝ) (ω : Ω) : ℝ :=
+  (∫ r in s..T, Λ r ω * sp r ω) + intLeft s T (disc Λ P) M ω
+
+variable {μ 𝓕 Λ P B M A N i im sp}
+
+namespace JumpMonetaryModel
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **every model with continuous money is a model with
+jumping money** (`TidyR7MonetarismModel.MonetaryModel`). -/
+theorem ofMonetaryModel (hm : MonetaryModel μ 𝓕 Λ P B M A N i im sp) :
+    JumpMonetaryModel μ 𝓕 Λ P B M A N i im sp where
+  P_pos := hm.P_pos
+  Λ_pos := hm.Λ_pos
+  Λ_adapted := hm.Λ_adapted
+  P_adapted := hm.P_adapted
+  dec := hm.dec
+  A_incr := hm.A_incr
+  A_int := hm.A_int
+  N_mart := hm.N_mart
+  N_cadlag := hm.N_cadlag
+  B_adapted := hm.B_adapted
+  M_adapted := hm.M_adapted
+  M_cadlag ω := (hm.M_cont ω).isCadlag
+  M_bv := hm.M_bv
+  flow := hm.flow
+  flow_int := hm.flow_int
+
+variable (hm : JumpMonetaryModel μ 𝓕 Λ P B M A N i im sp)
+include hm
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ/P = A + N` as processes.
+Restates `TidyR7MonetarismModel.MonetaryModel.disc_eq` for jumping money. -/
+theorem disc_eq : disc Λ P = addProc A N :=
+  funext fun u => funext fun ω => hm.dec u ω
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `(Λ/P)·P = Λ`.
+Restates `TidyR7MonetarismModel.MonetaryModel.disc_mul_P` for jumping money. -/
+theorem disc_mul_P (u : ℝ) (ω : Ω) : disc Λ P u ω * P u ω = Λ u ω :=
+  div_mul_cancel₀ (Λ u ω) (hm.P_pos u ω).ne'
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `A` has continuous paths.
+Restates `TidyR7MonetarismModel.MonetaryModel.A_cont` for jumping money. -/
+theorem A_cont (ω : Ω) : Continuous fun u => A u ω :=
+  continuous_of_incr (hm.A_int ω) (hm.A_incr ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `A` has bounded variation on every `[a, b]`.
+Restates `TidyR7MonetarismModel.MonetaryModel.A_bv` for jumping money. -/
+theorem A_bv (ω : Ω) (a b : ℝ) : BoundedVariationOn (fun u => A u ω) (Set.Icc a b) :=
+  bv_of_incr (hm.A_int ω) (hm.A_incr ω) a b
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: `B + M` has continuous paths, even when money
+jumps.
+Restates `TidyR7MonetarismModel.MonetaryModel.W_cont` for jumping money. -/
+theorem W_cont (ω : Ω) : Continuous fun u => addProc B M u ω :=
+  continuous_of_incr (hm.flow_int ω) (hm.flow ω)
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: `B + M` has bounded variation on every `[a, b]`.
+Restates `TidyR7MonetarismModel.MonetaryModel.W_bv` for jumping money. -/
+theorem W_bv (ω : Ω) (a b : ℝ) : BoundedVariationOn (fun u => addProc B M u ω) (Set.Icc a b) :=
+  bv_of_incr (hm.flow_int ω) (hm.flow ω) a b
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: bonds have càdlàg paths. -/
+theorem B_cadlag (ω : Ω) : IsCadlag fun u => B u ω := by
+  rw [MonetaryModel.B_eq (B := B) (M := M) ω]
+  exact (hm.W_cont ω).isCadlag.fun_add
+    ((hm.M_cadlag ω).continuous_comp (g := fun y => -1 * y) (continuous_const.mul continuous_id))
+
+/-- Cochrane (2023), A1 §1.6, (1.31), p. 567: bonds have bounded variation on every `[a, b]`.
+Restates `TidyR7MonetarismModel.MonetaryModel.B_bv` for jumping money. -/
+theorem B_bv (ω : Ω) (a b : ℝ) : BoundedVariationOn (fun u => B u ω) (Set.Icc a b) := by
+  rw [MonetaryModel.B_eq (B := B) (M := M) ω]
+  exact bv_add_neg (hm.W_bv ω a b) (hm.M_bv ω a b)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ/P` has càdlàg paths.
+Restates `TidyR7MonetarismModel.MonetaryModel.disc_cadlag` for jumping money. -/
+theorem disc_cadlag (ω : Ω) : IsCadlag fun u => disc Λ P u ω := by
+  rw [hm.disc_eq]
+  exact (hm.A_cont ω).isCadlag.fun_add (hm.N_cadlag ω)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ_u/P_u` is `𝓕_u`-measurable.
+Restates `TidyR7MonetarismModel.MonetaryModel.disc_adapted` for jumping money. -/
+theorem disc_adapted (u : ℝ) : StronglyMeasurable[𝓕 u] (disc Λ P u) :=
+  ((hm.Λ_adapted u).measurable.div (hm.P_adapted u).measurable).stronglyMeasurable
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `A_u = Λ_u/P_u − N_u` is measurable.
+Restates `TidyR7MonetarismModel.MonetaryModel.measurable_A` for jumping money. -/
+theorem measurable_A (u : ℝ) : Measurable (A u) := by
+  have e : A u = fun ω => disc Λ P u ω - N u ω := funext fun ω => by rw [hm.dec u ω]; ring
+  rw [e]
+  exact (((hm.disc_adapted u).mono (𝓕.le u)).measurable).sub
+    (((hm.N_mart.1 u).mono (𝓕.le u)).measurable)
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `B + M` is adapted.
+Restates `TidyR7MonetarismModel.MonetaryModel.W_adapted` for jumping money. -/
+theorem W_adapted (u : ℝ) : StronglyMeasurable[𝓕 u] (addProc B M u) :=
+  (hm.B_adapted u).add (hm.M_adapted u)
+
+/-- **Cochrane (2023), A1 §1.6, (1.31), p. 567: bonds jump exactly opposite to money**,
+`ΔB_u = −ΔM_u` (the flow (1.31) makes `B + M` continuous). -/
+theorem jump_B (ω : Ω) (u : ℝ) : jump (fun v => B v ω) u = -jump (fun v => M v ω) u := by
+  have hl : Function.leftLim (fun v => B v ω) u =
+      addProc B M u ω - Function.leftLim (fun v => M v ω) u := by
+    refine leftLim_eq_of_tendsto ?_
+    have h := (((hm.W_cont ω).tendsto u).mono_left nhdsWithin_le_nhds).sub
+      ((hm.M_cadlag ω).tendsto_nhdsLT_leftLim u)
+    refine h.congr fun v => ?_
+    simp only [addProc]
+    ring
+  simp only [jump, hl, addProc]
+  ring
+
+/-- **Cochrane (2023), A1 §1.6, p. 567: `Λ/P` jumps exactly with its martingale part**,
+`Δ(Λ/P)_u = ΔN_u` (`A` is continuous). -/
+theorem jump_disc (ω : Ω) (u : ℝ) : jump (fun v => disc Λ P v ω) u = jump (fun v => N v ω) u := by
+  have hl : Function.leftLim (fun v => disc Λ P v ω) u =
+      A u ω + Function.leftLim (fun v => N v ω) u := by
+    refine leftLim_eq_of_tendsto ?_
+    have h := (((hm.A_cont ω).tendsto u).mono_left nhdsWithin_le_nhds).add
+      ((hm.N_cadlag ω).tendsto_nhdsLT_leftLim u)
+    exact h.congr fun v => (hm.dec v ω).symm
+  simp only [jump, hl, hm.dec u ω]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: **the data of the corrected product step for
+jumping bonds** `B` against `Λ/P = A + N` on `[s, t]`, under the domination conditions.
+The analogue of `TidyR7MonetarismModel.MonetaryModel.productStepData_B`. -/
+theorem jumpStepData_B {s t : ℝ} (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    JumpStepData μ 𝓕 s t B A N where
+  le := hst
+  B_adapted u _ := hm.B_adapted u
+  B_cadlag := hm.B_cadlag
+  B_bv ω := hm.B_bv ω s t
+  A_meas u _ := hm.measurable_A u
+  A_cadlag ω := (hm.A_cont ω).isCadlag
+  A_bv ω := hm.A_bv ω s t
+  M_mart := hm.N_mart
+  M_cadlag := hm.N_cadlag
+  int_XB := by rw [← hm.disc_eq]; exact hd.sup_var
+  int_BA := hd.sup_varA
+  int_BM := hd.mart_incr
+
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: **the data of I2's product step for `B + M`**,
+which is continuous even when money jumps.
+Restates `TidyR7MonetarismModel.MonetaryModel.productStepData_W` for jumping money. -/
+theorem productStepData_W {s t : ℝ} (hst : s ≤ t)
+    (hd : Dominated μ A N s t (addProc B M) (disc Λ P)) : ProductStepData μ 𝓕 s t (addProc B M) A N
+    where
+  le := hst
+  B_adapted u _ := hm.W_adapted u
+  B_cont ω := (hm.W_cont ω).continuousOn
+  B_bv ω := hm.W_bv ω s t
+  A_meas u _ := hm.measurable_A u
+  A_cadlag ω := (hm.A_cont ω).isCadlag
+  A_bv ω := hm.A_bv ω s t
+  M_mart := hm.N_mart
+  M_cadlag := hm.N_cadlag
+  int_XB := by rw [← hm.disc_eq]; exact hd.sup_var
+  int_BA := hd.sup_varA
+  int_BM := hd.mart_incr
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `Σ Δn ΔB = −Σ Δn ΔM`** path by path
+(`ΔB = −ΔM`): the extra term of the bond step is minus the jump covariation of money and `Λ/P`. -/
+theorem jumpCov_B (ω : Ω) {s t : ℝ} (hst : s ≤ t) :
+    jumpCov s t (disc Λ P) B ω = -jumpCov s t (disc Λ P) M ω := by
+  have hn := hm.disc_cadlag ω
+  have hMn : BoundedVariationOn (fun u => -1 * M u ω) (Set.Icc s t) := by
+    have e : (fun u => -1 * M u ω) = fun u => -M u ω := funext fun u => by ring
+    rw [BoundedVariationOn, e, eVariationOn_neg]
+    exact hm.M_bv ω s t
+  have hMc : IsCadlag fun u => -1 * M u ω :=
+    (hm.M_cadlag ω).continuous_comp (g := fun y => -1 * y) (continuous_const.mul continuous_id)
+  simp only [jumpCov]
+  rw [MonetaryModel.B_eq (B := B) (M := M) ω,
+    jumpSum_add_right hst hn (hm.W_bv ω s t) (hm.W_cont ω).isCadlag hMn hMc,
+    jumpSum_eq_zero_of_continuousOn hst hn (hm.W_bv ω s t) (hm.W_cont ω).isCadlag
+      (hm.W_cont ω).continuousOn,
+    jumpSum_smul_right (-1) hst hn (hm.M_bv ω s t) (hm.M_cadlag ω)]
+  ring
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: `∫_{(s,t]} B_− dA = −∫_s^t i n B` path by path
+(`A` is continuous, so `B_−` may be replaced by `B`).
+The analogue of `TidyR7MonetarismModel.MonetaryModel.rsInt_B_A`. -/
+theorem intLeft_B_A (ω : Ω) {s t : ℝ} (hst : s ≤ t) :
+    intLeft s t B A ω = -∫ r in s..t, i r ω * disc Λ P r ω * B r ω := by
+  simp only [intLeft]
+  rw [← rsInt_eq_rsInt_leftLim hst (hm.B_cadlag ω) (hm.A_bv ω s t) (hm.A_cont ω).continuousOn,
+    rsInt_eq_integral_of_incr (hm.B_cadlag ω) (hm.A_int ω) (hm.A_incr ω) hst,
+    ← intervalIntegral.integral_neg]
+  exact intervalIntegral.integral_congr fun r _ => by ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, path by path, jumping money.** For `s ≤ t`,
+`∫ n_− dB + ∫ B_− dA + Σ Δn ΔB = −(∫_s^t (Λs − i^m nM) dr + ∫_s^t n dM)`, with `∫ n dM` the
+Lebesgue–Stieltjes integral of the current `n = Λ/P`.
+Generalises `TidyR7MonetarismModel.MonetaryModel.pathwise_1_32`. -/
+theorem pathwise_1_32_jump (ω : Ω) {s t : ℝ} (hst : s ≤ t) :
+    intLeft s t (disc Λ P) B ω + intLeft s t B A ω + jumpCov s t (disc Λ P) B ω =
+      -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) := by
+  have hn := hm.disc_cadlag ω
+  have hMbv : BoundedVariationOn (fun u => -1 * M u ω) (Set.Icc s t) := by
+    have e : (fun u => -1 * M u ω) = fun u => -M u ω := funext fun u => by ring
+    rw [BoundedVariationOn, e, eVariationOn_neg]
+    exact hm.M_bv ω s t
+  have e0 : intLeft s t (disc Λ P) B ω + jumpCov s t (disc Λ P) B ω =
+      rsInt s t (fun u => disc Λ P u ω) (fun u => B u ω) :=
+    (rsInt_eq_leftLim_add_jumpSum hst hn (hm.B_bv ω s t) (hm.B_cadlag ω)).symm
+  have e1 : rsInt s t (fun u => disc Λ P u ω) (fun u => B u ω) =
+      rsInt s t (fun u => disc Λ P u ω) (fun u => addProc B M u ω) -
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω) := by
+    rw [MonetaryModel.B_eq (B := B) (M := M) ω,
+      rsInt_add_right hst (hm.W_bv ω s t) hMbv (rsIntegrable_of_isCadlag hn),
+      rsInt_smul_right (-1) hst (hm.M_bv ω s t)]
+    ring
+  have e2 : rsInt s t (fun u => disc Λ P u ω) (fun u => addProc B M u ω) =
+      ∫ r in s..t, disc Λ P r ω * flowRate B M P i im sp r ω :=
+    rsInt_eq_integral_of_incr hn (hm.flow_int ω) (hm.flow ω) hst
+  have e3 : intLeft s t B A ω = ∫ r in s..t, B r ω * -(i r ω * disc Λ P r ω) := by
+    simp only [intLeft]
+    rw [← rsInt_eq_rsInt_leftLim hst (hm.B_cadlag ω) (hm.A_bv ω s t) (hm.A_cont ω).continuousOn]
+    exact rsInt_eq_integral_of_incr (hm.B_cadlag ω) (hm.A_int ω) (hm.A_incr ω) hst
+  have i1 : IntervalIntegrable (fun r => disc Λ P r ω * flowRate B M P i im sp r ω)
+      MeasureSpace.volume s t := intervalIntegrable_mul_of_isCadlag hn hst (hm.flow_int ω s t)
+  have i2 : IntervalIntegrable (fun r => B r ω * -(i r ω * disc Λ P r ω))
+      MeasureSpace.volume s t :=
+    intervalIntegrable_mul_of_isCadlag (hm.B_cadlag ω) hst (hm.A_int ω s t)
+  have e4 : (∫ r in s..t, disc Λ P r ω * flowRate B M P i im sp r ω) +
+      (∫ r in s..t, B r ω * -(i r ω * disc Λ P r ω)) =
+        -∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω) := by
+    rw [← intervalIntegral.integral_add i1 i2, ← intervalIntegral.integral_neg]
+    refine intervalIntegral.integral_congr fun r _ => ?_
+    simp only [flowRate]
+    rw [← hm.disc_mul_P r ω]
+    ring
+  rw [e3]
+  linarith
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: path by path,
+`∫_s^t n dM = ∫_{(s,t]} n_− dM + Σ_{s<u≤t} Δn_uΔM_u`. -/
+theorem rsInt_n_M (ω : Ω) {s t : ℝ} (hst : s ≤ t) :
+    rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω) =
+      intLeft s t (disc Λ P) M ω + jumpCov s t (disc Λ P) M ω :=
+  rsInt_eq_leftLim_add_jumpSum hst (hm.disc_cadlag ω) (hm.M_bv ω s t) (hm.M_cadlag ω)
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: the integrabilities of the bond step:
+`∫ n_− dB`, `∫ B_− dA`, `Σ Δn ΔB`, `Σ Δn ΔM` and the flow `∫(Λs − i^m nM) + ∫ n dM`. -/
+theorem integrable_1_32_jump {s t : ℝ} (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    Integrable (intLeft s t (disc Λ P) B) μ ∧ Integrable (intLeft s t B A) μ ∧
+      Integrable (jumpCov s t (disc Λ P) B) μ ∧ Integrable (jumpCov s t (disc Λ P) M) μ ∧
+      Integrable (fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω))) μ := by
+  have hj := hm.jumpStepData_B hst hd
+  have i1 := hj.integrable_intLeftXB
+  have i2 := hj.integrable_intLeftBA
+  have i3 := hj.integrable_jumpCov
+  rw [← hm.disc_eq] at i1 i3
+  have eM : jumpCov s t (disc Λ P) M = -jumpCov s t (disc Λ P) B :=
+    funext fun ω => by rw [Pi.neg_apply, hm.jumpCov_B ω hst, neg_neg]
+  have eF : (fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+      rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω))) =
+      intLeft s t (disc Λ P) B + intLeft s t B A + jumpCov s t (disc Λ P) B :=
+    funext fun ω => (hm.pathwise_1_32_jump ω hst).symm
+  refine ⟨i1, i2, i3, ?_, ?_⟩
+  · rw [eM]
+    exact i3.neg
+  · rw [eF]
+    exact (i1.add i2).add i3
+
+variable [IsFiniteMeasure μ]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, with jumping money and bonds.** Under the
+domination conditions on `[s, t]`, almost surely
+`E_s[n_tB_t − n_sB_s] = −E_s[∫_s^t (Λs − i^m nM) dr + ∫_s^t n dM]`, `n = Λ/P`, with `∫ n dM` the
+Lebesgue–Stieltjes integral of the CURRENT `n` (which charges `n(u)ΔM_u` at a jump).
+Generalises `TidyR7MonetarismModel.MonetaryModel.incr_1_32_general`. -/
+theorem incr_1_32_jump {s t : ℝ} (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    μ[fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) | 𝓕 s] := by
+  have hj := hm.jumpStepData_B hst hd
+  have h := hj.jump_step
+  have i1 := hj.integrable_intLeftXB
+  have i2 := hj.integrable_intLeftBA
+  have i3 := hj.integrable_jumpCov
+  rw [← hm.disc_eq] at h i1 i3
+  have eL : (fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω) =
+      fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω := funext fun ω => by ring
+  have eR : (fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω))) =
+      intLeft s t (disc Λ P) B + intLeft s t B A + jumpCov s t (disc Λ P) B :=
+    funext fun ω => (hm.pathwise_1_32_jump ω hst).symm
+  rw [eL] at h
+  rw [eR]
+  filter_upwards [h, condExp_add (i1.add i2) i3 (𝓕 s), condExp_add i1 i2 (𝓕 s)] with ω h1 h2 h3
+  rw [h1, h2]
+  simp only [Pi.add_apply] at h3 ⊢
+  rw [h3]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the extra term `E_t[ΔM Δ(Λ/P)]`.** With the
+PRE-jump reading `∫ n_− dM` of `dM/P`, almost surely
+`E_s[n_tB_t − n_sB_s] = −E_s[∫_s^t (Λs − i^m nM) dr + ∫_{(s,t]} n_− dM] − E_s[Σ_{s<u≤t} Δn_uΔM_u]`.
+The book's line `E_t d(ΛB/P) = −Λ(s dt + dM/P)` read this way misses `−E_s[Σ ΔnΔM]`.
+The pre-jump variant of `TidyR7MonetarismModel.MonetaryModel.incr_1_32_general`. -/
+theorem incr_1_32_jump_left {s t : ℝ} (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    μ[fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        intLeft s t (disc Λ P) M ω) | 𝓕 s] - μ[jumpCov s t (disc Λ P) M | 𝓕 s] := by
+  obtain ⟨-, -, -, iJ, iF⟩ := hm.integrable_1_32_jump hst hd
+  have eG : (fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+      intLeft s t (disc Λ P) M ω)) =
+      (fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω))) + jumpCov s t (disc Λ P) M :=
+    funext fun ω => by
+      simp only [Pi.add_apply]
+      rw [hm.rsInt_n_M ω hst]
+      ring
+  rw [eG]
+  filter_upwards [hm.incr_1_32_jump hst hd, condExp_add iF iJ (𝓕 s)] with ω h1 h2
+  rw [h1, Pi.sub_apply, h2, Pi.add_apply]
+  ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: `E_t d(Λ/P) = −i(Λ/P) dt` for jumping bonds,
+in the expected-increment sense**: `B·E_s d(Λ/P)` (`TidyR7ProductStep.ExpIncrLimit`) exists and
+equals `−E_s∫_s^t i n B`.
+Generalises `TidyR7MonetarismModel.MonetaryModel.expIncr_disc`. -/
+theorem expIncr_disc_jump {s t : ℝ} (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    ExpIncrLimit μ 𝓕 s t B (disc Λ P)
+      (μ[fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω | 𝓕 s]) := by
+  have h := (hm.jumpStepData_B hst hd).expIncrLimit_intLeft
+  have e : intLeft s t B A = fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω :=
+    funext fun ω => hm.intLeft_B_A ω hst
+  rw [e, ← hm.disc_eq] at h
+  exact h
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567, the corrected middle line**
+`Λ/P_− dB + E_t[d(Λ/P)]B_− + E_t[Δ(Λ/P)ΔB] = −Λ(s dt + dM/P)`, integrated: almost surely
+`E_s[∫ n_− dB] + B·E_s d(Λ/P) + E_s[Σ Δn ΔB] = −E_s[∫(Λs − i^m nM) dr + ∫ n dM]`, with
+`B·E_s d(Λ/P) = −E_s∫ i n B` (`JumpMonetaryModel.expIncr_disc_jump`).
+Generalises `TidyR7MonetarismModel.MonetaryModel.middle_1_32`. -/
+theorem middle_1_32_jump {s t : ℝ} (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    μ[intLeft s t (disc Λ P) B | 𝓕 s] +
+        μ[fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω | 𝓕 s] +
+        μ[jumpCov s t (disc Λ P) B | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -((∫ r in s..t, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+        rsInt s t (fun u => disc Λ P u ω) (fun u => M u ω)) | 𝓕 s] := by
+  have h := (hm.jumpStepData_B hst hd).jump_step
+  rw [← hm.disc_eq] at h
+  have e : intLeft s t B A = fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω :=
+    funext fun ω => hm.intLeft_B_A ω hst
+  have eL : (fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω) =
+      fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω := funext fun ω => by ring
+  rw [e, eL] at h
+  filter_upwards [h, hm.incr_1_32_jump hst hd] with ω h1 h2
+  rw [← h1, h2]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: exactly when the printed middle line holds.**
+Read as limits of left-point sums, the printed two-term step
+`E_s[n_tB_t − n_sB_s] = E_s[∫ n_− dB] + B·E_s d(Λ/P)` holds at almost every `ω` iff
+`E_s[Σ_{s<u≤t} Δ(Λ/P)_uΔM_u](ω) = 0`: it fails exactly when money (equivalently bonds) is
+expected to jump together with `Λ/P`. -/
+theorem middle_1_32_book_iff {s t : ℝ} (hst : s ≤ t) (hd : Dominated μ A N s t B (disc Λ P)) :
+    ∀ᵐ ω ∂μ, (μ[fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω | 𝓕 s] ω =
+        μ[intLeft s t (disc Λ P) B | 𝓕 s] ω +
+          μ[fun ω => -∫ r in s..t, i r ω * disc Λ P r ω * B r ω | 𝓕 s] ω ↔
+      μ[jumpCov s t (disc Λ P) M | 𝓕 s] ω = 0) := by
+  have hj := hm.jumpStepData_B hst hd
+  have hL := hm.expIncr_disc_jump hst hd
+  rw [hm.disc_eq] at hL
+  have h := hj.book_step_iff hL
+  rw [← hm.disc_eq] at h
+  have eL : (fun ω => B t ω * disc Λ P t ω - B s ω * disc Λ P s ω) =
+      fun ω => disc Λ P t ω * B t ω - disc Λ P s ω * B s ω := funext fun ω => by ring
+  have eB : jumpCov s t (disc Λ P) B = -jumpCov s t (disc Λ P) M :=
+    funext fun ω => hm.jumpCov_B ω hst
+  rw [eL, eB] at h
+  filter_upwards [h, condExp_neg (μ := μ) (jumpCov s t (disc Λ P) M) (𝓕 s)] with ω h1 h2
+  rw [h1, h2, Pi.neg_apply, neg_eq_zero]
+
+/-! ## (1.33): the bond valuation equation -/
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: with `i^m = 0`, path by path
+`F_T = ∫_s^T Λs dr + ∫_s^T n dM = −(∫ n_− dB + ∫ B_− dA + Σ Δn ΔB)` (`flow133` of I3, with the
+Lebesgue–Stieltjes integral of the current `n`).
+Restates `TidyR7MonetarismValuation.MonetaryModel.flow133_eq`. -/
+theorem flow133_eq_jump (him : ∀ r ω, im r ω = 0) {s T : ℝ} (hsT : s ≤ T) :
+    flow133 Λ P M sp s T =
+      -(intLeft s T (disc Λ P) B + intLeft s T B A + jumpCov s T (disc Λ P) B) := by
+  funext ω
+  have h := hm.pathwise_1_32_jump ω hsT
+  simp only [him, zero_mul, sub_zero] at h
+  simp only [flow133, Pi.neg_apply, Pi.add_apply]
+  rw [h, neg_neg]
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), A1 §1.6, (1.33), p. 567: the flow `F_T` is measurable.
+Restates `TidyR7MonetarismValuation.MonetaryModel.measurable_flow133`. -/
+theorem measurable_flow133_jump (him : ∀ r ω, im r ω = 0) {s T : ℝ} (hsT : s ≤ T)
+    (hd : Dominated μ A N s T B (disc Λ P)) : Measurable (flow133 Λ P M sp s T) := by
+  have hj := hm.jumpStepData_B hsT hd
+  have m1 := hj.measurable_intLeftXB
+  have m3 := hj.measurable_jumpCov
+  rw [← hm.disc_eq] at m1 m3
+  rw [hm.flow133_eq_jump him hsT]
+  exact ((m1.add hj.measurable_intLeftBA).add m3).neg
+
+/-- **Cochrane (2023), A1 §1.6, (1.32) ⇒ (1.33), p. 567: the finite-horizon budget with jumping
+money.** With `i^m = 0`, the domination conditions on `[s, T]` and `n_sB_s`, `n_TB_T` integrable:
+`n_sB_s = E_s[n_TB_T] + E_s[∫_s^T Λs dr + ∫_s^T n dM]` a.s. (current-`n` reading of `dM/P`).
+Restates `TidyR7MonetarismValuation.MonetaryModel.rec_1_33`. -/
+theorem rec_1_33_jump (him : ∀ r ω, im r ω = 0) {s T : ℝ} (hsT : s ≤ T)
+    (hd : Dominated μ A N s T B (disc Λ P))
+    (hYs : Integrable (fun ω => disc Λ P s ω * B s ω) μ)
+    (hYT : Integrable (fun ω => disc Λ P T ω * B T ω) μ) :
+    Integrable (flow133 Λ P M sp s T) μ ∧
+      (fun ω => disc Λ P s ω * B s ω) =ᵐ[μ]
+        μ[fun ω => disc Λ P T ω * B T ω | 𝓕 s] + μ[flow133 Λ P M sp s T | 𝓕 s] := by
+  obtain ⟨i1, i2, i3, -, -⟩ := hm.integrable_1_32_jump hsT hd
+  have hF : Integrable (flow133 Λ P M sp s T) μ := by
+    rw [hm.flow133_eq_jump him hsT]
+    exact ((i1.add i2).add i3).neg
+  refine ⟨hF, ?_⟩
+  have hinc := hm.incr_1_32_jump hsT hd
+  have e : (fun ω => -((∫ r in s..T, (Λ r ω * sp r ω - im r ω * disc Λ P r ω * M r ω)) +
+      rsInt s T (fun u => disc Λ P u ω) (fun u => M u ω))) =
+      fun ω => -flow133 Λ P M sp s T ω :=
+    funext fun ω => by simp only [him, zero_mul, sub_zero, flow133]
+  rw [e] at hinc
+  exact rec_of_incr (Y := fun t ω => disc Λ P t ω * B t ω) (F := flow133 Λ P M sp s T) hinc
+    ((hm.disc_adapted s).mul (hm.B_adapted s)) hYs hYT
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the finite-horizon budget with the pre-jump
+reading.** Under the hypotheses of `JumpMonetaryModel.rec_1_33_jump`, a.s.
+`n_sB_s = E_s[n_TB_T] + E_s[∫_s^T Λs dr + ∫_{(s,T]} n_− dM] + E_s[Σ_{s<u≤T} Δn_uΔM_u]`. -/
+theorem rec_1_33_jump_left (him : ∀ r ω, im r ω = 0) {s T : ℝ} (hsT : s ≤ T)
+    (hd : Dominated μ A N s T B (disc Λ P))
+    (hYs : Integrable (fun ω => disc Λ P s ω * B s ω) μ)
+    (hYT : Integrable (fun ω => disc Λ P T ω * B T ω) μ) :
+    (fun ω => disc Λ P s ω * B s ω) =ᵐ[μ]
+      μ[fun ω => disc Λ P T ω * B T ω | 𝓕 s] + μ[flow133Left Λ P M sp s T | 𝓕 s] +
+        μ[jumpCov s T (disc Λ P) M | 𝓕 s] := by
+  obtain ⟨hF, hrec⟩ := hm.rec_1_33_jump him hsT hd hYs hYT
+  obtain ⟨-, -, -, iJ, -⟩ := hm.integrable_1_32_jump hsT hd
+  have e : flow133 Λ P M sp s T = flow133Left Λ P M sp s T + jumpCov s T (disc Λ P) M :=
+    funext fun ω => by
+      simp only [flow133, flow133Left, Pi.add_apply]
+      rw [hm.rsInt_n_M ω hsT]
+      ring
+  have iL : Integrable (flow133Left Λ P M sp s T) μ := by
+    have e' : flow133Left Λ P M sp s T = flow133 Λ P M sp s T - jumpCov s T (disc Λ P) M := by
+      rw [e]
+      ring
+    rw [e']
+    exact hF.sub iJ
+  rw [e] at hrec
+  filter_upwards [hrec, condExp_add iL iJ (𝓕 s)] with ω h1 h2
+  rw [h1]
+  simp only [Pi.add_apply] at h2 ⊢
+  rw [h2]
+  ring
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, limit form, jumping money.** With `i^m = 0`, the
+domination conditions on every `[s, T]` and `n_TB_T` integrable: along any `T_k ≥ s`, a.s.
+`E_s[∫_s^{T_k} Λs dr + ∫_s^{T_k} n dM] → n_sB_s` iff a.s. `E_s[n_{T_k}B_{T_k}] → 0`.
+Generalises `TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_seq`. -/
+theorem valuation_1_33_jump_seq (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) :
+    (∀ᵐ ω ∂μ, Tendsto (fun k => μ[flow133 Λ P M sp s (T k) | 𝓕 s] ω) atTop
+        (𝓝 (disc Λ P s ω * B s ω))) ↔
+      ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω) atTop
+        (𝓝 0) :=
+  valuation_iff_tvc_seq (Y := fun t ω => disc Λ P t ω * B t ω)
+    (fun T' hT' => (hm.rec_1_33_jump him hT' (hd T' hT') (hYi s le_rfl) (hYi T' hT')).2) hT
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, `L¹` form, jumping money: valuation iff
+transversality.** With `F_T → G` in `L¹`: `n_sB_s = E_s[G]` a.s. iff `E_s[n_TB_T] → 0` in `L¹`.
+Generalises `TidyR7MonetarismValuation.MonetaryModel.valuation_1_33`. -/
+theorem valuation_1_33_jump (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {G : Ω → ℝ}
+    (hG : Integrable G μ)
+    (hconv : Tendsto (fun T => ∫ ω, |flow133 Λ P M sp s T ω - G ω| ∂μ) atTop (𝓝 0)) :
+    (fun ω => disc Λ P s ω * B s ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      Tendsto (fun T => ∫ ω, |μ[fun ω => disc Λ P T ω * B T ω | 𝓕 s] ω| ∂μ) atTop (𝓝 0) :=
+  valuation_iff_tvc_flow (Y := fun t ω => disc Λ P t ω * B t ω) (F := flow133 Λ P M sp s)
+    (fun T hT => (hm.rec_1_33_jump him hT (hd T hT) (hYi s le_rfl) (hYi T hT)).2) hYi
+    (fun T hT => (hm.rec_1_33_jump him hT (hd T hT) (hYi s le_rfl) (hYi T hT)).1) hG hconv
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, dominated form, jumping money.** If along
+`T_k ≥ s` the flows `F_{T_k}` converge path by path to `G` with `|F_{T_k}| ≤ H` integrable:
+`n_sB_s = E_s[G]` a.s. iff `E_s[n_{T_k}B_{T_k}] → 0` a.s.
+Generalises `TidyR7MonetarismValuation.MonetaryModel.valuation_1_33_dom`. -/
+theorem valuation_1_33_jump_dom (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {G H : Ω → ℝ} (hH : Integrable H μ)
+    (hbd : ∀ k ω, |flow133 Λ P M sp s (T k) ω| ≤ H ω)
+    (hlim : ∀ ω, Tendsto (fun k => flow133 Λ P M sp s (T k) ω) atTop (𝓝 (G ω))) :
+    (fun ω => disc Λ P s ω * B s ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω) atTop
+        (𝓝 0) :=
+  valuation_iff_tvc_dom (Y := fun t ω => disc Λ P t ω * B t ω) (F := flow133 Λ P M sp s)
+    (fun T' hT' => (hm.rec_1_33_jump him hT' (hd T' hT') (hYi s le_rfl) (hYi T' hT')).2) hT
+    (fun k => hm.measurable_flow133_jump him (hT k) (hd (T k) (hT k))) hH hbd hlim
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: the pre-jump reading of (1.33) is off by the
+expected jump covariation.** Under the hypotheses of `JumpMonetaryModel.valuation_1_33_jump_seq`,
+if the transversality condition `E_s[n_{T_k}B_{T_k}] → 0` holds a.s. and
+`E_s[Σ_{s<u≤T_k} Δn_uΔM_u] → c` a.s., then a.s.
+`E_s[∫_s^{T_k} Λs dr + ∫_{(s,T_k]} n_− dM] → n_sB_s − c`. -/
+theorem tendsto_flow133Left (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {c : Ω → ℝ}
+    (hJ : ∀ᵐ ω ∂μ, Tendsto (fun k => μ[jumpCov s (T k) (disc Λ P) M | 𝓕 s] ω) atTop (𝓝 (c ω)))
+    (htvc : ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω)
+      atTop (𝓝 0)) :
+    ∀ᵐ ω ∂μ, Tendsto (fun k => μ[flow133Left Λ P M sp s (T k) | 𝓕 s] ω) atTop
+      (𝓝 (disc Λ P s ω * B s ω - c ω)) := by
+  have hall := ae_all_iff.2 fun k =>
+    hm.rec_1_33_jump_left him (hT k) (hd (T k) (hT k)) (hYi s le_rfl) (hYi (T k) (hT k))
+  filter_upwards [hall, hJ, htvc] with ω h1 h2 h3
+  have e : ∀ k, μ[flow133Left Λ P M sp s (T k) | 𝓕 s] ω = disc Λ P s ω * B s ω -
+      μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω -
+        μ[jumpCov s (T k) (disc Λ P) M | 𝓕 s] ω := fun k => by
+    have := h1 k
+    simp only [Pi.add_apply] at this
+    linarith
+  have hlim := (tendsto_const_nhds (x := disc Λ P s ω * B s ω)).sub h3 |>.sub h2
+  rw [sub_zero] at hlim
+  exact (tendsto_congr e).2 hlim
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567: exactly when the pre-jump reading of (1.33)
+holds.** Under transversality and `E_s[Σ_{s<u≤T_k} Δn_uΔM_u] → c` a.s.:
+`E_s[∫_s^{T_k} Λs dr + ∫_{(s,T_k]} n_− dM] → n_sB_s` a.s. iff `c = 0` a.s. -/
+theorem valuation_1_33_jump_left_iff (him : ∀ r ω, im r ω = 0) {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T B (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * B T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {c : Ω → ℝ}
+    (hJ : ∀ᵐ ω ∂μ, Tendsto (fun k => μ[jumpCov s (T k) (disc Λ P) M | 𝓕 s] ω) atTop (𝓝 (c ω)))
+    (htvc : ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * B (T k) ω | 𝓕 s] ω)
+      atTop (𝓝 0)) :
+    (∀ᵐ ω ∂μ, Tendsto (fun k => μ[flow133Left Λ P M sp s (T k) | 𝓕 s] ω) atTop
+        (𝓝 (disc Λ P s ω * B s ω))) ↔ c =ᵐ[μ] 0 := by
+  have h := hm.tendsto_flow133Left him hd hYi hT hJ htvc
+  constructor
+  · intro h'
+    filter_upwards [h, h'] with ω h1 h2
+    have := tendsto_nhds_unique h1 h2
+    simp only [Pi.zero_apply]
+    linarith
+  · intro hc
+    filter_upwards [h, hc] with ω h1 h2
+    simp only [Pi.zero_apply] at h2
+    rwa [h2, sub_zero] at h1
+
+/-! ## (1.34): money plus bonds, unchanged -/
+
+omit [IsFiniteMeasure μ] in
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, path by path, jumping money.** For `s ≤ t`,
+`∫_s^t n d(B + M) + ∫_s^t (B + M) dA = −∫_s^t (Λs + (i − i^m)nM) dr` (`B + M` is continuous).
+Generalises `TidyR7MonetarismModel.MonetaryModel.pathwise_1_34`. -/
+theorem pathwise_1_34_jump (ω : Ω) {s t : ℝ} (hst : s ≤ t) :
+    rsInt s t (fun u => disc Λ P u ω) (fun u => addProc B M u ω) +
+        rsInt s t (fun u => addProc B M u ω) (fun u => A u ω) =
+      -∫ r in s..t, (Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω) := by
+  have hn := hm.disc_cadlag ω
+  have hW := (hm.W_cont ω).isCadlag
+  rw [rsInt_eq_integral_of_incr hn (hm.flow_int ω) (hm.flow ω) hst,
+    rsInt_eq_integral_of_incr hW (hm.A_int ω) (hm.A_incr ω) hst,
+    ← intervalIntegral.integral_add (intervalIntegrable_mul_of_isCadlag hn hst (hm.flow_int ω s t))
+      (intervalIntegrable_mul_of_isCadlag hW hst (hm.A_int ω s t)),
+    ← intervalIntegral.integral_neg]
+  refine intervalIntegral.integral_congr fun r _ => ?_
+  simp only [flowRate, addProc]
+  rw [← hm.disc_mul_P r ω]
+  ring
+
+/-- **Cochrane (2023), A1 §1.6, p. 567, the line before (1.34), with jumping money:
+`E_t d(Λ(M + B)/P) = −Λ(s + (i − i^m)M/P) dt`, integrated, with NO jump term.** Under the
+domination conditions for `B + M` on `[s, t]`, a.s.
+`E_s[n_t(B + M)_t − n_s(B + M)_s] = −E_s∫_s^t (Λs + (i − i^m)nM) dr`.
+Generalises `TidyR7MonetarismModel.MonetaryModel.incr_1_34`. -/
+theorem incr_1_34_jump {s t : ℝ} (hst : s ≤ t)
+    (hd : Dominated μ A N s t (addProc B M) (disc Λ P)) :
+    μ[fun ω => disc Λ P t ω * addProc B M t ω - disc Λ P s ω * addProc B M s ω | 𝓕 s] =ᵐ[μ]
+      μ[fun ω => -∫ r in s..t, (Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω)
+        | 𝓕 s] := by
+  have hpd := hm.productStepData_W hst hd
+  have h := hpd.product_step
+  have i1 := hpd.integrable_intXB
+  have i2 := hpd.integrable_intBA
+  rw [← hm.disc_eq] at h i1
+  have eL : (fun ω => addProc B M t ω * disc Λ P t ω - addProc B M s ω * disc Λ P s ω) =
+      fun ω => disc Λ P t ω * addProc B M t ω - disc Λ P s ω * addProc B M s ω :=
+    funext fun ω => by ring
+  have eR : (fun ω => -∫ r in s..t,
+        (Λ r ω * sp r ω + (i r ω - im r ω) * disc Λ P r ω * M r ω)) =
+      intRS s t (disc Λ P) (addProc B M) + intRS s t (addProc B M) A :=
+    funext fun ω => (hm.pathwise_1_34_jump ω hst).symm
+  rw [eL] at h
+  rw [eR]
+  filter_upwards [h, condExp_add i1 i2 (𝓕 s)] with ω h1 h2
+  rw [h1, h2]
+
+omit [IsFiniteMeasure μ] in
+/-- Cochrane (2023), A1 §1.6, (1.34), p. 567: the flow `F_T` of (1.34) is measurable.
+Restates `TidyR7MonetarismValuation.MonetaryModel.measurable_flow134`. -/
+theorem measurable_flow134_jump {s T : ℝ} (hsT : s ≤ T) :
+    Measurable (flow134 Λ P M i im sp s T) := by
+  have eF : flow134 Λ P M i im sp s T =
+      -(intRS s T (disc Λ P) (addProc B M) + intRS s T (addProc B M) A) := funext fun ω => by
+    simp only [flow134, Pi.neg_apply, Pi.add_apply, intRS]
+    rw [hm.pathwise_1_34_jump ω hsT, neg_neg]
+  rw [eF]
+  rcases hsT.lt_or_eq with hlt | rfl
+  · have hWm : ∀ u, Measurable (addProc B M u) := fun u =>
+      ((hm.W_adapted u).mono (𝓕.le u)).measurable
+    have hnm : ∀ u, Measurable (disc Λ P u) := fun u =>
+      ((hm.disc_adapted u).mono (𝓕.le u)).measurable
+    have m1 : Measurable (intRS s T (disc Λ P) (addProc B M)) :=
+      TidyR7StieltjesCalculus.measurable_rsInt (f := fun ω u => disc Λ P u ω)
+        (g := fun ω u => addProc B M u ω) hlt hnm hWm fun ω =>
+          Or.inr ⟨hm.disc_cadlag ω, hm.W_bv ω s T, (hm.W_cont ω).continuousOn⟩
+    have m2 : Measurable (intRS s T (addProc B M) A) :=
+      TidyR7StieltjesCalculus.measurable_rsInt (f := fun ω u => addProc B M u ω)
+        (g := fun ω u => A u ω) hlt hWm hm.measurable_A fun ω =>
+          Or.inl ⟨(hm.W_cont ω).continuousOn, hm.A_bv ω s T⟩
+    exact (m1.add m2).neg
+  · have e : intRS s s (disc Λ P) (addProc B M) + intRS s s (addProc B M) A = 0 :=
+      funext fun ω => by
+        simp only [Pi.add_apply, intRS, TidyR7StieltjesVariation.rsInt_self, add_zero,
+          Pi.zero_apply]
+    rw [e, neg_zero]
+    exact measurable_const
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567: the finite-horizon budget for `B + M`, jumping
+money.** Under the domination conditions for `B + M` on `[s, T]` and integrability:
+`n_s(B + M)_s = E_s[n_T(B + M)_T] + E_s∫_s^T (Λs + (i − i^m)nM) dr` a.s.; the flow is integrable.
+An instance of `TidyR7MonetarismValuation.rec_of_incr`. -/
+theorem rec_1_34_jump {s T : ℝ} (hsT : s ≤ T)
+    (hd : Dominated μ A N s T (addProc B M) (disc Λ P))
+    (hYs : Integrable (fun ω => disc Λ P s ω * addProc B M s ω) μ)
+    (hYT : Integrable (fun ω => disc Λ P T ω * addProc B M T ω) μ) :
+    Integrable (flow134 Λ P M i im sp s T) μ ∧
+      (fun ω => disc Λ P s ω * addProc B M s ω) =ᵐ[μ]
+        μ[fun ω => disc Λ P T ω * addProc B M T ω | 𝓕 s] +
+          μ[flow134 Λ P M i im sp s T | 𝓕 s] := by
+  have hpd := hm.productStepData_W hsT hd
+  have i1 := hpd.integrable_intXB
+  rw [← hm.disc_eq] at i1
+  have eF : flow134 Λ P M i im sp s T =
+      -(intRS s T (disc Λ P) (addProc B M) + intRS s T (addProc B M) A) := funext fun ω => by
+    simp only [flow134, Pi.neg_apply, Pi.add_apply, intRS]
+    rw [hm.pathwise_1_34_jump ω hsT, neg_neg]
+  have hF : Integrable (flow134 Λ P M i im sp s T) μ := by
+    rw [eF]
+    exact (i1.add hpd.integrable_intBA).neg
+  refine ⟨hF, ?_⟩
+  exact rec_of_incr (Y := fun t ω => disc Λ P t ω * addProc B M t ω)
+    (F := flow134 Λ P M i im sp s T) (hm.incr_1_34_jump hsT hd)
+    ((hm.disc_adapted s).mul (hm.W_adapted s)) hYs hYT
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, limit form, jumping money.** Along any
+`T_k ≥ s`, a.s. `E_s∫_s^{T_k} (Λs + (i − i^m)nM) dr → n_s(B + M)_s` iff a.s.
+`E_s[n_{T_k}(B + M)_{T_k}] → 0`.
+An instance of `TidyR7MonetarismValuation.valuation_iff_tvc_seq`. -/
+theorem valuation_1_34_jump_seq {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T (addProc B M) (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * addProc B M T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) :
+    (∀ᵐ ω ∂μ, Tendsto (fun k => μ[flow134 Λ P M i im sp s (T k) | 𝓕 s] ω) atTop
+        (𝓝 (disc Λ P s ω * addProc B M s ω))) ↔
+      ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * addProc B M (T k) ω | 𝓕 s] ω)
+        atTop (𝓝 0) :=
+  valuation_iff_tvc_seq (Y := fun t ω => disc Λ P t ω * addProc B M t ω)
+    (fun T' hT' => (hm.rec_1_34_jump hT' (hd T' hT') (hYi s le_rfl) (hYi T' hT')).2) hT
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, `L¹` form, jumping money: valuation iff
+transversality.** With `F_T → G` in `L¹`: `n_s(B + M)_s = E_s[G]` a.s. iff
+`E_s[n_T(B + M)_T] → 0` in `L¹`.
+Generalises `TidyR7MonetarismValuation.MonetaryModel.valuation_1_34`. -/
+theorem valuation_1_34_jump {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T (addProc B M) (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * addProc B M T ω) μ) {G : Ω → ℝ}
+    (hG : Integrable G μ)
+    (hconv : Tendsto (fun T => ∫ ω, |flow134 Λ P M i im sp s T ω - G ω| ∂μ) atTop (𝓝 0)) :
+    (fun ω => disc Λ P s ω * addProc B M s ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      Tendsto (fun T => ∫ ω, |μ[fun ω => disc Λ P T ω * addProc B M T ω | 𝓕 s] ω| ∂μ) atTop
+        (𝓝 0) :=
+  valuation_iff_tvc_flow (Y := fun t ω => disc Λ P t ω * addProc B M t ω)
+    (F := flow134 Λ P M i im sp s)
+    (fun T hT => (hm.rec_1_34_jump hT (hd T hT) (hYi s le_rfl) (hYi T hT)).2) hYi
+    (fun T hT => (hm.rec_1_34_jump hT (hd T hT) (hYi s le_rfl) (hYi T hT)).1) hG hconv
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567, dominated form, jumping money.** If along
+`T_k ≥ s` the flows converge path by path to `G` with `|F_{T_k}| ≤ H` integrable:
+`n_s(B + M)_s = E_s[G]` a.s. iff `E_s[n_{T_k}(B + M)_{T_k}] → 0` a.s.
+An instance of `TidyR7MonetarismValuation.valuation_iff_tvc_dom`. -/
+theorem valuation_1_34_jump_dom {s : ℝ}
+    (hd : ∀ T, s ≤ T → Dominated μ A N s T (addProc B M) (disc Λ P))
+    (hYi : ∀ T, s ≤ T → Integrable (fun ω => disc Λ P T ω * addProc B M T ω) μ) {T : ℕ → ℝ}
+    (hT : ∀ k, s ≤ T k) {G H : Ω → ℝ} (hH : Integrable H μ)
+    (hbd : ∀ k ω, |flow134 Λ P M i im sp s (T k) ω| ≤ H ω)
+    (hlim : ∀ ω, Tendsto (fun k => flow134 Λ P M i im sp s (T k) ω) atTop (𝓝 (G ω))) :
+    (fun ω => disc Λ P s ω * addProc B M s ω) =ᵐ[μ] μ[G | 𝓕 s] ↔
+      ∀ᵐ ω ∂μ, Tendsto (fun k => μ[fun ω => disc Λ P (T k) ω * addProc B M (T k) ω | 𝓕 s] ω)
+        atTop (𝓝 0) :=
+  valuation_iff_tvc_dom (Y := fun t ω => disc Λ P t ω * addProc B M t ω)
+    (F := flow134 Λ P M i im sp s)
+    (fun T' hT' => (hm.rec_1_34_jump hT' (hd T' hT') (hYi s le_rfl) (hYi T' hT')).2) hT
+    (fun k => hm.measurable_flow134_jump (hT k)) hH hbd hlim
+
+end JumpMonetaryModel
+
+end Cochrane.Monetarism.TidyR7MonetarismJump
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# An open-market operation at a news date: (1.32) and (1.33) as printed fail
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1, §1.6, "Money in
+continuous time", pp. 567–568, eqs. (1.31)–(1.34), in the model
+`TidyR7MonetarismJump.JumpMonetaryModel`.
+
+## The economy (`jcoinModel`)
+
+The coin `ξ = ±1` of `TidyR7ProductStepCoin` is revealed at time `1`. As in
+`TidyR7MonetarismCoin`: `P = 1`, `Λ = Λ/P = 1 + (ξ/2)·1{u ≥ 1}` (`coinLam`), `A = 1`,
+`N = (ξ/2)·1{u ≥ 1}`, `i = i^m = 0`; here the surplus is `s = 0` and at the news date the
+government swaps bonds for money: money `M_u = 2 + ξ·1{u ≥ 1}` (`jM`), bonds
+`B_u = 2 − ξ·1{u ≥ 1}` (`jBd`), so `B + M = 4` and (1.31) holds; `ΔM_1 = ξ`, `ΔB_1 = −ξ`,
+`Δ(Λ/P)_1 = ξ/2` (`jcoin_jumps`).
+
+## What fails, exactly (on `[0, 2]`, at `s = 0`)
+
+* `jcoin_lhs`: `E_0[n_2B_2 − n_0B_0] = 3/2 − 2 = −1/2`.
+* `jcoin_1_32_ls`: line 3 of (1.32), `−E_0[∫Λs dr + ∫ n dM]`, with `∫ n dM` the
+  Lebesgue–Stieltjes integral of the CURRENT `n` (`n(1)ξ = ξ + 1/2`), is `−1/2`: it HOLDS
+  (`TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump`).
+* `jcoin_1_32_left_fails`: with the pre-jump reading `∫ n_− dM = n(1−)ξ = ξ` it is `0 ≠ −1/2`;
+  the missing term is `−E_0[ΔnΔM] = −1/2`
+  (`TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump_left`).
+* `jcoin_middle_fails`: the middle line `Λ/P·dB + E_t[d(Λ/P)]B`, read as the limit of
+  left-point sums (`E_0∫n_− dB + B·E_0 dn = 0 + 0`), is `0 ≠ −1/2`;
+  `E_0[Σ Δn ΔM] = 1/2 ≠ 0` (`TidyR7MonetarismJump.JumpMonetaryModel.middle_1_32_book_iff`).
+* `jcoin_1_33_finite`: the finite-horizon (1.33), `n_0B_0 = E_0[n_2B_2] + E_0[F_2]`, holds with
+  the current-`n` flow (`2 = 3/2 + 1/2`) and fails with the pre-jump flow (`2 ≠ 3/2 + 0`); the
+  corrected pre-jump form adds `E_0[ΣΔnΔM] = 1/2`.
+* `jcoin_1_34`: (1.34) needs no correction: `B + M` does not jump, `0 = 0`.
+-/
+
+namespace Cochrane.Monetarism.TidyR7MonetarismJumpCoin
+
+open MeasureTheory Filter Topology
+open Cochrane.Monetarism.TidyR7StieltjesIntegral Cochrane.Monetarism.TidyR7StieltjesSums
+  Cochrane.Monetarism.TidyR7ProductStep Cochrane.Monetarism.TidyR7ProductStepCoin
+  Cochrane.Monetarism.TidyR7MonetarismModel Cochrane.Monetarism.TidyR7MonetarismValuation
+  Cochrane.Monetarism.TidyR7MonetarismCoin Cochrane.Monetarism.TidyR7JumpSums
+  Cochrane.Monetarism.TidyR7ProductStepJump Cochrane.Monetarism.TidyR7ProductStepJumpCoin
+  Cochrane.Monetarism.TidyR7MonetarismJump
+
+/-- Cochrane (2023), A1 §1.6, p. 567: money with an open-market purchase at the news date,
+`M_u = 2 + ξ·1{u ≥ 1}`. -/
+noncomputable def jM (u : ℝ) (ω : Bool) : ℝ := 2 + coinXi ω * stepAt 1 u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: bonds swapped for that money, `B_u = 2 − ξ·1{u ≥ 1}`. -/
+noncomputable def jBd (u : ℝ) (ω : Bool) : ℝ := 2 + -coinXi ω * stepAt 1 u
+
+/-- Cochrane (2023), A1 §1.6, p. 567: `Λ/P = 1 + (ξ/2)·1{u ≥ 1}` path by path.
+Restates `TidyR7MonetarismCoin.disc_coin`. -/
+theorem jdisc_path (ω : Bool) :
+    (fun u => disc coinLam coinP u ω) = fun u => 1 + coinXi ω / 2 * stepAt 1 u :=
+  funext fun u => by rw [disc_coin]; rfl
+
+/-- **Cochrane (2023), A1 §1.6, (1.31)–(1.34), pp. 567–568: the open-market-operation economy
+satisfies `TidyR7MonetarismJump.JumpMonetaryModel`**, with money and bonds jumping at the news
+date. -/
+theorem jcoinModel : JumpMonetaryModel coinMeasure coinFiltration coinLam coinP jBd jM coinA1
+    coinN zeroRate zeroRate zeroRate where
+  P_pos := coinModel.P_pos
+  Λ_pos := coinModel.Λ_pos
+  Λ_adapted := coinModel.Λ_adapted
+  P_adapted := coinModel.P_adapted
+  dec := coinModel.dec
+  A_incr := coinModel.A_incr
+  A_int := coinModel.A_int
+  N_mart := coinModel.N_mart
+  N_cadlag := coinModel.N_cadlag
+  B_adapted := coin_adapted fun u hu ω => by simp [jBd, stepAt, not_le.2 hu]
+  M_adapted := coin_adapted fun u hu ω => by simp [jM, stepAt, not_le.2 hu]
+  M_cadlag ω := isCadlag_affine 2 (coinXi ω) 1
+  M_bv ω a b := bv_affine 2 (coinXi ω) 1 a b
+  flow ω u v _ := by
+    have h0 : ∀ r, flowRate jBd jM coinP zeroRate zeroRate zeroRate r ω = 0 := fun r => by
+      simp [flowRate, zeroRate]
+    simp only [h0, intervalIntegral.integral_zero, addProc, jBd, jM]
+    ring
+  flow_int ω u v := by
+    have e : (fun r => flowRate jBd jM coinP zeroRate zeroRate zeroRate r ω) = fun _ => (0 : ℝ) :=
+      funext fun r => by simp [flowRate, zeroRate]
+    rw [e]
+    exact intervalIntegrable_const
+
+/-- Cochrane (2023), A1 §1.6, p. 567: the domination conditions hold on `[0, 2]` (finite `Ω`).
+The analogue of `TidyR7MonetarismCoin.coinDom`. -/
+theorem jcoinDom : Dominated coinMeasure coinA1 coinN 0 2 jBd (disc coinLam coinP) :=
+  ⟨Integrable.of_finite, Integrable.of_finite, fun _ _ _ _ _ => Integrable.of_finite⟩
+
+/-- Cochrane (2023), A1 §1.6, p. 567: **the jumps at the news date**: `ΔM_1 = ξ`, `ΔB_1 = −ξ`,
+`Δ(Λ/P)_1 = ξ/2`, `Δ(B + M)_1 = 0`. -/
+theorem jcoin_jumps (ω : Bool) :
+    jump (fun u => jM u ω) 1 = coinXi ω ∧ jump (fun u => jBd u ω) 1 = -coinXi ω ∧
+      jump (fun u => disc coinLam coinP u ω) 1 = coinXi ω / 2 ∧
+      jump (fun u => addProc jBd jM u ω) 1 = 0 := by
+  have hW : (fun u => addProc jBd jM u ω) = fun u => 4 + 0 * stepAt 1 u :=
+    funext fun u => by simp only [addProc, jBd, jM]; ring
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · simp only [jump, jM]
+    rw [leftLim_affine]
+    simp [stepAt]
+  · simp only [jump, jBd]
+    rw [leftLim_affine]
+    simp [stepAt]
+  · rw [jump, jdisc_path, leftLim_affine]
+    simp [disc_coin, coinLam, heaviside]
+  · rw [jump, hW, leftLim_affine]
+    simp only [addProc, jBd, jM, lt_irrefl, ↓reduceIte]
+    ring
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: **the left side, `E_0[n_2B_2 − n_0B_0] = −1/2`**
+(`n_2B_2 = (1 + ξ/2)(2 − ξ) = 3/2`, `n_0B_0 = 2`). -/
+theorem jcoin_lhs :
+    coinMeasure[fun ω => disc coinLam coinP 2 ω * jBd 2 ω - disc coinLam coinP 0 ω * jBd 0 ω
+      | coinFiltration 0] = fun _ => -1 / 2 := by
+  rw [condExp_coin_lt (by norm_num)]
+  funext _
+  norm_num [disc_coin, coinLam, jBd, stepAt, heaviside, coinXi]
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: path by path `∫_0^2 n dM = n(1)ξ = ξ + 1/2`,
+`∫_{(0,2]} n_− dM = n(1−)ξ = ξ`, and `Σ Δn ΔM = 1/2`. -/
+theorem jcoin_integrals (ω : Bool) :
+    rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => jM u ω) = coinXi ω + 1 / 2 ∧
+      intLeft 0 2 (disc coinLam coinP) jM ω = coinXi ω ∧
+      jumpCov 0 2 (disc coinLam coinP) jM ω = 1 / 2 := by
+  have h1 : rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => jM u ω) = coinXi ω + 1 / 2 := by
+    simp only [jM]
+    rw [rsInt_affine _ 2 (coinXi ω) (by norm_num) (by norm_num), disc_coin]
+    simp only [coinLam, heaviside, le_refl, ↓reduceIte, mul_one]
+    linear_combination (1 / 2 : ℝ) * coinXi_mul_self ω
+  have h2 : intLeft 0 2 (disc coinLam coinP) jM ω = coinXi ω := by
+    simp only [intLeft, jM]
+    rw [rsInt_affine _ 2 (coinXi ω) (by norm_num) (by norm_num), jdisc_path, leftLim_affine]
+    simp
+  refine ⟨h1, h2, ?_⟩
+  have h := jcoinModel.rsInt_n_M ω (by norm_num : (0 : ℝ) ≤ 2)
+  rw [h1, h2] at h
+  linarith
+
+/-- Cochrane (2023), A1 §1.6, (1.32), p. 567: the surplus and interest terms vanish
+(`s = i = i^m = 0`). -/
+theorem jcoin_flow_zero (ω : Bool) :
+    (∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+      zeroRate r ω * disc coinLam coinP r ω * jM r ω)) = 0 := by
+  simp [zeroRate]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: line 3 of (1.32) HOLDS with the current-`n`
+Lebesgue–Stieltjes integral**: `−E_0[∫Λs dr + ∫ n dM] = −E[ξ + 1/2] = −1/2 = E_0[n_2B_2 − n_0B_0]`,
+as `TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump` says. -/
+theorem jcoin_1_32_ls :
+    coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+        zeroRate r ω * disc coinLam coinP r ω * jM r ω)) +
+        rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => jM u ω)) | coinFiltration 0] =
+      fun _ => -1 / 2 := by
+  have e : (fun ω => -((∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+        zeroRate r ω * disc coinLam coinP r ω * jM r ω)) +
+        rsInt 0 2 (fun u => disc coinLam coinP u ω) (fun u => jM u ω))) =
+      fun ω => -(coinXi ω + 1 / 2) :=
+    funext fun ω => by rw [jcoin_flow_zero, (jcoin_integrals ω).1, zero_add]
+  rw [e, condExp_coin_lt (by norm_num)]
+  funext _
+  norm_num [coinXi]
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: line 3 of (1.32) FAILS with the pre-jump
+reading of `dM/P`.** `−E_0[∫Λs dr + ∫ n_− dM] = −E[ξ] = 0 ≠ −1/2 = E_0[n_2B_2 − n_0B_0]`; the
+missing term is `−E_0[Σ Δn ΔM] = −1/2`, and the corrected identity
+`−1/2 = 0 − 1/2` holds (`TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump_left`). -/
+theorem jcoin_1_32_left_fails :
+    coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+        zeroRate r ω * disc coinLam coinP r ω * jM r ω)) +
+        intLeft 0 2 (disc coinLam coinP) jM ω) | coinFiltration 0] = 0 ∧
+      coinMeasure[jumpCov 0 2 (disc coinLam coinP) jM | coinFiltration 0] = (fun _ => 1 / 2) ∧
+      coinMeasure[fun ω => disc coinLam coinP 2 ω * jBd 2 ω - disc coinLam coinP 0 ω * jBd 0 ω
+          | coinFiltration 0] ≠
+        coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+          zeroRate r ω * disc coinLam coinP r ω * jM r ω)) +
+          intLeft 0 2 (disc coinLam coinP) jM ω) | coinFiltration 0] ∧
+      coinMeasure[fun ω => disc coinLam coinP 2 ω * jBd 2 ω - disc coinLam coinP 0 ω * jBd 0 ω
+          | coinFiltration 0] =ᵐ[coinMeasure]
+        coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+          zeroRate r ω * disc coinLam coinP r ω * jM r ω)) +
+          intLeft 0 2 (disc coinLam coinP) jM ω) | coinFiltration 0] -
+        coinMeasure[jumpCov 0 2 (disc coinLam coinP) jM | coinFiltration 0] := by
+  have e1 : (fun ω => -((∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+        zeroRate r ω * disc coinLam coinP r ω * jM r ω)) +
+        intLeft 0 2 (disc coinLam coinP) jM ω)) = fun ω => -coinXi ω :=
+    funext fun ω => by rw [jcoin_flow_zero, (jcoin_integrals ω).2.1, zero_add]
+  have e2 : jumpCov 0 2 (disc coinLam coinP) jM = fun _ => 1 / 2 :=
+    funext fun ω => (jcoin_integrals ω).2.2
+  have h1 : coinMeasure[fun ω => -((∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω -
+        zeroRate r ω * disc coinLam coinP r ω * jM r ω)) +
+        intLeft 0 2 (disc coinLam coinP) jM ω) | coinFiltration 0] = 0 := by
+    rw [e1, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num [coinXi]
+  have h2 : coinMeasure[jumpCov 0 2 (disc coinLam coinP) jM | coinFiltration 0] =
+      fun _ => 1 / 2 := by
+    rw [e2, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+  refine ⟨h1, h2, ?_, jcoinModel.incr_1_32_jump_left (by norm_num) jcoinDom⟩
+  rw [jcoin_lhs, h1]
+  intro h
+  have := congrFun h true
+  norm_num at this
+
+/-- **Cochrane (2023), A1 §1.6, (1.32), p. 567: the printed middle line FAILS.** Read as limits
+of left-point sums, `E_0[∫ n_− dB] + B·E_0 d(Λ/P) = E[−ξ] + 0 = 0`, while
+`E_0[n_2B_2 − n_0B_0] = −1/2`; correspondingly `E_0[Σ Δn ΔM] = 1/2 ≠ 0`
+(`TidyR7MonetarismJump.JumpMonetaryModel.middle_1_32_book_iff`). -/
+theorem jcoin_middle_fails :
+    coinMeasure[intLeft 0 2 (disc coinLam coinP) jBd | coinFiltration 0] = 0 ∧
+      coinMeasure[fun ω => -∫ r in (0 : ℝ)..2, zeroRate r ω * disc coinLam coinP r ω * jBd r ω
+        | coinFiltration 0] = 0 ∧
+      ExpIncrLimit coinMeasure coinFiltration 0 2 jBd (disc coinLam coinP)
+        (coinMeasure[fun ω => -∫ r in (0 : ℝ)..2, zeroRate r ω * disc coinLam coinP r ω * jBd r ω
+          | coinFiltration 0]) ∧
+      coinMeasure[fun ω => disc coinLam coinP 2 ω * jBd 2 ω - disc coinLam coinP 0 ω * jBd 0 ω
+          | coinFiltration 0] ≠
+        coinMeasure[intLeft 0 2 (disc coinLam coinP) jBd | coinFiltration 0] +
+          coinMeasure[fun ω => -∫ r in (0 : ℝ)..2,
+            zeroRate r ω * disc coinLam coinP r ω * jBd r ω | coinFiltration 0] := by
+  have e1 : intLeft 0 2 (disc coinLam coinP) jBd = fun ω => -coinXi ω := funext fun ω => by
+    simp only [intLeft, jBd]
+    rw [rsInt_affine _ 2 (-coinXi ω) (by norm_num) (by norm_num), jdisc_path, leftLim_affine]
+    simp
+  have h1 : coinMeasure[intLeft 0 2 (disc coinLam coinP) jBd | coinFiltration 0] = 0 := by
+    rw [e1, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num [coinXi]
+  have e2 : (fun ω => -∫ r in (0 : ℝ)..2, zeroRate r ω * disc coinLam coinP r ω * jBd r ω) =
+      fun _ => 0 := funext fun ω => by simp [zeroRate]
+  have h2 : coinMeasure[fun ω => -∫ r in (0 : ℝ)..2,
+      zeroRate r ω * disc coinLam coinP r ω * jBd r ω | coinFiltration 0] = 0 := by
+    rw [e2, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+  refine ⟨h1, h2, jcoinModel.expIncr_disc_jump (by norm_num) jcoinDom, ?_⟩
+  rw [jcoin_lhs, h1, h2]
+  intro h
+  have := congrFun h true
+  norm_num at this
+
+/-- **Cochrane (2023), A1 §1.6, (1.33), p. 567, finite horizon: which reading of `dM/P`
+works.** `n_0B_0 = 2`, `E_0[n_2B_2] = 3/2`; the current-`n` flow `F_2 = ∫Λs + ∫ n dM` has
+`E_0[F_2] = 1/2` (so `2 = 3/2 + 1/2`, `TidyR7MonetarismJump.JumpMonetaryModel.rec_1_33_jump`);
+the pre-jump flow `F⁻_2 = ∫Λs + ∫ n_− dM` has `E_0[F⁻_2] = 0` (so `2 ≠ 3/2 + 0`), and the jump
+term `E_0[Σ Δn ΔM] = 1/2` restores it (`TidyR7MonetarismJump.JumpMonetaryModel.rec_1_33_jump_left`).
+-/
+theorem jcoin_1_33_finite :
+    (∀ ω, disc coinLam coinP 0 ω * jBd 0 ω = 2) ∧
+      coinMeasure[fun ω => disc coinLam coinP 2 ω * jBd 2 ω | coinFiltration 0] =
+        (fun _ => 3 / 2) ∧
+      coinMeasure[flow133 coinLam coinP jM zeroRate 0 2 | coinFiltration 0] = (fun _ => 1 / 2) ∧
+      coinMeasure[flow133Left coinLam coinP jM zeroRate 0 2 | coinFiltration 0] = 0 ∧
+      (fun ω => disc coinLam coinP 0 ω * jBd 0 ω) ≠
+        coinMeasure[fun ω => disc coinLam coinP 2 ω * jBd 2 ω | coinFiltration 0] +
+          coinMeasure[flow133Left coinLam coinP jM zeroRate 0 2 | coinFiltration 0] := by
+  have h0 : ∀ ω, disc coinLam coinP 0 ω * jBd 0 ω = 2 := fun ω => by
+    norm_num [disc_coin, coinLam, jBd, stepAt, heaviside]
+  have h2 : coinMeasure[fun ω => disc coinLam coinP 2 ω * jBd 2 ω | coinFiltration 0] =
+      fun _ => 3 / 2 := by
+    rw [condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num [disc_coin, coinLam, jBd, stepAt, heaviside, coinXi]
+  have eF : flow133 coinLam coinP jM zeroRate 0 2 = fun ω => coinXi ω + 1 / 2 :=
+    funext fun ω => by simp only [flow133, (jcoin_integrals ω).1]; simp [zeroRate]
+  have eL : flow133Left coinLam coinP jM zeroRate 0 2 = fun ω => coinXi ω :=
+    funext fun ω => by simp only [flow133Left, (jcoin_integrals ω).2.1]; simp [zeroRate]
+  have hF : coinMeasure[flow133 coinLam coinP jM zeroRate 0 2 | coinFiltration 0] =
+      fun _ => 1 / 2 := by
+    rw [eF, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num [coinXi]
+  have hL : coinMeasure[flow133Left coinLam coinP jM zeroRate 0 2 | coinFiltration 0] = 0 := by
+    rw [eL, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num [coinXi]
+  refine ⟨h0, h2, hF, hL, ?_⟩
+  rw [h2, hL]
+  intro h
+  have := congrFun h true
+  rw [h0] at this
+  norm_num at this
+
+/-- **Cochrane (2023), A1 §1.6, (1.34), p. 567: no correction for money plus bonds.** `B + M = 4`
+does not jump although money does, and
+`E_0[n_2(B + M)_2 − n_0(B + M)_0] = E[4(1 + ξ/2) − 4] = 0 = −E_0∫(Λs + (i − i^m)nM) dr`. -/
+theorem jcoin_1_34 :
+    coinMeasure[fun ω => disc coinLam coinP 2 ω * addProc jBd jM 2 ω -
+        disc coinLam coinP 0 ω * addProc jBd jM 0 ω | coinFiltration 0] = 0 ∧
+      coinMeasure[fun ω => -∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω +
+        (zeroRate r ω - zeroRate r ω) * disc coinLam coinP r ω * jM r ω) | coinFiltration 0] =
+        0 := by
+  constructor
+  · rw [condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num [disc_coin, coinLam, jBd, jM, addProc, stepAt, heaviside, coinXi]
+  · have e : (fun ω => -∫ r in (0 : ℝ)..2, (coinLam r ω * zeroRate r ω +
+        (zeroRate r ω - zeroRate r ω) * disc coinLam coinP r ω * jM r ω)) = fun _ => 0 :=
+      funext fun ω => by simp [zeroRate]
+    rw [e, condExp_coin_lt (by norm_num)]
+    funext _
+    norm_num
+
+end Cochrane.Monetarism.TidyR7MonetarismJumpCoin
+
 set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.SchurStable
 #print axioms Cochrane.Monetarism.discQ
@@ -46278,3 +48874,199 @@ set_option linter.style.longLine false
 #print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_dom
 #print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_not_dominated
 #print axioms Cochrane.Monetarism.TidyR7MonetarismUI.ui_headline
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rightLim_eq_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rightLim_clampFn_eq
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.variation_stMeasure_left
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsInt_eq_Ioc
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsInt_congr_Ioc
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.leftLim_eq_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsInt_leftLim_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.measurable_leftLim
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.abs_leftLim_le
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsIntegrable_leftLim
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsSum_eq_integral_stepFn_of_isCadlag
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.tendsto_rsSum_leftLim
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsSumRight
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.crossSum_eq_sub
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.tendsto_rsSumRight
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jump
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jumpSum
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.countable_support_jumpSum
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.stMeasure_singleton_jump
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.hasSum_jumpSum
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jumpSum_eq
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.summable_abs_jumpSum
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.tendsto_crossSum_jumpSum
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jumpSum_eq_zero_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jumpSum_eq_zero_of_continuousOn_left
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsInt_eq_leftLim_add_jumpSum
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jumpSum_add_right
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jumpSum_smul_right
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsInt_const_right
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.rsInt_single_jump
+#print axioms Cochrane.Monetarism.TidyR7JumpSums.jumpSum_heaviside
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.intLeft
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.jumpCov
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.integrable_of_tendsto
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.mk
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.le
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.B_adapted
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.B_cadlag
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.B_bv
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.A_meas
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.A_cadlag
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.A_bv
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.M_mart
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.M_cadlag
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.int_XB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.int_BA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.int_BM
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.measurable_B
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.measurable_M
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.measurable_X
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.X_cadlag
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.abs_sumXB_le
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.abs_sumBA_le
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.abs_sumCross_le
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_sumXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_sumBA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_sumCross
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_term
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_sumBM
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_lhs
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.tendsto_sumXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.tendsto_sumBA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.tendsto_sumCross
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.measurable_intLeftXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.measurable_intLeftBA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.measurable_jumpCov
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_intLeftXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_intLeftBA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_jumpCov
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.intRS_eq
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.integrable_intXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.condExp_mart_incr_zero
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.condExp_sumBM_zero
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.discrete_identity
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.condExp_sumBX_eq
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.tendsto_condExp_sumXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.tendsto_condExp_sumBA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.tendsto_condExp_cross
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.tendsto_condExp_sumBX
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.jump_step
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.jump_step_ls
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.expIncrLimit_intLeft
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.jump_step_expIncr
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.book_step_iff
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.jump_step_1_32
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.ofProductStepData
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.toProductStepData
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.rhs_eq_of_continuousOn
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJump.JumpStepData.jump_step_recovers_product_step
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.stepAt
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.stepAt_one
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.isCadlag_stepAt
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.bv_stepAt
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.isCadlag_affine
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.bv_affine
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.rsInt_affine
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.leftLim_affine
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.coinM_path
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.coinX_path
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jumpB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_jumpB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jumpB_adapted
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jumpData
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_lhs
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_intLeftXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_intXB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_jumpCov
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_intBA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_corrected
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_sums
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_book_fails
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jump_ls_holds
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.zeroM
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jumpDataA
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jumpA_ls_fails
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.jumpA_corrected
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.lateB
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.late_jump_B
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.lateData
+#print axioms Cochrane.Monetarism.TidyR7ProductStepJumpCoin.late_corrected
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.mk
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.P_pos
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.Λ_pos
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.Λ_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.P_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.dec
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.A_incr
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.A_int
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.N_mart
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.N_cadlag
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.B_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.M_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.M_cadlag
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.M_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.flow
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.flow_int
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.flow133Left
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.ofMonetaryModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.disc_eq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.disc_mul_P
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.A_cont
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.A_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.W_cont
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.W_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.B_cadlag
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.B_bv
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.disc_cadlag
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.disc_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.measurable_A
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.W_adapted
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.jump_B
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.jump_disc
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.jumpStepData_B
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.productStepData_W
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.jumpCov_B
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.intLeft_B_A
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.pathwise_1_32_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.rsInt_n_M
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.integrable_1_32_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.incr_1_32_jump_left
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.expIncr_disc_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.middle_1_32_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.middle_1_32_book_iff
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.flow133_eq_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.measurable_flow133_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.rec_1_33_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.rec_1_33_jump_left
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_33_jump_seq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_33_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_33_jump_dom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.tendsto_flow133Left
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_33_jump_left_iff
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.pathwise_1_34_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.incr_1_34_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.measurable_flow134_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.rec_1_34_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_34_jump_seq
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_34_jump
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_34_jump_dom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jM
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jBd
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jdisc_path
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoinModel
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoinDom
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_jumps
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_lhs
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_integrals
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_flow_zero
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_1_32_ls
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_1_32_left_fails
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_middle_fails
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_1_33_finite
+#print axioms Cochrane.Monetarism.TidyR7MonetarismJumpCoin.jcoin_1_34

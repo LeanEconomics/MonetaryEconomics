@@ -71,3 +71,8 @@ import Monetarism.TidyR7MonetarismCoin
 import Monetarism.TidyR7MonetarismLinks
 import Monetarism.TidyR7MonetarismCoinInf
 import Monetarism.TidyR7MonetarismUI
+import Monetarism.TidyR7JumpSums
+import Monetarism.TidyR7ProductStepJump
+import Monetarism.TidyR7ProductStepJumpCoin
+import Monetarism.TidyR7MonetarismJump
+import Monetarism.TidyR7MonetarismJumpCoin
