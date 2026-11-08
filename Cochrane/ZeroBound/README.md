@@ -13,15 +13,19 @@ discrete-time models (the peg of §20.1, the rule with a bound of §20.2.1, Gaba
 every result covers perfect foresight and genuine uncertainty: processes are `ℕ → Ω → ℝ` and
 every equation holds state by state. The continuous-time Werning model of §§20.2.2–20.2.5 uses
 deterministic paths `ℝ → ℝ`, exact derivatives off a countable set of dates, and genuine
-improper integrals. In both, an equilibrium is a solution of the model equations, "determinate"
-means exactly one bounded solution, and the fiscal theory selects instead through the valuation
-equation. The library contains **1132 theorems**, including the shared core and its
-measure-theoretic copy (`TidyR6ExpectationsMeasure`, `TidyR6ExpectationsMeasureIID`, 108); 916 of
-them are in the twenty-six chapter modules, 124 of these in verbatim copies of Woodford results
+improper integrals; its stochastic version uses processes on a filtered probability space, with
+the expectational equations in integrated form and Mathlib's conditional expectation. In both, an equilibrium is a solution of the model
+equations, "determinate" means exactly one bounded solution, and the fiscal theory selects instead through the valuation
+equation. The library contains **1667 theorems**, including the shared core and its
+measure-theoretic copy (`TidyR6ExpectationsMeasure`, `TidyR6ExpectationsMeasureIID`, 108) and the
+Brownian-motion, Itô and Ornstein–Uhlenbeck tools copied from the Monetarism and FiscalConstraints
+projects (seventeen modules, 455); 996 of them are in the thirty-two chapter modules, 124 of
+these in verbatim copies of Woodford results
 (`GlobalDynamics`, 49, from Chapter 2; `TidyR6WoodfordSequences` and `TidyR6WoodfordZLB`, 75,
-from Chapter 6), and 305 in the seven modules on Galí's and Woodford's treatments of the bound
+from Chapter 6), 305 in the seven modules on Galí's and Woodford's treatments of the bound
 (`LinksGaliWoodford`, `LinksGaliWoodfordLimit`, `LiftoffTiming`, `LiftoffStructure`,
-`LiftoffRhoZero`, `TidyR6CommonModel`, `TidyR6CommonModelExist`).
+`LiftoffRhoZero`, `TidyR6CommonModel`, `TidyR6CommonModelExist`), and 80 in the six modules on
+the Werning model under uncertainty (`TidyR7StochWerning` and its five companions).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E1–E11 and E20 refer to
@@ -116,6 +120,28 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   multipliers lie in `(−1, 0)` and tend to `−1` (`Multipliers.multNJ_bounds`,
   `Multipliers.multNJ_tendsto_kappa`). Future spending is exponentially more effective
   (`Multipliers.windowMult_strictMono`).
+* **The Werning model under uncertainty.** The expectational IS and Phillips curves are read as
+  `E_s[Z_t − Z_s − ∫_s^t D] = 0` (`TidyR7StochWerning.ExpDrift`, `TidyR7StochWerning.IsStochEqm`)
+  and "do not explode" as bounded first moments (`TidyR7StochWerning.BddL1`), implied by bounded
+  second moments (`TidyR7StochWerning.BddL2`). Certainty equivalence holds: conditional means
+  solve the deterministic model, with no Itô correction (`TidyR7StochWerning.condMean_integral_eq`).
+  Every bounded equilibrium of the experiment is the family of Figure 20.4 with `π_T` replaced by
+  `E_sπ_T`, `E_sπ_t = wPi(E_sπ_T)_t` (`TidyR7StochWerningTrap.condExp_pi_eq_wPi`); the unstable
+  root is ruled out state by state (`TidyR7StochWerningTrap.x_eq_of_pi`), and news propagates as
+  the deterministic response `e^{−λ^b(t−s)}` (`TidyR7StochWerningTrap.revision_pi_eq`). On a
+  Brownian motion every `π_T` and loading `b` of an Ornstein–Uhlenbeck inflation innovation give a
+  distinct equilibrium bounded in `L²` (`TidyR7StochWerningExist.isStochEqm_eq`,
+  `TidyR7StochWerningExist.bddL2_eqPi`), with Itô form
+  `π_t = wPi(π_T)_t + b e^{−λ^b t}∫_0^t e^{λ^b u}dW_u` (`TidyR7StochWerningExist.eqPi_ae_eq_itoInt`),
+  which for `b ≠ 0` is not bounded in `L^∞` (`TidyR7StochWerningExist.not_bdd_ae_eqPi`). The active
+  rule (20.7) and the new-Keynesian choice of `π_T` remove all randomness
+  (`TidyR7StochWerningSelect.active_rule_selects`, `TidyR7StochWerningSelect.nk_selection`); the
+  fiscal `π_0 = 0` pins only the mean path (`TidyR7StochWerningSelect.pi0_not_selects`). Under a
+  mean-reverting natural-rate shock the unstable combination `λ^fπ − κx` responds by
+  `−κσ/(λ^f + η)` (`TidyR7StochWerningNatural.unstable_natural`), non-vacuously
+  (`TidyR7StochWerningNaturalExist.natural_nonvacuous`). The Brownian-motion and Itô modules are
+  copied from the Monetarism project (via the FiscalConstraints copies) and the Ornstein–Uhlenbeck
+  modules from the FiscalConstraints project.
 * **Welfare at the zero bound.** E9: with exact Calvo dispersion, the zero-bound steady state
   `Π_L = β` is better than `Π*` iff `βΠ* > 1` (`ZLBWelfare.zlb_better_iff`,
   `ZLBWelfare.e9_counterexample`); the book's calibration satisfies the condition
@@ -177,12 +203,16 @@ The weak inequality `t_C ≥ t_Z`, Galí's guess, holds at every optimum (`Lifto
 and with a zero post-shock natural rate the rate lifts off iff `σκ < ϑ`
 (`LiftoffStructure.rho_zero_no_liftoff`, `LiftoffRhoZero.rho_zero_liftoff_iff`).
 
-Three statements are made precise. The claim of p. 473 that undershooting equilibria "return
+Four statements are made precise. The claim of p. 473 that undershooting equilibria "return
 back to zero inflation and zero interest rates" holds under perfect foresight and on finite trees
 but fails under genuine uncertainty (`TidyR6OrbitStochastic.cex_not_ae_tendsto_zero`). The
 linearised valuation equation predicts `1/13` for the helicopter of p. 488, against the exact
 `1/12` in levels and `log(13/12)` in logs, complementing E10. The remark of p. 523 on moving
-eigenvalues is confirmed (`TidyR6RegimeEigen.path_crosses`).
+eigenvalues is confirmed (`TidyR6RegimeEigen.path_crosses`). Under uncertainty the fiscal
+selection `π_0 = 0` of p. 476 pins only the mean path, so it must specify the inflation innovation
+at every date, while the choice of `π_T` and the active rule (20.7) remove all randomness
+(`TidyR7StochWerningSelect.pi0_not_selects`, `TidyR7StochWerningSelect.nk_selection`,
+`TidyR7StochWerningSelect.active_rule_selects`).
 
 Not formalised:
 * the empirical and narrative parts of Chapters 20–21: the U.S. and Japanese experience, QE, the
@@ -201,9 +231,20 @@ Not formalised:
   deflation" (p. 477), which has no precise statement;
 * the illustrative numbers of Figures 20.4–20.6 (`π_0 = −132.46%`, `π_T ≈ 1.01%`, multipliers of
   66 and 528); only the E20 point `T = 1` is formalised;
-* stochastic versions of the continuous-time results of §§20.2.2–20.2.5, which would need Itô
-  calculus (stochastic differential equations), not available in Mathlib; the discrete-time and
-  finite-tree results of `TidyR6OrbitStochastic` are the substitute;
+* parts of the stochastic versions of §§20.2.2–20.2.5, which the `TidyR7StochWerning` modules
+  otherwise give on the natural filtration of a Brownian motion with the `TidyR7StochWerning.BddL1` and
+  `TidyR7StochWerning.BddL2` selections: the almost-sure unboundedness of the paths of the
+  Ornstein–Uhlenbeck equilibria on `[0, ∞)`, which needs a recurrence argument such as the one for
+  sampled Ornstein–Uhlenbeck processes in the FiscalConstraints project, not ported (`L²`
+  boundedness and `L^∞` unboundedness are proved); which innovation processes occur: every
+  `L¹`-bounded equilibrium has `π_s = wPi(E_sπ_T)_s`, but existence is shown only for constant
+  loadings `b`, and a full description needs martingale representation; the active rule after `T`
+  and the trap before `T` composed in one model; separate stochastic theorems for the frictionless
+  limit of §20.2.3 and the multipliers of §20.2.5, which apply to expectations through
+  `TidyR7StochWerningTrap.condExp_pi_eq_wPi`, `TidyR7StochWerningTrap.condExp_x_eq_wX` and
+  `TidyR7StochWerningTrap.mean_eq_wPi`; and, for natural-rate shocks, `E_sπ_t` itself (only the
+  unstable combination is characterised), a rate other than zero after `T`, and `L²` bounds (the
+  natural-rate equilibria are shown `L¹`-bounded);
 * a nonlinear sticky-price valuation equation: the linearisation with remainder is of the
   frictionless `P = B/S` of Chapter 21, and the sticky-price (5.13) is linked to it only through
   the frictionless limit of the impact coefficient (`Links.fiscal_impact_frictionless`);
@@ -247,6 +288,18 @@ Not formalised:
 | [TidyR6LiftoffLimit](ZeroBound/TidyR6LiftoffLimit.lean) | 56 | §20.2.1: the period-`h` family of Figure 20.3, its continuous-time limit with lift-off at `t_L < T`, convergence of the lift-off date and path, early versus delayed lift-off |
 | [TidyR6OrbitStochastic](ZeroBound/TidyR6OrbitStochastic.lean) | 33 | §20.2.1: the global orbit results under uncertainty, for every expectation system, on finite trees and a.e.; the i.i.d. counterexample to the return to zero |
 | [TidyR6RegimeEigen](ZeroBound/TidyR6RegimeEigen.lean) | 17 | Chapter 24, p. 523: the Leeper eigenvalues, the determinacy map, every path between the regimes crosses the unit circle, the jump in `∂π₀/∂c₀`; `θ` shifts are harmless |
+| [ExpIntegrals](ZeroBound/ExpIntegrals.lean) | 17 | Exponential integrals on `[0, ∞)`: discount factors, growing streams, translation, transversality (copied from the FiscalConstraints project) |
+| [LinearODE](ZeroBound/LinearODE.lean) | 12 | The debt-to-GDP equation (6.4), variation of constants, the corrected (6.5), the forward present value (copied from the FiscalConstraints project) |
+| [TidyR7BrownianSchauder](ZeroBound/TidyR7BrownianSchauder.lean), [TidyR7BrownianUnit](ZeroBound/TidyR7BrownianUnit.lean), [TidyR7BrownianExist](ZeroBound/TidyR7BrownianExist.lean), [TidyR7BrownianTools](ZeroBound/TidyR7BrownianTools.lean), [TidyR7StieltjesIntegral](ZeroBound/TidyR7StieltjesIntegral.lean), [TidyR7StieltjesSums](ZeroBound/TidyR7StieltjesSums.lean), [TidyR7BrownianQV](ZeroBound/TidyR7BrownianQV.lean), [TidyR7ItoL2](ZeroBound/TidyR7ItoL2.lean), [TidyR7ItoSums](ZeroBound/TidyR7ItoSums.lean), [TidyR7ItoIntegral](ZeroBound/TidyR7ItoIntegral.lean), [TidyR7StieltjesCalculus](ZeroBound/TidyR7StieltjesCalculus.lean), [TidyR7ItoBridge](ZeroBound/TidyR7ItoBridge.lean) | 357 | Brownian motion (Lévy–Ciesielski construction, existence on `[0, ∞)`, the natural filtration, martingales, quadratic variation), the Riemann–Stieltjes integral, the Itô integral and its isometry, and the bridge to pathwise and Wiener integrals (TidyR7BrownianSchauder 53, TidyR7BrownianUnit 13, TidyR7BrownianExist 17, TidyR7BrownianTools 25, TidyR7StieltjesIntegral 44, TidyR7StieltjesSums 34, TidyR7BrownianQV 48, TidyR7ItoL2 20, TidyR7ItoSums 44, TidyR7ItoIntegral 32, TidyR7StieltjesCalculus 11, TidyR7ItoBridge 16; copied from the Monetarism project via the FiscalConstraints copies) |
+| [TidyR7OUPath](ZeroBound/TidyR7OUPath.lean) | 23 | The Ornstein–Uhlenbeck equation solved path by path for any continuous driving path, uniqueness, the exact AR(1) step (copied from the FiscalConstraints project) |
+| [TidyR7WienerGaussian](ZeroBound/TidyR7WienerGaussian.lean) | 13 | Wiener integrals of deterministic `C¹` integrands: by-parts form, isometry, Gaussian law (copied from the FiscalConstraints project) |
+| [TidyR7OrnsteinUhlenbeck](ZeroBound/TidyR7OrnsteinUhlenbeck.lean) | 33 | The Ornstein–Uhlenbeck process `ouProc` driven by a pre-Brownian motion: pathwise solution, Itô form, Gaussian law, stationary limit (copied from the FiscalConstraints project) |
+| [TidyR7StochWerning](ZeroBound/TidyR7StochWerning.lean) | 10 | §§20.2.2–20.2.5 under uncertainty: `E_t dZ = D dt` in integrated form, regular processes, `L¹` and `L²` bounds, stochastic equilibrium, certainty equivalence |
+| [TidyR7StochWerningTrap](ZeroBound/TidyR7StochWerningTrap.lean) | 21 | §§20.2.2, 20.2.4 under uncertainty: every bounded equilibrium of the experiment, `E_sπ_t = wPi(E_sπ_T)_t`, the unstable root ruled out state by state, output and news responses, the deterministic case |
+| [TidyR7StochWerningExist](ZeroBound/TidyR7StochWerningExist.lean) | 20 | §20.2.2 under uncertainty: explicit equilibria on a Brownian motion for every `π_T` and innovation loading, `L²` bounds, distinctness, no `L^∞` bound, the Itô form, non-vacuity |
+| [TidyR7StochWerningSelect](ZeroBound/TidyR7StochWerningSelect.lean) | 6 | (20.7) and p. 476 under uncertainty: the active rule and the choice of `π_T` select state by state; `π_0 = 0` pins only the mean path |
+| [TidyR7StochWerningNatural](ZeroBound/TidyR7StochWerningNatural.lean) | 3 | (20.8)–(20.10) with a mean-reverting natural-rate shock: the unstable combination pinned state by state, response `−κσ/(λ^f + η)` |
+| [TidyR7StochWerningNaturalExist](ZeroBound/TidyR7StochWerningNaturalExist.lean) | 20 | Natural-rate shocks: explicit `L¹`-bounded equilibria on a Brownian motion with an Ornstein–Uhlenbeck shock, the pathwise smoothing `chiProc`, non-vacuity |
 
 ## Modelling conventions
 
@@ -280,7 +333,11 @@ Not formalised:
   is `u < 0` on `[0, T)` and `0` after, the interest rate is `0`, and the Phillips-curve
   disturbance is `g` on `[0, T)` and `0` after (`WerningModel.trapStep`). Selections are named by
   their pinned value: `π_T = 0` (new-Keynesian, `ZLBSelection.pi0NK`) and `π_0 = 0` (no jump,
-  `ZLBSelection.piTnj`).
+  `ZLBSelection.piTnj`). Under uncertainty (`TidyR7StochWerning`) processes are `ℝ → Ω → ℝ` with
+  continuous adapted paths (`TidyR7StochWerning.Regular`), `E_t dZ_t = D_t dt` means
+  `E_s[Z_t − Z_s − ∫_s^t D] = 0` for `0 ≤ s ≤ t` (`TidyR7StochWerning.ExpDrift`), and the
+  criterion is bounded first moments (`TidyR7StochWerning.BddL1`); the explicit equilibria live on
+  the natural filtration of a pre-Brownian motion, such as `TidyR7BrownianExist.bmPath`.
 * **Notation.** `λ₁`, `λ₂` are the discrete roots (5.6) (`ZLBPeg.lam1`, `ZLBPeg.lam2`); `λ^f`,
   `λ^b` the continuous-time roots (`ContinuousTimeNK.lamf`, `ContinuousTimeNK.lamb`). The
   functions `h` and `k` of the closed forms are `WerningModel.hh` and `WerningModel.kk`.
@@ -453,6 +510,15 @@ one model.
   the 1% example of p. 380, is covered by `ZLBWelfare.zlb_better_of_one_le`. The indeterminacy of
   the frictionless model under a passive rule, proved there, appears here as
   `FutureSelection.passive_forever_not_unique`.
+* **Chapter 6 (FiscalConstraints) and Chapter 19 (Monetarism).** The twelve Brownian-motion and
+  Itô modules (`TidyR7BrownianSchauder` to `TidyR7ItoBridge`) are copies of the Monetarism
+  project's, taken from the FiscalConstraints project's copies, and `ExpIntegrals`, `LinearODE`,
+  `TidyR7OUPath`, `TidyR7WienerGaussian` and `TidyR7OrnsteinUhlenbeck` are copies of
+  FiscalConstraints' own modules, all with only the namespace renamed and proofs unchanged; the
+  docstrings say "Restated from the Cochrane Monetarism project" or "Restated from the Cochrane
+  FiscalConstraints project" and name the original. There the Ornstein–Uhlenbeck process is the
+  AR(1) surplus of p. 197; here it is the stable-direction inflation innovation and the
+  natural-rate shock of the stochastic Werning model.
 * **Chapter 22 (`ObservationalEquivalence`).** That project owns the observational-equivalence
   remark of p. 476 and the Leeper model (23.1)–(23.4) with constant coefficients and its four
   regions (`LeeperRegions`), and the Markov-switching determinacy condition of Davig and Leeper
